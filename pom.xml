@@ -1,0 +1,73 @@
+<!--
+Copyright 2011 Normation SAS
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  
+  <parent>
+    <groupId>com.normation</groupId>
+    <artifactId>parent-pom</artifactId>
+    <version>0.10.1-SNAPSHOT</version>
+  </parent>
+  
+  <groupId>com.normation</groupId>
+  <artifactId>scala-ldap</artifactId>
+  <version>0.10.1-SNAPSHOT</version>
+  
+  <description>
+    This project define a Scala API to interoperate with LDAP
+    protocol and directories. 
+    It uses UnboundID LDAP SDK as back-end and add Scala more
+    idiomatic APIs.
+  </description>
+  
+  <inceptionYear>2010</inceptionYear>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <comments>
+        Scala-LDAP open source library is licensed under an Apache 2.0 license.
+        </comments>
+    </license>
+  </licenses>
+  
+  <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
+
+  <dependencies>
+    <dependency>
+      <groupId>com.unboundid</groupId>
+      <artifactId>unboundid-ldapsdk</artifactId>
+      <version>2.2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.normation</groupId>
+      <artifactId>utils</artifactId>
+      <version>0.10.1-SNAPSHOT</version>
+    </dependency>
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <id>maven.normation.com</id>
+      <url>https://maven.normation.com/</url>
+      <layout>default</layout>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+  </repositories>
+
+</project>
