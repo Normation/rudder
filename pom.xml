@@ -1,0 +1,372 @@
+<!--
+Copyright 2011 Normation SAS
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  
+  <groupId>com.normation</groupId>
+  <artifactId>parent-pom</artifactId>
+  <version>0.10.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  
+  <!-- ====================================  PROJECT INFORMATION  ==================================== -->
+  
+  <description>
+    This is the master parent pom, which knows all common dependencies, generic infos about resources,users.
+    For now, it includes (Normation) private resources. 
+  </description>
+  
+  <organization>
+    <name>Normation SAS</name>
+    <url>http://www.normation.com/</url>
+  </organization>
+
+  <developers>
+    <developer>
+      <id>ncharles</id>
+      <name>Nicolas Charles</name>
+      <timezone>+1</timezone>
+      <email>nicolas.charles [at] normation.com</email>
+    </developer>
+    <developer>
+      <id>fanf42</id>
+      <name>Francois Armand</name>
+      <timezone>+1</timezone>
+    </developer>
+    <developer>
+      <id>jooooooon</id>
+      <name>Jonathan Clarke</name>
+      <timezone>+1</timezone>
+    </developer>
+  </developers>
+  
+  <!-- ====================================  /PROJECT INFORMATION  ==================================== -->
+  
+  <!-- ====================================  PROJECT REPOS  ==================================== -->
+
+  <repositories>
+    <repository>
+      <id>maven.normation.com</id>
+      <url>https://maven.normation.com/</url>
+      <layout>default</layout>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+    <repository>
+      <id>scala-tools.org</id>
+      <name>Scala-tools Maven2 Repository</name>
+      <url>http://scala-tools.org/repo-releases</url>
+      <releases><enabled>true</enabled></releases>
+      <snapshots><enabled>false</enabled></snapshots>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>scala-tools.org</id>
+      <name>Scala-tools Maven2 Repository</name>
+      <url>http://scala-tools.org/repo-releases</url>
+      <snapshots><enabled>false</enabled></snapshots>
+    </pluginRepository>
+    <pluginRepository>
+      <id>zt-repo</id>
+      <name>Zero turnaround repo</name>
+      <url>http://repos.zeroturnaround.com/maven2</url>
+      <snapshots><enabled>false</enabled></snapshots>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <!-- ====================================  /PROJECT REPOS  ==================================== -->
+
+  <!-- ====================================  PROJECT BUILD  ==================================== -->
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ssh.normation.com</id>
+      <name>Normation internal repository for snapshot</name>
+      <url>scp://maven.normation.com:5190/var/www/maven.normation.com/</url>                                                                          
+    </snapshotRepository>
+    <repository>
+      <id>ssh.normation.com</id>
+      <name>Normation internal repository</name>
+      <url>scp://maven.normation.com:5190/var/www/maven.normation.com</url>
+    </repository>
+  </distributionManagement>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>cobertura-maven-plugin</artifactId>
+        <version>2.4</version>
+        <configuration>
+          <formats>
+            <format>xml</format>
+          </formats>
+        </configuration>  
+      </plugin>
+      <plugin>
+        <groupId>org.scala-tools</groupId>
+        <artifactId>maven-scala-plugin</artifactId>
+        <version>${scala-maven-plugin-version}</version> 
+      </plugin>
+    </plugins>
+  </reporting>
+
+  <build>
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-ssh</artifactId>
+        <version>1.0-beta-6</version>
+      </extension>
+    </extensions>
+    <plugins>
+       <plugin>
+        <groupId>org.scala-tools</groupId>
+        <artifactId>maven-scala-plugin</artifactId>
+        <version>${scala-maven-plugin-version}</version>
+        <executions>
+          <execution>
+            <id>scala-compile-first</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>add-source</goal>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>scala-test-compile</id>
+            <phase>process-test-resources</phase>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <args>
+            <arg>-target:jvm-1.5</arg>
+            <arg>-make:transitive</arg>
+            <arg>-dependencyfile</arg>
+            <arg>${basedir}/.scala_dependencies</arg>
+          </args>
+          <jvmArgs>
+            <jvmArg>-Xmx1G</jvmArg>
+            <jvmArg>-client</jvmArg>
+          </jvmArgs>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.zeroturnaround</groupId>
+        <artifactId>jrebel-maven-plugin</artifactId>
+        <version>1.0.7</version>
+        <executions>
+          <execution>
+            <id>generate-rebel-xml</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.codehaus.plexus</groupId>
+            <artifactId>plexus-utils</artifactId>
+            <version>1.4.1</version>
+              <scope>runtime</scope>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <source>1.6</source>
+          <target>1.6</target>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>      
+    </plugins>
+    <pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.eclipse.m2e</groupId>
+        <artifactId>lifecycle-mapping</artifactId>
+        <version>1.0.0</version>
+        <configuration>
+          <lifecycleMappingMetadata>
+            <pluginExecutions>
+              <pluginExecution>
+                <pluginExecutionFilter>
+                  <groupId>org.zeroturnaround</groupId>
+                  <artifactId>jrebel-maven-plugin</artifactId>
+                  <versionRange>[0.1,)</versionRange>
+                  <goals>
+                    <goal>generate</goal>
+                  </goals>
+                </pluginExecutionFilter>
+                <action>
+                  <execute />
+                </action>
+              </pluginExecution>
+              <pluginExecution>
+                <pluginExecutionFilter>
+                  <groupId>org.scala-tools</groupId>
+                  <artifactId>maven-scala-plugin</artifactId>
+                  <versionRange>[0.1,)</versionRange>
+                  <goals>
+                    <goal>add-source</goal>
+                    <goal>compile</goal>
+                    <goal>testCompile</goal>              
+                  </goals>
+                </pluginExecutionFilter>
+                <action>
+                  <configurator>
+                    <id>org.maven.ide.eclipse.scala</id>
+                  </configurator>                  
+                </action>
+              </pluginExecution>
+            </pluginExecutions>
+          </lifecycleMappingMetadata>
+        </configuration>
+      </plugin>
+    </plugins>
+    </pluginManagement>
+  </build>
+  
+  <!-- ====================================  /PROJECT BUILD  ==================================== -->
+  
+  <!-- ==================================== PROJECT PROPERTIES  ==================================== -->
+ 
+  <properties>
+    <!-- we use UTF-8 for everything -->
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- Maven plugin version -->
+    <scala-maven-plugin-version>2.15.0</scala-maven-plugin-version>
+
+    <!-- Libraries version that MUST be used in all children project -->
+    <scala-version>2.9.0-1</scala-version>
+    <scala-lift-version>2.9.0-1</scala-lift-version>
+    <lift-version>2.4-M3.1</lift-version>
+    <slf4j-version>1.6.1</slf4j-version>
+    <logback-version>0.9.28</logback-version>
+    <junit-version>4.8.2</junit-version>
+    <jodatime-version>1.6.2</jodatime-version>
+
+    <spring-version>3.0.5.RELEASE</spring-version>
+    <spring-run-dep-version>0.10.1-SNAPSHOT</spring-run-dep-version>
+  </properties>
+  
+  <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
+  
+  <dependencies>
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-library</artifactId>
+      <version>${scala-version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>joda-time</groupId>
+      <artifactId>joda-time</artifactId>
+      <version>${jodatime-version}</version>
+    </dependency>
+  
+    <dependency>
+      <groupId>net.liftweb</groupId>
+      <artifactId>lift-common_${scala-lift-version}</artifactId>
+      <version>${lift-version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+        <exclusion>
+          <artifactId>log4j</artifactId>
+          <groupId>log4j</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    
+    <!--
+      We use SLF4J log facade with logback implementation
+    -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j-version}</version>
+    </dependency>
+
+    <!--  test -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit-version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.specs2</groupId>
+      <artifactId>specs2_${scala-version}</artifactId>
+      <version>1.5</version>
+      <scope>test</scope>
+    </dependency>
+    
+    <!-- 
+        included to use slf4j native backend 
+        If you want to use another backend, 
+        exclude these dependencies from parent
+    -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <version>${logback-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback-version}</version>
+    </dependency>
+    
+    <!-- 
+        If you need to use Spring, you will HAVE TO include that first dependency 
+        or com.normation.spring-run-dependencies pom
+    -->
+    <!-- 
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+      <version>${spring-version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    -->
+
+  </dependencies>
+</project>
