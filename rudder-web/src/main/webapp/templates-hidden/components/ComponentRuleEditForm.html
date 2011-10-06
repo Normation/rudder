@@ -1,0 +1,183 @@
+<xml:group>
+
+
+<component:staticInit>
+<head>
+  <style type="text/css">
+  
+    .topLevelAction .twoColumns {
+      text-align: center;
+      vertical-align: middle;
+      display: inline-block;
+      /* only for IE inf 7 */
+      display*: inline;
+      zoom*: 1;
+    }
+    
+    .topLevelAction .twoColumnsRight {
+      margin-left:20px
+      margin-right: 5px;
+    }
+    
+    .topLevelAction .twoColumns > * {
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 50px;
+    }
+    
+    .disableNotice {
+      margin-top:10px;
+      font-size:0.9em;
+    }
+    
+    .editZone {
+      margin-top:30px;
+    }
+    
+    .groupedEditZone {
+      margin-bottom:10px;
+    }
+    
+    label.wbBaseFieldLabel {
+      margin-right:10px;
+    }
+  </style>
+</head>
+</component:staticInit>
+
+<component:body>
+
+
+<div id="editCrZone">
+<ul id="configRuleDetailsTabMenu">
+  <li><a href="#configRuleDetailsEditTab">Edit configuration rule parameters</a></li>
+</ul>
+
+<div id="configRuleDetailsEditTab">
+  <div id="editForm"></div>
+</div>
+</div>
+</component:body>
+
+<component:form>
+<div id="editForm" class="object-details">
+
+  <fieldset class="topLevelAction">
+    <p class="clearable">
+      This is the zone for top level actions which does not take into account
+      modifications done in the edit zone. 
+    </p>
+    
+    <legend>Modify configuration rule status</legend>
+
+    <div id="removeAction" class="twoColumns">
+<!--      <label for="removeButton" id="removeButtonLabel">Remove from user library</label>-->
+      <button id="removeButton">Delete</button>
+    </div>
+    <div id="removeActionDialog" style="display:none">
+      <div class="simplemodal-title">
+        <h1>Delete a configuration rule</h1>
+        <hr/>
+      </div>
+      <div class="simplemodal-content">    
+        <div>
+          <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+          <h2>Deleting this configuration rule will also delete its history and compliance reports.</h2>
+        </div>
+        <hr class="spacer" />
+        <br />
+        <br />
+        <h2>Are you sure that you want to completely delete this item?</h2>
+        <hr class="spacer" />
+  		</div>
+			<div class="simplemodal-bottom">
+				<hr/>
+				 <div class="popupButton">
+				 	<span>
+         		<button class="simplemodal-close" onClick="return false;">Cancel</button>
+         		<button id="dialogRemoveButton">Delete</button>
+         	</span>
+         </div>
+      </div>
+    </div>
+    
+    <div id="desactivateAction" class="twoColumns twoColumnsRight">
+      <button id="disactivateButton"><span id="disactivateButtonLabel">desactivate</span></button>
+    </div>
+    
+    <div id="desactivateActionDialog" style="display:none">
+      <div class="simplemodal-title">
+        <h1><span id="dialogDeactivateTitle">Disable</span> a configuration rule</h1>
+        <hr/>
+      </div>
+      <div class="simplemodal-content">
+        <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+        <h2>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this configuration rule?</h2>
+ 				<hr class="spacer" />
+  		</div>
+			<div class="simplemodal-bottom">
+				<hr/>
+				 <div class="popupButton">
+				 	<span>
+         		<button class="simplemodal-close" onClick="return false;">Cancel</button>  
+         		<button id="dialogDisactivateButton">Disactivate</button>
+         	</span>
+          </div>
+       </div>
+    </div>
+    
+    <div class="disableNotice">
+        Note: the configuration rule will be applied only if its status is Enabled and 
+        its policy, policy template and target node group are all Enabled.
+    </div>
+    
+  </fieldset>
+
+  <fieldset class="editZone">
+    <legend>Modify configuration rule parameters</legend>
+
+    <div id="notification">
+      <ul>
+        <li>Here comes notifications</li>
+      </ul>
+    </div>
+    <hr class="spacer" />
+    <div class="groupedEditZone">
+      <div id="nameField">
+        Here comes the name field
+      </div>
+      <hr class="spacer" />
+      <div id="shortDescriptionField">
+        Here comes the shortDescription field
+      </div>
+      <hr class="spacer" />
+    </div>
+    
+    <div class="groupedEditZone">
+       <fieldset class="crEditHierarchy"><legend>Policy instance</legend>
+          <div id="selectPiField">
+            Here comes the policy instance selection field
+          </div>
+        </fieldset>
+        <fieldset class="crEditHierarchy"><legend>Group hierarchy</legend>
+          <div id="selectGroupField">
+            Here comes the group selection field
+          </div>
+        </fieldset>
+      <div class="hierarchySpacer"></div>
+    </div>
+    
+    <div id="longDescriptionField">
+      Here comes the longDescription field
+    </div>
+
+    <hr class="spacer" />
+
+    <div style="float:right;">
+      <button id="save">Save</button>
+    </div>
+  </fieldset>
+</div>
+</component:form>
+
+</xml:group>

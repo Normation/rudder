@@ -1,0 +1,87 @@
+<VARIABLES>
+    <VARIABLE>
+		  <VARIABLEDEF>
+				<NAME>$SIMPLEVARIABLE</NAME>
+				<DESCRIPTION>Simple variable</DESCRIPTION>
+			</VARIABLEDEF>
+	  </VARIABLE>
+
+    <VARIABLE>
+			<VARIABLEDEF>
+	      <NAME>$CONSTRAINEDVARIABLE</NAME>
+				<DESCRIPTION>Constrained variable</DESCRIPTION>
+				<CONSTRAINT>
+             <ENTRY>
+					    <VALUE>value</VALUE>
+              <LABEL>label</LABEL>
+					</ENTRY>
+             <ENTRY>
+					    <VALUE>value2</VALUE>
+              <LABEL>label2</LABEL>
+             </ENTRY>
+				</CONSTRAINT>
+      </VARIABLEDEF>
+    </VARIABLE>
+
+    <VARIABLE>
+			<VARIABLEDEF>
+	      <NAME>$VARMACHINE</NAME>
+				<DESCRIPTION>Variable Machine</DESCRIPTION>
+        <FIELD>name</FIELD>
+      </VARIABLEDEF>
+    </VARIABLE>
+
+    <VARIABLE>
+			<VARIABLEDEF>
+	      <NAME>$VARDATE</NAME>
+				<DESCRIPTION>Variable Date</DESCRIPTION>
+				<TYPE>datetime</TYPE>
+      </VARIABLEDEF>
+    </VARIABLE>
+
+    <VARIABLE>
+			<VARIABLEDEF>
+	      <NAME>varlist</NAME>
+				<DESCRIPTION>Variable list</DESCRIPTION>
+				<TYPE>string</TYPE>
+				<MULTIVALUED>true</MULTIVALUED>
+				<MAYBEEMPTY>true</MAYBEEMPTY>
+      </VARIABLEDEF>
+    </VARIABLE>
+
+    <VARIABLE>
+			<VARIABLEDEF CATEGORY="policyinstance">
+				<NAME>varpolicyinstance</NAME>
+				<DESCRIPTION>Variable policy instance</DESCRIPTION>
+				<TYPE>string</TYPE>
+        <SAMESIZEAS>Bounding</SAMESIZEAS>
+      </VARIABLEDEF>
+    </VARIABLE>
+    
+    <VARIABLE>
+	    <VARIABLEDEF>
+	        <NAME>gui_only</NAME>
+	        <DESCRIPTION>a gui only variable</DESCRIPTION>
+	        <TYPE>integer</TYPE>
+	        <MULTIVALUED>FileCopy</MULTIVALUED>
+	        <RUDDER-GUI GUI_ONLY="true">
+	          <FROM>UploadedFile</FROM>
+	          <PROPERTY>Size</PROPERTY>
+	          <HIDDEN>true</HIDDEN>
+	        </RUDDER-GUI>
+	        <CHECKED>false</CHECKED>
+	      </VARIABLEDEF>
+	   </VARIABLE>
+
+    <VARIABLE>
+			<VARIABLEDEF PRECEDENCE="42" SECTION="BOB">
+				<NAME>full</NAME>
+				<DESCRIPTION>Variable with a lot of things</DESCRIPTION>
+				<LONGDESCRIPTION>LONGDESCRIPTION</LONGDESCRIPTION>
+				<DEFAULT>DEFAULT</DEFAULT>
+				<TYPE>string</TYPE>
+        <SAMESIZEAS>Bounding</SAMESIZEAS>
+      </VARIABLEDEF>
+    </VARIABLE>
+    
+</VARIABLES>

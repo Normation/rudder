@@ -1,0 +1,58 @@
+
+
+Developers documentation
+========================
+
+
+This documentation is a general documentation about developments rules for Rudder-web module. 
+
+
+Where to start
+--------------
+
+You should have a basic understanding of the project layout, where things go. 
+After that, bootstrap.liftweb.Boot and bootstrap.liftweb.AppConfig will give
+you a summary of boot process, actions and services used. 
+
+Snippets pages are mapped one to one with real application pages.
+
+
+Packages
+--------
+
+Describe the expected content / main class of each packages
+
+
+* bootstrap.liftweb
+    Here comes everything tied to application bootstrap and starting time. Mainly, it's:
+    * Lift bootstrap, in **Boot.scala**
+    * Spring / DI configuration (AppConfig for all the weaving)
+    * bootstrap actions and checks.
+    
+* com.normation.spring
+    A simple utility class to make Spring Dependency Injection more natural in Scala.
+    
+ * com.normation.web
+    Main Lift package.
+    
+    * com.normation.web.api
+        REST/Saop API go here. 
+    
+    * com.normation.web.components
+        That package contains Snippet NOT accessible as pages, and which need to be
+        instanciated in the context of an other (page) Snippet. 
+        See com.normation.web.PolicyInstanceManagement / com.normation.web.components.PolicyInstanceSettingForm
+        for an use case. 
+    
+    * com.normation.web.model
+        Entity classes, only used in the web-tier. 
+    
+    * com.normation.web.serices
+        Service classes, only used in the web-tier
+        
+    * snippet
+        Lift page classes, with the presentation look and logic. 
+    
+    
+ 
+ 

@@ -1,0 +1,20 @@
+	<reports:report>
+	<p class="reportsHeader">Status reported for this configuration rule on last execution (if in the last 15 minutes): <lastReportGrid:crName/></p>
+	<table id="reportsGrid" cellspacing="0">
+    <thead>
+      <tr class="head">
+        <th>Node name<span/></th>
+        <th>Severity<span/></th>
+      </tr>
+    </thead>
+    <tbody>   
+      <lastReportGrid:lines>
+          <td  name="serverName"><line:hostname /></td>
+          <td><line:severity /></td>
+      </lastReportGrid:lines>
+    </tbody>
+    </table>
+    <div class="reportsGrid_pagination" style="float:left;">
+     <div id="reportsGrid_paginate_area"/>
+    </div>
+	</reports:report>

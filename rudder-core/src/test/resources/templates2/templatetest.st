@@ -1,0 +1,1 @@
+<boo>&title&</boo>

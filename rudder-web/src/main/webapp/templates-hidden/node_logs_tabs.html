@@ -1,0 +1,33 @@
+<logs:content>
+  <h3>Technical logs from policies applied to this node</h3>
+  <hr class="spacer"/>
+  <p class="reportsHeader">The table below contains all the technical logs received from this node. These are used to calculate Compliance (see previous tab), and may be useful in analyzing problems, or obtaining details in the case of automatic repairs.</p>
+
+  <table id="logsGrid" cellspacing="0">
+    <thead>
+      <tr class="head">
+        <th>Execution date<span/></th>
+        <th>Severity<span/></th>
+        <th>Policy<span/></th>
+        <th>Configuration rule<span/></th>
+        <th>Message<span/></th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <logsGrid:lines>
+          <td><line:executionDate /></td>
+          <td><line:severity /></td>
+          <td><line:policy /></td>
+          <td><line:crId /></td>
+          <td><line:msg /></td>
+      </logsGrid:lines>
+    </tbody>
+  </table>
+
+    <div id="logsGrid_paginate_area" class="paginate"/>
+
+
+</logs:content>
+
+

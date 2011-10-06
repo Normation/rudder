@@ -1,0 +1,20 @@
+<LogEntryStore>
+    <logEntry>
+      <category>AddServerLogEntry</category>
+      <id>1</id><user>Init</user><creationDate>2010-09-13T14:14:20.709+02:00</creationDate><modificationDate>2010-09-13T14:14:20.709+02:00</modificationDate>
+      <serverUUID>root</serverUUID>
+      
+    </logEntry><logEntry>
+      <category>AddPolicyInstanceLogEntry</category>
+      <id>2</id><creationDate>2010-09-13T14:14:20.709+02:00</creationDate><modificationDate></modificationDate><cause>1</cause>
+      <serverUUID>root</serverUUID>
+      <policyInstanceId>DistributePolicy1</policyInstanceId>
+      
+    </logEntry><logEntry>
+      <category>AddPolicyInstanceLogEntry</category>
+      <id>3</id><creationDate>2010-09-13T14:14:20.709+02:00</creationDate><modificationDate></modificationDate><cause>1</cause>
+      <serverUUID>root</serverUUID>
+      <policyInstanceId>HasPolicyServer1</policyInstanceId>
+      
+    </logEntry>
+	</LogEntryStore>

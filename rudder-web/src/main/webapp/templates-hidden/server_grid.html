@@ -1,0 +1,34 @@
+<!-- 
+	
+	Presentation part of the Sever grid displaying	
+	
+ -->
+ 
+<xml:goup>
+
+	<servergrid:head>
+		<script type="text/javascript" language="javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
+	</servergrid:head>
+
+	<servergrid:table cellspacing="0">
+		<thead>
+			<tr class="head">
+				<th>Node name<span/></th>
+				<th>Operating system<span/></th>
+				<th>IP addresses<span/></th>
+				<servergrid:header/>
+			</tr>
+		</thead>
+		<tbody>		
+			<servergrid:lines>
+				<tr>
+					<td  name="serverName"><line:hostname /></td>
+					<td><line:fullos /></td>
+					<td><line:ips /></td>
+					<line:other/>
+				</tr>
+			</servergrid:lines>
+		</tbody>
+		
+	</servergrid:table>	
+</xml:goup> 

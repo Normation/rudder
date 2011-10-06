@@ -1,0 +1,62 @@
+<!-- 
+	
+	Presentation part of the Refuse New Server :
+	This is the confirmation popup
+	
+ -->
+ 
+<refuse_new_server:template>
+<div id="refusePopup" style="display:none;">
+<div id="refuseServerPopup">
+  <div class="simplemodal-title">
+      <h1>Refuse nodes in Rudder</h1>
+      <hr/>
+  </div>
+  <div class="simplemodal-content">
+    <div class="denyContent">
+    <h3>Please confirm that you wish to REFUSE the following nodes in Rudder</h3>
+
+      <div id="pendingServerConfirm_paginate_area" style="display:none;"/>
+    <table cellspacing="0" id="pendingServerConfirm" width="600">
+      <thead>
+        <tr class="head">
+          <th>Node name<span/></th>
+          <th>Operating system<span/></th>
+        </tr>
+      </thead>
+      <tbody>
+        <servergrid:lines>
+          <tr>
+            <td><line:hostname /></td>
+            <td><line:os /></td>
+          </tr>
+        </servergrid:lines>
+      </tbody>
+
+    </table>
+
+    <div class="warn">
+      <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+      <div>This action will delete the latest inventory data that has been sent to
+        Rudder by these nodes.<br/>
+        If the nodes are still up and running, they will keep on sending inventory
+        data to Rudder, and appear again in this list.</div>
+    </div>
+    </div>
+    <br/>
+    <hr class="spacer" />
+   </div>
+	 <div class="simplemodal-bottom">
+		<hr/>
+    	<form method="POST">
+    		<div class="popupButton">
+	    		<span>
+    		    <servergrid:close/>
+		        <servergrid:refuse/>
+		      </span>
+     		</div>
+    	</form>
+   </div>
+</div>
+</div>
+</refuse_new_server:template> 

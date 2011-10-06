@@ -1,0 +1,41 @@
+<!--
+  This is the content of the create group / create category popup
+  It get called to be injected within the group.html
+ -->
+<groups:createGroupPopup>
+    <div class="simplemodal-title">
+      <h1>Create a new item</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+    	<div class="wbBaseField" id="itemCreation">
+      	<label class="threeCol wbBaseFieldLabel" style="text-align: right">Item to create:</label>
+      	<div class="align-radio"><item:itemType/></div>
+      </div>
+      <hr class="spacer"/>
+      <item:notifications />
+      <hr class="spacer"/>
+      <item:itemName/>
+      <hr class="spacer"/>
+      <item:itemContainer/>
+      <hr class="spacer"/>
+      <item:itemDescription/>
+      <hr class="spacer"/>
+      <div id="createGroupHiddable" style="display:none;">
+        <item:groupType/>
+        <hr class="spacer"/>
+      </div>
+      <br/>
+    </div>
+		<div class="simplemodal-bottom">
+		 <hr/>
+	    <div class="popupButton">
+	    	<span>
+	        <item:cancel/>
+	        <item:save/>
+	      </span>
+	    </div>
+    </div>
+   
+    
+ </groups:createGroupPopup>

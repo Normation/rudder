@@ -1,0 +1,187 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+  <bean id="variableSpecParser" class="com.normation.cfclerk.services.domain.VariableSpecParser"/>
+
+  <bean id="variableParser" class="com.normation.cfclerk.services.domain.VariableParser">
+    <constructor-arg ref = "variableSpecParser" />
+  </bean>
+  
+  <bean id="rudderVariableSpecParser" class="com.normation.rudder.services.domain.RudderVariableSpecParser">
+  </bean>
+
+  <bean id="rudderVariableParser" class="com.normation.rudder.services.domain.RudderVariableParser">
+    <constructor-arg ref = "rudderVariableSpecParser" />
+    <constructor-arg ref = "variableParser" />
+  </bean>
+  
+  <bean id="policyBindingParser" class="com.normation.rudder.services.domain.PolicyBindingParser">
+    <constructor-arg ref = "rudderVariableParser" />
+  </bean>
+  
+  <bean id="reportsInfoPolicyInstanceParser" class="com.normation.rudder.services.domain.ReportsInfoPolicyInstanceParser">
+    <constructor-arg ref = "rudderVariableParser" />
+  </bean>
+<!-- 
+  <bean id="rootServerParser" class="com.normation.rudder.services.domain.RootServerParser">
+    <constructor-arg ref = "rudderPolicyInstanceParser" />
+  </bean>
+
+  <bean id="serverParser" class="com.normation.rudder.services.domain.ServerParser">
+    <constructor-arg ref = "rudderPolicyInstanceParser" />
+  </bean> -->
+    
+  <bean id="tmlParser" class="com.normation.cfclerk.services.domain.TmlParser">
+    <constructor-arg ref = "rudderVariableSpecParser" />
+  </bean> 
+  <bean id="policyParser" class="com.normation.cfclerk.services.domain.PolicyParser">
+    <constructor-arg ref = "tmlParser" />
+  </bean>
+  <bean id="rudderPolicyInstanceParser" class="com.normation.rudder.services.domain.RudderPolicyInstanceParser">
+    <constructor-arg ref = "rudderVariableParser" />
+  </bean>  
+
+  <bean id="policyBindingsRepository" class="com.normation.rudder.repository.DummyPolicyBindingsRepository"/>
+  
+  
+  <bean id="policyPackageReader" class="com.normation.rudder.services.policies.DummyPolicyPackagesReader"/>
+
+  <bean id="machineRepository" class="com.normation.rudder.repository.xml.ServerRepositoryXML" scope="prototype">
+    <constructor-arg  ref="rootServerParser"/>
+    <constructor-arg  ref="serverParser"/>
+	  <constructor-arg  value="src/test/resources/testConfig.xml"/>
+	  <constructor-arg  value="true"/>
+  </bean>
+ 
+
+  <bean id="pathComputer" class="com.normation.rudder.services.path.PathComputerImpl">
+    <constructor-arg ref="machineRepository"/>
+    <constructor-arg name="baseFolder"  value="/baseFolder/"/>
+ 	<constructor-arg name="backupFolder"  value="/backup/"/>
+  </bean>
+
+  <bean id="policyTranslator" class="com.normation.rudder.services.policies.DummyPolicyTranslator"/>
+
+  <bean id="policyService" class="com.normation.rudder.services.policies.DummyPolicyService" lazy-init="true">
+  </bean>
+
+  <bean id="machineService" class="com.normation.rudder.services.servers.ServerServiceImpl">
+    <constructor-arg ref = "policyTranslator" />
+    <constructor-arg ref="machineRepository"/>
+    <constructor-arg ref="policyService"/>
+    <constructor-arg ref="policyInstanceAdapter"/>
+    <constructor-arg ref="eventLogService"/>
+    <constructor-arg value="/tmp/rudder-tests/var/rudder/lock/"/>
+  </bean>
+  
+  <bean id="policyInstanceAdapter" class="com.normation.cfclerk.adapters.PolicyInstanceAdapter">
+   <constructor-arg ref="policyService"/>
+  </bean>
+  
+  
+  <!--  Reporting part -->
+  <bean id="reportingService" class="com.normation.rudder.services.reports.ReportingServiceImpl">
+   <constructor-arg ref="machineRepository"/>
+   <constructor-arg ref="reportsInfoRepository"/>
+   <constructor-arg ref="configurationExpectedRepo"/>
+   <constructor-arg ref="operationExpectedRepo"/>
+   <constructor-arg ref="reportsRepository"/>   
+  </bean>
+  
+   <bean id="reportsInfoRepository" class="com.normation.rudder.repository.xml.ReportsInfoRepositoryXML" lazy-init="true" scope="singleton"  init-method="loadReportsInfo">
+    <constructor-arg ref="reportsInfoPolicyInstanceParser"/>
+    <constructor-arg  value="src/test/resources/reportsInfo.xml"/>
+    <constructor-arg  value="true"/>
+  </bean>
+  
+  <bean id="confExpectedRepo" class="com.normation.rudder.repository.inMemory.InMemoryConfigurationExpectedReportsRepository" lazy-init="true" scope="singleton" />
+
+  <bean id="opExpectedRepo" class="com.normation.rudder.repository.inMemory.InMemoryOperationExpectedReportsRepository" lazy-init="true" scope="singleton" />
+
+  <bean id="configurationExpectedRepo" class="com.normation.rudder.repository.jdbc.ConfigurationExpectedReportsJdbcRepository" lazy-init="true" scope="singleton" >
+  	<constructor-arg ref="jdbcTemplate"/>
+  </bean>
+   <bean id="operationExpectedRepo" class="com.normation.rudder.repository.jdbc.OperationExpectedReportsJdbcRepository" lazy-init="true" scope="singleton" >
+  	<constructor-arg ref="jdbcTemplate"/>
+  </bean>
+  
+ <!-- Event Log part --> 
+  <bean id="eventLogRepository" class="com.normation.rudder.repository.inMemory.InMemoryEventLogRepository" lazy-init="true" scope="singleton" >
+  </bean>
+
+   <bean id="jdbcEventLogRepository" class="com.normation.rudder.repository.jdbc.EventLogJdbcRepository" lazy-init="true" scope="singleton" >
+     	<constructor-arg ref="jdbcTemplate"/>
+   </bean>
+    
+   <bean id="eventLogService" class="com.normation.rudder.services.log.EventLogServiceImpl" lazy-init="true">
+    <constructor-arg ref="eventLogRepository"/>
+    <constructor-arg ref="eventLogConverter"/>
+    
+  </bean>
+  
+  <bean id="guiEventLogSpecializer" class="com.normation.rudder.domain.log.specializer.GuiEventLogSpecializer"/>
+  
+  <bean id="inventoryEventLogSpecializer" class="com.normation.rudder.domain.log.specializer.InventoryEventLogSpecializer"/>
+  
+  <bean id="policyInstanceEventLogSpecializer" class="com.normation.rudder.domain.log.specializer.PolicyInstanceEventLogSpecializer">
+  	<constructor-arg ref = "rudderVariableParser" />
+  </bean>
+  
+  <bean id="serverEventLogSpecializer" class="com.normation.rudder.domain.log.specializer.ServerEventLogSpecializer"/>
+  
+  <bean id="eventLogConverter" class="com.normation.eventlog.EventLogConverter">
+  	<constructor-arg>
+  		<list>
+  			<ref bean="policyInstanceEventLogSpecializer"/>
+  			<ref bean="serverEventLogSpecializer"/>
+  			<ref bean="inventoryEventLogSpecializer"/>
+  			<ref bean="guiEventLogSpecializer"/>
+  		</list>
+  	</constructor-arg>
+  </bean>
+  
+  <bean id="reportsRepository" class="com.normation.rudder.repository.jdbc.ReportsJdbcRepository">
+  	<constructor-arg ref="jdbcTemplate"/>
+  </bean>
+  
+  <!-- JDBC connectivity -->
+
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations" value="classpath:database.properties"/>
+	</bean>
+
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="${jdbc.driverClassName}" />
+		<property name="url" value="${jdbc.url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean>
+
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource"><ref bean="dataSource"/></property>
+	</bean>
+
+<!-- 	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+	    <property name="driverClassName" value="org.postgresql.Driver"/>
+	    <property name="url" value="jdbc:postgresql://localhost:5432/test"/>
+	    <property name="username" value="test"/>
+	    <property name="password" value="test"/>
+	    <property name="maxIdle" value="10"/>
+	    <property name="maxActive" value="100"/>
+	    <property name="maxWait" value="10000"/>
+	    <property name="validationQuery" value="select 1"/>
+	    <property name="testOnBorrow" value="false"/>
+	    <property name="testWhileIdle" value="true"/>
+	    <property name="timeBetweenEvictionRunsMillis" value="1200000"/>
+	    <property name="minEvictableIdleTimeMillis" value="1800000"/>
+	    <property name="numTestsPerEvictionRun" value="5"/>
+	    <property name="defaultAutoCommit" value="true"/>
+	</bean>
+
+   -->
+  
+</beans>
+

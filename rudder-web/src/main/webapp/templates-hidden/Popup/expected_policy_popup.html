@@ -1,0 +1,56 @@
+<!-- 
+  
+  Presentation part of the expected policyfor a pending server
+  This is the popup listing the details
+  
+ -->
+ 
+<expectedPolicyPopup:template>
+<div id="expectedPolicyPopup" style="display:none;">
+<div id="expectedPolicyContent">
+  <div class="simplemodal-title">
+      <h1>View policies</h1>
+      <hr/>
+  </div>
+  <div class="simplemodal-content">
+    <h3>The following configuration rules will be applied to this server as it joins Rudder</h3>
+		<br/>
+    <div id="serverHeadInformation">Server name : <b><expectedPolicyPopup:server/></b></div>
+    
+    <hr class="spacer"/>
+  <div>  
+    <span class="clearable">All the following grid will be replace by the real grid</span>  
+    <div id="dependentRulesGrid">
+      <div id="expectedPolicyTabs_paginate_area" style="display:none;"/>
+	      <table cellspacing="0" id="expectedPolicyTabs" width="600">
+	        <thead>
+	          <tr class="head">
+	            <th>Here comes head information</th>
+	          </tr>
+	        </thead>
+	        <tbody>
+	          <tr>
+	            <td>Here comes configuration rules details</td>
+	          </tr>
+	        </tbody>
+	      </table>
+      </div>
+    </div>
+    <hr class="spacer"/>
+	  <div class="inform">
+	      <img src="/img/icOK.png" alt="Note" height="32" width="32" style="float:left; margin-right:20px;"/>
+	      <div>Some additional configuration rules may be applied to this server when additional asset information is synchronized from your CMDB</div>
+	  </div>
+    <br/>
+  </div>  
+  
+  <div class="simplemodal-bottom">
+    <hr/>
+    <div class="popupButton">
+     <span><expectedPolicyPopup:close/></span>
+    </div>
+  </div>
+  <hr class="spacer"/>
+</div>
+</div>
+</expectedPolicyPopup:template> 

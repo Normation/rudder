@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE web-app
+PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+"http://java.sun.com/dtd/web-app_2_3.dtd">
+
+<!--
+Copyright 2011 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+In accordance with the terms of section 7 (7. Additional Terms.) of
+the GNU Affero GPL v3, the copyright holders add the following
+Additional permissions:
+Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+licence, when you create a Related Module, this Related Module is
+not considered as a part of the work and may be distributed under the
+license agreement of your choice.
+A "Related Module" means a set of sources files including their
+documentation that, without modification of the Source Code, enables
+supplementary functions or services in addition to those offered by
+the Software.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+-->
+
+<web-app>
+
+  <context-param>
+    <param-name>webAppRootKey</param-name>
+    <param-value>rudder.root</param-value>
+  </context-param>
+
+  <!-- it seems to be the only way (no programmatic one) to configure AnnotationConfigWebApplicationContext -->
+  <context-param>
+    <param-name>contextConfigLocation</param-name>
+    <param-value>
+      bootstrap.liftweb.AppConfig 
+      bootstrap.rudder.plugin
+    </param-value>
+  </context-param>
+
+  <context-param>
+      <param-name>contextClass</param-name>
+      <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
+  </context-param>
+
+  <!-- 
+    Bootstrap the root application context as usual using our version of 
+    ContextLoaderListener 
+    It also configure the logging system at the good time. 
+  -->
+  <listener>
+      <listener-class>bootstrap.liftweb.LiftInitContextListener</listener-class>
+  </listener>
+        
+  <filter>
+    <filter-name>springSecurityFilterChain</filter-name>
+    <filter-class>bootstrap.liftweb.LiftSpringSecurityFilter</filter-class>
+  </filter>
+
+  <filter>
+    <filter-name>LiftFilter</filter-name>
+    <display-name>Lift Filter</display-name>
+    <description>The Filter that intercepts lift calls</description>
+    <filter-class>net.liftweb.http.LiftFilter</filter-class>
+  </filter>
+    	
+  <filter>
+    <filter-name>GzipFilter</filter-name>
+    <filter-class>org.eclipse.jetty.servlets.GzipFilter</filter-class>
+    <init-param>
+      <param-name>mimeTypes</param-name>
+      <param-value>text/html,text/plain,text/xml,application/xhtml+xml,text/css,application/javascript,image/svg+xml</param-value>
+    </init-param>
+  </filter>
+  <!-- 
+  <filter-mapping>
+    <filter-name>GzipFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping> 
+   -->
+
+  <filter-mapping>
+    <filter-name>springSecurityFilterChain</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <filter-mapping>
+    <filter-name>LiftFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+
+</web-app>

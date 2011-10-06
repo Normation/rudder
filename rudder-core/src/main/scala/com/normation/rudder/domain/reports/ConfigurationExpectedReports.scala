@@ -1,0 +1,79 @@
+/*
+*************************************************************************************
+* Copyright 2011 Normation SAS
+*************************************************************************************
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Affero General Public License as
+* published by the Free Software Foundation, either version 3 of the
+* License, or (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU Affero GPL v3, the copyright holders add the following
+* Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+* licence, when you create a Related Module, this Related Module is
+* not considered as a part of the work and may be distributed under the
+* license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU Affero General Public License for more details.
+*
+* You should have received a copy of the GNU Affero General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+*
+*************************************************************************************
+*/
+
+package com.normation.rudder.domain.reports
+
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.PolicyInstanceId
+import com.normation.rudder.domain.policies.ConfigurationRuleId
+import scala.collection._
+import org.joda.time._
+import org.joda.time.format._
+
+
+/**
+ * The representation of the database object for the expected reports for a configuration policy
+ * 
+ * @author Nicolas CHARLES
+ *
+ */
+case class ConfigurationExpectedReports(
+	val configurationRuleId : ConfigurationRuleId,
+  val policyExpectedReports : Seq[PolicyExpectedReports],
+  val serial : Int, // the serial of the configuration rule
+  val nodeJoinKey : Int, // the version id of the configuration rule, follows a sequence, used to join with the server table
+  val nodesList : Seq[NodeId],
+  // the period where the configuration is applied to the servers
+  val beginDate : DateTime = new DateTime(),
+  val endDate : Option[DateTime] = None
+)
+
+/**
+ * The Cardinality is per Component 
+ */
+case class ComponentCard(val componentName : String,
+    val cardinality : Int,
+    val componentsValues : Seq[String])
+    
+/**
+ * A policy instance may have several components
+ */
+case class PolicyExpectedReports (
+   val policyInstanceId : PolicyInstanceId,
+   val components : Seq[ComponentCard]
+)
+
+
+
+    

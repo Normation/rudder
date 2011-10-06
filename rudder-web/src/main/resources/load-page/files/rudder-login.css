@@ -1,0 +1,87 @@
+* {
+   margin:0;
+   padding: 0;
+   list-style: none;
+}
+body {
+   font-size: 11px;
+   font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
+   background: #1f1e1e url(../img/login/fondLogin.jpg) repeat-x top left;
+   text-align: center;
+}
+img {
+   border: none;
+}
+div#login {
+   margin: 138px auto 10px auto;
+   width: 600px;
+   text-align: left;
+}
+h2 {
+   margin-top: 40px;
+  /* padding-left: 208px;*/
+   font-size: 1.4em;
+   font-weight: 800;
+   color: #f79d10;
+}
+p {
+   margin: 30px 0;
+}
+label {
+   float: left;
+   padding-right: 20px;
+   width: 188px;
+   font-size: 1.2em;
+   color: #fff;
+   text-align: right;
+}
+#remember label {
+   float: none;
+}
+p#remember {
+   margin-left: 208px;
+}
+input {
+   margin-right: 10px;
+   padding: 2px;
+   font-size: 1.1em;
+   border: 1px solid #b4b3a8;
+}
+div#piedForm {
+   margin-top: 40px;
+   padding-left: 208px;
+}
+
+#loginError {
+  margin-left: 208px;
+}
+
+.error {
+  font-size: 1.4em;
+  color: red;
+  font-weight: bold; 
+}
+
+.hide {
+  display: none;
+}
+
+input#valid {
+   padding: 9px 45px;
+   color: #2e2d2d;
+   font-size: 1.2em;
+   font-weight: bold;
+   background: url(../img/login/btnLogin.jpg) no-repeat top center;
+   border: none;
+   text-align: center;
+}
+a {
+   color: #f79d10;
+   font-size: 1.2em;
+   text-decoration: none;
+}
+a:hover {
+   text-decoration: underline;
+}
+
+

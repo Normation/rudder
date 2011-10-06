@@ -1,0 +1,54 @@
+<lift:surround with="menu/menu-administration" at="content">
+
+<head>
+<title>Rudder - View logs</title>
+</head>
+
+<div class="portlet">
+  <div class="portlet-header">Event Logs</div>
+  <div class="portlet-content"> 
+   
+    <div class="intro">
+      <div>
+        Details of all events that occur in the Rudder web application are logged below.
+      </div>
+    </div>
+    <hr class="spacer"/>
+
+    <lift:lazy-load>
+    <div class="lift:EventLogsViewer.display">
+      <table id="eventLogsGrid" cellspacing="0">
+		    <thead>
+		      <tr class="head">
+            <th>ID</th>
+            <th>Date</th>
+            <th>Actor</th>
+		        <th>Event Type</th>
+		        <th>Event Category</th>
+            <th>Description</th>
+            <th>Details</th>
+		      </tr>
+		    </thead>
+		
+		    <tbody>
+		      <tr>
+	          <td class="logId">[ID of event]</td>
+	          <td class="logDatetime">[Date and time of event]</td>
+	          <td class="logActor">[actor of the event]</td>
+            <td class="logType">[type of event]</td>
+            <td class="logCategory">[category of event]</td>
+            <td class="logDescription">[some user readable info]</td>
+            <td class="logDetails">[some more info about event]</td>
+	        </tr>
+		    </tbody>
+		  </table>
+		  
+		  <div id="logsGrid_paginate_area" class="paginate"></div>
+    
+    </div>
+    </lift:lazy-load>
+ </div>
+ <br/>
+</div>
+</lift:surround>
+

@@ -1,0 +1,918 @@
+/*
+*************************************************************************************
+* Copyright 2011 Normation SAS
+*************************************************************************************
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Affero General Public License as
+* published by the Free Software Foundation, either version 3 of the
+* License, or (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU Affero GPL v3, the copyright holders add the following
+* Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+* licence, when you create a Related Module, this Related Module is
+* not considered as a part of the work and may be distributed under the
+* license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU Affero General Public License for more details.
+*
+* You should have received a copy of the GNU Affero General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+*
+*************************************************************************************
+*/
+
+* {
+   margin:0;
+   padding: 0;
+   list-style: none;
+}
+body {
+   font-size: 11px;
+   font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
+   background: #1f1e1e url(../img/fondBody.jpg) repeat-x top left; 
+}
+img {
+   border: none;
+}
+a:focus {
+   border: none;
+   outline: none;
+}
+/**************************************
+structure
+**************************************/
+div#prelude {
+   display: none;
+}
+div#container {
+   background: #1f1e1e url(../img/fondBody.jpg) repeat-x top left; 
+}
+div#contenuInfos {
+   overflow: hidden;
+   background: url(../img/fondMenuAux.jpg) #2e2d2d repeat-y;
+}
+div#navigation {
+   float: left;
+   background: #2e2d2d url(../img/fondMenuAux.jpg) repeat-y;
+}
+div#logo {
+   padding: 5px 50px 2px 0;
+   height: 113px;
+}
+
+#deploymentStatus {
+  float:right;
+  width:200px;
+  padding:10px;
+  font-size:0.9em;
+  color:white;
+}
+
+#deploymentLastStatus  {
+  margin-bottom:10px;
+}
+
+/**************************************
+header - haut de page
+**************************************/
+div#infosUser {
+   padding: 7px 5px;
+   height: 30px;
+   color: #f79d10;
+}
+#infosUser p {
+   float: left;
+}
+#infosUser .whoUser {
+   margin-left: 30px;
+   font-size: 1.4em;
+   font-weight: bold;
+   color: #f79d10;
+}
+*html #infosUser .whoUser {
+   margin-left: 20px;
+}
+#infosUser .detailsUser {
+   padding-top: 0.2em;
+   font-size: 1.1em;
+   color: #999;
+}
+#infosUser .whoUser a {
+   margin: 0;
+   padding: 0;
+   color: #f79d10;
+   text-decoration: underline;
+}
+#infosUser .detailsUser a {
+   margin: 0;
+   padding: 0;
+   font-weight: normal;
+   color: #999;
+   text-decoration: underline;
+   cursor: pointer;
+}
+
+#create-user {
+   border: none;
+   font-size: 1em;
+   font-weight: normal;
+   color: #f79d10;
+   text-decoration: none;
+}
+span.ui-button-text {
+   background: none;
+   border: none;
+}
+#opener {
+   border: none;
+   background: none;
+   text-decoration: underline;
+   color: #999;
+   cursor: pointer;
+}
+#opener:hover {
+   text-decoration: none;
+}
+#openerAccount {
+   border: none;
+   background: none;
+   text-decoration: underline;
+   color: #f79d10;
+   cursor: pointer;
+}
+#openerAccount:hover {
+   text-decoration: none;
+}
+
+.deploymentButton {
+	background: #DDDDDD !important;
+}
+/**************************************
+menu principal
+**************************************/
+div#menu {
+   padding-top :7px;
+   padding-top/*\**/: 3px\9;
+   height: 55px;
+   color: #000;
+   background: #2e2d2d url(../img/fondMenu.jpg) repeat-x;
+}
+*html div#menu {
+   margin: 0;
+   padding-top: 0;
+}
+#menu ul {
+   margin: 0 0 0 30px;
+   padding: 0;
+   height: 50px;
+   display: block;
+}
+#menu li {
+   padding: 0 12px 55px 0;
+   font-size: 1.4em;
+   font-weight: 800;
+   display: inline;
+   vertical-align: middle;
+}
+#menu a {
+   padding: 7px 10px 30px 10px;
+   height: 30px;
+   color: #000;
+   text-decoration: none;
+}
+#menu a:hover {
+   padding: 7px 0 30px 0;
+   color: #f79d10;
+   background: url(../img/menuFdDroite.jpg) no-repeat top right;
+}
+#menu a:hover span {
+   padding: 7px 10px 30px 10px;
+   background: url(../img/menuFdGauche.jpg) no-repeat top left;
+}
+
+#menu .onMenu a {
+   padding: 7px 0 30px 0;
+   background: url(../img/menuFdDroite.jpg) no-repeat top right;
+}
+#menu .onMenu span {
+   padding: 7px 10px 30px 10px;
+   color: #f79d10;
+   background: url(../img/menuFdGauche.jpg) no-repeat top left;
+}
+#menu a, #menu a:hover, #menu a:hover span, #menu .onMenu a, #menu .onMenu span {
+   padding-top/*\**/: 0\9;
+}
+
+*html #menu a, *html #menu a:hover, *html #menu a:hover span, *html #menu .onMenu, *html #menu .onMenu span {
+   padding-top: 0;
+}
+
+#menu ul li ul {
+	display: none;
+}
+
+/**************************************
+menu secondaire
+**************************************/
+#contenu.maximized {
+   width: 94%;
+   padding-right: 1%;
+}
+#navigation.minimized {
+   width: 2%;
+}
+*html #navigation.minimized #slickbox {
+   width: 10px;
+}
+*html #contenu.maximized {
+   margin-left: 30px;
+   width: 85%;
+}
+#navigation.minimized ul, #navigation.minimized h2 {
+   display: none;
+}
+div#slickbox {
+   margin-bottom: 20px;
+   width: 186px;
+   height: 100%;
+   background: url(../img/fondMenuAux.jpg) #2e2d2d repeat-y;
+}
+#slickbox h2 {
+   padding-top: 7px;
+   padding-left: 12px;
+   height: 38px;
+   color: #fff;
+   font-size: 1.5em;
+   background: url(../img/fondTitMenu.jpg) no-repeat;
+}
+#slickbox h2 a {
+   color: #f79d10;
+   text-decoration: none;
+}
+#slickbox a {
+   color: #f79d10;
+   text-decoration: none;
+   display: block;
+}
+#slickbox a:hover {
+   text-decoration: underline;
+}
+#slickbox ul {
+   width: 186px;
+   background-color: #1f1e1e;
+   border-bottom: 1px solid #2d2d2d;
+}
+#slickbox .niv1 a {
+   padding: 10px 0 10px 24px;
+   height: 20px;
+   color: #f79d10;
+   font-size: 1.2em;
+   border-top: 1px solid #2d2d2d;
+   background: url(../img/puceMenuGrise.jpg) no-repeat left top;
+}
+#slickbox .niv1 a:hover {
+   height: 20px;
+   background: #585757 url(../img/puceFlecheHoverNiv1.jpg) no-repeat right center;
+}
+#slickbox .menuOff {
+   padding: 10px 0 10px 24px;
+   color: #fff;
+   font-size: 1.2em;
+   border-top: 1px solid #2d2d2d;
+   background: url(../img/puceMenuGrise.jpg) no-repeat left top;
+   display: block;
+}
+#slickbox .niv2 a {
+   padding: 10px 0 10px 36px;
+   height: 20px;
+   color: #f79d10;
+   font-size: 1.2em;
+   border-top: 1px solid #2d2d2d;
+   background: url(../img/puceNiv2.jpg) no-repeat left top;   
+}
+#slickbox .niv2 a:hover {
+   height: 20px;
+   background: #585757 url(../img/puceFlecheHover.jpg) no-repeat right center;
+}
+.menuHide img {
+   float: left;
+   padding-right: 10px;
+   vertical-align: middle;
+   border: none;
+   text-decoration: none;
+}
+a.menuHide {
+   color: #f79d10;
+   margin: 0 20px 10px 0;
+   padding: 12px 0;
+   background-image: url(../img/pointilles.jpg);
+   display: block;
+}
+div.minimized a.menuHide {
+margin: 0;
+padding: 0;
+}
+a:focus.menuHide, a:active.menuHide {
+   border: none;
+}
+
+/**************************************
+contenu
+**************************************/
+div#contenu {
+   margin: 0 auto;
+   position: relative;
+   float: left;
+   width: 77%;
+   padding-left: 30px;
+   background-color: #2e2d2d;
+}
+#contenu h1 {
+   margin: 0 0 5px 0;
+   color: #fff;
+}
+p#filAriane {
+   padding: 0 5px 10px 0;
+   font-size: 1em;
+   color: #f79d10;
+   background-color: #2e2d2d;
+}
+#filAriane a {
+   color: #f79d10;
+}
+/**************************************
+Home portlet
+**************************************/
+.column {
+   width: 50%;
+   float: left;
+   padding-bottom: 20px;
+}
+.portlet {
+   margin: 0 1em 1em 0;
+   background-color: #fff;
+   background/*\**/:  url(../img/fondPortlet.jpg) repeat-x\9;
+}
+*html .portlet {
+   background: url(../img/fondPortlet.jpg) repeat-x;
+}
+*html .portlet-content {
+   background: #fff url(../img/fondPortlet.jpg) repeat-x;
+}
+.portlet a {
+   color: #f79d10;
+}
+.portlet a:hover {
+   color: #000;
+   text-decoration: none;
+}
+.portlet img {
+   float: left;
+   margin: 5px 20px 20px 10px;
+}
+
+p img {
+   float: none !important;
+   margin: 0px !important;
+}
+
+.portlet ul {
+   padding: 20px 0 0 0;
+}
+*html .portlet ul {
+   padding: 20px 0 15px 0;
+}
+.portlet li {
+   list-style-type: disc;
+}
+.portlet-header {
+   padding: 2px 0 5px 25px;
+   font-size: 1.3em;
+   font-weight: bold;
+   cursor: move;
+   background: url(../img/icCroix.jpg) no-repeat top left;
+}
+*html .portlet-header {
+}
+.portlet-header .ui-icon {
+   float: right;
+   cursor: pointer;
+}
+.portlet-content {
+   background-color: #fff;
+}
+.ui-sortable-placeholder {
+   border: 1px dotted black;
+   visibility: visible !important;
+   height: 50px !important;
+}
+.ui-sortable-placeholder * {
+   visibility: hidden;
+   visibility: hidden;
+}
+/**************************************
+popin
+**************************************/
+div#login, 
+div#account, 
+#addPopupContent {
+   height: auto;
+   background: url(../img/popin/fdLoginFootG.png) no-repeat left bottom;
+   display: block;
+   min-height: 107px; 
+}
+
+div#refusePopup {
+  background-color: #FFEEE0;
+}
+
+/********************
+* Popup
+********************/
+#ui-dialog-title-addPopup ,
+{
+    height: 25px;
+    width:90%;
+}
+
+.ui-dialog-title, .ui-dialog-titlebar-close {
+	height: 25px;
+}
+
+.popupButton {
+	
+	padding: 5px;
+	float: right;
+}
+
+.popupButton span {
+  float: none;
+}
+
+/**************************************
+popin Login
+**************************************/
+#dialogLogOut { display:none; }
+
+#dialogLogOut a:hover {
+   text-decoration: underline;
+}
+#login {
+   padding-right: 15px;
+}
+#login p {
+   font-size: 1.2em;
+   font-weight: 800;
+   text-align: center;
+}
+#login a {
+   color: #000;
+}
+#login a:hover {
+   text-decoration: none;
+}
+
+
+/**************************************
+popin Account
+**************************************/
+#account h2 {
+   color: #f79d10;
+   font-size: 2em;
+   font-weight: 800;
+}
+#account div {
+   padding: 10px 10px 20px 10px;
+}
+#account p {
+   margin: 10px 0;
+   font-size: 1.2em;
+   font-weight: 800;
+}
+#account p.right {
+   margin-right: 10px;
+}
+#account p.right a {
+   font-size: 0.8em;
+}
+#account p.validateTips {
+   margin: 15px 0;
+}
+#account label {
+   float: left;
+   padding: 5px 10px 0 0;
+   width: 20%;
+   text-align: right;
+}
+#account input {
+   width: 210px;
+   border: 1px solid #b4b3a8;
+   background-color: #f8f8f8;
+}
+#account input#acSubmit {
+   margin: 10px 0;
+   padding: 10px; 
+   color: #fff;
+   font-weight: bold;
+   border: none;
+   background: url(../img/fdBtnUpdate.jpg) no-repeat 50% 50%;
+}
+#account textarea {
+   margin-top: 5px;
+   width: 465px;
+   color: #666;
+}
+#account a {
+   color: #000;
+}
+#account a:hover {
+   text-decoration: none;
+}
+span.verifError {
+   padding: 0 0 5px 40px;
+   color: #c00;
+   background: url(../img/icError.jpg) no-repeat;
+}
+span.verifValid {
+   padding: 0 0 5px 40px;
+   color: #b4b3a8;
+   background: url(../img/icValid.jpg) no-repeat;
+}
+/**************************************
+popin Alert
+**************************************/
+#dialogAlert {display:none;}
+
+#simplemodal-container {color:#000000; background-color:#FFFFFF; border:4px solid #F79D10; padding:0px;
+		font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
+
+    }
+#simplemodal-container .simplemodal-data {padding:0px;}
+#simplemodal-container .simplemodal-title hr {
+ margin: 0px;
+ width:100%;
+}
+#simplemodal-container .simplemodal-title h1 {
+ margin: 2px 0 2px 5px;
+}
+#simplemodal-container .simplemodal-bottom {
+  align: right;
+}
+#simplemodal-container .simplemodal-bottom button,
+#simplemodal-container .simplemodal-bottom input {
+  width:130px;
+  text-align: center;
+}
+#simplemodal-container .simplemodal-bottom hr {
+ margin: 0px;
+ width:100%;
+}
+
+#simplemodal-container .simplemodal-bottom p {
+ margin: 3px 0px 3px -5px;
+ padding:0px;
+ width:100%;
+}
+
+#simplemodal-container .simplemodal-content {padding:6px;    font-size: 1.1em;}
+#simplemodal-container .simplemodal-content-no-zoom {padding:6px;}
+#simplemodal-container code {background:#141414; border-left:3px solid #65B43D; color:#bbb; display:block; font-size:12px; margin-bottom:12px; padding:4px 6px 6px;}
+#simplemodal-container a.modalCloseImg {background:url("../img/popin/croix.png") no-repeat; width:31px; height:30px; display:inline; z-index:3200; position:absolute; top:-15px; right:-16px; cursor:pointer;}
+
+#simplemodal-overlay {
+    background-color: #777777;
+}
+
+
+/*****************************************
+* Popup creation groupe/category
+******************************************/
+
+.createContainer {
+  height: 300px;
+}
+.createGroup {
+  height: 400px;
+}
+
+#openAlert .ui-button-text{
+	padding:0px !important;
+	// this is because of the button()
+}
+
+#openAlert {
+   border: none;
+   background: none;
+   text-decoration: underline;
+   color: #999999;
+   cursor: pointer;
+   width: auto;
+}
+#openAlert:hover {
+   text-decoration: none;
+}
+#Alerte p {
+   font-size: 1.2em;
+   font-weight: 800;
+   text-align: center;
+}
+#Alerte a {
+   color: #000;
+}
+#Alerte a:hover {
+   text-decoration: none;
+}
+
+/*************************
+*   Divers
+**************************/
+
+/*
+ * Underlined, dotted grey: that text has a tooltip
+ */
+.tooltip {
+  border-bottom-color: grey;
+  border-bottom-style: dotted;
+  border-bottom-width: 1px;
+}
+
+
+#tooltip {
+	position: absolute;
+	z-index: 3000;
+	border: 1px solid #555;
+	background-color: #eee;
+	padding: 5px;
+	opacity: 0.85;
+	padding: 4px;
+}
+#tooltip h3, #tooltip div { margin: 0; }
+
+/* tooltip styling.  */
+.tooltipContent {
+	display:none;
+	
+}
+
+.red {
+color: #FF0000 !important;
+}
+
+.smallButton {
+	width: 35px !important;
+}
+
+.autoWidthButton {
+	width: auto !important;
+}
+/**************************************
+footer - bas de page
+**************************************/
+div#footer {
+   padding: 5px 5px 5px 30px;
+   height: 30px;
+   color: #999;
+   font-size: 1.3em;
+   background: #1f1e1e url(../img/fondBody.jpg) repeat-x top left; 
+}
+#footer a {
+   color: #999;
+}
+/**************************************
+classes annexes
+**************************************/
+.right {
+   float: right;
+   margin: 0 0 5px 5px;
+}
+.center {
+   text-align: center;
+}
+hr.spacer {
+   visibility: hidden;
+   clear: both;
+}
+
+.twoCol {
+    float:left;
+    width:49%;
+    margin-right: 2px;
+}
+
+.threeCol {
+    float:left;
+    width:30%; 
+    margin-right: 2px;
+}
+
+.smallCol {
+	 float:left;
+	 margin-right: 2px;
+	 width:20%;
+}
+.largeCol {
+	 float:left;
+	 margin-right: 2px;
+	 width:60%; 
+}
+
+.align-radio span {
+  display:inline-block;
+}
+
+.groupDiv {
+   margin-top: 5px;
+	 margin-bottom: 10px;  
+}
+
+/************************************
+Portlet content for object details
+(for example, details about a policy 
+template, a policy instance, etc)
+************************************/
+
+.object-details {
+    padding:10px;
+}
+
+.object-details > * {
+    margin:10px;
+}
+
+.object-details fieldset {
+    padding:10px;
+}
+
+
+/************************************
+Descriptions
+************************************/
+ul.descriptif li {
+ 	padding: 0 12px 5px 5px;
+	list-style-type: none;
+}
+
+.inform div {
+  /*display:inline-block;*/ /* for some reason, it breaks the display in a popup?*/
+  vertical-align: middle;
+}
+.inform div.inform_logo {
+	width:64px;
+	height:64px;
+	background: url(../img/icOK.png) no-repeat;
+}
+
+.warn div {
+  /*display:inline-block;*/
+  vertical-align: middle;
+}
+.warn div.warn_logo {
+	width:64px;
+	height:64px;
+	background: url(../img/icWarn.png) no-repeat;
+}
+
+div.serverDetail {
+	font-weight:bold;
+	text-align:center;
+}
+
+
+div.tabInform {
+  padding:5px;
+}
+
+
+/***********************************
+ *Policy display
+************************************/
+.policyTitle {
+	font-size:1.3em;
+  font-weight:bold;
+  text-align:center;
+}
+
+.policyDescription {
+	 font-weight:bold;
+}
+
+#policyDetails {
+	margin : 10px;
+	padding : 5px;
+	border: 1px solid #2d2d2d;
+}
+
+.policyInstanceContainer {
+	margin : 5px;
+}
+
+.policyInstanceTitle {
+	font-weight:bold;
+}
+
+
+
+/***********************************
+ *Reports display
+************************************/
+
+.reportsList {
+  margin : 10px;
+  padding : 5px;
+}
+
+.reportsTitle {
+  font-size:1.3em;
+  font-weight:bold;
+}
+
+.reportsGroup {
+	margin : 10px;
+  padding : 5px;
+  border: 1px solid #2d2d2d;
+}
+
+.reportsServer {
+	margin : 10px;
+  padding : 5px;
+}
+
+.reportsHeader {
+   margin: 15px 0;
+   padding: 0 10px;
+   font-size: 1.1em;
+}
+
+.reportDetailsGroup {
+	 padding: 0 20px;
+	 border-left:1px dotted;
+	 border-right:1px dotted;
+}
+tr.Success {
+	background-color:#CCFFCC;
+}
+tr.Applying {
+	background-color:#CCCCCC;
+}
+tr.Repaired {
+	background-color:#CCFA10;
+}
+tr.Warn {
+  background-color:#FF9922;
+}
+
+tr.Error {
+  background-color:#FF4411;
+}
+
+tr.Noanswer {
+  background-color:#BBAAAA;
+}
+
+
+/***********************************
+ * Quicksearch
+************************************/
+
+.quicksearch {
+	text-align: center;
+}
+
+/***********************************
+ * Trees
+************************************/
+
+
+
+.treeGroupName , .treePolicyInstance, .treePolicyTemplateName, .treeRuleName { 
+  font-size:0.95em; 
+}
+
+.treeUptName , .treeUptCategoryName , .treeGroupCategoryName {
+  font-weight: bold;
+}
+
+li.disableTreeNode > a {
+  color: grey;
+  font-style:italic;
+}
+
+.jstree-default.jstree-focused {
+    background: none repeat scroll 0 0 #FFFFFF !important;
+}
+
+
+
+
+

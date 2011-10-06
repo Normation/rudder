@@ -1,0 +1,107 @@
+<lift:surround with="menu/menu-configure" at="content">
+
+<head>
+<title>Rudder - Policy Template Library Management</title>
+</head>
+
+<lift:PolicyTemplateLibraryManagement.head />
+
+<div class="portlet">
+  <div class="portlet-header">Policy Template Library Management</div>
+  <div class="portlet-content">	
+    <div class="intro">
+      <div>
+        View available policy templates and configure your custom policy library.
+				<br/>
+        Drag'n'drop new policy templates from Reference library to User library categories to be able to create <a href="secure/configurationManager/policyInstanceManagement">new policies</a>.
+        <br/>
+        Drag'n'drop policy templates and categories in user library so that everything is nice and tidy.
+        <br/>
+      </div>
+      <div>
+        <div class="lift:PolicyTemplateLibraryManagement.reloadPolicyTemplateLibrary" id="reloadPTLibForm">
+          <form class="lift:form.ajax">
+            <span>You can load the last available version of the policy template library</span>
+            <input type="submit" value="Reload"/>
+            <lift:Msgs showAll="true">[messages]</lift:Msgs>
+          </form>
+        </div>
+      </div>
+    </div>
+    <hr class="spacer"/>
+    
+    <div class="column">
+      <div class="portlet">
+        <div class="portlet-header">Reference policy template library</div>
+        <div class="portlet-content">
+          <lift:PolicyTemplateLibraryManagement.systemLibrary />
+        </div>
+      </div>
+    </div>
+    <div class="column">
+      <div class="portlet">
+        <div class="portlet-header">User policy template library</div>
+        <div class="portlet-content">
+          <lift:PolicyTemplateLibraryManagement.userLibraryAction />
+          <lift:PolicyTemplateLibraryManagement.userLibrary />
+        </div>
+      </div>
+    </div>
+    
+    <hr class="spacer"/>
+
+    <lift:PolicyTemplateLibraryManagement.bottomPanel /> 
+        
+<!--    <div class="policyTemplateDetails">-->
+<!--      <fieldset class="policyTemplateDetailsFieldset"><legend>Policy template details</legend>-->
+<!--        <lift:PolicyTemplateLibraryManagement.showPolicyTemplateDetails />-->
+<!--      </fieldset>-->
+<!--    </div>-->
+<!--    -->
+<!--    <hr class="spacer"/>-->
+<!--    <div>-->
+<!--      <div class="portlet">-->
+<!--        <div class="portlet-header">Category in user library details</div>-->
+<!--        <div class="portlet-content">-->
+<!--          <lift:PolicyTemplateLibraryManagement.showUserCategoryDetails />  -->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>    -->
+  </div>
+  
+  <div id="succesConfirmationDialog" style="display:none">
+    <div class="simplemodal-title">
+      <h1>Success</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+      <br />
+      <div>
+        <img src="/img/icOK.png" alt="Success" height="32" width="32" style="float:left; margin-right:20px;" />
+        <h2>Your changes have been saved.</h2>
+      </div>
+      <hr class="spacer" />
+      <br />
+      <br />
+    </div>
+    <div class="simplemodal-bottom">
+      <hr/>
+      <p align="right">
+        <button class="simplemodal-close" onClick="return false;">
+          Close
+        </button>
+      </p>
+    </div>
+  </div>
+
+  <div id="createPTCategoryPopup" style="display:none">
+  	<lift:ignore>
+			This div gets the content of the createUserPTCategoryPopup injected within
+		</lift:ignore>
+    <div id="createPTCategoryContainer"/>
+  </div>
+
+  <br/>
+</div>
+</lift:surround>
+

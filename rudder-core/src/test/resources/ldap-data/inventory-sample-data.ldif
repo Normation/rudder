@@ -1,0 +1,327 @@
+#all used node in that example
+
+dn: nodeId=node0,ou=Nodes,cn=rudder-configuration
+objectClass: top
+objectClass: rudderNode
+nodeId: node0
+cn: nothing
+isSystem: false
+isBroken: false
+createTimestamp: 20070101000000Z
+
+## That node is in inventory but not in node: never returned
+## dn: nodeId=node0_0,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+## nodeId: node0_0
+
+dn: nodeId=node1,ou=Nodes,cn=rudder-configuration
+objectClass: top
+objectClass: rudderNode
+nodeId: node1
+cn: has attributes
+description: #54-Ubuntu SMP Thu Dec 10 17:23:29 UTC 2009
+isSystem: false
+isBroken: false
+createTimestamp: 20070101000000Z
+
+dn: nodeId=node2,ou=Nodes,cn=rudder-configuration
+objectClass: top
+objectClass: rudderNode
+nodeId: node2
+cn:has software
+isSystem: false
+isBroken: false
+createTimestamp: 20070101000000Z
+
+dn: nodeId=node3,ou=Nodes,cn=rudder-configuration
+objectClass: top
+objectClass: rudderNode
+nodeId: node3
+cn:has logical elements
+isSystem: false
+isBroken: false
+createTimestamp: 20070101000000Z
+
+dn: nodeId=node4,ou=Nodes,cn=rudder-configuration
+objectClass: top
+objectClass: rudderNode
+nodeId: serv,ou=Nodes=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+cn: has machine with nothing
+isSystem: false
+isBroken: false
+createTimestamp: 20070101000000Z
+
+dn: nodeId=node5,ou=Nodes,cn=rudder-configuration
+objectClass: top
+objectClass: rudderNode
+nodeId: node5
+cn: has machine with attributes
+isSystem: false
+isBroken: false
+createTimestamp: 20070101000000Z
+
+dn: nodeId=node6,ou=Nodes,cn=rudder-configuration
+objectClass: top
+objectClass: rudderNode
+nodeId: node6
+cn: has machine with physical elements
+isSystem: false
+isBroken: false
+createTimestamp: 20070101000000Z
+
+dn: nodeId=node7,ou=Nodes,cn=rudder-configuration
+objectClass: top
+objectClass: rudderNode
+nodeId: node7
+cn: has everything
+isSystem: false
+isBroken: false
+createTimestamp: 20070101000000Z
+
+###################################################################################################
+# Software #
+###################################################################################################
+
+dn: softwareId=soft0,ou=Software,ou=Inventories,cn=rudder-configuration
+softwareId: soft0
+objectClass: software
+objectClass: top
+cn: Software 1
+softwareVersion: 1.0.0
+description: First software
+
+dn: softwareId=soft1,ou=Software,ou=Inventories,cn=rudder-configuration
+softwareId: soft1
+objectClass: software
+objectClass: top
+cn: Software 2
+softwareVersion: 2.0-rc
+description: Second software
+
+###################################################################################################
+# Nodes #
+###################################################################################################
+
+# Example of a node
+dn: nodeId=node0,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: node
+objectClass: unixNode
+objectClass: linuxNode
+osVersion: nothing
+osName: Ubuntu
+osKernelVersion: nothing
+nodeId: node0
+cn: nothing
+localAdministratorAccountName: root
+agentName: Nova
+policyServerId:root-policy-server
+nodeHostname: node0.normation.com
+
+# Example of the same (almost) node, but not in ou=nodes
+dn: nodeId=node0_0,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: node
+objectClass: unixNode
+objectClass: linuxNode
+osVersion: nothing
+osName: Ubuntu
+osKernelVersion: nothing
+nodeId: node0_0
+cn: nothing
+localAdministratorAccountName: root
+agentName: Nova
+nodeHostname: node0_0.normation.com
+policyServerId:root-policy-server
+
+dn: nodeId=node1,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: node
+objectClass: unixNode
+objectClass: linuxNode
+osVersion: Ubuntu 9.10
+osName: Ubuntu
+osKernelVersion: 2.6.18-17-generic
+nodeId: node1
+cn: has attributes
+swap: 2878000000
+ram: 100000000
+nodeHostname: hasAttributes.normation.com
+description: #54-Ubuntu SMP Thu Dec 10 17:23:29 UTC 2009
+localAccountName: francois.armand
+localAccountName: nicolas.charles
+localAccountName: jonathan.clarke
+localAccountName: root
+localAdministratorAccountName: root
+agentName: Nova
+policyServerId:root-policy-server
+
+# Example of a node
+dn: nodeId=node2,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: node
+objectClass: unixNode
+objectClass: linuxNode
+osVersion: nothing
+osName: Ubuntu
+osKernelVersion: nothing
+nodeId: node2
+cn:has software
+ram: 1
+software: softwareId=soft0,ou=Software,ou=Inventories,cn=rudder-configuration
+software: softwareId=soft1,ou=Software,ou=Inventories,cn=rudder-configuration
+localAdministratorAccountName: root
+agentName: Nova
+policyServerId:root-policy-server
+nodeHostname: node2.normation.com
+
+dn: nodeId=node3,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: node
+objectClass: unixNode
+objectClass: linuxNode
+osVersion: nothing
+osName: Ubuntu
+osKernelVersion: nothing
+nodeId: node3
+cn:has logical elements
+localAdministratorAccountName: root
+agentName: Nova
+policyServerId:root-policy-server
+nodeHostname: node3.normation.com
+
+dn: nodeId=node4,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: node
+objectClass: unixNode
+objectClass: linuxNode
+osVersion: nothing
+osName: Ubuntu
+osKernelVersion: nothing
+nodeId: node4
+container: machineId=machine0,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+cn: has machine with nothing
+localAdministratorAccountName: root
+agentName: Community
+policyServerId:root-policy-server
+nodeHostname: node4.normation.com
+
+dn: nodeId=node5,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: node
+objectClass: unixNode
+objectClass: linuxNode
+osVersion: nothing
+osName: Ubuntu
+osKernelVersion: nothing
+nodeId: node5
+container: machineId=machine1,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+cn: has machine with attributes
+localAdministratorAccountName: root
+agentName: Nova
+policyServerId:root-policy-server
+nodeHostname: node5.normation.com
+
+dn: nodeId=node6,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: node
+objectClass: unixNode
+objectClass: linuxNode
+osVersion: nothing
+osName: Ubuntu
+osKernelVersion: nothing
+nodeId: node6
+container: machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+cn: has machine with physical elements
+localAdministratorAccountName: root
+agentName: Community
+policyServerId:root-policy-server
+nodeHostname: node6.normation.com
+
+dn: nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: node
+objectClass: unixNode
+objectClass: linuxNode
+osVersion: nothing
+osName: Ubuntu
+osKernelVersion: nothing
+nodeId: node7
+container: machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+cn: has everything
+software: softwareId=soft0,ou=Software,ou=Inventories,cn=rudder-configuration
+localAdministratorAccountName: root
+agentName: Community
+policyServerId:root-policy-server
+nodeHostname: node7.normation.com
+
+###################################################################################################
+# Logicial Elements #
+###################################################################################################
+
+dn: mountPoint=/,nodeId=node3,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+nodeId: node3
+mountPoint: /
+objectClass: fileSystemLogicalElement
+objectClass: logicalElement
+objectClass: top
+node: nodeId=node3,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+cn: ext3
+fileSystemFreeSpace: 6718226432
+fileSystemTotalSpace: 8038383616
+
+dn: mountPoint=/,nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: logicalElement
+objectClass: fileSystemLogicalElement
+nodeId: node7
+node: nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+mountPoint: /
+cn: ext3
+fileSystemFreeSpace: 10
+fileSystemTotalSpace: 803838361699
+
+###################################################################################################
+# Machines #
+###################################################################################################
+
+# Example of a machine whose type is not known
+dn: machineId=machine0,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: device
+objectClass: machine
+machineId: machine0
+cn: no physicalElements
+
+# Example of a physical machine
+dn: machineId=machine1,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: device
+objectClass: machine
+objectClass: physicalMachine
+machineId: has mb - no phys elt
+cn: has motherbord - no physical elements
+motherBoardUuid: f47ac10b-58cc-4372-a567-0e02b2c3d479
+
+# Example of a physical machine
+dn: machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: device
+objectClass: machine
+objectClass: physicalMachine
+machineId: machine2
+cn: has physicalElements
+
+###################################################################################################
+# Physical elements #
+###################################################################################################
+
+dn: biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+machine: machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+machineId: machine2
+biosName: bios1
+objectClass: biosPhysicalElement
+objectClass: physicalElement
+objectClass: top
+editor: Phoenix Technologies LTD
+softwareVersion: 6.00
+

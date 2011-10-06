@@ -1,0 +1,100 @@
+<!--
+Copyright 2011 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+In accordance with the terms of section 7 (7. Additional Terms.) of
+the GNU Affero GPL v3, the copyright holders add the following
+Additional permissions:
+Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+licence, when you create a Related Module, this Related Module is
+not considered as a part of the work and may be distributed under the
+license agreement of your choice.
+A "Related Module" means a set of sources files including their
+documentation that, without modification of the Source Code, enables
+supplementary functions or services in addition to those offered by
+the Software.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+-->
+
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.normation.rudder</groupId>
+    <artifactId>rudder-parent</artifactId>
+    <version>0.10.1-SNAPSHOT</version>
+  </parent>
+
+  <groupId>com.normation.rudder</groupId>
+  <artifactId>rudder-core</artifactId>
+  <packaging>jar</packaging>
+  <version>0.10.1-SNAPSHOT</version>
+
+  <description>
+    This is the API/Core lib module that writes the promises of machines
+  </description>
+  
+  <dependencies>
+    <dependency>
+      <groupId>com.normation.inventory</groupId>
+      <artifactId>inventory-api</artifactId>
+      <version>0.10.1-SNAPSHOT</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.normation.inventory</groupId>
+      <artifactId>inventory-repository</artifactId>
+      <version>0.10.1-SNAPSHOT</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.normation.cfclerk</groupId>
+      <artifactId>cfclerk-core</artifactId>
+      <version>0.10.1-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.normation</groupId>
+      <artifactId>eventlog-api</artifactId>
+      <version>0.10.1-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+      <groupId>postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>8.4-702.jdbc4</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.squeryl</groupId>
+      <artifactId>squeryl_2.9.0-1</artifactId>
+      <version>0.9.4</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>net.liftweb</groupId>
+      <artifactId>lift-webkit_${scala-lift-version}</artifactId>
+      <version>${lift-version}</version>
+      <exclusions>
+        <exclusion>
+          <artifactId>slf4j-log4j12</artifactId>
+          <groupId>org.slf4j</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+  </dependencies>
+</project>

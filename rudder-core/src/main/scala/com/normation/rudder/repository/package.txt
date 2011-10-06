@@ -1,0 +1,2 @@
+This package deals with the storing of machine internaly
+The data are stored in MachineHierarchy, and accessed via the MachineRepository

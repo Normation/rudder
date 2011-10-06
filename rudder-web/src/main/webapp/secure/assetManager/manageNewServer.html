@@ -1,0 +1,79 @@
+<lift:surround with="menu/menu-asset" at="content">
+
+<head>
+<title>Rudder - New Nodes Management</title>
+</head>
+
+<div class="portlet">
+ <div class="portlet-header">Accept new server</div>
+ <div class="portlet-content">
+ <div class="intro">
+	<div>This portlet lists the nodes in your infrastructure that have presented themselves for the first time to Rudder with an inventory report.
+	<br/>Your validation is required:<br/>
+	<ul>
+		<li>Either to accept these nodes in Rudder if you acknowledge their inventory settings,</li>
+		<li>Or to refuse them if you don't want them in Rudder</li>
+	</ul>
+	</div>
+ </div>
+ 	
+	<lift:AcceptServer.head />
+	<hr class="spacer"/>
+	<div id="new_servers_tab" class="tabs">
+	   <ul>
+        <li><a href="#review_new_server">Review new nodes</a></li>
+        <li><a href="#history">History</a></li>
+     </ul> 
+    
+    <div id="review_new_server">
+      <div class="tabInform">
+      <p>You can review new nodes here and decide whether to accept or refuse them.</p>
+      <p>Click on a node name to access its full inventory information.</p>
+      <p>Select the <img src="img/icPolicies.jpg"/> icon to list all configuration rules that would be applied to this node if it is accepted in Rudder.</p>
+      </div>
+			<lift:ignore>
+				The template for the table can be found at 
+				templates-hidden/server_grid
+				It is enhanced with a "select" column
+			</lift:ignore>
+      <div style="padding-left: 50px;"><lift:Msgs>[error]</lift:Msgs></div>
+			<lift:AcceptServer.list>
+				<pending:selectall/>
+				  
+				<pending:servers/>
+				
+				<div id="acceptServerGrid_paginate_area" style="display:none;"/>
+				
+				<p class="bottomButton" style="float:right; margin:10px">
+				  <span><pending:accept/></span>
+					<span style="margin-right:5px;"><pending:refuse/></span>
+				</p>
+				<pending:errors/>
+			
+			</lift:AcceptServer.list>
+	  </div>
+	  <div id="history">
+	   <div class="tabInform">
+  	  You can review here all actions taken in the past for new nodes trying to join Rudder
+	    Select a node name to access its full inventory information at the time of its review.
+	   </div>	  
+	  <lift:PendingHistoryGrid.displayAndInit>
+	    <pending:history/>
+	  </lift:PendingHistoryGrid.displayAndInit>
+	  </div>
+	</div>
+	<div id="manageNewServer"/>
+	<lift:ignore>
+	This div gets a popup injected within
+	</lift:ignore>
+
+  <div id="expectedPolicyZone"/>
+  <lift:ignore>
+  This div gets a popup injected within
+  </lift:ignore>
+	
+ </div>
+</div>
+	
+</lift:surround>
+

@@ -1,0 +1,150 @@
+
+<lift:surround with="menu/menu-configure" at="content">
+
+<head>
+<title>Rudder - Policies Management</title>
+</head>
+
+<lift:PolicyInstanceManagement.head />
+
+<div class="portlet">
+  <div class="portlet-header">Policy Management</div>
+  <div class="portlet-content">  
+    <div class="intro">
+      <div>
+		  List, create and delete your instances of <a href="secure/configurationManager/policyTemplateLibraryManagement"><em>Policy Templates</em></a> and configure them.
+      </div>
+    </div>
+    <hr class="spacer"/>
+    
+    <div class="column">
+      <div class="portlet">
+        <div class="portlet-header">User policy library</div>
+        <div class="portlet-content">
+			<div style="padding: 10px">
+				<p>This library displays all available <em>Policy Templates</em>, grouped by categories, and any <em>Policy Instances</em> that you have created for each one.</p>
+
+				<p><br/>You may:</p>
+				<p>- Click on the name of a <em>Policy Template</em> to see its description.</p>
+			<p>- Click on the name of a <em>Policy Instance</em> to see its configuration items. Details of the <em>Policy Template</em> it's based on will also be displayed.</p>
+
+			<p><br/>Additional <em>Policy Templates</em> may be available through the 
+				<a href="secure/configurationManager/policyTemplateLibraryManagement">Policy Templates screen</a>.</p>
+			</div>
+          <lift:PolicyInstanceManagement.userLibrary />
+        </div>
+      </div>
+    </div>
+    <div class="column">
+      <div class="portlet">
+        <div class="portlet-header"><span id="detailsPortletTitle">Policy Template summary</span></div>
+        <div class="portlet-content">
+          <lift:PolicyInstanceManagement.policyTemplateDetails>
+            <div id="polityTemplateDetails">
+            <fieldset style="padding:10px;"><legend id="detailFieldsetId">Template details</legend>
+              <div id="policyInstanceIntro">
+                The policy instance <b class="pi">[policy]</b> is based on following policy template:
+                <br/><br/>
+              </div>
+              <div>
+                <h3><span id="policyTemplateName">[policy template name]</span></h3>
+                <i><span id="policyTemplateDescription">[pt.description]</span></i>
+              </div>
+            
+              <div class="groupDiv">
+                <p id="policyTemplateLongDescription">[pt.longDescription]</p>
+                <p id="isSingle">[Unique policy template]</p>
+                <p></p>
+                <p><span id="compatibility">[Supported operating systems : debian-5]</span></p>
+              </div>
+              <fieldset style="padding:20px;"><legend>Versions available</legend>
+                <ul style="padding:5px;">
+                  <li id="ptVersions">[here come version: date]</li>
+                </ul>
+                <div id="migrate">
+                  <br/>
+                  <form>
+                    Migrate policy to policy template version:
+                    <select><option>1.1</option><option>2.0</option></select>
+                    <input type="submit" value="Migrate" />
+                  </form>
+                </div>
+              </fieldset>
+              
+              <br/>
+              <button id="addButton">[Add a new instance]</button>
+            </fieldset>
+            </div>
+          </lift:PolicyInstanceManagement.policyTemplateDetails>       
+        </div>
+      </div>
+    </div>
+    
+    <div id="createPiPopup" style="display:none">
+      <lift:ignore>
+      This div gets the content of the createPolicyInstance injected within
+      </lift:ignore>
+    </div>
+    
+    <hr class="spacer"/>
+    <a name="policyInstanceDetails"/>
+    <div>
+      <div class="policyInstanceDetails">
+        <lift:PolicyInstanceManagement.showPolicyInstanceDetails />
+      </div>
+    </div>
+  </div>
+  
+  <div id="finishMigrationPopup" style="display:none">
+    <div class="simplemodal-title">
+      <h1>Finish migration to a new version</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+      <br />
+      <div>
+        <img src="/img/icWarn.png" alt="Be careful" height="32" width="32" style="float:left; margin-right:20px;" />
+        <h2>Edit and save the form!</h2>
+      </div>
+      <hr class="spacer" />
+      <br />
+      <p>To finish the policy migration to the new version, you have to edit and save the policy parameters.</p>
+      <p>You can cancel the migration by reloading the page or choosing an other policy in the tree 
+        without saving the form. 
+      </p>    
+      <br />
+      <div align="right">
+        <button class="simplemodal-close" onClick="return false;">
+          Close
+        </button>
+      <br />
+      </div>
+    </div>
+  </div>
+  
+  <div id="succesConfirmationDialog" style="display:none">
+    <div class="simplemodal-title">
+      <h1>Success</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+      <br />
+      <div>
+        <img src="/img/icOK.png" alt="Success" height="32" width="32" style="float:left; margin-right:20px;" />
+        <h2>Your changes have been saved.</h2>
+      </div>
+      <hr class="spacer" />
+      <br />
+      <br />
+      <div align="right">
+        <button class="simplemodal-close" onClick="return false;">
+          Close
+        </button>
+      <br />
+      </div>
+    </div>
+  </div>
+  <br/>
+</div>
+</lift:surround>
+

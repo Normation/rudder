@@ -1,0 +1,1 @@
+Simple domain classes, for dealing with policies, template and variables

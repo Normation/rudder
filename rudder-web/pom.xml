@@ -1,0 +1,151 @@
+<!--
+Copyright 2011 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+In accordance with the terms of section 7 (7. Additional Terms.) of
+the GNU Affero GPL v3, the copyright holders add the following
+Additional permissions:
+Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+licence, when you create a Related Module, this Related Module is
+not considered as a part of the work and may be distributed under the
+license agreement of your choice.
+A "Related Module" means a set of sources files including their
+documentation that, without modification of the Source Code, enables
+supplementary functions or services in addition to those offered by
+the Software.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+-->
+
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.normation.rudder</groupId>
+  <artifactId>rudder-web</artifactId>
+  <packaging>war</packaging>
+  <version>0.10.1-SNAPSHOT</version>
+
+  <parent>
+    <groupId>com.normation.rudder</groupId>
+    <artifactId>rudder-parent</artifactId>
+    <version>0.10.1-SNAPSHOT</version>
+  </parent>
+
+  <description>
+    This is the web front end project that manage the CMDB 
+  </description>
+  
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>2.1.1</version>
+        <configuration>
+          <attachClasses>true</attachClasses>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.mortbay.jetty</groupId>
+        <artifactId>jetty-maven-plugin</artifactId>
+        <version>7.1.6.v20100715</version>
+        <configuration>
+          <scanIntervalSeconds>0</scanIntervalSeconds>
+          <webAppConfig>
+            <contextPath>/rudder-web</contextPath>
+          </webAppConfig>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    
+     <dependency>
+      <groupId>com.normation.rudder</groupId>
+      <artifactId>rudder-core</artifactId>
+      <version>0.10.1-SNAPSHOT</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>net.liftweb</groupId>
+      <artifactId>lift-widgets_${scala-lift-version}</artifactId>
+      <version>${lift-version}</version>
+    </dependency>
+    
+    <!-- it seems to not be resolved, don't know why -->
+    <dependency>
+      <groupId>com.thoughtworks.paranamer</groupId>
+      <artifactId>paranamer</artifactId>
+      <version>2.3</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>servlet-api</artifactId>
+      <version>2.5</version>
+      <scope>provided</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlets</artifactId>
+      <version>7.1.6.v20100715</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.0.1</version>
+    </dependency>
+    
+    <!-- Authentication -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-web</artifactId>
+      <version>${spring-version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-beans</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-config</artifactId>
+      <version>${spring-version}</version>
+    </dependency>
+
+
+		<dependency>
+		    <groupId>commons-dbcp</groupId>
+		    <artifactId>commons-dbcp</artifactId>
+		    <version>1.4</version>
+		</dependency>
+
+		
+    
+    <!--  test -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.8.2</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+</project>

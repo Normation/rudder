@@ -1,0 +1,200 @@
+#####################################################################################
+# Copyright 2011 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# In accordance with the terms of section 7 (7. Additional Terms.) of
+# the GNU Affero GPL v3, the copyright holders add the following
+# Additional permissions:
+# Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+# Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+# licence, when you create a Related Module, this Related Module is
+# not considered as a part of the work and may be distributed under the
+# license agreement of your choice.
+# A "Related Module" means a set of sources files including their
+# documentation that, without modification of the Source Code, enables
+# supplementary functions or services in addition to those offered by
+# the Software.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+#
+#####################################################################################
+
+###############################################################################
+# Rudder LDAP directory - Initial root server configuration
+###############################################################################
+# This file contains sample entries that MUST be configured and added to the
+# LDAP backend for Rudder to function correctly.
+# These entries define the root policy server (the server the LDAP inventory
+# is installed on), and must be configured with the following variables:
+#     - POLICY_SERVER_HOSTNAME: Full hostname of this server, that clients
+#                               can use to reach it.
+#     - POLICY_SERVER_IP: IP address for the Cfengine policy server to listen
+#                         on. This must be specified.
+#     - POLICY_SERVER_ALLOWED_NETWORKS: List of networks in network/bits
+#                                       format that are allowed to connect to
+#                                       the Cfengine policy server.
+#
+# These variables can be replaced using sed commands as follows:
+# sed -i "s/%%POLICY_SERVER_HOSTNAME%%/demo.normation.com/g" me.ldif
+# sed -i "s#%%POLICY_SERVER_ALLOWED_NETWORKS%%#192\\.168\\.100\\.0/24#g" me.ldif
+# sed -i "s/%%POLICY_SERVER_IP%%/192.168.100.63/g" me.ldif
+###############################################################################
+
+#######################################################################################################################
+## Root Policy Server
+#######################################################################################################################
+
+
+dn: nodeId=root,ou=Nodes Configuration,ou=Rudder,cn=rudder-configuration
+objectClass: rootPolicyServerNodeConfiguration
+objectClass: nodeConfiguration
+objectClass: top
+nodeId: root
+isModified: TRUE
+cn: Rudder root policy server
+lastUpdateTimestamp: 20101026130817+0200
+nodeHostname: %%POLICY_SERVER_HOSTNAME%%
+localAdministratorAccountName: root
+#agentsName: Nova
+agentName: Community
+policyServerId: root
+isPolicyServer: TRUE
+targetName: Rudder root policy server
+targetNodeHostname: %%POLICY_SERVER_HOSTNAME%%
+targetAgentName: Community
+targetPolicyServerId: root
+targetLocalAdministratorAccountName: root
+
+
+
+#######################################################################################################################
+## Nodes
+#######################################################################################################################
+
+
+dn: nodeId=root,ou=Nodes,cn=rudder-configuration
+objectClass: rudderPolicyServer
+objectClass: rudderNode
+objectClass: top
+cn: root
+nodeId: root
+description: the policy server
+isSystem: TRUE
+isBroken: FALSE
+nodeHostname: %%POLICY_SERVER_HOSTNAME%%
+publicKey: Currently not used
+ipHostNumber: %%POLICY_SERVER_IP%%
+#agentsName: Nova
+agentName: Community
+inventoryDate: 20100818225137+0200
+localAdministratorAccountName: root
+policyServerId: root
+
+
+#######################################################################################################################
+## Node groups (including special target) 
+#######################################################################################################################
+
+dn: nodeGroupId=hasPolicyServer-root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: nodeGroup
+objectClass: top
+cn: Root server group
+description: Root server goup
+isDynamic: FALSE
+nodeGroupId: hasPolicyServer-root
+nodeId: root
+isSystem: TRUE
+isActivated: TRUE
+
+dn: configurationRuleTarget=policyServer:root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialConfigurationRuleTarget
+objectClass: top
+configurationRuleTarget: policyServer:root
+cn: Root policy server
+description: A special target which only matches the policy server with the ID given after the semicolon
+isActivated: TRUE
+isSystem: TRUE
+
+
+#######################################################################################################################
+## Policy instances
+#######################################################################################################################
+
+dn: policyInstanceId=root-distributePolicy,userPolicyTemplateId=distributePolicy,policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
+objectClass: policyInstance
+objectClass: top
+policyInstanceId: root-distributePolicy
+cn: Distribute Policy
+description: Distribute policy - Technical
+referencePolicyTemplateVersion: 0:1.0
+isActivated: TRUE
+isSystem: TRUE
+policyInstancePriority: 0
+policyInstanceVariable: SERVINGIP[0]:%%POLICY_SERVER_IP%%
+
+# common (has policy server)
+
+dn: policyInstanceId=common-root,userPolicyTemplateId=common,policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
+objectClass: policyInstance
+objectClass: top
+policyInstanceId: common-root
+cn: Common
+description: Common - Technical
+referencePolicyTemplateVersion: 0:1.0
+isActivated: TRUE
+isSystem: TRUE
+policyInstancePriority: 0
+policyInstanceVariable: OWNER[0]:${node.admin}
+policyInstanceVariable: UUID[0]:${node.id}
+policyInstanceVariable: POLICYSERVER[0]:%%POLICY_SERVER_HOSTNAME%%
+policyInstanceVariable: POLICYSERVER_ID[0]:root
+policyInstanceVariable: POLICYSERVER_ADMIN[0]:root
+policyInstanceVariable: ALLOWEDNETWORK[0]:%%POLICY_SERVER_ALLOWED_NETWORKS%%
+policyInstanceVariable: POLICYCHILDREN[0]:${hasPolicyServer-root.target.hostname}
+policyInstanceVariable: ADMIN[0]:${hasPolicyServer-root.target.admin}
+policyInstanceVariable: CHILDRENID[0]:${hasPolicyServer-root.target.id}
+
+
+#######################################################################################################################
+## Configuration rule library
+#######################################################################################################################
+
+# CR
+
+dn: configurationRuleId=root-DP,ou=Configuration Rules,ou=Rudder,cn=rudder-configuration
+objectClass: configurationRule
+objectClass: top
+configurationRuleId: root-DP
+configurationRuleTarget: policyServer:root
+policyInstanceId: root-distributePolicy
+cn: distributePolicy
+description: Distribute Policy - Technical
+isActivated: TRUE
+isSystem: TRUE
+longDescription: This CR is to distribute policies to the hosts
+serial: 0
+
+dn: configurationRuleId=hasPolicyServer-root,ou=Configuration Rules,ou=Rudder,cn=rudder-configuration
+objectClass: configurationRule
+objectClass: top
+configurationRuleId: hasPolicyServer-root
+configurationRuleTarget: group:hasPolicyServer-root
+policyInstanceId: common-root
+cn: Rudder system policy: basic setup (common)
+description: Common - Technical
+isActivated: TRUE
+isSystem: TRUE
+longDescription: This CR is the basic CR all nodes must have
+serial: 0
+

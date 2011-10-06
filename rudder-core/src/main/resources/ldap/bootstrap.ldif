@@ -1,0 +1,203 @@
+###############################################################################
+# Rudder LDAP directory - Bootstrap file
+###############################################################################
+# This file contains the basic structure and minimal entries that MUST be
+# present in the LDAP backend for Rudder to function correctly.
+###############################################################################
+
+# Base structure
+dn: cn=rudder-configuration
+objectclass: configurationRoot
+cn: rudder-configuration
+
+dn: ou=Nodes,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Nodes
+description: Branch that stores all the Nodes
+
+dn: ou=Rudder,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Rudder
+description: Branch that stores all Rudder specific data
+
+## Rudder Node configuration branch
+
+dn: ou=Nodes Configuration,ou=Rudder,cn=rudder-configuration
+objectClass: organizationalUnit
+objectClass: top
+ou: Servers
+
+## Inventories related branches
+
+dn: ou=Inventories,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Inventories
+description: Inventory information
+
+
+dn: ou=Software,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Software
+description: Software packages installed on servers from ou=Nodes, including details such as full name, version, architecture, etc.
+
+dn: ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Accepted Inventories
+description: Store accepted inventories
+
+dn: ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Machines
+description: Containers for servers from ou=Nodes, such as physical machines or virtual machines.
+
+dn: ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Servers
+description: Logical servers, an OS installation. May be on a virtual machine or a physical machine, from ou=Machines.
+
+## Same structure, for pending inventories (before acceptation)
+dn: ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Pending Inventories
+description: Store inventories not yet accepted in Rudder
+
+# Machines, pending @ example.org
+dn: ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Machines
+description: Containers for servers from ou=Nodes, such as physical machines or virtual machines.
+
+# Nodes, pending @ example.org
+dn: ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Servers
+description: Logical servers, an OS installation. May be on a virtual machine or a physical machine, from ou=Machines.
+
+# System groups
+
+dn: groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: groupCategory
+objectClass: top
+cn: Root of the group and group categories
+description: This is the root category for the groups (both dynamic and stat
+ ic) and group categories
+groupCategoryId: GroupRoot
+isSystem: TRUE
+
+dn: groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: groupCategory
+objectClass: top
+cn: System group category
+description: That category holds all the system and special target
+groupCategoryId: SystemGroups
+isSystem: TRUE
+
+dn: configurationRuleTarget=special:all,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialConfigurationRuleTarget
+objectClass: top
+configurationRuleTarget: special:all
+cn: All servers
+description: A special target which matches absolutly all known nodes, including policy servers
+isActivated: TRUE
+isSystem: TRUE
+
+dn: configurationRuleTarget=special:all_exceptPolicyServers,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialConfigurationRuleTarget
+objectClass: top
+configurationRuleTarget: special:all_exceptPolicyServers
+cn: All user servers
+description: A special target which matches all user nodes (no policy server s)
+isActivated: TRUE
+isSystem: TRUE
+
+
+# User policy template library
+dn: policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
+objectClass: policyCategory
+objectClass: top
+cn: User policy template library's root
+description: This is the root category for the user library of Policy Templates. It contains subcategories and policy templates
+policyCategoryId: UserPolicyTemplateLibraryRoot
+isSystem: TRUE
+
+# System user policy templates
+dn: policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
+objectClass: policyCategory
+objectClass: top
+cn: System User policy template library
+description: This is the root category for the system Policy Templates.
+policyCategoryId: SystemUserPolicyTemplate
+isSystem: TRUE
+
+# Distribute policy (root policy server)
+dn: userPolicyTemplateId=distributePolicy,policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
+objectClass: userPolicyTemplate
+objectClass: top
+referencePolicyTemplateId: distributePolicy
+userPolicyTemplateId: distributePolicy
+acceptationTimestamp: {"1.0":"20110715124328.999Z"}
+isActivated: TRUE
+isSystem: TRUE
+
+# common (has policy server)
+dn: userPolicyTemplateId=common,policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
+objectClass: userPolicyTemplate
+objectClass: top
+referencePolicyTemplateId: common
+userPolicyTemplateId: common
+acceptationTimestamp: {"1.0":"20110715124328.999Z"}
+isActivated: TRUE
+isSystem: TRUE
+
+# inventory
+dn: userPolicyTemplateId=inventory,policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
+objectClass: userPolicyTemplate
+objectClass: top
+referencePolicyTemplateId: inventory
+userPolicyTemplateId: inventory
+acceptationTimestamp: {"1.0":"20110715124328.999Z"}
+isActivated: TRUE
+isSystem: TRUE
+
+dn: policyInstanceId=inventory-all,userPolicyTemplateId=inventory,policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
+objectClass: policyInstance
+objectClass: top
+policyInstanceId: inventory-all
+referencePolicyTemplateVersion: 0:1.0
+cn: Inventory
+description: inventory - Technical
+isActivated: TRUE
+isSystem: TRUE
+policyInstancePriority: 0
+
+#######################################################################################################################
+## Configuration rule library
+#######################################################################################################################
+dn: ou=Configuration Rules,ou=Rudder,cn=rudder-configuration
+objectClass: organizationalUnit
+objectClass: top
+ou: Configuration Rules
+
+dn: configurationRuleId=inventory-all,ou=Configuration Rules,ou=Rudder,cn=rudder-configuration
+objectClass: configurationRule
+objectClass: top
+configurationRuleId: inventory-all
+configurationRuleTarget: special:all_exceptPolicyServers
+policyInstanceId: inventory-all
+cn: Rudder system policy: daily inventory
+description: Inventory
+isActivated: TRUE
+isSystem: TRUE
+longDescription: This CR is to have all node doing inventories
+serial: 0
+

@@ -1,0 +1,10 @@
+<ReportsInfoStore>
+	  		<ReportsInfoPolicyInstance>
+			<id>policyInstanceId</id>
+			<cardinality>3</cardinality>
+			<serverList>
+				<uuid>1</uuid><uuid>2</uuid><uuid>3</uuid>
+			</serverList>
+			<endComputedDate></endComputedDate>
+		</ReportsInfoPolicyInstance>
+		</ReportsInfoStore>

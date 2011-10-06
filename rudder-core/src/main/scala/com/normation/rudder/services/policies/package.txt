@@ -1,0 +1,3 @@
+Core of all the system
+Handles the loading of files, repository, etc
+Offers solution for writing templates, fetching policies, variables, computing dependancies between templates

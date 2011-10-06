@@ -1,0 +1,40 @@
+<lift:surround with="menu/menu-administration" at="content">
+
+<head>
+<title>Rudder - Plugins Management</title>
+</head>
+
+<div class="portlet">
+  <div class="portlet-header">Plugin management</div>
+  <div class="portlet-content"> 
+   
+    <div class="intro">
+      <div>
+        This section sums up information about loaded plugins and their configuration.
+      </div>
+    </div>
+    <hr class="spacer"/>
+
+    <div class="lift:PluginManagement.display">
+      <div class="portlet">
+        <div class="portlet-header">[Here comes the plugins name]</div>
+        <div class="portlet-content">
+          
+          <p>
+            Plugin ID: <span id="pluginId">[Here comes the plugin id]</span>
+          </p>
+          <p>
+            Plugin version: <span id="pluginVersion">[Here comes the plugin version]</span>
+          </p>
+          
+          <div class="plugin-description">
+            <span id="pluginDescription">[Here comes the plugin description]</span>
+          </div>
+        </div>
+      </div>
+    </div>
+ </div>
+ <br/>
+</div>
+</lift:surround>
+

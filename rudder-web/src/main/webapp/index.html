@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>Rudder - Login</title>
+<link href="/style/rudder-login.css" rel="stylesheet" type="text/css" media="screen" />
+<link href="/img/themes/ui-lightness/jquery.ui.all.css" rel="stylesheet" type="text/css" />
+
+<link href="/img/rudder-favicon.ico" rel="icon" type="image/x-icon" />
+<script type="text/javascript" src="/javascript/jquery-1.6.1.min.js"></script>
+
+<title>Rudder - Login</title>
+</head>
+<body>
+<div id="login">
+  <div style="text-align:center;"><h1><img src="img/logoRudder.jpg" alt="Rudder" width="511" height="111" /></h1></div>
+
+  
+  <form name="contact" id="contact" method="post" action="/j_spring_security_check">
+    <div id="corpForm">
+      <h2>Welcome, please sign in:</h2>
+      <p>
+        <label for="username">Username</label>
+        <input name="j_username" type="text" id="username" title="username" onfocus="this.className='focus';" onblur="this.className='normal';" value="" size="30" />
+      </p>
+      <p>
+        <label for="password">Password</label>
+        <input name="j_password" type="password" id="password" title="password" onfocus="this.className='focus';" onblur="this.className='normal';" onclick="password.value='';" value="" size="30" /> 
+<!--        <a href="javascript:;" title="Forgot your password">Forgot password ?</a>-->
+      </p>
+<!--      <p id="remember">-->
+<!--        <input name="remember" type="checkbox" title="Remember me" value="" />-->
+<!--		<label for="remember">Remember me</label>-->
+<!--      </p>-->
+    </div>
+    <div id="piedForm">
+      <input type="submit" name="valid" id="valid" value="Sign in" title="Sign in" />
+    </div>
+  </form>
+  
+  <div id="loginError">
+    <p class="error">Login error. Please try again.</p>
+  </div>
+  
+</div>
+<script type="text/javascript">
+  // <![CDATA[
+    $(document).ready(function() {
+        var urlVars = {};
+        var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+          urlVars[key] = value;
+        });
+        if(!urlVars["login_error"]) {
+          $("#loginError").hide();
+        }
+    });
+    // ]]>
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head>
+
+
+
+
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<title>Rudder - Load Page</title>
+<link media="screen" type="text/css" rel="stylesheet" href="/files/rudder-login.css">
+<link type="text/css" rel="stylesheet" href="/files/jquery.css">
+
+<link type="image/png" rel="icon" href="http://localhost:8080/img/favicon.png">
+<link type="image/x-icon" rel="shortcut icon" href="http://localhost:8080/img/favicon.ico">
+<script src="/files/jquery-1.js" type="text/javascript"></script>
+
+
+	
+</head><body>
+<div id="login">
+  <div style="text-align: center;"><h1><img alt="Rudder" src="/files/logoRudder.jpg" height="111" width="511"></h1></div>
+
+    <div style="text-align: center;">
+      <h2>Rudder is currently loading, please wait...</h2>
+      <p>
+      <img alt="Loading" src="/files/ajax-loader.gif" height="70" width="400"/>
+      </p>
+    </div>
+  </form>
+  
+  
+  
+</div>
+<script type="text/javascript">
+  // <![CDATA[
+  	// Two solutions here : either the url is right, and we just need to reload the page
+    window.setTimeout('location.reload()', 4000);
+    // Or something else is redirecting on this page, and e need to redirect back
+    //window.setTimeout('window.location = "http://www.normation.com"', 4000);
+    // ]]>
+</script>
+
+</body></html>

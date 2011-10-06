@@ -1,0 +1,168 @@
+<xml:group>
+
+
+<component:staticInit>
+<head>
+  <style type="text/css">
+  
+    .topLevelAction .twoColumns {
+      vertical-align: middle;
+      max-width: 45%;
+      display: inline-block;
+      /* only for IE inf 7 */
+      display*: inline;
+      zoom*: 1;
+    }
+    
+    .topLevelAction .twoColumnsRight {
+      margin-left:20px
+    }
+    
+    .topLevelAction .twoColumns > * {
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 50px;
+    }
+    
+    .disableNotice {
+      margin-top:10px;
+      font-size:0.9em;
+    }
+    
+    #deleteActionDialog, #disableItemDependencies {
+      padding-left:20px;
+    }
+    
+  </style>
+</head>
+</component:staticInit>
+
+<component:comment>
+All text that will be modified will be put in []
+</component:comment>
+
+<component:body>
+<div id="editForm" class="object-details">
+<fieldset class="policyTemplateDetailsFieldset"><legend>Policy template details</legend>
+
+  <div class="groupedEditZone">
+    <div class="groupDiv">
+      <h3><span id="policyTemplateName">[policy template name]</span></h3>
+    <div class="groupDiv">
+    </div>
+      <h4><span id="policyTemplateDescription">[pt.description]</span></h4>
+    </div>
+    
+    <div class="groupDiv">
+      <p id="policyTemplateLongDescription">[pt.longDescription]</p>
+      <p id="isSingle">Unique policy template</p>
+      <p></p>
+      <p><span id="compatibility">[Supported operating systems : debian-5]</span></p>
+    </div>
+  </div>
+
+  <fieldset class="topLevelAction" id="userTemplateAction">
+    <p class="clearable">
+      This is the zone for top level actions which does not take into account
+      modifications done in the edit zone. 
+    </p>
+    
+    <legend>Modify policy template status</legend>
+
+    <div id="deleteAction" class="twoColumns">
+      <button id="deleteButton">Delete</button>
+    </div>
+    <div id="deleteActionDialog" style="display:none">
+      <div class="simplemodal-title">
+        <h1>Delete a policy template</h1>
+        <hr/>
+      </div>
+      <div class="simplemodal-content">    
+        <div>
+          <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+          <h2>
+            Deleting this policy template will also delete its history and compliance reports, 
+            and the following policies and configuration rules.
+          </h2>
+        </div>
+        <hr class="spacer" />
+          <div id="deleteItemDependencies">
+            [Here comes the tree of policies / configuration rules that will be removed]
+          </div>
+        <br />
+        <br />
+        <h2>Are you sure that you want to completely delete this item?</h2>
+        <hr class="spacer" />
+  		</div>
+			<div class="simplemodal-bottom">
+				<hr/>
+				<div class="popupButton">
+	    		<span>
+          	<button class="simplemodal-close" onClick="return false;">Cancel</button>
+          	<button id="dialogDeleteButton">[Delete]</button>
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    <div id="disableAction" class="twoColumns twoColumnsRight">
+      <button id="disableButton"><span id="disableButtonLabel">[disable]</span></button>
+    </div>
+    
+      <div id="disableActionDialog" style="display:none">
+        <div class="simplemodal-title">
+          <h1><span id="dialogDisableTitle">Disable</span> a policy template</h1>
+        </div>
+        <hr/>
+        <div class="simplemodal-content">
+          <div>
+            <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+            <h2 id="dialogdisableWarning">
+              Disabling this policy template will also disable the following policies and configuration rules which depend on it.
+            </h2>
+          </div>
+          <hr class="spacer" />
+          <div id="disableItemDependencies">
+            [Here comes the tree of policies / configuration rules that will be removed]
+          </div>
+          <br />
+          <br />
+          <h2>Are you sure that you want to <span id="dialogDisableLabel">[disable]</span> this policy template?</h2>
+ 					<hr class="spacer" />
+  			</div>
+				<div class="simplemodal-bottom">
+					<hr/>
+					<div class="popupButton">
+	    			<span>
+	            <button class="simplemodal-close" onClick="return false;">Cancel</button>
+  	          <button id="dialogDisableButton">[Disable]</button>
+  	        </span>
+          </div>
+        </div>
+    </div>
+    
+    <div class="disableNotice">
+        Note: the configuration rule will be applied only if its status is Enabled and 
+        its policy, policy template and target node group are all Enabled.
+    </div>
+    
+  </fieldset>
+
+  <div class="editZone">
+      <fieldset><legend>Category</legend>
+        <div>Reference category: 
+          <ul id="breadcrumpReferenceCategory">[here come the breadcrump]</ul>
+        </div>
+        <div id="clientCategoryZone">[Here come the text for the client category breadcrump]</div>
+    </fieldset>  
+
+    <fieldset><legend>Parameters</legend>
+      <span id="templateParameters">[Here comes template parameters]</span>
+    </fieldset>
+
+  </div>
+</fieldset>
+</div>
+
+</component:body>
+</xml:group>

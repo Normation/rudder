@@ -1,0 +1,48 @@
+
+<xml:group>
+    <lift:ConfigurePolicy.errors />
+    
+    <div id="policies_config_tab" class="tabs">
+      <ul>
+        <li><a href="#configurePolicies">Configure policies</a></li>
+        <li><a href="#selectServers">Select servers</a></li>
+      </ul> 
+    
+      <div id="configurePolicies">
+      
+        <lift:ConfigurePolicy.policyTab>
+          <h2><policy:name/></h2>
+          <h3><policy:description/></h3>
+          <policy:policies/>
+        </lift:ConfigurePolicy.policyTab>
+      </div>
+      
+      
+      <div id="selectServers">
+        <lift:ConfigurePolicy.serverTab>
+          <p><label>Select a node group: </label><servers:selectGroup /></p>
+          <servers:show />
+          <div id="serverGrid_paginate_area" style="display:none;"/>
+        </lift:ConfigurePolicy.serverTab>
+      </div>
+    </div>
+    
+    <br/> 
+    <policy:reinit/>
+    <policy:add />
+    
+<!-- see issue #318 -->
+<!--    <script type="text/javascript">-->
+<!--    // <![CDATA[-->
+<!--      $(function() {-->
+<!--        $('#policies_config_tab').tabs({-->
+<!--          show: function(event, ui) { //update URL to the current tab-->
+<!--            document.location = ui.tab.href;-->
+<!--            return false;-->
+<!--          }-->
+<!--        });-->
+<!--      });-->
+<!--    // ]]>-->
+<!--    </script>-->
+  
+  </xml:group>

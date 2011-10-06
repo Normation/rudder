@@ -1,0 +1,111 @@
+<xml:group>
+
+<lift:ignore>This part contains the search parts, with lines, and with the grid that get included behind</lift:ignore>
+<query:SearchServers>
+<content:query>
+
+		  <div id="serverGrid_info_area"></div>
+
+	<update:query>
+    <div id="queryParameters">
+	    <div class="composition">Match the criteria below with this operand: <span><query:composition/></span></div>
+	
+			<table class="searchServers" id="query_lines" cellspacing="0">
+			
+			<!-- must add an empty value to the list -->
+				<query:lines>
+				  <line:error />
+					<tr class="query_line" style="color:#EEEEEE">
+						<td class="first"><line:objectType /></td>
+						<td><line:attributeName /></td>
+						<td><line:comparator /></td>
+						<td><line:inputValue /></td>
+						<td><line:removeLine /></td>
+						<td class="last"><line:addline/></td>
+					</tr>
+				</query:lines>
+			</table>
+      <div class="nodeGroupSubmitSearch" align="center"><query:submit/></div>
+      </div>
+	</update:query >
+</content:query>
+	<div id="gridResult">
+			<content:gridResult/>
+	</div>
+</query:SearchServers>
+		 
+
+<lift:ignore>This part is the node detail portlet</lift:ignore>
+<server:portlet>
+
+<div class="portlet">
+  <div class="portlet-header">View a node</div>
+  <div class="portlet-content">	
+   <div class="intro">
+   	<div> 
+	 Quick node search: start typing a hostname or Rudder ID here:
+		</div>
+	 </div>
+     <lift:form>
+       <div class="quicksearch">
+         <server:quicksearch />
+         <server:quicksearchSubmit />
+       </div>
+     </lift:form>
+   
+   <hr class="spacer"/> 
+   <div id="serverDetails">
+     <server:details/>
+   </div>  
+  </div>
+	<br/>
+</div>
+</server:portlet>
+
+
+<lift:ignore>This part is the detail of a node</lift:ignore>
+<detail:server>
+<div id="node_tabs" class="tabs">
+	  <ul>
+	    <li><a href="#node_summary">Node summary</a></li>
+	    <li><a href="#node_inventory">Hardware</a></li>
+      <server:extraHeader/>
+	    <li><a href="#node_reports">Reports</a></li>
+      <li><a href="#node_logs">Technical logs</a></li>
+	  </ul>
+	
+	
+	<div id="node_summary">
+	 <div id="nodeid" class="nodeSummary">
+    <fieldset class="crTree"><legend>Groups containing this node</legend>
+        <server:jsTree/>
+    </fieldset>
+
+    <server:nodeDetails/>
+   </div>
+	</div>
+	  
+  <div id="node_inventory">
+	 <div id="nodeInventory">
+	 	<server:inventory/>
+	 </div>
+	</div>
+	
+	<server:extraContent/>
+
+  <div id="node_reports">
+	 <div id="reportsDetails">
+	 	<server:reports/>
+	 </div>
+	</div>
+
+  <div id="node_logs">
+	 <div id="logsDetails">
+	 	<server:logs/>
+	 </div>
+	</div>
+
+</div>
+</detail:server>
+
+</xml:group>

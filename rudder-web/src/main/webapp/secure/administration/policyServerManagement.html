@@ -1,0 +1,112 @@
+<lift:surround with="menu/menu-administration" at="content">
+
+<head>
+<title>Rudder - Policy Server Management</title>
+</head>
+
+<div class="portlet">
+  <div class="portlet-header">Policy server management</div>
+  <div class="portlet-content"> 
+   
+    <div class="intro">
+      <div>
+        This section sums up information about the Rudder root server and its parameters.
+      </div>
+    </div>
+    <hr class="spacer"/>
+
+    <div>
+      <div class="portlet">
+        <div class="portlet-header">Configure allowed networks</div>
+        <div class="portlet-content">
+         <div style="padding: 10px;">
+          <p>
+            Configure the networks from which nodes are allowed to connect to Rudder policy server
+            to get their updated configuration rules. 
+          </p>
+          <p>
+            You can add as many network as you want, the expected format is: <b>networkip/mask</b>,
+            for example "42.42.0.0/16" 
+          </p>
+          <br/><br/>
+          
+          
+            
+            <div class="lift:EditPolicyServerAllowedNetwork.render" id="allowedNetworksForm">
+            <form class="lift:form.ajax">
+              <table>
+                <thead>
+                  <tr><th width="20px">Delete</th><th width="200px">Allowed network</th><th></th></tr>
+                </thead>
+                <tbody id="allowNetworkFields">
+                <tr>
+                  <td class="delete"><input class="deleteNetwork" type="submit" value="delete"/></td>
+                  <td><input name="network" class="networkField" /></td>
+                  <td><lift:Msg errorClass="error">[error]</lift:Msg></td>
+                </tr>
+                </tbody>
+              </table>
+            
+              <br/>
+              <input id="addNetworkButton" type="submit" value="Add a network"/> 
+              <input id="submitAllowedNetwork" type="submit" value="Submit"/>
+            </form>
+            </div>
+         </div>
+        </div>
+      </div>
+    </div>
+    
+    <div>
+      <div class="portlet">
+        <div class="portlet-header">Clear deployment caches</div>
+        <div class="portlet-content">
+        
+          <div style="padding: 10px">
+	          <p>
+	            Clear cached datas, like node configuration. That will trigger a full redeployment,
+	            with regeneration of all promises files 
+	          </p>
+	          <br/>
+	
+	          <div class="lift:ClearCache.render" id="clearCacheForm">
+	            <form class="lift:form.ajax">
+	              <br/>
+	              <input id="clearCacheButton" type="submit" value="[Clear cache]"/> 
+	              <lift:Msgs>[error]</lift:Msgs>
+	            </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>    
+    
+ </div>
+ <br/>
+  <div id="succesConfirmationDialog" style="display:none">
+    <div class="simplemodal-title">
+      <h1>Success</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+      <br />
+      <div>
+        <img src="/img/icOK.png" alt="Success" height="32" width="32" style="float:left; margin-right:20px;" />
+        <h2>Your changes have been saved.</h2>
+      </div>
+      <hr class="spacer" />
+      <br />
+      <br />
+    </div>
+    <div class="simplemodal-bottom">
+      <hr/>
+      <p align="right">
+        <button class="simplemodal-close" onClick="return false;">
+          Close
+        </button>
+      </p>
+    </div>
+  </div>
+  </div>
+</lift:surround>
+

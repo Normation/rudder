@@ -1,0 +1,145 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:lift="http://liftweb.net/">
+	<head>
+		<meta name="description" content="" />
+		<meta name="keywords" content="" />
+		
+		<lift:baseUrl.display />
+
+		<link href="/style/rudder.css" rel="stylesheet" type="text/css" media="screen" />
+		<link href="/style/rudder-formulaire.css" rel="stylesheet" type="text/css" media="screen" />
+        <link href="/style/rudder-sInventory.css" rel="stylesheet" type="text/css" media="screen" />
+	
+		<link href="/img/themes/ui-lightness/jquery.ui.all.css" rel="stylesheet" type="text/css" />
+		<link href="/style/normation.css" rel="stylesheet" type="text/css" />
+		<link href="/img/rudder-favicon.ico" rel="icon" type="image/x-icon" />
+		<script type="text/javascript" src="/javascript/jquery-1.6.1.min.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery-ui-1.8.13.custom.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.ui.core.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.ui.widget.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.ui.mouse.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.ui.sortable.js"></script>
+		<script type="text/javascript" src="/javascript/jquery.bgiframe-2.1.1.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.ui.button.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.ui.draggable.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.ui.position.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.ui.dialog.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.ui.resizable.js"></script>
+		<script type="text/javascript" src="/javascript/slickboxShowHide.js"></script>
+		<script type="text/javascript" src="/javascript/portlet.js"></script>
+		<script type="text/javascript" src="/javascript/popin.js"></script>
+
+		<script type="text/javascript" src="/javascript/button.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.effects.core.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.effects.blind.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.effects.explode.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.ui.tabs.js"></script>
+		<script type="text/javascript" src="/javascript/ui/jquery.ui.progressbar.js"></script>
+		<script type="text/javascript" language="javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
+		<script type="text/javascript" language="javascript" src="/javascript/jquery-tooltip/jquery.tooltip.js"></script>
+		<script type="text/javascript" language="javascript" src="/javascript/tooltips.js"></script>
+		<script type="text/javascript">
+		  // <![CDATA[
+			$(document).ready(function() {
+				correctButtons();
+				$("a", "form").click(function() { return false; });
+				createTooltip();
+			});
+			// ]]>
+		</script>
+		<script src="/javascript/jquery.corner.js" type="text/javascript" ></script>
+		<script src="/javascript/arrondisIE.js" type="text/javascript" ></script>
+		<script type="text/javascript">
+		  // <![CDATA[
+			$(document).ready(function() {roundTabs();});
+			// ]]>
+		</script>
+        <script type="text/javascript" src="/javascript/jquery.simplemodal-1.4.1.js" id="simplemodal"></script>
+		<!--[if lt IE 7.]>
+		<script defer type="text/javascript" src="javascript/pngfix.js"></script>
+		<![endif]-->
+	</head>
+<body>
+<div id="container">
+
+  <!--Infos utilisateurs-->
+  <div id="infosUser" class="lift:UserInformation.userCredentials">
+    <p class="whoUser">Welcome, <a id="openerAccount">Patrick MARTIN</a> </p>
+    <!--popin compte utilisateur-->
+    <div id="dialog" title="Account management">
+    <!-- TODO: Inserer le snippet account -->
+    </div>
+    <!--Fin popin compte utilisateur-->
+    <p class="detailsUser">&nbsp;| <a id="logout">Log out</a></p>
+    <!--popin Login-->
+    <div id="dialogLogOut">
+			<div class="simplemodal-title">
+				<h1>Log out</h1>
+				<hr/>
+			</div>
+			<div class="simplemodal-content">
+        <h2>You are about to logout. Do you want to proceed ?</h2>
+        <hr class="spacer" />
+  		</div>
+			<div class="simplemodal-bottom">
+				<hr/>
+				<div class="popupButton">
+				 	<span>
+            <button class="simplemodal-close" onClick="return false;">
+               Cancel
+            </button>
+            <lift:UserInformation.logout>
+            <a  class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" href="/logout" role="button">
+                <span class="ui-button-text red" style="width:130px;">Logout</span>
+            </a>
+            </lift:UserInformation.logout>
+          </span>
+        </div>
+			</div>
+    </div>
+    <!--Fin popin Login-->
+  </div>
+  <!--Fin infos utilisateurs-->  
+  
+  <!--Début Logo-->
+  <div id="logo"> 
+    <lift:comet type="AsyncDeployment" name="deploymentStatus" />
+    <h1><a href="/secure/"><img src="/img/logoRudder.jpg" alt="Rudder" /></a></h1>
+  </div>
+  <!--Fin Logo-->
+  <!--Début Menu principal-->
+  <div id="menu">
+   <lift:Menu.builder expand="false" linkToSelf="true" a:class="onMenu" li_item:class="onMenu" li_path:class="onMenu" />
+  </div>
+  <!--Fin Menu principal-->
+
+<img alt="" 
+  id="ajax-loader" 
+  style="width:31px;
+    height: 31px;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    text-align:center;
+    padding:10px;
+    margin-left: -50px;
+    margin-top: -50px;
+    z-index:9999;
+    overflow: auto; display:none;" 
+  src="/images/ajax-loader.gif"/>
+  
+  <lift:bind name="content" />
+
+  <!--Fin contenu + nav-->
+  <hr class="spacer" />
+</div>
+<div id="footer">
+  <p>Rudder v2.2-beta2 - &copy; <a href="javascript:;">Normation</a> with <a href="javascript:;">Cfengine</a> - <a href="javascript:;">Legal Notices</a></p>
+</div>
+
+
+
+</body>
+</html>
+	
+	

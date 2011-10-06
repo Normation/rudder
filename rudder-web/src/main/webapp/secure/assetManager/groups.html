@@ -1,0 +1,81 @@
+<lift:surround with="menu/menu-asset" at="content">
+
+<head>
+<title>Rudder - Node Groups Management</title>
+</head>
+
+<lift:Groups.head />
+
+<div class="portlet">
+ <div class="portlet-header">List groups</div>
+ <div class="portlet-content">
+  <div class="intro">
+ 	 <div>This portlet lists the groups configured for the node in your infrastructure and allows you to create, modify and delete them.<br/> 
+ 	These node groups will later be used to define Configuration Rules.
+ 	 </div>
+  </div>
+ 
+  <hr class="spacer"/> 
+  <div class="groupDisplay">
+	  <lift:Groups.groupHierarchy>
+	  <fieldset class="hierarchy"><legend>Group hierarchy</legend>
+	   <div>
+	    <p style="color:green; margin:3px; font-style:italic; font-size: 0.9em;">Drag'n'drop items to change the hierarchy</p>
+	   </div>
+	   <div>
+	    <group:newItem/>
+	    <group:expandAll/>
+	    <group:export/>
+	    <group:import/>
+	   </div>
+	   <fieldset>
+	  	  <group:jsTree/>
+	   </fieldset>
+	  </fieldset>
+	  </lift:Groups.groupHierarchy>
+	  
+	  <div id="ajaxItemContainer">
+	    <lift:Groups.initRightPanel/>
+	  	<lift:ignore>
+				This div gets the content of the item selected in the js tree
+			</lift:ignore>
+	  </div>
+	</div>
+
+  </div>
+
+  <div id="createGroupPopup" style="display:none">
+  	<lift:ignore>
+			This div gets the content of the createCategoryOrGroup injected within
+		</lift:ignore>
+    <div id="createGroupContainer"/></div>
+  </div>
+ 
+  <div id="succesConfirmationDialog" style="display:none">
+    <div class="simplemodal-title">
+      <h1>Success</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+      <br />
+      <div>
+        <img src="/img/icOK.png" alt="Success" height="32" width="32" style="float:left; margin-right:20px;" />
+        <h2>Your changes have been saved.</h2>
+      </div>
+      <hr class="spacer" />
+    </div>
+		<div class="simplemodal-bottom">
+			<hr/>
+			<div class="popupButton">
+				<span>
+	        <button class="simplemodal-close" onClick="return false;">
+          Close
+  	      </button>
+  	    </span>
+      </div>
+    </div>
+  </div>
+  
+  <lift:Groups.detailsPopup/>
+</lift:surround>
+   

@@ -1,0 +1,2 @@
+Domain classes for the Machine, which holds the configuration (the promises it holds) of a Server
+A RootServer is the entry point for system. This module is on a RootServer, and it distribute policy 

@@ -1,0 +1,361 @@
+dn: cn=schema
+objectclass: top
+#*************************************************************************
+# Copyright 2011 Normation SAS
+#*************************************************************************
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#*************************************************************************
+# CMDB schema
+#
+# Depends upon core.schema, cosine.schema, nis.schema and cmdb.schema
+# CMDB OID
+#######################################################
+####################### WARNING #######################
+#######################################################
+# This OID is necessary for OpenLDAP -> OpenDS schema tool, 
+# but makes OpenLDAP crashes with a non-meaningfull error message
+# if cmdb.schema (where it is already declared) is included
+#######################################################
+####################### /WARNING ######################
+#######################################################
+#######################################################
+################## Attributes #########################
+#######################################################
+### UUIDs ###
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.101
+  NAME 'targetPolicyServerId'
+  DESC 'The identifier of a Node policy server'
+  SUP uuid )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.102
+  NAME 'policyInstanceId'
+  DESC 'Unique identifier for a policy instance'
+  SUP uuid )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.103
+  NAME 'targetPolicyInstanceId'
+  DESC 'Unique identifier for a policy instance'
+  SUP uuid )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.104
+  NAME 'groupCategoryId'
+  DESC 'Unique identifier for a group category'
+  SUP uuid )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.105
+  NAME 'policyCategoryId'
+  DESC 'Unique identifier for a rudder category'
+  SUP uuid )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.106
+  NAME 'referencePolicyTemplateId'
+  DESC 'Unique identifier for a policy template from reference library'
+  SUP uuid )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.107
+  NAME 'userPolicyTemplateId'
+  DESC 'Unique identifier for an policy template in user library'
+  SUP uuid )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.108
+  NAME 'nodeGroupId'
+  DESC 'Unique identifier for a node group'
+  SUP uuid )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.109
+  NAME 'configurationRuleId'
+  DESC 'Unique identifier for a configuration rule'
+  SUP uuid )
+#######################################################################
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.201
+  NAME 'referenceLibraryVersion'
+  DESC 'The version'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.202
+  NAME 'referencePolicyTemplateVersion'
+  DESC 'The version'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.203
+  NAME 'initTimestamp'
+  DESC 'Date and time of initialization of the object'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch
+  ORDERING generalizedTimeOrderingMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.204
+  NAME 'jsonNodeGroupQuery'
+  DESC 'JSON structure that represent a query for a group of nodes'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.205
+  NAME 'configurationRuleTarget'
+  DESC 'Target of the policy instance. It is something of the form targetType:targetUuid'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.206
+  NAME 'creationDate'
+  DESC 'Creation date of the item'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch
+  ORDERING generalizedTimeOrderingMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.207
+  NAME 'lastUpdateTimestamp'
+  DESC 'Last date when the item was updated'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch
+  ORDERING generalizedTimeOrderingMatch )
+#
+# A policy variable and its values.
+# The expected format is:
+# variableName[index]:variableValue
+#
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.208
+  NAME 'policyInstanceVariable'
+  DESC 'Pair of variable:value'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.209
+  NAME 'writtenTimestamp'
+  DESC 'Last date when the item was written'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch
+  ORDERING generalizedTimeOrderingMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.210
+  NAME 'acceptationTimestamp'
+  DESC 'Creation date of a user policy'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.211
+  NAME 'isModified'
+  DESC 'Define if the server is modified and should be processed as such or if it is up to date. Default to false if not specified'
+  EQUALITY booleanMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.212
+  NAME 'isActivated'
+  DESC 'Define if the object is currently activated or not (and so should be ignore)'
+  EQUALITY booleanMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.213
+  NAME 'isDynamic'
+  DESC 'Define if the group is dynamic'
+  EQUALITY booleanMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.214
+  NAME 'isSystem'
+  DESC 'Define if the CR/Group/PI/UPT/Node is created by the system'
+  EQUALITY booleanMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.215
+  NAME 'isBroken'
+  DESC 'Define if the node is broken'
+  EQUALITY booleanMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.216
+  NAME 'isPolicyServer'
+  DESC 'Define if this node configuration refers to a policy server'
+  EQUALITY booleanMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.217
+  NAME 'policyInstancePriority'
+  DESC 'The priority of the object compare to other. Higher has more priority'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+  EQUALITY integerMatch
+  ORDERING integerOrderingMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.218
+  NAME 'longDescription'
+  DESC 'A long field for text (HTLM expected)'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.219
+  NAME 'serial'
+  DESC 'The serial of the Configuration Rule'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+  EQUALITY integerMatch
+  ORDERING integerOrderingMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.220
+  NAME 'systemVariable'
+  DESC 'The current system variables of a node'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.221
+  NAME 'targetSystemVariable'
+  DESC 'The target system variables of a node'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.222
+  NAME 'targetName'
+  DESC 'Host name of the server'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.223
+  NAME 'targetNodeHostname'
+  DESC 'Host name of the server'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.224
+  NAME 'targetAgentName'
+  DESC 'List of name of the agent (Nova, Community, ...)'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.225
+  NAME 'targetLocalAdministratorAccountName'
+  DESC 'The local administrator account name (login) on the node'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+#######################################################
+################  Object Classes ######################
+#######################################################
+#
+# Rudder mains objects:
+# * nodes and policy server
+# * node group categories 
+# * node groups 
+# * user library of policy template categories
+# * userPolicyTemplate
+# * policyInstance
+# * configuration rules
+# 
+### nodes (simple and policy server) for Rudder ###
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.1
+  NAME 'rudderNode'
+  DESC 'The Node itself'
+  SUP top
+  STRUCTURAL
+  MUST ( nodeId $ cn $ isSystem $ isBroken)
+  MAY ( description ) )
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.2
+  NAME 'rudderPolicyServer'
+  DESC 'The Node representation of a policy server'
+  SUP rudderNode
+  STRUCTURAL
+  MUST ( nodeHostname $ publicKey $ ipHostNumber $ inventoryDate $
+  localAdministratorAccountName $ agentName $ policyServerId
+  ) )
+### groups ###
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.10
+  NAME 'groupCategory'
+  DESC 'The group category'
+  SUP top
+  STRUCTURAL
+  MUST ( groupCategoryId $ cn )
+  MAY ( description $ isSystem ) )
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.11
+  NAME 'nodeGroup'
+  DESC 'A node group representation'
+  SUP top
+  STRUCTURAL
+  MUST ( nodeGroupId $
+  cn $ isDynamic )
+  MAY ( nodeId $ description $ jsonNodeGroupQuery $
+  isActivated $ isSystem  ) )
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.12
+  NAME 'specialConfigurationRuleTarget'
+  DESC 'A special target (other than a nodeGroup), for example: all servers'
+  SUP top
+  STRUCTURAL
+  MUST ( configurationRuleTarget $ cn )
+  MAY (  description $ isActivated $ isSystem ) )
+### user policy library ###
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.20
+  NAME 'userLibraryVersion'
+  DESC 'An object class to contain information about the user library (version, initialisation timestamp)'
+  SUP top
+  AUXILIARY
+  MAY ( initTimestamp $ referenceLibraryVersion ) )
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.21
+  NAME 'policyCategory'
+  DESC 'The Rudder category'
+  SUP top
+  STRUCTURAL
+  MUST ( policyCategoryId $ cn )
+  MAY ( description $ isSystem ) )
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.22
+  NAME 'userPolicyTemplate'
+  DESC 'The Rudder category'
+  SUP top
+  STRUCTURAL
+  MUST ( userPolicyTemplateId $ referencePolicyTemplateId $ acceptationTimestamp)
+  MAY ( isActivated $ isSystem ) )
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.23
+  NAME 'policyInstance'
+  DESC 'The Rudder policy instance (real)'
+  SUP top
+  STRUCTURAL
+  MUST ( policyInstanceId $ referencePolicyTemplateVersion )
+  MAY ( cn $ description $ longDescription $ isActivated $ isSystem $
+  policyInstancePriority $ policyInstanceVariable  ) )
+### configuration rules ###
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.30
+  NAME 'configurationRule'
+  DESC 'A configuration rule'
+  SUP top
+  STRUCTURAL
+  MUST ( configurationRuleId  $ serial )
+  MAY ( cn $ description $ longDescription $
+  isActivated $ isSystem $
+  configurationRuleTarget $
+  policyInstanceId ) )
+#
+# Node configurations
+# (current and expected state of
+#  a node configuration)
+#
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.101
+  NAME 'nodeConfiguration'
+  DESC 'The mapping of the node configuration, a container for promises'
+  SUP top
+  STRUCTURAL
+  MUST ( nodeId $ isPolicyServer )
+  MAY ( cn $ description $ isModified $
+  lastUpdateTimestamp $ writtenTimestamp $
+  targetName $
+  localAdministratorAccountName $ targetLocalAdministratorAccountName $
+  nodeHostname $ targetNodeHostname $
+  policyServerId $ targetPolicyServerId $
+  agentName $ targetAgentName $
+  systemVariable $ targetSystemVariable   ) )
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.102
+  NAME 'rootPolicyServerNodeConfiguration'
+  SUP  nodeConfiguration
+  DESC 'The ROOT policy server of an Rudder Domain' )
+#cn is the policy name for the instance
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.103
+  NAME 'abstractPolicyInstanceNodeConfiguration'
+  DESC 'An abstract instance of a policy instance'
+  SUP top
+  ABSTRACT
+  MUST ( referencePolicyTemplateId )
+  MAY ( lastUpdateTimestamp $
+  description $ configurationRuleTarget $ policyInstanceVariable $
+  isActivated $ isSystem $ serial $ policyInstancePriority $
+  referencePolicyTemplateId $ referencePolicyTemplateVersion $
+  configurationRuleId ) )
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.104
+  NAME 'policyInstanceNodeConfiguration'
+  DESC 'An instance of a policy'
+  SUP abstractPolicyInstanceNodeConfiguration
+  STRUCTURAL
+  MUST ( policyInstanceId ) )
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.105
+  NAME 'targetPolicyInstanceNodeConfiguration'
+  DESC 'An instance of a target state for a policy instance'
+  SUP abstractPolicyInstanceNodeConfiguration
+  STRUCTURAL
+  MUST ( targetpolicyInstanceId ) )

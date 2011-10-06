@@ -1,0 +1,536 @@
+#####################################################################################
+# Copyright 2011 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# In accordance with the terms of section 7 (7. Additional Terms.) of
+# the GNU Affero GPL v3, the copyright holders add the following
+# Additional permissions:
+# Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+# Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+# licence, when you create a Related Module, this Related Module is
+# not considered as a part of the work and may be distributed under the
+# license agreement of your choice.
+# A "Related Module" means a set of sources files including their
+# documentation that, without modification of the Source Code, enables
+# supplementary functions or services in addition to those offered by
+# the Software.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+#
+#####################################################################################
+
+###############################################################################
+# Rudder LDAP directory - Demonstration data
+###############################################################################
+# This file contains data to add to Rudder's LDAP directory that provides 8
+# servers to demonstrate the application.
+# 
+# WARNING: it must be passed to ldapmodify, not directly to slapadd!
+# For example:
+# ldapmodify -xc -D cn=manager,cn=rudder-configuration -w secret -f demo-data.ldif
+###############################################################################
+
+## Nodes
+
+dn: nodeId=node1,ou=Nodes,cn=rudder-configuration
+changeType: add
+objectClass: rudderNode
+objectClass: top
+cn: Server 1
+nodeId: node1
+description: a description
+isSystem: FALSE
+isBroken: FALSE
+
+dn: nodeId=node2,ou=Nodes,cn=rudder-configuration
+changeType: add
+objectClass: rudderNode
+objectClass: top
+cn: Second node
+nodeId: node2
+description: a description 2
+isSystem: FALSE
+isBroken: FALSE
+
+dn: nodeId=node3,ou=Nodes,cn=rudder-configuration
+changeType: add
+objectClass: rudderNode
+objectClass: top
+cn: Third node
+nodeId: node3
+description: Third description
+isSystem: FALSE
+isBroken: FALSE
+
+dn: nodeId=node4,ou=Nodes,cn=rudder-configuration
+changeType: add
+objectClass: rudderNode
+objectClass: top
+cn: Fourth node
+nodeId: node4
+description: a description
+isSystem: FALSE
+isBroken: FALSE
+
+dn: nodeId=node5,ou=Nodes,cn=rudder-configuration
+changeType: add
+objectClass: rudderNode
+objectClass: top
+cn: Fifth node
+nodeId: node5
+description: A slightly longer description A slightly longer description A slightly longer description
+ A slightly longer description A slightly longer description A slightly longer description
+isSystem: FALSE
+isBroken: FALSE
+
+dn: nodeId=node6,ou=Nodes,cn=rudder-configuration
+changeType: add
+objectClass: rudderNode
+objectClass: top
+cn: Shortname
+nodeId: node6
+description: a description
+isSystem: FALSE
+isBroken: FALSE
+
+dn: nodeId=node7,ou=Nodes,cn=rudder-configuration
+changeType: add
+objectClass: rudderNode
+objectClass: top
+cn: Seventh node
+nodeId: node7
+description: a description node 7
+isSystem: FALSE
+isBroken: FALSE
+
+dn: nodeId=node8,ou=Nodes,cn=rudder-configuration
+changeType: add
+objectClass: rudderNode
+objectClass: top
+cn: Eigth
+nodeId: node8
+description: a description node 8
+isSystem: FALSE
+isBroken: FALSE
+
+
+#######################################################################################################################
+## ServerInventory
+#######################################################################################################################
+
+
+dn: nodeId=node1,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+changeType: add
+objectClass: node
+objectClass: top
+objectClass: linuxNode
+objectClass: unixNode
+osKernelVersion: 2.6.26-2-686
+osName: Debian
+osVersion: Debian GNU/Linux 5.0.4
+cn: Node 1
+description: a description
+ram: 262144000
+swap: 419430400
+localAdministratorAccountName: root
+publicKey: MIIBCAKCAQEArmB3CzC6Mae5IkHwZQW5NrvDjbgPemm+MAmZ1uE0YZlrJ0KWdfC/ gh
+ QZhGshiVR2XjGsIwKlVnGGzjjQTG8v/cvpEJpI0ydCVTe5PduUyUD20O1ffiCx +0ftpMU6X33Wbl
+ RMVTlxKvxFUN9yqz8c1k6gOtq4MOgRhyYsRQaDMf3atrzUlcu0 EFYFNru+SmG8hpWuTeR8k2u3RR
+ be7U0/gxB0sCDEMu2VpFju8xGWuw3d0ARmH11v 2VSGltosEKyngDr86JmieCiouNQxPocxKVf0P5
+ ud/yUR2hfgKwSJipEdPaXDQFbr jNyVflfrE9X2oECWDoaF7OnKAEOMa9xTKwIBIw==
+nodeHostname: debian-5-32.labo.normation.com
+ipHostNumber: 192.168.100.12
+nodeId: node1
+container: machineId=e5c5e6a7-4ec4-4e72-9b24-42e2b8eca94d,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+PolicyServerId: root
+nodePolicies: HasPolicyServer
+nodePolicies: Inventory
+localAccountName: games
+localAccountName: proxy
+localAccountName: jclarke
+localAccountName: ntp
+localAccountName: munin
+localAccountName: mail
+localAccountName: bin
+localAccountName: sync
+localAccountName: Debian-exim
+localAccountName: man
+localAccountName: uucp
+localAccountName: www-data
+localAccountName: nobody
+localAccountName: irc
+localAccountName: libId
+localAccountName: lp
+localAccountName: news
+localAccountName: sshd
+localAccountName: daemon
+localAccountName: list
+localAccountName: statd
+localAccountName: backup
+localAccountName: sys
+localAccountName: gnats
+agentName: Nova
+inventoryDate: 20100818225137+0200
+
+dn: nodeId=node2,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+changeType: add
+objectClass: node
+objectClass: top
+objectClass: linuxNode
+objectClass: unixNode
+osKernelVersion: 2.6.31-17-server
+osName: Ubuntu
+osVersion: Ubuntu 9.10
+cn: Second node
+description: a description 2
+ram: 253755392
+swap: 741343232
+localAdministratorAccountName: root
+nodeHostname: ubuntu-910-64.labo.normation.com
+ipHostNumber: 192.168.100.23
+publicKey: MIIBCAKCAQEAtDv4fsw33RGCh9HrjWvMKZVpfh0dJ7FV1Q/uzsJVKcSQO2l2ClSx92Q
+ udRS/90KuBAVlhet9XObL2kkDxfqVKtgGkMM/E4XJ+zSOGQLef5VpCTYMD12Qufc40zG79AsGb3MK
+ L0yJ0p1FnzUULXvP2e/hkVA3fHPcWZ6UISrRDFTVqd2OqSRQmtz3rT2Vl7ZfY5hmL3ecN72oehHJ6
+ VHfl6KvE4S4ckDgbwtPbvo7vaNrVzIw0zYiTosrG9fvUvn5uZYPxhX7JjgaWkrSSU+8XWdalwjAvU
+ c1dhnz+QmCh/AtN1NiTV4/wcFRbXA7+VLU4RvBqxI7ywf6L8OZKbKWmwIBIw==
+nodeId: node2
+PolicyServerId: root
+container: machineId=2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+nodePolicies: ConfigureNTP
+nodePolicies: Inventory
+nodePolicies: HasPolicyServer
+localAccountName: landscape
+localAccountName: man
+localAccountName: ntp
+localAccountName: mail
+localAccountName: www-data
+localAccountName: jclarke
+localAccountName: bin
+localAccountName: sync
+localAccountName: syslog
+agentName: Community
+inventoryDate: 20101210011104+0100
+
+
+dn: nodeId=node3,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+changeType: add
+objectClass: node
+objectClass: top
+objectClass: linuxNode
+objectClass: unixNode
+osKernelVersion: 2.6.30.8-64.fc11.i586
+osName: Fedora
+osVersion: Fedora release 11 (Leonidas)
+localAccountName: nicolas
+localAccountName: root
+cn: Third node
+description: Third description
+ram: 526385152
+swap: 1072693248
+localAdministratorAccountName: root
+publicKey: MIIBCAKCAQEAuijCPiWrA1ecLe5N9lv2/uSmNZ6AoLIwUb+r51Go6D1eGOujy/FA km
+ Y/QbfbCEnd0KyZ48pXe4ZZT8+11WRndM/wpDjSSFPpmml8889AqQN0rTg8NOjt CPRMkmVN7mt3Ag
+ g1T5Eji1iWgQ/Jwc7M/FaEGtv6IAPBz8YIg8eyJovjoBX86+Ru F2lqz3H/47dqlmEOwlZdPDj2UO
+ Bz5XJJgdfD66AMPFurHhlZ5FZLS85IWNq+6mQq VABjzhPpHG2MtTeWCw34m0SRK/hxeYryIfe9w1
+ 5XYTfijWcV6iN1bQPIoIq4gIgT xz7J+kZinkLJeio7W8xRwGb9ZJixrr30SwIBIw==
+nodePolicies: Inventory
+nodePolicies: HasPolicyServer
+nodeHostname: fedora.livebox.home
+PolicyServerId: root
+container: machineId=3,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+inventoryDate: 20100818234437+0200
+ipHostNumber: 192.168.56.101
+ipHostNumber: 192.168.0.50
+ipHostNumber: 127.0.0.1
+nodeId: node3
+agentName: Community
+
+dn: nodeId=node4,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+changeType: add
+objectClass: node
+objectClass: top
+objectClass: windowsNode
+osName: windows
+osVersion: N/A
+osKernelVersion: N/A
+osFullName: Microsoft Windows Server 2003 R2 Enterprise x64 Edition
+windowsRegistrationCompany: Normation
+windowsId: 91118-301-6267284-52050
+windowsKey: DFVBV-YQ98G-DYXF3-Q9R89-C6CCD
+localAdministratorAccountName: Administrateur
+PolicyServerId: root
+publicKey: MIIBCAKCAQEAmalV2FD4iEMg3kb2EUet8Zqd5F8px2VaBSCHu0VOhQ4AlYxXCaE3PUL
+ tWvOlTyTobOD1wtURJbeOW8gtBpj7aJddrLTQETfoypPiteLXchC7RSU9rMh6D4w2/gsHhNN1bri5
+ ljlEngSi+oV9zA3foOzKFvQDj7xIcbNgP9vHwH6lY+wI9tuup9MLUILUtSc+33VSGgir02QTJybi4
+ mSv8iXBx2N9BDtpxfKj48ryKz8JHFS7M8X4n1gkFluYWBu4yjii0Wn+zQGKxViGzLY2lQHrbWx192
+ Y4kbIrmnTZKq1LeacRq0u0bRxCtK4X6GKE+P50JPoslEKgAhEhwLME7wIBIw==
+nodeHostname: windows-2003-64
+localAccountName: SUPPORT_388945a0
+localAccountName: IUSR_WINDOWS-2003-64
+localAccountName:: SW52aXTCgg==
+localAccountName: ftp
+cn: Fourth node
+description: a description
+ram: 268435456
+swap: 645922816
+software: softwareId=70a8dc84-0d99-4f15-b951-c54d01f2022c,ou=Software,dc=lab
+ o,dc=normation,dc=com
+software: softwareId=76fec485-febe-4d53-ada2-ff46a4352a1f,ou=Software,dc=lab
+ o,dc=normation,dc=com
+software: softwareId=608853a6-5f41-439c-8698-76db7c2c55bd,ou=Software,dc=lab
+ o,dc=normation,dc=com
+ipHostNumber: 192.168.100.21
+nodeId: node4
+container: machineId=adeb1889-a508-4a0c-903b-b0082cc2ae89,ou=Machines,dc=lab
+ o,dc=normation,dc=com
+inventoryDate: 20101022120042+0200
+agentName: Nova
+
+
+dn: nodeId=node5,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+changeType: add
+objectClass: node
+objectClass: top
+objectClass: linuxNode
+objectClass: unixNode
+osKernelVersion: 2.6.26-2-686
+osName: Debian
+osVersion: Debian GNU/Linux 5.0.4
+cn: Fifth node
+description: A slightly longer description A slightly longer description A slightly longer description
+ram: 262144000
+swap: 419430400
+localAdministratorAccountName: root
+publicKey: MZZBCAKCAQEArmB3CzC6Mae5IkHwZQW5NrvDjbgPemm+MAmZ1uE0YZlrJ0KWdfC/ gh
+ QZhGshiVR2XjGsIwKlVnGGzjjQTG8v/cvpEJpI0ydCVTe5PduUyUD20O1ffiCx +0ftpMU6X33Wbl
+ RMVTlxKvxFUN9yqz8c1k6gOtq4MOgRhyYsRQaDMf3atrzUlcu0 EFYFNru+SmG8hpWuTeR8k2u3RR
+ be7U0/gxB0sCDEMu2VpFju8xGWuw3d0ARmH11v 2VSGltosEKyngDr86JmieCiouNQxPocxKVf0P5
+ ud/yUR2hfgKwSJipEdPaXDQFbr jNyVflfrE9X2oECWDoaF7OnKAEOMa9xTKwIBIw==
+nodeHostname: debian-3-32.labo.normation.com
+ipHostNumber: 192.168.101.12
+nodeId: node5
+container: machineId=e5c5e6a7-4ec4-4e72-9b24-42e2b8eca94d,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+PolicyServerId: root
+nodePolicies: HasPolicyServer
+nodePolicies: Inventory
+localAccountName: games
+localAccountName: proxy
+localAccountName: jclarke
+localAccountName: ntp
+localAccountName: munin
+localAccountName: mail
+localAccountName: bin
+localAccountName: sync
+localAccountName: Debian-exim
+localAccountName: man
+localAccountName: uucp
+localAccountName: www-data
+localAccountName: nobody
+localAccountName: irc
+localAccountName: libId
+localAccountName: lp
+localAccountName: news
+localAccountName: sshd
+localAccountName: daemon
+localAccountName: list
+localAccountName: statd
+localAccountName: backup
+localAccountName: sys
+localAccountName: gnats
+inventoryDate: 20101210225137+0200
+agentName: Community
+
+dn: nodeId=node6,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+changeType: add
+objectClass: node
+objectClass: top
+objectClass: linuxNode
+objectClass: unixNode
+osKernelVersion: 2.6.31-17-server
+osName: Ubuntu
+osVersion: Ubuntu 8.10
+cn: Shortname
+description: a description
+ram: 253755392
+swap: 741343232
+localAdministratorAccountName: root
+nodeHostname: ubuntu-810-64
+ipHostNumber: 192.168.106.23
+publicKey: M66BCAKCAQEAtDv4fsw33RGCh9HrjWvMKZVpfh0dJ7FV1Q/uzsJVKcSQO2l2ClSx92Q
+ udRS/90KuBAVlhet9XObL2kkDxfqVKtgGkMM/E4XJ+zSOGQLef5VpCTYMD12Qufc40zG79AsGb3MK
+ L0yJ0p1FnzUULXvP2e/hkVA3fHPcWZ6UISrRDFTVqd2OqSRQmtz3rT2Vl7ZfY5hmL3ecN72oehHJ6
+ VHfl6KvE4S4ckDgbwtPbvo7vaNrVzIw0zYiTosrG9fvUvn5uZYPxhX7JjgaWkrSSU+8XWdalwjAvU
+ c1dhnz+QmCh/AtN1NiTV4/wcFRbXA7+VLU4RvBqxI7ywf6L8OZKbKWmwIBIw==
+nodeId: node6
+PolicyServerId: root
+container: machineId=6,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+nodePolicies: ConfigureNTP
+nodePolicies: Inventory
+nodePolicies: HasPolicyServer
+localAccountName: landscape
+localAccountName: man
+localAccountName: ntp
+localAccountName: mail
+localAccountName: www-data
+localAccountName: jclarke
+localAccountName: bin
+localAccountName: sync
+localAccountName: syslog
+inventoryDate: 20101210011104+0100
+agentName: Community
+
+dn: nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+changeType: add
+objectClass: node
+objectClass: top
+objectClass: linuxNode
+objectClass: unixNode
+osKernelVersion: 2.6.30.8-64.fc11.i586
+osName: Fedora
+osVersion: Fedora release 11 (Leonidas)
+localAccountName: nicolas
+localAccountName: root
+cn: Seventh node
+description: a description node 7
+ram: 526385152
+swap: 1072693248
+localAdministratorAccountName: root
+publicKey: MIRRRAKCAQEAuijCPiWrA1ecLe5N9lv2/uSmNZ6AoLIwUb+r51Go6D1eGOujy/FA km
+ Y/QbfbCEnd0KyZ48pXe4ZZT8+11WRndM/wpDjSSFPpmml8889AqQN0rTg8NOjt CPRMkmVN7mt3Ag
+ g1T5Eji1iWgQ/Jwc7M/FaEGtv6IAPBz8YIg8eyJovjoBX86+Ru F2lqz3H/47dqlmEOwlZdPDj2UO
+ Bz5XJJgdfD66AMPFurHhlZ5FZLS85IWNq+6mQq VABjzhPpHG2MtTeWCw34m0SRK/hxeYryIfe9w1
+ 5XYTfijWcV6iN1bQPIoIq4gIgT xz7J+kZinkLJeio7W8xRwGb9ZJixrr30SwIBIw==
+nodePolicies: Inventory
+nodePolicies: HasPolicyServer
+nodeHostname: fedora.livebox.home
+PolicyServerId: root
+container: machineId=7,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+inventoryDate: 20100818234437+0200
+ipHostNumber: 192.168.56.177
+ipHostNumber: 192.168.0.77
+ipHostNumber: 127.0.0.1
+nodeId: node7
+agentName: Community
+
+dn: nodeId=node8,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+changeType: add
+objectClass: node
+objectClass: top
+objectClass: windowsNode
+osName: windows
+osVersion: N/A
+osKernelVersion: N/A
+osFullName: Microsoft Windows Server 2008
+windowsRegistrationCompany: Normation
+windowsId: 91118-301-6267284-52050
+windowsKey: DFVBV-YQ98G-DYXF3-Q9R89-C6CCD
+localAdministratorAccountName: Administrateur
+PolicyServerId: root
+publicKey: M888AKCAQEAmalV2FD4iEMg3kb2EUet8Zqd5F8px2VaBSCHu0VOhQ4AlYxXCaE3PUL
+ tWvOlTyTobOD1wtURJbeOW8gtBpj7aJddrLTQETfoypPiteLXchC7RSU9rMh6D4w2/gsHhNN1bri5
+ ljlEngSi+oV9zA3foOzKFvQDj7xIcbNgP9vHwH6lY+wI9tuup9MLUILUtSc+33VSGgir02QTJybi4
+ mSv8iXBx2N9BDtpxfKj48ryKz8JHFS7M8X4n1gkFluYWBu4yjii0Wn+zQGKxViGzLY2lQHrbWx192
+ Y4kbIrmnTZKq1LeacRq0u0bRxCtK4X6GKE+P50JPoslEKgAhEhwLME7wIBIw==
+nodeHostname: windows-2003-88
+localAccountName: SUPPORT_388945a0
+localAccountName: IUSR_WINDOWS-2003-64
+localAccountName:: SW52aXTCgg==
+localAccountName: ftp
+cn: Eigth
+description: a description node 8
+ram: 268435456
+swap: 645922816
+software: softwareId=70a8dc84-0d99-4f15-b951-c54d01f2022c,ou=Software,dc=lab
+ o,dc=normation,dc=com
+software: softwareId=76fec485-febe-4d53-ada2-ff46a4352a1f,ou=Software,dc=lab
+ o,dc=normation,dc=com
+software: softwareId=608853a6-5f41-439c-8698-76db7c2c55bd,ou=Software,dc=lab
+ o,dc=normation,dc=com
+ipHostNumber: 192.168.100.88
+nodeId: node8
+container: machineId=adeb1889-a508-4a0c-903b-b0082cc2ae89,ou=Machines,dc=lab
+ o,dc=normation,dc=com
+inventoryDate: 20101022120042+0200
+agentName: Nova
+
+dn: nodeGroupId=hasPolicyServer-root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+changeType: modify
+add: nodeId
+nodeId: node1
+nodeId: node2
+nodeId: node3
+nodeId: node4
+nodeId: node5
+nodeId: node6
+nodeId: node7
+nodeId: node8
+
+#######################################################################################################################
+## Some groups to test: All nodes, all windows, all linux
+#######################################################################################################################
+
+
+dn: nodeGroupId=4b609e8e-3bcc-4b7e-8d26-1c8512fd0f4e,groupCategoryId=Gro
+ upRoot,ou=Rudder,cn=rudder-configuration
+changeType: add
+objectClass: nodeGroup
+objectClass: top
+cn: All windows
+isDynamic: TRUE
+nodeGroupId: 4b609e8e-3bcc-4b7e-8d26-1c8512fd0f4e
+jsonNodeGroupQuery: { "select":"node", "composition":"And", "where":[ {"objectType":"node","attribute":"OS","comparator":"eq","value":"Windows"}] }
+isActivated: TRUE
+isSystem: FALSE
+nodeId: node4
+nodeId: node8
+
+dn: nodeGroupId=4fe62f07-ccb7-4836-ad55-8a104700048f,groupCategoryId=Gro
+ upRoot,ou=Rudder,cn=rudder-configuration
+changeType: add
+objectClass: nodeGroup
+objectClass: top
+cn: All servers
+isDynamic: TRUE
+nodeGroupId: 4fe62f07-ccb7-4836-ad55-8a104700048f
+jsonNodeGroupQuery: { "select":"node", "composition":"And", "where":[ {"objectType":"node","attribute":"nodeId","comparator":"exists","value":""}]}
+isActivated: TRUE
+isSystem: FALSE
+nodeId: node1
+nodeId: node2
+nodeId: node3
+nodeId: node4
+nodeId: node5
+nodeId: node6
+nodeId: node7
+nodeId: node8
+
+dn: nodeGroupId=f4b27025-b5a9-46fe-8289-cf9d56e07a8a,groupCategoryId=Gro
+ upRoot,ou=Rudder,cn=rudder-configuration
+changeType: add
+objectClass: nodeGroup
+objectClass: top
+cn: All linux
+isDynamic: TRUE
+nodeGroupId: f4b27025-b5a9-46fe-8289-cf9d56e07a8a
+jsonNodeGroupQuery: { "select":"node", "composition":"And", "where":[ {"objectType":"node","attribute":"OS","comparator":"eq","value":"Linux"}]}
+isActivated: TRUE
+isSystem: FALSE
+nodeId: node1
+nodeId: node2
+nodeId: node3
+nodeId: node5
+nodeId: node6
+nodeId: node7
+
+

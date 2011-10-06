@@ -1,0 +1,186 @@
+<xml:group>
+
+
+<component:staticInit>
+<head>
+  <style type="text/css">
+  
+    .topLevelAction .twoColumns {
+      vertical-align: middle;
+      max-width: 45%;
+      display: inline-block;
+      /* only for IE inf 7 */
+      display*: inline;
+      zoom*: 1;
+    }
+    
+    .topLevelAction .twoColumnsRight {
+      margin-left:20px
+    }
+    
+    .topLevelAction .twoColumns > * {
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 50px;
+    }
+    
+    .disableNotice {
+      margin-top:10px;
+      font-size:0.9em;
+    }
+    
+  </style>
+</head>
+</component:staticInit>
+
+<component:itemDependencies>
+
+  <table id="itemDependenciesGrid">
+    <thead>
+       <tr><td>Col1</td><td>Col2</td><td>Col3</td></tr>
+    </thead>
+    <tbody>
+      <tr><td>Col1</td><td>Col2</td><td>Col3</td></tr>
+      <tr><td>Col1</td><td>Col2</td><td>Col3</td></tr>
+      <tr><td>Col1</td><td>Col2</td><td>Col3</td></tr>
+    </tbody>
+  </table>
+
+</component:itemDependencies>
+
+<component:body>
+  <div id="editForm" class="object-details">
+
+
+    <fieldset class="topLevelAction">
+      <p class="clearable">
+        This is the zone for top level actions which does not take into account
+        modifications done in the edit zone.
+      </p>
+
+      <legend>Modify policy status</legend>
+
+      <div id="removeAction" class="twoColumns">
+        <button id="removeButton">Delete</button>
+      </div>
+      <div id="removeActionDialog" style="display:none">
+        <div class="simplemodal-title">
+          <h1>Delete a policy instance</h1>
+          <hr/>
+        </div>
+        <div class="simplemodal-content">
+          <div>
+            <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+            <h2>
+              Deleting this policy will also remove it as a part of
+              the following configuration rules which depend on it.
+            </h2>
+          </div>
+          <hr class="spacer" />
+          <div id="removeItemDependencies">
+            Here comes the grid of configuration rules that will be removed
+          </div>
+          <br />
+          <br />
+          <h3>Are you sure that you want to delete this item?</h3>
+          <br />
+        </div>
+				<div class="simplemodal-bottom">
+					<hr/>
+					<div class="popupButton">
+	    			<span>
+            	<button class="simplemodal-close" onClick="return false;">Cancel</button>
+            	<button id="dialogRemoveButton">Delete</button>
+            </span>
+          </div>
+        </div>
+			</div>
+
+      <div id="desactivateAction" class="twoColumns twoColumnsRight">
+        <button id="disactivateButton"><span id="disactivateButtonLabel">desactivate</span></button>
+      </div>
+      <div id="desactivateActionDialog" style="display:none">
+        <div class="simplemodal-title">
+          <h1>Disable a policy instance</h1>
+          <hr/>
+        </div>
+        <div class="simplemodal-content">
+          <div>
+            <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+            <h2 id="dialogDisactivateWarning">
+              Disabling this policy will also disable the following configuration rules which depend on it.
+            </h2>
+          </div>
+          <hr class="spacer" />
+          <div id="disableItemDependencies">
+            Here comes the grid of configuration rules that will be removed
+          </div>
+          <br />
+          <br />
+          <h3>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this policy?</h3>
+          <br />
+  			</div>
+				<div class="simplemodal-bottom">
+					<hr/>
+					 <div class="popupButton">
+					 	<span>
+            	<button class="simplemodal-close" onClick="return false;">Cancel</button>
+            	<button id="dialogDisactivateButton">Deactivate</button>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="disableNotice">
+        Note: A policy's status may be Enabled, but it will be effectively disabled
+        if the policy template it's based on is disabled.
+       </div>
+      
+    </fieldset>
+
+    <fieldset class="editZone">
+      <legend>Policy settings</legend>
+
+      <div id="notification">
+        <ul>
+          <li>Here comes notifications</li>
+        </ul>
+      </div>
+      <hr class="spacer" />
+
+      <p>This policy is based on the <b><span id="policyTemplateName"/></b> policy template.</p>
+      <p id="isSingle">Unique policy template</p> 
+      <fieldset><legend>Description of the policy template</legend><span id="policyTemplateDescription"/></fieldset>
+			<br/>
+      <div id="nameField">
+        Here comes the name field
+      </div>
+      <hr class="spacer" />
+      <div id="shortDescriptionField">
+        Here comes the shortDescription field
+      </div>
+      <hr class="spacer" />
+      <div id="priority">
+        Here come the priority field
+      </div>
+      <hr class="spacer" />
+
+
+      <hr class="spacer"/>
+      <div id="longDescriptionField">
+        Here comes the longDescription field
+      </div>
+
+      <hr class="spacer"/>
+
+      <fieldset><legend>Parameters</legend>
+        <span id="parameters">Here goes the list of parameters</span>
+      </fieldset>
+
+      <div style="float:right;">
+        <button id="save">Save</button>
+      </div>
+    </fieldset>
+  </div>
+
+</component:body>
+</xml:group>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+Copyright 2011 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+In accordance with the terms of section 7 (7. Additional Terms.) of
+the GNU Affero GPL v3, the copyright holders add the following
+Additional permissions:
+Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+licence, when you create a Related Module, this Related Module is
+not considered as a part of the work and may be distributed under the
+license agreement of your choice.
+A "Related Module" means a set of sources files including their
+documentation that, without modification of the Source Code, enables
+supplementary functions or services in addition to those offered by
+the Software.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+-->
+
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+    xmlns:beans="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.0.xsd">
+
+<!--    <global-method-security pre-post-annotations="enabled">-->
+<!--         AspectJ pointcut expression that locates our "post" method and applies security that way-->
+<!--        <protect-pointcut expression="execution(* bigbank.*Service.post*(..))" access="ROLE_TELLER"/>-->
+<!--        -->
+<!--    </global-method-security>-->
+
+    <http use-expressions="true">
+        
+        <session-management session-authentication-strategy-ref="sas"/>
+        
+        <!-- 
+           Comment to allows "no auth required", but the login form is still valid
+           May be used for development or demo.        
+        -->
+        <!-- Start comment -->
+        
+        <intercept-url pattern="/style/**" filters="none"/>
+        <intercept-url pattern="/img/**" filters="none"/>
+        <intercept-url pattern="/images/**" filters="none"/>
+        <intercept-url pattern="/javascript/**" filters="none"/>
+        <intercept-url pattern="/secure/**" access="isAuthenticated()" />
+        
+        <!-- End comment -->
+    
+        <!-- Default pattern: anonymous rights for all not-already matched URL -->    
+        <intercept-url pattern="/**" access="permitAll" />
+        
+        <form-login 
+            login-page="/index.html"
+            login-processing-url="/j_spring_security_check"
+            default-target-url="/secure/index.html" 
+            always-use-default-target="false"
+            authentication-failure-url="/index.html?login_error=true"
+        />
+<!--        <remember-me />-->
+
+    </http>
+
+    <authentication-manager>
+        <authentication-provider ref="demoAuthenticationProvider"/>
+    </authentication-manager>
+
+  <!-- Disallow any session check, for demo only. A real application should enable concurrent/fixation session check  -->
+  <beans:bean id="sas" class="org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy" />
+
+
+</beans:beans>
