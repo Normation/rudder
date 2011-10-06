@@ -1,0 +1,76 @@
+<configuration>
+  <!-- 
+    This is the default loggin configuration file. It will be used if you
+    didn't specify the "logback.configurationFile" JVM option. 
+    For example, to use a loggin configuration file in "/etc/arcada":
+    java ... -Dlogback.configurationFile=/etc/arcada/logback-endpoint.xml
+   -->  
+
+
+	<!-- Default configuration : log on stdout appender, only root logger configured-->
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<Pattern>%-30(%d{HH:mm:ss.SSS} [%thread]) %-5level %logger{36} - %msg%n%xEx{10}</Pattern>
+		</encoder>
+	</appender>
+
+	<!-- level are: 
+	     trace < debug < info < warn < error < off 
+	     "off" completely shut down logging for the given logger
+	-->
+	<root level="debug"> <!-- pour le devel -->
+		<appender-ref ref="STDOUT" />
+	</root>
+	
+	<!--
+	    You can specify log level for package and class, 
+	    they inherit the root appender.
+	    
+	<logger name="foo" level="INFO" />
+	<logger name="foo.MyClass" level="DEBUG" />
+	-->
+
+	<logger name="org.springframework" level="info" />
+	
+	<!-- 
+	     You can also define other appender for sub-trees.
+	     Be careful, in this case, appender are cumulative
+	     (log will be outputed both on STDOUT and in FILE
+	     
+	<logger name="foo.bar.OtherClass" >
+		<appender-ref ref="FILE" />
+	</logger>
+	-->
+	
+	
+	<!-- 
+	    if you don't want appender to be cumulative, add additivity
+	    parameter and set it to false: 
+	
+	<logger name="foo.bar.OtherClass" additivity="false">
+		<appender-ref ref="FILE" />
+	</logger>
+	-->
+	
+	<!-- 
+	     You can define properties and used them in place of parameter:
+	     
+	<property name="USER_HOME" value="/home/foohome" />
+	
+	     Properties may also come from a file:
+	     
+	<property file="src/main/java/foo/bar/baz/variables.properties" />
+	
+	     Or from a classpath resource:
+	     
+	<property resource="resource.properties" />
+
+	   And properties may be compose with other properties:
+	   
+USER_HOME=/home/foohome
+fileName=myApp.log
+destination=${USER_HOME}/${fileName}
+
+	 -->
+
+</configuration>
