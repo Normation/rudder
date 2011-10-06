@@ -1,0 +1,862 @@
+#*************************************************************************
+# Copyright 2011 Normation SAS
+#*************************************************************************
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#*************************************************************************
+
+# CMDB schema
+#
+# Depends upon core.schema, cosine.schema, nis.schema and dyngroup.schema
+
+
+# Inventory OID
+objectIdentifier NormationOID 1.3.6.1.4.1.35061
+objectIdentifier InventoryOID NormationOID:1
+objectIdentifier InventoryAttributes InventoryOID:1
+objectIdentifier InventoryObjectClasses InventoryOID:2
+
+
+#######################################################
+################## Attributes #########################
+#######################################################
+
+
+### UUIDs ###
+
+attributeType ( InventoryAttributes:1
+  NAME 'uuid'
+  DESC 'A generic UUID'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:1.1
+  NAME 'machineId'
+  DESC 'Unique identifier for a machine'
+  SUP uuid )
+
+attributetype ( InventoryAttributes:1.2
+  NAME 'nodeId'
+  DESC 'Unique identifier for a node'
+  SUP uuid )
+
+attributetype ( InventoryAttributes:1.3
+  NAME 'softwareId'
+  DESC 'Unique identifier for software'
+  SUP uuid )
+
+attributetype ( InventoryAttributes:1.4
+  NAME 'motherBoardUuid'
+  DESC 'Mother board UUID'
+  SUP uuid )
+
+attributetype ( InventoryAttributes:1.5
+  NAME 'policyServerId'
+  DESC 'Unique identifier for the policy server of a node'
+  SUP uuid )
+  
+#######################################################################
+
+#
+# Top level objects: nodes and machines. 
+#
+# A "node" is the logical part of a server. It knows
+# things like the OS, available RAM, installed software, 
+# users, network interface, file system, etc. 
+#
+# A "machine" is the physical part of a server. 
+# It contains things like CPU, memory slots, hark disk, etc
+#
+#
+
+
+attributetype ( InventoryAttributes:2.1
+  NAME 'node'
+  DESC 'DN of a node'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
+  EQUALITY distinguishedNameMatch )
+
+attributetype ( InventoryAttributes:2.2
+  NAME 'machine'
+  DESC 'DN of a machine'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
+  EQUALITY distinguishedNameMatch )
+
+attributetype ( InventoryAttributes:2.3
+  NAME 'hostedVm'
+  DESC 'A machine known to be an Hosted VM in a server'
+  SUP machine )
+
+attributetype ( InventoryAttributes:2.4
+  NAME 'container'
+  DESC 'A machine which is the container (physical or virtual) for a server'
+  SUP machine )
+
+attributetype ( InventoryAttributes:2.5
+  NAME 'software'
+  DESC 'DN of software'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
+  EQUALITY distinguishedNameMatch )
+
+#
+# A node and a machine can be composed of elements.
+#
+attributetype ( InventoryAttributes:200
+  NAME 'elementName'
+  DESC 'Slot number of a ram chipset'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+
+#
+# Node information
+#
+
+#
+# The first information for a node is its 
+# Operating System
+#
+
+
+attributetype ( InventoryAttributes:100.1
+  NAME 'osName'
+  DESC 'os name of the node'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  
+attributetype ( InventoryAttributes:100.2
+  NAME 'osFullName'
+  DESC 'os full name of the node'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:100.3
+  NAME 'osVersion'
+  DESC 'os version of the node'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  ORDERING caseIgnoreOrderingMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  
+attributetype ( InventoryAttributes:100.4
+  NAME 'osServicePack'
+  DESC 'os service pack name of the node'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  ORDERING caseIgnoreOrderingMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  
+attributetype ( InventoryAttributes:100.5
+  NAME 'osKernelVersion'
+  DESC 'kernel version of the os of the node'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  ORDERING caseIgnoreOrderingMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  
+attributetype ( InventoryAttributes:100.6
+  NAME 'osArchitectureType'
+  DESC 'Details of the OS architecture (x86, x86-64, etc)'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  
+### windows specific information
+
+attributetype ( InventoryAttributes:100.21
+  NAME 'windowsUserDomain'
+  DESC 'User for the window system'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:100.22
+  NAME 'windowsRegistrationCompany'
+  DESC 'Company registered for that windows'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:100.23
+  NAME 'windowsKey'
+  DESC 'The registration KEY'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:100.24
+  NAME 'windowsId'
+  DESC 'The unique id of that windows instance'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+
+#
+# Other information for a node
+#
+
+attributetype ( InventoryAttributes:300.1
+  NAME 'nodeHostname'
+  DESC 'Host name of the server'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:300.2
+  NAME 'localAdministratorAccountName'
+  DESC 'The local administrator account name (login) on the node'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:300.3
+  NAME 'ram'
+  DESC 'Total RAM of the machine, in megabytes'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+  EQUALITY integerMatch
+  ORDERING integerOrderingMatch )
+
+attributetype ( InventoryAttributes:300.4
+  NAME 'swap'
+  DESC 'Total SWAP of the machine, in megabytes'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+  EQUALITY integerMatch
+  ORDERING integerOrderingMatch )
+
+attributetype ( InventoryAttributes:300.5
+  NAME 'localAccountName'
+  DESC 'A local account name (login) on the server'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  
+attributetype ( InventoryAttributes:300.6
+  NAME 'lastLoggedUser'
+  DESC 'Login of the last logged user'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:300.7
+  NAME 'lastLoggedUserTime'
+  DESC 'Date and time of the last user login'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch
+  ORDERING generalizedTimeOrderingMatch )
+
+attributetype ( InventoryAttributes:300.8
+  NAME 'publicKey'
+  DESC 'A public key in PEM representation'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:300.9
+  NAME 'nodePolicies'
+  DESC 'Name of policies applied to that node'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:300.10
+  NAME 'confirmed'
+  DESC 'Flag to indicate a newly detected machine, not yet confirmed as real'
+  EQUALITY booleanMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7
+  SINGLE-VALUE )
+
+attributetype ( InventoryAttributes:300.11
+  NAME 'inventoryDate'
+  DESC 'Last time an inventory was done for that element'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch
+  ORDERING generalizedTimeOrderingMatch )
+  
+attributetype ( InventoryAttributes:300.12
+  NAME 'agentName'
+  DESC 'List of name of the agent (Nova, Community, ...)'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+#
+# A node can have some complex "logical" elements: 
+# * network interfaces
+# * file systems
+#
+
+### network interfaces
+
+attributetype ( InventoryAttributes:200.1
+  NAME 'networkInterface'
+  DESC 'Name of a network interface'
+  SUP elementName )
+
+### network interfaces attributes 
+
+attributetype ( InventoryAttributes:400.1
+  NAME 'networkInterfaceGateway'
+  DESC 'Network interface gateway address'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.2
+  NAME 'networkInterfaceDhcpServer'
+  DESC 'Network interface DHCP provider address'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.3
+  NAME 'networkInterfaceMask'
+  DESC 'Network interface subnet'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.4
+  NAME 'networkInterfaceMacAddress'
+  DESC 'Network interface MAC address'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.5
+  NAME 'networkInterfaceType'
+  DESC 'Network interface type'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.6
+  NAME 'networkInterfaceTypeMib'
+  DESC 'Network interface type mib'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+### file systems
+
+attributetype ( InventoryAttributes:200.2
+  NAME 'mountPoint'
+  DESC 'A mount point for a file system'
+  SUP elementName )
+  
+### file system attributes
+
+attributetype ( InventoryAttributes:400.7
+  NAME 'fileCount'
+  DESC 'Number of file descriptor in the filesystem'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.8
+  NAME 'fileSystemFreeSpace'
+  DESC 'Free space in the filesystem, in megabytes'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+  EQUALITY integerMatch
+  ORDERING integerOrderingMatch )
+
+attributetype ( InventoryAttributes:400.9
+  NAME 'fileSystemTotalSpace'
+  DESC 'Total space of the filesystem, in megabytes'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+  EQUALITY integerMatch
+  ORDERING integerOrderingMatch )
+
+
+#
+# A machine can have some complex "physicale" elements: 
+# * bios
+# * controllers
+# * cpus
+# * memory slots
+# * ports
+# * slots
+# * sound cards
+# * storages (hard drives, etc)
+# * video cards
+#
+
+### generic attributes
+
+attributetype ( InventoryAttributes:500.1
+  NAME 'speed'
+  DESC 'A speed, unit should be given in the attribute value, i.e: 5400MHz'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:500.2
+  NAME 'status'
+  DESC 'a status'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+    
+attributetype ( InventoryAttributes:500.3
+  NAME 'model'
+  DESC 'A model version of a (physical) component'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  
+attributetype ( InventoryAttributes:500.4
+  NAME 'quantity'
+  DESC 'Number of occurence of the element (should always be >=0'
+  EQUALITY integerMatch
+  ORDERING integerOrderingMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
+  
+attributetype ( InventoryAttributes:500.5
+  NAME 'smeType'
+  DESC 'Type of a system managed element'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  
+attributetype ( InventoryAttributes:500.6
+  NAME 'manufacturer'
+  DESC 'Builder of a physical component'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  
+attributetype ( InventoryAttributes:500.7
+  NAME 'firmware'
+  DESC 'Firmware related information'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:500.8
+  NAME 'componentSerialNumber'
+  DESC 'Serial number of a physical component'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+### physical element and attributes
+
+attributetype ( InventoryAttributes:200.3
+  NAME 'biosName'
+  DESC 'Name of a BIOS'
+  SUP elementName )
+  
+### controller 
+
+attributetype ( InventoryAttributes:200.4
+  NAME 'controllerName'
+  DESC 'Name of a controller interface'
+  SUP elementName )
+  
+### cpu
+
+attributetype ( InventoryAttributes:200.5
+  NAME 'cpuName'
+  DESC 'Name of a CPU'
+  SUP elementName )
+   
+attributetype ( InventoryAttributes:500.9
+  NAME 'cpuSpeed'
+  DESC 'CPU speed, in mhz'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{16} )
+  
+attributetype ( InventoryAttributes:500.10
+  NAME 'cpuStepping'
+  DESC 'Number of CPU mode to reduce speed'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{16} )
+
+attributetype ( InventoryAttributes:500.11
+  NAME 'cpuFamily'
+  DESC 'Family name of the CPU'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  
+### memorySlot 
+
+attributetype ( InventoryAttributes:200.6
+  NAME 'memorySlotNumber'
+  DESC 'Slot number of a ram chipset'
+  SUP elementName )
+
+attributetype ( InventoryAttributes:500.12
+  NAME 'memoryCapacity'
+  DESC 'A memory capacity (ram, video, etc)'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  
+attributetype ( InventoryAttributes:500.13
+  NAME 'memoryCaption'
+  DESC 'Information about a memory chip'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:500.14
+  NAME 'memorySpeed'
+  DESC 'Speed of a memory chipset'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:500.15
+  NAME 'memoryType'
+  DESC 'Memory type'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+
+### port
+
+attributetype ( InventoryAttributes:200.7
+  NAME 'portName'
+  DESC 'Name of a port'
+  SUP elementName )
+
+### slot 
+
+attributetype ( InventoryAttributes:200.8
+  NAME 'slotName'
+  DESC 'Name of a Slot'
+  SUP elementName )
+
+### sound card
+
+attributetype ( InventoryAttributes:200.9
+  NAME 'soundCardName'
+  DESC 'Name of a sound card'
+  SUP elementName )
+
+### storage 
+
+attributetype ( InventoryAttributes:200.10
+  NAME 'storageName'
+  DESC 'Name of a storage element (hard drive, etc)'
+  SUP elementName )
+
+attributetype ( InventoryAttributes:500.16
+  NAME 'storageSize'
+  DESC 'The size of a storage unit'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+
+### video 
+
+attributetype ( InventoryAttributes:200.11
+  NAME 'videoCardName'
+  DESC 'Name of a video card'
+  SUP elementName )
+  
+attributetype ( InventoryAttributes:500.17
+  NAME 'videoChipset'
+  DESC 'Information '
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:500.18
+  NAME 'videoResolution'
+  DESC 'Max resolution for a video chipset'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+#
+# Software related information
+#
+
+attributetype ( InventoryAttributes:400.50
+  NAME 'releaseDate'
+  DESC 'Release date of the element'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch 
+  ORDERING generalizedTimeOrderingMatch )
+
+attributetype ( InventoryAttributes:400.51
+  NAME 'licenseExpirationDate'
+  DESC 'Expiration date of the license of the element'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch 
+  ORDERING generalizedTimeOrderingMatch )
+
+attributetype ( InventoryAttributes:400.52
+  NAME 'licenseName'
+  DESC 'Name of the license of the element'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.53
+  NAME 'licenseDescription'
+  DESC 'Description of the license of the element'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.54
+  NAME 'licenseProductId'
+  DESC 'Product ID of the element on whom license applies'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.55
+  NAME 'licenseProductKey'
+  DESC 'Product Key of the element on whom license applies'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.56
+  NAME 'editor'
+  DESC 'Editor (or manufacturer) of the element'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.57
+  NAME 'softwareVersion'
+  DESC 'Version of the software, for ex: v3.0.34-pre4'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+#######################################################
+################  Object Classes ######################
+#######################################################
+
+objectclass ( InventoryObjectClasses:0
+  NAME 'configurationRoot' 
+  DESC 'The object used as root of Rudder DIT'
+  SUP top
+  STRUCTURAL
+  MUST ( cn )
+  MAY ( description ) )
+
+objectclass ( InventoryObjectClasses:1
+  NAME 'machine' 
+  DESC 'A container for servers, ie a physical machine or a virtual machine'
+  SUP device
+  MUST ( machineId )
+  MAY ( cn $ description $ motherBoardUuid $ confirmed $ inventoryDate ) )
+
+objectclass ( InventoryObjectClasses:2
+  NAME 'physicalMachine'
+  DESC 'A real, physical machine'
+  SUP top
+  AUXILIARY )
+
+objectclass ( InventoryObjectClasses:3
+  NAME 'virtualMachine'
+  DESC 'A virtual machine'
+  SUP top
+  AUXILIARY )
+
+objectclass ( InventoryObjectClasses:80:1
+  NAME 'vmWare'
+  DESC 'A VMWare VM'
+  SUP VirtualMachine
+  AUXILIARY )
+
+objectclass ( InventoryObjectClasses:80:2
+  NAME 'virtualBox'
+  DESC 'A VirtualBox VM'
+  SUP VirtualMachine
+  AUXILIARY )
+
+objectclass ( InventoryObjectClasses:80:3
+  NAME 'xen'
+  DESC 'A Xen VM'
+  SUP VirtualMachine
+  AUXILIARY )
+
+objectclass ( InventoryObjectClasses:80:4
+  NAME 'solarisZone'
+  DESC 'A Zone in Solaris OS'
+  SUP VirtualMachine
+  AUXILIARY )
+
+objectclass ( InventoryObjectClasses:80:5
+  NAME 'qemu'
+  DESC 'A Qemu VM'
+  SUP VirtualMachine
+  AUXILIARY )
+
+objectclass ( InventoryObjectClasses:4
+  NAME 'physicalElement'
+  DESC 'A physical element, ie a component of a machine (network card, memory slots, etc)'
+  SUP top
+  ABSTRACT
+  MAY ( machineId $ machine $ description $ model $ componentSerialNumber $ firmware $ 
+        quantity $ smeType $ status $ manufacturer ) )
+
+objectclass ( InventoryObjectClasses:5
+  NAME 'memoryPhysicalElement'
+  DESC 'A memory chipset (ram, etc)'
+  SUP physicalElement
+  STRUCTURAL
+  MUST ( memorySlotNumber )
+  MAY ( cn $ memoryCapacity $ memoryCaption $ memorySpeed $ memoryType ) )
+
+objectclass ( InventoryObjectClasses:6
+  NAME 'storagePhysicalElement'
+  DESC 'A storage unit (hard disk, etc)'
+  SUP physicalElement
+  STRUCTURAL
+  MUST ( storageName )
+  MAY ( storageSize $ firmware ) )
+
+objectclass ( InventoryObjectClasses:7
+  NAME 'biosPhysicalElement'
+  DESC 'A bios'
+  SUP physicalElement
+  STRUCTURAL 
+  MUST ( biosName )
+  MAY ( releaseDate $ editor $ softwareVersion $ licenseExpirationDate $
+        licenseName $ licenseProductId $ licenseProductKey ) )
+
+objectclass ( InventoryObjectClasses:8
+  NAME 'controllerPhysicalElement'
+  DESC 'A controller chipset'
+  SUP physicalElement
+  STRUCTURAL 
+  MUST ( controllerName ) )
+
+objectclass ( InventoryObjectClasses:9
+  NAME 'portPhysicalElement'
+  DESC 'A port element'
+  SUP physicalElement
+  STRUCTURAL 
+  MUST ( portName ) )
+
+objectclass ( InventoryObjectClasses:10
+  NAME 'processorPhysicalElement'
+  DESC 'A processor unit'
+  SUP physicalElement
+  STRUCTURAL
+  MUST ( cpuName )
+  MAY ( cpuSpeed $ cpuStepping $ cpuFamily ) )
+
+objectclass ( InventoryObjectClasses:11
+  NAME 'slotPhysicalElement'
+  DESC 'A slot for external cards'
+  SUP physicalElement
+  STRUCTURAL
+  MUST ( slotName ) )
+
+objectclass ( InventoryObjectClasses:12
+  NAME 'soundCardPhysicalElement'
+  DESC 'A sound card'
+  SUP physicalElement
+  STRUCTURAL 
+  MUST ( soundCardName ) )
+
+objectclass ( InventoryObjectClasses:13
+  NAME 'videoCardPhysicalElement'
+  DESC 'A video card'
+  SUP physicalElement
+  STRUCTURAL
+  MUST ( videoCardName )
+  MAY ( videoChipset $ videoResolution $ memoryCapacity) )
+
+objectclass ( InventoryObjectClasses:14
+  NAME 'node'
+  DESC 'A node entity. This is a logical server, such as an OS installation, may be on a virtual machine or a physical machine.'
+  SUP top
+  ABSTRACT
+  MUST ( nodeId $ localAdministratorAccountName $ nodeHostname $ 
+         policyServerId $ osName $ osVersion $ osKernelVersion )
+  MAY ( description $ cn $ publicKey $ agentName $ hostedVm $ container $ 
+        software $  localAccountName $ osServicePack $
+        nodePolicies $ ram $ swap $ confirmed $
+        inventoryDate $ ipHostNumber $ osFullName $
+        osArchitectureType $ lastLoggedUser $ lastLoggedUserTime ) )
+
+objectclass ( InventoryObjectClasses:15
+  NAME 'windowsNode'
+  DESC 'A node running Microsoft Windows as an operating system'
+  SUP node
+  STRUCTURAL
+  MAY ( windowsUserDomain $ windowsRegistrationCompany $ windowsKey $ windowsId ) )
+        
+objectClass ( InventoryObjectClasses:16
+  NAME 'unixNode'
+  DESC 'A node running a UNIX-like operating system'
+  SUP node
+  STRUCTURAL )
+  
+objectclass ( InventoryObjectClasses:17
+  NAME 'linuxNode'
+  DESC 'A node running GNU/Linux as an operating system'
+  SUP unixNode
+  STRUCTURAL )
+
+
+objectclass ( InventoryObjectClasses:18
+  NAME 'logicalElement'
+  DESC 'A logical element, ie a component of a node (network interface, file system, etc)'
+  SUP top
+  ABSTRACT
+  MAY ( nodeId $ node $ description ) )
+
+objectclass ( InventoryObjectClasses:19
+  NAME 'fileSystemLogicalElement'
+  DESC 'A file system in an Operating System'
+  SUP logicalElement
+  STRUCTURAL
+  MUST ( mountPoint )
+  MAY ( cn $ fileCount $ fileSystemFreeSpace $ fileSystemTotalSpace ) )
+
+objectclass ( InventoryObjectClasses:20
+  NAME 'networkInterfaceLogicalElement'
+  DESC 'A file system in an Operating System'
+  SUP logicalElement
+  STRUCTURAL
+  MUST ( networkInterface )
+  MAY ( status $ speed $ ipHostNumber $ networkInterfaceMacAddress $
+        networkInterfaceGateway $ ipNetworkNumber $ networkInterfaceDhcpServer $ 
+        networkInterfaceMask $ networkInterfaceType $ networkInterfaceTypeMib) )
+
+objectclass ( InventoryObjectClasses:21
+  NAME 'software'
+  DESC 'A software package'
+  SUP top
+  STRUCTURAL
+  MUST ( softwareId )
+  MAY ( cn $ description $ releaseDate $ editor $ softwareVersion $
+        licenseExpirationDate $ licenseName $ licenseProductId $ licenseProductKey ) )
+
+objectClass ( InventoryObjectClasses:31
+  NAME 'dynGroup'
+  DESC 'Auxiliary objectClass to turn any entry into a dynamic group'
+  SUP top
+  AUXILIARY
+  MUST ( memberURL )
+  MAY ( description ) )

@@ -1,0 +1,38 @@
+<web-app xmlns="http://java.sun.com/xml/ns/j2ee" version="2.4"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http:/java.sun.com/dtd/web-app_2_4.dtd">
+
+  <!-- 
+    Bootstrap the root application context as usual using our version of 
+    ContextLoaderListener 
+    It also configure the logging system at the good time. 
+  -->
+  <listener>
+      <listener-class>com.normation.inventory.provisioning.endpoint.config.LogbackContextInitListener</listener-class>
+  </listener>   
+  
+  <servlet>
+    <servlet-name>dispatcher</servlet-name>
+    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+
+	  <!-- Configure DispatcherServlet to use JavaConfigWebApplicationContext
+	       instead of the default XmlWebApplicationContext -->
+	  <init-param>
+	    <param-name>contextClass</param-name>
+	    <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
+	  </init-param>
+	        
+	  <!-- Again, config locations must consist of one or more comma- or space-delimited
+	       and fully-qualified @Configuration classes -->
+	  <init-param>
+	    <param-name>contextConfigLocation</param-name>
+	    <param-value>com.normation.inventory.provisioning.endpoint.config.AppConfig</param-value>
+	  </init-param>   
+  </servlet>
+
+  <servlet-mapping>
+    <servlet-name>dispatcher</servlet-name>
+    <url-pattern>/</url-pattern>
+  </servlet-mapping>
+</web-app>

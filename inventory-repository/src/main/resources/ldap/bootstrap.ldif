@@ -1,0 +1,59 @@
+dn: cn=rudder-configuration
+objectclass: dcObject
+objectclass: organization
+o: Example Company
+dc: example
+
+dn: ou=Inventories,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Inventory
+description: Inventory information
+
+
+dn: ou=Software,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Software
+description: Software packages installed on servers from ou=Nodes, including details such as full name, version, architecture, etc.
+
+dn: ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Accepted Inventories
+description: Store accepted inventories
+
+dn: ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Machines
+description: Containers for servers from ou=Nodes, such as physical machines or virtual machines.
+
+dn: ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Servers
+description: Logical servers, an OS installation. May be on a virtual machine or a physical machine, from ou=Machines.
+
+## Same structure, for pending inventories (before acceptation)
+dn: ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Pending Inventories
+description: Store inventories not yet accepted in Rudder 
+
+# Machines, pending @ example.org
+
+# Machines, pending @ example.org
+dn: ou=Machines,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Machines
+description: Containers for servers from ou=Nodes, such as physical machines or virtual machines.
+
+# Nodes, pending @ example.org
+dn: ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Servers
+description: Logical servers, an OS installation. May be on a virtual machine or a physical machine, from ou=Machines.

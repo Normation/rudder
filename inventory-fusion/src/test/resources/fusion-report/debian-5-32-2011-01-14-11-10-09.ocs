@@ -1,0 +1,3453 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<REQUEST>
+  <CONTENT>
+<VMS>
+</VMS>
+<USERSLIST>
+<USER>mail</USER>
+<USER>lp</USER>
+<USER>statd</USER>
+<USER>www-data</USER>
+<USER>man</USER>
+<USER>list</USER>
+<USER>games</USER>
+<USER>ntp</USER>
+<USER>sshd</USER>
+<USER>gnats</USER>
+<USER>bin</USER>
+<USER>uucp</USER>
+<USER>sys</USER>
+<USER>alice</USER>
+<USER>backup</USER>
+<USER>sync</USER>
+<USER>Debian-exim</USER>
+<USER>news</USER>
+<USER>irc</USER>
+<USER>nobody</USER>
+<USER>proxy</USER>
+<USER>libuuid</USER>
+<USER>mcerda</USER>
+<USER>jclarke</USER>
+<USER>munin</USER>
+<USER>daemon</USER>
+<USER>nperron</USER>
+</USERSLIST>
+    <ACCESSLOG>
+      <LOGDATE>2011-09-22 01:16:19</LOGDATE>
+      <USERID>N/A</USERID>
+    </ACCESSLOG>
+    <BATTERIES></BATTERIES>
+    <BIOS>
+      <ASSETTAG></ASSETTAG>
+      <BDATE>01/01/2007</BDATE>
+      <BMANUFACTURER>Bochs</BMANUFACTURER>
+      <BVERSION>Bochs</BVERSION>
+      <SKUNUMBER>Not Specified</SKUNUMBER>
+      <SMANUFACTURER>Bochs</SMANUFACTURER>
+      <SMODEL>Bochs</SMODEL>
+      <SSN>Not Specified</SSN>
+    </BIOS>
+    <CONTROLLERS>
+      <CAPTION>440FX - 82441FX PMC [Natoma]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>440FX - 82441FX PMC [Natoma]</NAME>
+      <PCICLASS>0600</PCICLASS>
+      <PCIID>8086:1237</PCIID>
+      <PCISLOT>00:00.0</PCISLOT>
+      <TYPE>Bridge</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82371SB PIIX3 ISA [Natoma/Triton II]</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82371SB PIIX3 ISA [Natoma/Triton II]</NAME>
+      <PCICLASS>0601</PCICLASS>
+      <PCIID>8086:7000</PCIID>
+      <PCISLOT>00:01.0</PCISLOT>
+      <TYPE>Bridge</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82371SB PIIX3 IDE [Natoma/Triton II]</CAPTION>
+      <DRIVER>PIIX_IDE</DRIVER>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82371SB PIIX3 IDE [Natoma/Triton II]</NAME>
+      <PCICLASS>0101</PCICLASS>
+      <PCIID>8086:7010</PCIID>
+      <PCISLOT>00:01.1</PCISLOT>
+      <TYPE>Mass storage controller</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82371SB PIIX3 USB [Natoma/Triton II]</CAPTION>
+      <DRIVER>uhci_hcd</DRIVER>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82371SB PIIX3 USB [Natoma/Triton II]</NAME>
+      <PCICLASS>0c03</PCICLASS>
+      <PCIID>8086:7020</PCIID>
+      <PCISLOT>00:01.2</PCISLOT>
+      <TYPE>Serial bus controller</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82371AB/EB/MB PIIX4 ACPI</CAPTION>
+      <DRIVER>piix4_smbus</DRIVER>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82371AB/EB/MB PIIX4 ACPI</NAME>
+      <PCICLASS>0680</PCICLASS>
+      <PCIID>8086:7113</PCIID>
+      <PCISLOT>00:01.3</PCISLOT>
+      <TYPE>Bridge</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>GD 5446</CAPTION>
+      <MANUFACTURER>Cirrus Logic</MANUFACTURER>
+      <NAME>GD 5446</NAME>
+      <PCICLASS>0300</PCICLASS>
+      <PCIID>1013:00b8</PCIID>
+      <PCISLOT>00:02.0</PCISLOT>
+      <TYPE>Display controller</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>Virtio memory balloon</CAPTION>
+      <DRIVER>virtio</DRIVER>
+      <MANUFACTURER>Red Hat, Inc</MANUFACTURER>
+      <NAME>Virtio memory balloon</NAME>
+      <PCICLASS>0500</PCICLASS>
+      <PCIID>1af4:1002</PCIID>
+      <PCISLOT>00:03.0</PCISLOT>
+      <TYPE>Memory controller</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>53c895a</CAPTION>
+      <DRIVER>sym53c8xx</DRIVER>
+      <MANUFACTURER>LSI Logic / Symbios Logic</MANUFACTURER>
+      <NAME>53c895a</NAME>
+      <PCICLASS>0100</PCICLASS>
+      <PCIID>1000:0012</PCIID>
+      <PCISLOT>00:04.0</PCISLOT>
+      <TYPE>Mass storage controller</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>Virtio network device</CAPTION>
+      <DRIVER>virtio</DRIVER>
+      <MANUFACTURER>Red Hat, Inc</MANUFACTURER>
+      <NAME>Virtio network device</NAME>
+      <PCICLASS>0200</PCICLASS>
+      <PCIID>1af4:1000</PCIID>
+      <PCISLOT>00:05.0</PCISLOT>
+      <TYPE>Network controller</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>Virtio block device</CAPTION>
+      <DRIVER>virtio</DRIVER>
+      <MANUFACTURER>Red Hat, Inc</MANUFACTURER>
+      <NAME>Virtio block device</NAME>
+      <PCICLASS>0100</PCICLASS>
+      <PCIID>1af4:1001</PCIID>
+      <PCISLOT>00:06.0</PCISLOT>
+      <TYPE>Mass storage controller</TYPE>
+    </CONTROLLERS>
+    <CPUS>
+      <CORE>1</CORE>
+      <ID>23 06 00 00 FD FB 8B 07</ID>
+      <MANUFACTURER>Intel</MANUFACTURER>
+      <NAME>QEMU Virtual CPU version 0.12.5</NAME>
+      <SPEED>2000</SPEED>
+    </CPUS>
+    <DRIVES>
+      <FILESYSTEM>ext3</FILESYSTEM>
+      <FREE>5686</FREE>
+      <SERIAL>35d865d8-7294-483a-92f8-03e759916cb5</SERIAL>
+      <TOTAL>7666</TOTAL>
+      <TYPE>/</TYPE>
+      <VOLUMN>/dev/vda1</VOLUMN>
+    </DRIVES>
+    <ENVS>
+      <KEY>HOME</KEY>
+      <VAL>/</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>VERBOSE</KEY>
+      <VAL>no</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CONSOLE</KEY>
+      <VAL>/dev/console</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PREVLEVEL</KEY>
+      <VAL>N</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SELINUX_INIT</KEY>
+      <VAL>YES</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>RUNLEVEL</KEY>
+      <VAL>2</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>init</KEY>
+      <VAL>/sbin/init</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LC_ALL</KEY>
+      <VAL>C</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>previous</KEY>
+      <VAL>N</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PWD</KEY>
+      <VAL>/var/rudder</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LANG</KEY>
+      <VAL>C</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>runlevel</KEY>
+      <VAL>2</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>DEBIAN_FRONTEND</KEY>
+      <VAL>noninteractive</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>INIT_VERSION</KEY>
+      <VAL>sysvinit-2.86</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SHLVL</KEY>
+      <VAL>5</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>_</KEY>
+      <VAL>/opt/rudder/bin/perl</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>rootmnt</KEY>
+      <VAL>/root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PATH</KEY>
+      <VAL>/sbin:/usr/sbin:/bin:/usr/bin</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TERM</KEY>
+      <VAL>linux</VAL>
+    </ENVS>
+    <HARDWARE>
+      <ARCHNAME>x86_64-linux-thread-multi</ARCHNAME>
+      <CHASSIS_TYPE>Other</CHASSIS_TYPE>
+      <CHECKSUM>262143</CHECKSUM>
+      <DATELASTLOGGEDUSER>boot  Wed Sep 21</DATELASTLOGGEDUSER>
+      <DEFAULTGATEWAY>192.168.100.1</DEFAULTGATEWAY>
+      <DESCRIPTION>i686/00-00-00 07:45:14</DESCRIPTION>
+      <DNS>8.8.8.8</DNS>
+      <ETIME>3</ETIME>
+      <IPADDR>192.168.100.12</IPADDR>
+      <LASTLOGGEDUSER>reboot</LASTLOGGEDUSER>
+      <MEMORY>91</MEMORY>
+      <NAME>debian-5-32</NAME>
+      <OSCOMMENTS>#1 SMP Sat Jun 11 14:54:10 UTC 2011</OSCOMMENTS>
+      <OSNAME>Debian GNU/Linux 5.0.8 (lenny)</OSNAME>
+      <OSVERSION>2.6.26-2-686</OSVERSION>
+      <PROCESSORN>1</PROCESSORN>
+      <PROCESSORS>2000</PROCESSORS>
+      <PROCESSORT>QEMU Virtual CPU version 0.12.5</PROCESSORT>
+      <SWAP>400</SWAP>
+      <UUID>E1A7734E-23F9-A124-D336-F346BA610383</UUID>
+      <VMSYSTEM>QEMU</VMSYSTEM>
+      <WINPRODID></WINPRODID>
+      <WORKGROUP>labo.normation.com</WORKGROUP>
+    </HARDWARE>
+    <INPUTS>
+      <CAPTION>AT Translated Set 2 keyboard</CAPTION>
+      <DESCRIPTION>AT Translated Set 2 keyboard</DESCRIPTION>
+      <TYPE>Keyboard</TYPE>
+    </INPUTS>
+    <INPUTS>
+      <CAPTION>PC Speaker</CAPTION>
+      <DESCRIPTION>PC Speaker</DESCRIPTION>
+      <TYPE>Keyboard</TYPE>
+    </INPUTS>
+    <INPUTS>
+      <CAPTION>ImExPS/2 Generic Explorer Mouse</CAPTION>
+      <DESCRIPTION>ImExPS/2 Generic Explorer Mouse</DESCRIPTION>
+      <TYPE>Pointing</TYPE>
+    </INPUTS>
+    <MEMORIES>
+      <CAPACITY>96</CAPACITY>
+      <CAPTION>DIMM 0</CAPTION>
+      <DESCRIPTION>DIMM</DESCRIPTION>
+      <NUMSLOTS>1</NUMSLOTS>
+      <TYPE>RAM</TYPE>
+    </MEMORIES>
+    <NETWORKS>
+      <DESCRIPTION>eth0</DESCRIPTION>
+      <DRIVER>virtio_net</DRIVER>
+      <IPADDRESS>192.168.100.12</IPADDRESS>
+      <IPADDRESS6>fe80::20c:29ff:fea7:5036/64</IPADDRESS6>
+      <IPDHCP>192.168.100.1</IPDHCP>
+      <IPGATEWAY>192.168.100.1</IPGATEWAY>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>192.168.100.0</IPSUBNET>
+      <MACADDR>00:0c:29:a7:50:36</MACADDR>
+      <SLAVES></SLAVES>
+      <STATUS>Up</STATUS>
+      <TYPE>Ethernet</TYPE>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>lo</DESCRIPTION>
+      <IPADDRESS>127.0.0.1</IPADDRESS>
+      <IPADDRESS6>::1/128</IPADDRESS6>
+      <IPMASK>255.0.0.0</IPMASK>
+      <IPSUBNET>127.0.0.0</IPSUBNET>
+      <SLAVES></SLAVES>
+      <STATUS>Up</STATUS>
+      <TYPE>Local</TYPE>
+    </NETWORKS>
+    <OPERATINGSYSTEM>
+      <FULL_NAME>Debian GNU/Linux 5.0.8 (lenny)</FULL_NAME>
+      <KERNEL_NAME>linux</KERNEL_NAME>
+      <KERNEL_VERSION>2.6.26-2-686</KERNEL_VERSION>
+      <NAME>Debian</NAME>
+      <VERSION>5.0.8</VERSION>
+    </OPERATINGSYSTEM>
+    <PROCESSES>
+      <CMD>init [2]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.7</MEM>
+      <PID>1</PID>
+      <STARTED>2011-09-21 0:01</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>2104</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kthreadd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>2</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[migration/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>3</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ksoftirqd/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>4</PID>
+      <STARTED>2011-09-21 0:01</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[watchdog/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>5</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[events/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>6</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[khelper]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>7</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kblockd/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>39</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kacpid]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>41</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kacpi_notify]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>42</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kseriod]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>85</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[pdflush]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>122</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[pdflush]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>123</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kswapd0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>124</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[aio/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>125</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ata/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>527</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ata_aux]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>528</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ksuspend_usbd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>543</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[khubd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>544</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_eh_0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>609</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kjournald]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>682</PID>
+      <STARTED>2011-09-21 0:01</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>udevd --daemon</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.8</MEM>
+      <PID>758</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>2288</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kpsmoused]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1032</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[vballoon]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1062</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/portmap</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.5</MEM>
+      <PID>1328</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>daemon</USER>
+      <VIRTUALMEMORY>1896</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/rpc.statd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.7</MEM>
+      <PID>1339</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>statd</USER>
+      <VIRTUALMEMORY>1960</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/rsyslogd -c3</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.6</MEM>
+      <PID>1556</PID>
+      <STARTED>2011-09-21 0:01</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>27376</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/acpid</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.6</MEM>
+      <PID>1567</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>1768</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>dhclient3 -pf /var/run/dhclient.eth0.pid -lf /var/lib/dhcp3/dhclient.eth0.leases eth0</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.6</MEM>
+      <PID>1618</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>2184</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/sshd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.0</MEM>
+      <PID>1661</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>5416</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/exim4 -bd -q30m</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.9</MEM>
+      <PID>1895</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>101</USER>
+      <VIRTUALMEMORY>6280</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/bin/memcached -m 64 -p 11211 -u nobody -l 127.0.0.1</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.1</MEM>
+      <PID>1905</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>nobody</USER>
+      <VIRTUALMEMORY>2584</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/var/rudder/cfengine-community/bin/cf-serverd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>2.9</MEM>
+      <PID>1939</PID>
+      <STARTED>2011-09-21 0:02</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>7652</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/var/rudder/cfengine-community/bin/cf-execd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>2.6</MEM>
+      <PID>1956</PID>
+      <STARTED>2011-09-21 0:03</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>10748</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/ntpd -p /var/run/ntpd.pid -u 105:107 -g</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.3</MEM>
+      <PID>1965</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>ntp</USER>
+      <VIRTUALMEMORY>4264</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/atd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.4</MEM>
+      <PID>1973</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>daemon</USER>
+      <VIRTUALMEMORY>2048</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/cron</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.0</MEM>
+      <PID>1993</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>3456</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/apache2 -k start</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>15.1</MEM>
+      <PID>2009</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>31340</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/apache2 -k start</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>11.0</MEM>
+      <PID>2061</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>www-data</USER>
+      <VIRTUALMEMORY>31340</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/apache2 -k start</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>11.0</MEM>
+      <PID>2062</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>www-data</USER>
+      <VIRTUALMEMORY>31340</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/apache2 -k start</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>11.0</MEM>
+      <PID>2063</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>www-data</USER>
+      <VIRTUALMEMORY>31340</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/apache2 -k start</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>11.0</MEM>
+      <PID>2064</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>www-data</USER>
+      <VIRTUALMEMORY>31340</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/apache2 -k start</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>11.0</MEM>
+      <PID>2065</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>www-data</USER>
+      <VIRTUALMEMORY>31340</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/munin-node</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>5.0</MEM>
+      <PID>2066</PID>
+      <STARTED>2011-09-21 0:01</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>6732</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/getty 38400 tty1</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.5</MEM>
+      <PID>2104</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>tty1</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>1768</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/getty 38400 tty2</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.5</MEM>
+      <PID>2106</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>tty2</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>1768</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/getty 38400 tty3</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.5</MEM>
+      <PID>2112</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>tty3</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>1768</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/getty 38400 tty4</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.5</MEM>
+      <PID>2117</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>tty4</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>1768</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/getty 38400 tty5</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.5</MEM>
+      <PID>2120</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>tty5</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>1768</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/getty 38400 tty6</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.5</MEM>
+      <PID>2123</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>tty6</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>1768</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/apache2 -k start</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>10.9</MEM>
+      <PID>28963</PID>
+      <STARTED>2011-9-22 00:45</STARTED>
+      <TTY>?</TTY>
+      <USER>www-data</USER>
+      <VIRTUALMEMORY>31340</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sh -c /var/rudder/cfengine-community/bin/cf-agent -f failsafe.cf &amp;&amp; /var/rudder/cfengine-community/bin/cf-agent -Dfrom_cfexecd</CMD>
+      <CPUUSAGE>0.1</CPUUSAGE>
+      <MEM>1.2</MEM>
+      <PID>30990</PID>
+      <STARTED>2011-9-22 01:16</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>2788</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/var/rudder/cfengine-community/bin/cf-agent -Dfrom_cfexecd</CMD>
+      <CPUUSAGE>18.0</CPUUSAGE>
+      <MEM>7.9</MEM>
+      <PID>30994</PID>
+      <STARTED>2011-9-22 01:16</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>10808</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/bin/run-inventory --local=/var/rudder/tmp/inventory</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.2</MEM>
+      <PID>31026</PID>
+      <STARTED>2011-9-22 01:16</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>2792</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/perl -I /opt/rudder/lib/perl5 /opt/rudder/bin/fusioninventory-agent --share-dir=/opt/rudder/share/fusion-utils --local=/var/rudder/tmp/inventory</CMD>
+      <CPUUSAGE>17.5</CPUUSAGE>
+      <MEM>9.6</MEM>
+      <PID>31027</PID>
+      <STARTED>2011-9-22 01:16</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>10796</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/perl -e @INC=qw(/opt/rudder/lib/perl5/5.12.1/x86_64-linux-thread-multi /opt/rudder/lib/perl5/5.12.1 /opt/rudder/lib/perl5/x86_64-linux-thread-multi /opt/rudder/lib/perl5 /opt/rudder/lib/perl5/site_perl/5.12.1/x86_64-linux-thread-multi /opt/rudder/lib/perl5/site_perl/5.12.1 /opt/rudder/lib/perl5/5.12.1/x86_64-linux-thread-multi /opt/rudder/lib/perl5/5.12.1 . ); eval 'use FusionInventory::Agent::Task::Inventory;'; FusionInventory::Agent::Task::Inventory::main(); -- /var/lib/fusioninventory-agent/__LOCAL__</CMD>
+      <CPUUSAGE>49.3</CPUUSAGE>
+      <MEM>14.9</MEM>
+      <PID>31028</PID>
+      <STARTED>2011-9-22 01:16</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>15892</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>ps aux</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.9</MEM>
+      <PID>31165</PID>
+      <STARTED>2011-9-22 01:16</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>2432</VIRTUALMEMORY>
+    </PROCESSES>
+    <SOFTWARES>
+      <COMMENTS>scripts for handling base ACPI events such as the power button</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>acpi-support-base</NAME>
+      <VERSION>0.109-11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Utilities for using ACPI power management</COMMENTS>
+      <FILESIZE>188</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>acpid</NAME>
+      <VERSION>1.0.8-1lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>add and remove users and groups</COMMENTS>
+      <FILESIZE>944</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>adduser</NAME>
+      <VERSION>3.110</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Apache HTTP Server metapackage</COMMENTS>
+      <FILESIZE>100</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apache2</NAME>
+      <VERSION>2.2.9-10+lenny11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Apache HTTP Server - traditional non-threaded model</COMMENTS>
+      <FILESIZE>512</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apache2-mpm-prefork</NAME>
+      <VERSION>2.2.9-10+lenny11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>utility programs for webservers</COMMENTS>
+      <FILESIZE>320</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apache2-utils</NAME>
+      <VERSION>2.2.9-10+lenny11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Apache HTTP Server common files</COMMENTS>
+      <FILESIZE>3416</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apache2.2-common</NAME>
+      <VERSION>2.2.9-10+lenny11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Advanced front-end for dpkg</COMMENTS>
+      <FILESIZE>5108</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt</NAME>
+      <VERSION>0.7.20.2+lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>APT utility programs</COMMENTS>
+      <FILESIZE>420</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt-utils</NAME>
+      <VERSION>0.7.20.2+lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>terminal-based package manager</COMMENTS>
+      <FILESIZE>9648</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>aptitude</NAME>
+      <VERSION>0.4.11.11-1~lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU Aspell spell-checker</COMMENTS>
+      <FILESIZE>1156</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>aspell</NAME>
+      <VERSION>0.60.6-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>French dictionary for aspell</COMMENTS>
+      <FILESIZE>644</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>aspell-fr</NAME>
+      <VERSION>0.50-3-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Delayed job execution and batch processing</COMMENTS>
+      <FILESIZE>208</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>at</NAME>
+      <VERSION>3.1.10.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Debian base system miscellaneous files</COMMENTS>
+      <FILESIZE>432</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>base-files</NAME>
+      <VERSION>5lenny9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Debian base system master password and group files</COMMENTS>
+      <FILESIZE>184</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>base-passwd</NAME>
+      <VERSION>3.5.20</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU Bourne Again SHell</COMMENTS>
+      <FILESIZE>1104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bash</NAME>
+      <VERSION>3.2-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>programmable completion for the bash shell</COMMENTS>
+      <FILESIZE>448</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bash-completion</NAME>
+      <VERSION>20080705</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU bc arbitrary precision calculator language</COMMENTS>
+      <FILESIZE>196</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bc</NAME>
+      <VERSION>1.06.94-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Version of 'host' bundled with BIND 9.X</COMMENTS>
+      <FILESIZE>172</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bind9-host</NAME>
+      <VERSION>1:9.6.ESV.R4+dfsg-0+lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A simple mail user agent</COMMENTS>
+      <FILESIZE>288</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bsd-mailx</NAME>
+      <VERSION>8.1.2-0.20071201cvs-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>collection of more utilities from FreeBSD</COMMENTS>
+      <FILESIZE>608</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bsdmainutils</NAME>
+      <VERSION>6.1.10</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Basic utilities from 4.4BSD-Lite</COMMENTS>
+      <FILESIZE>164</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bsdutils</NAME>
+      <VERSION>1:2.13.1.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Tiny utilities for small and embedded systems</COMMENTS>
+      <FILESIZE>436</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>busybox</NAME>
+      <VERSION>1:1.10.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Common CA certificates</COMMENTS>
+      <FILESIZE>748</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ca-certificates</NAME>
+      <VERSION>20080809</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>basic infrastructure for text console configuration</COMMENTS>
+      <FILESIZE>428</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>console-common</NAME>
+      <VERSION>0.7.80</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>keymaps, fonts, charset maps, fallback tables for console-tools</COMMENTS>
+      <FILESIZE>3332</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>console-data</NAME>
+      <VERSION>2:1.07-11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Set up the font and the keyboard on the console</COMMENTS>
+      <FILESIZE>1204</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>console-setup</NAME>
+      <VERSION>1.28</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Fixed-width fonts for fast reading on the Linux console</COMMENTS>
+      <FILESIZE>676</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>console-terminus</NAME>
+      <VERSION>4.26-2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Linux console and font utilities</COMMENTS>
+      <FILESIZE>892</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>console-tools</NAME>
+      <VERSION>1:0.2.3dbs-65.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU core utilities</COMMENTS>
+      <FILESIZE>10032</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>coreutils</NAME>
+      <VERSION>6.10-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU cpio -- a program to manage archives of files</COMMENTS>
+      <FILESIZE>676</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cpio</NAME>
+      <VERSION>2.9-13lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>management of regular background processing</COMMENTS>
+      <FILESIZE>540</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cron</NAME>
+      <VERSION>3.0pl1-105</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Get a file from an HTTP, HTTPS or FTP server</COMMENTS>
+      <FILESIZE>312</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>curl</NAME>
+      <VERSION>7.18.2-8lenny5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU dc arbitrary precision reverse-polish calculator</COMMENTS>
+      <FILESIZE>208</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dc</NAME>
+      <VERSION>1.06.94-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Debian configuration management system</COMMENTS>
+      <FILESIZE>1508</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debconf</NAME>
+      <VERSION>1.5.24</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>full internationalization support for debconf</COMMENTS>
+      <FILESIZE>1100</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debconf-i18n</NAME>
+      <VERSION>1.5.24</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GnuPG archive keys of the Debian archive</COMMENTS>
+      <FILESIZE>64</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debian-archive-keyring</NAME>
+      <VERSION>2010.08.28~lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The Debian FAQ</COMMENTS>
+      <FILESIZE>1190</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debian-faq</NAME>
+      <VERSION>4.0.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Miscellaneous utilities specific to Debian</COMMENTS>
+      <FILESIZE>272</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debianutils</NAME>
+      <VERSION>2.30</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Debian Font Manager -- automatic font configuration framework</COMMENTS>
+      <FILESIZE>449</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>defoma</NAME>
+      <VERSION>0.11.10-0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>DHCP client</COMMENTS>
+      <FILESIZE>576</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dhcp3-client</NAME>
+      <VERSION>3.1.1-6+lenny6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>common files used by all the dhcp3* packages</COMMENTS>
+      <FILESIZE>552</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dhcp3-common</NAME>
+      <VERSION>3.1.1-6+lenny6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Common utilities for spelling dictionary tools</COMMENTS>
+      <FILESIZE>825</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dictionaries-common</NAME>
+      <VERSION>0.98.12</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>File comparison utilities</COMMENTS>
+      <FILESIZE>744</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>diff</NAME>
+      <VERSION>2.8.1-12</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Dump Desktop Management Interface data</COMMENTS>
+      <FILESIZE>168</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dmidecode</NAME>
+      <VERSION>2.9-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Clients provided with BIND</COMMENTS>
+      <FILESIZE>380</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dnsutils</NAME>
+      <VERSION>1:9.6.ESV.R4+dfsg-0+lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Debian Project documentation and other documents</COMMENTS>
+      <FILESIZE>376</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>doc-debian</NAME>
+      <VERSION>4.0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Debian Manuals, FAQs and other documents in French</COMMENTS>
+      <FILESIZE>1872</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>doc-debian-fr</NAME>
+      <VERSION>3.1.3.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Linux docs in French: HOWTOs, MetaFAQs in ASCII format</COMMENTS>
+      <FILESIZE>4804</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>doc-linux-fr-text</NAME>
+      <VERSION>2005.08-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Linux HOWTOs and FAQs in ASCII format</COMMENTS>
+      <FILESIZE>8616</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>doc-linux-text</NAME>
+      <VERSION>2008.08-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Debian package management system</COMMENTS>
+      <FILESIZE>7276</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dpkg</NAME>
+      <VERSION>1.14.31</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>ext2 filesystem libraries</COMMENTS>
+      <FILESIZE>284</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>e2fslibs</NAME>
+      <VERSION>1.41.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>ext2/ext3/ext4 file system utilities</COMMENTS>
+      <FILESIZE>1960</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>e2fsprogs</NAME>
+      <VERSION>1.41.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The classic unix line editor</COMMENTS>
+      <FILESIZE>96</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ed</NAME>
+      <VERSION>0.7-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>ejects CDs and operates CD-Changers under Linux</COMMENTS>
+      <FILESIZE>312</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>eject</NAME>
+      <VERSION>2.1.5+deb1-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>metapackage to ease Exim MTA (v4) installation</COMMENTS>
+      <FILESIZE>72</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>exim4</NAME>
+      <VERSION>4.69-9+lenny4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>support files for all Exim MTA (v4) packages</COMMENTS>
+      <FILESIZE>1612</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>exim4-base</NAME>
+      <VERSION>4.69-9+lenny4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>configuration for the Exim MTA (v4)</COMMENTS>
+      <FILESIZE>1104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>exim4-config</NAME>
+      <VERSION>4.69-9+lenny4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>lightweight Exim MTA (v4) daemon</COMMENTS>
+      <FILESIZE>884</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>exim4-daemon-light</NAME>
+      <VERSION>4.69-9+lenny4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Determines file type using &quot;magic&quot; numbers</COMMENTS>
+      <FILESIZE>136</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>file</NAME>
+      <VERSION>4.26-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>utilities for finding files--find, xargs</COMMENTS>
+      <FILESIZE>1512</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>findutils</NAME>
+      <VERSION>4.4.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>generic font configuration library - support binaries</COMMENTS>
+      <FILESIZE>384</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>fontconfig</NAME>
+      <VERSION>2.6.0-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>generic font configuration library - configuration</COMMENTS>
+      <FILESIZE>250</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>fontconfig-config</NAME>
+      <VERSION>2.6.0-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The FTP client</COMMENTS>
+      <FILESIZE>108</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ftp</NAME>
+      <VERSION>0.17-18</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Hardware and software inventory tool (client)</COMMENTS>
+      <FILESIZE>2292</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>fusioninventory-agent</NAME>
+      <VERSION>2.1.10-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU awk, a pattern scanning and processing language</COMMENTS>
+      <FILESIZE>1748</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gawk</NAME>
+      <VERSION>1:3.1.5.dfsg-4.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU Compiler Collection (base package)</COMMENTS>
+      <FILESIZE>140</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gcc-4.2-base</NAME>
+      <VERSION>4.2.4-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU Compiler Collection (base package)</COMMENTS>
+      <FILESIZE>160</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gcc-4.3-base</NAME>
+      <VERSION>4.3.2-1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU Internationalization utilities</COMMENTS>
+      <FILESIZE>7104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gettext</NAME>
+      <VERSION>0.17-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU Internationalization utilities for the base system</COMMENTS>
+      <FILESIZE>608</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gettext-base</NAME>
+      <VERSION>0.17-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU privacy guard - a free PGP replacement</COMMENTS>
+      <FILESIZE>4892</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gnupg</NAME>
+      <VERSION>1.4.9-3+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU privacy guard - signature verification tool</COMMENTS>
+      <FILESIZE>300</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gpgv</NAME>
+      <VERSION>1.4.9-3+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU grep, egrep and fgrep</COMMENTS>
+      <FILESIZE>1180</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grep</NAME>
+      <VERSION>2.5.3~dfsg-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU troff text-formatting system (base system components)</COMMENTS>
+      <FILESIZE>2504</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>groff-base</NAME>
+      <VERSION>1.18.1.1-21</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GRand Unified Bootloader (Legacy version)</COMMENTS>
+      <FILESIZE>852</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grub</NAME>
+      <VERSION>0.97-47lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GRand Unified Bootloader, version 2 (common files)</COMMENTS>
+      <FILESIZE>312</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grub-common</NAME>
+      <VERSION>1.96+20080724-16</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU compression utility</COMMENTS>
+      <FILESIZE>284</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gzip</NAME>
+      <VERSION>1.3.12-6+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>utility to set/show the host name or domain name</COMMENTS>
+      <FILESIZE>84</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>hostname</NAME>
+      <VERSION>2.95</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>interactive processes viewer</COMMENTS>
+      <FILESIZE>176</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>htop</NAME>
+      <VERSION>0.7-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An American English dictionary for ispell</COMMENTS>
+      <FILESIZE>1189</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>iamerican</NAME>
+      <VERSION>3.1.20.0-4.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A British English dictionary for ispell</COMMENTS>
+      <FILESIZE>1189</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ibritish</NAME>
+      <VERSION>3.1.20.0-4.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The French dictionary for ispell (GUTenberg version)</COMMENTS>
+      <FILESIZE>5848</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ifrench-gut</NAME>
+      <VERSION>1:1.0-24</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>high level tools to configure network interfaces</COMMENTS>
+      <FILESIZE>144</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ifupdown</NAME>
+      <VERSION>0.6.8+nmu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Standalone GNU Info documentation browser</COMMENTS>
+      <FILESIZE>352</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>info</NAME>
+      <VERSION>4.11.dfsg.1-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>tools for generating an initramfs</COMMENTS>
+      <FILESIZE>412</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>initramfs-tools</NAME>
+      <VERSION>0.92o</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Scripts for initializing and shutting down the system</COMMENTS>
+      <FILESIZE>388</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>initscripts</NAME>
+      <VERSION>2.86.ds1-61</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>system installation report</COMMENTS>
+      <FILESIZE>108</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>installation-report</NAME>
+      <VERSION>2.38</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Help i18n of RFC822 compliant config files</COMMENTS>
+      <FILESIZE>112</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>intltool-debian</NAME>
+      <VERSION>0.35.0+20060710.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>networking and traffic control tools</COMMENTS>
+      <FILESIZE>920</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>iproute</NAME>
+      <VERSION>20080725-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>administration tools for packet filtering and NAT</COMMENTS>
+      <FILESIZE>1228</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>iptables</NAME>
+      <VERSION>1.4.2-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Tools to test the reachability of network hosts</COMMENTS>
+      <FILESIZE>120</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>iputils-ping</NAME>
+      <VERSION>3:20071127-1+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>International Ispell (an interactive spelling corrector)</COMMENTS>
+      <FILESIZE>322</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ispell</NAME>
+      <VERSION>3.1.20.0-4.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>small utilities built with klibc for early boot</COMMENTS>
+      <FILESIZE>408</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>klibc-utils</NAME>
+      <VERSION>1.5.12-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>simple configuration tool for native language environment</COMMENTS>
+      <FILESIZE>1316</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>language-env</NAME>
+      <VERSION>0.69</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>attempt to detect a laptop</COMMENTS>
+      <FILESIZE>20</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>laptop-detect</NAME>
+      <VERSION>0.13.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Pager program similar to more</COMMENTS>
+      <FILESIZE>224</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>less</NAME>
+      <VERSION>418-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Access control list shared library</COMMENTS>
+      <FILESIZE>48</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libacl1</NAME>
+      <VERSION>2.2.47-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Asynchronous-capable DNS client library and utilities</COMMENTS>
+      <FILESIZE>156</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libadns1</NAME>
+      <VERSION>1.4-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Integration of perl with the Apache2 web server</COMMENTS>
+      <FILESIZE>3608</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libapache2-mod-perl2</NAME>
+      <VERSION>2.0.4-5+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>server-side, HTML-embedded scripting language (Apache 2 module)</COMMENTS>
+      <FILESIZE>5440</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libapache2-mod-php5</NAME>
+      <VERSION>5.2.6.dfsg.1-1+lenny13</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The Apache Portable Runtime Library</COMMENTS>
+      <FILESIZE>264</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libapr1</NAME>
+      <VERSION>1.2.12-5+lenny4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The Apache Portable Runtime Utility Library</COMMENTS>
+      <FILESIZE>188</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libaprutil1</NAME>
+      <VERSION>1.2.12+dfsg-8+lenny5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU Aspell spell-checker runtime library</COMMENTS>
+      <FILESIZE>2328</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libaspell15</NAME>
+      <VERSION>0.60.6-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Extended attribute shared library</COMMENTS>
+      <FILESIZE>36</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libattr1</NAME>
+      <VERSION>1:2.4.43-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>use Berkeley DB 4 databases from Perl</COMMENTS>
+      <FILESIZE>424</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libberkeleydb-perl</NAME>
+      <VERSION>0.34-1+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>BIND9 Shared Library used by BIND</COMMENTS>
+      <FILESIZE>100</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libbind9-40</NAME>
+      <VERSION>1:9.5.1.dfsg.P3-1+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>BIND9 Shared Library used by BIND</COMMENTS>
+      <FILESIZE>104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libbind9-50</NAME>
+      <VERSION>1:9.6.ESV.R4+dfsg-0+lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>block device id library</COMMENTS>
+      <FILESIZE>124</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libblkid1</NAME>
+      <VERSION>1.41.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>high-quality block-sorting file compressor library - runtime</COMMENTS>
+      <FILESIZE>124</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libbz2-1.0</NAME>
+      <VERSION>1.0.5-1+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU C Library: Shared libraries</COMMENTS>
+      <FILESIZE>10776</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libc6</NAME>
+      <VERSION>2.7-18lenny7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU C Library: Shared libraries [i686 optimized]</COMMENTS>
+      <FILESIZE>2796</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libc6-i686</NAME>
+      <VERSION>2.7-18lenny7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Cache::Memcached - client library for memcached</COMMENTS>
+      <FILESIZE>108</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcache-memcached-perl</NAME>
+      <VERSION>1.24-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The Cairo 2D vector graphics library</COMMENTS>
+      <FILESIZE>844</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcairo2</NAME>
+      <VERSION>1.6.4-7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>support for getting/setting POSIX.1e capabilities</COMMENTS>
+      <FILESIZE>60</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcap1</NAME>
+      <VERSION>1:1.10-14</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>support for getting/setting POSIX.1e capabilities</COMMENTS>
+      <FILESIZE>68</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcap2</NAME>
+      <VERSION>2.11-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>common error description library</COMMENTS>
+      <FILESIZE>96</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcomerr2</NAME>
+      <VERSION>1.41.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>low-level interface to zlib compression library</COMMENTS>
+      <FILESIZE>240</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcompress-raw-zlib-perl</NAME>
+      <VERSION>2.012-1lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl module for creation and manipulation of gzip files</COMMENTS>
+      <FILESIZE>156</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcompress-zlib-perl</NAME>
+      <VERSION>2.012-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Shared libraries for Linux console and font manipulation</COMMENTS>
+      <FILESIZE>452</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libconsole</NAME>
+      <VERSION>1:0.2.3dbs-65.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Multi-protocol file transfer library (OpenSSL)</COMMENTS>
+      <FILESIZE>444</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcurl3</NAME>
+      <VERSION>7.18.2-8lenny5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>high-level terminal interface library for C++ (runtime files)</COMMENTS>
+      <FILESIZE>828</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcwidget3</NAME>
+      <VERSION>0.5.12-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Double-array trie library</COMMENTS>
+      <FILESIZE>60</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdatrie0</NAME>
+      <VERSION>0.1.3-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Berkeley v4.5 Database Libraries [runtime]</COMMENTS>
+      <FILESIZE>1168</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdb4.5</NAME>
+      <VERSION>4.5.20-13</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Berkeley v4.6 Database Libraries [runtime]</COMMENTS>
+      <FILESIZE>1248</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdb4.6</NAME>
+      <VERSION>4.6.21-11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl module for inspecting perl's symbol table</COMMENTS>
+      <FILESIZE>80</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdevel-symdump-perl</NAME>
+      <VERSION>2.08-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The Linux Kernel Device Mapper userspace library</COMMENTS>
+      <FILESIZE>136</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdevmapper1.02.1</NAME>
+      <VERSION>2:1.02.27-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>create standard message integrity checks</COMMENTS>
+      <FILESIZE>80</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdigest-hmac-perl</NAME>
+      <VERSION>1.01-7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>NIST SHA-1 message digest algorithm</COMMENTS>
+      <FILESIZE>52</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdigest-sha1-perl</NAME>
+      <VERSION>2.11-2+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>direct frame buffer graphics - shared libraries</COMMENTS>
+      <FILESIZE>2140</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdirectfb-1.0-0</NAME>
+      <VERSION>1.0.1-11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>DNS Shared Library used by BIND</COMMENTS>
+      <FILESIZE>1404</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdns45</NAME>
+      <VERSION>1:9.5.1.dfsg.P3-1+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>DNS Shared Library used by BIND</COMMENTS>
+      <FILESIZE>1556</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdns58</NAME>
+      <VERSION>1:9.6.ESV.R4+dfsg-0+lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>BSD editline and history libraries</COMMENTS>
+      <FILESIZE>148</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libedit2</NAME>
+      <VERSION>2.11~20080614-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>High-level library for managing Debian package information</COMMENTS>
+      <FILESIZE>3948</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libept0</NAME>
+      <VERSION>0.5.22</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An asynchronous event notification library</COMMENTS>
+      <FILESIZE>104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libevent1</NAME>
+      <VERSION>1.3e-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>XML parsing C library - runtime library</COMMENTS>
+      <FILESIZE>364</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libexpat1</NAME>
+      <VERSION>2.0.1-4+lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>remove files and directories, accepts wildcards</COMMENTS>
+      <FILESIZE>64</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfile-remove-perl</NAME>
+      <VERSION>1.42-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Font::AFM - Interface to Adobe Font Metrics files</COMMENTS>
+      <FILESIZE>120</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfont-afm-perl</NAME>
+      <VERSION>1.20-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>generic font configuration library - runtime</COMMENTS>
+      <FILESIZE>336</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfontconfig1</NAME>
+      <VERSION>2.6.0-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>FreeType 2 font engine, shared library files</COMMENTS>
+      <FILESIZE>676</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfreetype6</NAME>
+      <VERSION>2.3.7-2+lenny6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>conservative garbage collector for C and C++</COMMENTS>
+      <FILESIZE>216</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgc1c2</NAME>
+      <VERSION>1:6.8-1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GCC support library</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgcc1</NAME>
+      <VERSION>1:4.3.2-1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>LGPL Crypto library - runtime library</COMMENTS>
+      <FILESIZE>508</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgcrypt11</NAME>
+      <VERSION>1.4.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU dbm database routines (runtime version)</COMMENTS>
+      <FILESIZE>80</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgdbm3</NAME>
+      <VERSION>1.8.3-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GLib library of C routines</COMMENTS>
+      <FILESIZE>1732</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libglib2.0-0</NAME>
+      <VERSION>2.16.6-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>the GNU TLS library - runtime library</COMMENTS>
+      <FILESIZE>1100</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgnutls26</NAME>
+      <VERSION>2.4.2-6+lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GCC OpenMP (GOMP) support library</COMMENTS>
+      <FILESIZE>60</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgomp1</NAME>
+      <VERSION>4.3.2-1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>library for common error values and messages in GnuPG components</COMMENTS>
+      <FILESIZE>196</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgpg-error0</NAME>
+      <VERSION>1.4-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>General Purpose Mouse - shared library</COMMENTS>
+      <FILESIZE>60</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgpm2</NAME>
+      <VERSION>1.20.4-3.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>mechanism-switch gssapi library</COMMENTS>
+      <FILESIZE>68</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgssglue1</NAME>
+      <VERSION>0.1-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>format HTML syntax trees into text, PostScript or RTF</COMMENTS>
+      <FILESIZE>152</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libhtml-format-perl</NAME>
+      <VERSION>2.04-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A collection of modules that parse HTML text documents</COMMENTS>
+      <FILESIZE>304</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libhtml-parser-perl</NAME>
+      <VERSION>3.56-1+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Data tables pertaining to HTML</COMMENTS>
+      <FILESIZE>76</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libhtml-tagset-perl</NAME>
+      <VERSION>3.20-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>HTML::Template : A module for using HTML Templates with Perl</COMMENTS>
+      <FILESIZE>208</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libhtml-template-perl</NAME>
+      <VERSION>2.9-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>represent and create HTML syntax trees</COMMENTS>
+      <FILESIZE>464</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libhtml-tree-perl</NAME>
+      <VERSION>3.23-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU libidn library, implementation of IETF IDN specifications</COMMENTS>
+      <FILESIZE>304</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libidn11</NAME>
+      <VERSION>1.8+20080606-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Base Class for IO::Compress modules</COMMENTS>
+      <FILESIZE>228</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libio-compress-base-perl</NAME>
+      <VERSION>2.012-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl interface to zlib</COMMENTS>
+      <FILESIZE>540</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libio-compress-zlib-perl</NAME>
+      <VERSION>2.012-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>object-oriented interface to select() for perl</COMMENTS>
+      <FILESIZE>108</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libio-multiplex-perl</NAME>
+      <VERSION>1.09-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl modules for IO from scalars and arrays</COMMENTS>
+      <FILESIZE>352</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libio-stringy-perl</NAME>
+      <VERSION>2.110-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>ISC Shared Library used by BIND</COMMENTS>
+      <FILESIZE>380</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libisc45</NAME>
+      <VERSION>1:9.5.1.dfsg.P3-1+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>ISC Shared Library used by BIND</COMMENTS>
+      <FILESIZE>396</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libisc50</NAME>
+      <VERSION>1:9.6.ESV.R4+dfsg-0+lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Command Channel Library used by BIND</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libisccc40</NAME>
+      <VERSION>1:9.5.1.dfsg.P3-1+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Command Channel Library used by BIND</COMMENTS>
+      <FILESIZE>92</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libisccc50</NAME>
+      <VERSION>1:9.6.ESV.R4+dfsg-0+lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Config File Handling Library used by BIND</COMMENTS>
+      <FILESIZE>136</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libisccfg40</NAME>
+      <VERSION>1:9.5.1.dfsg.P3-1+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Config File Handling Library used by BIND</COMMENTS>
+      <FILESIZE>144</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libisccfg50</NAME>
+      <VERSION>1:9.6.ESV.R4+dfsg-0+lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Linux Key Management Utilities (library)</COMMENTS>
+      <FILESIZE>56</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libkeyutils1</NAME>
+      <VERSION>1.2-9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>minimal libc subset for use with initramfs</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libklibc</NAME>
+      <VERSION>1.5.12-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>MIT Kerberos runtime libraries</COMMENTS>
+      <FILESIZE>1188</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libkrb53</NAME>
+      <VERSION>1.6.dfsg.4~beta1-5lenny6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>OpenLDAP libraries</COMMENTS>
+      <FILESIZE>448</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libldap-2.4-2</NAME>
+      <VERSION>2.4.11-1+lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Using libc functions for internationalization in Perl</COMMENTS>
+      <FILESIZE>104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblocale-gettext-perl</NAME>
+      <VERSION>1.05-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>NFS-safe locking library, includes dotlockfile program</COMMENTS>
+      <FILESIZE>52</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblockfile1</NAME>
+      <VERSION>1.08-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Simple, extensible, embeddable programming language</COMMENTS>
+      <FILESIZE>172</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblua5.1-0</NAME>
+      <VERSION>5.1.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Lightweight Resolver Library used by BIND</COMMENTS>
+      <FILESIZE>132</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblwres40</NAME>
+      <VERSION>1:9.5.1.dfsg.P3-1+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Lightweight Resolver Library used by BIND</COMMENTS>
+      <FILESIZE>136</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblwres50</NAME>
+      <VERSION>1:9.6.ESV.R4+dfsg-0+lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>File type determination library using &quot;magic&quot; numbers</COMMENTS>
+      <FILESIZE>2412</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmagic1</NAME>
+      <VERSION>4.26-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Manage a message-folder</COMMENTS>
+      <FILESIZE>3352</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmail-box-perl</NAME>
+      <VERSION>2.082-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Send email from a perl script</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmail-sendmail-perl</NAME>
+      <VERSION>0.79-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Manipulate email in perl programs</COMMENTS>
+      <FILESIZE>316</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmailtools-perl</NAME>
+      <VERSION>2.03-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl extension for determining MIME types and Transfer Encoding</COMMENTS>
+      <FILESIZE>120</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmime-types-perl</NAME>
+      <VERSION>1.24-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>MySQL database client library</COMMENTS>
+      <FILESIZE>4036</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmysqlclient15off</NAME>
+      <VERSION>5.0.51a-24+lenny5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>shared libraries for terminal handling</COMMENTS>
+      <FILESIZE>584</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libncurses5</NAME>
+      <VERSION>5.7+20081213-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>shared libraries for terminal handling (wide character support)</COMMENTS>
+      <FILESIZE>624</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libncursesw5</NAME>
+      <VERSION>5.7+20081213-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Manipulate IPv4/IPv6 netblocks in CIDR notation</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnet-cidr-perl</NAME>
+      <VERSION>0.11-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl extension for manipulating IPv4/IPv6 addresses</COMMENTS>
+      <FILESIZE>164</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnet-ip-perl</NAME>
+      <VERSION>1.25-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An extensible, general perl server engine</COMMENTS>
+      <FILESIZE>432</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnet-server-perl</NAME>
+      <VERSION>0.97-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Script SNMP connections</COMMENTS>
+      <FILESIZE>520</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnet-snmp-perl</NAME>
+      <VERSION>5.2.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl module for Secure Sockets Layer (SSL)</COMMENTS>
+      <FILESIZE>992</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnet-ssleay-perl</NAME>
+      <VERSION>1.35-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Not Erik's Windowing Toolkit - text mode windowing with slang</COMMENTS>
+      <FILESIZE>820</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnewt0.52</NAME>
+      <VERSION>0.52.2-11.3+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An nfs idmapping library</COMMENTS>
+      <FILESIZE>60</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnfsidmap2</NAME>
+      <VERSION>0.20-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Delayed creation of objects</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libobject-realize-later-perl</NAME>
+      <VERSION>0.18-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Pluggable Authentication Modules for PAM</COMMENTS>
+      <FILESIZE>884</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam-modules</NAME>
+      <VERSION>1.0.1-5+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Runtime support for the PAM library</COMMENTS>
+      <FILESIZE>952</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam-runtime</NAME>
+      <VERSION>1.0.1-5+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Pluggable Authentication Modules library</COMMENTS>
+      <FILESIZE>232</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam0g</NAME>
+      <VERSION>1.0.1-5+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Layout and rendering of internationalized text</COMMENTS>
+      <FILESIZE>792</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpango1.0-0</NAME>
+      <VERSION>1.20.5-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Modules and configuration files for the Pango</COMMENTS>
+      <FILESIZE>120</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpango1.0-common</NAME>
+      <VERSION>1.20.5-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>system interface for user-level packet capture</COMMENTS>
+      <FILESIZE>212</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpcap0.8</NAME>
+      <VERSION>0.9.8-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Linux PCI Utilities (shared library)</COMMENTS>
+      <FILESIZE>80</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpci3</NAME>
+      <VERSION>1:3.0.0-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl 5 Compatible Regular Expression Library - runtime files</COMMENTS>
+      <FILESIZE>356</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpcre3</NAME>
+      <VERSION>7.6-2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Shared Perl library</COMMENTS>
+      <FILESIZE>1376</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libperl5.10</NAME>
+      <VERSION>5.10.0-19lenny5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>pixel-manipulation library for X and cairo</COMMENTS>
+      <FILESIZE>220</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpixman-1-0</NAME>
+      <VERSION>0.10.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>PNG library - runtime</COMMENTS>
+      <FILESIZE>320</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpng12-0</NAME>
+      <VERSION>1.2.27-2+lenny5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>lib for parsing cmdline parameters</COMMENTS>
+      <FILESIZE>192</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpopt0</NAME>
+      <VERSION>1.14-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>PostgreSQL C client library</COMMENTS>
+      <FILESIZE>936</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpq5</NAME>
+      <VERSION>8.3.14-0lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Run Perl program as a daemon process</COMMENTS>
+      <FILESIZE>76</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libproc-daemon-perl</NAME>
+      <VERSION>0.03-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl module for managing process id files</COMMENTS>
+      <FILESIZE>76</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libproc-pid-file-perl</NAME>
+      <VERSION>1.24-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU readline and history libraries, run-time libraries</COMMENTS>
+      <FILESIZE>320</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libreadline5</NAME>
+      <VERSION>5.2-3.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>allows secure rpc communication using the rpcsec_gss protocol</COMMENTS>
+      <FILESIZE>80</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>librpcsecgss3</NAME>
+      <VERSION>0.18-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Time-series data storage and display system (runtime library)</COMMENTS>
+      <FILESIZE>476</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>librrd4</NAME>
+      <VERSION>1.3.1-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Time-series data storage and display system (Perl interface, shared)</COMMENTS>
+      <FILESIZE>116</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>librrds-perl</NAME>
+      <VERSION>1.3.1-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Cyrus SASL - authentication abstraction library</COMMENTS>
+      <FILESIZE>248</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsasl2-2</NAME>
+      <VERSION>2.1.22.dfsg1-23+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>SELinux shared libraries</COMMENTS>
+      <FILESIZE>148</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libselinux1</NAME>
+      <VERSION>2.0.65-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Security Enhanced Linux policy library for changing policy binaries</COMMENTS>
+      <FILESIZE>252</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsepol1</NAME>
+      <VERSION>2.0.30-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>type-safe Signal Framework for C++ - runtime</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsigc++-2.0-0c2a</NAME>
+      <VERSION>2.0.18-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The S-Lang programming library - runtime version</COMMENTS>
+      <FILESIZE>1104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libslang2</NAME>
+      <VERSION>2.1.3-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>SQLite 3 shared library</COMMENTS>
+      <FILESIZE>468</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsqlite3-0</NAME>
+      <VERSION>3.5.9-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>command-line interface parsing library</COMMENTS>
+      <FILESIZE>104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libss2</NAME>
+      <VERSION>1.41.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>SSH2 client-side library</COMMENTS>
+      <FILESIZE>192</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libssh2-1</NAME>
+      <VERSION>0.18-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>SSL shared libraries</COMMENTS>
+      <FILESIZE>6812</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libssl0.9.8</NAME>
+      <VERSION>0.9.8g-15+lenny12</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU Standard C++ Library v3</COMMENTS>
+      <FILESIZE>1168</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libstdc++6</NAME>
+      <VERSION>4.3.2-1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl interface for cyclic redundancy check generation</COMMENTS>
+      <FILESIZE>28</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libstring-crc32-perl</NAME>
+      <VERSION>1.4-2+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Figure out the long (fully-qualified) hostname</COMMENTS>
+      <FILESIZE>84</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsys-hostname-long-perl</NAME>
+      <VERSION>1.4-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>interface library to sysfs</COMMENTS>
+      <FILESIZE>112</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsysfs2</NAME>
+      <VERSION>2.1.0-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Manage ASN.1 structures (runtime)</COMMENTS>
+      <FILESIZE>164</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtasn1-3</NAME>
+      <VERSION>1.4-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>get display widths of characters on the terminal</COMMENTS>
+      <FILESIZE>36</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtext-charwidth-perl</NAME>
+      <VERSION>0.04-5+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>converts between character sets in Perl</COMMENTS>
+      <FILESIZE>44</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtext-iconv-perl</NAME>
+      <VERSION>1.7-1+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>internationalized substitute of Text::Wrap</COMMENTS>
+      <FILESIZE>28</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtext-wrapi18n-perl</NAME>
+      <VERSION>0.06-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Data files for Thai language support library</COMMENTS>
+      <FILESIZE>340</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libthai-data</NAME>
+      <VERSION>0.1.9-4+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Thai language support library</COMMENTS>
+      <FILESIZE>100</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libthai0</NAME>
+      <VERSION>0.1.9-4+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Time and date functions for Perl</COMMENTS>
+      <FILESIZE>212</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtimedate-perl</NAME>
+      <VERSION>1.1600-9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>touch screen library</COMMENTS>
+      <FILESIZE>108</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libts-0.0-0</NAME>
+      <VERSION>1.0-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Load modules from a variable</COMMENTS>
+      <FILESIZE>64</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libuniversal-require-perl</NAME>
+      <VERSION>0.11-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Manipulates and accesses URI strings</COMMENTS>
+      <FILESIZE>384</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liburi-perl</NAME>
+      <VERSION>1.35.dfsg.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>userspace USB programming library</COMMENTS>
+      <FILESIZE>64</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libusb-0.1-4</NAME>
+      <VERSION>2:0.1.12-13</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>manages different identities/roles used by a physical person</COMMENTS>
+      <FILESIZE>304</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libuser-identity-perl</NAME>
+      <VERSION>0.92-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>universally unique id library</COMMENTS>
+      <FILESIZE>112</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libuuid1</NAME>
+      <VERSION>1.41.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>libvolume_id shared library</COMMENTS>
+      <FILESIZE>140</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libvolume-id0</NAME>
+      <VERSION>0.125-7+lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Wietse Venema's TCP wrappers library</COMMENTS>
+      <FILESIZE>96</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libwrap0</NAME>
+      <VERSION>7.6.q-16</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>WWW client/server library for Perl (aka LWP)</COMMENTS>
+      <FILESIZE>1004</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libwww-perl</NAME>
+      <VERSION>5.813-1+lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X11 client-side library</COMMENTS>
+      <FILESIZE>1240</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libx11-6</NAME>
+      <VERSION>2:1.1.5-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X11 client-side library</COMMENTS>
+      <FILESIZE>3108</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libx11-data</NAME>
+      <VERSION>2:1.1.5-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Search engine library</COMMENTS>
+      <FILESIZE>1620</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxapian15</NAME>
+      <VERSION>1.0.7-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X11 authorisation library</COMMENTS>
+      <FILESIZE>64</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxau6</NAME>
+      <VERSION>1:1.0.3-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>utility libraries for X C Binding -- render-util</COMMENTS>
+      <FILESIZE>40</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxcb-render-util0</NAME>
+      <VERSION>0.2.1+git1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X C Binding, render extension</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxcb-render0</NAME>
+      <VERSION>1.1-1.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X C Binding, Xlib/XCB interface library</COMMENTS>
+      <FILESIZE>68</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxcb-xlib0</NAME>
+      <VERSION>1.1-1.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X C Binding</COMMENTS>
+      <FILESIZE>160</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxcb1</NAME>
+      <VERSION>1.1-1.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X11 Display Manager Control Protocol library</COMMENTS>
+      <FILESIZE>76</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxdmcp6</NAME>
+      <VERSION>1:1.0.2-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X11 miscellaneous extension library</COMMENTS>
+      <FILESIZE>184</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxext6</NAME>
+      <VERSION>2:1.0.4-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>FreeType-based font drawing library for X</COMMENTS>
+      <FILESIZE>132</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxft2</NAME>
+      <VERSION>2.1.12-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl module for supporting simple generic namespaces</COMMENTS>
+      <FILESIZE>48</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxml-namespacesupport-perl</NAME>
+      <VERSION>1.09-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl module for parsing XML files</COMMENTS>
+      <FILESIZE>668</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxml-parser-perl</NAME>
+      <VERSION>2.36-1.1+b1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl module for a SAX2 driver for Expat (XML::Parser)</COMMENTS>
+      <FILESIZE>108</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxml-sax-expat-perl</NAME>
+      <VERSION>0.40-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl module for using and building Perl SAX2 XML processors</COMMENTS>
+      <FILESIZE>448</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxml-sax-perl</NAME>
+      <VERSION>0.16+dfsg-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl module for reading and writing XML</COMMENTS>
+      <FILESIZE>216</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxml-simple-perl</NAME>
+      <VERSION>2.18-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNOME XML library</COMMENTS>
+      <FILESIZE>1620</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxml2</NAME>
+      <VERSION>2.6.32.dfsg-5+lenny4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X11 miscellaneous micro-utility library</COMMENTS>
+      <FILESIZE>64</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxmuu1</NAME>
+      <VERSION>2:1.0.4-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X Rendering Extension client library</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxrender1</NAME>
+      <VERSION>1:0.9.4-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Linux 2.6 image on PPro/Celeron/PII/PIII/P4</COMMENTS>
+      <FILESIZE>32</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-image-2.6-686</NAME>
+      <VERSION>2.6.26+17+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Linux 2.6.26 image on PPro/Celeron/PII/PIII/P4</COMMENTS>
+      <FILESIZE>57776</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-image-2.6.26-2-686</NAME>
+      <VERSION>2.6.26-26lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU C Library: National Language (locale) data [support]</COMMENTS>
+      <FILESIZE>11584</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>locales</NAME>
+      <VERSION>2.7-18lenny7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>system login tools</COMMENTS>
+      <FILESIZE>2392</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>login</NAME>
+      <VERSION>1:4.1.1-6+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Log rotation utility</COMMENTS>
+      <FILESIZE>92</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>logrotate</NAME>
+      <VERSION>3.7.1-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Linux Standard Base 3.2 init script functionality</COMMENTS>
+      <FILESIZE>72</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>lsb-base</NAME>
+      <VERSION>3.2-20</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Linux Standard Base version reporting utility</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>lsb-release</NAME>
+      <VERSION>3.2-20</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>List open files</COMMENTS>
+      <FILESIZE>420</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>lsof</NAME>
+      <VERSION>4.78.dfsg.1-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Compression method of 7z format in 7-Zip program</COMMENTS>
+      <FILESIZE>124</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>lzma</NAME>
+      <VERSION>4.43-14</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>a macro processing language</COMMENTS>
+      <FILESIZE>536</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>m4</NAME>
+      <VERSION>1.4.11-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>creates device files in /dev</COMMENTS>
+      <FILESIZE>148</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>makedev</NAME>
+      <VERSION>2.3.1-88</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>on-line manual pager</COMMENTS>
+      <FILESIZE>2580</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>man-db</NAME>
+      <VERSION>2.5.2-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Manual pages about using a GNU/Linux system</COMMENTS>
+      <FILESIZE>972</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>manpages</NAME>
+      <VERSION>3.05-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>French version of the manual pages about using GNU/Linux</COMMENTS>
+      <FILESIZE>832</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>manpages-fr</NAME>
+      <VERSION>3.07.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>French version of the manual pages</COMMENTS>
+      <FILESIZE>1836</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>manpages-fr-extra</NAME>
+      <VERSION>20080921</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>a pattern scanning and text processing language</COMMENTS>
+      <FILESIZE>224</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mawk</NAME>
+      <VERSION>1.3.3-11.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A high-performance memory object caching system</COMMENTS>
+      <FILESIZE>172</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>memcached</NAME>
+      <VERSION>1.2.2-1+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>MIME files 'mime.types' &amp; 'mailcap', and support programs</COMMENTS>
+      <FILESIZE>192</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mime-support</NAME>
+      <VERSION>3.44-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>tool for creating temporary files</COMMENTS>
+      <FILESIZE>60</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mktemp</NAME>
+      <VERSION>1.5-9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>quickly find files on the filesystem based on their name</COMMENTS>
+      <FILESIZE>432</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mlocate</NAME>
+      <VERSION>0.21.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>tools for managing Linux kernel modules</COMMENTS>
+      <FILESIZE>288</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>module-init-tools</NAME>
+      <VERSION>3.4-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Tools for mounting and manipulating filesystems</COMMENTS>
+      <FILESIZE>312</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mount</NAME>
+      <VERSION>2.13.1.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>network-wide graphing framework (grapher/gatherer)</COMMENTS>
+      <FILESIZE>996</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>munin</NAME>
+      <VERSION>1.2.6-10~lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>network-wide graphing framework (node)</COMMENTS>
+      <FILESIZE>1396</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>munin-node</NAME>
+      <VERSION>1.2.6-10~lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>network-wide graphing framework (user contributed plugins for node)</COMMENTS>
+      <FILESIZE>260</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>munin-plugins-extra</NAME>
+      <VERSION>1.2.6-10~lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>text-based mailreader supporting MIME, GPG, PGP and threading</COMMENTS>
+      <FILESIZE>4848</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mutt</NAME>
+      <VERSION>1.5.18-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>MySQL database common files</COMMENTS>
+      <FILESIZE>140</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mysql-common</NAME>
+      <VERSION>5.0.51a-24+lenny5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>free Pico clone with some new features</COMMENTS>
+      <FILESIZE>1716</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>nano</NAME>
+      <VERSION>2.0.7-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>basic terminal type definitions</COMMENTS>
+      <FILESIZE>484</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ncurses-base</NAME>
+      <VERSION>5.7+20081213-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>terminal-related programs and man pages</COMMENTS>
+      <FILESIZE>480</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ncurses-bin</NAME>
+      <VERSION>5.7+20081213-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>additional terminal type definitions</COMMENTS>
+      <FILESIZE>6532</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ncurses-term</NAME>
+      <VERSION>5.7+20081213-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The NET-3 networking toolkit</COMMENTS>
+      <FILESIZE>820</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>net-tools</NAME>
+      <VERSION>1.60-22</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Basic TCP/IP networking system</COMMENTS>
+      <FILESIZE>96</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>netbase</NAME>
+      <VERSION>4.34</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>TCP/IP swiss army knife</COMMENTS>
+      <FILESIZE>192</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>netcat-traditional</NAME>
+      <VERSION>1.10-38</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>NFS support files common to client and server</COMMENTS>
+      <FILESIZE>504</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>nfs-common</NAME>
+      <VERSION>1:1.1.2-6lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Network Time Protocol daemon and utility programs</COMMENTS>
+      <FILESIZE>1040</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ntp</NAME>
+      <VERSION>1:4.2.4p4+dfsg-8lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Hardware and software inventory tool (client)</COMMENTS>
+      <FILESIZE>772</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ocsinventory-agent</NAME>
+      <VERSION>1:0.0.9.2repack1-4lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The OpenBSD Internet Superserver</COMMENTS>
+      <FILESIZE>128</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openbsd-inetd</NAME>
+      <VERSION>0.20080125-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>list of default blacklisted OpenSSH RSA and DSA keys</COMMENTS>
+      <FILESIZE>4092</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openssh-blacklist</NAME>
+      <VERSION>0.4.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>list of non-default blacklisted OpenSSH RSA and DSA keys</COMMENTS>
+      <FILESIZE>4100</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openssh-blacklist-extra</NAME>
+      <VERSION>0.4.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>secure shell client, an rlogin/rsh/rcp replacement</COMMENTS>
+      <FILESIZE>1956</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openssh-client</NAME>
+      <VERSION>1:5.1p1-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>secure shell server, an rshd replacement</COMMENTS>
+      <FILESIZE>772</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openssh-server</NAME>
+      <VERSION>1:5.1p1-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Secure Socket Layer (SSL) binary and related cryptographic tools</COMMENTS>
+      <FILESIZE>2348</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openssl</NAME>
+      <VERSION>0.9.8g-15+lenny12</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>change and administer password and group data</COMMENTS>
+      <FILESIZE>2108</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>passwd</NAME>
+      <VERSION>1:4.1.1-6+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Apply a diff file to an original</COMMENTS>
+      <FILESIZE>152</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>patch</NAME>
+      <VERSION>2.5.9-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Linux PCI Utilities</COMMENTS>
+      <FILESIZE>696</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>pciutils</NAME>
+      <VERSION>1:3.0.0-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Larry Wall's Practical Extraction and Report Language</COMMENTS>
+      <FILESIZE>13528</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>perl</NAME>
+      <VERSION>5.10.0-19lenny5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>minimal Perl system</COMMENTS>
+      <FILESIZE>4316</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>perl-base</NAME>
+      <VERSION>5.10.0-19lenny5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Core Perl modules</COMMENTS>
+      <FILESIZE>14520</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>perl-modules</NAME>
+      <VERSION>5.10.0-19lenny5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Common files for packages built from the php5 source</COMMENTS>
+      <FILESIZE>728</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>php5-common</NAME>
+      <VERSION>5.2.6.dfsg.1-1+lenny13</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>MySQL module for php5</COMMENTS>
+      <FILESIZE>240</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>php5-mysql</NAME>
+      <VERSION>5.2.6.dfsg.1-1+lenny13</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>manage translated Debconf templates files with gettext</COMMENTS>
+      <FILESIZE>436</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>po-debconf</NAME>
+      <VERSION>1.0.15</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>RPC port mapper</COMMENTS>
+      <FILESIZE>112</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>portmap</NAME>
+      <VERSION>6.0-9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Versatile e-mail processor</COMMENTS>
+      <FILESIZE>300</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>procmail</NAME>
+      <VERSION>3.22-16</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>/proc file system utilities</COMMENTS>
+      <FILESIZE>672</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>procps</NAME>
+      <VERSION>1:3.2.7-11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Utilities that use the proc filesystem</COMMENTS>
+      <FILESIZE>492</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>psmisc</NAME>
+      <VERSION>22.6-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An interactive high-level object-oriented language (default version)</COMMENTS>
+      <FILESIZE>612</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python</NAME>
+      <VERSION>2.5.2-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>register and build utility for Python packages</COMMENTS>
+      <FILESIZE>256</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-central</NAME>
+      <VERSION>0.6.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A minimal subset of the Python language (default version)</COMMENTS>
+      <FILESIZE>84</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-minimal</NAME>
+      <VERSION>2.5.2-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An interactive high-level object-oriented language (version 2.5)</COMMENTS>
+      <FILESIZE>10052</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python2.5</NAME>
+      <VERSION>2.5.2-15+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A minimal subset of the Python language (version 2.5)</COMMENTS>
+      <FILESIZE>4332</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python2.5-minimal</NAME>
+      <VERSION>2.5.2-15+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU readline and history libraries, common files</COMMENTS>
+      <FILESIZE>136</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>readline-common</NAME>
+      <VERSION>5.2-3.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>reports bugs in the Debian distribution</COMMENTS>
+      <FILESIZE>456</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>reportbug</NAME>
+      <VERSION>3.48</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Time-series data storage and display system (programs)</COMMENTS>
+      <FILESIZE>1196</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>rrdtool</NAME>
+      <VERSION>1.3.1-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>enhanced multi-threaded syslogd</COMMENTS>
+      <FILESIZE>480</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>rsyslog</NAME>
+      <VERSION>3.18.6-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>tool for configuring and maintaining network machines</COMMENTS>
+      <FILESIZE>91264</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>rudder-agent</NAME>
+      <VERSION>2.3.0~beta3~git201109200504-lenny0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU sed stream editor</COMMENTS>
+      <FILESIZE>628</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sed</NAME>
+      <VERSION>4.1.5-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Provide limited super user privileges to specific users</COMMENTS>
+      <FILESIZE>424</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sudo</NAME>
+      <VERSION>1.6.9p17-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>System-V-like runlevel change mechanism</COMMENTS>
+      <FILESIZE>260</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sysv-rc</NAME>
+      <VERSION>2.86.ds1-61</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>System-V-like init utilities</COMMENTS>
+      <FILESIZE>276</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sysvinit</NAME>
+      <VERSION>2.86.ds1-61</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>System-V-like utilities</COMMENTS>
+      <FILESIZE>172</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sysvinit-utils</NAME>
+      <VERSION>2.86.ds1-61</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU version of the tar archiving utility</COMMENTS>
+      <FILESIZE>2248</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tar</NAME>
+      <VERSION>1.20-1+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Tool for selecting tasks for installation on Debian systems</COMMENTS>
+      <FILESIZE>900</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tasksel</NAME>
+      <VERSION>2.78</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Official tasks used for installation of Debian systems</COMMENTS>
+      <FILESIZE>1000</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tasksel-data</NAME>
+      <VERSION>2.78</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Wietse Venema's TCP wrapper utilities</COMMENTS>
+      <FILESIZE>212</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tcpd</NAME>
+      <VERSION>7.6.q-16</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The telnet client</COMMENTS>
+      <FILESIZE>144</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>telnet</NAME>
+      <VERSION>0.17-36</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Documentation system for on-line information and printed output</COMMENTS>
+      <FILESIZE>2144</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>texinfo</NAME>
+      <VERSION>4.11.dfsg.1-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU time program for measuring cpu resource usage</COMMENTS>
+      <FILESIZE>104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>time</NAME>
+      <VERSION>1.7-23</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Traces the route taken by packets over an IPv4/IPv6 network</COMMENTS>
+      <FILESIZE>168</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>traceroute</NAME>
+      <VERSION>2.0.11-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>network traffic analyzer (console)</COMMENTS>
+      <FILESIZE>264</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tshark</NAME>
+      <VERSION>1.0.2-3+lenny14</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Metapackage to pull in ttf-dejavu-core and ttf-dejavu-extra</COMMENTS>
+      <FILESIZE>68</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ttf-dejavu</NAME>
+      <VERSION>2.25-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Vera font family derivate with additional characters</COMMENTS>
+      <FILESIZE>2488</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ttf-dejavu-core</NAME>
+      <VERSION>2.25-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Vera font family derivate with additional characters</COMMENTS>
+      <FILESIZE>5504</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ttf-dejavu-extra</NAME>
+      <VERSION>2.25-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>time zone and daylight-saving time data</COMMENTS>
+      <FILESIZE>6364</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tzdata</NAME>
+      <VERSION>2011d-0lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Update Configuration File: preserve user changes to config files.</COMMENTS>
+      <FILESIZE>256</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ucf</NAME>
+      <VERSION>3.0016</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>/dev/ and hotplug management daemon</COMMENTS>
+      <FILESIZE>808</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>udev</NAME>
+      <VERSION>0.125-7+lenny3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>inetd configuration file updater</COMMENTS>
+      <FILESIZE>120</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>update-inetd</NAME>
+      <VERSION>4.31</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Linux USB utilities</COMMENTS>
+      <FILESIZE>580</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>usbutils</NAME>
+      <VERSION>0.73-10lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Miscellaneous system utilities</COMMENTS>
+      <FILESIZE>1624</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>util-linux</NAME>
+      <VERSION>2.13.1.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>universally unique id library</COMMENTS>
+      <FILESIZE>132</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>uuid-runtime</NAME>
+      <VERSION>1.41.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Vi IMproved - enhanced vi editor</COMMENTS>
+      <FILESIZE>1516</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>vim</NAME>
+      <VERSION>1:7.1.314-3+lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Vi IMproved - Common files</COMMENTS>
+      <FILESIZE>540</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>vim-common</NAME>
+      <VERSION>1:7.1.314-3+lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Vi IMproved - Runtime files</COMMENTS>
+      <FILESIZE>22812</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>vim-runtime</NAME>
+      <VERSION>1:7.1.314-3+lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Vi IMproved - enhanced vi editor - compact version</COMMENTS>
+      <FILESIZE>716</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>vim-tiny</NAME>
+      <VERSION>1:7.1.314-3+lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>WWW browsable pager with excellent tables/frames support</COMMENTS>
+      <FILESIZE>1856</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>w3m</NAME>
+      <VERSION>0.5.2-2+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>American English dictionary words for /usr/share/dict</COMMENTS>
+      <FILESIZE>1020</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>wamerican</NAME>
+      <VERSION>6-2.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>French dictionary words for /usr/share/dict</COMMENTS>
+      <FILESIZE>1600</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>wfrench</NAME>
+      <VERSION>1.2.3-6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>retrieves files from the web</COMMENTS>
+      <FILESIZE>1928</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>wget</NAME>
+      <VERSION>1.11.4-2+lenny2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Displays user-friendly dialog boxes from shell scripts</COMMENTS>
+      <FILESIZE>96</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>whiptail</NAME>
+      <VERSION>0.52.2-11.3+lenny1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>an intelligent whois client</COMMENTS>
+      <FILESIZE>324</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>whois</NAME>
+      <VERSION>4.7.30</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>network traffic analyser (common files)</COMMENTS>
+      <FILESIZE>38348</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>wireshark-common</NAME>
+      <VERSION>1.0.2-3+lenny14</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X Window System (X.Org) infrastructure</COMMENTS>
+      <FILESIZE>696</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>x11-common</NAME>
+      <VERSION>1:7.3+20</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X authentication utility</COMMENTS>
+      <FILESIZE>96</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xauth</NAME>
+      <VERSION>1:1.0.3-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>X Keyboard Extension (XKB) configuration data</COMMENTS>
+      <FILESIZE>3948</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xkb-data</NAME>
+      <VERSION>1.3-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>compression library - runtime</COMMENTS>
+      <FILESIZE>128</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>zlib1g</NAME>
+      <VERSION>1:1.2.3.3.dfsg-12</VERSION>
+    </SOFTWARES>
+    <VERSIONCLIENT>FusionInventory-Agent_v2.1.9</VERSIONCLIENT>
+    <VIDEOS></VIDEOS>
+  </CONTENT>
+  <DEVICEID>debian-5-32-2011-01-14-11-10-09</DEVICEID>
+<UUID>0876521e-3c81-4775-85c7-5dd7f9d5d3da</UUID>
+<USER>root</USER>
+<AGENTSNAME>
+<AGENTNAME>Community</AGENTNAME>
+</AGENTSNAME>
+<MACHINEID>E1A7734E-23F9-A124-D336-F346BA610383</MACHINEID>
+<CFKEY>-----BEGIN RSA PUBLIC KEY-----
+MIIBCAKCAQEAp8XambRZMLpI9wCqkeZNGQuG02wjjiQD9NIUrESkcfMYZ5qvLhX1
+bjufiDTbs1M2ySEGGCDHJN991C67kvPvstFtKx+w8m6DBC9DkpwLR0wGgWN0VCqC
+cG8UwJIRz9SrPTQKRLFWI/fl8b92xcZvDPVXv1r0yS75toX3Ja4dBwyOqaiUGLBO
+kOpwXSfrmHJ16IDWwLUZlesfomgCyzfZ8AUuTOX7JbvxLI9neXysoueXqDMIXklS
+013pCqdZW/kCp3/aPwBjoK5EFnR8XxVLCGSXGXz6JG2Nng7ox8bbjm0VurFQErce
+VyodQDN1ecAsViRI1V18Z+PvZll8isonWQIBIw==
+-----END RSA PUBLIC KEY-----</CFKEY>
+<POLICIES>InitPolicies</POLICIES>
+<HOSTNAME>debian-5-32.labo.normation.com</HOSTNAME>
+<PROCESSORS>
+	<PROCESSOR>
+		<VENDOR>GenuineIntel</VENDOR>
+		<FAMILY>6</FAMILY>
+		<MODEL>2</MODEL>
+		<NAME>QEMU Virtual CPU version 0.12.5</NAME>
+		<STEPPING>3</STEPPING>
+		<FREQUENCY>2828.522</FREQUENCY>
+	</PROCESSOR>
+</PROCESSORS>
+<POLICY_SERVER>root</POLICY_SERVER>
+
+  <QUERY>INVENTORY</QUERY>
+</REQUEST>
