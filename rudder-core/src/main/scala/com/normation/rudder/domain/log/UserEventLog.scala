@@ -57,6 +57,19 @@ final case class LoginEventLog(
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
 }
 
+final case class BadCredentialsEventLog(
+    override val principal : EventActor
+  , override val id : Option[Int] = None
+  , override val creationDate : DateTime = new DateTime()
+  , override val cause : Option[Int] = None
+  , severity : Int = 100
+) extends UserEventLog {
+
+  override val eventType = "BadCredentials"
+  override val eventLogCategory = UserLogCategory
+  override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
+}
+
 
 final case class LogoutEventLog(
     override val principal : EventActor

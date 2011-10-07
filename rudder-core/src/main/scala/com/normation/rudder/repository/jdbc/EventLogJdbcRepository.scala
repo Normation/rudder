@@ -213,13 +213,16 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
 
       case "RefuseNode" =>
         Full(RefuseNodeEventLog(id, principal, details, creationDate, severity))
-        
+
       case "UserLogin" =>
         Full(LoginEventLog(principal, id, creationDate, cause, severity))
         
       case "UserLogout" =>
         Full(LogoutEventLog(principal, id, creationDate, cause, severity))
                 
+      case "BadCredentials" =>
+        Full(BadCredentialsEventLog(principal, id, creationDate, cause, severity))
+
       case "ApplicationStarted" =>
         Full(ApplicationStarted(id, creationDate, severity))
         

@@ -176,6 +176,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       case x:RefuseNodeEventLog => nodeDesc(x, Text(" refused"))
       case x:LoginEventLog => Text("User '%s' login".format(x.principal.name))
       case x:LogoutEventLog => Text("User '%s' logout".format(x.principal.name))
+      case x:BadCredentialsEventLog => Text("User '%s' failed to login: bad credentials".format(x.principal.name))
       case x:StartDeployement => Text("Deploy policy on nodes")
       case x:ApplicationStarted => Text("Rudder starts")
       case x:ModifyConfigurationRule => crDesc(x,Text(" modified"))

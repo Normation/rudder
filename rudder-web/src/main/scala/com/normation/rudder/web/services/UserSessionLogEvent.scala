@@ -41,10 +41,11 @@ import org.springframework.security.core.session.SessionDestroyedEvent
 import org.springframework.security.core.session.SessionCreationEvent
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent
 import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.domain.log.LoginEventLog
+import com.normation.rudder.domain.log._
 import net.liftweb.common.Loggable
 import org.springframework.security.core.userdetails.UserDetails
 import com.normation.eventlog.EventActor
+import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent
 
 /**
  * A class used to log user session creation/destruction events.
@@ -59,21 +60,27 @@ class UserSessionLogEvent(
   def onApplicationEvent(event : ApplicationEvent):Unit = {
     event match {
       case login:AuthenticationSuccessEvent => 
-        println("Success login " + login.getAuthentication)
-        val pp = login.getAuthentication.getPrincipal
         login.getAuthentication.getPrincipal match {
           case u:UserDetails => 
             repository.saveEventLog(LoginEventLog(EventActor(u.getUsername)))
           case x => 
             logger.warn("The application received an Authentication 'success' event with a parameter that is neither a principal nor some user details. I don't know how to log that event in database. Event parameter was: " +x)
-        }        
-        
+        }
+
+      case badLogin:AuthenticationFailureBadCredentialsEvent =>
+        badLogin.getAuthentication.getPrincipal match {
+          case u:String =>
+            repository.saveEventLog(BadCredentialsEventLog(EventActor(u)))
+          case x =>
+            logger.warn("The application received an Authentication 'bad credential' event with a parameter that is not the principal login. I don't know how to log that event in database. Event parameter was: " +x)
+        }
+
 //  these events don't seem to work :/
 //      case sessionCreation:SessionCreationEvent => 
 //        println("Session creation " + sessionCreation.getSource.toString)
 //      case sessionDestruction:SessionDestroyedEvent =>
 //        println("Session destruction " + sessionDestruction.getSecurityContext().getAuthentication)
-//        
+//
       case x => //ignore
     }
     
