@@ -70,7 +70,7 @@ case object QuerySoftwareDn extends DnType
 
 class DitQueryData(dit:InventoryDit) {      
   private val peObjectCriterion = ObjectCriterion(OC_PE, Seq(
-    Criterion(A_MACHINE_UUID, StringComparator),
+//    Criterion(A_MACHINE_UUID, StringComparator),
 //    Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that
     Criterion(A_DESCRIPTION, StringComparator),
     Criterion(A_MODEL, StringComparator),
@@ -83,7 +83,7 @@ class DitQueryData(dit:InventoryDit) {
   ))
 
   private val leObjectCriterion = ObjectCriterion(OC_LE, Seq(
-    Criterion(A_NODE_UUID, StringComparator),
+//    Criterion(A_NODE_UUID, StringComparator),
 //    Criterion(A_NODE_DN, StringComparator),
 //    Criterion(A_NAME, StringComparator),
     Criterion(A_DESCRIPTION, StringComparator)
