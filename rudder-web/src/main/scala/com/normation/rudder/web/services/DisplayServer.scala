@@ -151,13 +151,13 @@ object DisplayServer {
       // 
       <li><a href={htmlId_#(jsId,"sd_bios_")}>Bios</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_controllers_")}>Controllers</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_memories_")}>Memory</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_ports_")}>Port</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_processors_")}>Processor</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_slots_")}>Slot</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_sounds_")}>Sound</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_storages_")}>Storage</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_videos_")}>Video</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_memories_")}>Memories</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_ports_")}>Ports</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_processors_")}>Processors</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_slots_")}>Slots</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_sounds_")}>Sounds</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_storages_")}>Storages</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_videos_")}>Videos</a></li> ::
       Nil
     
     val tabContent = 
