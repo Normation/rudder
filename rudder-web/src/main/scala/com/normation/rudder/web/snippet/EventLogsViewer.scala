@@ -55,7 +55,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.log.InventoryLogDetails
-
+import com.normation.rudder.web.model.JsInitContextLinkUtil._
 
 class EventLogsViewer extends DispatchSnippet with Loggable {
   private[this] val repos = inject[EventLogRepository]
@@ -136,25 +136,37 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
     def crDesc(x:EventLog, actionName: NodeSeq) = {
         val id = (x.details \ "configurationRule" \ "id").text
         val name = (x.details \ "configurationRule" \ "displayName").text
-        Text("Configuration rule ") ++ <a href={"/secure/configurationManager/configurationRuleManagement/" + id}>{name}</a> ++ actionName
+        Text("Configuration rule ") ++ {
+          if(id.size < 1) Text(name)
+          else <a href={configurationRuleLink(ConfigurationRuleId(id))}>{name}</a> ++ actionName
+        }
     }
     
     def piDesc(x:EventLog, actionName: NodeSeq) = {
         val id = (x.details \ "policyInstance" \ "id").text
         val name = (x.details \ "policyInstance" \ "displayName").text
-        Text("Policy instance ") ++ <a href={"/secure/configurationManager/policyInstanceManagement/" + id}>{name}</a> ++ actionName
+        Text("Policy instance ") ++ {
+          if(id.size < 1) Text(name)
+          else <a href={policyInstanceLink(PolicyInstanceId(id))}>{name}</a> ++ actionName
+        }
     }
     
     def groupDesc(x:EventLog, actionName: NodeSeq) = {
         val id = (x.details \ "nodeGroup" \ "id").text
         val name = (x.details \ "nodeGroup" \ "displayName").text
-        Text("Group ") ++ <a href={"/secure/assetManager/groups/" + id}>{name}</a> ++ actionName
+        Text("Group ") ++ {
+          if(id.size < 1) Text(name)
+          else <a href={groupLink(NodeGroupId(id))}>{name}</a> ++ actionName
+        }
     }
     
     def nodeDesc(x:EventLog, actionName: NodeSeq) = {
         val id = (x.details \ "node" \ "id").text
         val name = (x.details \ "node" \ "hostname").text
-        Text("Node ") ++ <a href={"/secure/assetManager/search/" + id}>{name}</a> ++ actionName
+        Text("Node ") ++ {
+          if(id.size < 1) Text(name)
+          else <a href={nodeLink(NodeId(id))}>{name}</a> ++ actionName
+        }
     }
     
     event match {
@@ -225,11 +237,13 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
                 ) &
                 "#policies" #> (
                    modDiff.modPolicyInstanceIds.map { diff =>
-                   val mapList = (set:Set[PolicyInstanceId]) =>
-                     <ul style="padding:5px;">{ set.toSeq.sortWith( _.value < _.value ).map { id =>
-                       <li>{id.value}</li>
-                     } }</ul>
-                     
+                   val mapList = (set:Set[PolicyInstanceId]) => {
+                     if(set.size < 1) Text("None")
+                     else <ul style="padding:5px;">{ set.toSeq.sortWith( _.value < _.value ).map { id =>
+                            <li><a href={policyInstanceLink(id)}>{id.value}</a></li>
+                          } }</ul>
+                   }
+                   
                    ".diffOldValue" #> mapList(diff.oldValue) &
                    ".diffNewValue" #> mapList(diff.newValue)
                    }
@@ -311,8 +325,9 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
                 "#nodes" #> (
                    modDiff.modServerList.map { diff =>
                    val mapList = (set:Set[NodeId]) =>
-                     <ul  style="padding:5px;">{ set.toSeq.sortWith( _.value < _.value ).map { id =>
-                       <li>{id.value}</li>
+                     if(set.size == 0) Text("None")
+                     else <ul style="padding:5px;">{ set.toSeq.sortWith( _.value < _.value ).map { id =>
+                       <li><a href={nodeLink(id)}>{id.value}</a></li>
                      } }</ul>
                      
                    ".diffOldValue" #> mapList(diff.oldValue) &
@@ -380,12 +395,12 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       )
   
   private[this] def policyInstanceIdDetails(piIds:Seq[PolicyInstanceId]) = piIds.map { id => 
-    (<b>ID:</b><a href={"/secure/configurationManager/policyInstanceManagement/" + id.value}>{id.value}</a>):NodeSeq
+    (<b>ID:</b><a href={policyInstanceLink(id)}>{id.value}</a>):NodeSeq
   }
   
   private[this] def groupTargetDetails(target:Option[PolicyInstanceTarget]):NodeSeq = target match {
-    case Some(GroupTarget(NodeGroupId(g))) => (
-      <b>Group:</b><a href={"/secure/assetManager/groups/"+g}>{g}</a>  
+    case Some(GroupTarget(id@NodeGroupId(g))) => (
+      <b>Group:</b><a href={groupLink(id)}>{g}</a>  
     )
     case Some(x) => Text("Special group: " + x.toString)
     case None => Text("None")
@@ -424,9 +439,10 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
         case Some(q) => Text(q.toJSONString)
       } ) &
       "#isDynamic" #> group.isDynamic &
-      "#nodes" #> <ul style="padding:5px;">{group.serverList.map { id => 
-        <li>{id.value}</li>
-      } }</ul> &
+      "#nodes" #>( if(group.serverList.size < 1) Text("None")
+                   else <ul style="padding:5px;">{group.serverList.map { id => 
+                         <li><a href={nodeLink(id)}>{id.value}</a></li>
+                        } }</ul>) &
       "#isActivated" #> group.isActivated &
       "#isSystem" #> group.isSystem
   )(xml)
