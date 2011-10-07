@@ -244,18 +244,18 @@ case class LDAPObjectType(
   def objectTypes = Map(
     "software" -> LDAPObjectType(dit.SOFTWARE.dn, One, ALL, DNJoin),
     "node" -> LDAPObjectType(dit.NODES.dn, One, ALL, DNJoin),
-    "networkInterfaceLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, ALL, ParentDNJoin),
-    "fileSystemLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, ALL, ParentDNJoin),
+    "networkInterfaceLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, IS(OC_NET_IF), ParentDNJoin),
+    "fileSystemLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, IS(OC_FS), ParentDNJoin),
     "machine" -> LDAPObjectType(dit.MACHINES.dn, One, ALL, DNJoin),
-    "processorPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, ALL, ParentDNJoin),
-    "memoryPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, ALL, ParentDNJoin),
-    "storagePhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, ALL, ParentDNJoin),
-    "biosPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, ALL, ParentDNJoin),
-    "controllerPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, ALL, ParentDNJoin),
-    "portPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, ALL, ParentDNJoin),
-    "slotPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, ALL, ParentDNJoin),
-    "soundCardPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, ALL, ParentDNJoin),
-    "videoCardPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, ALL, ParentDNJoin)
+    "processorPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, IS(OC_PROCESSOR), ParentDNJoin),
+    "memoryPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, IS(OC_MEMORY), ParentDNJoin),
+    "storagePhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, IS(OC_STORAGE), ParentDNJoin),
+    "biosPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, IS(OC_BIOS), ParentDNJoin),
+    "controllerPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, IS(OC_CONTROLLER), ParentDNJoin),
+    "portPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, IS(OC_PORT), ParentDNJoin),
+    "slotPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, IS(OC_SLOT), ParentDNJoin),
+    "soundCardPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, IS(OC_SOUND), ParentDNJoin),
+    "videoCardPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, IS(OC_VIDEO), ParentDNJoin)
     //,"groupOfDns" -> LDAPObjectType(dit.GROUPS.dn, Sub, EQ(A_OC,OC_GROUP_OF_DNS), A_DN)
   )
   

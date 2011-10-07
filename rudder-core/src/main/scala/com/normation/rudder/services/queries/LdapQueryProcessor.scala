@@ -266,8 +266,12 @@ class InternalLDAPQueryProcessor(
         (dnType, (mapOtFilters map { case (ot,setFilters) => 
           val (ldapFilters, specialFilters) = unspecialiseFilters(setFilters) match {
             case Full((ldapFilters, specialFilters)) => normalizeQuery.composition match {
-              case And => ( AND(ldapFilters.toSeq:_*) , specialFilters.map( ( And:CriterionComposition , _)) )
-              case Or =>  ( OR(ldapFilters.toSeq:_*) ,  specialFilters.map( ( Or :CriterionComposition, _)) )
+              case And => 
+                val f = if(ldapFilters.size == 1) ldapFilters.head else AND(ldapFilters.toSeq:_*)
+                ( f, specialFilters.map( ( And:CriterionComposition , _)) )
+              case Or =>  
+                val f = if(ldapFilters.size == 1) ldapFilters.head else  OR(ldapFilters.toSeq:_*)
+                ( f,  specialFilters.map( ( Or :CriterionComposition, _)) )
             }
             case e:EmptyBox => 
               val error = e ?~! "Error when processing filters for object type %s".format(ot)
@@ -279,8 +283,8 @@ class InternalLDAPQueryProcessor(
           (ot, objectTypes(ot).copy(
             filter={
               onlyDnTypes match { 
-                case None => ldapFilters
-                case Some(map) => AND(map(dnType),ldapFilters)
+                case None => AND(objectTypes(ot).filter, ldapFilters)
+                case Some(map) => AND(objectTypes(ot).filter, map(dnType),ldapFilters)
               }
             },
             join=joinAttributes(ot),
