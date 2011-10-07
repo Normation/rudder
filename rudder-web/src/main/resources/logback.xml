@@ -1,0 +1,133 @@
+<!--
+Copyright 2011 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+In accordance with the terms of section 7 (7. Additional Terms.) of
+the GNU Affero GPL v3, the copyright holders add the following
+Additional permissions:
+Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+licence, when you create a Related Module, this Related Module is
+not considered as a part of the work and may be distributed under the
+license agreement of your choice.
+A "Related Module" means a set of sources files including their
+documentation that, without modification of the Source Code, enables
+supplementary functions or services in addition to those offered by
+the Software.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+-->
+
+<configuration>
+  <!-- 
+    This is the default logging configuration file. It will be used if you
+    didn't specify the "logback.configurationFile" JVM option. 
+    For example, to use a loggin configuration file in "/etc/rudder":
+    java ... -Dlogback.configurationFile=/etc/rudder/logback.xml
+    
+    Full information about the file format is available on the project
+    web site: http://logback.qos.ch/manual/configuration.html#syntax
+   -->
+
+  <!-- 
+    Appender configuration - where&how to write logs in SLF4J speaking.
+    ===================================================================
+    Our default configuration : log on stdout appender so that our logs
+    are managed by the container log system (and so, if Tomcat/Jetty/etc
+    logs are stored in files and rotated, so are our log information).
+    
+    Log format is:
+    - date/time/thread of the log on 30 chars (fixed)
+    - log level on 5 char (fixed)
+    - name of the logger (and so the class) on 36 chars, with
+      package name folding
+    - log message follows
+    - limit exception trace to 30 calls
+    
+    You should not have to modify that. 
+  -->
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+      <Pattern>%-30(%d{HH:mm:ss.SSS} [%thread]) %-5level %logger{36} - %msg%n%xEx{30}</Pattern>
+    </encoder>
+  </appender>
+
+  <!-- 
+    Manage the global log level of the application.
+    ===============================================
+    
+    That level will be used for all logs that are not
+    more precisely defined below (i.e for whom there is
+    no <logger name="...." level="..."/> defined)  
+    
+    Available log levels are: 
+         trace < debug < info < warn < error < off 
+    "off" completely shut down logging for the given logger
+    
+    Do not modify the appender part if you don't know what you
+    are doing.
+  -->
+  
+  <root level="info">
+    <appender-ref ref="STDOUT" />
+  </root>
+  
+  <!--
+    Debug LDAP write operations
+    ===========================
+    
+    This logger allow to trace LDAP writes operation and
+    to output them in LDIF file (the output directory path 
+    is configured in the main configuration file)
+    The trace is done only if level is set to "trace"
+    WARNING: setting the level to trace may have major
+    performance issue, as A LOT of LDIF files will have
+    to be written. 
+    You should activate that log only for debugging purpose.
+  -->
+  
+  <logger name="trace.ldif.in.file" level="off" />
+
+
+  <!-- ==================================================== -->
+  <!-- YOU SHOULD NOT HAVE TO CHANGE THINGS BELOW THAT LINE -->
+  <!-- ==================================================== -->
+  
+  <!-- 
+    Display AJAX information of the Web interface
+    =============================================
+    Whatever the root logger level is, you are likely
+    to not wanting these information. 
+    Set the level to debug if you are really interested
+    in AJAX-related debug messages.
+  -->
+  <logger name="comet_trace" level="info" />
+  
+  <!-- 
+    Spring Framework log level
+    ==========================
+    We really don't want to see SpringFramework debug info, 
+    whatever the root logger level is - it's an internal
+    component only.
+  -->
+  <logger name="org.springframework" level="warn" />
+ 
+  <!-- 
+    We don't need to have a timing information for each 
+    HTTP request.
+    If you want to have these information, set the log
+    level for that logger to (at least) "info"
+   -->
+  <logger name="net.liftweb.util.TimeHelpers" level="warn" />
+ 
+</configuration>
