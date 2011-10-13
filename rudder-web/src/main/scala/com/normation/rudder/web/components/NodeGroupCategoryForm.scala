@@ -142,7 +142,7 @@ class NodeGroupCategoryForm(
           </div>
           <div class="simplemodal-content">    
 	    			<div>
-	    				<img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+	    				<img src="/images/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
             	<h3>Are you sure that you want to completely delete this category ?</h3>
 	    			</div>
            	<hr class="spacer" />

@@ -53,7 +53,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
         <!-- Start comment -->
         
         <intercept-url pattern="/style/**" filters="none"/>
-        <intercept-url pattern="/img/**" filters="none"/>
         <intercept-url pattern="/images/**" filters="none"/>
         <intercept-url pattern="/javascript/**" filters="none"/>
         <intercept-url pattern="/secure/**" access="isAuthenticated()" />

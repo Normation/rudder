@@ -13,7 +13,7 @@ $(document).ready(function() {
 		},
 
 		image: {
-			prefix: "img/",
+			prefix: "images/",
 
 			navigation: {
 				minimize: "puceHide.jpg",

@@ -346,7 +346,7 @@ class AcceptServer {
   			    (Text("Since"),
                    {e => Text(DateFormaterService.getFormatedDate(e.creationDate))}),
   			    (Text("Policy"), 
-                  { e => SHtml.ajaxButton(<img src="/img/icPolicies.jpg"/>, { 
+                  { e => SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { 
                       () =>  showExpectedPolicyPopup(e.id)
                     }, ("class", "smallButton")
                    )

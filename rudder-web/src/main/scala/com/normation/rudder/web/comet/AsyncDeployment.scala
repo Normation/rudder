@@ -91,11 +91,11 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       case NoStatus => <span>Configuration rules application status unavailable</span>
       case SuccessStatus(id,start,end,configurationNodes) => 
         <span class="deploymentSuccess">
-          <img src="/img/icOK.png" alt="Error" height="16" width="16" style="float:left; margin-right:5px; margin-top:2px" />
+          <img src="/images/icOK.png" alt="Error" height="16" width="16" style="float:left; margin-right:5px; margin-top:2px" />
           Success: configuration rules applied at {DateFormaterService.getFormatedDate(start)} (took {formatPeriod(new Duration(start,end))})
         </span>
       case ErrorStatus(id,start,end,failure) => 
-        {<span class="error deploymentError"><img src="/img/icfail.png" alt="Error" height="16" width="16" style="float:left; margin-right:5px; margin-top:2px" />
+        {<span class="error deploymentError"><img src="/images/icfail.png" alt="Error" height="16" width="16" style="float:left; margin-right:5px; margin-top:2px" />
           Error: configuration rules not applied at {DateFormaterService.getFormatedDate(start)} <br/>(took {formatPeriod(new Duration(start,end))} -
           <span style="border-bottom:1px solid red;cursor:pointer;" id="errorDetailsLink" onClick={
             """$('#errorDetailsDialog').modal({ minHeight:140, minWidth: 300 }); 
@@ -116,12 +116,12 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         }, ( "class" , "deploymentButton")) 
       case Processing(id, start) =>
         <span>
-          <img src="/img/deploying.gif" alt="Deploying..." height="16" width="16" style="float:left; margin-right:5px; margin-top:2px" />
+          <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" style="float:left; margin-right:5px; margin-top:2px" />
           Generating configuration rules (started at {DateFormaterService.getFormatedDate(start)})
         </span>
       case ProcessingAndPending(asked, Processing(id, start)) => 
         <span>
-          <img src="/img/deploying.gif" alt="Deploying..." height="16" width="16" style="float:left; margin-right:5px; margin-top:2px" />
+          <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" style="float:left; margin-right:5px; margin-top:2px" />
           Generating configuration rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
         </span>
     }
@@ -156,7 +156,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       <div class="simplemodal-content">
        <br />
         <div>
-          <img src="/img/icfail.png" alt="Error" height="24" width="24" style="float:left; margin-right:10px;" />
+          <img src="/images/icfail.png" alt="Error" height="24" width="24" style="float:left; margin-right:10px;" />
           <h2>Deployment process was stopped due to an error:</h2>
         </div>        
         <hr class="spacer" />

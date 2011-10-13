@@ -248,7 +248,7 @@ class NodeGroupForm(
             </div>
             <div class="simplemodal-content">
               <div>
-                <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+                <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
                 <h2>
                   Deleting this group will also remove it as a target for
                   the following configuration rules which depend on it.
