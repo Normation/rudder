@@ -132,9 +132,9 @@ class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators
 
     val sectionFields = for (sectionMap <- seqOfSectionMap) yield createSingleSectionField(sectionMap)
 
-    if (section.isMultivalued)
-      MultivaluedSectionField(sectionFields, () => createSectionField(section))
-    else
+    if (section.isMultivalued) {
+      MultivaluedSectionField(sectionFields, () => createSingleSectionField(createDefaultMap(section)))
+    } else
       sectionFields.head
   }
 
