@@ -1,0 +1,75 @@
+Rudder: configuration management for the mass
+----------------------------------------------
+
+This project is part of Rudder - configuration management for the mass. 
+ 
+See: http://rudder-project.org for more information. 
+
+Screenshots: http://www.rudder-project.org/foswiki/Screenshots/WebHome
+User documentation: http://www.rudder-project.org/rudder-doc/rudder-doc.html
+Bug report: http://www.rudder-project.org/redmine/projects/rudder/issues
+Mailing list, irc: http://www.rudder-project.org/foswiki/Community/
+
+=== Authors
+
+Normation http://normation.com
+
+- Francois "fanf" Armand francois.armand@normation.com
+- Nicolas "ncharles" Charles nicolas.charles@normation.com
+- Jonathan "jooooooon" Clarke jonathan.clarke@normation.com
+- Vincent Munier
+
+=== License
+
+This project is licensed under AGPLv3 license, 
+see the provided "LICENSE" file or 
+http://www.gnu.org/licenses/agpl-3.0.txt
+
+=== Contributing
+
+Thank you for your interest in our project!
+The contribution process is detailed here: 
+http://www.rudder-project.org/HowToContribute
+
+=== Synopsis
+
+This is the main project, Rudder, the web console that allows
+to see nodes inventory, manage group of nodes, apply configuration
+rules derived from policy templates. 
+
+This project is composed of several modules:
+
+[horizontal]
+rudder-core:: that module contains most of the logic for Rudder (i.e most of the
+         business tier). Among other things, you will find:
+  * all the logic to save and bind parameters to policy templates;
+  * the pipeline of action that generates CFEngine promises from templates, parameters
+    and group of nodes;
+  * an LDAP query processor that allows "join" like operations;
+  * historization of user logging action.
+         
+rudder-web:: that module contains all the presentation layer and the service weaving
+         logic. Along with all the web standard things (JS, CSS, etc) you will find
+         some unusual Liftweb integration:
+  * utilities to use Spring in a Lift application
+  * a plugin system for Lift
+  * a somehow unusual organisation of Lift snippets in components belonging to pages
+  * an automatic web form generation system from XML descrition files. 
+         
+
+=== Usage
+
+This project is managed thanks to Maven software project management (http://maven.apache.org/). 
+You will have to have a working Maven (version 2.2.x or 3.0.x) installation.
+
+.Clean, build and install on your local repository:
+----
+% mvn clean install
+----
+
+For now, the developpement environment is not trivial to set-up. We want to 
+make it more easy so that an unique command will set-up the full environment, 
+but we are afraid that until that bright future become true, you will have to
+follow: http://www.rudder-project.org/foswiki/Development/SettingUpADevelopmentEnvironment
+
+
