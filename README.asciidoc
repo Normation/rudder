@@ -1,6 +1,14 @@
 LDAP inventory: store Fusion Inventory report into LDAP directory
 -----------------------------------------------------------------
 
+This project is part of Rudder - configuration management for the mass. 
+ 
+See: http://rudder-project.org for more information. 
+
+[horizontal]
+Bug report:: http://www.rudder-project.org/redmine/projects/ldap-inventory/issues
+Mailing list, irc:: http://www.rudder-project.org/foswiki/Community/
+
 === Authors
 
 Normation http://normation.com
@@ -17,14 +25,14 @@ http://www.gnu.org/licenses/agpl-3.0.txt
 
 === Contributing
 
-Thank you for your interest in your our project!
+Thank you for your interest in our project!
 The contribution process is detailed here: 
 http://www.rudder-project.org/HowToContribute
 
 === Synopsis
 
-The main goal of this project is to get 
-Fusion Inventory (http://fusioninventory.org) inventory report, parse
+The main goal of this project is to get Fusion Inventory 
+(http://fusioninventory.org) inventory report, parse
 them, transform them in Node/Machine object, and store them in some
 backend, allowing smart merging rules (detecting existing nodes, etc). 
 
@@ -48,6 +56,11 @@ inventory-provisioning-web:: that last module is a web application that expose a
 
 
 === Usage
+
+The easiest way to test and use LDAP-inventory web application is to install it with Rudder 
+from the provided Linux packages, see: http://www.rudder-project.org/foswiki/Main/Installation
+
+.For a more 'developer oriented' usage.
 
 This project is managed thanks to Maven software project management (http://maven.apache.org/). 
 You will have to have a working Maven (version 2.2.x or 3.0.x) installation.
