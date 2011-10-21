@@ -1,5 +1,5 @@
-Scala-LDAP: an LDAP client library for Scala
---------------------------------------------
+LDAP inventory: store Fusion Inventory report into LDAP directory
+-----------------------------------------------------------------
 
 === Authors
 
