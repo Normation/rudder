@@ -1,6 +1,14 @@
 Scala-LDAP: an LDAP client library for Scala
 --------------------------------------------
 
+This project is part of Rudder - configuration management for the mass. 
+ 
+See: http://rudder-project.org for more information. 
+
+[horizontal]
+Bug report:: http://www.rudder-project.org/redmine/projects/scala-ldap/issues
+Mailing list, irc:: http://www.rudder-project.org/foswiki/Community/
+
 === Authors
 
 Normation http://normation.com
@@ -21,16 +29,18 @@ http://www.rudder-project.org/HowToContribute
 
 === Synopsis
 
-This package is a Scala wrapper around "UnboundID LDAP SDK":http://www.unboundid.com/products/ldapsdk/. 
+This package is a Scala wrapper around http://www.unboundid.com/products/ldapsdk/[UnboundID LDAP SDK].
 Its goal is to provide an efficient and idiomatic Scala library to deal with LDAP directories. 
 The efficient part is accomplished by the great UnboundID SDK, and so we will focus on the 
 idiomatic Scala construction, especially:
 
-- providing something like the "loan pattern":http://scala.sygneca.com/patterns/loan for LDAP connection handling;
+- providing something like the https://wiki.scala-lang.org/display/SYGN/Loan[loan pattern] 
+  for LDAP connection handling;
 - providing a monad API for connection (and so for operation composition);
 - mainly using immutable data structures (return collection, attributes, etc);
 - using Option (or Lift Box) in place of semantic null return;
-- using other idiomatic Scala goodies: conversion, apply, meaningful operators (but also providing full string method name), case classes, etc
+- using other idiomatic Scala goodies: conversion, apply, meaningful operators (but also 
+  providing full string method name), case classes, etc
 - trying to keep the same hierarchy / logic as UnboundID. 
 
 Note: the first attempt for this module was to provide a blind Scala LDAP API implementation. 
