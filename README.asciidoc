@@ -1,5 +1,5 @@
 Maven parent pom for Rudder projects 
-====================================
+------------------------------------
 
 This project contains the maven parent POM file used in other projects. 
 It declares commons dependendies and version of libraries, the main one being:
@@ -20,7 +20,7 @@ http://www.apache.org/licenses/LICENSE-2.0.html
 Contributing
 ------------
 
-Thank you for considering contribution !
+Thank you for your interest in your our project!
 The contribution process is detailed here: 
 http://www.rudder-project.org/HowToContribute
 
