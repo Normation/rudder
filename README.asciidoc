@@ -1,27 +1,31 @@
+Scala-LDAP: an LDAP client library for Scala
+--------------------------------------------
 
-Project Information
-===================
-
-Authors
--------
+=== Authors
 
 Normation http://normation.com
-Francois "fanf" Armand francois.armand@normation.com
 
-License 
--------
+- Francois "fanf" Armand francois.armand@normation.com
 
-This project is Open Source software, and is provided "as is" under the Apache Software License v2. 
-A copy of the license may be found in the LICENSE.txt file, 
-or at address: http://www.apache.org/licenses/LICENSE-2.0.txt
+=== License
 
-Synopsis
---------
+This project is licensed under ASF 2.0 license, 
+see the provided "LICENSE" file  or 
+http://www.apache.org/licenses/LICENSE-2.0.html
+
+=== Contributing
+
+Thank you for your interest in your our project!
+The contribution process is detailed here: 
+http://www.rudder-project.org/HowToContribute
+
+=== Synopsis
 
 This package is a Scala wrapper around "UnboundID LDAP SDK":http://www.unboundid.com/products/ldapsdk/. 
 Its goal is to provide an efficient and idiomatic Scala library to deal with LDAP directories. 
 The efficient part is accomplished by the great UnboundID SDK, and so we will focus on the 
 idiomatic Scala construction, especially:
+
 - providing something like the "loan pattern":http://scala.sygneca.com/patterns/loan for LDAP connection handling;
 - providing a monad API for connection (and so for operation composition);
 - mainly using immutable data structures (return collection, attributes, etc);
@@ -34,12 +38,13 @@ Today, it seems that for the coming years, the only stable, autonomous and effic
 remain UnboundID's one. The OpenDS/ApacheDS project is still young, and there are no other known
 alternatives. So, we choose to not try too hard to hide UnboundID, but still provide nice import scheme. 
 
+=== Usage
 
-Installation
-============
+This project is managed thanks to Maven software project management (http://maven.apache.org/). 
+You will have to have a working Maven (version 2.2.x or 3.0.x) installation.
 
-This project uses the Maven 2 build tool. 
-If Maven 2 is not installed on your computer, please 
-see http://maven.apache.org/ for instructions. 
+.Clean, build and install on your local repository:
+----
+% mvn clean install
+----
 
-TODO. 
