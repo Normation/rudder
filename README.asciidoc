@@ -1,6 +1,35 @@
 Rudder-commons: API and utilities 
 ---------------------------------
 
+This project is part of Rudder - configuration management for the mass. 
+ 
+See: http://rudder-project.org for more information. 
+
+[horizontal]
+Bug report:: http://www.rudder-project.org/redmine/projects/commons/issues
+Mailing list, irc:: http://www.rudder-project.org/foswiki/Community/
+
+=== Authors
+
+Normation http://normation.com
+
+- Francois "fanf" Armand francois.armand@normation.com
+- Nicolas "ncharles" Charles nicolas.charles@normation.com
+
+=== License
+
+This project is licensed under ASF 2.0 license, 
+see the provided "LICENSE" file  or 
+http://www.apache.org/licenses/LICENSE-2.0.html
+
+=== Contributing
+
+Thank you for your interest in our project!
+The contribution process is detailed here: 
+http://www.rudder-project.org/HowToContribute
+
+=== Synopsis
+
 This project contains common API and utility classes used in other places. 
 
 It is composed of the following sub-projects:
@@ -11,22 +40,7 @@ It is composed of the following sub-projects:
 * authorization-api: API for authorization checking
 * eventlog-api: API for for logging events (user action, etc)
 
-License
--------
-
-This project is licensed under ASF 2.0 license, 
-see the provided "LICENSE" file  or 
-http://www.apache.org/licenses/LICENSE-2.0.html
-
-Contributing
-------------
-
-Thank you for your interest in your our project!
-The contribution process is detailed here: 
-http://www.rudder-project.org/HowToContribute
-
-Usage
------
+=== Usage
 
 This project is managed thanks to Maven software project management (http://maven.apache.org/). 
 You will have to have a working Maven (version 2.2.x or 3.0.x) installation.
