@@ -5,10 +5,11 @@ This project is part of Rudder - configuration management for the mass.
  
 See: http://rudder-project.org for more information. 
 
-Screenshots: http://www.rudder-project.org/foswiki/Screenshots/WebHome
-User documentation: http://www.rudder-project.org/rudder-doc/rudder-doc.html
-Bug report: http://www.rudder-project.org/redmine/projects/rudder/issues
-Mailing list, irc: http://www.rudder-project.org/foswiki/Community/
+[horizontal]
+Screenshots:: http://www.rudder-project.org/foswiki/Screenshots/WebHome
+User documentation:: http://www.rudder-project.org/rudder-doc/rudder-doc.html
+Bug report:: http://www.rudder-project.org/redmine/projects/rudder/issues
+Mailing list, irc:: http://www.rudder-project.org/foswiki/Community/
 
 === Authors
 
@@ -58,6 +59,11 @@ rudder-web:: that module contains all the presentation layer and the service wea
          
 
 === Usage
+
+The easiest way to test and use Rudder is to install it from the provided Linux packages, 
+see: http://www.rudder-project.org/foswiki/Main/Installation
+
+.For a more 'developper oriented' usage.
 
 This project is managed thanks to Maven software project management (http://maven.apache.org/). 
 You will have to have a working Maven (version 2.2.x or 3.0.x) installation.
