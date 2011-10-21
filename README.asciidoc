@@ -1,0 +1,37 @@
+Maven parent pom for Rudder projects 
+====================================
+
+This project contains the maven parent POM file used in other projects. 
+It declares commons dependendies and version of libraries, the main one being:
+
+* Scala - http://www.scala-lang.org/
+* Lift project - http://liftweb.net/
+* Joda time - http://joda-time.sourceforge.net/
+* SLF4J - http://www.slf4j.org/
+* Specs2 - http://etorreborre.github.com/specs2/
+
+License
+-------
+
+This project is licensed under ASF 2.0 license, 
+see the provided "LICENSE" file  or 
+http://www.apache.org/licenses/LICENSE-2.0.html
+
+Contributing
+------------
+
+Thank you for considering contribution !
+The contribution process is detailed here: 
+http://www.rudder-project.org/HowToContribute
+
+Usage
+-----
+
+This project is managed thanks to Maven software project management (http://maven.apache.org/). 
+You will have to have a working Maven (version 2.2.x or 3.0.x) installation.
+
+.Clean, build and install on your local repository:
+----
+% mvn clean install
+----
+
