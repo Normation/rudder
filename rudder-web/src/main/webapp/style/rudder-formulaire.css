@@ -31,7 +31,28 @@
 *
 *************************************************************************************
 */
-
+.tree li.filteredNode { 
+	display:none; 
+}
+div.deca{
+	padding: 10px;
+}
+.not{
+	display:none;
+}
+.icon{
+	float:left; 
+	margin-right:20px;
+}
+.err{
+	padding-left: 50px;
+}
+.green{
+	color:green;
+	margin:3px; 
+	font-style:italic; 
+	font-size: 0.9em;
+}
 .portlet-header {
    padding: 2px 0 5px 5px;
    font-size: 1.3em;

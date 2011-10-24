@@ -46,6 +46,10 @@ body {
 img {
    border: none;
 }
+.logo {
+	text-align: center;
+
+}
 div#login {
    margin: 138px auto 10px auto;
    width: 600px;
