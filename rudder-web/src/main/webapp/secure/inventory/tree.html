@@ -6,12 +6,11 @@
   <head>
   <script type="text/javascript" src="/javascript/treeM.js"></script>
   </head>
-  
   <div id="middle">
     <h3>Parcours de l'arbre</h3>
     
     <p>Selectionnez un noeud puis filter ses enfants:</p>
-    <input id="filterNode" type="text"/><span style=" cursor:pointer;cursor:hand" 
+    <input id="filterNode" type="text"/><span class="treefilternodecursor" 
       onclick="jQuery('#filterNode').each(function(i) { this.value =''; });filterLi('')">[clear]</span>
     <lift:LdapTree>
       <tree:head/>

@@ -380,8 +380,8 @@ class AcceptServer {
 	 * @return
 	 */
 	val selectAll : NodeSeq = 
-	  <div style="height:20px;">
-      <p style="float:right; margin:0 30px 0 10px">
+	  <div class="checkboxh">
+      <p class="checkboxfm">
       Select/deselect all <input type="checkbox" id="selectAll" onClick="jqCheckAll('selectAll', 'serverids')"/>
       </p>
     </div>

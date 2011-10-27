@@ -6,7 +6,7 @@
  -->
  
 <accept_new_server:template>
-<div id="confirmPopup" style="display:none;">
+<div id="confirmPopup" class="nodisplay">
 <div id="confirmServerPopup">
   <div class="simplemodal-title">
       <h1>Accept nodes in Rudder</h1>
@@ -15,9 +15,9 @@
   <div class="simplemodal-content">
     <h3>Please confirm that you wish to ACCEPT the following nodes in Rudder</h3>
 
-    <div id="pendingServerConfirm_paginate_area" style="display:none;"/>
-    <div style="max-height: 300px; overflow-y: scroll;">
-    <table cellspacing="0" id="pendingServerConfirm" width="600" style="overflow:scroll; max-height: 100px">
+    <div id="pendingServerConfirm_paginate_area" class="nodisplay"/>
+    <div class=newservertable">
+    <table cellspacing="0" id="pendingServerConfirm" width="600" class="newservercell">
       <thead>
         <tr class="head">
           <th>Node name<span/></th>
@@ -35,7 +35,7 @@
     </table>
     </div>
     <div class="inform">
-      <img src="/images/icOK.png" alt="Note" height="32" width="32" style="float:left; margin-right:20px;"/>
+      <img src="/images/icOK.png" alt="Note" height="32" width="32" class="warnicon"/>
       <div>When these nodes join Rudder, the Configuration Rules they will have to comply to will be transferred to them.</div>
     </div>
     <hr class="spacer" />

@@ -41,7 +41,7 @@
         <div class="portlet-content">
           <lift:PolicyInstanceManagement.policyTemplateDetails>
             <div id="polityTemplateDetails">
-            <fieldset style="padding:10px;"><legend id="detailFieldsetId">Template details</legend>
+            <fieldset class="deca"><legend id="detailFieldsetId">Template details</legend>
               <div id="policyInstanceIntro">
                 The policy instance <b class="pi">[policy]</b> is based on following policy template:
                 <br/><br/>
@@ -57,8 +57,8 @@
                 <p></p>
                 <p><span id="compatibility">[Supported operating systems : debian-5]</span></p>
               </div>
-              <fieldset style="padding:20px;"><legend>Versions available</legend>
-                <ul style="padding:5px;">
+              <fieldset class="pimversionspad"><legend>Versions available</legend>
+                <ul class="evlogviewpad">
                   <li id="ptVersions">[here come version: date]</li>
                 </ul>
                 <div id="migrate">
@@ -80,7 +80,7 @@
       </div>
     </div>
     
-    <div id="createPiPopup" class="not">
+    <div id="createPiPopup" class="nodisplay">
       <lift:ignore>
       This div gets the content of the createPolicyInstance injected within
       </lift:ignore>
@@ -95,7 +95,7 @@
     </div>
   </div>
   
-  <div id="finishMigrationPopup" class="not">
+  <div id="finishMigrationPopup" class="nodisplay">
     <div class="simplemodal-title">
       <h1>Finish migration to a new version</h1>
       <hr/>
@@ -122,7 +122,7 @@
     </div>
   </div>
   
-  <div id="succesConfirmationDialog" class="not">
+  <div id="succesConfirmationDialog" class="nodisplay">
     <div class="simplemodal-title">
       <h1>Success</h1>
       <hr/>

@@ -194,7 +194,7 @@ class CreateUserPolicyTemplateCategoryPopup(onSuccessCallback : () => JsCmd = { 
 
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="errorNotification" style="text-align:center;margin:10px;"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="errorNotification" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }

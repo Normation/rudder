@@ -104,7 +104,7 @@ class ConfigurationRuleGrid(
   def configurationRulesGrid(linkCompliancePopup:Boolean = true) : NodeSeq = {
     (
         <div id={htmlId_rulesGridZone}>
-          <div id={htmlId_modalReportsPopup} style="display:none;">
+          <div id={htmlId_modalReportsPopup} class="nodisplay">
             <div id={htmlId_reportsPopup} ></div>
           </div>
           <table id={htmlId_rulesGridId} cellspacing="0">
@@ -124,7 +124,7 @@ class ConfigurationRuleGrid(
             {showConfigurationRulesDetails(configurationRules,linkCompliancePopup)}
             </tbody>
           </table> 
-          <div class={htmlId_rulesGridId +"_pagination"} style="float:left;">
+          <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
             <div id={htmlId_rulesGridId +"_paginate_area"}></div>
           </div>
         </div>
@@ -208,8 +208,8 @@ class ConfigurationRuleGrid(
       else { 
       	val popupId = Helpers.nextFuncName
       	val tableId_listPI = Helpers.nextFuncName
-        <span style="text-decoration: underline;cursor:pointer;" onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name +  ", ..."}</span> ++
-        <div id={popupId} style="display: none;">
+        <span class="popcurs" onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name +  ", ..."}</span> ++
+        <div id={popupId} class="nodisplay">
           <div class="simplemodal-title">
             <h1>List of policy instances</h1>
             <hr/>
@@ -421,7 +421,7 @@ class ConfigurationRuleGrid(
                      case Full(nodeInfo)  => {
                         <tr class={severity.replaceAll(" ", "")}>
                         {bind("line",chooseTemplate("lastReportGrid","lines",reportTemplate),
-                         "hostname" -> <a href={"""secure/assetManager/searchServers#{"nodeId":"%s"}""".format(uuid.value)}><span style="cursor:pointer" jsuuid={uuid.value.replaceAll("-","")} serverid={uuid.value}>{nodeInfo.hostname}</span></a>,
+                         "hostname" -> <a href={"""secure/assetManager/searchServers#{"nodeId":"%s"}""".format(uuid.value)}><span class="curspoint" jsuuid={uuid.value.replaceAll("-","")} serverid={uuid.value}>{nodeInfo.hostname}</span></a>,
                          "severity" -> severity )}
                         </tr>
                      }

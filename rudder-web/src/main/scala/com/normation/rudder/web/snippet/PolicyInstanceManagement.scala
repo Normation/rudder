@@ -162,7 +162,7 @@ class PolicyInstanceManagement extends DispatchSnippet with Loggable {
   def policyTemplateDetails : MemoizeTransform = SHtml.memoize {
 
     "#polityTemplateDetails *" #> ( currentPolicyTemplate match { 
-      case None => "*" #> <span style="color:green;">Click on a Policy or on a Policy Template...</span>
+      case None => "*" #> <span class="greenscala">Click on a Policy or on a Policy Template...</span>
       case Some((pt, upt)) =>
         "#detailFieldsetId *" #> (if(currentPolicyInstanceSettingForm.is.isDefined) {
                                   "Policy instance's template"

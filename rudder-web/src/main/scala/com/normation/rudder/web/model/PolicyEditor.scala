@@ -360,7 +360,7 @@ case class MultivaluedSectionField(
         { section.childFields map (f => f.toFormNodeSeq) }
       </tbody>
     </table>
-    <div style="text-align:right" class="policyInstanceDeleteGroup">{
+    <div class="textright policyInstanceDeleteGroup">{
       val attr = if (size > 1) ("" -> "") else ("disabled" -> "true")
       SHtml.ajaxSubmit("Delete", { () =>
         logError(delete(i))

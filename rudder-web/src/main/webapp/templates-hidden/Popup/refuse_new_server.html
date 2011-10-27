@@ -6,7 +6,7 @@
  -->
  
 <refuse_new_server:template>
-<div id="refusePopup" style="display:none;">
+<div id="refusePopup" class="nodisplay">
 <div id="refuseServerPopup">
   <div class="simplemodal-title">
       <h1>Refuse nodes in Rudder</h1>
@@ -16,7 +16,7 @@
     <div class="denyContent">
     <h3>Please confirm that you wish to REFUSE the following nodes in Rudder</h3>
 
-      <div id="pendingServerConfirm_paginate_area" style="display:none;"/>
+      <div id="pendingServerConfirm_paginate_area" class="nodisplay"/>
     <table cellspacing="0" id="pendingServerConfirm" width="600">
       <thead>
         <tr class="head">
@@ -36,7 +36,7 @@
     </table>
 
     <div class="warn">
-      <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+      <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
       <div>This action will delete the latest inventory data that has been sent to
         Rudder by these nodes.<br/>
         If the nodes are still up and running, they will keep on sending inventory
