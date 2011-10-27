@@ -6,7 +6,7 @@
 body {
    font-size: 11px;
    font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
-   background: #1f1e1e url(../img/login/fondLogin.jpg) repeat-x top left;
+   background: #1f1e1e url(../images/login/fondLogin.jpg) repeat-x top left;
    text-align: center;
 }
 img {
@@ -71,7 +71,7 @@ input#valid {
    color: #2e2d2d;
    font-size: 1.2em;
    font-weight: bold;
-   background: url(../img/login/btnLogin.jpg) no-repeat top center;
+   background: url(../images/login/btnLogin.jpg) no-repeat top center;
    border: none;
    text-align: center;
 }

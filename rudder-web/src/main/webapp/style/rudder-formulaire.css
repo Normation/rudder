@@ -31,7 +31,190 @@
 *
 *************************************************************************************
 */
-
+.createitem{
+	text-align: right;
+}
+.newservertable{
+	max-height: 300px;
+	overflow-y: scroll;
+}
+.newservercell{
+	overflow:scroll; 
+	max-height: 100px;
+}
+.ajaxloader{
+	position: fixed;
+    top: 50%;
+    left: 50%;
+    text-align:center;
+    padding:10px;
+    margin-left: -50px;
+    margin-top: -50px;
+    z-index:9999;
+    overflow: auto; 
+    display:none;"
+}
+.querylinecolor{
+	color:#EEEEEE;
+}
+.cpiefsave{
+	float:right;
+}
+.treefilternodecursor{
+	cursor:pointer;
+	cursor:hand;
+}
+.pimversionspad{
+	padding:20px;
+}
+.nserverrmargin{
+	margin-right:5px;
+}
+/*
+*/
+.logoutbutwidth{
+	width:130px;
+}
+.userinfowidth{
+	width:130px;
+}
+/*
+*/
+.evlogviewpad{
+	padding:5px;
+}
+.lmargin{
+	margin-left:3px;	
+}
+.actions_zonemargin{
+	margin:15px;
+}
+.checkboxfm{
+	float:right;
+	margin:0 30px 0 10px;
+}
+.checkboxh{
+	height:20px;
+}
+.hostnamecurs{
+	cursor:pointer;
+	text-decoration:underline;
+}
+.sgridbph{
+	border:0; 
+	padding:0;
+	height:200px;
+}
+.tablewidth{
+	width:100%;
+}
+.tablepadding{
+	padding-left:15px;
+	padding-top:5px;
+}
+.tablemargin{
+	margin-top:5px;
+}
+.inlinenotop{
+	display:inline;
+	padding-top:0px;
+}
+.inlineml{
+	display:inline;
+	margin-left:3px;
+}
+.greytooltip{
+	border-bottom:dotted 1 px grey;
+}
+.popcurs{
+	text-decoration: underline;
+	cursor:pointer;
+}
+.curspoint{
+	cursor:pointer;
+}
+.greyscala{
+	color:grey; 
+	border-bottom:1px dotted grey;
+}
+.rmargin{
+	float:right; 
+	margin:10px;
+}
+.centertext{
+	text-align:center;
+}
+.pluginpadd{
+	padding: 0 10px;
+}
+.lopaddscala{
+	padding:0px
+}
+.paddscala{
+	padding: 0px 0px 0px 15px;
+}
+.catdelete{
+	font-size:0.9em; 
+	margin-left: 5px;
+}
+.margins{
+	margin:10px;
+}
+.spacerscala{
+	float:right;
+}
+.paginatescala{
+	float:left;
+}
+.notify{
+	text-align:center;
+	margin: 10px;
+}
+.greenscala{
+	color:green
+}
+.warnicon{
+	float:left;
+	margin-right:20px;
+}
+.erroricon{
+	float:left; 
+	margin-right:10px;
+}
+.errorscala{
+	border-bottom:1px solid red;
+	cursor:pointer;
+}
+.tree li.filteredNode { 
+	display:none; 
+}
+.deca{
+	padding: 10px;
+}
+.inline{
+	display:inline;
+}
+.nodisplay{
+	display:none;
+}
+.iconscala{
+	float:left;
+	margin-right:5px;
+	margin-top:2px;
+}
+.icon{
+	float:left; 
+	margin-right:20px;
+}
+.err{
+	padding-left: 50px;
+}
+.green{
+	color:green;
+	margin:3px; 
+	font-style:italic; 
+	font-size: 0.9em;
+}
 .portlet-header {
    padding: 2px 0 5px 5px;
    font-size: 1.3em;
@@ -160,7 +343,7 @@ form input.button {
    color: #fff;
    font-weight: bold;
    border: none;
-   background: url(../img/fdBtnUpdate.jpg) no-repeat left 50%;
+   background: url(../images/fdBtnUpdate.jpg) no-repeat left 50%;
 }
 form div.entete {
    margin: 10px;
@@ -177,7 +360,7 @@ form p.search {
 form input.btnSearch {
    width: 22px;
    height: 20px;
-   background: url(../img/icLoupe.jpg) no-repeat;
+   background: url(../images/icLoupe.jpg) no-repeat;
    border: none;
 }
 
@@ -236,24 +419,24 @@ tr.head, tr.foot {
    font-weight: bold;
 }
 tr.foot {
-   background: url(../img/tableau/cCentrebas.jpg) bottom left;
+   background: url(../images/tableau/cCentrebas.jpg) bottom left;
 }
 tr.head {
-   background: url(../img/tableau/fdTaboHead.jpg) top left repeat-x;
+   background: url(../images/tableau/fdTaboHead.jpg) top left repeat-x;
 }
 .head th.first {
    padding: 5px 10px;
-   background: url(../img/tableau/cGhaut.jpg) no-repeat top left;
+   background: url(../images/tableau/cGhaut.jpg) no-repeat top left;
 }
 .head th.last {
-   background: url(../img/tableau/cDhaut.jpg) no-repeat top right;
+   background: url(../images/tableau/cDhaut.jpg) no-repeat top right;
 }
 .foot td.first {
    padding: 5px 10px;
-   background: url(../img/tableau/cGbas.jpg) no-repeat bottom left;
+   background: url(../images/tableau/cGbas.jpg) no-repeat bottom left;
 }
 .foot td.last {
-   background: url(../img/tableau/cDbas.jpg) no-repeat bottom right;
+   background: url(../images/tableau/cDbas.jpg) no-repeat bottom right;
 }
 th a {
    color: #fff;
@@ -289,7 +472,7 @@ td {
 div#Detail {
    height: auto;
    min-height: 100%;
-   background: url(../img/popin/fdLoginFootG.png) no-repeat left bottom;
+   background: url(../images/popin/fdLoginFootG.png) no-repeat left bottom;
    display: block;
    min-height: 107px; 
 }
@@ -339,11 +522,11 @@ div#Detail {
 .sorting_desc { cursor: pointer; }
 
 .sorting_asc span:after {
-	content:url("../img/tableau/flecheHaut.png");
+	content:url("../images/tableau/flecheHaut.png");
 }
 
 .sorting_desc span:after {
-	content:url("../img/tableau/flecheBas.png");
+	content:url("../images/tableau/flecheBas.png");
 }
 
 /* Pagination nested */
@@ -645,7 +828,7 @@ table#serverGrid tbody td {
 }
 
 .dataTables_scrollHeadInner {
-	background:url("../img/tableau/fdTaboHead.jpg") repeat-x scroll left top transparent;
+	background:url("../images/tableau/fdTaboHead.jpg") repeat-x scroll left top transparent;
 }
 
 .dataTables_scrollBody table {

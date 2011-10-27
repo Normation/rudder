@@ -155,7 +155,7 @@
    color: #f49d10;
    display: block;
    cursor: move;
-   background: url(../img/popin/fdLoginHead.png) no-repeat top left;
+   background: url(../images/popin/fdLoginHead.png) no-repeat top left;
 }
 .ui-dialog #ui-dialog-title-dialog {
    width: 90%;
@@ -166,7 +166,7 @@
    right: 0;
    width: 50px;
    height: 50px;
-   background: url(../img/popin/fdLoginCroix.png) no-repeat top right;
+   background: url(../images/popin/fdLoginCroix.png) no-repeat top right;
 }
 
 .ui-dialog .ui-dialog-titlebar-close:hover, .ui-dialog .ui-dialog-titlebar-close:focus {
@@ -174,7 +174,7 @@
 }
 
 .ui-dialog .ui-dialog-content {
-   background: url(../img/popin/fdLoginFootD.png) no-repeat right bottom;
+   background: url(../images/popin/fdLoginFootD.png) no-repeat right bottom;
    zoom: 1;
 }
 

@@ -20,7 +20,7 @@
 	  <lift:Groups.groupHierarchy>
 	  <fieldset class="hierarchy"><legend>Group hierarchy</legend>
 	   <div>
-	    <p style="color:green; margin:3px; font-style:italic; font-size: 0.9em;">Drag'n'drop items to change the hierarchy</p>
+	    <p class="green">Drag'n'drop items to change the hierarchy</p>
 	   </div>
 	   <div>
 	    <group:newItem/>
@@ -44,14 +44,14 @@
 
   </div>
 
-  <div id="createGroupPopup" style="display:none">
+  <div id="createGroupPopup" class="nodisplay">
   	<lift:ignore>
 			This div gets the content of the createCategoryOrGroup injected within
 		</lift:ignore>
     <div id="createGroupContainer"/></div>
   </div>
  
-  <div id="succesConfirmationDialog" style="display:none">
+  <div id="succesConfirmationDialog" class="nodisplay">
     <div class="simplemodal-title">
       <h1>Success</h1>
       <hr/>
@@ -59,7 +59,7 @@
     <div class="simplemodal-content">
       <br />
       <div>
-        <img src="/img/icOK.png" alt="Success" height="32" width="32" style="float:left; margin-right:20px;" />
+        <img src="/images/icOK.png" alt="Success" height="32" width="32" class="icon" />
         <h2>Your changes have been saved.</h2>
       </div>
       <hr class="spacer" />

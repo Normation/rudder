@@ -234,7 +234,7 @@ class ShowServerDetailsFromNode(
           }
         }
       case x => new JsTreeNode {
-         override def body = { <span class="treeGroupName tooltipable" tooltipid={targetInfo.target.target} >{targetInfo.name} <span style="color:grey; border-bottom:1px dotted grey;">(special)</span></span>
+         override def body = { <span class="treeGroupName tooltipable" tooltipid={targetInfo.target.target} >{targetInfo.name} <span class="greyscala">(special)</span></span>
          		<div class="tooltipContent" id={targetInfo.target.target}><h3>{targetInfo.name}</h3><div>{targetInfo.description}</div></div>
       		}
          override def children = Nil

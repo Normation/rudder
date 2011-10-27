@@ -154,7 +154,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     )
 
             <div id={htmlId_viewAll}>
-              <div id="actions_zone" style="margin:15px;">
+              <div id="actions_zone" class="actions_zonemargin">
                 {SHtml.ajaxButton("Add a new rule", () => showPopup(), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))}
               </div> 
              {configurationRuleGrid.configurationRulesGrid() }

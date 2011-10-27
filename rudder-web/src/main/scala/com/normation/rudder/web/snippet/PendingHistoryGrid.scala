@@ -101,7 +101,7 @@ object PendingHistoryGrid extends Loggable {
         var #table_var#;
         /* Formating function for row details */ 
         function fnFormatDetails ( id ) {
-          var sOut = '<span id="'+id+'" style="border:0; padding:0;height:200px;"/>';
+          var sOut = '<span id="'+id+'" class="sgridbĥ"/>';
           return sOut;
         }
       """.replaceAll("#table_var#",jsVarNameForId)) &  OnLoad(
@@ -128,7 +128,7 @@ object PendingHistoryGrid extends Loggable {
                <tr>
                  <td>{DateFormaterService.getFormatedDate(x.creationDate)}</td>
                  <td name="serverName">
-                   <span style="cursor:pointer" jsuuid={jsuuid} serveruuid={details.nodeId.value} 
+                   <span class="curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} 
                      inventory={details.inventoryVersion.toString()}>{
                        details.hostname
                      }</span>
@@ -148,7 +148,7 @@ object PendingHistoryGrid extends Loggable {
                <tr>
                  <td>{DateFormaterService.getFormatedDate(x.creationDate)}</td>
                  <td name="serverName">
-                   <span style="cursor:pointer" jsuuid={jsuuid} serveruuid={details.nodeId.value} 
+                   <span class="curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} 
                      inventory={details.inventoryVersion.toString()}>{
                        details.hostname
                      }</span>

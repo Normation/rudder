@@ -130,7 +130,7 @@ class SrvGrid {
         var #table_var#;
         /* Formating function for row details */
         function fnFormatDetails ( id ) {
-          var sOut = '<span id="'+id+'" style="border:0; padding:0;height:200px;"/>';
+          var sOut = '<span id="'+id+'" class="sgridbĥ"/>';
           return sOut;
         }
       """.replaceAll("#table_var#",jsVarNameForId(tableId))
@@ -208,7 +208,7 @@ class SrvGrid {
       "lines" -> ( servers.flatMap { case s@NodeInfo(id,name,description, hostname, operatingSystem, ips, inventoryDate,pkey, agentsName, policyServerId, admin, creationDate, isBroken, isSystem) =>
         //build all table lines
         bind("line",chooseTemplate("servergrid","lines",tableTemplate),
-          "name" -> <span style="cursor:pointer;text-decoration: underline;" jsuuid={id.value.replaceAll("-","")} serverid={id.value.toString}>{(if(isEmpty(name)) "(Missing name) " + id.value else hostname)}</span>,
+          "name" -> <span class="hostnamecurs" jsuuid={id.value.replaceAll("-","")} serverid={id.value.toString}>{(if(isEmpty(name)) "(Missing name) " + id.value else hostname)}</span>,
           "fullos" -> operatingSystem,
           "other" -> (columns flatMap { c => <td>{c._2(s)}</td> })
         )

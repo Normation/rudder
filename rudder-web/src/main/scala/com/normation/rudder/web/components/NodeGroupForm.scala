@@ -203,7 +203,7 @@ class NodeGroupForm(
        <div id="SearchServers">
        <pi:showGroup />
       </div>
-     <div style="margin:10px" align="right"><pi:save/> <pi:delete/></div>
+     <div class="margins" align="right"><pi:save/> <pi:delete/></div>
      </fieldset>
      </fieldset>)
 
@@ -241,14 +241,14 @@ class NodeGroupForm(
         
         ( 
           <button id="removeButton">Delete</button> 
-          <div id="removeActionDialog" style="display:none">
+          <div id="removeActionDialog" class="nodisplay">
             <div class="simplemodal-title">
               <h1>Delete a group</h1>
               <hr/>
             </div>
             <div class="simplemodal-content">
               <div>
-                <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+                <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
                 <h2>
                   Deleting this group will also remove it as a target for
                   the following configuration rules which depend on it.
@@ -342,7 +342,7 @@ class NodeGroupForm(
     override def toForm_! = bind("field", 
     <div class="wbBaseField">
       <field:errors />
-      <label for={id} class="wbBaseFieldLabel threeCol" style="text-align:right"><field:label /></label>
+      <label for={id} class="wbBaseFieldLabel threeCol textright"><field:label /></label>
       <field:input />
       <field:infos />
       
@@ -354,8 +354,8 @@ class NodeGroupForm(
       errors match {
         case Nil => NodeSeq.Empty
         case l => 
-          <span><ul class="field_errors" style="padding:0px 0px 0px 15px;">{
-            l.map(e => <li class="field_error" style="padding:0px;">{e.msg}</li>)
+          <span><ul class="field_errors paddscala">{
+            l.map(e => <li class="field_error lopaddscala">{e.msg}</li>)
           }</ul></span><hr class="spacer"/>
       }
     }
@@ -385,11 +385,11 @@ class NodeGroupForm(
   
   
   private[this] def onCreateSuccess : JsCmd = {
-    notifications ::=  <span style="color:green;">The group was successfully created</span>
+    notifications ::=  <span class="greenscala">The group was successfully created</span>
     updateFormClientSide
   }
   private[this] def onUpdateSuccess : JsCmd = {
-    //notifications ::=  <span style="color:green;">The group was successfully updated</span>
+    //notifications ::=  <span class="greenscala">The group was successfully updated</span>
     updateFormClientSide
   }
   
@@ -518,7 +518,7 @@ class NodeGroupForm(
    
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="errorNotification" style="text-align:center;margin:10px;"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="errorNotification" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }

@@ -94,7 +94,7 @@ class NodeGroupCategoryForm(
 		 <hr class="spacer"/>
 		 <pi:container/>
 		 <hr class="spacer"/>
-		 <div style="margin:10px" align="right"><pi:save/> <pi:delete/></div>
+		 <div class="margins" align="right"><pi:save/> <pi:delete/></div>
 		 </fieldset>) ++ Script(JsRaw("correctButtons();"))
 
     if (_nodeGroupCategory.isSystem) {
@@ -135,14 +135,14 @@ class NodeGroupCategoryForm(
 	  if(parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
 	    (
 	      <button id="removeButton">Delete</button>
-        <div id="removeActionDialog" style="display:none">
+        <div id="removeActionDialog" class="nodisplay">
           <div class="simplemodal-title">
             <h1>Delete a group category</h1>
             <hr/>
           </div>
           <div class="simplemodal-content">    
 	    			<div>
-	    				<img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+	    				<img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
             	<h3>Are you sure that you want to completely delete this category ?</h3>
 	    			</div>
            	<hr class="spacer" />
@@ -171,7 +171,7 @@ class NodeGroupCategoryForm(
         """))
 	  } else {
 	    <button disabled="disabled">Delete</button><br/>
-	    <span style="font-size:0.9em; margin-left: 5px;">Only empty and non root categories can be deleted</span>
+	    <span class="catdelete">Only empty and non root categories can be deleted</span>
 	  }
 	}
 	
@@ -205,7 +205,7 @@ class NodeGroupCategoryForm(
     override def toForm_! = bind("field", 
     <div class="wbBaseField">
     	<field:errors />
-      <label for={id} class="wbBaseFieldLabel threeCol" style="text-align:right"><b><field:label /></b></label>
+      <label for={id} class="wbBaseFieldLabel threeCol textright"><b><field:label /></b></label>
       <field:input />
       <field:infos />
       
@@ -217,8 +217,8 @@ class NodeGroupCategoryForm(
       errors match {
         case Nil => NodeSeq.Empty
         case l => 
-          <span><ul class="field_errors" style="padding:0px 0px 0px 15px;">{
-            l.map(e => <li class="field_error" style="padding:0px;">{e.msg}</li>)
+          <span><ul class="field_errors paddscala">{
+            l.map(e => <li class="field_error lopaddscala">{e.msg}</li>)
           }</ul></span><hr class="spacer"/>
       }
     }
@@ -252,7 +252,7 @@ class NodeGroupCategoryForm(
   
   private[this] def onSuccess : JsCmd = {
       
-    notifications ::=  <span style="color:green;">Category was correctly updated</span>
+    notifications ::=  <span class="greenscala">Category was correctly updated</span>
     updateFormClientSide
   }
   
@@ -300,7 +300,7 @@ class NodeGroupCategoryForm(
    
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div  id="errorNotification" style="text-align:center;margin:10px;"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div  id="errorNotification" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }

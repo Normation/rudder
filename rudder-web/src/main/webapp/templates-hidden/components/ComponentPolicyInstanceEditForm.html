@@ -63,14 +63,14 @@
       <div id="removeAction" class="twoColumns">
         <button id="removeButton">Delete</button>
       </div>
-      <div id="removeActionDialog" style="display:none">
+      <div id="removeActionDialog" class="nodisplay">
         <div class="simplemodal-title">
           <h1>Delete a policy instance</h1>
           <hr/>
         </div>
         <div class="simplemodal-content">
           <div>
-            <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+            <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
             <h2>
               Deleting this policy will also remove it as a part of
               the following configuration rules which depend on it.
@@ -99,14 +99,14 @@
       <div id="desactivateAction" class="twoColumns twoColumnsRight">
         <button id="disactivateButton"><span id="disactivateButtonLabel">desactivate</span></button>
       </div>
-      <div id="desactivateActionDialog" style="display:none">
+      <div id="desactivateActionDialog" class="nodisplay">
         <div class="simplemodal-title">
           <h1>Disable a policy instance</h1>
           <hr/>
         </div>
         <div class="simplemodal-content">
           <div>
-            <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
+            <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
             <h2 id="dialogDisactivateWarning">
               Disabling this policy will also disable the following configuration rules which depend on it.
             </h2>
@@ -176,7 +176,7 @@
         <span id="parameters">Here goes the list of parameters</span>
       </fieldset>
 
-      <div style="float:right;">
+      <div class="cpiefsave">
         <button id="save">Save</button>
       </div>
     </fieldset>
