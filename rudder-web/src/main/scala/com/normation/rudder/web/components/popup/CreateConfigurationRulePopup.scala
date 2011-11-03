@@ -158,11 +158,11 @@ class CreateConfigurationRulePopup(
   }
 /*
   private[this] def onCreateSuccess : JsCmd = {
-    notifications ::=  <span class="greenscala">The group was successfully created</span>
+    notifications ::=  <span style="color:green;">The group was successfully created</span>
     updateFormClientSide
   }
   private[this] def onUpdateSuccess : JsCmd = {
-    notifications ::=  <span class="greenscala">The group was successfully updated</span>
+    notifications ::=  <span style="color:green;">The group was successfully updated</span>
     updateFormClientSide
   }
 */
@@ -178,7 +178,7 @@ class CreateConfigurationRulePopup(
 
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="errorNotification" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="errorNotification" style="text-align:center;margin:10px;"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }

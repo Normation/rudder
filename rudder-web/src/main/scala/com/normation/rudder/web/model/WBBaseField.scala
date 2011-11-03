@@ -191,7 +191,7 @@ abstract class WBBaseField extends BaseField {
   
   def toForm_! = bind("field", 
     <div class="wbBaseField">
-      <label for={id} class={labelClassName + " wbBaseFieldLabel textright"}><field:label /></label>
+      <label for={id} class={labelClassName + " wbBaseFieldLabel"} style="text-align:right"><field:label /></label>
       <field:input />
       <field:infos />
       <field:errors />
@@ -203,8 +203,8 @@ abstract class WBBaseField extends BaseField {
       errors match {
         case Nil => NodeSeq.Empty
         case l => 
-          <span class={errorClassName}><ul class="field_errors paddscala">{
-            l.map(e => <li class="field_error lopaddscala">{e.msg}</li>)
+          <span class={errorClassName}><ul class="field_errors" style="padding:0px 0px 0px 15px;">{
+            l.map(e => <li class="field_error" style="padding:0px;">{e.msg}</li>)
           }</ul></span>
       }
     }

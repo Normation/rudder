@@ -235,16 +235,16 @@ object DisplayServer {
     
     <fieldset class="nodeIndernal"><legend>Node characteristics</legend>
 
-      <h4 class="tablemargin">General</h4>
-        <div class="tablepadding">
+      <h4 style="margin-top:5px">General</h4>
+        <div style="padding-left:15px;padding-top:5px">
           <b>Hostname:</b> {sm.node.main.hostname}<br/>
           <b>Machine type:</b> {displayMachineType(sm.machine)}<br/>
           <b>Total physical memory (RAM):</b> {sm.node.ram.map( _.toStringMo).getOrElse("-")}<br/>
           <b>Total swap space:</b> {sm.node.swap.map( _.toStringMo).getOrElse("-")}<br/>
         </div>
             
-      <h4 class="tablemargin">Operating system details</h4>
-        <div class="tablepadding">
+      <h4 style="margin-top:5px">Operating system details</h4>
+        <div style="padding-left:15px;padding-top:5px">
           <b>Operating System:</b> {sm.node.main.osDetails.fullName}<br/>
           <b>Operating System Type:</b> {sm.node.main.osDetails.os.kernelName}<br/>
           <b>Operating System Name:</b> {S.?("os.name."+sm.node.main.osDetails.os.name)}<br/>
@@ -252,8 +252,8 @@ object DisplayServer {
           <b>Operating System Service Pack:</b> {sm.node.main.osDetails.servicePack.getOrElse("None")}<br/>
         </div>
             
-      <h4 class="tablemargin">Rudder information</h4>
-        <div class="tablepadding">
+      <h4 style="margin-top:5px">Rudder information</h4>
+        <div style="padding-left:15px;padding-top:5px">
           <b>Agent name:</b> {sm.node.agentNames.map(_.toString).mkString(";")}<br/>
           <b>Rudder ID:</b> {sm.node.main.id.value}<br/>
           <b>Date inventory last received:</b>  {sm.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
@@ -262,8 +262,8 @@ object DisplayServer {
           }.getOrElse(NodeSeq.Empty) }
         </div>
         
-      <h4 class="tablemargin">Accounts</h4>
-        <div class="tablepadding">
+      <h4 style="margin-top:5px">Accounts</h4>
+        <div style="padding-left:15px;padding-top:5px">
           <b>Administrator account:</b> {sm.node.main.rootUser}<br/>
           <b>Local account(s):</b> {displayAccounts(sm.node)}<br/>
         </div>
@@ -339,7 +339,7 @@ object DisplayServer {
         case Failure(m,_,_) => <span class="error">Error when trying to fetch file systems. Reported message: {m}</span>
         case Full(seq) if (seq.isEmpty && eltName != "soft") => <span>No matching components detected on this node</span>
         case Full(seq) => 
-          <table cellspacing="0" id={htmlId(jsId,eltName + "_grid_")} class="tablewidth">
+          <table cellspacing="0" id={htmlId(jsId,eltName + "_grid_")} style="width:100%;">
           <thead>
             <tr class="head">{
               columns.map {h => <th>{h._1}</th> }.toSeq

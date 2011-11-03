@@ -24,7 +24,7 @@ var buildReferencePolicyTemplateTree = function(id,  initially_select) {
         "types" : {
           "category" : {
             "icon" : {
-              "image" : "images/tree/folder_16x16.png" 
+              "image" : "img/tree/folder_16x16.png" 
             },
             "valid_children" : [ "category", "template" ],
             "hover_node" : false,
@@ -33,7 +33,7 @@ var buildReferencePolicyTemplateTree = function(id,  initially_select) {
           },
           "template" : {
             "icon" : { 
-              "image" : "images/tree/blueprint_16x16.png" 
+              "image" : "img/tree/blueprint_16x16.png" 
             },
             "valid_children" : "none"
           },
@@ -78,20 +78,20 @@ var buildUserPolicyTemplateTree = function(id, foreignTreeId) {
       "types" : {
         "root-category" : {
           "icon" : { 
-            "image" : "images/tree/folder_16x16.png" 
+            "image" : "img/tree/folder_16x16.png" 
           },
           "valid_children" : [ "category", "template" ],
           "start_drag" : false
         },
         "category" : {
           "icon" : { 
-            "image" : "images/tree/folder_16x16.png" 
+            "image" : "img/tree/folder_16x16.png" 
           },
           "valid_children" : [ "category", "template" ]
         },
         "template" : {
           "icon" : { 
-            "image" : "images/tree/blueprint_16x16.png" 
+            "image" : "img/tree/blueprint_16x16.png" 
           },
           "valid_children" : "none"
         },
@@ -151,20 +151,20 @@ var buildPolicyInstanceTree = function(id, initially_select) {
           "types" : {
             "category" : {
               "icon" : { 
-                "image" : "images/tree/folder_16x16.png" 
+                "image" : "img/tree/folder_16x16.png" 
               },
               "valid_children" : [ "category", "template" ],
               "select_node" : false
             },
             "template" : {
               "icon" : { 
-                "image" : "images/tree/blueprint_16x16.png" 
+                "image" : "img/tree/blueprint_16x16.png" 
               },
               "valid_children" : [ "policy" ]
             },
             "policy" : {
               "icon" : { 
-                "image" : "images/tree/policy_16x16.gif" 
+                "image" : "img/tree/policy_16x16.gif" 
               },
               "valid_children" : "none"
             },
@@ -201,20 +201,20 @@ var buildGroupTree = function(id, initially_select) {
       "valid_children" : [ "root-category" ],
       "types" : {
         "root-category" : {
-          "icon" : { "image" : "images/tree/folder_16x16.png" },
+          "icon" : { "image" : "img/tree/folder_16x16.png" },
           "valid_children" : [ "category", "group" , "special_target" ],
           "start_drag" : false
         },
         "category" : {
-          "icon" : { "image" : "images/tree/folder_16x16.png" },
+          "icon" : { "image" : "img/tree/folder_16x16.png" },
           "valid_children" : [ "category", "group" , "special_target" ]
         },
         "group" : {
-          "icon" : { "image" : "images/tree/server_group_16x16.gif" },
+          "icon" : { "image" : "img/tree/server_group_16x16.gif" },
           "valid_children" : "none" 
         },
         "special_target" : {
-          "icon" : { "image" : "images/tree/special_target_16x16.gif" },
+          "icon" : { "image" : "img/tree/special_target_16x16.gif" },
           "valid_children" : "none"
         },
         "default" : {
@@ -268,25 +268,25 @@ var buildPolicyTemplateDependencyTree = function(id, initially_select) {
           "types" : {
             "category" : {
               "icon" : { 
-                "image" : "images/tree/folder_16x16.png" 
+                "image" : "img/tree/folder_16x16.png" 
               },
               "valid_children" : [ "category", "template" ]
             },
             "template" : {
               "icon" : { 
-                "image" : "images/tree/blueprint_16x16.png" 
+                "image" : "img/tree/blueprint_16x16.png" 
               },
               "valid_children" : [ "policy" ]
             },
             "policy" : {
               "icon" : { 
-                "image" : "images/tree/policy_16x16.gif" 
+                "image" : "img/tree/policy_16x16.gif" 
               },
               "valid_children" : [ "rule" ]
             },
             "rule" : {
                 "icon" : { 
-                  "image" : "images/tree/configuration_rule_16x16.png" 
+                  "image" : "img/tree/configuration_rule_16x16.png" 
                 },
                 "valid_children" : "none"
              },
@@ -325,21 +325,21 @@ var buildConfigurationRulePIdepTree = function(id, initially_select) {
         "types" : {
           "category" : {
             "icon" : { 
-              "image" : "images/tree/folder_16x16.png" 
+              "image" : "img/tree/folder_16x16.png" 
             },
             "valid_children" : [ "category", "template" ],
             "select_node" : false
           },
           "template" : {
             "icon" : { 
-              "image" : "images/tree/blueprint_16x16.png" 
+              "image" : "img/tree/blueprint_16x16.png" 
             },
             "valid_children" : [ "policy" ],
             "select_node" : false
           },
           "policy" : {
             "icon" : { 
-              "image" : "images/tree/policy_16x16.gif" 
+              "image" : "img/tree/policy_16x16.gif" 
             },
             "valid_children" : "none"
           },

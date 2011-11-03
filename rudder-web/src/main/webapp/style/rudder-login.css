@@ -40,15 +40,11 @@
 body {
    font-size: 11px;
    font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
-   background: #1f1e1e url(../images/login/fondLogin.jpg) repeat-x top left;
+   background: #1f1e1e url(../img/login/fondLogin.jpg) repeat-x top left;
    text-align: center;
 }
 img {
    border: none;
-}
-.logo {
-	text-align: center;
-
 }
 div#login {
    margin: 138px auto 10px auto;
@@ -109,7 +105,7 @@ input#valid {
    color: #2e2d2d;
    font-size: 1.2em;
    font-weight: bold;
-   background: url(../images/login/btnLogin.jpg) no-repeat top center;
+   background: url(../img/login/btnLogin.jpg) no-repeat top center;
    border: none;
    text-align: center;
 }

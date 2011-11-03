@@ -407,7 +407,7 @@ class Groups extends StatefulSnippet with Loggable {
            
            (
              <span class="treeGroupName tooltipable" tooltipid={tooltipId} >{targetInfo.name} 
-               <span class="greyscala">(special)</span>
+               <span style="color:grey; border-bottom:1px dotted grey;">(special)</span>
              </span>
              <div class="tooltipContent" id={tooltipId}>{
                if(targetInfo.description.size > 0) targetInfo.description else targetInfo.name

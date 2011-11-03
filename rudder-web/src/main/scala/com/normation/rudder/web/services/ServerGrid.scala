@@ -120,7 +120,7 @@ class ServerGrid(getServerAndMachine:LDAPFullInventoryRepository) extends Loggab
         var #table_var#;
         /* Formating function for row details */
         function fnFormatDetails ( id ) {
-          var sOut = '<span id="'+id+'" class="sgridbĥ"/>';
+          var sOut = '<span id="'+id+'" style="border:0; padding:0;height:200px;"/>';
           return sOut;
         }
       """.replaceAll("#table_var#",jsVarNameForId(tableId))
@@ -205,7 +205,7 @@ class ServerGrid(getServerAndMachine:LDAPFullInventoryRepository) extends Loggab
       "lines" -> ( servers.flatMap { case s@Srv(id,status, hostname,ostype,osname,osFullName,ips,creationDate) =>
         //build all table lines
         bind("line",chooseTemplate("servergrid","lines",tableTemplate),
-          "hostname" -> <span class="hostnamecurs" jsuuid={id.value.replaceAll("-","")} serverid={id.value} nodeStatus={status.name}>{(if(isEmpty(hostname)) "(Missing host name) " + id.value else hostname)}</span>,
+          "hostname" -> <span style="cursor:pointer;text-decoration: underline;" jsuuid={id.value.replaceAll("-","")} serverid={id.value} nodeStatus={status.name}>{(if(isEmpty(hostname)) "(Missing host name) " + id.value else hostname)}</span>,
           "fullos" -> osFullName,
           "ips" -> (ips.flatMap{ ip => <div class="ip">{ip}</div> }), // TODO : enhance this
           "other" -> (columns flatMap { c => <td>{c._2(s)}</td> })

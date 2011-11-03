@@ -92,7 +92,7 @@ class PolicyTemplateCategoryEditForm(
     <div id={htmlId_form} class="object-details">
       <fieldset class="userCategoryDetailsFieldset"><legend>Category details</legend>
         {categoryDetailsForm}
-          <div id="removeCategoryActionDialog" class="nodisplay">
+          <div id="removeCategoryActionDialog" style="display:none">
             <div class="simplemodal-title">
               <h1>Delete a category</h1>
               <hr/>
@@ -121,7 +121,7 @@ class PolicyTemplateCategoryEditForm(
         //update UI
         JsRaw("$.modal.close();") & 
         onSuccessCallback() & //Replace(htmlId_userTree, userLibrary) & 
-        SetHtml(htmlId_form, <span class="greenscala">Category successfully deleted</span>) &
+        SetHtml(htmlId_form, <span style="color:green">Category successfully deleted</span>) &
         successPopup
           
       case e:EmptyBox => 
@@ -156,7 +156,7 @@ class PolicyTemplateCategoryEditForm(
     override def toForm_! = bind("field", 
     <div class="wbBaseField">
     	<field:errors />
-      <label for={id} class="wbBaseFieldLabel threeCol textright"><b><field:label /></b></label>
+      <label for={id} class="wbBaseFieldLabel threeCol" style="text-align:right"><b><field:label /></b></label>
       <field:input />
       <field:infos />
       
@@ -168,8 +168,8 @@ class PolicyTemplateCategoryEditForm(
       errors match {
         case Nil => NodeSeq.Empty
         case l => 
-          <span><ul class="field_errors paddscala">{
-            l.map(e => <li class="field_error lopaddscala">{e.msg}</li>)
+          <span><ul class="field_errors" style="padding:0px 0px 0px 15px;">{
+            l.map(e => <li class="field_error" style="padding:0px;">{e.msg}</li>)
           }</ul></span><hr class="spacer"/>
       }
     }
@@ -192,7 +192,7 @@ class PolicyTemplateCategoryEditForm(
         <hr class="spacer"/>
         <update:description />
         <hr class="spacer"/>
-        <div class="spacerscala">
+        <div style="float:right">
           <update:submit />
         	<update:delete/>
         </div>
@@ -245,7 +245,7 @@ class PolicyTemplateCategoryEditForm(
               }
             } else {
               {<button id="deleteCategoryButton" disabled="disabled">Delete</button>
-              <br/><span class="catdelete">Only non root and empty category can be deleted</span>}
+              <br/><span style="font-size:0.9em; margin-left: 5px;">Only non root and empty category can be deleted</span>}
             }
        },
        "notifications" -> {
@@ -254,7 +254,7 @@ class PolicyTemplateCategoryEditForm(
          
          if(categoryNotifications.isEmpty) NodeSeq.Empty
          else {
-           val notifications = <div class="notify"><ul>{categoryNotifications.map( n => <li>{n}</li>) }</ul></div>
+           val notifications = <div style="text-align:center;margin:10px;"><ul>{categoryNotifications.map( n => <li>{n}</li>) }</ul></div>
            categoryNotifications = Nil
            notifications
          }

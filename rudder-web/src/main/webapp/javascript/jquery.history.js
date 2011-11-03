@@ -31,7 +31,7 @@ jQuery.extend({
 			}
 		
 			// add hidden iframe for IE
-			jQuery("body").prepend('<iframe id="jQuery_history" class="not"'+
+			jQuery("body").prepend('<iframe id="jQuery_history" style="display: none;"'+
 				' src="javascript:false;"></iframe>'
 			);
 			var ihistory = jQuery("#jQuery_history")[0];

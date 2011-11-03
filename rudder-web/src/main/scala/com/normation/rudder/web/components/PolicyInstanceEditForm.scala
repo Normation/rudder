@@ -348,7 +348,7 @@ class PolicyInstanceEditForm(
   private[this] val piPriority = new WBSelectObjField("Priority:",
     (0 to 10).map(i => (i, i.toString)),
     defaultValue = pi.priority) {
-    override val displayHtml = <span class="tooltipable greytooltip" tooltipid="priorityId">Priority:<div class="tooltipContent" id="priorityId">
+    override val displayHtml = <span class="tooltipable" tooltipid="priorityId" style="border-bottom:dotted 1px grey;">Priority:<div class="tooltipContent" id="priorityId">
                                                                                                                                   If a node is configured with several policy instance derived from that template, 
 the one with the higher priority will be applied first. If several policy instances have
 the same priority, the application order between these two will be random. 
@@ -435,7 +435,7 @@ to avoid that last case.<br/>
 
     if (notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="errorNotification" class="notify"><ul>{ notifications.map(n => <li>{ n }</li>) }</ul></div>
+      val html = <div id="errorNotification" style="text-align:center;margin:10px;"><ul>{ notifications.map(n => <li>{ n }</li>) }</ul></div>
       notifications = Nil
       html
     }

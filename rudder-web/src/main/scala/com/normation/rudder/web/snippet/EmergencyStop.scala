@@ -84,7 +84,7 @@ class EmergencyStop {
         bind("emergency",panelTemplate,
             "button" -> SHtml.submit("Confirm", stop),
             "body" -> <h2>This button can be used to force a shutdown of the whole Rudder infastructure. Please use with caution.</h2>,
-            "img" -> <img src="/images/btnAlert.jpg"/>,
+            "img" -> <img src="/img/btnAlert.jpg"/>,
             "title" -> Text("Emergency system shutdown"))
 
       case ButtonActivated => //show the restart button
@@ -94,7 +94,7 @@ class EmergencyStop {
                       ("class", "emergencyButton"),
                       ("title","Unlock and restart the orchestrator")),
             "body" -> <h2>Restart the Rudder Infrastructure.</h2>,
-            "img" -> <img src="/images/btnAccept.jpg"/>,
+            "img" -> <img src="/img/btnAccept.jpg"/>,
             "title" -> Text("Unlock and restart the orchestrator"))
         
     }

@@ -4,13 +4,49 @@
   <div class="portlet-content">
   
   <head>
-  <script type="text/javascript" src="/javascript/treeM.js"></script>
+  <style type="text/css">
+    .tree li.filteredNode { display:none; }
+  </style>
+  <script type="text/javascript">
+  //<![CDATA[
+    jQuery.extend(jQuery.expr[":"], {  
+      "notContainsCI": function(elem, i, match, array) {  
+        return (elem.textContent || elem.innerText || "").toLowerCase().indexOf((match[3] || "").toLowerCase()) < 0;  
+       }  
+    }); 
+    
+    var filterLi = function(filter) {
+          jQuery(".filteredNode").removeClass("filteredNode");
+          if( jQuery.tree && jQuery.tree.focused() && jQuery.tree.focused().selected ) {
+            jQuery.tree.focused().selected.each( function(i) {    
+              jQuery(this).find("li:notContainsCI("+filter+")").addClass("filteredNode");
+            });
+          }
+    }
+    
+    jQuery(document).ready(function() {
+      var filterTimer;
+	    jQuery("#filterNode").keyup(function(event) {
+	      var filter = jQuery(this).val();
+        clearTimeout(filterTimer);
+        if(event.keyCode == 13) { 
+          filterLi(filter); 
+        } else {
+          filterTimer = setTimeout(function() {
+            filterLi(filter);
+          }, 1000);
+        }
+	    });
+    }); 
+  //]]>
+  </script>  
   </head>
+  
   <div id="middle">
     <h3>Parcours de l'arbre</h3>
     
     <p>Selectionnez un noeud puis filter ses enfants:</p>
-    <input id="filterNode" type="text"/><span class="treefilternodecursor" 
+    <input id="filterNode" type="text"/><span style=" cursor:pointer;cursor:hand" 
       onclick="jQuery('#filterNode').each(function(i) { this.value =''; });filterLi('')">[clear]</span>
     <lift:LdapTree>
       <tree:head/>

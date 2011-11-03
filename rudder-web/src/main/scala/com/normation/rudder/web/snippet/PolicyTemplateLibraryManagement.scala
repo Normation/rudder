@@ -285,7 +285,7 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
         updateCurrentPolicyTemplateDetails(pt)
         showPolicyTemplateDetails()
       case _ => 
-        <div id={htmlId_bottomPanel} class="centertext">
+        <div id={htmlId_bottomPanel} style="text-align:center">
           Click on a policy template or a category from user library to
           display its details.
         </div>

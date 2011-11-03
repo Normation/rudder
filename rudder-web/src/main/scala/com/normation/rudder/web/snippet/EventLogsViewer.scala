@@ -205,7 +205,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       case add:AddConfigurationRule =>
         "*" #> (logDetailsService.getConfigurationRuleAddDetails(add.details) match {
           case Full(addDiff) => 
-            <div class="lmargin"><p>Configuration rule <b>"{addDiff.cr.name}"</b> (ID:{addDiff.cr.id.value}) added with parameters:</p>{
+            <div style="margin-left:3px"><p>Configuration rule <b>"{addDiff.cr.name}"</b> (ID:{addDiff.cr.id.value}) added with parameters:</p>{
               configurationRuleDetails(crDetailsXML,addDiff.cr)
             }</div>
           case e:EmptyBox => errorMessage(e)
@@ -214,7 +214,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       case del:DeleteConfigurationRule =>
         "*" #> (logDetailsService.getConfigurationRuleDeleteDetails(del.details) match {
           case Full(delDiff) =>
-            <div class="lmargin"><p>Configuration rule <b>"{delDiff.cr.name}"</b> (ID:{delDiff.cr.id.value}) deleted with parameters:</p>{
+            <div style="margin-left:3px"><p>Configuration rule <b>"{delDiff.cr.name}"</b> (ID:{delDiff.cr.id.value}) deleted with parameters:</p>{
               configurationRuleDetails(crDetailsXML,delDiff.cr)
             }</div>
           case e:EmptyBox => errorMessage(e)
@@ -223,7 +223,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       case mod:ModifyConfigurationRule =>
         "*" #> (logDetailsService.getConfigurationRuleModifyDetails(mod.details) match {
           case Full(modDiff) =>            
-            <div class="lmargin"><p>Configuration rule <b>"{modDiff.name}"</b>(ID:{modDiff.id.value}) was modified:</p>{
+            <div style="margin-left:3px"><p>Configuration rule <b>"{modDiff.name}"</b>(ID:{modDiff.id.value}) was modified:</p>{
               (
                 "#name" #> mapSimpleDiff(modDiff.modName) &
                 "#isActivated *" #> mapSimpleDiff(modDiff.modIsActivatedStatus) &
@@ -240,7 +240,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
                    modDiff.modPolicyInstanceIds.map { diff =>
                    val mapList = (set:Set[PolicyInstanceId]) => {
                      if(set.size < 1) Text("None")
-                     else <ul class="evlogviewpad">{ set.toSeq.sortWith( _.value < _.value ).map { id =>
+                     else <ul style="padding:5px;">{ set.toSeq.sortWith( _.value < _.value ).map { id =>
                             <li><a href={policyInstanceLink(id)}>{id.value}</a></li>
                           } }</ul>
                    }
@@ -259,7 +259,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       case x:ModifyPolicyInstance =>   
         "*" #> (logDetailsService.getPolicyInstanceModifyDetails(x.details) match {
           case Full(modDiff) =>
-            <div class="lmargin"><p>Policy Instance <b>"{modDiff.name}"</b>(ID:{modDiff.id.value}) was modified:</p>{
+            <div style="margin-left:3px"><p>Policy Instance <b>"{modDiff.name}"</b>(ID:{modDiff.id.value}) was modified:</p>{
               (
                 "#name" #> mapSimpleDiff(modDiff.modName) &
                 "#priority *" #> mapSimpleDiff(modDiff.modPriority) &
@@ -283,7 +283,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       case x:AddPolicyInstance =>   
         "*" #> (logDetailsService.getPolicyInstanceAddDetails(x.details) match {
           case Full((diff,sectionVal)) =>
-            <div class="lmargin"><p>Policy Instance <b>"{diff.pi.name}"</b> (ID:{diff.pi.id.value}) added. Parameters were:</p>{
+            <div style="margin-left:3px"><p>Policy Instance <b>"{diff.pi.name}"</b> (ID:{diff.pi.id.value}) added. Parameters were:</p>{
               policyInstanceDetails(piDetailsXML,diff.policyTemplateName, diff.pi,sectionVal)
             }</div>
           case e:EmptyBox => errorMessage(e)
@@ -293,7 +293,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       case x:DeletePolicyInstance =>   
         "*" #> (logDetailsService.getPolicyInstanceDeleteDetails(x.details) match {
           case Full((diff,sectionVal)) =>
-            <div class="lmargin"><p>Policy Instance <b>"{diff.pi.name}"</b> (ID:{diff.pi.id.value}) deleted. Parameters were:</p>{
+            <div style="margin-left:3px"><p>Policy Instance <b>"{diff.pi.name}"</b> (ID:{diff.pi.id.value}) deleted. Parameters were:</p>{
               policyInstanceDetails(piDetailsXML,diff.policyTemplateName, diff.pi,sectionVal)
             }</div>
           case e:EmptyBox => errorMessage(e)
@@ -304,7 +304,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       case x:ModifyNodeGroup =>   
         "*" #> (logDetailsService.getNodeGroupModifyDetails(x.details) match {
           case Full(modDiff) => 
-            <div class="lmargin"><p>Node group <b>"{modDiff.name}"</b> (ID:{modDiff.id.value}) modified with parameters:</p>{
+            <div style="margin-left:3px"><p>Node group <b>"{modDiff.name}"</b> (ID:{modDiff.id.value}) modified with parameters:</p>{
               (
                 "#name" #> mapSimpleDiff(modDiff.modName) &
                 "#isActivated *" #> mapSimpleDiff(modDiff.modIsActivated) &
@@ -327,7 +327,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
                    modDiff.modServerList.map { diff =>
                    val mapList = (set:Set[NodeId]) =>
                      if(set.size == 0) Text("None")
-                     else <ul class="evlogviewpad">{ set.toSeq.sortWith( _.value < _.value ).map { id =>
+                     else <ul style="padding:5px;">{ set.toSeq.sortWith( _.value < _.value ).map { id =>
                        <li><a href={nodeLink(id)}>{id.value}</a></li>
                      } }</ul>
                      
@@ -344,7 +344,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       case x:AddNodeGroup =>   
         "*" #> (logDetailsService.getNodeGroupAddDetails(x.details) match {
           case Full(diff) =>
-            <div class="lmargin"><p>Node group <b>"{diff.group.name}"</b> (ID:{diff.group.id.value}) added with parameters:</p>{
+            <div style="margin-left:3px"><p>Node group <b>"{diff.group.name}"</b> (ID:{diff.group.id.value}) added with parameters:</p>{
               groupDetails(groupDetailsXML,diff.group)
             }</div>
           case e:EmptyBox => errorMessage(e)
@@ -354,7 +354,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       case x:DeleteNodeGroup =>   
         "*" #> (logDetailsService.getNodeGroupDeleteDetails(x.details) match {
           case Full(diff) =>
-            <div class="lmargin"><p>Node group <b>"{diff.group.name}"</b> (ID:{diff.group.id.value}) deleted with parameters:</p>{
+            <div style="margin-left:3px"><p>Node group <b>"{diff.group.name}"</b> (ID:{diff.group.id.value}) deleted with parameters:</p>{
               groupDetails(groupDetailsXML,diff.group)
             }</div>
           case e:EmptyBox => errorMessage(e)
@@ -365,7 +365,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       case x:AcceptNodeEventLog =>   
         "*" #> (logDetailsService.getAcceptNodeLogDetails(x.details) match {
           case Full(details) =>
-            <div class="lmargin"><p>Node <b>"{details.hostname}"</b> (ID:{details.nodeId.value}) accepted:</p>{
+            <div style="margin-left:3px"><p>Node <b>"{details.hostname}"</b> (ID:{details.nodeId.value}) accepted:</p>{
               nodeDetails(details)
             }</div>
           case e:EmptyBox => errorMessage(e)
@@ -374,7 +374,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       case x:RefuseNodeEventLog =>   
         "*" #> (logDetailsService.getRefuseNodeLogDetails(x.details) match {
           case Full(details) =>
-            <div class="lmargin"><p>Node <b>"{details.hostname}"</b> (ID:{details.nodeId.value}) refused:</p>{
+            <div style="margin-left:3px"><p>Node <b>"{details.hostname}"</b> (ID:{details.nodeId.value}) refused:</p>{
               nodeDetails(details)
             }</div>
           case e:EmptyBox => errorMessage(e)
@@ -441,7 +441,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       } ) &
       "#isDynamic" #> group.isDynamic &
       "#nodes" #>( if(group.serverList.size < 1) Text("None")
-                   else <ul class="evlogviewpad">{group.serverList.map { id => 
+                   else <ul style="padding:5px;">{group.serverList.map { id => 
                          <li><a href={nodeLink(id)}>{id.value}</a></li>
                         } }</ul>) &
       "#isActivated" #> group.isActivated &
@@ -457,14 +457,14 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
      "#os" #> details.fullOsName &
      "#version" #> DateFormaterService.getFormatedDate(details.inventoryVersion)
   )( 
-    <ul class="evlogviewpad">
+    <ul style="padding:5px;">
       <li><b>Operating System:</b>'<value id="os"/>'</li>
       <li><b>Inventory Version:</b>'<value id="version"/>'</li>
     </ul>
   )
   
   private[this] val crDetailsXML = 
-    <ul class="evlogviewpad">
+    <ul style="padding:5px;">
       <li><b>target:</b>'<value id="target"/>'</li>
       <li><b>policies:</b>'<value id="policy"/>'</li>
       <li><b>enabled:</b>'<value id="isActivated"/>'</li>
@@ -474,7 +474,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
     </ul>
     
   private[this] val piDetailsXML = 
-    <ul class="evlogviewpad">
+    <ul style="padding:5px;">
       <li><b>policy template name:</b><value id="ptName"/></li>
       <li><b>policy template version:</b><value id="ptVersion"/></li>
       <li><b>priority:</b>'<value id="priority"/>'</li>
@@ -486,7 +486,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
     </ul>
     
   private[this] val groupDetailsXML = 
-    <ul class="evlogviewpad">
+    <ul style="padding:5px;">
       <li><b>description:</b>'<value id="shortDescription"/>'</li>
       <li><b>enabled:</b>'<value id="isActivated"/>'</li>
       <li><b>dynamic:</b>'<value id="isDynamic"/>'</li>

@@ -275,8 +275,8 @@ class PolicyTemplateEditForm(
 
 
   def showReferenceLibBreadcrump() : NodeSeq = {
-    <ul class="inlinenotop">{findBreadCrump(policyTemplate).map { cat => 
-      <li class="inlineml">&#187; {cat.name}</li> } }
+    <ul style="display:inline;padding-top:0px;">{findBreadCrump(policyTemplate).map { cat => 
+      <li style="display:inline; margin-left:3px;">&#187; {cat.name}</li> } }
     </ul>
   }
   
@@ -292,12 +292,12 @@ class PolicyTemplateEditForm(
     <div id={htmlId_addToUserLib}>Client category: { 
         findUserBreadCrump(policyTemplate) match {
           case Some(listCat) => 
-            <ul class="inlinenotop">
-                {listCat.map { cat => <li class="inlineml">&#187; {cat.name}</li> } } 
+            <ul style="display:inline;padding-top:0px;">
+                {listCat.map { cat => <li style="display:inline; margin-left:3px;">&#187; {cat.name}</li> } } 
             </ul>
           case None => //display the add button if a user lib category is defined
             userCategoryLibrary match {
-              case None => <span class="greenscala">Click on a category in the user library</span>
+              case None => <span style="color: green;">Click on a category in the user library</span>
               case Some(category) => {
                 /*
                  * Actually add the policy template to category:
@@ -363,8 +363,8 @@ class PolicyTemplateEditForm(
 //
 //    <fieldset><legend>Category</legend>
 //      <div>Reference category: <a href="#" onclick="alert('TODO:goto node in tree');return false">
-//        <ul class="inline">{findBreadCrump(policyTemplate).map { cat => 
-//          <li class="inlineml">&#187; {cat.name}</li> } }
+//        <ul style="display:inline;">{findBreadCrump(policyTemplate).map { cat => 
+//          <li style="display:inline; margin-left:3px;">&#187; {cat.name}</li> } }
 //        </ul>       
 //      </a></div>
 //      <lift:PolicyTemplateLibraryManagement.showPolicyTemplateUserCategory />

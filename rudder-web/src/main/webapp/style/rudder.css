@@ -40,7 +40,7 @@
 body {
    font-size: 11px;
    font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
-   background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
+   background: #1f1e1e url(../img/fondBody.jpg) repeat-x top left; 
 }
 img {
    border: none;
@@ -56,15 +56,15 @@ div#prelude {
    display: none;
 }
 div#container {
-   background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
+   background: #1f1e1e url(../img/fondBody.jpg) repeat-x top left; 
 }
 div#contenuInfos {
    overflow: hidden;
-   background: url(../images/fondMenuAux.jpg) #2e2d2d repeat-y;
+   background: url(../img/fondMenuAux.jpg) #2e2d2d repeat-y;
 }
 div#navigation {
    float: left;
-   background: #2e2d2d url(../images/fondMenuAux.jpg) repeat-y;
+   background: #2e2d2d url(../img/fondMenuAux.jpg) repeat-y;
 }
 div#logo {
    padding: 5px 50px 2px 0;
@@ -166,7 +166,7 @@ div#menu {
    padding-top/*\**/: 3px\9;
    height: 55px;
    color: #000;
-   background: #2e2d2d url(../images/fondMenu.jpg) repeat-x;
+   background: #2e2d2d url(../img/fondMenu.jpg) repeat-x;
 }
 *html div#menu {
    margin: 0;
@@ -194,21 +194,21 @@ div#menu {
 #menu a:hover {
    padding: 7px 0 30px 0;
    color: #f79d10;
-   background: url(../images/menuFdDroite.jpg) no-repeat top right;
+   background: url(../img/menuFdDroite.jpg) no-repeat top right;
 }
 #menu a:hover span {
    padding: 7px 10px 30px 10px;
-   background: url(../images/menuFdGauche.jpg) no-repeat top left;
+   background: url(../img/menuFdGauche.jpg) no-repeat top left;
 }
 
 #menu .onMenu a {
    padding: 7px 0 30px 0;
-   background: url(../images/menuFdDroite.jpg) no-repeat top right;
+   background: url(../img/menuFdDroite.jpg) no-repeat top right;
 }
 #menu .onMenu span {
    padding: 7px 10px 30px 10px;
    color: #f79d10;
-   background: url(../images/menuFdGauche.jpg) no-repeat top left;
+   background: url(../img/menuFdGauche.jpg) no-repeat top left;
 }
 #menu a, #menu a:hover, #menu a:hover span, #menu .onMenu a, #menu .onMenu span {
    padding-top/*\**/: 0\9;
@@ -246,7 +246,7 @@ div#slickbox {
    margin-bottom: 20px;
    width: 186px;
    height: 100%;
-   background: url(../images/fondMenuAux.jpg) #2e2d2d repeat-y;
+   background: url(../img/fondMenuAux.jpg) #2e2d2d repeat-y;
 }
 #slickbox h2 {
    padding-top: 7px;
@@ -254,7 +254,7 @@ div#slickbox {
    height: 38px;
    color: #fff;
    font-size: 1.5em;
-   background: url(../images/fondTitMenu.jpg) no-repeat;
+   background: url(../img/fondTitMenu.jpg) no-repeat;
 }
 #slickbox h2 a {
    color: #f79d10;
@@ -279,18 +279,18 @@ div#slickbox {
    color: #f79d10;
    font-size: 1.2em;
    border-top: 1px solid #2d2d2d;
-   background: url(../images/puceMenuGrise.jpg) no-repeat left top;
+   background: url(../img/puceMenuGrise.jpg) no-repeat left top;
 }
 #slickbox .niv1 a:hover {
    height: 20px;
-   background: #585757 url(../images/puceFlecheHoverNiv1.jpg) no-repeat right center;
+   background: #585757 url(../img/puceFlecheHoverNiv1.jpg) no-repeat right center;
 }
 #slickbox .menuOff {
    padding: 10px 0 10px 24px;
    color: #fff;
    font-size: 1.2em;
    border-top: 1px solid #2d2d2d;
-   background: url(../images/puceMenuGrise.jpg) no-repeat left top;
+   background: url(../img/puceMenuGrise.jpg) no-repeat left top;
    display: block;
 }
 #slickbox .niv2 a {
@@ -299,11 +299,11 @@ div#slickbox {
    color: #f79d10;
    font-size: 1.2em;
    border-top: 1px solid #2d2d2d;
-   background: url(../images/puceNiv2.jpg) no-repeat left top;   
+   background: url(../img/puceNiv2.jpg) no-repeat left top;   
 }
 #slickbox .niv2 a:hover {
    height: 20px;
-   background: #585757 url(../images/puceFlecheHover.jpg) no-repeat right center;
+   background: #585757 url(../img/puceFlecheHover.jpg) no-repeat right center;
 }
 .menuHide img {
    float: left;
@@ -316,7 +316,7 @@ a.menuHide {
    color: #f79d10;
    margin: 0 20px 10px 0;
    padding: 12px 0;
-   background-image: url(../images/pointilles.jpg);
+   background-image: url(../img/pointilles.jpg);
    display: block;
 }
 div.minimized a.menuHide {
@@ -362,13 +362,13 @@ Home portlet
 .portlet {
    margin: 0 1em 1em 0;
    background-color: #fff;
-   background/*\**/:  url(../images/fondPortlet.jpg) repeat-x\9;
+   background/*\**/:  url(../img/fondPortlet.jpg) repeat-x\9;
 }
 *html .portlet {
-   background: url(../images/fondPortlet.jpg) repeat-x;
+   background: url(../img/fondPortlet.jpg) repeat-x;
 }
 *html .portlet-content {
-   background: #fff url(../images/fondPortlet.jpg) repeat-x;
+   background: #fff url(../img/fondPortlet.jpg) repeat-x;
 }
 .portlet a {
    color: #f79d10;
@@ -401,7 +401,7 @@ p img {
    font-size: 1.3em;
    font-weight: bold;
    cursor: move;
-   background: url(../images/icCroix.jpg) no-repeat top left;
+   background: url(../img/icCroix.jpg) no-repeat top left;
 }
 *html .portlet-header {
 }
@@ -428,7 +428,7 @@ div#login,
 div#account, 
 #addPopupContent {
    height: auto;
-   background: url(../images/popin/fdLoginFootG.png) no-repeat left bottom;
+   background: url(../img/popin/fdLoginFootG.png) no-repeat left bottom;
    display: block;
    min-height: 107px; 
 }
@@ -526,7 +526,7 @@ popin Account
    color: #fff;
    font-weight: bold;
    border: none;
-   background: url(../images/fdBtnUpdate.jpg) no-repeat 50% 50%;
+   background: url(../img/fdBtnUpdate.jpg) no-repeat 50% 50%;
 }
 #account textarea {
    margin-top: 5px;
@@ -542,12 +542,12 @@ popin Account
 span.verifError {
    padding: 0 0 5px 40px;
    color: #c00;
-   background: url(../images/icError.jpg) no-repeat;
+   background: url(../img/icError.jpg) no-repeat;
 }
 span.verifValid {
    padding: 0 0 5px 40px;
    color: #b4b3a8;
-   background: url(../images/icValid.jpg) no-repeat;
+   background: url(../img/icValid.jpg) no-repeat;
 }
 /**************************************
 popin Alert
@@ -588,7 +588,7 @@ popin Alert
 #simplemodal-container .simplemodal-content {padding:6px;    font-size: 1.1em;}
 #simplemodal-container .simplemodal-content-no-zoom {padding:6px;}
 #simplemodal-container code {background:#141414; border-left:3px solid #65B43D; color:#bbb; display:block; font-size:12px; margin-bottom:12px; padding:4px 6px 6px;}
-#simplemodal-container a.modalCloseImg {background:url("../images/popin/croix.png") no-repeat; width:31px; height:30px; display:inline; z-index:3200; position:absolute; top:-15px; right:-16px; cursor:pointer;}
+#simplemodal-container a.modalCloseImg {background:url("../img/popin/croix.png") no-repeat; width:31px; height:30px; display:inline; z-index:3200; position:absolute; top:-15px; right:-16px; cursor:pointer;}
 
 #simplemodal-overlay {
     background-color: #777777;
@@ -684,7 +684,7 @@ div#footer {
    height: 30px;
    color: #999;
    font-size: 1.3em;
-   background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
+   background: #1f1e1e url(../img/fondBody.jpg) repeat-x top left; 
 }
 #footer a {
    color: #999;
@@ -770,7 +770,7 @@ ul.descriptif li {
 .inform div.inform_logo {
 	width:64px;
 	height:64px;
-	background: url(../images/icOK.png) no-repeat;
+	background: url(../img/icOK.png) no-repeat;
 }
 
 .warn div {
@@ -780,7 +780,7 @@ ul.descriptif li {
 .warn div.warn_logo {
 	width:64px;
 	height:64px;
-	background: url(../images/icWarn.png) no-repeat;
+	background: url(../img/icWarn.png) no-repeat;
 }
 
 div.serverDetail {

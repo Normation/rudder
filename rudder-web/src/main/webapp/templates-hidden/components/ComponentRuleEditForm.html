@@ -74,14 +74,14 @@
 <!--      <label for="removeButton" id="removeButtonLabel">Remove from user library</label>-->
       <button id="removeButton">Delete</button>
     </div>
-    <div id="removeActionDialog" class="nodisplay">
+    <div id="removeActionDialog" style="display:none">
       <div class="simplemodal-title">
         <h1>Delete a configuration rule</h1>
         <hr/>
       </div>
       <div class="simplemodal-content">    
         <div>
-          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+          <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
           <h2>Deleting this configuration rule will also delete its history and compliance reports.</h2>
         </div>
         <hr class="spacer" />
@@ -105,13 +105,13 @@
       <button id="disactivateButton"><span id="disactivateButtonLabel">desactivate</span></button>
     </div>
     
-    <div id="desactivateActionDialog" class="nodisplay">
+    <div id="desactivateActionDialog" style="display:none">
       <div class="simplemodal-title">
         <h1><span id="dialogDeactivateTitle">Disable</span> a configuration rule</h1>
         <hr/>
       </div>
       <div class="simplemodal-content">
-        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+        <img src="/img/icWarn.png" alt="Warning!" height="32" width="32" style="float:left; margin-right:20px;"/>
         <h2>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this configuration rule?</h2>
  				<hr class="spacer" />
   		</div>
@@ -173,7 +173,7 @@
 
     <hr class="spacer" />
 
-    <div class="cpiefsave">
+    <div style="float:right;">
       <button id="save">Save</button>
     </div>
   </fieldset>

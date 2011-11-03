@@ -423,7 +423,7 @@ class ConfigurationRuleEditForm(
    
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="errorNotification" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="errorNotification" style="text-align:center;margin:10px;"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }
@@ -499,7 +499,7 @@ class ConfigurationRuleEditForm(
       case x => new JsTreeNode {
          override def body =  {
            val tooltipid = Helpers.nextFuncName
-           <span class="treeGroupName tooltipable" tooltipid={tooltipid} >{targetInfo.name} <span title={targetInfo.description} class="greyscala">(special)</span>
+           <span class="treeGroupName tooltipable" tooltipid={tooltipid} >{targetInfo.name} <span title={targetInfo.description} style="color:grey; border-bottom:1px dotted grey;">(special)</span>
            <div class="tooltipContent" id={tooltipid}><h3>{targetInfo.name}</h3><div>{targetInfo.description}</div></div>
            </span>
          }

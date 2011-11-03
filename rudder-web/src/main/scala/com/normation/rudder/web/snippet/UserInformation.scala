@@ -71,7 +71,7 @@ class UserInformation extends DispatchSnippet with Loggable {
   }
   
   def logout = {
-    "*" #> SHtml.ajaxButton(<span class="red userinfowidth">Logout</span>, { () =>
+    "*" #> SHtml.ajaxButton(<span class="red" style="width:130px;">Logout</span>, { () =>
       S.session match {
         case Full(session) => //we have a session, try to know who is login out
           SecurityContextHolder.getContext.getAuthentication match {

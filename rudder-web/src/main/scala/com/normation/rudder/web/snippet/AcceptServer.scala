@@ -346,7 +346,7 @@ class AcceptServer {
   			    (Text("Since"),
                    {e => Text(DateFormaterService.getFormatedDate(e.creationDate))}),
   			    (Text("Policy"), 
-                  { e => SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { 
+                  { e => SHtml.ajaxButton(<img src="/img/icPolicies.jpg"/>, { 
                       () =>  showExpectedPolicyPopup(e.id)
                     }, ("class", "smallButton")
                    )
@@ -380,8 +380,8 @@ class AcceptServer {
 	 * @return
 	 */
 	val selectAll : NodeSeq = 
-	  <div class="checkboxh">
-      <p class="checkboxfm">
+	  <div style="height:20px;">
+      <p style="float:right; margin:0 30px 0 10px">
       Select/deselect all <input type="checkbox" id="selectAll" onClick="jqCheckAll('selectAll', 'serverids')"/>
       </p>
     </div>

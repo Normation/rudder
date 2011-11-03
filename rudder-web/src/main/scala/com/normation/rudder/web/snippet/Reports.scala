@@ -210,7 +210,7 @@ class Reports {
                         val srv = servers.head
                         <tr class={severity.replaceAll(" ", "")}>
                         {bind("line",chooseTemplate("lastReportGrid","lines",reportTemplate),
-                         "hostname" -> <span class="curspoint" jsuuid={uuid.value.replaceAll("-","")} serverid={uuid.value}>{srv.hostname}</span>,
+                         "hostname" -> <span style="cursor:pointer" jsuuid={uuid.value.replaceAll("-","")} serverid={uuid.value}>{srv.hostname}</span>,
                          "severity" -> severity )}
                         </tr>
                      }
