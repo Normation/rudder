@@ -410,11 +410,22 @@ case class PolicyEditor(
    * Get the map of (varname, list(values)),
    * as awaited by LDAPConfigurationRuleID
    */
-  def mapValueSeq: Map[String, Seq[String]] =
-    sectionField.getAllSectionFields.foldLeft(Map[String, Seq[String]]()) { (map, sect) =>
-      sect.mapValueSeq ++ map
+  def mapValueSeq: Map[String, Seq[String]] = {
+    def mergeMap(m1:Map[String, Seq[String]], m2:Map[String, Seq[String]]) = {
+      val res = scala.collection.mutable.Map[String,Seq[String]]() ++ m1
+      for {
+        (k,v) <- m2
+      } {
+        res(k) = res.getOrElse(k, Seq()) ++ v
+      }
+      res.toMap
     }
-
+    
+    sectionField.getAllSectionFields.foldLeft(Map[String, Seq[String]]()) { (map, sect) =>      
+      mergeMap(map, sect.mapValueSeq)
+    }
+  }
+  
   def toFormNodeSeq: NodeSeq = {
     <div class="variableDefinition">
       <table class="policyInstanceVarDef">

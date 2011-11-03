@@ -35,7 +35,6 @@
 package com.normation.rudder.web.model
 
 import com.normation.utils.Utils._
-import PolicyField._
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
