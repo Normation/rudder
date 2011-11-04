@@ -112,7 +112,10 @@ class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators
   def createSectionField(section: SectionSpec, valuesByName:Map[String,Seq[String]], isNewPolicy:Boolean): SectionField = {
     val seqOfSectionMap = {
       if (isNewPolicy) Seq(createDefaultMap(section))
-      else createMapForEachSubSection(section, valuesByName)
+      else {
+        val all = createMapForEachSubSection(section, valuesByName)
+        if(all.size < 1) Seq(createDefaultMap(section)) else all
+      }
     }
     
 
