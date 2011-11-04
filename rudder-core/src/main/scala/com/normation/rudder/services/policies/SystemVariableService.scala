@@ -62,7 +62,8 @@ class SystemVariableServiceImpl(
   , baseFolder: String
   , toolsFolder: String
   , cmdbEndPoint: String
-  , communityPort: String  
+  , communityPort: String
+  , sharedFilesFolder : String
 ) extends SystemVariableService with Loggable {
 
   def getSystemVariables(nodeInfo: NodeInfo): Box[Map[String, Variable]] = {
@@ -77,6 +78,9 @@ class SystemVariableServiceImpl(
     val varCmdbEndpoint = SystemVariable(systemVariableSpecService.get("CMDBENDPOINT"))
     varCmdbEndpoint.saveValue(cmdbEndPoint)
 
+    val varSharedFilesFolder = SystemVariable(systemVariableSpecService.get("SHARED_FILES_FOLDER"))
+    varSharedFilesFolder.saveValue(sharedFilesFolder)
+    
     // Set the roles of the nodes
     val nodeConfigurationRoles = mutable.Set[String]()
     nodeInfo match {
@@ -153,6 +157,7 @@ class SystemVariableServiceImpl(
       (varBaseFolder.spec.name, varBaseFolder),
       (varToolsFolder.spec.name, varToolsFolder),
       (varCmdbEndpoint.spec.name, varCmdbEndpoint),
+      (varSharedFilesFolder.spec.name, varSharedFilesFolder),
       (varCommunityPort.spec.name, varCommunityPort),
       (varAllowConnect.spec.name, varAllowConnect),
       (varClientList.spec.name, varClientList)))

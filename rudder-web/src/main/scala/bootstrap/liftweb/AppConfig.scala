@@ -147,6 +147,10 @@ class AppConfig extends Loggable {
   @Value("${rudder.dir.lock}")
   var lockFolder = ""
 
+  @Value("${rudder.dir.shared.files.folder}")
+  var sharedFilesFolder = ""
+
+    
   @Value("${rudder.dir.licensesFolder}")
   var licensesFolder = ""
   @Value("${rudder.endpoint.cmdb}")
@@ -244,7 +248,8 @@ class AppConfig extends Loggable {
     baseFolder,
     toolsFolder,
     cmdbEndpoint,
-    communityPort)
+    communityPort,
+    sharedFilesFolder)
 
   @Bean
   def policyTranslator = new RudderPromiseWriterServiceImpl(
