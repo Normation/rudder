@@ -32,6 +32,869 @@
 *************************************************************************************
 */
 
+
+
+/**********************************
+ *Server inventory details
+ **********************************/
+.hostnamecurs{
+	cursor:pointer;
+	text-decoration:underline;
+}
+.querylinecolor{
+	color:#EEEEEE;
+}
+.sInventory {
+	margin: 0px;
+	padding: 0px;
+}
+
+.sInventory div {
+  margin: 0px;
+  padding: 0px;
+}
+
+.details {
+  margin: 0px;
+  padding: 0px;
+}
+
+.sInventory table {
+  margin: 0px;
+  padding: 0px;
+}
+
+
+
+/**********************************
+ * Node details
+ **********************************/
+
+fieldset.crTree {
+  margin: 2px;
+  padding: 5px;
+  width: 32%;
+  display: inline-block;
+  vertical-align: top;
+}
+
+fieldset.nodeIndernal {
+  margin: 2px;
+  padding: 5px;
+  display: inline-block;
+  vertical-align: top;
+  width: 56%;
+}
+
+.nodeSummary {
+
+}
+
+/**********************************
+ *          formulaire            *
+ **********************************/
+
+.portlet-header {
+   padding: 2px 0 5px 5px;
+   font-size: 1.3em;
+   font-weight: bold;
+   cursor: default;
+   background: none;
+}
+.portlet-header .ui-icon {
+   float: right;
+   cursor: pointer;
+}
+div.intro {
+   margin: 0;
+   padding: 0px;
+   width: 100%;
+   font-size: 1.1em;
+   line-height: 1.5em;
+   color: #000;
+   background-color: #fff3c9;
+   z-index: 1;
+}
+
+div.intro div {
+  padding: 5px;
+}
+
+div.intro div ul {
+   padding: 0 0 0 20px;
+}
+
+form a {
+   color: #f79d10;
+}
+form h2 {
+   padding: 0 10px;
+   font-size: 1.2em;
+   line-height: 1.5em;
+   font-weight: bold;
+}
+form h3 {
+   padding: 0 15px;
+   font-size: 1.1em;
+   line-height: 1.5em;
+   font-weight: bold;
+}
+form p {
+   margin: 15px 0;
+   padding: 0 10px;
+   font-size: 1.1em;
+}
+form hr {
+   margin: 0 15px;
+   width: 95%;
+   clear: both;
+}
+form select {
+   width: 130px;
+   background-color: #f8f8f8;
+   border: 1px solid #b4b3a8;
+}
+form label.champ {
+   float: left;
+   padding-right: 20px;
+   width: 25%;
+   text-align: right;
+}
+form input {
+	 width: 130px;
+   padding: 0.2em;
+   background-color: #f8f8f8;
+   border: 1px solid #b4b3a8;
+}
+
+form textarea {
+	padding: 0.2em;
+}
+
+form input.radio {
+	width: auto;
+	border: 0px;
+}
+
+form button {
+	 width: 130px;
+   padding: 0.2em;
+   background-color: #f8f8f8;
+   border: 1px solid #b4b3a8;
+}
+
+button.ui-state-default {
+	 width: 130px;
+}
+
+button.largeButton {
+	width:250px !important;
+}
+
+.popupButton button {
+   background-color: #f8f8f8;
+   border: 1px solid #b4b3a8;
+}
+.popupButton input {
+   background-color: #f8f8f8;
+   border: 1px solid #b4b3a8;
+}
+
+.bottomButton span button {
+   padding: 0.2em;
+   background-color: #f8f8f8;
+   border: 1px solid #b4b3a8;
+}
+
+
+form .center input {
+   color: #000;
+   background-color: #fba511;
+   border: 1px solid #ff7200;
+}
+form span.inputDetail {
+   color: #666;
+   font-weight: 500;
+}
+form input.button {
+   margin: 10px 0;
+   padding: 10px; 
+   color: #fff;
+   font-weight: bold;
+   border: none;
+   background: url(../images/fdBtnUpdate.jpg) no-repeat left 50%;
+}
+form div.entete {
+   margin: 10px;
+   background-color: #fff3c9;
+}
+form .entete p {
+   float: left;
+   margin: 5px;
+   padding: 0 5px;
+}
+form p.search {
+   float: right;
+}
+form input.btnSearch {
+   width: 22px;
+   height: 20px;
+   background: url(../images/icLoupe.jpg) no-repeat;
+   border: none;
+}
+
+
+#searchControl { 
+	margin-top:10px; 
+}
+#searchControl span {
+	margin-left: 10px;
+	margin-right: 10px;
+}
+
+form select.selectComparator {
+   width: 100px;
+}
+
+input.queryInputValue, select.queryInputValue {
+	width:115px !important;
+	margin: 0px !important;
+	padding: 0px !important;
+}.popcurs{
+	text-decoration: underline;
+	cursor:pointer;
+}
+.curspoint{
+	cursor:pointer;
+}
+
+input.hasDatepicker {
+	width:90px !important;
+}
+
+button.ui-datepicker-trigger {
+	width: 25px !important;
+}
+
+form input.removeLineButton {
+   padding: 0em 0.3em;
+   width:18px !important;
+}
+
+#lift__noticesContainer___notice ul {
+  padding: 10px 20px;
+}
+
+/**************************************
+Tableau
+**************************************/
+
+.tablewidth{
+	width:100%;
+}
+.tablepadding{
+	padding-left:15px;
+	padding-top:5px;
+}
+.tablemargin{
+	margin-top:5px;
+}
+table {
+   margin: 10px;
+   width: 98%;
+   
+}
+caption {
+   display: none;
+}
+th, tr, td {
+   padding: 4px 3px;
+   text-align: left;
+}
+tr.head, tr.foot {
+   color: #fff;
+   font-weight: bold;
+}
+tr.foot {
+   background: url(../images/tableau/cCentrebas.jpg) bottom left;
+}
+tr.head {
+   background: url(../images/tableau/fdTaboHead.jpg) top left repeat-x;
+}
+.head th.first {
+   padding: 5px 10px;
+   background: url(../images/tableau/cGhaut.jpg) no-repeat top left;
+}
+.head th.last {
+   background: url(../images/tableau/cDhaut.jpg) no-repeat top right;
+}
+.foot td.first {
+   padding: 5px 10px;
+   background: url(../images/tableau/cGbas.jpg) no-repeat bottom left;
+}
+.foot td.last {
+   background: url(../images/tableau/cDbas.jpg) no-repeat bottom right;
+}
+th a {
+   color: #fff;
+   font-weight: bold;
+   text-decoration: none;
+}
+tr.color1 {
+   background-color: #eee;
+}
+tr.color2 {
+   background-color: #fff;
+}
+td {
+   border-top: 1px solid #ababab;
+}
+.warning {
+   color: #c00;
+}
+#contenu table td img, #contenu table th img {
+   float: none;
+   margin: 0;
+   padding: 2px 0 0 0;
+}
+.openDetail {
+   border: none;
+   background: none;
+   text-decoration: underline;
+   color: #000;
+   cursor: pointer;
+}
+.openDetail:hover {
+   text-decoration: none;
+}
+div#Detail {
+   height: auto;
+   min-height: 100%;
+   background: url(../images/popin/fdLoginFootG.png) no-repeat left bottom;
+   display: block;
+   min-height: 107px; 
+}
+#Detail div {
+   padding: 10px;
+}
+
+.head th input, .foot td input {
+   padding: 0.1em;
+   background-color: #f8f8f8;
+   border: 1px solid #b4b3a8;
+}
+
+.field_errors, .error, .errors {
+  color: red;	
+}
+
+
+
+/**********************
+* Custom for DataTable
+***********************/
+
+.dataTables_filter {
+	margin: 10px;
+	text-align: right;
+}
+
+.paginate {
+	width : 50%;
+	align:left;
+	height:20px;
+}
+
+.paginateBold {
+  width : 50%;
+  align:left;
+  height:20px;
+  font-weight:bold;
+}
+
+.sorting span,.sorting_asc span,.sorting_desc span   {
+  float:right;  
+	width:14px;
+}
+.sorting {
+	cursor: pointer; 
+}
+.sorting_asc { 
+	cursor: pointer; 
+}
+.sorting_desc { 
+	cursor: pointer; 
+}
+
+.sorting_asc span:after {
+	content:url("../images/tableau/flecheHaut.png");
+}
+
+.sorting_desc span:after {
+	content:url("../images/tableau/flecheBas.png");
+}
+
+/**********************************
+ * Pagination nested 
+ **********************************/
+ 
+.dataTables_paginate {
+  float: right;
+  text-align: right;
+  padding-left: 5px;
+}
+
+.dataTables_info {
+  float: right;
+  height: 19px;
+  padding-top: 3px;
+  padding-right: 5px;
+}
+
+.paginate_disabled_previous, .paginate_enabled_previous, .paginate_disabled_next, .paginate_enabled_next {
+  height: 19px;
+  width: 19px;
+  margin-left: 3px;
+  float: right;
+
+}
+
+.paginate_disabled_previous {
+  background-image: url('../images/back_disabled.jpg');
+}
+
+.paginate_enabled_previous {
+  background-image: url('../images/back_enabled.jpg');
+}
+
+.paginate_disabled_next {
+  background-image: url('../images/forward_disabled.jpg');
+}
+
+.paginate_enabled_next {
+  background-image: url('../images/forward_enabled.jpg');
+}
+
+
+/********************
+* Policy display
+********************/
+.inlineml{
+	display:inline;
+	margin-left:3px;
+}
+.inlinenotop{
+	display:inline;
+	padding-top:0px;
+}
+.cpiefsave{
+	float:right;
+}
+.pimversionspad{
+	padding:20px;
+}
+.wbBaseField * {
+	vertical-align: middle;
+}
+
+.policyDisplay {
+	font-size: 12px;
+  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
+}
+.greytooltip{
+	border-bottom:dotted 1 px grey;
+}
+.policyDisplay * {
+	font-size: 12px;
+  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
+}
+
+.variableDefinition {
+  margin: 3px;
+  padding:3px;
+  font-size: 12px;
+  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
+}
+
+.variableDefinition span,
+.variableDefinition td,
+.variableDefinition input {
+  font-size: 12px;
+  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
+  vertical-align: baseline;
+}
+
+.variableDefinition sup {
+  font-size: 10px;
+}
+
+.policyVariables {
+	width:75%;
+	display:table;
+	border-bottom : solid 1px;
+}
+
+
+.policyReports {
+	padding:0;
+	margin:0;
+	width:20%;
+	float:right;
+}
+
+.policyReports img {
+	padding:0;
+	margin:0;
+}
+.policyField {
+	width:75%;
+}
+
+/**********************************
+ *define the group/section table
+ **********************************/
+ 
+table.policyInstanceSectionDef {
+
+}
+
+table.policyInstanceSectionDisplay {
+
+}
+
+table.policyInstanceGroupDef {
+
+}
+
+table.policyInstanceGroupDisplay {
+
+}
+
+div.policyInstanceGroup {
+
+}
+
+fieldset.sectionFieldset {
+  padding: 1px 10px 1px 10px;
+}
+
+fieldset.groupFieldset {
+  padding: 1px 10px 1px 10px;
+}
+
+fieldset.policyTemplateDetailsFieldset {
+  margin: 10px;
+  padding: 1px 10px 1px 10px;
+}
+
+
+/**********************************
+ *add / remove group 
+ **********************************/
+
+.lopaddscala{
+	padding:0px
+}
+.createitem{
+	text-align: right;
+}
+
+div.policyInstanceDeleteGroup {
+  float:right;
+  margin: -20px 0 0 0;
+}
+
+div.policyInstanceAddGroup {
+  float:right;
+	margin: -20px 0 0 0;
+}
+
+
+td.policyInstanceVarLabel {
+  width:30%;
+  margin-right:2px;
+  text-align: right;
+  font-size: 12px;
+  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
+  vertical-align: middle;
+}
+
+td.policyInstanceVarLabel span {
+  font-size: 12px;
+  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
+}
+
+td.policyInstanceVarValue  {
+  width:50%;
+  margin-right:2px;
+}
+
+.textareaField {
+	width: 300px;
+	height: 300px;
+}
+
+/**********************************
+ * Temporal information
+ *********************************/
+
+.executionPlanning div.planningDetail {
+  margin: 3px;
+  padding:3px;
+}
+.executionPlanningTitle {
+	font-size: 1.1em;
+	font-weight: bold;
+}
+
+form .executionPlanningTitle {
+padding:0 20px;
+}
+
+
+#weeklyPeriod {
+  padding:0 20px;
+}
+
+.variableDefinition td {
+   border-top: 0px;
+}
+
+
+/*
+.variableDefinitionTitle {
+  font-size: 1.1em;
+  font-weight: bold;
+  padding:0 20px;
+}
+*/
+
+/*********************************
+* Search servers
+*********************************/
+.paddscala{
+	padding: 0px 0px 0px 15px;
+}
+.catdelete{
+	font-size:0.9em; 
+	margin-left: 5px;
+}
+.margins{
+	margin:10px;
+}
+.spacerscala{
+	float:right;
+}
+.paginatescala{
+	float:left;
+}
+.notify{
+	text-align:center;
+	margin: 10px;
+}
+.nserverrmargin{
+	margin-right:5px;
+}
+.rmargin{
+	float:right; 
+	margin:10px;
+}
+table.searchServers {
+	width: 545px;
+	margin:0 0 0 5px;
+}
+
+table.searchServers tbody td.first {
+	border-left: solid 1px #ABABAB;
+}
+
+table.searchServers tbody td.last {
+	border-right: solid 1px #ABABAB;
+}
+
+fieldset.searchServers {
+	padding:5px;
+	margin:5px;
+  width: 555px;
+  clear: both;
+}
+
+fieldset.searchServersAction {
+	padding:5px;
+	margin:5px;
+  width: 530px;
+  clear: both;
+}
+
+
+fieldset.groupCategoryUpdateComponent {
+	padding:5px;
+	margin:5px;
+  width: 580px;
+  
+}
+fieldset.groupUpdateComponent {
+	padding:5px;
+	margin:5px;
+  width: 580px; 
+}
+
+tr.query_line, .query_line td {
+	padding: 4px 1px;
+	text-align: center;
+}
+
+.composition {
+  text-align:center;
+  padding: 10px 0 0; 
+}
+
+.composition span {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.compositionRadio {
+	display: table-row-group !important;
+  text-align:left;
+}
+
+
+table#serverGrid {
+  width: 545px;
+  
+}
+
+table#serverGrid tbody td {
+  border-left: solid 1px #ABABAB;
+  border-bottom: solid 1px #ABABAB;
+  border-top: 0px;
+}
+
+#serverGrid_wrapper {
+	width: 545px;
+  margin:0 0 0 5px;
+}
+
+#serverGrid_wrapper table {
+	margin:0px;
+}
+
+
+.desactivatedGrid {
+	color: #AAAAAA;
+}
+
+.dataTables_scrollHeadInner table {
+	margin:0px;
+}
+
+.dataTables_scrollHeadInner {
+	background:url("../images/tableau/fdTaboHead.jpg") repeat-x scroll left top transparent;
+}
+
+.dataTables_scrollBody table {
+	margin:0px;
+}
+
+.serverGrid_pagination {
+	width: 545px;
+  margin:10px 0 0 5px;
+}
+
+#serverGrid_paginate_area {
+	float:left;
+}
+div.dataTables_scroll {
+	clear: both; 
+}
+
+#serverGrid_info_area {
+	margin:0 0 0 5px;
+}
+
+#serverGrid_info_area div {
+	display:inline-block;
+}
+
+#serverGrid_tooManyResult {
+	width: 543px;
+  margin:0 0 0 10px;
+  border: solid 1px #ABABAB;
+}
+
+
+.paginate_button {
+  border: 1px solid #d3d3d3;
+  padding: 2px 6px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.paginate_button_disabled {
+  border: 1px solid #d3d3d3;
+  padding: 2px 6px;
+  margin: 0;
+}
+
+.paginate_active {
+  border: 1px solid #d3d3d3;
+  padding: 2px 6px;
+  margin: 0;
+  color: #333333;
+  font-weight: bold;
+}
+
+
+/************************
+ * Search groups
+ ************************/
+
+fieldset.hierarchy {
+  width:300px;
+  margin:5px;
+  padding:5px;
+  /*float: left;*/
+  display: inline-block; 
+  vertical-align: top;
+}
+
+#ajaxItemContainer {
+	display: inline-block; 
+}
+
+fieldset.groupCategory {
+  width:600px;
+  margin:5px;
+  padding:5px;
+  float: left;
+  
+}
+
+.nodeGroupSubmitSearch {
+   width:543px;
+   border-left: 1px solid #ABABAB;
+   border-right: 1px solid #ABABAB;
+   margin: 0 0 0 5px;
+   padding: 5px 0 5px 0;
+}
+
+
+fieldset.crEditHierarchy {
+  width:45%;
+  margin:5px;
+  padding:5px;
+  display: inline-block;
+  vertical-align: top;
+}
+
+div.hierarchySpacer {
+  width:5%;
+  display: inline-block;
+}
+/*
+
+*/
 * {
    margin:0;
    padding: 0;
@@ -49,9 +912,11 @@ a:focus {
    border: none;
    outline: none;
 }
+
 /**************************************
 structure
 **************************************/
+
 div#prelude {
    display: none;
 }
@@ -86,6 +951,9 @@ div#logo {
 /**************************************
 header - haut de page
 **************************************/
+.logoutbutwidth{
+	width:130px;
+}
 div#infosUser {
    padding: 7px 5px;
    height: 30px;
@@ -158,9 +1026,11 @@ span.ui-button-text {
 .deploymentButton {
 	background: #DDDDDD !important;
 }
+
 /**************************************
 menu principal
 **************************************/
+
 div#menu {
    padding-top :7px;
    padding-top/*\**/: 3px\9;
@@ -225,6 +1095,7 @@ div#menu {
 /**************************************
 menu secondaire
 **************************************/
+
 #contenu.maximized {
    width: 94%;
    padding-right: 1%;
@@ -330,6 +1201,7 @@ a:focus.menuHide, a:active.menuHide {
 /**************************************
 contenu
 **************************************/
+
 div#contenu {
    margin: 0 auto;
    position: relative;
@@ -351,9 +1223,11 @@ p#filAriane {
 #filAriane a {
    color: #f79d10;
 }
+
 /**************************************
 Home portlet
 **************************************/
+
 .column {
    width: 50%;
    float: left;
@@ -421,9 +1295,11 @@ p img {
    visibility: hidden;
    visibility: hidden;
 }
+
 /**************************************
 popin
 **************************************/
+
 div#login, 
 div#account, 
 #addPopupContent {
@@ -440,11 +1316,29 @@ div#refusePopup {
 /********************
 * Popup
 ********************/
-#ui-dialog-title-addPopup ,
-{
-    height: 25px;
-    width:90%;
+#actions_zone{
+	margin:15px;
 }
+.popcurs{
+	text-decoration: underline;
+	cursor:pointer;
+}
+.curspoint{
+	cursor:pointer;
+}
+.newservertable{
+	max-height: 300px;
+	overflow-y: scroll;
+}
+.newservercell{
+	overflow:scroll; 
+	max-height: 100px;
+}
+
+#ui-dialog-title-addPopup{
+	height: 25px;
+    width:90%;
+    }
 
 .ui-dialog-title, .ui-dialog-titlebar-close {
 	height: 25px;
@@ -463,7 +1357,10 @@ div#refusePopup {
 /**************************************
 popin Login
 **************************************/
-#dialogLogOut { display:none; }
+
+#dialogLogOut { 
+	display:none; 
+}
 
 #dialogLogOut a:hover {
    text-decoration: underline;
@@ -487,6 +1384,9 @@ popin Login
 /**************************************
 popin Account
 **************************************/
+.userinfowidth{
+	width:130px;
+}
 #account h2 {
    color: #f79d10;
    font-size: 2em;
@@ -549,16 +1449,24 @@ span.verifValid {
    color: #b4b3a8;
    background: url(../images/icValid.jpg) no-repeat;
 }
+
 /**************************************
 popin Alert
 **************************************/
-#dialogAlert {display:none;}
 
-#simplemodal-container {color:#000000; background-color:#FFFFFF; border:4px solid #F79D10; padding:0px;
-		font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
-
+#dialogAlert {
+	display:none;
+	}
+#simplemodal-container {
+	color:#000000; 
+	background-color:#FFFFFF; 
+	border:4px solid #F79D10; 
+	padding:0px;
+	font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
     }
-#simplemodal-container .simplemodal-data {padding:0px;}
+#simplemodal-container .simplemodal-data {
+	padding:0px;
+	}
 #simplemodal-container .simplemodal-title hr {
  margin: 0px;
  width:100%;
@@ -585,11 +1493,33 @@ popin Alert
  width:100%;
 }
 
-#simplemodal-container .simplemodal-content {padding:6px;    font-size: 1.1em;}
-#simplemodal-container .simplemodal-content-no-zoom {padding:6px;}
-#simplemodal-container code {background:#141414; border-left:3px solid #65B43D; color:#bbb; display:block; font-size:12px; margin-bottom:12px; padding:4px 6px 6px;}
-#simplemodal-container a.modalCloseImg {background:url("../images/popin/croix.png") no-repeat; width:31px; height:30px; display:inline; z-index:3200; position:absolute; top:-15px; right:-16px; cursor:pointer;}
-
+#simplemodal-container .simplemodal-content {
+	padding:6px;
+	font-size: 1.1em;
+}
+#simplemodal-container .simplemodal-content-no-zoom {
+	padding:6px;
+}
+#simplemodal-container code {
+	background:#141414; 
+	border-left:3px solid #65B43D; 
+	color:#bbb; 
+	display:block; 
+	font-size:12px; 
+	margin-bottom:12px; 
+	padding:4px 6px 6px;
+}
+#simplemodal-container a.modalCloseImg {
+	background:url("../images/popin/croix.png") no-repeat; 
+	width:31px; 
+	height:30px; 
+	display:inline; 
+	z-index:3200; 
+	position:absolute; 
+	top:-15px; 
+	right:-16px; 
+	cursor:pointer;
+}
 #simplemodal-overlay {
     background-color: #777777;
 }
@@ -633,6 +1563,13 @@ popin Alert
 #Alerte a:hover {
    text-decoration: none;
 }
+/*************************
+*	plugins				 *
+**************************/
+
+.pluginpadd{
+	padding: 0 10px;
+}
 
 /*************************
 *   Divers
@@ -642,9 +1579,7 @@ popin Alert
  * Underlined, dotted grey: that text has a tooltip
  */
 .tooltip {
-  border-bottom-color: grey;
-  border-bottom-style: dotted;
-  border-bottom-width: 1px;
+  border-bottom:1px dotted grey;
 }
 
 
@@ -657,9 +1592,12 @@ popin Alert
 	opacity: 0.85;
 	padding: 4px;
 }
-#tooltip h3, #tooltip div { margin: 0; }
+#tooltip h3, #tooltip div { 
+	margin: 0; 
+}
 
 /* tooltip styling.  */
+
 .tooltipContent {
 	display:none;
 	
@@ -676,9 +1614,84 @@ color: #FF0000 !important;
 .autoWidthButton {
 	width: auto !important;
 }
+
+/* others */
+
+.errorscala{
+	border-bottom:1px solid red;
+	cursor:pointer;
+}
+.tree li.filteredNode { 
+	display:none; 
+}
+.deca{
+	padding: 10px;
+}
+.inline{
+	display:inline;
+}
+.iconscala{
+	float:left;
+	margin-right:5px;
+	margin-top:2px;
+}
+
+.err{
+	padding-left: 50px;
+}
+.green{
+	color:green;
+	margin:3px; 
+	font-style:italic; 
+	font-size: 0.9em;
+}
+.warnicon{
+	float:left;
+	margin-right:20px;
+}
+.erroricon{
+	float:left; 
+	margin-right:10px;
+}
+.icon{
+	float:left; 
+	margin-right:20px;
+}
+.greenscala{
+	color:green
+}
+.centertext{
+	text-align:center;
+}
+.greyscala{
+	color:grey; 
+	border-bottom:1px dotted grey;
+}
+.checkbox{
+	float:right;
+	margin:0 30px 0 10px;
+	height:20px;
+}
+.nodisplay{
+	display:none;
+}
+.ajaxloader{
+	position: fixed;
+    top: 50%;
+    left: 50%;
+    text-align:center;
+    padding:10px;
+    margin-left: -50px;
+    margin-top: -50px;
+    z-index:9999;
+    overflow: auto; 
+    display:none;
+}
+
 /**************************************
 footer - bas de page
 **************************************/
+
 div#footer {
    padding: 5px 5px 5px 30px;
    height: 30px;
@@ -689,9 +1702,11 @@ div#footer {
 #footer a {
    color: #999;
 }
+
 /**************************************
 classes annexes
 **************************************/
+
 .right {
    float: right;
    margin: 0 0 5px 5px;
@@ -758,6 +1773,7 @@ template, a policy instance, etc)
 /************************************
 Descriptions
 ************************************/
+
 ul.descriptif li {
  	padding: 0 12px 5px 5px;
 	list-style-type: none;
@@ -797,6 +1813,7 @@ div.tabInform {
 /***********************************
  *Policy display
 ************************************/
+
 .policyTitle {
 	font-size:1.3em;
   font-weight:bold;
@@ -826,7 +1843,12 @@ div.tabInform {
 /***********************************
  *Reports display
 ************************************/
-
+.evlogviewpad{
+	padding:5px;
+}
+.evloglmargin{
+	margin-left:3px;	
+}
 .reportsList {
   margin : 10px;
   padding : 5px;
@@ -892,8 +1914,10 @@ tr.Noanswer {
 /***********************************
  * Trees
 ************************************/
-
-
+.treefilternodecursor{
+	cursor:pointer;
+	cursor:hand;
+}
 
 .treeGroupName , .treePolicyInstance, .treePolicyTemplateName, .treeRuleName { 
   font-size:0.95em; 
