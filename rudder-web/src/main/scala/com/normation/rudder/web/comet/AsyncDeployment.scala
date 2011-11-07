@@ -148,7 +148,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
   
   private[this] def errorPopup = {
-    <div id="errorDetailsDialog" class=".not">
+    <div id="errorDetailsDialog" class="nodisplay">
       <div class="simplemodal-title">
         <h1>Error</h1>
         <hr/>
