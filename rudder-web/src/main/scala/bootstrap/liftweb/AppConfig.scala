@@ -174,7 +174,9 @@ class AppConfig extends Loggable {
 
   @Value("${rudder.dir.config}")
   var configFolder = ""
-  @Value("${rudder.dir.policyPackages}")
+  @Value("${rudder.dir.gitRoot}")
+  var gitRoot = ""
+  @Value("${rudder.dir.relative.policyPackages}")
   var policyPackages = ""
 
   @Value("${rudder.batch.dyngroup.updateInterval}")
@@ -230,11 +232,16 @@ class AppConfig extends Loggable {
     backupFolder)
 
   @Bean
-  def gitRepo = new GitRepositoryProviderImpl(policyPackages)
+  def gitRepo = new GitRepositoryProviderImpl(gitRoot)
 
   @Bean
   def policyPackagesReader: PolicyPackagesReader = new GitPolicyPackagesReader(
-    policyParser, new LDAPGitRevisionProvider(ldap, rudderDit, gitRepo, ptRefsPath), gitRepo, "policy.xml", "category.xml")
+      policyParser
+    , new LDAPGitRevisionProvider(ldap, rudderDit, gitRepo, ptRefsPath)
+    , gitRepo
+    , "policy.xml", "category.xml"
+    , Some(policyPackages)
+  )
 
   @Bean
   def systemVariableService: SystemVariableService = new SystemVariableServiceImpl(licenseRepository,
