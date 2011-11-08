@@ -176,7 +176,7 @@ class AppConfig extends Loggable {
   var configFolder = ""
   @Value("${rudder.dir.gitRoot}")
   var gitRoot = ""
-  @Value("${rudder.dir.relative.policyPackages}")
+  @Value("${rudder.dir.policyPackages}")
   var policyPackages = ""
 
   @Value("${rudder.batch.dyngroup.updateInterval}")
@@ -235,13 +235,21 @@ class AppConfig extends Loggable {
   def gitRepo = new GitRepositoryProviderImpl(gitRoot)
 
   @Bean
-  def policyPackagesReader: PolicyPackagesReader = new GitPolicyPackagesReader(
-      policyParser
-    , new LDAPGitRevisionProvider(ldap, rudderDit, gitRepo, ptRefsPath)
-    , gitRepo
-    , "policy.xml", "category.xml"
-    , Some(policyPackages)
-  )
+  def policyPackagesReader: PolicyPackagesReader = {
+    //find the relative path from gitRepo to the ptlib root
+    val gitSlash = ne File(gitRoot).getPath + "/"
+    if(!policyPackages.startsWith(gitSlash)) {
+      throw new RuntimeException("The policy template library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(gitRoot, policyPackages))
+    }
+    val relativePath = policyPackages.substring(gitSlash.size, policyPackages.size)
+    new GitPolicyPackagesReader(
+        policyParser
+      , new LDAPGitRevisionProvider(ldap, rudderDit, gitRepo, ptRefsPath)
+      , gitRepo
+      , "policy.xml", "category.xml"
+      , Some(relativePath)
+    )
+  }
 
   @Bean
   def systemVariableService: SystemVariableService = new SystemVariableServiceImpl(licenseRepository,
