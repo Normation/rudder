@@ -33,13 +33,13 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   <parent>
     <groupId>com.normation.inventory</groupId>
     <artifactId>inventory-parent</artifactId>
-    <version>0.10.1-SNAPSHOT</version>
+    <version>0.11.0-SNAPSHOT</version>
   </parent>
 
   <groupId>com.normation.inventory</groupId>
   <artifactId>inventory-provisioning-web</artifactId>
   <packaging>war</packaging>
-  <version>0.10.1-SNAPSHOT</version>
+  <version>0.11.0-SNAPSHOT</version>
 
   <build>
     <plugins>
@@ -58,12 +58,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-provisioning-core</artifactId>
-      <version>0.10.1-SNAPSHOT</version>
+      <version>0.11.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-fusion</artifactId>
-      <version>0.10.1-SNAPSHOT</version>
+      <version>0.11.0-SNAPSHOT</version>
     </dependency>
 
     <!-- Compile dependencies -->

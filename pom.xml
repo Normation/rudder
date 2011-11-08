@@ -35,12 +35,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   <artifactId>inventory-parent</artifactId>
   <packaging>pom</packaging>
 
-  <version>0.10.1-SNAPSHOT</version>
+  <version>0.11.0-SNAPSHOT</version>
 
   <parent>
     <groupId>com.normation</groupId>
     <artifactId>parent-pom</artifactId>
-    <version>0.10.1-SNAPSHOT</version>
+    <version>0.11.0-SNAPSHOT</version>
   </parent>
   
   <description>
