@@ -19,7 +19,7 @@ limitations under the License.
   
   <groupId>com.normation</groupId>
   <artifactId>parent-pom</artifactId>
-  <version>0.10.1-SNAPSHOT</version>
+  <version>0.11.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
@@ -276,7 +276,7 @@ limitations under the License.
     <jodatime-version>1.6.2</jodatime-version>
 
     <spring-version>3.0.5.RELEASE</spring-version>
-    <spring-run-dep-version>0.10.1-SNAPSHOT</spring-run-dep-version>
+    <spring-run-dep-version>0.11.0-SNAPSHOT</spring-run-dep-version>
   </properties>
   
   <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
