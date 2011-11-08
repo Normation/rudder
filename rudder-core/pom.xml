@@ -35,13 +35,13 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   <parent>
     <groupId>com.normation.rudder</groupId>
     <artifactId>rudder-parent</artifactId>
-    <version>0.10.1-SNAPSHOT</version>
+    <version>0.11.0-SNAPSHOT</version>
   </parent>
 
   <groupId>com.normation.rudder</groupId>
   <artifactId>rudder-core</artifactId>
   <packaging>jar</packaging>
-  <version>0.10.1-SNAPSHOT</version>
+  <version>0.11.0-SNAPSHOT</version>
 
   <description>
     This is the API/Core lib module that writes the promises of machines
@@ -51,25 +51,25 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-api</artifactId>
-      <version>0.10.1-SNAPSHOT</version>
+      <version>0.11.0-SNAPSHOT</version>
     </dependency>
     
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-repository</artifactId>
-      <version>0.10.1-SNAPSHOT</version>
+      <version>0.11.0-SNAPSHOT</version>
     </dependency>
     
     <dependency>
       <groupId>com.normation.cfclerk</groupId>
       <artifactId>cfclerk-core</artifactId>
-      <version>0.10.1-SNAPSHOT</version>
+      <version>0.11.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
       <groupId>com.normation</groupId>
       <artifactId>eventlog-api</artifactId>
-      <version>0.10.1-SNAPSHOT</version>
+      <version>0.11.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
