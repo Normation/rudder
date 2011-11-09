@@ -237,7 +237,7 @@ class AppConfig extends Loggable {
   @Bean
   def policyPackagesReader: PolicyPackagesReader = {
     //find the relative path from gitRepo to the ptlib root
-    val gitSlash = ne File(gitRoot).getPath + "/"
+    val gitSlash = new File(gitRoot).getPath + "/"
     if(!policyPackages.startsWith(gitSlash)) {
       throw new RuntimeException("The policy template library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(gitRoot, policyPackages))
     }
