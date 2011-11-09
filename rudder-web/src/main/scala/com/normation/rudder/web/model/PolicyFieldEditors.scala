@@ -307,8 +307,8 @@ class DateField(format: DateTimeFormatter)(val id: String) extends PolicyField {
 
   def toForm() = {
     val xml = (<head>
-                 <script type="text/javascript" src="/javascript/ui/jquery.ui.datepicker.js"></script>
-                 <script type="text/javascript" src="/javascript/ui/i18n/jquery.ui.datepicker-fr.js"></script>
+                 <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.datepicker.js"></script>
+                 <script type="text/javascript" src="/javascript/jquery/ui/i18n/jquery.ui.datepicker-fr.js"></script>
                </head>) ++ (SHtml.text(toClient, { x => parseClient(x) }) % ("id" -> this.id)) ++
       Script(OnLoad(JsRaw("var init%s = $.datepicker.regional['%s']; init%s['showOn'] = 'both';jQuery('#%s').datepicker(init%s)".
         format(id, format.getLocale.getLanguage, id, id, id))))
@@ -348,8 +348,8 @@ class TimeField(format: DateTimeFormatter)(val id: String) extends PolicyField {
 
   def toForm() = {
     val xml = (<head>
-                 <script type="text/javascript" src="/javascript/ui/jquery.ui.datepicker.js"></script>
-                 <script type="text/javascript" src="/javascript/ui/i18n/jquery.ui.datepicker-fr.js"></script>
+                 <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.datepicker.js"></script>
+                 <script type="text/javascript" src="/javascript/jquery/ui/i18n/jquery.ui.datepicker-fr.js"></script>
                </head>) ++ (SHtml.text(toClient, { x => parseClient(x) }) % ("id" -> this.id)) ++
       Script(OnLoad(JsRaw("var init%s = $.datepicker.regional['%s']; init%s['showOn'] = 'both';jQuery('#%s').datepicker(init%s)".
         format(id, format.getLocale.getLanguage, id, id, id))))

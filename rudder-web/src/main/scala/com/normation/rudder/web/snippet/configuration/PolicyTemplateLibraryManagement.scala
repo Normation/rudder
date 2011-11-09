@@ -143,7 +143,7 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
     {
       <head>
         <script type="text/javascript" src="/javascript/jstree/jquery.jstree.js" id="jstree"></script>
-        <script type="text/javascript" src="/javascript/tree.js" id="tree"></script>
+        <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
       </head>
     }
   }

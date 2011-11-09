@@ -116,7 +116,7 @@ class ConfigurationRuleManagement extends DispatchSnippet with SpringExtendableS
     ConfigurationRuleGrid.staticInit ++
     {<head>
       <script type="text/javascript" src="/javascript/jstree/jquery.jstree.js" id="jstree"></script>
-      <script type="text/javascript" src="/javascript/tree.js" id="tree"></script>
+      <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
       {Script(
         JsRaw("""
 $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disabled";

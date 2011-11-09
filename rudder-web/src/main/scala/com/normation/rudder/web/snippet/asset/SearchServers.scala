@@ -145,8 +145,8 @@ class SearchServers extends StatefulSnippet with Loggable {
     import net.liftweb.json.JsonDSL._
     
     { <head>
-      <script type="text/javascript" src="/javascript/ui/jquery.ui.datepicker.js"></script>
-      <script type="text/javascript" src="/javascript/ui/i18n/jquery.ui.datepicker-fr.js"></script>
+      <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.datepicker.js"></script>
+      <script type="text/javascript" src="/javascript/jquery/ui/i18n/jquery.ui.datepicker-fr.js"></script>
       {Script(OnLoad(parseJsArg()))}
     </head> } ++ ShowServerDetailsFromNode.staticInit
   }
