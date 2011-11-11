@@ -206,7 +206,9 @@ class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators
     val children = for (child <- sectionSpec.children) yield {
       child match {
         case varSpec: VariableSpec => createVarField(varSpec, sectionMap.getOrElse(varSpec.name,None))
-        case sectSpec: SectionSpec => createSingleSectionFieldForMultisec(sectSpec, sectionMap, isNewPolicy)
+        case sectSpec: SectionSpec => 
+          val subSectionMap = if(isNewPolicy) createDefaultMap(sectSpec) else sectionMap
+          createSingleSectionFieldForMultisec(sectSpec, subSectionMap, isNewPolicy)
       }
     }
     
