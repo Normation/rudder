@@ -106,12 +106,12 @@ class HomePage extends Loggable {
 
   def crs(html : NodeSeq) : NodeSeq = {
     countAllCr match {
-      case Empty => <li>There are no configuration rules applied</li>
+      case Empty => <li>There are no configuration rules defined</li>
       case m:Failure =>
           logger.error("Could not fetch the number of configuration rules. reason : %s".format(m.messageChain))
           <div>Could not fetch the number of configuration rules</div>
-      case Full(x) if x == 0 => <li>There are no configuration rules applied</li>
-      case Full(x) => <li>There are <a href="secure/configurationManager/configurationRuleManagement">{x} configuration rules applied</a></li>
+      case Full(x) if x == 0 => <li>There are no configuration rules defined</li>
+      case Full(x) => <li>There are <a href="secure/configurationManager/configurationRuleManagement">{x} configuration rules defined</a></li>
     }
   }
 

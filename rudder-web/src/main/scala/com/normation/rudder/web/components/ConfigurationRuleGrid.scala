@@ -57,6 +57,7 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.utils.StringUuidGenerator
 import com.normation.exceptions.TechnicalException
 import com.normation.utils.Control.sequence
+import com.normation.rudder.domain.log.RudderEventActor
 
 
 object ConfigurationRuleGrid {
@@ -76,6 +77,7 @@ class ConfigurationRuleGrid(
   
   private[this] val targetInfoService = inject[PolicyInstanceTargetService]
   private[this] val policyInstanceRepository = inject[PolicyInstanceRepository]
+  private[this] val configurationRuleRepository = inject[ConfigurationRuleRepository]
 
   private[this] val reportingService = inject[ReportingService]
   private[this] val nodeInfoService = inject[NodeInfoService]
@@ -175,12 +177,20 @@ class ConfigurationRuleGrid(
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   private[this] def showConfigurationRulesDetails(crs:Seq[ConfigurationRule],linkCompliancePopup:Boolean) : NodeSeq = {
-    case class Line(
+    sealed trait Line { val cr:ConfigurationRule }
+    
+    case class OKLine(
         cr:ConfigurationRule,
         compliance:Option[ComplianceLevel],
         trackerVariables: Seq[(PolicyInstance,UserPolicyTemplate)],
         target:Option[PolicyInstanceTargetInfo]
-    )
+    ) extends Line
+    
+    case class ErrorLine(
+        cr:ConfigurationRule,
+        trackerVariables: Box[Seq[(PolicyInstance,UserPolicyTemplate)]],
+        target:Box[Option[PolicyInstanceTargetInfo]]
+    ) extends Line
     
     //is a cr applied for real ?
     def isApplied(
@@ -267,86 +277,8 @@ class ConfigurationRuleGrid(
       }
     }
     
-    //for each rule, get all the required info and display them
-    val lines = crs.flatMap { cr =>
-      (for {
-        trackerVariables: Seq[(PolicyInstance,UserPolicyTemplate)] <- sequence(cr.policyInstanceIds.toSeq) { id =>
-          policyInstanceRepository.getPolicyInstance(id) match {
-            case Full(pi) => policyInstanceRepository.getUserPolicyTemplate(id) match {
-              case Full(upt) => Full((pi,upt))
-              case e:EmptyBox => //it's an error if the pi ID is defined and such be is not found
-                e ?~! "Can not find User Policy Template for policy instance with ID %s referenced in configuration rule with ID %s".format(id, cr.id)
-            }
-            case e:EmptyBox => //it's an error if the pi ID is defined and such pi is not found
-              e ?~! "Can not find Policy Instance with ID %s referenced in configuration rule with ID %s".format(id, cr.id)
-          }
-        }
-        targetInfo <- cr.target match {
-          case None => Full(None)
-          case Some(target) => targetInfoService.getTargetInfo(target) match {
-            case Full(targetInfo) => Full(Some(targetInfo))
-            case Empty => 
-              //TODO: it can't be an error, because in that case the CR just "disapear" for the user, without log message nor anything else. 
-              //but we really should have a "TargetError" case or something to let the user know that the target was not found
-              logger.warn("Can not find requested target: '%s', it seems to be a database inconsistency.".format(target.target))
-              Full(None)             
-            case f:Failure => //it's an error if the pi ID is defined and such id is not found
-              val error = f ?~! "Can not find Target information for target %s referenced in configuration rule with ID %s".format(target.target, cr.id)
-              logger.debug(error.messageChain, error)
-              error
-          }
-        }
-        compliance = if(isApplied(cr, trackerVariables, targetInfo)) computeCompliance(cr) else None
-      } yield {
-        Line(cr, compliance, trackerVariables, targetInfo)
-      }) match {
-        case e:EmptyBox => 
-          logger.warn((e ?~! "Error when fetching details for configuration rule %s %s, remove it from the list of configuration rules".format(cr.name, cr.id)).messageChain)
-          e
-        case x => x  
-      }
-    }
-    
-    //now, build html lines
-    if(lines.isEmpty) {
-      NodeSeq.Empty
-    } else {
-      lines.map { line =>
-      <tr>
-        <td>{ // NAME 
-          detailsLink(line.cr, line.cr.name)
-        }</td>
-        <td>{ // DESCRIPTION
-          detailsLink(line.cr, line.cr.shortDescription)
-        }</td>
-        <td>{ // OWN STATUS
-          if (line.cr.isActivatedStatus) "Enabled" else "Disabled"
-        }</td>
-        <td><b>{ // EFFECTIVE STATUS
-          if(isApplied(line.cr, line.trackerVariables, line.target)) Text("In application")
-          else {
-              val conditions = Seq(
-                  (line.cr.isActivated, "Configuration rule disabled" ), 
-                  ( line.trackerVariables.size > 0, "No policy defined"),
-                  ( line.target.isDefined && line.target.get.isActivated, "Group disabled")
-               ) ++ line.trackerVariables.flatMap { case (pi, upt) => Seq(
-                  ( pi.isActivated , "Policy " + pi.name + " disabled") , 
-                  ( upt.isActivated, "Policy template for '" + pi.name + "' disabled") 
-               )}
-               
-              val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ") 
-              <span class="tooltip tooltipable" tooltipid={line.cr.id.value}>Not applied</span>
-               <div class="tooltipContent" id={line.cr.id.value}><h3>Reason(s)</h3><div>{why}</div></div>
-          }
-        }</b></td>
-        <td>{ //  COMPLIANCE
-          buildComplianceChart(line.compliance, line.cr, linkCompliancePopup)
-        }</td>
-        <td>{ //  POLICY INSTANCE: <not defined> or PIName [(disabled)]
-          displayPis(line.trackerVariables)
-         }</td>
-        <td>{ //  TARGET NODE GROUP
-          line.target match {
+    def displayTarget(target:Option[PolicyInstanceTargetInfo]) = {
+       target match {
             case None => <i>None</i>
             case Some(targetInfo) => targetInfo.target match {
               case GroupTarget(groupId) => <a href={ """/secure/assetManager/groups#{"groupId":"%s"}""".format(groupId.value)}>{ 
@@ -355,13 +287,130 @@ class ConfigurationRuleGrid(
               case _ => Text({ targetInfo.name + (if (targetInfo.isActivated) "" else " (disabled)") })
              }
           }
-        }</td>
-        { // CHECKBOX 
-          if(showCheckboxColumn) <td><input type="checkbox" name={line.cr.id.value} /></td> else NodeSeq.Empty 
+    }
+    
+    //for each rule, get all the required info and display them
+    val lines:Seq[Line] = crs.map { cr =>
+
+      val trackerVariables: Box[Seq[(PolicyInstance,UserPolicyTemplate)]] = 
+        sequence(cr.policyInstanceIds.toSeq) { id =>
+          policyInstanceRepository.getPolicyInstance(id) match {
+            case Full(pi) => policyInstanceRepository.getUserPolicyTemplate(id) match {
+              case Full(upt) => Full((pi,upt))
+              case e:EmptyBox => //it's an error if the pi ID is defined and found but it is not attached to an upt
+                val error = e ?~! "Can not find User Policy Template for policy instance with ID %s referenced in configuration rule with ID %s".format(id, cr.id)
+                logger.debug(error.messageChain, error)
+                error
+            }
+            case e:EmptyBox => //it's an error if the pi ID is defined and such pi is not found
+              val error = e ?~! "Can not find Policy Instance with ID %s referenced in configuration rule with ID %s".format(id, cr.id)
+              logger.debug(error.messageChain, error)
+              error
+          }
         }
-      </tr>  
+      val targetInfo = cr.target match {
+          case None => Full(None)
+          case Some(target) => targetInfoService.getTargetInfo(target) match {
+            case Full(targetInfo) => Full(Some(targetInfo))
+            case Empty => 
+              val m = "Can not find requested target: '%s', it seems to be a database inconsistency.".format(target.target)
+              logger.debug(m)
+              Failure(m)             
+            case f:Failure => //it's an error if the pi ID is defined and such id is not found
+              val error = f ?~! "Can not find Target information for target %s referenced in configuration rule with ID %s".format(target.target, cr.id)
+              logger.debug(error.messageChain, error)
+              error
+          }
+        }
+      
+      (trackerVariables,targetInfo) match {
+        case (Full(seq), Full(target)) => 
+          val compliance = if(isApplied(cr, seq, target)) computeCompliance(cr) else None
+          OKLine(cr, compliance, seq, target)
+        case (x,y) =>
+          //the configuration rule has some error, try to disactivate it
+          configurationRuleRepository.update(cr.copy(isActivatedStatus=false),RudderEventActor) 
+
+          ErrorLine(cr,x,y)
+      }
     }
-    }
+
+    //now, build html lines
+    if(lines.isEmpty) {
+      NodeSeq.Empty
+    } else {
+      lines.map { l => l match {
+      case line:OKLine =>
+        <tr>
+          <td>{ // NAME 
+            detailsLink(line.cr, line.cr.name)
+          }</td>
+          <td>{ // DESCRIPTION
+            detailsLink(line.cr, line.cr.shortDescription)
+          }</td>
+          <td>{ // OWN STATUS
+            if (line.cr.isActivatedStatus) "Enabled" else "Disabled"
+          }</td>
+          <td><b>{ // EFFECTIVE STATUS
+            if(isApplied(line.cr, line.trackerVariables, line.target)) Text("In application")
+            else {
+                val conditions = Seq(
+                    (line.cr.isActivated, "Configuration rule disabled" ), 
+                    ( line.trackerVariables.size > 0, "No policy defined"),
+                    ( line.target.isDefined && line.target.get.isActivated, "Group disabled")
+                 ) ++ line.trackerVariables.flatMap { case (pi, upt) => Seq(
+                    ( pi.isActivated , "Policy " + pi.name + " disabled") , 
+                    ( upt.isActivated, "Policy template for '" + pi.name + "' disabled") 
+                 )}
+               
+                val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ") 
+                <span class="tooltip tooltipable" tooltipid={line.cr.id.value}>Not applied</span>
+                 <div class="tooltipContent" id={line.cr.id.value}><h3>Reason(s)</h3><div>{why}</div></div>
+            }
+          }</b></td>
+          <td>{ //  COMPLIANCE
+            buildComplianceChart(line.compliance, line.cr, linkCompliancePopup)
+          }</td>
+          <td>{ //  POLICY INSTANCE: <not defined> or PIName [(disabled)]
+            displayPis(line.trackerVariables)
+           }</td>
+          <td>{ //  TARGET NODE GROUP
+            displayTarget(line.target)
+          }</td>
+          { // CHECKBOX 
+            if(showCheckboxColumn) <td><input type="checkbox" name={line.cr.id.value} /></td> else NodeSeq.Empty 
+          }
+        </tr>
+          
+      case line:ErrorLine =>
+        <tr class="error">
+          <td>{ // NAME 
+            detailsLink(line.cr, line.cr.name)
+          }</td>
+          <td>{ // DESCRIPTION
+            detailsLink(line.cr, line.cr.shortDescription)
+          }</td>
+          <td>{ // OWN STATUS
+            "N/A"
+          }</td>
+          <td>{ // EFFECTIVE STATUS
+            "N/A"
+          }</td>
+          <td>{ //  COMPLIANCE
+            "N/A"
+          }</td>
+          <td>{ //  POLICY INSTANCE: <not defined> or PIName [(disabled)]
+            line.trackerVariables.map(displayPis _).getOrElse("ERROR")
+           }</td>
+          <td>{ //  TARGET NODE GROUP
+            line.target.map(displayTarget(_)).getOrElse("ERROR")
+          }</td>
+          { // CHECKBOX 
+            if(showCheckboxColumn) <td><input type="checkbox" name={line.cr.id.value} /></td> else NodeSeq.Empty 
+          }
+        </tr>  
+      } }
+    } 
   }
 
   private[this] def computeCompliance(cr: ConfigurationRule) : Option[ComplianceLevel] = {
