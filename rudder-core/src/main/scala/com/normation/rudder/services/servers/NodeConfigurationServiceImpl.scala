@@ -72,6 +72,7 @@ import com.normation.rudder.services.log._
 import com.normation.eventlog._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.policies.IdentifiableCFCPI
+import com.normation.exceptions.TechnicalException
 
 /**
  * Implementation of the server service, deals with adding, removing, updating policies or servers
@@ -116,7 +117,7 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
       repository.findNodeConfiguration(serverUUID) match {
         case Full(server) => Some(server)
         case Empty => None
-        case f:Failure => error("Error when trying to retrieve server %s. Message was %s".format(serverUUID,f.messageChain))
+        case f:Failure => throw new TechnicalException("Error when trying to retrieve server %s. Message was %s".format(serverUUID,f.messageChain))
       }
     }
   }
@@ -126,7 +127,7 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
       repository.getMultipleNodeConfigurations(ids) match {
         case Full(servers) => servers
         case Empty => Set()
-        case Failure(m,_,_) => error("Error when trying to retrieve servers %s. Message was %s".format(ids,m))
+        case Failure(m,_,_) => throw new TechnicalException("Error when trying to retrieve servers %s. Message was %s".format(ids,m))
       }
     }
   }
@@ -140,7 +141,7 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
       repository.getAll() match {
         case Full(map) => map
         case Empty => Map()
-        case Failure(m,_,_) => error("Error when trying to retrieve all servers. Message was %s".format(m))
+        case Failure(m,_,_) => throw new TechnicalException("Error when trying to retrieve all servers. Message was %s".format(m))
       }
     }
   }
@@ -480,9 +481,9 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
     repository.findNodeConfigurationByTargetPolicyName(policyName) match {
       case Full(seq) => seq
       case Empty =>
-        error("Error when trying to find server with policy name %s. No error message left".format(policyName))
+        throw new TechnicalException("Error when trying to find server with policy name %s. No error message left".format(policyName))
       case Failure(m,_,_)=>
-        error("Error when trying to find server with policy name %s. Error message was: ".format(policyName,m))
+        throw new TechnicalException("Error when trying to find server with policy name %s. Error message was: ".format(policyName,m))
     }
   }
 
@@ -490,9 +491,9 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
     repository.findNodeConfigurationByCurrentConfigurationRuleId(ConfigurationRuleId(policyInstanceId.value)) match {
       case Full(seq) => seq
       case Empty =>
-        error("Error when trying to find server with policy instance id %s. No error message left".format(policyInstanceId))
+        throw new TechnicalException("Error when trying to find server with policy instance id %s. No error message left".format(policyInstanceId))
       case Failure(m,_,_)=>
-        error("Error when trying to find server with policy instance id %s. Error message was: ".format(policyInstanceId,m))
+        throw new TechnicalException("Error when trying to find server with policy instance id %s. Error message was: ".format(policyInstanceId,m))
     }
   }
 
@@ -531,9 +532,9 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
     repository.findUncommitedNodeConfigurations match {
       case Full(seq) => seq
       case Empty =>
-        error("Error when trying to find server with uncommited policy instance. No error message left")
+        throw new TechnicalException("Error when trying to find server with uncommited policy instance. No error message left")
       case Failure(m,_,_)=>
-        error("Error when trying to find server with uncommited policy instance. Error message was: %s".format(m))
+        throw new TechnicalException("Error when trying to find server with uncommited policy instance. Error message was: %s".format(m))
     }    
   }
   

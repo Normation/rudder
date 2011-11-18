@@ -516,7 +516,7 @@ class AddServerToDynGroup(
    */
   override def preAccept(sms:Seq[FullInventory], actor:EventActor) : Box[Seq[FullInventory]] = {
     for {
-      nodeIds <- sequence(sms) { sm => Box(sm.node.main.id) }
+      nodeIds <- sequence(sms) { sm => Box.legacyNullTest(sm.node.main.id) }
       map <- dynGroupService.findDynGroups(nodeIds) ?~! "Error when building the map of dynamic group to update by node"
     } yield {
       dynGroupIdByNode = map
