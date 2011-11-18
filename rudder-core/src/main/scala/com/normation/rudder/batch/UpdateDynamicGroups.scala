@@ -41,22 +41,23 @@ import net.liftweb.actor._
 import org.joda.time._
 import com.normation.rudder.domain.log.RudderEventActor
 import com.normation.rudder.domain.Constants.DYNGROUP_MINIMUM_UPDATE_INTERVAL
+import com.normation.utils.HashcodeCaching
 
 //Message to send to the updater manager to start a new update of all dynamic groups
 case object StartUpdate
 
 
 //a container to hold the list of dynamic group to update
-case class GroupsToUpdate(ids:Seq[NodeGroupId])
+case class GroupsToUpdate(ids:Seq[NodeGroupId]) extends HashcodeCaching 
 
 
 sealed trait UpdaterStates //states into wich the updater process can be
 //the process is idle
 case object IdleUdater extends UpdaterStates
 //an update is currently running for the given nodes
-case class StartProcessing(id:Long, started: DateTime, groupIds:GroupsToUpdate) extends UpdaterStates
+case class StartProcessing(id:Long, started: DateTime, groupIds:GroupsToUpdate) extends UpdaterStates with HashcodeCaching 
 //the process gave a result
-case class UpdateResult(id:Long, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends UpdaterStates
+case class UpdateResult(id:Long, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends UpdaterStates with HashcodeCaching 
 
   
 

@@ -38,6 +38,7 @@ import scala.xml.NodeSeq
 import com.normation.eventlog.{EventLog,EventActor}
 import java.security.Principal
 import org.joda.time.DateTime
+import com.normation.utils.HashcodeCaching
 
 sealed trait UserEventLog extends EventLog {
   override val details = EventLog.emptyDetails
@@ -50,7 +51,7 @@ final case class LoginEventLog(
   , override val creationDate : DateTime = new DateTime()
   , override val cause : Option[Int] = None
   , severity : Int = 100
-) extends UserEventLog {
+) extends UserEventLog with HashcodeCaching {
   
   override val eventType = "UserLogin"
   override val eventLogCategory = UserLogCategory
@@ -63,7 +64,7 @@ final case class BadCredentialsEventLog(
   , override val creationDate : DateTime = new DateTime()
   , override val cause : Option[Int] = None
   , severity : Int = 100
-) extends UserEventLog {
+) extends UserEventLog with HashcodeCaching {
 
   override val eventType = "BadCredentials"
   override val eventLogCategory = UserLogCategory
@@ -77,7 +78,7 @@ final case class LogoutEventLog(
   , override val creationDate : DateTime = new DateTime()
   , override val cause : Option[Int] = None
   , severity : Int = 100
-) extends UserEventLog {
+) extends UserEventLog with HashcodeCaching {
   
   override val eventType = "UserLogout"
   override val eventLogCategory = UserLogCategory

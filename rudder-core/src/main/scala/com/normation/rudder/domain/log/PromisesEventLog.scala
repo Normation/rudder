@@ -37,6 +37,7 @@ package com.normation.rudder.domain.log
 import com.normation.eventlog._
 import scala.xml.NodeSeq
 import org.joda.time.DateTime
+import com.normation.utils.HashcodeCaching
 
 final case class StartDeployement(
     override val principal : EventActor
@@ -45,7 +46,7 @@ final case class StartDeployement(
   , override val creationDate : DateTime = new DateTime() 
   , override val cause : Option[Int] = None
   , override val severity : Int = 100
-) extends EventLog {
+) extends EventLog with HashcodeCaching {
   override val eventType = "StartDeployement"
   override val eventLogCategory = DeploymentLogCategory
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))

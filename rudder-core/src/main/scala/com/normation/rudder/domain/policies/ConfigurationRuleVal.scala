@@ -35,17 +35,14 @@
 package com.normation.rudder.domain.policies
 
 import com.normation.cfclerk.domain._
-
 import com.normation.utils.Utils._
 import org.joda.time.DateTime
-
 import com.normation.cfclerk.domain.{PolicyPackageId,CFCPolicyInstanceId,CFCPolicyInstance}
-
 import net.liftweb.common._
 import Box._
-
 import org.joda.time.{LocalDate,LocalTime,Duration,DateTime}
 import com.normation.rudder.domain._
+import com.normation.utils.HashcodeCaching
 
 
 /*
@@ -62,7 +59,7 @@ case class PolicyInstanceContainer(
   , priority: Int
   , TrackerVariable: TrackerVariable
   , variables: Map[String, Variable]
-)
+) extends HashcodeCaching 
 
 
 
@@ -71,7 +68,7 @@ case class ConfigurationRuleVal(
   target : PolicyInstanceTarget,  //list of target for that policy instance (server groups, server ids, etc)
   policies : Seq[PolicyInstanceContainer],
   serial : Int // the generation serial of the CR
-) {
+) extends HashcodeCaching {
   
   def toIdentifiableCFCPI : Seq[IdentifiableCFCPI] = 
     policies.map ( pol => IdentifiableCFCPI(configurationRuleId,
@@ -86,6 +83,6 @@ case class ConfigurationRuleVal(
 case class IdentifiableCFCPI (
 		configurationRuleId:ConfigurationRuleId,
 		policyInstance: CFCPolicyInstance
-) 
+) extends HashcodeCaching 
 
 

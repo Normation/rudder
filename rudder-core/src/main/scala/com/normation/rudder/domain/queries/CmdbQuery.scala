@@ -52,6 +52,7 @@ import JE._
 import net.liftweb.json._
 import JsonDSL._
 import com.normation.exceptions.TechnicalException
+import com.normation.utils.HashcodeCaching
 
 sealed trait CriterionComparator { 
   val id:String 
@@ -140,7 +141,7 @@ sealed trait CriterionType  extends ComparatorList {
 }
 
 //a comparator type with undefined comparators
-case class BareComparator(override val comparators:CriterionComparator*) extends CriterionType {
+case class BareComparator(override val comparators:CriterionComparator*) extends CriterionType with HashcodeCaching {
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = Full(v)
   override def toLDAP(value:String) = Full(value)
 }
@@ -427,7 +428,7 @@ case object GroupOfDnsComparator extends CriterionType {
 */
 
 
-case class Criterion(val name:String, val cType:CriterionType) {
+case class Criterion(val name:String, val cType:CriterionType) extends HashcodeCaching {
   require(name != null && name.length > 0, "Criterion name must be defined")
   require(cType != null, "Criterion Type must be defined")
   
@@ -435,7 +436,7 @@ case class Criterion(val name:String, val cType:CriterionType) {
 }
 
 
-case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) {
+case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) extends HashcodeCaching {
   require(objectType.length > 0, "Unique identifier for line must be defined")
   require(criteria.size > 0, "You must at least have one criterion for the line")
 
@@ -455,7 +456,7 @@ case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) {
   }
 }
 
-case class CriterionLine(objectType:ObjectCriterion, attribute:Criterion, comparator:CriterionComparator, value:String="") 
+case class CriterionLine(objectType:ObjectCriterion, attribute:Criterion, comparator:CriterionComparator, value:String="") extends HashcodeCaching 
 
 sealed abstract class CriterionComposition
 case object And extends CriterionComposition

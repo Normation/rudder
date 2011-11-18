@@ -42,7 +42,7 @@ import com.normation.utils.HashcodeCaching
  * UUId type for Server Groups, so that they
  * can be uniquely identified in our world.
  */
-case class NodeGroupId(value:String)
+case class NodeGroupId(value:String) extends HashcodeCaching 
 
 /**
  * This class define a server group

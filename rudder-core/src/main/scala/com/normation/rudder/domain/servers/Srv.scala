@@ -41,6 +41,7 @@ import com.normation.utils.Utils._
 import org.slf4j.LoggerFactory
 import org.joda.time.DateTime
 import com.normation.rudder.domain.RudderLDAPConstants._
+import com.normation.utils.HashcodeCaching
 
 
 
@@ -68,7 +69,7 @@ case class Srv(
   , osFullName  : String
   , ips         : List[String]
   , creationDate: DateTime
-)
+) extends HashcodeCaching 
 
 
 object Srv {

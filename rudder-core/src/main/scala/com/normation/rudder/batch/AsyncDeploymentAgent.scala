@@ -44,10 +44,11 @@ import com.normation.rudder.services.policies.DeploymentService
 import net.liftweb.http.ListenerManager
 import com.normation.eventlog.{EventActor,EventLogService,EventLog}
 import com.normation.rudder.domain.log.{RudderEventActor,StartDeployement}
+import com.normation.utils.HashcodeCaching
 
 //ask for a new deployment - only message understood by the service !
 //actor: the actor who asked for the deployment
-final case class StartDeployment(actor:EventActor)
+final case class StartDeployment(actor:EventActor) extends HashcodeCaching 
 
 
 /**
@@ -55,27 +56,27 @@ final case class StartDeployment(actor:EventActor)
  */
 sealed trait DeployerState
 //not currently doing anything
-final case object IdleDeployer extends DeployerState
+final case object IdleDeployer extends DeployerState with HashcodeCaching 
 //a deployment is currently running
-final case class Processing(id:Long, started: DateTime) extends DeployerState
+final case class Processing(id:Long, started: DateTime) extends DeployerState with HashcodeCaching 
 //a deployment is currently running and an other is queued
-final case class ProcessingAndPending(asked: DateTime, current:Processing) extends DeployerState
+final case class ProcessingAndPending(asked: DateTime, current:Processing) extends DeployerState with HashcodeCaching 
   
 /**
  * Status of the last deployment process
  */
 sealed trait CurrentDeploymentStatus
 //noting was done for now
-final case object NoStatus extends CurrentDeploymentStatus
+final case object NoStatus extends CurrentDeploymentStatus with HashcodeCaching 
 //last status - success or error
-final case class SuccessStatus(id:Long, started: DateTime, ended:DateTime, configuration:Map[NodeId,NodeConfiguration]) extends CurrentDeploymentStatus 
-final case class ErrorStatus(id:Long, started: DateTime, ended:DateTime, failure:Failure) extends CurrentDeploymentStatus 
+final case class SuccessStatus(id:Long, started: DateTime, ended:DateTime, configuration:Map[NodeId,NodeConfiguration]) extends CurrentDeploymentStatus with HashcodeCaching 
+final case class ErrorStatus(id:Long, started: DateTime, ended:DateTime, failure:Failure) extends CurrentDeploymentStatus with HashcodeCaching 
 
 
 final case class DeploymentStatus(
   current: CurrentDeploymentStatus,
   processing: DeployerState
-)
+) extends HashcodeCaching 
 
 /**
  * Asyn version of the deployment service.
@@ -91,9 +92,9 @@ final class AsyncDeploymentAgent(
 
   
   //message from the deployment agent to the manager
-  private[this] sealed case class DeploymentResult(id:Long, start: DateTime, end:DateTime, results: Box[Map[NodeId, NodeConfiguration]])
+  private[this] sealed case class DeploymentResult(id:Long, start: DateTime, end:DateTime, results: Box[Map[NodeId, NodeConfiguration]]) extends HashcodeCaching 
   //message from manager to deployment agent
-  private[this] sealed case class NewDeployment(id:Long, started: DateTime)
+  private[this] sealed case class NewDeployment(id:Long, started: DateTime) extends HashcodeCaching 
   
   private[this] var lastFinishedDeployement : CurrentDeploymentStatus = NoStatus
   private[this] var currentDeployerState : DeployerState = IdleDeployer

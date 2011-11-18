@@ -50,6 +50,7 @@ import net.liftweb.common._
 import com.normation.utils.Control.{sequence,pipeline}
 import com.normation.rudder.domain.RudderLDAPConstants._
 import java.util.regex.Pattern
+import com.normation.utils.HashcodeCaching
 
 
 
@@ -62,11 +63,11 @@ import java.util.regex.Pattern
  */
 sealed trait ExtendedFilter
 //pur LDAP filters
-final case class LDAPFilter(f:Filter) extends ExtendedFilter
+final case class LDAPFilter(f:Filter) extends ExtendedFilter with HashcodeCaching 
 
 //special ones
 sealed trait SpecialFilter extends ExtendedFilter
-final case class RegexFilter(attributeName:String, regex:String) extends SpecialFilter
+final case class RegexFilter(attributeName:String, regex:String) extends SpecialFilter with HashcodeCaching 
 
 /*
  * An ServerQuery differ a little from a Query because it's component are sorted in two way :
@@ -85,7 +86,7 @@ case class LDAPServerQuery(
     returnTypeFilters: Option[Set[ExtendedFilter]],    
     composition:CriterionComposition,           //the final composition to apply
     objectTypesFilters: Map[DnType, Map[String,Set[ExtendedFilter]]] //that map MUST not contains returnType
-)
+) extends HashcodeCaching 
 
 
 case class RequestLimits (
@@ -93,7 +94,7 @@ case class RequestLimits (
   val subRequestSizeLimit:Int,
   val requestTimeLimit:Int,
   val requestSizeLimit:Int
-)
+) extends HashcodeCaching 
 
 object DefaultRequestLimits extends RequestLimits(10,1000,10,1000)
 
@@ -112,7 +113,7 @@ class AccepetedNodesLDAPQueryProcessor(
   private[this] case class QueryResult(
     nodeEntry:LDAPEntry,
     inventoryEntry:LDAPEntry
-  )
+  ) extends HashcodeCaching 
 
   /**
    * only report entries that match query in also in node

@@ -98,7 +98,7 @@ case class PolicyInstanceTargetInfo(
   description:String,
   isActivated:Boolean,
   isSystem:Boolean
-)
+) extends HashcodeCaching 
 
 
 

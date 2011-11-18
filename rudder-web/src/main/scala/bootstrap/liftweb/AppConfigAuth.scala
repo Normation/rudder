@@ -37,22 +37,18 @@ package bootstrap.liftweb
 
 // spring boilerplate //
 import org.springframework.context.annotation.{Bean,Configuration,Import,ImportResource}
-
-
 import org.springframework.core.io.{Resource,ClassPathResource,FileSystemResource}
 import org.springframework.context.annotation.Lazy
-
 import org.springframework.security.authentication.AuthenticationProvider
 import org.springframework.security.authentication.encoding._
 import org.springframework.security.core.userdetails.memory.{InMemoryDaoImpl,UserMap}
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.core.GrantedAuthority
-
 import scala.collection.JavaConversions._
-
 import net.liftweb.common._
 import java.io.File
+import com.normation.utils.HashcodeCaching
 
 /**
  * Spring configuration for user authentication.
@@ -113,7 +109,7 @@ case object RoleUserAuthority extends GrantedAuthority {
   override val getAuthority = "ROLE_USER"
 }
 
-case class DemoUserDetail(login:String,password:String) extends UserDetails {
+case class DemoUserDetail(login:String,password:String) extends UserDetails with HashcodeCaching {
   override val getAuthorities:java.util.Collection[GrantedAuthority] = Seq(RoleUserAuthority)
   override val getPassword = password
   override val getUsername = login
@@ -126,7 +122,7 @@ case class DemoUserDetail(login:String,password:String) extends UserDetails {
 case class AuthConfig(
   encoder: PasswordEncoder,
   users:List[(String,String)]
-)
+) extends HashcodeCaching 
 
 object AppConfigAuth extends Loggable {
   

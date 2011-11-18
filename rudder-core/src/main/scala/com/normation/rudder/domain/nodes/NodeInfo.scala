@@ -36,8 +36,8 @@ package com.normation.rudder.domain.nodes
 
 import com.normation.inventory.domain.AgentType
 import org.joda.time.DateTime
-
 import com.normation.inventory.domain.NodeId
+import com.normation.utils.HashcodeCaching
 
 /**
  * A NodeInfo is a read only object containing the information that will be
@@ -60,7 +60,7 @@ case class NodeInfo(
   , creationDate  : DateTime
   , isBroken      : Boolean
   , isSystem      : Boolean
-)
+) extends HashcodeCaching 
 
 /**
  * A PolicyServerNodeInfo is basically the same as a NodeInfo, except that
@@ -84,4 +84,4 @@ case class PolicyServerNodeInfo(
   , override val isBroken      : Boolean
   , override val isSystem      : Boolean
 ) extends NodeInfo(id, name, description,hostname,os = "", ips, inventoryDate, publicKey, 
-    agentsName, policyServerId, localAdministratorAccountName, creationDate, isBroken, isSystem)
+    agentsName, policyServerId, localAdministratorAccountName, creationDate, isBroken, isSystem) with HashcodeCaching 

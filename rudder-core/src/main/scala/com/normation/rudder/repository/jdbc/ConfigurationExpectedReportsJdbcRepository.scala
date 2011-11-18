@@ -50,6 +50,7 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 import scala.collection.JavaConversions._
 import net.liftweb.json._
+import com.normation.utils.HashcodeCaching
 
 class ConfigurationExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
     extends ConfigurationExpectedReportsRepository {
@@ -360,7 +361,7 @@ case class ExpectedConfRuleMapping(
     // the period where the configuration is applied to the servers
     val beginDate : DateTime = new DateTime(),
     val endDate : Option[DateTime] = None
-    )
+) extends HashcodeCaching 
     
     
  object ComponentsValuesSerialiser {

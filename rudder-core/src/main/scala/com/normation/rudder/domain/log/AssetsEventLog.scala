@@ -39,6 +39,7 @@ import scala.xml.NodeSeq
 import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.servers.Srv
+import com.normation.utils.HashcodeCaching
 
 
 /**
@@ -52,7 +53,7 @@ final case class InventoryLogDetails(
   , hostname        : String
   , fullOsName      : String
   , actorIp         : String
-)
+) extends HashcodeCaching 
 
 sealed trait InventoryEventLog extends EventLog 
 
@@ -87,7 +88,7 @@ final case class AcceptNodeEventLog (
   , override val details : NodeSeq
   , override val creationDate : DateTime = new DateTime() 
   , override val severity : Int = 100
-) extends InventoryEventLog {
+) extends InventoryEventLog with HashcodeCaching {
   
   override val eventLogCategory = AssetLogCategory
   override val cause = None
@@ -117,7 +118,7 @@ final case class RefuseNodeEventLog (
   , override val details : NodeSeq
   , override val creationDate : DateTime = new DateTime() 
   , override val severity : Int = 100
-) extends InventoryEventLog {
+) extends InventoryEventLog with HashcodeCaching {
   override val eventLogCategory = AssetLogCategory
   override val cause = None
   override val eventType = "RefuseNode"

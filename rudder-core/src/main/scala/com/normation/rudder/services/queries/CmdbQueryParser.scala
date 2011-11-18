@@ -41,6 +41,7 @@ import net.liftweb.json.JsonDSL._
 import JsonParser.ParseException
 import com.normation.rudder.domain._
 import CmdbQueryParser._
+import com.normation.utils.HashcodeCaching
 
 /**
  * This trait is the general interface that
@@ -52,8 +53,8 @@ import CmdbQueryParser._
  */
 
 //only string version of the query - no domain here
-case class StringCriterionLine(objectType:String, attribute:String, comparator:String, value:Option[String]=None)
-case class StringQuery(returnType:String,composition:Option[String],criteria:Seq[StringCriterionLine])
+case class StringCriterionLine(objectType:String, attribute:String, comparator:String, value:Option[String]=None) extends HashcodeCaching 
+case class StringQuery(returnType:String,composition:Option[String],criteria:Seq[StringCriterionLine]) extends HashcodeCaching 
 
 object CmdbQueryParser {
   //query attribute

@@ -78,7 +78,7 @@ case class SimpleNodeConfiguration(
   val writtenDate : Option[DateTime],
   val currentSystemVariables :  Map[String, Variable],
   val targetSystemVariables :  Map[String, Variable]
-) extends NodeConfiguration {
+) extends NodeConfiguration with HashcodeCaching {
     
   
   /**

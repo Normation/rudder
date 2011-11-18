@@ -37,6 +37,7 @@ package com.normation.rudder.domain.servers
   
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.{CFCPolicyInstanceId}
+import com.normation.utils.HashcodeCaching
 
 /**
  * These classes describe the different case of
@@ -46,11 +47,11 @@ import com.normation.cfclerk.domain.{CFCPolicyInstanceId}
  * - or some of its variables are modified
  */
 
-sealed case class ModifiedVariable(currentVar:Variable,newValue:Seq[String])
+sealed case class ModifiedVariable(currentVar:Variable,newValue:Seq[String]) extends HashcodeCaching 
 
 sealed abstract class ServerPolicyDiff
-case class AddedPolicy(policyInstanceId:CFCPolicyInstanceId) extends ServerPolicyDiff
-case class DeletedPolicy(policyInstanceId:CFCPolicyInstanceId) extends ServerPolicyDiff
+case class AddedPolicy(policyInstanceId:CFCPolicyInstanceId) extends ServerPolicyDiff with HashcodeCaching 
+case class DeletedPolicy(policyInstanceId:CFCPolicyInstanceId) extends ServerPolicyDiff with HashcodeCaching 
 //modifiedVars are pair of (variableName, value)
-case class ModifiedPolicy(policyInstanceId:CFCPolicyInstanceId,modifiedVars:List[ModifiedVariable]) extends ServerPolicyDiff
+case class ModifiedPolicy(policyInstanceId:CFCPolicyInstanceId,modifiedVars:List[ModifiedVariable]) extends ServerPolicyDiff with HashcodeCaching 
   

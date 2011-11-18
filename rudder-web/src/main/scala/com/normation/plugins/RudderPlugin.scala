@@ -37,6 +37,7 @@ package com.normation.plugins
 import scala.xml.NodeSeq
 import net.liftweb.sitemap.Menu
 import com.normation.utils.Utils.nonEmpty
+import com.normation.utils.HashcodeCaching
 
 case class PluginVersion(
     major : Int
@@ -44,12 +45,12 @@ case class PluginVersion(
   , micro : Int
   , prefix : String = ""
   , suffix : String = ""
-) {
+)  extends HashcodeCaching {
   
   override def toString = prefix + major + "." + minor + "." + micro + (if(nonEmpty(suffix)) "~" + suffix else "")
 }
 
-case class PluginName(value:String) {
+case class PluginName(value:String) extends HashcodeCaching {
   if(null == value || value.length == 0) {
     throw new IllegalArgumentException("A plugin name can not be null nor empty")
   }

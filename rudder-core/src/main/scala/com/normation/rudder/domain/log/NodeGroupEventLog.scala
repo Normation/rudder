@@ -43,6 +43,7 @@ import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
+import com.normation.utils.HashcodeCaching
 
 sealed trait NodeGroupEventLog extends EventLog
 
@@ -78,7 +79,7 @@ final case class AddNodeGroup(
   , override val details : NodeSeq
   , override val creationDate : DateTime = new DateTime()
   , override val severity : Int = 100
-) extends NodeGroupEventLog {
+) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = "NodeGroupAdded"
   override val eventLogCategory = NodeGroupLogCategory
@@ -105,7 +106,7 @@ final case class DeleteNodeGroup(
   , override val details : NodeSeq
   , override val creationDate : DateTime = new DateTime()
   , override val severity : Int = 100
-) extends NodeGroupEventLog {
+) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = "NodeGroupDeleted"
   override val eventLogCategory = NodeGroupLogCategory
@@ -132,7 +133,7 @@ final case class ModifyNodeGroup(
   , override val details : NodeSeq
   , override val creationDate : DateTime = new DateTime()
   , override val severity : Int = 100
-) extends NodeGroupEventLog {
+) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = "NodeGroupModified"
   override val eventLogCategory = NodeGroupLogCategory

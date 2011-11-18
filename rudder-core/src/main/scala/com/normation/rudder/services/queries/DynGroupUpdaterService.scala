@@ -48,6 +48,7 @@ import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import net.liftweb.common._
 import com.normation.rudder.repository.NodeGroupRepository
 import com.normation.eventlog.EventActor
+import com.normation.utils.HashcodeCaching
 
 
 /**
@@ -60,7 +61,7 @@ case class DynGroupDiff(
     members:Seq[NodeId],
     removed:Seq[NodeId],
     added:Seq[NodeId]
-)
+) extends HashcodeCaching 
 
 
 trait DynGroupUpdaterService {

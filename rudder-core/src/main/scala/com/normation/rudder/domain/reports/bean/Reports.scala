@@ -39,6 +39,7 @@ import com.normation.rudder.domain.policies.PolicyInstanceId
 import com.normation.rudder.domain.policies.ConfigurationRuleId
 import org.joda.time._
 import org.slf4j.{Logger,LoggerFactory}
+import com.normation.utils.HashcodeCaching
 /**
  * Store the reports entry from the execution
  * Contains : the datetime at which it was generated, the cr/policyinstanceid, 
@@ -68,7 +69,7 @@ sealed case class ResultSuccessReport(val executionDate : DateTime,
     val component : String,
     val keyValue : String,
     val executionTimestamp : DateTime,
-    val message : String) extends Reports {
+    val message : String) extends Reports with HashcodeCaching {
   val severity = Reports.RESULT_SUCCESS
 }
 
@@ -80,7 +81,7 @@ sealed case class ResultRepairedReport(val executionDate : DateTime,
     val component : String,
     val keyValue : String,
     val executionTimestamp : DateTime,
-    val message : String) extends Reports {
+    val message : String) extends Reports with HashcodeCaching {
   val severity = Reports.RESULT_REPAIRED
 }
 
@@ -92,7 +93,7 @@ sealed case class ResultErrorReport(val executionDate : DateTime,
     val component : String,
     val keyValue : String,
     val executionTimestamp : DateTime,
-    val message : String) extends Reports {
+    val message : String) extends Reports with HashcodeCaching {
   val severity = Reports.RESULT_ERROR
 }
 
@@ -105,7 +106,7 @@ sealed case class LogRepairedReport(val executionDate : DateTime,
     val component : String,
     val keyValue : String,
     val executionTimestamp : DateTime,
-    val message : String) extends Reports {
+    val message : String) extends Reports with HashcodeCaching {
   val severity = Reports.LOG_REPAIRED
 }
   
@@ -117,7 +118,7 @@ sealed case class LogWarnReport(val executionDate : DateTime,
     val component : String,
     val keyValue : String,
     val executionTimestamp : DateTime,
-    val message : String) extends Reports {
+    val message : String) extends Reports with HashcodeCaching {
   val severity = Reports.LOG_WARN
 }
 
@@ -129,7 +130,7 @@ sealed case class LogInformReport(val executionDate : DateTime,
     val component : String,
     val keyValue : String,
     val executionTimestamp : DateTime,
-    val message : String) extends Reports {
+    val message : String) extends Reports with HashcodeCaching {
   val severity = Reports.LOG_INFO
 }
 
@@ -141,7 +142,7 @@ sealed case class LogDebugReport(val executionDate : DateTime,
     val component : String,
     val keyValue : String,
     val executionTimestamp : DateTime,
-    val message : String) extends Reports {
+    val message : String) extends Reports with HashcodeCaching {
   val severity = Reports.LOG_DEBUG
 }
 
@@ -153,7 +154,7 @@ sealed case class LogTraceReport(val executionDate : DateTime,
     val component : String,
     val keyValue : String,
     val executionTimestamp : DateTime,
-    val message : String) extends Reports {
+    val message : String) extends Reports with HashcodeCaching {
   val severity = Reports.LOG_TRACE
 }
 
@@ -165,7 +166,7 @@ sealed case class UnknownReport(val executionDate : DateTime,
     val component : String,
     val keyValue : String,
     val executionTimestamp : DateTime,
-    val message : String) extends Reports {
+    val message : String) extends Reports with HashcodeCaching {
   val severity = "Unknown"
 }
 

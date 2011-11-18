@@ -48,6 +48,7 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.utils.NetUtils.isValidNetwork
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.services.servers.PolicyServerManagementService
 
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       

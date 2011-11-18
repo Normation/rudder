@@ -44,11 +44,8 @@ import net.liftweb.common._
 import org.joda.time.{ DateTime, LocalDate, LocalTime, Duration, Period }
 import org.joda.time.format._
 import com.normation.utils.Utils._
-
 import java.util.Locale
-
 import org.slf4j.LoggerFactory
-
 import scala.xml._
 import net.liftweb.http._
 import js._
@@ -56,8 +53,9 @@ import JsCmds._
 import JE._
 import net.liftweb.util.Helpers._
 import com.normation.cfclerk.domain.{ VariableSpec, PolicyPackageId, PolicyPackage }
-
 import com.normation.exceptions.TechnicalException
+import org.slf4j.LoggerFactory
+import com.normation.utils.HashcodeCaching
 
 /**
  * A displayable field has 2 methods :
@@ -177,7 +175,7 @@ trait PolicyField extends BaseField with SectionChildField {
   }
 }
 
-import org.slf4j.LoggerFactory
+
 object PolicyField {
   val logger = LoggerFactory.getLogger(classOf[PolicyField])
 }
@@ -202,7 +200,7 @@ case class SectionFieldImp(
   // Only variables of the current section have entries in the values map
   // the key of type String is the id (variable name), 
   // the value is a function which should be called at validation time
-  val values: Map[String, () => String]) extends SectionField {
+  val values: Map[String, () => String]) extends SectionField with HashcodeCaching {
 
   def copy(): Nothing = throw new TechnicalException("Can't copy PolicyFieldGroup, it contains mutable datas")
   def toClient = childFields.mkString
@@ -246,7 +244,7 @@ case class SectionFieldImp(
 
 case class MultivaluedSectionField(
   val sections: Seq[SectionField],
-  private val newSection: () => SectionField) extends SectionField {
+  private val newSection: () => SectionField) extends SectionField with HashcodeCaching {
   require(!sections.isEmpty)
   
   val name: String = sections.head.name
@@ -404,7 +402,7 @@ case class PolicyEditor(
   val name: String,
   val description: String,
   val sectionField: SectionField,
-  val variableSpecs: Map[String, VariableSpec]) {
+  val variableSpecs: Map[String, VariableSpec])  extends HashcodeCaching {
 
   /**
    * Get the map of (varname, list(values)),

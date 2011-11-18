@@ -41,6 +41,7 @@ import LDAPConstants._
 import BuildFilter._
 import scala.collection.{SortedMap,SortedSet}
 import com.normation.rudder.services.queries.SpecialFilter
+import com.normation.utils.HashcodeCaching
 
 
 /*
@@ -220,9 +221,9 @@ class DitQueryData(dit:InventoryDit) {
    * - used for the join
    */
   sealed  abstract class LDAPJoinElement(val selectAttribute:String) 
-  final case class AttributeJoin(override val selectAttribute:String) extends LDAPJoinElement(selectAttribute)
-  final case object DNJoin extends LDAPJoinElement(A_DN)
-  final case object ParentDNJoin extends LDAPJoinElement(A_DN)
+  final case class AttributeJoin(override val selectAttribute:String) extends LDAPJoinElement(selectAttribute) with HashcodeCaching 
+  final case object DNJoin extends LDAPJoinElement(A_DN) with HashcodeCaching 
+  final case object ParentDNJoin extends LDAPJoinElement(A_DN) with HashcodeCaching 
 //  case class QueryJoin(query:Query) extends LDAPJoinElement
   
 
@@ -238,7 +239,7 @@ case class LDAPObjectType(
   , filter        : Filter
   , join          : LDAPJoinElement
   , specialFilters: Set[(CriterionComposition, SpecialFilter)] = Set()
-)
+) extends HashcodeCaching 
 
   //template query for each object type
   def objectTypes = Map(

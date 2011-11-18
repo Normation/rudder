@@ -38,10 +38,11 @@ import net.liftweb.http._
 import scala.xml.NodeSeq
 import net.liftweb.util.Props
 import com.normation.exceptions.TechnicalException
+import com.normation.utils.HashcodeCaching
 
 
 
-case class SnippetExtensionKey(value:String)
+case class SnippetExtensionKey(value:String) extends HashcodeCaching 
 
 
 /**

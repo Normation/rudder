@@ -38,9 +38,10 @@ import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
 import com.normation.rudder.domain.RudderLDAPConstants.A_GROUP_CATEGORY_UUID
 import com.unboundid.ldap.sdk.DN
+import com.normation.utils.HashcodeCaching
 
 
-case class GroupCategoryUuid(val value:String) extends Uuid
+case class GroupCategoryUuid(val value:String) extends Uuid with HashcodeCaching 
 //  val attrName = A_GROUP_CATEGORY_UUID
 
 
@@ -52,5 +53,5 @@ case class GroupCategory(
 	val children: List[GroupCategoryUuid],
   val items : List[QueryUuid]
   //val technical : Boolean = false
-)
+) extends HashcodeCaching 
 

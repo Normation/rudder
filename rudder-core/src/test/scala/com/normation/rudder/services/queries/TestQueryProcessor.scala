@@ -38,9 +38,7 @@ import org.junit._
 import org.junit.Assert._
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
-
 import com.normation.rudder.domain.queries._
 import net.liftweb.common._
 import com.normation.rudder.domain._
@@ -49,10 +47,9 @@ import com.unboundid.ldap.sdk.DN
 import com.normation.ldap.ldif._
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
 import com.normation.ldap.sdk._
-
 import com.normation.inventory.ldap.core._
-
 import com.normation.inventory.domain.NodeId
+import com.normation.utils.HashcodeCaching
 
 /*
  * Test query parsing.
@@ -108,7 +105,7 @@ class TestQueryProcessor extends Loggable {
     override val criterionObjects = Map[String,ObjectCriterion]() ++ ditQueryData.criteriaMap
   }
     
-  case class TestQuery(name:String,query:Query,awaited:Seq[NodeId])
+  case class TestQuery(name:String,query:Query,awaited:Seq[NodeId]) extends HashcodeCaching 
 
   val s = Seq(
     new NodeId("node0"),new NodeId("node1"),new NodeId("node2"),

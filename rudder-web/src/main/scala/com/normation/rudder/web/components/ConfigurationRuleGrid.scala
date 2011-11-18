@@ -44,8 +44,6 @@ import JsCmds._
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.nodes.NodeInfoService
-
-// For implicits
 import JE._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -57,6 +55,7 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.utils.StringUuidGenerator
 import com.normation.exceptions.TechnicalException
 import com.normation.utils.Control.sequence
+import com.normation.utils.HashcodeCaching
 
 
 object ConfigurationRuleGrid {
@@ -180,7 +179,7 @@ class ConfigurationRuleGrid(
         compliance:Option[ComplianceLevel],
         trackerVariables: Seq[(PolicyInstance,UserPolicyTemplate)],
         target:Option[PolicyInstanceTargetInfo]
-    )
+    ) extends HashcodeCaching 
     
     //is a cr applied for real ?
     def isApplied(
@@ -497,7 +496,7 @@ trait ComplianceLevel
 
 case object Applying extends ComplianceLevel
 case object NoAnswer extends ComplianceLevel
-case class Compliance(val percent:Int) extends ComplianceLevel
+case class Compliance(val percent:Int) extends ComplianceLevel with HashcodeCaching 
 
   
   

@@ -35,6 +35,7 @@
 package com.normation.rudder.domain.nodes
 
 import com.normation.inventory.domain.NodeId
+import com.normation.utils.HashcodeCaching
 
 
 /**
@@ -44,6 +45,6 @@ import com.normation.inventory.domain.NodeId
  * @author Nicolas CHARLES
  *
  */
-case class Node(id:NodeId, name:String, description:String, isBroken : Boolean, isSystem : Boolean) {
+case class Node(id:NodeId, name:String, description:String, isBroken : Boolean, isSystem : Boolean) extends HashcodeCaching {
 
 }

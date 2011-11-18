@@ -40,12 +40,12 @@ import com.normation.rudder.web.model._
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
-
 import net.liftweb.util.Helpers
 import scala.collection.mutable.{ Map => MutMap }
 import com.normation.cfclerk.domain._
 import com.normation.exceptions.TechnicalException
 import org.slf4j.LoggerFactory
+import com.normation.utils.HashcodeCaching
 
 /**
  * Create web representation of policy instance in the goal
@@ -144,7 +144,7 @@ class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators
   //      Map((A -> "A2"), (B -> "B2")) )
   private def createMapForEachSubSection(section: SectionSpec): Seq[Map[String, Option[String]]] = {
     // values represent all the values we have for the same name of variable
-    case class NameValuesVar(name: String, values: Array[String])
+    case class NameValuesVar(name: String, values: Array[String]) extends HashcodeCaching 
 
     // seq of variable values with same name correctly ordered
     val seqOfNameValues: Seq[NameValuesVar] = for (varSpec <- section.getVariables)

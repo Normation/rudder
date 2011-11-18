@@ -50,6 +50,7 @@ import com.normation.ldap.sdk.{ReadOnlyLDAPConnection, BuildFilter, LDAPConnecti
 import BuildFilter._
 import com.normation.rudder.repository._
 import com.normation.eventlog.EventActor
+import com.normation.utils.HashcodeCaching
 
 
 /**
@@ -58,7 +59,7 @@ import com.normation.eventlog.EventActor
 case class PolicyInstanceDependencies(
   policyInstanceId:PolicyInstanceId,
   configurationRules:Seq[ConfigurationRule]
-)
+) extends HashcodeCaching 
 
 /**
  * A container for items which depend on policy instances
@@ -66,7 +67,7 @@ case class PolicyInstanceDependencies(
 case class TargetDependencies(
   target:PolicyInstanceTarget,
   configurationRules:Seq[ConfigurationRule]
-)
+) extends HashcodeCaching 
 
 /**
  * A container for items which depend on policy template
@@ -76,7 +77,7 @@ case class PolicyTemplateDependencies(
   userPolicyTemplateId:UserPolicyTemplateId,
   policyInstances:Map[PolicyInstanceId, (PolicyInstance,Seq[ConfigurationRuleId])],
   configurationRules:Map[ConfigurationRuleId,ConfigurationRule]
-)
+) extends HashcodeCaching 
 
 
 sealed trait ModificationStatus

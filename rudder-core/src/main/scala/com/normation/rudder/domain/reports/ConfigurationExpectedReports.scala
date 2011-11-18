@@ -40,6 +40,7 @@ import com.normation.rudder.domain.policies.ConfigurationRuleId
 import scala.collection._
 import org.joda.time._
 import org.joda.time.format._
+import com.normation.utils.HashcodeCaching
 
 
 /**
@@ -57,14 +58,15 @@ case class ConfigurationExpectedReports(
   // the period where the configuration is applied to the servers
   val beginDate : DateTime = new DateTime(),
   val endDate : Option[DateTime] = None
-)
+) extends HashcodeCaching 
 
 /**
  * The Cardinality is per Component 
  */
 case class ComponentCard(val componentName : String,
     val cardinality : Int,
-    val componentsValues : Seq[String])
+    val componentsValues : Seq[String]
+) extends HashcodeCaching 
     
 /**
  * A policy instance may have several components
@@ -72,7 +74,7 @@ case class ComponentCard(val componentName : String,
 case class PolicyExpectedReports (
    val policyInstanceId : PolicyInstanceId,
    val components : Seq[ComponentCard]
-)
+) extends HashcodeCaching 
 
 
 

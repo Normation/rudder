@@ -42,25 +42,29 @@ import com.normation.rudder.web.components.{
 import com.normation.rudder.web.model._
 import com.normation.rudder.web.model.WBTextField
 import com.normation.rudder.web.model.JsTreeNode
-
-
 import net.liftweb.http.LocalSnippet
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.repository._
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
-
-//lift std import
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
 import net.liftweb.json._
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.repository.GroupCategoryRepository
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.policies.PolicyInstanceTargetInfo
+import com.normation.utils.HashcodeCaching
+import com.normation.rudder.repository.NodeGroupRepository
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 
 
 object Groups {
@@ -71,8 +75,8 @@ object Groups {
     
   private sealed trait RightPanel
   private case object NoPanel extends RightPanel
-  private case class GroupForm(group:NodeGroup) extends RightPanel
-  private case class CategoryForm(category:NodeGroupCategory) extends RightPanel
+  private case class GroupForm(group:NodeGroup) extends RightPanel with HashcodeCaching 
+  private case class CategoryForm(category:NodeGroupCategory) extends RightPanel with HashcodeCaching 
   
 }
 

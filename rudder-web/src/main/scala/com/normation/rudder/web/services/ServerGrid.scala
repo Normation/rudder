@@ -58,6 +58,8 @@ import ServerGrid._
 import com.unboundid.ldif.LDIFRecord
 import com.normation.exceptions.TechnicalException
 import net.liftweb.http.Templates
+import com.normation.rudder.domain.servers.Srv
+import com.normation.utils.HashcodeCaching
 
 object ServerGrid {
   val logger = LoggerFactory.getLogger(classOf[ServerGrid])
@@ -67,7 +69,7 @@ object ServerGrid {
  * a case class used to pass the JSON that contains id of
  * the node we want args for
  */
-case class JsonArg(jsid:String, id:String, status:String)
+case class JsonArg(jsid:String, id:String, status:String) extends HashcodeCaching 
 
 /**
  * Present a grid of server in a jQuery Datatable 

@@ -36,11 +36,12 @@ package com.normation.rudder.domain.nodes
 
 import com.normation.rudder.domain.policies.PolicyInstanceTargetInfo
 import com.normation.rudder.domain.categories.ItemCategory
+import com.normation.utils.HashcodeCaching
 
 /**
  * The Id for the server group category 
  */
-case class NodeGroupCategoryId(value:String)
+case class NodeGroupCategoryId(value:String) extends HashcodeCaching 
 
 
 /**
@@ -59,4 +60,4 @@ case class NodeGroupCategory(
   items : List[PolicyInstanceTargetInfo],
   isSystem : Boolean = false
   
-) extends ItemCategory[NodeGroupCategoryId,PolicyInstanceTargetInfo] {}
+) extends ItemCategory[NodeGroupCategoryId,PolicyInstanceTargetInfo] with HashcodeCaching {}

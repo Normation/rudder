@@ -38,6 +38,7 @@ import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
 import com.normation.rudder.domain.RudderLDAPConstants.A_CATEGORY_UUID
 import com.unboundid.ldap.sdk.DN
+import com.normation.utils.HashcodeCaching
 
 /**
  * A category in the LDAP. 
@@ -46,13 +47,13 @@ import com.unboundid.ldap.sdk.DN
  *
  */
 
-case class CategoryUuid(val value:String) extends Uuid
+case class CategoryUuid(val value:String) extends Uuid with HashcodeCaching 
 
 case class CaetgoryEntity(
   val uuid:Option[CategoryUuid],
   val description:Option[String],
   val name:Option[String]
-)
+) extends HashcodeCaching 
 
 
 /**

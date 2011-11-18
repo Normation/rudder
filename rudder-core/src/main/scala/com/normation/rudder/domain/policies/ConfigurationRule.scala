@@ -33,12 +33,13 @@
 */
 
 package com.normation.rudder.domain.policies
+import com.normation.utils.HashcodeCaching
 
 
 
-case class ConfigurationRuleId(value:String)
+case class ConfigurationRuleId(value:String) extends HashcodeCaching 
 
-case class SerialedConfigurationRuleId(crId : ConfigurationRuleId, serial : Int)	
+case class SerialedConfigurationRuleId(crId : ConfigurationRuleId, serial : Int) extends HashcodeCaching 
 
 /**
  * A configuration rule is the link between a Policy Instance
@@ -60,6 +61,6 @@ case class ConfigurationRule(
   longDescription:String = "",
   isActivatedStatus:Boolean = false,
   isSystem:Boolean = false
-){
+) extends HashcodeCaching {
   def isActivated = isActivatedStatus & target.isDefined & policyInstanceIds.size > 0
 }

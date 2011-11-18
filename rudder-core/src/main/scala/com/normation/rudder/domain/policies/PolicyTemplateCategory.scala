@@ -35,8 +35,9 @@
 package com.normation.rudder.domain.policies
 
 import com.normation.rudder.domain.categories.ItemCategory
+import com.normation.utils.HashcodeCaching
 
-case class UserPolicyTemplateCategoryId(value:String)
+case class UserPolicyTemplateCategoryId(value:String) extends HashcodeCaching 
 
 case class UserPolicyTemplateCategory(
   id : UserPolicyTemplateCategoryId,
@@ -45,4 +46,4 @@ case class UserPolicyTemplateCategory(
   children: List[UserPolicyTemplateCategoryId],
   items : List[UserPolicyTemplateId],
   isSystem : Boolean = false // by default, we can't create system Category
-) extends ItemCategory[UserPolicyTemplateCategoryId,UserPolicyTemplateId] {}
+) extends ItemCategory[UserPolicyTemplateCategoryId,UserPolicyTemplateId] with HashcodeCaching {}

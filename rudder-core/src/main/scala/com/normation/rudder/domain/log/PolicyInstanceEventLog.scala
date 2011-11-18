@@ -41,6 +41,7 @@ import com.normation.rudder.domain.policies._
 import org.joda.time.DateTime
 import net.liftweb.common._
 import com.normation.cfclerk.domain._
+import com.normation.utils.HashcodeCaching
 
 sealed trait PolicyInstanceEventLog extends EventLog
 
@@ -82,7 +83,7 @@ final case class AddPolicyInstance(
   , override val details : NodeSeq
   , override val creationDate : DateTime = new DateTime()
   , override val severity : Int = 100
-) extends PolicyInstanceEventLog {
+) extends PolicyInstanceEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = "PolicyInstanceAdded"
   override val eventLogCategory = PolicyInstanceLogCategory
@@ -114,7 +115,7 @@ final case class DeletePolicyInstance(
   , override val details : NodeSeq
   , override val creationDate : DateTime = new DateTime()
   , override val severity : Int = 100
-) extends PolicyInstanceEventLog {
+) extends PolicyInstanceEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = "PolicyInstanceDeleted"
   override val eventLogCategory = PolicyInstanceLogCategory
@@ -146,7 +147,7 @@ final case class ModifyPolicyInstance(
   , override val details : NodeSeq
   , override val creationDate : DateTime = new DateTime()
   , override val severity : Int = 100
-) extends PolicyInstanceEventLog {
+) extends PolicyInstanceEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = "PolicyInstanceModified"
   override val eventLogCategory = PolicyInstanceLogCategory

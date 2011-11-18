@@ -44,6 +44,7 @@ import com.normation.cfclerk.domain.{VariableSpec, Variable}
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.utils.Control.sequence
 import com.normation.rudder.domain.policies.PolicyInstanceTarget
+import com.normation.utils.HashcodeCaching
 
 /**
  * A service that handle parameterized value of
@@ -145,7 +146,7 @@ trait ParameterizedValueLookupService {
   
   sealed trait Parametrization 
 
-  case class BadParametrization(value:String) extends Parametrization
+  case class BadParametrization(value:String) extends Parametrization with HashcodeCaching 
   
   abstract class NodeParametrization extends Parametrization
 
@@ -173,12 +174,12 @@ trait ParameterizedValueLookupService {
   }
   
   case object NodeParam extends NodeParametrization
-  case class BadNodeParam(value:String) extends NodeParametrization
+  case class BadNodeParam(value:String) extends NodeParametrization with HashcodeCaching 
 
   abstract class CrParametrization extends Parametrization 
 
-  case class CrVarParametrization(crName:String, accessor:String) extends CrParametrization
-  case class CrTargetParametrization(crName:String, accessor:String) extends CrParametrization 
+  case class CrVarParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching 
+  case class CrTargetParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching 
   object CrTargetParametrization {
     def r = """\$\{([\-_a-zA-Z0-9]+)\.target\.([\-_a-zA-Z0-9]+)\}""".r
   }

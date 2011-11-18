@@ -57,6 +57,7 @@ import com.normation.rudder.repository.jdbc.HistorizationJdbcRepository
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.services.log.HistorizationService
+import com.normation.utils.HashcodeCaching
 
 /**
  * TODO: ca devrait être un "target node configuration", ie
@@ -68,7 +69,7 @@ case class TargetNodeConfiguration(
     identifiableCFCPIs: Seq[IdentifiableCFCPI],
     //environment variable for that server
     nodeContext:Map[String, Variable]
-)
+) extends HashcodeCaching 
 
 
 

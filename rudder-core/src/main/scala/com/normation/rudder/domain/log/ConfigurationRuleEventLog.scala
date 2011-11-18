@@ -40,6 +40,7 @@ import scala.xml._
 import com.normation.rudder.domain.policies._
 import org.joda.time.DateTime
 import net.liftweb.common._
+import com.normation.utils.HashcodeCaching
 
 
 sealed trait ConfigurationRuleEventLog extends EventLog
@@ -77,7 +78,7 @@ final case class AddConfigurationRule(
   , override val details : NodeSeq
   , override val creationDate : DateTime = new DateTime()
   , override val severity : Int = 100
-) extends ConfigurationRuleEventLog {
+) extends ConfigurationRuleEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = "ConfigurationRuleAdded"
   override val eventLogCategory = ConfigurationRuleLogCategory
@@ -104,7 +105,7 @@ final case class DeleteConfigurationRule(
   , override val details : NodeSeq
   , override val creationDate : DateTime = new DateTime()
   , override val severity : Int = 100
-) extends ConfigurationRuleEventLog {
+) extends ConfigurationRuleEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = "ConfigurationRuleDeleted"
   override val eventLogCategory = ConfigurationRuleLogCategory
@@ -131,7 +132,7 @@ final case class ModifyConfigurationRule(
   , override val details : NodeSeq
   , override val creationDate : DateTime = new DateTime()
   , override val severity : Int = 100
-) extends ConfigurationRuleEventLog {
+) extends ConfigurationRuleEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = "ConfigurationRuleModified"
   override val eventLogCategory = ConfigurationRuleLogCategory

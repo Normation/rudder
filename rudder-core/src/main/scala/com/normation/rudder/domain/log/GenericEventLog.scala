@@ -34,17 +34,18 @@
 
 package com.normation.rudder.domain.log
 
-import com.normation.eventlog._
-import scala.xml.NodeSeq
-
 import org.joda.time.DateTime
+
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.EventLog
+import com.normation.utils.HashcodeCaching
 
 
 final case class ApplicationStarted(
     override val id : Option[Int] = None
   , override val creationDate : DateTime = new DateTime()
   , override val severity : Int = 100
-) extends EventLog {
+) extends EventLog with HashcodeCaching {
   override val cause = None
   override val principal = RudderEventActor
   override val eventType = "ApplicationStarted"
@@ -62,7 +63,7 @@ final case class ActivateRedButton(
   , override val creationDate : DateTime = new DateTime()
   , override val cause : Option[Int] = None
   , override val severity : Int = 100
-) extends EventLog {
+) extends EventLog with HashcodeCaching {
   
   override val eventType = "ActivateRedButton"
   override def details = EventLog.emptyDetails
@@ -76,7 +77,7 @@ final case class ReleaseRedButton(
   , override val creationDate : DateTime = new DateTime() 
   , override val cause : Option[Int] = None
   , override val severity : Int = 100
-) extends EventLog {
+) extends EventLog with HashcodeCaching {
   
   override val eventType = "ReleaseRedButton"
   override def details= EventLog.emptyDetails

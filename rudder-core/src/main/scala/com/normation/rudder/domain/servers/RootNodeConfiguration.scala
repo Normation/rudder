@@ -47,6 +47,7 @@ import scala.collection._
 import net.liftweb.common._
 import com.normation.rudder.domain.policies.{ConfigurationRule,ConfigurationRuleId}
 import com.normation.cfclerk.domain.{PolicyPackageId, CFCPolicyInstanceId,CFCPolicyInstance, PoliciesContainer}
+import com.normation.utils.HashcodeCaching
 
 
 /**
@@ -64,7 +65,7 @@ case class RootNodeConfiguration(
    val writtenDate : Option[DateTime],
    val currentSystemVariables :  Map[String, Variable],
    val targetSystemVariables :  Map[String, Variable]
-) extends NodeConfiguration {
+) extends NodeConfiguration with HashcodeCaching {
 
    /**
    * Add a policy instance

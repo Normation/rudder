@@ -88,6 +88,7 @@ package com.normation.rudder.web.model
 import scala.collection.BitSet
 import com.normation.utils.Utils.isEmpty
 import Perm._
+import com.normation.utils.HashcodeCaching
 
 trait Perm {
   def bits:BitSet
@@ -197,7 +198,7 @@ object Perm {
   def allPerms = Set(none,r,w,x,rw,rx,wx,rwx)
 }
 
-case class PermSet(file:FilePerms,perms:(Perm => Unit, () => Perm)* ) {
+case class PermSet(file:FilePerms,perms:(Perm => Unit, () => Perm)* )  extends HashcodeCaching {
   
   /*
    * Add to all perms the given rights
