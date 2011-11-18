@@ -117,7 +117,7 @@ class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators
       def createSingleSectionField(sectionMap: Map[String, Option[String]]): SectionFieldImp = {
         val children = for (child <- section.children) yield {
           child match {
-            case varSpec: VariableSpec => createVarField(varSpec, sectionMap(varSpec.name))
+            case varSpec: SectionVariableSpec => createVarField(varSpec, sectionMap(varSpec.name))
             case sectSpec: SectionSpec => createSectionField(sectSpec)
           }
         }
