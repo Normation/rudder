@@ -22,6 +22,7 @@ package com.normation.history
 package impl
 
 import org.joda.time.DateTime
+import com.normation.utils.HashcodeCaching
 
 /**
  * A version of history log which uses DateTime as
@@ -39,7 +40,7 @@ case class DefaultHLog[ID,T](
   id : ID,
   version: DateTime,
   data : T
-) extends DatedHistoryLog[ID,T] {
+) extends DatedHistoryLog[ID,T] with HashcodeCaching {
   override val datetime = version
   override val historyType = "default"
 }

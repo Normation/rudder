@@ -27,7 +27,7 @@ import java.security.Principal
  * @author Nicolas CHARLES
  *
  */
-case class User(val name:String) extends Principal {
+case class User(val name:String) extends Principal with HashcodeCaching {
 
     /**
      * Returns a string representation of this Actor.

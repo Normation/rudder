@@ -21,6 +21,7 @@
 package com.normation.eventlog
 
 import scala.collection._
+import com.normation.utils.HashcodeCaching
 
 /**
  * The class that hold the hierarchies of the event log for serialisation only
@@ -31,6 +32,6 @@ import scala.collection._
  * Serialize the tree
  * 
  */
-case class EventLogNode(val entry : EventLog, val children : Seq[EventLogNode] = Seq[EventLogNode]())
+case class EventLogNode(val entry : EventLog, val children : Seq[EventLogNode] = Seq[EventLogNode]()) extends HashcodeCaching 
 
  

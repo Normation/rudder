@@ -25,9 +25,10 @@ import org.joda.time.format._
 import scala.collection._
 import scala.xml._
 import java.security.Principal
+import com.normation.utils.HashcodeCaching
 
 
-final case class EventActor(name:String)
+final case class EventActor(name:String) extends HashcodeCaching
 
 /**
  * A type that describe on what category an event belongs to. 
@@ -97,7 +98,7 @@ case class UnspecializedEventLog(
     override val cause : Option[Int],
     override val severity : Int,
     override val details : NodeSeq
-) extends  EventLog { 
+) extends EventLog with HashcodeCaching { 
   override val eventType = "Unknow"
   override val eventLogCategory = UnknownLogCategory
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))

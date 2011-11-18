@@ -23,6 +23,7 @@ package com.normation.eventlog
 import java.security.Principal
 import org.joda.time.DateTime
 import scala.xml.NodeSeq
+import com.normation.utils.HashcodeCaching
 
 final case object DummyEventLogCategory extends EventLogCategory
 
@@ -34,7 +35,7 @@ final case class EventLogWithValues(
     override val creationDate : DateTime = new DateTime(), 
     override val cause : Option[Int] = None,
     override val severity : Int = 100
-) extends EventLog {
+) extends EventLog with HashcodeCaching {
   override val eventType = "Dummy"
   override val eventLogCategory = DummyEventLogCategory
   override def details =     
