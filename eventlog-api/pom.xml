@@ -23,8 +23,6 @@ limitations under the License.
     <version>0.11.0-SNAPSHOT</version>
   </parent>
   
-  <groupId>com.normation</groupId>
   <artifactId>eventlog-api</artifactId>
-  <version>0.11.0-SNAPSHOT</version>
   
 </project>
