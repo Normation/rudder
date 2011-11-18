@@ -185,7 +185,6 @@ class Boot extends Loggable {
       , assetManagerMenu 
       , buildManagerMenu("configuration") 
       , administrationMenu 
-      // buildManagerMenu("operation") 
       // Menu(Loc("LDAPEntry", List("secure", "inventory", "tree"), "LDAP Tree walk",Hidden)) 
       ).map( _.toMenu )
 
