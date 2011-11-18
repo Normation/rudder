@@ -36,9 +36,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     <version>0.11.0-SNAPSHOT</version>
   </parent>
 
-  <groupId>com.normation.inventory</groupId>
   <artifactId>inventory-fusion</artifactId>
-  <version>0.11.0-SNAPSHOT</version>
 
   <dependencies>
     <dependency>
