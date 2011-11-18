@@ -22,6 +22,7 @@ package com.normation.ldap.sdk
 
 import com.unboundid.ldap.sdk.{DN,Attribute}
 import com.unboundid.ldap.sdk.schema.Schema
+import com.normation.exceptions.TechnicalException
 
 import scala.collection.JavaConversions.asSet
 
@@ -45,7 +46,7 @@ object TypedAttribute {
   private def toBoolean(s:String) : Boolean = s.toLowerCase match {
     case "true"  | "t" | "yes" | "y" | "on"  | "1" => true
     case "false" | "f" | "no"  | "n" | "off" | "0" => false
-    case x => error("Can not interpret %s as a boolean value".format(x))
+    case x => throw new TechnicalException("Can not interpret %s as a boolean value".format(x))
   }
   
   def apply(attribute:Attribute)(implicit schema:Schema) : TypedAttribute = {

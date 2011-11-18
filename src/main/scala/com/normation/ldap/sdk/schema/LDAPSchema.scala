@@ -20,6 +20,7 @@
 
 package com.normation.ldap.sdk
 package schema
+import com.normation.exceptions.TechnicalException
 
 
 /**
@@ -46,13 +47,6 @@ class LDAPSchema {
   private val childrenReg = MutMap[String, Set[String]]()
   private val parentsReg = MutMap[String, List[String]]("top" -> List())
   
-  private def missingParentError(name:String, parent:String) = 
-    error("Can not register object class %s because its parent class %s is not yet registerd".format(name, parent))
-  private def alreadyUnconsistentlyRegistered(existing:LDAPObjectClass,tried:LDAPObjectClass) = 
-    error("""Can not register object class %s because an other different object class with same name was already registerd. 
-        | existing: %s
-        | new     : %s""".stripMargin('|').format(tried.name, existing, tried))
-  
   /**
    * Get the matching ObjectClass, or throw a NoSuchElementException
    * if the key does not match any ObjectClass
@@ -76,9 +70,11 @@ class LDAPSchema {
     val key = oc.name.toLowerCase
     val pKey = oc.sup.name.toLowerCase
     ocs.get(pKey) match {
-      case None => missingParentError(oc.name,oc.sup.name)
+      case None => throw new TechnicalException("Can not register object class %s because its parent class %s is not yet registerd".format(oc.name,oc.sup.name))
       case Some(p) => ocs.get(key) match {
-        case Some(x) if(x != oc) => alreadyUnconsistentlyRegistered(x,oc)
+        case Some(x) if(x != oc) => throw new TechnicalException("""Can not register object class %s because an other different object class with same name was already registerd. 
+                                     | existing: %s
+                                     | new     : %s""".stripMargin('|').format(oc.name, x, oc))
         case _ => {
           ocs += ((key,oc))
           childrenReg(pKey) = childrenReg.getOrElse(pKey,Set()) + key

@@ -26,6 +26,7 @@ import com.normation.ldap.ldif.{ToLDIFString,ToLDIFRecords}
 import scala.collection.mutable.{Buffer, Map => MutMap, HashMap, ObservableMap, Subscriber, Publisher}
 import scala.collection.script._
 import net.liftweb.common._
+import com.normation.exceptions.TechnicalException
 
 import LDAPTree._
 /*
@@ -66,7 +67,7 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
     child.root.rdn match {
       case Some(r) => _children += ((r,child))
       case None => {
-        error("Try to add a child Tree but the RDN of the root of this child is not defined. Parent: %s , child root: %s".
+        new TechnicalException("Try to add a child Tree but the RDN of the root of this child is not defined. Parent: %s , child root: %s".
             format(root.dn, child.root))
       }
     }

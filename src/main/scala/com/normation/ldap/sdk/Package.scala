@@ -19,7 +19,7 @@
 */
 
 package com.normation.ldap
-
+import com.normation.exceptions.TechnicalException
 import com.unboundid.ldap.sdk.{
   DN,RDN,Filter,
   Entry => UEntry,
@@ -69,7 +69,7 @@ package object sdk {
       case "sub" | "subtree" => Sub 
       case "base" => Base
       case "subordinatesubtree" => SubordinateSubtree
-      case x => error("Can not recognize %s search scope. Possible values are one, sub, base, subordinateSubtree")
+      case x => throw new TechnicalException("Can not recognize %s search scope. Possible values are one, sub, base, subordinateSubtree")
     }
   }
 
