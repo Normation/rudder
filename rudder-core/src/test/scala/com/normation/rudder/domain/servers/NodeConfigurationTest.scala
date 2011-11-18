@@ -131,7 +131,9 @@ class NodeConfigurationTest {
 		
 		// Now add a policy
 		newNode.addPolicyInstance(simplePolicy) match {
-		  case f: EmptyBox => return f
+		  case f: EmptyBox => 
+		    val e = f ?~! "Error when adding policy instance %s on node %s".format(simplePolicy.configurationRuleId, newNode.id)
+		    throw new RuntimeException(e.messageChain)
 		  case Full(node) => 
 		
 		

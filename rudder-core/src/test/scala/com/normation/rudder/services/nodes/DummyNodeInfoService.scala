@@ -55,8 +55,8 @@ class DummyNodeInfoService extends NodeInfoService {
 
   def getNodeInfo(nodeId: NodeId) : Box[NodeInfo] = {
     allNodes.filter(x => x.id == nodeId) match {
-      case s: Seq[NodeId] if s.size==1 => Full(s.head)
-      case s: Seq[NodeId] if s.size==0 => Empty
+      case s: Seq[_] if s.size==1 => Full(s.head)
+      case s: Seq[_] if s.size==0 => Empty
       case _ => Failure("Not found")
     }
 
@@ -70,8 +70,11 @@ class DummyNodeInfoService extends NodeInfoService {
 
   def getPolicyServerNodeInfo(policyServerNodeId : NodeId) : Box[PolicyServerNodeInfo] = {
     allNodes.filter(x => x.id == policyServerNodeId).filter(x => x.isInstanceOf[PolicyServerNodeInfo]) match {
-      case s: Seq[PolicyServerNodeInfo] if s.size==1 => Full(s.head)
-      case s: Seq[PolicyServerNodeInfo] if s.size==0 => Empty
+      case s: Seq[_] if s.size==1 => s.headOption match {
+        case Some(h:PolicyServerNodeInfo) => Full(h)
+        case _ => Failure("Unconsistant type for policy server node info")
+      }
+      case s: Seq[_] if s.size==0 => Empty
       case _ => Failure("Not found")
     }
   }
