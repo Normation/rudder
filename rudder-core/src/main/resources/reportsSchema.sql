@@ -57,7 +57,7 @@ create table expectedReports (
 	endDate timestamp with time zone
 );
 
-create index expectedReports_versionId on expectedReports (versionId);
+create index expectedReports_versionId on expectedReports (nodeJoinKey);
 create index expectedReports_serialId on expectedReports (configurationRuleId, serial);
 
 create table expectedReportsNodes (
