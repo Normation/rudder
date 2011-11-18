@@ -57,7 +57,7 @@ class InventoryDitServiceImpl(pending:InventoryDit,accepted:InventoryDit) extend
 
   override def getDit(dn:DN) : Box[InventoryDit] = {
     ( (Empty:Box[InventoryDit]) /: baseDns ) { 
-      case (f:Full[InventoryDit], _) => f
+      case (f:Full[_], _) => f
       case (_, (baseDn,dit) ) if(baseDn.isAncestorOf(dn,true)) => Full(dit)
       case _ => Empty
     }
