@@ -64,12 +64,6 @@ class Section2FieldServiceTest extends Specification {
 
   // <sections>
   //   <section name="multSect" multivalued="true">
-  //     <section name="innerMultSect" multivalued="true"> 
-  //       <!-- five kinds of variable -->
-  //       <select>
-  //       ...
-  //       <policyinstance>
-  //     </section>
   //     <section name="innerSect">
   //       <select>
   //       ...
@@ -86,7 +80,6 @@ class Section2FieldServiceTest extends Specification {
   object Sections {
     val rootSectField = RootSectionField()
     val multSect = rootSectField.getAllSectionFields(1)
-    val innerMultSect = multSect.getAllSectionFields(1)
     val innerSect = multSect.getAllSectionFields(2)
   }
 
@@ -94,13 +87,6 @@ class Section2FieldServiceTest extends Specification {
     implicit val multSect = Sections.multSect
     beMultivalued
     haveName("multSect")
-    haveNbChildren(3)
-  }
-
-  "innerMultSect" should {
-    implicit val innerMultSect = Sections.innerMultSect
-    beMultivalued
-    haveName("innerMultSect")
     haveNbChildren(3)
   }
 
@@ -170,7 +156,7 @@ class Section2FieldServiceTest extends Specification {
 
       val service = inject[Section2FieldService]
       val rootSectSpec = createRootSectionSpec
-      service.createSectionField(rootSectSpec)
+      service.createSectionField(rootSectSpec,Map(),true)
     }
 
     def createRootSectionSpec = {

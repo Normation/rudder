@@ -59,10 +59,6 @@ class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators
 
   val logger = LoggerFactory.getLogger(classOf[Section2FieldService])
 
-  var valuesByName = Map[String, Seq[String]]()
-  def isNewPolicy: Boolean = {
-    valuesByName.isEmpty || valuesByName.valuesIterator.contains(Seq())
-  }
 
   /**
    * Fully initialize a PolicyEditor from a list of variables
@@ -72,82 +68,167 @@ class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators
     , policyInstanceId: PolicyInstanceId
     , vars            : Seq[Variable]
   ): Box[PolicyEditor] = {
-
+    
+    val valuesByName = vars.map(v => (v.spec.name, v.values)).toMap
     val variableSpecs = vars.map(v => (v.spec.name -> v.spec)).toMap
     val sections = policy.rootSection.copyWithoutSystemVars
-    valuesByName = vars.map(v => (v.spec.name, v.values)).toMap
 
-    val sectionField = createSectionField(sections)
+    //a policy is a new one if we don't have any saved values
+    //Don't forget that we may have empty saved value.
+    val isNewPolicy = valuesByName.size < 1 || valuesByName.forall { case (n,vals) => vals.size < 1 }
+    logger.debug("Is it a new pi ? " + isNewPolicy)
+    
+    val sectionField = createSectionField(sections, valuesByName, isNewPolicy)
 
     Full(PolicyEditor(policy.id, policyInstanceId, policy.name, policy.description, sectionField, variableSpecs))
   }
+  
+  // --------------------------------------------
+  // description of the state machine
+  // --------------------------------------------
 
-  def createSectionField(section: SectionSpec): SectionField = {
+  /*
+   * 
+   * 
+   *          ----<--root----->--------
+   *   ___   /        |           ___  \
+   *  | variable  sectionType1  |   multiSection
+   *  |               | `--->--'    |      |       ____
+   *   `-----<-----<------'-----<---'      |     /     |
+   *                            \         sectionType2 |
+   *                             `----<------'   `-->--'
+   *                             
+   * sectionType1: a section that may have a multi-section for children
+   * sectionType2: a section that may only have simple sub section
+   */
+  
+  // --------------------------------------------
+  // implementation : TODO: implement above state
+  // machine for real, not with a copy&paste for
+  // createSingleSectionFieldForMultisec
+  // --------------------------------------------
+  
+  
+  def createSectionField(section: SectionSpec, valuesByName:Map[String,Seq[String]], isNewPolicy:Boolean): SectionField = {
+    val seqOfSectionMap = {
+      if (isNewPolicy) Seq(createDefaultMap(section))
+      else {
+        val all = createMapForEachSubSection(section, valuesByName)
+        if(all.size < 1) Seq(createDefaultMap(section)) else all
+      }
+    }
+    
+
+    if (section.isMultivalued) {
+      val sectionFields = for (sectionMap <- seqOfSectionMap) yield createSingleSectionFieldForMultisec(section,sectionMap, isNewPolicy)
+      MultivaluedSectionField(sectionFields, () => {
+        //here, valuesByName is empty, we are creating a new map. 
+        createSingleSectionField(section,Map(),createDefaultMap(section), true)
+      } )
+    } else {
+      createSingleSectionField(section, valuesByName, seqOfSectionMap.head, isNewPolicy)
+    }
+  }
+  
+  private[this] def createSingleSectionField(sectionSpec:SectionSpec, valuesByName:Map[String,Seq[String]], sectionMap: Map[String, Option[String]], isNewPolicy:Boolean): SectionFieldImp = {
     // only variables of the current section
     var varMappings = Map[String, () => String]()
 
-      def createVarField(varSpec: VariableSpec, valueOpt: Option[String]): PolicyField = {
+    def createVarField(varSpec: VariableSpec, valueOpt: Option[String]): PolicyField = {
+      val fieldKey = varSpec.name
+      val field = fieldFactory.forType(varSpec, fieldKey)
 
-        val fieldKey = varSpec.name
-        val field = fieldFactory.forType(varSpec, fieldKey)
+      translators.get(field.manifest) match {
+        case None => throw new TechnicalException("No translator from type: " + field.manifest.toString)
+        case Some(t) =>
+          t.to.get("self") match {
+            case None => throw new TechnicalException("Missing 'self' translator property (from type %s to a serialized string for Variable)".format(field.manifest))
+            case Some(c) => //close the returned function with f and store it into varMappings
+              logger.trace("Add translator for variable '%s', get its value from field '%s.self'".format(fieldKey, fieldKey))
+              varMappings += (fieldKey -> { () => c(field.get) })
 
-        translators.get(field.manifest) match {
-          case None => throw new TechnicalException("No translator from type: " + field.manifest.toString)
-          case Some(t) =>
-            t.to.get("self") match {
-              case None => throw new TechnicalException("Missing 'self' translator property (from type %s to a serialized string for Variable)".format(field.manifest))
-              case Some(c) => //close the returned function with f and store it into varMappings
-                logger.trace("Add translator for variable '%s', get its value from field '%s.self'".format(fieldKey, fieldKey))
-                varMappings += (fieldKey -> { () => c(field.get) })
-
-                valueOpt match {
-                  case None =>
-                  case Some(value) =>
-                    setValueForField(value, field, t.from)
-                }
-            }
-        }
-
-        field.displayName = varSpec.description
-        field.tooltip = varSpec.longDescription
-        field.optional = varSpec.constraint.mayBeEmpty
-        field
-      }
-
-      def createSingleSectionField(sectionMap: Map[String, Option[String]]): SectionFieldImp = {
-        val children = for (child <- section.children) yield {
-          child match {
-            case varSpec: SectionVariableSpec => createVarField(varSpec, sectionMap(varSpec.name))
-            case sectSpec: SectionSpec => createSectionField(sectSpec)
+              valueOpt match {
+                case None =>
+                case Some(value) =>
+                  setValueForField(value, field, t.from)
+              }
           }
-        }
-        SectionFieldImp(section.name, children, varMappings)
       }
 
-    val seqOfSectionMap =
-      if (isNewPolicy)
-        Seq(createDefaultMap(section))
-      else
-        createMapForEachSubSection(section)
-
-    val sectionFields = for (sectionMap <- seqOfSectionMap) yield createSingleSectionField(sectionMap)
-
-    if (section.isMultivalued) {
-      MultivaluedSectionField(sectionFields, () => createSingleSectionField(createDefaultMap(section)))
-    } else
-      sectionFields.head
+      field.displayName = varSpec.description
+      field.tooltip = varSpec.longDescription
+      field.optional = varSpec.constraint.mayBeEmpty
+      field
+    }
+    
+    val children = for (child <- sectionSpec.children) yield {
+      child match {
+        case varSpec: VariableSpec => createVarField(varSpec, sectionMap(varSpec.name))
+        case sectSpec: SectionSpec => createSectionField(sectSpec, valuesByName, isNewPolicy)
+      }
+    }
+    
+    //actually create the SectionField for createSingleSectionField
+    SectionFieldImp(sectionSpec.name, children, varMappings)
   }
+  
+  private[this] def createSingleSectionFieldForMultisec(sectionSpec:SectionSpec, sectionMap: Map[String, Option[String]], isNewPolicy:Boolean): SectionFieldImp = {
+    // only variables of the current section
+    var varMappings = Map[String, () => String]()
 
-  // transforms Map(A -> Seq("A1", "A2"), B -> Seq("B1", "b2"))
+    def createVarField(varSpec: SectionVariableSpec, valueOpt: Option[String]): PolicyField = {
+      val fieldKey = varSpec.name
+      val field = fieldFactory.forType(varSpec, fieldKey)
+
+      translators.get(field.manifest) match {
+        case None => throw new TechnicalException("No translator from type: " + field.manifest.toString)
+        case Some(t) =>
+          t.to.get("self") match {
+            case None => throw new TechnicalException("Missing 'self' translator property (from type %s to a serialized string for Variable)".format(field.manifest))
+            case Some(c) => //close the returned function with f and store it into varMappings
+              logger.trace("Add translator for variable '%s', get its value from field '%s.self'".format(fieldKey, fieldKey))
+              varMappings += (fieldKey -> { () => c(field.get) })
+
+              valueOpt match {
+                case None =>
+                case Some(value) =>
+                  setValueForField(value, field, t.from)
+              }
+          }
+      }
+
+      field.displayName = varSpec.description
+      field.tooltip = varSpec.longDescription
+      field.optional = varSpec.constraint.mayBeEmpty
+      field
+    }
+    
+    val children = for (child <- sectionSpec.children) yield {
+      child match {
+        case varSpec: SectionVariableSpec => createVarField(varSpec, sectionMap.getOrElse(varSpec.name,None))
+        case sectSpec: SectionSpec => 
+          val subSectionMap = if(isNewPolicy) createDefaultMap(sectSpec) else sectionMap
+          createSingleSectionFieldForMultisec(sectSpec, subSectionMap, isNewPolicy)
+      }
+    }
+    
+    //actually create the SectionField for createSingleSectionField
+    SectionFieldImp(sectionSpec.name, children, varMappings)
+  }
+  
+  
+  // transforms 
+  // Map(A -> Seq("A1", "A2"), B -> Seq("B1", "b2"))
   // to
   // Seq( Map((A -> "A1"), (B -> "B1")),
   //      Map((A -> "A2"), (B -> "B2")) )
-  private def createMapForEachSubSection(section: SectionSpec): Seq[Map[String, Option[String]]] = {
+  //If there is no value, a None is returned
+  private def createMapForEachSubSection(section: SectionSpec, valuesByName:Map[String,Seq[String]]): Seq[Map[String, Option[String]]] = {
     // values represent all the values we have for the same name of variable
     case class NameValuesVar(name: String, values: Array[String]) extends HashcodeCaching 
 
     // seq of variable values with same name correctly ordered
-    val seqOfNameValues: Seq[NameValuesVar] = for (varSpec <- section.getVariables)
+    val seqOfNameValues: Seq[NameValuesVar] = for (varSpec <- section.getAllVariables)
       yield NameValuesVar(varSpec.name, valuesByName.getOrElse(varSpec.name, Seq[String]()).toArray)
 
     if (seqOfNameValues.isEmpty) Seq(Map[String, Option[String]]())
@@ -181,16 +262,3 @@ class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

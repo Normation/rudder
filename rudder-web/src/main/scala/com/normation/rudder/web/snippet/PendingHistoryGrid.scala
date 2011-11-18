@@ -186,13 +186,13 @@ object PendingHistoryGrid extends Loggable {
             var inventory = node.attr("inventory");
             
             var jsuuid = node.attr("jsuuid");
-            var opened = jQuery(nTr).attr("open");
+            var opened = jQuery(nTr).prop("open");
 
             if (opened && opened.match("opened")) {
     		      #table_var#.fnClose(nTr);
-    		      jQuery(nTr).attr("open", "closed");
+    		      jQuery(nTr).prop("open", "closed");
             } else {
-             jQuery(nTr).attr("open", "opened");
+             jQuery(nTr).prop("open", "opened");
     		  
     		  var ajaxParam = jsuuid +  "|" + id + "|" + inventory;
     		  #table_var#.fnOpen( nTr, fnFormatDetails(jsuuid), 'displayPastInventory' );

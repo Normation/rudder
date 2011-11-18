@@ -160,13 +160,12 @@ class ServerGrid(getServerAndMachine:LDAPFullInventoryRepository) extends Loggab
       JsRaw("""$('td[name="serverName"]', #table_var#.fnGetNodes() ).each( function () {
           $(this).click( function () {
             var nTr = this.parentNode;
-            var opened = jQuery(nTr).attr("open");
-
+            var opened = jQuery(nTr).prop("open");
             if (opened && opened.match("opened")) {
-              jQuery(nTr).attr("open", "closed");
+              jQuery(nTr).prop("open", "closed");
               #table_var#.fnClose(nTr);
             } else {
-              jQuery(nTr).attr("open", "opened");
+              jQuery(nTr).prop("open", "opened");
               var aPos = #table_var#.fnGetPosition( this );
             
               var aData = jQuery(#table_var#.fnGetData( aPos[0] ));

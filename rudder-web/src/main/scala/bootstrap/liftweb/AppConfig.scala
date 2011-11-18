@@ -147,6 +147,10 @@ class AppConfig extends Loggable {
   @Value("${rudder.dir.lock}")
   var lockFolder = ""
 
+  @Value("${rudder.dir.shared.files.folder}")
+  var sharedFilesFolder = ""
+
+    
   @Value("${rudder.dir.licensesFolder}")
   var licensesFolder = ""
   @Value("${rudder.endpoint.cmdb}")
@@ -170,6 +174,8 @@ class AppConfig extends Loggable {
 
   @Value("${rudder.dir.config}")
   var configFolder = ""
+  @Value("${rudder.dir.gitRoot}")
+  var gitRoot = ""
   @Value("${rudder.dir.policyPackages}")
   var policyPackages = ""
 
@@ -226,11 +232,24 @@ class AppConfig extends Loggable {
     backupFolder)
 
   @Bean
-  def gitRepo = new GitRepositoryProviderImpl(policyPackages)
+  def gitRepo = new GitRepositoryProviderImpl(gitRoot)
 
   @Bean
-  def policyPackagesReader: PolicyPackagesReader = new GitPolicyPackagesReader(
-    policyParser, new LDAPGitRevisionProvider(ldap, rudderDit, gitRepo, ptRefsPath), gitRepo, "policy.xml", "category.xml")
+  def policyPackagesReader: PolicyPackagesReader = {
+    //find the relative path from gitRepo to the ptlib root
+    val gitSlash = new File(gitRoot).getPath + "/"
+    if(!policyPackages.startsWith(gitSlash)) {
+      throw new RuntimeException("The policy template library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(gitRoot, policyPackages))
+    }
+    val relativePath = policyPackages.substring(gitSlash.size, policyPackages.size)
+    new GitPolicyPackagesReader(
+        policyParser
+      , new LDAPGitRevisionProvider(ldap, rudderDit, gitRepo, ptRefsPath)
+      , gitRepo
+      , "policy.xml", "category.xml"
+      , Some(relativePath)
+    )
+  }
 
   @Bean
   def systemVariableService: SystemVariableService = new SystemVariableServiceImpl(licenseRepository,
@@ -244,7 +263,8 @@ class AppConfig extends Loggable {
     baseFolder,
     toolsFolder,
     cmdbEndpoint,
-    communityPort)
+    communityPort,
+    sharedFilesFolder)
 
   @Bean
   def policyTranslator = new RudderPromiseWriterServiceImpl(
