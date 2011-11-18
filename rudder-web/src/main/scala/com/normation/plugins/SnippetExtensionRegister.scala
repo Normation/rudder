@@ -35,6 +35,7 @@
 package com.normation.plugins
 
 import scala.xml.NodeSeq
+import net.liftweb.common.Loggable
 
 /**
  * 
@@ -68,7 +69,7 @@ trait SnippetExtensionRegister {
  * after, thanks to the "register" method.
  * In the future, extension should be orderable and overridable. 
  */
-class SnippetExtensionRegisterImpl extends SnippetExtensionRegister {
+class SnippetExtensionRegisterImpl extends SnippetExtensionRegister with Loggable {
   
   private[this] val extendsAfter  = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[_]]]
   
@@ -78,7 +79,7 @@ class SnippetExtensionRegisterImpl extends SnippetExtensionRegister {
    * the head of the sequence of extensions)
    */
   def register[T <: ExtendableSnippet[_]](extension: SnippetExtensionPoint[T]) : Unit = {
-    println("resgistering: " + extension.extendsAt)
+    logger.debug("Resgistering: " + extension.extendsAt)
     extendsAfter.get(extension.extendsAt) match {
       case None => extendsAfter += (extension.extendsAt -> Seq(extension))
       case Some(exts) => extendsAfter += (extension.extendsAt ->  (extension +: exts) )
@@ -93,7 +94,7 @@ class SnippetExtensionRegisterImpl extends SnippetExtensionRegister {
    * the head of the sequence of extensions)
    */
   def registerBefore(extension: SnippetExtensionPoint[ExtendableSnippet[_]]) : Unit = {
-    println("resgistering: " + extension.extendsAt)
+    logger.debug("Resgistering: " + extension.extendsAt)
     extendsBefore.get(extension.extendsAt) match {
       case None => extendsBefore += (extension.extendsAt -> Seq(extension))
       case Some(exts) => extendsBefore += (extension.extendsAt ->  (extension +: exts) )
@@ -114,7 +115,4 @@ class SnippetExtensionRegisterImpl extends SnippetExtensionRegister {
   def getAfterRenderExtension[T](extendsAt:SnippetExtensionKey) : Seq[SnippetExtensionPoint[T]] = {
     extendsAfter.getOrElse(extendsAt, Seq()).map( x => x.asInstanceOf[SnippetExtensionPoint[T]])
   }
-
-  
-  
 }

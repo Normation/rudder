@@ -200,8 +200,7 @@ case object DateComparator extends CriterionType {
     Full(frenchFmt.parseDateTime(v).toString)
   } catch {
     case e:Exception => 
-      println("parse exception: " + e.getMessage)
-      Failure("Invalide date: '%s'".format(v))
+      Failure("Invalide date: '%s'".format(v), Full(e),Empty)
   }
   //init a jquery datepicker
   override def initForm(formId:String) : JsCmd = OnLoad(JsRaw(
@@ -213,8 +212,7 @@ case object DateComparator extends CriterionType {
     Full(GeneralizedTime(date).toString)
   } catch {
     case e:Exception => 
-      println("parse exception: " + e.getMessage)
-      Failure("Invalide date: '%s'".format(value))
+      Failure("Invalide date: '%s'".format(value), Full(e),Empty)
   }
 }
 

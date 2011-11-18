@@ -117,7 +117,7 @@ class Boot extends Loggable {
         case Full(r) => r.param("locale") match {
           case Nil => DefaultLocale
           case loc::tail => {
-            println("switch to locale: " + loc)
+            logger.debug("Switch to locale: " + loc)
             loc.split("_").toList match {
               case Nil => DefaultLocale
               case lang::Nil => new Locale(lang)
