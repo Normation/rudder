@@ -42,7 +42,6 @@ import net.liftweb.sitemap._
 import net.liftweb.sitemap.Loc._
 import Helpers._
 import net.liftweb.http.js.jquery.JQuery14Artifacts
-import com.normation.rudder.web.api.LDAPRestApi
 import net.liftweb.widgets.autocomplete.AutoComplete
 import javax.servlet.UnavailableException
 import LiftSpringApplicationContext.inject
@@ -76,16 +75,12 @@ class Boot extends Loggable {
     // where to search snippet
     LiftRules.addToPackages("com.normation.rudder.web")
 
-    LiftRules.dispatch.prepend(LDAPRestApi.dispatch)
-
     LiftRules.statefulRewrite.append {
       //if no policy server if configured, force to configure one
 //      case RewriteRequest(path,_,_) if(RudderContext.rootServerNotDefined && (path match { 
 //        case ParsePath("secure"::"assetManager"::"policyServers"::Nil, _, _, _) => false 
 //        case _ => true
 //      })) => RewriteResponse("secure"::"assetManager"::"policyServers"::Nil)
-      case RewriteRequest(ParsePath("secure"::"configurationManager"::"reports"::pi::Nil, _, _, _), GetRequest, _) => 
-        RewriteResponse("secure"::"configurationManager"::"reports"::Nil, Map("policyInstance" -> pi))
       case RewriteRequest(ParsePath("secure" :: "configurationManager" :: "policyTemplateLibraryManagement" :: ptId :: Nil, _, _, _), GetRequest, _) =>
         RewriteResponse("secure" :: "configurationManager" :: "policyTemplateLibraryManagement" :: Nil, Map("policyTemplateId" -> ptId))
       case RewriteRequest(ParsePath("secure"::"assetManager"::"searchServers"::nodeId::Nil, _, _, _), GetRequest, _) =>
@@ -160,8 +155,6 @@ class Boot extends Loggable {
             
         , Menu("configurationPolicyTemplateLibraryManagement", <span>Policy Templates</span>) /
             "secure" / (name+"Manager") / "policyTemplateLibraryManagement" >>  LocGroup(name+"Group")
-            
-        , Menu(name+"Reports", <span>Reports</span>) / "secure" / (name+"Manager") / "reports" >> Hidden
       )
       
       
@@ -185,8 +178,7 @@ class Boot extends Loggable {
       , assetManagerMenu 
       , buildManagerMenu("configuration") 
       , administrationMenu 
-      // Menu(Loc("LDAPEntry", List("secure", "inventory", "tree"), "LDAP Tree walk",Hidden)) 
-      ).map( _.toMenu )
+    ).map( _.toMenu )
 
     
     ////////// import and init modules //////////
