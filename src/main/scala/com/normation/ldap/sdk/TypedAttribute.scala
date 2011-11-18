@@ -23,8 +23,8 @@ package com.normation.ldap.sdk
 import com.unboundid.ldap.sdk.{DN,Attribute}
 import com.unboundid.ldap.sdk.schema.Schema
 import com.normation.exceptions.TechnicalException
-
 import scala.collection.JavaConversions.asSet
+import com.normation.utils.HashcodeCaching
 
 /**
  * LDAP syntax 
@@ -33,12 +33,12 @@ import scala.collection.JavaConversions.asSet
 sealed trait TypedAttribute {
   val name:String
 }
-case class BooleanAttribute(name:String,value:List[Boolean]) extends TypedAttribute
-case class LongAttribute(name:String,values:List[Long]) extends TypedAttribute
-case class DNAttribute(name:String,values: List[DN]) extends TypedAttribute
-case class StringAttribute(name:String,values:List[String]) extends TypedAttribute
-case class BinaryAttribute(name:String,values: List[Array[Byte]]) extends TypedAttribute
-case class GeneralizedTimeAttribute(name:String,values:List[GeneralizedTime]) extends TypedAttribute
+case class BooleanAttribute(name:String,value:List[Boolean]) extends TypedAttribute with HashcodeCaching 
+case class LongAttribute(name:String,values:List[Long]) extends TypedAttribute with HashcodeCaching 
+case class DNAttribute(name:String,values: List[DN]) extends TypedAttribute with HashcodeCaching 
+case class StringAttribute(name:String,values:List[String]) extends TypedAttribute with HashcodeCaching 
+case class BinaryAttribute(name:String,values: List[Array[Byte]]) extends TypedAttribute with HashcodeCaching 
+case class GeneralizedTimeAttribute(name:String,values:List[GeneralizedTime]) extends TypedAttribute with HashcodeCaching 
 
 
 object TypedAttribute {

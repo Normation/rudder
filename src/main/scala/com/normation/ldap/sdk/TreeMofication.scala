@@ -21,6 +21,7 @@
 package com.normation.ldap.sdk
 
 import com.unboundid.ldap.sdk.{DN,Modification}
+import com.normation.utils.HashcodeCaching
 
 
 /**
@@ -29,6 +30,6 @@ import com.unboundid.ldap.sdk.{DN,Modification}
  */
 sealed abstract class TreeModification
 case object NoMod extends TreeModification
-case class Add(tree:LDAPTree) extends TreeModification
-case class Delete(tree:Tree[DN]) extends TreeModification
-case class Replace(mods:(DN,Seq[Modification])) extends TreeModification
+case class Add(tree:LDAPTree) extends TreeModification with HashcodeCaching 
+case class Delete(tree:Tree[DN]) extends TreeModification with HashcodeCaching 
+case class Replace(mods:(DN,Seq[Modification])) extends TreeModification with HashcodeCaching 
