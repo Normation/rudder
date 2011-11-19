@@ -59,9 +59,9 @@ trait QueryChecker {
   /**
    * Each server denoted by its id is tested against query to see if it
    * matches. Return the list of matching server ids. 
-   * @parameter Query
+   * @param Query
    *    the query to test 
-   * @parameter Seq[NodeId]
+   * @param Seq[NodeId]
    *    list of server which have to be tested for query   
    * @return
    *   Empty or Failure in case of a error during the process 

@@ -52,13 +52,13 @@ import com.normation.utils.HashcodeCaching
  * Class that only contains most meaningfull data about a server
  * (it's a server, shorten, so its name)
  * Properties are "web friendly" (i.e: string, never null, perhaps empty)
- * @parameter id - uuid of the server, ex: 27e0e8e8-dfc4-487e-975f-065b073f0b1f
- * @parameter hostname - full hostname of the server, ex: foobox1.example.com
- * @parameter osType - os description of the server, ex: Linux
- * @parameter osName - linux distribution, windows version, etc
- * @parameter osFullName - long description about the os (distribution, type, version, etc)
- * @parameter ips : the server's list of ip
- * @parameter creationDate : the creation date of the object
+ * @param id - uuid of the server, ex: 27e0e8e8-dfc4-487e-975f-065b073f0b1f
+ * @param hostname - full hostname of the server, ex: foobox1.example.com
+ * @param osType - os description of the server, ex: Linux
+ * @param osName - linux distribution, windows version, etc
+ * @param osFullName - long description about the os (distribution, type, version, etc)
+ * @param ips : the server's list of ip
+ * @param creationDate : the creation date of the object
  */
 case class Srv(
     id          : NodeId
