@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.snippet
+package com.normation.rudder.web.snippet.administration
 
 import net.liftweb._
 import http._

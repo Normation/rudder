@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.snippet
+package com.normation.rudder.web.snippet.configuration
 
 import com.normation.rudder.web.model._
 import com.normation.rudder.domain.policies._

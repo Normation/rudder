@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.snippet
+package com.normation.rudder.web.snippet.administration
 
 import scala.xml._
 import net.liftweb.http.{DispatchSnippet,S}

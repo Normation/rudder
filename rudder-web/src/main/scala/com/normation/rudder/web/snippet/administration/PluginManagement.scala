@@ -32,8 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.snippet
-
+package com.normation.rudder.web.snippet.administration
 
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet

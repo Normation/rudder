@@ -4,7 +4,7 @@
 <title>Rudder - Policy Template Library Management</title>
 </head>
 
-<lift:PolicyTemplateLibraryManagement.head />
+<lift:configuration.PolicyTemplateLibraryManagement.head />
 
 <div class="portlet">
   <div class="portlet-header">Policy Template Library Management</div>
@@ -19,7 +19,7 @@
         <br/>
       </div>
       <div>
-        <div class="lift:PolicyTemplateLibraryManagement.reloadPolicyTemplateLibrary" id="reloadPTLibForm">
+        <div class="lift:configuration.PolicyTemplateLibraryManagement.reloadPolicyTemplateLibrary" id="reloadPTLibForm">
           <form class="lift:form.ajax">
             <span>You can load the last available version of the policy template library</span>
             <input type="submit" value="Reload"/>
@@ -34,7 +34,7 @@
       <div class="portlet">
         <div class="portlet-header">Reference policy template library</div>
         <div class="portlet-content">
-          <lift:PolicyTemplateLibraryManagement.systemLibrary />
+          <lift:configuration.PolicyTemplateLibraryManagement.systemLibrary />
         </div>
       </div>
     </div>
@@ -42,15 +42,15 @@
       <div class="portlet">
         <div class="portlet-header">User policy template library</div>
         <div class="portlet-content">
-          <lift:PolicyTemplateLibraryManagement.userLibraryAction />
-          <lift:PolicyTemplateLibraryManagement.userLibrary />
+          <lift:configuration.PolicyTemplateLibraryManagement.userLibraryAction />
+          <lift:configuration.PolicyTemplateLibraryManagement.userLibrary />
         </div>
       </div>
     </div>
     
     <hr class="spacer"/>
 
-    <lift:PolicyTemplateLibraryManagement.bottomPanel /> 
+    <lift:configuration.PolicyTemplateLibraryManagement.bottomPanel /> 
         
 <!--    <div class="policyTemplateDetails">-->
 <!--      <fieldset class="policyTemplateDetailsFieldset"><legend>Policy template details</legend>-->

@@ -17,7 +17,7 @@
 	</div>
  </div>
  	
-	<lift:AcceptServer.head />
+	<lift:asset.AcceptServer.head />
 	<hr class="spacer"/>
 	<div id="new_servers_tab" class="tabs">
 	   <ul>
@@ -37,7 +37,7 @@
 				It is enhanced with a "select" column
 			</lift:ignore>
       <div class="err"><lift:Msgs>[error]</lift:Msgs></div>
-			<lift:AcceptServer.list>
+			<lift:asset.AcceptServer.list>
 				<pending:selectall/>
 				  
 				<pending:servers/>
@@ -50,16 +50,16 @@
 				</p>
 				<pending:errors/>
 			
-			</lift:AcceptServer.list>
+			</lift:asset.AcceptServer.list>
 	  </div>
 	  <div id="history">
 	   <div class="tabInform">
   	  You can review here all actions taken in the past for new nodes trying to join Rudder
 	    Select a node name to access its full inventory information at the time of its review.
 	   </div>	  
-	  <lift:PendingHistoryGrid.displayAndInit>
+	  <lift:asset.PendingHistoryGrid.displayAndInit>
 	    <pending:history/>
-	  </lift:PendingHistoryGrid.displayAndInit>
+	  </lift:asset.PendingHistoryGrid.displayAndInit>
 	  </div>
 	</div>
 	<div id="manageNewServer"/>

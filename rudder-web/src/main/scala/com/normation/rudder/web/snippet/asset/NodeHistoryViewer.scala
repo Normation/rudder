@@ -32,13 +32,12 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web
-package snippet
+package com.normation.rudder.web.snippet.asset
 
 import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
 
-import services.DisplayServer
-import model.JsNodeId
+import com.normation.rudder.web.services.DisplayServer
+import com.normation.rudder.web.model.JsNodeId
 
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.LDAPConstants._

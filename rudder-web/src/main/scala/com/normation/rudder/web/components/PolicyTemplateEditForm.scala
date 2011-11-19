@@ -367,7 +367,7 @@ class PolicyTemplateEditForm(
 //          <li class="inlineml">&#187; {cat.name}</li> } }
 //        </ul>       
 //      </a></div>
-//      <lift:PolicyTemplateLibraryManagement.showPolicyTemplateUserCategory />
+//      <lift:configuration.PolicyTemplateLibraryManagement.showPolicyTemplateUserCategory />
 //    </fieldset>  
 //
 //    <fieldset><legend>Parameters</legend>

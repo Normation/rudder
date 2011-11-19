@@ -229,7 +229,7 @@ class PolicyTemplateCategoryEditForm(
            } else {
              successPopup &
              SetHtml(htmlId_categoryDetailsForm, categoryDetailsForm) &
-             onSuccessCallback() //Replace(htmlId_userTree, <lift:PolicyTemplateLibraryManagement.userLibrary />) & buildUserLibraryJsTree
+             onSuccessCallback() //Replace(htmlId_userTree, <lift:configuration.PolicyTemplateLibraryManagement.userLibrary />) & buildUserLibraryJsTree
            }
          }
        } ),
