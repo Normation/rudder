@@ -91,7 +91,7 @@ class LDAPConfigurationRuleRepository(
       oldCr <- mapper.entry2ConfigurationRule(entry) ?~! "Error when transforming LDAP entry into a Configuration Rule for id %s. Entry: %s".format(id, entry)
       deleted <- con.delete(rudderDit.CONFIG_RULE.configRuleDN(id.value)) ?~! "Error when deleting configuration rule with ID %s".format(id)
       diff = DeleteConfigurationRuleDiff(oldCr)
-      loggedAction <- actionLogger.saveEventLog(DeleteConfigurationRule.fromDiff(principal = actor, deleteDiff = diff))
+      loggedAction <- actionLogger.saveDeleteConfigurationRule(principal = actor, deleteDiff = diff)
     } yield {
       diff
     }
@@ -127,7 +127,7 @@ class LDAPConfigurationRuleRepository(
         con.save(crEntry) ?~! "Error when saving Configuration Rule entry in repository: %s".format(crEntry)
       }
       diff <- diffMapper.addChangeRecords2ConfigurationRuleDiff(crEntry.dn,result)
-      loggedAction <- actionLogger.saveEventLog(AddConfigurationRule.fromDiff(principal = actor, addDiff = diff))
+      loggedAction <- actionLogger.saveAddConfigurationRule(principal = actor, addDiff = diff)
     } yield {
       diff
     } }
@@ -143,7 +143,7 @@ class LDAPConfigurationRuleRepository(
       optDiff <- diffMapper.modChangeRecords2ConfigurationRuleDiff(existingEntry,result) ?~! "Error when mapping Configuration Rule '%s' update to an diff: %s".format(cr.id.value, result)
       loggedAction <- optDiff match {
         case None => Full("OK")
-        case Some(diff) => actionLogger.saveEventLog(ModifyConfigurationRule.fromDiff(principal = actor, modifyDiff = diff))
+        case Some(diff) => actionLogger.saveModifyConfigurationRule(principal = actor, modifyDiff = diff)
       }
     } yield {
       optDiff

@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.log
+package com.normation.rudder.services.marshalling
 
 import com.normation.rudder.domain.policies.PolicyInstance
 import com.normation.cfclerk.domain.PolicyPackageName

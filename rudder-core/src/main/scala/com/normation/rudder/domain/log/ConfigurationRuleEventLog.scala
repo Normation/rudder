@@ -45,33 +45,6 @@ import com.normation.utils.HashcodeCaching
 
 sealed trait ConfigurationRuleEventLog extends EventLog
 
-object ConfigurationRuleEventLog {
-  
-  val xmlVersion = "1.0"
-  
-  /**
-   * Print to XML a configuration rule, used
-   * for "add" and "delete" actions. 
-   */
-  def toXml(cr:ConfigurationRule,action:String) =
-    scala.xml.Utility.trim(<configurationRule changeType={action} fileFormat={xmlVersion}>
-        <id>{cr.id.value}</id>
-        <displayName>{cr.name}</displayName>
-        <serial>{cr.serial}</serial>
-        <target>{ cr.target.map( _.target).getOrElse("") }</target>
-        <policyInstanceIds>{
-          cr.policyInstanceIds.map { id => <id>{id.value}</id> } 
-        }</policyInstanceIds>
-        <shortDescription>{cr.shortDescription}</shortDescription>
-        <longDescription>{cr.longDescription}</longDescription>
-        <isActivated>{cr.isActivatedStatus}</isActivated>
-        <isSystem>{cr.isSystem}</isSystem>
-      </configurationRule>
-    )
-    
-  
-}
-
 final case class AddConfigurationRule(
     override val id : Option[Int] = None
   , override val principal : EventActor
@@ -83,20 +56,6 @@ final case class AddConfigurationRule(
   override val eventType = "ConfigurationRuleAdded"
   override val eventLogCategory = ConfigurationRuleLogCategory
   override def copySetCause(causeId:Int) = this
-}
-
-object AddConfigurationRule {
-  def fromDiff(
-      id : Option[Int] = None
-    , principal : EventActor
-    , addDiff:AddConfigurationRuleDiff
-    , creationDate : DateTime = new DateTime()
-    , severity : Int = 100
-  ) : AddConfigurationRule = {
-    val details = EventLog.withContent(ConfigurationRuleEventLog.toXml(addDiff.cr, "add"))
-    
-    AddConfigurationRule(id, principal, details, creationDate, severity)
-  }
 }
 
 final case class DeleteConfigurationRule(
@@ -112,20 +71,6 @@ final case class DeleteConfigurationRule(
   override def copySetCause(causeId:Int) = this
 }
 
-object DeleteConfigurationRule {
-  def fromDiff(    
-      id : Option[Int] = None
-    , principal : EventActor
-    , deleteDiff:DeleteConfigurationRuleDiff
-    , creationDate : DateTime = new DateTime()
-    , severity : Int = 100
-  ) : DeleteConfigurationRule = {
-    val details = EventLog.withContent(ConfigurationRuleEventLog.toXml(deleteDiff.cr, "delete"))
-
-    DeleteConfigurationRule(id, principal, details, creationDate, severity)
-  }
-}
-
 final case class ModifyConfigurationRule(
     override val id : Option[Int] = None
   , override val principal : EventActor
@@ -137,38 +82,4 @@ final case class ModifyConfigurationRule(
   override val eventType = "ConfigurationRuleModified"
   override val eventLogCategory = ConfigurationRuleLogCategory
   override def copySetCause(causeId:Int) = this
-}
-
-object ModifyConfigurationRule {
-  def fromDiff(    
-      id : Option[Int] = None
-    , principal : EventActor
-    , modifyDiff:ModifyConfigurationRuleDiff
-    , creationDate : DateTime = new DateTime()
-    , severity : Int = 100
-  ) : ModifyConfigurationRule = {
-    val details = EventLog.withContent{
-      scala.xml.Utility.trim(<configurationRule changeType="modify" fileFormat={ConfigurationRuleEventLog.xmlVersion}>
-        <id>{modifyDiff.id.value}</id>
-        <displayName>{modifyDiff.name}</displayName>{
-          modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
-          modifyDiff.modSerial.map(x => SimpleDiff.intToXml(<serial/>, x ) ) ++
-          modifyDiff.modTarget.map(x => SimpleDiff.toXml[Option[PolicyInstanceTarget]](<target/>, x){ t =>
-            t match {
-              case None => <none/>
-              case Some(y) => Text(y.target)
-            }
-          } ) ++
-          modifyDiff.modPolicyInstanceIds.map(x => SimpleDiff.toXml[Set[PolicyInstanceId]](<policyInstanceIds/>, x){ ids =>
-              ids.toSeq.map { id => <id>{id.value}</id> }
-            } ) ++
-          modifyDiff.modShortDescription.map(x => SimpleDiff.stringToXml(<shortDescription/>, x ) ) ++
-          modifyDiff.modLongDescription.map(x => SimpleDiff.stringToXml(<longDescription/>, x ) ) ++
-          modifyDiff.modIsActivatedStatus.map(x => SimpleDiff.booleanToXml(<isActivated/>, x ) ) ++
-          modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) )
-        }
-      </configurationRule>)
-    }
-    ModifyConfigurationRule(id, principal, details, creationDate, severity)
-  }
 }

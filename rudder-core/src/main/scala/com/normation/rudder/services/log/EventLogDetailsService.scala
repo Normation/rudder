@@ -48,6 +48,9 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.log.InventoryLogDetails
 import org.joda.time.format.ISODateTimeFormat
+import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisation
+import com.normation.rudder.services.marshalling.NodeGroupUnserialisation
+import com.normation.rudder.services.marshalling.PolicyInstanceUnserialisation
 
 /**
  * A service that helps mapping event log details to there structured data model.

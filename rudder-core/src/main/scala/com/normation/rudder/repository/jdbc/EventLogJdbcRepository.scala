@@ -56,6 +56,7 @@ import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.policies.DeleteConfigurationRuleDiff
 import com.normation.rudder.domain.policies.ConfigurationRuleId
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.services.log.EventLogFactory
 
 /**
  * The EventLog repository
@@ -65,7 +66,10 @@ import com.normation.inventory.domain.NodeId
  * @author Nicolas CHARLES
  *
  */
-class EventLogJdbcRepository(jdbcTemplate : JdbcTemplate) extends EventLogRepository {
+class EventLogJdbcRepository(
+    jdbcTemplate                : JdbcTemplate
+  , override val eventLogFactory: EventLogFactory
+) extends EventLogRepository {
 
 	 val logger = LoggerFactory.getLogger(classOf[EventLogRepository])
   

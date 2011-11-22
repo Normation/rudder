@@ -83,6 +83,10 @@ import com.normation.rudder.services.servers.NodeConfigurationChangeDetectServic
 import org.apache.commons.dbcp.BasicDataSource
 import com.normation.rudder.services.log.HistorizationServiceImpl
 import com.normation.rudder.services.policies.DeployOnPolicyTemplateCallback
+import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
+import com.normation.rudder.services.marshalling.PolicyInstanceUnserialisationImpl
+import com.normation.rudder.services.marshalling.ConfigurationRuleSerialisationImpl
+import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisationImpl
 
 
 /**
@@ -213,8 +217,23 @@ class AppConfig extends Loggable {
   @Bean
   def serverRepository = new LDAPNodeConfigurationRepository(ldap, rudderDit, ldapNodeConfigurationMapper)
 
+  @Bean 
+  def configurationRuleSerialisation = new ConfigurationRuleSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+
   @Bean
-  def logRepository = new EventLogJdbcRepository(jdbcTemplate)
+  def itemArchiveManager = new ItemArchiveManagerImpl(
+      gitRepo
+    , new File(gitRoot)
+    , ldapConfigurationRuleRepository
+    , configurationRuleSerialisation
+    , "configuration-rules"
+  )
+  
+  @Bean
+  def eventLogFactory = new EventLogFactoryImpl(configurationRuleSerialisation)
+  
+  @Bean
+  def logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
 
   @Bean
   def logService = new EventLogServiceImpl(logRepository)

@@ -1,0 +1,73 @@
+<lift:surround with="menu/menu-administration" at="content">
+
+<head>
+<title>Rudder - Policy Server Management</title>
+</head>
+
+<div class="portlet">
+  <div class="portlet-header">Policy server management</div>
+  <div class="portlet-content"> 
+   
+    <div class="intro">
+      <div>
+        This section sums up information about the Rudder root server and its parameters.
+      </div>
+    </div>
+    <hr class="spacer"/>
+    
+    <div>
+      <div class="portlet">
+        <div class="portlet-header">Manage policy library archives</div>
+        <div class="portlet-content">
+        
+          <div class="deca">
+	          <p>
+	           That page allow to manage policy (template and instance) and configuration rules archive. 
+	           Here, you will be able to make new archives of the state of Rudder, and restore the last one. 
+	          </p>
+	          <br/>
+
+            <p>
+              Archive the current configuration rules.
+            </p>	
+	          <div class="lift:administration.Archives.exportConfigurationRules" id="exportCrForm">
+	            <form class="lift:form.ajax">
+	              <br/>
+	              <input id="exportCrButton" type="submit" value="[Export CR]"/> 
+	              <lift:Msgs>[error]</lift:Msgs>
+	            </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>    
+    
+ </div>
+ <br/>
+  <div id="succesConfirmationDialog" class="nodisplay">
+    <div class="simplemodal-title">
+      <h1>Success</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+      <br />
+      <div>
+        <img src="/images/icOK.png" alt="Success" height="32" width="32" class="icon" />
+        <h2>Your changes have been saved.</h2>
+      </div>
+      <hr class="spacer" />
+      <br />
+      <br />
+    </div>
+    <div class="simplemodal-bottom">
+      <hr/>
+      <p align="right">
+        <button class="simplemodal-close" onClick="return false;">
+          Close
+        </button>
+      </p>
+    </div>
+  </div>
+  </div>
+</lift:surround>
+

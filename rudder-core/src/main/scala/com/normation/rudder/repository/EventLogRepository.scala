@@ -37,15 +37,43 @@ package com.normation.rudder.repository
 import net.liftweb.common._
 import com.normation.eventlog._
 import java.security.Principal
+import com.normation.rudder.domain.policies.AddConfigurationRuleDiff
+import com.normation.rudder.domain.policies.ModifyConfigurationRuleDiff
+import com.normation.rudder.domain.policies.DeleteConfigurationRuleDiff
+import com.normation.rudder.services.log.EventLogFactory
 
 trait EventLogRepository {
+  def eventLogFactory : EventLogFactory
+  
+  
 	/**
 	 * Save an eventLog
 	 * Optionnal : the user. At least one of the eventLog user or user must be defined
 	 * Return the unspecialized event log with its serialization number
 	 */
 	def saveEventLog(eventLog : EventLog) : Box[EventLog]
-	                                                                    
+	                       
+  def saveAddConfigurationRule(principal : EventActor, addDiff:AddConfigurationRuleDiff) = {
+    saveEventLog(eventLogFactory.getAddConfigurationRuleFromDiff(
+        principal = principal
+      , addDiff   = addDiff
+    ))
+  }
+  
+  def saveDeleteConfigurationRule(principal : EventActor, deleteDiff:DeleteConfigurationRuleDiff) = {
+    saveEventLog(eventLogFactory.getDeleteConfigurationRuleFromDiff(
+        principal  = principal
+      , deleteDiff = deleteDiff
+    ))
+  }
+
+  def saveModifyConfigurationRule(principal : EventActor, modifyDiff:ModifyConfigurationRuleDiff) = {
+    saveEventLog(eventLogFactory.getModifyConfigurationRuleFromDiff(
+        principal = principal
+      , modifyDiff = modifyDiff
+    ))
+  }
+
 	
 	/**
 	 * Get an EventLog by its entry

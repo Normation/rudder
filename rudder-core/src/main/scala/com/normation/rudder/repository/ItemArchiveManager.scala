@@ -32,45 +32,24 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain
+package com.normation.rudder.repository
+import net.liftweb.common.Box
 
 
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.{PolicyInstanceId, ConfigurationRuleId}
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.cfclerk.domain.PolicyPackageId
+case class ArchiveId(value:String)
 
-import org.joda.time.Duration
-
-object Constants {    
-
-  //non random Policy Instance Id
-  def buildHasPolicyServerGroupId(policyServerId:NodeId) = 
-    NodeGroupId("hasPolicyServer-" + policyServerId.value )
- 
-    
-  val ROOT_POLICY_SERVER_ID = NodeId("root")  
+/**
+ * This trait allow to manage archives of Policy library, configuration rules
+ * and groupes. 
+ * 
+ * Archive can be done in one shot, partially updated, or read back. 
+ */
+trait ItemArchiveManager {
   
   /**
-   * For the given policy server, what is the ID of its 
-   * "distributePolicy" instance ?
+   * Save all items handled by that archive manager 
+   * and return an ID for the archive on success. 
    */
-  def buildCommonPolicyInstanceId(policyServerId:NodeId) = 
-    PolicyInstanceId("common-" + policyServerId.value)
-  
-  /////////// Policy Server: DistributePolicy policy instance variable //////////
-  val V_ALLOWED_NETWORK = "ALLOWEDNETWORK"
-    
-  /**
-   * The lapse of time when we consider that the CR is still pending
-   * Let's say 10 minutes 
-   */
-  val pendingDuration = new Duration(10*1000*60)
-  
-  val PTLIB_MINIMUM_UPDATE_INTERVAL = 60 //in seconds
-  
-  val DYNGROUP_MINIMUM_UPDATE_INTERVAL = 1 //in minutes
-  
-  
-  val XML_FILE_FORMAT_1_0 = "1.0"
+  def saveAll : Box[ArchiveId]
+
 }
