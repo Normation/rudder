@@ -38,6 +38,7 @@ import scala.xml._
 import com.normation.inventory.domain._
 import net.liftweb.common._
 import java.security.MessageDigest
+import com.normation.utils.UuidRegex
 
 ///////////// <CONTENT> ///////////// 
 
@@ -114,16 +115,12 @@ object RudderMachineIdParsing extends FusionReportParsingExtension {
       , id.substring(20)
       )
   }
-  private[this] val uuidRegex = """[\w]{8}-[\w]{4}-[\w]{4}-[\w]{4}-[\w]{12}""".r
   
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "MACHINEID" }
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {
     val machineId = (optText(x._1) match {
       case None => buildMachineId(x._2)
-      case Some(id) => id match {
-        case uuidRegex() => id
-        case _ => buildMachineId(x._2)
-      }
+      case Some(id) => if(UuidRegex.isValid(id)) id else buildMachineId(x._2)
     })
     x._2.copy( machine = x._2.machine.copy( mbUuid = Some(MotherBoardUuid(machineId) ) ) )
   }
