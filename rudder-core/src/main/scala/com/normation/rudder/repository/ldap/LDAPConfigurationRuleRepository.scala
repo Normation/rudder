@@ -54,6 +54,9 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.log.{
   DeleteConfigurationRule, AddConfigurationRule, ModifyConfigurationRule
 }
+import org.joda.time.format.ISODateTimeFormat
+import com.normation.rudder.domain.archives.CRArchiveId
+import com.unboundid.ldif.LDIFChangeRecord
 
 class LDAPConfigurationRuleRepository(
     rudderDit           : RudderDit
@@ -222,7 +225,115 @@ class LDAPConfigurationRuleRepository(
   	}	
   }
 
+  /**
+   * Implementation logic: 
+   * - lock LDAP for other writes (more precisely, only that repos, with
+   *   synchronized method), 
+   * - create a ou=ConfigurationRules-YYYY-MM-DD_HH-mm in the "archive" branche
+   * - move ALL (included system) current configuration rules in the previous 'ou'
+   * - save newCr, filtering out system ones if includeSystem is false
+   * - if includeSystem is false, copy back save system CR into cr branch
+   * - release lock
+   * 
+   * If something goes wrong, try to restore. 
+   */
+  def swapConfigurationRules(newCrs:Seq[ConfigurationRule], includeSystem:Boolean = false) : Box[CRArchiveId] = {
+    //merge imported configuration rules and existing one, taking care of serial value
+    def mergeCrs(importedCrs:Seq[ConfigurationRule], existingCrs:Seq[ConfigurationRule]) = {
+      importedCrs.map { cr => 
+        existingCrs.find(other => other.id == cr.id) match {
+          //keep and increment serial
+          case Some(existingCr) => cr.copy(serial = existingCr.serial + 1)
+          //set serial to 0
+          case None => cr.copy(serial = 0)
+        }
+      }
+    }
+    //save configuration rules, taking care of serial value
+    def saveCR(con:LDAPConnection, cr:ConfigurationRule) : Box[LDIFChangeRecord] = {
+      val entry = mapper.configurationRule2Entry(cr)
+      entry +=! (A_SERIAL, cr.serial.toString)
+      con.save(entry)
+    }
+    //restore the archive in case of error
+    //that method will be hard to achieve out of here due to serial
+    def restore(con:LDAPConnection, previousCRs:Seq[ConfigurationRule], includeSystem:Boolean) = {
+      for {
+        deleteCR  <- con.delete(rudderDit.CONFIG_RULE.dn)
+        savedBack <- sequence(previousCRs) { cr => 
+                       saveCR(con,cr)
+                     }
+      } yield {
+        savedBack
+      }
+    }
+    
+    ///// actual code for swapConfigurationRules /////
+    
+    val id = CRArchiveId((new DateTime()).toString(ISODateTimeFormat.dateTime))
+    val ou = rudderDit.ARCHIVES.configurationRuleModel(id)
+    //filter systemCr if they are not included, so that merge does not have to deal with that. 
+    val importedCrs = if(includeSystem) newCrs else newCrs.filter( cr => !cr.isSystem)
+    
+    repo.synchronized {
+      
+      for {
+        existingCrs <- repo.getAll(true)
+        crToImport  =  mergeCrs(importedCrs, existingCrs)
+        con         <- ldap
+        //ok, now that's the dangerous part
+        swapCr      <- (for {
+                         //move old cr to archive branch
+                         renamed     <- con.move(rudderDit.CONFIG_RULE.dn, ou.dn.getParent, Some(ou.dn.getRDN))
+                         //now, create back config rule branch and save crs
+                         crOu        <- con.save(rudderDit.CONFIG_RULE.model)
+                         savedCrs    <- sequence(newCrs) { cr => 
+                                        saveCR(con, cr)
+                                     }
+                         //if include system is false, copy back system cr
+                         copyBack    <- if(!includeSystem) {
+                                          sequence(existingCrs.filter( _.isSystem)) { syscr =>
+                                           saveCR(con, syscr)
+                                          }
+                                        } else {
+                                          Full("ok")
+                                        }
+                       } yield {
+                         id
+                       }) match {
+                         case ok:Full[_] => ok
+                         case eb:EmptyBox => //ok, so there, we have a problem
+                           val e = eb ?~! "Error when importing CRs, trying to restore old CR"
+                           logger.error(eb)
+                           restore(con, existingCrs, includeSystem) match {
+                             case _:Full[_] => 
+                               logger.info("Rollback configuration rules")
+                               eb ?~! "Rollbacked imported configuration rules to previous state"
+                             case x:EmptyBox => 
+                               val m = "Error when rollbacking corrupted import for configuration rules, expect other errors. Archive ID: '%s'".format(id.value)
+                               eb ?~! m
+                           }
 
+                       }
+      } yield {
+        id
+      }
+    }
+  }
+  
+  def deleteSavedCr(archiveId:CRArchiveId) : Box[Unit] = {
+    repo.synchronized {
+      for {
+        con <- ldap
+        deleted <- con.delete(rudderDit.ARCHIVES.configurationRuleModel(archiveId).dn)
+      } yield {
+        {}
+      }
+    }
+  }
+    
+    
+    
   /**
    * Check if a configuration exist with the given name, and another id
    */

@@ -32,33 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository
-import net.liftweb.common.Box
+package com.normation.rudder.domain.archives
+import com.normation.utils.HashcodeCaching
 
-
-case class ArchiveId(value:String)
-
-/**
- * This trait allow to manage archives of Policy library, configuration rules
- * and groupes. 
- * 
- * Archive can be done in one shot, partially updated, or read back. 
- */
-trait ItemArchiveManager {
-  
-  /**
-   * Save all items handled by that archive manager 
-   * and return an ID for the archive on success. 
-   */
-  def saveAll(includeSystem:Boolean = false) : Box[ArchiveId]
-  
-  /**
-   * Import the last available archive in Rudder. 
-   * If anything goes bad, implementation of that method
-   * should take all the care to let Rudder in the state
-   * where it was just before the (unsuccessful) import 
-   * was required. 
-   */
-  def importLastArchive(includeSystem:Boolean = false) : Box[Unit]
-
-}
+final case class CRArchiveId(value:String) extends HashcodeCaching

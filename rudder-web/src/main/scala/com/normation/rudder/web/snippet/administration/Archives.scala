@@ -57,11 +57,13 @@ class Archives extends DispatchSnippet with Loggable {
   
   def dispatch = {
     case "exportConfigurationRules" => exportCrForm
+    case "importConfigurationRules" => importCrForm
   }
   
   
+  
+  
   def exportCrForm : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
-    
     // our process method returns a
     // JsCmd which will be sent back to the browser
     // as part of the response
@@ -69,16 +71,16 @@ class Archives extends DispatchSnippet with Loggable {
       //clear errors
       S.clearCurrentNotices
 
-      exportConfigurationRules match {
+      itemArchiver.saveAll() match {
         case empty:EmptyBox => 
           val e = empty ?~! "Error when exporting configuration rules."
           S.error(e.messageChain)
+          Replace("exportCrForm", outerXml.applyAgain)
         case Full(aid) => 
           logger.debug("Exported configuration rules on user request, archive id: " + aid.value )
-          S.notice("Configuration rules where correclty exported.")
+          Replace("exportCrForm", outerXml.applyAgain) &
+          successPopup
       }
-      
-      Replace("exportCrForm", outerXml.applyAgain) 
     }
     
     //process the list of networks
@@ -87,9 +89,46 @@ class Archives extends DispatchSnippet with Loggable {
     }
   }
   
+  def importCrForm : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+    def importConfigurationRules : Box[Unit] = {
+      itemArchiver.importLastArchive()
+    }
+    
+    // our process method returns a
+    // JsCmd which will be sent back to the browser
+    // as part of the response
+    def process(): JsCmd = {
+      //clear errors
+      S.clearCurrentNotices
+
+      importConfigurationRules match {
+        case empty:EmptyBox => 
+          val e = empty ?~! "Error when importing configuration rules."
+          S.error(e.messageChain)
+          Replace("importCrForm", outerXml.applyAgain)
+        case Full(x) => 
+          logger.debug("Imported configuration rules on user request" )
+          Replace("importCrForm", outerXml.applyAgain) &
+          successPopup
+      }
+    }
+    
+    //process the list of networks
+    "#importCrButton" #> { 
+      SHtml.ajaxSubmit("Import", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
+    }
+  }  
   
-  private[this] def exportConfigurationRules : Box[ArchiveId] = {
-    itemArchiver.saveAll
-  }
   
+  ///////////// success pop-up ///////////////
+  private[this] def successPopup : JsCmd = {
+    JsRaw("""
+      setTimeout(function() { $("#succesConfirmationDialog").modal({
+          minHeight:100,
+          minWidth: 350
+        });
+        $('#simplemodal-container').css('height', 'auto');
+      }, 200);
+    """)
+  }  
 }

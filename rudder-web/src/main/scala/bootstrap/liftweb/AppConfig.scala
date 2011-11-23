@@ -226,6 +226,7 @@ class AppConfig extends Loggable {
     , new File(gitRoot)
     , ldapConfigurationRuleRepository
     , configurationRuleSerialisation
+    , configurationRuleUnserialisation
     , "configuration-rules"
   )
   
@@ -599,6 +600,15 @@ class AppConfig extends Loggable {
   @Bean
   def ldapNodeGroupRepository = new LDAPNodeGroupRepository(rudderDit, ldap, ldapEntityMapper, ldapDiffMapper, uuidGen, logRepository)
 
+  @Bean
+  def policyInstanceUnserialisation = new PolicyInstanceUnserialisationImpl
+  
+  @Bean
+  def nodeGroupUnserialisation = new NodeGroupUnserialisationImpl(queryParser)
+  
+  @Bean
+  def configurationRuleUnserialisation = new ConfigurationRuleUnserialisationImpl
+  
   @Bean 
   def eventLogDetailsService : EventLogDetailsService = new EventLogDetailsServiceImpl(
       queryParser

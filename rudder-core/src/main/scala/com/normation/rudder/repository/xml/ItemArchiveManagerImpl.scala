@@ -52,14 +52,26 @@ import com.normation.rudder.domain.policies.ConfigurationRule
 import scala.xml.PrettyPrinter
 import com.normation.cfclerk.services.GitRepositoryProvider
 import org.eclipse.jgit.api.Git
+import java.util.regex.Pattern
+import com.normation.utils.UuidRegex
+import scala.collection.JavaConversions._
+import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisation
+import scala.xml.XML
+import scala.xml.Elem
+import org.xml.sax.SAXParseException
+import com.normation.cfclerk.exceptions.ParsingException
+import java.io.InputStream
+import java.io.FileInputStream
+import com.normation.utils.XmlUtils
 
 class ItemArchiveManagerImpl(
-    gitRepo                       : GitRepositoryProvider
-  , gitRootDirectory              : File
-  , configurationRuleRepository   : ConfigurationRuleRepository
-  , configurationRuleSerialisation: ConfigurationRuleSerialisation
-  , configurationRuleRootDir      : String //relative path !
-  , encoding                      : String = "UTF-8"
+    gitRepo                         : GitRepositoryProvider
+  , gitRootDirectory                : File
+  , configurationRuleRepository     : ConfigurationRuleRepository
+  , configurationRuleSerialisation  : ConfigurationRuleSerialisation
+  , configurationRuleUnserialisation: ConfigurationRuleUnserialisation
+  , configurationRuleRootDir        : String //relative path !
+  , encoding                        : String = "UTF-8"
 ) extends ItemArchiveManager with Loggable {
 
   private[this] val prettyPrinter = new PrettyPrinter(120, 2)
@@ -100,21 +112,42 @@ class ItemArchiveManagerImpl(
   
   ///// implementation /////
   
-  def saveAll(): Box[ArchiveId] = { 
-    
-    
+  def saveAll(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for {
       crs         <- configurationRuleRepository.getAll(false)
       cleanedRoot <- tryo { FileUtils.cleanDirectory(crRoot) }
       saved       <- sequence(crs) { cr => 
                        archiveCr(cr)
                      }
-      archiveId    <- commit
+      archiveId   <- commit
     } yield {
       archiveId
     }
   }
   
+  
+  def importLastArchive(includeSystem:Boolean = false) : Box[Unit] = {
+    
+    for {
+      files <- tryo { FileUtils.listFiles(crRoot,null,false).filter { f => isXmlUuid(f.getName) } }
+      xmls  <- sequence(files.toSeq) { file =>
+                 XmlUtils.parseXml(new FileInputStream(file), Some(file.getPath))
+               }
+      crs   <- sequence(xmls) { xml =>
+                 configurationRuleUnserialisation.unserialise(xml)
+               }
+      swap  <- configurationRuleRepository.swapConfigurationRules(crs)
+    } yield {
+      //try to clean
+      configurationRuleRepository.deleteSavedCr(swap) match {
+        case eb:EmptyBox =>
+          val e = eb ?~! ("Error when trying to delete saved archive of old cr: " + swap)
+          logger.error(e)
+        case _ => //ok
+      }
+      crs
+    }
+  }
   
   ///// utility methods /////
   
@@ -144,4 +177,8 @@ class ItemArchiveManagerImpl(
       crFile
     }
   }
+  
+  private[this] val xmlUuidPattern = Pattern.compile(UuidRegex.stringPattern + ".xml")
+  private[this] def isXmlUuid(candidate:String) = xmlUuidPattern.matcher(candidate).matches
+
 }

@@ -35,6 +35,7 @@
 package com.normation.rudder.domain
 
 import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.archives._
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.GroupCategoryUuid
@@ -349,6 +350,19 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
 //      }
 //    }
 //  }
+  
+  val ARCHIVES = new OU("Archives", BASE_DN) {
+    archives =>
+    //check for the presence of that entry at bootstrap
+    dit.register(archives.model)
+    
+    def configurationRuleModel(
+      crArchiveId : CRArchiveId
+    ) : LDAPEntry = {
+      (new OU("ConfigurationRules-" + crArchiveId.value, archives.dn)).model
+    }
+  
+  }
   
   
   private def singleRdnValue(dn:DN, expectedAttributeName:String) : Box[String] = {

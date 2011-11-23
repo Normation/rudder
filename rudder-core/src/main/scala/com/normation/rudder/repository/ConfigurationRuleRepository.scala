@@ -36,10 +36,9 @@ package com.normation.rudder.repository
 
 import com.normation.rudder.domain.policies.PolicyInstanceTarget
 import com.normation.rudder.domain.policies._
-
 import net.liftweb.common._
 import com.normation.eventlog.EventActor
-
+import com.normation.rudder.domain.archives.CRArchiveId
 
 
 
@@ -116,4 +115,27 @@ trait ConfigurationRuleRepository {
    */
   def getAllActivated() : Box[Seq[ConfigurationRule]] 
   
+  /**
+   * A (dangerous) method that replace all existing rules
+   * by the list given in parameter. 
+   * If succeed, return an identifier of the place were
+   * are stored the old configuration rules - it is the
+   * responsibility of the user to delete them.
+   * 
+   * Most of the time, we don't want to change system configuration rules. 
+   * So when "includeSystem" is false (default), swapConfigurationRules 
+   * implementation have to take care to ignore any configuration (both in
+   * newCr or in archive). 
+   * 
+   * Note: a really really special care have to be taken with serial IDs:
+   * - for CR which exists in both imported and existing referential, the
+   *   serial ID MUST be updated (+1)
+   * - for all other imported CR, the serial MUST be set to 0
+   */
+  def swapConfigurationRules(newCr:Seq[ConfigurationRule], includeSystem:Boolean = false) : Box[CRArchiveId]
+  
+  /**
+   * Delete a set of saved configuration rules. 
+   */
+  def deleteSavedCr(saveId:CRArchiveId) : Box[Unit]
 }
