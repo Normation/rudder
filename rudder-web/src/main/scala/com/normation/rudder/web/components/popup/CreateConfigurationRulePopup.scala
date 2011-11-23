@@ -87,8 +87,8 @@ class CreateConfigurationRulePopup(
       "itemName" -> piName.toForm_!,
       "itemShortDescription" -> piShortDescription.toForm_!,
       "notifications" -> updateAndDisplayNotifications(),
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCRSaveButton")
+      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"),
+      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","3")
     ))
   }
 
@@ -98,14 +98,14 @@ class CreateConfigurationRulePopup(
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "twoCol"
     override def errorClassName = ""
-    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createCRSaveButton')")
+    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createCRSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
   private[this] val piShortDescription = new WBTextAreaField("Short description: ", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:7em")
+    override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
     override def className = "twoCol"
     override def errorClassName = ""
     override def validations = Nil

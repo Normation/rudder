@@ -132,8 +132,8 @@ class CreateCategoryOrGroupPopup(
       "itemDescription" -> piDescription.toForm_!,
       "groupType" -> piStatic.toForm_!,
       "notifications" -> updateAndDisplayNotifications(),
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCOGSaveButton")
+      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"),
+      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCOGSaveButton") % ("tabindex","3")
     )) ++ Script(OnLoad(initJs)) 
   }
 
@@ -143,14 +143,14 @@ class CreateCategoryOrGroupPopup(
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "twoCol"
     override def errorClassName = ""
-    override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')")
+    override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
   private[this] val piDescription = new WBTextAreaField("Description: ", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:10em")
+    override def inputField = super.inputField  % ("style" -> "height:10em") % ("tabindex","2")
     override def className = "twoCol"
     override def errorClassName = ""
     override def validations =  Nil
