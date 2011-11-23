@@ -91,7 +91,7 @@ class CreateUserPolicyTemplateCategoryPopup(onSuccessCallback : () => JsCmd = { 
       "itemDescription" -> piDescription.toForm_!,
       "notifications" -> updateAndDisplayNotifications(),
       "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _)
+      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) %("id","createUPTCSaveButton")
     ))
   }
 
@@ -101,6 +101,7 @@ class CreateUserPolicyTemplateCategoryPopup(onSuccessCallback : () => JsCmd = { 
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "twoCol"
     override def errorClassName = ""
+    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createUPTCSaveButton')")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }

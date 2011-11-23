@@ -32,6 +32,15 @@
 *************************************************************************************
 */
 
+function processKey(e , buttonId){
+    if (null == e)
+        e = window.event ;
+    if (e.keyCode == 13)  {
+        document.getElementById(buttonId).click();
+        return false;
+    }
+}
+
 function roundTabs() {
 	$(".tabs").tabs();	
 	$(".tabsv").tabs();

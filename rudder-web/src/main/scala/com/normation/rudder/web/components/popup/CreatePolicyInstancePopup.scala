@@ -108,7 +108,7 @@ class CreatePolicyInstancePopup(
       "#itemDescription" #> piShortDescription.toForm_! &
       "#notifications" #> updateAndDisplayNotifications() &
       "#cancel" #> SHtml.ajaxButton("Cancel", { () => closePopup() }) &
-      "#save" #> SHtml.ajaxSubmit("Configure", onSubmit _)
+      "#save" #> (SHtml.ajaxSubmit("Configure", onSubmit _) % ("id", "createPISaveButton"))
     )(html ++ Script(OnLoad(JsRaw("correctButtons();"))))
     
   }
@@ -119,6 +119,7 @@ class CreatePolicyInstancePopup(
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "twoCol"
     override def errorClassName = ""
+    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createPISaveButton')")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }

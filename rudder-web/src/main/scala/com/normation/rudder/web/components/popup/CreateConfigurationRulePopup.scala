@@ -88,7 +88,7 @@ class CreateConfigurationRulePopup(
       "itemShortDescription" -> piShortDescription.toForm_!,
       "notifications" -> updateAndDisplayNotifications(),
       "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _)
+      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCRSaveButton")
     ))
   }
 
@@ -98,6 +98,7 @@ class CreateConfigurationRulePopup(
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "twoCol"
     override def errorClassName = ""
+    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createCRSaveButton')")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
