@@ -78,9 +78,9 @@ class LDAPConfigurationRuleRepository(
    */
   def get(id:ConfigurationRuleId) : Box[ConfigurationRule]  = {
     for {
-      con <- ldap 
+      con     <- ldap 
       crEntry <- con.get(rudderDit.CONFIG_RULE.configRuleDN(id.value)) 
-      cr <- mapper.entry2ConfigurationRule(crEntry) ?~! "Error when transforming LDAP entry into a Configuration Rule for id %s. Entry: %s".format(id, crEntry)
+      cr      <- mapper.entry2ConfigurationRule(crEntry) ?~! "Error when transforming LDAP entry into a Configuration Rule for id %s. Entry: %s".format(id, crEntry)
     } yield {
       cr
     }
@@ -89,11 +89,11 @@ class LDAPConfigurationRuleRepository(
 
   def delete(id:ConfigurationRuleId, actor:EventActor) : Box[DeleteConfigurationRuleDiff] = {
     for {
-      con <- ldap
-      entry <- con.get(rudderDit.CONFIG_RULE.configRuleDN(id.value)) ?~! "Configuration rule with ID '%s' is not present".format(id.value)
-      oldCr <- mapper.entry2ConfigurationRule(entry) ?~! "Error when transforming LDAP entry into a Configuration Rule for id %s. Entry: %s".format(id, entry)
-      deleted <- con.delete(rudderDit.CONFIG_RULE.configRuleDN(id.value)) ?~! "Error when deleting configuration rule with ID %s".format(id)
-      diff = DeleteConfigurationRuleDiff(oldCr)
+      con          <- ldap
+      entry        <- con.get(rudderDit.CONFIG_RULE.configRuleDN(id.value)) ?~! "Configuration rule with ID '%s' is not present".format(id.value)
+      oldCr        <- mapper.entry2ConfigurationRule(entry) ?~! "Error when transforming LDAP entry into a Configuration Rule for id %s. Entry: %s".format(id, entry)
+      deleted      <- con.delete(rudderDit.CONFIG_RULE.configRuleDN(id.value)) ?~! "Error when deleting configuration rule with ID %s".format(id)
+      diff         =  DeleteConfigurationRuleDiff(oldCr)
       loggedAction <- actionLogger.saveDeleteConfigurationRule(principal = actor, deleteDiff = diff)
     } yield {
       diff
@@ -106,8 +106,8 @@ class LDAPConfigurationRuleRepository(
     for {
       con <- ldap
       crs <- sequence(con.searchOne(rudderDit.CONFIG_RULE.dn, filter)) { crEntry =>
-        mapper.entry2ConfigurationRule(crEntry) ?~! "Error when transforming LDAP entry into a Configuration Rule. Entry: %s".format(crEntry)
-      }
+               mapper.entry2ConfigurationRule(crEntry) ?~! "Error when transforming LDAP entry into a Configuration Rule. Entry: %s".format(crEntry)
+             }
     } yield {
       crs
     }
@@ -116,21 +116,21 @@ class LDAPConfigurationRuleRepository(
   
   def create(cr:ConfigurationRule, actor:EventActor) : Box[AddConfigurationRuleDiff] = {
     repo.synchronized { for {
-      con <- ldap
-      idDoesntExist <- if(con.exists(rudderDit.CONFIG_RULE.configRuleDN(cr.id.value))) {
-          Failure("Cannot create a configuration rule with id %s : there is already a configuration rule with the same id".format(cr.id))
-        } else { 
-          Full(Unit) 
-      }
+      con             <- ldap
+      idDoesntExist   <- if(con.exists(rudderDit.CONFIG_RULE.configRuleDN(cr.id.value))) {
+                           Failure("Cannot create a configuration rule with id %s : there is already a configuration rule with the same id".format(cr.id))
+                         } else { 
+                           Full(Unit) 
+                         }
       nameIsAvailable <- if (nodeConfigurationRuleNameExists(con, cr.name, cr.id)) Failure("Cannot create a configuration rule with name %s : there is already a configuration rule with the same name".format(cr.name))
-                else Full(Unit)
-      crEntry = mapper.configurationRule2Entry(cr) 
-      result <- {
-        crEntry +=! (A_SERIAL, "0") //serial must be set to 0
-        con.save(crEntry) ?~! "Error when saving Configuration Rule entry in repository: %s".format(crEntry)
-      }
-      diff <- diffMapper.addChangeRecords2ConfigurationRuleDiff(crEntry.dn,result)
-      loggedAction <- actionLogger.saveAddConfigurationRule(principal = actor, addDiff = diff)
+                         else Full(Unit)
+      crEntry         =  mapper.configurationRule2Entry(cr) 
+      result          <- {
+                           crEntry +=! (A_SERIAL, "0") //serial must be set to 0
+                           con.save(crEntry) ?~! "Error when saving Configuration Rule entry in repository: %s".format(crEntry)
+                         }
+      diff            <- diffMapper.addChangeRecords2ConfigurationRuleDiff(crEntry.dn,result)
+      loggedAction    <- actionLogger.saveAddConfigurationRule(principal = actor, addDiff = diff)
     } yield {
       diff
     } }
@@ -139,15 +139,15 @@ class LDAPConfigurationRuleRepository(
   
   def update(cr:ConfigurationRule, actor:EventActor) : Box[Option[ModifyConfigurationRuleDiff]] = {
     repo.synchronized { for {
-      con <- ldap
+      con           <- ldap
       existingEntry <- con.get(rudderDit.CONFIG_RULE.configRuleDN(cr.id.value)) ?~! "Cannot update configuration rule with id %s : there is no configuration rule with that id".format(cr.id.value)
-      crEntry = mapper.configurationRule2Entry(cr)
-      result <- con.save(crEntry, true, Seq(A_SERIAL)) ?~! "Error when saving Configuration Rule entry in repository: %s".format(crEntry)
-      optDiff <- diffMapper.modChangeRecords2ConfigurationRuleDiff(existingEntry,result) ?~! "Error when mapping Configuration Rule '%s' update to an diff: %s".format(cr.id.value, result)
-      loggedAction <- optDiff match {
-        case None => Full("OK")
-        case Some(diff) => actionLogger.saveModifyConfigurationRule(principal = actor, modifyDiff = diff)
-      }
+      crEntry       =  mapper.configurationRule2Entry(cr)
+      result        <- con.save(crEntry, true, Seq(A_SERIAL)) ?~! "Error when saving Configuration Rule entry in repository: %s".format(crEntry)
+      optDiff       <- diffMapper.modChangeRecords2ConfigurationRuleDiff(existingEntry,result) ?~! "Error when mapping Configuration Rule '%s' update to an diff: %s".format(cr.id.value, result)
+      loggedAction  <- optDiff match {
+                         case None => Full("OK")
+                         case Some(diff) => actionLogger.saveModifyConfigurationRule(principal = actor, modifyDiff = diff)
+                       }
     } yield {
       optDiff
     } }
@@ -155,17 +155,19 @@ class LDAPConfigurationRuleRepository(
         
   
   def incrementSerial(id:ConfigurationRuleId) : Box[Int] = {
-    repo.synchronized { for {
-      con <- ldap
-      entryWithSerial <-  con.get(rudderDit.CONFIG_RULE.configRuleDN(id.value), A_SERIAL)
-      serial <- Box(entryWithSerial.getAsInt(A_SERIAL)) ?~! "Missing Int attribute '%s' in entry, cannot update".format(A_SERIAL)
-      result <- {
-        entryWithSerial +=! (A_SERIAL, (serial + 1).toString)
-        con.save(entryWithSerial) ?~! "Error when saving Configuration Rule entry in repository: %s".format(entryWithSerial)
-      }
-    } yield {
-      serial + 1
-    } }
+    repo.synchronized { 
+      for {
+        con             <- ldap
+        entryWithSerial <-  con.get(rudderDit.CONFIG_RULE.configRuleDN(id.value), A_SERIAL)
+        serial          <- Box(entryWithSerial.getAsInt(A_SERIAL)) ?~! "Missing Int attribute '%s' in entry, cannot update".format(A_SERIAL)
+        result          <- {
+                          entryWithSerial +=! (A_SERIAL, (serial + 1).toString)
+                          con.save(entryWithSerial) ?~! "Error when saving Configuration Rule entry in repository: %s".format(entryWithSerial)
+                        }
+      } yield {
+        serial + 1
+      } 
+    }
   }
 
   /**
@@ -179,33 +181,38 @@ class LDAPConfigurationRuleRepository(
    */
   def getAllActivated() : Box[Seq[ConfigurationRule]] = {
   	// First fetch the activated groups
-  	val groupsId = (for {
-      con <- ldap
-      activatedGroups = con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_RUDDER_NODE_GROUP), EQ(A_IS_ACTIVATED, true.toLDAPString)), "1.1")
-      groupIds <- sequence(activatedGroups) { entry =>
-        rudderDit.GROUP.getGroupId(entry.dn)
-      }
-  	} yield groupIds )
+  	val groupsId = (
+  	  for {
+        con             <- ldap
+        activatedGroups =  con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_RUDDER_NODE_GROUP), EQ(A_IS_ACTIVATED, true.toLDAPString)), "1.1")
+        groupIds        <- sequence(activatedGroups) { entry =>
+                          rudderDit.GROUP.getGroupId(entry.dn)
+                        }
+  	  } yield {
+  	    groupIds 
+  	  })
   	
   	logger.debug("Activated groups are %s".format(groupsId.mkString(";")))
     (for {
-      con <- ldap
-      activatedUPT_entry = con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn, AND(IS(OC_USER_POLICY_TEMPLATE), EQ(A_IS_ACTIVATED, true.toLDAPString)), "1.1")
-      activatedPI_DNs = activatedUPT_entry.flatMap { entry =>
-        con.searchOne(entry.dn, AND(IS(OC_WBPI), EQ(A_IS_ACTIVATED, true.toLDAPString)), "1.1").map( _.dn)
-      }
-      activatedPI_ids <- sequence(activatedPI_DNs) { dn =>
-        rudderDit.POLICY_TEMPLATE_LIB.getLDAPConfigurationRuleID(dn)
-      }
-     configRules <- sequence(con.searchSub(rudderDit.CONFIG_RULE.dn, 
-        //group is activated and pi is activated and config rule is activated !
-        AND(IS(OC_CONFIGURATION_RULE),
-          EQ(A_IS_ACTIVATED, true.toLDAPString),
-          HAS(A_POLICY_TARGET),
-          HAS(A_WBPI_UUID),
-          OR(activatedPI_ids.map(id =>  EQ(A_WBPI_UUID, id)):_*)
-        )
-      )) { entry => mapper.entry2ConfigurationRule(entry) }
+      con                <- ldap
+      activatedUPT_entry =  con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn, AND(IS(OC_USER_POLICY_TEMPLATE), EQ(A_IS_ACTIVATED, true.toLDAPString)), "1.1")
+      activatedPI_DNs    =  activatedUPT_entry.flatMap { entry =>
+                              con.searchOne(entry.dn, AND(IS(OC_WBPI), EQ(A_IS_ACTIVATED, true.toLDAPString)), "1.1").map( _.dn)
+                            }
+      activatedPI_ids    <- sequence(activatedPI_DNs) { dn =>
+                              rudderDit.POLICY_TEMPLATE_LIB.getLDAPConfigurationRuleID(dn)
+                            }
+     configRules        <- sequence(con.searchSub(rudderDit.CONFIG_RULE.dn, 
+                             //group is activated and pi is activated and config rule is activated !
+                             AND(IS(OC_CONFIGURATION_RULE),
+                               EQ(A_IS_ACTIVATED, true.toLDAPString),
+                               HAS(A_POLICY_TARGET),
+                               HAS(A_WBPI_UUID),
+                               OR(activatedPI_ids.map(id =>  EQ(A_WBPI_UUID, id)):_*)
+                             )
+                           )) { entry => 
+                             mapper.entry2ConfigurationRule(entry) 
+                           }
     } yield {
       configRules
     } ) match {
@@ -324,7 +331,7 @@ class LDAPConfigurationRuleRepository(
   def deleteSavedCr(archiveId:CRArchiveId) : Box[Unit] = {
     repo.synchronized {
       for {
-        con <- ldap
+        con     <- ldap
         deleted <- con.delete(rudderDit.ARCHIVES.configurationRuleModel(archiveId).dn)
       } yield {
         {}
