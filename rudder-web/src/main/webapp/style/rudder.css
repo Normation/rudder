@@ -73,21 +73,33 @@
 fieldset.crTree {
   margin: 2px;
   padding: 5px;
-  width: 32%;
-  display: inline-block;
   vertical-align: top;
 }
 
 fieldset.nodeIndernal {
   margin: 2px;
   padding: 5px;
-  display: inline-block;
   vertical-align: top;
-  width: 56%;
 }
 
 .nodeSummary {
 
+}
+
+table.nomargin {
+ margin: 0px;
+ width: 100%;
+}
+td.crTree {
+  border-top: 0px;
+  width: 32%;
+  vertical-align: top;
+}
+
+td.nodeIndernal {
+  border-top: 0px;
+  width: 56%;
+  vertical-align: top;
 }
 
 /**********************************

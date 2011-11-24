@@ -54,6 +54,10 @@ import net.liftweb.http.SHtml._
 import com.normation.exceptions.TechnicalException
 import net.liftweb.http.Templates
 import org.joda.time.DateTime
+import com.normation.rudder.services.servers.RemoveNodeService
+import com.normation.rudder.web.model.CurrentUser
+import org.slf4j.LoggerFactory
+
 
 /**
  * A service used to display details about a server 
@@ -67,10 +71,15 @@ import org.joda.time.DateTime
  * # jsInit(serverId) : Cmd
  *    to init javascript for it 
  */
+class DisplayServer {}
+
 object DisplayServer {
   
   private val getSoftwareService = inject[ReadOnlySoftwareDAO]
   
+  private val removeNodeService = inject[RemoveNodeService]
+  
+  private val logger = LoggerFactory.getLogger(classOf[DisplayServer])
   private val templatePath = List("templates-hidden", "server_details_tabs")
   private def template() =  Templates(templatePath) match {
     case Empty | Failure(_,_,_) => 
@@ -78,6 +87,12 @@ object DisplayServer {
     case Full(n) => n
   }
   
+  
+  private val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
+  private val errorPopupHtmlId = "errorPopupHtmlId"
+  private val successPopupHtmlId = "successPopupHtmlId"  
+    
+    
   private def content() = chooseTemplate("serverdetails","content",template)
   
   private def loadSoftware(jsId:JsNodeId, softIds:Seq[SoftwareUuid])(nodeId:String):JsCmd = {
@@ -231,8 +246,18 @@ object DisplayServer {
   
   // mimic the content of server_details/ShowServerDetailsFromNode
   def showNodeDetails(sm:FullInventory, creationDate:Option[DateTime], salt:String = "") : NodeSeq = {
-    val jsId = JsNodeId(sm.node.main.id,salt)
-    
+  
+    { sm.node.main.status match {
+		      case AcceptedInventory => 
+		        <div id={deleteNodePopupHtmlId}  class="nodisplay" />
+		        <div id={errorPopupHtmlId}  class="nodisplay" />
+		        <div id={successPopupHtmlId}  class="nodisplay" />
+		        <fieldset class="nodeIndernal"><legend>Action</legend>
+		      		{SHtml.ajaxButton("Delete this node", { () => {showPopup(sm.node.main.id); } })}  	
+		      	</fieldset> ++ {Script(OnLoad(JsRaw("""correctButtons();""")))}
+		      case _ => NodeSeq.Empty
+        }
+    } ++
     <fieldset class="nodeIndernal"><legend>Node characteristics</legend>
 
       <h4 class="tablemargin">General</h4>
@@ -268,6 +293,8 @@ object DisplayServer {
           <b>Local account(s):</b> {displayAccounts(sm.node)}<br/>
         </div>
     </fieldset>
+  
+
   }
   
   private def htmlId(jsId:JsNodeId, prefix:String="") : String = prefix + jsId.toString
@@ -483,5 +510,127 @@ object DisplayServer {
         ( "Resolution" , {x:Video => ?(x.resolution)}) :: 
         ( "Quantity" , {x:Video => Text(x.quantity.toString)}) :: 
         Nil
-    }    
+    }
+  
+  private[this] def showPopup(nodeId : NodeId) : JsCmd = {
+    val popupHtml = 
+    <div class="simplemodal-title">
+      <h1>Remove a node from Rudder</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+    	<div>
+          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+          <h2>If you choose to remove this node from Rudder, it won't be managed anymore, and all informations about it will be removed from the application</h2>    	
+    	</div>
+    	<hr class="spacer"/>
+ 		</div>
+		<div class="simplemodal-bottom">
+			<hr/>
+    	<div class="popupButton">
+    		<span>
+    			<button class="simplemodal-close" onClick="$.modal.close();">
+          Cancel
+        	</button>
+    			{ 
+    				SHtml.ajaxButton("Delete this node", { () => {removeNode(nodeId) } })
+  				}  	
+    		</span>
+    	</div>
+    </div> ;
+         
+    	
+    
+    SetHtml(deleteNodePopupHtmlId, popupHtml) &
+    JsRaw( """ $("#%s").modal({
+      minHeight:300,
+  	  minWidth: 400
+     });
+    $('#simplemodal-container').css('height', 'auto');
+    correctButtons();
+     """.format(deleteNodePopupHtmlId))
+
+  }
+  
+  private[this] def removeNode(nodeId: NodeId) : JsCmd = {
+    removeNodeService.removeNode(nodeId, CurrentUser.getActor) match {
+      case Full(entry) =>
+        logger.info("Successfully removed node %s from Rudder".format(nodeId.value))
+        onSuccess
+      case Failure(m, _,_) => 
+        logger.error("Could not remove node %s from Rudder, reason is %s".format(nodeId.value, m))
+        onFailure(nodeId)
+      
+    }
+  }
+  
+  private[this] def onFailure(nodeId: NodeId) : JsCmd = {
+    val popupHtml = 
+    <div class="simplemodal-title">
+      <h1>Error while removing a node from Rudder</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+    	<div>
+          <img src="/images/icError.png" alt="Error!" height="32" width="32" class="erroricon"/>
+          <h2>There was an error while deleting the Node with id {nodeId.value}. Please contact your administrator.</h2>
+      </div>
+    	<hr class="spacer" />
+      <br />
+      <br />
+      <div align="right">
+        <button class="simplemodal-close" onClick="return false;">
+          Close
+        </button>
+      <br />
+    	</div>
+    </div> ;
+    
+    JsRaw( """$.modal.close();""") &
+    SetHtml(errorPopupHtmlId, popupHtml) &
+    JsRaw( """ setTimeout(function() { $("#%s").modal({
+      minHeight:300,
+  	  minWidth: 400
+     });
+    $('#simplemodal-container').css('height', 'auto');
+    correctButtons(); }, 200);
+     """.format(errorPopupHtmlId))
+  }
+  
+  private[this] def onSuccess : JsCmd = {
+    val popupHtml = 
+      <div class="simplemodal-title">
+      <h1>Success</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+      <br />
+      <div>
+        <img src="/images/icOK.png" alt="Success" height="32" width="32" class="icon" />
+        <h2>The node has been properly removed from Rudder.</h2>
+      </div>
+      <hr class="spacer" />
+      <br />
+      <br />
+    </div>
+    <div class="simplemodal-bottom">
+      <hr/>
+      <p align="right">
+        <button class="simplemodal-close" onClick="window.location.hash='#';location.reload(true);">
+          Close
+        </button>
+      <br />
+      </p>
+    </div> ;
+      
+    JsRaw( """$.modal.close();""") &
+    SetHtml(successPopupHtmlId, popupHtml) &
+    JsRaw( """ setTimeout(function() { $("#%s").modal({
+      minHeight:300,
+  	  minWidth: 400
+     });
+    $('#simplemodal-container').css('height', 'auto');
+    correctButtons(); }, 200);
+     """.format(successPopupHtmlId))
+  }
 }

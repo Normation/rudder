@@ -77,11 +77,18 @@
 	
 	<div id="node_summary">
 	 <div id="nodeid" class="nodeSummary">
-    <fieldset class="crTree"><legend>Groups containing this node</legend>
-        <server:jsTree/>
-    </fieldset>
-
-    <server:nodeDetails/>
+	  <table class="nomargin">
+	  	<tr>
+	  		<td class="crTree">
+			    <fieldset class="crTree"><legend>Groups containing this node</legend>
+			        <server:jsTree/>
+			    </fieldset>
+		    </td>
+				<td  class="nodeIndernal">
+		    	<server:nodeDetails/>
+		    </td>
+    	</tr>
+    </table>
    </div>
 	</div>
 	  

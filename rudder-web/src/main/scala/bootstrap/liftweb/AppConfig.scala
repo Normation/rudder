@@ -673,6 +673,9 @@ class AppConfig extends Loggable {
   def jsTreeUtilService = new JsTreeUtilService(
     ldapUserPolicyTemplateCategoryRepository, ldapUserPolicyTemplateRepository, ldapPolicyInstanceRepository, policyPackageService)
 
+  @Bean
+  def removeNodeService = new RemoveNodeServiceImpl(
+      nodeDit, rudderDit, ldap, ldapEntityMapper, ldapNodeGroupRepository, metaEntryManagement)
   /**
    * *************************************************
    * Bootstrap check actions
