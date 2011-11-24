@@ -22,6 +22,10 @@ package com.normation.utils
 
 import scala.xml.{Node,NodeSeq}
 import net.liftweb.common._
+import scala.xml.XML
+import scala.xml.Elem
+import org.xml.sax.SAXParseException
+import java.io.InputStream
 
 object XmlUtils {
   
@@ -61,4 +65,30 @@ object XmlUtils {
     val seq = node \ ("@" + name)
     if (seq.isEmpty) default else seq.head.text
   }
+  
+  
+  /**
+   * Parse the file denoted by input stream (filePath is only
+   * for explicit error messages)
+   */
+  def parseXml(is: InputStream, filePath : Option[String] = None) : Box[Elem] = {
+    val name = filePath.getOrElse("[unknown]")
+    for {
+      doc <- try {
+               Full(XML.load(is))
+             } catch {
+               case e: SAXParseException =>0
+                 Failure("Unexpected issue with the XML file %s: %s".format(name, e.getMessage), Full(e), Empty)
+               case e: java.net.MalformedURLException =>
+                 Failure("XML file not found: " + name, Full(e), Empty)
+             }
+      nonEmpty <- if (doc.isEmpty) { 
+                    Failure("Error when parsing XML file: '%s': the parsed document is empty".format(name))
+                  } else {
+                    Full("ok")
+                  }
+    } yield {
+      doc
+    }
+  }  
 }
