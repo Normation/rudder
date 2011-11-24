@@ -67,6 +67,8 @@ class LDAPConfigurationRuleRepository(
   , groupRepository     : NodeGroupRepository
   , policyPackageService: PolicyPackageService
   , actionLogger        : EventLogRepository
+  , gitCrArchiver       : GitConfigurationRuleArchiver
+  , autoExportOnModify  : Boolean
 ) extends ConfigurationRuleRepository with Loggable {
   repo => 
   
@@ -95,6 +97,9 @@ class LDAPConfigurationRuleRepository(
       deleted      <- con.delete(rudderDit.CONFIG_RULE.configRuleDN(id.value)) ?~! "Error when deleting configuration rule with ID %s".format(id)
       diff         =  DeleteConfigurationRuleDiff(oldCr)
       loggedAction <- actionLogger.saveDeleteConfigurationRule(principal = actor, deleteDiff = diff)
+      autoArchive  <- if(autoExportOnModify) {
+                        gitCrArchiver.deleteConfigurationRule(id)
+                      } else Full("ok")
     } yield {
       diff
     }
@@ -131,6 +136,9 @@ class LDAPConfigurationRuleRepository(
                          }
       diff            <- diffMapper.addChangeRecords2ConfigurationRuleDiff(crEntry.dn,result)
       loggedAction    <- actionLogger.saveAddConfigurationRule(principal = actor, addDiff = diff)
+      autoArchive     <- if(autoExportOnModify) {
+                           gitCrArchiver.archiveConfigurationRule(cr)
+                         } else Full("ok")
     } yield {
       diff
     } }
@@ -148,6 +156,9 @@ class LDAPConfigurationRuleRepository(
                          case None => Full("OK")
                          case Some(diff) => actionLogger.saveModifyConfigurationRule(principal = actor, modifyDiff = diff)
                        }
+      autoArchive   <- if(autoExportOnModify) {
+                         gitCrArchiver.archiveConfigurationRule(cr)
+                       } else Full("ok")
     } yield {
       optDiff
     } }

@@ -63,65 +63,127 @@ import com.normation.cfclerk.exceptions.ParsingException
 import java.io.InputStream
 import java.io.FileInputStream
 import com.normation.utils.XmlUtils
+import com.normation.rudder.repository.GitConfigurationRuleArchiver
+import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.utils.Utils
+import com.normation.rudder.domain.policies.ConfigurationRule
 
-class ItemArchiveManagerImpl(
+class GitConfigurationRuleArchiverImpl(
     gitRepo                         : GitRepositoryProvider
   , gitRootDirectory                : File
-  , configurationRuleRepository     : ConfigurationRuleRepository
   , configurationRuleSerialisation  : ConfigurationRuleSerialisation
-  , configurationRuleUnserialisation: ConfigurationRuleUnserialisation
   , configurationRuleRootDir        : String //relative path !
+  , xmlPrettyPrinter                : PrettyPrinter
   , encoding                        : String = "UTF-8"
-) extends ItemArchiveManager with Loggable {
+) extends GitConfigurationRuleArchiver with Loggable {
 
-  private[this] val prettyPrinter = new PrettyPrinter(120, 2)
-  
-  //return the directory for path, create it if needed
-  private[this] def createDirectory(relativePaht:String):Box[File] = {
-    val root = new File(gitRootDirectory, relativePaht)
-    try {
-      if(root.exists) {
-        if(root.isDirectory) {
-          if(root.canWrite) {
-            Full(root)
-          } else Failure("The directory '%s' has no write permission, please use another directory".format(root.getPath))
-        } else Failure("File at '%s' is not a directory, please change configuration".format(root.getPath))
-      } else if(root.mkdirs) {
-        logger.debug("Creating missing directory '%s'".format(root.getPath))
-        Full(root)
-      } else Failure("Directory '%s' does not exists and can not be created, please use another directory".format(root.getPath))
-    } catch {
-      case ioe:IOException => Failure("Exception when cheching directory '%s': '%s'".format(root.getPath,ioe.getMessage))
-    }
-  }
-  
-  ///// initialization ////
-  /*
-   * check that root directories exist or create them
-   */
-  val crRoot :: Nil = bestEffort(Seq(configurationRuleRootDir)) { path =>
-    createDirectory(path)
-  }.map( _.toList) match {
-    case Full(list) => list
+  override lazy val getRootDirectory : File = { Utils.createDirectory(new File(gitRootDirectory, configurationRuleRootDir)) match {
+    case Full(dir) => dir
     case eb:EmptyBox =>
       val e = eb ?~! "Error when checking required directories to archive items:"
       logger.error(e.messageChain)
       throw new TechnicalException(e.messageChain)
+  } }
+
+  private[this] def newCrFile(crId:ConfigurationRuleId) = new File(getRootDirectory, crId.value + ".xml")
+  private[this] def getCrGitPath(crId:ConfigurationRuleId) = newCrFile(crId).getPath.replace(gitRootDirectory.getPath +"/","")
+  
+  def archiveConfigurationRule(cr:ConfigurationRule, gitCommitCr:Boolean = true) : Box[File] = {
+    val crFile = newCrFile(cr.id)
+      
+    for {   
+      archive <- tryo { 
+                   FileUtils.writeStringToFile(
+                       crFile
+                     , xmlPrettyPrinter.format(configurationRuleSerialisation.serialise(cr))
+                     , encoding
+                   )
+                   logger.debug("Archived Configuration rule: " + crFile.getPath)
+                   crFile
+                 }
+      commit  <- if(gitCommitCr) {
+                    val git = new Git(gitRepo.db)
+                    val archiveId = ArchiveId((new DateTime()).toString(ISODateTimeFormat.dateTime))
+                    val crGitPath = getCrGitPath(cr.id)
+                    tryo {
+                      git.add.addFilepattern(crGitPath).call
+                      val status = git.status.call
+                      if(status.getAdded.contains(crGitPath)||status.getChanged.contains(crGitPath)) {
+                        git.commit.setMessage("Archive configuration rule with ID '%s' on %s ".format(cr.id.value,archiveId.value)).call
+                        archiveId
+                      } else throw new Exception("Auto-archive git failure: not found in git added files: " + crGitPath)
+                    }
+                 } else {
+                   Full("ok")
+                 }
+    } yield {
+      archive
+    }
+  }
+
+  def commitConfigurationRules() : Box[String] = {
+    val git = new Git(gitRepo.db)
+    val archiveId = ArchiveId((new DateTime()).toString(ISODateTimeFormat.dateTime))
+
+    tryo {
+      //remove existing and add modified
+      git.add.setUpdate(true).addFilepattern(configurationRuleRootDir).call
+      //also add new one
+      git.add.addFilepattern(configurationRuleRootDir).call
+      git.commit.setMessage("Archive configuration rules on %s ".format(archiveId.value)).call.name
+    }
   }
   
+  def deleteConfigurationRule(crId:ConfigurationRuleId, gitCommitCr:Boolean = true) : Box[File] = {
+    val crFile = newCrFile(crId)
+    if(crFile.exists) {
+      for {
+        deleted  <- tryo { FileUtils.forceDelete(crFile) }
+        commited <- if(gitCommitCr) {
+                      val git = new Git(gitRepo.db)
+                      val archiveId = ArchiveId((new DateTime()).toString(ISODateTimeFormat.dateTime))
+                      val crGitPath = getCrGitPath(crId)
+                      tryo {
+                        git.rm.addFilepattern(crGitPath).call
+                        val status = git.status.call
+                        if(status.getRemoved.contains(crGitPath)) {
+                          git.commit.setMessage("Delete archive of configuration rule with ID '%s' on %s ".format(crId.value,archiveId.value)).call
+                          archiveId
+                        } else throw new Exception("Auto-archive git failure: not found in git removed files: " + crGitPath)
+                      }
+                    } else {
+                      Full("OK")
+                    }
+      } yield {
+        crFile
+      }
+    } else {
+      Full(crFile)
+    }
+  }
+  
+}
+
+class ItemArchiveManagerImpl(
+    configurationRuleRepository     : ConfigurationRuleRepository
+  , configurationRuleUnserialisation: ConfigurationRuleUnserialisation
+  , gitConfigurationRuleArchiver    : GitConfigurationRuleArchiver
+) extends ItemArchiveManager with Loggable {
+
+  private[this] val prettyPrinter = new PrettyPrinter(120, 2)
   
   ///// implementation /////
   
   def saveAll(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for {
       crs         <- configurationRuleRepository.getAll(false)
-      cleanedRoot <- tryo { FileUtils.cleanDirectory(crRoot) }
+      cleanedRoot <- tryo { FileUtils.cleanDirectory(gitConfigurationRuleArchiver.getRootDirectory) }
       saved       <- sequence(crs) { cr => 
-                       archiveCr(cr)
+                       gitConfigurationRuleArchiver.archiveConfigurationRule(cr,false)
                      }
-      archiveId   <- commit
+      commitId    <- gitConfigurationRuleArchiver.commitConfigurationRules
     } yield {
-      archiveId
+      ArchiveId(commitId)
     }
   }
   
@@ -129,7 +191,7 @@ class ItemArchiveManagerImpl(
   def importLastArchive(includeSystem:Boolean = false) : Box[Unit] = {
     
     for {
-      files <- tryo { FileUtils.listFiles(crRoot,null,false).filter { f => isXmlUuid(f.getName) } }
+      files <- tryo { FileUtils.listFiles(gitConfigurationRuleArchiver.getRootDirectory,null,false).filter { f => isXmlUuid(f.getName) } }
       xmls  <- sequence(files.toSeq) { file =>
                  XmlUtils.parseXml(new FileInputStream(file), Some(file.getPath))
                }
@@ -150,34 +212,7 @@ class ItemArchiveManagerImpl(
   }
   
   ///// utility methods /////
-  
-  
-  //add and commit interesting directories
-  private[this] def commit() : Box[ArchiveId] = {
-    val git = new Git(gitRepo.db)
-    val id = ArchiveId((new DateTime()).toString(ISODateTimeFormat.time))
     
-    tryo {
-      git.add.addFilepattern(configurationRuleRootDir).call
-      git.commit.setMessage("Archive on: " + id.value).call
-      id
-    }
-  }
-  
-  // archive a cr and returned the updated file
-  private[this] def archiveCr(cr:ConfigurationRule) : Box[File] = {
-    val crFile = new File(crRoot, cr.id.value + ".xml")
-    tryo { 
-      FileUtils.writeStringToFile(
-          crFile
-        , prettyPrinter.format(configurationRuleSerialisation.serialise(cr))
-        , encoding
-      )
-      logger.debug("Archived Configuration rule: " + crFile.getPath)
-      crFile
-    }
-  }
-  
   private[this] val xmlUuidPattern = Pattern.compile(UuidRegex.stringPattern + ".xml")
   private[this] def isXmlUuid(candidate:String) = xmlUuidPattern.matcher(candidate).matches
 

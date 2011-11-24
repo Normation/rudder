@@ -33,8 +33,40 @@
 */
 
 package com.normation.rudder.repository
+
+import java.io.File
+import com.normation.rudder.domain.policies.ConfigurationRule
+import com.normation.rudder.domain.policies.ConfigurationRuleId
 import net.liftweb.common.Box
 
+trait GitConfigurationRuleArchiver {
+  /**
+   * Archive a configuration rule in a file system
+   * managed by git. 
+   * If gitCommitCr is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def archiveConfigurationRule(cr:ConfigurationRule, gitCommitCr:Boolean = true) : Box[File]
+  
+  /**
+   * Commit modification done in the Git repository for any
+   * configuration rules.
+   * Return the git commit id. 
+   */
+  def commitConfigurationRules() : Box[String]
+  
+  /**
+   * Delete an archived configuration rule. 
+   * If gitCommitCr is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def deleteConfigurationRule(crId:ConfigurationRuleId, gitCommitCr:Boolean = true) : Box[File]
+  
+  /**
+   * Get the root directory where configuration rules are saved
+   */
+  def getRootDirectory : File
+}
 
 case class ArchiveId(value:String)
 

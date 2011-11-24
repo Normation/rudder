@@ -87,6 +87,7 @@ import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
 import com.normation.rudder.services.marshalling.PolicyInstanceUnserialisationImpl
 import com.normation.rudder.services.marshalling.ConfigurationRuleSerialisationImpl
 import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisationImpl
+import scala.xml.PrettyPrinter
 
 
 /**
@@ -191,10 +192,16 @@ class AppConfig extends Loggable {
 
   @Value("${rudder.ptlib.git.refs.path}")
   var ptRefsPath = ""
-
+    
+  @Value("${rudder.autoArchiveItems}")
+  var autoArchiveItems : Boolean = true
+  
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
 
+  val prettyPrinter = new PrettyPrinter(120, 2)
+
+    
   // policy.xml parser
   @Bean
   def policyParser = {
@@ -221,13 +228,19 @@ class AppConfig extends Loggable {
   def configurationRuleSerialisation = new ConfigurationRuleSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
 
   @Bean
-  def itemArchiveManager = new ItemArchiveManagerImpl(
+  def gitConfigurationRuleArchiver = new GitConfigurationRuleArchiverImpl(
       gitRepo
     , new File(gitRoot)
-    , ldapConfigurationRuleRepository
     , configurationRuleSerialisation
-    , configurationRuleUnserialisation
     , "configuration-rules"
+    , prettyPrinter
+  )
+  
+  @Bean
+  def itemArchiveManager = new ItemArchiveManagerImpl(
+      ldapConfigurationRuleRepository
+    , configurationRuleUnserialisation
+    , gitConfigurationRuleArchiver
   )
   
   @Bean
@@ -593,7 +606,9 @@ class AppConfig extends Loggable {
   def ldapConfigurationRuleRepository: ConfigurationRuleRepository = new LDAPConfigurationRuleRepository(
     rudderDit, nodeDit, ldap, ldapEntityMapper, ldapDiffMapper,
     ldapNodeGroupRepository,
-    policyPackageService,logRepository)
+    policyPackageService,logRepository,
+    gitConfigurationRuleArchiver,
+    autoArchiveItems)
 
   @Bean
   def ldapGroupCategoryRepository = new LDAPGroupCategoryRepository(rudderDit, ldap, ldapEntityMapper)
