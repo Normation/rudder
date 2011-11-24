@@ -174,11 +174,13 @@ trait WriteOnlyLDAPConnection {
    *   Entry's DN to move
    * @param newParentDn
    *   New parent's DN 
+   * @parem newRDN
+   *   Optionnaly change the RDN of the entry.
    * @return
    *   Full[Seq(ldifChangeRecord)] if the operation is successful
    *   Empty or Failure if an error occurred. 
    */
-  def move(dn:DN,newParentDn:DN) : Box[LDIFChangeRecord]
+  def move(dn:DN,newParentDn:DN, newRDN:Option[RDN] = None) : Box[LDIFChangeRecord]
    
   /**
    * Save an LDAP entry.
@@ -548,9 +550,17 @@ class LDAPConnection(
       case e:LDAPException => Failure("Can not apply modifiction on '%s': %s".format(dn, e.getMessage), Full(e), Empty)
     }
   
-  override def move(dn:DN,newParentDn:DN) : Box[LDIFChangeRecord] = {
-    if(dn.getParent == newParentDn) Full(LDIFNoopChangeRecord(dn))
-    else {
+  override def move(dn:DN, newParentDn:DN, newRDN:Option[RDN] = None) : Box[LDIFChangeRecord] = {
+    if(
+        dn.getParent == newParentDn && (
+            newRDN match {
+              case None => true
+              case Some(rdn) => dn.getRDN == rdn
+            }
+        )
+    ) {
+      Full(LDIFNoopChangeRecord(dn))
+    } else {
       try {
         applyMod[ModifyDNRequest]({req:ModifyDNRequest => req.toLDIFChangeRecord}, 
           {req:ModifyDNRequest => 
@@ -563,7 +573,7 @@ class LDAPConnection(
                 new LDAPResult(-1,SUCCESS)
             }     
           }
-        ) (new ModifyDNRequest(dn.toString, dn.getRDN.toString, false, newParentDn.toString))
+        ) (new ModifyDNRequest(dn.toString, newRDN.getOrElse(dn.getRDN).toString, newRDN.isDefined, newParentDn.toString))
       } catch {
         case e:LDAPException => Failure("Can not move '%s' to new parent '%s': %s".format(dn, newParentDn, e.getMessage), Full(e), Empty)
       }
