@@ -90,7 +90,7 @@ msg text
 
 
 create index nodeid_idx on RudderSysEvents (nodeId);
-create index reports_idx on RudderSysEvents (executionDate, nodeId);
+create index reports_idx on RudderSysEvents (executionTimeStamp, nodeId);
 create index configurationRuleId_node_idx on RudderSysEvents (configurationRuleId, nodeId, serial, executionTimeStamp);
 
 

@@ -57,10 +57,11 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   
   // find the last full run per node
   val lastQuery = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where configurationRuleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' group by nodeid"
+  val lastQueryByNode = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where configurationRuleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and nodeid = ? group by nodeid"
   // todo : add a time limit
     
   val joinQuery = "select executiondate, nodeid, configurationruleid, policyinstanceid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQuery +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
-  
+  val joinQueryByNode = "select executiondate, nodeid, configurationruleid, policyinstanceid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQueryByNode +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
   
   def findReportsByConfigurationRule(configurationRuleId: ConfigurationRuleId, serial : Option[Int], beginDate: Option[DateTime], endDate: Option[DateTime]): Seq[Reports] = {
     var query = baseQuery + " and configurationRuleId = ? "
@@ -148,12 +149,16 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
    * Return the last (really the last, serial wise, with full execution) reports for a configuration rule
    */
   def findLastReportByConfigurationRule(configurationRuleId : ConfigurationRuleId, serial : Int, node : Option[NodeId]) : Seq[Reports] = {
-    var query = joinQuery + " and configurationRuleId = ? and serial = ? and executionTimeStamp > (now() - interval '15 minutes')"
-    var array = mutable.Buffer[AnyRef](configurationRuleId.value, new java.lang.Integer(serial))
+    var query = ""
+    var array = mutable.Buffer[AnyRef]()
 
     node match {
-      case None => ;
-      case Some(nodeId) => query = query + " and nodeId = ?"; array += nodeId.value
+      case None => 
+        	query += joinQuery +  " and configurationRuleId = ? and serial = ? and executionTimeStamp > (now() - interval '15 minutes')"
+        	array ++= mutable.Buffer[AnyRef](configurationRuleId.value, new java.lang.Integer(serial))
+      case Some(nodeId) => 
+        query += joinQueryByNode +  " and configurationRuleId = ? and serial = ? and executionTimeStamp > (now() - interval '15 minutes') and nodeId = ?"
+        array ++= mutable.Buffer[AnyRef](nodeId.value, configurationRuleId.value, new java.lang.Integer(serial), nodeId.value)
     }
     
     jdbcTemplate.query(query,
@@ -172,7 +177,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
  
     endDate match {
       case None => ;
-      case Some(date) => query = query + " and executionDate < ?"; array += new Timestamp(date.getMillis)
+      case Some(date) => query = query + " and executiontimestamp < ?"; array += new Timestamp(date.getMillis)
     }
     
     query = query + " order by executiontimestamp "
