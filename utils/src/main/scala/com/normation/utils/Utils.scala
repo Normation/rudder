@@ -20,6 +20,10 @@
 
 package com.normation.utils
 
+import java.io.File
+import java.io.IOException
+import net.liftweb.common._
+
 /**
  * This is an utility object that
  * provides useful simple methods in a static way
@@ -27,7 +31,29 @@ package com.normation.utils
  * Most methods deals with null dereferencing and 
  * null/empty Strings management. 
  */
-object Utils {
+object Utils extends Loggable {
+  
+  
+  /**
+   * Create directory given in argument if does not exists, checking
+   * that it is writable. 
+   */
+  def createDirectory(directory:File):Box[File] = {
+    try {
+      if(directory.exists) {
+        if(directory.isDirectory) {
+          if(directory.canWrite) {
+            Full(directory)
+          } else Failure("The directory '%s' has no write permission, please use another directory".format(directory.getPath))
+        } else Failure("File at '%s' is not a directory, please change configuration".format(directory.getPath))
+      } else if(directory.mkdirs) {
+        logger.debug("Creating missing directory '%s'".format(directory.getPath))
+        Full(directory)
+      } else Failure("Directory '%s' does not exists and can not be created, please use another directory".format(directory.getPath))
+    } catch {
+      case ioe:IOException => Failure("Exception when checking directory '%s': '%s'".format(directory.getPath,ioe.getMessage))
+    }
+  }
   
   /**
    * Get the manifest of the given type
