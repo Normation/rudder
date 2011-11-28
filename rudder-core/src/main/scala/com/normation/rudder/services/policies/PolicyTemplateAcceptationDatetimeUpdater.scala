@@ -50,7 +50,7 @@ class PolicyTemplateAcceptationDatetimeUpdater(
       val byNames = policyPackageIds.groupBy( _.name ).map { case (name,ids) => 
                       (name, ids.map( _.version )) 
                     }.toMap
-      val acceptationDatetime = new DateTime()
+      val acceptationDatetime = DateTime.now()
                     
       byNames.foreach { case( name, versions ) =>
         uptRepo.getUserPolicyTemplate(name) match {

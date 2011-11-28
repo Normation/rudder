@@ -284,7 +284,7 @@ class ReportingServiceImpl(
           expectedConfigurationReports.configurationRuleId,
           expectedConfigurationReports.policyExpectedReports,
           expectedConfigurationReports.serial,
-          reports.headOption.map(x => x.executionTimestamp).getOrElse(new DateTime()), // this is a dummy date !
+          reports.headOption.map(x => x.executionTimestamp).getOrElse(DateTime.now()), // this is a dummy date !
           reports, 
           expectedConfigurationReports.nodesList,
           expectedConfigurationReports.beginDate, 

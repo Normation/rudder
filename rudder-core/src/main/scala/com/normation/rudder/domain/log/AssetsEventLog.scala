@@ -86,7 +86,7 @@ final case class AcceptNodeEventLog (
     override val id : Option[Int] = None
   , override val principal : EventActor
   , override val details : NodeSeq
-  , override val creationDate : DateTime = new DateTime() 
+  , override val creationDate : DateTime = DateTime.now() 
   , override val severity : Int = 100
 ) extends InventoryEventLog with HashcodeCaching {
   
@@ -101,7 +101,7 @@ object AcceptNodeEventLog {
       id              : Option[Int] = None
     , principal       : EventActor
     , inventoryDetails: InventoryLogDetails
-    , creationDate    : DateTime = new DateTime()
+    , creationDate    : DateTime = DateTime.now()
     , severity        : Int = 100         
   ) : AcceptNodeEventLog = {
     val details = EventLog.withContent(InventoryEventLog.toXml(
@@ -116,7 +116,7 @@ final case class RefuseNodeEventLog (
     override val id : Option[Int] = None
   , override val principal : EventActor
   , override val details : NodeSeq
-  , override val creationDate : DateTime = new DateTime() 
+  , override val creationDate : DateTime = DateTime.now() 
   , override val severity : Int = 100
 ) extends InventoryEventLog with HashcodeCaching {
   override val eventLogCategory = AssetLogCategory
@@ -130,7 +130,7 @@ object RefuseNodeEventLog {
       id              : Option[Int] = None
     , principal       : EventActor
     , inventoryDetails: InventoryLogDetails
-    , creationDate    : DateTime = new DateTime()
+    , creationDate    : DateTime = DateTime.now()
     , severity        : Int = 100         
   ) : RefuseNodeEventLog = {
     val details = EventLog.withContent(InventoryEventLog.toXml(

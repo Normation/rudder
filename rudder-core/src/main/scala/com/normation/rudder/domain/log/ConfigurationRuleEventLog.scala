@@ -49,7 +49,7 @@ final case class AddConfigurationRule(
     override val id : Option[Int] = None
   , override val principal : EventActor
   , override val details : NodeSeq
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val severity : Int = 100
 ) extends ConfigurationRuleEventLog with HashcodeCaching {
   override val cause = None
@@ -62,7 +62,7 @@ final case class DeleteConfigurationRule(
     override val id : Option[Int] = None
   , override val principal : EventActor
   , override val details : NodeSeq
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val severity : Int = 100
 ) extends ConfigurationRuleEventLog with HashcodeCaching {
   override val cause = None
@@ -75,7 +75,7 @@ final case class ModifyConfigurationRule(
     override val id : Option[Int] = None
   , override val principal : EventActor
   , override val details : NodeSeq
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val severity : Int = 100
 ) extends ConfigurationRuleEventLog with HashcodeCaching {
   override val cause = None

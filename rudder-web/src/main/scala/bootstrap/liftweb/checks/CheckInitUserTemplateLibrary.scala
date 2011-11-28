@@ -77,7 +77,7 @@ class CheckInitUserTemplateLibrary(
                   logger.warn(msg)
               }
               root += (A_OC, OC_USER_LIB_VERSION)
-              root +=! (A_INIT_DATETIME, GeneralizedTime(new DateTime()).toString)
+              root +=! (A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
               con.save(root)
         }
       }

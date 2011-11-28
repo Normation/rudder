@@ -264,7 +264,7 @@ class ConfigurationExecutionBatch(
    * have answer yet
    */
   def getPendingServer() : Seq[NodeId] = {
-  	if (beginDate.plus(Constants.pendingDuration).isAfter(new DateTime())) {
+  	if (beginDate.plus(Constants.pendingDuration).isAfter(DateTime.now())) {
   	  cache.getOrElseUpdate("Pending", {
 	  		(for {server <- allExpectedServer;
 	       	if (executionReports.filter(x => (x.nodeId==server)).size == 0)
@@ -279,7 +279,7 @@ class ConfigurationExecutionBatch(
    * A server with no reports should have send reports, but didn't
    */
   def getServerWithNoReports() : Seq[NodeId] = {
-  	if (beginDate.plus(Constants.pendingDuration).isBefore(new DateTime())) {
+  	if (beginDate.plus(Constants.pendingDuration).isBefore(DateTime.now())) {
   	  cache.getOrElseUpdate("NoAnswer", {
 	  		(for {server <- allExpectedServer;
 	       	if (executionReports.filter(x => (x.nodeId==server)).size == 0)

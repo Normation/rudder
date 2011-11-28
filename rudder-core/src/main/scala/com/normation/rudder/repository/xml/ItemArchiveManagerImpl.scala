@@ -103,7 +103,7 @@ class GitConfigurationRuleArchiverImpl(
                  }
       commit  <- if(gitCommitCr) {
                     val git = new Git(gitRepo.db)
-                    val archiveId = ArchiveId((new DateTime()).toString(ISODateTimeFormat.dateTime))
+                    val archiveId = ArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
                     val crGitPath = getCrGitPath(cr.id)
                     tryo {
                       git.add.addFilepattern(crGitPath).call
@@ -123,7 +123,7 @@ class GitConfigurationRuleArchiverImpl(
 
   def commitConfigurationRules() : Box[String] = {
     val git = new Git(gitRepo.db)
-    val archiveId = ArchiveId((new DateTime()).toString(ISODateTimeFormat.dateTime))
+    val archiveId = ArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
 
     tryo {
       //remove existing and add modified
@@ -141,7 +141,7 @@ class GitConfigurationRuleArchiverImpl(
         deleted  <- tryo { FileUtils.forceDelete(crFile) }
         commited <- if(gitCommitCr) {
                       val git = new Git(gitRepo.db)
-                      val archiveId = ArchiveId((new DateTime()).toString(ISODateTimeFormat.dateTime))
+                      val archiveId = ArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
                       val crGitPath = getCrGitPath(crId)
                       tryo {
                         git.rm.addFilepattern(crGitPath).call

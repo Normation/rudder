@@ -49,25 +49,25 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-api</artifactId>
-      <version>0.11.0-SNAPSHOT</version>
+      <version>${rudder-version}</version>
     </dependency>
     
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-repository</artifactId>
-      <version>0.11.0-SNAPSHOT</version>
+      <version>${rudder-version}</version>
     </dependency>
     
     <dependency>
       <groupId>com.normation.cfclerk</groupId>
       <artifactId>cfclerk-core</artifactId>
-      <version>0.11.0-SNAPSHOT</version>
+      <version>${rudder-version}</version>
     </dependency>
 
     <dependency>
       <groupId>com.normation</groupId>
       <artifactId>eventlog-api</artifactId>
-      <version>0.11.0-SNAPSHOT</version>
+      <version>${rudder-version}</version>
     </dependency>
 
     <dependency>
@@ -79,7 +79,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
 
     <dependency>
       <groupId>org.squeryl</groupId>
-      <artifactId>squeryl_2.9.0-1</artifactId>
+      <artifactId>squeryl_${scala-version}</artifactId>
       <version>0.9.4</version>
     </dependency>
     

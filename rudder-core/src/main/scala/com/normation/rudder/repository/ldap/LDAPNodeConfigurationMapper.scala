@@ -285,7 +285,7 @@ class LDAPNodeConfigurationMapper(
       case s => rudderDit.RUDDER_NODES.SERVER.nodeConfigurationModel(id)
     }
     serverEntry +=!(A_SERVER_IS_MODIFIED, server.isModified.toLDAPString)
-    //serverEntry +=!(A_LAST_UPDATE_DATE, GeneralizedTime( Utils.??(server.modificationDate).getOrElse(new DateTime) ).toString)
+    //serverEntry +=!(A_LAST_UPDATE_DATE, GeneralizedTime( Utils.??(server.modificationDate).getOrElse(DateTime.now) ).toString)
 
     if (server.writtenDate != None)
       serverEntry +=!(A_WRITTEN_DATE, GeneralizedTime( server.writtenDate.open_! ).toString)

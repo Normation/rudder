@@ -61,10 +61,10 @@ class ExecutionBatchTest extends Specification {
            				"policy",
            				Seq(new ComponentCard("component", 1, Seq("None")  )))),
        12,
-       new DateTime(),
-       Seq[Reports](new ResultSuccessReport(new DateTime(), "cr", "policy", "one", 12, "component", "value",new DateTime(), "message")),
+       DateTime.now(),
+       Seq[Reports](new ResultSuccessReport(DateTime.now(), "cr", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
        Seq[NodeId]("one"),
-       new DateTime(), None)
+       DateTime.now(), None)
 
     "have one reports when we create it with one report" in {
       uniqueExecutionBatch.executionReports.size ==1
@@ -111,10 +111,10 @@ class ExecutionBatchTest extends Specification {
            				"policy",
            				Seq(new ComponentCard("component", 1, Seq("None") )))),
        12,
-       new DateTime(),
-       Seq[Reports](new ResultSuccessReport(new DateTime(), "cr", "policy", "one", 12, "component", "value",new DateTime(), "message")),
+       DateTime.now(),
+       Seq[Reports](new ResultSuccessReport(DateTime.now(), "cr", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
        Seq[NodeId]("one", "two"),
-       new DateTime(), None)
+       DateTime.now(), None)
     
     "have one reports when we create it with one report" in {
       multipleNodeExecutionBatch.executionReports.size ==1
@@ -148,8 +148,8 @@ class ExecutionBatchTest extends Specification {
   
   "An execution Batch, with one component, cardinality one, two nodes" should {
     val reports = Seq[Reports](
-        new ResultSuccessReport(new DateTime(), "cr", "policy", "one", 12, "component", "value",new DateTime(), "message"),
-        new ResultSuccessReport(new DateTime(), "cr", "policy", "two", 12, "component", "value", new DateTime(),"message")
+        new ResultSuccessReport(DateTime.now(), "cr", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
+        new ResultSuccessReport(DateTime.now(), "cr", "policy", "two", 12, "component", "value", DateTime.now(),"message")
               )
               
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
@@ -158,10 +158,10 @@ class ExecutionBatchTest extends Specification {
            				"policy",
            				Seq(new ComponentCard("component", 1, Seq("None") )))),
        12,
-       new DateTime(),
+       DateTime.now(),
        reports,
        Seq[NodeId]("one", "two"),
-       new DateTime(), None)
+       DateTime.now(), None)
     
     "have two reports when we create it with two report" in {
       multipleNodeExecutionBatch.executionReports.size == 2
@@ -195,8 +195,8 @@ class ExecutionBatchTest extends Specification {
   
   "An execution Batch, with one component, cardinality two, two nodes" should {
     val reports = Seq[Reports](
-        new ResultSuccessReport(new DateTime(), "cr", "policy", "one", 12, "component", "value",new DateTime(), "message"),
-        new ResultSuccessReport(new DateTime(), "cr", "policy", "two", 12, "component", "value", new DateTime(),"message")
+        new ResultSuccessReport(DateTime.now(), "cr", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
+        new ResultSuccessReport(DateTime.now(), "cr", "policy", "two", 12, "component", "value", DateTime.now(),"message")
               )
               
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
@@ -205,10 +205,10 @@ class ExecutionBatchTest extends Specification {
            				"policy",
            				Seq(new ComponentCard("component", 2, Seq("None", "None") )))),
        12,
-       new DateTime(),
+       DateTime.now(),
        reports,
        Seq[NodeId]("one", "two"),
-       new DateTime(), None)
+       DateTime.now(), None)
     
     "have two reports when we create it with two report" in {
       multipleNodeExecutionBatch.executionReports.size == 2
@@ -245,14 +245,14 @@ class ExecutionBatchTest extends Specification {
 
   "An execution Batch, with one component, cardinality two, three nodes" should {
     val reports = Seq[Reports](
-        new ResultSuccessReport(new DateTime(), "cr", "policy", "one", 12, "component", "value",new DateTime(), "message"),
-        new ResultSuccessReport(new DateTime(), "cr", "policy", "one", 12, "component", "value2", new DateTime(),"message"),
-        new LogRepairedReport(new DateTime(), "cr", "policy", "two", 12, "component", "value", new DateTime(),"message"),
-        new ResultSuccessReport(new DateTime(), "cr", "policy", "two", 12, "component", "value", new DateTime(),"message"),
-        new ResultSuccessReport(new DateTime(), "cr", "policy", "two", 12, "component", "value2", new DateTime(),"message"),
-        new ResultErrorReport(new DateTime(), "cr", "policy", "three", 12, "component", "value", new DateTime(),"message"),
-        new ResultSuccessReport(new DateTime(), "cr", "policy", "three", 12, "component", "value", new DateTime(),"message"),
-        new ResultSuccessReport(new DateTime(), "cr", "policy", "three", 12, "component", "value", new DateTime(),"message")
+        new ResultSuccessReport(DateTime.now(), "cr", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
+        new ResultSuccessReport(DateTime.now(), "cr", "policy", "one", 12, "component", "value2", DateTime.now(),"message"),
+        new LogRepairedReport(DateTime.now(), "cr", "policy", "two", 12, "component", "value", DateTime.now(),"message"),
+        new ResultSuccessReport(DateTime.now(), "cr", "policy", "two", 12, "component", "value", DateTime.now(),"message"),
+        new ResultSuccessReport(DateTime.now(), "cr", "policy", "two", 12, "component", "value2", DateTime.now(),"message"),
+        new ResultErrorReport(DateTime.now(), "cr", "policy", "three", 12, "component", "value", DateTime.now(),"message"),
+        new ResultSuccessReport(DateTime.now(), "cr", "policy", "three", 12, "component", "value", DateTime.now(),"message"),
+        new ResultSuccessReport(DateTime.now(), "cr", "policy", "three", 12, "component", "value", DateTime.now(),"message")
               )
               
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
@@ -261,10 +261,10 @@ class ExecutionBatchTest extends Specification {
            				"policy",
            				Seq(new ComponentCard("component", 2, Seq("None", "None") )))),
        12,
-       new DateTime(),
+       DateTime.now(),
        reports,
        Seq[NodeId]("one", "two", "three"),
-       new DateTime(), None)
+       DateTime.now(), None)
     
     "have 8 reports when we create it with 8 reports" in {
       multipleNodeExecutionBatch.executionReports.size == 8
@@ -306,8 +306,8 @@ class ExecutionBatchTest extends Specification {
   
   "An execution Batch, with two policy instance, two nodes, one component" should {
     val reports = Seq[Reports](
-        new ResultSuccessReport(new DateTime(), "cr", "policy1", "one", 12, "component1", "None",new DateTime(), "message"),
-        new ResultSuccessReport(new DateTime(), "cr", "policy2", "one", 12, "component2", "None",new DateTime(), "message")
+        new ResultSuccessReport(DateTime.now(), "cr", "policy1", "one", 12, "component1", "None",DateTime.now(), "message"),
+        new ResultSuccessReport(DateTime.now(), "cr", "policy2", "one", 12, "component2", "None",DateTime.now(), "message")
               )
               
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
@@ -320,10 +320,10 @@ class ExecutionBatchTest extends Specification {
            				Seq(new ComponentCard("component2", 1, Seq("None") )))
        ),
        12,
-       new DateTime(),
+       DateTime.now(),
        reports,
        Seq[NodeId]("one", "two"),
-       new DateTime(), None)
+       DateTime.now(), None)
     
     "have two reports when we create it with two report" in {
       multipleNodeExecutionBatch.executionReports.size == 2
@@ -360,9 +360,9 @@ class ExecutionBatchTest extends Specification {
   
    "An execution Batch, with one component, cardinality two, one node" should {
     val reports = Seq[Reports](
-        new ResultSuccessReport(new DateTime(), "cr", "policy", "one", 12, "component", "value1",new DateTime(), "message"),
-        new ResultRepairedReport(new DateTime(), "cr", "policy", "one", 12, "component", "value2", new DateTime(),"message"),
-        new ResultSuccessReport(new DateTime(), "cr", "policy", "one", 12, "other_component", "bar",new DateTime(), "message")
+        new ResultSuccessReport(DateTime.now(), "cr", "policy", "one", 12, "component", "value1",DateTime.now(), "message"),
+        new ResultRepairedReport(DateTime.now(), "cr", "policy", "one", 12, "component", "value2", DateTime.now(),"message"),
+        new ResultSuccessReport(DateTime.now(), "cr", "policy", "one", 12, "other_component", "bar",DateTime.now(), "message")
               )
               
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
@@ -371,10 +371,10 @@ class ExecutionBatchTest extends Specification {
            				"policy",
            				Seq(new ComponentCard("component", 2, Seq("value1", "value2") )))),
        12,
-       new DateTime(),
+       DateTime.now(),
        reports,
        Seq[NodeId]("one"),
-       new DateTime(), None)
+       DateTime.now(), None)
     
     "have 3 reports when we create it with 3 reports" in {
       multipleNodeExecutionBatch.executionReports.size == 3
@@ -397,8 +397,8 @@ class ExecutionBatchTest extends Specification {
 
   "An execution Batch, two policies, one in success, one with wrong component value" should {
     val reports = Seq[Reports](
-        new ResultSuccessReport(new DateTime(), "cr", "policy1", "one", 12, "motdConfiguration", "None",new DateTime(), "message"),
-        new ResultSuccessReport(new DateTime(), "cr", "policy2", "one", 12, "aptPackageInstallation", "None",new DateTime(), "message")
+        new ResultSuccessReport(DateTime.now(), "cr", "policy1", "one", 12, "motdConfiguration", "None",DateTime.now(), "message"),
+        new ResultSuccessReport(DateTime.now(), "cr", "policy2", "one", 12, "aptPackageInstallation", "None",DateTime.now(), "message")
               )
               
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
@@ -411,10 +411,10 @@ class ExecutionBatchTest extends Specification {
            				Seq(new ComponentCard("aptPackageInstallation", 1, Seq("vim") )))		
        ),
        12,
-       new DateTime(),
+       DateTime.now(),
        reports,
        Seq[NodeId]("one"),
-       new DateTime(), None)
+       DateTime.now(), None)
     
     "have 2 reports when we create it with 2 reports" in {
       multipleNodeExecutionBatch.executionReports.size == 2

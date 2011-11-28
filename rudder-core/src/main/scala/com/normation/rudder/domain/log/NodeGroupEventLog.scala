@@ -77,7 +77,7 @@ final case class AddNodeGroup(
     override val id : Option[Int] = None
   , override val principal : EventActor
   , override val details : NodeSeq
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val severity : Int = 100
 ) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
@@ -91,7 +91,7 @@ object AddNodeGroup {
       id : Option[Int] = None
     , principal : EventActor
     , addDiff:AddNodeGroupDiff
-    , creationDate : DateTime = new DateTime()
+    , creationDate : DateTime = DateTime.now()
     , severity : Int = 100
   ) : AddNodeGroup = {
     val details = EventLog.withContent(NodeGroupEventLog.toXml(addDiff.group, "add"))
@@ -104,7 +104,7 @@ final case class DeleteNodeGroup(
     override val id : Option[Int] = None
   , override val principal : EventActor
   , override val details : NodeSeq
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val severity : Int = 100
 ) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
@@ -118,7 +118,7 @@ object DeleteNodeGroup {
       id : Option[Int] = None
     , principal : EventActor
     , deleteDiff:DeleteNodeGroupDiff
-    , creationDate : DateTime = new DateTime()
+    , creationDate : DateTime = DateTime.now()
     , severity : Int = 100
   ) : DeleteNodeGroup = {
     val details = EventLog.withContent(NodeGroupEventLog.toXml(deleteDiff.group, "delete"))
@@ -131,7 +131,7 @@ final case class ModifyNodeGroup(
     override val id : Option[Int] = None
   , override val principal : EventActor
   , override val details : NodeSeq
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val severity : Int = 100
 ) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
@@ -145,7 +145,7 @@ object ModifyNodeGroup {
       id : Option[Int] = None
     , principal : EventActor
     , modifyDiff:ModifyNodeGroupDiff
-    , creationDate : DateTime = new DateTime()
+    , creationDate : DateTime = DateTime.now()
     , severity : Int = 100
   ) : ModifyNodeGroup = {
     val details = EventLog.withContent{

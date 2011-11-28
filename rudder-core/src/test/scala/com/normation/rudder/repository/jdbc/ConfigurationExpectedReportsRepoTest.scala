@@ -48,7 +48,7 @@ class ConfigurationExpectedReportsRepoTest  extends Specification  {
 
    val service = new ConfigurationExpectedReportsJdbcRepository(null)
   
-   val beginDate = new DateTime()
+   val beginDate = DateTime.now()
    
    private val uniqueMapping = Seq(ExpectedConfRuleMapping(1,
        1,

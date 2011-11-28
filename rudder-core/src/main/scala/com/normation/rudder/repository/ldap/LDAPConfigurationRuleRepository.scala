@@ -288,7 +288,7 @@ class LDAPConfigurationRuleRepository(
     
     ///// actual code for swapConfigurationRules /////
     
-    val id = CRArchiveId((new DateTime()).toString(ISODateTimeFormat.dateTime))
+    val id = CRArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
     val ou = rudderDit.ARCHIVES.configurationRuleModel(id)
     //filter systemCr if they are not included, so that merge does not have to deal with that. 
     val importedCrs = if(includeSystem) newCrs else newCrs.filter( cr => !cr.isSystem)

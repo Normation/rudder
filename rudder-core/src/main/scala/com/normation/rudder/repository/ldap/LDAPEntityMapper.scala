@@ -142,7 +142,7 @@ class LDAPEntityMapper(
     } yield {
       // fetch the inventory datetime of the object
       val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) match {
-        case None => new DateTime() 
+        case None => DateTime.now() 
         case Some(date) => date.dateTime 
       }
   
@@ -182,7 +182,7 @@ class LDAPEntityMapper(
     } yield {
     	// fetch the datetime for the inventory
       val dateTime = policyServerNodeEntry.getAsGTime(A_INVENTORY_DATE) match {
-        case None => new DateTime() 
+        case None => DateTime.now() 
         case Some(date) =>date.dateTime 
       }
   	

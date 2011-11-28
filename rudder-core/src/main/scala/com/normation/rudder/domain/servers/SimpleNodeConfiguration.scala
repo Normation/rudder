@@ -129,7 +129,7 @@ case class SimpleNodeConfiguration(
     copy(__currentPoliciesInstances = this.__targetPoliciesInstances,
         currentMinimalNodeConfig = this.targetMinimalNodeConfig,
         currentSystemVariables = this.targetSystemVariables,
-        writtenDate = Some(new DateTime()))
+        writtenDate = Some(DateTime.now()))
     
   }
   

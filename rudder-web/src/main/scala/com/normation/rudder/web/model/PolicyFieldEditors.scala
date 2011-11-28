@@ -317,7 +317,7 @@ class DateField(format: DateTimeFormatter)(val id: String) extends PolicyField {
   }
 
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
-  def getDefaultValue = new DateTime().toLocalDate //default datetime
+  def getDefaultValue = DateTime.now().toLocalDate //default datetime
 }
 
 class TimeField(format: DateTimeFormatter)(val id: String) extends PolicyField {
@@ -358,7 +358,7 @@ class TimeField(format: DateTimeFormatter)(val id: String) extends PolicyField {
   }
 
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
-  def getDefaultValue = new DateTime().toLocalTime //default datetime
+  def getDefaultValue = DateTime.now().toLocalTime //default datetime
 }
 
 class PeriodField(

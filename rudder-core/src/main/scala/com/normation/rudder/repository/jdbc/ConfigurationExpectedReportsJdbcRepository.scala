@@ -106,7 +106,7 @@ class ConfigurationExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
       			logger.warn("Cannot close a non existing entry %s".format(configurationRuleId.value))
       case Some(entry) =>
         jdbcTemplate.update("update "+ TABLE_NAME +"  set enddate = ? where nodejoinkey = ? and configurationRuleId = ?",
-          new Timestamp(new DateTime().getMillis), new java.lang.Integer(entry.nodeJoinKey), entry.configurationRuleId.value
+          new Timestamp(DateTime.now().getMillis), new java.lang.Integer(entry.nodeJoinKey), entry.configurationRuleId.value
         )
     }
   }
@@ -136,7 +136,7 @@ class ConfigurationExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
       		  
       		} yield {
       		  new ExpectedConfRuleMapping(0, nodeJoinKey, configurationRuleId, serial,
-      		        policy.policyInstanceId, component.componentName, component.cardinality, component.componentsValues, new DateTime(), None)
+      		        policy.policyInstanceId, component.componentName, component.cardinality, component.componentsValues, DateTime.now(), None)
       		}
       		"select pkid, nodejoinkey, configurationruleid, serial, policyinstanceid, component, componentsvalues, cardinality, begindate, enddate  from "+ TABLE_NAME + "  where 1=1 ";
 
@@ -359,7 +359,7 @@ case class ExpectedConfRuleMapping(
     val cardinality : Int,
     val componentsValues : Seq[String],
     // the period where the configuration is applied to the servers
-    val beginDate : DateTime = new DateTime(),
+    val beginDate : DateTime = DateTime.now(),
     val endDate : Option[DateTime] = None
 ) extends HashcodeCaching 
     

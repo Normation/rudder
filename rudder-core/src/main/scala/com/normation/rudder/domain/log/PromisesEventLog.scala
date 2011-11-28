@@ -43,7 +43,7 @@ final case class StartDeployement(
     override val principal : EventActor
   , override val details : NodeSeq = EventLog.emptyDetails
   , override val id : Option[Int] = None
-  , override val creationDate : DateTime = new DateTime() 
+  , override val creationDate : DateTime = DateTime.now() 
   , override val cause : Option[Int] = None
   , override val severity : Int = 100
 ) extends EventLog with HashcodeCaching {

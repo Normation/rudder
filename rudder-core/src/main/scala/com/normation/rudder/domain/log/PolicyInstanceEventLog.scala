@@ -81,7 +81,7 @@ final case class AddPolicyInstance(
     override val id : Option[Int] = None
   , override val principal : EventActor
   , override val details : NodeSeq
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val severity : Int = 100
 ) extends PolicyInstanceEventLog with HashcodeCaching {
   override val cause = None
@@ -96,7 +96,7 @@ object AddPolicyInstance {
     , principal : EventActor
     , addDiff:AddPolicyInstanceDiff
     , variableRootSection: SectionSpec
-    , creationDate : DateTime = new DateTime()
+    , creationDate : DateTime = DateTime.now()
     , severity : Int = 100
   ) : AddPolicyInstance = {
     val details = EventLog.withContent(PolicyInstanceEventLog.toXml(
@@ -113,7 +113,7 @@ final case class DeletePolicyInstance(
     override val id : Option[Int] = None
   , override val principal : EventActor
   , override val details : NodeSeq
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val severity : Int = 100
 ) extends PolicyInstanceEventLog with HashcodeCaching {
   override val cause = None
@@ -128,7 +128,7 @@ object DeletePolicyInstance {
     , principal : EventActor
     , deleteDiff:DeletePolicyInstanceDiff
     , variableRootSection: SectionSpec
-    , creationDate : DateTime = new DateTime()
+    , creationDate : DateTime = DateTime.now()
     , severity : Int = 100
   ) : DeletePolicyInstance = {
     val details = EventLog.withContent(PolicyInstanceEventLog.toXml(
@@ -145,7 +145,7 @@ final case class ModifyPolicyInstance(
     override val id : Option[Int] = None
   , override val principal : EventActor
   , override val details : NodeSeq
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val severity : Int = 100
 ) extends PolicyInstanceEventLog with HashcodeCaching {
   override val cause = None
@@ -159,7 +159,7 @@ object ModifyPolicyInstance {
       id : Option[Int] = None
     , principal : EventActor
     , modifyDiff:ModifyPolicyInstanceDiff
-    , creationDate : DateTime = new DateTime()
+    , creationDate : DateTime = DateTime.now()
     , severity : Int = 100
   ) : ModifyPolicyInstance = {
     val details = EventLog.withContent{

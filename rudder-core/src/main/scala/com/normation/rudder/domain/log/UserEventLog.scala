@@ -48,7 +48,7 @@ sealed trait UserEventLog extends EventLog {
 final case class LoginEventLog(
     override val principal : EventActor
   , override val id : Option[Int] = None
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val cause : Option[Int] = None
   , severity : Int = 100
 ) extends UserEventLog with HashcodeCaching {
@@ -61,7 +61,7 @@ final case class LoginEventLog(
 final case class BadCredentialsEventLog(
     override val principal : EventActor
   , override val id : Option[Int] = None
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val cause : Option[Int] = None
   , severity : Int = 100
 ) extends UserEventLog with HashcodeCaching {
@@ -75,7 +75,7 @@ final case class BadCredentialsEventLog(
 final case class LogoutEventLog(
     override val principal : EventActor
   , override val id : Option[Int] = None
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val cause : Option[Int] = None
   , severity : Int = 100
 ) extends UserEventLog with HashcodeCaching {

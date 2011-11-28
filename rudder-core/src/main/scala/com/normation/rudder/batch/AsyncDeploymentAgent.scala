@@ -119,7 +119,7 @@ final class AsyncDeploymentAgent(
       currentDeployerState match {
         case IdleDeployer => //ok, start a new deployment
           currentDeploymentId += 1 
-          val newState = Processing(currentDeploymentId, new DateTime)
+          val newState = Processing(currentDeploymentId, DateTime.now)
           currentDeployerState = newState
           logger.trace("Deployment manager: ask deployer agent to start a deployment")
           eventLogger.saveEventLog(StartDeployement(actor))
@@ -128,7 +128,7 @@ final class AsyncDeploymentAgent(
         case p@Processing(id, startTime) => //ok, add a pending deployment
           logger.trace("Deployment manager: currently deploying, add a pending deployment request")
           eventLogger.saveEventLog(StartDeployement(actor, details = EventLog.withContent(<addPending alreadyPending="false"/>)))
-          currentDeployerState = ProcessingAndPending(new DateTime, p)
+          currentDeployerState = ProcessingAndPending(DateTime.now, p)
           
         case p:ProcessingAndPending => //drop message, one is already pending
           eventLogger.saveEventLog(StartDeployement(actor, details = EventLog.withContent(<addPending alreadyPending="true"/>)))
@@ -195,12 +195,12 @@ final class AsyncDeploymentAgent(
           val result = deploymentService.deploy().map { nodeConfs =>
             nodeConfs.map { conf => (NodeId(conf.id), conf) }.toMap
           }
-          deploymentManager ! DeploymentResult(id, startTime,new DateTime, result)
+          deploymentManager ! DeploymentResult(id, startTime,DateTime.now, result)
         } catch {
           case e:Throwable => e match {
             case x:ThreadDeath => throw x
             case x:InterruptedException => throw x
-            case _ => deploymentManager ! DeploymentResult(id,startTime,new DateTime,Failure("Exception caught during deployment process: %s".format(e.getMessage),Full(e), Empty))
+            case _ => deploymentManager ! DeploymentResult(id,startTime,DateTime.now,Failure("Exception caught during deployment process: %s".format(e.getMessage),Full(e), Empty))
           }
         }
           
@@ -210,7 +210,7 @@ final class AsyncDeploymentAgent(
       case x => 
         val msg = "Deployment agent does not know how to process message: '%s'".format(x)
         logger.error(msg)
-        deploymentManager ! DeploymentResult(-1, new DateTime, new DateTime, Failure(msg))
+        deploymentManager ! DeploymentResult(-1, DateTime.now, DateTime.now, Failure(msg))
     }
   }
 }

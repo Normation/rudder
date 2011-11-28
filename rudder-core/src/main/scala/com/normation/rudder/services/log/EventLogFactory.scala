@@ -22,7 +22,7 @@ trait EventLogFactory {
       id : Option[Int] = None
     , principal : EventActor
     , addDiff:AddConfigurationRuleDiff
-    , creationDate : DateTime = new DateTime()
+    , creationDate : DateTime = DateTime.now()
     , severity : Int = 100
   ) : AddConfigurationRule
 
@@ -31,7 +31,7 @@ trait EventLogFactory {
       id : Option[Int] = None
     , principal : EventActor
     , deleteDiff:DeleteConfigurationRuleDiff
-    , creationDate : DateTime = new DateTime()
+    , creationDate : DateTime = DateTime.now()
     , severity : Int = 100
   ) : DeleteConfigurationRule
   
@@ -39,7 +39,7 @@ trait EventLogFactory {
       id : Option[Int] = None
     , principal : EventActor
     , modifyDiff:ModifyConfigurationRuleDiff
-    , creationDate : DateTime = new DateTime()
+    , creationDate : DateTime = DateTime.now()
     , severity : Int = 100
   ) : ModifyConfigurationRule
   
@@ -52,7 +52,7 @@ class EventLogFactoryImpl(
       id : Option[Int] = None
     , principal : EventActor
     , addDiff:AddConfigurationRuleDiff
-    , creationDate : DateTime = new DateTime()
+    , creationDate : DateTime = DateTime.now()
     , severity : Int = 100
   ) : AddConfigurationRule= {
     val details = EventLog.withContent(crToXml.serialise(addDiff.cr) % ("changeType" -> "add"))
@@ -65,7 +65,7 @@ class EventLogFactoryImpl(
       id : Option[Int] = None
     , principal : EventActor
     , deleteDiff:DeleteConfigurationRuleDiff
-    , creationDate : DateTime = new DateTime()
+    , creationDate : DateTime = DateTime.now()
     , severity : Int = 100
   ) : DeleteConfigurationRule= {
     val details = EventLog.withContent(crToXml.serialise(deleteDiff.cr) % ("changeType" -> "delete"))
@@ -77,7 +77,7 @@ class EventLogFactoryImpl(
       id : Option[Int] = None
     , principal : EventActor
     , modifyDiff:ModifyConfigurationRuleDiff
-    , creationDate : DateTime = new DateTime()
+    , creationDate : DateTime = DateTime.now()
     , severity : Int = 100
   ) : ModifyConfigurationRule = {
     val details = EventLog.withContent{

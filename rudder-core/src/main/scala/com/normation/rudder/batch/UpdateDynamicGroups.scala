@@ -130,7 +130,7 @@ class UpdateDynamicGroups(
             dynGroupService.getAllDynGroups match {
               case Full(groupIds) => 
                 updateId = updateId + 1
-                LAUpdateDyngroup ! StartProcessing(updateId, new DateTime, GroupsToUpdate(groupIds))
+                LAUpdateDyngroup ! StartProcessing(updateId, DateTime.now, GroupsToUpdate(groupIds))
               case e:EmptyBox => 
                 val error = (e?~! "Errro when trying to get the list of dynamic group to update")
                 
@@ -196,12 +196,12 @@ class UpdateDynamicGroups(
             } yield {
               (dynGroupId, dynGroupUpdaterService.update(dynGroupId,RudderEventActor))
             }
-            updateManager ! UpdateResult(processId, startTime, new DateTime, results.toMap)
+            updateManager ! UpdateResult(processId, startTime, DateTime.now, results.toMap)
           } catch {
             case e:Throwable => e match {
               case x:ThreadDeath => throw x
               case x:InterruptedException => throw x
-              case _ => updateManager ! UpdateResult(processId,startTime,new DateTime,
+              case _ => updateManager ! UpdateResult(processId,startTime,DateTime.now,
                   dynGroupIds.map(id => (id,Failure("Exception caught during update process.",Full(e), Empty))).toMap)
             }
           }

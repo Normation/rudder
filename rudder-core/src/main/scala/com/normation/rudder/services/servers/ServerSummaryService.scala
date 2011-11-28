@@ -77,10 +77,10 @@ class ServerSummaryServiceImpl(
     } yield {
       // fetch the creation datetime of the object
       val dateTime =  {e(A_OBJECT_CREATION_DATE) match {
-        case None => new DateTime() 
+        case None => DateTime.now() 
         case Some(date) => GeneralizedTime.parse(date) match {
           case Some(value) => value.dateTime 
-          case None => new DateTime() 
+          case None => DateTime.now() 
         }
       }}
       

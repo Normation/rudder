@@ -87,7 +87,7 @@ class CheckPolicyInstanceBusinessRules extends BootstrapChecks {
 //         
 //        val piToSave = PolicyInstanceEntry(Some(Constants.hasPolicyServerPIID(NodeId(policyNodeId))))(rudderDit)
 //        piToSave.name = Some(Constants.P_HAS_POLICY_SERVER)
-//        val now = Some(new DateTime)
+//        val now = Some(DateTime.now)
 //        piToSave.creationDate = now
 //        piToSave.lastUpdateDate = now
 //        piToSave.target = Seq(qid) 

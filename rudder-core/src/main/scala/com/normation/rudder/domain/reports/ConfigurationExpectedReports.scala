@@ -56,7 +56,7 @@ case class ConfigurationExpectedReports(
   val nodeJoinKey : Int, // the version id of the configuration rule, follows a sequence, used to join with the server table
   val nodesList : Seq[NodeId],
   // the period where the configuration is applied to the servers
-  val beginDate : DateTime = new DateTime(),
+  val beginDate : DateTime = DateTime.now(),
   val endDate : Option[DateTime] = None
 ) extends HashcodeCaching 
 

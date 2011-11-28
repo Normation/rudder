@@ -136,7 +136,7 @@ class LDAPUserPolicyTemplateRepository(
         }
       }
       categoryEntry <- userCategoryRepo.getCategoryEntry(con, categoryId, "1.1") ?~! "Category entry with ID '%s' was not found".format(categoryId)
-      newUpt = UserPolicyTemplate(UserPolicyTemplateId(uuidGen.newUuid),policyTemplateName, versions.map(x => x -> new DateTime()).toMap)
+      newUpt = UserPolicyTemplate(UserPolicyTemplateId(uuidGen.newUuid),policyTemplateName, versions.map(x => x -> DateTime.now()).toMap)
       uptEntry = mapper.userPolicyTemplate2Entry(newUpt,categoryEntry.dn)
       result <- con.save(uptEntry, true)
     } yield {

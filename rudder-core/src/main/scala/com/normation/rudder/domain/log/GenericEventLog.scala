@@ -43,7 +43,7 @@ import com.normation.utils.HashcodeCaching
 
 final case class ApplicationStarted(
     override val id : Option[Int] = None
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val severity : Int = 100
 ) extends EventLog with HashcodeCaching {
   override val cause = None
@@ -60,7 +60,7 @@ final case class ApplicationStarted(
 final case class ActivateRedButton(
     override val principal : EventActor
   , override val id : Option[Int] = None
-  , override val creationDate : DateTime = new DateTime()
+  , override val creationDate : DateTime = DateTime.now()
   , override val cause : Option[Int] = None
   , override val severity : Int = 100
 ) extends EventLog with HashcodeCaching {
@@ -74,7 +74,7 @@ final case class ActivateRedButton(
 final case class ReleaseRedButton(
     override val principal : EventActor
   , override val id : Option[Int] = None
-  , override val creationDate : DateTime = new DateTime() 
+  , override val creationDate : DateTime = DateTime.now() 
   , override val cause : Option[Int] = None
   , override val severity : Int = 100
 ) extends EventLog with HashcodeCaching {

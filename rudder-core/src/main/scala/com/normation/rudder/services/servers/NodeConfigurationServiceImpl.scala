@@ -435,9 +435,9 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
         case Full(f) => f;
       }
       
-      val writeTime = new DateTime().getMillis
+      val writeTime = DateTime.now().getMillis
       val savedNodes = repository.saveMultipleNodeConfigurations(updateBatch.updatedNodeConfigurations.valuesIterator.map(x => x.commitModification).toSeq)
-      LOGGER.debug("Written in ldap the node configuration caches in %d millisec".format((new DateTime().getMillis - writeTime)))
+      LOGGER.debug("Written in ldap the node configuration caches in %d millisec".format((DateTime.now().getMillis - writeTime)))
       
       // save this rootCause
       savedNodes

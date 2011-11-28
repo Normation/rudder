@@ -102,7 +102,7 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	    // close the nodes
 	    val q = update(Nodes.nodes)(node => 
 	      where(node.endTime.isNull and node.nodeId.in(nodes.map(x => x.id.value) ++ closable))
-	      set(node.endTime := Some(toTimeStamp(new DateTime())))
+	      set(node.endTime := Some(toTimeStamp(DateTime.now())))
 	    )
 	    
 	    val insertion = Nodes.nodes.insert(nodes.map(SerializedNodes.fromNode(_)))
@@ -150,7 +150,7 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	    // close the nodes
 	    val q = update(Groups.groups)(group => 
 	      where(group.endTime.isNull and group.groupId.in(nodes.map(x => x.id.value) ++ closable))
-	      set(group.endTime := Some(toTimeStamp(new DateTime())))
+	      set(group.endTime := Some(toTimeStamp(DateTime.now())))
 	    )
 	    
 	    val insertion = Groups.groups.insert(nodes.map(SerializedGroups.fromNodeGroup(_)))
@@ -197,7 +197,7 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	    // close the pis
 	    val q = update(PolicyInstances.policyInstances)(pi => 
 	      where(pi.endTime.isNull and pi.policyInstanceId.in(pis.map(x => x._1.id.value) ++ closable))
-	      set(pi.endTime := toTimeStamp(new DateTime()))
+	      set(pi.endTime := toTimeStamp(DateTime.now()))
 	    )
 	    
 	    val insertion = PolicyInstances.policyInstances.insert(pis.map(x => SerializedPIs.fromPolicyInstance(x._1, x._2, x._3)))
@@ -286,7 +286,7 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	    // close the crs
 	    val q = update(ConfigurationRules.configurationRules)(cr => 
 	      where(cr.endTime.isNull and cr.configurationRuleId.in(crs.map(x => x.id.value) ++ closable))
-	      set(cr.endTime := toTimeStamp(new DateTime()))
+	      set(cr.endTime := toTimeStamp(DateTime.now()))
 	    )
    
 	    crs.map( cr => {  
@@ -333,7 +333,7 @@ object SerializedGroups {
         		nodeGroup.name, 
         		nodeGroup.description, 
         		nodeGroup.serverList.size, 
-        		new Timestamp(new DateTime().getMillis), None )
+        		new Timestamp(DateTime.now().getMillis), None )
   }
 }
 
@@ -361,7 +361,7 @@ object SerializedNodes {
     new SerializedNodes(node.id.value, 
         		node.hostname, 
         		node.description,  
-        		new Timestamp(new DateTime().getMillis), None )
+        		new Timestamp(DateTime.now().getMillis), None )
   }
 }
 
@@ -399,7 +399,7 @@ object SerializedPIs {
         		userPT.referencePolicyTemplateName.value,
         		policyPackage.description,
         		policyInstance.policyTemplateVersion.toString,
-        		new Timestamp(new DateTime().getMillis), null )
+        		new Timestamp(DateTime.now().getMillis), null )
   }
 }
 
@@ -465,7 +465,7 @@ object SerializedCRs {
         cr.shortDescription,
         cr.longDescription, 
         cr.isActivatedStatus,
-        new Timestamp(new DateTime().getMillis), null)
+        new Timestamp(DateTime.now().getMillis), null)
   }
   
 }
