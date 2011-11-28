@@ -551,10 +551,10 @@ object DisplayServer extends Loggable {
       case Full(entry) =>
         logger.info("Successfully removed node %s from Rudder".format(nodeId.value))
         onSuccess
-      case Failure(m, _,_) => 
-        logger.error("Could not remove node %s from Rudder, reason is %s".format(nodeId.value, m))
+      case eb:EmptyBox => 
+        val e = eb ?~! "Could not remove node %s from Rudder".format(nodeId.value)
+        logger.error(e.messageChain)
         onFailure(nodeId)
-      
     }
   }
   
