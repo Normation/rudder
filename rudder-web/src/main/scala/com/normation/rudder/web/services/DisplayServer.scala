@@ -56,8 +56,6 @@ import net.liftweb.http.Templates
 import org.joda.time.DateTime
 import com.normation.rudder.services.servers.RemoveNodeService
 import com.normation.rudder.web.model.CurrentUser
-import org.slf4j.LoggerFactory
-
 
 /**
  * A service used to display details about a server 
@@ -71,36 +69,32 @@ import org.slf4j.LoggerFactory
  * # jsInit(serverId) : Cmd
  *    to init javascript for it 
  */
-class DisplayServer {}
-
-object DisplayServer {
+object DisplayServer extends Loggable {
   
-  private val getSoftwareService = inject[ReadOnlySoftwareDAO]
+  private[this] val getSoftwareService = inject[ReadOnlySoftwareDAO]
+  private[this] val removeNodeService = inject[RemoveNodeService]
   
-  private val removeNodeService = inject[RemoveNodeService]
-  
-  private val logger = LoggerFactory.getLogger(classOf[DisplayServer])
-  private val templatePath = List("templates-hidden", "server_details_tabs")
-  private def template() =  Templates(templatePath) match {
+  private[this] val templatePath = List("templates-hidden", "server_details_tabs")
+  private[this] def template() =  Templates(templatePath) match {
     case Empty | Failure(_,_,_) => 
       throw new TechnicalException("Template for server details not found. I was looking for %s.html".format(templatePath.mkString("/")))
     case Full(n) => n
   }
   
   
-  private val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
-  private val errorPopupHtmlId = "errorPopupHtmlId"
-  private val successPopupHtmlId = "successPopupHtmlId"  
+  private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
+  private[this] val errorPopupHtmlId = "errorPopupHtmlId"
+  private[this] val successPopupHtmlId = "successPopupHtmlId"  
     
     
-  private def content() = chooseTemplate("serverdetails","content",template)
+  private[this] def content() = chooseTemplate("serverdetails","content",template)
   
   private def loadSoftware(jsId:JsNodeId, softIds:Seq[SoftwareUuid])(nodeId:String):JsCmd = {
     //id is not used anymore ?
     (for {
-      seq <- getSoftwareService.getSoftware(softIds)
-      val gridDataId = htmlId(jsId,"soft_grid_data_")
-      val gridId = htmlId(jsId,"soft_grid_")
+      seq            <- getSoftwareService.getSoftware(softIds)
+      val gridDataId =  htmlId(jsId,"soft_grid_data_")
+      val gridId     =  htmlId(jsId,"soft_grid_")
     } yield SetExp(JsVar(gridDataId),JsArray(seq.map { x => JsArray(
         Str(x.name.getOrElse("")),
         Str(x.version.map(_.value).getOrElse("")),
@@ -116,13 +110,13 @@ object DisplayServer {
   def head() = chooseTemplate("serverdetails","head",template)
   
   def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContainer : Option[String] = None):JsCmd = {
-    val jsId = JsNodeId(nodeId,salt)
-    val detailsId = htmlId(jsId,"details_")
+    val jsId           = JsNodeId(nodeId,salt)
+    val detailsId      = htmlId(jsId,"details_")
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
-    val softGridId = htmlId(jsId,"soft_grid_")
-    val softPanelId = htmlId(jsId,"sd_soft_")
-    val eltIds = List("fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos").
-      map(x => htmlId(jsId, x+ "_grid_"))
+    val softGridId     = htmlId(jsId,"soft_grid_")
+    val softPanelId    = htmlId(jsId,"sd_soft_")
+    val eltIds         = List("fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos").
+                           map(x => htmlId(jsId, x+ "_grid_"))
       
     JsRaw("var "+softGridDataId +"= null") & 
     OnLoad(
@@ -160,8 +154,8 @@ object DisplayServer {
   def show(sm:FullInventory, showExtraFields : Boolean = true, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     val mainTabDeclaration : List[NodeSeq] =
-      { if (showExtraFields)  <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>  else NodeSeq.Empty } ::
-      { if (showExtraFields)  <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>  else NodeSeq.Empty } ::
+      { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>  else NodeSeq.Empty } ::
+      { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>  else NodeSeq.Empty } ::
       { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>  else NodeSeq.Empty } ::
       // 
       <li><a href={htmlId_#(jsId,"sd_bios_")}>Bios</a></li> ::
@@ -248,14 +242,14 @@ object DisplayServer {
   def showNodeDetails(sm:FullInventory, creationDate:Option[DateTime], salt:String = "") : NodeSeq = {
   
     { sm.node.main.status match {
-		      case AcceptedInventory => 
-		        <div id={deleteNodePopupHtmlId}  class="nodisplay" />
-		        <div id={errorPopupHtmlId}  class="nodisplay" />
-		        <div id={successPopupHtmlId}  class="nodisplay" />
-		        <fieldset class="nodeIndernal"><legend>Action</legend>
-		      		{SHtml.ajaxButton("Delete this node", { () => {showPopup(sm.node.main.id); } })}  	
-		      	</fieldset> ++ {Script(OnLoad(JsRaw("""correctButtons();""")))}
-		      case _ => NodeSeq.Empty
+          case AcceptedInventory => 
+            <div id={deleteNodePopupHtmlId}  class="nodisplay" />
+            <div id={errorPopupHtmlId}  class="nodisplay" />
+            <div id={successPopupHtmlId}  class="nodisplay" />
+            <fieldset class="nodeIndernal"><legend>Action</legend>
+              {SHtml.ajaxButton("Delete this node", { () => {showPopup(sm.node.main.id); } })}    
+            </fieldset> ++ {Script(OnLoad(JsRaw("""correctButtons();""")))}
+          case _ => NodeSeq.Empty
         }
     } ++
     <fieldset class="nodeIndernal"><legend>Node characteristics</legend>
@@ -519,32 +513,32 @@ object DisplayServer {
       <hr/>
     </div>
     <div class="simplemodal-content">
-    	<div>
+      <div>
           <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-          <h2>If you choose to remove this node from Rudder, it won't be managed anymore, and all informations about it will be removed from the application</h2>    	
-    	</div>
-    	<hr class="spacer"/>
- 		</div>
-		<div class="simplemodal-bottom">
-			<hr/>
-    	<div class="popupButton">
-    		<span>
-    			<button class="simplemodal-close" onClick="$.modal.close();">
+          <h2>If you choose to remove this node from Rudder, it won't be managed anymore, and all informations about it will be removed from the application</h2>      
+      </div>
+      <hr class="spacer"/>
+     </div>
+    <div class="simplemodal-bottom">
+      <hr/>
+      <div class="popupButton">
+        <span>
+          <button class="simplemodal-close" onClick="$.modal.close();">
           Cancel
-        	</button>
-    			{ 
-    				SHtml.ajaxButton("Delete this node", { () => {removeNode(nodeId) } })
-  				}  	
-    		</span>
-    	</div>
+          </button>
+          { 
+            SHtml.ajaxButton("Delete this node", { () => {removeNode(nodeId) } })
+          }    
+        </span>
+      </div>
     </div> ;
          
-    	
+      
     
     SetHtml(deleteNodePopupHtmlId, popupHtml) &
     JsRaw( """ $("#%s").modal({
       minHeight:300,
-  	  minWidth: 400
+      minWidth: 400
      });
     $('#simplemodal-container').css('height', 'auto');
     correctButtons();
@@ -571,11 +565,11 @@ object DisplayServer {
       <hr/>
     </div>
     <div class="simplemodal-content">
-    	<div>
+      <div>
           <img src="/images/icError.png" alt="Error!" height="32" width="32" class="erroricon"/>
           <h2>There was an error while deleting the Node with id {nodeId.value}. Please contact your administrator.</h2>
       </div>
-    	<hr class="spacer" />
+      <hr class="spacer" />
       <br />
       <br />
       <div align="right">
@@ -583,14 +577,14 @@ object DisplayServer {
           Close
         </button>
       <br />
-    	</div>
+      </div>
     </div> ;
     
     JsRaw( """$.modal.close();""") &
     SetHtml(errorPopupHtmlId, popupHtml) &
     JsRaw( """ setTimeout(function() { $("#%s").modal({
       minHeight:300,
-  	  minWidth: 400
+      minWidth: 400
      });
     $('#simplemodal-container').css('height', 'auto');
     correctButtons(); }, 200);
@@ -627,7 +621,7 @@ object DisplayServer {
     SetHtml(successPopupHtmlId, popupHtml) &
     JsRaw( """ setTimeout(function() { $("#%s").modal({
       minHeight:300,
-  	  minWidth: 400
+      minWidth: 400
      });
     $('#simplemodal-container').css('height', 'auto');
     correctButtons(); }, 200);

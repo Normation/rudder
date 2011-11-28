@@ -29,25 +29,23 @@ trait RemoveNodeService {
 }
 
 
-
 class RemoveNodeServiceImpl(
-      nodeDit							:	NodeDit
-    , rudderDit						:	RudderDit
-    , ldap								:	LDAPConnectionProvider
-    , ldapEntityMapper		: LDAPEntityMapper
-    , nodeGroupRepository	: NodeGroupRepository
-    , smRepo							: LDAPFullInventoryRepository
-      
+      nodeDit              : NodeDit
+    , rudderDit            : RudderDit
+    , ldap                 : LDAPConnectionProvider
+    , ldapEntityMapper     : LDAPEntityMapper
+    , nodeGroupRepository  : NodeGroupRepository
+    , smRepo               : LDAPFullInventoryRepository      
 ) extends RemoveNodeService with Loggable {
   
   
   def removeNode(nodeId : NodeId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
     logger.debug("Trying to remove node %s from the LDAP".format(nodeId.value))
     for {
-      cleanGroup 							<- deleteFromGroups(nodeId, actor) ?~! "Could not remove the node '%s' from the groups".format(nodeId.value)
+      cleanGroup              <- deleteFromGroups(nodeId, actor) ?~! "Could not remove the node '%s' from the groups".format(nodeId.value)
       cleanNodeConfiguration  <- deleteFromNodesConfiguration(nodeId) ?~! "Could not remove the node configuration of node '%s'".format(nodeId.value)
-      cleanNode 							<- deleteFromNodes(nodeId) ?~! "Could not remove the node '%s' from the nodes list".format(nodeId.value)
-      cleanInventory 					<- deleteNodeFromInventory(nodeId)?~! "Could not remove the node '%s' from the nodes list".format(nodeId.value)
+      cleanNode               <- deleteFromNodes(nodeId) ?~! "Could not remove the node '%s' from the nodes list".format(nodeId.value)
+      cleanInventory          <- deleteNodeFromInventory(nodeId)?~! "Could not remove the node '%s' from the nodes list".format(nodeId.value)
     } yield {
       cleanNodeConfiguration
     }
@@ -59,8 +57,8 @@ class RemoveNodeServiceImpl(
   private def deleteFromNodes(nodeId:NodeId) : Box[Seq[LDIFChangeRecord]]= {
     logger.debug("Trying to remove node %s from ou=Nodes".format(nodeId.value))
     for {
-      con <- ldap
-      dn = nodeDit.NODES.NODE.dn(nodeId.value)
+      con    <- ldap
+      dn     =  nodeDit.NODES.NODE.dn(nodeId.value)
       result <- con.delete(dn)
     } yield {
       result
@@ -73,8 +71,8 @@ class RemoveNodeServiceImpl(
   private def deleteFromNodesConfiguration(nodeId:NodeId) : Box[Seq[LDIFChangeRecord]]= {
     logger.debug("Trying to remove node %s from ou=Nodes Configuration".format(nodeId.value))
     for {
-      con <- ldap
-      dn = rudderDit.RUDDER_NODES.SERVER.dn(nodeId.value)
+      con    <- ldap
+      dn     =  rudderDit.RUDDER_NODES.SERVER.dn(nodeId.value)
       result <- con.delete(dn)
     } yield {
       result
@@ -88,20 +86,17 @@ class RemoveNodeServiceImpl(
   private def deleteFromGroups(nodeId: NodeId, actor:EventActor): Box[Seq[ModifyNodeGroupDiff]]= {
     logger.debug("Trying to remove node %s from al lthe groups were it is references".format(nodeId.value))
     for {
-    	nodeGroupIds <- nodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))
-  	} yield {
-  	  (for {
-  	    nodeGroups 	 		 <- nodeGroupIds.map(nodeGroupId
-    												=> nodeGroupRepository.getNodeGroup(nodeGroupId))
-    		nodeGroup		 		 <- nodeGroups
-				val updatedGroup = nodeGroup.copy(
-								    				serverList = nodeGroup.serverList - nodeId
-								    				)
-				diff 						 <-nodeGroupRepository.update(updatedGroup, actor)  ?~! "Could not update group %s to remove node '%s'".format(nodeGroup.id.value, nodeId.value)
-  	  } yield {
-  	    diff
-  	  }).flatten
-  	}
+      nodeGroupIds <- nodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))
+    } yield {
+      (for {
+        nodeGroups   <- nodeGroupIds.map(nodeGroupId => nodeGroupRepository.getNodeGroup(nodeGroupId))
+        nodeGroup    <- nodeGroups
+        updatedGroup =  nodeGroup.copy(serverList = nodeGroup.serverList - nodeId)
+        diff         <- nodeGroupRepository.update(updatedGroup, actor)  ?~! "Could not update group %s to remove node '%s'".format(nodeGroup.id.value, nodeId.value)
+      } yield {
+        diff
+      }).flatten
+    }
   }
   
   /**
@@ -112,6 +107,4 @@ class RemoveNodeServiceImpl(
 
     smRepo.delete(nodeId, AcceptedInventory)
   }
-  
-  
 }
