@@ -461,8 +461,8 @@ class InternalLDAPQueryProcessor(
       results:Seq[LDAPEntry]
     , specialFilters:Set[(CriterionComposition,SpecialFilter)]
   ) : Box[Seq[LDAPEntry]] = {
-    pipeline(specialFilters.toSeq,results) { case ((composition,filter),currentResults) =>
-      filter match {
+    def applyFilter(specialFilter:SpecialFilter, entries:Seq[LDAPEntry]) : Box[Seq[LDAPEntry]] = {
+      specialFilter match {
         case RegexFilter(attr,regexText) => 
           val pattern = Pattern.compile(regexText) 
           /*
@@ -470,7 +470,7 @@ class InternalLDAPQueryProcessor(
            * the given attribute matches the regex. 
            */
           Full( 
-            currentResults.filter { entry =>
+            entries.filter { entry =>
               logger.trace("Filtering with regex '%s' entry: %s:%s".format(regexText,entry.dn,entry.valuesFor(attr).mkString(",")))
               val res = entry.valuesFor(attr).exists { value =>
                 pattern.matcher( value ).matches  
@@ -480,6 +480,32 @@ class InternalLDAPQueryProcessor(
             }
           )
         case x => Failure("Don't know how to post process query results for filter '%s'".format(x))
+      }
+    }
+    
+    
+    val filterSeq = specialFilters.toSeq
+    
+    if(filterSeq.isEmpty) Full(results)
+    else {
+      //we only know how to process homogeneous CriterionComposition. Different one are an error
+      for {
+        composition <- pipeline(filterSeq, filterSeq.head._1) {
+                         case ( (newComp,_) ,  baseComp ) if(newComp == baseComp) => Full(baseComp)
+                         case _ => Failure("Composition of special filters are not homogeneous, can not processed them. Special filters: " + specialFilters.toString)
+                       }
+        results     <- composition match {
+                         case And => //each step of filtering is the input of the next => pipeline
+                           pipeline(filterSeq,results) { case ((_,filter),currentResults) =>
+                             applyFilter(filter, currentResults)
+                           }
+                         case Or => //each step of the filtering take all entries as input, and at the end, all are merged
+                           pipeline(filterSeq,Seq[LDAPEntry]()) { case ((_,filter),currentResults) =>
+                             applyFilter(filter, results).map( r => (Set() ++ r ++ currentResults).toSeq)
+                           }
+                       }
+      } yield {
+        results
       }
     }
   }

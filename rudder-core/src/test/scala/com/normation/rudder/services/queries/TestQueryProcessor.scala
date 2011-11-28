@@ -275,8 +275,30 @@ class TestQueryProcessor extends Loggable {
       ] }  
       """).open_!,
       s(7) :: Nil)
-            
-      testQueries(q1 :: q2 :: Nil)
+
+    //on node and or for regex
+    val q3 = TestQuery(
+      "q3",
+      parser("""
+      {  "select":"node",  "composition":"or", "where":[
+          { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[01]" }
+        , { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[12]" }
+      ] }  
+      """).open_!,
+      s(0) :: s(1) :: s(2) :: Nil)
+      
+    //same as q4 with and
+    val q4 = TestQuery(
+      "q3",
+      parser("""
+      {  "select":"node",  "composition":"and", "where":[
+          { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[01]" }
+        , { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[12]" }
+      ] }  
+      """).open_!,
+      s(1) :: Nil)
+      
+      testQueries(q1 :: q2 :: q3 :: q4 :: Nil)
   }
   
   
