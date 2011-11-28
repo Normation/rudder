@@ -106,7 +106,7 @@ class LastInventoryDate() extends PreCommit {
   override val name = "pre_commit_inventory:set_last_inventory_date"
     
   override def apply(report:InventoryReport) : Box[InventoryReport] = {
-    val now = new DateTime()
+    val now = DateTime.now()
     
     Full(report.copy (
       node = report.node.copy( inventoryDate = Some(now) ),

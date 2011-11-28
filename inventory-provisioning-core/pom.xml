@@ -42,7 +42,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-repository</artifactId>
-      <version>0.11.0-SNAPSHOT</version>
+      <version>${rudder-version}</version>
     </dependency>
   </dependencies>
 </project>

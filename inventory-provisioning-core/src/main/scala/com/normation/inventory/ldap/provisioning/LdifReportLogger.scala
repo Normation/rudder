@@ -89,7 +89,7 @@ class DefaultLDIFReportLogger(val LDIFLogDir:String = DefaultLDIFReportLogger.de
     //time stamp are not that much readable, use a YYYYMMDD-HH.MM.SSS format
     new File(rootDir, 
         fileName + 
-        "_" + new DateTime().toString("YYYY-MM-dd_HH.mm.ss.SS") + 
+        "_" + DateTime.now().toString("YYYY-MM-dd_HH.mm.ss.SS") + 
         (opType.map("_" + _).getOrElse("")) + 
         ".LDIF")
   }
