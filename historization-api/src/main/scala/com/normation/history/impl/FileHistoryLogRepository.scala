@@ -114,7 +114,7 @@ class FileHistoryLogRepository[ID,T](
    * @param historyLog
    * @return
    */
-  def save(id:ID,data:T,datetime:DateTime = new DateTime) : Box[HLog] = {
+  def save(id:ID,data:T,datetime:DateTime = DateTime.now) : Box[HLog] = {
     converter.idToFilename(id) match {
       case null | "" => 
         Failure("History log name can not be null nor empty")

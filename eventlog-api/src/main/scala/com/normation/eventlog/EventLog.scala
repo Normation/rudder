@@ -62,7 +62,7 @@ trait EventLog {
   
   val principal : EventActor
   
-  val creationDate : DateTime = new DateTime()
+  val creationDate : DateTime = DateTime.now()
   
   /**
    * When we create the EventLog, it usually shouldn't have an id, so the cause cannot be set

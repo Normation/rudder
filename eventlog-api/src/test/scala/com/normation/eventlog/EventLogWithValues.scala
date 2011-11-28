@@ -32,7 +32,7 @@ final case class EventLogWithValues(
     val firstValue : String,
     val secondValue : String,
     override val principal : EventActor,
-    override val creationDate : DateTime = new DateTime(), 
+    override val creationDate : DateTime = DateTime.now(), 
     override val cause : Option[Int] = None,
     override val severity : Int = 100
 ) extends EventLog with HashcodeCaching {

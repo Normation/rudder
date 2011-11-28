@@ -31,7 +31,7 @@ trait WriteOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
    * @param historyLog
    * @return
    */
-  def save(id:ID,data:T,datetime:DateTime = new DateTime) : Box[HLog]
+  def save(id:ID,data:T,datetime:DateTime = DateTime.now) : Box[HLog]
   
 }
 
