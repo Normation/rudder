@@ -163,7 +163,6 @@ limitations under the License.
             <arg>${basedir}/.scala_dependencies</arg>
           </args>
           <jvmArgs>
-            <jvmArg>-Xmx1G</jvmArg>
             <jvmArg>-client</jvmArg>
           </jvmArgs>
         </configuration>
@@ -267,15 +266,19 @@ limitations under the License.
     <scala-maven-plugin-version>2.15.0</scala-maven-plugin-version>
 
     <!-- Libraries version that MUST be used in all children project -->
-    <scala-version>2.9.0-1</scala-version>
-    <scala-lift-version>2.9.0-1</scala-lift-version>
-    <lift-version>2.4-M3.1</lift-version>
-    <slf4j-version>1.6.1</slf4j-version>
+
+    <rudder-version>0.11.0-SNAPSHOT</rudder-version>
+    
+    <scala-version>2.9.1</scala-version>
+    <scala-lift-version>2.9.1</scala-lift-version>
+    <lift-version>2.4-M5</lift-version>
+    <slf4j-version>1.6.4</slf4j-version>
     <logback-version>1.0.0</logback-version>
     <junit-version>4.8.2</junit-version>
-    <jodatime-version>1.6.2</jodatime-version>
-
-    <spring-version>3.0.5.RELEASE</spring-version>
+    <jodatime-version>2.0</jodatime-version>
+    <commons-io-version>2.1</commons-io-version>
+    
+    <spring-version>3.0.6.RELEASE</spring-version>
     <spring-run-dep-version>0.11.0-SNAPSHOT</spring-run-dep-version>
   </properties>
   
@@ -292,6 +295,17 @@ limitations under the License.
       <groupId>joda-time</groupId>
       <artifactId>joda-time</artifactId>
       <version>${jodatime-version}</version>
+    </dependency>
+    <!-- 
+         The Scala compiler require to be able to find these symbol even if they are not used. 
+         So we mark them as needed for compilation, but "provided" so that it does not go into
+         the final jars. 
+     -->
+    <dependency>
+      <groupId>org.joda</groupId>
+      <artifactId>joda-convert</artifactId>
+      <version>1.2</version>
+      <scope>provided</scope>
     </dependency>
   
     <dependency>
@@ -330,7 +344,7 @@ limitations under the License.
     <dependency>
       <groupId>org.specs2</groupId>
       <artifactId>specs2_${scala-version}</artifactId>
-      <version>1.5</version>
+      <version>1.6.1</version>
       <scope>test</scope>
     </dependency>
     
