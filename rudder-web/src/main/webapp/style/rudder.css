@@ -38,15 +38,15 @@
  *Server inventory details
  **********************************/
 .hostnamecurs{
-	cursor:pointer;
-	text-decoration:underline;
+  cursor:pointer;
+  text-decoration:underline;
 }
 .querylinecolor{
-	color:#EEEEEE;
+  color:#EEEEEE;
 }
 .sInventory {
-	margin: 0px;
-	padding: 0px;
+  margin: 0px;
+  padding: 0px;
 }
 
 .sInventory div {
@@ -173,34 +173,34 @@ form label.champ {
    text-align: right;
 }
 form input {
-	 width: 130px;
+   width: 130px;
    padding: 0.2em;
    background-color: #f8f8f8;
    border: 1px solid #b4b3a8;
 }
 
 form textarea {
-	padding: 0.2em;
+  padding: 0.2em;
 }
 
 form input.radio {
-	width: auto;
-	border: 0px;
+  width: auto;
+  border: 0px;
 }
 
 form button {
-	 width: 130px;
+   width: 130px;
    padding: 0.2em;
    background-color: #f8f8f8;
    border: 1px solid #b4b3a8;
 }
 
 button.ui-state-default {
-	 width: 130px;
+   width: 130px;
 }
 
 button.largeButton {
-	width:250px !important;
+  width:250px !important;
 }
 
 .popupButton button {
@@ -257,11 +257,11 @@ form input.btnSearch {
 
 
 #searchControl { 
-	margin-top:10px; 
+  margin-top:10px; 
 }
 #searchControl span {
-	margin-left: 10px;
-	margin-right: 10px;
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
 form select.selectComparator {
@@ -269,23 +269,23 @@ form select.selectComparator {
 }
 
 input.queryInputValue, select.queryInputValue {
-	width:115px !important;
-	margin: 0px !important;
-	padding: 0px !important;
+  width:115px !important;
+  margin: 0px !important;
+  padding: 0px !important;
 }.popcurs{
-	text-decoration: underline;
-	cursor:pointer;
+  text-decoration: underline;
+  cursor:pointer;
 }
 .curspoint{
-	cursor:pointer;
+  cursor:pointer;
 }
 
 input.hasDatepicker {
-	width:90px !important;
+  width:90px !important;
 }
 
 button.ui-datepicker-trigger {
-	width: 25px !important;
+  width: 25px !important;
 }
 
 form input.removeLineButton {
@@ -302,14 +302,14 @@ Tableau
 **************************************/
 
 .tablewidth{
-	width:100%;
+  width:100%;
 }
 .tablepadding{
-	padding-left:15px;
-	padding-top:5px;
+  padding-left:15px;
+  padding-top:5px;
 }
 .tablemargin{
-	margin-top:5px;
+  margin-top:5px;
 }
 table {
    margin: 10px;
@@ -397,7 +397,7 @@ div#Detail {
 }
 
 .field_errors, .error, .errors {
-  color: red;	
+  color: red;  
 }
 
 
@@ -407,14 +407,14 @@ div#Detail {
 ***********************/
 
 .dataTables_filter {
-	margin: 10px;
-	text-align: right;
+  margin: 10px;
+  text-align: right;
 }
 
 .paginate {
-	width : 50%;
-	align:left;
-	height:20px;
+  width : 50%;
+  align:left;
+  height:20px;
 }
 
 .paginateBold {
@@ -426,24 +426,24 @@ div#Detail {
 
 .sorting span,.sorting_asc span,.sorting_desc span   {
   float:right;  
-	width:14px;
+  width:14px;
 }
 .sorting {
-	cursor: pointer; 
+  cursor: pointer; 
 }
 .sorting_asc { 
-	cursor: pointer; 
+  cursor: pointer; 
 }
 .sorting_desc { 
-	cursor: pointer; 
+  cursor: pointer; 
 }
 
 .sorting_asc span:after {
-	content:url("../images/tableau/flecheHaut.png");
+  content:url("../images/tableau/flecheHaut.png");
 }
 
 .sorting_desc span:after {
-	content:url("../images/tableau/flecheBas.png");
+  content:url("../images/tableau/flecheBas.png");
 }
 
 /**********************************
@@ -492,32 +492,32 @@ div#Detail {
 * Policy display
 ********************/
 .inlineml{
-	display:inline;
-	margin-left:3px;
+  display:inline;
+  margin-left:3px;
 }
 .inlinenotop{
-	display:inline;
-	padding-top:0px;
+  display:inline;
+  padding-top:0px;
 }
 .cpiefsave{
-	float:right;
+  float:right;
 }
 .pimversionspad{
-	padding:20px;
+  padding:20px;
 }
 .wbBaseField * {
-	vertical-align: middle;
+  vertical-align: middle;
 }
 
 .policyDisplay {
-	font-size: 12px;
+  font-size: 12px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
 }
 .greytooltip{
-	border-bottom:dotted 1 px grey;
+  border-bottom:dotted 1 px grey;
 }
 .policyDisplay * {
-	font-size: 12px;
+  font-size: 12px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
 }
 
@@ -541,25 +541,25 @@ div#Detail {
 }
 
 .policyVariables {
-	width:75%;
-	display:table;
-	border-bottom : solid 1px;
+  width:75%;
+  display:table;
+  border-bottom : solid 1px;
 }
 
 
 .policyReports {
-	padding:0;
-	margin:0;
-	width:20%;
-	float:right;
+  padding:0;
+  margin:0;
+  width:20%;
+  float:right;
 }
 
 .policyReports img {
-	padding:0;
-	margin:0;
+  padding:0;
+  margin:0;
 }
 .policyField {
-	width:75%;
+  width:75%;
 }
 
 /**********************************
@@ -605,10 +605,10 @@ fieldset.policyTemplateDetailsFieldset {
  **********************************/
 
 .lopaddscala{
-	padding:0px
+  padding:0px
 }
 .createitem{
-	text-align: right;
+  text-align: right;
 }
 
 div.policyInstanceDeleteGroup {
@@ -618,7 +618,7 @@ div.policyInstanceDeleteGroup {
 
 div.policyInstanceAddGroup {
   float:right;
-	margin: -20px 0 0 0;
+  margin: -20px 0 0 0;
 }
 
 
@@ -642,8 +642,8 @@ td.policyInstanceVarValue  {
 }
 
 .textareaField {
-	width: 300px;
-	height: 300px;
+  width: 300px;
+  height: 300px;
 }
 
 /**********************************
@@ -655,8 +655,8 @@ td.policyInstanceVarValue  {
   padding:3px;
 }
 .executionPlanningTitle {
-	font-size: 1.1em;
-	font-weight: bold;
+  font-size: 1.1em;
+  font-weight: bold;
 }
 
 form .executionPlanningTitle {
@@ -685,75 +685,75 @@ padding:0 20px;
 * Search servers
 *********************************/
 .paddscala{
-	padding: 0px 0px 0px 15px;
+  padding: 0px 0px 0px 15px;
 }
 .catdelete{
-	font-size:0.9em; 
-	margin-left: 5px;
+  font-size:0.9em; 
+  margin-left: 5px;
 }
 .margins{
-	margin:10px;
+  margin:10px;
 }
 .spacerscala{
-	float:right;
+  float:right;
 }
 .paginatescala{
-	float:left;
+  float:left;
 }
 .notify{
-	text-align:center;
-	margin: 10px;
+  text-align:center;
+  margin: 10px;
 }
 .nserverrmargin{
-	margin-right:5px;
+  margin-right:5px;
 }
 .rmargin{
-	float:right; 
-	margin:10px;
+  float:right; 
+  margin:10px;
 }
 table.searchServers {
-	width: 545px;
-	margin:0 0 0 5px;
+  width: 545px;
+  margin:0 0 0 5px;
 }
 
 table.searchServers tbody td.first {
-	border-left: solid 1px #ABABAB;
+  border-left: solid 1px #ABABAB;
 }
 
 table.searchServers tbody td.last {
-	border-right: solid 1px #ABABAB;
+  border-right: solid 1px #ABABAB;
 }
 
 fieldset.searchServers {
-	padding:5px;
-	margin:5px;
+  padding:5px;
+  margin:5px;
   width: 555px;
   clear: both;
 }
 
 fieldset.searchServersAction {
-	padding:5px;
-	margin:5px;
+  padding:5px;
+  margin:5px;
   width: 530px;
   clear: both;
 }
 
 
 fieldset.groupCategoryUpdateComponent {
-	padding:5px;
-	margin:5px;
+  padding:5px;
+  margin:5px;
   width: 580px;
   
 }
 fieldset.groupUpdateComponent {
-	padding:5px;
-	margin:5px;
+  padding:5px;
+  margin:5px;
   width: 580px; 
 }
 
 tr.query_line, .query_line td {
-	padding: 4px 1px;
-	text-align: center;
+  padding: 4px 1px;
+  text-align: center;
 }
 
 .composition {
@@ -762,12 +762,12 @@ tr.query_line, .query_line td {
 }
 
 .composition span {
-	display: inline-block;
-	vertical-align: middle;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .compositionRadio {
-	display: table-row-group !important;
+  display: table-row-group !important;
   text-align:left;
 }
 
@@ -784,53 +784,53 @@ table#serverGrid tbody td {
 }
 
 #serverGrid_wrapper {
-	width: 545px;
+  width: 545px;
   margin:0 0 0 5px;
 }
 
 #serverGrid_wrapper table {
-	margin:0px;
+  margin:0px;
 }
 
 
 .desactivatedGrid {
-	color: #AAAAAA;
+  color: #AAAAAA;
 }
 
 .dataTables_scrollHeadInner table {
-	margin:0px;
+  margin:0px;
 }
 
 .dataTables_scrollHeadInner {
-	background:url("../images/tableau/fdTaboHead.jpg") repeat-x scroll left top transparent;
+  background:url("../images/tableau/fdTaboHead.jpg") repeat-x scroll left top transparent;
 }
 
 .dataTables_scrollBody table {
-	margin:0px;
+  margin:0px;
 }
 
 .serverGrid_pagination {
-	width: 545px;
+  width: 545px;
   margin:10px 0 0 5px;
 }
 
 #serverGrid_paginate_area {
-	float:left;
+  float:left;
 }
 div.dataTables_scroll {
-	clear: both; 
+  clear: both; 
 }
 
 #serverGrid_info_area {
-	margin:0 0 0 5px;
+  margin:0 0 0 5px;
 }
 
 #serverGrid_info_area div {
-	display:inline-block;
+  display:inline-block;
 }
 
 #serverGrid_tooManyResult {
-	width: 543px;
+  width: 543px;
   margin:0 0 0 10px;
   border: solid 1px #ABABAB;
 }
@@ -872,7 +872,7 @@ fieldset.hierarchy {
 }
 
 #ajaxItemContainer {
-	display: inline-block; 
+  display: inline-block; 
 }
 
 fieldset.groupCategory {
@@ -964,7 +964,7 @@ div#logo {
 header - haut de page
 **************************************/
 .logoutbutwidth{
-	width:130px;
+  width:130px;
 }
 div#infosUser {
    padding: 7px 5px;
@@ -1036,7 +1036,7 @@ span.ui-button-text {
 }
 
 .deploymentButton {
-	background: #DDDDDD !important;
+  background: #DDDDDD !important;
 }
 
 /**************************************
@@ -1101,7 +1101,7 @@ div#menu {
 }
 
 #menu ul li ul {
-	display: none;
+  display: none;
 }
 
 /**************************************
@@ -1329,37 +1329,37 @@ div#refusePopup {
 * Popup
 ********************/
 #actions_zone{
-	margin:15px;
+  margin:15px;
 }
 .popcurs{
-	text-decoration: underline;
-	cursor:pointer;
+  text-decoration: underline;
+  cursor:pointer;
 }
 .curspoint{
-	cursor:pointer;
+  cursor:pointer;
 }
 .newservertable{
-	max-height: 300px;
-	overflow-y: scroll;
+  max-height: 300px;
+  overflow-y: scroll;
 }
 .newservercell{
-	overflow:scroll; 
-	max-height: 100px;
+  overflow:scroll; 
+  max-height: 100px;
 }
 
 #ui-dialog-title-addPopup{
-	height: 25px;
+  height: 25px;
     width:90%;
     }
 
 .ui-dialog-title, .ui-dialog-titlebar-close {
-	height: 25px;
+  height: 25px;
 }
 
 .popupButton {
-	
-	padding: 5px;
-	float: right;
+  
+  padding: 5px;
+  float: right;
 }
 
 .popupButton span {
@@ -1371,7 +1371,7 @@ popin Login
 **************************************/
 
 #dialogLogOut { 
-	display:none; 
+  display:none; 
 }
 
 #dialogLogOut a:hover {
@@ -1397,7 +1397,7 @@ popin Login
 popin Account
 **************************************/
 .userinfowidth{
-	width:130px;
+  width:130px;
 }
 #account h2 {
    color: #f79d10;
@@ -1467,18 +1467,18 @@ popin Alert
 **************************************/
 
 #dialogAlert {
-	display:none;
-	}
+  display:none;
+  }
 #simplemodal-container {
-	color:#000000; 
-	background-color:#FFFFFF; 
-	border:4px solid #F79D10; 
-	padding:0px;
-	font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
+  color:#000000; 
+  background-color:#FFFFFF; 
+  border:4px solid #F79D10; 
+  padding:0px;
+  font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
     }
 #simplemodal-container .simplemodal-data {
-	padding:0px;
-	}
+  padding:0px;
+  }
 #simplemodal-container .simplemodal-title hr {
  margin: 0px;
  width:100%;
@@ -1506,31 +1506,31 @@ popin Alert
 }
 
 #simplemodal-container .simplemodal-content {
-	padding:6px;
-	font-size: 1.1em;
+  padding:6px;
+  font-size: 1.1em;
 }
 #simplemodal-container .simplemodal-content-no-zoom {
-	padding:6px;
+  padding:6px;
 }
 #simplemodal-container code {
-	background:#141414; 
-	border-left:3px solid #65B43D; 
-	color:#bbb; 
-	display:block; 
-	font-size:12px; 
-	margin-bottom:12px; 
-	padding:4px 6px 6px;
+  background:#141414; 
+  border-left:3px solid #65B43D; 
+  color:#bbb; 
+  display:block; 
+  font-size:12px; 
+  margin-bottom:12px; 
+  padding:4px 6px 6px;
 }
 #simplemodal-container a.modalCloseImg {
-	background:url("../images/popin/croix.png") no-repeat; 
-	width:31px; 
-	height:30px; 
-	display:inline; 
-	z-index:3200; 
-	position:absolute; 
-	top:-15px; 
-	right:-16px; 
-	cursor:pointer;
+  background:url("../images/popin/croix.png") no-repeat; 
+  width:31px; 
+  height:30px; 
+  display:inline; 
+  z-index:3200; 
+  position:absolute; 
+  top:-15px; 
+  right:-16px; 
+  cursor:pointer;
 }
 #simplemodal-overlay {
     background-color: #777777;
@@ -1549,8 +1549,8 @@ popin Alert
 }
 
 #openAlert .ui-button-text{
-	padding:0px !important;
-	// this is because of the button()
+  padding:0px !important;
+  // this is because of the button()
 }
 
 #openAlert {
@@ -1576,11 +1576,11 @@ popin Alert
    text-decoration: none;
 }
 /*************************
-*	plugins				 *
+*  plugins         *
 **************************/
 
 .pluginpadd{
-	padding: 0 10px;
+  padding: 0 10px;
 }
 
 /*************************
@@ -1596,23 +1596,23 @@ popin Alert
 
 
 #tooltip {
-	position: absolute;
-	z-index: 3000;
-	border: 1px solid #555;
-	background-color: #eee;
-	padding: 5px;
-	opacity: 0.85;
-	padding: 4px;
+  position: absolute;
+  z-index: 3000;
+  border: 1px solid #555;
+  background-color: #eee;
+  padding: 5px;
+  opacity: 0.85;
+  padding: 4px;
 }
 #tooltip h3, #tooltip div { 
-	margin: 0; 
+  margin: 0; 
 }
 
 /* tooltip styling.  */
 
 .tooltipContent {
-	display:none;
-	
+  display:none;
+  
 }
 
 .red {
@@ -1620,75 +1620,75 @@ color: #FF0000 !important;
 }
 
 .smallButton {
-	width: 35px !important;
+  width: 35px !important;
 }
 
 .autoWidthButton {
-	width: auto !important;
+  width: auto !important;
 }
 
 /* others */
 
 .errorscala{
-	border-bottom:1px solid red;
-	cursor:pointer;
+  border-bottom:1px solid red;
+  cursor:pointer;
 }
 .tree li.filteredNode { 
-	display:none; 
+  display:none; 
 }
 .deca{
-	padding: 10px;
+  padding: 10px;
 }
 .inline{
-	display:inline;
+  display:inline;
 }
 .iconscala{
-	float:left;
-	margin-right:5px;
-	margin-top:2px;
+  float:left;
+  margin-right:5px;
+  margin-top:2px;
 }
 
 .err{
-	padding-left: 50px;
+  padding-left: 50px;
 }
 .green{
-	color:green;
-	margin:3px; 
-	font-style:italic; 
-	font-size: 0.9em;
+  color:green;
+  margin:3px; 
+  font-style:italic; 
+  font-size: 0.9em;
 }
 .warnicon{
-	float:left;
-	margin-right:20px;
+  float:left;
+  margin-right:20px;
 }
 .erroricon{
-	float:left; 
-	margin-right:10px;
+  float:left; 
+  margin-right:10px;
 }
 .icon{
-	float:left; 
-	margin-right:20px;
+  float:left; 
+  margin-right:20px;
 }
 .greenscala{
-	color:green
+  color:green
 }
 .centertext{
-	text-align:center;
+  text-align:center;
 }
 .greyscala{
-	color:grey; 
-	border-bottom:1px dotted grey;
+  color:grey; 
+  border-bottom:1px dotted grey;
 }
 .checkbox{
-	float:right;
-	margin:0 30px 0 10px;
-	height:20px;
+  float:right;
+  margin:0 30px 0 10px;
+  height:20px;
 }
 .nodisplay{
-	display:none;
+  display:none;
 }
 .ajaxloader{
-	position: fixed;
+  position: fixed;
     top: 50%;
     left: 50%;
     text-align:center;
@@ -1744,14 +1744,14 @@ hr.spacer {
 }
 
 .smallCol {
-	 float:left;
-	 margin-right: 2px;
-	 width:20%;
+   float:left;
+   margin-right: 2px;
+   width:20%;
 }
 .largeCol {
-	 float:left;
-	 margin-right: 2px;
-	 width:60%; 
+   float:left;
+   margin-right: 2px;
+   width:60%; 
 }
 
 .align-radio span {
@@ -1760,7 +1760,7 @@ hr.spacer {
 
 .groupDiv {
    margin-top: 5px;
-	 margin-bottom: 10px;  
+   margin-bottom: 10px;  
 }
 
 /************************************
@@ -1787,8 +1787,8 @@ Descriptions
 ************************************/
 
 ul.descriptif li {
- 	padding: 0 12px 5px 5px;
-	list-style-type: none;
+   padding: 0 12px 5px 5px;
+  list-style-type: none;
 }
 
 .inform div {
@@ -1796,9 +1796,9 @@ ul.descriptif li {
   vertical-align: middle;
 }
 .inform div.inform_logo {
-	width:64px;
-	height:64px;
-	background: url(../images/icOK.png) no-repeat;
+  width:64px;
+  height:64px;
+  background: url(../images/icOK.png) no-repeat;
 }
 
 .warn div {
@@ -1806,14 +1806,14 @@ ul.descriptif li {
   vertical-align: middle;
 }
 .warn div.warn_logo {
-	width:64px;
-	height:64px;
-	background: url(../images/icWarn.png) no-repeat;
+  width:64px;
+  height:64px;
+  background: url(../images/icWarn.png) no-repeat;
 }
 
 div.serverDetail {
-	font-weight:bold;
-	text-align:center;
+  font-weight:bold;
+  text-align:center;
 }
 
 
@@ -1827,27 +1827,27 @@ div.tabInform {
 ************************************/
 
 .policyTitle {
-	font-size:1.3em;
+  font-size:1.3em;
   font-weight:bold;
   text-align:center;
 }
 
 .policyDescription {
-	 font-weight:bold;
+   font-weight:bold;
 }
 
 #policyDetails {
-	margin : 10px;
-	padding : 5px;
-	border: 1px solid #2d2d2d;
+  margin : 10px;
+  padding : 5px;
+  border: 1px solid #2d2d2d;
 }
 
 .policyInstanceContainer {
-	margin : 5px;
+  margin : 5px;
 }
 
 .policyInstanceTitle {
-	font-weight:bold;
+  font-weight:bold;
 }
 
 
@@ -1856,10 +1856,10 @@ div.tabInform {
  *Reports display
 ************************************/
 .evlogviewpad{
-	padding:5px;
+  padding:5px;
 }
 .evloglmargin{
-	margin-left:3px;	
+  margin-left:3px;  
 }
 .reportsList {
   margin : 10px;
@@ -1872,13 +1872,13 @@ div.tabInform {
 }
 
 .reportsGroup {
-	margin : 10px;
+  margin : 10px;
   padding : 5px;
   border: 1px solid #2d2d2d;
 }
 
 .reportsServer {
-	margin : 10px;
+  margin : 10px;
   padding : 5px;
 }
 
@@ -1889,18 +1889,18 @@ div.tabInform {
 }
 
 .reportDetailsGroup {
-	 padding: 0 20px;
-	 border-left:1px dotted;
-	 border-right:1px dotted;
+   padding: 0 20px;
+   border-left:1px dotted;
+   border-right:1px dotted;
 }
 tr.Success {
-	background-color:#CCFFCC;
+  background-color:#CCFFCC;
 }
 tr.Applying {
-	background-color:#CCCCCC;
+  background-color:#CCCCCC;
 }
 tr.Repaired {
-	background-color:#CCFA10;
+  background-color:#CCFA10;
 }
 tr.Warn {
   background-color:#FF9922;
@@ -1920,15 +1920,15 @@ tr.Noanswer {
 ************************************/
 
 .quicksearch {
-	text-align: center;
+  text-align: center;
 }
 
 /***********************************
  * Trees
 ************************************/
 .treefilternodecursor{
-	cursor:pointer;
-	cursor:hand;
+  cursor:pointer;
+  cursor:hand;
 }
 
 .treeGroupName , .treePolicyInstance, .treePolicyTemplateName, .treeRuleName { 
