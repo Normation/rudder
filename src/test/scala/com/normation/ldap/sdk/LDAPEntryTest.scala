@@ -24,8 +24,8 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.matcher._
 import org.specs2.runner.JUnitRunner
-import specs2.{run, args}
-import specs2.args._
+import specs2.{run, arguments}
+import specs2.arguments._
   
 
 @RunWith(classOf[JUnitRunner])
