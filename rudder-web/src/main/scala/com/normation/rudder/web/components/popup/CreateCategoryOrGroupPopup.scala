@@ -132,8 +132,8 @@ class CreateCategoryOrGroupPopup(
       "itemDescription" -> piDescription.toForm_!,
       "groupType" -> piStatic.toForm_!,
       "notifications" -> updateAndDisplayNotifications(),
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCOGSaveButton") % ("tabindex","3")
+      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","6"),
+      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCOGSaveButton") % ("tabindex","5")
     )) ++ Script(OnLoad(initJs)) 
   }
 
@@ -150,7 +150,7 @@ class CreateCategoryOrGroupPopup(
 
   private[this] val piDescription = new WBTextAreaField("Description: ", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:10em") % ("tabindex","2")
+    override def inputField = super.inputField  % ("style" -> "height:10em") % ("tabindex","3")
     override def className = "twoCol"
     override def errorClassName = ""
     override def validations =  Nil
@@ -161,16 +161,18 @@ class CreateCategoryOrGroupPopup(
     //how to display label ? Capitalize, and with a tooltip
     case "static" => <span class="tooltip" title="The list of member nodes is defined at creation and will not change automatically.">Static</span>
     case "dynamic" => <span class="tooltip" title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
-  }) {
+  },Some(4)) {
     override def displayNameHtml = Some(<b>{displayName}</b>)
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "twoCol"
+    override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')")
   }
 
   private[this] val piContainer = new WBSelectField("Parent category: ",
 			(categories.open_!.map(x => (x.id.value -> x.name))),
 			"") {
     override def className = "twoCol"
+    override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
   }
 
   private[this] val formTracker = new FormTracker(piName,piDescription,piContainer, piStatic)

@@ -51,7 +51,7 @@ import net.liftweb.util.Helpers._
 
 
 import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField,WBSelectField,WBRadioField
+  WBTextField, FormTracker, WBTextAreaField,WBSelectField
 }
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject

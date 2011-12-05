@@ -275,7 +275,8 @@ class WBRadioField(
     override val name:String, 
     val opts : Seq[String], 
     override val defaultValue:String = "", 
-    val displayChoiceLabel: String => NodeSeq = {label =>Text(label) }
+    val displayChoiceLabel: String => NodeSeq = {label =>Text(label) },
+    val tabindex : Option[Int] = None
 ) extends WBBaseField with StringValidators {
   type ValueType = String
 
@@ -287,7 +288,11 @@ class WBRadioField(
   }
   
   def inputField : Elem = {
-    val choiceHolder : ChoiceHolder[String] = SHtml.radio(opts, Full(value),  set _, ("class", "radio"))
+    val parameters = ("class", "radio") :: { tabindex match {
+      case Some(i) => ("tabindex" , i.toString) :: Nil
+      case None    => Nil
+    } }
+    val choiceHolder : ChoiceHolder[String] = SHtml.radio(opts, Full(value),  set _ , parameters:_*)
     <div>{choiceHolder.flatMap { c => (<span>{c.xhtml}&nbsp;{displayChoiceLabel(c.key)}<br/> </span>)} }</div>
   }
   
