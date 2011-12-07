@@ -59,6 +59,8 @@ class LDAPPolicyInstanceRepository(
   , ldapUserPolicyTemplateRepository: LDAPUserPolicyTemplateRepository
   , policyPackageService            : PolicyPackageService
   , actionLogger                    : EventLogRepository
+  , gitPiArchiver                   : GitPolicyInstanceArchiver
+  , autoExportOnModify              : Boolean
 ) extends PolicyInstanceRepository {
   repo => 
     
@@ -88,9 +90,9 @@ class LDAPPolicyInstanceRepository(
    */
   def getPolicyInstance(id:PolicyInstanceId) : Box[PolicyInstance] = {
     for {
-      con <- ldap 
+      con     <- ldap 
       piEntry <- getPolicyInstanceEntry(con, id) ?~! "Can not find Policy Instance with id %s".format(id)
-      pi <- mapper.entry2PolicyInstance(piEntry) ?~! "Error when transforming LDAP entry into a Policy Instance for id %s. Entry: %s".format(id, piEntry)
+      pi      <- mapper.entry2PolicyInstance(piEntry) ?~! "Error when transforming LDAP entry into a Policy Instance for id %s. Entry: %s".format(id, piEntry)
     } yield {
       pi
     }
@@ -101,8 +103,8 @@ class LDAPPolicyInstanceRepository(
       con <- ldap
       //for each pi entry, map it. if one fails, all fails
       pis <- sequence(con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn,  policyFilter(includeSystem))) { piEntry => 
-        mapper.entry2PolicyInstance(piEntry) ?~! "Error when transforming LDAP entry into a Policy Instance. Entry: %s".format(piEntry)
-      }
+               mapper.entry2PolicyInstance(piEntry) ?~! "Error when transforming LDAP entry into a Policy Instance. Entry: %s".format(piEntry)
+             }
     } yield {
       pis
     }
@@ -118,9 +120,9 @@ class LDAPPolicyInstanceRepository(
    */
   def getUserPolicyTemplate(id:PolicyInstanceId) : Box[UserPolicyTemplate] = {
     for {
-      con <- ldap 
+      con     <- ldap 
       piEntry <- getPolicyInstanceEntry(con, id, "1.1") ?~! "Can not find Policy Instance with id %s".format(id)
-      upt <- ldapUserPolicyTemplateRepository.getUserPolicyTemplate(mapper.dn2UserPolicyTemplateId(piEntry.dn.getParent))
+      upt     <- ldapUserPolicyTemplateRepository.getUserPolicyTemplate(mapper.dn2UserPolicyTemplateId(piEntry.dn.getParent))
     } yield {
       upt
     }
@@ -133,11 +135,11 @@ class LDAPPolicyInstanceRepository(
    */
   override def getPolicyInstances(ptId:UserPolicyTemplateId, includeSystem:Boolean = false) : Box[Seq[PolicyInstance]] = {
     for {
-      con <- ldap 
+      con     <- ldap 
       ptEntry <- ldapUserPolicyTemplateRepository.getUPTEntry(con, ptId, "1.1")
-      pis <- sequence(con.searchOne(ptEntry.dn, policyFilter(includeSystem))) { piEntry => 
-        mapper.entry2PolicyInstance(piEntry) ?~! "Error when transforming LDAP entry into a Policy Instance. Entry: %s".format(piEntry)
-      }
+      pis     <- sequence(con.searchOne(ptEntry.dn, policyFilter(includeSystem))) { piEntry => 
+                   mapper.entry2PolicyInstance(piEntry) ?~! "Error when transforming LDAP entry into a Policy Instance. Entry: %s".format(piEntry)
+                 }
     } yield {
       pis
     }
@@ -155,33 +157,39 @@ class LDAPPolicyInstanceRepository(
    */
   def savePolicyInstance(inUserPolicyTemplateId:UserPolicyTemplateId,pi:PolicyInstance, actor:EventActor) : Box[Option[PolicyInstanceSaveDiff]] = {
     repo.synchronized { for {
-      con <- ldap
-      uptEntry <- ldapUserPolicyTemplateRepository.getUPTEntry(con, inUserPolicyTemplateId, "1.1") ?~! "Can not find the User Policy Entry with id %s to add Policy Instance %s".format(inUserPolicyTemplateId, pi.id)
-      canAdd <- { //check if the pi already exists elsewhere
-        getPolicyInstanceEntry(con, pi.id) match {
-          case f:Failure => f
-          case Empty => Full(None)
-          case Full(otherPi) => 
-            if(otherPi.dn.getParent == uptEntry.dn) Full(Some(otherPi))
-            else Failure("An other policy instance with the id %s exists in an other category that the one with id %s : %s".format(pi.id, inUserPolicyTemplateId, otherPi.dn))
-        }
-      }
-      piEntry = mapper.userPolicyInstance2Entry(pi, uptEntry.dn)
-      result <- con.save(piEntry, true)
+      con         <- ldap
+      uptEntry    <- ldapUserPolicyTemplateRepository.getUPTEntry(con, inUserPolicyTemplateId, "1.1") ?~! "Can not find the User Policy Entry with id %s to add Policy Instance %s".format(inUserPolicyTemplateId, pi.id)
+      canAdd      <- { //check if the pi already exists elsewhere
+                        getPolicyInstanceEntry(con, pi.id) match {
+                          case f:Failure => f
+                          case Empty => Full(None)
+                          case Full(otherPi) => 
+                            if(otherPi.dn.getParent == uptEntry.dn) Full(Some(otherPi))
+                            else Failure("An other policy instance with the id %s exists in an other category that the one with id %s : %s".format(pi.id, inUserPolicyTemplateId, otherPi.dn))
+                        }
+                      }
+      piEntry     =  mapper.userPolicyInstance2Entry(pi, uptEntry.dn)
+      result      <- con.save(piEntry, true)
       //for log event - perhaps put that elsewhere ?
-      upt <- ldapUserPolicyTemplateRepository.getUserPolicyTemplate(inUserPolicyTemplateId) ?~! "Can not find the User Policy Entry with id %s to add Policy Instance %s".format(inUserPolicyTemplateId, pi.id)
-      val ptId = PolicyPackageId(upt.referencePolicyTemplateName,pi.policyTemplateVersion)
-      pt <- Box(policyPackageService.getPolicy(ptId)) ?~! "Can not find the Policy Template with ID '%s'".format(ptId.toString)
-      optDiff <- diffMapper.modChangeRecords2PolicyInstanceSaveDiff(pt.id.name, pt.rootSection, piEntry.dn, canAdd, result) ?~! "Error when processing saved modification to log them"
+      upt         <- ldapUserPolicyTemplateRepository.getUserPolicyTemplate(inUserPolicyTemplateId) ?~! "Can not find the User Policy Entry with id %s to add Policy Instance %s".format(inUserPolicyTemplateId, pi.id)
+      val ptId    =  PolicyPackageId(upt.referencePolicyTemplateName,pi.policyTemplateVersion)
+      pt          <- Box(policyPackageService.getPolicy(ptId)) ?~! "Can not find the Policy Template with ID '%s'".format(ptId.toString)
+      optDiff     <- diffMapper.modChangeRecords2PolicyInstanceSaveDiff(pt.id.name, pt.rootSection, piEntry.dn, canAdd, result) ?~! "Error when processing saved modification to log them"
       eventLogged <- optDiff match {
-          case None => Full("OK")
-          case Some(diff:AddPolicyInstanceDiff) => 
-            actionLogger.saveEventLog(AddPolicyInstance.fromDiff(
-                principal = actor, addDiff = diff, variableRootSection = pt.rootSection
-            ))
-          case Some(diff:ModifyPolicyInstanceDiff) => 
-            actionLogger.saveEventLog(ModifyPolicyInstance.fromDiff(principal = actor, modifyDiff = diff))
-        }
+                       case None => Full("OK")
+                       case Some(diff:AddPolicyInstanceDiff) => 
+                         actionLogger.saveAddPolicyInstance(
+                             principal = actor, addDiff = diff, varsRootSectionSpec = pt.rootSection
+                         )
+                       case Some(diff:ModifyPolicyInstanceDiff) => 
+                         actionLogger.saveModifyPolicyInstance(principal = actor, modifyDiff = diff)
+                     }
+      autoArchive <- if(autoExportOnModify) {
+                       for {
+                         parents  <- ldapUserPolicyTemplateRepository.userPolicyTemplateBreadCrump(upt.id)
+                         archived <- gitPiArchiver.archivePolicyInstance(pi, pt.id.name, parents.map( _.id), pt.rootSection)
+                       } yield archived
+                     } else Full("ok")
     } yield {
       optDiff
     } }
@@ -196,18 +204,24 @@ class LDAPPolicyInstanceRepository(
    */
   def delete(id:PolicyInstanceId, actor:EventActor) : Box[DeletePolicyInstanceDiff] = {
     for {
-      con <- ldap
-      entry <- getPolicyInstanceEntry(con, id)
+      con          <- ldap
+      entry        <- getPolicyInstanceEntry(con, id)
       //for logging, before deletion
-      pi <- mapper.entry2PolicyInstance(entry)
-      upt <- this.getUserPolicyTemplate(id) ?~! "Can not find the User Policy Temple Entry for Policy Instance %s".format(id)
-      pt <- policyPackageService.getPolicy(PolicyPackageId(upt.referencePolicyTemplateName,pi.policyTemplateVersion))
+      pi           <- mapper.entry2PolicyInstance(entry)
+      upt          <- this.getUserPolicyTemplate(id) ?~! "Can not find the User Policy Temple Entry for Policy Instance %s".format(id)
+      pt           <- policyPackageService.getPolicy(PolicyPackageId(upt.referencePolicyTemplateName,pi.policyTemplateVersion))
       //delete
-      deleted <- con.delete(entry.dn)
-      diff = DeletePolicyInstanceDiff(pt.id.name, pi)
-      loggedAction <- actionLogger.saveEventLog(DeletePolicyInstance.fromDiff(
-          principal = actor, deleteDiff = diff, variableRootSection = pt.rootSection
-      ))
+      deleted      <- con.delete(entry.dn)
+      diff         =  DeletePolicyInstanceDiff(pt.id.name, pi)
+      loggedAction <- actionLogger.saveDeletePolicyInstance(
+                          principal = actor, deleteDiff = diff, varsRootSectionSpec = pt.rootSection
+                      )
+      autoArchive  <- if(autoExportOnModify) {
+                        for {
+                          parents  <- ldapUserPolicyTemplateRepository.userPolicyTemplateBreadCrump(upt.id)
+                          archived <- gitPiArchiver.deletePolicyInstance(pi.id, upt.referencePolicyTemplateName, parents.map( _.id))
+                        } yield archived
+                      } else Full("ok")
     } yield {
       diff
     }

@@ -37,10 +37,9 @@ package com.normation.rudder.repository
 import net.liftweb.common._
 import com.normation.eventlog._
 import java.security.Principal
-import com.normation.rudder.domain.policies.AddConfigurationRuleDiff
-import com.normation.rudder.domain.policies.ModifyConfigurationRuleDiff
-import com.normation.rudder.domain.policies.DeleteConfigurationRuleDiff
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.services.log.EventLogFactory
+import com.normation.cfclerk.domain.SectionSpec
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory
@@ -53,28 +52,49 @@ trait EventLogRepository {
 	 */
 	def saveEventLog(eventLog : EventLog) : Box[EventLog]
 	                       
-  def saveAddConfigurationRule(principal : EventActor, addDiff:AddConfigurationRuleDiff) = {
+  def saveAddConfigurationRule(principal: EventActor, addDiff: AddConfigurationRuleDiff) = {
     saveEventLog(eventLogFactory.getAddConfigurationRuleFromDiff(
         principal = principal
       , addDiff   = addDiff
     ))
   }
   
-  def saveDeleteConfigurationRule(principal : EventActor, deleteDiff:DeleteConfigurationRuleDiff) = {
+  def saveDeleteConfigurationRule(principal: EventActor, deleteDiff: DeleteConfigurationRuleDiff) = {
     saveEventLog(eventLogFactory.getDeleteConfigurationRuleFromDiff(
         principal  = principal
       , deleteDiff = deleteDiff
     ))
   }
 
-  def saveModifyConfigurationRule(principal : EventActor, modifyDiff:ModifyConfigurationRuleDiff) = {
+  def saveModifyConfigurationRule(principal: EventActor, modifyDiff: ModifyConfigurationRuleDiff) = {
     saveEventLog(eventLogFactory.getModifyConfigurationRuleFromDiff(
         principal = principal
       , modifyDiff = modifyDiff
     ))
   }
 
-	
+  def saveAddPolicyInstance(principal: EventActor, addDiff: AddPolicyInstanceDiff, varsRootSectionSpec: SectionSpec) = {
+    saveEventLog(eventLogFactory.getAddPolicyInstanceFromDiff(
+        principal           = principal
+      , addDiff             = addDiff
+      , varsRootSectionSpec = varsRootSectionSpec
+    ))
+  }
+  
+  def saveDeletePolicyInstance(principal : EventActor, deleteDiff:DeletePolicyInstanceDiff, varsRootSectionSpec: SectionSpec) = {
+    saveEventLog(eventLogFactory.getDeletePolicyInstanceFromDiff(
+        principal  = principal
+      , deleteDiff = deleteDiff
+      , varsRootSectionSpec = varsRootSectionSpec
+    ))
+  }
+
+  def saveModifyPolicyInstance(principal : EventActor, modifyDiff: ModifyPolicyInstanceDiff) = {
+    saveEventLog(eventLogFactory.getModifyPolicyInstanceFromDiff(
+        principal = principal
+      , modifyDiff = modifyDiff
+    ))
+  }	
 	/**
 	 * Get an EventLog by its entry
 	 */

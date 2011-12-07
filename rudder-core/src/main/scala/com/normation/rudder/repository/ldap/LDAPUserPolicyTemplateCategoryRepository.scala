@@ -35,27 +35,49 @@
 package com.normation.rudder.repository
 package ldap
 
-import com.normation.rudder.domain.policies._
-import com.normation.ldap.sdk._
-import com.unboundid.ldap.sdk.{DN, LDAPException,ResultCode}
-import com.normation.ldap.sdk.{LDAPConnectionProvider,LDAPConnection,LDAPEntry,BuildFilter, LDAPBoolean}
-import BuildFilter._
-import LDAPBoolean._
-import com.normation.inventory.ldap.core.LDAPConstants.{A_OC,A_NAME,A_DESCRIPTION}
-import com.normation.rudder.domain.{RudderDit,RudderLDAPConstants}
-import RudderLDAPConstants.{OC_CATEGORY, OC_USER_POLICY_TEMPLATE, A_CATEGORY_UUID, A_USER_POLICY_TEMPLATE_UUID, A_IS_SYSTEM}
-import net.liftweb.common._
+import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
+import com.normation.inventory.ldap.core.LDAPConstants.A_OC
+import com.normation.ldap.sdk.BuildFilter.AND
+import com.normation.ldap.sdk.BuildFilter.EQ
+import com.normation.ldap.sdk.BuildFilter.IS
+import com.normation.ldap.sdk.BuildFilter.NOT
+import com.normation.ldap.sdk.BuildFilter.OR
+import com.normation.ldap.sdk.boolean2LDAP
+import com.normation.ldap.sdk.LDAPConnection
+import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.LDAPEntry
+import com.normation.rudder.domain.RudderLDAPConstants.A_CATEGORY_UUID
+import com.normation.rudder.domain.RudderLDAPConstants.A_IS_SYSTEM
+import com.normation.rudder.domain.RudderLDAPConstants.A_USER_POLICY_TEMPLATE_UUID
+import com.normation.rudder.domain.RudderLDAPConstants.OC_CATEGORY
+import com.normation.rudder.domain.RudderLDAPConstants.OC_USER_POLICY_TEMPLATE
+import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
+import com.normation.rudder.domain.policies.UserPolicyTemplateCategoryId
+import com.normation.rudder.domain.policies.UserPolicyTemplateId
+import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.repository.GitUserPolicyTemplateCategoryArchiver
+import com.normation.rudder.repository.UserPolicyTemplateCategoryRepository
 import com.normation.utils.Control._
-import Box._
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.LDAPException
+import com.unboundid.ldap.sdk.ResultCode
+
+import net.liftweb.common.Box
+import net.liftweb.common.Empty
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
 
 /**
  * Category for User Template library in the LDAP
  *
  */
 class LDAPUserPolicyTemplateCategoryRepository(
-  rudderDit: RudderDit, 
-  ldap:LDAPConnectionProvider,
-  mapper:LDAPEntityMapper
+    rudderDit         : RudderDit
+  , ldap              : LDAPConnectionProvider
+  , mapper            : LDAPEntityMapper
+  , gitArchiver       : GitUserPolicyTemplateCategoryArchiver
+  , autoExportOnModify: Boolean  
 ) extends UserPolicyTemplateCategoryRepository {
  
   repo =>
@@ -90,10 +112,10 @@ class LDAPUserPolicyTemplateCategoryRepository(
    */
   def getUserPolicyTemplateLibrary : UserPolicyTemplateCategory = {
     (for {
-      con <- ldap
+      con               <- ldap
       rootCategoryEntry <- con.get(rudderDit.POLICY_TEMPLATE_LIB.dn) ?~! "The root category of the user library of policy templates seems to be missing in LDAP directory. Please check its content"
       // look for sub category and policy template
-      rootCategory <- mapper.entry2UserPolicyTemplateCategory(rootCategoryEntry) ?~! "Error when mapping from an LDAP entry to a User Policy Template Category: %s".format(rootCategoryEntry)
+      rootCategory      <- mapper.entry2UserPolicyTemplateCategory(rootCategoryEntry) ?~! "Error when mapping from an LDAP entry to a User Policy Template Category: %s".format(rootCategoryEntry)
     } yield {
       addSubEntries(rootCategory,rootCategoryEntry.dn, con)
     }) match {
@@ -109,11 +131,11 @@ class LDAPUserPolicyTemplateCategoryRepository(
    */
   def getAllUserPolicyTemplateCategories() : Box[Seq[UserPolicyTemplateCategory]] = {
     (for {
-      con <- ldap
+      con               <- ldap
       rootCategoryEntry <- con.get(rudderDit.POLICY_TEMPLATE_LIB.dn) ?~! "The root category of the user library of policy templates seems to be missing in LDAP directory. Please check its content"
-      entries = con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn, AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)),IS(OC_CATEGORY)))
-      allEntries = entries :+ rootCategoryEntry
-      categories <- boxSequence(allEntries.map(entry => mapper.entry2UserPolicyTemplateCategory(entry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(entry) ))
+      entries           =  con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn, AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)),IS(OC_CATEGORY)))
+      allEntries        =  entries :+ rootCategoryEntry
+      categories        <- boxSequence(allEntries.map(entry => mapper.entry2UserPolicyTemplateCategory(entry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(entry) ))
     } yield {
       categories
     })
@@ -123,9 +145,9 @@ class LDAPUserPolicyTemplateCategoryRepository(
    */
   def getUserPolicyTemplateCategory(id:UserPolicyTemplateCategoryId) : Box[UserPolicyTemplateCategory] = {
     for {
-      con <- ldap
+      con           <- ldap
       categoryEntry <- getCategoryEntry(con, id) ?~! "Entry with ID '%s' was not found".format(id)
-      category <- mapper.entry2UserPolicyTemplateCategory(categoryEntry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(categoryEntry)
+      category      <- mapper.entry2UserPolicyTemplateCategory(categoryEntry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(categoryEntry)
     } yield {
       addSubEntries(category,categoryEntry.dn, con)
     }
@@ -154,17 +176,21 @@ class LDAPUserPolicyTemplateCategoryRepository(
       into:UserPolicyTemplateCategory //parent category
   ) : Box[UserPolicyTemplateCategory] = {
     repo.synchronized { for {
-      con <- ldap 
+      con                 <- ldap 
       parentCategoryEntry <- getCategoryEntry(con, into.id, "1.1") ?~! "The parent category '%s' was not found, can not add".format(into.id)
-      categoryEntry = mapper.userPolicyTemplateCategory2ldap(that,parentCategoryEntry.dn)
-      canAddByName <- {
-        if(existsByName(con,parentCategoryEntry.dn, that.name, that.id.value)) {
-          Failure("A category with that name already exists in that category: category names must be unique for a given level")
-        } else {
-          Full("Can add, no sub categorie with that name")
-        }
-      }
-      result <- con.save(categoryEntry, removeMissingAttributes = true)
+      categoryEntry       =  mapper.userPolicyTemplateCategory2ldap(that,parentCategoryEntry.dn)
+      canAddByName        <- if(existsByName(con,parentCategoryEntry.dn, that.name, that.id.value)) {
+                               Failure("A category with that name already exists in that category: category names must be unique for a given level")
+                             } else {
+                               Full("Can add, no sub categorie with that name")
+                             }
+      result              <- con.save(categoryEntry, removeMissingAttributes = true)
+      autoArchive         <- if(autoExportOnModify) {
+                               for {
+                                 parents <- this.getParents_UserPolicyTemplateCategory(that.id)
+                                 archive <- gitArchiver.archiveUserPolicyTemplateCategory(that,parents.map( _.id))
+                               } yield archive
+                             } else Full("ok")
     } yield {
       addSubEntries(into, parentCategoryEntry.dn, con)
     } }
@@ -176,18 +202,22 @@ class LDAPUserPolicyTemplateCategoryRepository(
    */
   def saveUserPolicyTemplateCategory(category:UserPolicyTemplateCategory) : Box[UserPolicyTemplateCategory] = {
     repo.synchronized { for {
-      con <- ldap 
+      con              <- ldap 
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
-      categoryEntry = mapper.userPolicyTemplateCategory2ldap(category,oldCategoryEntry.dn.getParent)
-      canAddByName <- {
-        if(categoryEntry.dn != rudderDit.POLICY_TEMPLATE_LIB.dn && existsByName(con,categoryEntry.dn.getParent, category.name, category.id.value)) {
-          Failure("A category with that name already exists in that category: category names must be unique for a given level")
-        } else {
-          Full("Can add, no sub categorie with that name")
-        }
-      }
-      result <- con.save(categoryEntry, removeMissingAttributes = true)
-      updated <- getUserPolicyTemplateCategory(category.id)
+      categoryEntry    =  mapper.userPolicyTemplateCategory2ldap(category,oldCategoryEntry.dn.getParent)
+      canAddByName     <- if(categoryEntry.dn != rudderDit.POLICY_TEMPLATE_LIB.dn && existsByName(con,categoryEntry.dn.getParent, category.name, category.id.value)) {
+                            Failure("A category with that name already exists in that category: category names must be unique for a given level")
+                          } else {
+                            Full("Can add, no sub categorie with that name")
+                          }
+      result           <- con.save(categoryEntry, removeMissingAttributes = true)
+      updated          <- getUserPolicyTemplateCategory(category.id)
+      autoArchive      <- if(autoExportOnModify) {
+                            for {
+                              parents <- this.getParents_UserPolicyTemplateCategory(category.id)
+                              archive <- gitArchiver.archiveUserPolicyTemplateCategory(updated,parents.map( _.id))
+                            } yield archive
+                          } else Full("ok")
     } yield {
       updated
     } }
@@ -200,10 +230,10 @@ class LDAPUserPolicyTemplateCategoryRepository(
    */
   def getParentUserPolicyTemplateCategory(id:UserPolicyTemplateCategoryId) : Box[UserPolicyTemplateCategory] = {
     for {
-      con <- ldap
-      categoryEntry <- getCategoryEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
+      con                 <- ldap
+      categoryEntry       <- getCategoryEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
       parentCategoryEntry <- con.get(categoryEntry.dn.getParent)
-      parentCategory <- mapper.entry2UserPolicyTemplateCategory(parentCategoryEntry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(parentCategoryEntry)
+      parentCategory      <- mapper.entry2UserPolicyTemplateCategory(parentCategoryEntry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(parentCategoryEntry)
     } yield {
       addSubEntries(parentCategory, parentCategoryEntry.dn, con)
     }
@@ -246,13 +276,18 @@ class LDAPUserPolicyTemplateCategoryRepository(
         getCategoryEntry(con, id, "1.1") match {
           case Full(entry) => 
             for {
-              ok <- 
-                try {
-                  con.delete(entry.dn, recurse = !checkEmpty) ?~! "Error when trying to delete category with ID '%s'".format(id)
-                } catch {
-                  case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
-                  case e => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
-                }
+              parents     <- if(autoExportOnModify) {
+                               this.getParents_UserPolicyTemplateCategory(id)
+                             } else Full(Nil)
+              ok          <- try {
+                               con.delete(entry.dn, recurse = !checkEmpty) ?~! "Error when trying to delete category with ID '%s'".format(id)
+                             } catch {
+                               case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
+                               case e => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
+                             }
+              autoArchive <- (if(autoExportOnModify) {
+                               gitArchiver.deleteUserPolicyTemplateCategory(id,parents.map( _.id))
+                             } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
             } yield {
               id
             }
@@ -272,24 +307,34 @@ class LDAPUserPolicyTemplateCategoryRepository(
    */
   def move(categoryId:UserPolicyTemplateCategoryId, intoParent:UserPolicyTemplateCategoryId) : Box[UserPolicyTemplateCategoryId] = {
       for {
-        con <- ldap
-        categoryEntry <- getCategoryEntry(con, categoryId, A_NAME)
+        con            <- ldap
+        oldParents     <- if(autoExportOnModify) {
+                            this.getParents_UserPolicyTemplateCategory(categoryId)
+                          } else Full(Nil)
+        categoryEntry  <- getCategoryEntry(con, categoryId, A_NAME)
         newParentEntry <- getCategoryEntry(con, intoParent, "1.1")
-        moveAuthorised <- {
-          if(newParentEntry.dn.isDescendantOf(categoryEntry.dn, true)) {
-            Failure("Can not move a category to itself or one of its children")
-          } else Full("Succes")
-        }
-        canAddByName <- (categoryEntry(A_CATEGORY_UUID) , categoryEntry(A_NAME)) match {
-          case (Some(id),Some(name)) => 
-            if(existsByName(con, newParentEntry.dn, name, id)) {
-              Failure("A category with that name already exists in that category: category names must be unique for a given level")
-            } else {
-              Full("Can add, no sub categorie with that name")
-            }
-          case _ => Failure("Can not find the category entry name for category with ID %s. Name is needed to check unicity of categories by level")
-        }
-        result <- con.move(categoryEntry.dn, newParentEntry.dn)
+        moveAuthorised <- if(newParentEntry.dn.isDescendantOf(categoryEntry.dn, true)) {
+                            Failure("Can not move a category to itself or one of its children")
+                          } else Full("Succes")
+        canAddByName   <- (categoryEntry(A_CATEGORY_UUID) , categoryEntry(A_NAME)) match {
+                            case (Some(id),Some(name)) => 
+                              if(existsByName(con, newParentEntry.dn, name, id)) {
+                                Failure("A category with that name already exists in that category: category names must be unique for a given level")
+                              } else {
+                                Full("Can add, no sub categorie with that name")
+                              }
+                            case _ => Failure("Can not find the category entry name for category with ID %s. Name is needed to check unicity of categories by level")
+                          }
+        result         <- con.move(categoryEntry.dn, newParentEntry.dn)
+        autoArchive    <- (if(autoExportOnModify) {
+                            for {
+                              newCat  <- getUserPolicyTemplateCategory(categoryId)
+                              parents <- this.getParents_UserPolicyTemplateCategory(categoryId)
+                              moved   <- gitArchiver.moveUserPolicyTemplateCategory(newCat, oldParents.map( _.id), parents.map( _.id))
+                            } yield {
+                              moved
+                            }
+                          } else Full("ok") ) ?~! "Error when trying to archive automatically the category move"
       } yield {
         categoryId
       }

@@ -34,143 +34,33 @@
 
 package com.normation.rudder.repository.xml
 
-import net.liftweb.common._
-import net.liftweb.util.Helpers.tryo
-import com.normation.rudder.repository.ItemArchiveManager
-import com.normation.rudder.repository.ArchiveId
-import com.normation.rudder.services.marshalling.ConfigurationRuleSerialisation
-import com.normation.rudder.repository.ConfigurationRuleRepository
-import com.normation.utils.Control._
-import java.io.File
-import java.io.IOException
-import com.normation.exceptions.TechnicalException
-import org.apache.commons.io.FileUtils
-import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
-import org.joda.time.format.ISODateTimeFormat
-import com.normation.rudder.domain.policies.ConfigurationRule
-import scala.xml.PrettyPrinter
-import com.normation.cfclerk.services.GitRepositoryProvider
-import org.eclipse.jgit.api.Git
-import java.util.regex.Pattern
-import com.normation.utils.UuidRegex
-import scala.collection.JavaConversions._
-import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisation
-import scala.xml.XML
-import scala.xml.Elem
-import org.xml.sax.SAXParseException
-import com.normation.cfclerk.exceptions.ParsingException
-import java.io.InputStream
 import java.io.FileInputStream
-import com.normation.utils.XmlUtils
+import java.util.regex.Pattern
+
+import scala.collection.JavaConversions.collectionAsScalaIterable
+
+import org.apache.commons.io.FileUtils
+
+import com.normation.rudder.repository.ArchiveId
+import com.normation.rudder.repository.ConfigurationRuleRepository
 import com.normation.rudder.repository.GitConfigurationRuleArchiver
-import com.normation.rudder.domain.policies.ConfigurationRuleId
-import com.normation.utils.Utils
-import com.normation.rudder.domain.policies.ConfigurationRule
+import com.normation.rudder.repository.ItemArchiveManager
+import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisation
+import com.normation.utils.Control._
+import com.normation.utils.UuidRegex
+import com.normation.utils.XmlUtils
 
-class GitConfigurationRuleArchiverImpl(
-    gitRepo                         : GitRepositoryProvider
-  , gitRootDirectory                : File
-  , configurationRuleSerialisation  : ConfigurationRuleSerialisation
-  , configurationRuleRootDir        : String //relative path !
-  , xmlPrettyPrinter                : PrettyPrinter
-  , encoding                        : String = "UTF-8"
-) extends GitConfigurationRuleArchiver with Loggable {
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Loggable
+import net.liftweb.util.Helpers.tryo
 
-  override lazy val getRootDirectory : File = { Utils.createDirectory(new File(gitRootDirectory, configurationRuleRootDir)) match {
-    case Full(dir) => dir
-    case eb:EmptyBox =>
-      val e = eb ?~! "Error when checking required directories to archive items:"
-      logger.error(e.messageChain)
-      throw new TechnicalException(e.messageChain)
-  } }
-
-  private[this] def newCrFile(crId:ConfigurationRuleId) = new File(getRootDirectory, crId.value + ".xml")
-  private[this] def getCrGitPath(crId:ConfigurationRuleId) = newCrFile(crId).getPath.replace(gitRootDirectory.getPath +"/","")
-  
-  def archiveConfigurationRule(cr:ConfigurationRule, gitCommitCr:Boolean = true) : Box[File] = {
-    val crFile = newCrFile(cr.id)
-      
-    for {   
-      archive <- tryo { 
-                   FileUtils.writeStringToFile(
-                       crFile
-                     , xmlPrettyPrinter.format(configurationRuleSerialisation.serialise(cr))
-                     , encoding
-                   )
-                   logger.debug("Archived Configuration rule: " + crFile.getPath)
-                   crFile
-                 }
-      commit  <- if(gitCommitCr) {
-                    val git = new Git(gitRepo.db)
-                    val archiveId = ArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
-                    val crGitPath = getCrGitPath(cr.id)
-                    tryo {
-                      git.add.addFilepattern(crGitPath).call
-                      val status = git.status.call
-                      if(status.getAdded.contains(crGitPath)||status.getChanged.contains(crGitPath)) {
-                        git.commit.setMessage("Archive configuration rule with ID '%s' on %s ".format(cr.id.value,archiveId.value)).call
-                        archiveId
-                      } else throw new Exception("Auto-archive git failure: not found in git added files: " + crGitPath)
-                    }
-                 } else {
-                   Full("ok")
-                 }
-    } yield {
-      archive
-    }
-  }
-
-  def commitConfigurationRules() : Box[String] = {
-    val git = new Git(gitRepo.db)
-    val archiveId = ArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
-
-    tryo {
-      //remove existing and add modified
-      git.add.setUpdate(true).addFilepattern(configurationRuleRootDir).call
-      //also add new one
-      git.add.addFilepattern(configurationRuleRootDir).call
-      git.commit.setMessage("Archive configuration rules on %s ".format(archiveId.value)).call.name
-    }
-  }
-  
-  def deleteConfigurationRule(crId:ConfigurationRuleId, gitCommitCr:Boolean = true) : Box[File] = {
-    val crFile = newCrFile(crId)
-    if(crFile.exists) {
-      for {
-        deleted  <- tryo { FileUtils.forceDelete(crFile) }
-        commited <- if(gitCommitCr) {
-                      val git = new Git(gitRepo.db)
-                      val archiveId = ArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
-                      val crGitPath = getCrGitPath(crId)
-                      tryo {
-                        git.rm.addFilepattern(crGitPath).call
-                        val status = git.status.call
-                        if(status.getRemoved.contains(crGitPath)) {
-                          git.commit.setMessage("Delete archive of configuration rule with ID '%s' on %s ".format(crId.value,archiveId.value)).call
-                          archiveId
-                        } else throw new Exception("Auto-archive git failure: not found in git removed files: " + crGitPath)
-                      }
-                    } else {
-                      Full("OK")
-                    }
-      } yield {
-        crFile
-      }
-    } else {
-      Full(crFile)
-    }
-  }
-  
-}
 
 class ItemArchiveManagerImpl(
     configurationRuleRepository     : ConfigurationRuleRepository
   , configurationRuleUnserialisation: ConfigurationRuleUnserialisation
   , gitConfigurationRuleArchiver    : GitConfigurationRuleArchiver
 ) extends ItemArchiveManager with Loggable {
-
-  private[this] val prettyPrinter = new PrettyPrinter(120, 2)
   
   ///// implementation /////
   

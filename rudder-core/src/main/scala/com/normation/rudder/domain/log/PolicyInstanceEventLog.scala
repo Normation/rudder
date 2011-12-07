@@ -45,38 +45,6 @@ import com.normation.utils.HashcodeCaching
 
 sealed trait PolicyInstanceEventLog extends EventLog
 
-object PolicyInstanceEventLog {
-  
-  val xmlVersion = "1.0"
-          
-  /**
-   * Print to XML a configuration rule, used
-   * for "add" and "delete" actions. 
-   */
-  def toXml(
-      ptName             : PolicyPackageName
-    , variableRootSection: SectionSpec
-    , pi                 : PolicyInstance
-    , action             : String
-  ) = {
-    scala.xml.Utility.trim(
-      <policyInstance changeType={action} fileFormat={xmlVersion}>
-        <id>{pi.id.value}</id>
-        <displayName>{pi.name}</displayName>
-        <policyTemplateName>{ptName.value}</policyTemplateName>
-        <policyTemplateVersion>{pi.policyTemplateVersion}</policyTemplateVersion>
-        {SectionVal.toXml(SectionVal.piValToSectionVal(variableRootSection, pi.parameters))}
-        <shortDescription>{pi.shortDescription}</shortDescription>
-        <longDescription>{pi.longDescription}</longDescription>
-        <priority>{pi.priority}</priority>
-        <isActivated>{pi.isActivated}</isActivated>
-        <isSystem>{pi.isSystem}</isSystem>
-      </policyInstance>
-    )
-  }
-  
-}
-
 final case class AddPolicyInstance(
     override val id : Option[Int] = None
   , override val principal : EventActor
@@ -88,25 +56,6 @@ final case class AddPolicyInstance(
   override val eventType = "PolicyInstanceAdded"
   override val eventLogCategory = PolicyInstanceLogCategory
   override def copySetCause(causeId:Int) = this
-}
-
-object AddPolicyInstance {
-  def fromDiff(
-      id : Option[Int] = None
-    , principal : EventActor
-    , addDiff:AddPolicyInstanceDiff
-    , variableRootSection: SectionSpec
-    , creationDate : DateTime = DateTime.now()
-    , severity : Int = 100
-  ) : AddPolicyInstance = {
-    val details = EventLog.withContent(PolicyInstanceEventLog.toXml(
-        addDiff.policyTemplateName, 
-        variableRootSection,
-        addDiff.pi, "add"
-    ))
-    
-    AddPolicyInstance(id, principal, details, creationDate, severity)
-  }
 }
 
 final case class DeletePolicyInstance(
@@ -122,25 +71,6 @@ final case class DeletePolicyInstance(
   override def copySetCause(causeId:Int) = this
 }
 
-object DeletePolicyInstance {
-  def fromDiff(    
-      id : Option[Int] = None
-    , principal : EventActor
-    , deleteDiff:DeletePolicyInstanceDiff
-    , variableRootSection: SectionSpec
-    , creationDate : DateTime = DateTime.now()
-    , severity : Int = 100
-  ) : DeletePolicyInstance = {
-    val details = EventLog.withContent(PolicyInstanceEventLog.toXml(
-        deleteDiff.policyTemplateName,
-        variableRootSection, 
-        deleteDiff.pi, "delete"
-    ))
-
-    DeletePolicyInstance(id, principal, details, creationDate, severity)
-  }
-}
-
 final case class ModifyPolicyInstance(
     override val id : Option[Int] = None
   , override val principal : EventActor
@@ -152,37 +82,4 @@ final case class ModifyPolicyInstance(
   override val eventType = "PolicyInstanceModified"
   override val eventLogCategory = PolicyInstanceLogCategory
   override def copySetCause(causeId:Int) = this
-}
-
-object ModifyPolicyInstance {
-  def fromDiff(    
-      id : Option[Int] = None
-    , principal : EventActor
-    , modifyDiff:ModifyPolicyInstanceDiff
-    , creationDate : DateTime = DateTime.now()
-    , severity : Int = 100
-  ) : ModifyPolicyInstance = {
-    val details = EventLog.withContent{
-      scala.xml.Utility.trim(
-      <policyInstance changeType="modify" fileFormat={PolicyInstanceEventLog.xmlVersion}>
-        <id>{modifyDiff.id.value}</id>
-        <policyTemplateName>{modifyDiff.policyTemplateName.value}</policyTemplateName>
-        <displayName>{modifyDiff.name}</displayName>{
-          modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
-          modifyDiff.modPolicyTemplateVersion.map(x => SimpleDiff.toXml[PolicyVersion](<policyTemplateVersion/>, x){ v =>
-            Text(v.toString)
-          } ) ++
-          modifyDiff.modParameters.map(x => SimpleDiff.toXml[SectionVal](<parameters/>, x){ sv =>
-            SectionVal.toXml(sv)
-          } ) ++
-          modifyDiff.modShortDescription.map(x => SimpleDiff.stringToXml(<shortDescription/>, x ) ) ++
-          modifyDiff.modLongDescription.map(x => SimpleDiff.stringToXml(<longDescription/>, x ) ) ++
-          modifyDiff.modPriority.map(x => SimpleDiff.intToXml(<priority/>, x ) ) ++
-          modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isActivated/>, x ) ) ++
-          modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) )
-        }
-      </policyInstance>)
-    }
-    ModifyPolicyInstance(id, principal, details, creationDate, severity)
-  }
 }

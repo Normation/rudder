@@ -57,11 +57,13 @@ import net.liftweb.json.JsonAST
  *
  */
 class LDAPUserPolicyTemplateRepository(
-  rudderDit: RudderDit, 
-  ldap:LDAPConnectionProvider, 
-  mapper:LDAPEntityMapper, 
-  uuidGen : StringUuidGenerator,
-  userCategoryRepo: LDAPUserPolicyTemplateCategoryRepository
+    rudderDit         : RudderDit
+  , ldap              : LDAPConnectionProvider
+  , mapper            : LDAPEntityMapper
+  , uuidGen           : StringUuidGenerator
+  , userCategoryRepo  : LDAPUserPolicyTemplateCategoryRepository
+  , gitArchiver       : GitUserPolicyTemplateArchiver
+  , autoExportOnModify: Boolean
 ) extends UserPolicyTemplateRepository with Loggable {
 
   repo =>
@@ -124,21 +126,27 @@ class LDAPUserPolicyTemplateRepository(
   ): Box[UserPolicyTemplate] = { 
     //check if the policy template is already in user lib, and if the category exists
     repo.synchronized { for {
-      con <- ldap
-      noUpt <- { //check that there is not already defined upt with such ref id
-        getUPTEntry[PolicyPackageName](
-          con, policyTemplateName, 
-          { name => EQ(A_REFERENCE_POLICY_TEMPLATE_UUID, name.value) }, 
-          "1.1") match {
-            case Empty => Full("ok")
-            case Full(uptEntry) => Failure("Can not add a policy template with id %s in user library. User policy template %s is already defined with such a reference policy template.".format(policyTemplateName,uptEntry.dn))
-            case f:Failure => f
-        }
-      }
+      con           <- ldap
+      noUpt         <- { //check that there is not already defined upt with such ref id
+                         getUPTEntry[PolicyPackageName](
+                           con, policyTemplateName, 
+                           { name => EQ(A_REFERENCE_POLICY_TEMPLATE_UUID, name.value) }, 
+                           "1.1") match {
+                             case Empty => Full("ok")
+                             case Full(uptEntry) => Failure("Can not add a policy template with id %s in user library. User policy template %s is already defined with such a reference policy template.".format(policyTemplateName,uptEntry.dn))
+                             case f:Failure => f
+                         }
+                       }
       categoryEntry <- userCategoryRepo.getCategoryEntry(con, categoryId, "1.1") ?~! "Category entry with ID '%s' was not found".format(categoryId)
-      newUpt = UserPolicyTemplate(UserPolicyTemplateId(uuidGen.newUuid),policyTemplateName, versions.map(x => x -> DateTime.now()).toMap)
-      uptEntry = mapper.userPolicyTemplate2Entry(newUpt,categoryEntry.dn)
-      result <- con.save(uptEntry, true)
+      newUpt        =  UserPolicyTemplate(UserPolicyTemplateId(uuidGen.newUuid),policyTemplateName, versions.map(x => x -> DateTime.now()).toMap)
+      uptEntry      =  mapper.userPolicyTemplate2Entry(newUpt,categoryEntry.dn)
+      result        <- con.save(uptEntry, true)
+      autoArchive   <- if(autoExportOnModify) {
+                         for {
+                           parents <- this.userPolicyTemplateBreadCrump(newUpt.id)
+                           archive <- gitArchiver.archiveUserPolicyTemplate(newUpt, parents.map( _.id))
+                         } yield archive
+                       } else Full("ok")
     } yield {
       newUpt
     } }
@@ -147,8 +155,8 @@ class LDAPUserPolicyTemplateRepository(
   def userPolicyTemplateBreadCrump(id: UserPolicyTemplateId): Box[List[UserPolicyTemplateCategory]] = { 
     //find the user policy template entry for that id, and from that, build the parent bread crump
     for {
-      con <-ldap 
-      cat <- userCategoryRepo.getParentUserPolicyTemplateCategory_forTemplate(id)
+      con  <-ldap 
+      cat  <- userCategoryRepo.getParentUserPolicyTemplateCategory_forTemplate(id)
       cats <- userCategoryRepo.getParents_UserPolicyTemplateCategory(cat.id)
     } yield {
       cat :: cats
@@ -164,10 +172,22 @@ class LDAPUserPolicyTemplateRepository(
    */
   def move(uptId:UserPolicyTemplateId, newCategoryId:UserPolicyTemplateCategoryId) : Box[UserPolicyTemplateId] = {
      for {
-      con <- ldap
-      upt <- getUPTEntry(con, uptId, "1.1") ?~! "Can not move non existing template in use library with ID %s".format(uptId)
+      con         <- ldap
+      oldParents  <- if(autoExportOnModify) {
+                       this.userPolicyTemplateBreadCrump(uptId)
+                     } else Full(Nil)
+      upt         <- getUPTEntry(con, uptId, "1.1") ?~! "Can not move non existing template in use library with ID %s".format(uptId)
       newCategory <- userCategoryRepo.getCategoryEntry(con, newCategoryId, "1.1") ?~! "Can not move template with ID %s into non existing category of user library %s".format(uptId, newCategoryId)
-      moved <- con.move(upt.dn, newCategory.dn) ?~! "Error when moving policy template %s to category %s".format(uptId, newCategoryId)
+      moved       <- con.move(upt.dn, newCategory.dn) ?~! "Error when moving policy template %s to category %s".format(uptId, newCategoryId)
+      autoArchive <- (if(autoExportOnModify) {
+                       for {
+                         parents <- this.userPolicyTemplateBreadCrump(uptId)
+                         newUpt  <- this.getUserPolicyTemplate(uptId)
+                         moved   <- gitArchiver.moveUserPolicyTemplate(newUpt, oldParents.map( _.id), parents.map( _.id))
+                       } yield {
+                         moved
+                       }
+                     } else Full("ok") ) ?~! "Error when trying to archive automatically the policy template move"
     } yield {
       uptId
     }   
@@ -178,12 +198,19 @@ class LDAPUserPolicyTemplateRepository(
    */
   def changeStatus(uptId:UserPolicyTemplateId, status:Boolean) : Box[UserPolicyTemplateId] = {
     for {
-      con <- ldap
-      upt <- getUPTEntry(con, uptId, A_IS_ACTIVATED)
-      saved <- { 
-        upt +=! (A_IS_ACTIVATED, status.toLDAPString)
-        con.save(upt)
-      }
+      con         <- ldap
+      upt         <- getUPTEntry(con, uptId, A_IS_ACTIVATED)
+      saved       <- {
+                       upt +=! (A_IS_ACTIVATED, status.toLDAPString)
+                       con.save(upt)
+                     }
+      autoArchive <- if(autoExportOnModify) {
+                         for {
+                           parents <- this.userPolicyTemplateBreadCrump(uptId)
+                           newUpt  <- getUserPolicyTemplate(uptId)
+                           archive <- gitArchiver.archiveUserPolicyTemplate(newUpt, parents.map( _.id))
+                         } yield archive
+                       } else Full("ok")
     } yield {
       uptId
     }
@@ -191,14 +218,21 @@ class LDAPUserPolicyTemplateRepository(
   
   def setAcceptationDatetimes(uptId:UserPolicyTemplateId, datetimes: Map[PolicyVersion,DateTime]) : Box[UserPolicyTemplateId] = {
     for {
-      con <- ldap
-      upt <- getUPTEntry(con, uptId, A_ACCEPTATION_DATETIME)
-      saved <- {
-        val oldAcceptations = mapper.unserializeAcceptations(upt(A_ACCEPTATION_DATETIME).getOrElse(""))
-        val json = Printer.compact(JsonAST.render(mapper.serializeAcceptations(oldAcceptations ++ datetimes)))
-        upt.+=!(A_ACCEPTATION_DATETIME, json)
-        con.save(upt)
-      }
+      con         <- ldap
+      upt         <- getUPTEntry(con, uptId, A_ACCEPTATION_DATETIME)
+      saved       <- {
+                       val oldAcceptations = mapper.unserializeAcceptations(upt(A_ACCEPTATION_DATETIME).getOrElse(""))
+                       val json = Printer.compact(JsonAST.render(mapper.serializeAcceptations(oldAcceptations ++ datetimes)))
+                       upt.+=!(A_ACCEPTATION_DATETIME, json)
+                       con.save(upt)
+                     }
+      autoArchive <- if(autoExportOnModify) {
+                         for {
+                           parents <- this.userPolicyTemplateBreadCrump(uptId)
+                           newUpt  <- getUserPolicyTemplate(uptId)
+                           archive <- gitArchiver.archiveUserPolicyTemplate(newUpt, parents.map( _.id))
+                         } yield archive
+                       } else Full("ok")
     } yield {
       uptId
     }
@@ -211,9 +245,18 @@ class LDAPUserPolicyTemplateRepository(
    */
   def delete(uptId:UserPolicyTemplateId) : Box[UserPolicyTemplateId] = {
      for {
-      con <- ldap
-      upt <- getUPTEntry(con, uptId, "1.1")
-      deleted <- con.delete(upt.dn, false)
+      con         <- ldap
+      oldParents  <- if(autoExportOnModify) {
+                       this.userPolicyTemplateBreadCrump(uptId)
+                     } else Full(Nil)
+      upt         <- getUPTEntry(con, uptId, A_REFERENCE_POLICY_TEMPLATE_UUID)
+      deleted     <- con.delete(upt.dn, false)
+      autoArchive <- (if(autoExportOnModify) {
+                       for {
+                         ptName <- Box(upt(A_REFERENCE_POLICY_TEMPLATE_UUID)) ?~! "Missing required reference policy template name"
+                         res    <- gitArchiver.deleteUserPolicyTemplate(PolicyPackageName(ptName),oldParents.map( _.id))
+                       } yield res
+                      } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
     } yield {
       uptId
     }   

@@ -88,6 +88,13 @@ import com.normation.rudder.services.marshalling.PolicyInstanceUnserialisationIm
 import com.normation.rudder.services.marshalling.ConfigurationRuleSerialisationImpl
 import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisationImpl
 import scala.xml.PrettyPrinter
+import com.normation.rudder.services.marshalling.UserPolicyTemplateCategorySerialisation
+import com.normation.rudder.services.marshalling.ConfigurationRuleSerialisation
+import com.normation.rudder.services.marshalling.UserPolicyTemplateCategorySerialisationImpl
+import com.normation.rudder.services.marshalling.UserPolicyTemplateSerialisation
+import com.normation.rudder.services.marshalling.UserPolicyTemplateSerialisationImpl
+import com.normation.rudder.services.marshalling.PolicyInstanceSerialisation
+import com.normation.rudder.services.marshalling.PolicyInstanceSerialisationImpl
 
 
 /**
@@ -224,15 +231,59 @@ class AppConfig extends Loggable {
   @Bean
   def serverRepository = new LDAPNodeConfigurationRepository(ldap, rudderDit, ldapNodeConfigurationMapper)
 
+  ///// items serializer - service that transforms items to XML /////
+  
   @Bean 
-  def configurationRuleSerialisation = new ConfigurationRuleSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+  def configurationRuleSerialisation: ConfigurationRuleSerialisation = 
+    new ConfigurationRuleSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
 
+  @Bean 
+  def userPolicyTemplateCategorySerialisation: UserPolicyTemplateCategorySerialisation = 
+    new UserPolicyTemplateCategorySerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+
+  @Bean 
+  def userPolicyTemplateSerialisation: UserPolicyTemplateSerialisation = 
+    new UserPolicyTemplateSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+  
+  @Bean 
+  def policyInstanceSerialisation: PolicyInstanceSerialisation = 
+    new PolicyInstanceSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+  
+  ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
+  
   @Bean
-  def gitConfigurationRuleArchiver = new GitConfigurationRuleArchiverImpl(
+  def gitConfigurationRuleArchiver: GitConfigurationRuleArchiver = new GitConfigurationRuleArchiverImpl(
       gitRepo
     , new File(gitRoot)
     , configurationRuleSerialisation
     , "configuration-rules"
+    , prettyPrinter
+  )
+  
+  @Bean
+  def gitUserPolicyTemplateCategoryArchiver: GitUserPolicyTemplateCategoryArchiver = new GitUserPolicyTemplateCategoryArchiverImpl(
+      gitRepo
+    , new File(gitRoot)
+    , userPolicyTemplateCategorySerialisation
+    , "policy-library"
+    , prettyPrinter
+  )
+  
+  @Bean
+  def gitUserPolicyTemplateArchiver: GitUserPolicyTemplateArchiverImpl = new GitUserPolicyTemplateArchiverImpl(
+      gitRepo
+    , new File(gitRoot)
+    , userPolicyTemplateSerialisation
+    , "policy-library"
+    , prettyPrinter
+  )
+  
+  @Bean
+  def gitPolicyInstanceArchiver: GitPolicyInstanceArchiver = new GitPolicyInstanceArchiverImpl(
+      gitRepo
+    , new File(gitRoot)
+    , policyInstanceSerialisation
+    , "policy-library"
     , prettyPrinter
   )
   
@@ -243,8 +294,10 @@ class AppConfig extends Loggable {
     , gitConfigurationRuleArchiver
   )
   
+  ///// end /////
+  
   @Bean
-  def eventLogFactory = new EventLogFactoryImpl(configurationRuleSerialisation)
+  def eventLogFactory = new EventLogFactoryImpl(configurationRuleSerialisation,policyInstanceSerialisation)
   
   @Bean
   def logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
@@ -594,13 +647,39 @@ class AppConfig extends Loggable {
   def ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryParser)
   
   @Bean
-  def ldapUserPolicyTemplateCategoryRepository = new LDAPUserPolicyTemplateCategoryRepository(rudderDit, ldap, ldapEntityMapper)
+  def ldapUserPolicyTemplateCategoryRepository:LDAPUserPolicyTemplateCategoryRepository = new LDAPUserPolicyTemplateCategoryRepository(
+      rudderDit, ldap, ldapEntityMapper,
+      gitUserPolicyTemplateCategoryArchiver,
+      autoArchiveItems
+  )
   
   @Bean
-  def ldapUserPolicyTemplateRepository = new LDAPUserPolicyTemplateRepository(rudderDit, ldap, ldapEntityMapper, uuidGen, ldapUserPolicyTemplateCategoryRepository)
+  def ldapUserPolicyTemplateRepository = new LDAPUserPolicyTemplateRepository(
+      rudderDit, ldap, ldapEntityMapper, 
+      uuidGen, ldapUserPolicyTemplateCategoryRepository,
+      gitUserPolicyTemplateArchiver,
+      autoArchiveItems
+  )
   
   @Bean
-  def ldapPolicyInstanceRepository = new LDAPPolicyInstanceRepository(rudderDit, ldap, ldapEntityMapper, ldapDiffMapper, ldapUserPolicyTemplateRepository,policyPackageService,logRepository)
+  def ldapPolicyInstanceRepository = {
+    
+    val repo = new LDAPPolicyInstanceRepository(
+        rudderDit, ldap, ldapEntityMapper, 
+        ldapDiffMapper, ldapUserPolicyTemplateRepository,
+        policyPackageService,logRepository,
+        gitPolicyInstanceArchiver,
+        autoArchiveItems
+    )
+  
+    gitUserPolicyTemplateArchiver.uptModificationCallback += new UpdatePiOnUptEvent(
+        gitPolicyInstanceArchiver
+      , policyPackageService
+      , repo
+    )
+
+    repo
+  }
   
   @Bean
   def ldapConfigurationRuleRepository: ConfigurationRuleRepository = new LDAPConfigurationRuleRepository(
@@ -608,10 +687,12 @@ class AppConfig extends Loggable {
     ldapNodeGroupRepository,
     policyPackageService,logRepository,
     gitConfigurationRuleArchiver,
-    autoArchiveItems)
+    autoArchiveItems
+  )
 
   @Bean
   def ldapGroupCategoryRepository = new LDAPGroupCategoryRepository(rudderDit, ldap, ldapEntityMapper)
+  
   @Bean
   def ldapNodeGroupRepository = new LDAPNodeGroupRepository(rudderDit, ldap, ldapEntityMapper, ldapDiffMapper, uuidGen, logRepository)
 

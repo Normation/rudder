@@ -56,14 +56,15 @@ class Archives extends DispatchSnippet with Loggable {
   
   
   def dispatch = {
-    case "exportConfigurationRules" => exportCrForm
-    case "importConfigurationRules" => importCrForm
+    case "exportAll" => exportAllForm
+    case "importAll" => importAllForm
   }
   
-  
-  
-  
-  def exportCrForm : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+  /**
+   * Export all items (CR, user policy library, groups)
+   * Advertise on success and error
+   */
+  private[this] def exportAllForm : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
     // our process method returns a
     // JsCmd which will be sent back to the browser
     // as part of the response
@@ -75,25 +76,25 @@ class Archives extends DispatchSnippet with Loggable {
         case empty:EmptyBox => 
           val e = empty ?~! "Error when exporting configuration rules."
           S.error(e.messageChain)
-          Replace("exportCrForm", outerXml.applyAgain)
+          Replace("exportAllForm", outerXml.applyAgain)
         case Full(aid) => 
           logger.debug("Exported configuration rules on user request, archive id: " + aid.value )
-          Replace("exportCrForm", outerXml.applyAgain) &
+          Replace("exportAllForm", outerXml.applyAgain) &
           successPopup
       }
     }
     
     //process the list of networks
-    "#exportCrButton" #> { 
+    "#exportAllButton" #> { 
       SHtml.ajaxSubmit("Export", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
     }
   }
   
-  def importCrForm : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
-    def importConfigurationRules : Box[Unit] = {
-      itemArchiver.importLastArchive()
-    }
-    
+  /**
+   * Import all items (CR, user policy library, groups)
+   * Advertise on success and error.
+   */
+  private[this] def importAllForm : IdMemoizeTransform = SHtml.idMemoize { outerXml =>    
     // our process method returns a
     // JsCmd which will be sent back to the browser
     // as part of the response
@@ -101,20 +102,20 @@ class Archives extends DispatchSnippet with Loggable {
       //clear errors
       S.clearCurrentNotices
 
-      importConfigurationRules match {
+      itemArchiver.importLastArchive() match {
         case empty:EmptyBox => 
           val e = empty ?~! "Error when importing configuration rules."
           S.error(e.messageChain)
-          Replace("importCrForm", outerXml.applyAgain)
+          Replace("importAllForm", outerXml.applyAgain)
         case Full(x) => 
           logger.debug("Imported configuration rules on user request" )
-          Replace("importCrForm", outerXml.applyAgain) &
+          Replace("importAllForm", outerXml.applyAgain) &
           successPopup
       }
     }
     
     //process the list of networks
-    "#importCrButton" #> { 
+    "#importAllButton" #> { 
       SHtml.ajaxSubmit("Import", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
     }
   }  

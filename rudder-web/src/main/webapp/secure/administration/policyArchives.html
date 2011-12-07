@@ -22,28 +22,25 @@
         
           <div class="deca">
 	          <p>
-	           That page allow to manage policy (template and instance) and configuration rules archive. 
+	           That page allow to manage groups, policies (templates and instances) and configuration rules archive. 
 	           Here, you will be able to make new archives of the state of Rudder, and restore the last one. 
 	          </p>
 	          <br/>
 
-            <p>
-              Archive the current configuration rules.
-            </p>	
-	          <div class="lift:administration.Archives.exportConfigurationRules" id="exportCrForm">
+	          <span class="lift:administration.Archives.exportAll" id="exportAllForm">
 	            <form class="lift:form.ajax">
 	              <br/>
-	              <input id="exportCrButton" type="submit" value="[Export CR]"/> 
+	              <input id="exportAllButton" type="submit" value="[Export ALL]"/> 
 	              <lift:Msgs>[error]</lift:Msgs>
 	            </form>
-            </div>
-            <div class="lift:administration.Archives.importConfigurationRules" id="importCrForm">
+            </span>
+            <span class="lift:administration.Archives.importAll" id="importAllForm">
               <form class="lift:form.ajax">
                 <br/>
-                <input id="importCrButton" type="submit" value="[Export CR]"/> 
+                <input id="importAllButton" type="submit" value="[Export ALL]"/> 
                 <lift:Msgs>[error]</lift:Msgs>
               </form>
-            </div>
+            </span>
           </div>
         </div>
       </div>

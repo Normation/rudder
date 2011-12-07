@@ -38,36 +38,18 @@ import java.io.File
 import com.normation.rudder.domain.policies.ConfigurationRule
 import com.normation.rudder.domain.policies.ConfigurationRuleId
 import net.liftweb.common.Box
+import com.normation.rudder.domain.policies.PolicyInstance
+import com.normation.rudder.domain.policies.PolicyInstanceId
+import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
+import com.normation.rudder.domain.policies.UserPolicyTemplateCategoryId
+import com.normation.rudder.domain.policies.UserPolicyTemplate
+import com.normation.rudder.domain.policies.UserPolicyTemplateId
+import com.normation.rudder.domain.policies.UserPolicyTemplateCategoryId
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.PolicyPackageName
+import com.normation.cfclerk.domain.PolicyPackage
 
-trait GitConfigurationRuleArchiver {
-  /**
-   * Archive a configuration rule in a file system
-   * managed by git. 
-   * If gitCommitCr is true, the modification is
-   * saved in git. Else, no modification in git are saved.
-   */
-  def archiveConfigurationRule(cr:ConfigurationRule, gitCommitCr:Boolean = true) : Box[File]
-  
-  /**
-   * Commit modification done in the Git repository for any
-   * configuration rules.
-   * Return the git commit id. 
-   */
-  def commitConfigurationRules() : Box[String]
-  
-  /**
-   * Delete an archived configuration rule. 
-   * If gitCommitCr is true, the modification is
-   * saved in git. Else, no modification in git are saved.
-   */
-  def deleteConfigurationRule(crId:ConfigurationRuleId, gitCommitCr:Boolean = true) : Box[File]
-  
-  /**
-   * Get the root directory where configuration rules are saved
-   */
-  def getRootDirectory : File
-}
-
+//case class to identify an archive
 case class ArchiveId(value:String)
 
 /**
@@ -93,4 +75,139 @@ trait ItemArchiveManager {
    */
   def importLastArchive(includeSystem:Boolean = false) : Box[Unit]
 
+}
+
+
+/**
+ * A specific trait to create archive of configuration rules
+ */
+trait GitConfigurationRuleArchiver {
+  /**
+   * Archive a configuration rule in a file system
+   * managed by git. 
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def archiveConfigurationRule(cr:ConfigurationRule, gitCommitCr:Boolean = true) : Box[File]
+  
+  /**
+   * Commit modification done in the Git repository for any
+   * configuration rules.
+   * Return the git commit id. 
+   */
+  def commitConfigurationRules() : Box[String]
+  
+  /**
+   * Delete an archived configuration rule. 
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def deleteConfigurationRule(crId:ConfigurationRuleId, gitCommitCr:Boolean = true) : Box[File]
+  
+  /**
+   * Get the root directory where configuration rules are saved
+   */
+  def getRootDirectory : File
+}
+
+/**
+ * A specific trait to create archive of an user policy template category.
+ */
+trait GitUserPolicyTemplateCategoryArchiver {
+  
+  /**
+   * Archive an user policy template category in a file system
+   * managed by git. 
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def archiveUserPolicyTemplateCategory(uptc:UserPolicyTemplateCategory, getParents:List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File]
+    
+  /**
+   * Delete an archived user policy template category. 
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def deleteUserPolicyTemplateCategory(uptcId:UserPolicyTemplateCategoryId, getParents:List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File]
+  
+  /**
+   * Move an archived policy template category from a 
+   * parent category to an other. 
+   */
+  def moveUserPolicyTemplateCategory(uptc:UserPolicyTemplateCategory, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File]
+
+  /**
+   * Get the root directory where user policy template categories are saved.
+   */
+  def getRootDirectory : File  
+}
+
+/**
+ * A specific trait to create archive of an user policy template category.
+ */
+trait GitUserPolicyTemplateArchiver {
+  
+  /**
+   * Archive an user policy template in a file system
+   * managed by git. 
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def archiveUserPolicyTemplate(upt:UserPolicyTemplate, parents:List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File]
+    
+  /**
+   * Delete an archived user policy template. 
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def deleteUserPolicyTemplate(ptName:PolicyPackageName, parents:List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File]
+  
+  /**
+   * Move an archived policy template from a 
+   * parent category to an other. 
+   */
+  def moveUserPolicyTemplate(upt:UserPolicyTemplate, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File]
+
+  /**
+   * Get the root directory where user policy template categories are saved.
+   */
+  def getRootDirectory : File  
+}
+
+/**
+ * A specific trait to create archive of a policy instance.
+ */
+trait GitPolicyInstanceArchiver {
+  /**
+   * Archive a policy instance in a file system
+   * managed by git. 
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def archivePolicyInstance(
+      pi                 : PolicyInstance
+    , ptName             : PolicyPackageName
+    , catIds             : List[UserPolicyTemplateCategoryId]
+    , variableRootSection: SectionSpec
+    , gitCommit          : Boolean = true
+  ) : Box[File]
+    
+  /**
+   * Delete an archived policy instance. 
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def deletePolicyInstance(
+      piId     : PolicyInstanceId
+    , ptName   : PolicyPackageName
+    , catIds   : List[UserPolicyTemplateCategoryId]
+    , gitCommit: Boolean = true
+  ) : Box[File]
+  
+  /**
+   * Get the root directory where policy instance are saved.
+   * A policy instance won't be directly under that directory, but
+   * will be on the sub-directories matching the category on which they are.
+   */
+  def getRootDirectory : File  
 }
