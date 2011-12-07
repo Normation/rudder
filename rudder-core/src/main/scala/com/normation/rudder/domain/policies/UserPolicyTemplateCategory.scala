@@ -40,10 +40,10 @@ import com.normation.utils.HashcodeCaching
 case class UserPolicyTemplateCategoryId(value:String) extends HashcodeCaching 
 
 case class UserPolicyTemplateCategory(
-  id : UserPolicyTemplateCategoryId,
-  name : String,
-  description : String,
-  children: List[UserPolicyTemplateCategoryId],
-  items : List[UserPolicyTemplateId],
-  isSystem : Boolean = false // by default, we can't create system Category
+    id         : UserPolicyTemplateCategoryId
+  , name       : String
+  , description: String
+  , children   : List[UserPolicyTemplateCategoryId]
+  , items      : List[UserPolicyTemplateId]
+  , isSystem   : Boolean = false // by default, we can't create system Category
 ) extends ItemCategory[UserPolicyTemplateCategoryId,UserPolicyTemplateId] with HashcodeCaching {}
