@@ -167,12 +167,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   ///////////// success pop-up ///////////////
   private[this] def successPopup : JsCmd = {
     JsRaw("""
-      setTimeout(function() { $("#succesConfirmationDialog").modal({
-          minHeight:100,
-          minWidth: 350
-        });
-        $('#simplemodal-container').css('height', 'auto');
-      }, 200);
+      setTimeout(showSuccessPopup(), 200);
     """)
   }  
 }

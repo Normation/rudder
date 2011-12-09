@@ -1365,7 +1365,9 @@ div#refusePopup {
 .popupButton span {
   float: none;
 }
-
+#succesConfirmationDialog{
+	z-index : 9995;
+}
 /**************************************
 popin Login
 **************************************/

@@ -32,6 +32,14 @@
 *************************************************************************************
 */
 
+/* showSuccessPopup */
+
+function showSuccessPopup() { $("#succesConfirmationDialog").modal({
+          minHeight:100,
+          minWidth: 350
+        });
+        $('#simplemodal-container').css('height', 'auto');
+      }
 
 /* slickboxShowHide */
 
@@ -405,3 +413,4 @@ if ((version >= 5.5) && (document.body.filters))
       }
    }
 }
+

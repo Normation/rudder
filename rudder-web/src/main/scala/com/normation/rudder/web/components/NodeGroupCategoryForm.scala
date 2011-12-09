@@ -181,7 +181,7 @@ class NodeGroupCategoryForm(
 	      JsRaw("""$.modal.close();""") &
 	      SetHtml(htmlIdCategory, NodeSeq.Empty) &
 	      onSuccessCallback() &
-	      successPopup()
+	      successPopup
 	    case e:EmptyBox =>    
 	      val m = (e ?~! "Error when trying to delete the category").messageChain
 	      formTracker.addFormError(error(m))
@@ -307,14 +307,9 @@ class NodeGroupCategoryForm(
   }
 
   ///////////// success pop-up ///////////////
-  private[this] def successPopup() : JsCmd = {
+    private[this] def successPopup : JsCmd = {
     JsRaw("""
-      setTimeout(function() { $("#succesConfirmationDialog").modal({
-          minHeight:100,
-          minWidth: 350
-        });
-        $('#simplemodal-container').css('height', 'auto');
-      }, 200);
+      setTimeout(showSuccessPopup(), 200);
     """)
   }
 
