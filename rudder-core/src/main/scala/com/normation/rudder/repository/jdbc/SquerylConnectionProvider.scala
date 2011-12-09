@@ -38,17 +38,65 @@ package com.normation.rudder.repository.jdbc
 import org.squeryl.Session
 import org.squeryl.adapters.PostgreSqlAdapter
 import javax.sql.DataSource
+import net.liftweb.common.Loggable
+import java.sql.SQLException
+import org.apache.commons.dbcp.BasicDataSource
 
-trait SessionFactory {
-  def getSession() : Session
+/**
+ * A wrapper around the Squeryl default implementation to allow for several 
+ * databases connections, and still offer the multi-threading capabilities
+ */
+class SquerylConnectionProvider(
+    dataSource : DataSource) extends Loggable {
   
-}
 
-class SquerylInitializationService(dataSource : DataSource) extends SessionFactory {
+   def getConnection() : java.sql.Connection = {
+     dataSource.getConnection()
+   } 
+   
+   
+  def ourTransaction[A](a : => A) : A = {
+    val c = getConnection
+    val s = Session.create(c, new PostgreSqlAdapter)
+    
   
-  def getSession() : Session = {
-  		new Session(dataSource.getConnection, new PostgreSqlAdapter, None)
+    if(c.getAutoCommit)
+      c.setAutoCommit(false)
+
+    var txOk = false
+    try {
+      val res =try {
+        s.bindToCurrentThread
+        a
+        
+      }
+      finally {
+        s.unbindFromCurrentThread
+        s.cleanup
+      } 
+
+      txOk = true
+      res
+    }
+    finally {
+      try {
+        if(txOk)
+          c.commit
+        else
+          c.rollback
+      }
+      catch {
+        case e:SQLException => {
+          if(txOk) throw e // if an exception occured b4 the commit/rollback we don't want to obscure the original exception 
+        }
+      }
+      try{c.close}
+      catch {
+        case e:SQLException => {
+          if(txOk) throw e // if an exception occured b4 the close we don't want to obscure the original exception
+        }
+      }
+    }
   }
-  
-
+   
 }
