@@ -279,12 +279,7 @@ class PolicyInstanceManagement extends DispatchSnippet with Loggable {
   ///////////// finish migration pop-up ///////////////
   private[this] def displayFinishMigrationPopup : JsCmd = {
     JsRaw("""
-      setTimeout(function() { $("#finishMigrationPopup").modal({
-          minHeight:100,
-          minWidth: 350
-        });
-        $('#simplemodal-container').css('height', 'auto');
-      }, 200);
+      callPopupWithTimeout(200,"finishMigrationPopup",100,350)
     """)
   }
   

@@ -309,7 +309,7 @@ class NodeGroupCategoryForm(
   ///////////// success pop-up ///////////////
     private[this] def successPopup : JsCmd = {
     JsRaw("""
-      setTimeout(showSuccessPopup(), 200);
+      callPopupWithTimeout(200, "successConfirmationDialog", 100, 350);
     """)
   }
 

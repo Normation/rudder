@@ -582,8 +582,7 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
 
   ///////////// success pop-up ///////////////
     private[this] def successPopup : JsCmd = {
-    JsRaw("""
-      setTimeout(showSuccessPopup(), 200);
+    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)     
     """)
   }
 
@@ -592,12 +591,7 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
 
     //update UI
     SetHtml("createPTCategoryContainer", createPopup) &
-    JsRaw( """ $("#createPTCategoryPopup").modal({
-      minHeight:300,
-      minWidth: 400
-     });
-    $('#simplemodal-container').css('height', 'auto');
-    correctButtons();
+    JsRaw( """ createPopup("createPTCategoryPopup",300,400)
      """)
 
   }

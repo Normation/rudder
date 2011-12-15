@@ -32,14 +32,20 @@
 *************************************************************************************
 */
 
-/* showSuccessPopup */
+/* Popup */
 
-function showSuccessPopup() { $("#succesConfirmationDialog").modal({
-          minHeight:100,
-          minWidth: 350
-        });
-        $('#simplemodal-container').css('height', 'auto');
-      }
+function callPopupWithTimeout(timeout, popupName, minHeight, minWidth){
+	setTimeout("createPopup('"+popupName+"',"+minHeight+","+minWidth+")", timeout);
+}
+
+function createPopup(popupName, minHeight, minWidth){
+		$("#"+popupName).modal({
+			minHeight: minHeight,
+			minWidth: minWidth
+		});
+		$('#simplemodal-container').css('height', 'auto');
+		correctButtons();
+}
 
 /* slickboxShowHide */
 
@@ -371,8 +377,6 @@ function scrollToElement(elementId) {
 	$('html, body').animate({ scrollTop: $("#"+ elementId).offset().top }, 500);
 	
 }
-
-	//$.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disabled";
 
 /*
 

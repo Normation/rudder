@@ -122,8 +122,7 @@ class Archives extends DispatchSnippet with Loggable {
   
   ///////////// success pop-up ///////////////
   private[this] def successPopup : JsCmd = {
-    JsRaw("""
-      setTimeout(showSuccessPopup(), 200);
+    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)     
     """)
   }  
 }

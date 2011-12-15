@@ -264,12 +264,7 @@ class AcceptServer {
               ]
             });"""
           ) & JsRaw("""
-                $('##popupId#').modal({
-              minHeight:300,
-              minWidth: 660
-                });
-          $('#simplemodal-container').css('height', 'auto');
-          correctButtons();
+                createPopup("#popupId#",300,660);
           $('#pendingServerConfirm_info').remove();""".replaceAll("#popupId#", popupId))
           )
 	    }
@@ -327,13 +322,7 @@ class AcceptServer {
 	def showExpectedPolicyPopup(serverId : NodeId) = {
 	  
 	  SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", serverId)).display ) & 
-	  OnLoad(JsRaw("""
-        $('#expectedPolicyPopup').modal({
-          minHeight:300,
-          minWidth: 660
-        });
-        $('#simplemodal-container').css('height', 'auto');
-	  		correctButtons();
+	  OnLoad(JsRaw("""createPopup("expectedPolicyPopup",300,660)
       """) )
 	}
 	
