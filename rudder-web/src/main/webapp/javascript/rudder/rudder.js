@@ -372,7 +372,7 @@ function scrollToElement(elementId) {
 	
 }
 
-	$.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disabled";
+	// $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disabled";
 
 /*
 
