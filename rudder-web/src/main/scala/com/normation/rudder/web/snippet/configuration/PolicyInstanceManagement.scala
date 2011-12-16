@@ -79,8 +79,14 @@ class PolicyInstanceManagement extends DispatchSnippet with Loggable {
     case "head" => { _ => head }
     case "userLibrary" => { _ => userLibrary }
     case "showPolicyInstanceDetails" => { _ => initPolicyInstanceDetails }
-    case "policyTemplateDetails" => policyTemplateDetails
+    case "policyTemplateDetails" => { xml =>
+                                      policyTemplateDetails = initPolicyTemplateDetails
+                                      policyTemplateDetails.apply(xml)
+                                    }
   }
+  
+  //must be initialized on first call of "policyTemplateDetails"
+  private[this] var policyTemplateDetails: MemoizeTransform = null
   
   //the current PolicyInstanceEditForm component
   val currentPolicyInstanceSettingForm = new LocalSnippet[PolicyInstanceEditForm]
@@ -159,7 +165,7 @@ class PolicyInstanceManagement extends DispatchSnippet with Loggable {
   
   
   
-  def policyTemplateDetails : MemoizeTransform = SHtml.memoize {
+  def initPolicyTemplateDetails : MemoizeTransform = SHtml.memoize {
 
     "#polityTemplateDetails *" #> ( currentPolicyTemplate match { 
       case None => "*" #> <span class="greenscala">Click on a Policy or on a Policy Template...</span>
