@@ -374,7 +374,7 @@ class AppConfig extends Loggable {
   }
 
   @Bean
-  def squerylInit = new SquerylInitializationService(dataSource)
+  def squerylDatasourceProvider = new SquerylConnectionProvider(dataSource)
 
   @Bean
   def jdbcTemplate = {
@@ -383,7 +383,7 @@ class AppConfig extends Loggable {
   }
 
   @Bean
-  def historizationJdbcRepository = new HistorizationJdbcRepository(squerylInit)
+  def historizationJdbcRepository = new HistorizationJdbcRepository(squerylDatasourceProvider)
 
   @Bean
   def baseUrlService: GetBaseUrlService = new DefaultBaseUrlService(BASE_URL)

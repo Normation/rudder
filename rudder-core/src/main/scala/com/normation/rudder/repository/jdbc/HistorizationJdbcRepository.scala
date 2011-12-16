@@ -58,28 +58,24 @@ import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
 
 
-class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends HistorizationRepository with  Loggable {
-
-  val session = sessionfactory.getSession()
+class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionProvider)  extends HistorizationRepository with  Loggable {
 
   def toTimeStamp(d:DateTime) : Timestamp = new Timestamp(d.getMillis)
   
    
   def getAllOpenedNodes() : Seq[SerializedNodes] = {
    
-    using(session) {
+    squerylConnectionProvider.ourTransaction {
 	    val q = from(Nodes.nodes)(node => 
 	      where(node.endTime.isNull)
 	      select(node)
 	    )
-	    inTransaction {
-	      q.toList
-	    }
+      q.toList
     }
   }
  
   def getAllNodes(after : Option[DateTime]) : Seq[SerializedNodes] = {
-    using(session) {
+    squerylConnectionProvider.ourTransaction {
 	    val q = from(Nodes.nodes)(node =>
 	      where(after.map(date => {
 	        node.startTime > toTimeStamp(date) or
@@ -89,16 +85,13 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	      }).getOrElse(1===1))
 	      select(node)
 	    )
-	    inTransaction {
-	      q.toList
-	    }
+      q.toList
     }
   }
   
   
   def updateNodes(nodes : Seq[NodeInfo], closable : Seq[String]) :Seq[SerializedNodes] = {
-    using(session) { 
-     inTransaction {
+    squerylConnectionProvider.ourTransaction {
 	    // close the nodes
 	    val q = update(Nodes.nodes)(node => 
 	      where(node.endTime.isNull and node.nodeId.in(nodes.map(x => x.id.value) ++ closable))
@@ -107,26 +100,23 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	    
 	    val insertion = Nodes.nodes.insert(nodes.map(SerializedNodes.fromNode(_)))
 	    // add the new ones
-     }
      Seq()
     }
   }
   
   def getAllOpenedGroups() : Seq[SerializedGroups] = {
    
-    using(session) {
+    squerylConnectionProvider.ourTransaction {
 	    val q = from(Groups.groups)(group => 
 	      where(group.endTime.isNull)
 	      select(group)
 	    )
-	    inTransaction {
-	      q.toList
-	    }
+	    q.toList
     }
   }
   
   def getAllGroups(after : Option[DateTime]) : Seq[SerializedGroups] = {
-    using(session) {
+    squerylConnectionProvider.ourTransaction {
 	    val q = from(Groups.groups)(group =>
 	      where(after.map(date => {
 	        group.startTime > toTimeStamp(date) or
@@ -136,17 +126,15 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	      }).getOrElse(1===1))
 	      select(group)
 	    )
-	    inTransaction {
-	      q.toList
-	    }
+      q.toList
+	
     }
   }
   
   
   
   def updateGroups(nodes : Seq[NodeGroup], closable : Seq[String]) :Seq[SerializedGroups] = {
-    using(session) { 
-     inTransaction {
+    squerylConnectionProvider.ourTransaction {
 	    // close the nodes
 	    val q = update(Groups.groups)(group => 
 	      where(group.endTime.isNull and group.groupId.in(nodes.map(x => x.id.value) ++ closable))
@@ -155,27 +143,25 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	    
 	    val insertion = Groups.groups.insert(nodes.map(SerializedGroups.fromNodeGroup(_)))
 	    // add the new ones
-     }
-     Seq()
+      Seq()
     }
   }
   
   
   def getAllOpenedPIs() : Seq[SerializedPIs] = {
    
-    using(session) {
+    squerylConnectionProvider.ourTransaction {
 	    val q = from(PolicyInstances.policyInstances)(pi => 
 	      where(pi.endTime.isNull)
 	      select(pi)
 	    )
-	    inTransaction {
-	      q.toList
-	    }
+	    q.toList
+	    
     }
   }
   
    def getAllPIs(after : Option[DateTime]) : Seq[SerializedPIs] = {
-    using(session) {
+    squerylConnectionProvider.ourTransaction {
 	    val q = from(PolicyInstances.policyInstances)(pi =>
 	      where(after.map(date => {
 	        pi.startTime > toTimeStamp(date) or
@@ -183,17 +169,15 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	      }).getOrElse(1===1))
 	      select(pi)
 	    )
-	    inTransaction {
-	      q.toList
-	    }
+      q.toList
+
     }
   }
 
   def updatePIs(pis : Seq[(PolicyInstance, UserPolicyTemplate, PolicyPackage)], 
       				closable : Seq[String]) :Seq[SerializedPIs] = {
 
-    using(session) { 
-     inTransaction {
+    squerylConnectionProvider.ourTransaction {
 	    // close the pis
 	    val q = update(PolicyInstances.policyInstances)(pi => 
 	      where(pi.endTime.isNull and pi.policyInstanceId.in(pis.map(x => x._1.id.value) ++ closable))
@@ -202,20 +186,19 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	    
 	    val insertion = PolicyInstances.policyInstances.insert(pis.map(x => SerializedPIs.fromPolicyInstance(x._1, x._2, x._3)))
 	    // add the new ones
-     }
+     
      Seq()
     }
   }
   
   def getAllOpenedCRs() : Seq[ConfigurationRule] = {
-    using(session) {
+    squerylConnectionProvider.ourTransaction {
 	    val q = from(ConfigurationRules.configurationRules)(cr => 
 	      where(cr.endTime.isNull)
 	      select(cr)
 	    )
-	    val crs = inTransaction {
-	      q.toList
-	    }
+	    val crs = q.toList
+	    
 	    
 	    // Now that we have the opened CR, we must complete them
 	    val pis = from(ConfigurationRules.pis)(pi => 
@@ -228,9 +211,7 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	    )
 	    
 	    
-	    val (piSeq, groupSeq) = inTransaction {
-	      (pis.toList, groups.toList)
-	    }
+	    val (piSeq, groupSeq) = (pis.toList, groups.toList)
 	        
 	    crs.map ( cr => (cr, 
 	    		groupSeq.filter(group => group.crid == cr.id),
@@ -241,7 +222,7 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
   }
 
   def getAllCRs(after : Option[DateTime]) : Seq[(SerializedCRs, Seq[SerializedCRGroups],  Seq[SerializedCRPIs])] = {
-    using(session) {
+    squerylConnectionProvider.ourTransaction {
 	    val q = from(ConfigurationRules.configurationRules)(cr => 
 	       where(after.map(date => {
 	        cr.startTime > toTimeStamp(date) or
@@ -249,9 +230,8 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	      }).getOrElse(1===1))
 	      select(cr)
 	    )
-	    val crs = inTransaction {
-	      q.toList
-	    }
+	    val crs = q.toList
+	    
 	    
 	    // Now that we have the opened CR, we must complete them
 	    val pis = from(ConfigurationRules.pis)(pi => 
@@ -266,9 +246,7 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	    
 	    val (piSeq, groupSeq) = crs.size match {
 	      case 0 => (Seq(), Seq())
-	      case _ => inTransaction {
-	    	      			(pis.toSeq, groups.toSeq)
-	      					}
+	      case _ => (pis.toSeq, groups.toSeq)
 	    }
 	        
 	    crs.map ( cr => (cr, 
@@ -281,8 +259,7 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
   
   
   def updateCrs(crs : Seq[ConfigurationRule], closable : Seq[String]) : Unit = {
-    using(session) { 
-     inTransaction {     
+    squerylConnectionProvider.ourTransaction {     
 	    // close the crs
 	    val q = update(ConfigurationRules.configurationRules)(cr => 
 	      where(cr.endTime.isNull and cr.configurationRuleId.in(crs.map(x => x.id.value) ++ closable))
@@ -300,9 +277,6 @@ class HistorizationJdbcRepository(sessionfactory : SessionFactory)  extends Hist
 	        case _ => //
 	      })
 	    })
-	        
-       
-     }
 	    
     }
   }
