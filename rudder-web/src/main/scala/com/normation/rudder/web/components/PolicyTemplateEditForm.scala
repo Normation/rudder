@@ -168,22 +168,12 @@ class PolicyTemplateEditForm(
       correctButtons();
       
       $('#deleteButton').click(function() {
-        $('#deleteActionDialog').modal({
-          minHeight:140,
-          minWidth: 850,
-      		maxWidth: 850
-        });
-        $('#simplemodal-container').css('height', 'auto');
+        createPopup("deleteActionDialog",140,850);
         return false;
       });
 
       $('#disableButton').click(function() {
-        $('#disableActionDialog').modal({
-          minHeight:100,
-          minWidth: 850,
-      		maxWidth: 850
-        });
-        $('#simplemodal-container').css('height', 'auto');
+        createPopup("disableActionDialog",100,850);
         return false;
       });
     """)))

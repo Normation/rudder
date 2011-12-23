@@ -536,13 +536,7 @@ object DisplayServer extends Loggable {
       
     
     SetHtml(deleteNodePopupHtmlId, popupHtml) &
-    JsRaw( """ $("#%s").modal({
-      minHeight:300,
-      minWidth: 400
-     });
-    $('#simplemodal-container').css('height', 'auto');
-    correctButtons();
-     """.format(deleteNodePopupHtmlId))
+    JsRaw( """ createPopup("%s",300,400) """.format(deleteNodePopupHtmlId))
 
   }
   
@@ -582,13 +576,7 @@ object DisplayServer extends Loggable {
     
     JsRaw( """$.modal.close();""") &
     SetHtml(errorPopupHtmlId, popupHtml) &
-    JsRaw( """ setTimeout(function() { $("#%s").modal({
-      minHeight:300,
-      minWidth: 400
-     });
-    $('#simplemodal-container').css('height', 'auto');
-    correctButtons(); }, 200);
-     """.format(errorPopupHtmlId))
+    JsRaw( """ callPopupWithTimeout(200,"%s",300,400) """.format(errorPopupHtmlId))
   }
   
   private[this] def onSuccess : JsCmd = {
@@ -619,12 +607,6 @@ object DisplayServer extends Loggable {
       
     JsRaw( """$.modal.close();""") &
     SetHtml(successPopupHtmlId, popupHtml) &
-    JsRaw( """ setTimeout(function() { $("#%s").modal({
-      minHeight:300,
-      minWidth: 400
-     });
-    $('#simplemodal-container').css('height', 'auto');
-    correctButtons(); }, 200);
-     """.format(successPopupHtmlId))
+    JsRaw( """ callPopupWithTimeout(200,"%s",300,400) """.format(successPopupHtmlId))
   }
 }

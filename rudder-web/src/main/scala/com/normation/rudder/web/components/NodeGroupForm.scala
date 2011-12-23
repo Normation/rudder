@@ -161,11 +161,7 @@ class NodeGroupForm(
     s.split("\\|").toList match {
       case _ :: id :: _ =>
         SetHtml("serverDetails", (new ShowServerDetailsFromNode(new NodeId(id))).display) &
-        JsRaw( """ $("#nodeDetailsPopup").modal({
-            minHeight:500,
-            minWidth: 1000
-          });
-          $('#simplemodal-container').css('height', 'auto');
+        JsRaw( """ createPopup("nodeDetailsPopup",500,1000)
         """)
         
       case _ => Alert("Error when trying to display node details: received bad parameter for node ID: %s".format(s))
@@ -278,12 +274,7 @@ class NodeGroupForm(
           Script(JsRaw("""
             correctButtons();
             $('#removeButton').click(function() {
-              $('#removeActionDialog').modal({
-                minHeight:140,
-          			minWidth: 850,
-          			maxWidth: 850
-              });
-              $('#simplemodal-container').css('height', 'auto');
+              createPopup("removeActionDialog",140,850);
               return false;
             });        
         """))

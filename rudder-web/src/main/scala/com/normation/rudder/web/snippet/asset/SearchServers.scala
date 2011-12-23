@@ -263,14 +263,7 @@ class SearchServers extends StatefulSnippet with Loggable {
                      searchServerComponent.is.open_!.getSrvList() )
     //update UI
     SetHtml("createGroupContainer", createPopup) &
-    JsRaw( """ $("#createGroupPopup").modal({
-      minHeight:300,
-      minWidth: 400
-     });
-    $('#simplemodal-container').css('height', 'auto');
-    correctButtons();
-
-     """)
+    JsRaw( """ createPopup("createGroupPopup",300,400) """)
 
   }
   

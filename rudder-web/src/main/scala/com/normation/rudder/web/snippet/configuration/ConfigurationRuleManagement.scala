@@ -213,13 +213,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     setCreationPopup
     val popupHtml = createPopup
     SetHtml(CreateConfigurationRulePopup.htmlId_popupContainer, popupHtml) &
-    JsRaw( """ $("#%s").modal({
-      minHeight:300,
-  	  minWidth: 400
-     });
-    $('#simplemodal-container').css('height', 'auto');
-    correctButtons();
-     """.format(CreateConfigurationRulePopup.htmlId_popup))
+    JsRaw( """ createPopup("%s",300,400) """.format(CreateConfigurationRulePopup.htmlId_popup))
 
   }
 

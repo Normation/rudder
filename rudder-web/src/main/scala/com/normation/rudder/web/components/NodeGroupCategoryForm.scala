@@ -160,12 +160,7 @@ class NodeGroupCategoryForm(
       ) ++
       Script(JsRaw("""
         $('#removeButton').click(function() {
-          $('#removeActionDialog').modal({
-            minHeight:140,
-          	minWidth: 850,
-      			maxWidth: 850
-          });
-          $('#simplemodal-container').css('height', 'auto');
+          createPopup("removeActionDialog",140,850);
           return false;
         });
         """))

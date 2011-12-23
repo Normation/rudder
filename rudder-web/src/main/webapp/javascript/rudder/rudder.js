@@ -41,7 +41,9 @@ function callPopupWithTimeout(timeout, popupName, minHeight, minWidth){
 function createPopup(popupName, minHeight, minWidth){
 		$("#"+popupName).modal({
 			minHeight: minHeight,
-			minWidth: minWidth
+			minWidth: minWidth,
+			maxHeight: 500,
+			maxWidth: 1000
 		});
 		$('#simplemodal-container').css('height', 'auto');
 		correctButtons();

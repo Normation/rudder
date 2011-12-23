@@ -135,12 +135,7 @@ class ConfigurationRuleGrid(
       """.replaceAll("#table_var#",jsVarNameForId(htmlId_rulesGridId))) &      
       //pop-ups for multiple policy instances
       JsRaw( """var openMultiPiPopup = function(popupid) {
-          $("#" + popupid).modal({
-            minHeight:300,
-            minWidth: 520
-          });
-          $('#simplemodal-container').css('height', 'auto');
-          correctButtons();
+          createPopup(popupid,300,520);          
      }""") &
      OnLoad(JsRaw("""
       /* Event handler function */
@@ -526,12 +521,7 @@ class ConfigurationRuleGrid(
           });moveFilterAndFullPaginateArea('#%1$s');""".format( tableId_reportsPopup).replaceAll("#table_var#",jsVarNameForId(tableId_reportsPopup))
         ) //&  initJsCallBack(tableId)
     ) &
-    JsRaw( """ $("#%s").modal({
-      minHeight:300,
-  	  minWidth: 500
-     });
-    $('#simplemodal-container').css('height', 'auto');
-    correctButtons();
+    JsRaw( """ createPopup("%s",300,500)
      """.format(htmlId_modalReportsPopup))
 
   }

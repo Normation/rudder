@@ -188,12 +188,7 @@ class PolicyInstanceManagement extends DispatchSnippet with Loggable {
         "#addButton" #> SHtml.ajaxButton( 
             { Text("Create a new policy based on template ") ++ <b>{pt.name}</b> },
             { () =>  SetHtml(CreatePolicyInstancePopup.htmlId_popup, newCreationPopup(pt,upt) ) &
-                     JsRaw( """ $("#%s").modal({
-                       minHeight:300,
-                       minWidth: 400
-                   });
-                   $('#simplemodal-container').css('height', 'auto');
-                   """.format(CreatePolicyInstancePopup.htmlId_popup) ) },
+                     JsRaw( """ createPopup("%s",300,400) """.format(CreatePolicyInstancePopup.htmlId_popup) ) },
             ("class", "autoWidthButton")
           )
     })

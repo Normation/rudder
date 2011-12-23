@@ -200,22 +200,12 @@ class PolicyInstanceEditForm(
           JsRaw("""
         correctButtons();
         $('#removeButton').click(function() {
-          $('#removeActionDialog').modal({
-            minHeight:140,
-            minWidth: 850,
-      			maxWidth: 850
-          });
-          $('#simplemodal-container').css('height', 'auto');
+          createPopup("removeActionDialog",140,850);
           return false;
         });
 
         $('#disactivateButton').click(function() {
-          $('#desactivateActionDialog').modal({
-            minHeight:100,
-            minWidth: 850,
-      			maxWidth: 850
-          });
-          $('#simplemodal-container').css('height', 'auto');
+          createPopup("desactivateActionDialog",100,850);
           return false;
         });
       """)))
