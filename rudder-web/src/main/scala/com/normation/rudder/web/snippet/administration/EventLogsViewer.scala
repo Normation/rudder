@@ -47,6 +47,7 @@ import com.normation.rudder.web.components.DateFormaterService
 import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.SHtml
 import com.normation.rudder.services.log.EventLogDetailsService
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -63,11 +64,12 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
   
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
   
+ 
+  
   def getLastEvents : Box[Seq[EventLog]] = {
     repos.getEventLogByCriteria(None, Some(1000), Some("id DESC")) 
   }
-  
-  
+    
   def dispatch = { 
     case "display" => xml => getLastEvents match {
       case Full(seq) => display(seq,xml)
@@ -80,21 +82,26 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
   
   def display(events:Seq[EventLog], xml:NodeSeq) : NodeSeq  = {
     (
-      "tbody *" #> ("tr" #> events.map { event =>
+      "tbody *" #> ("tr" #> events.map { event => 
         ".logId *" #> event.id.getOrElse(0).toString &
         ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
         ".logActor *" #> event.principal.name &
         ".logType *" #> event.eventType &
         ".logCategory *" #> S.?("event.log.category."+event.eventLogCategory.getClass().getSimpleName()) &
         ".logDescription *" #> displayDescription(event) &
-        ".logDetails *" #> displayDetails(event)
+        ".logDetails *" #> { 
+        	if (event.details != <entry></entry> ) 
+        	  SHtml.a(Text("Details"))(showEventsDetail(event.id.getOrElse(0), event.eventType)) 
+        	else 
+        	  NodeSeq.Empty
+        	}
       })
      )(xml) ++ initJs
   }
   
   private[this] val gridName = "eventLogsGrid"
   private[this] val jsGridName = "oTable" + gridName
-    
+  private[this] val eventDetailPopupHtmlId = "eventDetailPopup" 
     
   private[this] def initJs : NodeSeq = Script(
     JsRaw("var %s;".format(jsGridName)) &
@@ -114,12 +121,12 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
             "bJQueryUI": false,
             "aaSorting":[],
             "aoColumns": [
-                { "sWidth": "20px" }
-              , { "sWidth": "80px" }
-              , { "sWidth": "80px" }
-              , { "sWidth": "80px" }
-              , { "sWidth": "80px" }
-              , { "sWidth": "80px" }
+                { "sWidth": "30px" }
+              , { "sWidth": "110px" }
+              , { "sWidth": "110px" }
+              , { "sWidth": "110px" }
+              , { "sWidth": "100px" }
+              , { "sWidth": "150px" }
               , { "sWidth": "80px" }
             ]
           });moveFilterAndFullPaginateArea('#%s');""".format(gridName,gridName).replaceAll("#table_var#",jsGridName)
@@ -127,6 +134,23 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
     )    
   )
     
+  private[this] def showEventsDetail(id : Int, eventType : String) : JsCmd = {
+    ( repos.getEventLog(id) match {
+      case Full(event) =>
+        SetHtml(eventDetailPopupHtmlId, (
+            "#popupTitle" #> "Details for event %s".format(eventType) &
+            "#popupContent" #>  displayDetails(event)
+            )(popupContentDetail))
+      case _ => 
+        SetHtml(eventDetailPopupHtmlId, (
+            "#popupTitle" #> "Error" &
+            "#popupContent" #> "Could not fetch the event details for event %s".format(eventType)
+            )(popupContentDetail))
+    } ) & 
+    JsRaw("createPopup('%s', 150, 400)".format(eventDetailPopupHtmlId))
+    
+    
+  }
   
   //////////////////// Display description/details of ////////////////////
   
@@ -543,4 +567,22 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
       {liModDetailsXML("isActivated", "Activation status")}
       {liModDetailsXML("isSystem", "System")}
     </xml:group>
+      
+      
+  private[this] val popupContentDetail = <div class="simplemodal-title">
+      <h1><value id="popupTitle"/></h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+      <br />
+      <div id="popupContent"/>
+	</div>
+	<div class="simplemodal-bottom">
+      <hr/>
+      <p align="right">
+        <button class="simplemodal-close" onClick="return false;">
+          Close
+        </button>
+      </p>
+    </div>
 }
