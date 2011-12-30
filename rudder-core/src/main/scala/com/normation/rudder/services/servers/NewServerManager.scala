@@ -34,7 +34,7 @@
 
 package com.normation.rudder.services.servers
 
-import com.normation.rudder.batch.{AsyncDeploymentAgent,StartDeployment}
+import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import com.normation.rudder.domain._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.Constants._
@@ -669,7 +669,7 @@ class AcceptServerConfigurationRule(
   }  
   
   override def postAccept(sms:Seq[FullInventory], actor:EventActor) : Box[Seq[FullInventory]] = {
-    asyncDeploymentAgent ! StartDeployment(actor)
+    asyncDeploymentAgent ! AutomaticStartDeployment(actor)
     logger.debug("Successfully sent deployment request")
     Full(sms)
   }

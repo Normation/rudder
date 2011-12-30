@@ -111,7 +111,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     deploymentStatus.processing match {
       case IdleDeployer =>
         SHtml.ajaxButton("Regenerate now", { () => 
-          asyncDeploymentAgent ! StartDeployment(CurrentUser.getActor)
+          asyncDeploymentAgent ! ManualStartDeployment(CurrentUser.getActor)
           Noop
         }, ( "class" , "deploymentButton")) 
       case Processing(id, start) =>
@@ -119,7 +119,12 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
           Generating configuration rules (started at {DateFormaterService.getFormatedDate(start)})
         </span>
-      case ProcessingAndPending(asked, Processing(id, start)) => 
+      case ProcessingAndPendingAuto(asked, Processing(id, start)) => 
+        <span>
+          <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
+          Generating configuration rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
+        </span>
+      case ProcessingAndPendingManual(asked, Processing(id, start)) => 
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
           Generating configuration rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}

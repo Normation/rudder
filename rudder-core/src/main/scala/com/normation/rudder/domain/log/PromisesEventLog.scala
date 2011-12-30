@@ -39,7 +39,7 @@ import scala.xml.NodeSeq
 import org.joda.time.DateTime
 import com.normation.utils.HashcodeCaching
 
-final case class StartDeployement(
+final case class AutomaticStartDeployement(
     override val principal : EventActor
   , override val details : NodeSeq = EventLog.emptyDetails
   , override val id : Option[Int] = None
@@ -47,7 +47,20 @@ final case class StartDeployement(
   , override val cause : Option[Int] = None
   , override val severity : Int = 100
 ) extends EventLog with HashcodeCaching {
-  override val eventType = "StartDeployement"
+  override val eventType = "AutomaticStartDeployement"
+  override val eventLogCategory = DeploymentLogCategory
+  override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
+}
+
+final case class ManualStartDeployement(
+    override val principal : EventActor
+  , override val details : NodeSeq = EventLog.emptyDetails
+  , override val id : Option[Int] = None
+  , override val creationDate : DateTime = DateTime.now() 
+  , override val cause : Option[Int] = None
+  , override val severity : Int = 100
+) extends EventLog with HashcodeCaching {
+  override val eventType = "ManualStartDeployement"
   override val eventLogCategory = DeploymentLogCategory
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
 }

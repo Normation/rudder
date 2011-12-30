@@ -202,6 +202,9 @@ class AppConfig extends Loggable {
     
   @Value("${rudder.autoArchiveItems}")
   var autoArchiveItems : Boolean = true
+
+  @Value("${rudder.autoDeployOnModification}")
+  var autoDeployOnModification : Boolean = true
   
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
@@ -591,7 +594,7 @@ class AppConfig extends Loggable {
       nodeInfoService,
       nodeConfigurationChangeDetectService,
       reportingService,
-      historizationService), logService)
+      historizationService), logService, autoDeployOnModification)
     policyPackageService.registerCallback(
         new DeployOnPolicyTemplateCallback("DeployOnPTLibUpdate", agent)
     )

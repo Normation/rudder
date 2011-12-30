@@ -69,7 +69,7 @@ class JsTreeUtilService(
       }
     }
     
-    // get the user policy template, log on error
+    // get the user policy template, loqg on error
     def getUpt(id : UserPolicyTemplateId,logger:Logger) : Option[(UserPolicyTemplate,PolicyPackage)] = {
       (for {
         upt <- userPolicyTemplateRepository.getUserPolicyTemplate(id) ?~! "Error while fetching user policy template %s".format(id)

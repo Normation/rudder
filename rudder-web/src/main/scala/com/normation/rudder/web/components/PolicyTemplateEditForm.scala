@@ -57,7 +57,7 @@ import com.normation.rudder.repository._
 import com.normation.cfclerk.services.PolicyPackageService
 import com.normation.rudder.web.services.PolicyEditorService
 import com.normation.rudder.services.policies._
-import com.normation.rudder.batch.{AsyncDeploymentAgent,StartDeployment}
+import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import com.normation.rudder.domain.log.RudderEventActor
 
 object PolicyTemplateEditForm {
@@ -202,7 +202,7 @@ class PolicyTemplateEditForm(
         (for {
           deleted <- dependencyService.cascadeDeletePolicyTemplate(id, CurrentUser.getActor)
           deploy <- {
-            asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+            asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
             Full("Deployment request sent")
           }
         } yield {
@@ -434,7 +434,7 @@ class PolicyTemplateEditForm(
       (for {
         save <- userPolicyTemplateRepository.changeStatus(uptId, status)
         deploy <- {
-          asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+          asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
           Full("Deployment request sent")
         }
       } yield {

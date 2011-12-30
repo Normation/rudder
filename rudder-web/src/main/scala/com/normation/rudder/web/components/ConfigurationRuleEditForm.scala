@@ -36,7 +36,7 @@ package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.services.policies.PolicyInstanceTargetService
-import com.normation.rudder.batch.{AsyncDeploymentAgent,StartDeployment}
+import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import com.normation.rudder.repository._
 import com.normation.rudder.domain.policies._
 import net.liftweb.http.js._
@@ -263,7 +263,7 @@ class ConfigurationRuleEditForm(
         (for {
           save <- configurationRuleRepository.delete(configurationRule.id, CurrentUser.getActor)
           deploy <- {
-            asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+            asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
             Full("Deployment request sent")
           }
         } yield {
@@ -390,7 +390,7 @@ class ConfigurationRuleEditForm(
       (for {
         save <- configurationRuleRepository.update(cr, CurrentUser.getActor)
         deploy <- {
-          asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+          asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
           Full("Deployment request sent")
         }
       } yield {

@@ -170,7 +170,7 @@ class UpdateDynamicGroups(
               //if the diff is not empty, start a new deploy
               if(diff.added.nonEmpty || diff.removed.nonEmpty) {
                 logger.info("Dynamic group %s: added node with id: [%s], removed: [%s]".format(id,diff.added.map(_.value), diff.removed.map(_.value)))
-                asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+                asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
               }
           }
         }

@@ -43,7 +43,7 @@ import net.liftweb.util._
 import Helpers._
 import net.liftweb.http._
 import com.normation.rudder.services.policies._
-import com.normation.rudder.batch.{ AsyncDeploymentAgent, StartDeployment }
+import com.normation.rudder.batch.{ AsyncDeploymentAgent, AutomaticStartDeployment }
 import com.normation.rudder.domain.log.RudderEventActor
 
 // For implicits
@@ -241,7 +241,7 @@ class PolicyInstanceEditForm(
               (for {
                 deleted <- dependencyService.cascadeDeletePolicyInstance(pi.id, CurrentUser.getActor)
                 deploy <- {
-                  asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+                  asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
                   Full("Deployment request sent")
                 }
               } yield {
@@ -404,7 +404,7 @@ to avoid that last case.<br/>
     (for {
       saved <- policyInstanceRepository.savePolicyInstance(userPolicyTemplate.id, pi, CurrentUser.getActor)
       deploy <- {
-        asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+        asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
         Full("Deployment request sent")
       }
     } yield {

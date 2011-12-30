@@ -41,7 +41,7 @@ import com.normation.rudder.repository.PolicyInstanceRepository
 import com.normation.rudder.domain.Constants
 import com.normation.utils.Control.bestEffort
 import net.liftweb.util.Helpers._
-import com.normation.rudder.batch.{AsyncDeploymentAgent,StartDeployment}
+import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import net.liftweb.common.Loggable
 import com.normation.utils.NetUtils.isValidNetwork
 import com.normation.rudder.domain.log._
@@ -110,7 +110,7 @@ class PolicyServerManagementServiceImpl(
       saved <- policyInstanceRepository.savePolicyInstance(upt.id, newPi, actor) ?~! "Can not save policy instance for User Policy Template '%s'".format(upt.id.value)
     } yield {
       //ask for a new policy deployment
-      asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+      asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
       networks
     }
   }

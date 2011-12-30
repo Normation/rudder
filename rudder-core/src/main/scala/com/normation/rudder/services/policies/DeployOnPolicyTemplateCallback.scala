@@ -37,7 +37,7 @@ package com.normation.rudder.services.policies
 import com.normation.cfclerk.domain.PolicyPackageId
 import com.normation.cfclerk.services.ReferenceLibraryUpdateNotification
 import com.normation.rudder.batch.AsyncDeploymentAgent
-import com.normation.rudder.batch.StartDeployment
+import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.log.RudderEventActor
 import net.liftweb.common.Loggable
 
@@ -48,6 +48,6 @@ class DeployOnPolicyTemplateCallback(
 
   override def updatedPolicyPackage(policyPackageIds:Seq[PolicyPackageId]) : Unit = {
     logger.debug("Ask for a deployment since policy template library was reloaded")
-    asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+    asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
   }
 }

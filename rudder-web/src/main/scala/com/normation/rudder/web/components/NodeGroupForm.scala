@@ -41,7 +41,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries.Query
 import net.liftweb.http.LocalSnippet
 import com.normation.rudder.services.policies.DependencyAndDeletionService
-import com.normation.rudder.batch.{AsyncDeploymentAgent,StartDeployment}
+import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import com.normation.rudder.domain.log.RudderEventActor
 
 import net.liftweb.http.js._
@@ -289,7 +289,7 @@ class NodeGroupForm(
         (for {
           deleted <- dependencyService.cascadeDeleteTarget(target, CurrentUser.getActor)
           deploy <- {
-            asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+            asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
             Full("Deployment request sent")
           }
         } yield {
@@ -479,7 +479,7 @@ class NodeGroupForm(
     (for {
       saved <- nodeGroupRepository.update(newNodeGroup, CurrentUser.getActor) ?~! "Error when updating the group %s".format(originalNodeGroup.id)
       deploy <- {
-        asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+        asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
         Full("Deployment request sent")
       }
     } yield {

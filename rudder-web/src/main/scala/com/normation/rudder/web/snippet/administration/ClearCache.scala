@@ -49,7 +49,7 @@ import com.normation.utils.NetUtils.isValidNetwork
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.services.servers.NodeConfigurationService
-import com.normation.rudder.batch.{AsyncDeploymentAgent,StartDeployment}
+import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 
 
 class ClearCache extends DispatchSnippet with Loggable {
@@ -77,7 +77,7 @@ class ClearCache extends DispatchSnippet with Loggable {
           S.error(e.messageChain)
         case Full(set) => 
           logger.debug("Delete node configurations on user clear cache demand: " + set.mkString(", ") )
-          asyncDeploymentAgent ! StartDeployment(CurrentUser.getActor)
+          asyncDeploymentAgent ! AutomaticStartDeployment(CurrentUser.getActor)
           S.notice("Caches were correctly cleaned")
       }
       

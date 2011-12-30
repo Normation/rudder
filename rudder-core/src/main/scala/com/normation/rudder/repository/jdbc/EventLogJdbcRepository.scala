@@ -230,9 +230,11 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
       case "ApplicationStarted" =>
         Full(ApplicationStarted(id, creationDate, severity))
         
-      case "StartDeployement" => 
-        Full(StartDeployement(principal, details, id, creationDate, cause, severity))
-           
+      case "AutomaticStartDeployement" => 
+        Full(AutomaticStartDeployement(principal, details, id, creationDate, cause, severity))
+
+      case "ManualStartDeployement" => 
+        Full(ManualStartDeployement(principal, details, id, creationDate, cause, severity))
       ///////////// configuration rules /////////////
         
       case "ConfigurationRuleAdded" =>
