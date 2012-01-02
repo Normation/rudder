@@ -36,11 +36,8 @@ package com.normation.rudder.repository.xml
 
 import java.io.FileInputStream
 import java.util.regex.Pattern
-
 import scala.collection.JavaConversions.collectionAsScalaIterable
-
 import org.apache.commons.io.FileUtils
-
 import com.normation.rudder.repository.ArchiveId
 import com.normation.rudder.repository.ConfigurationRuleRepository
 import com.normation.rudder.repository.GitConfigurationRuleArchiver
@@ -49,22 +46,39 @@ import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisatio
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
 import com.normation.utils.XmlUtils
-
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
 import net.liftweb.util.Helpers.tryo
+import com.normation.rudder.repository.UserPolicyTemplateRepository
+import com.normation.rudder.repository.GitUserPolicyTemplateArchiver
+import com.normation.rudder.repository.UserPolicyTemplateCategoryRepository
+import com.normation.rudder.repository.GitUserPolicyTemplateCategoryArchiver
+import com.normation.rudder.repository.CategoryAndUPT
 
 
 class ItemArchiveManagerImpl(
-    configurationRuleRepository     : ConfigurationRuleRepository
-  , configurationRuleUnserialisation: ConfigurationRuleUnserialisation
-  , gitConfigurationRuleArchiver    : GitConfigurationRuleArchiver
+    configurationRuleRepository          : ConfigurationRuleRepository
+  , utpCategoryRepository                : UserPolicyTemplateCategoryRepository
+  , uptRepository                        : UserPolicyTemplateRepository
+  , configurationRuleUnserialisation     : ConfigurationRuleUnserialisation
+  , gitConfigurationRuleArchiver         : GitConfigurationRuleArchiver
+  , gitUserPolicyTemplateCategoryArchiver: GitUserPolicyTemplateCategoryArchiver
+  , gitUserPolicyTemplateArchiver        : GitUserPolicyTemplateArchiver
 ) extends ItemArchiveManager with Loggable {
   
   ///// implementation /////
   
   def saveAll(includeSystem:Boolean = false): Box[ArchiveId] = { 
+    for {
+      saveCrs     <- saveConfigurationRules(includeSystem)
+      saveUserLib <- saveUserPolicyLibrary(includeSystem)
+    } yield {
+      saveUserLib
+    }
+  }
+  
+  private[this] def saveConfigurationRules(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for {
       crs         <- configurationRuleRepository.getAll(false)
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitConfigurationRuleArchiver.getRootDirectory) }
@@ -77,6 +91,31 @@ class ItemArchiveManagerImpl(
     }
   }
   
+  private[this] def saveUserPolicyLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
+    for { //ca ne marche pas, il faut les parents, d'ou le rec ci dessous
+      catWithUPT   <- uptRepository.getUPTbyCategory(includeSystem)
+      //remove systems things if asked (both system categories and system upts in non-system categories)
+      okCatWithUPT =  if(includeSystem) catWithUPT
+                      else catWithUPT.collect { 
+                          case (parents, CategoryAndUPT(cat, upts)) if(cat.isSystem == false) => 
+                            (parents, CategoryAndUPT(cat, upts.filter( _.isSystem == false )))
+                      }
+      cleanedRoot <- tryo { FileUtils.cleanDirectory(gitUserPolicyTemplateCategoryArchiver.getRootDirectory) }
+      savedItems  <- sequence(okCatWithUPT.toSeq) { case (parents, CategoryAndUPT(cat, upts)) => 
+                       for {
+                         savedCat  <- gitUserPolicyTemplateCategoryArchiver.archiveUserPolicyTemplateCategory(cat,parents.tail,false)
+                         savedUpts <- sequence(upts.toSeq) { upt =>
+                                        gitUserPolicyTemplateArchiver.archiveUserPolicyTemplate(upt,parents,false)
+                                      }
+                       } yield {
+                         "OK"
+                       }
+                     }
+      commitId    <- gitUserPolicyTemplateCategoryArchiver.commitUserPolicyLibrary
+    } yield {
+      ArchiveId(commitId)
+    }
+  }
   
   def importLastArchive(includeSystem:Boolean = false) : Box[Unit] = {
     

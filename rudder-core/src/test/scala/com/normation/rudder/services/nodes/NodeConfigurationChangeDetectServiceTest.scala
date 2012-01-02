@@ -37,7 +37,6 @@ package com.normation.rudder.services.nodes
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-
 import com.normation.cfclerk.domain._
 import com.normation.inventory.domain.AgentType
 import com.normation.cfclerk.domain._
@@ -51,6 +50,8 @@ import net.liftweb.common._
 import com.normation.cfclerk.domain.PolicyVersion
 import org.joda.time.DateTime
 import com.normation.rudder.repository.UserPolicyTemplateRepository
+import com.normation.rudder.repository.CategoryAndUPT
+import scala.collection.immutable.SortedMap
 
 
 
@@ -73,7 +74,8 @@ class DummyUserPolicyTemplateRepository extends UserPolicyTemplateRepository {
   )
   
   def getUserPolicyTemplate(id:UserPolicyTemplateId) = Failure("Can't call this")
-  
+  def getUPTbyCategory(includeSystem:Boolean = false) : Box[SortedMap[List[UserPolicyTemplateCategoryId], CategoryAndUPT]] = Failure("Can't call this")
+
   def getUserPolicyTemplate(id:PolicyPackageName) = userPtMap.get(id)
   
   def addPolicyTemplateInUserLibrary(

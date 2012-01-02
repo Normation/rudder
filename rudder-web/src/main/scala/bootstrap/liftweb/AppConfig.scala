@@ -96,7 +96,6 @@ import com.normation.rudder.services.marshalling.UserPolicyTemplateSerialisation
 import com.normation.rudder.services.marshalling.PolicyInstanceSerialisation
 import com.normation.rudder.services.marshalling.PolicyInstanceSerialisationImpl
 
-
 /**
  * Spring configuration for services
  */
@@ -293,8 +292,12 @@ class AppConfig extends Loggable {
   @Bean
   def itemArchiveManager = new ItemArchiveManagerImpl(
       ldapConfigurationRuleRepository
+    , ldapUserPolicyTemplateCategoryRepository
+    , ldapUserPolicyTemplateRepository
     , configurationRuleUnserialisation
     , gitConfigurationRuleArchiver
+    , gitUserPolicyTemplateCategoryArchiver
+    , gitUserPolicyTemplateArchiver
   )
   
   ///// end /////

@@ -39,16 +39,38 @@ import com.normation.cfclerk.domain.PolicyPackageName
 import net.liftweb.common._
 import com.normation.cfclerk.domain.PolicyVersion
 import org.joda.time.DateTime
+import scala.collection.immutable.SortedMap
+import com.normation.utils.HashcodeCaching
+
+/**
+ * A simple container for a category 
+ * and its direct children UserPolicyTemplates
+ */
+final case class CategoryAndUPT(
+    category : UserPolicyTemplateCategory
+  , templates: Set[UserPolicyTemplate]
+) extends HashcodeCaching 
 
 
 /**
  * Define action on User policy template with the
  * back-end : save them, retrieve them, etc. 
  */
-
 trait UserPolicyTemplateRepository {
 
-  
+  /**
+   * Get all User policy templates in a map whose index
+   * is the parent category of the template. The map is sorted
+   * by categories:
+   * SortedMap {
+   *   "/"           -> [/_details, Set(UPT1, UPT2)]
+   *   "/cat1"       -> [cat1_details, Set(UPT3)]
+   *   "/cat1/cat11" -> [/cat1/cat11_details, Set(UPT4)]
+   *   "/cat2"       -> [/cat2_details, Set(UPT5)]
+   *   ... 
+   */
+  def getUPTbyCategory(includeSystem:Boolean = false) : Box[SortedMap[List[UserPolicyTemplateCategoryId], CategoryAndUPT]]
+    
   /**
    * Find back an user policy template thanks to its id. 
    * Return Empty if the user policy template is not found, 

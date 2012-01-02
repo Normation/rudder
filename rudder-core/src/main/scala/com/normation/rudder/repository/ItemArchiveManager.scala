@@ -140,6 +140,14 @@ trait GitUserPolicyTemplateCategoryArchiver {
    * Get the root directory where user policy template categories are saved.
    */
   def getRootDirectory : File  
+  
+  /**
+   * Commit modification done in the Git repository for any
+   * category, policy template and policy instance in the
+   * user policy library.
+   * Return the git commit id. 
+   */
+  def commitUserPolicyLibrary : Box[String]
 }
 
 /**

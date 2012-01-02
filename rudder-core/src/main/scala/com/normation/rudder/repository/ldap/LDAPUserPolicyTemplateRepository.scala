@@ -49,7 +49,8 @@ import org.joda.time.DateTime
 import com.normation.cfclerk.domain.PolicyVersion
 import net.liftweb.json.Printer
 import net.liftweb.json.JsonAST
-
+import scala.collection.immutable.SortedMap
+import com.normation.utils.Control.sequence
 
 /**
  * Implementation of the repository for User Policy Templates in 
@@ -110,7 +111,27 @@ class LDAPUserPolicyTemplateRepository(
       policyInstances = piEntries.map(e => mapper.dn2LDAPConfigurationRuleID(e.dn)).toList
     )
   }
+  
     
+  def getUPTbyCategory(includeSystem:Boolean = false) : Box[SortedMap[List[UserPolicyTemplateCategoryId], CategoryAndUPT]] = {
+    import scala.collection.mutable.{Map => MutMap}
+    for {
+      allCats      <- userCategoryRepo.getAllUserPolicyTemplateCategories(includeSystem)
+      catsWithUPs  <- sequence(allCats) { ligthCat =>
+                        for {
+                          category <- userCategoryRepo.getUserPolicyTemplateCategory(ligthCat.id)
+                          parents  <- userCategoryRepo.getParents_UserPolicyTemplateCategory(category.id)
+                          upts     <- sequence(category.items) { uptId => this.getUserPolicyTemplate(uptId) }
+                        } yield {
+                          (category.id :: parents.map(_.id), CategoryAndUPT(category, upts.toSet))
+                        }
+                      }
+    } yield {
+      implicit val ordering = CategoryOrdering
+      SortedMap[List[UserPolicyTemplateCategoryId], CategoryAndUPT]() ++ catsWithUPs
+    }
+  }
+
   def getUserPolicyTemplate(id: UserPolicyTemplateId): Box[UserPolicyTemplate] = { 
     this.getUserPolicyTemplate[UserPolicyTemplateId](id, { id => EQ(A_USER_POLICY_TEMPLATE_UUID, id.value) } )
   }
@@ -155,7 +176,6 @@ class LDAPUserPolicyTemplateRepository(
   def userPolicyTemplateBreadCrump(id: UserPolicyTemplateId): Box[List[UserPolicyTemplateCategory]] = { 
     //find the user policy template entry for that id, and from that, build the parent bread crump
     for {
-      con  <-ldap 
       cat  <- userCategoryRepo.getParentUserPolicyTemplateCategory_forTemplate(id)
       cats <- userCategoryRepo.getParents_UserPolicyTemplateCategory(cat.id)
     } yield {

@@ -129,11 +129,12 @@ class LDAPUserPolicyTemplateCategoryRepository(
    * Return all categories (lightweight version, with no children)
    * @return
    */
-  def getAllUserPolicyTemplateCategories() : Box[Seq[UserPolicyTemplateCategory]] = {
+  def getAllUserPolicyTemplateCategories(includeSystem:Boolean = false) : Box[Seq[UserPolicyTemplateCategory]] = {
     (for {
       con               <- ldap
       rootCategoryEntry <- con.get(rudderDit.POLICY_TEMPLATE_LIB.dn) ?~! "The root category of the user library of policy templates seems to be missing in LDAP directory. Please check its content"
-      entries           =  con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn, AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)),IS(OC_CATEGORY)))
+      filter            =  if(includeSystem) IS(OC_CATEGORY) else AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)),IS(OC_CATEGORY))
+      entries           =  con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn, filter) //double negation is mandatory, as false may not be present
       allEntries        =  entries :+ rootCategoryEntry
       categories        <- boxSequence(allEntries.map(entry => mapper.entry2UserPolicyTemplateCategory(entry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(entry) ))
     } yield {
