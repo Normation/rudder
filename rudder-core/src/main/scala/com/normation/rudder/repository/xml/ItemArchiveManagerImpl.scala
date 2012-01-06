@@ -98,11 +98,13 @@ class ItemArchiveManagerImpl(
       //remove systems things if asked (both system categories and system upts in non-system categories)
       okCatWithUPT =  if(includeSystem) catWithUPT
                       else catWithUPT.collect { 
-                          case (categories, CategoryAndUPT(cat, upts)) if(cat.isSystem == false) => 
+                          //always include root category, even if it's a system one
+                          case (categories, CategoryAndUPT(cat, upts)) if(cat.isSystem == false || categories.size <= 1) => 
                             (categories, CategoryAndUPT(cat, upts.filter( _.isSystem == false )))
                       }
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitUserPolicyTemplateCategoryArchiver.getRootDirectory) }
       savedItems  <- sequence(okCatWithUPT.toSeq) { case (categories, CategoryAndUPT(cat, upts)) => 
+                       val foo = "bar"
                        for {
                          //categories.tail is OK, as no category can have an empty path (id)
                          savedCat  <- gitUserPolicyTemplateCategoryArchiver.archiveUserPolicyTemplateCategory(cat,categories.reverse.tail, gitCommit = false)
