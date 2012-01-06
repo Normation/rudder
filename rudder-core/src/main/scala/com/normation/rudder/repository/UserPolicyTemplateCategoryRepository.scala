@@ -40,6 +40,7 @@ import net.liftweb.common._
 
 /**
  * Here is the ordering for a List[UserPolicyTemplateCategoryId]
+ * MUST start by the root !
  */
 object CategoryOrdering extends Ordering[List[UserPolicyTemplateCategoryId]] {
   type ID = UserPolicyTemplateCategoryId
@@ -47,6 +48,8 @@ object CategoryOrdering extends Ordering[List[UserPolicyTemplateCategoryId]] {
     def recCompare(a:List[ID],b:List[ID]) : Int = {
       (a,b) match {
         case (Nil, Nil) => 0
+        case (Nil, _) => -1
+        case (_ , Nil) => 1
         case (h1 :: t1 , h2 :: t2) => //lexical order on heads, recurse for tails on same head
            if(h1 == h2) recCompare(t1,t2)
            else String.CASE_INSENSITIVE_ORDER.compare(h1.value, h2.value)

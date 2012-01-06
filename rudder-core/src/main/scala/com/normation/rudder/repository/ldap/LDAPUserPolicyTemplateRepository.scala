@@ -123,7 +123,7 @@ class LDAPUserPolicyTemplateRepository(
                           parents  <- userCategoryRepo.getParents_UserPolicyTemplateCategory(category.id)
                           upts     <- sequence(category.items) { uptId => this.getUserPolicyTemplate(uptId) }
                         } yield {
-                          (category.id :: parents.map(_.id), CategoryAndUPT(category, upts.toSet))
+                          ( (category.id :: parents.map(_.id)).reverse, CategoryAndUPT(category, upts.toSet))
                         }
                       }
     } yield {

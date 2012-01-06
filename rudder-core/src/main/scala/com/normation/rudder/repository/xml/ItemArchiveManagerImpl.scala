@@ -94,18 +94,20 @@ class ItemArchiveManagerImpl(
   private[this] def saveUserPolicyLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for { //ca ne marche pas, il faut les parents, d'ou le rec ci dessous
       catWithUPT   <- uptRepository.getUPTbyCategory(includeSystem)
+      cats = catWithUPT.toArray
       //remove systems things if asked (both system categories and system upts in non-system categories)
       okCatWithUPT =  if(includeSystem) catWithUPT
                       else catWithUPT.collect { 
-                          case (parents, CategoryAndUPT(cat, upts)) if(cat.isSystem == false) => 
-                            (parents, CategoryAndUPT(cat, upts.filter( _.isSystem == false )))
+                          case (categories, CategoryAndUPT(cat, upts)) if(cat.isSystem == false) => 
+                            (categories, CategoryAndUPT(cat, upts.filter( _.isSystem == false )))
                       }
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitUserPolicyTemplateCategoryArchiver.getRootDirectory) }
-      savedItems  <- sequence(okCatWithUPT.toSeq) { case (parents, CategoryAndUPT(cat, upts)) => 
+      savedItems  <- sequence(okCatWithUPT.toSeq) { case (categories, CategoryAndUPT(cat, upts)) => 
                        for {
-                         savedCat  <- gitUserPolicyTemplateCategoryArchiver.archiveUserPolicyTemplateCategory(cat,parents.tail,false)
+                         //categories.tail is OK, as no category can have an empty path (id)
+                         savedCat  <- gitUserPolicyTemplateCategoryArchiver.archiveUserPolicyTemplateCategory(cat,categories.reverse.tail, gitCommit = false)
                          savedUpts <- sequence(upts.toSeq) { upt =>
-                                        gitUserPolicyTemplateArchiver.archiveUserPolicyTemplate(upt,parents,false)
+                                        gitUserPolicyTemplateArchiver.archiveUserPolicyTemplate(upt,categories.reverse, gitCommit = false)
                                       }
                        } yield {
                          "OK"
