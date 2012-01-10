@@ -81,7 +81,7 @@ final case class AddNodeGroup(
   , override val severity : Int = 100
 ) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = "NodeGroupAdded"
+  override val eventType = AddNodeGroupEventType
   override val eventLogCategory = NodeGroupLogCategory
   override def copySetCause(causeId:Int) = this
 }
@@ -108,7 +108,7 @@ final case class DeleteNodeGroup(
   , override val severity : Int = 100
 ) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = "NodeGroupDeleted"
+  override val eventType = DeleteNodeGroupEventType
   override val eventLogCategory = NodeGroupLogCategory
   override def copySetCause(causeId:Int) = this
 }
@@ -135,7 +135,7 @@ final case class ModifyNodeGroup(
   , override val severity : Int = 100
 ) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = "NodeGroupModified"
+  override val eventType = ModifyNodeGroupEventType
   override val eventLogCategory = NodeGroupLogCategory
   override def copySetCause(causeId:Int) = this
 }

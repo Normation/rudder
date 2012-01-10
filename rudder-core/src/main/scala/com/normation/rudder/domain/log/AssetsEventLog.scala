@@ -92,7 +92,7 @@ final case class AcceptNodeEventLog (
   
   override val eventLogCategory = AssetLogCategory
   override val cause = None
-  override val eventType = "AcceptNode"
+  override val eventType = AcceptNodeEventType
   override def copySetCause(causeId:Int) = this
 }
 
@@ -121,7 +121,7 @@ final case class RefuseNodeEventLog (
 ) extends InventoryEventLog with HashcodeCaching {
   override val eventLogCategory = AssetLogCategory
   override val cause = None
-  override val eventType = "RefuseNode"
+  override val eventType = RefuseNodeEventType
   override def copySetCause(causeId:Int) = this
 }
 

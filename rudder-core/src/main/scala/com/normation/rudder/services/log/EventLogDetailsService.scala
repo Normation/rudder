@@ -51,6 +51,11 @@ import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisation
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisation
 import com.normation.rudder.services.marshalling.PolicyInstanceUnserialisation
+import com.normation.rudder.batch.SuccessStatus
+import com.normation.rudder.batch.ErrorStatus
+import com.normation.rudder.domain.servers.NodeConfiguration
+import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisation
+import com.normation.rudder.batch.CurrentDeploymentStatus
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -91,7 +96,10 @@ trait EventLogDetailsService {
   
   def getAcceptNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]
   
-  def getRefuseNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]  
+  def getRefuseNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]
+  
+  def getDeploymentStatusDetails(xml:NodeSeq) : Box[CurrentDeploymentStatus]
+  
 }
 
 
@@ -103,6 +111,7 @@ class EventLogDetailsServiceImpl(
   , piUnserialiser   : PolicyInstanceUnserialisation
   , groupUnserialiser: NodeGroupUnserialisation
   , crUnserialiser   : ConfigurationRuleUnserialisation
+  , deploymentStatusUnserialisation : DeploymentStatusUnserialisation
 ) extends EventLogDetailsService {
 
   
@@ -450,6 +459,17 @@ class EventLogDetailsServiceImpl(
         , actorIp          = actorIp
       )
     }
+  }
+  
+  
+  def getDeploymentStatusDetails(xml:NodeSeq) : Box[CurrentDeploymentStatus] = {
+    for {
+      entry        <- getEntryContent(xml)
+      details      <- (entry \ "deploymentStatus").headOption ?~! ("Entry type is not a deploymentStatus: " + entry)
+      deploymentStatus <- deploymentStatusUnserialisation.unserialise(details)
+	} yield {
+	      deploymentStatus
+	}
   }
   
 }

@@ -86,12 +86,12 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
         ".logId *" #> event.id.getOrElse(0).toString &
         ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
         ".logActor *" #> event.principal.name &
-        ".logType *" #> event.eventType &
+        ".logType *" #> event.eventType.serialize &
         ".logCategory *" #> S.?("event.log.category."+event.eventLogCategory.getClass().getSimpleName()) &
         ".logDescription *" #> displayDescription(event) &
         ".logDetails *" #> { 
         	if (event.details != <entry></entry> ) 
-        	  SHtml.a(Text("Details"))(showEventsDetail(event.id.getOrElse(0), event.eventType)) 
+        	  SHtml.a(Text("Details"))(showEventsDetail(event.id.getOrElse(0), event.eventType.serialize)) 
         	else 
         	  NodeSeq.Empty
         	}
@@ -405,6 +405,24 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
           case e:EmptyBox => errorMessage(e)
         })
         
+        
+      ////////// deployment //////////
+        
+      case x:SuccessfulDeployment => 
+       "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
+          case Full(details) =>
+            <div class="evloglmargin"><p>Success deployment:</p>{
+            }</div>
+          case e:EmptyBox => errorMessage(e)
+        })
+        
+      case x:FailedDeployment => 
+       "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
+          case Full(details) =>
+            <div class="evloglmargin"><p>Failed deployment:</p>{
+            }</div>
+          case e:EmptyBox => errorMessage(e)
+        })
         
       // other case: do not display details at all
       case _ => "*" #> ""

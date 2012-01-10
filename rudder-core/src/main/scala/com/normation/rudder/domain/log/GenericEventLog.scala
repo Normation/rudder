@@ -48,7 +48,7 @@ final case class ApplicationStarted(
 ) extends EventLog with HashcodeCaching {
   override val cause = None
   override val principal = RudderEventActor
-  override val eventType = "ApplicationStarted"
+  override val eventType = ApplicationStartedEventType
   override def details = EventLog.emptyDetails
   override val eventLogCategory = RudderApplicationLogCategory
   override def copySetCause(causeId:Int) = this
@@ -65,7 +65,7 @@ final case class ActivateRedButton(
   , override val severity : Int = 100
 ) extends EventLog with HashcodeCaching {
   
-  override val eventType = "ActivateRedButton"
+  override val eventType = ActivateRedButtonEventType
   override def details = EventLog.emptyDetails
   override val eventLogCategory = RedButtonLogCategory
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
@@ -79,7 +79,7 @@ final case class ReleaseRedButton(
   , override val severity : Int = 100
 ) extends EventLog with HashcodeCaching {
   
-  override val eventType = "ReleaseRedButton"
+  override val eventType = ReleaseRedButtonEventType
   override def details= EventLog.emptyDetails
   override val eventLogCategory = RedButtonLogCategory
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))

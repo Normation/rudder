@@ -53,7 +53,7 @@ final case class AddConfigurationRule(
   , override val severity : Int = 100
 ) extends ConfigurationRuleEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = "ConfigurationRuleAdded"
+  override val eventType = AddConfigurationRuleEventType
   override val eventLogCategory = ConfigurationRuleLogCategory
   override def copySetCause(causeId:Int) = this
 }
@@ -66,7 +66,7 @@ final case class DeleteConfigurationRule(
   , override val severity : Int = 100
 ) extends ConfigurationRuleEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = "ConfigurationRuleDeleted"
+  override val eventType = DeleteConfigurationRuleEventType
   override val eventLogCategory = ConfigurationRuleLogCategory
   override def copySetCause(causeId:Int) = this
 }
@@ -79,7 +79,7 @@ final case class ModifyConfigurationRule(
   , override val severity : Int = 100
 ) extends ConfigurationRuleEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = "ConfigurationRuleModified"
+  override val eventType = ModifyConfigurationRuleEventType
   override val eventLogCategory = ConfigurationRuleLogCategory
   override def copySetCause(causeId:Int) = this
 }

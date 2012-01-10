@@ -53,7 +53,7 @@ final case class LoginEventLog(
   , severity : Int = 100
 ) extends UserEventLog with HashcodeCaching {
   
-  override val eventType = "UserLogin"
+  override val eventType = LoginEventType
   override val eventLogCategory = UserLogCategory
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
 }
@@ -66,7 +66,7 @@ final case class BadCredentialsEventLog(
   , severity : Int = 100
 ) extends UserEventLog with HashcodeCaching {
 
-  override val eventType = "BadCredentials"
+  override val eventType = BadCredentialsEventType
   override val eventLogCategory = UserLogCategory
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
 }
@@ -80,7 +80,7 @@ final case class LogoutEventLog(
   , severity : Int = 100
 ) extends UserEventLog with HashcodeCaching {
   
-  override val eventType = "UserLogout"
+  override val eventType = LogoutEventType
   override val eventLogCategory = UserLogCategory
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
 }
