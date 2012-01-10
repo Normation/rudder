@@ -41,6 +41,7 @@ import com.normation.rudder.domain.policies.UserPolicyTemplate
 import com.normation.cfclerk.domain.PolicyPackageName
 import com.normation.rudder.domain.policies.PolicyInstance
 import com.normation.cfclerk.domain.SectionSpec
+import com.normation.rudder.batch.CurrentDeploymentStatus
 
 ///**
 // * That trait allow to serialise 
@@ -222,4 +223,23 @@ trait PolicyInstanceSerialisation {
       ptName             : PolicyPackageName
     , variableRootSection: SectionSpec
     , pi                 : PolicyInstance):  Elem
+}
+
+/**
+ * That trait allows to serialise deployment status to an XML data
+ */
+trait DeploymentStatusSerialisation {
+  /**
+   * Version 1:
+     <deploymentStatus fileFormat="1.0">
+      <id>{deploymentStatus.id.value}</id>
+      <started>{deploymentStatus.started}</started>
+      <ended>{deploymentStatus.end}</ended>
+      <status>[success|failure]</status>
+      <errorMessage>{errorStatus.failure]</errorMessage>
+  	</deploymentStatus>
+  */
+  def serialise(
+      deploymentStatus : CurrentDeploymentStatus) : Elem
+  
 }

@@ -95,6 +95,9 @@ import com.normation.rudder.services.marshalling.UserPolicyTemplateSerialisation
 import com.normation.rudder.services.marshalling.UserPolicyTemplateSerialisationImpl
 import com.normation.rudder.services.marshalling.PolicyInstanceSerialisation
 import com.normation.rudder.services.marshalling.PolicyInstanceSerialisationImpl
+import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
+import com.normation.rudder.services.marshalling.DeploymentStatusSerialisationImpl
+import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisationImpl
 
 /**
  * Spring configuration for services
@@ -250,7 +253,10 @@ class AppConfig extends Loggable {
   @Bean 
   def policyInstanceSerialisation: PolicyInstanceSerialisation = 
     new PolicyInstanceSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
-  
+
+  @Bean
+  def deploymentStatusSerialisation : DeploymentStatusSerialisation =
+    new DeploymentStatusSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
   ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
   
   @Bean
@@ -309,7 +315,7 @@ class AppConfig extends Loggable {
   def logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
 
   @Bean
-  def logService = new EventLogServiceImpl(logRepository)
+  def logService = new EventLogServiceImpl(logRepository, eventLogDetailsService)
 
   @Bean
   def inventoryLogEventService: InventoryEventLogService = new InventoryEventLogServiceImpl(logRepository)
@@ -584,20 +590,23 @@ class AppConfig extends Loggable {
   @Bean
   def asyncDeploymentAgent: AsyncDeploymentAgent = {
     val agent = new AsyncDeploymentAgent(new DeploymentServiceImpl(
-      ldapConfigurationRuleRepository,
-      configurationRuleValService,
-      new ParameterizedValueLookupServiceImpl(
-        nodeInfoService,
-        policyInstanceTargetService,
-        ldapConfigurationRuleRepository,
-        configurationRuleValService),
-      systemVariableService,
-      policyInstanceTargetService,
-      serverService,
-      nodeInfoService,
-      nodeConfigurationChangeDetectService,
-      reportingService,
-      historizationService), logService, autoDeployOnModification)
+		      ldapConfigurationRuleRepository,
+		      configurationRuleValService,
+		      new ParameterizedValueLookupServiceImpl(
+		        nodeInfoService,
+		        policyInstanceTargetService,
+		        ldapConfigurationRuleRepository,
+		        configurationRuleValService),
+		      systemVariableService,
+		      policyInstanceTargetService,
+		      serverService,
+		      nodeInfoService,
+		      nodeConfigurationChangeDetectService,
+		      reportingService,
+		      historizationService)
+    	, logService
+    	, autoDeployOnModification
+    	, deploymentStatusSerialisation)
     policyPackageService.registerCallback(
         new DeployOnPolicyTemplateCallback("DeployOnPTLibUpdate", agent)
     )
@@ -710,13 +719,17 @@ class AppConfig extends Loggable {
   
   @Bean
   def configurationRuleUnserialisation = new ConfigurationRuleUnserialisationImpl
-  
+ 
+  @Bean
+  def deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
+ 
   @Bean 
   def eventLogDetailsService : EventLogDetailsService = new EventLogDetailsServiceImpl(
       queryParser
     , new PolicyInstanceUnserialisationImpl
     , new NodeGroupUnserialisationImpl(queryParser)
     , new ConfigurationRuleUnserialisationImpl
+    , new DeploymentStatusUnserialisationImpl
   )
   
   @Bean

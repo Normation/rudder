@@ -52,6 +52,11 @@ import com.normation.rudder.domain.policies.ConfigurationRuleId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.batch.CurrentDeploymentStatus
+import org.joda.time.format.ISODateTimeFormat
+import com.normation.rudder.batch.SuccessStatus
+import com.normation.rudder.batch.ErrorStatus
+import com.normation.rudder.batch.NoStatus
 
 /**
  * That trait allow to unserialise 
@@ -157,6 +162,28 @@ trait ConfigurationRuleUnserialisation {
       </configurationRule>
    */
   def unserialise(xml:XNode) : Box[ConfigurationRule]
+}
+
+trait DeploymentStatusUnserialisation {
+  /**
+   * version 1:
+   * <deploymentStatus fileFormat="1.0">
+      		<id>{d.id}</id>
+      		<started>{d.started}</started>
+      		<ended>{d.ended}</ended>
+      		<status>success</status>
+     </deploymentStatus>
+  	 
+  	 <deploymentStatus fileFormat="1.0">
+      		<id>{d.id}</id>
+      		<started>{d.started}</started>
+      		<ended>{d.ended}</ended>
+      		<status>failure</status>
+      		<errorMessage>{d.failure}</errorMessage>
+     </deploymentStatus>
+   */
+  def unserialise(xml:XNode) : Box[CurrentDeploymentStatus]
+  
 }
 
 
@@ -318,5 +345,38 @@ class ConfigurationRuleUnserialisationImpl extends ConfigurationRuleUnserialisat
       )
     }    
   }
+}
+
+class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisation {
+  def unserialise(entry:XNode) : Box[CurrentDeploymentStatus] = {
+    for {
+      depStatus		   <- {
+    	  					if(entry.label ==  "deploymentStatus") Full(entry)
+                            else Failure("Entry type is not a deploymentStatus: " + entry)
+                          }
+      fileFormatOk     <- {
+                            if(depStatus.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
+                            else Failure("Bad fileFormat (expecting 1.0): " + entry)
+                          }        
+      id               <- (depStatus \ "id").headOption.flatMap(s => tryo {s.text.toInt } ) ?~! ("Missing attribute 'id' in entry type deploymentStatus : " + entry)
+      status           <- (depStatus \ "status").headOption.map( _.text ) ?~! ("Missing attribute 'status' in entry type deploymentStatus : " + entry)
+
+      started          <- (depStatus \ "started").headOption.flatMap(s => tryo { ISODateTimeFormat.dateTimeParser.parseDateTime(s.text) } ) ?~! ("Missing or bad attribute 'started' in entry type deploymentStatus : " + entry)
+      ended            <- (depStatus \ "ended").headOption.flatMap(s => tryo { ISODateTimeFormat.dateTimeParser.parseDateTime(s.text) } ) ?~! ("Missing or bad attribute 'ended' in entry type deploymentStatus : " + entry)
+      errorMessage	   <- (depStatus \ "errorMessage").headOption match {
+        					case None => Full(None)
+                            case Some(s) => 
+                              if(s.text.size == 0) Full(None)
+                              else Full(Some(s.text))
+      						}
+    } yield {
+      status match {
+        case "success" => SuccessStatus(id, started, ended, Map())
+        case "failure" => ErrorStatus(id, started, ended, errorMessage.map(x => Failure(x)).getOrElse(Failure("")) )
+        case s 		   => NoStatus
+      }
+    }
+  }
+  
 }
 

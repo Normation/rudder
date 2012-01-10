@@ -57,6 +57,7 @@ import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
 import com.normation.rudder.domain.policies.UserPolicyTemplate
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.cfclerk.domain.SectionSpec
+import com.normation.rudder.batch.{CurrentDeploymentStatus,SuccessStatus,ErrorStatus}
 
 
 ////////////////////// implementations //////////////////////
@@ -276,6 +277,37 @@ class PolicyInstanceSerialisationImpl(xmlVersion:String) extends PolicyInstanceS
         <isSystem>{pi.isSystem}</isSystem>
       </policyInstance>
     ) match {
+      case e:Elem => e
+      case x => throw new TechnicalException("Bad returned type for xml.trim. Awaiting an Elem, got: " + x)
+    }
+  }
+}
+
+/**
+ * That trait allows to serialise deployment status to an XML data
+ */
+class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentStatusSerialisation {
+  def serialise(
+      deploymentStatus : CurrentDeploymentStatus) : Elem = {
+   scala.xml.Utility.trim( 
+    deploymentStatus match {
+      case d : SuccessStatus => <deploymentStatus fileFormat="1.0">
+      		<id>{d.id}</id>
+      		<started>{d.started}</started>
+      		<ended>{d.ended}</ended>
+      		<status>success</status>
+      	 </deploymentStatus>
+      case d : ErrorStatus => <deploymentStatus fileFormat="1.0">
+      		<id>{d.id}</id>
+      		<started>{d.started}</started>
+      		<ended>{d.ended}</ended>
+      		<status>failure</status>
+      		<errorMessage>{d.failure}</errorMessage>
+      	 </deploymentStatus>
+      case _ => throw new TechnicalException("Bad CurrentDeploymentStatus type, expected a success or an error")
+    }
+    
+   ) match {
       case e:Elem => e
       case x => throw new TechnicalException("Bad returned type for xml.trim. Awaiting an Elem, got: " + x)
     }

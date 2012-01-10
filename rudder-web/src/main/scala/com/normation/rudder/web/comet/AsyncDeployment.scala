@@ -48,6 +48,13 @@ import org.joda.time.Duration
 import org.joda.time.format.PeriodFormatterBuilder
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.services.log.EventLogDeploymentService
+import com.normation.eventlog.EventLog
+import com.normation.rudder.domain.log.ModificationWatchList
+import com.normation.eventlog.UnspecializedEventLog
+import com.normation.rudder.domain.log.RudderEventActor
+import org.joda.time.DateTime
+import net.liftweb.common.EmptyBox
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
   
@@ -67,24 +74,53 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     else periodFormatter.print(duration.toPeriod)
   }
   
-  private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
+  private[this] val asyncDeploymentAgent 	  = inject[AsyncDeploymentAgent]
+  private[this] val eventLogDeploymentService = inject[EventLogDeploymentService]
 
   //current states of the deployment
   private[this] var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
-  
+
+  // the last deployment data
+  private[this] var lastSuccessfulDeployement : Box[EventLog] = eventLogDeploymentService.getLastSuccessfulDeployement()
+  private[this] var lastEventSinceDeployment : Box[Seq[EventLog]] = Empty
+    
   override def registerWith = asyncDeploymentAgent
   
   override def lowPriority = {
-    case d:DeploymentStatus => deploymentStatus = d ; reRender()
+    case d:DeploymentStatus => deploymentStatus = d ; computeHistoricOfChange; reRender()
   }
   
   override def render = {
     new RenderOut(( 
       ClearClearable &
       "#deploymentLastStatus *" #> lastStatus &
-      "#deploymentProcessing *" #> currentStatus
+      "#deploymentProcessing *" #> currentStatus 
     )(layout) , JsRaw("""$("button.deploymentButton").button();  """))
   }
+  
+  private[this] def computeHistoricOfChange = {
+    asyncDeploymentAgent.isAutoDeploy match {
+      case true => 
+      case false => 
+        deploymentStatus.processing match {
+        	case IdleDeployer =>
+        		lastSuccessfulDeployement  = eventLogDeploymentService.getLastSuccessfulDeployement()
+        		lastSuccessfulDeployement match {
+        			case f: EmptyBox => 
+        			  lastEventSinceDeployment = eventLogDeploymentService.getListOfModificationEvents(
+        			      UnspecializedEventLog(Some(-1), RudderEventActor, DateTime.now, None, 0, <entry/>) )
+        			case Full(event) =>
+        			  lastEventSinceDeployment = eventLogDeploymentService.getListOfModificationEvents(event)
+        		}
+        		
+        		
+        	case _ => // if it's a deployment, nothing to do
+        	
+        }
+    }
+  }
+  
+  
   
   private[this] def lastStatus : NodeSeq = {
     deploymentStatus.current match {
@@ -110,21 +146,30 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   private[this] def currentStatus : NodeSeq = {
     deploymentStatus.processing match {
       case IdleDeployer =>
-        SHtml.ajaxButton("Regenerate now", { () => 
-          asyncDeploymentAgent ! ManualStartDeployment(CurrentUser.getActor)
-          Noop
-        }, ( "class" , "deploymentButton")) 
+        { asyncDeploymentAgent.isAutoDeploy match {
+          case true =>  NodeSeq.Empty
+          case false => lastEventSinceDeployment match {
+        		case f: Failure => <span class="errorscala">Cannot fetch modification since last deployment</span>
+        		case Empty => <span>There are no modification pending</span>
+        		case Full(seq) if seq.size == 0 => <span>There are no modification pending</span>
+        		case Full(seq) if seq.size == 1 => <span>There is 1 modification pending</span>
+        		case Full(seq) if seq.size > 1 => <span>There are {seq.size} modifications pending</span>
+            }
+        } } ++ SHtml.ajaxButton("Regenerate now", { () => 
+        		asyncDeploymentAgent ! ManualStartDeployment(CurrentUser.getActor)
+        		Noop
+        	}, ( "class" , "deploymentButton"))
       case Processing(id, start) =>
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
           Generating configuration rules (started at {DateFormaterService.getFormatedDate(start)})
         </span>
-      case ProcessingAndPendingAuto(asked, Processing(id, start)) => 
+      case ProcessingAndPendingAuto(asked, Processing(id, start), actor, logId) => 
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
           Generating configuration rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
         </span>
-      case ProcessingAndPendingManual(asked, Processing(id, start)) => 
+      case ProcessingAndPendingManual(asked, Processing(id, start), actor, logId) => 
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
           Generating configuration rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
