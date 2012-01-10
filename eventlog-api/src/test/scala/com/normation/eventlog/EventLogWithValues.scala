@@ -36,7 +36,7 @@ final case class EventLogWithValues(
     override val cause : Option[Int] = None,
     override val severity : Int = 100
 ) extends EventLog with HashcodeCaching {
-  override val eventType = "Dummy"
+  override val eventType = DummyEventLogType
   override val eventLogCategory = DummyEventLogCategory
   override def details =     
     <Entry>
@@ -45,5 +45,10 @@ final case class EventLogWithValues(
     </Entry>
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
 
+}
+
+
+object DummyEventLogType extends EventLogType {
+  def serialize = "dummy"
 }
 
