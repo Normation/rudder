@@ -52,6 +52,7 @@ import net.liftweb.json._
 import JsonDSL._
 import com.normation.cfclerk.domain._
 import org.joda.time.DateTime 
+import com.normation.rudder.repository.UserPolicyLibraryArchiveId
 
 class CATEGORY(
     uuid: String,
@@ -92,7 +93,26 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   dit => 
   implicit val DIT = dit
   
+  /**
+   * Create a new category for the user policy library
+   */
+  def userPolicyTemplateCategory(
+      uuid       : String
+    , parentDN   : DN
+    , name       : String = ""
+    , description: String = ""
+  ) : CATEGORY = {
+    new CATEGORY(
+        uuid            = uuid
+      , name            = name
+      , description     = description
+      , parentDN        = parentDN
+      , objectClass     = OC_CATEGORY
+      , objectClassUuid = A_CATEGORY_UUID
+    )
+  }
   
+  //here, we can't use userPolicyTemplateCategory because we want a subclass
   val POLICY_TEMPLATE_LIB = new CATEGORY(
       uuid = "UserPolicyTemplateLibraryRoot",
       parentDN = BASE_DN,
@@ -125,8 +145,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     /**
      * Return a new sub category 
      */
-    def userPolicyTemplateCategoryModel(uuid:String, parentDN:DN) : LDAPEntry = new CATEGORY(uuid, parentDN,objectClass = OC_CATEGORY,
-      objectClassUuid = A_CATEGORY_UUID).model
+    def userPolicyTemplateCategoryModel(uuid:String, parentDN:DN) : LDAPEntry = userPolicyTemplateCategory(uuid, parentDN).model
     
     /**
      * Create a new user policy template entry
@@ -360,6 +379,13 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       crArchiveId : CRArchiveId
     ) : LDAPEntry = {
       (new OU("ConfigurationRules-" + crArchiveId.value, archives.dn)).model
+    }
+    
+    def userLibDN(id:UserPolicyLibraryArchiveId) : DN = {
+      userPolicyTemplateCategory(
+          uuid     = "UserPolicyLibrary-" + id.value
+        , parentDN = archives.dn
+      ).model.dn
     }
   
   }

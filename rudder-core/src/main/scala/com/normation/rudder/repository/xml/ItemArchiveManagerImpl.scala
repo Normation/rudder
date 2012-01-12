@@ -46,15 +46,20 @@ import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisatio
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
 import com.normation.utils.XmlUtils
-import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Loggable
+import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
 import com.normation.rudder.repository.UserPolicyTemplateRepository
 import com.normation.rudder.repository.GitUserPolicyTemplateArchiver
 import com.normation.rudder.repository.UserPolicyTemplateCategoryRepository
 import com.normation.rudder.repository.GitUserPolicyTemplateCategoryArchiver
 import com.normation.rudder.repository.CategoryAndUPT
+import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
+import com.normation.rudder.domain.policies.UserPolicyTemplate
+import java.io.File
+import com.normation.rudder.domain.policies.PolicyInstance
+import net.liftweb.common.Full
+import com.normation.rudder.repository.ImportPolicyLibrary
+import com.normation.rudder.repository.ParsePolicyLibrary
 
 
 class ItemArchiveManagerImpl(
@@ -65,6 +70,8 @@ class ItemArchiveManagerImpl(
   , gitConfigurationRuleArchiver         : GitConfigurationRuleArchiver
   , gitUserPolicyTemplateCategoryArchiver: GitUserPolicyTemplateCategoryArchiver
   , gitUserPolicyTemplateArchiver        : GitUserPolicyTemplateArchiver
+  , parsePolicyLibrary                   : ParsePolicyLibrary
+  , imporPolicyLibrary                   : ImportPolicyLibrary
 ) extends ItemArchiveManager with Loggable {
   
   ///// implementation /////
@@ -77,6 +84,39 @@ class ItemArchiveManagerImpl(
       saveUserLib
     }
   }
+  
+  def importLastArchive(includeSystem:Boolean = false) : Box[Unit] = {
+    for {
+      configurationRules <- importLastConfigurationRules(includeSystem)
+      userLib            <- importPolicyLibrary(includeSystem)
+    } yield {
+      configurationRules
+    }
+  }
+
+    
+  private[this] def importLastConfigurationRules(includeSystem:Boolean = false) : Box[Unit] = {
+    for {
+      files <- tryo { FileUtils.listFiles(gitConfigurationRuleArchiver.getRootDirectory,null,false).filter { f => isXmlUuid(f.getName) } }
+      xmls  <- sequence(files.toSeq) { file =>
+                 XmlUtils.parseXml(new FileInputStream(file), Some(file.getPath))
+               }
+      crs   <- sequence(xmls) { xml =>
+                 configurationRuleUnserialisation.unserialise(xml)
+               }
+      swap  <- configurationRuleRepository.swapConfigurationRules(crs)
+    } yield {
+      //try to clean
+      configurationRuleRepository.deleteSavedCr(swap) match {
+        case eb:EmptyBox =>
+          val e = eb ?~! ("Error when trying to delete saved archive of old cr: " + swap)
+          logger.error(e)
+        case _ => //ok
+      }
+      crs
+    }
+  }
+
   
   private[this] def saveConfigurationRules(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for {
@@ -121,28 +161,16 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  def importLastArchive(includeSystem:Boolean = false) : Box[Unit] = {
-    
-    for {
-      files <- tryo { FileUtils.listFiles(gitConfigurationRuleArchiver.getRootDirectory,null,false).filter { f => isXmlUuid(f.getName) } }
-      xmls  <- sequence(files.toSeq) { file =>
-                 XmlUtils.parseXml(new FileInputStream(file), Some(file.getPath))
-               }
-      crs   <- sequence(xmls) { xml =>
-                 configurationRuleUnserialisation.unserialise(xml)
-               }
-      swap  <- configurationRuleRepository.swapConfigurationRules(crs)
-    } yield {
-      //try to clean
-      configurationRuleRepository.deleteSavedCr(swap) match {
-        case eb:EmptyBox =>
-          val e = eb ?~! ("Error when trying to delete saved archive of old cr: " + swap)
-          logger.error(e)
-        case _ => //ok
+  
+  private[this] def importPolicyLibrary(includeSystem:Boolean) : Box[Unit] = {
+      for {
+        parsed   <- parsePolicyLibrary.parse
+        imported <- imporPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
+      } yield {
+        imported
       }
-      crs
-    }
   }
+  
   
   ///// utility methods /////
     
