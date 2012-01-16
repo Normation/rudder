@@ -42,8 +42,57 @@ import com.normation.rudder.repository._
 import net.liftweb.common._
 import scala.collection._
 import com.normation.utils.Control.sequence
+import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisation
+import com.normation.rudder.batch.CurrentDeploymentStatus
+import com.normation.rudder.domain.log.ModificationWatchList
+import com.normation.rudder.domain.log.SuccessfulDeploymentEventType
+import com.normation.rudder.domain.log.FailedDeploymentEventType
 
-class EventLogServiceImpl(repository : EventLogRepository) extends EventLogService {
+
+trait EventLogDeploymentService {
+  def repository : EventLogRepository
+  def eventLogDetailsService : EventLogDetailsService
+  
+  /**
+   * Fetch the last deployment (may it be failure or success)
+   */
+  def getLastDeployement() : Box[CurrentDeploymentStatus] = {
+    repository.getEventLogByCriteria(Some("eventtype in ('" + SuccessfulDeploymentEventType.serialize +"', '"+FailedDeploymentEventType.serialize +"')"), Some(1), Some("creationdate desc") ) match {
+      case Full(seq) if seq.size > 1 => Failure("Too many answer from last deployment")
+      case Full(seq) if seq.size == 1 => 
+        eventLogDetailsService.getDeploymentStatusDetails(seq.head.details)
+      case Full(seq) if seq.size == 0 => Empty
+      case f: EmptyBox => f
+    }
+  }
+  
+  /**
+   * Fetch the last successful deployment (which may be empty)
+   */
+  def getLastSuccessfulDeployement() : Box[EventLog] = {
+    repository.getEventLogByCriteria(Some("eventtype = '"+SuccessfulDeploymentEventType.serialize +"'"), Some(1), Some("creationdate desc") ) match {
+      case Full(seq) if seq.size > 1 => Failure("Too many answer from last deployment")
+      case Full(seq) if seq.size == 1 => Full(seq.head)
+      case Full(seq) if seq.size == 0 => Empty
+      case f: EmptyBox => f
+    }
+  }
+  
+  /**
+   * Return the list of event corresponding at a modification since last successful deployement
+   * 
+   */
+  def getListOfModificationEvents(lastSuccess : EventLog) = {
+    val eventList = ModificationWatchList.events.map("'"+_.serialize+"'").mkString(",")
+    
+    repository.getEventLogByCriteria(Some("eventtype in (" +eventList+ ") and id > " +lastSuccess.id.get ), None, None )
+  }
+  
+}
+
+class EventLogServiceImpl(
+    override val repository : EventLogRepository
+  , override val eventLogDetailsService : EventLogDetailsService) extends EventLogDeploymentService with EventLogService {
 
   /**
    * Save an entry 

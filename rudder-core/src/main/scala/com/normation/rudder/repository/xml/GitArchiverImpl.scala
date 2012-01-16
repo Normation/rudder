@@ -63,10 +63,7 @@ import com.normation.rudder.services.marshalling.UserPolicyTemplateCategorySeria
 import com.normation.rudder.services.marshalling.UserPolicyTemplateSerialisation
 import com.normation.utils.Utils
 import com.normation.utils.Control.sequence
-import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
+import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
 import com.normation.cfclerk.domain.PolicyPackage
 import com.normation.cfclerk.services.PolicyPackageService
@@ -96,17 +93,15 @@ trait GitCommitModification extends Loggable {
     } 
   }
   
+  private[this] final lazy val git = new Git(gitRepo.db)
+  
   /**
-   * You can pass an other file path to the command. In that case, that file
-   * will be considered for a move, and will be considered as a deleted one.
+   * Files in gitPath are added. 
+   * commitMessage is used for the message of the commit. 
    */
-  def commitAddFile(gitPath:String, commitMessage:String, renamedFile:Option[String]=None) = {
-    val git = new Git(gitRepo.db)
+  def commitAddFile(gitPath:String, commitMessage:String) = synchronized {
     tryo {
       git.add.addFilepattern(gitPath).call
-      renamedFile.foreach { renamed => 
-        git.rm.addFilepattern(renamed).call
-      }
       val status = git.status.call
       if(status.getAdded.contains(gitPath)||status.getChanged.contains(gitPath)) {
         git.commit.setMessage(commitMessage).call
@@ -115,8 +110,11 @@ trait GitCommitModification extends Loggable {
     }
   }
   
-  def commitRmFile(gitPath:String, commitMessage:String) = {
-    val git = new Git(gitRepo.db)
+  /**
+   * Files in gitPath are removed. 
+   * commitMessage is used for the message of the commit. 
+   */
+  def commitRmFile(gitPath:String, commitMessage:String) = synchronized {
     tryo {
       git.rm.addFilepattern(gitPath).call
       val status = git.status.call
@@ -127,8 +125,14 @@ trait GitCommitModification extends Loggable {
     }
   }
   
-  def commitMvDirectory(oldGitPath:String, newGitPath:String, commitMessage:String) = {
-    val git = new Git(gitRepo.db)
+  /**
+   * Commit files in oldGitPath and newGitPath, trying to commit them so that
+   * git is aware of moved from old files to new ones. 
+   * More preciselly, files in oldGitPath are 'git rm', files in newGitPath are
+   * 'git added' (with and without the 'update' mode). 
+   * commitMessage is used for the message of the commit. 
+   */
+  def commitMvDirectory(oldGitPath:String, newGitPath:String, commitMessage:String) = synchronized {
     tryo {
       git.rm.addFilepattern(oldGitPath).call
       git.add.addFilepattern(newGitPath).call
@@ -138,6 +142,20 @@ trait GitCommitModification extends Loggable {
         git.commit.setMessage(commitMessage).call
         newArchiveId
       } else throw new Exception("Auto-archive git failure when moving directory (not found in added file): " + newGitPath)
+    }
+  }
+  
+  /**
+   * Commit all the modifications for files under the given path.
+   * The commitMessage is used in the commit. 
+   */
+  def commitFullGitPathContent(gitPath:String, commitMessage:String) : Box[String] = synchronized {
+    tryo {
+      //remove existing and add modified
+      git.add.setUpdate(true).addFilepattern(gitPath).call
+      //also add new one
+      git.add.addFilepattern(gitPath).call
+      git.commit.setMessage(commitMessage).call.name
     }
   }
   
@@ -181,16 +199,10 @@ class GitConfigurationRuleArchiverImpl(
   }
 
   def commitConfigurationRules() : Box[String] = {
-    val git = new Git(gitRepo.db)
-    val archiveId = ArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
-
-    tryo {
-      //remove existing and add modified
-      git.add.setUpdate(true).addFilepattern(configurationRuleRootDir).call
-      //also add new one
-      git.add.addFilepattern(configurationRuleRootDir).call
-      git.commit.setMessage("Archive configuration rules on '%s'".format(archiveId.value)).call.name
-    }
+    this.commitFullGitPathContent(
+        configurationRuleRootDir
+      , "Commit all modification done on configuration rules (git path: '%s')".format(configurationRuleRootDir)
+    )
   }
   
   def deleteConfigurationRule(crId:ConfigurationRuleId, gitCommitCr:Boolean = true) : Box[File] = {
@@ -216,8 +228,35 @@ class GitConfigurationRuleArchiverImpl(
   
 }
 
+
+/**
+ * An Utility trait that allows to build the path from a root directory
+ * to the category directory from a list of category ids.
+ * Basically, it builds the list of directory has path, special casing
+ * the root directory to be the given root file. 
+ */
+trait BuildCategoryPathName {
+  //obtain the root directory from the main class mixed with me
+  def getRootDirectory : File
+  
+  //list of directories : don't forget the one for the serialized category. 
+  //revert the order to start by the root of policy library. 
+  def newCategoryDirectory(uptcId:UserPolicyTemplateCategoryId, parents: List[UserPolicyTemplateCategoryId]) : File = {
+    parents match {
+      case Nil => //that's the root
+        getRootDirectory
+      case h::tail => //skip the head, which is the root category
+        new File(newCategoryDirectory(h, tail), uptcId.value)
+    }
+  }  
+}
+
 /**
  * A specific trait to create archive of an user policy template category.
+ * 
+ * Basically, we directly map the category tree to file-system directories,
+ * with the root category being the file denoted by "policyLibraryRootDir"
+ * 
  */
 class GitUserPolicyTemplateCategoryArchiverImpl(
     override val gitRepo                   : GitRepositoryProvider
@@ -226,15 +265,12 @@ class GitUserPolicyTemplateCategoryArchiverImpl(
   , policyLibraryRootDir                   : String //relative path !
   , xmlPrettyPrinter                       : PrettyPrinter
   , encoding                               : String = "UTF-8"
-) extends GitUserPolicyTemplateCategoryArchiver with Loggable with GitCommitModification {
+) extends GitUserPolicyTemplateCategoryArchiver with Loggable with GitCommitModification with BuildCategoryPathName {
 
   override lazy val relativePath = policyLibraryRootDir
   
   private[this] def newUptcFile(uptcId:UserPolicyTemplateCategoryId, parents: List[UserPolicyTemplateCategoryId]) = {
-    //list of directories : don't forget the one for the serialized category. 
-    //revert the order to start by the root of policy library. 
-    val directories = ( uptcId.value  /: parents) { case (path,catId) => catId.value + "/" + path  }
-    new File(getRootDirectory, directories + "/category.xml") 
+    new File(newCategoryDirectory(uptcId, parents), "category.xml") 
   }
   
   private[this] def archiveWithRename(uptc:UserPolicyTemplateCategory, oldParents: Option[List[UserPolicyTemplateCategoryId]], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File] = {     
@@ -255,7 +291,7 @@ class GitUserPolicyTemplateCategoryArchiverImpl(
                       oldParents match {
                         case Some(olds) => 
                           val oldPath = toGitPath(newUptcFile(uptc.id, olds))
-                          commitAddFile(uptcGitPath, "Move archive of policy library category with ID '%s'".format(uptc.id.value), Some(oldPath))
+                          commitMvDirectory(oldPath, uptcGitPath, "Move archive of policy library category with ID '%s'".format(uptc.id.value))
                         case None       => 
                           commitAddFile(uptcGitPath, "Archive of policy library category with ID '%s'".format(uptc.id.value))
                       }
@@ -302,6 +338,19 @@ class GitUserPolicyTemplateCategoryArchiverImpl(
     } yield {
       archived
     }
+  }
+  
+  /**
+   * Commit modification done in the Git repository for any
+   * category, policy template and policy instance in the
+   * user policy library.
+   * Return the git commit id. 
+   */
+  def commitUserPolicyLibrary : Box[String] = {
+    this.commitFullGitPathContent(
+        policyLibraryRootDir
+      , "Commit all modification done in the User Policy Library (git path: '%s')".format(policyLibraryRootDir)
+    )
   }
 }
 
@@ -371,18 +420,21 @@ class GitUserPolicyTemplateArchiverImpl(
   , xmlPrettyPrinter               : PrettyPrinter
   , encoding                       : String = "UTF-8"
   , val uptModificationCallback    : Buffer[UptModificationCallback] = Buffer()
-) extends GitUserPolicyTemplateArchiver with Loggable with GitCommitModification {
+  , val userPolicyTemplateFileName : String = "userPolicyTemplateSettings.xml"
+) extends GitUserPolicyTemplateArchiver with Loggable with GitCommitModification with BuildCategoryPathName {
 
   override lazy val relativePath = policyLibraryRootDir
   private[this] def newUptFile(ptName:PolicyPackageName, parents: List[UserPolicyTemplateCategoryId]) = {
-    //revert the order to start by the root of policy library. 
-    val relPath = ( "userPolicyTemplateSettings.xml" /: (ptName.value :: parents.map( _.value ) ) ) { case (path,parentId) => parentId + "/" + path  }
-    new File(getRootDirectory, relPath) 
+    //parents can not be null: we must have at least the root category
+    parents match {
+      case Nil => Failure("UPT '%s' was asked to be saved in a category which does not exists (empty list of parents, not even the root cateogy was given!)".format(ptName.value))
+      case h::tail => Full(new File(new File(newCategoryDirectory(h,tail),ptName.value), userPolicyTemplateFileName))
+    }
   }
   
   def archiveUserPolicyTemplate(upt:UserPolicyTemplate, parents: List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File] = {     
-    val uptFile = newUptFile(upt.referencePolicyTemplateName, parents)
     for {
+      uptFile   <- newUptFile(upt.referencePolicyTemplateName, parents)
       archive   <- tryo { 
                      FileUtils.writeStringToFile(
                          uptFile
@@ -404,26 +456,25 @@ class GitUserPolicyTemplateArchiverImpl(
   }
   
   def deleteUserPolicyTemplate(ptName:PolicyPackageName, parents: List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File] = {
-    val uptFile = newUptFile(ptName, parents)
-    if(uptFile.exists) {
-      for {
-        //don't forget to delete the category *directory*
-        deleted  <- tryo { 
-                      if(uptFile.exists) FileUtils.forceDelete(uptFile) 
-                      logger.debug("Deleted archived policy library template: " + uptFile.getPath)
-                    }
-        path     =  toGitPath(uptFile)
-        callbacks <- sequence(uptModificationCallback) { _.onDelete(ptName, parents, false) }
-        commited <- if(gitCommit) {
-                      commitRmFile(path, "Delete archive of policy library template for policy template name '%s'".format(ptName.value))
-                    } else {
-                      Full("OK")
-                    }
-      } yield {
-        uptFile
-      }
-    } else {
-      Full(uptFile)
+    newUptFile(ptName, parents) match {
+      case Full(uptFile) if(uptFile.exists) =>
+        for {
+          //don't forget to delete the category *directory*
+          deleted  <- tryo { 
+                        if(uptFile.exists) FileUtils.forceDelete(uptFile) 
+                        logger.debug("Deleted archived policy library template: " + uptFile.getPath)
+                      }
+          path     =  toGitPath(uptFile)
+          callbacks <- sequence(uptModificationCallback) { _.onDelete(ptName, parents, false) }
+          commited <- if(gitCommit) {
+                        commitRmFile(path, "Delete archive of policy library template for policy template name '%s'".format(ptName.value))
+                      } else {
+                        Full("OK")
+                      }
+        } yield {
+          uptFile
+        }
+      case other => other
     }
   }
  
@@ -437,30 +488,31 @@ class GitUserPolicyTemplateArchiverImpl(
    * DO have to always consider a fresh new archive. 
    */
   def moveUserPolicyTemplate(upt:UserPolicyTemplate, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File] = {
-    val oldUptDirectory = newUptFile(upt.referencePolicyTemplateName, oldParents).getParentFile
-    val newUptDirectory = newUptFile(upt.referencePolicyTemplateName, newParents).getParentFile
-    
     for {
-        clearNew  <- tryo {
-                       if(newUptDirectory.exists) FileUtils.forceDelete(newUptDirectory)
-                       else "ok"
-                     }
-        deleteOld <- tryo {
-                       if(oldUptDirectory.exists) FileUtils.forceDelete(oldUptDirectory)
-                       else "ok"
-                     }
-        archived  <- archiveUserPolicyTemplate(upt, newParents, false)
-        commited  <- if(gitCommit) {
-                       commitMvDirectory(
-                           toGitPath(oldUptDirectory)
-                         , toGitPath(newUptDirectory)
-                         , "Move user policy template for policy template name '%s'".format(upt.referencePolicyTemplateName.value)
-                       )
-                     } else {
-                       Full("OK")
-                     }
+      oldUptFile      <- newUptFile(upt.referencePolicyTemplateName, oldParents)
+      oldUptDirectory =  oldUptFile.getParentFile
+      newUptFile      <- newUptFile(upt.referencePolicyTemplateName, newParents)
+      newUptDirectory =  newUptFile.getParentFile
+      clearNew        <- tryo {
+                           if(newUptDirectory.exists) FileUtils.forceDelete(newUptDirectory)
+                           else "ok"
+                         }
+      deleteOld       <- tryo {
+                           if(oldUptDirectory.exists) FileUtils.forceDelete(oldUptDirectory)
+                           else "ok"
+                         }
+      archived        <- archiveUserPolicyTemplate(upt, newParents, false)
+      commited        <- if(gitCommit) {
+                           commitMvDirectory(
+                               toGitPath(oldUptDirectory)
+                             , toGitPath(newUptDirectory)
+                             , "Move user policy template for policy template name '%s'".format(upt.referencePolicyTemplateName.value)
+                           )
+                         } else {
+                           Full("OK")
+                         }
     } yield {
-        newUptDirectory
+      newUptDirectory
     }
   }
 }
@@ -476,7 +528,7 @@ class GitPolicyInstanceArchiverImpl(
   , policyLibraryRootDir           : String //relative path !
   , xmlPrettyPrinter               : PrettyPrinter
   , encoding                       : String = "UTF-8"
-) extends GitPolicyInstanceArchiver with Loggable with GitCommitModification {
+) extends GitPolicyInstanceArchiver with Loggable with GitCommitModification with BuildCategoryPathName {
 
   override lazy val relativePath = policyLibraryRootDir
   
@@ -485,9 +537,11 @@ class GitPolicyInstanceArchiverImpl(
     , ptName : PolicyPackageName
     , parents: List[UserPolicyTemplateCategoryId]
   ) = {
-    //revert the order to start by the root of policy library. 
-    val relPath = ( (piId.value+".xml")  /: (ptName.value :: parents.map(_.value))) { case (path,parentId) => parentId + "/" + path }
-    new File(getRootDirectory, relPath) 
+    parents match {
+      case Nil => Failure("Can not save policy instance '%s' for policy template '%s' because no category (not even the root one) was given as parent for that policy template".format(piId.value, ptName.value))
+      case h::tail => 
+        Full(new File(new File(newCategoryDirectory(h, tail), ptName.value), piId.value+".xml"))
+    }
   }
   
   def archivePolicyInstance(
@@ -497,10 +551,9 @@ class GitPolicyInstanceArchiverImpl(
     , variableRootSection: SectionSpec
     , gitCommit          : Boolean = true
   ) : Box[File] = {
-    
-    val piFile = newPiFile(pi.id, ptName, catIds)
-    
+        
     for {
+      piFile  <- newPiFile(pi.id, ptName, catIds)
       archive <- tryo { 
                    FileUtils.writeStringToFile(
                        piFile
@@ -531,24 +584,22 @@ class GitPolicyInstanceArchiverImpl(
     , catIds   : List[UserPolicyTemplateCategoryId]
     , gitCommit: Boolean = true
   ) : Box[File] = {
-    val piFile = newPiFile(piId, ptName, catIds)
-    if(piFile.exists) {
-      for {
-        deleted  <- tryo { 
-                      FileUtils.forceDelete(piFile) 
-                      logger.debug("Deleted archive of policy instance: " + piFile.getPath)
-                    }
-        commited <- if(gitCommit) {
-                      commitRmFile(toGitPath(piFile), "Delete archive of policy instance with ID '%s' on %s ".format(piId.value))
-                    } else {
-                      Full("OK")
-                    }
-      } yield {
-        piFile
-      }
-    } else {
-      Full(piFile)
+    newPiFile(piId, ptName, catIds) match {
+      case Full(piFile) if(piFile.exists) =>
+        for {
+          deleted  <- tryo { 
+                        FileUtils.forceDelete(piFile) 
+                        logger.debug("Deleted archive of policy instance: " + piFile.getPath)
+                      }
+          commited <- if(gitCommit) {
+                        commitRmFile(toGitPath(piFile), "Delete archive of policy instance with ID '%s' on %s ".format(piId.value))
+                      } else {
+                        Full("OK")
+                      }
+        } yield {
+          piFile
+        }
+      case other => other
     }
   }
-  
 }

@@ -83,19 +83,9 @@ import com.normation.rudder.services.servers.NodeConfigurationChangeDetectServic
 import org.apache.commons.dbcp.BasicDataSource
 import com.normation.rudder.services.log.HistorizationServiceImpl
 import com.normation.rudder.services.policies.DeployOnPolicyTemplateCallback
-import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
-import com.normation.rudder.services.marshalling.PolicyInstanceUnserialisationImpl
-import com.normation.rudder.services.marshalling.ConfigurationRuleSerialisationImpl
-import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisationImpl
 import scala.xml.PrettyPrinter
-import com.normation.rudder.services.marshalling.UserPolicyTemplateCategorySerialisation
-import com.normation.rudder.services.marshalling.ConfigurationRuleSerialisation
-import com.normation.rudder.services.marshalling.UserPolicyTemplateCategorySerialisationImpl
-import com.normation.rudder.services.marshalling.UserPolicyTemplateSerialisation
-import com.normation.rudder.services.marshalling.UserPolicyTemplateSerialisationImpl
-import com.normation.rudder.services.marshalling.PolicyInstanceSerialisation
-import com.normation.rudder.services.marshalling.PolicyInstanceSerialisationImpl
-
+import com.normation.rudder.services.marshalling._
+import com.normation.utils.ScalaLock
 
 /**
  * Spring configuration for services
@@ -211,6 +201,8 @@ class AppConfig extends Loggable {
 
   val prettyPrinter = new PrettyPrinter(120, 2)
 
+  
+  val userLibraryDirectoryName = "policy-library"
     
   // policy.xml parser
   @Bean
@@ -251,7 +243,10 @@ class AppConfig extends Loggable {
   @Bean 
   def policyInstanceSerialisation: PolicyInstanceSerialisation = 
     new PolicyInstanceSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
-  
+
+  @Bean
+  def deploymentStatusSerialisation : DeploymentStatusSerialisation =
+    new DeploymentStatusSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
   ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
   
   @Bean
@@ -268,7 +263,7 @@ class AppConfig extends Loggable {
       gitRepo
     , new File(gitRoot)
     , userPolicyTemplateCategorySerialisation
-    , "policy-library"
+    , userLibraryDirectoryName
     , prettyPrinter
   )
   
@@ -293,8 +288,14 @@ class AppConfig extends Loggable {
   @Bean
   def itemArchiveManager = new ItemArchiveManagerImpl(
       ldapConfigurationRuleRepository
+    , ldapUserPolicyTemplateCategoryRepository
+    , ldapUserPolicyTemplateRepository
     , configurationRuleUnserialisation
     , gitConfigurationRuleArchiver
+    , gitUserPolicyTemplateCategoryArchiver
+    , gitUserPolicyTemplateArchiver
+    , parsePolicyLibrary
+    , importPolicyLibrary
   )
   
   ///// end /////
@@ -306,7 +307,7 @@ class AppConfig extends Loggable {
   def logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
 
   @Bean
-  def logService = new EventLogServiceImpl(logRepository)
+  def logService = new EventLogServiceImpl(logRepository, eventLogDetailsService)
 
   @Bean
   def inventoryLogEventService: InventoryEventLogService = new InventoryEventLogServiceImpl(logRepository)
@@ -581,20 +582,23 @@ class AppConfig extends Loggable {
   @Bean
   def asyncDeploymentAgent: AsyncDeploymentAgent = {
     val agent = new AsyncDeploymentAgent(new DeploymentServiceImpl(
-      ldapConfigurationRuleRepository,
-      configurationRuleValService,
-      new ParameterizedValueLookupServiceImpl(
-        nodeInfoService,
-        policyInstanceTargetService,
-        ldapConfigurationRuleRepository,
-        configurationRuleValService),
-      systemVariableService,
-      policyInstanceTargetService,
-      serverService,
-      nodeInfoService,
-      nodeConfigurationChangeDetectService,
-      reportingService,
-      historizationService), logService, autoDeployOnModification)
+		      ldapConfigurationRuleRepository,
+		      configurationRuleValService,
+		      new ParameterizedValueLookupServiceImpl(
+		        nodeInfoService,
+		        policyInstanceTargetService,
+		        ldapConfigurationRuleRepository,
+		        configurationRuleValService),
+		      systemVariableService,
+		      policyInstanceTargetService,
+		      serverService,
+		      nodeInfoService,
+		      nodeConfigurationChangeDetectService,
+		      reportingService,
+		      historizationService)
+    	, logService
+    	, autoDeployOnModification
+    	, deploymentStatusSerialisation)
     policyPackageService.registerCallback(
         new DeployOnPolicyTemplateCallback("DeployOnPTLibUpdate", agent)
     )
@@ -649,30 +653,36 @@ class AppConfig extends Loggable {
   @Bean 
   def ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryParser)
   
+  val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  
   @Bean
   def ldapUserPolicyTemplateCategoryRepository:LDAPUserPolicyTemplateCategoryRepository = new LDAPUserPolicyTemplateCategoryRepository(
-      rudderDit, ldap, ldapEntityMapper,
-      gitUserPolicyTemplateCategoryArchiver,
-      autoArchiveItems
+      rudderDit, ldap, ldapEntityMapper
+    , gitUserPolicyTemplateCategoryArchiver
+    , autoArchiveItems
+    , uptLibReadWriteMutex
   )
   
   @Bean
   def ldapUserPolicyTemplateRepository = new LDAPUserPolicyTemplateRepository(
-      rudderDit, ldap, ldapEntityMapper, 
-      uuidGen, ldapUserPolicyTemplateCategoryRepository,
-      gitUserPolicyTemplateArchiver,
-      autoArchiveItems
+      rudderDit, ldap, ldapEntityMapper
+    , uuidGen
+    , ldapUserPolicyTemplateCategoryRepository
+    , gitUserPolicyTemplateArchiver
+    , autoArchiveItems
+    , uptLibReadWriteMutex
   )
   
   @Bean
   def ldapPolicyInstanceRepository = {
     
     val repo = new LDAPPolicyInstanceRepository(
-        rudderDit, ldap, ldapEntityMapper, 
-        ldapDiffMapper, ldapUserPolicyTemplateRepository,
-        policyPackageService,logRepository,
-        gitPolicyInstanceArchiver,
-        autoArchiveItems
+        rudderDit, ldap, ldapEntityMapper, ldapDiffMapper
+      , ldapUserPolicyTemplateRepository
+      , policyPackageService,logRepository
+      , gitPolicyInstanceArchiver
+      , autoArchiveItems
+      , uptLibReadWriteMutex
     )
   
     gitUserPolicyTemplateArchiver.uptModificationCallback += new UpdatePiOnUptEvent(
@@ -707,6 +717,31 @@ class AppConfig extends Loggable {
   
   @Bean
   def configurationRuleUnserialisation = new ConfigurationRuleUnserialisationImpl
+ 
+  @Bean
+  def deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
+ 
+  @Bean 
+  def userPolicyTemplateCategoryUnserialisation = new UserPolicyTemplateCategoryUnserialisationImpl
+  
+  @Bean
+  def userPolicyTemplateUnserialisation = new UserPolicyTemplateUnserialisationImpl
+  
+  @Bean
+  def parsePolicyLibrary : ParsePolicyLibrary = new ParsePolicyLibraryImpl(
+      userPolicyTemplateCategoryUnserialisation
+    , userPolicyTemplateUnserialisation
+    , policyInstanceUnserialisation
+    , new File(gitRoot, userLibraryDirectoryName)
+  )
+  
+  @Bean
+  def importPolicyLibrary : ImportPolicyLibrary = new ImportPolicyLibraryImpl(
+     rudderDit
+   , ldap
+   , ldapEntityMapper
+   , uptLibReadWriteMutex
+  )
   
   @Bean 
   def eventLogDetailsService : EventLogDetailsService = new EventLogDetailsServiceImpl(
@@ -714,6 +749,7 @@ class AppConfig extends Loggable {
     , new PolicyInstanceUnserialisationImpl
     , new NodeGroupUnserialisationImpl(queryParser)
     , new ConfigurationRuleUnserialisationImpl
+    , new DeploymentStatusUnserialisationImpl
   )
   
   @Bean

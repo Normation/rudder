@@ -36,11 +36,8 @@ package com.normation.rudder.repository.xml
 
 import java.io.FileInputStream
 import java.util.regex.Pattern
-
 import scala.collection.JavaConversions.collectionAsScalaIterable
-
 import org.apache.commons.io.FileUtils
-
 import com.normation.rudder.repository.ArchiveId
 import com.normation.rudder.repository.ConfigurationRuleRepository
 import com.normation.rudder.repository.GitConfigurationRuleArchiver
@@ -49,37 +46,56 @@ import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisatio
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
 import com.normation.utils.XmlUtils
-
-import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Loggable
+import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
+import com.normation.rudder.repository.UserPolicyTemplateRepository
+import com.normation.rudder.repository.GitUserPolicyTemplateArchiver
+import com.normation.rudder.repository.UserPolicyTemplateCategoryRepository
+import com.normation.rudder.repository.GitUserPolicyTemplateCategoryArchiver
+import com.normation.rudder.repository.CategoryAndUPT
+import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
+import com.normation.rudder.domain.policies.UserPolicyTemplate
+import java.io.File
+import com.normation.rudder.domain.policies.PolicyInstance
+import net.liftweb.common.Full
+import com.normation.rudder.repository.ImportPolicyLibrary
+import com.normation.rudder.repository.ParsePolicyLibrary
 
 
 class ItemArchiveManagerImpl(
-    configurationRuleRepository     : ConfigurationRuleRepository
-  , configurationRuleUnserialisation: ConfigurationRuleUnserialisation
-  , gitConfigurationRuleArchiver    : GitConfigurationRuleArchiver
+    configurationRuleRepository          : ConfigurationRuleRepository
+  , utpCategoryRepository                : UserPolicyTemplateCategoryRepository
+  , uptRepository                        : UserPolicyTemplateRepository
+  , configurationRuleUnserialisation     : ConfigurationRuleUnserialisation
+  , gitConfigurationRuleArchiver         : GitConfigurationRuleArchiver
+  , gitUserPolicyTemplateCategoryArchiver: GitUserPolicyTemplateCategoryArchiver
+  , gitUserPolicyTemplateArchiver        : GitUserPolicyTemplateArchiver
+  , parsePolicyLibrary                   : ParsePolicyLibrary
+  , imporPolicyLibrary                   : ImportPolicyLibrary
 ) extends ItemArchiveManager with Loggable {
   
   ///// implementation /////
   
   def saveAll(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for {
-      crs         <- configurationRuleRepository.getAll(false)
-      cleanedRoot <- tryo { FileUtils.cleanDirectory(gitConfigurationRuleArchiver.getRootDirectory) }
-      saved       <- sequence(crs) { cr => 
-                       gitConfigurationRuleArchiver.archiveConfigurationRule(cr,false)
-                     }
-      commitId    <- gitConfigurationRuleArchiver.commitConfigurationRules
+      saveCrs     <- saveConfigurationRules(includeSystem)
+      saveUserLib <- saveUserPolicyLibrary(includeSystem)
     } yield {
-      ArchiveId(commitId)
+      saveUserLib
     }
   }
   
-  
   def importLastArchive(includeSystem:Boolean = false) : Box[Unit] = {
+    for {
+      configurationRules <- importLastConfigurationRules(includeSystem)
+      userLib            <- importPolicyLibrary(includeSystem)
+    } yield {
+      configurationRules
+    }
+  }
+
     
+  private[this] def importLastConfigurationRules(includeSystem:Boolean = false) : Box[Unit] = {
     for {
       files <- tryo { FileUtils.listFiles(gitConfigurationRuleArchiver.getRootDirectory,null,false).filter { f => isXmlUuid(f.getName) } }
       xmls  <- sequence(files.toSeq) { file =>
@@ -100,6 +116,61 @@ class ItemArchiveManagerImpl(
       crs
     }
   }
+
+  
+  private[this] def saveConfigurationRules(includeSystem:Boolean = false): Box[ArchiveId] = { 
+    for {
+      crs         <- configurationRuleRepository.getAll(false)
+      cleanedRoot <- tryo { FileUtils.cleanDirectory(gitConfigurationRuleArchiver.getRootDirectory) }
+      saved       <- sequence(crs) { cr => 
+                       gitConfigurationRuleArchiver.archiveConfigurationRule(cr,false)
+                     }
+      commitId    <- gitConfigurationRuleArchiver.commitConfigurationRules
+    } yield {
+      ArchiveId(commitId)
+    }
+  }
+  
+  private[this] def saveUserPolicyLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
+    for { //ca ne marche pas, il faut les parents, d'ou le rec ci dessous
+      catWithUPT   <- uptRepository.getUPTbyCategory(includeSystem)
+      cats = catWithUPT.toArray
+      //remove systems things if asked (both system categories and system upts in non-system categories)
+      okCatWithUPT =  if(includeSystem) catWithUPT
+                      else catWithUPT.collect { 
+                          //always include root category, even if it's a system one
+                          case (categories, CategoryAndUPT(cat, upts)) if(cat.isSystem == false || categories.size <= 1) => 
+                            (categories, CategoryAndUPT(cat, upts.filter( _.isSystem == false )))
+                      }
+      cleanedRoot <- tryo { FileUtils.cleanDirectory(gitUserPolicyTemplateCategoryArchiver.getRootDirectory) }
+      savedItems  <- sequence(okCatWithUPT.toSeq) { case (categories, CategoryAndUPT(cat, upts)) => 
+                       val foo = "bar"
+                       for {
+                         //categories.tail is OK, as no category can have an empty path (id)
+                         savedCat  <- gitUserPolicyTemplateCategoryArchiver.archiveUserPolicyTemplateCategory(cat,categories.reverse.tail, gitCommit = false)
+                         savedUpts <- sequence(upts.toSeq) { upt =>
+                                        gitUserPolicyTemplateArchiver.archiveUserPolicyTemplate(upt,categories.reverse, gitCommit = false)
+                                      }
+                       } yield {
+                         "OK"
+                       }
+                     }
+      commitId    <- gitUserPolicyTemplateCategoryArchiver.commitUserPolicyLibrary
+    } yield {
+      ArchiveId(commitId)
+    }
+  }
+  
+  
+  private[this] def importPolicyLibrary(includeSystem:Boolean) : Box[Unit] = {
+      for {
+        parsed   <- parsePolicyLibrary.parse
+        imported <- imporPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
+      } yield {
+        imported
+      }
+  }
+  
   
   ///// utility methods /////
     

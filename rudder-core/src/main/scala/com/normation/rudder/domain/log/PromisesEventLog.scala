@@ -47,7 +47,7 @@ final case class AutomaticStartDeployement(
   , override val cause : Option[Int] = None
   , override val severity : Int = 100
 ) extends EventLog with HashcodeCaching {
-  override val eventType = "AutomaticStartDeployement"
+  override val eventType = AutomaticStartDeployementEventType
   override val eventLogCategory = DeploymentLogCategory
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
 }
@@ -60,7 +60,51 @@ final case class ManualStartDeployement(
   , override val cause : Option[Int] = None
   , override val severity : Int = 100
 ) extends EventLog with HashcodeCaching {
-  override val eventType = "ManualStartDeployement"
+  override val eventType = ManualStartDeployementEventType
   override val eventLogCategory = DeploymentLogCategory
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
+}
+
+final case class SuccessfulDeployment (
+    override val principal : EventActor
+  , override val details : NodeSeq = EventLog.emptyDetails
+  , override val id : Option[Int] = None
+  , override val creationDate : DateTime = DateTime.now() // this is the real start of the event
+  , override val cause : Option[Int] = None
+  , override val severity : Int = 100
+) extends EventLog with HashcodeCaching {
+  override val eventType = SuccessfulDeploymentEventType
+  override val eventLogCategory = DeploymentLogCategory
+  override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
+}
+
+final case class FailedDeployment (
+    override val principal : EventActor
+  , override val details : NodeSeq = EventLog.emptyDetails
+  , override val id : Option[Int] = None
+  , override val creationDate : DateTime = DateTime.now() 
+  , override val cause : Option[Int] = None
+  , override val severity : Int = 100
+) extends EventLog with HashcodeCaching {
+  override val eventType = FailedDeploymentEventType
+  override val eventLogCategory = DeploymentLogCategory
+  override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
+}
+
+
+object ModificationWatchList {
+  val events = Seq[EventLogType](
+		  AcceptNodeEventType
+		, AddConfigurationRuleEventType
+		, DeleteConfigurationRuleEventType
+		, ModifyConfigurationRuleEventType
+		, AddPolicyInstanceEventType
+		, DeletePolicyInstanceEventType
+		, ModifyPolicyInstanceEventType
+		, AddNodeGroupEventType
+		, DeleteNodeGroupEventType
+		, ModifyNodeGroupEventType
+		// must add delete and reloadpt
+  )
+  
 }

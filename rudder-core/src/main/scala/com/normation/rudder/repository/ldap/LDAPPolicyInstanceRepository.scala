@@ -50,6 +50,7 @@ import com.normation.rudder.domain.log.{
 }
 import com.normation.cfclerk.services.PolicyPackageService
 import com.normation.cfclerk.domain.PolicyPackageId
+import com.normation.utils.ScalaReadWriteLock
 
 class LDAPPolicyInstanceRepository(
     rudderDit                       : RudderDit
@@ -61,8 +62,8 @@ class LDAPPolicyInstanceRepository(
   , actionLogger                    : EventLogRepository
   , gitPiArchiver                   : GitPolicyInstanceArchiver
   , autoExportOnModify              : Boolean
+  , userLibMutex                    : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends PolicyInstanceRepository {
-  repo => 
     
   import scala.collection.mutable.{Map => MutMap}
   import scala.xml.Text
@@ -90,6 +91,7 @@ class LDAPPolicyInstanceRepository(
    */
   def getPolicyInstance(id:PolicyInstanceId) : Box[PolicyInstance] = {
     for {
+      locked  <- userLibMutex.readLock
       con     <- ldap 
       piEntry <- getPolicyInstanceEntry(con, id) ?~! "Can not find Policy Instance with id %s".format(id)
       pi      <- mapper.entry2PolicyInstance(piEntry) ?~! "Error when transforming LDAP entry into a Policy Instance for id %s. Entry: %s".format(id, piEntry)
@@ -100,14 +102,15 @@ class LDAPPolicyInstanceRepository(
   
   def getAll(includeSystem:Boolean = false) : Box[Seq[PolicyInstance]] = {
     for {
-      con <- ldap
+      locked <- userLibMutex.readLock
+      con    <- ldap
       //for each pi entry, map it. if one fails, all fails
-      pis <- sequence(con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn,  policyFilter(includeSystem))) { piEntry => 
-               mapper.entry2PolicyInstance(piEntry) ?~! "Error when transforming LDAP entry into a Policy Instance. Entry: %s".format(piEntry)
-             }
+      pis    <- sequence(con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn,  policyFilter(includeSystem))) { piEntry => 
+                  mapper.entry2PolicyInstance(piEntry) ?~! "Error when transforming LDAP entry into a Policy Instance. Entry: %s".format(piEntry)
+                }
     } yield {
       pis
-    }
+    } 
   }
 
   
@@ -120,6 +123,7 @@ class LDAPPolicyInstanceRepository(
    */
   def getUserPolicyTemplate(id:PolicyInstanceId) : Box[UserPolicyTemplate] = {
     for {
+      locked  <- userLibMutex.readLock
       con     <- ldap 
       piEntry <- getPolicyInstanceEntry(con, id, "1.1") ?~! "Can not find Policy Instance with id %s".format(id)
       upt     <- ldapUserPolicyTemplateRepository.getUserPolicyTemplate(mapper.dn2UserPolicyTemplateId(piEntry.dn.getParent))
@@ -135,6 +139,7 @@ class LDAPPolicyInstanceRepository(
    */
   override def getPolicyInstances(ptId:UserPolicyTemplateId, includeSystem:Boolean = false) : Box[Seq[PolicyInstance]] = {
     for {
+      locked  <- userLibMutex.readLock
       con     <- ldap 
       ptEntry <- ldapUserPolicyTemplateRepository.getUPTEntry(con, ptId, "1.1")
       pis     <- sequence(con.searchOne(ptEntry.dn, policyFilter(includeSystem))) { piEntry => 
@@ -156,7 +161,7 @@ class LDAPPolicyInstanceRepository(
    * Returned the saved WBUserPolicyInstance
    */
   def savePolicyInstance(inUserPolicyTemplateId:UserPolicyTemplateId,pi:PolicyInstance, actor:EventActor) : Box[Option[PolicyInstanceSaveDiff]] = {
-    repo.synchronized { for {
+    for {
       con         <- ldap
       uptEntry    <- ldapUserPolicyTemplateRepository.getUPTEntry(con, inUserPolicyTemplateId, "1.1") ?~! "Can not find the User Policy Entry with id %s to add Policy Instance %s".format(inUserPolicyTemplateId, pi.id)
       canAdd      <- { //check if the pi already exists elsewhere
@@ -165,11 +170,12 @@ class LDAPPolicyInstanceRepository(
                           case Empty => Full(None)
                           case Full(otherPi) => 
                             if(otherPi.dn.getParent == uptEntry.dn) Full(Some(otherPi))
+
                             else Failure("An other policy instance with the id %s exists in an other category that the one with id %s : %s".format(pi.id, inUserPolicyTemplateId, otherPi.dn))
                         }
                       }
       piEntry     =  mapper.userPolicyInstance2Entry(pi, uptEntry.dn)
-      result      <- con.save(piEntry, true)
+      result      <- userLibMutex.writeLock { con.save(piEntry, true) }
       //for log event - perhaps put that elsewhere ?
       upt         <- ldapUserPolicyTemplateRepository.getUserPolicyTemplate(inUserPolicyTemplateId) ?~! "Can not find the User Policy Entry with id %s to add Policy Instance %s".format(inUserPolicyTemplateId, pi.id)
       val ptId    =  PolicyPackageId(upt.referencePolicyTemplateName,pi.policyTemplateVersion)
@@ -192,7 +198,7 @@ class LDAPPolicyInstanceRepository(
                      } else Full("ok")
     } yield {
       optDiff
-    } }
+    }
   }
 
 
@@ -211,7 +217,7 @@ class LDAPPolicyInstanceRepository(
       upt          <- this.getUserPolicyTemplate(id) ?~! "Can not find the User Policy Temple Entry for Policy Instance %s".format(id)
       pt           <- policyPackageService.getPolicy(PolicyPackageId(upt.referencePolicyTemplateName,pi.policyTemplateVersion))
       //delete
-      deleted      <- con.delete(entry.dn)
+      deleted      <- userLibMutex.writeLock { con.delete(entry.dn) }
       diff         =  DeletePolicyInstanceDiff(pt.id.name, pi)
       loggedAction <- actionLogger.saveDeletePolicyInstance(
                           principal = actor, deleteDiff = diff, varsRootSectionSpec = pt.rootSection

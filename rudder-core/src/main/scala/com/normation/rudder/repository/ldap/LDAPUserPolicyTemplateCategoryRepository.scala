@@ -61,12 +61,12 @@ import com.normation.utils.Control._
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.LDAPException
 import com.unboundid.ldap.sdk.ResultCode
-
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
+import com.normation.utils.ScalaReadWriteLock
 
 /**
  * Category for User Template library in the LDAP
@@ -78,10 +78,9 @@ class LDAPUserPolicyTemplateCategoryRepository(
   , mapper            : LDAPEntityMapper
   , gitArchiver       : GitUserPolicyTemplateCategoryArchiver
   , autoExportOnModify: Boolean  
+  , userLibMutex      : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends UserPolicyTemplateCategoryRepository {
  
-  repo =>
-
   /**
    * Find sub entries (children categories and user policy templates for 
    * the given category which MUST be mapped to an entry with the given
@@ -99,12 +98,14 @@ class LDAPUserPolicyTemplateCategoryRepository(
    * Retrieve the category entry for the given ID, with the given connection
    */
   def getCategoryEntry(con:LDAPConnection, id:UserPolicyTemplateCategoryId, attributes:String*) : Box[LDAPEntry] = {
-    val categoryEntries = con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn,  EQ(A_CATEGORY_UUID, id.value), attributes:_*)
-    categoryEntries.size match {
-      case 0 => Empty
-      case 1 => Full(categoryEntries(0))
-      case _ => Failure("Error, the directory contains multiple occurrence of category with id %s. DN: %s".format(id, categoryEntries.map( _.dn).mkString("; ")))
-    } 
+    userLibMutex.readLock {
+      val categoryEntries = con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn,  EQ(A_CATEGORY_UUID, id.value), attributes:_*)
+      categoryEntries.size match {
+        case 0 => Empty
+        case 1 => Full(categoryEntries(0))
+        case _ => Failure("Error, the directory contains multiple occurrence of category with id %s. DN: %s".format(id, categoryEntries.map( _.dn).mkString("; ")))
+      } 
+    }
   }
   
   /**
@@ -113,6 +114,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
   def getUserPolicyTemplateLibrary : UserPolicyTemplateCategory = {
     (for {
       con               <- ldap
+      locked            <- userLibMutex.readLock
       rootCategoryEntry <- con.get(rudderDit.POLICY_TEMPLATE_LIB.dn) ?~! "The root category of the user library of policy templates seems to be missing in LDAP directory. Please check its content"
       // look for sub category and policy template
       rootCategory      <- mapper.entry2UserPolicyTemplateCategory(rootCategoryEntry) ?~! "Error when mapping from an LDAP entry to a User Policy Template Category: %s".format(rootCategoryEntry)
@@ -129,11 +131,13 @@ class LDAPUserPolicyTemplateCategoryRepository(
    * Return all categories (lightweight version, with no children)
    * @return
    */
-  def getAllUserPolicyTemplateCategories() : Box[Seq[UserPolicyTemplateCategory]] = {
+  def getAllUserPolicyTemplateCategories(includeSystem:Boolean = false) : Box[Seq[UserPolicyTemplateCategory]] = {
     (for {
       con               <- ldap
+      locked            <- userLibMutex.readLock
       rootCategoryEntry <- con.get(rudderDit.POLICY_TEMPLATE_LIB.dn) ?~! "The root category of the user library of policy templates seems to be missing in LDAP directory. Please check its content"
-      entries           =  con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn, AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)),IS(OC_CATEGORY)))
+      filter            =  if(includeSystem) IS(OC_CATEGORY) else AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)),IS(OC_CATEGORY))
+      entries           =  con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn, filter) //double negation is mandatory, as false may not be present
       allEntries        =  entries :+ rootCategoryEntry
       categories        <- boxSequence(allEntries.map(entry => mapper.entry2UserPolicyTemplateCategory(entry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(entry) ))
     } yield {
@@ -146,6 +150,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
   def getUserPolicyTemplateCategory(id:UserPolicyTemplateCategoryId) : Box[UserPolicyTemplateCategory] = {
     for {
       con           <- ldap
+      locked        <- userLibMutex.readLock
       categoryEntry <- getCategoryEntry(con, id) ?~! "Entry with ID '%s' was not found".format(id)
       category      <- mapper.entry2UserPolicyTemplateCategory(categoryEntry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(categoryEntry)
     } yield {
@@ -159,7 +164,9 @@ class LDAPUserPolicyTemplateCategoryRepository(
    * an id different from given id
    */
   private[this] def existsByName(con:LDAPConnection, parentDN:DN, subCategoryName:String, notId:String) : Boolean = {
-    con.searchOne(parentDN, AND(EQ(A_NAME,subCategoryName),NOT(EQ(A_CATEGORY_UUID,notId))), "1.1" ).nonEmpty
+    userLibMutex.readLock {
+      con.searchOne(parentDN, AND(EQ(A_NAME,subCategoryName),NOT(EQ(A_CATEGORY_UUID,notId))), "1.1" ).nonEmpty
+    }
   }
   
   /**
@@ -175,7 +182,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
       that:UserPolicyTemplateCategory,
       into:UserPolicyTemplateCategory //parent category
   ) : Box[UserPolicyTemplateCategory] = {
-    repo.synchronized { for {
+    for {
       con                 <- ldap 
       parentCategoryEntry <- getCategoryEntry(con, into.id, "1.1") ?~! "The parent category '%s' was not found, can not add".format(into.id)
       categoryEntry       =  mapper.userPolicyTemplateCategory2ldap(that,parentCategoryEntry.dn)
@@ -184,7 +191,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
                              } else {
                                Full("Can add, no sub categorie with that name")
                              }
-      result              <- con.save(categoryEntry, removeMissingAttributes = true)
+      result              <- userLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       autoArchive         <- if(autoExportOnModify) {
                                for {
                                  parents <- this.getParents_UserPolicyTemplateCategory(that.id)
@@ -193,7 +200,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
                              } else Full("ok")
     } yield {
       addSubEntries(into, parentCategoryEntry.dn, con)
-    } }
+    }
   }
   
   /**
@@ -201,7 +208,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
    * Return the updated policy category
    */
   def saveUserPolicyTemplateCategory(category:UserPolicyTemplateCategory) : Box[UserPolicyTemplateCategory] = {
-    repo.synchronized { for {
+    for {
       con              <- ldap 
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
       categoryEntry    =  mapper.userPolicyTemplateCategory2ldap(category,oldCategoryEntry.dn.getParent)
@@ -210,7 +217,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
                           } else {
                             Full("Can add, no sub categorie with that name")
                           }
-      result           <- con.save(categoryEntry, removeMissingAttributes = true)
+      result           <- userLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       updated          <- getUserPolicyTemplateCategory(category.id)
       autoArchive      <- if(autoExportOnModify) {
                             for {
@@ -220,7 +227,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
                           } else Full("ok")
     } yield {
       updated
-    } }
+    }
   }
   
   /**
@@ -231,6 +238,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
   def getParentUserPolicyTemplateCategory(id:UserPolicyTemplateCategoryId) : Box[UserPolicyTemplateCategory] = {
     for {
       con                 <- ldap
+      locked              <- userLibMutex.readLock
       categoryEntry       <- getCategoryEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
       parentCategoryEntry <- con.get(categoryEntry.dn.getParent)
       parentCategory      <- mapper.entry2UserPolicyTemplateCategory(parentCategoryEntry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(parentCategoryEntry)
@@ -246,16 +254,18 @@ class LDAPUserPolicyTemplateCategoryRepository(
    * Also return a failure if the path to top is broken in any way.
    */
   def getParents_UserPolicyTemplateCategory(id:UserPolicyTemplateCategoryId) : Box[List[UserPolicyTemplateCategory]] = {
-    //TODO : LDAPify that, we can have the list of all DN from id to root at the begining (just dn.getParent until rudderDit.POLICY_TEMPLATE_LIB.dn)
-    if(id == getUserPolicyTemplateLibrary.id) Full(Nil)
-    else getParentUserPolicyTemplateCategory(id) match {
-      case Full(parent) => getParents_UserPolicyTemplateCategory(parent.id).map(parents => parent :: parents)
-      case e:EmptyBox => e
-    }     
+    userLibMutex.readLock {
+      //TODO : LDAPify that, we can have the list of all DN from id to root at the begining (just dn.getParent until rudderDit.POLICY_TEMPLATE_LIB.dn)
+      if(id == getUserPolicyTemplateLibrary.id) Full(Nil)
+      else getParentUserPolicyTemplateCategory(id) match {
+        case Full(parent) => getParents_UserPolicyTemplateCategory(parent.id).map(parents => parent :: parents)
+        case e:EmptyBox => e
+      }     
+    }
   }
   
   def getParentUserPolicyTemplateCategory_forTemplate(id:UserPolicyTemplateId) : Box[UserPolicyTemplateCategory] = {
-    for {
+    userLibMutex.readLock { for {
       con <- ldap
       uptEntries = con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn, EQ(A_USER_POLICY_TEMPLATE_UUID, id.value))
       uptEntry <- uptEntries.size match {
@@ -266,8 +276,8 @@ class LDAPUserPolicyTemplateCategoryRepository(
       category <- getUserPolicyTemplateCategory(mapper.dn2UserPolicyTemplateCategoryId(uptEntry.dn.getParent))
     } yield {
       category
-    }
-  }
+    } }
+  } 
   
   def delete(id:UserPolicyTemplateCategoryId, checkEmpty:Boolean = true) : Box[UserPolicyTemplateCategoryId] = {
     for {
@@ -280,7 +290,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
                                this.getParents_UserPolicyTemplateCategory(id)
                              } else Full(Nil)
               ok          <- try {
-                               con.delete(entry.dn, recurse = !checkEmpty) ?~! "Error when trying to delete category with ID '%s'".format(id)
+                               userLibMutex.writeLock { con.delete(entry.dn, recurse = !checkEmpty) ?~! "Error when trying to delete category with ID '%s'".format(id) }
                              } catch {
                                case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
                                case e => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
@@ -325,7 +335,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
                               }
                             case _ => Failure("Can not find the category entry name for category with ID %s. Name is needed to check unicity of categories by level")
                           }
-        result         <- con.move(categoryEntry.dn, newParentEntry.dn)
+        result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn) }
         autoArchive    <- (if(autoExportOnModify) {
                             for {
                               newCat  <- getUserPolicyTemplateCategory(categoryId)

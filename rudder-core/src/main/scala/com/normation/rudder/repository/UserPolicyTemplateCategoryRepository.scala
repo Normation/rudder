@@ -39,13 +39,32 @@ import net.liftweb.common._
 
 
 /**
+ * Here is the ordering for a List[UserPolicyTemplateCategoryId]
+ * MUST start by the root !
+ */
+object CategoryOrdering extends Ordering[List[UserPolicyTemplateCategoryId]] {
+  type ID = UserPolicyTemplateCategoryId
+  override def compare(x:List[ID],y:List[ID]) = {
+    def recCompare(a:List[ID],b:List[ID]) : Int = {
+      (a,b) match {
+        case (Nil, Nil) => 0
+        case (Nil, _) => -1
+        case (_ , Nil) => 1
+        case (h1 :: t1 , h2 :: t2) => //lexical order on heads, recurse for tails on same head
+           if(h1 == h2) recCompare(t1,t2)
+           else String.CASE_INSENSITIVE_ORDER.compare(h1.value, h2.value)
+      }
+    }
+    recCompare(x,y)
+  }
+}
+
+/**
  * 
  * Several repositories, more like simple DAOs, to manage category like
  * structures (in LDAP, things like "ou")
  *
  */
-
-
 trait UserPolicyTemplateCategoryRepository {
 
   /**
@@ -57,7 +76,7 @@ trait UserPolicyTemplateCategoryRepository {
    * Return all categories non system (lightweight version, with no children)
    * @return
    */
-  def getAllUserPolicyTemplateCategories() : Box[Seq[UserPolicyTemplateCategory]]
+  def getAllUserPolicyTemplateCategories(includeSystem:Boolean = false) : Box[Seq[UserPolicyTemplateCategory]]
 
 
   /**

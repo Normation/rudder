@@ -104,11 +104,11 @@ class Archives extends DispatchSnippet with Loggable {
 
       itemArchiver.importLastArchive() match {
         case empty:EmptyBox => 
-          val e = empty ?~! "Error when importing configuration rules."
+          val e = empty ?~! "Error when importing items."
           S.error(e.messageChain)
           Replace("importAllForm", outerXml.applyAgain)
         case Full(x) => 
-          logger.debug("Imported configuration rules on user request" )
+          logger.debug("Imported items on user request" )
           Replace("importAllForm", outerXml.applyAgain) &
           successPopup
       }

@@ -49,7 +49,9 @@ import org.joda.time.DateTime
 import com.normation.cfclerk.domain.PolicyVersion
 import net.liftweb.json.Printer
 import net.liftweb.json.JsonAST
-
+import scala.collection.immutable.SortedMap
+import com.normation.utils.Control.sequence
+import com.normation.utils.ScalaReadWriteLock
 
 /**
  * Implementation of the repository for User Policy Templates in 
@@ -64,10 +66,9 @@ class LDAPUserPolicyTemplateRepository(
   , userCategoryRepo  : LDAPUserPolicyTemplateCategoryRepository
   , gitArchiver       : GitUserPolicyTemplateArchiver
   , autoExportOnModify: Boolean
+  , userLibMutex      : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends UserPolicyTemplateRepository with Loggable {
 
-  repo =>
-  
   /**
    * Look in the subtree with root=user policy template library
    * for and entry with the given id. 
@@ -87,7 +88,9 @@ class LDAPUserPolicyTemplateRepository(
   }
   
   def getUPTEntry(con:LDAPConnection, id:UserPolicyTemplateId, attributes:String*) : Box[LDAPEntry] = {
-    this.getUPTEntry[UserPolicyTemplateId](con, id, { id => EQ(A_USER_POLICY_TEMPLATE_UUID, id.value) }, attributes:_*)
+    userLibMutex.readLock {
+      this.getUPTEntry[UserPolicyTemplateId](con, id, { id => EQ(A_USER_POLICY_TEMPLATE_UUID, id.value) }, attributes:_*)
+    }
   }
 
   private[this] def getUserPolicyTemplate[ID](id: ID, filter: ID => Filter): Box[UserPolicyTemplate] = { 
@@ -110,13 +113,38 @@ class LDAPUserPolicyTemplateRepository(
       policyInstances = piEntries.map(e => mapper.dn2LDAPConfigurationRuleID(e.dn)).toList
     )
   }
+  
     
+  def getUPTbyCategory(includeSystem:Boolean = false) : Box[SortedMap[List[UserPolicyTemplateCategoryId], CategoryAndUPT]] = {
+    import scala.collection.mutable.{Map => MutMap}
+    for {
+      locked       <- userLibMutex.readLock
+      allCats      <- userCategoryRepo.getAllUserPolicyTemplateCategories(includeSystem)
+      catsWithUPs  <- sequence(allCats) { ligthCat =>
+                        for {
+                          category <- userCategoryRepo.getUserPolicyTemplateCategory(ligthCat.id)
+                          parents  <- userCategoryRepo.getParents_UserPolicyTemplateCategory(category.id)
+                          upts     <- sequence(category.items) { uptId => this.getUserPolicyTemplate(uptId) }
+                        } yield {
+                          ( (category.id :: parents.map(_.id)).reverse, CategoryAndUPT(category, upts.toSet))
+                        }
+                      }
+    } yield {
+      implicit val ordering = CategoryOrdering
+      SortedMap[List[UserPolicyTemplateCategoryId], CategoryAndUPT]() ++ catsWithUPs
+    }
+  }
+
   def getUserPolicyTemplate(id: UserPolicyTemplateId): Box[UserPolicyTemplate] = { 
-    this.getUserPolicyTemplate[UserPolicyTemplateId](id, { id => EQ(A_USER_POLICY_TEMPLATE_UUID, id.value) } )
+    userLibMutex.readLock {
+      this.getUserPolicyTemplate[UserPolicyTemplateId](id, { id => EQ(A_USER_POLICY_TEMPLATE_UUID, id.value) } )
+    }
   }
 
   def getUserPolicyTemplate(name: PolicyPackageName): Box[UserPolicyTemplate] = { 
-    this.getUserPolicyTemplate[PolicyPackageName](name, { name => EQ(A_REFERENCE_POLICY_TEMPLATE_UUID, name.value) } )
+    userLibMutex.readLock {
+      this.getUserPolicyTemplate[PolicyPackageName](name, { name => EQ(A_REFERENCE_POLICY_TEMPLATE_UUID, name.value) } )
+    }
   }
 
   def addPolicyTemplateInUserLibrary(
@@ -125,7 +153,7 @@ class LDAPUserPolicyTemplateRepository(
       versions:Seq[PolicyVersion]
   ): Box[UserPolicyTemplate] = { 
     //check if the policy template is already in user lib, and if the category exists
-    repo.synchronized { for {
+    for {
       con           <- ldap
       noUpt         <- { //check that there is not already defined upt with such ref id
                          getUPTEntry[PolicyPackageName](
@@ -140,7 +168,7 @@ class LDAPUserPolicyTemplateRepository(
       categoryEntry <- userCategoryRepo.getCategoryEntry(con, categoryId, "1.1") ?~! "Category entry with ID '%s' was not found".format(categoryId)
       newUpt        =  UserPolicyTemplate(UserPolicyTemplateId(uuidGen.newUuid),policyTemplateName, versions.map(x => x -> DateTime.now()).toMap)
       uptEntry      =  mapper.userPolicyTemplate2Entry(newUpt,categoryEntry.dn)
-      result        <- con.save(uptEntry, true)
+      result        <- userLibMutex.writeLock { con.save(uptEntry, true) }
       autoArchive   <- if(autoExportOnModify) {
                          for {
                            parents <- this.userPolicyTemplateBreadCrump(newUpt.id)
@@ -149,18 +177,17 @@ class LDAPUserPolicyTemplateRepository(
                        } else Full("ok")
     } yield {
       newUpt
-    } }
+    }
   }
 
   def userPolicyTemplateBreadCrump(id: UserPolicyTemplateId): Box[List[UserPolicyTemplateCategory]] = { 
     //find the user policy template entry for that id, and from that, build the parent bread crump
-    for {
-      con  <-ldap 
+    userLibMutex.readLock { for {
       cat  <- userCategoryRepo.getParentUserPolicyTemplateCategory_forTemplate(id)
       cats <- userCategoryRepo.getParents_UserPolicyTemplateCategory(cat.id)
     } yield {
       cat :: cats
-    }
+    } }
   }
 
   
@@ -178,7 +205,7 @@ class LDAPUserPolicyTemplateRepository(
                      } else Full(Nil)
       upt         <- getUPTEntry(con, uptId, "1.1") ?~! "Can not move non existing template in use library with ID %s".format(uptId)
       newCategory <- userCategoryRepo.getCategoryEntry(con, newCategoryId, "1.1") ?~! "Can not move template with ID %s into non existing category of user library %s".format(uptId, newCategoryId)
-      moved       <- con.move(upt.dn, newCategory.dn) ?~! "Error when moving policy template %s to category %s".format(uptId, newCategoryId)
+      moved       <- userLibMutex.writeLock { con.move(upt.dn, newCategory.dn) ?~! "Error when moving policy template %s to category %s".format(uptId, newCategoryId) }
       autoArchive <- (if(autoExportOnModify) {
                        for {
                          parents <- this.userPolicyTemplateBreadCrump(uptId)
@@ -202,7 +229,7 @@ class LDAPUserPolicyTemplateRepository(
       upt         <- getUPTEntry(con, uptId, A_IS_ACTIVATED)
       saved       <- {
                        upt +=! (A_IS_ACTIVATED, status.toLDAPString)
-                       con.save(upt)
+                       userLibMutex.writeLock { con.save(upt) }
                      }
       autoArchive <- if(autoExportOnModify) {
                          for {
@@ -224,7 +251,7 @@ class LDAPUserPolicyTemplateRepository(
                        val oldAcceptations = mapper.unserializeAcceptations(upt(A_ACCEPTATION_DATETIME).getOrElse(""))
                        val json = Printer.compact(JsonAST.render(mapper.serializeAcceptations(oldAcceptations ++ datetimes)))
                        upt.+=!(A_ACCEPTATION_DATETIME, json)
-                       con.save(upt)
+                       userLibMutex.writeLock { con.save(upt) }
                      }
       autoArchive <- if(autoExportOnModify) {
                          for {
@@ -250,7 +277,7 @@ class LDAPUserPolicyTemplateRepository(
                        this.userPolicyTemplateBreadCrump(uptId)
                      } else Full(Nil)
       upt         <- getUPTEntry(con, uptId, A_REFERENCE_POLICY_TEMPLATE_UUID)
-      deleted     <- con.delete(upt.dn, false)
+      deleted     <- userLibMutex.writeLock { con.delete(upt.dn, false) }
       autoArchive <- (if(autoExportOnModify) {
                        for {
                          ptName <- Box(upt(A_REFERENCE_POLICY_TEMPLATE_UUID)) ?~! "Missing required reference policy template name"

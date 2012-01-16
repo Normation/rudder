@@ -85,7 +85,8 @@ class EventLogJdbcRepository(
 	 */
 	def saveEventLog(eventLog : EventLog) : Box[EventLog] = {
 		 val keyHolder = new GeneratedKeyHolder()
-		 jdbcTemplate.update(
+		 eventLog.cause match {
+		   case None => jdbcTemplate.update(
 				 new PreparedStatementCreator() {
 					 def createPreparedStatement(connection : Connection) : PreparedStatement = {
 						 val sqlXml = connection.createSQLXML()
@@ -93,13 +94,32 @@ class EventLogJdbcRepository(
 						 val ps = connection.prepareStatement(INSERT_SQL, Seq[String]("id").toArray[String]);
 						 ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
 						 ps.setString(2, eventLog.principal.name)
-						 ps.setString(3, eventLog.eventType)
+						 ps.setString(3, eventLog.eventType.serialize)
 						 ps.setInt(4, eventLog.severity)
 						 ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
 						 ps
 					 }
 				 },
-		 keyHolder)
+				 keyHolder)
+		   case Some(causeId) =>
+		     jdbcTemplate.update(
+				 new PreparedStatementCreator() {
+					 def createPreparedStatement(connection : Connection) : PreparedStatement = {
+						 val sqlXml = connection.createSQLXML()
+						 sqlXml.setString(eventLog.details.toString)
+						 val ps = connection.prepareStatement(INSERT_SQL_CAUSEID, Seq[String]("id").toArray[String]);
+						 ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
+						 ps.setString(2, eventLog.principal.name)
+						 ps.setString(3, eventLog.eventType.serialize)
+						 ps.setInt(4, eventLog.severity)
+						 ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
+						 ps.setInt(6, causeId) 
+						 ps
+					 }
+				 },
+				 keyHolder)
+		 }
+		 
 		 
 		 getEventLog(keyHolder.getKey().intValue)
 		 
@@ -108,6 +128,7 @@ class EventLogJdbcRepository(
 	/**
 	 * Save an eventLog with its cause id (because it cannot be held in the VO)
 	 * Return the event log with its serialization number
+	 * TODO : it seems unused, to be checked
 	 */
 	def saveEventLog(eventLog : EventLog, causeId : Int) : Box[EventLog] = {
 		 val keyHolder = new GeneratedKeyHolder()
@@ -119,7 +140,7 @@ class EventLogJdbcRepository(
 						 val ps = connection.prepareStatement(INSERT_SQL_CAUSEID, Seq[String]("id").toArray[String]);
 						 ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
 						 ps.setString(2, eventLog.principal.name)
-						 ps.setString(3, eventLog.eventType)
+						 ps.setString(3, eventLog.eventType.serialize)
 						 ps.setInt(4, eventLog.severity)
 						 ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
 						 ps.setInt(6, causeId) 
@@ -235,6 +256,14 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
 
       case "ManualStartDeployement" => 
         Full(ManualStartDeployement(principal, details, id, creationDate, cause, severity))
+        
+      case "SuccessfulDeployment" => 
+        Full(SuccessfulDeployment(principal, details, id, creationDate, cause, severity))
+        
+      case "FailedDeployment" => 
+        Full(FailedDeployment(principal, details, id, creationDate, cause, severity))
+     
+      
       ///////////// configuration rules /////////////
         
       case "ConfigurationRuleAdded" =>

@@ -35,6 +35,8 @@
 package com.normation.rudder.domain.log
 
 import com.normation.eventlog.EventLogCategory
+import com.normation.eventlog.EventLogType
+import com.normation.eventlog.UnknownEventLogType
 
 ///// Define intersting categories /////
 final case object UserLogCategory extends EventLogCategory
@@ -46,3 +48,114 @@ final case object DeploymentLogCategory extends EventLogCategory
 final case object NodeGroupLogCategory extends EventLogCategory
 final case object AssetLogCategory extends EventLogCategory
 final case object RedButtonLogCategory extends EventLogCategory
+
+
+
+
+// the promises related event type
+final case object AutomaticStartDeployementEventType extends EventLogType {
+  def serialize = "AutomaticStartDeployement"
+}
+final case object ManualStartDeployementEventType extends EventLogType {
+  def serialize = "ManualStartDeployement"
+}
+final case object SuccessfulDeploymentEventType extends EventLogType {
+  def serialize = "SuccessfulDeployment"
+}
+final case object FailedDeploymentEventType extends EventLogType {
+  def serialize = "FailedDeployment"
+}
+// the login related event type
+final case object LoginEventType extends EventLogType {
+  def serialize = "UserLogin"
+}
+final case object BadCredentialsEventType extends EventLogType {
+  def serialize = "BadCredentials"
+}
+final case object LogoutEventType extends EventLogType {
+  def serialize = "UserLogout"
+}
+// the node related event type
+final case object AddNodeGroupEventType extends EventLogType {
+  def serialize = "NodeGroupAdded"
+}
+final case object DeleteNodeGroupEventType extends EventLogType {
+  def serialize = "NodeGroupDeleted"
+}
+final case object ModifyNodeGroupEventType extends EventLogType {
+  def serialize = "NodeGroupModified"
+}
+// policy instance related
+final case object AddPolicyInstanceEventType extends EventLogType {
+  def serialize = "PolicyInstanceAdded"
+}
+final case object DeletePolicyInstanceEventType extends EventLogType {
+  def serialize = "PolicyInstanceDeleted"
+}
+final case object ModifyPolicyInstanceEventType extends EventLogType {
+  def serialize = "PolicyInstanceModified"
+}
+
+// the generic event related event type
+final case object ApplicationStartedEventType extends EventLogType {
+  def serialize = "ApplicationStarted"
+}
+final case object ActivateRedButtonEventType extends EventLogType {
+  def serialize = "ActivateRedButton"
+}
+final case object ReleaseRedButtonEventType extends EventLogType {
+  def serialize = "ReleaseRedButton"
+}
+// configuration rule related event type
+final case object AddConfigurationRuleEventType extends EventLogType {
+  def serialize = "ConfigurationRuleAdded"
+}
+final case object DeleteConfigurationRuleEventType extends EventLogType {
+  def serialize = "ConfigurationRuleDeleted"
+}
+final case object ModifyConfigurationRuleEventType extends EventLogType {
+  def serialize = "ConfigurationRuleModified"
+}
+// asset related event type
+final case object AcceptNodeEventType extends EventLogType {
+  def serialize = "AcceptNode"
+}
+final case object RefuseNodeEventType extends EventLogType {
+  def serialize = "RefuseNode"
+}
+
+object EventTypeFactory {
+  def apply(s:String) : EventLogType = {
+    s match {
+      case "AutomaticStartDeployement" 	=> AutomaticStartDeployementEventType
+      case "ManualStartDeployement" 	=> ManualStartDeployementEventType
+      case "SuccessfulDeployment"		=> SuccessfulDeploymentEventType
+      case "FailedDeployment"			=> FailedDeploymentEventType
+
+      case "UserLogin"					=> LoginEventType
+      case "BadCredentials"				=> BadCredentialsEventType
+      case "UserLogout"					=> LogoutEventType
+
+      case "NodeGroupAdded"				=> AddNodeGroupEventType
+      case "NodeGroupDeleted"			=> DeleteNodeGroupEventType
+      case "NodeGroupModified"			=> ModifyNodeGroupEventType
+
+      case "PolicyInstanceAdded"		=> AddPolicyInstanceEventType
+      case "PolicyInstanceDeleted"		=> DeletePolicyInstanceEventType
+      case "PolicyInstanceModified"		=> ModifyPolicyInstanceEventType
+      
+      case "ApplicationStarted"			=> ApplicationStartedEventType
+      case "ActivateRedButton"			=> ActivateRedButtonEventType
+      case "ReleaseRedButton"			=> ReleaseRedButtonEventType
+      
+      case "ConfigurationRuleAdded"		=> AddConfigurationRuleEventType
+      case "ConfigurationRuleDeleted"	=> DeleteConfigurationRuleEventType
+      case "ConfigurationRuleModified"	=> ModifyConfigurationRuleEventType
+      
+      case "AcceptNode"					=> AcceptNodeEventType
+      case "RefuseNode"					=> RefuseNodeEventType
+      
+      case _ 							=> UnknownEventLogType
+    }
+  }
+}
