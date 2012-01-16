@@ -32,7 +32,31 @@
 *************************************************************************************
 */
 
-/* Popup */
+/* Event handler function */
+
+/*
+var #table_var#;
+        function fnFormatDetails ( id ) {
+          var sOut = '<span id="'+id+'" "/>';
+          return sOut;
+        }
+
+#table_var# = $('').dataTable({
+            "asStripClasses": [ 'color1', 'color2' ],
+            "bAutoWidth": ,
+            "bFilter" :,
+            "bPaginate" :,
+            "bLengthChange": ,
+            "sPaginationType": ,
+            "bJQueryUI": ,
+            // "oLanguage": ,
+            "aaSorting": [[ , "asc" ]],
+            "aoColumns": [             ]
+          })
+
+*/
+
+/* popups */
 
 function callPopupWithTimeout(timeout, popupName, minHeight, minWidth){
 	setTimeout("createPopup('"+popupName+"',"+minHeight+","+minWidth+")", timeout);
