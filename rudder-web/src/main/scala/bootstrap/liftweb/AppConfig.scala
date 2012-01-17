@@ -635,6 +635,9 @@ class AppConfig extends Loggable {
   def srvGrid = new SrvGrid
 
   @Bean
+  def eventListDisplayer = new EventListDisplayer(eventLogDetailsService)
+  
+  @Bean
   def fileManager = new FileManager(UPLOAD_ROOT_DIRECTORY)
 
   @Bean
