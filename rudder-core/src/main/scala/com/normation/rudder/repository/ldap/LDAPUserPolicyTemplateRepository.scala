@@ -116,7 +116,6 @@ class LDAPUserPolicyTemplateRepository(
   
     
   def getUPTbyCategory(includeSystem:Boolean = false) : Box[SortedMap[List[UserPolicyTemplateCategoryId], CategoryAndUPT]] = {
-    import scala.collection.mutable.{Map => MutMap}
     for {
       locked       <- userLibMutex.readLock
       allCats      <- userCategoryRepo.getAllUserPolicyTemplateCategories(includeSystem)
@@ -130,7 +129,7 @@ class LDAPUserPolicyTemplateRepository(
                         }
                       }
     } yield {
-      implicit val ordering = CategoryOrdering
+      implicit val ordering = UPTCategoryOrdering
       SortedMap[List[UserPolicyTemplateCategoryId], CategoryAndUPT]() ++ catsWithUPs
     }
   }

@@ -39,6 +39,18 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.queries.Query
 import net.liftweb.common._
 import com.normation.eventlog.EventActor
+import com.normation.utils.HashcodeCaching
+import scala.collection.SortedMap
+
+
+/**
+ * A simple container for a category 
+ * and its direct children UserPolicyTemplates
+ */
+final case class CategoryAndNodeGroup(
+    category: NodeGroupCategory
+  , groups  : Set[NodeGroup]
+) extends HashcodeCaching 
 
 
 trait NodeGroupRepository {
@@ -63,6 +75,20 @@ trait NodeGroupRepository {
    * Get all node groups defined in that repository
    */
   def getAll() : Box[Seq[NodeGroup]]
+  
+  /**
+   * Get all pairs of (category details, Set(node groups) )
+   * in a map in which keys are the parent category of the groups. 
+   * The map is sorted by category:
+   * 
+   *   "/"           -> [/_details, Set(G1, G2)]
+   *   "/cat1"       -> [cat1_details, Set(G3)]
+   *   "/cat1/cat11" -> [/cat1/cat11_details, Set(G4)]
+   *   "/cat2"       -> [/cat2_details, Set(G5)]
+   *   ...    * 
+   * 
+   */
+  def getGroupsByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]]
   
   /**
    * Retrieve all groups that have at least one of the given

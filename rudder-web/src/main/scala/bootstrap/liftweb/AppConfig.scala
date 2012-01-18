@@ -204,6 +204,8 @@ class AppConfig extends Loggable {
   
   val userLibraryDirectoryName = "policy-library"
     
+  val groupLibraryDirectoryName = "groups"
+    
   // policy.xml parser
   @Bean
   def policyParser = {
@@ -244,9 +246,19 @@ class AppConfig extends Loggable {
   def policyInstanceSerialisation: PolicyInstanceSerialisation = 
     new PolicyInstanceSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
 
+  @Bean 
+  def nodeGroupCategorySerialisation: NodeGroupCategorySerialisation = 
+    new NodeGroupCategorySerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+
+  @Bean 
+  def nodeGroupSerialisation: NodeGroupSerialisation = 
+    new NodeGroupSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+  
   @Bean
   def deploymentStatusSerialisation : DeploymentStatusSerialisation =
     new DeploymentStatusSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+  
+  
   ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
   
   @Bean
@@ -286,14 +298,33 @@ class AppConfig extends Loggable {
   )
   
   @Bean
+  def gitNodeGroupCategoryArchiver: GitNodeGroupCategoryArchiver = new GitNodeGroupCategoryArchiverImpl(
+      gitRepo
+    , new File(gitRoot)
+    , nodeGroupCategorySerialisation
+    , groupLibraryDirectoryName
+    , prettyPrinter
+  )
+    
+  @Bean
+  def gitNodeGroupArchiver: GitNodeGroupArchiver = new GitNodeGroupArchiverImpl(
+      gitRepo
+    , new File(gitRoot)
+    , nodeGroupSerialisation
+    , groupLibraryDirectoryName
+    , prettyPrinter
+  )
+  
+  @Bean
   def itemArchiveManager = new ItemArchiveManagerImpl(
       ldapConfigurationRuleRepository
-    , ldapUserPolicyTemplateCategoryRepository
     , ldapUserPolicyTemplateRepository
+    , ldapNodeGroupRepository
     , configurationRuleUnserialisation
     , gitConfigurationRuleArchiver
     , gitUserPolicyTemplateCategoryArchiver
     , gitUserPolicyTemplateArchiver
+    , gitNodeGroupCategoryArchiver
     , parsePolicyLibrary
     , importPolicyLibrary
   )
@@ -301,7 +332,7 @@ class AppConfig extends Loggable {
   ///// end /////
   
   @Bean
-  def eventLogFactory = new EventLogFactoryImpl(configurationRuleSerialisation,policyInstanceSerialisation)
+  def eventLogFactory = new EventLogFactoryImpl(configurationRuleSerialisation,policyInstanceSerialisation, nodeGroupSerialisation)
   
   @Bean
   def logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
@@ -707,10 +738,22 @@ class AppConfig extends Loggable {
   )
 
   @Bean
-  def ldapGroupCategoryRepository = new LDAPGroupCategoryRepository(rudderDit, ldap, ldapEntityMapper)
+  def ldapGroupCategoryRepository = new LDAPGroupCategoryRepository(
+      rudderDit, ldap, ldapEntityMapper
+    , gitNodeGroupCategoryArchiver
+    , autoArchiveItems
+  )
   
   @Bean
-  def ldapNodeGroupRepository = new LDAPNodeGroupRepository(rudderDit, ldap, ldapEntityMapper, ldapDiffMapper, uuidGen, logRepository)
+  def ldapNodeGroupRepository = new LDAPNodeGroupRepository(
+      rudderDit, ldap, ldapEntityMapper
+    , ldapDiffMapper
+    , ldapGroupCategoryRepository
+    , uuidGen
+    , logRepository
+    , gitNodeGroupArchiver
+    , autoArchiveItems
+  )
 
   @Bean
   def policyInstanceUnserialisation = new PolicyInstanceUnserialisationImpl

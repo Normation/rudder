@@ -38,6 +38,19 @@ import com.normation.rudder.domain.nodes._
 import net.liftweb.common._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.PolicyInstanceTarget
+import com.normation.utils.Utils
+
+
+/**
+ * Here is the ordering for a List[NodeGroupCategoryId]
+ * MUST start by the root !
+ */
+object NodeGroupCategoryOrdering extends Ordering[List[NodeGroupCategoryId]] {
+  type ID = NodeGroupCategoryId
+  override def compare(x:List[ID],y:List[ID]) = {
+    Utils.recTreeStringOrderingCompare(x.map( _.value ), y.map( _.value ))
+  }
+}
 
 trait GroupCategoryRepository {
 
@@ -59,7 +72,7 @@ trait GroupCategoryRepository {
    * Return all categories
    * @return
    */
-  def getAllGroupCategories() : Box[List[NodeGroupCategory]]
+  def getAllGroupCategories(includeSystem: Boolean = false) : Box[List[NodeGroupCategory]]
   
   /**
    * Get a group category by its id
@@ -98,6 +111,13 @@ trait GroupCategoryRepository {
    */
   def getParentGroupCategory(id:NodeGroupCategoryId) : Box[NodeGroupCategory]
 
+  /**
+   * Return the list of parents for that category, the nearest parent
+   * first, until the root of the library.
+   * The the last parent is not the root of the library, return a Failure.
+   * Also return a failure if the path to top is broken in any way.
+   */  
+  def getParents_NodeGroupCategory(id:NodeGroupCategoryId) : Box[List[NodeGroupCategory]] 
 
   /**
    * Returns all non system categories + the root category

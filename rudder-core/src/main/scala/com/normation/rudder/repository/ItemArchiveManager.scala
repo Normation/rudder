@@ -48,6 +48,10 @@ import com.normation.rudder.domain.policies.UserPolicyTemplateCategoryId
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.PolicyPackageName
 import com.normation.cfclerk.domain.PolicyPackage
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupId
 
 //case class to identify an archive
 case class ArchiveId(value:String)
@@ -109,6 +113,9 @@ trait GitConfigurationRuleArchiver {
    */
   def getRootDirectory : File
 }
+
+
+/////////////// User Policy Template Library ///////////////
 
 /**
  * A specific trait to create archive of an user policy template category.
@@ -216,6 +223,81 @@ trait GitPolicyInstanceArchiver {
    * Get the root directory where policy instance are saved.
    * A policy instance won't be directly under that directory, but
    * will be on the sub-directories matching the category on which they are.
+   */
+  def getRootDirectory : File  
+}
+
+
+/////////////// Node Groups ///////////////
+
+
+/**
+ * A specific trait to create archive of an user policy template category.
+ */
+trait GitNodeGroupCategoryArchiver {
+  
+  /**
+   * Archive a node group category in a file system
+   * managed by git. 
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def archiveNodeGroupCategory(groupCat:NodeGroupCategory, getParents:List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File]
+    
+  /**
+   * Delete an archived node group category. 
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def deleteNodeGroupCategory(groupCatId:NodeGroupCategoryId, getParents:List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File]
+  
+  /**
+   * Move an archived node group category from a 
+   * parent category to an other. 
+   */
+  def moveNodeGroupCategory(groupCat:NodeGroupCategory, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File]
+
+  /**
+   * Get the root directory where node group categories are saved.
+   */
+  def getRootDirectory : File  
+  
+  /**
+   * Commit modification done in the Git repository for any
+   * category and groups. 
+   * Return the git commit id. 
+   */
+  def commitGroupLibrary : Box[String]
+}
+
+/**
+ * A specific trait to create archive of an user node group.
+ */
+trait GitNodeGroupArchiver {
+  
+  /**
+   * Archive an user policy template in a file system
+   * managed by git. 
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def archiveNodeGroup(nodeGroup:NodeGroup, parents:List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File]
+    
+  /**
+   * Delete an archived user policy template. 
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   */
+  def deleteNodeGroup(nodeGroup:NodeGroupId, parents:List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File]
+  
+  /**
+   * Move an archived policy template from a 
+   * parent category to an other. 
+   */
+  def moveNodeGroup(nodeGroup:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File]
+
+  /**
+   * Get the root directory where user policy template categories are saved.
    */
   def getRootDirectory : File  
 }

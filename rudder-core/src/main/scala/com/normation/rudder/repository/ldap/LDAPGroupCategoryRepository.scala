@@ -35,25 +35,55 @@
 package com.normation.rudder.repository
 package ldap
 
-import com.normation.rudder.domain.nodes._
-import com.normation.utils.Control._
-import net.liftweb.common._
+import scala.Option.option2Iterable
 
-import com.normation.ldap.sdk._
-import com.unboundid.ldap.sdk.{DN, LDAPException,ResultCode}
-import com.normation.ldap.sdk.{LDAPConnectionProvider,LDAPConnection,LDAPEntry,BuildFilter}
-import BuildFilter.{OR,EQ,IS,AND,NOT}
-import com.normation.inventory.ldap.core.LDAPConstants.{A_OC,A_NAME,A_DESCRIPTION}
-import com.normation.rudder.domain.{RudderDit,RudderLDAPConstants}
-import RudderLDAPConstants._
-import com.normation.inventory.domain.NodeId
+import com.normation.inventory.ldap.core.LDAPConstants.A_DESCRIPTION
+import com.normation.inventory.ldap.core.LDAPConstants.A_NAME
+import com.normation.inventory.ldap.core.LDAPConstants.A_OC
+import com.normation.ldap.sdk.BuildFilter.AND
+import com.normation.ldap.sdk.BuildFilter.EQ
+import com.normation.ldap.sdk.BuildFilter.IS
+import com.normation.ldap.sdk.BuildFilter.NOT
+import com.normation.ldap.sdk.BuildFilter.OR
+import com.normation.ldap.sdk.boolean2LDAP
+import com.normation.ldap.sdk.LDAPConnection
+import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.LDAPEntry
+import com.normation.rudder.domain.RudderLDAPConstants.A_GROUP_CATEGORY_UUID
+import com.normation.rudder.domain.RudderLDAPConstants.A_IS_ACTIVATED
+import com.normation.rudder.domain.RudderLDAPConstants.A_IS_SYSTEM
+import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID
+import com.normation.rudder.domain.RudderLDAPConstants.A_POLICY_TARGET
+import com.normation.rudder.domain.RudderLDAPConstants.OC_GROUP_CATEGORY
+import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
+import com.normation.rudder.domain.RudderLDAPConstants.OC_SPECIAL_TARGET
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.policies.PolicyInstanceTarget
+import com.normation.rudder.domain.RudderDit
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
+import com.normation.rudder.repository.GitNodeGroupCategoryArchiver
+import com.normation.rudder.repository.GroupCategoryRepository
+import com.normation.utils.Control._
+import com.unboundid.ldap.sdk.DN
+import com.unboundid.ldap.sdk.LDAPException
+import com.unboundid.ldap.sdk.ResultCode
+
+import net.liftweb.common.Box
+import net.liftweb.common.Empty
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
 
 
 class LDAPGroupCategoryRepository(
-  rudderDit: RudderDit, 
-  ldap:LDAPConnectionProvider,
-  mapper:LDAPEntityMapper) extends GroupCategoryRepository with Loggable {
+    rudderDit         : RudderDit
+  , ldap              : LDAPConnectionProvider
+  , mapper            : LDAPEntityMapper
+  , gitArchiver       : GitNodeGroupCategoryArchiver
+  , autoExportOnModify: Boolean 
+) extends GroupCategoryRepository with Loggable {
 	
 	repo =>
 	
@@ -111,10 +141,11 @@ class LDAPGroupCategoryRepository(
     } 
   }
   
-  def getAllGroupCategories() : Box[List[NodeGroupCategory]] = {
+  def getAllGroupCategories(includeSystem:Boolean = false) : Box[List[NodeGroupCategory]] = {
   	val list = for {
   		con <- ldap
-  		categoryEntries = con.searchSub(rudderDit.GROUP.dn, IS(OC_GROUP_CATEGORY))
+      filter          =  if(includeSystem) IS(OC_GROUP_CATEGORY) else AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)),IS(OC_GROUP_CATEGORY))
+  		categoryEntries = con.searchSub(rudderDit.GROUP.dn, filter)
   		ids = categoryEntries.map(e => mapper.dn2NodeGroupCategoryId(e.dn))
   		result = ids.map(getGroupCategory _)
   	} yield {
@@ -204,16 +235,25 @@ class LDAPGroupCategoryRepository(
    * 
    * return the new category.
    */
-  def addGroupCategorytoCategory(that: NodeGroupCategory, 
-  		into: NodeGroupCategoryId): Box[NodeGroupCategory] = {
+  def addGroupCategorytoCategory(
+      that: NodeGroupCategory, 
+  		into: NodeGroupCategoryId
+  ): Box[NodeGroupCategory] = {
   	repo.synchronized { for {
-      con <- ldap 
+      con                 <- ldap 
       parentCategoryEntry <- getCategoryEntry(con, into, "1.1") ?~! "The parent category '%s' was not found, can not add".format(into)
-      exists <- if (categoryExists(con, that.name, parentCategoryEntry.dn)) Failure("Cannot create the Node Group Category with name %s : a category with the same name exists at the same level".format(that.name))
-              else Full(Unit)
-      categoryEntry = mapper.nodeGroupCategory2ldap(that,parentCategoryEntry.dn)
-      result <- con.save(categoryEntry, removeMissingAttributes = true)
-      newCategory <- getGroupCategory(that.id) ?~! "The newly created category '%s' was not found".format(that.id.value)
+      canAddByName        <- if (categoryExists(con, that.name, parentCategoryEntry.dn)) 
+                               Failure("Cannot create the Node Group Category with name %s : a category with the same name exists at the same level".format(that.name))
+                             else Full("OK, can add")
+      categoryEntry       =  mapper.nodeGroupCategory2ldap(that,parentCategoryEntry.dn)
+      result              <- con.save(categoryEntry, removeMissingAttributes = true)
+      autoArchive         <- if(autoExportOnModify) {
+                               for {
+                                 parents <- this.getParents_NodeGroupCategory(that.id)
+                                 archive <- gitArchiver.archiveNodeGroupCategory(that,parents.map( _.id))
+                               } yield archive
+                             } else Full("ok")
+      newCategory         <- getGroupCategory(that.id) ?~! "The newly created category '%s' was not found".format(that.id.value)
     } yield {
       newCategory
     } }
@@ -224,13 +264,20 @@ class LDAPGroupCategoryRepository(
    */
   def saveGroupCategory(category: NodeGroupCategory): Box[NodeGroupCategory] = { 
   	repo.synchronized { for {
-      con <- ldap 
+      con              <- ldap 
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
-      categoryEntry = mapper.nodeGroupCategory2ldap(category,oldCategoryEntry.dn.getParent)
-      exists <- if (categoryExists(con, category.name, oldCategoryEntry.dn.getParent, category.id)) Failure("Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name))
-              else Full(Unit)
-      result <- con.save(categoryEntry, removeMissingAttributes = true)
-      updated <- getGroupCategory(category.id)
+      categoryEntry    =  mapper.nodeGroupCategory2ldap(category,oldCategoryEntry.dn.getParent)
+      canAddByName     <- if (categoryExists(con, category.name, oldCategoryEntry.dn.getParent, category.id)) 
+                            Failure("Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name))
+                          else Full("OK")
+      result           <- con.save(categoryEntry, removeMissingAttributes = true)
+      updated          <- getGroupCategory(category.id)
+      autoArchive      <- if(autoExportOnModify) {
+                            for {
+                              parents <- this.getParents_NodeGroupCategory(category.id)
+                              archive <- gitArchiver.archiveNodeGroupCategory(updated,parents.map( _.id))
+                            } yield archive
+                          } else Full("ok")
     } yield {
       updated
     } }
@@ -241,15 +288,29 @@ class LDAPGroupCategoryRepository(
    */
   def saveGroupCategory(category: NodeGroupCategory, containerId : NodeGroupCategoryId): Box[NodeGroupCategory] = {
   	repo.synchronized { for {
-      con <- ldap
+      con              <- ldap
+      oldParents       <- if(autoExportOnModify) {
+                            this.getParents_NodeGroupCategory(category.id)
+                          } else Full(Nil)
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
-      newParent <- getCategoryEntry(con, containerId, "1.1") ?~! "Parent entry with ID '%s' was not found".format(containerId)
-      exists <- if (categoryExists(con, category.name, newParent.dn, category.id)) Failure("Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name))
-              else Full(Unit)
-      categoryEntry = mapper.nodeGroupCategory2ldap(category,newParent.dn)
-      moved = if (newParent.dn == oldCategoryEntry.dn.getParent) {  } else { con.move(oldCategoryEntry.dn, newParent.dn) }
-      result <- con.save(categoryEntry, removeMissingAttributes = true)
-      updated <- getGroupCategory(category.id)
+      newParent        <- getCategoryEntry(con, containerId, "1.1") ?~! "Parent entry with ID '%s' was not found".format(containerId)
+      canAddByName     <- if (categoryExists(con, category.name, newParent.dn, category.id)) 
+                            Failure("Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name))
+                          else Full("OK")
+      categoryEntry    =  mapper.nodeGroupCategory2ldap(category,newParent.dn)
+      moved            =  if (newParent.dn == oldCategoryEntry.dn.getParent) {  
+                            //nothing to do
+                          } else { con.move(oldCategoryEntry.dn, newParent.dn) }
+      result           <- con.save(categoryEntry, removeMissingAttributes = true)
+      updated          <- getGroupCategory(category.id)
+      autoArchive      <- (if(autoExportOnModify) {
+                            for {
+                              parents <- this.getParents_NodeGroupCategory(updated.id)
+                              moved   <- gitArchiver.moveNodeGroupCategory(updated, oldParents.map( _.id), parents.map( _.id))
+                            } yield {
+                              moved
+                            }
+                          } else Full("ok") ) ?~! "Error when trying to archive automatically the category move"
     } yield {
       updated
     } }
@@ -271,6 +332,16 @@ class LDAPGroupCategoryRepository(
     }  	
   }
 
+  
+  def getParents_NodeGroupCategory(id:NodeGroupCategoryId) : Box[List[NodeGroupCategory]] = {
+     //TODO : LDAPify that, we can have the list of all DN from id to root at the begining (just dn.getParent until rudderDit.NOE_GROUP.dn)
+    if(id == getRootCategory.id) Full(Nil)
+    else getParentGroupCategory(id) match {
+      case Full(parent) => getParents_NodeGroupCategory(parent.id).map(parents => parent :: parents)
+      case e:EmptyBox => e
+    }     
+ }
+  
  /**
    * Returns all non system categories + the root category
    * Caution, they are "lightweight" group categories (no children)
@@ -306,13 +377,18 @@ class LDAPGroupCategoryRepository(
         getCategoryEntry(con, id, "1.1") match {
           case Full(entry) => 
             for {
-              ok <- 
-                try {
-                  con.delete(entry.dn, recurse = !checkEmpty) ?~! "Error when trying to delete category with ID '%s'".format(id)
-                } catch {
-                  case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
-                  case e => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
-                }
+              parents     <- if(autoExportOnModify) {
+                               this.getParents_NodeGroupCategory(id)
+                             } else Full(Nil)
+              ok          <- try {
+                               con.delete(entry.dn, recurse = !checkEmpty) ?~! "Error when trying to delete category with ID '%s'".format(id)
+                             } catch {
+                               case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
+                               case e => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
+                             }
+              autoArchive <- (if(autoExportOnModify) {
+                               gitArchiver.deleteNodeGroupCategory(id,parents.map( _.id))
+                             } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
             } yield {
               id
             }
