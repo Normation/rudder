@@ -26,6 +26,7 @@ import scala.xml.XML
 import scala.xml.Elem
 import org.xml.sax.SAXParseException
 import java.io.InputStream
+import com.normation.exceptions.TechnicalException
 
 object XmlUtils {
   
@@ -90,5 +91,12 @@ object XmlUtils {
     } yield {
       doc
     }
-  }  
+  }
+  
+  /**
+   * Trim spaces from an XML elem
+   */def trim(elt:Elem) = scala.xml.Utility.trim(elt) match {
+      case e:Elem => e
+      case x => throw new TechnicalException("Bad returned type for xml.trim. Awaiting an Elem, got: " + x)
+    } 
 }
