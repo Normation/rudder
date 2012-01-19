@@ -70,16 +70,27 @@ import com.normation.cfclerk.services.PolicyPackageService
 import com.normation.rudder.repository.PolicyInstanceRepository
 import scala.collection.mutable.Buffer
 import scala.collection.JavaConversions._
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.repository.GitNodeGroupCategoryArchiver
+import com.normation.rudder.services.marshalling.NodeGroupCategorySerialisation
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.repository.GitNodeGroupArchiver
+import com.normation.rudder.services.marshalling.NodeGroupSerialisation
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroup
+import scala.xml.Elem
 
 /**
  * Utility trait that factor out file commits. 
  */
-trait GitCommitModification extends Loggable {
+trait GitArchiverUtils extends Loggable {
   
   def gitRepo : GitRepositoryProvider
   def gitRootDirectory : File
   def relativePath : String
-  
+  def xmlPrettyPrinter : PrettyPrinter
+  def encoding : String
+
   def newArchiveId = ArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
   
   lazy val getRootDirectory : File = { 
@@ -160,6 +171,17 @@ trait GitCommitModification extends Loggable {
   }
   
   def toGitPath(fsPath:File) = fsPath.getPath.replace(gitRootDirectory.getPath +"/","")
+  
+  /**
+   * Write the given Elem (prettified) into given file, log the message
+   */
+  def writeXml(fileName:File, elem:Elem, logMessage:String) : Box[File] = {
+    tryo { 
+      FileUtils.writeStringToFile(fileName, xmlPrettyPrinter.format(elem), encoding)
+      logger.debug(logMessage)
+      fileName
+    }
+  }
 }
 
 class GitConfigurationRuleArchiverImpl(
@@ -167,9 +189,9 @@ class GitConfigurationRuleArchiverImpl(
   , override val gitRootDirectory   : File
   , configurationRuleSerialisation  : ConfigurationRuleSerialisation
   , configurationRuleRootDir        : String //relative path !
-  , xmlPrettyPrinter                : PrettyPrinter
-  , encoding                        : String = "UTF-8"
-) extends GitConfigurationRuleArchiver with Loggable with GitCommitModification {
+  , override val xmlPrettyPrinter   : PrettyPrinter
+  , override val encoding           : String = "UTF-8"
+) extends GitConfigurationRuleArchiver with Loggable with GitArchiverUtils {
 
   override lazy val relativePath = configurationRuleRootDir
 
@@ -179,17 +201,13 @@ class GitConfigurationRuleArchiverImpl(
     val crFile = newCrFile(cr.id)
       
     for {   
-      archive <- tryo { 
-                   FileUtils.writeStringToFile(
-                       crFile
-                     , xmlPrettyPrinter.format(configurationRuleSerialisation.serialise(cr))
-                     , encoding
-                   )
-                   logger.debug("Archived Configuration rule: " + crFile.getPath)
-                   crFile
-                 }
+      archive <- writeXml(
+                     crFile
+                   , configurationRuleSerialisation.serialise(cr)
+                   , "Archived Configuration rule: " + crFile.getPath
+                 )
       commit  <- if(gitCommitCr) {
-                    commitAddFile(toGitPath(newCrFile(cr.id)), "Archive configuration rule with ID '%s'".format(cr.id.value))
+                    commitAddFile(toGitPath(crFile), "Archive configuration rule with ID '%s'".format(cr.id.value))
                  } else {
                    Full("ok")
                  }
@@ -214,7 +232,7 @@ class GitConfigurationRuleArchiverImpl(
                       logger.debug("Deleted archive of configuration rule: " + crFile.getPath)
                     }
         commited <- if(gitCommitCr) {
-                      commitRmFile(toGitPath(newCrFile(crId)), "Delete archive of configuration rule with ID '%s' on %s ".format(crId.value))
+                      commitRmFile(toGitPath(crFile), "Delete archive of configuration rule with ID '%s' on %s ".format(crId.value))
                     } else {
                       Full("OK")
                     }
@@ -235,21 +253,28 @@ class GitConfigurationRuleArchiverImpl(
  * Basically, it builds the list of directory has path, special casing
  * the root directory to be the given root file. 
  */
-trait BuildCategoryPathName {
+trait BuildCategoryPathName[T] {
   //obtain the root directory from the main class mixed with me
   def getRootDirectory : File
   
+  def getCategoryName(categoryId:T):String
+  
   //list of directories : don't forget the one for the serialized category. 
   //revert the order to start by the root of policy library. 
-  def newCategoryDirectory(uptcId:UserPolicyTemplateCategoryId, parents: List[UserPolicyTemplateCategoryId]) : File = {
+  def newCategoryDirectory(catId:T, parents: List[T]) : File = {
     parents match {
       case Nil => //that's the root
         getRootDirectory
       case h::tail => //skip the head, which is the root category
-        new File(newCategoryDirectory(h, tail), uptcId.value)
+        new File(newCategoryDirectory(h, tail), getCategoryName(catId) )
     }
-  }  
+  }
 }
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+//////  Archive the User Policy Library (categories, policy templates, policy instances) //////
+///////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * A specific trait to create archive of an user policy template category.
@@ -263,35 +288,32 @@ class GitUserPolicyTemplateCategoryArchiverImpl(
   , override val gitRootDirectory          : File
   , userPolicyTemplateCategorySerialisation: UserPolicyTemplateCategorySerialisation
   , policyLibraryRootDir                   : String //relative path !
-  , xmlPrettyPrinter                       : PrettyPrinter
-  , encoding                               : String = "UTF-8"
-) extends GitUserPolicyTemplateCategoryArchiver with Loggable with GitCommitModification with BuildCategoryPathName {
+  , override val xmlPrettyPrinter          : PrettyPrinter
+  , override val encoding                  : String = "UTF-8"
+  , serializedCategoryName                 : String = "category.xml"
+) extends GitUserPolicyTemplateCategoryArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[UserPolicyTemplateCategoryId] {
 
   override lazy val relativePath = policyLibraryRootDir
+  override def  getCategoryName(categoryId:UserPolicyTemplateCategoryId) = categoryId.value
   
   private[this] def newUptcFile(uptcId:UserPolicyTemplateCategoryId, parents: List[UserPolicyTemplateCategoryId]) = {
-    new File(newCategoryDirectory(uptcId, parents), "category.xml") 
+    new File(newCategoryDirectory(uptcId, parents), serializedCategoryName) 
   }
   
   private[this] def archiveWithRename(uptc:UserPolicyTemplateCategory, oldParents: Option[List[UserPolicyTemplateCategoryId]], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File] = {     
     val uptcFile = newUptcFile(uptc.id, newParents)
     
     for {
-      archive     <- tryo { 
-                       FileUtils.writeStringToFile(
-                           uptcFile
-                         , xmlPrettyPrinter.format(userPolicyTemplateCategorySerialisation.serialise(uptc))
-                         , encoding
-                       )
-                       logger.debug("Archived policy library category: " + uptcFile.getPath)
-                       uptcFile
-                     }
-      uptcGitPath =  toGitPath(newUptcFile(uptc.id, newParents))
+      archive     <- writeXml(
+                         uptcFile
+                       , userPolicyTemplateCategorySerialisation.serialise(uptc)
+                       , "Archived policy library category: " + uptcFile.getPath
+                     )
+      uptcGitPath =  toGitPath(uptcFile)
       commit      <- if(gitCommit) {
                       oldParents match {
                         case Some(olds) => 
-                          val oldPath = toGitPath(newUptcFile(uptc.id, olds))
-                          commitMvDirectory(oldPath, uptcGitPath, "Move archive of policy library category with ID '%s'".format(uptc.id.value))
+                          commitMvDirectory(toGitPath(newUptcFile(uptc.id, olds)), uptcGitPath, "Move archive of policy library category with ID '%s'".format(uptc.id.value))
                         case None       => 
                           commitAddFile(uptcGitPath, "Archive of policy library category with ID '%s'".format(uptc.id.value))
                       }
@@ -316,9 +338,8 @@ class GitUserPolicyTemplateCategoryArchiverImpl(
                       FileUtils.forceDelete(uptcFile.getParentFile) 
                       logger.debug("Deleted archived policy library category: " + uptcFile.getPath)
                     }
-        path     =  toGitPath(newUptcFile(uptcId, getParents))
         commited <- if(gitCommit) {
-                      commitRmFile(path, "Delete archive of policy library category with ID '%s'".format(uptcId.value))
+                      commitRmFile(toGitPath(uptcFile), "Delete archive of policy library category with ID '%s'".format(uptcId.value))
                     } else {
                       Full("OK")
                     }
@@ -417,13 +438,15 @@ class GitUserPolicyTemplateArchiverImpl(
   , override val gitRootDirectory  : File
   , userPolicyTemplateSerialisation: UserPolicyTemplateSerialisation
   , policyLibraryRootDir           : String //relative path !
-  , xmlPrettyPrinter               : PrettyPrinter
-  , encoding                       : String = "UTF-8"
+  , override val xmlPrettyPrinter  : PrettyPrinter
+  , override val encoding          : String = "UTF-8"
   , val uptModificationCallback    : Buffer[UptModificationCallback] = Buffer()
   , val userPolicyTemplateFileName : String = "userPolicyTemplateSettings.xml"
-) extends GitUserPolicyTemplateArchiver with Loggable with GitCommitModification with BuildCategoryPathName {
+) extends GitUserPolicyTemplateArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[UserPolicyTemplateCategoryId] {
 
   override lazy val relativePath = policyLibraryRootDir
+  override def  getCategoryName(categoryId:UserPolicyTemplateCategoryId) = categoryId.value
+
   private[this] def newUptFile(ptName:PolicyPackageName, parents: List[UserPolicyTemplateCategoryId]) = {
     //parents can not be null: we must have at least the root category
     parents match {
@@ -435,15 +458,11 @@ class GitUserPolicyTemplateArchiverImpl(
   def archiveUserPolicyTemplate(upt:UserPolicyTemplate, parents: List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File] = {     
     for {
       uptFile   <- newUptFile(upt.referencePolicyTemplateName, parents)
-      archive   <- tryo { 
-                     FileUtils.writeStringToFile(
-                         uptFile
-                       , xmlPrettyPrinter.format(userPolicyTemplateSerialisation.serialise(upt))
-                       , encoding
-                     )
-                     logger.debug("Archived policy library template: " + uptFile.getPath)
-                     uptFile
-                   }
+      archive   <- writeXml(
+                       uptFile
+                     , userPolicyTemplateSerialisation.serialise(upt)
+                     , "Archived policy library template: " + uptFile.getPath
+                   )
       callbacks <- sequence(uptModificationCallback) { _.onArchive(upt,parents, false) }
       commit    <- if(gitCommit) {
                      commitAddFile(toGitPath(uptFile), "Archive of policy library template for policy template name '%s'".format(upt.referencePolicyTemplateName.value))
@@ -526,11 +545,12 @@ class GitPolicyInstanceArchiverImpl(
   , override val gitRootDirectory  : File
   , policyInstanceSerialisation    : PolicyInstanceSerialisation
   , policyLibraryRootDir           : String //relative path !
-  , xmlPrettyPrinter               : PrettyPrinter
-  , encoding                       : String = "UTF-8"
-) extends GitPolicyInstanceArchiver with Loggable with GitCommitModification with BuildCategoryPathName {
+  , override val xmlPrettyPrinter  : PrettyPrinter
+  , override val encoding          : String = "UTF-8"
+) extends GitPolicyInstanceArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[UserPolicyTemplateCategoryId] {
 
   override lazy val relativePath = policyLibraryRootDir
+  override def  getCategoryName(categoryId:UserPolicyTemplateCategoryId) = categoryId.value
   
   private[this] def newPiFile(
       piId   : PolicyInstanceId
@@ -554,15 +574,11 @@ class GitPolicyInstanceArchiverImpl(
         
     for {
       piFile  <- newPiFile(pi.id, ptName, catIds)
-      archive <- tryo { 
-                   FileUtils.writeStringToFile(
-                       piFile
-                     , xmlPrettyPrinter.format(policyInstanceSerialisation.serialise(ptName, variableRootSection, pi))
-                     , encoding
-                   )
-                   logger.debug("Archived policy instance: " + piFile.getPath)
-                   piFile
-                 }
+      archive <- writeXml( 
+                     piFile
+                   , policyInstanceSerialisation.serialise(ptName, variableRootSection, pi)
+                   , "Archived policy instance: " + piFile.getPath
+                 )
       commit  <- if(gitCommit) {
                     commitAddFile(toGitPath(piFile), "Archive policy instance with ID '%s'".format(pi.id.value))
                  } else {
@@ -603,3 +619,231 @@ class GitPolicyInstanceArchiverImpl(
     }
   }
 }
+
+
+/////////////////////////////////////////////////////////////
+////// Archive Node Groups (categories and node group) //////
+/////////////////////////////////////////////////////////////
+
+/**
+ * A specific trait to create archive of a node group category.
+ * 
+ * Basically, we directly map the category tree to file-system directories,
+ * with the root category being the file denoted by "nodeGroupLibrary
+ * 
+ */
+class GitNodeGroupCategoryArchiverImpl(
+    override val gitRepo          : GitRepositoryProvider
+  , override val gitRootDirectory : File
+  , nodeGroupCategorySerialisation: NodeGroupCategorySerialisation
+  , groupLibraryRootDir           : String //relative path !
+  , override val xmlPrettyPrinter : PrettyPrinter
+  , override val encoding         : String = "UTF-8"
+  , serializedCategoryName        : String = "category.xml"
+) extends GitNodeGroupCategoryArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[NodeGroupCategoryId] {
+
+  override lazy val relativePath = groupLibraryRootDir
+  override def  getCategoryName(categoryId:NodeGroupCategoryId) = categoryId.value
+  
+  private[this] def newNgFile(ngcId:NodeGroupCategoryId, parents: List[NodeGroupCategoryId]) = {
+    new File(newCategoryDirectory(ngcId, parents), serializedCategoryName) 
+  }
+  
+  def archiveNodeGroupCategory(ngc:NodeGroupCategory, parents: List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File] = {     
+    val ngcFile = newNgFile(ngc.id, parents)
+    
+    for {
+      archive   <- writeXml(
+                         ngcFile
+                       , nodeGroupCategorySerialisation.serialise(ngc)
+                       , "Archived node group category: " + ngcFile.getPath
+                    )
+      commit     <- if(gitCommit) {
+                      commitAddFile(toGitPath(ngcFile), "Archive of node group category with ID '%s'".format(ngc.id.value))
+                    } else {
+                      Full("ok")
+                    }
+    } yield {
+      archive
+    }
+  }
+  
+  def deleteNodeGroupCategory(ngcId:NodeGroupCategoryId, getParents: List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File] = {
+    val ngcFile = newNgFile(ngcId, getParents)
+    if(ngcFile.exists) {
+      for {
+        //don't forget to delete the category *directory*
+        deleted  <- tryo { 
+                      FileUtils.forceDelete(ngcFile.getParentFile) 
+                      logger.debug("Deleted archived node group category: " + ngcFile.getPath)
+                    }
+        commited <- if(gitCommit) {
+                      commitRmFile(toGitPath(ngcFile), "Delete archive of node group category with ID '%s'".format(ngcId.value))
+                    } else {
+                      Full("OK")
+                    }
+      } yield {
+        ngcFile
+      }
+    } else {
+      Full(ngcFile)
+    }
+  }
+  
+  /* 
+   * That's the hard one. 
+   * We can't make any assumption about the state of the old category place on the file
+   * system. Perhaps it is up to date, but perhaps it wasn't created at all, or perhaps it
+   * is not synchronized.
+   * 
+   * Strategy followed:
+   * - always (re)write category.xml, so that it is up to date;
+   * - try to move old category content (except category.xml) to new
+   *   category directory
+   * - always try to do a gitMove. 
+   */
+  def moveNodeGroupCategory(ngc:NodeGroupCategory, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File] = {
+    val oldNgcDir = newNgFile(ngc.id, oldParents).getParentFile
+    val newNgcXmlFile = newNgFile(ngc.id, newParents)
+    val newNgcDir = newNgcXmlFile.getParentFile
+    
+    for {
+      archive <- writeXml(
+                     newNgcXmlFile
+                   , nodeGroupCategorySerialisation.serialise(ngc)
+                   , "Archived node group category: " + newNgcXmlFile.getPath
+                 )
+      moved   <- { 
+                   if(null != oldNgcDir && oldNgcDir.exists) {
+                     if(oldNgcDir.isDirectory) {
+                       //move content except category.xml
+                       sequence(oldNgcDir.listFiles.toSeq.filter( f => f.getName != serializedCategoryName)) { f =>
+                         tryo { FileUtils.moveToDirectory(f, newNgcDir, false) }
+                       }
+                     } 
+                     //in all case, delete the file at the old directory path
+                     tryo { FileUtils.deleteQuietly(oldNgcDir) }
+                   } else Full("OK")
+                 } 
+      commit  <- if(gitCommit) { 
+                   commitMvDirectory(toGitPath(oldNgcDir), toGitPath(newNgcDir), "Move archive of node group category with ID '%s'".format(ngc.id.value))
+                 } else {
+                   Full("ok")
+                 }
+    } yield {
+      archive
+    }
+  }
+  
+  /**
+   * Commit modification done in the Git repository for any
+   * category, policy template and policy instance in the
+   * user policy library.
+   * Return the git commit id. 
+   */
+  def commitGroupLibrary : Box[String] = {
+    this.commitFullGitPathContent(
+        groupLibraryRootDir
+      , "Commit all modification done in the User Policy Library (git path: '%s')".format(groupLibraryRootDir)
+    )
+  }
+}
+
+/**
+ * A specific trait to create archive of a node group.
+ * 
+ * Basically, we directly map the category tree to file-system directories,
+ * with the root category being the file denoted by "policyLibraryRootDir"
+ * 
+ */
+class GitNodeGroupArchiverImpl(
+    override val gitRepo          : GitRepositoryProvider
+  , override val gitRootDirectory : File
+  , nodeGroupSerialisation        : NodeGroupSerialisation
+  , groupLibraryRootDir           : String //relative path !
+  , override val xmlPrettyPrinter : PrettyPrinter
+  , override val encoding         : String = "UTF-8"
+) extends GitNodeGroupArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[NodeGroupCategoryId] {
+
+  override lazy val relativePath = groupLibraryRootDir
+  override def  getCategoryName(categoryId:NodeGroupCategoryId) = categoryId.value
+  
+  private[this] def newNgFile(ngId:NodeGroupId, parents: List[NodeGroupCategoryId]) = {
+    parents match {
+      case h :: t => Full(new File(newCategoryDirectory(h, t), ngId.value + ".xml"))
+      case Nil => Failure("The given parent category list for node group with id '%s' is empty, what is forbiden".format(ngId.value))
+    }
+  }
+  
+  def archiveNodeGroup(ng:NodeGroup, parents: List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File] = {     
+    for {
+      ngFile    <- newNgFile(ng.id, parents)
+      archive   <- writeXml(
+                        ngFile
+                      , nodeGroupSerialisation.serialise(ng)
+                      , "Archived node group: " + ngFile.getPath
+                    )
+      commit     <- if(gitCommit) {
+                      commitAddFile(toGitPath(ngFile), "Archive of node group with ID '%s'".format(ng.id.value))
+                    } else {
+                      Full("ok")
+                    }
+    } yield {
+      archive
+    }
+  }
+  
+  def deleteNodeGroup(ngId:NodeGroupId, getParents: List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File] = {
+    newNgFile(ngId, getParents) match {
+      case Full(ngFile) => 
+        if(ngFile.exists) {
+          for {
+            //don't forget to delete the category *directory*
+            deleted  <- tryo { 
+                          FileUtils.forceDelete(ngFile.getParentFile) 
+                          logger.debug("Deleted archived node group: " + ngFile.getPath)
+                        }
+            commited <- if(gitCommit) {
+                          commitRmFile(toGitPath(ngFile), "Delete archive of node group with ID '%s'".format(ngId.value))
+                        } else {
+                          Full("OK")
+                        }
+          } yield {
+            ngFile
+          }
+        } else {
+          Full(ngFile)
+        }
+      case eb:EmptyBox => eb
+    }
+  }
+  
+  def moveNodeGroup(ng:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File] = {
+    
+    for {
+      oldNgXmlFile <- newNgFile(ng.id, oldParents)
+      newNgXmlFile <- newNgFile(ng.id, newParents)
+      archive      <- writeXml(
+                          newNgXmlFile
+                        , nodeGroupSerialisation.serialise(ng)
+                        , "Archived node group: " + newNgXmlFile.getPath
+                      )
+      moved        <- { 
+                       if(null != oldNgXmlFile && oldNgXmlFile.exists) {
+                         tryo { FileUtils.deleteQuietly(oldNgXmlFile) }
+                       } else Full("OK")
+                     } 
+      commit       <- if(gitCommit) { 
+                        commitMvDirectory(toGitPath(oldNgXmlFile), toGitPath(newNgXmlFile), "Move archive of node group with ID '%s'".format(ng.id.value))
+                      } else {
+                        Full("ok")
+                      }
+    } yield {
+      archive
+    }
+  }
+
+}
+
+
+

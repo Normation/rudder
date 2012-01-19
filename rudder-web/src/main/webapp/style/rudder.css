@@ -960,6 +960,17 @@ div#logo {
   margin-bottom:10px;
 }
 
+div.pendingModificationStatus {
+  float:right;
+  width:200px;
+  padding-bottom:10px;
+}
+
+div.pendingModificationStatus a {
+  font-size:1.1em;
+  color:white;
+}
+
 /**************************************
 header - haut de page
 **************************************/

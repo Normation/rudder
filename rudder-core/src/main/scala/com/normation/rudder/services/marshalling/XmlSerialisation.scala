@@ -42,88 +42,10 @@ import com.normation.cfclerk.domain.PolicyPackageName
 import com.normation.rudder.domain.policies.PolicyInstance
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.batch.CurrentDeploymentStatus
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.domain.nodes.NodeGroup
 
-///**
-// * That trait allow to serialise 
-// * policy instance from an XML file. 
-// */
-//trait PolicyInstanceSerialisation {
-//  /**
-//   * Version 1.0
-//     <policyInstance fileFormat="1.0">
-//       <id>{pi.id.value}</id>
-//       <displayName>{pi.name}</displayName>
-//       <policyTemplateName>{PT name}</policyTemplateName>
-//       <policyTemplateVersion>{pi.policyTemplateVersion}</policyTemplateVersion>
-//       <shortDescription>{pi.shortDescription}</shortDescription>
-//       <longDescription>{pi.longDescription}</longDescription>
-//       <priority>{pi.priority}</priority>
-//       <isActivated>{piisActivated.}</isActivated>
-//       <isSystem>{pi.isSystem}</isSystem>
-//       <section name="sections">
-//         <section name="ptTest1-section1">
-//           <var name="ptTest1-section1-var1">value0</var>
-//           <section name="ptTest1-section1.1">
-//             <var name="ptTest1-section1.1-var1">value1</var>
-//           </section>
-//           <section name="ptTest1-section1.1">
-//             <var name="ptTest1-section1.1-var1">value2</var>
-//           </section>
-//         </section>
-//       </section>
-//     </policyInstance>
-//   */
-//  def serialise(xml:XNode) : Box[(PolicyPackageName, PolicyInstance, SectionVal)]
-//  
-//  
-//  /**
-//   * A section val look like:
-//   * <section name="root">
-//       <var name="vA">valueVA<var>
-//       <var name="vB">valueVB</var>
-//       <section name="multi">
-//         <var name="vC">vc1</var>
-//         <section name="s2>
-//           <var name="vD">vd1</var>
-//         </section>
-//       </section>
-//       <section name="multi">
-//         <var name="vC">vc2</var>
-//         <section name="s2>
-//           <var name="vD">vd2</var>
-//         </section>
-//       </section>
-//   * </section>
-//   * 
-//   * We await for a node that contains an unique <section>
-//   */
-//  def parseSectionVal(xml:NodeSeq) : Box[SectionVal]
-//}
-//
-//
-///**
-// * That trait allow to serialise 
-// * Node Group from an XML file. 
-// */
-//trait NodeGroupSerialisation {
-//  /**
-//   * Version 1.0
-//     <nodeGroup fileFormat="1.0">
-//       <id>{group.id.value}</id>
-//       <displayName>{group.id.name}</displayName>
-//       <description>{group.id.description}</description>
-//       <isDynamic>{group.isDynamic}</isDynamic>
-//       <isActivated>{group.isActivated}</isActivated>
-//       <isSystem>{group.isSystem}</isSystem>
-//       <query>{group.query}</query>
-//       <nodeIds>
-//         <id>{nodeId_1}</id>
-//         <id>{nodeId_2}</id>
-//       </nodeIds>
-//     </nodeGroup>
-//   */
-//  def serialise(xml:XNode) : Box[NodeGroup]
-//}
+
 
 /**
  * That trait allow to serialise 
@@ -223,6 +145,48 @@ trait PolicyInstanceSerialisation {
       ptName             : PolicyPackageName
     , variableRootSection: SectionSpec
     , pi                 : PolicyInstance):  Elem
+}
+
+
+/**
+ * That trait allows to serialise 
+ * Node group categories to an XML file. 
+ */
+trait NodeGroupCategorySerialisation {
+  /**
+   * Version 1: (ngc: nodeGroupCategory)
+     <groupLibraryCategory fileFormat="1.0">
+        <id>{ngc.id.value}</id>
+        <displayName>{ngc.name}</displayName>
+        <description>{ngc.description}</serial>
+        <isSystem>{ngc.isSystem}</isSystem>
+      </groupLibraryCategory>
+   */
+  def serialise(ngc:NodeGroupCategory):  Elem
+}
+
+/**
+ * That trait allows to serialise 
+ * Node group to an XML file. 
+ */
+trait NodeGroupSerialisation {
+  /**
+   * Version 1: 
+     <nodeGroup fileFormat="1.0">
+       <id>{group.id.value}</id>
+       <displayName>{group.id.name}</displayName>
+       <description>{group.id.description}</description>
+       <isDynamic>{group.isDynamic}</isDynamic>
+       <isActivated>{group.isActivated}</isActivated>
+       <isSystem>{group.isSystem}</isSystem>
+       <query>{group.query}</query>
+       <nodeIds>
+         <id>{nodeId_1}</id>
+         <id>{nodeId_2}</id>
+       </nodeIds>
+     </nodeGroup>
+   */
+  def serialise(ng:NodeGroup):  Elem
 }
 
 /**

@@ -47,31 +47,6 @@ import com.normation.utils.HashcodeCaching
 
 sealed trait NodeGroupEventLog extends EventLog
 
-object NodeGroupEventLog {
-  
-  val xmlVersion = "1.0"
-  
-  /**
-   * Print to XML a configuration rule, used
-   * for "add" and "delete" actions. 
-   */
-  def toXml(group:NodeGroup,action:String) =
-    scala.xml.Utility.trim(<nodeGroup changeType={action} fileFormat={xmlVersion}>
-        <id>{group.id.value}</id>
-        <displayName>{group.name}</displayName>
-        <description>{group.description}</description>
-        <query>{ group.query.map( _.toJSONString ).getOrElse("") }</query>
-        <isDynamic>{group.isDynamic}</isDynamic>
-        <nodeIds>{
-          group.serverList.map { id => <id>{id.value}</id> } 
-        }</nodeIds>
-        <isActivated>{group.isActivated}</isActivated>
-        <isSystem>{group.isSystem}</isSystem>
-      </nodeGroup>
-    )
-    
-  
-}
 
 final case class AddNodeGroup(
     override val id : Option[Int] = None
@@ -84,20 +59,6 @@ final case class AddNodeGroup(
   override val eventType = AddNodeGroupEventType
   override val eventLogCategory = NodeGroupLogCategory
   override def copySetCause(causeId:Int) = this
-}
-
-object AddNodeGroup {
-  def fromDiff(
-      id : Option[Int] = None
-    , principal : EventActor
-    , addDiff:AddNodeGroupDiff
-    , creationDate : DateTime = DateTime.now()
-    , severity : Int = 100
-  ) : AddNodeGroup = {
-    val details = EventLog.withContent(NodeGroupEventLog.toXml(addDiff.group, "add"))
-    
-    AddNodeGroup(id, principal, details, creationDate, severity)
-  }
 }
 
 final case class DeleteNodeGroup(
@@ -113,20 +74,6 @@ final case class DeleteNodeGroup(
   override def copySetCause(causeId:Int) = this
 }
 
-object DeleteNodeGroup {
-  def fromDiff(    
-      id : Option[Int] = None
-    , principal : EventActor
-    , deleteDiff:DeleteNodeGroupDiff
-    , creationDate : DateTime = DateTime.now()
-    , severity : Int = 100
-  ) : DeleteNodeGroup = {
-    val details = EventLog.withContent(NodeGroupEventLog.toXml(deleteDiff.group, "delete"))
-
-    DeleteNodeGroup(id, principal, details, creationDate, severity)
-  }
-}
-
 final case class ModifyNodeGroup(
     override val id : Option[Int] = None
   , override val principal : EventActor
@@ -138,37 +85,4 @@ final case class ModifyNodeGroup(
   override val eventType = ModifyNodeGroupEventType
   override val eventLogCategory = NodeGroupLogCategory
   override def copySetCause(causeId:Int) = this
-}
-
-object ModifyNodeGroup {
-  def fromDiff(    
-      id : Option[Int] = None
-    , principal : EventActor
-    , modifyDiff:ModifyNodeGroupDiff
-    , creationDate : DateTime = DateTime.now()
-    , severity : Int = 100
-  ) : ModifyNodeGroup = {
-    val details = EventLog.withContent{
-      scala.xml.Utility.trim(<nodeGroup changeType="modify" fileFormat={NodeGroupEventLog.xmlVersion}>
-        <id>{modifyDiff.id.value}</id>
-        <displayName>{modifyDiff.name}</displayName>{
-          modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
-          modifyDiff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x ) ) ++
-          modifyDiff.modQuery.map(x => SimpleDiff.toXml[Option[Query]](<query/>, x){ t =>
-            t match {
-              case None => <none/>
-              case Some(y) => Text(y.toJSONString)
-            }
-          } ) ++
-          modifyDiff.modIsDynamic.map(x => SimpleDiff.booleanToXml(<isDynamic/>, x ) ) ++
-          modifyDiff.modServerList.map(x => SimpleDiff.toXml[Set[NodeId]](<nodeIds/>, x){ ids =>
-              ids.toSeq.map { id => <id>{id.value}</id> }
-            } ) ++
-          modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isActivated/>, x ) ) ++
-          modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) )
-        }
-      </nodeGroup>)
-    }
-    ModifyNodeGroup(id, principal, details, creationDate, severity)
-  }
 }

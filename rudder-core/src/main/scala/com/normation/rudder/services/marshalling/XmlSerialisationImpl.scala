@@ -58,6 +58,8 @@ import com.normation.rudder.domain.policies.UserPolicyTemplate
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.batch.{CurrentDeploymentStatus,SuccessStatus,ErrorStatus}
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.utils.XmlUtils
 
 
 ////////////////////// implementations //////////////////////
@@ -186,7 +188,7 @@ import com.normation.rudder.batch.{CurrentDeploymentStatus,SuccessStatus,ErrorSt
 
 class ConfigurationRuleSerialisationImpl(xmlVersion:String) extends ConfigurationRuleSerialisation {
   def serialise(cr:ConfigurationRule):  Elem = {
-    scala.xml.Utility.trim(
+    XmlUtils.trim {
       <configurationRule fileFormat={xmlVersion}>
         <id>{cr.id.value}</id>
         <displayName>{cr.name}</displayName>
@@ -200,9 +202,6 @@ class ConfigurationRuleSerialisationImpl(xmlVersion:String) extends Configuratio
         <isActivated>{cr.isActivatedStatus}</isActivated>
         <isSystem>{cr.isSystem}</isSystem>
       </configurationRule>
-    ) match {
-      case e:Elem => e
-      case x => throw new TechnicalException("Bad returned type for xml.trim. Awaiting an Elem, got: " + x)
     }
   }
 }
@@ -214,16 +213,13 @@ class ConfigurationRuleSerialisationImpl(xmlVersion:String) extends Configuratio
 class UserPolicyTemplateCategorySerialisationImpl(xmlVersion:String) extends UserPolicyTemplateCategorySerialisation {
 
   def serialise(uptc:UserPolicyTemplateCategory):  Elem = {
-    scala.xml.Utility.trim(
+    XmlUtils.trim {
       <policyLibraryCategory fileFormat={xmlVersion}>
         <id>{uptc.id.value}</id>
         <displayName>{uptc.name}</displayName>
         <description>{uptc.description}</description>
         <isSystem>{uptc.isSystem}</isSystem>
       </policyLibraryCategory>
-    ) match {
-      case e:Elem => e
-      case x => throw new TechnicalException("Bad returned type for xml.trim. Awaiting an Elem, got: " + x)
     }
   }
 }
@@ -235,7 +231,7 @@ class UserPolicyTemplateCategorySerialisationImpl(xmlVersion:String) extends Use
 class UserPolicyTemplateSerialisationImpl(xmlVersion:String) extends UserPolicyTemplateSerialisation {
 
   def serialise(upt:UserPolicyTemplate):  Elem = {
-    scala.xml.Utility.trim(
+    XmlUtils.trim {
       <policyLibraryTemplate fileFormat={xmlVersion}>
         <id>{upt.id.value}</id>
         <policyTemplateName>{upt.referencePolicyTemplateName}</policyTemplateName>
@@ -245,9 +241,6 @@ class UserPolicyTemplateSerialisationImpl(xmlVersion:String) extends UserPolicyT
           <version name={version.toString}>{date.toString(ISODateTimeFormat.dateTime)}</version>
         } }</versions>
       </policyLibraryTemplate>
-    ) match {
-      case e:Elem => e
-      case x => throw new TechnicalException("Bad returned type for xml.trim. Awaiting an Elem, got: " + x)
     }
   }
 }
@@ -263,7 +256,7 @@ class PolicyInstanceSerialisationImpl(xmlVersion:String) extends PolicyInstanceS
     , variableRootSection: SectionSpec
     , pi                 : PolicyInstance
   ) = {
-    scala.xml.Utility.trim(
+    XmlUtils.trim {
       <policyInstance fileFormat={xmlVersion}>
         <id>{pi.id.value}</id>
         <displayName>{pi.name}</displayName>
@@ -276,9 +269,43 @@ class PolicyInstanceSerialisationImpl(xmlVersion:String) extends PolicyInstanceS
         <isActivated>{pi.isActivated}</isActivated>
         <isSystem>{pi.isSystem}</isSystem>
       </policyInstance>
-    ) match {
-      case e:Elem => e
-      case x => throw new TechnicalException("Bad returned type for xml.trim. Awaiting an Elem, got: " + x)
+    }
+  }
+}
+
+/**
+ * That trait allows to serialise 
+ * Node group categories to an XML file. 
+ */
+class NodeGroupCategorySerialisationImpl(xmlVersion:String) extends NodeGroupCategorySerialisation {
+
+  def serialise(ngc:NodeGroupCategory):  Elem = {
+    XmlUtils.trim {
+      <groupLibraryCategory fileFormat={xmlVersion}>
+        <id>{ngc.id.value}</id>
+        <displayName>{ngc.name}</displayName>
+        <description>{ngc.description}</description>
+        <isSystem>{ngc.isSystem}</isSystem>
+      </groupLibraryCategory>
+    }
+  }
+}
+
+class NodeGroupSerialisationImpl(xmlVersion:String) extends NodeGroupSerialisation {
+  def serialise(group:NodeGroup):  Elem = {
+    XmlUtils.trim {
+      <nodeGroup fileFormat={xmlVersion}>
+        <id>{group.id.value}</id>
+        <displayName>{group.name}</displayName>
+        <description>{group.description}</description>
+        <query>{ group.query.map( _.toJSONString ).getOrElse("") }</query>
+        <isDynamic>{group.isDynamic}</isDynamic>
+        <nodeIds>{
+          group.serverList.map { id => <id>{id.value}</id> } 
+        }</nodeIds>
+        <isActivated>{group.isActivated}</isActivated>
+        <isSystem>{group.isSystem}</isSystem>
+      </nodeGroup>    
     }
   }
 }
@@ -289,8 +316,7 @@ class PolicyInstanceSerialisationImpl(xmlVersion:String) extends PolicyInstanceS
 class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentStatusSerialisation {
   def serialise(
       deploymentStatus : CurrentDeploymentStatus) : Elem = {
-   scala.xml.Utility.trim( 
-    deploymentStatus match {
+  XmlUtils.trim { deploymentStatus match {
       case d : SuccessStatus => <deploymentStatus fileFormat="1.0">
       		<id>{d.id}</id>
       		<started>{d.started}</started>
@@ -305,11 +331,6 @@ class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentSta
       		<errorMessage>{d.failure}</errorMessage>
       	 </deploymentStatus>
       case _ => throw new TechnicalException("Bad CurrentDeploymentStatus type, expected a success or an error")
-    }
-    
-   ) match {
-      case e:Elem => e
-      case x => throw new TechnicalException("Bad returned type for xml.trim. Awaiting an Elem, got: " + x)
-    }
-  }
+    } 
+  } }
 }

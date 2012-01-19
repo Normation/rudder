@@ -40,6 +40,9 @@ import java.security.Principal
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.services.log.EventLogFactory
 import com.normation.cfclerk.domain.SectionSpec
+import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
+import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
+import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory
@@ -95,6 +98,28 @@ trait EventLogRepository {
       , modifyDiff = modifyDiff
     ))
   }	
+  
+  def saveAddNodeGroup(principal: EventActor, addDiff: AddNodeGroupDiff) = {
+    saveEventLog(eventLogFactory.getAddNodeGroupFromDiff(
+        principal           = principal
+      , addDiff             = addDiff
+    ))
+  }
+  
+  def saveDeleteNodeGroup(principal : EventActor, deleteDiff:DeleteNodeGroupDiff) = {
+    saveEventLog(eventLogFactory.getDeleteNodeGroupFromDiff(
+        principal  = principal
+      , deleteDiff = deleteDiff
+    ))
+  }
+
+  def saveModifyNodeGroup(principal : EventActor, modifyDiff: ModifyNodeGroupDiff) = {
+    saveEventLog(eventLogFactory.getModifyNodeGroupFromDiff(
+        principal = principal
+      , modifyDiff = modifyDiff
+    ))
+  } 
+  
 	/**
 	 * Get an EventLog by its entry
 	 */

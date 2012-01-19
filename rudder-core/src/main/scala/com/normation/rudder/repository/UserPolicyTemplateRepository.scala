@@ -39,7 +39,7 @@ import com.normation.cfclerk.domain.PolicyPackageName
 import net.liftweb.common._
 import com.normation.cfclerk.domain.PolicyVersion
 import org.joda.time.DateTime
-import scala.collection.immutable.SortedMap
+import scala.collection.SortedMap
 import com.normation.utils.HashcodeCaching
 
 /**
@@ -59,9 +59,9 @@ final case class CategoryAndUPT(
 trait UserPolicyTemplateRepository {
 
   /**
-   * Get all User policy templates in a map whose index
-   * is the parent category of the template. The map is sorted
-   * by categories:
+   * Get all pairs of (category details, Set(User policy templates))
+   * in a map in which keys are the parent category of the
+   * the template. The map is sorted by categories:
    * SortedMap {
    *   "/"           -> [/_details, Set(UPT1, UPT2)]
    *   "/cat1"       -> [cat1_details, Set(UPT3)]

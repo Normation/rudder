@@ -38,38 +38,29 @@ import java.io.FileInputStream
 import java.util.regex.Pattern
 import scala.collection.JavaConversions.collectionAsScalaIterable
 import org.apache.commons.io.FileUtils
-import com.normation.rudder.repository.ArchiveId
-import com.normation.rudder.repository.ConfigurationRuleRepository
-import com.normation.rudder.repository.GitConfigurationRuleArchiver
-import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisation
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
 import com.normation.utils.XmlUtils
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
-import com.normation.rudder.repository.UserPolicyTemplateRepository
-import com.normation.rudder.repository.GitUserPolicyTemplateArchiver
-import com.normation.rudder.repository.UserPolicyTemplateCategoryRepository
-import com.normation.rudder.repository.GitUserPolicyTemplateCategoryArchiver
-import com.normation.rudder.repository.CategoryAndUPT
+import com.normation.rudder.repository._
 import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
 import com.normation.rudder.domain.policies.UserPolicyTemplate
 import java.io.File
 import com.normation.rudder.domain.policies.PolicyInstance
 import net.liftweb.common.Full
-import com.normation.rudder.repository.ImportPolicyLibrary
-import com.normation.rudder.repository.ParsePolicyLibrary
 
 
 class ItemArchiveManagerImpl(
     configurationRuleRepository          : ConfigurationRuleRepository
-  , utpCategoryRepository                : UserPolicyTemplateCategoryRepository
   , uptRepository                        : UserPolicyTemplateRepository
+  , groupRepository                      : NodeGroupRepository
   , configurationRuleUnserialisation     : ConfigurationRuleUnserialisation
   , gitConfigurationRuleArchiver         : GitConfigurationRuleArchiver
   , gitUserPolicyTemplateCategoryArchiver: GitUserPolicyTemplateCategoryArchiver
   , gitUserPolicyTemplateArchiver        : GitUserPolicyTemplateArchiver
+  , gitNodeGroupCategoryArchiver         : GitNodeGroupCategoryArchiver
   , parsePolicyLibrary                   : ParsePolicyLibrary
   , imporPolicyLibrary                   : ImportPolicyLibrary
 ) extends ItemArchiveManager with Loggable {
@@ -132,9 +123,8 @@ class ItemArchiveManagerImpl(
   }
   
   private[this] def saveUserPolicyLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
-    for { //ca ne marche pas, il faut les parents, d'ou le rec ci dessous
+    for { 
       catWithUPT   <- uptRepository.getUPTbyCategory(includeSystem)
-      cats = catWithUPT.toArray
       //remove systems things if asked (both system categories and system upts in non-system categories)
       okCatWithUPT =  if(includeSystem) catWithUPT
                       else catWithUPT.collect { 
@@ -144,7 +134,6 @@ class ItemArchiveManagerImpl(
                       }
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitUserPolicyTemplateCategoryArchiver.getRootDirectory) }
       savedItems  <- sequence(okCatWithUPT.toSeq) { case (categories, CategoryAndUPT(cat, upts)) => 
-                       val foo = "bar"
                        for {
                          //categories.tail is OK, as no category can have an empty path (id)
                          savedCat  <- gitUserPolicyTemplateCategoryArchiver.archiveUserPolicyTemplateCategory(cat,categories.reverse.tail, gitCommit = false)
@@ -161,6 +150,34 @@ class ItemArchiveManagerImpl(
     }
   }
   
+  private[this] def saveGroupsLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
+    for { 
+      catWithGroups   <- groupRepository.getGroupsByCategory(includeSystem)
+      //remove systems things if asked (both system categories and system groups in non-system categories)
+      okCatWithUPT =  if(includeSystem) catWithGroups
+                      else catWithGroups.collect { 
+                          //always include root category, even if it's a system one
+                          case (categories, CategoryAndNodeGroup(cat, groups)) if(cat.isSystem == false || categories.size <= 1) => 
+                            (categories, CategoryAndNodeGroup(cat, groups.filter( _.isSystem == false )))
+                      }
+      cleanedRoot <- tryo { FileUtils.cleanDirectory(gitNodeGroupCategoryArchiver.getRootDirectory) }
+      savedItems  <- sequence(okCatWithUPT.toSeq) { case (categories, CategoryAndNodeGroup(cat, groups)) => 
+                       for {
+                         //categories.tail is OK, as no category can have an empty path (id)
+                         savedCat  <- gitNodeGroupCategoryArchiver.archiveNodeGroupCategory(cat,categories.reverse.tail, gitCommit = false)
+                         savedgroups <- sequence(groups.toSeq) { upt =>
+                                        //TODO .archiveUserPolicyTemplate(upt,categories.reverse, gitCommit = false)
+                                        error("TODO")
+                                      }
+                       } yield {
+                         "OK"
+                       }
+                     }
+      commitId    <- gitNodeGroupCategoryArchiver.commitGroupLibrary
+    } yield {
+      ArchiveId(commitId)
+    }
+  }
   
   private[this] def importPolicyLibrary(includeSystem:Boolean) : Box[Unit] = {
       for {

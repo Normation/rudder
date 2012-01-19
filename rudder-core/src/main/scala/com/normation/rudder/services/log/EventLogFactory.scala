@@ -25,6 +25,15 @@ import com.normation.rudder.domain.log.ModifyPolicyInstance
 import com.normation.rudder.domain.log.AddPolicyInstance
 import com.normation.rudder.domain.log.DeletePolicyInstance
 import com.normation.rudder.domain.policies.SectionVal
+import com.normation.rudder.domain.nodes.AddNodeGroupDiff
+import com.normation.rudder.domain.log.DeleteNodeGroup
+import com.normation.rudder.domain.log.AddNodeGroup
+import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
+import com.normation.rudder.domain.log.ModifyNodeGroup
+import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
+import com.normation.rudder.services.marshalling.NodeGroupSerialisation
+import com.normation.rudder.domain.queries.Query
+import com.normation.inventory.domain.NodeId
 
 trait EventLogFactory {
   
@@ -78,11 +87,37 @@ trait EventLogFactory {
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
   ) : ModifyPolicyInstance
+  
+  def getAddNodeGroupFromDiff(
+      id          : Option[Int] = None
+    , principal   : EventActor
+    , addDiff     : AddNodeGroupDiff
+    , creationDate: DateTime = DateTime.now()
+    , severity    : Int = 100
+  ) : AddNodeGroup
+
+  def getDeleteNodeGroupFromDiff(
+      id          : Option[Int] = None
+    , principal   : EventActor
+    , deleteDiff  : DeleteNodeGroupDiff
+    , creationDate: DateTime = DateTime.now()
+    , severity    : Int = 100
+  ) : DeleteNodeGroup
+
+  def getModifyNodeGroupFromDiff(
+      id          : Option[Int] = None
+    , principal   : EventActor
+    , modifyDiff  : ModifyNodeGroupDiff
+    , creationDate: DateTime = DateTime.now()
+    , severity    : Int = 100
+  ) : ModifyNodeGroup
+  
 }
 
 class EventLogFactoryImpl(
-    crToXml: ConfigurationRuleSerialisation
-  , piToXml: PolicyInstanceSerialisation
+    crToXml   : ConfigurationRuleSerialisation
+  , piToXml   : PolicyInstanceSerialisation
+  , groutToXml: NodeGroupSerialisation
 ) extends EventLogFactory {
   
   ///// 
@@ -205,4 +240,60 @@ class EventLogFactoryImpl(
     }
     ModifyPolicyInstance(id, principal, details, creationDate, severity)  
   }
+
+
+  def getAddNodeGroupFromDiff(
+      id          : Option[Int] = None
+    , principal   : EventActor
+    , addDiff     : AddNodeGroupDiff
+    , creationDate: DateTime = DateTime.now()
+    , severity    : Int = 100
+  ) : AddNodeGroup = {
+    val details = EventLog.withContent(groutToXml.serialise(addDiff.group) % ("changeType" -> "add"))
+    AddNodeGroup(id, principal, details, creationDate, severity)
+  }
+
+  def getDeleteNodeGroupFromDiff(
+      id          : Option[Int] = None
+    , principal   : EventActor
+    , deleteDiff  : DeleteNodeGroupDiff
+    , creationDate: DateTime = DateTime.now()
+    , severity    : Int = 100
+  ) : DeleteNodeGroup = {
+    val details = EventLog.withContent(groutToXml.serialise(deleteDiff.group) % ("changeType" -> "delete"))
+    DeleteNodeGroup(id, principal, details, creationDate, severity)
+  }
+
+  def getModifyNodeGroupFromDiff(
+      id          : Option[Int] = None
+    , principal   : EventActor
+    , modifyDiff  : ModifyNodeGroupDiff
+    , creationDate: DateTime = DateTime.now()
+    , severity    : Int = 100
+  ) : ModifyNodeGroup = {
+    val details = EventLog.withContent{
+      scala.xml.Utility.trim(<nodeGroup changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_1_0}>
+        <id>{modifyDiff.id.value}</id>
+        <displayName>{modifyDiff.name}</displayName>{
+          modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
+          modifyDiff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x ) ) ++
+          modifyDiff.modQuery.map(x => SimpleDiff.toXml[Option[Query]](<query/>, x){ t =>
+            t match {
+              case None => <none/>
+              case Some(y) => Text(y.toJSONString)
+            }
+          } ) ++
+          modifyDiff.modIsDynamic.map(x => SimpleDiff.booleanToXml(<isDynamic/>, x ) ) ++
+          modifyDiff.modServerList.map(x => SimpleDiff.toXml[Set[NodeId]](<nodeIds/>, x){ ids =>
+              ids.toSeq.map { id => <id>{id.value}</id> }
+            } ) ++
+          modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isActivated/>, x ) ) ++
+          modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) )
+        }
+      </nodeGroup>)
+    }
+    ModifyNodeGroup(id, principal, details, creationDate, severity)
+  }
 }
+
+
