@@ -90,7 +90,7 @@ class Groups extends StatefulSnippet with Loggable {
   
   var dispatch : DispatchIt = {
     case "head" => head _
-    case "groupHierarchy" => groupHierarchy _
+    case "groupHierarchy" => groupHierarchy()
     case "initRightPanel" => initRightPanel _
     case "detailsPopup" =>  { _ => NodeGroupForm.staticBody }
   }
@@ -127,13 +127,14 @@ class Groups extends StatefulSnippet with Loggable {
    * @param html
    * @return
    */
-  def groupHierarchy(html:NodeSeq) : NodeSeq = {
-    bind("group", html,
-      "jsTree" -> buildGroupTree(""),
-      "newItem" -> SHtml.ajaxButton("Create a new item", () => showPopup())
-    )
+  def groupHierarchy() : CssSel = {
+      ("#groupTree" #> buildGroupTree("") &
+      "#newItem" #> groupNewItem())
   }
 
+  def groupNewItem() : NodeSeq = {
+    SHtml.ajaxButton("Create a new item", () => showPopup())
+  }
   /**
    * Does the init part (showing the right component and highlighting
    * the tree if necessary)

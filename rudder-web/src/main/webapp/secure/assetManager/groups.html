@@ -18,20 +18,22 @@
   <hr class="spacer"/> 
   <div class="groupDisplay">
 	  <lift:asset.Groups.groupHierarchy>
-	  <fieldset class="hierarchy"><legend>Group hierarchy</legend>
-	   <div>
-	    <p class="green">Drag'n'drop items to change the hierarchy</p>
-	   </div>
-	   <div>
-	    <group:newItem/>
-	    <group:expandAll/>
-	    <group:export/>
-	    <group:import/>
-	   </div>
+	  <fieldset class="hierarchy">
+	     <legend>Group hierarchy</legend>
+	     <div>
+	     <p class="green">Drag'n'drop items to change the hierarchy</p>
+	     </div>
+	       <div id="newItem">
+	    		Here comes the New item Button
+	       </div>
 	   <fieldset>
-	  	  <group:jsTree/>
+	  	  <div id="groupTree">
+	  	  		Here comes the Groups Tree	  	  
+	  	  </div>
+	  	 
+	  	</fieldset>
 	   </fieldset>
-	  </fieldset>
+	  
 	  </lift:asset.Groups.groupHierarchy>
 	  
 	  <div id="ajaxItemContainer">
