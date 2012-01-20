@@ -300,6 +300,11 @@ form input.removeLineButton {
 /**************************************
 Tableau
 **************************************/
+.sgridbph{
+  border:0; 
+  padding:0;
+  height:200px;
+}
 
 .tablewidth{
   width:100%;

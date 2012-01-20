@@ -130,7 +130,7 @@ class SrvGrid {
         var #table_var#;
         /* Formating function for row details */
         function fnFormatDetails ( id ) {
-          var sOut = '<span id="'+id+'" class="sgridbĥ"/>';
+          var sOut = '<span id="'+id+'" class="sgridbpĥ"/>';
           return sOut;
         }
       """.replaceAll("#table_var#",jsVarNameForId(tableId))
