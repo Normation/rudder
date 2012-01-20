@@ -47,15 +47,157 @@ import com.normation.cfclerk.domain.PolicyPackageName
 import com.normation.rudder.web.model.JsInitContextLinkUtil._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.queries.Query
+import net.liftweb.http.js._
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.SHtml
+import com.normation.rudder.repository.EventLogRepository
+import net.liftweb.http.S
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment), 
  * or in the administration EventLogsViewer
  */
 class EventListDisplayer(
-    logDetailsService :EventLogDetailsService) extends Loggable {
+      logDetailsService :EventLogDetailsService
+    , repos :EventLogRepository) extends Loggable {
 
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
+ // private[this] val gridName = "eventLogsGrid"
+ // private[this] val jsGridName = "oTable" + gridName
+  
+  def display(events:Seq[EventLog], gridName:String) : NodeSeq  = {
+    (
+      "tbody *" #> ("tr" #> events.map { event => 
+        ".eventLine [jsuuid]" #> Text(gridName + "-" + event.id.getOrElse(0).toString) &
+        ".eventLine [class]" #> {
+          if (event.details != <entry></entry> ) 
+            Text("curspoint")
+          else
+            NodeSeq.Empty
+        } &
+        ".logId *" #> event.id.getOrElse(0).toString &
+        ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
+        ".logActor *" #> event.principal.name &
+        ".logType *" #> event.eventType.serialize &
+        ".logCategory *" #> S.?("event.log.category."+event.eventLogCategory.getClass().getSimpleName()) &
+        ".logDescription *" #> displayDescription(event) 
+      })
+     )(dataTableXml(gridName)) 
+  }
+  
+  
+  def initJs(gridName : String) : JsCmd = {
+    val jsGridName = "oTable" + gridName
+    JsRaw("var %s;".format(jsGridName)) &
+    OnLoad(
+        JsRaw("""
+          /* Event handler function */
+          #table_var# = $('#%s').dataTable({
+            "asStripClasses": [ 'color1', 'color2' ],
+            "bAutoWidth": false,
+            "bFilter" :true,
+            "bPaginate" :true,
+            "bLengthChange": false,
+            "sPaginationType": "full_numbers",
+            "oLanguage": {
+              "sSearch": "Filter:"
+            },
+            "bJQueryUI": false,
+            "aaSorting":[],
+            "aoColumns": [
+                { "sWidth": "30px" }
+              , { "sWidth": "110px" }
+              , { "sWidth": "110px" }
+              , { "sWidth": "110px" }
+              , { "sWidth": "100px" }
+              , { "sWidth": "150px" }
+            ]
+          });moveFilterAndFullPaginateArea('#%s');""".format(gridName,gridName).replaceAll("#table_var#",jsGridName)
+        )  &
+        JsRaw("""
+        /* Formating function for row details */          
+          function fnFormatDetails(id) {
+    		  var sOut = '<span id="'+id+'" class="sgridbph"/>';
+    		  return sOut;
+    	  };
+          
+          $('td', #table_var#.fnGetNodes() ).each( function () {
+          $(this).click( function () {
+    		var nTr = this.parentNode;
+            var jTr = jQuery(nTr);
+    		if (jTr.hasClass('curspoint')) {
+	            var opened = jTr.prop("open");
+	            if (opened && opened.match("opened")) {
+	              jTr.prop("open", "closed");
+	              #table_var#.fnClose(nTr);
+	            } else {
+	              jTr.prop("open", "opened");
+	    		  var jsid = jTr.attr("jsuuid");
+	              #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
+	              %s;
+	            }
+    		}
+          } );
+        })
+      """.format(
+          SHtml.ajaxCall(JsVar("jsid"), details _)._2.toJsCmd).replaceAll("#table_var#",
+             jsGridName)
+     )
+    )    
+  }
+  
+  /*
+   * Expect something like gridName-eventId 
+   */
+  private def details(jsid:String) : JsCmd = {
+    val arr = jsid.split("-")
+    if (arr.length != 2) {
+  		Alert("Called ID is not valid: %s".format(jsid))
+    } else {
+      val eventId = arr(1).toInt
+      repos.getEventLog(eventId) match {
+	      case Full(event) => 
+	        SetHtml(jsid,displayDetails(event))
+	      case e:EmptyBox =>
+	        logger.debug((e ?~! "error").messageChain)
+	        Alert("Called id is not valid: %s".format(jsid))
+      }
+    }
+  }
+  
+  
+  private[this] def dataTableXml(gridName:String) = {
+    <div>
+      <table id={gridName} cellspacing="0">
+		    <thead>
+		      <tr class="head">
+            <th>ID</th>
+            <th>Date</th>
+            <th>Actor</th>
+		        <th>Event Type</th>
+		        <th>Event Category</th>
+            <th>Description</th>
+		      </tr>
+		    </thead>
+		
+		    <tbody>
+		      <tr class="eventLine" jsuuid="id">
+	          <td class="logId">[ID of event]</td>
+	          <td class="logDatetime">[Date and time of event]</td>
+	          <td class="logActor">[actor of the event]</td>
+            <td class="logType">[type of event]</td>
+            <td class="logCategory">[category of event]</td>
+            <td class="logDescription">[some user readable info]</td>
+	        </tr>
+		    </tbody>
+		  </table>
+		  
+		  <div id="logsGrid_paginate_area" class="paginate"></div>
+    
+    </div>   
+     
+  }
   
   
     //////////////////// Display description/details of ////////////////////

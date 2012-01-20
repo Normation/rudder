@@ -65,7 +65,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
   private[this] val eventList = inject[EventListDisplayer]
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
   
- 
+  private[this] val gridName = "eventLogsGrid"
   
   def getLastEvents : Box[Seq[EventLog]] = {
     repos.getEventLogByCriteria(None, Some(1000), Some("id DESC")) 
@@ -73,103 +73,11 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
     
   def dispatch = { 
     case "display" => xml => getLastEvents match {
-      case Full(seq) => display(seq,xml)
-      case Empty => display(Seq(),xml)
+      case Full(seq) => eventList.display(seq,gridName) ++ Script(eventList.initJs(gridName))
+      case Empty => eventList.display(Seq(), gridName) ++ Script(eventList.initJs(gridName))
       case f:Failure => 
         <div class="error">Error when trying to get last event logs. Error message was: {f.msg}</div>
     } 
   } 
-  
-  
-  def display(events:Seq[EventLog], xml:NodeSeq) : NodeSeq  = {
-    (
-      "tbody *" #> ("tr" #> events.map { event => 
-        ".logId *" #> event.id.getOrElse(0).toString &
-        ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
-        ".logActor *" #> event.principal.name &
-        ".logType *" #> event.eventType.serialize &
-        ".logCategory *" #> S.?("event.log.category."+event.eventLogCategory.getClass().getSimpleName()) &
-        ".logDescription *" #> eventList.displayDescription(event) &
-        ".logDetails *" #> { 
-        	if (event.details != <entry></entry> ) 
-        	  SHtml.a(Text("Details"))(showEventsDetail(event.id.getOrElse(0), event.eventType.serialize)) 
-        	else 
-        	  NodeSeq.Empty
-        	}
-      })
-     )(xml) ++ initJs
-  }
-  
-  private[this] val gridName = "eventLogsGrid"
-  private[this] val jsGridName = "oTable" + gridName
-  private[this] val eventDetailPopupHtmlId = "eventDetailPopup" 
-    
-  private[this] def initJs : NodeSeq = Script(
-    JsRaw("var %s;".format(jsGridName)) &
-    OnLoad(
-        JsRaw("""
-          /* Event handler function */
-          #table_var# = $('#%s').dataTable({
-            "asStripClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter" :true,
-            "bPaginate" :true,
-            "bLengthChange": false,
-            "sPaginationType": "full_numbers",
-            "oLanguage": {
-              "sSearch": "Filter:"
-            },
-            "bJQueryUI": false,
-            "aaSorting":[],
-            "aoColumns": [
-                { "sWidth": "30px" }
-              , { "sWidth": "110px" }
-              , { "sWidth": "110px" }
-              , { "sWidth": "110px" }
-              , { "sWidth": "100px" }
-              , { "sWidth": "150px" }
-              , { "sWidth": "80px" }
-            ]
-          });moveFilterAndFullPaginateArea('#%s');""".format(gridName,gridName).replaceAll("#table_var#",jsGridName)
-        )
-    )    
-  )
-    
-  private[this] def showEventsDetail(id : Int, eventType : String) : JsCmd = {
-    ( repos.getEventLog(id) match {
-      case Full(event) =>
-        SetHtml(eventDetailPopupHtmlId, (
-            "#popupTitle" #> "Details for event %s".format(eventType) &
-            "#popupContent" #>  eventList.displayDetails(event)
-            )(popupContentDetail))
-      case _ => 
-        SetHtml(eventDetailPopupHtmlId, (
-            "#popupTitle" #> "Error" &
-            "#popupContent" #> "Could not fetch the event details for event %s".format(eventType)
-            )(popupContentDetail))
-    } ) & 
-    JsRaw("createPopup('%s', 150, 400)".format(eventDetailPopupHtmlId))
-    
-    
-  }
-  
 
-      
-      
-  private[this] val popupContentDetail = <div class="simplemodal-title">
-      <h1><value id="popupTitle"/></h1>
-      <hr/>
-    </div>
-    <div class="simplemodal-content">
-      <br />
-      <div id="popupContent"/>
-	</div>
-	<div class="simplemodal-bottom">
-      <hr/>
-      <p align="right">
-        <button class="simplemodal-close" onClick="return false;">
-          Close
-        </button>
-      </p>
-    </div>
 }

@@ -85,7 +85,7 @@ trait EventLogDeploymentService {
   def getListOfModificationEvents(lastSuccess : EventLog) = {
     val eventList = ModificationWatchList.events.map("'"+_.serialize+"'").mkString(",")
     
-    repository.getEventLogByCriteria(Some("eventtype in (" +eventList+ ") and id > " +lastSuccess.id.get ), None, None )
+    repository.getEventLogByCriteria(Some("eventtype in (" +eventList+ ") and id > " +lastSuccess.id.get ), None, Some("id DESC") )
   }
   
 }

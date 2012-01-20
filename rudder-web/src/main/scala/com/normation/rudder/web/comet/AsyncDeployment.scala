@@ -154,8 +154,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         		case f: Failure => <span class="errorscala">Cannot fetch modification since last deployment</span>
         		case Empty => Text("There are no modification pending")
         		case Full(seq) if seq.size == 0 => Text("There are no modification pending")
-        		case Full(seq) if seq.size == 1 =>  SHtml.a(Text("There is 1 modification pending"))(showPendingPopup) ++ display(seq, pendingPopup) 
-        		case Full(seq) if seq.size > 1 =>  SHtml.a(Text("There are " + seq.size + " modifications pending"))(showPendingPopup) ++ display(seq, pendingPopup)
+        		case Full(seq) if seq.size == 1 =>  SHtml.a(Text("There is 1 modification pending"))(showPendingPopup) ++ createInnerPopup(seq) 
+        		case Full(seq) if seq.size > 1 =>  SHtml.a(Text("There are " + seq.size + " modifications pending"))(showPendingPopup) ++ createInnerPopup(seq)
             }
         } </div>
         } } ++ SHtml.ajaxButton("Regenerate now", { () => 
@@ -200,23 +200,18 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     </div>
   }
 
-  def display(events:Seq[EventLog], xml:NodeSeq) : NodeSeq  = {
-    (
-      "tbody *" #> ("tr" #> events.map { event => 
-        ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
-        ".logActor *" #> event.principal.name &
-        ".logType *" #> event.eventType.serialize &
-        ".logCategory *" #> S.?("event.log.category."+event.eventLogCategory.getClass().getSimpleName()) &
-        ".logDescription *" #> eventList.displayDescription(event) 
-      })
-     )(xml)
-  }
-  
+    
   private[this] val gridName = "pendingEventLogsGrid"
-  private[this] val gridJs = "pendingEventLogsGrid_paginate_area"
-  private[this] val jsGridName = "oTable" + gridName
   private[this] val pendingPopupHtmlId = "pendingModificationDialog"
     
+    
+  private[this] def createInnerPopup(events:Seq[EventLog]) : NodeSeq = {
+    (
+        ".popupContent *" #> eventList.display(events, gridName)
+    )(pendingPopup)
+  }
+  
+  
   private[this] def pendingPopup = {
     <div id="pendingModificationDialog" class="nodisplay">
       <div class="simplemodal-title">
@@ -225,71 +220,26 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       </div>
       <div class="simplemodal-content">
        <br />
-        <table id={gridName} cellspacing="0">
-		    <thead>
-		      <tr class="head">
-            <th>Date</th>
-            <th>Actor</th>
-		    <th>Event Type</th>
-		    <th>Event Category</th>
-            <th>Description</th>
-		      </tr>
-		    </thead>
-		
-		    <tbody>
-		      <tr>
-	          <td class="logDatetime">[Date and time of event]</td>
-	          <td class="logActor">[actor of the event]</td>
-            <td class="logType">[type of event]</td>
-            <td class="logCategory">[category of event]</td>
-            <td class="logDescription">[some user readable info]</td>
-	        </tr>
-		    </tbody>
-		  </table>
-		  
-		  <div id="logsGrid_paginate_area" class="paginate"></div>       
-        <hr class="spacer" />
-        <br />
-        <hr class="spacer" />
-        <br />
-        <br />
-        <div align="right">
-          <button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only simplemodal-close" onClick="return false;">
-            <span class="ui-button-text">Close</span>
+       <div class="popupContent"/>
+       <hr class="spacer" />
+	  </div>
+	  <div class="simplemodal-bottom">
+        <hr/>
+        <div class="popupButton">
+		  <span>
+          <button class="simplemodal-close" onClick="return false;">
+            Close
           </button>
-        <br />
+		  </span>
         </div>
       </div>
     </div>   
   }
   
-  private[this] def showPendingPopup : JsCmd = 
-    JsRaw("var %s;".format(jsGridName)) &
-    JsRaw("createPopup('%s', 150, 800)".format(pendingPopupHtmlId)) &
-    OnLoad(
-        JsRaw("""
-          /* Event handler function */
-          #table_var# = $('#%s').dataTable({
-            "asStripClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter" :true,
-            "bPaginate" :true,
-            "bLengthChange": false,
-            "sPaginationType": "full_numbers",
-            "oLanguage": {
-              "sSearch": "Filter:"
-            },
-            "bJQueryUI": false,
-            "aaSorting":[],
-            "aoColumns": [
-                { "sWidth": "100px" }
-              , { "sWidth": "100px" }
-              , { "sWidth": "100px" }
-              , { "sWidth": "100px" }
-              , { "sWidth": "150px" }
-            ]
-          });dropFilterAndPaginateArea('#%s');""".format(gridName,gridName).replaceAll("#table_var#",jsGridName)
-    )    
+  private[this] def showPendingPopup : JsCmd = (
+    JsRaw("createPopup('%s', 150, 850)".format(pendingPopupHtmlId)) &
+    eventList.initJs(gridName)
+    
   )
   
   private[this] def errorPopup = {
