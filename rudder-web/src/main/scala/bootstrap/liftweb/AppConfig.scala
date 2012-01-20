@@ -325,6 +325,7 @@ class AppConfig extends Loggable {
     , gitUserPolicyTemplateCategoryArchiver
     , gitUserPolicyTemplateArchiver
     , gitNodeGroupCategoryArchiver
+    , gitNodeGroupArchiver
     , parsePolicyLibrary
     , importPolicyLibrary
   )

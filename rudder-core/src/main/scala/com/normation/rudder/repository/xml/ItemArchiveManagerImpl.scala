@@ -34,22 +34,22 @@
 
 package com.normation.rudder.repository.xml
 
-import java.io.FileInputStream
-import java.util.regex.Pattern
-import scala.collection.JavaConversions.collectionAsScalaIterable
-import org.apache.commons.io.FileUtils
 import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisation
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
 import com.normation.utils.XmlUtils
-import net.liftweb.common._
-import net.liftweb.util.Helpers.tryo
 import com.normation.rudder.repository._
 import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
 import com.normation.rudder.domain.policies.UserPolicyTemplate
-import java.io.File
 import com.normation.rudder.domain.policies.PolicyInstance
+import java.io.File
+import java.io.FileInputStream
+import java.util.regex.Pattern
 import net.liftweb.common.Full
+import net.liftweb.common._
+import net.liftweb.util.Helpers.tryo
+import org.apache.commons.io.FileUtils
+import scala.collection.JavaConversions.collectionAsScalaIterable
 
 
 class ItemArchiveManagerImpl(
@@ -61,6 +61,7 @@ class ItemArchiveManagerImpl(
   , gitUserPolicyTemplateCategoryArchiver: GitUserPolicyTemplateCategoryArchiver
   , gitUserPolicyTemplateArchiver        : GitUserPolicyTemplateArchiver
   , gitNodeGroupCategoryArchiver         : GitNodeGroupCategoryArchiver
+  , gitNodeGroupArchiver                 : GitNodeGroupArchiver
   , parsePolicyLibrary                   : ParsePolicyLibrary
   , imporPolicyLibrary                   : ImportPolicyLibrary
 ) extends ItemArchiveManager with Loggable {
@@ -71,6 +72,7 @@ class ItemArchiveManagerImpl(
     for {
       saveCrs     <- saveConfigurationRules(includeSystem)
       saveUserLib <- saveUserPolicyLibrary(includeSystem)
+      saveGroups  <- saveGroupsLibrary(includeSystem)
     } yield {
       saveUserLib
     }
@@ -165,9 +167,8 @@ class ItemArchiveManagerImpl(
                        for {
                          //categories.tail is OK, as no category can have an empty path (id)
                          savedCat  <- gitNodeGroupCategoryArchiver.archiveNodeGroupCategory(cat,categories.reverse.tail, gitCommit = false)
-                         savedgroups <- sequence(groups.toSeq) { upt =>
-                                        //TODO .archiveUserPolicyTemplate(upt,categories.reverse, gitCommit = false)
-                                        error("TODO")
+                         savedgroups <- sequence(groups.toSeq) { group =>
+                                        gitNodeGroupArchiver.archiveNodeGroup(group,categories.reverse, gitCommit = false)
                                       }
                        } yield {
                          "OK"
