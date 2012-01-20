@@ -395,7 +395,15 @@ class LDAPEntityMapper(
         serverIds =  e.valuesFor(A_NODE_UUID).map(x => NodeId(x))
         query <- e(A_QUERY_NODE_GROUP) match {
           case None => Full(None)
-          case Some(q) => cmdbQueryParser(q).map( Some(_) )
+          case Some(q) => cmdbQueryParser(q) match {
+            case Full(x) => Full(Some(x))
+            case eb:EmptyBox => 
+              val error = eb ?~! "Error when parsing query for node group persisted at DN '%s' (name: '%s'), that seems to be an inconsistency. You should modify that group".format(
+                  e.dn, name
+              )
+              logger.error(error)
+              Full(None)
+          }
         }
         isDynamic = e.getAsBoolean(A_IS_DYNAMIC).getOrElse(false)
         isActivated = e.getAsBoolean(A_IS_ACTIVATED).getOrElse(false)

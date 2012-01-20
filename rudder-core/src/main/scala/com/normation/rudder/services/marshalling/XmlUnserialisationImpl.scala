@@ -62,6 +62,8 @@ import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.batch.NoStatus
 import com.normation.rudder.batch.CurrentDeploymentStatus
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 
 class PolicyInstanceUnserialisationImpl extends PolicyInstanceUnserialisation {
   
@@ -142,6 +144,37 @@ class PolicyInstanceUnserialisationImpl extends PolicyInstanceUnserialisation {
     }   
   }
 }
+
+
+class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisation {
+  
+  def unserialise(entry:XNode): Box[NodeGroupCategory] = {
+    for {
+      category        <- {
+                            if(entry.label ==  "groupLibraryCategory") Full(entry)
+                            else Failure("Entry type is not a groupLibraryCategory: " + entry)
+                          }
+      fileFormatOk     <- {
+                            if(category.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
+                            else Failure("Bad fileFormat (expecting 1.0): " + entry)
+                          }
+      id               <- (category \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type groupLibraryCategory : " + entry)
+      name             <- (category \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type groupLibraryCategory : " + entry)
+      description      <- (category \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type groupLibraryCategory : " + entry)
+      isSystem         <- (category \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type groupLibraryCategory : " + entry)
+    } yield {
+      NodeGroupCategory(
+          id = NodeGroupCategoryId(id)
+        , name = name
+        , description = description
+        , items = Nil
+        , children = Nil
+        , isSystem = isSystem
+      )
+    }    
+  }
+}
+
 
 class NodeGroupUnserialisationImpl(    
     cmdbQueryParser: CmdbQueryParser

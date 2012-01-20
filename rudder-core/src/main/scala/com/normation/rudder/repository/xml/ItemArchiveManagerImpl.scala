@@ -63,7 +63,11 @@ class ItemArchiveManagerImpl(
   , gitNodeGroupCategoryArchiver         : GitNodeGroupCategoryArchiver
   , gitNodeGroupArchiver                 : GitNodeGroupArchiver
   , parsePolicyLibrary                   : ParsePolicyLibrary
-  , imporPolicyLibrary                   : ImportPolicyLibrary
+  , importPolicyLibrary                  : ImportPolicyLibrary
+  , parseGroupLibrary                    : ParseGroupLibrary
+  , importGroupLibrary                   : ImportGroupLibrary
+  , userPolicyLibRootDirectory           : File  
+  , groupLibRootDirectory                : File  
 ) extends ItemArchiveManager with Loggable {
   
   ///// implementation /////
@@ -82,6 +86,7 @@ class ItemArchiveManagerImpl(
     for {
       configurationRules <- importLastConfigurationRules(includeSystem)
       userLib            <- importPolicyLibrary(includeSystem)
+      groupLIb           <- importGroupLibrary(includeSystem)
     } yield {
       configurationRules
     }
@@ -126,7 +131,7 @@ class ItemArchiveManagerImpl(
   
   private[this] def saveUserPolicyLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for { 
-      catWithUPT   <- uptRepository.getUPTbyCategory(includeSystem)
+      catWithUPT   <- uptRepository.getUPTbyCategory(includeSystem = true)
       //remove systems things if asked (both system categories and system upts in non-system categories)
       okCatWithUPT =  if(includeSystem) catWithUPT
                       else catWithUPT.collect { 
@@ -154,27 +159,30 @@ class ItemArchiveManagerImpl(
   
   private[this] def saveGroupsLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for { 
-      catWithGroups   <- groupRepository.getGroupsByCategory(includeSystem)
+      catWithGroups   <- groupRepository.getGroupsByCategory(includeSystem = true)
       //remove systems things if asked (both system categories and system groups in non-system categories)
-      okCatWithUPT =  if(includeSystem) catWithGroups
-                      else catWithGroups.collect { 
-                          //always include root category, even if it's a system one
-                          case (categories, CategoryAndNodeGroup(cat, groups)) if(cat.isSystem == false || categories.size <= 1) => 
-                            (categories, CategoryAndNodeGroup(cat, groups.filter( _.isSystem == false )))
-                      }
-      cleanedRoot <- tryo { FileUtils.cleanDirectory(gitNodeGroupCategoryArchiver.getRootDirectory) }
-      savedItems  <- sequence(okCatWithUPT.toSeq) { case (categories, CategoryAndNodeGroup(cat, groups)) => 
-                       for {
-                         //categories.tail is OK, as no category can have an empty path (id)
-                         savedCat  <- gitNodeGroupCategoryArchiver.archiveNodeGroupCategory(cat,categories.reverse.tail, gitCommit = false)
-                         savedgroups <- sequence(groups.toSeq) { group =>
-                                        gitNodeGroupArchiver.archiveNodeGroup(group,categories.reverse, gitCommit = false)
-                                      }
-                       } yield {
-                         "OK"
-                       }
-                     }
-      commitId    <- gitNodeGroupCategoryArchiver.commitGroupLibrary
+      okCatWithGroup  =  if(includeSystem) catWithGroups
+                         else catWithGroups.collect { 
+                            //always include root category, even if it's a system one
+                            case (categories, CategoryAndNodeGroup(cat, groups)) if(cat.isSystem == false || categories.size <= 1) => 
+                              (categories, CategoryAndNodeGroup(cat, groups.filter( _.isSystem == false )))
+                         }
+      cleanedRoot     <- tryo { FileUtils.cleanDirectory(gitNodeGroupCategoryArchiver.getRootDirectory) }
+      savedItems      <- sequence(okCatWithGroup.toSeq) { case (categories, CategoryAndNodeGroup(cat, groups)) => 
+                           for {
+                             //categories.tail is OK, as no category can have an empty path (id)
+                             savedCat  <- {
+                               println("Saving category: "+ categories)
+                               gitNodeGroupCategoryArchiver.archiveNodeGroupCategory(cat,categories.reverse.tail, gitCommit = false)
+                             }
+                             savedgroups <- sequence(groups.toSeq) { group =>
+                                            gitNodeGroupArchiver.archiveNodeGroup(group,categories.reverse, gitCommit = false)
+                                          }
+                           } yield {
+                             "OK"
+                           }
+                         }
+      commitId        <- gitNodeGroupCategoryArchiver.commitGroupLibrary
     } yield {
       ArchiveId(commitId)
     }
@@ -182,13 +190,21 @@ class ItemArchiveManagerImpl(
   
   private[this] def importPolicyLibrary(includeSystem:Boolean) : Box[Unit] = {
       for {
-        parsed   <- parsePolicyLibrary.parse
-        imported <- imporPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
+        parsed   <- parsePolicyLibrary.parse(userPolicyLibRootDirectory)
+        imported <- importPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
       } yield {
         imported
       }
   }
   
+  private[this] def importGroupLibrary(includeSystem:Boolean) : Box[Unit] = {
+      for {
+        parsed   <- parseGroupLibrary.parse(groupLibRootDirectory)
+        imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
+      } yield {
+        imported
+      }
+  }
   
   ///// utility methods /////
     

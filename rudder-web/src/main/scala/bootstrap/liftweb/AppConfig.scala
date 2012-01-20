@@ -328,6 +328,10 @@ class AppConfig extends Loggable {
     , gitNodeGroupArchiver
     , parsePolicyLibrary
     , importPolicyLibrary
+    , parseGroupLibrary
+    , importGroupLibrary
+    , userPolicyLibRootDirectory = new File(gitRoot, userLibraryDirectoryName)
+    , groupLibRootDirectory = new File(gitRoot, groupLibraryDirectoryName)
   )
   
   ///// end /////
@@ -690,6 +694,8 @@ class AppConfig extends Loggable {
   
   val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
   
+  val groupLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  
   @Bean
   def ldapUserPolicyTemplateCategoryRepository:LDAPUserPolicyTemplateCategoryRepository = new LDAPUserPolicyTemplateCategoryRepository(
       rudderDit, ldap, ldapEntityMapper
@@ -743,6 +749,7 @@ class AppConfig extends Loggable {
       rudderDit, ldap, ldapEntityMapper
     , gitNodeGroupCategoryArchiver
     , autoArchiveItems
+    , groupLibReadWriteMutex
   )
   
   @Bean
@@ -754,11 +761,21 @@ class AppConfig extends Loggable {
     , logRepository
     , gitNodeGroupArchiver
     , autoArchiveItems
+    , groupLibReadWriteMutex
   )
 
+  @Bean 
+  def userPolicyTemplateCategoryUnserialisation = new UserPolicyTemplateCategoryUnserialisationImpl
+
+  @Bean
+  def userPolicyTemplateUnserialisation = new UserPolicyTemplateUnserialisationImpl
+  
   @Bean
   def policyInstanceUnserialisation = new PolicyInstanceUnserialisationImpl
   
+  @Bean
+  def nodeGroupCategoryUnserialisation = new NodeGroupCategoryUnserialisationImpl
+    
   @Bean
   def nodeGroupUnserialisation = new NodeGroupUnserialisationImpl(queryParser)
   
@@ -768,18 +785,11 @@ class AppConfig extends Loggable {
   @Bean
   def deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
  
-  @Bean 
-  def userPolicyTemplateCategoryUnserialisation = new UserPolicyTemplateCategoryUnserialisationImpl
-  
-  @Bean
-  def userPolicyTemplateUnserialisation = new UserPolicyTemplateUnserialisationImpl
-  
   @Bean
   def parsePolicyLibrary : ParsePolicyLibrary = new ParsePolicyLibraryImpl(
       userPolicyTemplateCategoryUnserialisation
     , userPolicyTemplateUnserialisation
     , policyInstanceUnserialisation
-    , new File(gitRoot, userLibraryDirectoryName)
   )
   
   @Bean
@@ -788,6 +798,20 @@ class AppConfig extends Loggable {
    , ldap
    , ldapEntityMapper
    , uptLibReadWriteMutex
+  )
+  
+  @Bean
+  def parseGroupLibrary : ParseGroupLibrary = new ParseGroupLibraryImpl(
+      nodeGroupCategoryUnserialisation
+    , nodeGroupUnserialisation
+  )
+  
+  @Bean
+  def importGroupLibrary : ImportGroupLibrary = new ImportGroupLibraryImpl(
+     rudderDit
+   , ldap
+   , ldapEntityMapper
+   , groupLibReadWriteMutex
   )
   
   @Bean 

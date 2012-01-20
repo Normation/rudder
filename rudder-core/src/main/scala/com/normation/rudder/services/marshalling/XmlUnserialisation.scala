@@ -38,19 +38,14 @@ import scala.xml.{Node => XNode}
 import scala.xml.NodeSeq
 
 import com.normation.cfclerk.domain.PolicyPackageName
+import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.policies.ConfigurationRule
-import com.normation.rudder.domain.policies.PolicyInstanceTarget
-import com.normation.rudder.domain.policies.ConfigurationRuleId
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.rudder.domain.nodes.NodeGroupId
-import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.policies.PolicyInstance
 import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.policies.UserPolicyTemplate
 import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
-import com.normation.rudder.batch.CurrentDeploymentStatus
 
 import net.liftweb.common.Box
 
@@ -75,6 +70,27 @@ trait DeploymentStatusUnserialisation {
    */
   def unserialise(xml:XNode) : Box[CurrentDeploymentStatus]
   
+}
+
+/**
+ * That trait allow to unserialise 
+ * group category from an XML file. 
+ * 
+ * BE CAREFUL: groups and sub-categories will 
+ * always be empty here, as they are not serialized. 
+ * 
+ */
+trait NodeGroupCategoryUnserialisation {
+  /**
+   * Version 1:
+     <groupLibraryCategory fileFormat="1.0">
+        <id>{cat.id.value}</id>
+        <displayName>{cat.name}</displayName>
+        <description>{cat.description}</serial>
+        <isSystem>{cat.isSystem}</isSystem>
+      </groupLibraryCategory>
+   */
+  def unserialise(xml:XNode): Box[NodeGroupCategory]
 }
 
 /**

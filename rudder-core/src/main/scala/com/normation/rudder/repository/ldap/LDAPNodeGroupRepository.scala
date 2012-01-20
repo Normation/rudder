@@ -53,6 +53,7 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.log._
 import scala.collection.SortedMap
 import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.utils.ScalaReadWriteLock
 
 class LDAPNodeGroupRepository(
     rudderDit         : RudderDit
@@ -64,9 +65,8 @@ class LDAPNodeGroupRepository(
   , actionLogger      : EventLogRepository
   , gitArchiver       : GitNodeGroupArchiver
   , autoExportOnModify: Boolean 
+  , groupLibMutex     : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends NodeGroupRepository with Loggable {
-
-	repo =>
 	
 	/**
    * Look in the group subtree 
@@ -129,7 +129,9 @@ class LDAPNodeGroupRepository(
    * Used to get the ldap dn
    */
   def getCategoryEntry(con:LDAPConnection, id:NodeGroupCategoryId, attributes:String*) : Box[LDAPEntry] = {
-    val categoryEntries = con.searchSub(rudderDit.GROUP.dn,  EQ(A_GROUP_CATEGORY_UUID, id.value), attributes:_*)
+    val categoryEntries = groupLibMutex.readLock {
+      con.searchSub(rudderDit.GROUP.dn,  EQ(A_GROUP_CATEGORY_UUID, id.value), attributes:_*)
+    }
     categoryEntries.size match {
       case 0 => Empty
       case 1 => Full(categoryEntries(0))
@@ -139,7 +141,7 @@ class LDAPNodeGroupRepository(
   
   
   def getGroupsByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = {
-    for {
+    groupLibMutex.readLock { for {
       allCats        <- categoryRepo.getAllGroupCategories(includeSystem)
       catsWithGroups <- sequence(allCats) { ligthCat =>
                           for {
@@ -158,115 +160,110 @@ class LDAPNodeGroupRepository(
     } yield {
       implicit val ordering = NodeGroupCategoryOrdering
       SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]() ++ catsWithGroups
-    }    
+    } }
   }
   
   def getNodeGroup(id: NodeGroupId): Box[NodeGroup] = { 
- 	   val value = this.getNodeGroup[NodeGroupId](id, { id => EQ(A_NODE_GROUP_UUID, id.value) } )
- 	   value
+ 	   groupLibMutex.readLock { this.getNodeGroup[NodeGroupId](id, { id => EQ(A_NODE_GROUP_UUID, id.value) } ) }
   }
 
   def createNodeGroup(name: String, description: String, q: Option[Query], isDynamic: Boolean, srvList: Set[NodeId], into: NodeGroupCategoryId, isActivated : Boolean, actor:EventActor): Box[AddNodeGroupDiff] = {
-  	repo.synchronized { 
-  	  for {
-        con           <- ldap
-        exists        <- if (nodeGroupExists(con, name)) Failure("Cannot create a group with name %s : there is already a group with the same name".format(name))
-                         else Full(Unit)
-        categoryEntry <- getCategoryEntry(con, into) ?~! "Entry with ID '%s' was not found".format(into)
-        uuid          = uuidGen.newUuid
-        nodeGroup     = NodeGroup(NodeGroupId(uuid), name, description, q, isDynamic, srvList, isActivated, false)
-        entry         = rudderDit.GROUP.groupModel(uuid,
-        													categoryEntry.dn, 
-        													name, 
-        													description, 
-        													q,
-        													isDynamic,
-        													srvList,
-        													isActivated)
-        result        <- con.save(entry, true)
-        diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result)
-        loggedAction  <- actionLogger.saveAddNodeGroup(principal = actor, addDiff = diff )
-        autoArchive   <- if(autoExportOnModify) {
-                           for {
-                             parents  <- categoryRepo.getParents_NodeGroupCategory(into)
-                             archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)) )
-                           } yield archived
-                         } else Full("ok")
-    	} yield {
-    		diff
-    	} 
-    }
+	  for {
+      con           <- ldap
+      exists        <- if (nodeGroupExists(con, name)) Failure("Cannot create a group with name %s : there is already a group with the same name".format(name))
+                       else Full(Unit)
+      categoryEntry <- getCategoryEntry(con, into) ?~! "Entry with ID '%s' was not found".format(into)
+      uuid          = uuidGen.newUuid
+      nodeGroup     = NodeGroup(NodeGroupId(uuid), name, description, q, isDynamic, srvList, isActivated, false)
+      entry         = rudderDit.GROUP.groupModel(uuid,
+      													categoryEntry.dn, 
+      													name, 
+      													description, 
+      													q,
+      													isDynamic,
+      													srvList,
+      													isActivated)
+      result        <- groupLibMutex.writeLock { con.save(entry, true) }
+      diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result)
+      loggedAction  <- actionLogger.saveAddNodeGroup(principal = actor, addDiff = diff )
+      autoArchive   <- if(autoExportOnModify) {
+                         for {
+                           parents  <- categoryRepo.getParents_NodeGroupCategory(into)
+                           archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)) )
+                         } yield archived
+                       } else Full("ok")
+  	} yield {
+  		diff
+  	} 
   }
   
   def update(nodeGroup:NodeGroup, actor:EventActor): Box[Option[ModifyNodeGroupDiff]] = {
-    repo.synchronized {
-      for {
-        con          <- ldap
-        existing     <- getSGEntry(con, nodeGroup.id) ?~! "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id)
-        exists       <- if (nodeGroupExists(con, nodeGroup.name, nodeGroup.id)) Failure("Cannot change the group name to %s : there is already a group with the same name".format(nodeGroup.name))
-                        else Full(Unit)
-        entry        =  rudderDit.GROUP.groupModel(
-                                  nodeGroup.id.value,
-                                  existing.dn.getParent,
-                                  nodeGroup.name,
-                                  nodeGroup.description,
-                                  nodeGroup.query,
-                                  nodeGroup.isDynamic,
-                                  nodeGroup.serverList,
-                                  nodeGroup.isActivated,
-                                  nodeGroup.isSystem)
-        result       <- con.save(entry, true) ?~! "Error when saving entry: %s".format(entry)
-        optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result) ?~! "Error when mapping change record to a diff object: %s".format(result)
-        loggedAction <- optDiff match {
-                          case None => Full("OK")
-                          case Some(diff) => actionLogger.saveModifyNodeGroup(principal = actor, modifyDiff = diff) ?~! "Error when logging modification as an event"
-                        }
-        autoArchive  <- if(autoExportOnModify && optDiff.isDefined) { //only persists if modification are present
-                          for {
-                            parent   <- getParentGroupCategory(nodeGroup.id)
-                            parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
-                            archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id) )
-                          } yield archived
-                        } else Full("ok")
-      } yield {
-        optDiff
-    } }
+    for {
+      con          <- ldap
+      existing     <- getSGEntry(con, nodeGroup.id) ?~! "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id)
+      exists       <- if (nodeGroupExists(con, nodeGroup.name, nodeGroup.id)) Failure("Cannot change the group name to %s : there is already a group with the same name".format(nodeGroup.name))
+                      else Full(Unit)
+      entry        =  rudderDit.GROUP.groupModel(
+                                nodeGroup.id.value,
+                                existing.dn.getParent,
+                                nodeGroup.name,
+                                nodeGroup.description,
+                                nodeGroup.query,
+                                nodeGroup.isDynamic,
+                                nodeGroup.serverList,
+                                nodeGroup.isActivated,
+                                nodeGroup.isSystem)
+      result       <- groupLibMutex.writeLock { con.save(entry, true) ?~! "Error when saving entry: %s".format(entry) }
+      optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result) ?~! "Error when mapping change record to a diff object: %s".format(result)
+      loggedAction <- optDiff match {
+                        case None => Full("OK")
+                        case Some(diff) => actionLogger.saveModifyNodeGroup(principal = actor, modifyDiff = diff) ?~! "Error when logging modification as an event"
+                      }
+      autoArchive  <- if(autoExportOnModify && optDiff.isDefined) { //only persists if modification are present
+                        for {
+                          parent   <- getParentGroupCategory(nodeGroup.id)
+                          parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
+                          archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id) )
+                        } yield archived
+                      } else Full("ok")
+    } yield {
+      optDiff
+    } 
   }
 
   def move(nodeGroup:NodeGroup, containerId : NodeGroupCategoryId, actor:EventActor): Box[Option[ModifyNodeGroupDiff]] = {
-    repo.synchronized {
-      for {
-        con          <- ldap
-        oldParents   <- if(autoExportOnModify) {
-                          for {
-                            parent   <- getParentGroupCategory(nodeGroup.id)
-                            parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
-                          } yield (parent::parents).map( _.id )
-                        } else Full(Nil)
-        existing     <- getSGEntry(con, nodeGroup.id) ?~! "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id)
-        groupRDN     <- Box(existing.rdn) ?~! "Error when retrieving RDN for an exising group - seems like a bug"
-        exists       <- if (nodeGroupExists(con, nodeGroup.name, nodeGroup.id)) Failure("Cannot change the group name to %s : there is already a group with the same name".format(nodeGroup.name))
-                          else Full(Unit)
-        newParentDn  <- getContainerDn(con, containerId) ?~! "Couldn't find the new parent category when updating group %s".format(nodeGroup.name)
-        result       <- con.move(existing.dn, newParentDn)
-        optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result)
-        loggedAction <- optDiff match {
-                          case None => Full("OK")
-                          case Some(diff) => actionLogger.saveModifyNodeGroup(principal = actor, modifyDiff = diff )
-                        }
-        autoArchive   <- (if(autoExportOnModify && optDiff.isDefined) { //only persists if that was a real move (not a move in the same category)
-                           for {
-                             newGroup <- getNodeGroup(nodeGroup.id)
-                             parent   <- getParentGroupCategory(nodeGroup.id)
-                             parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
-                             moved    <- gitArchiver.moveNodeGroup(newGroup, oldParents, (parent::parents).map( _.id ))
-                           } yield {
-                             moved
-                           }
-                         } else Full("ok") ) ?~! "Error when trying to archive automatically the category move"
-      } yield {
-        optDiff
-    } }
+    for {
+      con          <- ldap
+      oldParents   <- if(autoExportOnModify) {
+                        for {
+                          parent   <- getParentGroupCategory(nodeGroup.id)
+                          parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
+                        } yield (parent::parents).map( _.id )
+                      } else Full(Nil)
+      existing     <- getSGEntry(con, nodeGroup.id) ?~! "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id)
+      groupRDN     <- Box(existing.rdn) ?~! "Error when retrieving RDN for an exising group - seems like a bug"
+      exists       <- if (nodeGroupExists(con, nodeGroup.name, nodeGroup.id)) Failure("Cannot change the group name to %s : there is already a group with the same name".format(nodeGroup.name))
+                        else Full(Unit)
+      newParentDn  <- getContainerDn(con, containerId) ?~! "Couldn't find the new parent category when updating group %s".format(nodeGroup.name)
+      result       <- groupLibMutex.writeLock { con.move(existing.dn, newParentDn) }
+      optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result)
+      loggedAction <- optDiff match {
+                        case None => Full("OK")
+                        case Some(diff) => actionLogger.saveModifyNodeGroup(principal = actor, modifyDiff = diff )
+                      }
+      autoArchive   <- (if(autoExportOnModify && optDiff.isDefined) { //only persists if that was a real move (not a move in the same category)
+                         for {
+                           newGroup <- getNodeGroup(nodeGroup.id)
+                           parent   <- getParentGroupCategory(nodeGroup.id)
+                           parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
+                           moved    <- gitArchiver.moveNodeGroup(newGroup, oldParents, (parent::parents).map( _.id ))
+                         } yield {
+                           moved
+                         }
+                       } else Full("ok") ) ?~! "Error when trying to archive automatically the category move"
+    } yield {
+      optDiff
+    }
   }
   
   /**
@@ -276,18 +273,18 @@ class LDAPNodeGroupRepository(
    * @return
    */
   def getParentGroupCategory(id: NodeGroupId): Box[NodeGroupCategory] = { 
-  	 for {
+  	 groupLibMutex.readLock { for {
       con <- ldap
       groupEntry <- getSGEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
       parentCategoryEntry <- con.get(groupEntry.dn.getParent)
       parentCategory <- mapper.entry2NodeGroupCategory(parentCategoryEntry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(parentCategoryEntry)
     } yield {
       parentCategory
-    }  	
+    } }
   }
   
   def getAll : Box[Seq[NodeGroup]] = {
-    for {
+    groupLibMutex.readLock { for {
       con <- ldap
       //for each pi entry, map it. if one fails, all fails
       groups <- sequence(con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP))) { groupEntry => 
@@ -295,16 +292,16 @@ class LDAPNodeGroupRepository(
       }
     } yield {
       groups
-    }
+    } }
   }
   
   private[this] def getContainerDn(con : LDAPConnection, id: NodeGroupCategoryId) : Box[DN] = {
-    con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_GROUP_CATEGORY), EQ(A_GROUP_CATEGORY_UUID, id.value)), A_GROUP_CATEGORY_UUID).toList match {
+    groupLibMutex.readLock { con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_GROUP_CATEGORY), EQ(A_GROUP_CATEGORY_UUID, id.value)), A_GROUP_CATEGORY_UUID).toList match {
       case Nil => Empty
       case (head : com.normation.ldap.sdk.LDAPEntry) :: Nil => Full(head.dn)
       case _ => logger.error("Too many NodeGroupCategory found with this id %s".format(id.value))
                 Failure("Too many NodeGroupCategory found with this id %s".format(id.value))
-    }
+    } }
   }
   
   
@@ -331,7 +328,7 @@ class LDAPNodeGroupRepository(
                         getSGEntry(con,id, "1.1") match {
                           case Full(entry) => {
                             for {
-                              deleted <- con.delete(entry.dn, recurse = false)
+                              deleted <- groupLibMutex.writeLock { con.delete(entry.dn, recurse = false) }
                             } yield {
                               id
                             }
@@ -352,14 +349,14 @@ class LDAPNodeGroupRepository(
  
   
   private[this] def findGroupWithFilter(filter:Filter) : Box[Seq[NodeGroupId]] = {
-    for {
+    groupLibMutex.readLock { for {
       con <- ldap
       groupIds <- sequence(con.searchSub(rudderDit.GROUP.dn,  filter, "1.1")) { entry =>
         rudderDit.GROUP.getGroupId(entry.dn) ?~! "DN '%s' seems to not be a valid group DN".format(entry.dn)
       }
     } yield {
       groupIds.map(id => NodeGroupId(id))
-    }
+    } }
   }
   
   /**

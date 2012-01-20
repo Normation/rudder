@@ -53,6 +53,7 @@ import JsonDSL._
 import com.normation.cfclerk.domain._
 import org.joda.time.DateTime 
 import com.normation.rudder.repository.UserPolicyLibraryArchiveId
+import com.normation.rudder.repository.NodeGroupLibraryArchiveId
 
 class CATEGORY(
     uuid: String,
@@ -111,6 +112,23 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       , objectClassUuid = A_CATEGORY_UUID
     )
   }
+  
+  def groupCategory(
+      uuid       : String
+    , parentDN   : DN
+    , name       : String = ""
+    , description: String = ""
+  ) : CATEGORY = {
+    new CATEGORY(
+        uuid            = uuid
+      , name            = name
+      , description     = description
+      , parentDN        = parentDN
+      , objectClass = OC_GROUP_CATEGORY
+      , objectClassUuid = A_GROUP_CATEGORY_UUID
+    )
+  }
+  
   
   //here, we can't use userPolicyTemplateCategory because we want a subclass
   val POLICY_TEMPLATE_LIB = new CATEGORY(
@@ -231,8 +249,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     /**
      * Return a new sub category 
      */
-    def groupCategoryModel(uuid:String, parentDN:DN) : LDAPEntry = new CATEGORY(uuid, parentDN, objectClass = OC_GROUP_CATEGORY,
-      objectClassUuid = A_GROUP_CATEGORY_UUID).model
+    def groupCategoryModel(uuid:String, parentDN:DN) : LDAPEntry = groupCategory(uuid, parentDN).model
     
     def groupDN(groupId:String, parentDN:DN) : DN = new DN(new RDN(A_NODE_GROUP_UUID,groupId),parentDN)   
       
@@ -388,6 +405,12 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       ).model.dn
     }
   
+    def groupLibDN(id:NodeGroupLibraryArchiveId) : DN = {
+      groupCategory(
+          uuid     = "GroupLibrary-" + id.value
+        , parentDN = archives.dn
+      ).model.dn
+    }
   }
   
   
