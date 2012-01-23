@@ -56,70 +56,132 @@ class Archives extends DispatchSnippet with Loggable {
   
   
   def dispatch = {
-    case "exportAll" => exportAllForm
-    case "importAll" => importAllForm
+    case "allForm" => allForm 
+    case "configurationRulesForm" => configurationRulesForm
+    case "groupLibraryForm" => groupLibraryForm
+    case "policyLibraryForm" => policyLibraryForm
   }
   
   /**
    * Export all items (CR, user policy library, groups)
    * Advertise on success and error
    */
-  private[this] def exportAllForm : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
-    // our process method returns a
-    // JsCmd which will be sent back to the browser
-    // as part of the response
-    def process(): JsCmd = {
-      //clear errors
-      S.clearCurrentNotices
+  private[this] def allForm = actionFormBuilder(
+      formName                  = "allForm"
+    , archiveButtonSelector     = "#exportAllButton"
+    , archiveButtonName         = "Archive everything"
+    , archiveFunction           = itemArchiver.exportAll
+    , archiveErrorMessage       = "Error when exporting groups, policy library and configuration rules."
+    , archiveSuccessDebugMessage= s => "Exporting groups, policy library and configuration rules on user request, archive id: %s".format(s)
+    , restoreButtonSelector     = "#importAllButton"
+    , restoreButtonName         = "Restore everything"
+    , restoreFunction           = itemArchiver.importAll
+    , restoreErrorMessage       = "Error when importing groups, policy library and configuration rules."
+    , restoreSuccessDebugMessage= "Importing groups, policy library and configuration rules on user request"
+  )
 
-      itemArchiver.saveAll() match {
-        case empty:EmptyBox => 
-          val e = empty ?~! "Error when exporting configuration rules."
-          S.error(e.messageChain)
-          Replace("exportAllForm", outerXml.applyAgain)
-        case Full(aid) => 
-          logger.debug("Exported configuration rules on user request, archive id: " + aid.value )
-          Replace("exportAllForm", outerXml.applyAgain) &
-          successPopup
-      }
-    }
-    
-    //process the list of networks
-    "#exportAllButton" #> { 
-      SHtml.ajaxSubmit("Export", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
-    }
-  }
+  
+  private[this] def configurationRulesForm = actionFormBuilder(
+      formName                  = "configurationRulesForm"
+    , archiveButtonSelector     = "#exportConfigurationRulesButton"
+    , archiveButtonName         = "Archive configuration rules"
+    , archiveFunction           = itemArchiver.exportConfigurationRules
+    , archiveErrorMessage       = "Error when exporting configuration rules."
+    , archiveSuccessDebugMessage= s => "Exporting configuration rules on user request, archive id: %s".format(s)
+    , restoreButtonSelector     = "#importConfigurationRulesButton"
+    , restoreButtonName         = "Restore configuration rules"
+    , restoreFunction           = itemArchiver.importConfigurationRules
+    , restoreErrorMessage       = "Error when imporing configuration rules."
+    , restoreSuccessDebugMessage= "Importing configuration rules on user request"
+  )
+  
+
+  private[this] def policyLibraryForm = actionFormBuilder(
+      formName                  = "policyLibraryForm"
+    , archiveButtonSelector     = "#exportPolicyLibraryButton"
+    , archiveButtonName         = "Archive policy library"
+    , archiveFunction           = itemArchiver.exportPolicyLibrary
+    , archiveErrorMessage       = "Error when exporting policy library."
+    , archiveSuccessDebugMessage= s => "Exporting policy library on user request, archive id: %s".format(s)
+    , restoreButtonSelector     = "#importPolicyLibraryButton"
+    , restoreButtonName         = "Restore policy library"
+    , restoreFunction           = itemArchiver.importPolicyLibrary
+    , restoreErrorMessage       = "Error when importing policy library."
+    , restoreSuccessDebugMessage= "Importing policy library on user request"
+  )
+  
+  private[this] def groupLibraryForm = actionFormBuilder(
+      formName                  = "groupLibraryForm"
+    , archiveButtonSelector     = "#exportGroupLibraryButton"
+    , archiveButtonName         = "Archive groups"
+    , archiveFunction           = itemArchiver.exportGroupLibrary
+    , archiveErrorMessage       = "Error when exporting groups."
+    , archiveSuccessDebugMessage= s => "Exporting groups on user request, archive id: %s".format(s)
+    , restoreButtonSelector     = "#importGroupLibraryButton"
+    , restoreButtonName         = "Restore groups"
+    , restoreFunction           = itemArchiver.importGroupLibrary
+    , restoreErrorMessage       = "Error when importing groups."
+    , restoreSuccessDebugMessage= "Importing groups on user request"
+  )
   
   /**
-   * Import all items (CR, user policy library, groups)
-   * Advertise on success and error.
+   * Create a form with a validation button for an export or an import
    */
-  private[this] def importAllForm : IdMemoizeTransform = SHtml.idMemoize { outerXml =>    
+  private[this] def actionFormBuilder(
+      formName                  : String               //the element name to update on error/succes
+    , archiveButtonSelector     : String               //input button
+    , archiveButtonName         : String               //what is displayed on the button to the user
+    , archiveFunction           : Boolean => Box[ArchiveId] //the actual logic to execute the action
+    , archiveErrorMessage       : String               //error message to display to the user
+    , archiveSuccessDebugMessage: String => String     //debug log - the string param is the archive id
+    , restoreButtonSelector     : String               //input button
+    , restoreButtonName         : String               //what is displayed on the button to the user
+    , restoreFunction           : Boolean => Box[Unit] //the actual logic to execute the action
+    , restoreErrorMessage       : String               //error message to display to the user
+    , restoreSuccessDebugMessage: String               //debug log - the string param is the archive id
+  ) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+    
+    val noticeId = formName + "Notice"
+    
+    def error(eb:EmptyBox, msg:String) = {
+      val e = eb ?~! msg
+      logger.error(eb)
+      S.error(noticeId, msg)
+      Replace(formName, outerXml.applyAgain)
+    }
+    
+    def success[T](msg:String) = {
+          logger.debug( msg )
+          Replace(formName, outerXml.applyAgain) &
+          successPopup
+    }
+    
     // our process method returns a
     // JsCmd which will be sent back to the browser
     // as part of the response
-    def process(): JsCmd = {
-      //clear errors
+    def archive(): JsCmd = {
       S.clearCurrentNotices
-
-      itemArchiver.importLastArchive() match {
-        case empty:EmptyBox => 
-          val e = empty ?~! "Error when importing items."
-          S.error(e.messageChain)
-          Replace("importAllForm", outerXml.applyAgain)
-        case Full(x) => 
-          logger.debug("Imported items on user request" )
-          Replace("importAllForm", outerXml.applyAgain) &
-          successPopup
+      archiveFunction(false) match {
+        case eb:EmptyBox => error(eb, archiveErrorMessage)
+        case Full(aid)   => success(archiveSuccessDebugMessage(aid.value))
       }
     }
     
-    //process the list of networks
-    "#importAllButton" #> { 
-      SHtml.ajaxSubmit("Import", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
+    def restore(): JsCmd = {
+      S.clearCurrentNotices
+      restoreFunction(false) match {
+        case eb:EmptyBox => error(eb, restoreErrorMessage)
+        case Full( _ )   => success(restoreSuccessDebugMessage)
+      }
     }
-  }  
-  
+    
+    archiveButtonSelector #> { 
+      SHtml.ajaxSubmit(archiveButtonName, archive _ ) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
+    } &
+    restoreButtonSelector #> { 
+      SHtml.ajaxSubmit(restoreButtonName, restore _ ) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
+    }
+  }
   
   ///////////// success pop-up ///////////////
   private[this] def successPopup : JsCmd = {

@@ -1,0 +1,138 @@
+<lift:surround with="menu/menu-administration" at="content">
+
+<head>
+<title>Rudder - Policy Server Management</title>
+<style>
+<!--
+  .archiveAction {
+    display: inline-block;
+  }
+  
+  .archiveAction .ui-button {
+    width: 180px;
+  }
+  
+  .deca {
+    text-align: center;
+  }
+
+-->
+</style>
+</head>
+
+<div class="portlet">
+  <div class="portlet-header">Global archive management</div>
+  <div class="portlet-content"> 
+    <div class="intro">
+      <div>
+        This widget allows to manage groups, policies (templates and instances) and configuration rules archive at ounce. 
+        You can make new archives of the state of Rudder, and restore the last one.
+      </div>
+    </div>
+    
+    <hr class="spacer"/>
+    
+    <div class="deca">
+      <span class="lift:administration.Archives.allForm archiveAction" id="allForm">
+        <form class="lift:form.ajax">
+          <br/>
+          <input id="exportAllButton" type="submit" value="[Export ALL]"/> 
+          <input id="importAllButton" type="submit" value="[Importt ALL]"/> 
+          <br/>
+          <lift:msg id="allFormNotice" errorClass="error">[error]</lift:msg>
+          <br/>
+        </form>
+      </span>
+    </div>
+  </div>
+  <br/>
+</div>
+
+<div class="column">
+	<div class="portlet">
+	  <div class="portlet-header">Configuration rules archives management</div>
+	  <div class="portlet-content"> 
+	   
+	    <div class="intro">
+	      <div>
+	        This widget allows to create new configuration rules archives and restore the last one available.
+	      </div>
+	    </div>
+	
+	    <hr class="spacer"/>
+	    <div class="deca">
+	    
+		    <div class="lift:administration.Archives.configurationRulesForm archiveAction" id="configurationRulesForm">
+		      <form class="lift:form.ajax">
+            <br/>
+		        <input id="exportConfigurationRulesButton" type="submit" value="[Export CR]"/> 
+		        <input id="importConfigurationRulesButton" type="submit" value="[Import CR]"/> 
+            <br/>
+		        <lift:msg id="configurationRulesFormNotice" errorClass="error">[error]</lift:msg>
+            <br/>
+		      </form>
+		    </div>
+	    </div>
+	  </div>
+	  <br/>
+	</div>
+	
+		    
+	<div class="portlet">
+	  <div class="portlet-header">Policy library archives management</div>
+	  <div class="portlet-content"> 
+	   
+	    <div class="intro">
+	      <div>
+	        This widget allows to create new policy library archives and restore the last one available.
+	      </div>
+	    </div>
+	
+	    <hr class="spacer"/>
+	    <div class="deca">
+		    <div class="lift:administration.Archives.policyLibraryForm archiveAction" id="policyLibraryForm">
+		      <form class="lift:form.ajax">
+            <br/>
+		        <input id="exportPolicyLibraryButton" type="submit" value="[Export PolicyLibrary]"/> 
+		        <input id="importPolicyLibraryButton" type="submit" value="[Import PolicyLibrary]"/> 
+            <br/>
+		        <lift:msg id="policyLibraryFormNotice" errorClass="error">[error]</lift:msg>
+            <br/>
+		      </form>
+		    </div>
+	    </div>
+	  </div>
+    <br/>
+	</div>
+</div>
+
+<div class="column">
+	<div class="portlet">
+	  <div class="portlet-header">Groups archives management</div>
+	  <div class="portlet-content"> 
+	   
+	    <div class="intro">
+	      <div>
+	        This widget allows to create new configuration rules archives and restore the last one available.
+	      </div>
+	    </div>
+	
+	    <hr class="spacer"/>
+	    <div class="deca">
+		    <div class="lift:administration.Archives.groupLibraryForm archiveAction" id="groupLibraryForm">
+		      <form class="lift:form.ajax">
+            <br/>
+		        <input id="exportGroupLibraryButton" type="submit" value="[Export GroupLibrary]"/> 
+		        <input id="importGroupLibraryButton" type="submit" value="[Import GroupLibrary]"/> 
+            <br/>
+		        <lift:msg id="groupLibraryFormNotice" errorClass="error">[error]</lift:msg>
+            <br/>
+		      </form>
+		    </div>
+	    </div>
+	  </div>
+    <br/>
+	</div>
+</div>
+</lift:surround>
+

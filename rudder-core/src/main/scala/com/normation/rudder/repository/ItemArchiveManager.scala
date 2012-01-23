@@ -68,7 +68,14 @@ trait ItemArchiveManager {
    * Save all items handled by that archive manager 
    * and return an ID for the archive on success. 
    */
-  def saveAll(includeSystem:Boolean = false) : Box[ArchiveId]
+  def exportAll(includeSystem:Boolean = false) : Box[ArchiveId]
+  
+  
+  def exportConfigurationRules(includeSystem:Boolean = false) : Box[ArchiveId]
+  
+  def exportPolicyLibrary(includeSystem:Boolean = false) : Box[ArchiveId]
+  
+  def exportGroupLibrary(includeSystem:Boolean = false) : Box[ArchiveId]
   
   /**
    * Import the last available archive in Rudder. 
@@ -77,8 +84,15 @@ trait ItemArchiveManager {
    * where it was just before the (unsuccessful) import 
    * was required. 
    */
-  def importLastArchive(includeSystem:Boolean = false) : Box[Unit]
+  def importAll(includeSystem:Boolean = false) : Box[Unit]
 
+  
+  def importConfigurationRules(includeSystem:Boolean = false) : Box[Unit]
+  
+  def importPolicyLibrary(includeSystem:Boolean = false) : Box[Unit]
+  
+  def importGroupLibrary(includeSystem:Boolean = false) : Box[Unit]
+  
 }
 
 

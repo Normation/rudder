@@ -54,6 +54,6 @@ import net.liftweb.http.SHtml._
 class Administration {
 
   def index(xhtml:NodeSeq) : NodeSeq = {
-    S.redirectTo("policyArchives")
+    S.redirectTo("archiveManagement")
   }
 }

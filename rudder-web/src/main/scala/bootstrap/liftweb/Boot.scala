@@ -171,7 +171,7 @@ class Boot extends Loggable {
             "secure" / "administration" / "pluginManagement" >> LocGroup("administrationGroup") 
             
         , Menu("archivesManagement", <span>Archives</span>) / 
-            "secure" / "administration" / "policyArchives" >> LocGroup("administrationGroup")
+            "secure" / "administration" / "archiveManagement" >> LocGroup("administrationGroup")
       )
   
     

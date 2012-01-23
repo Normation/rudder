@@ -72,19 +72,19 @@ class ItemArchiveManagerImpl(
   
   ///// implementation /////
   
-  def saveAll(includeSystem:Boolean = false): Box[ArchiveId] = { 
+  def exportAll(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for {
-      saveCrs     <- saveConfigurationRules(includeSystem)
-      saveUserLib <- saveUserPolicyLibrary(includeSystem)
-      saveGroups  <- saveGroupsLibrary(includeSystem)
+      saveCrs     <- exportConfigurationRules(includeSystem)
+      saveUserLib <- exportPolicyLibrary(includeSystem)
+      saveGroups  <- exportGroupLibrary(includeSystem)
     } yield {
       saveUserLib
     }
   }
   
-  def importLastArchive(includeSystem:Boolean = false) : Box[Unit] = {
+  def importAll(includeSystem:Boolean = false) : Box[Unit] = {
     for {
-      configurationRules <- importLastConfigurationRules(includeSystem)
+      configurationRules <- importConfigurationRules(includeSystem)
       userLib            <- importPolicyLibrary(includeSystem)
       groupLIb           <- importGroupLibrary(includeSystem)
     } yield {
@@ -93,9 +93,18 @@ class ItemArchiveManagerImpl(
   }
 
     
-  private[this] def importLastConfigurationRules(includeSystem:Boolean = false) : Box[Unit] = {
+  def importConfigurationRules(includeSystem:Boolean = false) : Box[Unit] = {
     for {
-      files <- tryo { FileUtils.listFiles(gitConfigurationRuleArchiver.getRootDirectory,null,false).filter { f => isXmlUuid(f.getName) } }
+      files <- tryo { 
+                      val files = gitConfigurationRuleArchiver.getRootDirectory.listFiles
+                      if(null != files) files.filter( f => 
+                        f != null && 
+                        f.isFile &&
+                        f.getName.endsWith(".xml") &&
+                        UuidRegex.isValid(f.getName.substring(0, f.getName.size - 4))
+                      ).toSeq
+                      else Seq()
+               }
       xmls  <- sequence(files.toSeq) { file =>
                  XmlUtils.parseXml(new FileInputStream(file), Some(file.getPath))
                }
@@ -116,7 +125,7 @@ class ItemArchiveManagerImpl(
   }
 
   
-  private[this] def saveConfigurationRules(includeSystem:Boolean = false): Box[ArchiveId] = { 
+  def exportConfigurationRules(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for {
       crs         <- configurationRuleRepository.getAll(false)
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitConfigurationRuleArchiver.getRootDirectory) }
@@ -129,7 +138,7 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  private[this] def saveUserPolicyLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
+  def exportPolicyLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for { 
       catWithUPT   <- uptRepository.getUPTbyCategory(includeSystem = true)
       //remove systems things if asked (both system categories and system upts in non-system categories)
@@ -157,7 +166,7 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  private[this] def saveGroupsLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
+  def exportGroupLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for { 
       catWithGroups   <- groupRepository.getGroupsByCategory(includeSystem = true)
       //remove systems things if asked (both system categories and system groups in non-system categories)
@@ -171,13 +180,10 @@ class ItemArchiveManagerImpl(
       savedItems      <- sequence(okCatWithGroup.toSeq) { case (categories, CategoryAndNodeGroup(cat, groups)) => 
                            for {
                              //categories.tail is OK, as no category can have an empty path (id)
-                             savedCat  <- {
-                               println("Saving category: "+ categories)
-                               gitNodeGroupCategoryArchiver.archiveNodeGroupCategory(cat,categories.reverse.tail, gitCommit = false)
-                             }
+                             savedCat    <- gitNodeGroupCategoryArchiver.archiveNodeGroupCategory(cat,categories.reverse.tail, gitCommit = false)
                              savedgroups <- sequence(groups.toSeq) { group =>
-                                            gitNodeGroupArchiver.archiveNodeGroup(group,categories.reverse, gitCommit = false)
-                                          }
+                                              gitNodeGroupArchiver.archiveNodeGroup(group,categories.reverse, gitCommit = false)
+                                            }
                            } yield {
                              "OK"
                            }
@@ -188,7 +194,7 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  private[this] def importPolicyLibrary(includeSystem:Boolean) : Box[Unit] = {
+  def importPolicyLibrary(includeSystem:Boolean) : Box[Unit] = {
       for {
         parsed   <- parsePolicyLibrary.parse(userPolicyLibRootDirectory)
         imported <- importPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
@@ -197,7 +203,7 @@ class ItemArchiveManagerImpl(
       }
   }
   
-  private[this] def importGroupLibrary(includeSystem:Boolean) : Box[Unit] = {
+  def importGroupLibrary(includeSystem:Boolean) : Box[Unit] = {
       for {
         parsed   <- parseGroupLibrary.parse(groupLibRootDirectory)
         imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
@@ -205,10 +211,4 @@ class ItemArchiveManagerImpl(
         imported
       }
   }
-  
-  ///// utility methods /////
-    
-  private[this] val xmlUuidPattern = Pattern.compile(UuidRegex.stringPattern + ".xml")
-  private[this] def isXmlUuid(candidate:String) = xmlUuidPattern.matcher(candidate).matches
-
 }
