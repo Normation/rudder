@@ -34,30 +34,33 @@
 
 package com.normation.rudder.repository.xml
 
-import com.normation.rudder.domain.nodes._
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.queries.Query
-import net.liftweb.common._
-import com.normation.eventlog.EventActor
-import com.normation.utils.HashcodeCaching
-import scala.collection.SortedMap
+import scala.Option.option2Iterable
+
+import com.normation.cfclerk.services.GitRepositoryProvider
+import com.normation.cfclerk.services.GitRevisionProvider
+import com.normation.rudder.repository.ParsePolicyLibrary
+import com.normation.rudder.repository.UptCategoryContent
 import com.normation.rudder.repository.UptContent
 import com.normation.rudder.services.marshalling.PolicyInstanceUnserialisation
-import com.normation.rudder.services.marshalling.UserPolicyTemplateUnserialisation
 import com.normation.rudder.services.marshalling.UserPolicyTemplateCategoryUnserialisation
-import com.normation.rudder.repository.ParsePolicyLibrary
-import com.normation.utils.XmlUtils
-import com.normation.rudder.repository.UptCategoryContent
-import java.io.File
-import java.io.FileInputStream
+import com.normation.rudder.services.marshalling.UserPolicyTemplateUnserialisation
+import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
-import com.normation.utils.Control.sequence
+import com.normation.utils.XmlUtils
+
+import net.liftweb.common.Box
+import net.liftweb.common.Empty
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
 
 
-class ParsePolicyLibraryImpl(
+class GitParsePolicyLibrary(
     categoryUnserialiser: UserPolicyTemplateCategoryUnserialisation
   , uptUnserialiser     : UserPolicyTemplateUnserialisation
   , piUnserialiser      : PolicyInstanceUnserialisation
+  , revisionProvider    : GitRevisionProvider
+  , repo                : GitRepositoryProvider
+  , libRootDirectory    : String //relative name to git root file
   , uptcFileName        : String = "category.xml"
   , uptFileName         : String = "userPolicyTemplateSettings.xml"    
 ) extends ParsePolicyLibrary {
@@ -70,29 +73,51 @@ class ParsePolicyLibraryImpl(
    * - a directory with a category.xml file must contains only sub-directories (ignore files)
    * - a directory containing userPolicyTemplateSettings.xml may contain UUID.xml files (ignore sub-directories and other files)
    */
-  def parse(libRootDirectory: File) : Box[UptCategoryContent] = {
-    def recParseDirectory(directory:File) : Box[Either[UptCategoryContent, UptContent]] = {
+  def getLastArchive : Box[UptCategoryContent] = {
 
-      val category = new File(directory, uptcFileName)
-      val template = new File(directory, uptFileName)
+    val revTreeId = revisionProvider.getAvailableRevTreeId
 
-      (category.exists, template.exists) match {
+    val root = {
+      val p = libRootDirectory.trim
+      if(p.size == 0) ""
+      else if(p.endsWith("/")) p 
+      else p + "/" 
+    }
+
+    //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
+    val paths = GitFindUtils.listFiles(repo.db, revTreeId, Some(root.substring(0, root.size-1)), None)
+        
+    //directoryPath must end with "/"
+    def recParseDirectory(directoryPath:String) : Box[Either[UptCategoryContent, UptContent]] = {
+
+      val category = directoryPath + uptcFileName
+      val template = directoryPath + uptFileName
+
+      (paths.contains(category), paths.contains(template)) match {
         //herrr... skip that one
-        case (false, false) => Empty
-        case (true, true) => Failure("The directory '%s' contains both '%s' and '%s' descriptor file. Only one of them is authorized".format(directory.getPath, uptcFileName, uptFileName))
+        case (false, false) => Failure("The directory '%s' does not contain '%s' or '%s' and should not have been considered".format(directoryPath,category,template))
+        case (true, true) => Failure("The directory '%s' contains both '%s' and '%s' descriptor file. Only one of them is authorized".format(directoryPath, uptcFileName, uptFileName))
         case (true, false) =>
           // that's the directory of an UserPolicyTemplateCategory. 
           // ignore files other than uptcFileName (parsed as an UserPolicyTemplateCategory), recurse on sub-directories
           // don't forget to sub-categories and UPT and UPTC
           for {
-            uptcXml  <- XmlUtils.parseXml(new FileInputStream(category), Some(category.getPath)) ?~! "Error when parsing file '%s' as a category".format(category.getPath)
-            uptc     <- categoryUnserialiser.unserialise(uptcXml) ?~! "Error when unserializing category for file '%s'".format(category.getPath)
-            subDirs  =  {
-                          val files = directory.listFiles
-                          if(null != files) files.filter( f => f != null && f.isDirectory).toSeq
-                          else Seq()
+            uptcXml  <- GitFindUtils.getFileContent(repo.db, revTreeId, category){ inputStream =>
+                          XmlUtils.parseXml(inputStream, Some(category)) ?~! "Error when parsing file '%s' as a category".format(category)
                         }
-            subItems <- sequence(subDirs) { dir =>
+            uptc     <- categoryUnserialiser.unserialise(uptcXml) ?~! "Error when unserializing category for file '%s'".format(category)
+            subDirs  =  {
+                          //we only wants to keep paths that are non-empty directories with a uptcFileName/uptFileName in them
+                          paths.flatMap { p =>
+                            if(p.size > directoryPath.size && p.startsWith(directoryPath)) {
+                              val split = p.substring(directoryPath.size).split("/")
+                              if(split.size == 2 && (split(1) == uptcFileName || split(1) == uptFileName) ) {
+                                Some(directoryPath + split(0) + "/")
+                              } else None
+                            } else None
+                          }
+                        }
+            subItems <- sequence(subDirs.toSeq) { dir =>
                           recParseDirectory(dir)
                         }
           } yield {
@@ -112,22 +137,24 @@ class ParsePolicyLibraryImpl(
           // ignore sub-directories, parse uptFileName as an UserPolicyTemplate, parse UUID.xml as PI
           // don't forget to add PI ids to UPT
           for {
-            uptXml  <- XmlUtils.parseXml(new FileInputStream(template), Some(template.getPath)) ?~! "Error when parsing file '%s' as a category".format(template.getPath)
-            upt     <- uptUnserialiser.unserialise(uptXml) ?~! "Error when unserializing template for file '%s'".format(template.getPath)
-            piFiles =  {
-                         val files = directory.listFiles
-                         if(null != files) files.filter( f => 
-                           f != null && 
-                           f.isFile &&
-                           f.getName.endsWith(".xml") &&
-                           UuidRegex.isValid(f.getName.substring(0, f.getName.size - 4))
-                         ).toSeq
-                         else Seq()
+            uptXml  <- GitFindUtils.getFileContent(repo.db, revTreeId, template){ inputStream =>
+                         XmlUtils.parseXml(inputStream, Some(template)) ?~! "Error when parsing file '%s' as a category".format(template)
                        }
-            pis     <- sequence(piFiles) { piFile =>
+            upt     <- uptUnserialiser.unserialise(uptXml) ?~! "Error when unserializing template for file '%s'".format(template)
+            piFiles =  {
+                         paths.filter { p =>
+                           p.size > directoryPath.size && 
+                           p.startsWith(directoryPath) &&
+                           p.endsWith(".xml") &&
+                           UuidRegex.isValid(p.substring(directoryPath.size, p.size - 4))
+                         }
+                       }
+            pis     <- sequence(piFiles.toSeq) { piFile =>
                          for {
-                           piXml      <-  XmlUtils.parseXml(new FileInputStream(piFile), Some(piFile.getPath)) ?~! "Error when parsing file '%s' as a policy instance".format(piFile.getPath)
-                           (_, pi, _) <-  piUnserialiser.unserialise(piXml) ?~! "Error when unserializing ppolicy instance for file '%s'".format(piFile.getPath)
+                           piXml      <-  GitFindUtils.getFileContent(repo.db, revTreeId, piFile){ inputStream =>
+                                            XmlUtils.parseXml(inputStream, Some(piFile)) ?~! "Error when parsing file '%s' as a policy instance".format(piFile)
+                                          }
+                           (_, pi, _) <-  piUnserialiser.unserialise(piXml) ?~! "Error when unserializing ppolicy instance for file '%s'".format(piFile)
                          } yield {
                            pi
                          }
@@ -142,15 +169,15 @@ class ParsePolicyLibraryImpl(
       }
     }
     
-    recParseDirectory(libRootDirectory) match {
+    recParseDirectory(root) match {
       case Full(Left(x)) => Full(x)
       
       case Full(Right(x)) => 
         Failure("We found an User Policy Template where we were expected the root of user policy library, and so a category. Path: '%s'; found: '%s'".format(
-            libRootDirectory.getPath, x.upt))
+            root, x.upt))
       
       case Empty => Failure("Error when parsing the root directory for policy library '%s'. Perhaps the '%s' file is missing in that directory, or the saved policy library was not correctly exported".format(
-                      libRootDirectory.getPath, uptcFileName
+                      root, uptcFileName
                     ) )
                     
       case f:Failure => f

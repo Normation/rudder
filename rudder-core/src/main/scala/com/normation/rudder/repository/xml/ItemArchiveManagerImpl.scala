@@ -34,40 +34,29 @@
 
 package com.normation.rudder.repository.xml
 
-import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisation
-import com.normation.utils.Control._
-import com.normation.utils.UuidRegex
-import com.normation.utils.XmlUtils
+import org.apache.commons.io.FileUtils
+
 import com.normation.rudder.repository._
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
-import com.normation.rudder.domain.policies.UserPolicyTemplate
-import com.normation.rudder.domain.policies.PolicyInstance
-import java.io.File
-import java.io.FileInputStream
-import java.util.regex.Pattern
-import net.liftweb.common.Full
+import com.normation.utils.Control._
+
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
-import org.apache.commons.io.FileUtils
-import scala.collection.JavaConversions.collectionAsScalaIterable
 
 
 class ItemArchiveManagerImpl(
     configurationRuleRepository          : ConfigurationRuleRepository
   , uptRepository                        : UserPolicyTemplateRepository
   , groupRepository                      : NodeGroupRepository
-  , configurationRuleUnserialisation     : ConfigurationRuleUnserialisation
   , gitConfigurationRuleArchiver         : GitConfigurationRuleArchiver
   , gitUserPolicyTemplateCategoryArchiver: GitUserPolicyTemplateCategoryArchiver
   , gitUserPolicyTemplateArchiver        : GitUserPolicyTemplateArchiver
   , gitNodeGroupCategoryArchiver         : GitNodeGroupCategoryArchiver
   , gitNodeGroupArchiver                 : GitNodeGroupArchiver
+  , parseConfigurationRules              : ParseConfigurationRules
   , parsePolicyLibrary                   : ParsePolicyLibrary
   , importPolicyLibrary                  : ImportPolicyLibrary
   , parseGroupLibrary                    : ParseGroupLibrary
   , importGroupLibrary                   : ImportGroupLibrary
-  , userPolicyLibRootDirectory           : File  
-  , groupLibRootDirectory                : File  
 ) extends ItemArchiveManager with Loggable {
   
   ///// implementation /////
@@ -91,39 +80,6 @@ class ItemArchiveManagerImpl(
       configurationRules
     }
   }
-
-    
-  def importConfigurationRules(includeSystem:Boolean = false) : Box[Unit] = {
-    for {
-      files <- tryo { 
-                      val files = gitConfigurationRuleArchiver.getRootDirectory.listFiles
-                      if(null != files) files.filter( f => 
-                        f != null && 
-                        f.isFile &&
-                        f.getName.endsWith(".xml") &&
-                        UuidRegex.isValid(f.getName.substring(0, f.getName.size - 4))
-                      ).toSeq
-                      else Seq()
-               }
-      xmls  <- sequence(files.toSeq) { file =>
-                 XmlUtils.parseXml(new FileInputStream(file), Some(file.getPath))
-               }
-      crs   <- sequence(xmls) { xml =>
-                 configurationRuleUnserialisation.unserialise(xml)
-               }
-      swap  <- configurationRuleRepository.swapConfigurationRules(crs)
-    } yield {
-      //try to clean
-      configurationRuleRepository.deleteSavedCr(swap) match {
-        case eb:EmptyBox =>
-          val e = eb ?~! ("Error when trying to delete saved archive of old cr: " + swap)
-          logger.error(e)
-        case _ => //ok
-      }
-      crs
-    }
-  }
-
   
   def exportConfigurationRules(includeSystem:Boolean = false): Box[ArchiveId] = { 
     for {
@@ -194,9 +150,25 @@ class ItemArchiveManagerImpl(
     }
   }
   
+  def importConfigurationRules(includeSystem:Boolean = false) : Box[Unit] = {
+    for {
+      parsed   <- parseConfigurationRules.getLastArchive
+      imported <- configurationRuleRepository.swapConfigurationRules(parsed)
+    } yield {
+      //try to clean
+      configurationRuleRepository.deleteSavedCr(imported) match {
+        case eb:EmptyBox =>
+          val e = eb ?~! ("Error when trying to delete saved archive of old cr: " + imported)
+          logger.error(e)
+        case _ => //ok
+      }
+      parsed
+    }
+  }
+  
   def importPolicyLibrary(includeSystem:Boolean) : Box[Unit] = {
       for {
-        parsed   <- parsePolicyLibrary.parse(userPolicyLibRootDirectory)
+        parsed   <- parsePolicyLibrary.getLastArchive
         imported <- importPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
       } yield {
         imported
@@ -205,7 +177,7 @@ class ItemArchiveManagerImpl(
   
   def importGroupLibrary(includeSystem:Boolean) : Box[Unit] = {
       for {
-        parsed   <- parseGroupLibrary.parse(groupLibRootDirectory)
+        parsed   <- parseGroupLibrary.getLastArchive
         imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
       } yield {
         imported

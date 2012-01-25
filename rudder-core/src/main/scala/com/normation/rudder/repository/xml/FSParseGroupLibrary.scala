@@ -58,9 +58,10 @@ import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisatio
 import com.normation.rudder.repository.ParseGroupLibrary
 import com.normation.rudder.domain.policies.{ GroupTarget, PolicyInstanceTargetInfo }
 
-class ParseGroupLibraryImpl(
+class FSParseGroupLibrary(
     categoryUnserialiser: NodeGroupCategoryUnserialisation
   , groupUnserialiser   : NodeGroupUnserialisation
+  , libRootDirectory    : File
   , categoryFileName    : String = "category.xml"
 ) extends ParseGroupLibrary {
   
@@ -70,7 +71,7 @@ class ParseGroupLibraryImpl(
    * - a directory must contains a category.xml or is ignored
    * - a directory with a category.xml may contain UUID.xml files and sub-directories (ignore other files)
    */
-  def parse(libRootDirectory: File) : Box[NodeGroupCategoryContent] = {
+  def getLastArchive : Box[NodeGroupCategoryContent] = {
     //precondition: directory/category.xml exists
     def recParseDirectory(directory:File) : Box[NodeGroupCategoryContent] = {
       val categoryFile = new File(directory, categoryFileName)

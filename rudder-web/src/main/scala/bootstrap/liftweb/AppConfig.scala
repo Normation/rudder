@@ -205,6 +205,8 @@ class AppConfig extends Loggable {
   val userLibraryDirectoryName = "policy-library"
     
   val groupLibraryDirectoryName = "groups"
+  
+  val configurationRulesDirectoryName = "configuration-rules"
     
   // policy.xml parser
   @Bean
@@ -266,7 +268,7 @@ class AppConfig extends Loggable {
       gitRepo
     , new File(gitRoot)
     , configurationRuleSerialisation
-    , "configuration-rules"
+    , configurationRulesDirectoryName
     , prettyPrinter
   )
   
@@ -284,7 +286,7 @@ class AppConfig extends Loggable {
       gitRepo
     , new File(gitRoot)
     , userPolicyTemplateSerialisation
-    , "policy-library"
+    , userLibraryDirectoryName
     , prettyPrinter
   )
   
@@ -293,7 +295,7 @@ class AppConfig extends Loggable {
       gitRepo
     , new File(gitRoot)
     , policyInstanceSerialisation
-    , "policy-library"
+    , userLibraryDirectoryName
     , prettyPrinter
   )
   
@@ -320,18 +322,16 @@ class AppConfig extends Loggable {
       ldapConfigurationRuleRepository
     , ldapUserPolicyTemplateRepository
     , ldapNodeGroupRepository
-    , configurationRuleUnserialisation
     , gitConfigurationRuleArchiver
     , gitUserPolicyTemplateCategoryArchiver
     , gitUserPolicyTemplateArchiver
     , gitNodeGroupCategoryArchiver
     , gitNodeGroupArchiver
+    , parseConfigurationRules
     , parsePolicyLibrary
     , importPolicyLibrary
     , parseGroupLibrary
     , importGroupLibrary
-    , userPolicyLibRootDirectory = new File(gitRoot, userLibraryDirectoryName)
-    , groupLibRootDirectory = new File(gitRoot, groupLibraryDirectoryName)
   )
   
   ///// end /////
@@ -359,6 +359,9 @@ class AppConfig extends Loggable {
 
   @Bean
   def gitRepo = new GitRepositoryProviderImpl(gitRoot)
+  
+  @Bean
+  def gitRevisionProvider = new LDAPGitRevisionProvider(ldap, rudderDit, gitRepo, ptRefsPath)
 
   @Bean
   def policyPackagesReader: PolicyPackagesReader = {
@@ -370,7 +373,7 @@ class AppConfig extends Loggable {
     val relativePath = policyPackages.substring(gitSlash.size, policyPackages.size)
     new GitPolicyPackagesReader(
         policyParser
-      , new LDAPGitRevisionProvider(ldap, rudderDit, gitRepo, ptRefsPath)
+      , gitRevisionProvider
       , gitRepo
       , "policy.xml", "category.xml"
       , Some(relativePath)
@@ -784,12 +787,23 @@ class AppConfig extends Loggable {
  
   @Bean
   def deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
- 
+
   @Bean
-  def parsePolicyLibrary : ParsePolicyLibrary = new ParsePolicyLibraryImpl(
+  def parseConfigurationRules : ParseConfigurationRules = new GitParseConfigurationRules(
+      configurationRuleUnserialisation
+    , gitRevisionProvider
+    , gitRepo
+    , configurationRulesDirectoryName
+  )
+  
+  @Bean
+  def parsePolicyLibrary : ParsePolicyLibrary = new GitParsePolicyLibrary(
       userPolicyTemplateCategoryUnserialisation
     , userPolicyTemplateUnserialisation
     , policyInstanceUnserialisation
+    , gitRevisionProvider
+    , gitRepo
+    , userLibraryDirectoryName
   )
   
   @Bean
@@ -801,9 +815,12 @@ class AppConfig extends Loggable {
   )
   
   @Bean
-  def parseGroupLibrary : ParseGroupLibrary = new ParseGroupLibraryImpl(
+  def parseGroupLibrary : ParseGroupLibrary = new GitParseGroupLibrary(
       nodeGroupCategoryUnserialisation
     , nodeGroupUnserialisation
+    , gitRevisionProvider
+    , gitRepo
+    , groupLibraryDirectoryName
   )
   
   @Bean

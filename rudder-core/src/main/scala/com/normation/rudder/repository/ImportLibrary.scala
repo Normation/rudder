@@ -35,14 +35,13 @@
 package com.normation.rudder.repository
 
 import java.io.File
-
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.policies.PolicyInstance
 import com.normation.rudder.domain.policies.UserPolicyTemplate
 import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
-
 import net.liftweb.common.Box
+import com.normation.rudder.domain.policies.ConfigurationRule
 
 /**
  * A category of the policy library. 
@@ -76,9 +75,22 @@ trait ParsePolicyLibrary {
    * That method parse an user policy library from the
    * file system. 
    */
-  def parse(libRootDirectory: File) : Box[UptCategoryContent]
+  def getLastArchive : Box[UptCategoryContent]
 }
 
+/**
+ * That trait allows to manage the import of configuration rules
+ * from the File System into the LDAP. 
+ * That part read the last CR archive.
+ */
+trait ParseConfigurationRules {
+
+  /**
+   * That method parse an user policy library from the
+   * file system. 
+   */
+  def getLastArchive : Box[Seq[ConfigurationRule]]
+}
 
 /**
  * A category of the group library. 
@@ -100,7 +112,7 @@ trait ParseGroupLibrary {
    * That method parse an user policy library from the
    * file system. 
    */
-  def parse(libRootDirectory: File) : Box[NodeGroupCategoryContent]
+  def getLastArchive : Box[NodeGroupCategoryContent]
 }
 
 
