@@ -57,6 +57,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
         <intercept-url pattern="/javascript/**" filters="none"/>
         <intercept-url pattern="/secure/**" access="isAuthenticated()" />
         
+        <!--  If the ${rudder.rest.allowNonAuthenticatedUser} is true, REST API is open to anybody -->
+        <intercept-url pattern="/api/**" access="isAuthenticated() or ${rudder.rest.allowNonAuthenticatedUser}" />
+        
         <!-- End comment -->
     
         <!-- Default pattern: anonymous rights for all not-already matched URL -->    

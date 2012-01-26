@@ -86,6 +86,7 @@ import com.normation.rudder.services.policies.DeployOnPolicyTemplateCallback
 import scala.xml.PrettyPrinter
 import com.normation.rudder.services.marshalling._
 import com.normation.utils.ScalaLock
+import com.normation.rudder.web.rest.RestDeploy
 
 /**
  * Spring configuration for services
@@ -899,6 +900,8 @@ class AppConfig extends Loggable {
   @Bean
   def removeNodeService = new RemoveNodeServiceImpl(
       nodeDit, rudderDit, ldap, ldapEntityMapper, ldapNodeGroupRepository, metaEntryManagement)
+  
+  
   /**
    * *************************************************
    * Bootstrap check actions
@@ -915,7 +918,18 @@ class AppConfig extends Loggable {
       ldapUserPolicyTemplateCategoryRepository, ldapUserPolicyTemplateRepository) //new CheckPolicyInstanceBusinessRules()
       )
 
-  ////////// Policy Editor and web fields //////////
+  
+  //////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////// REST ///////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////
+  
+
+  @Bean
+  def restDeploy = new RestDeploy(asyncDeploymentAgent)
+
+  //////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////// Policy Editor and web fields //////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////
 
   import com.normation.rudder.web.model._
   import org.joda.time.format.DateTimeFormat

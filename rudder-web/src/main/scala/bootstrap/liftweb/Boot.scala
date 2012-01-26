@@ -48,6 +48,7 @@ import LiftSpringApplicationContext.inject
 import com.normation.plugins.RudderPluginDef
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.domain.log.ApplicationStarted
+import com.normation.rudder.web.rest._
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -74,7 +75,12 @@ class Boot extends Loggable {
     
     // where to search snippet
     LiftRules.addToPackages("com.normation.rudder.web")
-
+    
+    // REST API
+    LiftRules.statelessDispatchTable.append(RestStatus)
+    LiftRules.statelessDispatchTable.append(inject[RestDeploy])
+    
+    // URL rewrites
     LiftRules.statefulRewrite.append {
       //if no policy server if configured, force to configure one
 //      case RewriteRequest(path,_,_) if(RudderContext.rootServerNotDefined && (path match { 
