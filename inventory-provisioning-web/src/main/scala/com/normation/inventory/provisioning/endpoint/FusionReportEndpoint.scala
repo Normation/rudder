@@ -84,18 +84,18 @@ class FusionReportEndpoint(
       case 1 =>
         val reportFile = files.toSeq(0)
         //copy the session file somewhere where it won't be deleted on that method return
-        logger.info("New input report: %s".format(reportFile.getName))
+        logger.info("New input report: '%s'".format(reportFile.getOriginalFilename))
         //val reportFile = copyFileToTempDir(f)
         
         var in : InputStream = null
-        logger.trace("Start post parsing report %s".format(reportFile.getName))
+        logger.trace("Start post parsing report '%s'".format(reportFile.getOriginalFilename))
         try {
           in = reportFile.getInputStream
           val start = System.currentTimeMillis
 
           (unmarshaller.fromXml(reportFile.getName,in) ?~! "Can't parse the input report, aborting") match {
             case Full(report) if(null != report) => 
-              logger.info("Report %s parsed in %s, sending to save engine.".format(reportFile.getName, printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
+              logger.info("Report '%s' parsed in %s, sending to save engine.".format(reportFile.getOriginalFilename, printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
               //send report to asynchronous report processor
               ReportProcessor ! report
               //release connection
@@ -114,7 +114,7 @@ class FusionReportEndpoint(
           }
         } catch {
           case e => 
-            val msg = "Exception when processing report %s".format(reportFile.getName)
+            val msg = "Exception when processing report '%s'".format(reportFile.getOriginalFilename)
             logger.error(msg)
             logger.error("Reported exception is: ", e)
             new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
