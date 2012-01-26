@@ -54,6 +54,7 @@ import com.normation.rudder.domain.log._
 import scala.collection.SortedMap
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.utils.ScalaReadWriteLock
+import com.normation.ldap.ldif.LDIFNoopChangeRecord
 
 class LDAPNodeGroupRepository(
     rudderDit         : RudderDit
@@ -186,7 +187,7 @@ class LDAPNodeGroupRepository(
       result        <- groupLibMutex.writeLock { con.save(entry, true) }
       diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result)
       loggedAction  <- actionLogger.saveAddNodeGroup(principal = actor, addDiff = diff )
-      autoArchive   <- if(autoExportOnModify) {
+      autoArchive   <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                          for {
                            parents  <- categoryRepo.getParents_NodeGroupCategory(into)
                            archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)) )

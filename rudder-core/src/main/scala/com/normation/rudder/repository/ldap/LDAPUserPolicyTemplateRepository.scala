@@ -52,6 +52,7 @@ import net.liftweb.json.JsonAST
 import scala.collection.immutable.SortedMap
 import com.normation.utils.Control.sequence
 import com.normation.utils.ScalaReadWriteLock
+import com.normation.ldap.ldif.LDIFNoopChangeRecord
 
 /**
  * Implementation of the repository for User Policy Templates in 
@@ -168,7 +169,7 @@ class LDAPUserPolicyTemplateRepository(
       newUpt        =  UserPolicyTemplate(UserPolicyTemplateId(uuidGen.newUuid),policyTemplateName, versions.map(x => x -> DateTime.now()).toMap)
       uptEntry      =  mapper.userPolicyTemplate2Entry(newUpt,categoryEntry.dn)
       result        <- userLibMutex.writeLock { con.save(uptEntry, true) }
-      autoArchive   <- if(autoExportOnModify) {
+      autoArchive   <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                          for {
                            parents <- this.userPolicyTemplateBreadCrump(newUpt.id)
                            archive <- gitArchiver.archiveUserPolicyTemplate(newUpt, parents.map( _.id))
@@ -205,7 +206,7 @@ class LDAPUserPolicyTemplateRepository(
       upt         <- getUPTEntry(con, uptId, "1.1") ?~! "Can not move non existing template in use library with ID %s".format(uptId)
       newCategory <- userCategoryRepo.getCategoryEntry(con, newCategoryId, "1.1") ?~! "Can not move template with ID %s into non existing category of user library %s".format(uptId, newCategoryId)
       moved       <- userLibMutex.writeLock { con.move(upt.dn, newCategory.dn) ?~! "Error when moving policy template %s to category %s".format(uptId, newCategoryId) }
-      autoArchive <- (if(autoExportOnModify) {
+      autoArchive <- (if(autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord]) {
                        for {
                          parents <- this.userPolicyTemplateBreadCrump(uptId)
                          newUpt  <- this.getUserPolicyTemplate(uptId)
@@ -230,7 +231,7 @@ class LDAPUserPolicyTemplateRepository(
                        upt +=! (A_IS_ACTIVATED, status.toLDAPString)
                        userLibMutex.writeLock { con.save(upt) }
                      }
-      autoArchive <- if(autoExportOnModify) {
+      autoArchive <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord]) {
                          for {
                            parents <- this.userPolicyTemplateBreadCrump(uptId)
                            newUpt  <- getUserPolicyTemplate(uptId)
@@ -252,7 +253,7 @@ class LDAPUserPolicyTemplateRepository(
                        upt.+=!(A_ACCEPTATION_DATETIME, json)
                        userLibMutex.writeLock { con.save(upt) }
                      }
-      autoArchive <- if(autoExportOnModify) {
+      autoArchive <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord]) {
                          for {
                            parents <- this.userPolicyTemplateBreadCrump(uptId)
                            newUpt  <- getUserPolicyTemplate(uptId)
@@ -277,7 +278,7 @@ class LDAPUserPolicyTemplateRepository(
                      } else Full(Nil)
       upt         <- getUPTEntry(con, uptId, A_REFERENCE_POLICY_TEMPLATE_UUID)
       deleted     <- userLibMutex.writeLock { con.delete(upt.dn, false) }
-      autoArchive <- (if(autoExportOnModify) {
+      autoArchive <- (if(autoExportOnModify && deleted.size > 0) {
                        for {
                          ptName <- Box(upt(A_REFERENCE_POLICY_TEMPLATE_UUID)) ?~! "Missing required reference policy template name"
                          res    <- gitArchiver.deleteUserPolicyTemplate(PolicyPackageName(ptName),oldParents.map( _.id))

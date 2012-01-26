@@ -97,7 +97,7 @@ class LDAPConfigurationRuleRepository(
       deleted      <- con.delete(rudderDit.CONFIG_RULE.configRuleDN(id.value)) ?~! "Error when deleting configuration rule with ID %s".format(id)
       diff         =  DeleteConfigurationRuleDiff(oldCr)
       loggedAction <- actionLogger.saveDeleteConfigurationRule(principal = actor, deleteDiff = diff)
-      autoArchive  <- if(autoExportOnModify) {
+      autoArchive  <- if(autoExportOnModify && deleted.size > 0) {
                         gitCrArchiver.deleteConfigurationRule(id)
                       } else Full("ok")
     } yield {
@@ -156,7 +156,7 @@ class LDAPConfigurationRuleRepository(
                          case None => Full("OK")
                          case Some(diff) => actionLogger.saveModifyConfigurationRule(principal = actor, modifyDiff = diff)
                        }
-      autoArchive   <- if(autoExportOnModify) {
+      autoArchive   <- if(autoExportOnModify && optDiff.isDefined) {
                          gitCrArchiver.archiveConfigurationRule(cr)
                        } else Full("ok")
     } yield {

@@ -190,7 +190,7 @@ class LDAPPolicyInstanceRepository(
                        case Some(diff:ModifyPolicyInstanceDiff) => 
                          actionLogger.saveModifyPolicyInstance(principal = actor, modifyDiff = diff)
                      }
-      autoArchive <- if(autoExportOnModify) {
+      autoArchive <- if(autoExportOnModify && optDiff.isDefined) {
                        for {
                          parents  <- ldapUserPolicyTemplateRepository.userPolicyTemplateBreadCrump(upt.id)
                          archived <- gitPiArchiver.archivePolicyInstance(pi, pt.id.name, parents.map( _.id), pt.rootSection)
@@ -222,7 +222,7 @@ class LDAPPolicyInstanceRepository(
       loggedAction <- actionLogger.saveDeletePolicyInstance(
                           principal = actor, deleteDiff = diff, varsRootSectionSpec = pt.rootSection
                       )
-      autoArchive  <- if(autoExportOnModify) {
+      autoArchive  <- if(autoExportOnModify && deleted.size > 0) {
                         for {
                           parents  <- ldapUserPolicyTemplateRepository.userPolicyTemplateBreadCrump(upt.id)
                           archived <- gitPiArchiver.deletePolicyInstance(pi.id, upt.referencePolicyTemplateName, parents.map( _.id))

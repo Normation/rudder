@@ -73,6 +73,7 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import com.normation.utils.ScalaReadWriteLock
+import com.normation.ldap.ldif.LDIFNoopChangeRecord
 
 
 class LDAPGroupCategoryRepository(
@@ -248,7 +249,7 @@ class LDAPGroupCategoryRepository(
                              else Full("OK, can add")
       categoryEntry       =  mapper.nodeGroupCategory2ldap(that,parentCategoryEntry.dn)
       result              <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      autoArchive         <- if(autoExportOnModify) {
+      autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                                for {
                                  parents <- this.getParents_NodeGroupCategory(that.id)
                                  archive <- gitArchiver.archiveNodeGroupCategory(that,parents.map( _.id))
@@ -273,7 +274,7 @@ class LDAPGroupCategoryRepository(
                           else Full("OK")
       result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       updated          <- getGroupCategory(category.id)
-      autoArchive      <- if(autoExportOnModify) {
+      autoArchive      <- if(autoExportOnModify && !updated.isInstanceOf[LDIFNoopChangeRecord]) {
                             for {
                               parents <- this.getParents_NodeGroupCategory(category.id)
                               archive <- gitArchiver.archiveNodeGroupCategory(updated,parents.map( _.id))
@@ -298,20 +299,23 @@ class LDAPGroupCategoryRepository(
       canAddByName     <- if (categoryExists(con, category.name, newParent.dn, category.id)) 
                             Failure("Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name))
                           else Full("OK")
-      categoryEntry    =  groupLibMutex.writeLock { mapper.nodeGroupCategory2ldap(category,newParent.dn) }
-      moved            =  if (newParent.dn == oldCategoryEntry.dn.getParent) {  
-                            //nothing to do
-                          } else { con.move(oldCategoryEntry.dn, newParent.dn) }
-      result           <- con.save(categoryEntry, removeMissingAttributes = true)
+      categoryEntry    =  mapper.nodeGroupCategory2ldap(category,newParent.dn)
+      moved            <- if (newParent.dn == oldCategoryEntry.dn.getParent) {  
+                            Full(LDIFNoopChangeRecord(oldCategoryEntry.dn))
+                          } else { groupLibMutex.writeLock { con.move(oldCategoryEntry.dn, newParent.dn) } }
+      result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       updated          <- getGroupCategory(category.id)
-      autoArchive      <- (if(autoExportOnModify) {
-                            for {
-                              parents <- this.getParents_NodeGroupCategory(updated.id)
-                              moved   <- gitArchiver.moveNodeGroupCategory(updated, oldParents.map( _.id), parents.map( _.id))
-                            } yield {
-                              moved
-                            }
-                          } else Full("ok") ) ?~! "Error when trying to archive automatically the category move"
+      autoArchive      <- (moved, result) match {
+                            case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => Full("OK, nothing to archive")
+                            case _ if(autoExportOnModify) => 
+                              (for {
+                                parents <- this.getParents_NodeGroupCategory(updated.id)
+                                moved   <- gitArchiver.moveNodeGroupCategory(updated, oldParents.map( _.id), parents.map( _.id))
+                              } yield {
+                                moved
+                              }) ?~! "Error when trying to archive automatically the category move"
+                            case _ => Full("ok")
+                          }
     } yield {
       updated
     } }
@@ -387,7 +391,7 @@ class LDAPGroupCategoryRepository(
                                case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
                                case e => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
                              }
-              autoArchive <- (if(autoExportOnModify) {
+              autoArchive <- (if(autoExportOnModify && ok.size > 0) {
                                gitArchiver.deleteNodeGroupCategory(id,parents.map( _.id))
                              } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
             } yield {

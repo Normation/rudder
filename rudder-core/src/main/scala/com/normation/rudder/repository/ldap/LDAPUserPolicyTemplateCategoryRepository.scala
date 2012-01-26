@@ -67,6 +67,7 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import com.normation.utils.ScalaReadWriteLock
+import com.normation.ldap.ldif.LDIFNoopChangeRecord
 
 /**
  * Category for User Template library in the LDAP
@@ -192,7 +193,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
                                Full("Can add, no sub categorie with that name")
                              }
       result              <- userLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      autoArchive         <- if(autoExportOnModify) {
+      autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                                for {
                                  parents <- this.getParents_UserPolicyTemplateCategory(that.id)
                                  archive <- gitArchiver.archiveUserPolicyTemplateCategory(that,parents.map( _.id))
@@ -219,7 +220,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
                           }
       result           <- userLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       updated          <- getUserPolicyTemplateCategory(category.id)
-      autoArchive      <- if(autoExportOnModify) {
+      autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                             for {
                               parents <- this.getParents_UserPolicyTemplateCategory(category.id)
                               archive <- gitArchiver.archiveUserPolicyTemplateCategory(updated,parents.map( _.id))
@@ -295,7 +296,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
                                case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
                                case e => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
                              }
-              autoArchive <- (if(autoExportOnModify) {
+              autoArchive <- (if(autoExportOnModify && ok.size > 0) {
                                gitArchiver.deleteUserPolicyTemplateCategory(id,parents.map( _.id))
                              } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
             } yield {
@@ -336,7 +337,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
                             case _ => Failure("Can not find the category entry name for category with ID %s. Name is needed to check unicity of categories by level")
                           }
         result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn) }
-        autoArchive    <- (if(autoExportOnModify) {
+        autoArchive    <- (if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                             for {
                               newCat  <- getUserPolicyTemplateCategory(categoryId)
                               parents <- this.getParents_UserPolicyTemplateCategory(categoryId)
