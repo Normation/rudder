@@ -13,6 +13,9 @@ import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.AcceptedInventory
+import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.domain.log._
 
 trait RemoveNodeService {
   
@@ -35,17 +38,21 @@ class RemoveNodeServiceImpl(
     , ldap                 : LDAPConnectionProvider
     , ldapEntityMapper     : LDAPEntityMapper
     , nodeGroupRepository  : NodeGroupRepository
-    , smRepo               : LDAPFullInventoryRepository      
+    , smRepo               : LDAPFullInventoryRepository 
+    , actionLogger         : EventLogRepository
+    , nodeInfoService	   : NodeInfoService
 ) extends RemoveNodeService with Loggable {
   
   
   def removeNode(nodeId : NodeId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
     logger.debug("Trying to remove node %s from the LDAP".format(nodeId.value))
     for {
+      nodeToDelete			  <- nodeInfoService.getNodeInfo(nodeId)
       cleanGroup              <- deleteFromGroups(nodeId, actor) ?~! "Could not remove the node '%s' from the groups".format(nodeId.value)
       cleanNodeConfiguration  <- deleteFromNodesConfiguration(nodeId) ?~! "Could not remove the node configuration of node '%s'".format(nodeId.value)
       cleanNode               <- deleteFromNodes(nodeId) ?~! "Could not remove the node '%s' from the nodes list".format(nodeId.value)
       cleanInventory          <- deleteNodeFromInventory(nodeId)?~! "Could not remove the node '%s' from the nodes list".format(nodeId.value)
+      loggedAction 		      <- actionLogger.saveEventLog(DeleteNodeEventLog.fromNodeLogDetails(principal = actor, node = nodeToDelete)) ?~! "Error when logging deletion of a node"
     } yield {
       cleanNodeConfiguration
     }

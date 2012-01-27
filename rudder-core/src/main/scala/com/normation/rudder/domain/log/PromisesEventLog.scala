@@ -95,6 +95,7 @@ final case class FailedDeployment (
 object ModificationWatchList {
   val events = Seq[EventLogType](
 		  AcceptNodeEventType
+		, DeleteNodeEventType
 		, AddConfigurationRuleEventType
 		, DeleteConfigurationRuleEventType
 		, ModifyConfigurationRuleEventType

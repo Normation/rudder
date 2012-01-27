@@ -56,7 +56,9 @@ import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.domain.servers.NodeConfiguration
 import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisation
 import com.normation.rudder.batch.CurrentDeploymentStatus
-
+import com.normation.rudder.domain.log.NodeLogDetails
+import com.normation.inventory.domain.AgentType
+import com.normation.utils.Control.boxSequence
 /**
  * A service that helps mapping event log details to there structured data model.
  * Details should always be in the format: <entry>{more details here}</entry>
@@ -100,6 +102,7 @@ trait EventLogDetailsService {
   
   def getDeploymentStatusDetails(xml:NodeSeq) : Box[CurrentDeploymentStatus]
   
+  def getDeleteNodeLogDetails(xml:NodeSeq) : Box[NodeLogDetails]
 }
 
 
@@ -460,6 +463,69 @@ class EventLogDetailsServiceImpl(
       )
     }
   }
+  
+  
+  def getDeleteNodeLogDetails(xml:NodeSeq) : Box[NodeLogDetails] = {
+    getNodeLogDetails(xml, "delete")
+  }
+
+ /**
+  * Get node details
+  */   
+  private[this] def getNodeLogDetails(xml:NodeSeq, action:String) : Box[NodeLogDetails] = {
+    for {
+      entry				<- getEntryContent(xml)
+      details			<- (entry \ "node").headOption ?~! ("Entry type is not a node: " + entry)
+      actionOk			<- {
+	                        if(details.attribute("action").map( _.text ) == Some(action)) Full("OK")
+	                        else Failure("node attribute does not have action=%s: ".format(action) + entry)
+	                      }
+      fileFormatOk		<- {
+	                        if(details.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
+	                        else Failure("Bad fileFormat (expecting 1.0): " + entry)
+	                      }
+      nodeId			<- (details \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type node: " + entry)
+      name				<- (details \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type node : " + entry)
+      hostname			<- (details \ "hostname").headOption.map( _.text ) ?~! ("Missing attribute 'hostname' in entry type node : " + entry)
+      description		<- (details \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type node : " + entry)
+      ips				<- (details \ "ips").headOption.map {
+        						case  x:NodeSeq => 
+	                            	(x \ "ip").toSeq.map( (y:NodeSeq) => y.text  )
+	                          }?~! ("Missing attribute 'ips' in entry type node : " + entry) 
+      os				<- (details \ "os").headOption.map( _.text ) ?~! ("Missing attribute 'os' in entry type node : " + entry)
+      boxedAgentsName 	<- (details \ "agentsName").headOption.map  {
+	                            case x:NodeSeq => 
+	                            (x \ "agentName").toSeq.map( (y:NodeSeq) => AgentType.fromValue(y.text) )
+	                          } ?~! ("Missing attribute 'agentsName' in entry type node : " + entry)
+	  agentsName		<- boxSequence[AgentType](boxedAgentsName)
+      inventoryDate		<- (details \ "inventoryDate").headOption.map( _.text ) ?~! ("Missing attribute 'inventoryDate' in entry type node : " + entry)
+      publicKey			<- (details \ "publicKey").headOption.map( _.text ) ?~! ("Missing attribute 'publicKey' in entry type node : " + entry)
+      policyServerId	<- (details \ "policyServerId").headOption.map( _.text ) ?~! ("Missing attribute 'policyServerId' in entry type node : " + entry)
+      localAdministratorAccountName  <- (details \ "localAdministratorAccountName").headOption.map( _.text ) ?~! ("Missing attribute 'localAdministratorAccountName' in entry type node : " + entry)
+      creationDate  	<- (details \ "creationDate").headOption.map( _.text ) ?~! ("Missing attribute 'creationDate' in entry type node : " + entry)
+      isBroken 			<- (details \ "isBroken").headOption.map(_.text.toBoolean ) 
+      isSystem			<- (details \ "isSystem").headOption.map(_.text.toBoolean ) 
+      
+    } yield {
+      NodeLogDetails(node = NodeInfo(
+          id 	        = NodeId(nodeId)
+        , name			= name
+        , description   = description
+        , hostname      = hostname
+        , os            = os
+        , ips           = ips.toList
+        , inventoryDate = ISODateTimeFormat.dateTimeParser.parseDateTime(inventoryDate)
+        , publicKey     = publicKey
+        , agentsName    = agentsName
+        , policyServerId= NodeId(policyServerId)
+        , localAdministratorAccountName= localAdministratorAccountName
+        , creationDate  = ISODateTimeFormat.dateTimeParser.parseDateTime(creationDate)
+        , isBroken      = isBroken
+        , isSystem		=isSystem
+      ))
+    }
+  }
+  
   
   
   def getDeploymentStatusDetails(xml:NodeSeq) : Box[CurrentDeploymentStatus] = {

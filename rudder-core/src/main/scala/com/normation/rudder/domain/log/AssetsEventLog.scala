@@ -40,6 +40,8 @@ import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.servers.Srv
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.domain.nodes.NodeInfo
 
 
 /**
@@ -138,5 +140,77 @@ object RefuseNodeEventLog {
     ) )
     
     RefuseNodeEventLog(id,principal,details,creationDate,severity) 
+  }
+}
+
+
+
+// Accepted node part
+
+final case class NodeLogDetails(
+    node 			: NodeInfo
+) extends HashcodeCaching 
+
+sealed trait NodeEventLog extends EventLog 
+
+object NodeEventLog {
+  
+  val xmlVersion = "1.0"
+    
+  /**
+   * Print to XML a node detail
+   */
+  def toXml(
+      node		: NodeInfo
+    , action    : String
+  ) = {
+    scala.xml.Utility.trim(
+      <node action={action} fileFormat={xmlVersion}>
+        <id>{node.id.value}</id>
+        <name>{node.name}</name>
+        <hostname>{node.hostname}</hostname>
+        <description>{node.description}</description>
+        <os>{node.os}</os>
+        <ips>{node.ips.map(ip => <ip>{ip}</ip>)}</ips>
+        <inventoryDate>{node.inventoryDate}</inventoryDate>        
+        <publicKey>{node.publicKey}</publicKey>
+        <agentsName>{node.agentsName.map(agentName => <agentName>{agentName}</agentName>)}</agentsName>        
+        <policyServerId>{node.policyServerId}</policyServerId>
+        <localAdministratorAccountName>{node.localAdministratorAccountName}</localAdministratorAccountName>
+        <creationDate>{node.creationDate}</creationDate>
+        <isBroken>{node.isBroken}</isBroken>
+        <isSystem>{node.isSystem}</isSystem>
+      </node>
+    )
+  }
+}
+
+
+final case class DeleteNodeEventLog (
+    override val id : Option[Int] = None
+  , override val principal : EventActor
+  , override val details : NodeSeq
+  , override val creationDate : DateTime = DateTime.now() 
+  , override val severity : Int = 100
+) extends NodeEventLog with HashcodeCaching {
+  override val eventLogCategory = AssetLogCategory
+  override val cause = None
+  override val eventType = DeleteNodeEventType
+  override def copySetCause(causeId:Int) = this
+}
+
+object DeleteNodeEventLog {
+  def fromNodeLogDetails(
+      id              : Option[Int] = None
+    , principal       : EventActor
+    , node			  : NodeInfo
+    , creationDate    : DateTime = DateTime.now()
+    , severity        : Int = 100         
+  ) : DeleteNodeEventLog = {
+    val details = EventLog.withContent(NodeEventLog.toXml(
+      node, "delete"
+    ) )
+    
+    DeleteNodeEventLog(id,principal,details,creationDate,severity) 
   }
 }

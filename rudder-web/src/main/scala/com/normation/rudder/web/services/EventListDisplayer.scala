@@ -236,7 +236,7 @@ class EventListDisplayer(
         val id = (x.details \ "node" \ "id").text
         val name = (x.details \ "node" \ "hostname").text
         Text("Node ") ++ {
-          if(id.size < 1) Text(name)
+          if ((id.size < 1)||(actionName==Text(" deleted"))) Text(name)
           else <a href={nodeLink(NodeId(id))}>{name}</a> ++ actionName
         }
     }
@@ -246,6 +246,7 @@ class EventListDisplayer(
       case x:ReleaseRedButton => Text("Start again Rudder agents on all nodes")
       case x:AcceptNodeEventLog => nodeDesc(x, Text(" accepted"))
       case x:RefuseNodeEventLog => nodeDesc(x, Text(" refused"))
+      case x:DeleteNodeEventLog => nodeDesc(x, Text(" deleted"))
       case x:LoginEventLog => Text("User '%s' login".format(x.principal.name))
       case x:LogoutEventLog => Text("User '%s' logout".format(x.principal.name))
       case x:BadCredentialsEventLog => Text("User '%s' failed to login: bad credentials".format(x.principal.name))
@@ -453,6 +454,14 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         })
         
+      case x:DeleteNodeEventLog =>   
+        "*" #> (logDetailsService.getDeleteNodeLogDetails(x.details) match {
+          case Full(details) =>
+            <div class="evloglmargin"><p>Node <b>"{details.node.hostname}"</b> (ID:{details.node.id.value}) deleted:</p>{
+              nodeDetails(details)
+            }</div>
+          case e:EmptyBox => errorMessage(e)
+        })
         
       ////////// deployment //////////
         
@@ -554,6 +563,23 @@ class EventListDisplayer(
     </ul>
   )
   
+  private[this] def nodeDetails(details:NodeLogDetails) = (
+     "#id" #> details.node.id.value &
+     "#name" #> details.node.name &
+     "#hostname" #> details.node.hostname &
+     "#description" #> details.node.description &
+     "#os" #> details.node.os &
+     "#ips" #> details.node.ips.mkString("\n") &
+     "#inventoryDate" #> DateFormaterService.getFormatedDate(details.node.inventoryDate) &
+     "#publicKey" #> details.node.publicKey &
+     "#agentsName" #> details.node.agentsName.mkString("\n") &
+     "#policyServerId" #> details.node.policyServerId.value &
+     "#localAdministratorAccountName" #> details.node.localAdministratorAccountName &
+     "#isBroken" #> details.node.isBroken &
+     "#isSystem" #> details.node.isSystem &
+     "#creationDate" #> DateFormaterService.getFormatedDate(details.node.creationDate)
+  )(nodeDetailsXML)
+  
   private[this] val crDetailsXML = 
     <ul class="evlogviewpad">
       <li><b>target:</b>'<value id="target"/>'</li>
@@ -563,7 +589,7 @@ class EventListDisplayer(
       <li><b>description:</b>'<value id="shortDescription"/>'</li>
       <li><b>details:</b>'<value id="longDescription"/>'</li>
     </ul>
-    
+      
   private[this] val piDetailsXML = 
     <ul class="evlogviewpad">
       <li><b>policy template name:</b><value id="ptName"/></li>
@@ -585,6 +611,29 @@ class EventListDisplayer(
       <li><b>query:</b><value id="query"/></li>
       <li><b>node list:</b><value id="nodes"/></li>
     </ul>
+  
+  private[this] val nodeDetailsXML = 
+    <table>
+  	 <tr>
+  	  <td>
+    	<ul class="evlogviewpad">
+  			<li><b>Rudder ID:</b><value id="id"/></li>
+      		<li><b>Name:</b><value id="name"/></li>
+      		<li><b>Hostname:</b><value id="hostname"/></li>
+      		<li><b>Description:</b><value id="description"/></li>
+      		<li><b>Operating System:</b><value id="os"/></li>
+      		<li><b>IPs addresses:</b><value id="ips"/></li>
+  	  		<li><b>Date inventory last received:</b><value id="inventoryDate"/></li>
+  	  		<li><b>Agent name:</b><value id="agentsName"/></li>
+  	  		<li><b>Administrator account:</b><value id="localAdministratorAccountName"/></li>
+  	  		<li><b>Date first accepted in Rudder:</b><value id="creationDate"/></li>
+  	  		<li><b>Broken:</b><value id="isBroken"/></li>
+  	  		<li><b>System:</b><value id="isSystem"/></li>
+    	</ul>
+  	  </td>
+     </tr>
+  	</table>
+    
     
   private[this] def liModDetailsXML(id:String, name:String) = (
       <div id={id}>

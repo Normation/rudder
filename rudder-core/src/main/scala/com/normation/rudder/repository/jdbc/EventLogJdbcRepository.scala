@@ -57,6 +57,7 @@ import com.normation.rudder.domain.policies.DeleteConfigurationRuleDiff
 import com.normation.rudder.domain.policies.ConfigurationRuleId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.log.EventLogFactory
+import com.normation.rudder.domain.log._
 
 /**
  * The EventLog repository
@@ -183,7 +184,7 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
     
   def mapRow(rs : ResultSet, rowNum: Int) : EventLog = {      
     mapEventLog(
-        eventType = rs.getString("eventType")
+        eventType = EventTypeFactory(rs.getString("eventType"))
       , id = Some(rs.getInt("id"))
       , category = "TODO"
       , principal = EventActor(rs.getString("principal"))
@@ -216,88 +217,123 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
   
   
   private[this] def mapEventLog(
-      eventType:String
-    , id:Option[Int]
-    , category:String
-    , principal:EventActor
+      eventType : EventLogType
+    , id		: Option[Int]
+    , category	: String
+    , principal	: EventActor
     , creationDate:DateTime
-    , cause:Option[Int]
-    , severity:Int
-    , details:NodeSeq
+    , cause		: Option[Int]
+    , severity	: Int
+    , details	: NodeSeq
   ) : Box[EventLog] = {
   
     eventType match {
-      case "ActivateRedButton" =>
+      case ActivateRedButtonEventType =>
         Full(ActivateRedButton(principal, id, creationDate, cause, severity))
         
-      case "ReleaseRedButton" =>
+      case ReleaseRedButtonEventType =>
         Full(ReleaseRedButton(principal, id, creationDate, cause, severity))
 
-      case "AcceptNode" =>
+      case AcceptNodeEventType =>
         Full(AcceptNodeEventLog(id, principal, details, creationDate, severity))
 
-      case "RefuseNode" =>
+      case RefuseNodeEventType =>
         Full(RefuseNodeEventLog(id, principal, details, creationDate, severity))
 
-      case "UserLogin" =>
+      case DeleteNodeEventType =>
+        Full(DeleteNodeEventLog(id, principal, details, creationDate, severity))
+
+      
+      case LoginEventType =>
         Full(LoginEventLog(principal, id, creationDate, cause, severity))
         
-      case "UserLogout" =>
+      case LogoutEventType =>
         Full(LogoutEventLog(principal, id, creationDate, cause, severity))
                 
-      case "BadCredentials" =>
+      case BadCredentialsEventType =>
         Full(BadCredentialsEventLog(principal, id, creationDate, cause, severity))
 
-      case "ApplicationStarted" =>
+      case ApplicationStartedEventType =>
         Full(ApplicationStarted(id, creationDate, severity))
         
-      case "AutomaticStartDeployement" => 
+      case AutomaticStartDeployementEventType => 
         Full(AutomaticStartDeployement(principal, details, id, creationDate, cause, severity))
 
-      case "ManualStartDeployement" => 
+      case ManualStartDeployementEventType => 
         Full(ManualStartDeployement(principal, details, id, creationDate, cause, severity))
         
-      case "SuccessfulDeployment" => 
+      case SuccessfulDeploymentEventType => 
         Full(SuccessfulDeployment(principal, details, id, creationDate, cause, severity))
         
-      case "FailedDeployment" => 
+      case FailedDeploymentEventType => 
         Full(FailedDeployment(principal, details, id, creationDate, cause, severity))
      
       
       ///////////// configuration rules /////////////
         
-      case "ConfigurationRuleAdded" =>
+      case AddConfigurationRuleEventType =>
         Full(AddConfigurationRule(id,principal,details,creationDate,severity))
         
-      case "ConfigurationRuleDeleted" =>
+      case DeleteConfigurationRuleEventType =>
         Full(DeleteConfigurationRule(id,principal,details,creationDate,severity))
         
-      case "ConfigurationRuleModified" =>
+      case ModifyConfigurationRuleEventType =>
         Full(ModifyConfigurationRule(id,principal,details,creationDate,severity))
 
       ///////////// policy instances /////////////
         
-      case "PolicyInstanceAdded" =>
+      case AddPolicyInstanceEventType =>
         Full(AddPolicyInstance(id,principal,details,creationDate,severity))
         
-      case "PolicyInstanceDeleted" =>
+      case DeletePolicyInstanceEventType =>
         Full(DeletePolicyInstance(id,principal,details,creationDate,severity))
         
-      case "PolicyInstanceModified" =>
+      case ModifyPolicyInstanceEventType =>
         Full(ModifyPolicyInstance(id,principal,details,creationDate,severity))
 
       ///////////// policy instances /////////////
         
-      case "NodeGroupAdded" =>
+      case AddNodeGroupEventType =>
         Full(AddNodeGroup(id,principal,details,creationDate,severity))
         
-      case "NodeGroupDeleted" =>
+      case DeleteNodeGroupEventType =>
         Full(DeleteNodeGroup(id,principal,details,creationDate,severity))
         
-      case "NodeGroupModified" =>
+      case ModifyNodeGroupEventType =>
         Full(ModifyNodeGroup(id,principal,details,creationDate,severity))
 
+      ///////////// system /////////////
+      case ClearCacheEventType =>
+        Full(ClearCache(principal,id,creationDate,cause,severity))    
+      
+      ///////////// policy server //////
+      case UpdatePolicyServerEventType =>
+        Full(UpdatePolicyServer(id,principal,details,creationDate,severity))
         
+      ///////////// import/export //////
+      case ExportGroupsEventType =>
+        Full(ExportGroups(id,principal,details,creationDate,severity))
+        
+      case ImportGroupsEventType =>
+        Full(ImportGroups(id,principal,details,creationDate,severity))
+      
+      case ExportPolicyLibraryEventType =>
+        Full(ExportPolicyLibrary(id,principal,details,creationDate,severity))
+        
+      case ImportPolicyLibraryEventType =>
+        Full(ImportPolicyLibrary(id,principal,details,creationDate,severity))
+        
+      case ExportCrsEventType =>
+        Full(ExportCRs(id,principal,details,creationDate,severity))
+        
+      case ImportCrsEventType =>
+        Full(ImportCRs(id,principal,details,creationDate,severity))
+        
+      case ExportAllLibrariesEventType =>
+        Full(ExportAllLibraries(id,principal,details,creationDate,severity))
+        
+      case ImportAllLibrariesEventType =>
+        Full(ImportAllLibraries(id,principal,details,creationDate,severity))
       ///////////// others /////////////
         
       case _ => Failure("Unknow Event type")

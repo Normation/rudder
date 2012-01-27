@@ -35,7 +35,6 @@
 package com.normation.rudder.domain.log
 
 import org.joda.time.DateTime
-
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.utils.HashcodeCaching
@@ -85,3 +84,20 @@ final case class ReleaseRedButton(
   override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
 }
 
+
+/**
+ * Clear cache
+ */
+final case class ClearCache(
+    override val principal : EventActor
+  , override val id : Option[Int] = None
+  , override val creationDate : DateTime = DateTime.now()
+  , override val cause : Option[Int] = None
+  , override val severity : Int = 100
+) extends EventLog with HashcodeCaching {
+  
+  override val eventType = ClearCacheEventType
+  override def details = EventLog.emptyDetails
+  override val eventLogCategory = RudderApplicationLogCategory
+  override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
+}

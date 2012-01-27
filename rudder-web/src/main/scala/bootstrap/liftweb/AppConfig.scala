@@ -899,9 +899,14 @@ class AppConfig extends Loggable {
 
   @Bean
   def removeNodeService = new RemoveNodeServiceImpl(
-      nodeDit, rudderDit, ldap, ldapEntityMapper, ldapNodeGroupRepository, metaEntryManagement)
-  
-  
+		nodeDit
+      , rudderDit
+      , ldap
+      , ldapEntityMapper
+      , ldapNodeGroupRepository
+      , metaEntryManagement
+      , logRepository
+      , nodeInfoService)
   /**
    * *************************************************
    * Bootstrap check actions

@@ -49,6 +49,10 @@ final case object NodeGroupLogCategory extends EventLogCategory
 final case object AssetLogCategory extends EventLogCategory
 final case object RedButtonLogCategory extends EventLogCategory
 
+final case object PolicyServerLogCategory extends EventLogCategory
+final case object ImportExportItemsLogCategory extends EventLogCategory
+
+
 
 
 
@@ -123,6 +127,47 @@ final case object AcceptNodeEventType extends EventLogType {
 final case object RefuseNodeEventType extends EventLogType {
   def serialize = "RefuseNode"
 }
+final case object DeleteNodeEventType extends EventLogType {
+  def serialize = "DeleteNode"
+}
+
+// the system event type
+final case object ClearCacheEventType extends EventLogType {
+  def serialize = "ClearCache"
+}
+final case object UpdatePolicyServerEventType extends EventLogType {
+  def serialize = "UpdatePolicyServer"
+}
+
+// Import/export
+final case object ExportGroupsEventType extends EventLogType {
+  def serialize = "ExportGroups"
+}
+final case object ImportGroupsEventType extends EventLogType {
+  def serialize = "ImportGroups"
+}
+final case object ExportPolicyLibraryEventType extends EventLogType {
+  def serialize = "ExportPolicyLibrary"
+}
+final case object ImportPolicyLibraryEventType extends EventLogType {
+  def serialize = "ImportPolicyLibrary"
+}
+final case object ExportCrsEventType extends EventLogType {
+  def serialize = "ExportCRs"
+}
+final case object ImportCrsEventType extends EventLogType {
+  def serialize = "ImportCRs"
+}
+final case object ExportAllLibrariesEventType extends EventLogType {
+  def serialize = "ExportAllLibraries"
+}
+final case object ImportAllLibrariesEventType extends EventLogType {
+  def serialize = "ImportAllLibraries"
+}
+
+
+
+
 
 object EventTypeFactory {
   def apply(s:String) : EventLogType = {
@@ -154,6 +199,19 @@ object EventTypeFactory {
       
       case "AcceptNode"					=> AcceptNodeEventType
       case "RefuseNode"					=> RefuseNodeEventType
+      case "DeleteNode"					=> DeleteNodeEventType
+      
+      case "ClearCache"					=> ClearCacheEventType
+      case "UpdatePolicyServer"			=> UpdatePolicyServerEventType
+      
+      case "ExportGroups"				=> ExportGroupsEventType
+      case "ImportGroups"				=> ImportGroupsEventType
+      case "ExportPolicyLibrary"		=> ExportPolicyLibraryEventType
+      case "ImportPolicyLibrary"		=> ImportPolicyLibraryEventType
+      case "ExportCRs"					=> ExportCrsEventType
+      case "ImportCRs"					=> ImportCrsEventType
+      case "ExportAllLibraries"			=> ExportAllLibrariesEventType
+      case "ImportAllLibraries"			=> ImportAllLibrariesEventType
       
       case _ 							=> UnknownEventLogType
     }
