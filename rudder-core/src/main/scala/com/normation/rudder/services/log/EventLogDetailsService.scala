@@ -58,7 +58,7 @@ import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisation
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.log.NodeLogDetails
 import com.normation.inventory.domain.AgentType
-import com.normation.utils.Control.boxSequence
+
 /**
  * A service that helps mapping event log details to there structured data model.
  * Details should always be in the format: <entry>{more details here}</entry>
@@ -497,7 +497,6 @@ class EventLogDetailsServiceImpl(
 	                            case x:NodeSeq => 
 	                            (x \ "agentName").toSeq.map( (y:NodeSeq) => AgentType.fromValue(y.text) )
 	                          } ?~! ("Missing attribute 'agentsName' in entry type node : " + entry)
-	  agentsName		<- boxSequence[AgentType](boxedAgentsName)
       inventoryDate		<- (details \ "inventoryDate").headOption.map( _.text ) ?~! ("Missing attribute 'inventoryDate' in entry type node : " + entry)
       publicKey			<- (details \ "publicKey").headOption.map( _.text ) ?~! ("Missing attribute 'publicKey' in entry type node : " + entry)
       policyServerId	<- (details \ "policyServerId").headOption.map( _.text ) ?~! ("Missing attribute 'policyServerId' in entry type node : " + entry)
@@ -507,6 +506,8 @@ class EventLogDetailsServiceImpl(
       isSystem			<- (details \ "isSystem").headOption.map(_.text.toBoolean ) 
       
     } yield {
+      val agentsNames =  com.normation.utils.Control.boxSequence[AgentType](boxedAgentsName)
+      
       NodeLogDetails(node = NodeInfo(
           id 	        = NodeId(nodeId)
         , name			= name
@@ -516,7 +517,7 @@ class EventLogDetailsServiceImpl(
         , ips           = ips.toList
         , inventoryDate = ISODateTimeFormat.dateTimeParser.parseDateTime(inventoryDate)
         , publicKey     = publicKey
-        , agentsName    = agentsName
+        , agentsName    = agentsNames.openOr(Seq())
         , policyServerId= NodeId(policyServerId)
         , localAdministratorAccountName= localAdministratorAccountName
         , creationDate  = ISODateTimeFormat.dateTimeParser.parseDateTime(creationDate)
