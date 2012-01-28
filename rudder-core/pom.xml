@@ -59,8 +59,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     </dependency>
     
     <dependency>
-      <groupId>com.normation.cfclerk</groupId>
-      <artifactId>cfclerk-core</artifactId>
+      <groupId>com.normation</groupId>
+      <artifactId>cfclerk</artifactId>
       <version>${rudder-version}</version>
     </dependency>
 
