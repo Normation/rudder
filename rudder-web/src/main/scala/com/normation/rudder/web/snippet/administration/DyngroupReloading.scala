@@ -50,19 +50,19 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.services.servers.NodeConfigurationService
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
+import com.normation.rudder.batch.UpdateDynamicGroups
 
 
-class ClearCache extends DispatchSnippet with Loggable {
+class DyngroupReloading extends DispatchSnippet with Loggable {
 
-  private[this] val nodeConfigurationService = inject[NodeConfigurationService]
-  private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
+  private[this] val nodeConfigurationService = inject[UpdateDynamicGroups]
   
   def dispatch = {
-    case "render" => clearCache
+    case "render" => reload
   }
-
   
-  def clearCache : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+  
+  def reload : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
     
     // our process method returns a
     // JsCmd which will be sent back to the browser
@@ -71,22 +71,16 @@ class ClearCache extends DispatchSnippet with Loggable {
       //clear errors
       S.clearCurrentNotices
 
-      nodeConfigurationService.deleteAllNodeConfigurations match {
-        case empty:EmptyBox => 
-          val e = empty ?~! "Error when clearing caches"
-          S.error(e.messageChain)
-        case Full(set) => 
-          logger.debug("Delete node configurations on user clear cache demand: " + set.mkString(", ") )
-          asyncDeploymentAgent ! AutomaticStartDeployment(CurrentUser.getActor)
-          S.notice("Caches were correctly cleaned")
-      }
+      nodeConfigurationService.startManualUpdate
       
-      Replace("clearCacheForm", outerXml.applyAgain) 
+      S.notice("dyngroupReloadingNotice", "Dynamic group reloading started")
+      
+      Replace("dyngroupReloadingForm", outerXml.applyAgain) 
     }
     
     //process the list of networks
-    "#clearCacheButton" #> { 
-      SHtml.ajaxSubmit("Clear Caches", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
+    "#dyngroupReloadingButton" #> { 
+      SHtml.ajaxSubmit("Reload dynamic groups", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
     }
   }  
 }

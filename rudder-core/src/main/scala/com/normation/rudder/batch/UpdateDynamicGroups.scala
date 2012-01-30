@@ -45,7 +45,7 @@ import com.normation.utils.HashcodeCaching
 
 //Message to send to the updater manager to start a new update of all dynamic groups
 case object StartUpdate
-
+case object ManualStartUpdate
 
 //a container to hold the list of dynamic group to update
 case class GroupsToUpdate(ids:Seq[NodeGroupId]) extends HashcodeCaching 
@@ -80,12 +80,18 @@ class UpdateDynamicGroups(
   
   private val propertyName = "rudder.batch.dyngroup.updateInterval"
     
+  private val laUpdateDyngroupManager = new LAUpdateDyngroupManager
   //start batch
   if(updateInterval < 1) {
     logger.info("Disable dynamic group updates sinces property %s is 0 or negative".format(propertyName))
   } else {
     logger.trace("***** starting Dynamic Group Update batch *****")
-    (new LAUpdateDyngroupManager) ! StartUpdate
+    laUpdateDyngroupManager ! StartUpdate
+  }
+  
+  
+  def startManualUpdate : Unit = {
+    laUpdateDyngroupManager ! ManualStartUpdate
   }
   
   ////////////////////////////////////////////////////////////////
@@ -115,15 +121,7 @@ class UpdateDynamicGroups(
       }
     }
     
-    override protected def messageHandler = {
-     
-      //
-      //Ask for a new dynamic group update
-      //
-      case StartUpdate => 
-        //schedule next update, in minutes
-        LAPinger.schedule(this, StartUpdate, realUpdateInterval*1000*60)
-      
+    private[this] def processUpdate = {
         logger.trace("***** Start a new update")
         currentState match {
           case IdleUdater => 
@@ -139,6 +137,20 @@ class UpdateDynamicGroups(
           case _ => 
             logger.error("Ignoring start update dynamic group request because one other update still processing".format())
         }
+    }
+    
+    override protected def messageHandler = {
+     
+      //
+      //Ask for a new dynamic group update
+      //
+      case StartUpdate => 
+        //schedule next update, in minutes
+        LAPinger.schedule(this, StartUpdate, realUpdateInterval*1000*60)
+        processUpdate
+      
+      case ManualStartUpdate => 
+        processUpdate
         
       //
       //Process a dynamic group update response
