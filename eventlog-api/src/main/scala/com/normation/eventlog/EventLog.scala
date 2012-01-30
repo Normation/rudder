@@ -40,9 +40,18 @@ private[eventlog] final case object UnknownLogCategory extends EventLogCategory
 /**
  * Define the event log type, that will be serialized
  * the event class name minus "EventLog" is OK
+ * It is a PartialFunction so the pattern matching are not a bottleneck anymore
+ * (too much match ina  pattern matching usually fail)
  */
-trait EventLogType {
+trait EventLogType extends PartialFunction[String, EventLogType] {
   def serialize : String
+  
+  override  def isDefinedAt(x : String) : Boolean = {
+    serialize == x
+  }
+  
+  def apply(x : String) = this
+  
 }
 /**
  * An EventLog is an object tracing activities on an entity.
@@ -115,6 +124,6 @@ object EventLog {
   val emptyDetails = withContent(NodeSeq.Empty)
 }
 
-object UnknownEventLogType extends EventLogType {
-  def serialize = "UnknownType"
+case object UnknownEventLogType extends EventLogType {
+  def serialize = "UnknownType"   
 }
