@@ -55,7 +55,7 @@ import com.normation.rudder.batch.UpdateDynamicGroups
 
 class DyngroupReloading extends DispatchSnippet with Loggable {
 
-  private[this] val nodeConfigurationService = inject[UpdateDynamicGroups]
+  private[this] val updateDynamicGroups = inject[UpdateDynamicGroups]
   
   def dispatch = {
     case "render" => reload
@@ -71,7 +71,7 @@ class DyngroupReloading extends DispatchSnippet with Loggable {
       //clear errors
       S.clearCurrentNotices
 
-      nodeConfigurationService.startManualUpdate
+      updateDynamicGroups.startManualUpdate
       
       S.notice("dyngroupReloadingNotice", "Dynamic group reloading started")
       
