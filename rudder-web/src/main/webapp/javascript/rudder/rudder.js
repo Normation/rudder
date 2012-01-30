@@ -137,24 +137,24 @@ $(document).ready(function() {
 			cache.$content.removeClass(config.className.maximized);
 
 			// Changing the image
-			cache.minimize_navigation.$img.attr("src", config.image.prefix + config.image.navigation.minimize);
+			cache.minimize_navigation.$img.prop("src", config.image.prefix + config.image.navigation.minimize);
 
 			// Changing the text value
 			cache.minimize_navigation.$text.removeClass(config.className.reader);
 			cache.minimize_navigation.$text.text(config.text.navigation.minimize);
-			cache.minimize_navigation.$link.attr("title", config.text.navigation.minimize);
+			cache.minimize_navigation.$link.prop("title", config.text.navigation.minimize);
 		} else {
 			// The navigation is maximized, lets minimize it!
 			cache.$navigation.addClass(config.className.minimized);
 			cache.$content.addClass(config.className.maximized);
 
 			// Changing the image
-			cache.minimize_navigation.$img.attr("src", config.image.prefix + config.image.navigation.maximize);
+			cache.minimize_navigation.$img.prop("src", config.image.prefix + config.image.navigation.maximize);
 
 			// Changing the text value
 			cache.minimize_navigation.$text.addClass(config.className.reader);
 			cache.minimize_navigation.$text.text(config.text.navigation.maximize);
-			cache.minimize_navigation.$link.attr("title", config.text.navigation.maximize);
+			cache.minimize_navigation.$link.prop("title", config.text.navigation.maximize);
 		}
 
 		return false; // Don’t follow the link
@@ -194,7 +194,7 @@ $(function() {
  */
 function jqCheckAll( id, name )
 {
-   $("INPUT[@name=" + name + "][type='checkbox']").attr('checked', $('#' + id).is(':checked'));
+   $("INPUT[@name=" + name + "][type='checkbox']").prop('checked', $('#' + id).is(':checked'));
 }
 
 /* popin */
@@ -344,24 +344,24 @@ function dropFilterAndPaginateArea(tableId) {
 
 function activateButtonOnFormChange(containerDivId, buttonId, status) {
 	if ("false"==status)
-		$('#'+buttonId).attr("disabled", true);
+		$('#'+buttonId).prop("disabled", true);
 	else 
-		$('#'+buttonId).attr("disabled", false);
+		$('#'+buttonId).prop("disabled", false);
 	
 	// all change on the form
-	$('#'+containerDivId+' > form').change(function() { $('#'+buttonId).attr("disabled", false);;});
+	$('#'+containerDivId+' > form').change(function() { $('#'+buttonId).prop("disabled", false);;});
 	// This one is for all input (text, textarea, password... and yes, button)
-	$('#'+containerDivId+' :input').change(function() { $('#'+buttonId).attr("disabled", false);;});
+	$('#'+containerDivId+' :input').change(function() { $('#'+buttonId).prop("disabled", false);;});
 	// this one is for the checkbox when using IE
 	//if ($.browser.msie) 
-	//	$('#'+containerDivId+' > form :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).attr("disabled", false);}});
+	//	$('#'+containerDivId+' > form :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).prop("disabled", false);}});
 
 	// all change on not the form
-	$('#'+containerDivId+' :radio').change(function() { $('#'+buttonId).attr("disabled", false);;});
+	$('#'+containerDivId+' :radio').change(function() { $('#'+buttonId).prop("disabled", false);;});
 	// This one is for all input (text, textarea, password... and yes, button)
-	$('#'+containerDivId+' :input').keyup(function() { $('#'+buttonId).attr("disabled", false);;});
+	$('#'+containerDivId+' :input').keyup(function() { $('#'+buttonId).prop("disabled", false);;});
 
-	$('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).attr("disabled", false);}});
+	$('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).prop("disabled", false);}});
 
 }
 
@@ -370,7 +370,7 @@ function activateButtonOnFormChange(containerDivId, buttonId, status) {
  */
 function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, gridId, status, optionnalButton) {
 	if ("false"==status)
-		$('#'+buttonId).attr("disabled", true);
+		$('#'+buttonId).prop("disabled", true);
 	else
 		activateButtonDeactivateGrid(buttonId, gridId);
 
@@ -392,11 +392,11 @@ function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, grid
 }
 
 function activateButtonDeactivateGrid(buttonId, gridId, optionnalButton) {
-     $('#'+buttonId).attr("disabled", false);
+     $('#'+buttonId).prop("disabled", false);
      $('#'+gridId).addClass("desactivatedGrid");
 
      if ((optionnalButton)&&("" != optionnalButton))
-      $('#'+optionnalButton).attr("disabled", true);
+      $('#'+optionnalButton).prop("disabled", true);
 }
 
 function scrollToElement(elementId) {

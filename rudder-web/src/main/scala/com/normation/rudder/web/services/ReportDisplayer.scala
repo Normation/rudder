@@ -193,19 +193,19 @@ class ReportDisplayer(configurationRuleRepository : ConfigurationRuleRepository,
 //      JsRaw("""$('td[name="crName"]', #table_var#.fnGetNodes() ).each( function () {
 //          $(this).click( function () {
 //            var nTr = this.parentNode;
-//            var opened = jQuery(nTr).attr("open");
+//            var opened = jQuery(nTr).prop("open");
 //
 //            if (opened && opened.match("opened")) {
-//              jQuery(nTr).attr("open", "closed");
+//              jQuery(nTr).prop("open", "closed");
 //              #table_var#.fnClose(nTr);
 //            } else {
-//              jQuery(nTr).attr("open", "opened");
+//              jQuery(nTr).prop("open", "opened");
 //              var aPos = #table_var#.fnGetPosition( this );
 //            
 //              var aData = jQuery(#table_var#.fnGetData( aPos[0] ));
 //              var node = jQuery(aData[aPos[1]]);
-//              var id = node.attr("crId");
-//              var jsid = node.attr("jsuuid");
+//              var id = node.prop("crId");
+//              var jsid = node.prop("jsuuid");
 //              var ajaxParam = jsid + "|" + id;
 //              #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
 //              %s;

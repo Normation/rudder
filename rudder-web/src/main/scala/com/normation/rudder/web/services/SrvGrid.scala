@@ -173,8 +173,8 @@ class SrvGrid {
               var aPos = #table_var#.fnGetPosition( this );
               var aData = jQuery(#table_var#.fnGetData( aPos[0] ));
               var node = jQuery(aData[aPos[1]]);
-              var id = node.attr("serverid");
-              var jsid = node.attr("jsuuid");
+              var id = node.prop("serverid");
+              var jsid = node.prop("jsuuid");
               var ajaxParam = jsid + "|" + id;
               %s;
           } );

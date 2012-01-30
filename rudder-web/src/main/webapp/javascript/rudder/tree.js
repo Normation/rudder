@@ -106,9 +106,9 @@ var buildUserPolicyTemplateTree = function(id, foreignTreeId) {
         "check_move" : function (m) { 
           //only accept to move a node from the reference tree if it does not exists in that tree
           var checkNotAlreadyBound = true;
-          if(foreignTreeId == m.ot.get_container().attr("id")) {
+          if(foreignTreeId == m.ot.get_container().prop("id")) {
             //look if there is an li with attr ptid == moved object ptid
-            checkNotAlreadyBound =  $(id + " [ptId=" + m.o.attr("ptId") + "]").size() < 1 ;
+            checkNotAlreadyBound =  $(id + " [ptId=" + m.o.prop("ptId") + "]").size() < 1 ;
           }
           //only accept "inside" node move (yes, comparing m.p == "inside" does not work)
           //and into a new parent node. 

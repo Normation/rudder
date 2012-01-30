@@ -206,10 +206,10 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
           		var fromReference = false;
 
             $('#%1$s').bind("move_node.jstree", function (e,data) {
-              var interTree = "%1$s" != data.rslt.ot.get_container().attr("id");
-              var sourceCatId = $(data.rslt.o).attr("catId");
-              var sourcePtId = $(data.rslt.o).attr("ptId");
-              var destCatId = $(data.rslt.np).attr("catId");
+              var interTree = "%1$s" != data.rslt.ot.get_container().prop("id");
+              var sourceCatId = $(data.rslt.o).prop("catId");
+              var sourcePtId = $(data.rslt.o).prop("ptId");
+              var destCatId = $(data.rslt.np).prop("catId");
               if( destCatId ) {
                 if(sourcePtId) {
                   var arg = JSON.stringify({ 'sourcePtId' : sourcePtId, 'destCatId' : destCatId });
@@ -231,7 +231,7 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
               }
             });
           	$('#%1$s').bind("select_node.jstree", function (e,data) {
-          			var sourcePtId = data.rslt.obj.attr("ptid");
+          			var sourcePtId = data.rslt.obj.prop("ptid");
           			var target = $('#%5$s  li[ptid|="'+sourcePtId+'"]');
           			if (target.length>0) {
           				if (fromReference) {
@@ -244,7 +244,7 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
           			}
           	});
           	$('#%5$s').bind("select_node.jstree", function (e,data) {
-          			var sourcePtId = data.rslt.obj.attr("ptid");
+          			var sourcePtId = data.rslt.obj.prop("ptid");
           			var target = $('#%1$s  li[ptid|="'+sourcePtId+'"]');
           			if (target.length>0) {
            				if (fromUser) {
