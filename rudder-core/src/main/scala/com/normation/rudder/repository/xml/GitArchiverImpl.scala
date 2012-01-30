@@ -667,7 +667,7 @@ class GitNodeGroupCategoryArchiverImpl(
    */
   def commitGroupLibrary : Box[String] = {
     this.commitFullGitPathContentAndTag(
-      GROUPS_ARCHIVE_TAG + " Commit all modification done in the User Policy Library (git path: '%s')".format(groupLibraryRootDir)
+      GROUPS_ARCHIVE_TAG + " Commit all modification done in Groups (git path: '%s')".format(groupLibraryRootDir)
     )
   }
 }
