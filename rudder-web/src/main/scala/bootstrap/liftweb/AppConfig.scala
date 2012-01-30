@@ -87,6 +87,7 @@ import scala.xml.PrettyPrinter
 import com.normation.rudder.services.marshalling._
 import com.normation.utils.ScalaLock
 import com.normation.rudder.web.rest.RestDeploy
+import com.normation.rudder.web.rest.RestDyngroupReload
 
 /**
  * Spring configuration for services
@@ -933,6 +934,9 @@ class AppConfig extends Loggable {
   @Bean
   def restDeploy = new RestDeploy(asyncDeploymentAgent)
 
+  @Bean
+  def restDyngroup = new RestDyngroupReload(dyngroupUpdaterBatch)
+  
   //////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////// Policy Editor and web fields //////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////

@@ -79,7 +79,8 @@ class Boot extends Loggable {
     // REST API
     LiftRules.statelessDispatchTable.append(RestStatus)
     LiftRules.statelessDispatchTable.append(inject[RestDeploy])
-    
+    LiftRules.statelessDispatchTable.append(inject[RestDyngroupReload])
+  
     // URL rewrites
     LiftRules.statefulRewrite.append {
       //if no policy server if configured, force to configure one
