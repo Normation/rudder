@@ -35,18 +35,20 @@
 package com.normation.rudder.repository.xml
 
 import org.apache.commons.io.FileUtils
-
 import com.normation.rudder.repository._
 import com.normation.utils.Control._
-
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
-
+import com.normation.cfclerk.services.GitRepositoryProvider
+import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
+import org.eclipse.jgit.revwalk.RevTag
+import org.joda.time.DateTime
 
 class ItemArchiveManagerImpl(
     configurationRuleRepository          : ConfigurationRuleRepository
   , uptRepository                        : UserPolicyTemplateRepository
   , groupRepository                      : NodeGroupRepository
+  , override val gitRepo                 : GitRepositoryProvider
   , gitConfigurationRuleArchiver         : GitConfigurationRuleArchiver
   , gitUserPolicyTemplateCategoryArchiver: GitUserPolicyTemplateCategoryArchiver
   , gitUserPolicyTemplateArchiver        : GitUserPolicyTemplateArchiver
@@ -57,7 +59,14 @@ class ItemArchiveManagerImpl(
   , importPolicyLibrary                  : ImportPolicyLibrary
   , parseGroupLibrary                    : ParseGroupLibrary
   , importGroupLibrary                   : ImportGroupLibrary
-) extends ItemArchiveManager with Loggable {
+) extends 
+  ItemArchiveManager with 
+  Loggable with 
+  GitArchiverFullCommitUtils 
+{
+  
+  override val tagPrefix = "archives/full/"
+  override val relativePath = "."
   
   ///// implementation /////
   
@@ -66,16 +75,19 @@ class ItemArchiveManagerImpl(
       saveCrs     <- exportConfigurationRules(includeSystem)
       saveUserLib <- exportPolicyLibrary(includeSystem)
       saveGroups  <- exportGroupLibrary(includeSystem)
+      archiveAll  <- this.commitFullGitPathContentAndTag(
+                       FULL_ARCHIVE_TAG + " Archive and tag groups, policy library and configuration rules"
+                     )
     } yield {
       saveUserLib
     }
   }
   
-  def importAll(includeSystem:Boolean = false) : Box[Unit] = {
+  def importAll(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit] = {
     for {
-      configurationRules <- importConfigurationRules(includeSystem)
-      userLib            <- importPolicyLibrary(includeSystem)
-      groupLIb           <- importGroupLibrary(includeSystem)
+      configurationRules <- importConfigurationRules(archiveId, includeSystem)
+      userLib            <- importPolicyLibrary(archiveId, includeSystem)
+      groupLIb           <- importGroupLibrary(archiveId, includeSystem)
     } yield {
       configurationRules
     }
@@ -150,9 +162,9 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  def importConfigurationRules(includeSystem:Boolean = false) : Box[Unit] = {
+  def importConfigurationRules(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit] = {
     for {
-      parsed   <- parseConfigurationRules.getLastArchive
+      parsed   <- parseConfigurationRules.getArchive(archiveId)
       imported <- configurationRuleRepository.swapConfigurationRules(parsed)
     } yield {
       //try to clean
@@ -166,21 +178,53 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  def importPolicyLibrary(includeSystem:Boolean) : Box[Unit] = {
+  def importPolicyLibrary(archiveId:RevTag, includeSystem:Boolean) : Box[Unit] = {
       for {
-        parsed   <- parsePolicyLibrary.getLastArchive
+        parsed   <- parsePolicyLibrary.getArchive(archiveId)
         imported <- importPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
       } yield {
         imported
       }
   }
   
-  def importGroupLibrary(includeSystem:Boolean) : Box[Unit] = {
+  def importGroupLibrary(archiveId:RevTag, includeSystem:Boolean) : Box[Unit] = {
       for {
-        parsed   <- parseGroupLibrary.getLastArchive
+        parsed   <- parseGroupLibrary.getArchive(archiveId)
         imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
       } yield {
         imported
       }
+  }
+  
+  def getFullArchiveTags : Box[Map[DateTime,RevTag]] = this.getTags()
+  
+  // groups, policy library and configuration rules may use
+  // their own tag or a global one. 
+  
+  def getGroupLibraryTags : Box[Map[DateTime,RevTag]] = {
+    for {
+      globalTags <- this.getTags()
+      groupsTags <- gitNodeGroupCategoryArchiver.getTags()
+    } yield {
+      globalTags ++ groupsTags
+    }
+  }
+  
+  def getPolicyLibraryTags : Box[Map[DateTime,RevTag]] = {
+    for {
+      globalTags    <- this.getTags()
+      policyLibTags <- gitUserPolicyTemplateCategoryArchiver.getTags()
+    } yield {
+      globalTags ++ policyLibTags
+    }
+  }
+  
+  def getConfigurationRulesTags : Box[Map[DateTime,RevTag]] = {
+    for {
+      globalTags <- this.getTags()
+      crTags     <- gitConfigurationRuleArchiver.getTags()
+    } yield {
+      globalTags ++ crTags
+    }
   }
 }

@@ -36,7 +36,6 @@ package com.normation.rudder.repository.xml
 
 import java.io.File
 import java.io.FileInputStream
-
 import com.normation.rudder.repository.ParsePolicyLibrary
 import com.normation.rudder.repository.UptCategoryContent
 import com.normation.rudder.repository.UptContent
@@ -46,11 +45,12 @@ import com.normation.rudder.services.marshalling.UserPolicyTemplateUnserialisati
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
 import com.normation.utils.XmlUtils
-
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
+import com.normation.rudder.repository.ArchiveId
+import org.eclipse.jgit.revwalk.RevTag
 
 
 class FSParsePolicyLibrary(
@@ -156,4 +156,6 @@ class FSParsePolicyLibrary(
       case f:Failure => f
     }
   }
+  
+  def getArchive(archiveId:RevTag) = getLastArchive
 }

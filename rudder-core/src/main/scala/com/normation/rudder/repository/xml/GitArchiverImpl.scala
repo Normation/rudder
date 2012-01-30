@@ -79,110 +79,12 @@ import com.normation.rudder.services.marshalling.NodeGroupSerialisation
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroup
 import scala.xml.Elem
-
-/**
- * Utility trait that factor out file commits. 
- */
-trait GitArchiverUtils extends Loggable {
-  
-  def gitRepo : GitRepositoryProvider
-  def gitRootDirectory : File
-  def relativePath : String
-  def xmlPrettyPrinter : PrettyPrinter
-  def encoding : String
-
-  def newArchiveId = ArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
-  
-  lazy val getRootDirectory : File = { 
-    val file = new File(gitRootDirectory, relativePath)
-    Utils.createDirectory(file) match {
-      case Full(dir) => dir
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when checking required directories '%s' to archive in git:".format(file.getPath)
-        logger.error(e.messageChain)
-        throw new TechnicalException(e.messageChain)
-    } 
-  }
-  
-  private[this] final lazy val git = new Git(gitRepo.db)
-  
-  /**
-   * Files in gitPath are added. 
-   * commitMessage is used for the message of the commit. 
-   */
-  def commitAddFile(gitPath:String, commitMessage:String) = synchronized {
-    tryo {
-      git.add.addFilepattern(gitPath).call
-      val status = git.status.call
-      if(status.getAdded.contains(gitPath)||status.getChanged.contains(gitPath)) {
-        git.commit.setMessage(commitMessage).call
-        newArchiveId
-      } else throw new Exception("Auto-archive git failure: not found in git added files: " + gitPath)
-    }
-  }
-  
-  /**
-   * Files in gitPath are removed. 
-   * commitMessage is used for the message of the commit. 
-   */
-  def commitRmFile(gitPath:String, commitMessage:String) = synchronized {
-    tryo {
-      git.rm.addFilepattern(gitPath).call
-      val status = git.status.call
-      if(status.getRemoved.contains(gitPath)) {
-        git.commit.setMessage(commitMessage).call
-        newArchiveId
-      } else throw new Exception("Auto-archive git failure: not found in git removed files: " + gitPath)
-    }
-  }
-  
-  /**
-   * Commit files in oldGitPath and newGitPath, trying to commit them so that
-   * git is aware of moved from old files to new ones. 
-   * More preciselly, files in oldGitPath are 'git rm', files in newGitPath are
-   * 'git added' (with and without the 'update' mode). 
-   * commitMessage is used for the message of the commit. 
-   */
-  def commitMvDirectory(oldGitPath:String, newGitPath:String, commitMessage:String) = synchronized {
-    tryo {
-      git.rm.addFilepattern(oldGitPath).call
-      git.add.addFilepattern(newGitPath).call
-      git.add.setUpdate(true).addFilepattern(newGitPath).call //if some files were removed from dest dir
-      val status = git.status.call
-      if(status.getAdded.exists( path => path.startsWith(newGitPath) ) ) {
-        git.commit.setMessage(commitMessage).call
-        newArchiveId
-      } else throw new Exception("Auto-archive git failure when moving directory (not found in added file): " + newGitPath)
-    }
-  }
-  
-  /**
-   * Commit all the modifications for files under the given path.
-   * The commitMessage is used in the commit. 
-   */
-  def commitFullGitPathContent(gitPath:String, commitMessage:String) : Box[String] = synchronized {
-    tryo {
-      //remove existing and add modified
-      git.add.setUpdate(true).addFilepattern(gitPath).call
-      //also add new one
-      git.add.addFilepattern(gitPath).call
-      git.commit.setMessage(commitMessage).call.name
-    }
-  }
-  
-  def toGitPath(fsPath:File) = fsPath.getPath.replace(gitRootDirectory.getPath +"/","")
-  
-  /**
-   * Write the given Elem (prettified) into given file, log the message
-   */
-  def writeXml(fileName:File, elem:Elem, logMessage:String) : Box[File] = {
-    tryo { 
-      FileUtils.writeStringToFile(fileName, xmlPrettyPrinter.format(elem), encoding)
-      logger.debug(logMessage)
-      fileName
-    }
-  }
+import com.normation.rudder.domain.Constants.{
+    CONFIGURATION_RULES_ARCHIVE_TAG
+  , GROUPS_ARCHIVE_TAG
+  , POLICY_LIBRARY_ARCHIVE_TAG
 }
+
 
 class GitConfigurationRuleArchiverImpl(
     override val gitRepo            : GitRepositoryProvider
@@ -191,10 +93,17 @@ class GitConfigurationRuleArchiverImpl(
   , configurationRuleRootDir        : String //relative path !
   , override val xmlPrettyPrinter   : PrettyPrinter
   , override val encoding           : String = "UTF-8"
-) extends GitConfigurationRuleArchiver with Loggable with GitArchiverUtils {
+) extends 
+  GitConfigurationRuleArchiver with 
+  Loggable with 
+  GitArchiverUtils with 
+  GitArchiverFullCommitUtils 
+{
 
-  override lazy val relativePath = configurationRuleRootDir
 
+  override val relativePath = configurationRuleRootDir
+  override val tagPrefix = "archives/configurations-rules/"
+  
   private[this] def newCrFile(crId:ConfigurationRuleId) = new File(getRootDirectory, crId.value + ".xml")
   
   def archiveConfigurationRule(cr:ConfigurationRule, gitCommitCr:Boolean = true) : Box[File] = {
@@ -217,9 +126,8 @@ class GitConfigurationRuleArchiverImpl(
   }
 
   def commitConfigurationRules() : Box[String] = {
-    this.commitFullGitPathContent(
-        configurationRuleRootDir
-      , "Commit all modification done on configuration rules (git path: '%s')".format(configurationRuleRootDir)
+    this.commitFullGitPathContentAndTag(
+        CONFIGURATION_RULES_ARCHIVE_TAG + " Commit all modification done on configuration rules (git path: '%s')".format(configurationRuleRootDir)
     )
   }
   
@@ -291,10 +199,19 @@ class GitUserPolicyTemplateCategoryArchiverImpl(
   , override val xmlPrettyPrinter          : PrettyPrinter
   , override val encoding                  : String = "UTF-8"
   , serializedCategoryName                 : String = "category.xml"
-) extends GitUserPolicyTemplateCategoryArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[UserPolicyTemplateCategoryId] {
+) extends 
+  GitUserPolicyTemplateCategoryArchiver with 
+  Loggable with 
+  GitArchiverUtils with 
+  BuildCategoryPathName[UserPolicyTemplateCategoryId] with 
+  GitArchiverFullCommitUtils 
+{
+
 
   override lazy val relativePath = policyLibraryRootDir
   override def  getCategoryName(categoryId:UserPolicyTemplateCategoryId) = categoryId.value
+  
+  override lazy val tagPrefix = "archives/policy-library/"
   
   private[this] def newUptcFile(uptcId:UserPolicyTemplateCategoryId, parents: List[UserPolicyTemplateCategoryId]) = {
     new File(newCategoryDirectory(uptcId, parents), serializedCategoryName) 
@@ -368,9 +285,8 @@ class GitUserPolicyTemplateCategoryArchiverImpl(
    * Return the git commit id. 
    */
   def commitUserPolicyLibrary : Box[String] = {
-    this.commitFullGitPathContent(
-        policyLibraryRootDir
-      , "Commit all modification done in the User Policy Library (git path: '%s')".format(policyLibraryRootDir)
+    this.commitFullGitPathContentAndTag(
+      POLICY_LIBRARY_ARCHIVE_TAG + " Commit all modification done in the User Policy Library (git path: '%s')".format(policyLibraryRootDir)
     )
   }
 }
@@ -551,7 +467,7 @@ class GitPolicyInstanceArchiverImpl(
 
   override lazy val relativePath = policyLibraryRootDir
   override def  getCategoryName(categoryId:UserPolicyTemplateCategoryId) = categoryId.value
-  
+
   private[this] def newPiFile(
       piId   : PolicyInstanceId
     , ptName : PolicyPackageName
@@ -640,10 +556,18 @@ class GitNodeGroupCategoryArchiverImpl(
   , override val xmlPrettyPrinter : PrettyPrinter
   , override val encoding         : String = "UTF-8"
   , serializedCategoryName        : String = "category.xml"
-) extends GitNodeGroupCategoryArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[NodeGroupCategoryId] {
+) extends 
+  GitNodeGroupCategoryArchiver with 
+  Loggable with 
+  GitArchiverUtils with 
+  BuildCategoryPathName[NodeGroupCategoryId] with 
+  GitArchiverFullCommitUtils 
+{
 
   override lazy val relativePath = groupLibraryRootDir
   override def  getCategoryName(categoryId:NodeGroupCategoryId) = categoryId.value
+  
+  override lazy val tagPrefix = "archives/groups/"
   
   private[this] def newNgFile(ngcId:NodeGroupCategoryId, parents: List[NodeGroupCategoryId]) = {
     new File(newCategoryDirectory(ngcId, parents), serializedCategoryName) 
@@ -742,9 +666,8 @@ class GitNodeGroupCategoryArchiverImpl(
    * Return the git commit id. 
    */
   def commitGroupLibrary : Box[String] = {
-    this.commitFullGitPathContent(
-        groupLibraryRootDir
-      , "Commit all modification done in the User Policy Library (git path: '%s')".format(groupLibraryRootDir)
+    this.commitFullGitPathContentAndTag(
+      GROUPS_ARCHIVE_TAG + " Commit all modification done in the User Policy Library (git path: '%s')".format(groupLibraryRootDir)
     )
   }
 }
@@ -767,7 +690,7 @@ class GitNodeGroupArchiverImpl(
 
   override lazy val relativePath = groupLibraryRootDir
   override def  getCategoryName(categoryId:NodeGroupCategoryId) = categoryId.value
-  
+
   private[this] def newNgFile(ngId:NodeGroupId, parents: List[NodeGroupCategoryId]) = {
     parents match {
       case h :: t => Full(new File(newCategoryDirectory(h, t), ngId.value + ".xml"))

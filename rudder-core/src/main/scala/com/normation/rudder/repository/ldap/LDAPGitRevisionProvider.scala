@@ -37,13 +37,13 @@ package com.normation.rudder.repository.ldap
 import org.eclipse.jgit.lib.ObjectId
 import com.normation.rudder.domain.RudderDit
 import net.liftweb.common._
-import org.eclipse.jgit.revwalk.RevWalk
 import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.RudderLDAPConstants.{ A_REF_LIB_VERSION, OC_USER_LIB_VERSION }
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.cfclerk.services.GitRepositoryProvider
+import com.normation.rudder.repository.xml.GitFindUtils
 
 /**
  *
@@ -84,14 +84,14 @@ class LDAPGitRevisionProvider(
   }
 
   override def getAvailableRevTreeId: ObjectId = {
-    val tree = gitRepo.db.resolve(refPath)
-    if (null == tree) {
-      val message = "The reference branch '%s' is not found in the Policy Templates User Library's git repository".format(refPath)
-      logger.error(message)
-      throw new TechnicalException(message)
+    GitFindUtils.findRevTreeFromPath(gitRepo.db, refPath) match {
+      case Full(id) => id
+      case eb:EmptyBox => 
+        val e = eb ?~! "Error when looking for a commit tree in git"
+        logger.error(e.messageChain)
+        logger.debug(e.exceptionChain)
+        throw new TechnicalException(e.messageChain)
     }
-
-    (new RevWalk(gitRepo.db)).parseTree(tree).getId
   }
 
   override def currentRevTreeId = currentId

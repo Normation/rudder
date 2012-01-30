@@ -87,6 +87,7 @@ import java.io.InputStream
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import java.io.FileNotFoundException
 import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.revwalk.RevWalk
 
 /**
  * Utility trait to find/list/get content
@@ -124,12 +125,21 @@ object GitFindUtils extends Loggable {
    * Get the content of the file at the given path (as seen by git, so 
    * relative to git root)
    */
-  def getFileContent[T](db:Repository, revTreeId:ObjectId, filePath:String)(useIt : InputStream => Box[T]) : Box[T] = {
+  def getFileContent[T](db:Repository, revTreeId:ObjectId, path:String)(useIt : InputStream => Box[T]) : Box[T] = {
     var is : InputStream = null
+
+    val filePath = {
+      var p = path
+      while (path.endsWith("/")) p = p.substring(0, p.length - 1)
+      p
+    }
+    
     try {
         //now, the treeWalk
         val tw = new TreeWalk(db)
-        tw.setFilter(PathFilter.create(filePath))
+        
+        if(filePath.size > 0) tw.setFilter(PathFilter.create(filePath))
+        
         tw.setRecursive(true)
         tw.reset(revTreeId)
         var ids = List.empty[ObjectId]
@@ -153,7 +163,22 @@ object GitFindUtils extends Loggable {
       }
     }    
   }
-
+  
+  /**
+   * Retrieve the commit tree from a path name.
+   * The path may be any one of {@code org.eclipse.jgit.lib.Repository#resolve}
+   */
+  def findRevTreeFromPath(db:Repository, path:String) : Box[ObjectId] = {
+    val tree = db.resolve(path)
+    if (null == tree) {
+      Failure("The reference branch '%s' is not found in the Policy Templates User Library's git repository".format(path))
+    } else {
+      val rw = new RevWalk(db)
+      val id = rw.parseTree(tree).getId
+      rw.dispose
+      Full(id)
+    }
+  }
 }
 
 class FileTreeFilter(rootDirectory:Option[String], endPath: Option[String]) extends TreeFilter {

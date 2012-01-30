@@ -42,6 +42,7 @@ import com.normation.rudder.domain.policies.UserPolicyTemplate
 import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
 import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.ConfigurationRule
+import org.eclipse.jgit.revwalk.RevTag
 
 /**
  * A category of the policy library. 
@@ -76,6 +77,12 @@ trait ParsePolicyLibrary {
    * file system. 
    */
   def getLastArchive : Box[UptCategoryContent]
+  
+  /**
+   * That method parse configuration rules from the
+   * file system for an archive with the given ID. 
+   */
+  def getArchive(archiveId:RevTag) : Box[UptCategoryContent]
 }
 
 /**
@@ -86,10 +93,16 @@ trait ParsePolicyLibrary {
 trait ParseConfigurationRules {
 
   /**
-   * That method parse an user policy library from the
+   * That method parse configuration rules from the
    * file system. 
    */
   def getLastArchive : Box[Seq[ConfigurationRule]]
+  
+  /**
+   * That method parse configuration rules from the
+   * file system for an archive with the given ID. 
+   */
+  def getArchive(archiveId:RevTag) : Box[Seq[ConfigurationRule]]
 }
 
 /**
@@ -113,6 +126,12 @@ trait ParseGroupLibrary {
    * file system. 
    */
   def getLastArchive : Box[NodeGroupCategoryContent]
+  
+  /**
+   * That method parse a group library from the
+   * file system for an archive with the given ID. 
+   */
+  def getArchive(archiveId:RevTag) : Box[NodeGroupCategoryContent]
 }
 
 

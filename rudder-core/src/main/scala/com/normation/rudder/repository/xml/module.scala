@@ -32,51 +32,33 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain
+package com.normation.rudder.repository
 
+import org.joda.time.format.DateTimeFormatterBuilder
+import org.joda.time.DateTimeFieldType
 
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.{PolicyInstanceId, ConfigurationRuleId}
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.cfclerk.domain.PolicyPackageId
+package object xml {
 
-import org.joda.time.Duration
-
-object Constants {    
-
-  //non random Policy Instance Id
-  def buildHasPolicyServerGroupId(policyServerId:NodeId) = 
-    NodeGroupId("hasPolicyServer-" + policyServerId.value )
- 
-    
-  val ROOT_POLICY_SERVER_ID = NodeId("root")  
-  
   /**
-   * For the given policy server, what is the ID of its 
-   * "distributePolicy" instance ?
+   * We can't use ISO8601 valid format for a git tag, as ":" are forbidden. 
+   * So we use a:
+   * YYYY-MM-DD_hh_mm_ss.SSS
    */
-  def buildCommonPolicyInstanceId(policyServerId:NodeId) = 
-    PolicyInstanceId("common-" + policyServerId.value)
+  val GitTagDateTimeFormatter = new DateTimeFormatterBuilder().
+                appendYear(4, 4).
+                appendLiteral('-').
+                appendFixedDecimal(DateTimeFieldType.monthOfYear(), 2).
+                appendLiteral('-').
+                appendFixedDecimal(DateTimeFieldType.dayOfMonth(), 2).
+                appendLiteral('_').
+                appendFixedDecimal(DateTimeFieldType.hourOfDay(), 2).
+                appendLiteral('-').
+                appendFixedDecimal(DateTimeFieldType.minuteOfHour(), 2).
+                appendLiteral('-').
+                appendFixedDecimal(DateTimeFieldType.secondOfMinute(), 2).
+                appendLiteral('.').
+                appendFractionOfSecond(3, 9).
+                toFormatter()
   
-  /////////// Policy Server: DistributePolicy policy instance variable //////////
-  val V_ALLOWED_NETWORK = "ALLOWEDNETWORK"
-    
-  /**
-   * The lapse of time when we consider that the CR is still pending
-   * Let's say 10 minutes 
-   */
-  val pendingDuration = new Duration(10*1000*60)
   
-  val PTLIB_MINIMUM_UPDATE_INTERVAL = 60 //in seconds
-  
-  val DYNGROUP_MINIMUM_UPDATE_INTERVAL = 1 //in minutes
-  
-  
-  val XML_FILE_FORMAT_1_0 = "1.0"
-    
-  val CONFIGURATION_RULES_ARCHIVE_TAG = "#configuration-rules-archive"
-  val GROUPS_ARCHIVE_TAG = "#groups-archive" 
-  val POLICY_LIBRARY_ARCHIVE_TAG = "#policy-library-archive"
-  val FULL_ARCHIVE_TAG = "#full-archive"
-    
 }

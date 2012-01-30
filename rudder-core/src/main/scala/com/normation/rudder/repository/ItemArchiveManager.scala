@@ -52,6 +52,8 @@ import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
+import org.eclipse.jgit.revwalk.RevTag
+import org.joda.time.DateTime
 
 //case class to identify an archive
 case class ArchiveId(value:String)
@@ -78,20 +80,34 @@ trait ItemArchiveManager {
   def exportGroupLibrary(includeSystem:Boolean = false) : Box[ArchiveId]
   
   /**
-   * Import the last available archive in Rudder. 
+   * Import the archive with the given ID in Rudder. 
    * If anything goes bad, implementation of that method
    * should take all the care to let Rudder in the state
    * where it was just before the (unsuccessful) import 
    * was required. 
+   * 
    */
-  def importAll(includeSystem:Boolean = false) : Box[Unit]
+  def importAll(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit]
 
   
-  def importConfigurationRules(includeSystem:Boolean = false) : Box[Unit]
+  def importConfigurationRules(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit]
   
-  def importPolicyLibrary(includeSystem:Boolean = false) : Box[Unit]
+  def importPolicyLibrary(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit]
   
-  def importGroupLibrary(includeSystem:Boolean = false) : Box[Unit]
+  def importGroupLibrary(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit]
+  
+  
+  /**
+   * Get the list of tags for the archive type
+   */
+  
+  def getFullArchiveTags : Box[Map[DateTime,RevTag]]
+  
+  def getGroupLibraryTags : Box[Map[DateTime,RevTag]]
+  
+  def getPolicyLibraryTags : Box[Map[DateTime,RevTag]]
+  
+  def getConfigurationRulesTags : Box[Map[DateTime,RevTag]]
   
 }
 
@@ -114,6 +130,8 @@ trait GitConfigurationRuleArchiver {
    * Return the git commit id. 
    */
   def commitConfigurationRules() : Box[String]
+  
+  def getTags() : Box[Map[DateTime,RevTag]]
   
   /**
    * Delete an archived configuration rule. 
@@ -169,6 +187,8 @@ trait GitUserPolicyTemplateCategoryArchiver {
    * Return the git commit id. 
    */
   def commitUserPolicyLibrary : Box[String]
+  
+  def getTags() : Box[Map[DateTime,RevTag]]
 }
 
 /**
@@ -282,6 +302,8 @@ trait GitNodeGroupCategoryArchiver {
    * Return the git commit id. 
    */
   def commitGroupLibrary : Box[String]
+  
+  def getTags() : Box[Map[DateTime,RevTag]]
 }
 
 /**

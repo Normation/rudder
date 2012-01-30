@@ -323,6 +323,7 @@ class AppConfig extends Loggable {
       ldapConfigurationRuleRepository
     , ldapUserPolicyTemplateRepository
     , ldapNodeGroupRepository
+    , gitRepo
     , gitConfigurationRuleArchiver
     , gitUserPolicyTemplateCategoryArchiver
     , gitUserPolicyTemplateArchiver

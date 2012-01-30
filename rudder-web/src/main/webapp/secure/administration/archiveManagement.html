@@ -16,8 +16,32 @@
     text-align: center;
   }
 
+  .deca select {
+    width: 180px;
+  }
 -->
 </style>
+
+<script>
+//<![CDATA[
+	function enableIfNonEmpty(selectId, buttonId) { 
+	  $("#"+selectId).change(function () {
+	    $("#" + selectId + " option:selected").each(function () {
+	      if($(this).text() != "Choose an archive to restore...") {
+          $("#"+buttonId).prop("disabled", false);
+          $("#"+buttonId).removeClass("ui-button-disabled ui-state-disabled");
+          $("#"+buttonId).addClass("ui-state-default");
+	      } else {
+          $("#"+buttonId).prop("disabled", true);
+          $("#"+buttonId).addClass("ui-button-disabled ui-state-disabled");
+          $("#"+buttonId).removeClass("ui-state-default");
+	      }
+	    })
+	  })
+  }
+//]]>  
+</script>
+
 </head>
 
 <div class="portlet">
@@ -26,7 +50,7 @@
     <div class="intro">
       <div>
         This widget allows to manage groups, policies (templates and instances) and configuration rules archive at ounce. 
-        You can make new archives of the state of Rudder, and restore the last one.
+        You can make new archives of the state of Rudder, and restore archive chosen by date.
       </div>
     </div>
     
@@ -37,6 +61,14 @@
         <form class="lift:form.ajax">
           <br/>
           <input id="exportAllButton" type="submit" value="[Export ALL]"/> 
+          <br/>
+          <br/>
+          <select id="importAllSelect">
+            <option>2011-10-08 21:21:21</option>
+            <option>2011-10-09 21:21:21</option>
+            <option>2011-10-10 21:21:21</option>
+            <option>2011-10-11 21:21:21</option>
+          </select>
           <input id="importAllButton" type="submit" value="[Importt ALL]"/> 
           <br/>
           <lift:msg id="allFormNotice" errorClass="error">[error]</lift:msg>
@@ -55,7 +87,7 @@
 	   
 	    <div class="intro">
 	      <div>
-	        This widget allows to create new configuration rules archives and restore the last one available.
+	        This widget allows to create new configuration rules archives and restore archive chosen by date.
 	      </div>
 	    </div>
 	
@@ -66,6 +98,14 @@
 		      <form class="lift:form.ajax">
             <br/>
 		        <input id="exportConfigurationRulesButton" type="submit" value="[Export CR]"/> 
+            <br/>
+            <br/>
+	          <select id="importConfigurationRulesSelect">
+	            <option>2011-10-08 21:21:21</option>
+	            <option>2011-10-09 21:21:21</option>
+	            <option>2011-10-10 21:21:21</option>
+	            <option>2011-10-11 21:21:21</option>
+	          </select>
 		        <input id="importConfigurationRulesButton" type="submit" value="[Import CR]"/> 
             <br/>
 		        <lift:msg id="configurationRulesFormNotice" errorClass="error">[error]</lift:msg>
@@ -84,7 +124,7 @@
 	   
 	    <div class="intro">
 	      <div>
-	        This widget allows to create new policy library archives and restore the last one available.
+	        This widget allows to create new policy library archives and restore archive chosen by date.
 	      </div>
 	    </div>
 	
@@ -94,6 +134,14 @@
 		      <form class="lift:form.ajax">
             <br/>
 		        <input id="exportPolicyLibraryButton" type="submit" value="[Export PolicyLibrary]"/> 
+            <br/>
+            <br/>
+            <select id="importPolicyLibrarySelect">
+              <option>2011-10-08 21:21:21</option>
+              <option>2011-10-09 21:21:21</option>
+              <option>2011-10-10 21:21:21</option>
+              <option>2011-10-11 21:21:21</option>
+            </select>
 		        <input id="importPolicyLibraryButton" type="submit" value="[Import PolicyLibrary]"/> 
             <br/>
 		        <lift:msg id="policyLibraryFormNotice" errorClass="error">[error]</lift:msg>
@@ -113,7 +161,7 @@
 	   
 	    <div class="intro">
 	      <div>
-	        This widget allows to create new configuration rules archives and restore the last one available.
+	        This widget allows to create new configuration rules archivesand restore archive chosen by date.
 	      </div>
 	    </div>
 	
@@ -123,6 +171,14 @@
 		      <form class="lift:form.ajax">
             <br/>
 		        <input id="exportGroupLibraryButton" type="submit" value="[Export GroupLibrary]"/> 
+            <br/>
+            <br/>
+            <select id="importGroupLibrarySelect">
+              <option>2011-10-08 21:21:21</option>
+              <option>2011-10-09 21:21:21</option>
+              <option>2011-10-10 21:21:21</option>
+              <option>2011-10-11 21:21:21</option>
+            </select>
 		        <input id="importGroupLibraryButton" type="submit" value="[Import GroupLibrary]"/> 
             <br/>
 		        <lift:msg id="groupLibraryFormNotice" errorClass="error">[error]</lift:msg>

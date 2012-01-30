@@ -57,6 +57,8 @@ import com.normation.rudder.services.marshalling.NodeGroupUnserialisation
 import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisation
 import com.normation.rudder.repository.ParseGroupLibrary
 import com.normation.rudder.domain.policies.{ GroupTarget, PolicyInstanceTargetInfo }
+import com.normation.rudder.repository.ArchiveId
+import org.eclipse.jgit.revwalk.RevTag
 
 class FSParseGroupLibrary(
     categoryUnserialiser: NodeGroupCategoryUnserialisation
@@ -141,4 +143,6 @@ class FSParseGroupLibrary(
       ) )
     }
   }
+  
+  def getArchive(archiveId:RevTag) = getLastArchive
 }

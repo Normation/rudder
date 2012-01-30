@@ -36,6 +36,9 @@ package com.normation.rudder.repository.xml
 
 import scala.Option.option2Iterable
 
+import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.revwalk.RevTag
+
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.rudder.domain.policies.GroupTarget
@@ -66,8 +69,19 @@ class GitParseGroupLibrary(
    * - a directory with a category.xml may contain UUID.xml files and sub-directories (ignore other files)
    */
   def getLastArchive : Box[NodeGroupCategoryContent] = {
+    getArchiveForRevTreeId(revisionProvider.getAvailableRevTreeId)
+  }
+  
+  def getArchive(archiveId:RevTag) = {
+    for {
+      treeId  <- GitFindUtils.findRevTreeFromPath(repo.db, archiveId.getName)
+      archive <- getArchiveForRevTreeId(treeId)
+    } yield {
+      archive
+    }
+  }
 
-    val revTreeId = revisionProvider.getAvailableRevTreeId
+  private[this] def getArchiveForRevTreeId(revTreeId:ObjectId) = {
 
     val root = {
       val p = libRootDirectory.trim
