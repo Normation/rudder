@@ -88,6 +88,7 @@ import com.normation.rudder.services.marshalling._
 import com.normation.utils.ScalaLock
 import com.normation.rudder.web.rest.RestDeploy
 import com.normation.rudder.web.rest.RestDyngroupReload
+import com.normation.rudder.web.rest.RestPolicyTemplateReload
 
 /**
  * Spring configuration for services
@@ -936,6 +937,9 @@ class AppConfig extends Loggable {
 
   @Bean
   def restDyngroup = new RestDyngroupReload(dyngroupUpdaterBatch)
+  
+  @Bean
+  def restDptLibReload = new RestPolicyTemplateReload(policyPackageService)
   
   //////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////// Policy Editor and web fields //////////////////////////////

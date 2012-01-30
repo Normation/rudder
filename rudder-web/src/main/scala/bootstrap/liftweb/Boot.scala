@@ -80,6 +80,7 @@ class Boot extends Loggable {
     LiftRules.statelessDispatchTable.append(RestStatus)
     LiftRules.statelessDispatchTable.append(inject[RestDeploy])
     LiftRules.statelessDispatchTable.append(inject[RestDyngroupReload])
+    LiftRules.statelessDispatchTable.append(inject[RestPolicyTemplateReload])
   
     // URL rewrites
     LiftRules.statefulRewrite.append {
