@@ -45,9 +45,15 @@ class EventLogTest {
    */
   @Test
   def createEventLog() {
-    val dummyEventLog = new EventLogWithValues(None, "12", "13", EventActor("foo"))
+    val dummyEventLog = new EventLogWithValues(
+        EventLogDetails(None, EventActor("foo"),DateTime.now(), None, 0, NodeSeq.Empty )
+      , "12"
+      , "13")
       
-    val eventLog = new EventLogWithValues(Some(13), "bar", "baz", EventActor("foo"))
+    val eventLog = new EventLogWithValues(
+        EventLogDetails(Some(13), EventActor("foo"),DateTime.now(), None, 0, NodeSeq.Empty ) 
+      , "bar"
+      , "baz")
     
     assertEquals(eventLog.id, Some(13))
     assertEquals(eventLog.principal.name, "foo")

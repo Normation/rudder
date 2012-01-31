@@ -28,13 +28,9 @@ import com.normation.utils.HashcodeCaching
 final case object DummyEventLogCategory extends EventLogCategory
 
 final case class EventLogWithValues(
-    override val id : Option[Int],
+    override val eventDetails : EventLogDetails,
     val firstValue : String,
-    val secondValue : String,
-    override val principal : EventActor,
-    override val creationDate : DateTime = DateTime.now(), 
-    override val cause : Option[Int] = None,
-    override val severity : Int = 100
+    val secondValue : String
 ) extends EventLog with HashcodeCaching {
   override val eventType = DummyEventLogType
   override val eventLogCategory = DummyEventLogCategory
@@ -43,8 +39,8 @@ final case class EventLogWithValues(
       <firstValue>{firstValue}</firstValue>
       <secondValue>{secondValue}</secondValue>
     </Entry>
-  override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
-
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+    
 }
 
 
