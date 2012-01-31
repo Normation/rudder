@@ -54,6 +54,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
+import org.eclipse.jgit.lib.PersonIdent
 
 //case class to identify an archive
 case class ArchiveId(value:String)
@@ -70,14 +71,14 @@ trait ItemArchiveManager {
    * Save all items handled by that archive manager 
    * and return an ID for the archive on success. 
    */
-  def exportAll(includeSystem:Boolean = false) : Box[ArchiveId]
+  def exportAll(commiter:PersonIdent, includeSystem:Boolean = false) : Box[ArchiveId]
   
   
-  def exportConfigurationRules(includeSystem:Boolean = false) : Box[ArchiveId]
+  def exportConfigurationRules(commiter:PersonIdent, includeSystem:Boolean = false) : Box[ArchiveId]
   
-  def exportPolicyLibrary(includeSystem:Boolean = false) : Box[ArchiveId]
+  def exportPolicyLibrary(commiter:PersonIdent, includeSystem:Boolean = false) : Box[ArchiveId]
   
-  def exportGroupLibrary(includeSystem:Boolean = false) : Box[ArchiveId]
+  def exportGroupLibrary(commiter:PersonIdent, includeSystem:Boolean = false) : Box[ArchiveId]
   
   /**
    * Import the archive with the given ID in Rudder. 
@@ -122,14 +123,14 @@ trait GitConfigurationRuleArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveConfigurationRule(cr:ConfigurationRule, gitCommitCr:Boolean = true) : Box[File]
+  def archiveConfigurationRule(cr:ConfigurationRule, gitCommitCr:Option[PersonIdent]) : Box[File]
   
   /**
    * Commit modification done in the Git repository for any
    * configuration rules.
    * Return the git commit id. 
    */
-  def commitConfigurationRules() : Box[String]
+  def commitConfigurationRules(commiter:PersonIdent) : Box[String]
   
   def getTags() : Box[Map[DateTime,RevTag]]
   
@@ -138,7 +139,7 @@ trait GitConfigurationRuleArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteConfigurationRule(crId:ConfigurationRuleId, gitCommitCr:Boolean = true) : Box[File]
+  def deleteConfigurationRule(crId:ConfigurationRuleId, gitCommitCr:Option[PersonIdent]) : Box[File]
   
   /**
    * Get the root directory where configuration rules are saved
@@ -160,20 +161,20 @@ trait GitUserPolicyTemplateCategoryArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveUserPolicyTemplateCategory(uptc:UserPolicyTemplateCategory, getParents:List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File]
+  def archiveUserPolicyTemplateCategory(uptc:UserPolicyTemplateCategory, getParents:List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[File]
     
   /**
    * Delete an archived user policy template category. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteUserPolicyTemplateCategory(uptcId:UserPolicyTemplateCategoryId, getParents:List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File]
+  def deleteUserPolicyTemplateCategory(uptcId:UserPolicyTemplateCategoryId, getParents:List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[File]
   
   /**
    * Move an archived policy template category from a 
    * parent category to an other. 
    */
-  def moveUserPolicyTemplateCategory(uptc:UserPolicyTemplateCategory, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File]
+  def moveUserPolicyTemplateCategory(uptc:UserPolicyTemplateCategory, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[File]
 
   /**
    * Get the root directory where user policy template categories are saved.
@@ -186,7 +187,7 @@ trait GitUserPolicyTemplateCategoryArchiver {
    * user policy library.
    * Return the git commit id. 
    */
-  def commitUserPolicyLibrary : Box[String]
+  def commitUserPolicyLibrary(commiter:PersonIdent) : Box[String]
   
   def getTags() : Box[Map[DateTime,RevTag]]
 }
@@ -202,20 +203,20 @@ trait GitUserPolicyTemplateArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveUserPolicyTemplate(upt:UserPolicyTemplate, parents:List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File]
+  def archiveUserPolicyTemplate(upt:UserPolicyTemplate, parents:List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[File]
     
   /**
    * Delete an archived user policy template. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteUserPolicyTemplate(ptName:PolicyPackageName, parents:List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File]
+  def deleteUserPolicyTemplate(ptName:PolicyPackageName, parents:List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[File]
   
   /**
    * Move an archived policy template from a 
    * parent category to an other. 
    */
-  def moveUserPolicyTemplate(upt:UserPolicyTemplate, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Boolean = true) : Box[File]
+  def moveUserPolicyTemplate(upt:UserPolicyTemplate, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[File]
 
   /**
    * Get the root directory where user policy template categories are saved.
@@ -238,7 +239,7 @@ trait GitPolicyInstanceArchiver {
     , ptName             : PolicyPackageName
     , catIds             : List[UserPolicyTemplateCategoryId]
     , variableRootSection: SectionSpec
-    , gitCommit          : Boolean = true
+    , gitCommit          : Option[PersonIdent]
   ) : Box[File]
     
   /**
@@ -250,7 +251,7 @@ trait GitPolicyInstanceArchiver {
       piId     : PolicyInstanceId
     , ptName   : PolicyPackageName
     , catIds   : List[UserPolicyTemplateCategoryId]
-    , gitCommit: Boolean = true
+    , gitCommit: Option[PersonIdent]
   ) : Box[File]
   
   /**
@@ -276,20 +277,20 @@ trait GitNodeGroupCategoryArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveNodeGroupCategory(groupCat:NodeGroupCategory, getParents:List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File]
+  def archiveNodeGroupCategory(groupCat:NodeGroupCategory, getParents:List[NodeGroupCategoryId], gitCommit:Option[PersonIdent]) : Box[File]
     
   /**
    * Delete an archived node group category. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteNodeGroupCategory(groupCatId:NodeGroupCategoryId, getParents:List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File]
+  def deleteNodeGroupCategory(groupCatId:NodeGroupCategoryId, getParents:List[NodeGroupCategoryId], gitCommit:Option[PersonIdent]) : Box[File]
   
   /**
    * Move an archived node group category from a 
    * parent category to an other. 
    */
-  def moveNodeGroupCategory(groupCat:NodeGroupCategory, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File]
+  def moveNodeGroupCategory(groupCat:NodeGroupCategory, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[PersonIdent]) : Box[File]
 
   /**
    * Get the root directory where node group categories are saved.
@@ -301,7 +302,7 @@ trait GitNodeGroupCategoryArchiver {
    * category and groups. 
    * Return the git commit id. 
    */
-  def commitGroupLibrary : Box[String]
+  def commitGroupLibrary(commiter:PersonIdent) : Box[String]
   
   def getTags() : Box[Map[DateTime,RevTag]]
 }
@@ -317,20 +318,20 @@ trait GitNodeGroupArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveNodeGroup(nodeGroup:NodeGroup, parents:List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File]
+  def archiveNodeGroup(nodeGroup:NodeGroup, parents:List[NodeGroupCategoryId], gitCommit:Option[PersonIdent]) : Box[File]
     
   /**
    * Delete an archived user policy template. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteNodeGroup(nodeGroup:NodeGroupId, parents:List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File]
+  def deleteNodeGroup(nodeGroup:NodeGroupId, parents:List[NodeGroupCategoryId], gitCommit:Option[PersonIdent]) : Box[File]
   
   /**
    * Move an archived policy template from a 
    * parent category to an other. 
    */
-  def moveNodeGroup(nodeGroup:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Boolean = true) : Box[File]
+  def moveNodeGroup(nodeGroup:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[PersonIdent]) : Box[File]
 
   /**
    * Get the root directory where user policy template categories are saved.

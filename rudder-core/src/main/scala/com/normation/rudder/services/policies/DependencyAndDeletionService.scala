@@ -332,7 +332,7 @@ class DependencyAndDeletionServiceImpl(
       deletedPis <- sequence(pis) { pi =>
         cascadeDeletePolicyInstance(pi.id, actor) 
       }
-      deletedUpt <- policyTemplateRepository.delete(id)
+      deletedUpt <- policyTemplateRepository.delete(id, actor)
     } yield {
       val allCrs = scala.collection.mutable.Map[ConfigurationRuleId,ConfigurationRule]()
       val pis = deletedPis.map { case PolicyInstanceDependencies(policyInstanceId,seqCrs) =>

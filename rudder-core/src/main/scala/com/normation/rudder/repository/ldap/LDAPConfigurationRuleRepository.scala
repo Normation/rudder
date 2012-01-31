@@ -57,6 +57,7 @@ import com.normation.rudder.domain.log.{
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.archives.CRArchiveId
 import com.unboundid.ldif.LDIFChangeRecord
+import com.normation.rudder.services.user.PersonIdentService
 
 class LDAPConfigurationRuleRepository(
     rudderDit           : RudderDit
@@ -68,6 +69,7 @@ class LDAPConfigurationRuleRepository(
   , policyPackageService: PolicyPackageService
   , actionLogger        : EventLogRepository
   , gitCrArchiver       : GitConfigurationRuleArchiver
+  , personIdentService  : PersonIdentService
   , autoExportOnModify  : Boolean
 ) extends ConfigurationRuleRepository with Loggable {
   repo => 
@@ -98,7 +100,12 @@ class LDAPConfigurationRuleRepository(
       diff         =  DeleteConfigurationRuleDiff(oldCr)
       loggedAction <- actionLogger.saveDeleteConfigurationRule(principal = actor, deleteDiff = diff)
       autoArchive  <- if(autoExportOnModify && deleted.size > 0) {
-                        gitCrArchiver.deleteConfigurationRule(id)
+                        for {
+                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                          archive  <- gitCrArchiver.deleteConfigurationRule(id, Some(commiter))
+                        } yield {
+                          archive
+                        }
                       } else Full("ok")
     } yield {
       diff
@@ -137,7 +144,12 @@ class LDAPConfigurationRuleRepository(
       diff            <- diffMapper.addChangeRecords2ConfigurationRuleDiff(crEntry.dn,result)
       loggedAction    <- actionLogger.saveAddConfigurationRule(principal = actor, addDiff = diff)
       autoArchive     <- if(autoExportOnModify) {
-                           gitCrArchiver.archiveConfigurationRule(cr)
+                           for {
+                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                             archive  <- gitCrArchiver.archiveConfigurationRule(cr, Some(commiter))
+                           } yield {
+                             archive
+                           }
                          } else Full("ok")
     } yield {
       diff
@@ -157,7 +169,12 @@ class LDAPConfigurationRuleRepository(
                          case Some(diff) => actionLogger.saveModifyConfigurationRule(principal = actor, modifyDiff = diff)
                        }
       autoArchive   <- if(autoExportOnModify && optDiff.isDefined) {
-                         gitCrArchiver.archiveConfigurationRule(cr)
+                         for {
+                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                           archive  <- gitCrArchiver.archiveConfigurationRule(cr, Some(commiter))
+                         } yield {
+                           archive
+                         }
                        } else Full("ok")
     } yield {
       optDiff

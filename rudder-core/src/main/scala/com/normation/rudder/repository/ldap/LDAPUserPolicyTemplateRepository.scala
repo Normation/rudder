@@ -53,6 +53,8 @@ import scala.collection.immutable.SortedMap
 import com.normation.utils.Control.sequence
 import com.normation.utils.ScalaReadWriteLock
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
+import com.normation.rudder.services.user.PersonIdentService
+import com.normation.eventlog.EventActor
 
 /**
  * Implementation of the repository for User Policy Templates in 
@@ -66,6 +68,7 @@ class LDAPUserPolicyTemplateRepository(
   , uuidGen           : StringUuidGenerator
   , userCategoryRepo  : LDAPUserPolicyTemplateCategoryRepository
   , gitArchiver       : GitUserPolicyTemplateArchiver
+  , personIdentService: PersonIdentService
   , autoExportOnModify: Boolean
   , userLibMutex      : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends UserPolicyTemplateRepository with Loggable {
@@ -150,7 +153,8 @@ class LDAPUserPolicyTemplateRepository(
   def addPolicyTemplateInUserLibrary(
       categoryId: UserPolicyTemplateCategoryId, 
       policyTemplateName: PolicyPackageName,
-      versions:Seq[PolicyVersion]
+      versions:Seq[PolicyVersion],
+      actor: EventActor
   ): Box[UserPolicyTemplate] = { 
     //check if the policy template is already in user lib, and if the category exists
     for {
@@ -171,8 +175,9 @@ class LDAPUserPolicyTemplateRepository(
       result        <- userLibMutex.writeLock { con.save(uptEntry, true) }
       autoArchive   <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                          for {
-                           parents <- this.userPolicyTemplateBreadCrump(newUpt.id)
-                           archive <- gitArchiver.archiveUserPolicyTemplate(newUpt, parents.map( _.id))
+                           parents  <- this.userPolicyTemplateBreadCrump(newUpt.id)
+                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                           archive  <- gitArchiver.archiveUserPolicyTemplate(newUpt, parents.map( _.id), Some(commiter))
                          } yield archive
                        } else Full("ok")
     } yield {
@@ -197,7 +202,7 @@ class LDAPUserPolicyTemplateRepository(
    * does not exists. 
    * 
    */
-  def move(uptId:UserPolicyTemplateId, newCategoryId:UserPolicyTemplateCategoryId) : Box[UserPolicyTemplateId] = {
+  def move(uptId:UserPolicyTemplateId, newCategoryId:UserPolicyTemplateCategoryId, actor: EventActor) : Box[UserPolicyTemplateId] = {
      for {
       con         <- ldap
       oldParents  <- if(autoExportOnModify) {
@@ -208,9 +213,10 @@ class LDAPUserPolicyTemplateRepository(
       moved       <- userLibMutex.writeLock { con.move(upt.dn, newCategory.dn) ?~! "Error when moving policy template %s to category %s".format(uptId, newCategoryId) }
       autoArchive <- (if(autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord]) {
                        for {
-                         parents <- this.userPolicyTemplateBreadCrump(uptId)
-                         newUpt  <- this.getUserPolicyTemplate(uptId)
-                         moved   <- gitArchiver.moveUserPolicyTemplate(newUpt, oldParents.map( _.id), parents.map( _.id))
+                         parents  <- this.userPolicyTemplateBreadCrump(uptId)
+                         newUpt   <- this.getUserPolicyTemplate(uptId)
+                         commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                         moved    <- gitArchiver.moveUserPolicyTemplate(newUpt, oldParents.map( _.id), parents.map( _.id), Some(commiter))
                        } yield {
                          moved
                        }
@@ -223,7 +229,7 @@ class LDAPUserPolicyTemplateRepository(
   /**
    * Set the status of the policy template to the new value
    */
-  def changeStatus(uptId:UserPolicyTemplateId, status:Boolean) : Box[UserPolicyTemplateId] = {
+  def changeStatus(uptId:UserPolicyTemplateId, status:Boolean, actor: EventActor) : Box[UserPolicyTemplateId] = {
     for {
       con         <- ldap
       upt         <- getUPTEntry(con, uptId, A_IS_ACTIVATED)
@@ -233,9 +239,10 @@ class LDAPUserPolicyTemplateRepository(
                      }
       autoArchive <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord]) {
                          for {
-                           parents <- this.userPolicyTemplateBreadCrump(uptId)
-                           newUpt  <- getUserPolicyTemplate(uptId)
-                           archive <- gitArchiver.archiveUserPolicyTemplate(newUpt, parents.map( _.id))
+                           parents  <- this.userPolicyTemplateBreadCrump(uptId)
+                           newUpt   <- getUserPolicyTemplate(uptId)
+                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                           archive  <- gitArchiver.archiveUserPolicyTemplate(newUpt, parents.map( _.id), Some(commiter))
                          } yield archive
                        } else Full("ok")
     } yield {
@@ -243,7 +250,7 @@ class LDAPUserPolicyTemplateRepository(
     }
   }
   
-  def setAcceptationDatetimes(uptId:UserPolicyTemplateId, datetimes: Map[PolicyVersion,DateTime]) : Box[UserPolicyTemplateId] = {
+  def setAcceptationDatetimes(uptId:UserPolicyTemplateId, datetimes: Map[PolicyVersion,DateTime], actor: EventActor) : Box[UserPolicyTemplateId] = {
     for {
       con         <- ldap
       upt         <- getUPTEntry(con, uptId, A_ACCEPTATION_DATETIME)
@@ -257,7 +264,8 @@ class LDAPUserPolicyTemplateRepository(
                          for {
                            parents <- this.userPolicyTemplateBreadCrump(uptId)
                            newUpt  <- getUserPolicyTemplate(uptId)
-                           archive <- gitArchiver.archiveUserPolicyTemplate(newUpt, parents.map( _.id))
+                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                           archive <- gitArchiver.archiveUserPolicyTemplate(newUpt, parents.map( _.id), Some(commiter))
                          } yield archive
                        } else Full("ok")
     } yield {
@@ -270,7 +278,7 @@ class LDAPUserPolicyTemplateRepository(
    * Delete the policy template in user library.
    * If no such element exists, it is a success.
    */
-  def delete(uptId:UserPolicyTemplateId) : Box[UserPolicyTemplateId] = {
+  def delete(uptId:UserPolicyTemplateId, actor: EventActor) : Box[UserPolicyTemplateId] = {
      for {
       con         <- ldap
       oldParents  <- if(autoExportOnModify) {
@@ -280,8 +288,9 @@ class LDAPUserPolicyTemplateRepository(
       deleted     <- userLibMutex.writeLock { con.delete(upt.dn, false) }
       autoArchive <- (if(autoExportOnModify && deleted.size > 0) {
                        for {
-                         ptName <- Box(upt(A_REFERENCE_POLICY_TEMPLATE_UUID)) ?~! "Missing required reference policy template name"
-                         res    <- gitArchiver.deleteUserPolicyTemplate(PolicyPackageName(ptName),oldParents.map( _.id))
+                         ptName   <- Box(upt(A_REFERENCE_POLICY_TEMPLATE_UUID)) ?~! "Missing required reference policy template name"
+                         commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                         res      <- gitArchiver.deleteUserPolicyTemplate(PolicyPackageName(ptName),oldParents.map( _.id), Some(commiter))
                        } yield res
                       } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
     } yield {

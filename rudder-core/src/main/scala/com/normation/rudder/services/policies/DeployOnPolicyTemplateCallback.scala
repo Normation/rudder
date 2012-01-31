@@ -38,16 +38,16 @@ import com.normation.cfclerk.domain.PolicyPackageId
 import com.normation.cfclerk.services.ReferenceLibraryUpdateNotification
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.log.RudderEventActor
 import net.liftweb.common.Loggable
+import com.normation.eventlog.EventActor
 
 class DeployOnPolicyTemplateCallback(
     override val name   : String
   , asyncDeploymentAgent: AsyncDeploymentAgent
 ) extends ReferenceLibraryUpdateNotification with Loggable {
 
-  override def updatedPolicyPackage(policyPackageIds:Seq[PolicyPackageId]) : Unit = {
+  override def updatedPolicyPackage(policyPackageIds:Seq[PolicyPackageId], actor:EventActor) : Unit = {
     logger.debug("Ask for a deployment since policy template library was reloaded")
-    asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
+    asyncDeploymentAgent ! AutomaticStartDeployment(actor)
   }
 }

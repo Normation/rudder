@@ -297,7 +297,7 @@ class PolicyTemplateEditForm(
                  */
                 def onClickAddPolicyTemplateToCategory() : JsCmd = {
                   //back-end action
-                  userPolicyTemplateRepository.addPolicyTemplateInUserLibrary(category.id, policyTemplate.id.name, policyPackageService.getVersions(policyTemplate.id.name).toSeq) 
+                  userPolicyTemplateRepository.addPolicyTemplateInUserLibrary(category.id, policyTemplate.id.name, policyPackageService.getVersions(policyTemplate.id.name).toSeq, CurrentUser.getActor) 
                   
                   //update UI
                   Replace(htmlId_addToUserLib, showPolicyTemplateUserCategory() ) &
@@ -432,7 +432,7 @@ class PolicyTemplateEditForm(
   
   private[this] def statusAndDeployPolicyTemplate(uptId:UserPolicyTemplateId, status:Boolean) : JsCmd = {
       (for {
-        save <- userPolicyTemplateRepository.changeStatus(uptId, status)
+        save <- userPolicyTemplateRepository.changeStatus(uptId, status, CurrentUser.getActor)
         deploy <- {
           asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
           Full("Deployment request sent")

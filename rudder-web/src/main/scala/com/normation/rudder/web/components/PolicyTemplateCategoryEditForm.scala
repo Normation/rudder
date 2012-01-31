@@ -42,7 +42,7 @@ import com.normation.cfclerk.domain.{
   PolicyPackageCategoryId, PolicyPackageCategory
 }
 import com.normation.cfclerk.services.PolicyPackageService
-import com.normation.rudder.web.model.JsTreeNode
+import com.normation.rudder.web.model.{JsTreeNode, CurrentUser}
 import net.liftweb.common._
 import net.liftweb.http.{SHtml,S}
 import scala.xml._
@@ -116,7 +116,7 @@ class PolicyTemplateCategoryEditForm(
   }
   
   private[this] def deleteCategory() : JsCmd = {
-    userPolicyTemplateCategoryRepository.delete(currentCategory.id) match {
+    userPolicyTemplateCategoryRepository.delete(currentCategory.id, CurrentUser.getActor) match {
       case Full(id) =>
         //update UI
         JsRaw("$.modal.close();") & 
@@ -211,7 +211,7 @@ class PolicyTemplateCategoryEditForm(
                  name = categoryName.is,
                  description = categoryDescription.is
              )
-             userPolicyTemplateCategoryRepository.saveUserPolicyTemplateCategory(updatedCategory) match {
+             userPolicyTemplateCategoryRepository.saveUserPolicyTemplateCategory(updatedCategory, CurrentUser.getActor) match {
                case Failure(m,_,_) => 
                  categorFormTracker.addFormError(  error("An error occured: " + m) )
                case Empty => 

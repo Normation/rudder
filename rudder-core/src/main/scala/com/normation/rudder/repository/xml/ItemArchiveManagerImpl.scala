@@ -43,6 +43,7 @@ import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
 import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
+import org.eclipse.jgit.lib.PersonIdent
 
 class ItemArchiveManagerImpl(
     configurationRuleRepository          : ConfigurationRuleRepository
@@ -70,13 +71,14 @@ class ItemArchiveManagerImpl(
   
   ///// implementation /////
   
-  def exportAll(includeSystem:Boolean = false): Box[ArchiveId] = { 
+  def exportAll(commiter:PersonIdent, includeSystem:Boolean = false): Box[ArchiveId] = { 
     for {
-      saveCrs     <- exportConfigurationRules(includeSystem)
-      saveUserLib <- exportPolicyLibrary(includeSystem)
-      saveGroups  <- exportGroupLibrary(includeSystem)
+      saveCrs     <- exportConfigurationRules(commiter, includeSystem)
+      saveUserLib <- exportPolicyLibrary(commiter, includeSystem)
+      saveGroups  <- exportGroupLibrary(commiter, includeSystem)
       archiveAll  <- this.commitFullGitPathContentAndTag(
-                       FULL_ARCHIVE_TAG + " Archive and tag groups, policy library and configuration rules"
+                         commiter
+                       , FULL_ARCHIVE_TAG + " Archive and tag groups, policy library and configuration rules"
                      )
     } yield {
       saveUserLib
@@ -93,20 +95,20 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  def exportConfigurationRules(includeSystem:Boolean = false): Box[ArchiveId] = { 
+  def exportConfigurationRules(commiter:PersonIdent, includeSystem:Boolean = false): Box[ArchiveId] = { 
     for {
       crs         <- configurationRuleRepository.getAll(false)
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitConfigurationRuleArchiver.getRootDirectory) }
       saved       <- sequence(crs) { cr => 
-                       gitConfigurationRuleArchiver.archiveConfigurationRule(cr,false)
+                       gitConfigurationRuleArchiver.archiveConfigurationRule(cr,None)
                      }
-      commitId    <- gitConfigurationRuleArchiver.commitConfigurationRules
+      commitId    <- gitConfigurationRuleArchiver.commitConfigurationRules(commiter)
     } yield {
       ArchiveId(commitId)
     }
   }
   
-  def exportPolicyLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
+  def exportPolicyLibrary(commiter:PersonIdent, includeSystem:Boolean = false): Box[ArchiveId] = { 
     for { 
       catWithUPT   <- uptRepository.getUPTbyCategory(includeSystem = true)
       //remove systems things if asked (both system categories and system upts in non-system categories)
@@ -120,21 +122,21 @@ class ItemArchiveManagerImpl(
       savedItems  <- sequence(okCatWithUPT.toSeq) { case (categories, CategoryAndUPT(cat, upts)) => 
                        for {
                          //categories.tail is OK, as no category can have an empty path (id)
-                         savedCat  <- gitUserPolicyTemplateCategoryArchiver.archiveUserPolicyTemplateCategory(cat,categories.reverse.tail, gitCommit = false)
+                         savedCat  <- gitUserPolicyTemplateCategoryArchiver.archiveUserPolicyTemplateCategory(cat,categories.reverse.tail, gitCommit = None)
                          savedUpts <- sequence(upts.toSeq) { upt =>
-                                        gitUserPolicyTemplateArchiver.archiveUserPolicyTemplate(upt,categories.reverse, gitCommit = false)
+                                        gitUserPolicyTemplateArchiver.archiveUserPolicyTemplate(upt,categories.reverse, gitCommit = None)
                                       }
                        } yield {
                          "OK"
                        }
                      }
-      commitId    <- gitUserPolicyTemplateCategoryArchiver.commitUserPolicyLibrary
+      commitId    <- gitUserPolicyTemplateCategoryArchiver.commitUserPolicyLibrary(commiter)
     } yield {
       ArchiveId(commitId)
     }
   }
   
-  def exportGroupLibrary(includeSystem:Boolean = false): Box[ArchiveId] = { 
+  def exportGroupLibrary(commiter:PersonIdent, includeSystem:Boolean = false): Box[ArchiveId] = { 
     for { 
       catWithGroups   <- groupRepository.getGroupsByCategory(includeSystem = true)
       //remove systems things if asked (both system categories and system groups in non-system categories)
@@ -148,15 +150,15 @@ class ItemArchiveManagerImpl(
       savedItems      <- sequence(okCatWithGroup.toSeq) { case (categories, CategoryAndNodeGroup(cat, groups)) => 
                            for {
                              //categories.tail is OK, as no category can have an empty path (id)
-                             savedCat    <- gitNodeGroupCategoryArchiver.archiveNodeGroupCategory(cat,categories.reverse.tail, gitCommit = false)
+                             savedCat    <- gitNodeGroupCategoryArchiver.archiveNodeGroupCategory(cat,categories.reverse.tail, gitCommit = None)
                              savedgroups <- sequence(groups.toSeq) { group =>
-                                              gitNodeGroupArchiver.archiveNodeGroup(group,categories.reverse, gitCommit = false)
+                                              gitNodeGroupArchiver.archiveNodeGroup(group,categories.reverse, gitCommit = None)
                                             }
                            } yield {
                              "OK"
                            }
                          }
-      commitId        <- gitNodeGroupCategoryArchiver.commitGroupLibrary
+      commitId        <- gitNodeGroupCategoryArchiver.commitGroupLibrary(commiter)
     } yield {
       ArchiveId(commitId)
     }

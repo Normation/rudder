@@ -46,6 +46,7 @@ import com.normation.rudder.domain.policies._
 import com.normation.utils.Control._
 import org.joda.time.DateTime
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
+import com.normation.rudder.domain.log.RudderEventActor
 
 /**
  * That class add all the available reference template in 
@@ -103,14 +104,14 @@ class CheckInitUserTemplateLibrary(
             Full(newUserPTCat)
           } else {
             for {
-              updatedParentCat <- userCategoryService.addUserPolicyTemplateCategory(newUserPTCat, toParentCat) ?~! 
+              updatedParentCat <- userCategoryService.addUserPolicyTemplateCategory(newUserPTCat, toParentCat, RudderEventActor) ?~! 
                 "Error when adding category '%s' to user library parent category '%s'".format(newUserPTCat.id.value, toParentCat.id.value)
                 //now, add items and subcategories, in a "try to do the max you can" way
                 fullRes <- boxSequence(
                   //policy templates
                   bestEffort(fromCat.packageIds.groupBy(id => id.name).toSeq) { case (name, ids) =>
                     for {
-                      upt <- userTempalteService.addPolicyTemplateInUserLibrary(newUserPTCat.id, name, ids.map( _.version).toSeq ) ?~!
+                      upt <- userTempalteService.addPolicyTemplateInUserLibrary(newUserPTCat.id, name, ids.map( _.version).toSeq, RudderEventActor) ?~!
                         "Error when adding Policy Template '%s' into user library category '%s'".format(name.value, newUserPTCat.id.value)
                     } yield {
                       upt

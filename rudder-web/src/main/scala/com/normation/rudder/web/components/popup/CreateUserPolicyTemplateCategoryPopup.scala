@@ -51,7 +51,7 @@ import net.liftweb.util.Helpers._
 
 
 import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField,WBSelectField
+  WBTextField, FormTracker, WBTextAreaField,WBSelectField, CurrentUser
 }
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
@@ -163,7 +163,7 @@ class CreateUserPolicyTemplateCategoryPopup(onSuccessCallback : () => JsCmd = { 
                  children = Nil,
                  items = Nil
                ),
-               parent
+               parent, CurrentUser.getActor
              ) match {
                case Failure(m,_,_) =>
                   logger.error("An error occurred while saving the category:" + m)

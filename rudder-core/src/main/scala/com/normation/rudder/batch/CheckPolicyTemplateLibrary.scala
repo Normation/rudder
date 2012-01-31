@@ -38,8 +38,10 @@ import com.normation.cfclerk.services.UpdatePolicyTemplateLibrary
 import com.normation.rudder.domain.Constants.PTLIB_MINIMUM_UPDATE_INTERVAL
 import net.liftweb.actor.{LiftActor, LAPinger}
 import net.liftweb.common.Loggable
+import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.log.RudderEventActor
 
-case object StartLibUpdate
+case class StartLibUpdate(actor: EventActor)
 
 /**
  * A class that periodically check if PTLib was updated.
@@ -62,7 +64,7 @@ class CheckPolicyTemplateLibrary(
     logger.info("Disable dynamic group updates sinces property %s is 0 or negative".format(propertyName))
   } else {
     logger.trace("***** starting PT library Update batch *****")
-    (new LAUpdatePTLibManager) ! StartLibUpdate
+    (new LAUpdatePTLibManager) ! StartLibUpdate(RudderEventActor)
   }
 
   ////////////////////////////////////////////////////////////////
@@ -87,11 +89,11 @@ class CheckPolicyTemplateLibrary(
       //
       //Ask for a new dynamic group update
       //
-      case StartLibUpdate => 
+      case StartLibUpdate(actor) => 
         //schedule next update, in minutes
         LAPinger.schedule(this, StartLibUpdate, realUpdateInterval*1000)      
         logger.trace("***** Start a new update")
-        policyPackageUpdater.update
+        policyPackageUpdater.update(actor)
       case _ => 
         logger.error("Ignoring start update dynamic group request because one other update still processing".format())
     }

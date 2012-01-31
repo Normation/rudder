@@ -41,6 +41,7 @@ import com.normation.cfclerk.domain.PolicyVersion
 import org.joda.time.DateTime
 import scala.collection.SortedMap
 import com.normation.utils.HashcodeCaching
+import com.normation.eventlog.EventActor
 
 /**
  * A simple container for a category 
@@ -104,6 +105,7 @@ trait UserPolicyTemplateRepository {
     categoryId:UserPolicyTemplateCategoryId, 
     policyTemplateName:PolicyPackageName,
     versions:Seq[PolicyVersion]
+    , actor: EventActor
   ) : Box[UserPolicyTemplate] 
 
   
@@ -113,12 +115,12 @@ trait UserPolicyTemplateRepository {
    * does not exists. 
    * 
    */
-  def move(uptId:UserPolicyTemplateId, newCategoryId:UserPolicyTemplateCategoryId) : Box[UserPolicyTemplateId] 
+  def move(uptId:UserPolicyTemplateId, newCategoryId:UserPolicyTemplateCategoryId, actor: EventActor) : Box[UserPolicyTemplateId] 
   
   /**
    * Set the status of the policy template to the new value
    */
-  def changeStatus(uptId:UserPolicyTemplateId, status:Boolean) : Box[UserPolicyTemplateId] 
+  def changeStatus(uptId:UserPolicyTemplateId, status:Boolean, actor: EventActor) : Box[UserPolicyTemplateId] 
   
   /**
    * Add new (version,acceptation datetime) to existing 
@@ -128,13 +130,13 @@ trait UserPolicyTemplateRepository {
    * Failure if an error happened, 
    * Full(id) when success
    */
-  def setAcceptationDatetimes(uptId:UserPolicyTemplateId, datetimes: Map[PolicyVersion,DateTime]) : Box[UserPolicyTemplateId]
+  def setAcceptationDatetimes(uptId:UserPolicyTemplateId, datetimes: Map[PolicyVersion,DateTime], actor: EventActor) : Box[UserPolicyTemplateId]
   
   /**
    * Delete the policy template in user library.
    * If no such element exists, it is a success.
    */
-  def delete(uptId:UserPolicyTemplateId) : Box[UserPolicyTemplateId] 
+  def delete(uptId:UserPolicyTemplateId, actor: EventActor) : Box[UserPolicyTemplateId] 
   
   /**
    * Retrieve the list of parents for the given policy template, 

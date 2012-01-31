@@ -52,6 +52,7 @@ import org.joda.time.format.DateTimeFormatterBuilder
 import org.joda.time.DateTimeFieldType
 import org.eclipse.jgit.revwalk.RevTag
 import org.eclipse.jgit.api.errors.JGitInternalException
+import org.eclipse.jgit.lib.PersonIdent
 
 
 /**
@@ -82,12 +83,12 @@ trait GitArchiverUtils extends Loggable {
    * Files in gitPath are added. 
    * commitMessage is used for the message of the commit. 
    */
-  def commitAddFile(gitPath:String, commitMessage:String) = synchronized {
+  def commitAddFile(commiter:PersonIdent, gitPath:String, commitMessage:String) = synchronized {
     tryo {
       gitRepo.git.add.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
       if(status.getAdded.contains(gitPath)||status.getChanged.contains(gitPath)) {
-        gitRepo.git.commit.setMessage(commitMessage).call
+        gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
         newArchiveId
       } else throw new Exception("Auto-archive git failure: not found in git added files: " + gitPath)
     }
@@ -97,12 +98,12 @@ trait GitArchiverUtils extends Loggable {
    * Files in gitPath are removed. 
    * commitMessage is used for the message of the commit. 
    */
-  def commitRmFile(gitPath:String, commitMessage:String) = synchronized {
+  def commitRmFile(commiter:PersonIdent, gitPath:String, commitMessage:String) = synchronized {
     tryo {
       gitRepo.git.rm.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
       if(status.getRemoved.contains(gitPath)) {
-        gitRepo.git.commit.setMessage(commitMessage).call
+        gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
         newArchiveId
       } else throw new Exception("Auto-archive git failure: not found in git removed files: " + gitPath)
     }
@@ -115,14 +116,14 @@ trait GitArchiverUtils extends Loggable {
    * 'git added' (with and without the 'update' mode). 
    * commitMessage is used for the message of the commit. 
    */
-  def commitMvDirectory(oldGitPath:String, newGitPath:String, commitMessage:String) = synchronized {
+  def commitMvDirectory(commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) = synchronized {
     tryo {
       gitRepo.git.rm.addFilepattern(oldGitPath).call
       gitRepo.git.add.addFilepattern(newGitPath).call
       gitRepo.git.add.setUpdate(true).addFilepattern(newGitPath).call //if some files were removed from dest dir
       val status = gitRepo.git.status.call
       if(status.getAdded.exists( path => path.startsWith(newGitPath) ) ) {
-        gitRepo.git.commit.setMessage(commitMessage).call
+        gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
         newArchiveId
       } else throw new Exception("Auto-archive git failure when moving directory (not found in added file): " + newGitPath)
     }
@@ -156,13 +157,13 @@ trait GitArchiverFullCommitUtils extends Loggable {
    * Commit all the modifications for files under the given path.
    * The commitMessage is used in the commit. 
    */
-  def commitFullGitPathContentAndTag(commitMessage:String) : Box[String] = synchronized {
+  def commitFullGitPathContentAndTag(commiter:PersonIdent, commitMessage:String) : Box[String] = synchronized {
     tryo {
       //remove existing and add modified
       gitRepo.git.add.setUpdate(true).addFilepattern(relativePath).call
       //also add new one
       gitRepo.git.add.addFilepattern(relativePath).call
-      val commit = gitRepo.git.commit.setMessage(commitMessage).call
+      val commit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
       val path = tagPrefix+DateTime.now.toString(GitTagDateTimeFormatter)
       gitRepo.git.tag.setMessage(commitMessage).
         setName(path).

@@ -40,13 +40,14 @@ import com.normation.cfclerk.domain.PolicyPackageId
 import com.normation.rudder.repository.UserPolicyTemplateRepository
 import net.liftweb.common._
 import org.joda.time.DateTime
+import com.normation.eventlog.EventActor
 
 class PolicyTemplateAcceptationDatetimeUpdater(
     override val name:String
   , uptRepo : UserPolicyTemplateRepository
 ) extends ReferenceLibraryUpdateNotification with Loggable {
   
-    def updatedPolicyPackage(policyPackageIds:Seq[PolicyPackageId]) : Unit = {
+    def updatedPolicyPackage(policyPackageIds:Seq[PolicyPackageId], actor:EventActor) : Unit = {
       val byNames = policyPackageIds.groupBy( _.name ).map { case (name,ids) => 
                       (name, ids.map( _.version )) 
                     }.toMap
@@ -62,7 +63,8 @@ class PolicyTemplateAcceptationDatetimeUpdater(
             logger.debug(error.messageChain)
           case Full(upt) => 
             logger.debug("Update acceptation datetime for: " + upt.referencePolicyTemplateName)
-            uptRepo.setAcceptationDatetimes(upt.id, versions.map( v => (v,acceptationDatetime)).toMap ) match {
+            val versionsMap = versions.map( v => (v,acceptationDatetime)).toMap
+            uptRepo.setAcceptationDatetimes(upt.id, versionsMap,  actor) match {
               case e:EmptyBox =>
                 logger.error("Error when saving User Policy Template " + upt.id, (e ?~! "Error was:"))
               case _ => //ok

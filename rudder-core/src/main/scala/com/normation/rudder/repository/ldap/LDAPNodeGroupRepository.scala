@@ -55,6 +55,7 @@ import scala.collection.SortedMap
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.utils.ScalaReadWriteLock
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
+import com.normation.rudder.services.user.PersonIdentService
 
 class LDAPNodeGroupRepository(
     rudderDit         : RudderDit
@@ -65,6 +66,7 @@ class LDAPNodeGroupRepository(
   , uuidGen           : StringUuidGenerator
   , actionLogger      : EventLogRepository
   , gitArchiver       : GitNodeGroupArchiver
+  , personIdentService: PersonIdentService
   , autoExportOnModify: Boolean 
   , groupLibMutex     : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends NodeGroupRepository with Loggable {
@@ -190,7 +192,8 @@ class LDAPNodeGroupRepository(
       autoArchive   <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                          for {
                            parents  <- categoryRepo.getParents_NodeGroupCategory(into)
-                           archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)) )
+                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                           archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)), Some(commiter))
                          } yield archived
                        } else Full("ok")
   	} yield {
@@ -224,7 +227,8 @@ class LDAPNodeGroupRepository(
                         for {
                           parent   <- getParentGroupCategory(nodeGroup.id)
                           parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
-                          archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id) )
+                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                          archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some(commiter))
                         } yield archived
                       } else Full("ok")
     } yield {
@@ -257,7 +261,8 @@ class LDAPNodeGroupRepository(
                            newGroup <- getNodeGroup(nodeGroup.id)
                            parent   <- getParentGroupCategory(nodeGroup.id)
                            parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
-                           moved    <- gitArchiver.moveNodeGroup(newGroup, oldParents, (parent::parents).map( _.id ))
+                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                           moved    <- gitArchiver.moveNodeGroup(newGroup, oldParents, (parent::parents).map( _.id ), Some(commiter))
                          } yield {
                            moved
                          }
@@ -341,7 +346,12 @@ class LDAPNodeGroupRepository(
       diff         =  DeleteNodeGroupDiff(oldGroup)
       loggedAction <- actionLogger.saveDeleteNodeGroup(principal = actor, deleteDiff = diff ) ?~! "Error when saving user event log for node deletion"
       autoArchive  <- if(autoExportOnModify) {
-                        gitArchiver.deleteNodeGroup(id, parents )
+                        for {
+                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                          archive  <- gitArchiver.deleteNodeGroup(id, parents, Some(commiter))
+                        } yield {
+                          archive
+                        }
                       } else Full("ok")
     } yield {
       diff

@@ -39,6 +39,7 @@ import net.liftweb.common._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.PolicyInstanceTarget
 import com.normation.utils.Utils
+import com.normation.eventlog.EventActor
 
 
 /**
@@ -91,17 +92,18 @@ trait GroupCategoryRepository {
   def addGroupCategorytoCategory(
       that:NodeGroupCategory,
       into:NodeGroupCategoryId //parent category
+    , actor:EventActor
   ) : Box[NodeGroupCategory] 
   
   /**
    * Update an existing group category
    */
-  def saveGroupCategory(category:NodeGroupCategory) : Box[NodeGroupCategory]  
+  def saveGroupCategory(category:NodeGroupCategory, actor:EventActor) : Box[NodeGroupCategory]  
 
   /**
     * Update/move an existing group category
     */
-   def saveGroupCategory(category: NodeGroupCategory, containerId : NodeGroupCategoryId): Box[NodeGroupCategory]
+   def saveGroupCategory(category: NodeGroupCategory, containerId : NodeGroupCategoryId, actor:EventActor): Box[NodeGroupCategory]
 
 
   /**
@@ -136,6 +138,6 @@ trait GroupCategoryRepository {
    *  - Full(category id) for a success
    *  - Failure(with error message) iif an error happened. 
    */
-  def delete(id:NodeGroupCategoryId, checkEmpty:Boolean = true) : Box[NodeGroupCategoryId]
+  def delete(id:NodeGroupCategoryId, actor:EventActor, checkEmpty:Boolean = true) : Box[NodeGroupCategoryId]
   
 }

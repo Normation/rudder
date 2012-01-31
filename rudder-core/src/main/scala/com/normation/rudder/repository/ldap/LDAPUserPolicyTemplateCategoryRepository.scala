@@ -68,6 +68,8 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import com.normation.utils.ScalaReadWriteLock
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
+import com.normation.rudder.services.user.PersonIdentService
+import com.normation.eventlog.EventActor
 
 /**
  * Category for User Template library in the LDAP
@@ -78,6 +80,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
   , ldap              : LDAPConnectionProvider
   , mapper            : LDAPEntityMapper
   , gitArchiver       : GitUserPolicyTemplateCategoryArchiver
+  , personIdentService: PersonIdentService
   , autoExportOnModify: Boolean  
   , userLibMutex      : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends UserPolicyTemplateCategoryRepository {
@@ -182,6 +185,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
   def addUserPolicyTemplateCategory(
       that:UserPolicyTemplateCategory,
       into:UserPolicyTemplateCategory //parent category
+    , actor: EventActor
   ) : Box[UserPolicyTemplateCategory] = {
     for {
       con                 <- ldap 
@@ -195,8 +199,9 @@ class LDAPUserPolicyTemplateCategoryRepository(
       result              <- userLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                                for {
-                                 parents <- this.getParents_UserPolicyTemplateCategory(that.id)
-                                 archive <- gitArchiver.archiveUserPolicyTemplateCategory(that,parents.map( _.id))
+                                 parents  <- this.getParents_UserPolicyTemplateCategory(that.id)
+                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                 archive  <- gitArchiver.archiveUserPolicyTemplateCategory(that,parents.map( _.id), Some(commiter))
                                } yield archive
                              } else Full("ok")
     } yield {
@@ -208,7 +213,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
    * Update an existing policy template category
    * Return the updated policy category
    */
-  def saveUserPolicyTemplateCategory(category:UserPolicyTemplateCategory) : Box[UserPolicyTemplateCategory] = {
+  def saveUserPolicyTemplateCategory(category:UserPolicyTemplateCategory, actor: EventActor) : Box[UserPolicyTemplateCategory] = {
     for {
       con              <- ldap 
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
@@ -222,8 +227,9 @@ class LDAPUserPolicyTemplateCategoryRepository(
       updated          <- getUserPolicyTemplateCategory(category.id)
       autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                             for {
-                              parents <- this.getParents_UserPolicyTemplateCategory(category.id)
-                              archive <- gitArchiver.archiveUserPolicyTemplateCategory(updated,parents.map( _.id))
+                              parents  <- this.getParents_UserPolicyTemplateCategory(category.id)
+                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                              archive  <- gitArchiver.archiveUserPolicyTemplateCategory(updated,parents.map( _.id), Some(commiter))
                             } yield archive
                           } else Full("ok")
     } yield {
@@ -280,7 +286,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
     } }
   } 
   
-  def delete(id:UserPolicyTemplateCategoryId, checkEmpty:Boolean = true) : Box[UserPolicyTemplateCategoryId] = {
+  def delete(id:UserPolicyTemplateCategoryId, actor:EventActor, checkEmpty:Boolean = true) : Box[UserPolicyTemplateCategoryId] = {
     for {
       con <-ldap
       deleted <- {
@@ -297,7 +303,12 @@ class LDAPUserPolicyTemplateCategoryRepository(
                                case e => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
                              }
               autoArchive <- (if(autoExportOnModify && ok.size > 0) {
-                               gitArchiver.deleteUserPolicyTemplateCategory(id,parents.map( _.id))
+                               for {
+                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                 archive  <- gitArchiver.deleteUserPolicyTemplateCategory(id,parents.map( _.id), Some(commiter))
+                               } yield {
+                                 archive
+                               }
                              } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
             } yield {
               id
@@ -316,7 +327,7 @@ class LDAPUserPolicyTemplateCategoryRepository(
    * Both category to move and destination have to exists, else it is a failure.
    * The destination category can not be a child of the category to move. 
    */
-  def move(categoryId:UserPolicyTemplateCategoryId, intoParent:UserPolicyTemplateCategoryId) : Box[UserPolicyTemplateCategoryId] = {
+  def move(categoryId:UserPolicyTemplateCategoryId, intoParent:UserPolicyTemplateCategoryId, actor: EventActor) : Box[UserPolicyTemplateCategoryId] = {
       for {
         con            <- ldap
         oldParents     <- if(autoExportOnModify) {
@@ -339,9 +350,10 @@ class LDAPUserPolicyTemplateCategoryRepository(
         result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn) }
         autoArchive    <- (if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                             for {
-                              newCat  <- getUserPolicyTemplateCategory(categoryId)
-                              parents <- this.getParents_UserPolicyTemplateCategory(categoryId)
-                              moved   <- gitArchiver.moveUserPolicyTemplateCategory(newCat, oldParents.map( _.id), parents.map( _.id))
+                              newCat   <- getUserPolicyTemplateCategory(categoryId)
+                              parents  <- this.getParents_UserPolicyTemplateCategory(categoryId)
+                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                              moved    <- gitArchiver.moveUserPolicyTemplateCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some(commiter))
                             } yield {
                               moved
                             }

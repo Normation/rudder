@@ -51,12 +51,14 @@ import com.normation.rudder.repository.ArchiveId
 import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
 import scala.xml.Text
-
+import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.services.user.PersonIdentService
+import org.eclipse.jgit.lib.PersonIdent
 
 class Archives extends DispatchSnippet with Loggable {
 
   private[this] val itemArchiver = inject[ItemArchiveManager]
-  
+  private[this] val personIdentService = inject[PersonIdentService]
   
   def dispatch = {
     case "allForm" => allForm 
@@ -165,7 +167,7 @@ class Archives extends DispatchSnippet with Loggable {
       formName                  : String               //the element name to update on error/succes
     , archiveButtonId           : String               //input button
     , archiveButtonName         : String               //what is displayed on the button to the user
-    , archiveFunction           : Boolean => Box[ArchiveId] //the actual logic to execute the action
+    , archiveFunction           : (PersonIdent, Boolean) => Box[ArchiveId] //the actual logic to execute the action
     , archiveErrorMessage       : String               //error message to display to the user
     , archiveSuccessDebugMessage: String => String     //debug log - the string param is the archive id
     , archiveDateSelectId       : String
@@ -200,7 +202,12 @@ class Archives extends DispatchSnippet with Loggable {
     // as part of the response
     def archive(): JsCmd = {
       S.clearCurrentNotices
-      archiveFunction(false) match {
+      (for {
+        commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.getActor.name)
+        archive  <- archiveFunction(commiter, false)
+      } yield {
+        archive
+      }) match {
         case eb:EmptyBox => error(eb, archiveErrorMessage)
         case Full(aid)   => success(archiveSuccessDebugMessage(aid.value))
       }

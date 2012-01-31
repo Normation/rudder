@@ -45,7 +45,7 @@ import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.nodes.{NodeGroupCategory,NodeGroupCategoryId}
 
 import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField,WBSelectField
+  WBTextField, FormTracker, WBTextAreaField,WBSelectField, CurrentUser
 }
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
@@ -171,7 +171,7 @@ class NodeGroupCategoryForm(
 	}
 	
 	private[this] def onDelete() : JsCmd = {
-	  groupCategoryRepository.delete(_nodeGroupCategory.id) match {
+	  groupCategoryRepository.delete(_nodeGroupCategory.id, CurrentUser.getActor) match {
 	    case Full(id) => 
 	      JsRaw("""$.modal.close();""") &
 	      SetHtml(htmlIdCategory, NodeSeq.Empty) &
@@ -272,7 +272,7 @@ class NodeGroupCategoryForm(
       )
 
       groupCategoryRepository.saveGroupCategory(newNodeGroup,
-            NodeGroupCategoryId(piContainer.is)) match {
+            NodeGroupCategoryId(piContainer.is), CurrentUser.getActor) match {
         case Full(x) =>
     			_nodeGroupCategory = x
     			onSuccess & onSuccessCallback() & successPopup

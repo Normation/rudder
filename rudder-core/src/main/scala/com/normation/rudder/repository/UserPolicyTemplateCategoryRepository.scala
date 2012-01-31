@@ -37,6 +37,7 @@ package com.normation.rudder.repository
 import com.normation.rudder.domain.policies._
 import net.liftweb.common._
 import com.normation.utils.Utils
+import com.normation.eventlog.EventActor
 
 
 
@@ -90,6 +91,7 @@ trait UserPolicyTemplateCategoryRepository {
   def addUserPolicyTemplateCategory(
       that:UserPolicyTemplateCategory,
       into:UserPolicyTemplateCategory //parent category
+    , actor: EventActor
   ) : Box[UserPolicyTemplateCategory] 
   
   /**
@@ -97,7 +99,7 @@ trait UserPolicyTemplateCategoryRepository {
    * Fail if the parent already contains a category of the
    * same name (name must be unique for a given level)
    */
-  def saveUserPolicyTemplateCategory(category:UserPolicyTemplateCategory) : Box[UserPolicyTemplateCategory]  
+  def saveUserPolicyTemplateCategory(category:UserPolicyTemplateCategory, actor: EventActor) : Box[UserPolicyTemplateCategory]  
   
   /**
    * Get the direct parent of the given category.
@@ -127,7 +129,7 @@ trait UserPolicyTemplateCategoryRepository {
    *  - Full(category id) for a success
    *  - Failure(with error message) iif an error happened. 
    */
-  def delete(id:UserPolicyTemplateCategoryId, checkEmpty:Boolean = true) : Box[UserPolicyTemplateCategoryId]
+  def delete(id:UserPolicyTemplateCategoryId, actor: EventActor, checkEmpty:Boolean = true) : Box[UserPolicyTemplateCategoryId]
   
   /**
    * Move an existing category into a new one.
@@ -136,6 +138,6 @@ trait UserPolicyTemplateCategoryRepository {
    * Fail if the parent already contains a category of the
    * same name (name must be unique for a given level)
    */
-  def move(categoryId:UserPolicyTemplateCategoryId, intoParent:UserPolicyTemplateCategoryId) : Box[UserPolicyTemplateCategoryId]
+  def move(categoryId:UserPolicyTemplateCategoryId, intoParent:UserPolicyTemplateCategoryId, actor: EventActor) : Box[UserPolicyTemplateCategoryId]
   
 }

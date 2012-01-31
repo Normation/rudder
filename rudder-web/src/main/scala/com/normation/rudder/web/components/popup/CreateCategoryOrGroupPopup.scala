@@ -206,7 +206,7 @@ class CreateCategoryOrGroupPopup(
             Nil,
             Nil
           ),
-          NodeGroupCategoryId(piContainer.is)
+          NodeGroupCategoryId(piContainer.is), CurrentUser.getActor
         ) match {
           case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
           case Empty =>

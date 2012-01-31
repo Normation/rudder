@@ -51,6 +51,7 @@ import com.normation.rudder.domain.log.{
 import com.normation.cfclerk.services.PolicyPackageService
 import com.normation.cfclerk.domain.PolicyPackageId
 import com.normation.utils.ScalaReadWriteLock
+import com.normation.rudder.services.user.PersonIdentService
 
 class LDAPPolicyInstanceRepository(
     rudderDit                       : RudderDit
@@ -61,6 +62,7 @@ class LDAPPolicyInstanceRepository(
   , policyPackageService            : PolicyPackageService
   , actionLogger                    : EventLogRepository
   , gitPiArchiver                   : GitPolicyInstanceArchiver
+  , personIdentService              : PersonIdentService
   , autoExportOnModify              : Boolean
   , userLibMutex                    : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends PolicyInstanceRepository {
@@ -193,7 +195,8 @@ class LDAPPolicyInstanceRepository(
       autoArchive <- if(autoExportOnModify && optDiff.isDefined) {
                        for {
                          parents  <- ldapUserPolicyTemplateRepository.userPolicyTemplateBreadCrump(upt.id)
-                         archived <- gitPiArchiver.archivePolicyInstance(pi, pt.id.name, parents.map( _.id), pt.rootSection)
+                         commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                         archived <- gitPiArchiver.archivePolicyInstance(pi, pt.id.name, parents.map( _.id), pt.rootSection, Some(commiter))
                        } yield archived
                      } else Full("ok")
     } yield {
@@ -225,7 +228,8 @@ class LDAPPolicyInstanceRepository(
       autoArchive  <- if(autoExportOnModify && deleted.size > 0) {
                         for {
                           parents  <- ldapUserPolicyTemplateRepository.userPolicyTemplateBreadCrump(upt.id)
-                          archived <- gitPiArchiver.deletePolicyInstance(pi.id, upt.referencePolicyTemplateName, parents.map( _.id))
+                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                          archived <- gitPiArchiver.deletePolicyInstance(pi.id, upt.referencePolicyTemplateName, parents.map( _.id), Some(commiter))
                         } yield archived
                       } else Full("ok")
     } yield {

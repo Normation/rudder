@@ -89,6 +89,7 @@ import com.normation.utils.ScalaLock
 import com.normation.rudder.web.rest.RestDeploy
 import com.normation.rudder.web.rest.RestDyngroupReload
 import com.normation.rudder.web.rest.RestPolicyTemplateReload
+import com.normation.rudder.services.user.TrivialPersonIdentService
 
 /**
  * Spring configuration for services
@@ -698,6 +699,12 @@ class AppConfig extends Loggable {
 
   @Bean 
   def ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryParser)
+
+  
+  @Bean //trivial definition of the person ident service
+  def personIdentService = new TrivialPersonIdentService
+  
+  ////////////// MUTEX FOR LDAP REPOS //////////////
   
   val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
   
@@ -707,6 +714,7 @@ class AppConfig extends Loggable {
   def ldapUserPolicyTemplateCategoryRepository:LDAPUserPolicyTemplateCategoryRepository = new LDAPUserPolicyTemplateCategoryRepository(
       rudderDit, ldap, ldapEntityMapper
     , gitUserPolicyTemplateCategoryArchiver
+    , personIdentService
     , autoArchiveItems
     , uptLibReadWriteMutex
   )
@@ -717,6 +725,7 @@ class AppConfig extends Loggable {
     , uuidGen
     , ldapUserPolicyTemplateCategoryRepository
     , gitUserPolicyTemplateArchiver
+    , personIdentService
     , autoArchiveItems
     , uptLibReadWriteMutex
   )
@@ -729,6 +738,7 @@ class AppConfig extends Loggable {
       , ldapUserPolicyTemplateRepository
       , policyPackageService,logRepository
       , gitPolicyInstanceArchiver
+      , personIdentService
       , autoArchiveItems
       , uptLibReadWriteMutex
     )
@@ -748,6 +758,7 @@ class AppConfig extends Loggable {
     ldapNodeGroupRepository,
     policyPackageService,logRepository,
     gitConfigurationRuleArchiver,
+    personIdentService,
     autoArchiveItems
   )
 
@@ -755,6 +766,7 @@ class AppConfig extends Loggable {
   def ldapGroupCategoryRepository = new LDAPGroupCategoryRepository(
       rudderDit, ldap, ldapEntityMapper
     , gitNodeGroupCategoryArchiver
+    , personIdentService
     , autoArchiveItems
     , groupLibReadWriteMutex
   )
@@ -767,6 +779,7 @@ class AppConfig extends Loggable {
     , uuidGen
     , logRepository
     , gitNodeGroupArchiver
+    , personIdentService
     , autoArchiveItems
     , groupLibReadWriteMutex
   )

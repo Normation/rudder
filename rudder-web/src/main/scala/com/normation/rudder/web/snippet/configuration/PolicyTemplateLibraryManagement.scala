@@ -332,7 +332,7 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
         case (sourcePtId, destCatId) :: Nil =>
           (for {
             upt <- userPolicyTemplateRepository.getUserPolicyTemplate(PolicyPackageName(sourcePtId)) ?~! "Error while trying to find user policy template with requested id %s".format(sourcePtId)
-            result <- userPolicyTemplateRepository.move(upt.id, UserPolicyTemplateCategoryId(destCatId))?~! "Error while trying to move user policy template with requested id '%s' to category id '%s'".format(sourcePtId,destCatId)
+            result <- userPolicyTemplateRepository.move(upt.id, UserPolicyTemplateCategoryId(destCatId), CurrentUser.getActor)?~! "Error while trying to move user policy template with requested id '%s' to category id '%s'".format(sourcePtId,destCatId)
           } yield {
             result
           }) match {
@@ -360,7 +360,7 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
        }) match {
         case (sourceCatId, destCatId) :: Nil =>
           (for {
-            result <- userPolicyTemplateCategoryRepository.move(UserPolicyTemplateCategoryId(sourceCatId), UserPolicyTemplateCategoryId(destCatId)) ?~! "Error while trying to move category with requested id %s into new parent: %s".format(sourceCatId,destCatId)
+            result <- userPolicyTemplateCategoryRepository.move(UserPolicyTemplateCategoryId(sourceCatId), UserPolicyTemplateCategoryId(destCatId), CurrentUser.getActor) ?~! "Error while trying to move category with requested id %s into new parent: %s".format(sourceCatId,destCatId)
           } yield {
             result
           }) match {
@@ -390,7 +390,7 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
         case (sourcePtId, destCatId) :: Nil =>
           val ptName = PolicyPackageName(sourcePtId)
           (for {
-            result <- userPolicyTemplateRepository.addPolicyTemplateInUserLibrary(UserPolicyTemplateCategoryId(destCatId), ptName, policyPackageService.getVersions(ptName).toSeq) ?~! "Error while trying to add system policy template with requested id '%s' in user library category '%s'".format(sourcePtId,destCatId)
+            result <- userPolicyTemplateRepository.addPolicyTemplateInUserLibrary(UserPolicyTemplateCategoryId(destCatId), ptName, policyPackageService.getVersions(ptName).toSeq, CurrentUser.getActor) ?~! "Error while trying to add system policy template with requested id '%s' in user library category '%s'".format(sourcePtId,destCatId)
           } yield {
             result
           }) match {
@@ -598,7 +598,7 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
   
   private[this] def reloadPolicyTemplateLibrary : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
       def process = {
-        updatePTLibService.update match {
+        updatePTLibService.update(CurrentUser.getActor) match {
           case Full(x) => 
             S.notice("updateOk", "The policy template library was successfully reloaded")
           case e:EmptyBox =>

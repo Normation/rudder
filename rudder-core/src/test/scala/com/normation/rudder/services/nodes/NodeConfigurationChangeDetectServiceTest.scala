@@ -52,7 +52,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.repository.UserPolicyTemplateRepository
 import com.normation.rudder.repository.CategoryAndUPT
 import scala.collection.immutable.SortedMap
-
+import com.normation.eventlog.EventActor
 
 
 class DummyUserPolicyTemplateRepository extends UserPolicyTemplateRepository {
@@ -81,16 +81,16 @@ class DummyUserPolicyTemplateRepository extends UserPolicyTemplateRepository {
   def addPolicyTemplateInUserLibrary(
     categoryId:UserPolicyTemplateCategoryId, 
     policyTemplateName:PolicyPackageName,
-    versions:Seq[PolicyVersion]
+    versions:Seq[PolicyVersion], actor: EventActor
   ) = Failure("Can't call this")
   
-  def move(uptId:UserPolicyTemplateId, newCategoryId:UserPolicyTemplateCategoryId) = Failure("Can't call this") 
+  def move(uptId:UserPolicyTemplateId, newCategoryId:UserPolicyTemplateCategoryId, actor: EventActor) = Failure("Can't call this") 
   
-  def changeStatus(uptId:UserPolicyTemplateId, status:Boolean) : Box[UserPolicyTemplateId] = Failure("Can't call this") 
+  def changeStatus(uptId:UserPolicyTemplateId, status:Boolean, actor: EventActor) : Box[UserPolicyTemplateId] = Failure("Can't call this") 
   
-  def setAcceptationDatetimes(uptId:UserPolicyTemplateId, datetimes: Map[PolicyVersion,DateTime]) = Failure("Can't call this")
+  def setAcceptationDatetimes(uptId:UserPolicyTemplateId, datetimes: Map[PolicyVersion,DateTime], actor: EventActor) = Failure("Can't call this")
   
-  def delete(uptId:UserPolicyTemplateId) = Failure("Can't call this")
+  def delete(uptId:UserPolicyTemplateId, actor: EventActor) = Failure("Can't call this")
   
   def userPolicyTemplateBreadCrump(id:UserPolicyTemplateId) = Failure("Can't call this")
   

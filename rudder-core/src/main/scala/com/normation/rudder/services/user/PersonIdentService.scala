@@ -31,32 +31,29 @@
 *
 *************************************************************************************
 */
+package com.normation.rudder.services.user
 
-package com.normation.rudder.web.rest
-
-import com.normation.rudder.batch.UpdateDynamicGroups
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.PlainTextResponse
-import net.liftweb.common._
-import com.normation.cfclerk.services.UpdatePolicyTemplateLibrary
-
+import net.liftweb.common.Box
+import org.eclipse.jgit.lib.PersonIdent
+import net.liftweb.common.Full
 
 /**
- * A rest api that allows to deploy promises.
+ * A service that allows to find git user information
+ * from an user name
  */
-class RestPolicyTemplateReload(
-    updatePTLibService : UpdatePolicyTemplateLibrary
-) extends RestHelper with Loggable {
+trait PersonIdentService {
   
-  serve {
-    case Get("api" :: "policyTemplateLibrary" :: "reload" :: Nil, req) =>
-      updatePTLibService.update(RestUtils.getActor(req)) match {
-        case Full(x) => PlainTextResponse("OK")
-        case eb:EmptyBox => 
-          val e = eb ?~! "An error occured when updating the policy template library from file system"
-          logger.debug(e.messageChain, e)
-          PlainTextResponse("Error: " + e.messageChain.mkString("\n","\ncause:","\n"))
-      }
+  /**
+   * Retrieve PersonIdent from a user name.
+   * The contract for that service is to return an
+   * 'unknown' person ident if the user is not found.
+   */
+  def getPersonIdentOrDefault(username:String) : Box[PersonIdent]
+
+}
+
+class TrivialPersonIdentService extends PersonIdentService {
+  override def getPersonIdentOrDefault(username:String) : Box[PersonIdent] = {
+    Full(new PersonIdent(username, "<email not set>"))
   }
-  
 }
