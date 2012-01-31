@@ -34,6 +34,7 @@ import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.services.marshalling.NodeGroupSerialisation
 import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
+import com.normation.eventlog.EventLogDetails
 
 trait EventLogFactory {
   
@@ -132,7 +133,12 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
   ) : AddConfigurationRule= {
     val details = EventLog.withContent(crToXml.serialise(addDiff.cr) % ("changeType" -> "add"))
-    AddConfigurationRule(id, principal, details, creationDate, severity)
+    AddConfigurationRule(EventLogDetails(
+        id = id
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , severity = severity))
   }
 
   
@@ -144,7 +150,12 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
   ) : DeleteConfigurationRule= {
     val details = EventLog.withContent(crToXml.serialise(deleteDiff.cr) % ("changeType" -> "delete"))
-    DeleteConfigurationRule(id, principal, details, creationDate, severity)
+    DeleteConfigurationRule(EventLogDetails(
+        id = id
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , severity = severity))
   }
   
   def getModifyConfigurationRuleFromDiff(    
@@ -178,7 +189,12 @@ class EventLogFactoryImpl(
         </configurationRule>
       )
     }
-    ModifyConfigurationRule(id, principal, details, creationDate, severity)
+    ModifyConfigurationRule(EventLogDetails(
+        id = id
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , severity = severity))
   }
   
   ///// 
@@ -194,7 +210,12 @@ class EventLogFactoryImpl(
     , severity           : Int = 100
   ) = {
     val details = EventLog.withContent(piToXml.serialise(addDiff.policyTemplateName, varsRootSectionSpec, addDiff.pi) % ("changeType" -> "add"))
-    AddPolicyInstance(id, principal, details, creationDate, severity)
+    AddPolicyInstance(EventLogDetails(
+        id = id
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , severity = severity))
   }
   
   def getDeletePolicyInstanceFromDiff(
@@ -206,7 +227,12 @@ class EventLogFactoryImpl(
     , severity           : Int = 100
   ) = {
     val details = EventLog.withContent(piToXml.serialise(deleteDiff.policyTemplateName, varsRootSectionSpec, deleteDiff.pi) % ("changeType" -> "delete"))
-    DeletePolicyInstance(id, principal, details, creationDate, severity)    
+    DeletePolicyInstance(EventLogDetails(
+        id = id
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , severity = severity))    
   }
   
   def getModifyPolicyInstanceFromDiff(
@@ -238,7 +264,12 @@ class EventLogFactoryImpl(
         </policyInstance>
       )
     }
-    ModifyPolicyInstance(id, principal, details, creationDate, severity)  
+    ModifyPolicyInstance(EventLogDetails(
+        id = id
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , severity = severity))  
   }
 
 
@@ -250,7 +281,12 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
   ) : AddNodeGroup = {
     val details = EventLog.withContent(groutToXml.serialise(addDiff.group) % ("changeType" -> "add"))
-    AddNodeGroup(id, principal, details, creationDate, severity)
+    AddNodeGroup(EventLogDetails(
+        id = id
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , severity = severity))
   }
 
   def getDeleteNodeGroupFromDiff(
@@ -261,7 +297,12 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
   ) : DeleteNodeGroup = {
     val details = EventLog.withContent(groutToXml.serialise(deleteDiff.group) % ("changeType" -> "delete"))
-    DeleteNodeGroup(id, principal, details, creationDate, severity)
+    DeleteNodeGroup(EventLogDetails(
+        id = id
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , severity = severity))
   }
 
   def getModifyNodeGroupFromDiff(
@@ -292,7 +333,12 @@ class EventLogFactoryImpl(
         }
       </nodeGroup>)
     }
-    ModifyNodeGroup(id, principal, details, creationDate, severity)
+    ModifyNodeGroup(EventLogDetails(
+        id = id
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , severity = severity))
   }
 }
 

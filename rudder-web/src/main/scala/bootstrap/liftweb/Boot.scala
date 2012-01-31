@@ -49,6 +49,8 @@ import com.normation.plugins.RudderPluginDef
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.domain.log.ApplicationStarted
 import com.normation.rudder.web.rest._
+import com.normation.eventlog.EventLogDetails
+import com.normation.eventlog.EventLog
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -201,7 +203,13 @@ class Boot extends Loggable {
 
     LiftRules.setSiteMapFunc(() => SiteMap(newSiteMap:_*))
 
-    inject[EventLogRepository].saveEventLog(ApplicationStarted())
+    inject[EventLogRepository].saveEventLog(
+        ApplicationStarted(
+            EventLogDetails(
+                principal = com.normation.rudder.domain.log.RudderEventActor
+              , details = EventLog.emptyDetails)
+        )
+     )
   }
   
   private[this] def initPlugins(menus:List[Menu]) : List[Menu] = {

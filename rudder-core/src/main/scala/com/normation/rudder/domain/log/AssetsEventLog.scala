@@ -85,20 +85,21 @@ object InventoryEventLog {
 
 
 final case class AcceptNodeEventLog (
-    override val id : Option[Int] = None
-  , override val principal : EventActor
-  , override val details : NodeSeq
-  , override val creationDate : DateTime = DateTime.now() 
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends InventoryEventLog with HashcodeCaching {
   
   override val eventLogCategory = AssetLogCategory
-  override val cause = None
-  override val eventType = AcceptNodeEventType
-  override def copySetCause(causeId:Int) = this
+  override val eventType = AcceptNodeEventLog.eventType
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+    
 }
 
-object AcceptNodeEventLog {
+object AcceptNodeEventLog extends EventLogFilter {
+  override val eventType = AcceptNodeEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : AcceptNodeEventLog = AcceptNodeEventLog(x._2) 
+
+  
   def fromInventoryLogDetails(
       id              : Option[Int] = None
     , principal       : EventActor
@@ -110,24 +111,25 @@ object AcceptNodeEventLog {
       inventoryDetails, "accept"
     ) )
     
-    AcceptNodeEventLog(id,principal,details,creationDate,severity) 
+    AcceptNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, details)) 
   }
 }
 
 final case class RefuseNodeEventLog (
-    override val id : Option[Int] = None
-  , override val principal : EventActor
-  , override val details : NodeSeq
-  , override val creationDate : DateTime = DateTime.now() 
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends InventoryEventLog with HashcodeCaching {
   override val eventLogCategory = AssetLogCategory
-  override val cause = None
-  override val eventType = RefuseNodeEventType
-  override def copySetCause(causeId:Int) = this
+  override val eventType = RefuseNodeEventLog.eventType
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object RefuseNodeEventLog {
+object RefuseNodeEventLog extends EventLogFilter {
+  
+  override val eventType = RefuseNodeEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : RefuseNodeEventLog = RefuseNodeEventLog(x._2) 
+
+  
   def fromInventoryLogDetails(
       id              : Option[Int] = None
     , principal       : EventActor
@@ -139,7 +141,7 @@ object RefuseNodeEventLog {
       inventoryDetails, "refuse"
     ) )
     
-    RefuseNodeEventLog(id,principal,details,creationDate,severity) 
+    RefuseNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, details)) 
   }
 }
 
@@ -187,19 +189,21 @@ object NodeEventLog {
 
 
 final case class DeleteNodeEventLog (
-    override val id : Option[Int] = None
-  , override val principal : EventActor
-  , override val details : NodeSeq
-  , override val creationDate : DateTime = DateTime.now() 
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends NodeEventLog with HashcodeCaching {
   override val eventLogCategory = AssetLogCategory
-  override val cause = None
-  override val eventType = DeleteNodeEventType
-  override def copySetCause(causeId:Int) = this
+  override val eventType = DeleteNodeEventLog.eventType
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
 }
 
-object DeleteNodeEventLog {
+object DeleteNodeEventLog extends EventLogFilter {
+  override val eventType = DeleteNodeEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : DeleteNodeEventLog = DeleteNodeEventLog(x._2) 
+
+  
+  
   def fromNodeLogDetails(
       id              : Option[Int] = None
     , principal       : EventActor
@@ -211,6 +215,14 @@ object DeleteNodeEventLog {
       node, "delete"
     ) )
     
-    DeleteNodeEventLog(id,principal,details,creationDate,severity) 
+    DeleteNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, details)) 
   }
+}
+
+object AssetsEventLogsFilter {
+  final val eventList : List[EventLogFilter] = List(
+      AcceptNodeEventLog 
+    , RefuseNodeEventLog 
+    , DeleteNodeEventLog
+    )
 }

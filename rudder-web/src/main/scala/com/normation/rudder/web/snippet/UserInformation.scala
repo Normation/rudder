@@ -50,7 +50,8 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.domain.log.LogoutEventLog
 import com.normation.eventlog.EventActor
 import com.normation.rudder.web.model.CurrentUser
-
+import com.normation.eventlog.EventLogDetails
+import com.normation.eventlog.EventLog
 
 class UserInformation extends DispatchSnippet with Loggable {
 
@@ -79,7 +80,14 @@ class UserInformation extends DispatchSnippet with Loggable {
               logger.info("Logout called for a null authentication, can not log user logout")
             case auth => auth.getPrincipal() match {
               case u:UserDetails =>
-                eventLogger.saveEventLog(LogoutEventLog(EventActor(u.getUsername)))
+                eventLogger.saveEventLog(
+                    LogoutEventLog(
+                        EventLogDetails(
+                            principal = EventActor(u.getUsername)
+                          , details = EventLog.emptyDetails
+                        )
+                    )
+                )
               case x => //impossible to know who is login out
                 logger.info("Logout called with unexpected UserDetails, can not log user logout. Details: " + x)
             }

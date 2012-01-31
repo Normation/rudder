@@ -39,6 +39,9 @@ import com.normation.eventlog.{EventLog,EventActor}
 import java.security.Principal
 import org.joda.time.DateTime
 import com.normation.utils.HashcodeCaching
+import com.normation.eventlog.EventLogDetails
+import com.normation.eventlog.EventLogFilter
+import com.normation.eventlog.EventLogType
 
 sealed trait UserEventLog extends EventLog {
   override val details = EventLog.emptyDetails
@@ -46,41 +49,59 @@ sealed trait UserEventLog extends EventLog {
 
 
 final case class LoginEventLog(
-    override val principal : EventActor
-  , override val id : Option[Int] = None
-  , override val creationDate : DateTime = DateTime.now()
-  , override val cause : Option[Int] = None
-  , severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends UserEventLog with HashcodeCaching {
   
-  override val eventType = LoginEventType
+  override val eventType = LoginEventLog.eventType
   override val eventLogCategory = UserLogCategory
-  override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+}
+
+object LoginEventLog extends EventLogFilter {
+  override val eventType = LoginEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : LoginEventLog = LoginEventLog(x._2) 
 }
 
 final case class BadCredentialsEventLog(
-    override val principal : EventActor
-  , override val id : Option[Int] = None
-  , override val creationDate : DateTime = DateTime.now()
-  , override val cause : Option[Int] = None
-  , severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends UserEventLog with HashcodeCaching {
 
-  override val eventType = BadCredentialsEventType
+  override val eventType = BadCredentialsEventLog.eventType
   override val eventLogCategory = UserLogCategory
-  override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+}
+
+object BadCredentialsEventLog extends EventLogFilter {
+  override val eventType = BadCredentialsEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : BadCredentialsEventLog = BadCredentialsEventLog(x._2) 
 }
 
 
 final case class LogoutEventLog(
-    override val principal : EventActor
-  , override val id : Option[Int] = None
-  , override val creationDate : DateTime = DateTime.now()
-  , override val cause : Option[Int] = None
-  , severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends UserEventLog with HashcodeCaching {
   
-  override val eventType = LogoutEventType
+  override val eventType = LogoutEventLog.eventType
   override val eventLogCategory = UserLogCategory
-  override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+}
+
+object LogoutEventLog extends EventLogFilter {
+  override val eventType = LogoutEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : LogoutEventLog = LogoutEventLog(x._2) 
+}
+
+
+object UserEventLogsFilter {
+  final val eventList : List[EventLogFilter] = List(
+      LoginEventLog
+    , LogoutEventLog
+    , BadCredentialsEventLog
+    )
 }

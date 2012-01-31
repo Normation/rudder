@@ -46,40 +46,56 @@ import com.normation.utils.HashcodeCaching
 sealed trait ConfigurationRuleEventLog extends EventLog
 
 final case class AddConfigurationRule(
-    override val id : Option[Int] = None
-  , override val principal : EventActor
-  , override val details : NodeSeq
-  , override val creationDate : DateTime = DateTime.now()
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends ConfigurationRuleEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = AddConfigurationRuleEventType
+  override val eventType = AddConfigurationRule.eventType
   override val eventLogCategory = ConfigurationRuleLogCategory
-  override def copySetCause(causeId:Int) = this
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+  
 }
+
+object AddConfigurationRule extends EventLogFilter {
+  override val eventType = AddConfigurationRuleEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : AddConfigurationRule = AddConfigurationRule(x._2) 
+}
+
 
 final case class DeleteConfigurationRule(
-    override val id : Option[Int] = None
-  , override val principal : EventActor
-  , override val details : NodeSeq
-  , override val creationDate : DateTime = DateTime.now()
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends ConfigurationRuleEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = DeleteConfigurationRuleEventType
+  override val eventType = DeleteConfigurationRule.eventType
   override val eventLogCategory = ConfigurationRuleLogCategory
-  override def copySetCause(causeId:Int) = this
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+  
 }
 
+object DeleteConfigurationRule extends EventLogFilter {
+  override val eventType = DeleteConfigurationRuleEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : DeleteConfigurationRule = DeleteConfigurationRule(x._2) 
+}
+
+
 final case class ModifyConfigurationRule(
-    override val id : Option[Int] = None
-  , override val principal : EventActor
-  , override val details : NodeSeq
-  , override val creationDate : DateTime = DateTime.now()
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends ConfigurationRuleEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = ModifyConfigurationRuleEventType
+  override val eventType = ModifyConfigurationRule.eventType
   override val eventLogCategory = ConfigurationRuleLogCategory
-  override def copySetCause(causeId:Int) = this
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+  
+}
+
+object ModifyConfigurationRule extends EventLogFilter {
+  override val eventType = ModifyConfigurationRuleEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyConfigurationRule = ModifyConfigurationRule(x._2) 
+}
+
+object ConfigurationRuleEventLogsFilter {
+  final val eventList : List[EventLogFilter] = List(
+      AddConfigurationRule 
+    , DeleteConfigurationRule 
+    , ModifyConfigurationRule
+    )
 }

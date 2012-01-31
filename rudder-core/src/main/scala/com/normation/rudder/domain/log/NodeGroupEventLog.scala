@@ -49,40 +49,59 @@ sealed trait NodeGroupEventLog extends EventLog
 
 
 final case class AddNodeGroup(
-    override val id : Option[Int] = None
-  , override val principal : EventActor
-  , override val details : NodeSeq
-  , override val creationDate : DateTime = DateTime.now()
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = AddNodeGroupEventType
+  override val eventType = AddNodeGroup.eventType
   override val eventLogCategory = NodeGroupLogCategory
-  override def copySetCause(causeId:Int) = this
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
 }
 
+object AddNodeGroup extends EventLogFilter {
+  override val eventType = AddNodeGroupEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : AddNodeGroup = AddNodeGroup(x._2) 
+}
+
+
 final case class DeleteNodeGroup(
-    override val id : Option[Int] = None
-  , override val principal : EventActor
-  , override val details : NodeSeq
-  , override val creationDate : DateTime = DateTime.now()
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = DeleteNodeGroupEventType
+  override val eventType = DeleteNodeGroup.eventType
   override val eventLogCategory = NodeGroupLogCategory
-  override def copySetCause(causeId:Int) = this
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+}
+
+object DeleteNodeGroup extends EventLogFilter {
+  override val eventType = DeleteNodeGroupEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : DeleteNodeGroup = DeleteNodeGroup(x._2) 
 }
 
 final case class ModifyNodeGroup(
-    override val id : Option[Int] = None
-  , override val principal : EventActor
-  , override val details : NodeSeq
-  , override val creationDate : DateTime = DateTime.now()
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = ModifyNodeGroupEventType
+  override val eventType = ModifyNodeGroup.eventType
   override val eventLogCategory = NodeGroupLogCategory
-  override def copySetCause(causeId:Int) = this
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+}
+
+object ModifyNodeGroup extends EventLogFilter {
+  override val eventType = ModifyNodeGroupEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyNodeGroup = ModifyNodeGroup(x._2) 
+}
+
+
+object NodeGroupEventLogsFilter {
+  final val eventList : List[EventLogFilter] = List(
+      AddNodeGroup 
+    , DeleteNodeGroup 
+    , ModifyNodeGroup
+    )
 }

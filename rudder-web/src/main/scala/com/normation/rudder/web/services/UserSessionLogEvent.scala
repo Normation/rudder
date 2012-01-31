@@ -46,6 +46,8 @@ import net.liftweb.common.Loggable
 import org.springframework.security.core.userdetails.UserDetails
 import com.normation.eventlog.EventActor
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent
+import com.normation.eventlog.EventLogDetails
+import com.normation.eventlog.EventLog
 
 /**
  * A class used to log user session creation/destruction events.
@@ -62,7 +64,14 @@ class UserSessionLogEvent(
       case login:AuthenticationSuccessEvent => 
         login.getAuthentication.getPrincipal match {
           case u:UserDetails => 
-            repository.saveEventLog(LoginEventLog(EventActor(u.getUsername)))
+            repository.saveEventLog(
+                LoginEventLog(
+                    EventLogDetails( 
+                        principal = EventActor(u.getUsername)
+                      , details = EventLog.emptyDetails
+                    )
+                )
+            )
           case x => 
             logger.warn("The application received an Authentication 'success' event with a parameter that is neither a principal nor some user details. I don't know how to log that event in database. Event parameter was: " +x)
         }
@@ -70,7 +79,14 @@ class UserSessionLogEvent(
       case badLogin:AuthenticationFailureBadCredentialsEvent =>
         badLogin.getAuthentication.getPrincipal match {
           case u:String =>
-            repository.saveEventLog(BadCredentialsEventLog(EventActor(u)))
+            repository.saveEventLog(
+                BadCredentialsEventLog(
+                    EventLogDetails( 
+                    	principal = EventActor(u)
+                      , details = EventLog.emptyDetails
+                    )
+                )
+            )
           case x =>
             logger.warn("The application received an Authentication 'bad credential' event with a parameter that is not the principal login. I don't know how to log that event in database. Event parameter was: " +x)
         }

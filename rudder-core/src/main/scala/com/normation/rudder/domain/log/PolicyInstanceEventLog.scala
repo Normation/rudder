@@ -46,40 +46,58 @@ import com.normation.utils.HashcodeCaching
 sealed trait PolicyInstanceEventLog extends EventLog
 
 final case class AddPolicyInstance(
-    override val id : Option[Int] = None
-  , override val principal : EventActor
-  , override val details : NodeSeq
-  , override val creationDate : DateTime = DateTime.now()
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends PolicyInstanceEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = AddPolicyInstanceEventType
+  override val eventType = AddPolicyInstance.eventType
   override val eventLogCategory = PolicyInstanceLogCategory
-  override def copySetCause(causeId:Int) = this
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+}
+
+object AddPolicyInstance extends EventLogFilter {
+  override val eventType = AddPolicyInstanceEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : AddPolicyInstance = AddPolicyInstance(x._2) 
 }
 
 final case class DeletePolicyInstance(
-    override val id : Option[Int] = None
-  , override val principal : EventActor
-  , override val details : NodeSeq
-  , override val creationDate : DateTime = DateTime.now()
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends PolicyInstanceEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = ModifyPolicyInstanceEventType
+  override val eventType = DeletePolicyInstance.eventType
   override val eventLogCategory = PolicyInstanceLogCategory
-  override def copySetCause(causeId:Int) = this
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
 }
 
+object DeletePolicyInstance extends EventLogFilter {
+  override val eventType = DeletePolicyInstanceEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : DeletePolicyInstance = DeletePolicyInstance(x._2) 
+}
+
+
 final case class ModifyPolicyInstance(
-    override val id : Option[Int] = None
-  , override val principal : EventActor
-  , override val details : NodeSeq
-  , override val creationDate : DateTime = DateTime.now()
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends PolicyInstanceEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = ModifyPolicyInstanceEventType
+  override val eventType = ModifyPolicyInstance.eventType
   override val eventLogCategory = PolicyInstanceLogCategory
-  override def copySetCause(causeId:Int) = this
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+}
+
+object ModifyPolicyInstance extends EventLogFilter {
+  override val eventType = ModifyPolicyInstanceEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyPolicyInstance = ModifyPolicyInstance(x._2) 
+}
+
+object PolicyInstanceEventLogsFilter {
+  final val eventList : List[EventLogFilter] = List(
+      AddPolicyInstance 
+    , DeletePolicyInstance 
+    , ModifyPolicyInstance
+    )
 }

@@ -182,164 +182,62 @@ class EventLogJdbcRepository(
 
 object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
     
-  def mapRow(rs : ResultSet, rowNum: Int) : EventLog = {      
-    mapEventLog(
-        eventType = EventTypeFactory(rs.getString("eventType"))
-      , id = Some(rs.getInt("id"))
-      , category = "TODO"
-      , principal = EventActor(rs.getString("principal"))
-      , creationDate = new DateTime(rs.getTimestamp("creationDate"))
-      , cause = {
-          if(rs.getInt("causeId")>0) {
-            Some(rs.getInt("causeId"))
-          } else None
-        }
+  def mapRow(rs : ResultSet, rowNum: Int) : EventLog = {
+    val eventLogDetails = EventLogDetails(
+        id 				= Some(rs.getInt("id"))
+      , principal 		= EventActor(rs.getString("principal"))
+      , creationDate 	= new DateTime(rs.getTimestamp("creationDate"))
+      , cause 			= {
+					          if(rs.getInt("causeId")>0) {
+					            Some(rs.getInt("causeId"))
+					          } else None
+					        }
       , severity = rs.getInt("severity")
       , details = XML.load(rs.getSQLXML("data").getBinaryStream() )
+    )
+    
+    mapEventLog(
+        eventType = EventTypeFactory(rs.getString("eventType"))
+      , eventLogDetails 
     ) match {
       case Full(e) => e
       case e:EmptyBox => 
         logger.warn("Error when trying to get the event type, recorded type was: " + rs.getString("eventType"), e)
         UnspecializedEventLog(
-            id = Some(rs.getInt("id"))
-          , principal = EventActor(rs.getString("principal"))
-          , creationDate = new DateTime(rs.getTimestamp("creationDate"))
-          , cause = {
-              if(rs.getInt("causeId")>0) {
-                Some(rs.getInt("causeId"))
-              } else None
-            }
-          , severity = rs.getInt("severity")
-          , details = XML.load(rs.getSQLXML("data").getBinaryStream() )
+            eventLogDetails
         )
       }
   }
   
+  private[this] val logFilters = 
+        AssetsEventLogsFilter.eventList ::: 
+        ConfigurationRuleEventLogsFilter.eventList :::
+        GenericEventLogsFilter.eventList :::
+        ImportExportEventLogsFilter.eventList :::
+        NodeGroupEventLogsFilter.eventList :::
+        PolicyInstanceEventLogsFilter.eventList :::
+        PolicyServerEventLogsFilter.eventList :::
+        PromisesEventLogsFilter.eventList :::
+        UserEventLogsFilter.eventList
+        
+    
   
   private[this] def mapEventLog(
-      eventType : EventLogType
-    , id		: Option[Int]
-    , category	: String
-    , principal	: EventActor
-    , creationDate:DateTime
-    , cause		: Option[Int]
-    , severity	: Int
-    , details	: NodeSeq
+      eventType 		: EventLogType
+    , eventLogDetails	: EventLogDetails
   ) : Box[EventLog] = {
   
-    eventType match {
-      case ActivateRedButtonEventType =>
-        Full(ActivateRedButton(principal, id, creationDate, cause, severity))
-        
-      case ReleaseRedButtonEventType =>
-        Full(ReleaseRedButton(principal, id, creationDate, cause, severity))
+	logFilters.find {
+	  pf => pf.isDefinedAt((eventType, eventLogDetails))
+	}.map(
+	  x => x.apply((eventType, eventLogDetails))    
+	) match {
+	  case Some(value) => Full(value)
+	  case None =>
+	    logger.error("Could not match event type %s".format(eventType.serialize))
+	    Failure("Unknow Event type")
+	}
 
-      case AcceptNodeEventType =>
-        Full(AcceptNodeEventLog(id, principal, details, creationDate, severity))
-
-      case RefuseNodeEventType =>
-        Full(RefuseNodeEventLog(id, principal, details, creationDate, severity))
-
-      case DeleteNodeEventType =>
-        Full(DeleteNodeEventLog(id, principal, details, creationDate, severity))
-
-      
-      case LoginEventType =>
-        Full(LoginEventLog(principal, id, creationDate, cause, severity))
-        
-      case LogoutEventType =>
-        Full(LogoutEventLog(principal, id, creationDate, cause, severity))
-                
-      case BadCredentialsEventType =>
-        Full(BadCredentialsEventLog(principal, id, creationDate, cause, severity))
-
-      case ApplicationStartedEventType =>
-        Full(ApplicationStarted(id, creationDate, severity))
-        
-      case AutomaticStartDeployementEventType => 
-        Full(AutomaticStartDeployement(principal, details, id, creationDate, cause, severity))
-
-      case ManualStartDeployementEventType => 
-        Full(ManualStartDeployement(principal, details, id, creationDate, cause, severity))
-        
-      case SuccessfulDeploymentEventType => 
-        Full(SuccessfulDeployment(principal, details, id, creationDate, cause, severity))
-        
-      case FailedDeploymentEventType => 
-        Full(FailedDeployment(principal, details, id, creationDate, cause, severity))
-     
-      
-      ///////////// configuration rules /////////////
-        
-      case AddConfigurationRuleEventType =>
-        Full(AddConfigurationRule(id,principal,details,creationDate,severity))
-        
-      case DeleteConfigurationRuleEventType =>
-        Full(DeleteConfigurationRule(id,principal,details,creationDate,severity))
-        
-      case ModifyConfigurationRuleEventType =>
-        Full(ModifyConfigurationRule(id,principal,details,creationDate,severity))
-
-      ///////////// policy instances /////////////
-        
-      case AddPolicyInstanceEventType =>
-        Full(AddPolicyInstance(id,principal,details,creationDate,severity))
-        
-      case DeletePolicyInstanceEventType =>
-        Full(DeletePolicyInstance(id,principal,details,creationDate,severity))
-        
-      case ModifyPolicyInstanceEventType =>
-        Full(ModifyPolicyInstance(id,principal,details,creationDate,severity))
-
-      ///////////// policy instances /////////////
-        
-      case AddNodeGroupEventType =>
-        Full(AddNodeGroup(id,principal,details,creationDate,severity))
-        
-      case DeleteNodeGroupEventType =>
-        Full(DeleteNodeGroup(id,principal,details,creationDate,severity))
-        
-      case ModifyNodeGroupEventType =>
-        Full(ModifyNodeGroup(id,principal,details,creationDate,severity))
-
-      ///////////// system /////////////
-      case ClearCacheEventType =>
-        Full(ClearCache(principal,id,creationDate,cause,severity))    
-      
-      ///////////// policy server //////
-      case UpdatePolicyServerEventType =>
-        Full(UpdatePolicyServer(id,principal,details,creationDate,severity))
-        
-      ///////////// import/export //////
-      case ExportGroupsEventType =>
-        Full(ExportGroups(id,principal,details,creationDate,severity))
-        
-      case ImportGroupsEventType =>
-        Full(ImportGroups(id,principal,details,creationDate,severity))
-      
-      case ExportPolicyLibraryEventType =>
-        Full(ExportPolicyLibrary(id,principal,details,creationDate,severity))
-        
-      case ImportPolicyLibraryEventType =>
-        Full(ImportPolicyLibrary(id,principal,details,creationDate,severity))
-        
-      case ExportCrsEventType =>
-        Full(ExportCRs(id,principal,details,creationDate,severity))
-        
-      case ImportCrsEventType =>
-        Full(ImportCRs(id,principal,details,creationDate,severity))
-        
-      case ExportAllLibrariesEventType =>
-        Full(ExportAllLibraries(id,principal,details,creationDate,severity))
-        
-      case ImportAllLibrariesEventType =>
-        Full(ImportAllLibraries(id,principal,details,creationDate,severity))
-      ///////////// others /////////////
-        
-      case _ => Failure("Unknow Event type")
-        
-    }
-    
   }
 
   private def valuesParsing(elt: NodeSeq): Seq[String] = {

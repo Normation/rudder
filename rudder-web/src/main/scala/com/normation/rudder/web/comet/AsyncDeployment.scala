@@ -56,6 +56,7 @@ import com.normation.rudder.domain.log.RudderEventActor
 import org.joda.time.DateTime
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.web.services.EventListDisplayer
+import com.normation.eventlog.EventLogDetails
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
   
@@ -110,7 +111,15 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         		lastSuccessfulDeployement match {
         			case f: EmptyBox => 
         			  lastEventSinceDeployment = eventLogDeploymentService.getListOfModificationEvents(
-        			      UnspecializedEventLog(Some(-1), RudderEventActor, DateTime.now, None, 0, <entry/>) )
+        			      UnspecializedEventLog(
+        			          EventLogDetails(
+        			              id = Some(-1)
+        			            , principal = RudderEventActor
+        			            , creationDate = DateTime.now
+        			            , cause = None
+        			            , severity = 0
+        			            , details = <entry/>) )
+        			      )
         			case Full(event) =>
         			  lastEventSinceDeployment = eventLogDeploymentService.getListOfModificationEvents(event)
         		}

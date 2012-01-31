@@ -38,66 +38,90 @@ import org.joda.time.DateTime
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.utils.HashcodeCaching
+import com.normation.eventlog.EventLogDetails
+import com.normation.eventlog.EventLogFilter
+import com.normation.eventlog.EventLogType
 
 
 final case class ApplicationStarted(
-    override val id : Option[Int] = None
-  , override val creationDate : DateTime = DateTime.now()
-  , override val severity : Int = 100
+    override val eventDetails : EventLogDetails
 ) extends EventLog with HashcodeCaching {
   override val cause = None
   override val principal = RudderEventActor
-  override val eventType = ApplicationStartedEventType
+  override val eventType = ApplicationStarted.eventType
   override def details = EventLog.emptyDetails
   override val eventLogCategory = RudderApplicationLogCategory
   override def copySetCause(causeId:Int) = this
 }
 
+object ApplicationStarted extends EventLogFilter {
+  override val eventType = ApplicationStartedEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : ApplicationStarted = ApplicationStarted(x._2) 
+}
 /**
  * Red buton part
  */
 final case class ActivateRedButton(
-    override val principal : EventActor
-  , override val id : Option[Int] = None
-  , override val creationDate : DateTime = DateTime.now()
-  , override val cause : Option[Int] = None
-  , override val severity : Int = 100
+		override val eventDetails : EventLogDetails
 ) extends EventLog with HashcodeCaching {
   
-  override val eventType = ActivateRedButtonEventType
+  override val eventType = ActivateRedButton.eventType
   override def details = EventLog.emptyDetails
   override val eventLogCategory = RedButtonLogCategory
-  override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+}
+
+object ActivateRedButton extends EventLogFilter {
+  override val eventType = ActivateRedButtonEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : ActivateRedButton = ActivateRedButton(x._2) 
 }
 
 final case class ReleaseRedButton(
-    override val principal : EventActor
-  , override val id : Option[Int] = None
-  , override val creationDate : DateTime = DateTime.now() 
-  , override val cause : Option[Int] = None
-  , override val severity : Int = 100
+		override val eventDetails : EventLogDetails
 ) extends EventLog with HashcodeCaching {
   
-  override val eventType = ReleaseRedButtonEventType
+  override val eventType = ReleaseRedButton.eventType
   override def details= EventLog.emptyDetails
   override val eventLogCategory = RedButtonLogCategory
-  override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
 }
 
+object ReleaseRedButton extends EventLogFilter {
+  override val eventType = ReleaseRedButtonEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : ReleaseRedButton = ReleaseRedButton(x._2) 
+}
 
 /**
  * Clear cache
  */
 final case class ClearCache(
-    override val principal : EventActor
-  , override val id : Option[Int] = None
-  , override val creationDate : DateTime = DateTime.now()
-  , override val cause : Option[Int] = None
-  , override val severity : Int = 100
+   override val eventDetails : EventLogDetails
 ) extends EventLog with HashcodeCaching {
   
-  override val eventType = ClearCacheEventType
+  override val eventType = ClearCache.eventType
   override def details = EventLog.emptyDetails
   override val eventLogCategory = RudderApplicationLogCategory
-  override def copySetCause(causeId:Int) = this.copy(cause = Some(causeId))
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+}
+
+object ClearCache extends EventLogFilter {
+  override val eventType = ClearCacheEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : ClearCache = ClearCache(x._2) 
+}
+
+
+object GenericEventLogsFilter {
+  final val eventList : List[EventLogFilter] = List(
+      ApplicationStarted 
+    , ActivateRedButton 
+    , ReleaseRedButton
+    , ClearCache
+    )
 }

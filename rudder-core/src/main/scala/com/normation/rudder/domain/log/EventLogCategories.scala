@@ -170,50 +170,52 @@ final case object ImportAllLibrariesEventType extends EventLogType {
 
 
 object EventTypeFactory {
+  val eventTypes = List[EventLogType](
+      AutomaticStartDeployementEventType
+    , ManualStartDeployementEventType
+    , SuccessfulDeploymentEventType
+    , FailedDeploymentEventType
+    
+    , LoginEventType
+    , BadCredentialsEventType
+    , LogoutEventType
+    
+    , AddNodeGroupEventType
+    , DeleteNodeGroupEventType
+    , ModifyNodeGroupEventType
+    
+    , AddPolicyInstanceEventType
+    , DeletePolicyInstanceEventType
+    , ModifyPolicyInstanceEventType
+    
+    , ApplicationStartedEventType
+    , ActivateRedButtonEventType
+    , ReleaseRedButtonEventType
+      
+    , AddConfigurationRuleEventType
+    , DeleteConfigurationRuleEventType
+    , ModifyConfigurationRuleEventType
+      
+    , AcceptNodeEventType
+    , RefuseNodeEventType
+    , DeleteNodeEventType
+      
+    , ClearCacheEventType
+    , UpdatePolicyServerEventType
+      
+    , ExportGroupsEventType
+    , ImportGroupsEventType
+    , ExportPolicyLibraryEventType
+    , ImportPolicyLibraryEventType
+    , ExportCrsEventType
+    , ImportCrsEventType
+    , ExportAllLibrariesEventType
+    , ImportAllLibrariesEventType)
+      
   def apply(s:String) : EventLogType = {
-    s match {
-      case "AutomaticStartDeployement" 	=> AutomaticStartDeployementEventType
-      case "ManualStartDeployement" 	=> ManualStartDeployementEventType
-      case "SuccessfulDeployment"		=> SuccessfulDeploymentEventType
-      case "FailedDeployment"			=> FailedDeploymentEventType
-
-      case "UserLogin"					=> LoginEventType
-      case "BadCredentials"				=> BadCredentialsEventType
-      case "UserLogout"					=> LogoutEventType
-
-      case "NodeGroupAdded"				=> AddNodeGroupEventType
-      case "NodeGroupDeleted"			=> DeleteNodeGroupEventType
-      case "NodeGroupModified"			=> ModifyNodeGroupEventType
-
-      case "PolicyInstanceAdded"		=> AddPolicyInstanceEventType
-      case "PolicyInstanceDeleted"		=> DeletePolicyInstanceEventType
-      case "PolicyInstanceModified"		=> ModifyPolicyInstanceEventType
-      
-      case "ApplicationStarted"			=> ApplicationStartedEventType
-      case "ActivateRedButton"			=> ActivateRedButtonEventType
-      case "ReleaseRedButton"			=> ReleaseRedButtonEventType
-      
-      case "ConfigurationRuleAdded"		=> AddConfigurationRuleEventType
-      case "ConfigurationRuleDeleted"	=> DeleteConfigurationRuleEventType
-      case "ConfigurationRuleModified"	=> ModifyConfigurationRuleEventType
-      
-      case "AcceptNode"					=> AcceptNodeEventType
-      case "RefuseNode"					=> RefuseNodeEventType
-      case "DeleteNode"					=> DeleteNodeEventType
-      
-      case "ClearCache"					=> ClearCacheEventType
-      case "UpdatePolicyServer"			=> UpdatePolicyServerEventType
-      
-      case "ExportGroups"				=> ExportGroupsEventType
-      case "ImportGroups"				=> ImportGroupsEventType
-      case "ExportPolicyLibrary"		=> ExportPolicyLibraryEventType
-      case "ImportPolicyLibrary"		=> ImportPolicyLibraryEventType
-      case "ExportCRs"					=> ExportCrsEventType
-      case "ImportCRs"					=> ImportCrsEventType
-      case "ExportAllLibraries"			=> ExportAllLibrariesEventType
-      case "ImportAllLibraries"			=> ImportAllLibrariesEventType
-      
-      case _ 							=> UnknownEventLogType
-    }
+    eventTypes.find {
+      pf => pf.isDefinedAt(s)
+    }.getOrElse(UnknownEventLogType)
+    
   }
 }
