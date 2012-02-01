@@ -167,6 +167,7 @@ trait GitArchiverFullCommitUtils extends Loggable {
       val path = tagPrefix+DateTime.now.toString(GitTagDateTimeFormatter)
       gitRepo.git.tag.setMessage(commitMessage).
         setName(path).
+        setTagger(commiter).
         setObjectId(commit).call.name
     }
   }
