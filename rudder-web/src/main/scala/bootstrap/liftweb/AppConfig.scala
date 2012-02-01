@@ -86,9 +86,7 @@ import com.normation.rudder.services.policies.DeployOnPolicyTemplateCallback
 import scala.xml.PrettyPrinter
 import com.normation.rudder.services.marshalling._
 import com.normation.utils.ScalaLock
-import com.normation.rudder.web.rest.RestDeploy
-import com.normation.rudder.web.rest.RestDyngroupReload
-import com.normation.rudder.web.rest.RestPolicyTemplateReload
+import com.normation.rudder.web.rest._
 import com.normation.rudder.services.user.TrivialPersonIdentService
 
 /**
@@ -953,6 +951,9 @@ class AppConfig extends Loggable {
   
   @Bean
   def restDptLibReload = new RestPolicyTemplateReload(policyPackageService)
+  
+  @Bean
+  def restArchiving = new RestArchiving(itemArchiveManager,personIdentService)
   
   //////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////// Policy Editor and web fields //////////////////////////////

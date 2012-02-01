@@ -86,6 +86,7 @@ class ItemArchiveManagerImpl(
   }
   
   def importAll(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit] = {
+    logger.info("Importing full archive with id '%s'".format(archiveId.getTagName))
     for {
       configurationRules <- importConfigurationRules(archiveId, includeSystem)
       userLib            <- importPolicyLibrary(archiveId, includeSystem)
@@ -165,6 +166,7 @@ class ItemArchiveManagerImpl(
   }
   
   def importConfigurationRules(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit] = {
+    logger.info("Importing configuration rules archive with id '%s'".format(archiveId.getTagName))
     for {
       parsed   <- parseConfigurationRules.getArchive(archiveId)
       imported <- configurationRuleRepository.swapConfigurationRules(parsed)
@@ -181,6 +183,7 @@ class ItemArchiveManagerImpl(
   }
   
   def importPolicyLibrary(archiveId:RevTag, includeSystem:Boolean) : Box[Unit] = {
+    logger.info("Importing policy library archive with id '%s'".format(archiveId.getTagName))
       for {
         parsed   <- parsePolicyLibrary.getArchive(archiveId)
         imported <- importPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
@@ -190,6 +193,7 @@ class ItemArchiveManagerImpl(
   }
   
   def importGroupLibrary(archiveId:RevTag, includeSystem:Boolean) : Box[Unit] = {
+    logger.info("Importing groups archive with id '%s'".format(archiveId.getTagName))
       for {
         parsed   <- parseGroupLibrary.getArchive(archiveId)
         imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
