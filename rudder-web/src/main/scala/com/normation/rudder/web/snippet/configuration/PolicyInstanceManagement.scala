@@ -140,7 +140,7 @@ class PolicyInstanceManagement extends DispatchSnippet with Loggable {
   def userLibrary() : NodeSeq = {
     (
       <div id={htmlId_userTree}>
-        <ul>{jsTreeNodeOf_uptCategory(userPolicyTemplateCategoryRepository.getUserPolicyTemplateLibrary).toXml}</ul>
+        <ul>{jsTreeNodeOf_uptCategory(userPolicyTemplateCategoryRepository.getUserPolicyTemplateLibrary, "jstn_0").toXml}</ul>
       </div>
     ) ++ Script(OnLoad(buildJsTree))
   }
@@ -348,7 +348,7 @@ class PolicyInstanceManagement extends DispatchSnippet with Loggable {
    *   - other user categories
    *   - user policy templates
    */
-  private[this] def jsTreeNodeOf_uptCategory(category:UserPolicyTemplateCategory) : JsTreeNode = {
+  private[this] def jsTreeNodeOf_uptCategory(category:UserPolicyTemplateCategory, nodeId:String) : JsTreeNode = {
     /*
      * Transform a PolicyInstance into a JsTree node
      */
@@ -413,9 +413,10 @@ class PolicyInstanceManagement extends DispatchSnippet with Loggable {
       }
       override def children = 
           category.children.flatMap(treeUtilService.getUptCategory( _,logger )).toList.
-            sortWith( treeUtilService.sortUptCategory( _,_ ) ).map(jsTreeNodeOf_uptCategory(_)) ++ 
-          category.items.flatMap( treeUtilService.getUpt(_,logger)).toList.sortWith( _._2.name < _._2.name).map { case(upt,pt) => jsTreeNodeOf_upt(upt,pt) }
-      override val attrs = ( "rel" -> "category") :: Nil
+            sortWith( treeUtilService.sortUptCategory( _,_ ) ).zipWithIndex.map{ case (node, i) =>
+              jsTreeNodeOf_uptCategory(node, nodeId + "_" + i)
+            } ++ category.items.flatMap( treeUtilService.getUpt(_,logger)).toList.sortWith( _._2.name < _._2.name).map { case(upt,pt) => jsTreeNodeOf_upt(upt,pt) }
+      override val attrs = ( "rel" -> "category") :: ( "id" -> nodeId) :: Nil
     }
   }
 }

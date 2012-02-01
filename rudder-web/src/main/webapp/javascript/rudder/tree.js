@@ -130,13 +130,11 @@ var buildUserPolicyTemplateTree = function(id, foreignTreeId) {
  * Policy instance management
  */
 var buildPolicyInstanceTree = function(id, initially_select) {
-  jQuery(id).
-    bind("loaded.jstree", function (event, data) {
-      data.inst.open_all(-1);
-    }).jstree({ 
+  jQuery(id).jstree({ 
       "core" : { 
       "animation" : 0,
-      "html_titles" : true
+      "html_titles" : true,
+      "initially_open" : [ "jstn_0" ]
       },
      "ui" : { 
         "select_limit" : 1,
