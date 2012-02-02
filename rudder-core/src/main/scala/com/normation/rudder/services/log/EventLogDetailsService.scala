@@ -488,14 +488,14 @@ class EventLogDetailsServiceImpl(
       name				<- (details \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type node : " + entry)
       hostname			<- (details \ "hostname").headOption.map( _.text ) ?~! ("Missing attribute 'hostname' in entry type node : " + entry)
       description		<- (details \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type node : " + entry)
-      ips				<- (details \ "ips").headOption.map {
+      /*ips				<- (details \ "ips").headOption.map {
         						case  x:NodeSeq => 
-	                            	(x \ "ip").toSeq.map( (y:NodeSeq) => y.text  )
-	                          }?~! ("Missing attribute 'ips' in entry type node : " + entry) 
+	                            	(x \ "ip").map( (y:NodeSeq) => y.text  )
+	                          }?~! ("Missing attribute 'ips' in entry type node : " + entry)*/ 
       os				<- (details \ "os").headOption.map( _.text ) ?~! ("Missing attribute 'os' in entry type node : " + entry)
       boxedAgentsName 	<- (details \ "agentsName").headOption.map  {
 	                            case x:NodeSeq => 
-	                            (x \ "agentName").toSeq.map( (y:NodeSeq) => AgentType.fromValue(y.text) )
+	                            (x \ "agentName").map( (y:NodeSeq) => AgentType.fromValue(y.text) )
 	                          } ?~! ("Missing attribute 'agentsName' in entry type node : " + entry)
       inventoryDate		<- (details \ "inventoryDate").headOption.map( _.text ) ?~! ("Missing attribute 'inventoryDate' in entry type node : " + entry)
       publicKey			<- (details \ "publicKey").headOption.map( _.text ) ?~! ("Missing attribute 'publicKey' in entry type node : " + entry)
@@ -514,7 +514,7 @@ class EventLogDetailsServiceImpl(
         , description   = description
         , hostname      = hostname
         , os            = os
-        , ips           = ips.toList
+        , ips           = List() // ips.toList
         , inventoryDate = ISODateTimeFormat.dateTimeParser.parseDateTime(inventoryDate)
         , publicKey     = publicKey
         , agentsName    = agentsNames.openOr(Seq())
