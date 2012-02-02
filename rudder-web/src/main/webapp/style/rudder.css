@@ -33,7 +33,6 @@
 */
 
 
-
 /**********************************
  *Server inventory details
  **********************************/
@@ -278,6 +277,7 @@ input.queryInputValue, select.queryInputValue {
 }
 .curspoint{
   cursor:pointer;
+  text-decoration:underline;
 }
 
 input.hasDatepicker {
