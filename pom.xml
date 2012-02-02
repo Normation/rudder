@@ -161,13 +161,7 @@ limitations under the License.
             <arg>-make:transitive</arg>
             <arg>-dependencyfile</arg>
             <arg>${basedir}/.scala_dependencies</arg>
-          <arg>-verbose</arg>
-          <arg>-Xshow-phases</arg>
-          <arg>-unchecked</arg>
-          <arg>-deprecation</arg>
-          <arg>-explaintypes</arg>
-          <arg>-Ylog:all</arg>
-         </args>
+          </args>
           <jvmArgs>
             <jvmArg>-server</jvmArg>
           </jvmArgs>
