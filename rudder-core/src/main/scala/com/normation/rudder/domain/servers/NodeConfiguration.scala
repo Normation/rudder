@@ -113,7 +113,7 @@ trait NodeConfiguration extends Loggable {
    * @param policy
    */
   protected def updateAllUniqueVariables(policy : CFCPolicyInstance,
-      				policies : mutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI]) = {
+              policies : mutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI]) = {
     for (uniqueVariable <- policy.getVariables.filter(x => (x._2 .spec.isUniqueVariable ))) {
       // We need to update only the variable that already exists, not add them !!
       for (instance <- policies.filter(x => (x._2.policyInstance.getVariable(uniqueVariable._1) != None ))) {
@@ -163,10 +163,10 @@ trait NodeConfiguration extends Loggable {
   }
   
   def getCurrentSystemVariables() : immutable.Map[String, Variable] = {
-  	currentSystemVariables.map(x => (x._1 -> Variable.matchCopy(x._2))).toMap
+    currentSystemVariables.map(x => (x._1 -> Variable.matchCopy(x._2))).toMap
   }
   def getTargetSystemVariables() : immutable.Map[String, Variable] = {
-  	targetSystemVariables.map(x => (x._1 -> Variable.matchCopy(x._2))).toMap
+    targetSystemVariables.map(x => (x._1 -> Variable.matchCopy(x._2))).toMap
   }
  
 } 

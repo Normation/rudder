@@ -50,32 +50,29 @@ import com.normation.utils.HashcodeCaching
  *
  */
 case class ConfigurationExpectedReports(
-	val configurationRuleId : ConfigurationRuleId,
-  val policyExpectedReports : Seq[PolicyExpectedReports],
-  val serial : Int, // the serial of the configuration rule
-  val nodeJoinKey : Int, // the version id of the configuration rule, follows a sequence, used to join with the server table
-  val nodesList : Seq[NodeId],
+    configurationRuleId  : ConfigurationRuleId
+  , policyExpectedReports: Seq[PolicyExpectedReports]
+  , serial               : Int // the serial of the configuration rule
+  , nodeJoinKey          : Int // the version id of the configuration rule, follows a sequence, used to join with the server table
+  , nodesList            : Seq[NodeId]
   // the period where the configuration is applied to the servers
-  val beginDate : DateTime = DateTime.now(),
-  val endDate : Option[DateTime] = None
+  , beginDate            : DateTime = DateTime.now()
+  , endDate              : Option[DateTime] = None
 ) extends HashcodeCaching 
 
 /**
  * The Cardinality is per Component 
  */
-case class ComponentCard(val componentName : String,
-    val cardinality : Int,
-    val componentsValues : Seq[String]
+case class ComponentCard(
+    componentName   : String
+  , cardinality     : Int
+  , componentsValues: Seq[String]
 ) extends HashcodeCaching 
     
 /**
  * A policy instance may have several components
  */
 case class PolicyExpectedReports (
-   val policyInstanceId : PolicyInstanceId,
-   val components : Seq[ComponentCard]
+    policyInstanceId: PolicyInstanceId
+  , components      : Seq[ComponentCard]
 ) extends HashcodeCaching 
-
-
-
-    

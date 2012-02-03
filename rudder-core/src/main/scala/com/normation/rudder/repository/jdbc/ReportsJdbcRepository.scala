@@ -90,15 +90,15 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   }
 
   def findReportsByServer(nodeId : NodeId, configurationRuleId : Option[ConfigurationRuleId], serial : Option[Int], beginDate: Option[DateTime], endDate: Option[DateTime]): Seq[Reports] = {
-  	var query = baseQuery + " and nodeId = ? "
+    var query = baseQuery + " and nodeId = ? "
     var array = mutable.Buffer[AnyRef](nodeId.value)
     
     configurationRuleId match {
       case None => 
       case Some(cr) => query = query + " and configurationRuleId = ?"; array += cr.value
 
-      	// A serial makes sense only if the CR is set
-      	serial match {
+        // A serial makes sense only if the CR is set
+        serial match {
          case None => ;
          case Some(int) => query = query + " and serial = ?"; array += new java.lang.Integer(int)
       }
@@ -124,7 +124,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   
   def findReportsByNode(nodeId : NodeId, configurationRuleId : ConfigurationRuleId, 
       serial : Int, beginDate: DateTime, endDate: Option[DateTime]): Seq[Reports] = {
-  	var query = baseQuery + " and nodeId = ?  and configurationRuleId = ? and serial = ? and executionTimeStamp >= ?"
+    var query = baseQuery + " and nodeId = ?  and configurationRuleId = ? and serial = ? and executionTimeStamp >= ?"
     var array = mutable.Buffer[AnyRef](nodeId.value, 
         configurationRuleId.value, 
         new java.lang.Integer(serial), 
@@ -154,8 +154,8 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
 
     node match {
       case None => 
-        	query += joinQuery +  " and configurationRuleId = ? and serial = ? and executionTimeStamp > (now() - interval '15 minutes')"
-        	array ++= mutable.Buffer[AnyRef](configurationRuleId.value, new java.lang.Integer(serial))
+          query += joinQuery +  " and configurationRuleId = ? and serial = ? and executionTimeStamp > (now() - interval '15 minutes')"
+          array ++= mutable.Buffer[AnyRef](configurationRuleId.value, new java.lang.Integer(serial))
       case Some(nodeId) => 
         query += joinQueryByNode +  " and configurationRuleId = ? and serial = ? and executionTimeStamp > (now() - interval '15 minutes') and nodeId = ?"
         array ++= mutable.Buffer[AnyRef](nodeId.value, configurationRuleId.value, new java.lang.Integer(serial), nodeId.value)
@@ -192,7 +192,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
 object ReportsMapper extends RowMapper[Reports] {
    def mapRow(rs : ResultSet, rowNum: Int) : Reports = {
         Reports.factory(new DateTime(rs.getTimestamp("executionDate")),
-        					ConfigurationRuleId(rs.getString("configurationRuleId")), 
+                  ConfigurationRuleId(rs.getString("configurationRuleId")), 
                   PolicyInstanceId(rs.getString("policyInstanceId")), 
                   NodeId(rs.getString("nodeId")), 
                   rs.getInt("serial"),

@@ -118,26 +118,26 @@ class EventListDisplayer(
         JsRaw("""
         /* Formating function for row details */          
           function fnFormatDetails(id) {
-    		  var sOut = '<span id="'+id+'" class="sgridbph"/>';
-    		  return sOut;
-    	  };
+          var sOut = '<span id="'+id+'" class="sgridbph"/>';
+          return sOut;
+        };
           
           $('td', #table_var#.fnGetNodes() ).each( function () {
           $(this).click( function () {
-    		var nTr = this.parentNode;
+        var nTr = this.parentNode;
             var jTr = jQuery(nTr);
-    		if (jTr.hasClass('curspoint')) {
-	            var opened = jTr.prop("open");
-	            if (opened && opened.match("opened")) {
-	              jTr.prop("open", "closed");
-	              #table_var#.fnClose(nTr);
-	            } else {
-	              jTr.prop("open", "opened");
-	    		  var jsid = jTr.prop("jsuuid");
-	              #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
-	              %s;
-	            }
-    		}
+        if (jTr.hasClass('curspoint')) {
+              var opened = jTr.prop("open");
+              if (opened && opened.match("opened")) {
+                jTr.prop("open", "closed");
+                #table_var#.fnClose(nTr);
+              } else {
+                jTr.prop("open", "opened");
+            var jsid = jTr.prop("jsuuid");
+                #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
+                %s;
+              }
+        }
           } );
         })
       """.format(
@@ -153,15 +153,15 @@ class EventListDisplayer(
   private def details(jsid:String) : JsCmd = {
     val arr = jsid.split("-")
     if (arr.length != 2) {
-  		Alert("Called ID is not valid: %s".format(jsid))
+      Alert("Called ID is not valid: %s".format(jsid))
     } else {
       val eventId = arr(1).toInt
       repos.getEventLog(eventId) match {
-	      case Full(event) => 
-	        SetHtml(jsid,displayDetails(event))
-	      case e:EmptyBox =>
-	        logger.debug((e ?~! "error").messageChain)
-	        Alert("Called id is not valid: %s".format(jsid))
+        case Full(event) => 
+          SetHtml(jsid,displayDetails(event))
+        case e:EmptyBox =>
+          logger.debug((e ?~! "error").messageChain)
+          Alert("Called id is not valid: %s".format(jsid))
       }
     }
   }
@@ -170,30 +170,30 @@ class EventListDisplayer(
   private[this] def dataTableXml(gridName:String) = {
     <div>
       <table id={gridName} cellspacing="0">
-		    <thead>
-		      <tr class="head">
+        <thead>
+          <tr class="head">
             <th>ID</th>
             <th>Date</th>
             <th>Actor</th>
-		        <th>Event Type</th>
-		        <th>Event Category</th>
+            <th>Event Type</th>
+            <th>Event Category</th>
             <th>Description</th>
-		      </tr>
-		    </thead>
-		
-		    <tbody>
-		      <tr class="eventLine" jsuuid="id">
-	          <td class="logId">[ID of event]</td>
-	          <td class="logDatetime">[Date and time of event]</td>
-	          <td class="logActor">[actor of the event]</td>
+          </tr>
+        </thead>
+    
+        <tbody>
+          <tr class="eventLine" jsuuid="id">
+            <td class="logId">[ID of event]</td>
+            <td class="logDatetime">[Date and time of event]</td>
+            <td class="logActor">[actor of the event]</td>
             <td class="logType">[type of event]</td>
             <td class="logCategory">[category of event]</td>
             <td class="logDescription">[some user readable info]</td>
-	        </tr>
-		    </tbody>
-		  </table>
-		  
-		  <div id="logsGrid_paginate_area" class="paginate"></div>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div id="logsGrid_paginate_area" class="paginate"></div>
     
     </div>   
      
@@ -614,25 +614,25 @@ class EventListDisplayer(
   
   private[this] val nodeDetailsXML = 
     <table>
-  	 <tr>
-  	  <td>
-    	<ul class="evlogviewpad">
-  			<li><b>Rudder ID:</b><value id="id"/></li>
-      		<li><b>Name:</b><value id="name"/></li>
-      		<li><b>Hostname:</b><value id="hostname"/></li>
-      		<li><b>Description:</b><value id="description"/></li>
-      		<li><b>Operating System:</b><value id="os"/></li>
-      		<li><b>IPs addresses:</b><value id="ips"/></li>
-  	  		<li><b>Date inventory last received:</b><value id="inventoryDate"/></li>
-  	  		<li><b>Agent name:</b><value id="agentsName"/></li>
-  	  		<li><b>Administrator account:</b><value id="localAdministratorAccountName"/></li>
-  	  		<li><b>Date first accepted in Rudder:</b><value id="creationDate"/></li>
-  	  		<li><b>Broken:</b><value id="isBroken"/></li>
-  	  		<li><b>System:</b><value id="isSystem"/></li>
-    	</ul>
-  	  </td>
+     <tr>
+      <td>
+      <ul class="evlogviewpad">
+        <li><b>Rudder ID:</b><value id="id"/></li>
+          <li><b>Name:</b><value id="name"/></li>
+          <li><b>Hostname:</b><value id="hostname"/></li>
+          <li><b>Description:</b><value id="description"/></li>
+          <li><b>Operating System:</b><value id="os"/></li>
+          <li><b>IPs addresses:</b><value id="ips"/></li>
+          <li><b>Date inventory last received:</b><value id="inventoryDate"/></li>
+          <li><b>Agent name:</b><value id="agentsName"/></li>
+          <li><b>Administrator account:</b><value id="localAdministratorAccountName"/></li>
+          <li><b>Date first accepted in Rudder:</b><value id="creationDate"/></li>
+          <li><b>Broken:</b><value id="isBroken"/></li>
+          <li><b>System:</b><value id="isSystem"/></li>
+      </ul>
+      </td>
      </tr>
-  	</table>
+    </table>
     
     
   private[this] def liModDetailsXML(id:String, name:String) = (

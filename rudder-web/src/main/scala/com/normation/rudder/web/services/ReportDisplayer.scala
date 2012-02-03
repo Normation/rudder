@@ -70,10 +70,10 @@ import net.liftweb.http.Templates
  *
  */
 class ReportDisplayer(configurationRuleRepository : ConfigurationRuleRepository,
-		reportingService : ReportingService) {
+    reportingService : ReportingService) {
   
-	
-	
+  
+  
   def templateByServerPath = List("templates-hidden", "reports_server")
   def templateByServer() =  Templates(templateByServerPath) match {
     case Empty | Failure(_,_,_) => 
@@ -93,8 +93,8 @@ class ReportDisplayer(configurationRuleRepository : ConfigurationRuleRepository,
   var staticReportsSeq : Seq[ExecutionBatch] = Seq[ExecutionBatch]()
  
   def display(reportsSeq : Seq[ExecutionBatch], tableId:String): NodeSeq = {
-  	
-  	staticReportsSeq = reportsSeq.filter( x => configurationRuleRepository.get(x.configurationRuleId).isDefined	)
+    
+    staticReportsSeq = reportsSeq.filter( x => configurationRuleRepository.get(x.configurationRuleId).isDefined  )
     bind("lastReportGrid",reportByServerTemplate,
            "intro" ->  (staticReportsSeq.filter(x => ( (x.getErrorServer.size>0) || 
                                                 //(x.getWarnServer.size>0) ||
@@ -102,10 +102,10 @@ class ReportDisplayer(configurationRuleRepository : ConfigurationRuleRepository,
                                                 (x.getServerWithNoReports.size>0))).toList match {
              case x if (x.size > 0) => <div>There are {x.size} out of {staticReportsSeq.size} reports that require our attention</div>
              case _ => if (staticReportsSeq.filter(x => (x.getPendingServer().size>0)).size>0) {
-            	 			<div>Deployment in progress</div>
-             			} else {
-            	 			<div>All the last execution reports for this server are ok</div>
-             			}
+                     <div>Deployment in progress</div>
+                   } else {
+                     <div>All the last execution reports for this server are ok</div>
+                   }
            } ),
            "lines" -> 
                (((staticReportsSeq.map { x => x match { 
@@ -136,7 +136,7 @@ class ReportDisplayer(configurationRuleRepository : ConfigurationRuleRepository,
   }
 
   def displayReports(node : NodeInfo) : NodeSeq = {
-  	display(reportingService.findImmediateReportsByNode(node.id), "reportsGrid")
+    display(reportingService.findImmediateReportsByNode(node.id), "reportsGrid")
   }
   
   /**

@@ -76,13 +76,13 @@ case class RootNodeConfiguration(
     targetPoliciesInstances.get(policy.policyInstance.id) match {
       case None =>
         // we first need to fetch all the policies in a mutable map to modify them
-      	val newPoliciesInstances =  mutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI]() 
-      	__targetPoliciesInstances.foreach { pi => 
-      	  	newPoliciesInstances += ( pi.policyInstance.id ->pi.copy()) }
-      	
-      	
+        val newPoliciesInstances =  mutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI]() 
+        __targetPoliciesInstances.foreach { pi => 
+            newPoliciesInstances += ( pi.policyInstance.id ->pi.copy()) }
+        
+        
   
-      	updateAllUniqueVariables(policy.policyInstance,newPoliciesInstances)
+        updateAllUniqueVariables(policy.policyInstance,newPoliciesInstances)
         newPoliciesInstances += (policy.policyInstance.id -> policy.copy())
         
         
@@ -93,14 +93,14 @@ case class RootNodeConfiguration(
  
   def setSerial(crs : Seq[(ConfigurationRuleId,Int)]) : RootNodeConfiguration = {
     val newPoliciesInstances =  mutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI]() 
-      	__targetPoliciesInstances.foreach { pi => 
-      	  	newPoliciesInstances += ( pi.policyInstance.id ->pi.copy()) }
-      	
+        __targetPoliciesInstances.foreach { pi => 
+            newPoliciesInstances += ( pi.policyInstance.id ->pi.copy()) }
+        
     
     for ((id,serial) <- crs) {
       newPoliciesInstances ++= newPoliciesInstances.
-      			filter(x => x._2.configurationRuleId == id).
-      			map(x => (x._1 -> new IdentifiableCFCPI(x._2.configurationRuleId, x._2.policyInstance.copy(serial = serial))))
+            filter(x => x._2.configurationRuleId == id).
+            map(x => (x._1 -> new IdentifiableCFCPI(x._2.configurationRuleId, x._2.policyInstance.copy(serial = serial))))
     }
     copy(__targetPoliciesInstances = newPoliciesInstances.values.toSeq)
   }
@@ -124,7 +124,7 @@ case class RootNodeConfiguration(
    * @return nothing
    */
   def rollbackModification() : RootNodeConfiguration = {
-  	copy(__targetPoliciesInstances = this.__currentPoliciesInstances,
+    copy(__targetPoliciesInstances = this.__currentPoliciesInstances,
         targetMinimalNodeConfig = this.currentMinimalNodeConfig,
         targetSystemVariables = this.currentSystemVariables 
         )

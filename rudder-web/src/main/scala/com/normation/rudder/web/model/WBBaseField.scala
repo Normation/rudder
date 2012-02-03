@@ -244,10 +244,10 @@ class WBSelectField(override val name:String, val opts : Seq[(String, String)], 
   type ValueType = String
 
   def defaultVal : Box[String] = {
-  	if (opts.filter(x => x._1 == value).size>0) {
+    if (opts.filter(x => x._1 == value).size>0) {
       Full(value)
     } else  {
-  		Empty
+      Empty
     }
   }
   
@@ -281,10 +281,10 @@ class WBRadioField(
   type ValueType = String
 
   def defaultVal : Box[String] = {
-  	if (opts.filter(x => (x == defaultValue)).size>0)
-  		Full(defaultValue)
-  	else
-  		Empty
+    if (opts.filter(x => (x == defaultValue)).size>0)
+      Full(defaultValue)
+    else
+      Empty
   }
   
   def inputField : Elem = {

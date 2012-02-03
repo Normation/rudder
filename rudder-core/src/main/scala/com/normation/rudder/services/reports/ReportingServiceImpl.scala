@@ -70,75 +70,75 @@ class ReportingServiceImpl(
   val logger = LoggerFactory.getLogger(classOf[ReportingServiceImpl])
 
   /**
-	 * Update the list of expected reports when we do a deployment
-	 * For each ConfigurationRuleVal, we check if it was present or it serial changed
-	 *   
-	 * Note : deletedCrs is not really used (maybe it will in the future)
-	 * @param configurationRuleVal
-	 * @return
-	 */
-	def updateExpectedReports(configurationRuleVal : Seq[ConfigurationRuleVal], deletedCrs : Seq[ConfigurationRuleId]) : Box[Seq[ConfigurationExpectedReports]] = {
-  	
-  	// First we need to get the targets of each configuration rule
-  	val confAndNodes = configurationRuleVal.map(x => (x -> (policyInstanceTargetService.getNodeIds(x.target)).openOr(Seq())))
- 	
-  	// All the rule and serial. Used to know which one are to be removed
+   * Update the list of expected reports when we do a deployment
+   * For each ConfigurationRuleVal, we check if it was present or it serial changed
+   *   
+   * Note : deletedCrs is not really used (maybe it will in the future)
+   * @param configurationRuleVal
+   * @return
+   */
+  def updateExpectedReports(configurationRuleVal : Seq[ConfigurationRuleVal], deletedCrs : Seq[ConfigurationRuleId]) : Box[Seq[ConfigurationExpectedReports]] = {
+    
+    // First we need to get the targets of each configuration rule
+    val confAndNodes = configurationRuleVal.map(x => (x -> (policyInstanceTargetService.getNodeIds(x.target)).openOr(Seq())))
+   
+    // All the rule and serial. Used to know which one are to be removed
     val currentConfigurationsToRemove =  mutable.Map[ConfigurationRuleId, Int]() ++ confExpectedRepo.findAllCurrentExpectedReportsAndSerial()
 
-  	val confToClose = mutable.Set[ConfigurationRuleId]() 
-  	val confToAdd = mutable.Map[ConfigurationRuleId, (ConfigurationRuleVal,Seq[NodeId])]()
-  	
-  	// Then we need to compare each of them with the one stored
-  	for (conf@(crVal, _) <- confAndNodes) {
-  	  currentConfigurationsToRemove.get(crVal.configurationRuleId) match {
-  									// non existant, add it
-  	  	case None => confToAdd += (  crVal.configurationRuleId -> conf)
-  	  	
-  			case Some(serial) if (serial == crVal.serial) => // no change if same serial
-  			  	currentConfigurationsToRemove.remove(crVal.configurationRuleId)
-  			  	
-  			case Some(serial) => // not the same serial
-  			  	confToAdd += (  crVal.configurationRuleId -> conf)
-  			  	confToClose += crVal.configurationRuleId
-  			  	
-  			  	currentConfigurationsToRemove.remove(crVal.configurationRuleId)
-  		}
-  	}
-  	
-  	
-  	// close the expected reports that don't exist anymore
-  	for (closable <- currentConfigurationsToRemove.keys) {
-  		confExpectedRepo.closeExpectedReport(closable)
-  	}
-  	// close the expected reports that need to be changed
-  	for (closable <- confToClose) {
-  		confExpectedRepo.closeExpectedReport(closable)
-  	}
-	
-  	// compute the cardinality and save them
-  	sequence(confToAdd.values.toSeq) { case(crVal, nodeIds) => 
+    val confToClose = mutable.Set[ConfigurationRuleId]() 
+    val confToAdd = mutable.Map[ConfigurationRuleId, (ConfigurationRuleVal,Seq[NodeId])]()
+    
+    // Then we need to compare each of them with the one stored
+    for (conf@(crVal, _) <- confAndNodes) {
+      currentConfigurationsToRemove.get(crVal.configurationRuleId) match {
+                    // non existant, add it
+        case None => confToAdd += (  crVal.configurationRuleId -> conf)
+        
+        case Some(serial) if (serial == crVal.serial) => // no change if same serial
+            currentConfigurationsToRemove.remove(crVal.configurationRuleId)
+            
+        case Some(serial) => // not the same serial
+            confToAdd += (  crVal.configurationRuleId -> conf)
+            confToClose += crVal.configurationRuleId
+            
+            currentConfigurationsToRemove.remove(crVal.configurationRuleId)
+      }
+    }
+    
+    
+    // close the expected reports that don't exist anymore
+    for (closable <- currentConfigurationsToRemove.keys) {
+      confExpectedRepo.closeExpectedReport(closable)
+    }
+    // close the expected reports that need to be changed
+    for (closable <- confToClose) {
+      confExpectedRepo.closeExpectedReport(closable)
+    }
+  
+    // compute the cardinality and save them
+    sequence(confToAdd.values.toSeq) { case(crVal, nodeIds) => 
       ( for {
-  	    policyExpectedReports <- sequence(crVal.policies) { policy => 
-  	                               ( for {
-                          		       seq <- getCardinality(policy) ?~! "Can not get cardinality for configuration rule %s".format(crVal.configurationRuleId)
-                          		      } yield {
-                          		        seq.map { case(componentName, componentsValues) =>
-                          		          PolicyExpectedReports(policy.policyInstanceId, Seq(ComponentCard(componentName, componentsValues.size, componentsValues)))
-                          		        }
-                          		     } )  
-  	                             }
-  		 	expectedReport <- confExpectedRepo.saveExpectedReports(
-  		 	                      crVal.configurationRuleId
-  		 	                    , crVal.serial
-  		 	                    , policyExpectedReports.flatten
-  		 	                    , nodeIds 
-  		 	                  )
-  		} yield {
-  		  expectedReport
-  		} ) 
-  	}
+        policyExpectedReports <- sequence(crVal.policies) { policy =>
+                                   ( for {
+                                     seq <- getCardinality(policy) ?~! "Can not get cardinality for configuration rule %s".format(crVal.configurationRuleId)
+                                    } yield {
+                                      seq.map { case(componentName, componentsValues) =>
+                                        PolicyExpectedReports(policy.policyInstanceId, Seq(ComponentCard(componentName, componentsValues.size, componentsValues)))
+                                      }
+                                   } )
+                                 }
+         expectedReport <- confExpectedRepo.saveExpectedReports(
+                               crVal.configurationRuleId
+                             , crVal.serial
+                             , policyExpectedReports.flatten
+                             , nodeIds
+                           )
+      } yield {
+        expectedReport
+      } )
+    }
   }
-	
+  
   
   /**
    * Returns the reports for a configuration rule
@@ -185,7 +185,7 @@ class ReportingServiceImpl(
   def findImmediateReportsByConfigurationRule(configurationRuleId : ConfigurationRuleId) : Option[ExecutionBatch] = {
      // look in the configuration
     confExpectedRepo.findCurrentExpectedReports(configurationRuleId).map(
-    		expected => createLastBatchFromConfigurationReports(expected) )
+        expected => createLastBatchFromConfigurationReports(expected) )
   }
   
   /**
@@ -195,8 +195,8 @@ class ReportingServiceImpl(
   def findImmediateReportsByNode(nodeId : NodeId) :  Seq[ExecutionBatch] = {
     // look in the configuration
     confExpectedRepo.findCurrentExpectedReportsByServer(nodeId).
-    	map(x => x.copy(nodesList = Seq[NodeId](nodeId))).
-    	map(expected => createLastBatchFromConfigurationReports(expected, Some(nodeId)) )
+      map(x => x.copy(nodesList = Seq[NodeId](nodeId))).
+      map(expected => createLastBatchFromConfigurationReports(expected, Some(nodeId)) )
       
   }
   
@@ -208,9 +208,9 @@ class ReportingServiceImpl(
   
     //  fetch the current expected configuration report
     confExpectedRepo.findCurrentExpectedReportsByServer(nodeId).
-    				filter(x =>	configurationRuleIds.contains(x.configurationRuleId)).
-    				map(x => x.copy(nodesList = Seq[NodeId](nodeId))).
-    				map(expected => createLastBatchFromConfigurationReports(expected, Some(nodeId)) )
+            filter(x => configurationRuleIds.contains(x.configurationRuleId)).
+            map(x => x.copy(nodesList = Seq[NodeId](nodeId))).
+            map(expected => createLastBatchFromConfigurationReports(expected, Some(nodeId)) )
         
   }
   
@@ -218,7 +218,7 @@ class ReportingServiceImpl(
    *  find the reports for a given server, for the whole period of the last application 
    */
   def findCurrentReportsByServer(nodeId : NodeId) : Seq[ExecutionBatch] = {
-  	//  fetch the current expected configuration report
+    //  fetch the current expected configuration report
     var expectedConfigurationReports = confExpectedRepo.findCurrentExpectedReportsByServer(nodeId)
     val configuration = expectedConfigurationReports.map(x => x.copy(nodesList = Seq[NodeId](nodeId)))
     
@@ -273,12 +273,12 @@ class ReportingServiceImpl(
    * @return
    */
   private def createLastBatchFromConfigurationReports(expectedConfigurationReports : ConfigurationExpectedReports,
-      					nodeId : Option[NodeId] = None) : ExecutionBatch = {
+                nodeId : Option[NodeId] = None) : ExecutionBatch = {
   
     // Fetch the reports corresponding to this configuration rule, and filter them by nodes
     val reports = reportsRepository.findLastReportByConfigurationRule(
-        		expectedConfigurationReports.configurationRuleId, 
-        		expectedConfigurationReports.serial, nodeId) 
+            expectedConfigurationReports.configurationRuleId, 
+            expectedConfigurationReports.serial, nodeId) 
 
     new ConfigurationExecutionBatch(
           expectedConfigurationReports.configurationRuleId,

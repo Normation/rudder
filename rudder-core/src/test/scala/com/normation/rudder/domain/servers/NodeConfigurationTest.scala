@@ -53,136 +53,136 @@ import net.liftweb.common._
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class NodeConfigurationTest {
 
-	private val simplePolicy = new IdentifiableCFCPI(
-	    new ConfigurationRuleId("crId"),
-	    new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId"),
-			new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0")), 
-			Map(), TrackerVariableSpec().toVariable(),
-			priority = 0, serial = 0) // no variable
-	)
-	
-	private val policyVaredOne = new IdentifiableCFCPI(
-	    new ConfigurationRuleId("crId1"),
-	    new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
-			new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
-			Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))),
-			TrackerVariableSpec().toVariable(),
-			priority = 0, serial = 0)  // one variable
-	)
-
-	
-	private val policyOtherVaredOne = new IdentifiableCFCPI(
-	    new ConfigurationRuleId("crId1"),
-	    new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
-			new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
-			Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("two"))), 
-			TrackerVariableSpec().toVariable(),
-			priority = 0, serial = 0)  // one variable
-	)
-	
-	private val policyNextVaredOne = new IdentifiableCFCPI(
-	    new ConfigurationRuleId("crId1"),
-	    new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
-			new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
-			Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))),
-			TrackerVariableSpec().toVariable(),
-			priority = 0, serial = 1)  // next serial than policyVaredOne
-	)
-	
-	private val policyVaredTwo = new IdentifiableCFCPI(
-	    new ConfigurationRuleId("crId2"),
-	    new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId2"),
-			new PolicyPackageId(PolicyPackageName("ppId2"), PolicyVersion("1.0")),
-			Map("two" -> InputVariable(InputVariableSpec("two", ""), Seq("two"))), 
-			TrackerVariableSpec().toVariable(),
-			priority = 0, serial = 0) // one variable
+  private val simplePolicy = new IdentifiableCFCPI(
+      new ConfigurationRuleId("crId"),
+      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId"),
+      new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0")), 
+      Map(), TrackerVariableSpec().toVariable(),
+      priority = 0, serial = 0) // no variable
   )
-	    
-	private val minNodeConf = new MinimalNodeConfig(
-	    "name",
-	    "hostname",
-	    Seq(),
-	    "psId",
-	    "root"
-	)
-	    
+  
+  private val policyVaredOne = new IdentifiableCFCPI(
+      new ConfigurationRuleId("crId1"),
+      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
+      new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
+      Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))),
+      TrackerVariableSpec().toVariable(),
+      priority = 0, serial = 0)  // one variable
+  )
 
-	@Test
-	def simpleCreateNodeConfiguration() {
-		/* Create a simple node configuration and check its configuration after */
-		val newNode = new SimpleNodeConfiguration("id",
-		    Seq(),
-		    Seq(),
-		    false,
-		    minNodeConf,
-		    minNodeConf,
-		    None,
-		    Map(),
-		    Map())
-		assertEquals(newNode.isPolicyServer, false)
-		assertEquals(newNode.getCurrentPolicyInstances.size, 0)
-		assertEquals(newNode.getPolicyInstances.size, 0)
-		
-		assertEquals(newNode.getCurrentSystemVariables.size, 0)
-		assertEquals(newNode.getTargetSystemVariables.size, 0)
-		
-		assertEquals(newNode.isModified, false)
-		assertEquals(newNode.targetMinimalNodeConfig.agentsName.size, 0)
-		
-		// Now add a policy
-		newNode.addPolicyInstance(simplePolicy) match {
-		  case f: EmptyBox => 
-		    val e = f ?~! "Error when adding policy instance %s on node %s".format(simplePolicy.configurationRuleId, newNode.id)
-		    throw new RuntimeException(e.messageChain)
-		  case Full(node) => 
-		
-		
-				assertEquals(node.isModified, true)
-				// Current policy don't change, but target does
-				assertEquals(node.getCurrentPolicyInstances.size, 0)
-				assertEquals(node.getPolicyInstances.size, 1)
-				
-				assertEquals(node.findPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0"))).size, 1)
-				assertEquals(node.findPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0"))).size, 0)
-		
-				assertEquals(node.findCurrentPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0"))).size, 0)
-		
-				assertEquals(node.getAllPoliciesNames().size, 1)
-				assertEquals(node.getAllPoliciesNames().contains(new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0"))), true)
-		}
-	}
-	
-	@Test
-	def completeCreateNodeConfiguration() {
-		val newNode = new SimpleNodeConfiguration("id",
-		    Seq(policyVaredOne), Seq(policyVaredOne),
-		    false,
-		    minNodeConf,
-		    minNodeConf,
-		    None,
-		    Map(),
-		    Map())
-			
-		assertEquals(newNode.isPolicyServer, false)
-		assertEquals(newNode.getCurrentPolicyInstances.size, 1)
-		assertEquals(newNode.getPolicyInstances.size, 1)
-		
-		assertEquals(newNode.getCurrentSystemVariables.size, 0)
-		assertEquals(newNode.getTargetSystemVariables.size, 0)
-		
-		assertEquals(newNode.isModified, false)
-		assertEquals(newNode.targetMinimalNodeConfig.agentsName.size, 0)
-		
-		assertEquals(newNode.findPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0"))).size, 1)
-		assertEquals(newNode.findPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0"))).size, 0)
+  
+  private val policyOtherVaredOne = new IdentifiableCFCPI(
+      new ConfigurationRuleId("crId1"),
+      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
+      new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
+      Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("two"))), 
+      TrackerVariableSpec().toVariable(),
+      priority = 0, serial = 0)  // one variable
+  )
+  
+  private val policyNextVaredOne = new IdentifiableCFCPI(
+      new ConfigurationRuleId("crId1"),
+      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
+      new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
+      Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))),
+      TrackerVariableSpec().toVariable(),
+      priority = 0, serial = 1)  // next serial than policyVaredOne
+  )
+  
+  private val policyVaredTwo = new IdentifiableCFCPI(
+      new ConfigurationRuleId("crId2"),
+      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId2"),
+      new PolicyPackageId(PolicyPackageName("ppId2"), PolicyVersion("1.0")),
+      Map("two" -> InputVariable(InputVariableSpec("two", ""), Seq("two"))), 
+      TrackerVariableSpec().toVariable(),
+      priority = 0, serial = 0) // one variable
+  )
+      
+  private val minNodeConf = new MinimalNodeConfig(
+      "name",
+      "hostname",
+      Seq(),
+      "psId",
+      "root"
+  )
+      
 
-		assertEquals(newNode.findCurrentPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0"))).size, 1)
-		  
-		
-		val modified = newNode.copy(targetSystemVariables = Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))))
-		    
-		assertEquals(modified.isModified, false) // won't check system var
-	}
-	
-	
+  @Test
+  def simpleCreateNodeConfiguration() {
+    /* Create a simple node configuration and check its configuration after */
+    val newNode = new SimpleNodeConfiguration("id",
+        Seq(),
+        Seq(),
+        false,
+        minNodeConf,
+        minNodeConf,
+        None,
+        Map(),
+        Map())
+    assertEquals(newNode.isPolicyServer, false)
+    assertEquals(newNode.getCurrentPolicyInstances.size, 0)
+    assertEquals(newNode.getPolicyInstances.size, 0)
+    
+    assertEquals(newNode.getCurrentSystemVariables.size, 0)
+    assertEquals(newNode.getTargetSystemVariables.size, 0)
+    
+    assertEquals(newNode.isModified, false)
+    assertEquals(newNode.targetMinimalNodeConfig.agentsName.size, 0)
+    
+    // Now add a policy
+    newNode.addPolicyInstance(simplePolicy) match {
+      case f: EmptyBox => 
+        val e = f ?~! "Error when adding policy instance %s on node %s".format(simplePolicy.configurationRuleId, newNode.id)
+        throw new RuntimeException(e.messageChain)
+      case Full(node) => 
+    
+    
+        assertEquals(node.isModified, true)
+        // Current policy don't change, but target does
+        assertEquals(node.getCurrentPolicyInstances.size, 0)
+        assertEquals(node.getPolicyInstances.size, 1)
+        
+        assertEquals(node.findPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0"))).size, 1)
+        assertEquals(node.findPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0"))).size, 0)
+    
+        assertEquals(node.findCurrentPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0"))).size, 0)
+    
+        assertEquals(node.getAllPoliciesNames().size, 1)
+        assertEquals(node.getAllPoliciesNames().contains(new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0"))), true)
+    }
+  }
+  
+  @Test
+  def completeCreateNodeConfiguration() {
+    val newNode = new SimpleNodeConfiguration("id",
+        Seq(policyVaredOne), Seq(policyVaredOne),
+        false,
+        minNodeConf,
+        minNodeConf,
+        None,
+        Map(),
+        Map())
+      
+    assertEquals(newNode.isPolicyServer, false)
+    assertEquals(newNode.getCurrentPolicyInstances.size, 1)
+    assertEquals(newNode.getPolicyInstances.size, 1)
+    
+    assertEquals(newNode.getCurrentSystemVariables.size, 0)
+    assertEquals(newNode.getTargetSystemVariables.size, 0)
+    
+    assertEquals(newNode.isModified, false)
+    assertEquals(newNode.targetMinimalNodeConfig.agentsName.size, 0)
+    
+    assertEquals(newNode.findPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0"))).size, 1)
+    assertEquals(newNode.findPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0"))).size, 0)
+
+    assertEquals(newNode.findCurrentPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0"))).size, 1)
+      
+    
+    val modified = newNode.copy(targetSystemVariables = Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))))
+        
+    assertEquals(modified.isModified, false) // won't check system var
+  }
+  
+  
 }

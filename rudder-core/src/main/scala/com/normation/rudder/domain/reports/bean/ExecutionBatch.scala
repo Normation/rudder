@@ -143,29 +143,29 @@ class ConfigurationExecutionBatch(
    */
   def getSuccessServer() : Seq[NodeId] = {
     cache.getOrElseUpdate("Success", {
-	    (for {server <- allExpectedServer;
-	    	 val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
-	       if (nodeFilteredReports.filter(x => (( x.isInstanceOf[ResultErrorReport] || x.isInstanceOf[ResultRepairedReport] ) )).size == 0)
-	       if (policies.forall { policy => 
-		       policy.components.forall { component => // must be true for each component
-		       			component.componentsValues.forall { value => // for each value
-		       			  if (value == "None") {
-		       			    nodeFilteredReports.filter( x => 
-			       			    x.component == component.componentName &&
-			       			    x.isInstanceOf[ResultSuccessReport]).size == component.cardinality
-		       			  } else {
-			       			  nodeFilteredReports.filter( x => 
-			       			    x.component == component.componentName &&
-			       			    x.keyValue == value &&
-			       			    x.isInstanceOf[ResultSuccessReport]).size == 1
-		       			  }
-		       			}
-		       }
-	    	 })
-	       //component <- policy.components
-	       //if (executionReports.filter(x => 
-	       //  	(x.nodeId==server && x.component == component.componentName && x.isInstanceOf[ResultSuccessReport])).size >= component.cardinality)  
-	    } yield server).distinct
+      (for {server <- allExpectedServer;
+         val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
+         if (nodeFilteredReports.filter(x => (( x.isInstanceOf[ResultErrorReport] || x.isInstanceOf[ResultRepairedReport] ) )).size == 0)
+         if (policies.forall { policy => 
+           policy.components.forall { component => // must be true for each component
+                 component.componentsValues.forall { value => // for each value
+                   if (value == "None") {
+                     nodeFilteredReports.filter( x => 
+                       x.component == component.componentName &&
+                       x.isInstanceOf[ResultSuccessReport]).size == component.cardinality
+                   } else {
+                     nodeFilteredReports.filter( x => 
+                       x.component == component.componentName &&
+                       x.keyValue == value &&
+                       x.isInstanceOf[ResultSuccessReport]).size == 1
+                   }
+                 }
+           }
+         })
+         //component <- policy.components
+         //if (executionReports.filter(x => 
+         //    (x.nodeId==server && x.component == component.componentName && x.isInstanceOf[ResultSuccessReport])).size >= component.cardinality)  
+      } yield server).distinct
     })
     
   }
@@ -176,27 +176,27 @@ class ConfigurationExecutionBatch(
    */
   def getRepairedServer() : Seq[NodeId] = {
     cache.getOrElseUpdate("Repaired", {
-	    (for {server <- allExpectedServer;
-	    	val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
-		    if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultErrorReport]  ) ).size == 0)
-		    if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultRepairedReport]  ) ).size > 0)
-		    if (policies.forall { policy => 
-	      	policy.components.forall { component => // must be true for each component
-	       			component.componentsValues.forall { value => // for each value
-	       			  if (value == "None") {
-	       			    nodeFilteredReports.filter( x => 
-	       			  		x.component == component.componentName &&
-	       			    	(x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size == component.cardinality
-	       			  } else {
-	       			  	nodeFilteredReports.filter( x => 
-	       			  		x.component == component.componentName &&
-	       			    	x.keyValue == value &&
-	       			    	(x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size == 1
-	       			  }
-	       			}
-	      	}
-	       })
-	    } yield server).distinct
+      (for {server <- allExpectedServer;
+        val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
+        if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultErrorReport]  ) ).size == 0)
+        if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultRepairedReport]  ) ).size > 0)
+        if (policies.forall { policy => 
+          policy.components.forall { component => // must be true for each component
+               component.componentsValues.forall { value => // for each value
+                 if (value == "None") {
+                   nodeFilteredReports.filter( x => 
+                     x.component == component.componentName &&
+                     (x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size == component.cardinality
+                 } else {
+                   nodeFilteredReports.filter( x => 
+                     x.component == component.componentName &&
+                     x.keyValue == value &&
+                     (x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size == 1
+                 }
+               }
+          }
+         })
+      } yield server).distinct
    })  
      
   }
@@ -208,10 +208,10 @@ class ConfigurationExecutionBatch(
     (for {server <- allExpectedServer;
       policy <- policies
       component <- policy.components
-    	if (executionReports.filter(x => 
-         	(x.nodeId==server && x.component == component.componentName && x.isInstanceOf[SuccessReport])).size >= component.cardinality)
-    	if (executionReports.filter(x => 
-         	(x.nodeId==server && x.component == component.componentName && (x.isInstanceOf[WarnReport]  || x.isInstanceOf[ErrorReport]))).size > 0)
+      if (executionReports.filter(x => 
+           (x.nodeId==server && x.component == component.componentName && x.isInstanceOf[SuccessReport])).size >= component.cardinality)
+      if (executionReports.filter(x => 
+           (x.nodeId==server && x.component == component.componentName && (x.isInstanceOf[WarnReport]  || x.isInstanceOf[ErrorReport]))).size > 0)
     } yield server).distinct
   }*/
   
@@ -220,43 +220,43 @@ class ConfigurationExecutionBatch(
    */
   def getErrorServer() : Seq[NodeId] = {
     cache.getOrElseUpdate("Error", {
-	    (for {server <- allExpectedServer;
-	       val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
-	
-	       policy <- policies
-	       if (nodeFilteredReports.filter( x => x.isInstanceOf[ResultErrorReport] ).size > 0 ) || 
-	         ( (policy.components.forall { component => // must be true for each component
-	       			component.componentsValues.forall { value => // for each value  			    	
-		       			if (value == "None") {
-		       			    nodeFilteredReports.filter( x => 
-		       			  		x.component == component.componentName &&
-		       			    	(x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size < component.cardinality
-		       			} else {
-		       			  	nodeFilteredReports.filter( x => 
-		       			  		x.component == component.componentName &&
-		       			    	x.keyValue == value &&
-		       			    	(x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size < 1
-		       			  
-	       			  }
-	       			}
-	         }) && // must have results (otherwise it's a no answer)
-	         nodeFilteredReports.filter ( x =>  x.isInstanceOf[ResultSuccessReport] || 
-	           																x.isInstanceOf[ResultRepairedReport] || 
-	           																x.isInstanceOf[ResultErrorReport]
-	           													).size > 0 ) 
-	         
-	       /*component <- policy.components
-	       
-	       val filtered = executionReports.filter(x =>	(x.nodeId==server && x.component == component.componentName))
-	      
-	       if ( ( filtered.filter(x => x.isInstanceOf[ResultSuccessReport] || x.isInstanceOf[ResultRepairedReport] ).size > 0 ) && 
-	          ( filtered.filter(x => x.isInstanceOf[ResultSuccessReport]).size < component.cardinality ) &&
-	       		( filtered.filter(x => x.isInstanceOf[ResultRepairedReport]).size < component.cardinality ) ) ||
-	       		( filtered.filter(x => x.isInstanceOf[ResultErrorReport]).size > 0 )
-	       
-	*/
-	    } yield server).distinct
-	   }) 
+      (for {server <- allExpectedServer;
+         val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
+  
+         policy <- policies
+         if (nodeFilteredReports.filter( x => x.isInstanceOf[ResultErrorReport] ).size > 0 ) || 
+           ( (policy.components.forall { component => // must be true for each component
+               component.componentsValues.forall { value => // for each value              
+                 if (value == "None") {
+                     nodeFilteredReports.filter( x => 
+                       x.component == component.componentName &&
+                       (x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size < component.cardinality
+                 } else {
+                     nodeFilteredReports.filter( x => 
+                       x.component == component.componentName &&
+                       x.keyValue == value &&
+                       (x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size < 1
+                   
+                 }
+               }
+           }) && // must have results (otherwise it's a no answer)
+           nodeFilteredReports.filter ( x =>  x.isInstanceOf[ResultSuccessReport] || 
+                                             x.isInstanceOf[ResultRepairedReport] || 
+                                             x.isInstanceOf[ResultErrorReport]
+                                       ).size > 0 ) 
+           
+         /*component <- policy.components
+         
+         val filtered = executionReports.filter(x =>  (x.nodeId==server && x.component == component.componentName))
+        
+         if ( ( filtered.filter(x => x.isInstanceOf[ResultSuccessReport] || x.isInstanceOf[ResultRepairedReport] ).size > 0 ) && 
+            ( filtered.filter(x => x.isInstanceOf[ResultSuccessReport]).size < component.cardinality ) &&
+             ( filtered.filter(x => x.isInstanceOf[ResultRepairedReport]).size < component.cardinality ) ) ||
+             ( filtered.filter(x => x.isInstanceOf[ResultErrorReport]).size > 0 )
+         
+  */
+      } yield server).distinct
+     }) 
   }
   
   /**
@@ -264,30 +264,30 @@ class ConfigurationExecutionBatch(
    * have answer yet
    */
   def getPendingServer() : Seq[NodeId] = {
-  	if (beginDate.plus(Constants.pendingDuration).isAfter(DateTime.now())) {
-  	  cache.getOrElseUpdate("Pending", {
-	  		(for {server <- allExpectedServer;
-	       	if (executionReports.filter(x => (x.nodeId==server)).size == 0)
-	  		} yield server).distinct
-  	  })
-  	} else {
-  		Seq()
-  	}
+    if (beginDate.plus(Constants.pendingDuration).isAfter(DateTime.now())) {
+      cache.getOrElseUpdate("Pending", {
+        (for {server <- allExpectedServer;
+           if (executionReports.filter(x => (x.nodeId==server)).size == 0)
+        } yield server).distinct
+      })
+    } else {
+      Seq()
+    }
   }
   
   /**
    * A server with no reports should have send reports, but didn't
    */
   def getServerWithNoReports() : Seq[NodeId] = {
-  	if (beginDate.plus(Constants.pendingDuration).isBefore(DateTime.now())) {
-  	  cache.getOrElseUpdate("NoAnswer", {
-	  		(for {server <- allExpectedServer;
-	       	if (executionReports.filter(x => (x.nodeId==server)).size == 0)
-	  		} yield server).distinct
-  	  })
-  	} else {
-  		Seq()
-  	}
+    if (beginDate.plus(Constants.pendingDuration).isBefore(DateTime.now())) {
+      cache.getOrElseUpdate("NoAnswer", {
+        (for {server <- allExpectedServer;
+           if (executionReports.filter(x => (x.nodeId==server)).size == 0)
+        } yield server).distinct
+      })
+    } else {
+      Seq()
+    }
   }
   
   
@@ -296,10 +296,10 @@ class ConfigurationExecutionBatch(
    */
   def getUnknownNodes() : Seq[NodeId] = {
     allExpectedServer.filter(node => !(getSuccessServer().contains(node)))
-    								.filter(node => !(getRepairedServer().contains(node)))
-    								.filter(node => !(getErrorServer().contains(node)))
-    								.filter(node => !(getPendingServer().contains(node)))
-    								.filter(node => !(getServerWithNoReports().contains(node)))
+                     .filter(node => !(getRepairedServer().contains(node)))
+                     .filter(node => !(getErrorServer().contains(node)))
+                     .filter(node => !(getPendingServer().contains(node)))
+                     .filter(node => !(getServerWithNoReports().contains(node)))
     
   }
 }

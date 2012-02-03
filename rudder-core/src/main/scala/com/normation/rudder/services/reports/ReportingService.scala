@@ -55,19 +55,19 @@ import com.normation.cfclerk.domain.{CFCPolicyInstanceId}
  */
 trait ReportingService {
 
-	/**
-	 * Update the list of expected reports when we do a deployment
-	 * For each ConfigurationRuleVal, we check if it was present or modified
-	 * If it was present and not changed, nothing is done for it
-	 * If it changed, then the previous version is closed, and the new one is opened
+  /**
+   * Update the list of expected reports when we do a deployment
+   * For each ConfigurationRuleVal, we check if it was present or modified
+   * If it was present and not changed, nothing is done for it
+   * If it changed, then the previous version is closed, and the new one is opened
 
-	 *   
-	 * @param configurationRuleVal
-	 * @return
-	 */
-	def updateExpectedReports(configurationRuleVal : Seq[ConfigurationRuleVal], deletedCrs : Seq[ConfigurationRuleId]) : Box[Seq[ConfigurationExpectedReports]]
-	
-	
+   *   
+   * @param configurationRuleVal
+   * @return
+   */
+  def updateExpectedReports(configurationRuleVal : Seq[ConfigurationRuleVal], deletedCrs : Seq[ConfigurationRuleId]) : Box[Seq[ConfigurationExpectedReports]]
+  
+  
     
   /**
    * Returns the operation reports for a configuration rule (for all servers)
@@ -91,15 +91,15 @@ trait ReportingService {
    */
   def findImmediateReportsByNodeAndCrs(nodeId : NodeId, configurationRuleIds : Seq[ConfigurationRuleId]) : Seq[ExecutionBatch]
   
-	 /**
+   /**
    *  find the last reports for a given server
    */
   def findCurrentReportsByServer(nodeId : NodeId) : Seq[ExecutionBatch]
   
-	/**
+  /**
    * Find the latest (15 minutes) reports for a given node (all CR)
    * Note : if there is an expected report, and that we don't have it, we should say that it is empty
    */
   def findImmediateReportsByNode(nodeId : NodeId) :  Seq[ExecutionBatch]
-	
+  
 }

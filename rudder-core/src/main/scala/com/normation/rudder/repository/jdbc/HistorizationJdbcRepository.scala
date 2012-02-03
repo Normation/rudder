@@ -66,25 +66,25 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   def getAllOpenedNodes() : Seq[SerializedNodes] = {
    
     squerylConnectionProvider.ourTransaction {
-	    val q = from(Nodes.nodes)(node => 
-	      where(node.endTime.isNull)
-	      select(node)
-	    )
+      val q = from(Nodes.nodes)(node => 
+        where(node.endTime.isNull)
+        select(node)
+      )
       q.toList
     }
   }
  
   def getAllNodes(after : Option[DateTime]) : Seq[SerializedNodes] = {
     squerylConnectionProvider.ourTransaction {
-	    val q = from(Nodes.nodes)(node =>
-	      where(after.map(date => {
-	        node.startTime > toTimeStamp(date) or
-	        (node.endTime.isNotNull and node.endTime.>(Some(toTimeStamp(date))))
-	        
-	         
-	      }).getOrElse(1===1))
-	      select(node)
-	    )
+      val q = from(Nodes.nodes)(node =>
+        where(after.map(date => {
+          node.startTime > toTimeStamp(date) or
+          (node.endTime.isNotNull and node.endTime.>(Some(toTimeStamp(date))))
+          
+           
+        }).getOrElse(1===1))
+        select(node)
+      )
       q.toList
     }
   }
@@ -92,14 +92,14 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   
   def updateNodes(nodes : Seq[NodeInfo], closable : Seq[String]) :Seq[SerializedNodes] = {
     squerylConnectionProvider.ourTransaction {
-	    // close the nodes
-	    val q = update(Nodes.nodes)(node => 
-	      where(node.endTime.isNull and node.nodeId.in(nodes.map(x => x.id.value) ++ closable))
-	      set(node.endTime := Some(toTimeStamp(DateTime.now())))
-	    )
-	    
-	    val insertion = Nodes.nodes.insert(nodes.map(SerializedNodes.fromNode(_)))
-	    // add the new ones
+      // close the nodes
+      val q = update(Nodes.nodes)(node => 
+        where(node.endTime.isNull and node.nodeId.in(nodes.map(x => x.id.value) ++ closable))
+        set(node.endTime := Some(toTimeStamp(DateTime.now())))
+      )
+      
+      val insertion = Nodes.nodes.insert(nodes.map(SerializedNodes.fromNode(_)))
+      // add the new ones
      Seq()
     }
   }
@@ -107,27 +107,27 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   def getAllOpenedGroups() : Seq[SerializedGroups] = {
    
     squerylConnectionProvider.ourTransaction {
-	    val q = from(Groups.groups)(group => 
-	      where(group.endTime.isNull)
-	      select(group)
-	    )
-	    q.toList
+      val q = from(Groups.groups)(group => 
+        where(group.endTime.isNull)
+        select(group)
+      )
+      q.toList
     }
   }
   
   def getAllGroups(after : Option[DateTime]) : Seq[SerializedGroups] = {
     squerylConnectionProvider.ourTransaction {
-	    val q = from(Groups.groups)(group =>
-	      where(after.map(date => {
-	        group.startTime > toTimeStamp(date) or
-	        (group.endTime.isNotNull and group.endTime.>(Some(toTimeStamp(date))))
-	        
-	         
-	      }).getOrElse(1===1))
-	      select(group)
-	    )
+      val q = from(Groups.groups)(group =>
+        where(after.map(date => {
+          group.startTime > toTimeStamp(date) or
+          (group.endTime.isNotNull and group.endTime.>(Some(toTimeStamp(date))))
+          
+           
+        }).getOrElse(1===1))
+        select(group)
+      )
       q.toList
-	
+  
     }
   }
   
@@ -135,14 +135,14 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   
   def updateGroups(nodes : Seq[NodeGroup], closable : Seq[String]) :Seq[SerializedGroups] = {
     squerylConnectionProvider.ourTransaction {
-	    // close the nodes
-	    val q = update(Groups.groups)(group => 
-	      where(group.endTime.isNull and group.groupId.in(nodes.map(x => x.id.value) ++ closable))
-	      set(group.endTime := Some(toTimeStamp(DateTime.now())))
-	    )
-	    
-	    val insertion = Groups.groups.insert(nodes.map(SerializedGroups.fromNodeGroup(_)))
-	    // add the new ones
+      // close the nodes
+      val q = update(Groups.groups)(group => 
+        where(group.endTime.isNull and group.groupId.in(nodes.map(x => x.id.value) ++ closable))
+        set(group.endTime := Some(toTimeStamp(DateTime.now())))
+      )
+      
+      val insertion = Groups.groups.insert(nodes.map(SerializedGroups.fromNodeGroup(_)))
+      // add the new ones
       Seq()
     }
   }
@@ -151,41 +151,41 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   def getAllOpenedPIs() : Seq[SerializedPIs] = {
    
     squerylConnectionProvider.ourTransaction {
-	    val q = from(PolicyInstances.policyInstances)(pi => 
-	      where(pi.endTime.isNull)
-	      select(pi)
-	    )
-	    q.toList
-	    
+      val q = from(PolicyInstances.policyInstances)(pi => 
+        where(pi.endTime.isNull)
+        select(pi)
+      )
+      q.toList
+      
     }
   }
   
    def getAllPIs(after : Option[DateTime]) : Seq[SerializedPIs] = {
     squerylConnectionProvider.ourTransaction {
-	    val q = from(PolicyInstances.policyInstances)(pi =>
-	      where(after.map(date => {
-	        pi.startTime > toTimeStamp(date) or
-	        (pi.endTime.isNotNull and pi.endTime > toTimeStamp(date))
-	      }).getOrElse(1===1))
-	      select(pi)
-	    )
+      val q = from(PolicyInstances.policyInstances)(pi =>
+        where(after.map(date => {
+          pi.startTime > toTimeStamp(date) or
+          (pi.endTime.isNotNull and pi.endTime > toTimeStamp(date))
+        }).getOrElse(1===1))
+        select(pi)
+      )
       q.toList
 
     }
   }
 
   def updatePIs(pis : Seq[(PolicyInstance, UserPolicyTemplate, PolicyPackage)], 
-      				closable : Seq[String]) :Seq[SerializedPIs] = {
+              closable : Seq[String]) :Seq[SerializedPIs] = {
 
     squerylConnectionProvider.ourTransaction {
-	    // close the pis
-	    val q = update(PolicyInstances.policyInstances)(pi => 
-	      where(pi.endTime.isNull and pi.policyInstanceId.in(pis.map(x => x._1.id.value) ++ closable))
-	      set(pi.endTime := toTimeStamp(DateTime.now()))
-	    )
-	    
-	    val insertion = PolicyInstances.policyInstances.insert(pis.map(x => SerializedPIs.fromPolicyInstance(x._1, x._2, x._3)))
-	    // add the new ones
+      // close the pis
+      val q = update(PolicyInstances.policyInstances)(pi => 
+        where(pi.endTime.isNull and pi.policyInstanceId.in(pis.map(x => x._1.id.value) ++ closable))
+        set(pi.endTime := toTimeStamp(DateTime.now()))
+      )
+      
+      val insertion = PolicyInstances.policyInstances.insert(pis.map(x => SerializedPIs.fromPolicyInstance(x._1, x._2, x._3)))
+      // add the new ones
      
      Seq()
     }
@@ -193,66 +193,66 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   
   def getAllOpenedCRs() : Seq[ConfigurationRule] = {
     squerylConnectionProvider.ourTransaction {
-	    val q = from(ConfigurationRules.configurationRules)(cr => 
-	      where(cr.endTime.isNull)
-	      select(cr)
-	    )
-	    val crs = q.toList
-	    
-	    
-	    // Now that we have the opened CR, we must complete them
-	    val pis = from(ConfigurationRules.pis)(pi => 
-	      where(pi.crid.in(crs.map(x => x.id)))
-	      select(pi)
-	    )
-	    val groups = from(ConfigurationRules.groups)(group => 
-	      where(group.crid.in(crs.map(x => x.id)))
-	      select(group)
-	    )
-	    
-	    
-	    val (piSeq, groupSeq) = (pis.toList, groups.toList)
-	        
-	    crs.map ( cr => (cr, 
-	    		groupSeq.filter(group => group.crid == cr.id),
-	        piSeq.filter(pi => pi.crid == cr.id)	        	
-	    )).map( x=> SerializedCRs.fromSerialized(x._1, x._2, x._3) )
+      val q = from(ConfigurationRules.configurationRules)(cr => 
+        where(cr.endTime.isNull)
+        select(cr)
+      )
+      val crs = q.toList
+      
+      
+      // Now that we have the opened CR, we must complete them
+      val pis = from(ConfigurationRules.pis)(pi => 
+        where(pi.crid.in(crs.map(x => x.id)))
+        select(pi)
+      )
+      val groups = from(ConfigurationRules.groups)(group => 
+        where(group.crid.in(crs.map(x => x.id)))
+        select(group)
+      )
+      
+      
+      val (piSeq, groupSeq) = (pis.toList, groups.toList)
+          
+      crs.map ( cr => (cr, 
+          groupSeq.filter(group => group.crid == cr.id),
+          piSeq.filter(pi => pi.crid == cr.id)            
+      )).map( x=> SerializedCRs.fromSerialized(x._1, x._2, x._3) )
     }
     
   }
 
   def getAllCRs(after : Option[DateTime]) : Seq[(SerializedCRs, Seq[SerializedCRGroups],  Seq[SerializedCRPIs])] = {
     squerylConnectionProvider.ourTransaction {
-	    val q = from(ConfigurationRules.configurationRules)(cr => 
-	       where(after.map(date => {
-	        cr.startTime > toTimeStamp(date) or
-	        (cr.endTime.isNotNull and cr.endTime > toTimeStamp(date))
-	      }).getOrElse(1===1))
-	      select(cr)
-	    )
-	    val crs = q.toList
-	    
-	    
-	    // Now that we have the opened CR, we must complete them
-	    val pis = from(ConfigurationRules.pis)(pi => 
-	      where(pi.crid.in(crs.map(x => x.id)))
-	      select(pi)
-	    )
-	    val groups = from(ConfigurationRules.groups)(group => 
-	      where(group.crid.in(crs.map(x => x.id)))
-	      select(group)
-	    )
-	    
-	    
-	    val (piSeq, groupSeq) = crs.size match {
-	      case 0 => (Seq(), Seq())
-	      case _ => (pis.toSeq, groups.toSeq)
-	    }
-	        
-	    crs.map ( cr => (cr, 
-	    		groupSeq.filter(group => group.crid == cr.id),
-	        piSeq.filter(pi => pi.crid == cr.id)	        	
-	    ))
+      val q = from(ConfigurationRules.configurationRules)(cr => 
+         where(after.map(date => {
+          cr.startTime > toTimeStamp(date) or
+          (cr.endTime.isNotNull and cr.endTime > toTimeStamp(date))
+        }).getOrElse(1===1))
+        select(cr)
+      )
+      val crs = q.toList
+      
+      
+      // Now that we have the opened CR, we must complete them
+      val pis = from(ConfigurationRules.pis)(pi => 
+        where(pi.crid.in(crs.map(x => x.id)))
+        select(pi)
+      )
+      val groups = from(ConfigurationRules.groups)(group => 
+        where(group.crid.in(crs.map(x => x.id)))
+        select(group)
+      )
+      
+      
+      val (piSeq, groupSeq) = crs.size match {
+        case 0 => (Seq(), Seq())
+        case _ => (pis.toSeq, groups.toSeq)
+      }
+          
+      crs.map ( cr => (cr, 
+          groupSeq.filter(group => group.crid == cr.id),
+          piSeq.filter(pi => pi.crid == cr.id)            
+      ))
     }
     
   }
@@ -260,24 +260,24 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   
   def updateCrs(crs : Seq[ConfigurationRule], closable : Seq[String]) : Unit = {
     squerylConnectionProvider.ourTransaction {     
-	    // close the crs
-	    val q = update(ConfigurationRules.configurationRules)(cr => 
-	      where(cr.endTime.isNull and cr.configurationRuleId.in(crs.map(x => x.id.value) ++ closable))
-	      set(cr.endTime := toTimeStamp(DateTime.now()))
-	    )
+      // close the crs
+      val q = update(ConfigurationRules.configurationRules)(cr => 
+        where(cr.endTime.isNull and cr.configurationRuleId.in(crs.map(x => x.id.value) ++ closable))
+        set(cr.endTime := toTimeStamp(DateTime.now()))
+      )
    
-	    crs.map( cr => {  
-	      val serialized = ConfigurationRules.configurationRules.insert(SerializedCRs.toSerialized(cr))
-	      
-	      
-	      cr.policyInstanceIds.map( pi => ConfigurationRules.pis.insert(new SerializedCRPIs(serialized.id, pi.value)))
-	      
-	      cr.target.map(group => group match {
-	        case GroupTarget(groupId) => ConfigurationRules.groups.insert(new SerializedCRGroups(serialized.id, groupId.value))
-	        case _ => //
-	      })
-	    })
-	    
+      crs.map( cr => {  
+        val serialized = ConfigurationRules.configurationRules.insert(SerializedCRs.toSerialized(cr))
+        
+        
+        cr.policyInstanceIds.map( pi => ConfigurationRules.pis.insert(new SerializedCRPIs(serialized.id, pi.value)))
+        
+        cr.target.map(group => group match {
+          case GroupTarget(groupId) => ConfigurationRules.groups.insert(new SerializedCRGroups(serialized.id, groupId.value))
+          case _ => //
+        })
+      })
+      
     }
   }
   
@@ -304,10 +304,10 @@ case class SerializedGroups(
 object SerializedGroups {
   def fromNodeGroup(nodeGroup : NodeGroup) : SerializedGroups = {
     new SerializedGroups(nodeGroup.id.value, 
-        		nodeGroup.name, 
-        		nodeGroup.description, 
-        		nodeGroup.serverList.size, 
-        		new Timestamp(DateTime.now().getMillis), None )
+            nodeGroup.name, 
+            nodeGroup.description, 
+            nodeGroup.serverList.size, 
+            new Timestamp(DateTime.now().getMillis), None )
   }
 }
 
@@ -333,9 +333,9 @@ case class SerializedNodes(
 object SerializedNodes {
   def fromNode(node : NodeInfo) : SerializedNodes = {
     new SerializedNodes(node.id.value, 
-        		node.hostname, 
-        		node.description,  
-        		new Timestamp(DateTime.now().getMillis), None )
+            node.hostname,
+            node.description,
+            new Timestamp(DateTime.now().getMillis), None )
   }
 }
 
@@ -366,14 +366,14 @@ object SerializedPIs {
   def fromPolicyInstance(policyInstance : PolicyInstance, 
       userPT : UserPolicyTemplate,
       policyPackage : PolicyPackage) : SerializedPIs = {
-    new SerializedPIs(policyInstance.id.value, 
-        		policyInstance.name, 
-        		policyInstance.shortDescription, 
-        		policyInstance.priority,
-        		userPT.referencePolicyTemplateName.value,
-        		policyPackage.description,
-        		policyInstance.policyTemplateVersion.toString,
-        		new Timestamp(DateTime.now().getMillis), null )
+    new SerializedPIs(policyInstance.id.value,
+            policyInstance.name,
+            policyInstance.shortDescription,
+            policyInstance.priority,
+            userPT.referencePolicyTemplateName.value,
+            policyPackage.description,
+            policyInstance.policyTemplateVersion.toString,
+            new Timestamp(DateTime.now().getMillis), null )
   }
 }
 
@@ -416,18 +416,18 @@ case class SerializedCRPIs(
 
 object SerializedCRs {
   def fromSerialized(cr : SerializedCRs, 
-      							crgr : Seq[SerializedCRGroups],
-      							crpi : Seq[SerializedCRPIs] ) : ConfigurationRule = {
+                    crgr : Seq[SerializedCRGroups],
+                    crpi : Seq[SerializedCRPIs] ) : ConfigurationRule = {
     ConfigurationRule(
-    		ConfigurationRuleId(cr.configurationRuleId),
-    		cr.name, 
+        ConfigurationRuleId(cr.configurationRuleId),
+        cr.name, 
         cr.serial,
-    		crgr.headOption.map(x => new GroupTarget(new NodeGroupId(x.groupId))), 
-    		crpi.map(x => new PolicyInstanceId(x.piid)).toSet,
-    		cr.shortDescription,
-    		cr.longDescription,
-    		cr.isActivatedStatus,
-    		false
+        crgr.headOption.map(x => new GroupTarget(new NodeGroupId(x.groupId))), 
+        crpi.map(x => new PolicyInstanceId(x.piid)).toSet,
+        cr.shortDescription,
+        cr.longDescription,
+        cr.isActivatedStatus,
+        false
     )
     
   }

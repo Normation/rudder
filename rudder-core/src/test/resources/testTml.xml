@@ -1,16 +1,16 @@
 <TMLS>
-	<TML name="one"/>
-	
-	<TML name="two">
-		<DEPENDON>
-			<TEMPLATE>/one</TEMPLATE>
-		</DEPENDON>
-	</TML>
-	
-	<TML name="three">
-		<DEPENDON>
-			<TEMPLATE>/two</TEMPLATE>
-		</DEPENDON>
-	</TML>
+  <TML name="one"/>
+  
+  <TML name="two">
+    <DEPENDON>
+      <TEMPLATE>/one</TEMPLATE>
+    </DEPENDON>
+  </TML>
+  
+  <TML name="three">
+    <DEPENDON>
+      <TEMPLATE>/two</TEMPLATE>
+    </DEPENDON>
+  </TML>
 </TMLS>
 

@@ -47,11 +47,11 @@ case class GroupCategoryUuid(val value:String) extends Uuid with HashcodeCaching
 
 
 case class GroupCategory(
-	val uuid: GroupCategoryUuid,
-	val name: String,
-	val description: String,
-	val children: List[GroupCategoryUuid],
-  val items : List[QueryUuid]
+    uuid       : GroupCategoryUuid
+  , name       : String
+  , description: String
+  , children   : List[GroupCategoryUuid]
+  , items      : List[QueryUuid]
   //val technical : Boolean = false
 ) extends HashcodeCaching 
 

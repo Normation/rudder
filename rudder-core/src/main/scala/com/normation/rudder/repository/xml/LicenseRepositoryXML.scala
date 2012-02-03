@@ -69,7 +69,7 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
     
 
   def loadLicenses(): Unit = {  
-  	licenseMap.clear
+    licenseMap.clear
       
     logger.debug("Loading document {}", licenseFile)
     val doc = loadLicenseFile()

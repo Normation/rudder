@@ -87,9 +87,9 @@ object PendingHistoryGrid extends Loggable {
   
   def displayAndInit() : NodeSeq = {    
     logService.getInventoryEventLogs() match {
-    	case Empty => display(Seq[InventoryEventLog]()) ++ Script(initJs)
-    	case Full(x) => display(x) ++ Script(initJs)
-    	case _ => NodeSeq.Empty
+      case Empty => display(Seq[InventoryEventLog]()) ++ Script(initJs)
+      case Full(x) => display(x) ++ Script(initJs)
+      case _ => NodeSeq.Empty
     }
     
   }
@@ -189,15 +189,15 @@ object PendingHistoryGrid extends Loggable {
             var opened = jQuery(nTr).prop("open");
 
             if (opened && opened.match("opened")) {
-    		      #table_var#.fnClose(nTr);
-    		      jQuery(nTr).prop("open", "closed");
+              #table_var#.fnClose(nTr);
+              jQuery(nTr).prop("open", "closed");
             } else {
              jQuery(nTr).prop("open", "opened");
-    		  
-    		  var ajaxParam = jsuuid +  "|" + id + "|" + inventory;
-    		  #table_var#.fnOpen( nTr, fnFormatDetails(jsuuid), 'displayPastInventory' );
-    		  %s;
-    		}
+          
+          var ajaxParam = jsuuid +  "|" + id + "|" + inventory;
+          #table_var#.fnOpen( nTr, fnFormatDetails(jsuuid), 'displayPastInventory' );
+          %s;
+        }
           } );
         })
       """.format(
@@ -207,14 +207,14 @@ object PendingHistoryGrid extends Loggable {
   
   
   def displayPastInventory(s : String) : JsCmd = {
-  	val arr = s.split("\\|")
-  	if (arr.length != 3) {
-  		Alert("Called ID is not valid: %s".format(s))
-  	} else {
-  		val jsuuid = arr(0)
-  		val id = NodeId(arr(1))
-  		val version = ISODateTimeFormat.dateTimeParser.parseDateTime(arr(2))
-  		history.get(id, version) match {
+    val arr = s.split("\\|")
+    if (arr.length != 3) {
+      Alert("Called ID is not valid: %s".format(s))
+    } else {
+      val jsuuid = arr(0)
+      val id = NodeId(arr(1))
+      val version = ISODateTimeFormat.dateTimeParser.parseDateTime(arr(2))
+      history.get(id, version) match {
         case Failure(m,_,_) => Alert("Error while trying to display node history. Error message:" + m)
         case Empty => Alert("No history was retrieved for the chosen date")
         case Full(sm) => 
@@ -222,8 +222,8 @@ object PendingHistoryGrid extends Loggable {
             jsuuid,
             DisplayServer.showPannedContent(sm.data, "hist")) & 
             DisplayServer.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs"))
-  		}
-  	}
+      }
+    }
   }
   
 }

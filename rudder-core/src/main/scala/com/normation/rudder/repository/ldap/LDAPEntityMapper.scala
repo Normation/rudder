@@ -91,7 +91,7 @@ class LDAPEntityMapper(
   }
    
   def policyServerNodeToEntry(node : PolicyServerNodeInfo) : LDAPEntry = {
-  	val entry = nodeDit.NODES.NODE.policyServerNodeModel(node.id)
+    val entry = nodeDit.NODES.NODE.policyServerNodeModel(node.id)
     entry +=! (A_NAME, node.name)
     entry +=! (A_DESCRIPTION, node.description)
     entry +=! (A_HOSTNAME, node.hostname)
@@ -180,13 +180,13 @@ class LDAPEntityMapper(
                      }
       date <- policyServerNodeEntry.getAsGTime(A_OBJECT_CREATION_DATE) ?~! "Can not find mandatory attribute '%s' in entry".format(A_OBJECT_CREATION_DATE)
     } yield {
-    	// fetch the datetime for the inventory
+      // fetch the datetime for the inventory
       val dateTime = policyServerNodeEntry.getAsGTime(A_INVENTORY_DATE) match {
         case None => DateTime.now() 
         case Some(date) =>date.dateTime 
       }
-  	
-    	PolicyServerNodeInfo(
+    
+      PolicyServerNodeInfo(
           id,
           policyServerNodeEntry(A_NAME).getOrElse(""),
           policyServerNodeEntry(A_DESCRIPTION).getOrElse(""),

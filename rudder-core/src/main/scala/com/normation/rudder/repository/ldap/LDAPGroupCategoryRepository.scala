@@ -87,11 +87,11 @@ class LDAPGroupCategoryRepository(
   , autoExportOnModify: Boolean 
   , groupLibMutex     : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends GroupCategoryRepository with Loggable {
-	
-	repo =>
-	
+  
+  repo =>
+  
 
-	/**
+  /**
    * Find sub entries (children group categories and server groups for 
    * the given category which MUST be mapped to an entry with the given
    * DN in the LDAP backend, accessible with the given connection. 
@@ -147,36 +147,36 @@ class LDAPGroupCategoryRepository(
   }
   
   def getAllGroupCategories(includeSystem:Boolean = false) : Box[List[NodeGroupCategory]] = {
-  	val list = groupLibMutex.readLock { for {
-  		con <- ldap
+    val list = groupLibMutex.readLock { for {
+      con <- ldap
       filter          =  if(includeSystem) IS(OC_GROUP_CATEGORY) else AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)),IS(OC_GROUP_CATEGORY))
-  		categoryEntries = con.searchSub(rudderDit.GROUP.dn, filter)
-  		ids = categoryEntries.map(e => mapper.dn2NodeGroupCategoryId(e.dn))
-  		result = ids.map(getGroupCategory _)
-  	} yield {
-  		result
-  	} }
-  	
-  	list match {
-  		case Full(entries) => var result : Box[List[NodeGroupCategory]] = Full(Nil)
-												  	for (entry <- entries) {
-												  		entry match {
-												  			case Full(x) => result = Full(x :: result.open_!)
-												  			case Empty => return Empty
-												  			case x : Failure => return x
-												  		}
-												  	}
-												    result 
-  		case Empty => Empty
-  		case x : Failure => x
-  	}
+      categoryEntries = con.searchSub(rudderDit.GROUP.dn, filter)
+      ids = categoryEntries.map(e => mapper.dn2NodeGroupCategoryId(e.dn))
+      result = ids.map(getGroupCategory _)
+    } yield {
+      result
+    } }
+    
+    list match {
+      case Full(entries) => var result : Box[List[NodeGroupCategory]] = Full(Nil)
+                            for (entry <- entries) {
+                              entry match {
+                                case Full(x) => result = Full(x :: result.open_!)
+                                case Empty => return Empty
+                                case x : Failure => return x
+                              }
+                            }
+                            result
+      case Empty => Empty
+      case x : Failure => x
+    }
   }
   
   /**
    * Root group category
    */
   def getRootCategory(): NodeGroupCategory = { 
-  	(for {
+    (for {
       con <- ldap
       rootCategoryEntry <- groupLibMutex.readLock { con.get(rudderDit.GROUP.dn) ?~! "The root category of the server group category seems to be missing in LDAP directory. Please check its content" }
       // look for sub category and policy template
@@ -186,7 +186,7 @@ class LDAPGroupCategoryRepository(
     }) match {
       case Full(root) => root
       case e:EmptyBox => throw new RuntimeException(e.toString)
-    }  	
+    }
   }
 
   /**
@@ -224,7 +224,7 @@ class LDAPGroupCategoryRepository(
    * Get a group category by its id
    * */
   def getGroupCategory(id: NodeGroupCategoryId): Box[NodeGroupCategory] = { 
-  	for {
+    for {
       con <- ldap
       categoryEntry <- groupLibMutex.readLock { getCategoryEntry(con, id) ?~! "Entry with ID '%s' was not found".format(id) }
       category <- mapper.entry2NodeGroupCategory(categoryEntry) ?~! "Error when transforming LDAP entry %s into a server group category".format(categoryEntry)
@@ -245,7 +245,7 @@ class LDAPGroupCategoryRepository(
     , into: NodeGroupCategoryId
     , actor:EventActor
   ): Box[NodeGroupCategory] = {
-  	for {
+    for {
       con                 <- ldap 
       parentCategoryEntry <- getCategoryEntry(con, into, "1.1") ?~! "The parent category '%s' was not found, can not add".format(into)
       canAddByName        <- if (categoryExists(con, that.name, parentCategoryEntry.dn)) 
@@ -270,7 +270,7 @@ class LDAPGroupCategoryRepository(
    * Update an existing group category
    */
   def saveGroupCategory(category: NodeGroupCategory, actor:EventActor): Box[NodeGroupCategory] = { 
-  	repo.synchronized { for {
+    repo.synchronized { for {
       con              <- ldap 
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
       categoryEntry    =  mapper.nodeGroupCategory2ldap(category,oldCategoryEntry.dn.getParent)
@@ -295,7 +295,7 @@ class LDAPGroupCategoryRepository(
    * Update/move an existing group category
    */
   def saveGroupCategory(category: NodeGroupCategory, containerId : NodeGroupCategoryId, actor:EventActor): Box[NodeGroupCategory] = {
-  	repo.synchronized { for {
+    repo.synchronized { for {
       con              <- ldap
       oldParents       <- if(autoExportOnModify) {
                             this.getParents_NodeGroupCategory(category.id)
@@ -334,14 +334,14 @@ class LDAPGroupCategoryRepository(
    * is not in the repository
    */
   def getParentGroupCategory(id: NodeGroupCategoryId): Box[NodeGroupCategory] = { 
-  	groupLibMutex.readLock { for {
+    groupLibMutex.readLock { for {
       con <- ldap
       categoryEntry <- getCategoryEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
       parentCategoryEntry <- con.get(categoryEntry.dn.getParent)
       parentCategory <- mapper.entry2NodeGroupCategory(parentCategoryEntry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(parentCategoryEntry)
     } yield {
       addSubEntries(parentCategory, parentCategoryEntry.dn, con)
-    }  }	
+    }  }  
   }
 
   

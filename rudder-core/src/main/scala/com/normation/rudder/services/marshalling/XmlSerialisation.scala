@@ -201,7 +201,7 @@ trait DeploymentStatusSerialisation {
       <ended>{deploymentStatus.end}</ended>
       <status>[success|failure]</status>
       <errorMessage>{errorStatus.failure]</errorMessage>
-  	</deploymentStatus>
+    </deploymentStatus>
   */
   def serialise(
       deploymentStatus : CurrentDeploymentStatus) : Elem

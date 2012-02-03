@@ -63,7 +63,7 @@ object ApplicationStarted extends EventLogFilter {
  * Red buton part
  */
 final case class ActivateRedButton(
-		override val eventDetails : EventLogDetails
+    override val eventDetails : EventLogDetails
 ) extends EventLog with HashcodeCaching {
   
   override val eventType = ActivateRedButton.eventType
@@ -80,7 +80,7 @@ object ActivateRedButton extends EventLogFilter {
 }
 
 final case class ReleaseRedButton(
-		override val eventDetails : EventLogDetails
+    override val eventDetails : EventLogDetails
 ) extends EventLog with HashcodeCaching {
   
   override val eventType = ReleaseRedButton.eventType

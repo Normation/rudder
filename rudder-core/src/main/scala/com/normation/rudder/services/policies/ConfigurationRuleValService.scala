@@ -76,12 +76,12 @@ class ConfigurationRuleValServiceImpl (
           logger.debug("Creating a PolicyInstanceContainer %s from the configurationRuleId %s".format(upt.referencePolicyTemplateName, configurationRuleId))
         
           PolicyInstanceContainer(
-          		policyPackage.id,
-          		upt.id,
-          		pi.id,
-          		pi.priority,
-          		policyPackage.trackerVariableSpec.toVariable(trackerVariable.values),
-          		otherVars
+              policyPackage.id,
+              upt.id,
+              pi.id,
+              pi.priority,
+              policyPackage.trackerVariableSpec.toVariable(trackerVariable.values),
+              otherVars
           )
         }
       } }

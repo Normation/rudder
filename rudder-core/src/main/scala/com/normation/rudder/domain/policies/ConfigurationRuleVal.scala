@@ -81,8 +81,8 @@ case class ConfigurationRuleVal(
  * A composite class, to keep the link between the applied PI and the CR
  */
 case class IdentifiableCFCPI (
-		configurationRuleId:ConfigurationRuleId,
-		policyInstance: CFCPolicyInstance
+    configurationRuleId: ConfigurationRuleId
+  , policyInstance     : CFCPolicyInstance
 ) extends HashcodeCaching 
 
 

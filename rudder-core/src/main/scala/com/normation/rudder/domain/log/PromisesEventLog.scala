@@ -115,20 +115,20 @@ object PromisesEventLogsFilter {
  */
 object ModificationWatchList {
   val events = Seq[EventLogType](
-		  AcceptNodeEventType
-		, DeleteNodeEventType
-		, AddConfigurationRuleEventType
-		, DeleteConfigurationRuleEventType
-		, ModifyConfigurationRuleEventType
-		, AddPolicyInstanceEventType
-		, DeletePolicyInstanceEventType
-		, ModifyPolicyInstanceEventType
-		, AddNodeGroupEventType
-		, DeleteNodeGroupEventType
-		, ModifyNodeGroupEventType
-		, ClearCacheEventType
-		, UpdatePolicyServerEventType
-		// must add delete and reloadpt
+      AcceptNodeEventType
+    , DeleteNodeEventType
+    , AddConfigurationRuleEventType
+    , DeleteConfigurationRuleEventType
+    , ModifyConfigurationRuleEventType
+    , AddPolicyInstanceEventType
+    , DeletePolicyInstanceEventType
+    , ModifyPolicyInstanceEventType
+    , AddNodeGroupEventType
+    , DeleteNodeGroupEventType
+    , ModifyNodeGroupEventType
+    , ClearCacheEventType
+    , UpdatePolicyServerEventType
+    // must add delete and reloadpt
   )
   
 }

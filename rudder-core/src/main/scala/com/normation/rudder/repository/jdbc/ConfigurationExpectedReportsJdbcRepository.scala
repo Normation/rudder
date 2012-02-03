@@ -81,7 +81,7 @@ class ConfigurationExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
    * @return
    */
   def findCurrentExpectedReports(configurationRuleId : ConfigurationRuleId) : Option[ConfigurationExpectedReports] = {
-  	val list = toConfigurationExpectedReports(jdbcTemplate.query(baseQuery +
+    val list = toConfigurationExpectedReports(jdbcTemplate.query(baseQuery +
         "      and enddate is null and configurationruleid = ?",
           Array[AnyRef](configurationRuleId.value), 
           ConfigurationExpectedReportsMapper).toSeq)
@@ -100,10 +100,10 @@ class ConfigurationExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
    * @param configurationRuleId 
    */
   def closeExpectedReport(configurationRuleId : ConfigurationRuleId) : Unit = {
-  	logger.info("Closing report {}", configurationRuleId)
+    logger.info("Closing report {}", configurationRuleId)
     findCurrentExpectedReports(configurationRuleId) match {
       case None =>
-      			logger.warn("Cannot close a non existing entry %s".format(configurationRuleId.value))
+            logger.warn("Cannot close a non existing entry %s".format(configurationRuleId.value))
       case Some(entry) =>
         jdbcTemplate.update("update "+ TABLE_NAME +"  set enddate = ? where nodejoinkey = ? and configurationRuleId = ?",
           new Timestamp(DateTime.now().getMillis), new java.lang.Integer(entry.nodeJoinKey), entry.configurationRuleId.value
@@ -117,39 +117,39 @@ class ConfigurationExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
    * 
    */
   def saveExpectedReports(configurationRuleId : ConfigurationRuleId, serial: Int,
-      				policyExpectedReports : Seq[PolicyExpectedReports],
-      				nodes : Seq[NodeId]) : Box[ConfigurationExpectedReports] = {
-  	 logger.info("Saving expected report for configuration rule {}", configurationRuleId.value)
-  	 findCurrentExpectedReports(configurationRuleId) match {
+              policyExpectedReports : Seq[PolicyExpectedReports],
+              nodes : Seq[NodeId]) : Box[ConfigurationExpectedReports] = {
+     logger.info("Saving expected report for configuration rule {}", configurationRuleId.value)
+     findCurrentExpectedReports(configurationRuleId) match {
       case Some(x) =>
-      		logger.error("Inconsistency in the database : cannot save an already existing expected report")
-      		Failure("cannot save an already existing expected report")
-      		
+          logger.error("Inconsistency in the database : cannot save an already existing expected report")
+          Failure("cannot save an already existing expected report")
+          
       case None =>
-      		// Compute first the version id
-      		val nodeJoinKey = getNextVersionId
-      		
-      		// Create the lines for the mapping
-      		val list = for {
-      		  policy <- policyExpectedReports
-      		  component <- policy.components
-      		  
-      		} yield {
-      		  new ExpectedConfRuleMapping(0, nodeJoinKey, configurationRuleId, serial,
-      		        policy.policyInstanceId, component.componentName, component.cardinality, component.componentsValues, DateTime.now(), None)
-      		}
-      		"select pkid, nodejoinkey, configurationruleid, serial, policyinstanceid, component, componentsvalues, cardinality, begindate, enddate  from "+ TABLE_NAME + "  where 1=1 ";
+          // Compute first the version id
+          val nodeJoinKey = getNextVersionId
+          
+          // Create the lines for the mapping
+          val list = for {
+            policy <- policyExpectedReports
+            component <- policy.components
+            
+          } yield {
+            new ExpectedConfRuleMapping(0, nodeJoinKey, configurationRuleId, serial,
+                  policy.policyInstanceId, component.componentName, component.cardinality, component.componentsValues, DateTime.now(), None)
+          }
+          "select pkid, nodejoinkey, configurationruleid, serial, policyinstanceid, component, componentsvalues, cardinality, begindate, enddate  from "+ TABLE_NAME + "  where 1=1 ";
 
-      		list.foreach(entry => 
-			      		jdbcTemplate.update("insert into "+ TABLE_NAME +" ( nodejoinkey, configurationruleid, serial, policyinstanceid, component, cardinality, componentsValues, begindate) " + 
-			      		    " values (?,?,?,?,?,?,?,?)",
-				          new java.lang.Integer(entry.nodeJoinKey), configurationRuleId.value, new java.lang.Integer(entry.serial), entry.policyExpectedReport.value,
-				          entry.component,  new java.lang.Integer(entry.cardinality), ComponentsValuesSerialiser.serializeComponents(entry.componentsValues), new Timestamp(entry.beginDate.getMillis)
-				        )
-				  )
-	        saveServer(nodes, nodeJoinKey )
-	        findCurrentExpectedReports(configurationRuleId)
-  	 }
+          list.foreach(entry => 
+                jdbcTemplate.update("insert into "+ TABLE_NAME +" ( nodejoinkey, configurationruleid, serial, policyinstanceid, component, cardinality, componentsValues, begindate) " + 
+                    " values (?,?,?,?,?,?,?,?)",
+                  new java.lang.Integer(entry.nodeJoinKey), configurationRuleId.value, new java.lang.Integer(entry.serial), entry.policyExpectedReport.value,
+                  entry.component,  new java.lang.Integer(entry.cardinality), ComponentsValuesSerialiser.serializeComponents(entry.componentsValues), new Timestamp(entry.beginDate.getMillis)
+                )
+          )
+          saveServer(nodes, nodeJoinKey )
+          findCurrentExpectedReports(configurationRuleId)
+     }
   }
   
   /**
@@ -284,9 +284,9 @@ class ConfigurationExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
         case None => result += (SerialedConfigurationRuleId(mapped.configurationRuleId, mapped.serial) -> new  ConfigurationExpectedReports(
             mapped.configurationRuleId,
             Seq(new PolicyExpectedReports(
-                		mapped.policyExpectedReport,
-                		Seq(new ComponentCard(mapped.component, mapped.cardinality, mapped.componentsValues)))
-            		),
+                    mapped.policyExpectedReport,
+                    Seq(new ComponentCard(mapped.component, mapped.cardinality, mapped.componentsValues)))
+                ),
             mapped.serial,
             mapped.nodeJoinKey,
             Seq(),
@@ -294,20 +294,20 @@ class ConfigurationExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
             mapped.endDate
             ))
         case Some(entry) =>
-          	// two case, either add a policyExpectedReport, either add a componentCard
+            // two case, either add a policyExpectedReport, either add a componentCard
             entry.policyExpectedReports.find(x => x.policyInstanceId == mapped.policyExpectedReport) match {
               case None => // No policy expected reports, we create one
                 result += (SerialedConfigurationRuleId(entry.configurationRuleId,
-                    				entry.serial) -> entry.copy(policyExpectedReports = entry.policyExpectedReports :+ new PolicyExpectedReports(
-                		mapped.policyExpectedReport,
-                		Seq(new ComponentCard(mapped.component, mapped.cardinality, mapped.componentsValues))
-            			))
-            		)
+                            entry.serial) -> entry.copy(policyExpectedReports = entry.policyExpectedReports :+ new PolicyExpectedReports(
+                    mapped.policyExpectedReport,
+                    Seq(new ComponentCard(mapped.component, mapped.cardinality, mapped.componentsValues))
+                  ))
+                )
               case Some(expectedReport) =>
                 val newPolicies =  entry.policyExpectedReports.filter(x => x.policyInstanceId != mapped.policyExpectedReport) :+
-                									expectedReport.copy(components = (expectedReport.components :+ new ComponentCard(mapped.component, mapped.cardinality, mapped.componentsValues)) )
+                                  expectedReport.copy(components = (expectedReport.components :+ new ComponentCard(mapped.component, mapped.cardinality, mapped.componentsValues)) )
                 result += (SerialedConfigurationRuleId(entry.configurationRuleId,
-                    				entry.serial) -> entry.copy(policyExpectedReports = newPolicies))
+                            entry.serial) -> entry.copy(policyExpectedReports = newPolicies))
             }
       }
     }

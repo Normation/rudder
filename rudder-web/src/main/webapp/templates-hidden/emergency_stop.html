@@ -1,40 +1,40 @@
 <!-- 
-	
-	Emergency Stop button (and restart)
-	
+  
+  Emergency Stop button (and restart)
+  
  -->
  
 <xml:goup>
-	<emergency:panel>  
-		<span class="right">
-	    <button id="openAlert"><emergency:images/></button>
-	    <!--popin Alerte-->
-	    <div id="dialogAlert">
-	   
-	      <div id="Alerte">
-		      <div class="simplemodal-title">
-						<h1><emergency:title/></h1>
-						<hr/>
-					</div>
-	        <div class="simplemodal-content">
-	        	<emergency:body/>
-	        	<hr class="spacer" />
-        	</div>
-					<div class="simplemodal-bottom">
-						<form>
-							<hr/>
-							<div class="popupButton">
-				 				<span>
-            			<input type="submit" value="Cancel" class="simplemodal-close" onClick="return false;"/>
-        					<emergency:button/>
-        				</span>
-        			</div>
-        		</form>
+  <emergency:panel>  
+    <span class="right">
+      <button id="openAlert"><emergency:images/></button>
+      <!--popin Alerte-->
+      <div id="dialogAlert">
+     
+        <div id="Alerte">
+          <div class="simplemodal-title">
+            <h1><emergency:title/></h1>
+            <hr/>
           </div>
-	      </div>
-	     
-	    </div>
-	    <!--Fin popin Alerte-->
-	    </span>
-	</emergency:panel>
+          <div class="simplemodal-content">
+            <emergency:body/>
+            <hr class="spacer" />
+          </div>
+          <div class="simplemodal-bottom">
+            <form>
+              <hr/>
+              <div class="popupButton">
+                 <span>
+                  <input type="submit" value="Cancel" class="simplemodal-close" onClick="return false;"/>
+                  <emergency:button/>
+                </span>
+              </div>
+            </form>
+          </div>
+        </div>
+       
+      </div>
+      <!--Fin popin Alerte-->
+      </span>
+  </emergency:panel>
 </xml:goup> 

@@ -201,9 +201,9 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
           buildUserLibraryJsTree &
           //init bind callback to move
           JsRaw("""
-          	// use global variables to store where the event come from to prevent infinite recursion
-          		var fromUser = false;
-          		var fromReference = false;
+            // use global variables to store where the event come from to prevent infinite recursion
+              var fromUser = false;
+              var fromReference = false;
 
             $('#%1$s').bind("move_node.jstree", function (e,data) {
               var interTree = "%1$s" != data.rslt.ot.get_container().prop("id");
@@ -230,33 +230,33 @@ class PolicyTemplateLibraryManagement extends DispatchSnippet with Loggable {
                 $.jstree.rollback(data.rlbk);
               }
             });
-          	$('#%1$s').bind("select_node.jstree", function (e,data) {
-          			var sourcePtId = data.rslt.obj.prop("ptid");
-          			var target = $('#%5$s  li[ptid|="'+sourcePtId+'"]');
-          			if (target.length>0) {
-          				if (fromReference) {
-          					fromReference = false;
-          					return false;
-          				}
-          				fromUser = true;
-          			
-          		  	$('#%5$s').jstree("select_node", target , true , null );
-          			}
-          	});
-          	$('#%5$s').bind("select_node.jstree", function (e,data) {
-          			var sourcePtId = data.rslt.obj.prop("ptid");
-          			var target = $('#%1$s  li[ptid|="'+sourcePtId+'"]');
-          			if (target.length>0) {
-           				if (fromUser) {
-          					fromUser = false;
-          					return false;
-          				}
-          				fromReference = true;
+            $('#%1$s').bind("select_node.jstree", function (e,data) {
+                var sourcePtId = data.rslt.obj.prop("ptid");
+                var target = $('#%5$s  li[ptid|="'+sourcePtId+'"]');
+                if (target.length>0) {
+                  if (fromReference) {
+                    fromReference = false;
+                    return false;
+                  }
+                  fromUser = true;
+                
+                  $('#%5$s').jstree("select_node", target , true , null );
+                }
+            });
+            $('#%5$s').bind("select_node.jstree", function (e,data) {
+                var sourcePtId = data.rslt.obj.prop("ptid");
+                var target = $('#%1$s  li[ptid|="'+sourcePtId+'"]');
+                if (target.length>0) {
+                   if (fromUser) {
+                    fromUser = false;
+                    return false;
+                  }
+                  fromReference = true;
 
-          		  	$('#%1$s').jstree("select_node", target , true , null );
-          			}
+                  $('#%1$s').jstree("select_node", target , true , null );
+                }
 
-          	});
+            });
           """.format(
             // %1$s 
             htmlId_userTree , 

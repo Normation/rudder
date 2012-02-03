@@ -73,8 +73,8 @@ class ConfigurationExpectedReportsRepoTest  extends Specification  {
    private val equaledUniqueMapping = new ConfigurationExpectedReports(
        new ConfigurationRuleId("cr1"),
        Seq(new PolicyExpectedReports(new PolicyInstanceId("pi1"),
-           						Seq(new ComponentCard("component", 2, Seq("None", "None") ))
-           			)),
+                       Seq(new ComponentCard("component", 2, Seq("None", "None") ))
+                 )),
        11,
        1, 
        Seq(),
@@ -82,12 +82,12 @@ class ConfigurationExpectedReportsRepoTest  extends Specification  {
    )
    private val multiLine =   buildExpectedConfRule("cr2", Seq("pi1", "pi2"), "comp")
    private val multiComponent =   buildExpectedConfRule("cr3", Seq("pi3"), "comp1") ++
-   																buildExpectedConfRule("cr3", Seq("pi3"), "comp2") ++
-   																buildExpectedConfRule("cr3", Seq("pi3"), "comp3")
-   																
+                                   buildExpectedConfRule("cr3", Seq("pi3"), "comp2") ++
+                                   buildExpectedConfRule("cr3", Seq("pi3"), "comp3")
+                                   
    private val multiPiComponent =   buildExpectedConfRule("cr3", Seq("pi1", "pi2"), "comp1") ++
-   																buildExpectedConfRule("cr3", Seq("pi1", "pi4"), "comp2") 
-   																
+                                   buildExpectedConfRule("cr3", Seq("pi1", "pi4"), "comp2") 
+                                   
    
    
    private def buildExpectedConfRule(crId : String, piId : Seq[String], component : String) : Seq[ExpectedConfRuleMapping] = {

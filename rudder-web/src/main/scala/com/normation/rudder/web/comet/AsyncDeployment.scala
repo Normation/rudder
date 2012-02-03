@@ -76,7 +76,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     else periodFormatter.print(duration.toPeriod)
   }
   
-  private[this] val asyncDeploymentAgent 	  = inject[AsyncDeploymentAgent]
+  private[this] val asyncDeploymentAgent      = inject[AsyncDeploymentAgent]
   private[this] val eventLogDeploymentService = inject[EventLogDeploymentService]
   private[this] val eventList = inject[EventListDisplayer]
   
@@ -106,27 +106,27 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       case true => 
       case false => 
         deploymentStatus.processing match {
-        	case IdleDeployer =>
-        		lastSuccessfulDeployement  = eventLogDeploymentService.getLastSuccessfulDeployement()
-        		lastSuccessfulDeployement match {
-        			case f: EmptyBox => 
-        			  lastEventSinceDeployment = eventLogDeploymentService.getListOfModificationEvents(
-        			      UnspecializedEventLog(
-        			          EventLogDetails(
-        			              id = Some(-1)
-        			            , principal = RudderEventActor
-        			            , creationDate = DateTime.now
-        			            , cause = None
-        			            , severity = 0
-        			            , details = <entry/>) )
-        			      )
-        			case Full(event) =>
-        			  lastEventSinceDeployment = eventLogDeploymentService.getListOfModificationEvents(event)
-        		}
-        		
-        		
-        	case _ => // if it's a deployment, nothing to do
-        	
+          case IdleDeployer =>
+            lastSuccessfulDeployement  = eventLogDeploymentService.getLastSuccessfulDeployement()
+            lastSuccessfulDeployement match {
+              case f: EmptyBox => 
+                lastEventSinceDeployment = eventLogDeploymentService.getListOfModificationEvents(
+                    UnspecializedEventLog(
+                        EventLogDetails(
+                            id = Some(-1)
+                          , principal = RudderEventActor
+                          , creationDate = DateTime.now
+                          , cause = None
+                          , severity = 0
+                          , details = <entry/>) )
+                    )
+              case Full(event) =>
+                lastEventSinceDeployment = eventLogDeploymentService.getListOfModificationEvents(event)
+            }
+            
+            
+          case _ => // if it's a deployment, nothing to do
+          
         }
     }
   }
@@ -160,17 +160,17 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         { asyncDeploymentAgent.isAutoDeploy match {
           case true =>  NodeSeq.Empty
           case false => <div class="pendingModificationStatus">{ lastEventSinceDeployment match {
-        		case f: Failure => <span class="errorscala">Cannot fetch modification since last deployment</span>
-        		case Empty => Text("There are no modification pending")
-        		case Full(seq) if seq.size == 0 => Text("There are no modification pending")
-        		case Full(seq) if seq.size == 1 =>  SHtml.a(Text("There is 1 modification pending"))(showPendingPopup) ++ createInnerPopup(seq) 
-        		case Full(seq) if seq.size > 1 =>  SHtml.a(Text("There are " + seq.size + " modifications pending"))(showPendingPopup) ++ createInnerPopup(seq)
+            case f: Failure => <span class="errorscala">Cannot fetch modification since last deployment</span>
+            case Empty => Text("There are no modification pending")
+            case Full(seq) if seq.size == 0 => Text("There are no modification pending")
+            case Full(seq) if seq.size == 1 =>  SHtml.a(Text("There is 1 modification pending"))(showPendingPopup) ++ createInnerPopup(seq) 
+            case Full(seq) if seq.size > 1 =>  SHtml.a(Text("There are " + seq.size + " modifications pending"))(showPendingPopup) ++ createInnerPopup(seq)
             }
         } </div>
         } } ++ SHtml.ajaxButton("Regenerate now", { () => 
-        		asyncDeploymentAgent ! ManualStartDeployment(CurrentUser.getActor)
-        		Noop
-        	}, ( "class" , "deploymentButton"))
+            asyncDeploymentAgent ! ManualStartDeployment(CurrentUser.getActor)
+            Noop
+          }, ( "class" , "deploymentButton"))
       case Processing(id, start) =>
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
@@ -231,15 +231,15 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
        <br />
        <div class="popupContent"/>
        <hr class="spacer" />
-	  </div>
-	  <div class="simplemodal-bottom">
+    </div>
+    <div class="simplemodal-bottom">
         <hr/>
         <div class="popupButton">
-		  <span>
+      <span>
           <button class="simplemodal-close" onClick="return false;">
             Close
           </button>
-		  </span>
+      </span>
         </div>
       </div>
     </div>   

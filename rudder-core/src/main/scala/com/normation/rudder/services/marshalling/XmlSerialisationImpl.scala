@@ -194,18 +194,18 @@ class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentSta
       deploymentStatus : CurrentDeploymentStatus) : Elem = {
   XmlUtils.trim { deploymentStatus match {
       case d : SuccessStatus => <deploymentStatus fileFormat="1.0">
-      		<id>{d.id}</id>
-      		<started>{d.started}</started>
-      		<ended>{d.ended}</ended>
-      		<status>success</status>
-      	 </deploymentStatus>
+          <id>{d.id}</id>
+          <started>{d.started}</started>
+          <ended>{d.ended}</ended>
+          <status>success</status>
+          </deploymentStatus>
       case d : ErrorStatus => <deploymentStatus fileFormat="1.0">
-      		<id>{d.id}</id>
-      		<started>{d.started}</started>
-      		<ended>{d.ended}</ended>
-      		<status>failure</status>
-      		<errorMessage>{d.failure}</errorMessage>
-      	 </deploymentStatus>
+          <id>{d.id}</id>
+          <started>{d.started}</started>
+          <ended>{d.ended}</ended>
+          <status>failure</status>
+          <errorMessage>{d.failure}</errorMessage>
+          </deploymentStatus>
       case _ => throw new TechnicalException("Bad CurrentDeploymentStatus type, expected a success or an error")
     } 
   } }

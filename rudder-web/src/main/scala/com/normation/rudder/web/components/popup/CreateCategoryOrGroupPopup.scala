@@ -89,7 +89,7 @@ class CreateCategoryOrGroupPopup(
 
 
   private[this] val nodeGroupRepository = inject[NodeGroupRepository]
-	private[this] val groupCategoryRepository = inject[GroupCategoryRepository]
+  private[this] val groupCategoryRepository = inject[GroupCategoryRepository]
   private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] val categories = groupCategoryRepository.getAllNonSystemCategories
   private[this] val uuidGen = inject[StringUuidGenerator]
@@ -104,15 +104,15 @@ class CreateCategoryOrGroupPopup(
    * If we create a category, the info about the group is hidden (default), otherwise we show it
    */
  private[this] def initJs : JsCmd = {
-  	JsRaw("correctButtons();") & 
-  	JsShowId("createGroupHiddable") & 
-  	{
-  		if (groupGenerator != None) {
-  			JsHideId("itemCreation")
-  		} else {
-  			Noop
-  		}
-  	}
+    JsRaw("correctButtons();") & 
+    JsShowId("createGroupHiddable") & 
+    {
+      if (groupGenerator != None) {
+        JsHideId("itemCreation")
+      } else {
+        Noop
+      }
+    }
   }
 
   def popupContent() : NodeSeq = {
@@ -137,7 +137,7 @@ class CreateCategoryOrGroupPopup(
     )) ++ Script(OnLoad(initJs)) 
   }
 
-	///////////// fields for category settings ///////////////////
+  ///////////// fields for category settings ///////////////////
   private[this] val piName = new WBTextField("Name: ", "") {
     override def displayNameHtml = Some(<b>{displayName}</b>)
     override def setFilter = notNull _ :: trim _ :: Nil
@@ -169,8 +169,8 @@ class CreateCategoryOrGroupPopup(
   }
 
   private[this] val piContainer = new WBSelectField("Parent category: ",
-			(categories.open_!.map(x => (x.id.value -> x.name))),
-			"") {
+      (categories.open_!.map(x => (x.id.value -> x.name))),
+      "") {
     override def className = "twoCol"
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
   }
@@ -188,7 +188,7 @@ class CreateCategoryOrGroupPopup(
   /**
    * Update the form when something happened
    */
-	private[this] def updateFormClientSide() : JsCmd = {
+  private[this] def updateFormClientSide() : JsCmd = {
     SetHtml("createGroupContainer", popupContent())
   }
 

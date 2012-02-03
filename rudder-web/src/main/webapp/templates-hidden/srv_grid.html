@@ -1,31 +1,31 @@
 <!-- 
-	
-	Presentation part of the Server grid displaying	
-	
+  
+  Presentation part of the Server grid displaying  
+  
  -->
  
 <xml:goup>
 
-	<servergrid:head>
-		<script type="text/javascript" language="javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
-	</servergrid:head>
+  <servergrid:head>
+    <script type="text/javascript" language="javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
+  </servergrid:head>
 
-	<servergrid:table cellspacing="0">
-		<thead>
-			<tr class="head">
-				<th>Node name<span/></th>
-				<th>Operating system<span/></th>
-				<servergrid:header/>
-			</tr>
-		</thead>
-		<tbody>		
-			<servergrid:lines>
-				<tr>
-					<td  name="serverName"><line:name /></td>
-					<td><line:fullos /></td>
-					<line:other/>
-				</tr>
-			</servergrid:lines>
-		</tbody>
-	</servergrid:table>	
+  <servergrid:table cellspacing="0">
+    <thead>
+      <tr class="head">
+        <th>Node name<span/></th>
+        <th>Operating system<span/></th>
+        <servergrid:header/>
+      </tr>
+    </thead>
+    <tbody>    
+      <servergrid:lines>
+        <tr>
+          <td  name="serverName"><line:name /></td>
+          <td><line:fullos /></td>
+          <line:other/>
+        </tr>
+      </servergrid:lines>
+    </tbody>
+  </servergrid:table>  
 </xml:goup> 

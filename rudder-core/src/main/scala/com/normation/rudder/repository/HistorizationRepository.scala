@@ -66,7 +66,7 @@ trait HistorizationRepository {
   def getAllOpenedPIs() : Seq[SerializedPIs]
   
   def updatePIs(pis : Seq[(PolicyInstance, UserPolicyTemplate, PolicyPackage)], 
-      				closable : Seq[String]) :Seq[SerializedPIs]
+              closable : Seq[String]) :Seq[SerializedPIs]
    
   def getAllCRs(after : Option[DateTime]) : Seq[(SerializedCRs, Seq[SerializedCRGroups],  Seq[SerializedCRPIs])]
   

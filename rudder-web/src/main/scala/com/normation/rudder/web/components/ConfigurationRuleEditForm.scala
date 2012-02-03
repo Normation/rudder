@@ -180,7 +180,7 @@ class ConfigurationRuleEditForm(
       "#editForm [id]" #> htmlId_configurationRule
     )(crForm) ++ 
     Script(OnLoad(JsRaw("""
-    	correctButtons();
+      correctButtons();
       $('#removeButton').click(function() {
         createPopup("removeActionDialog",140,850);
         return false;
@@ -487,7 +487,7 @@ class ConfigurationRuleEditForm(
            <div class="tooltipContent" id={tooltipid}><h3>{targetInfo.name}</h3><div>{targetInfo.description}</div></div>
            </span>
          }
-         											
+                               
          override def children = Nil
          override val attrs = ( "rel" -> "special_target" ) :: Nil
       }

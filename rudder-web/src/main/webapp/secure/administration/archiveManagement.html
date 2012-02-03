@@ -24,20 +24,20 @@
 
 <script>
 //<![CDATA[
-	function enableIfNonEmpty(selectId, buttonId) { 
-	  $("#"+selectId).change(function () {
-	    $("#" + selectId + " option:selected").each(function () {
-	      if($(this).text() != "Choose an archive to restore...") {
+  function enableIfNonEmpty(selectId, buttonId) { 
+    $("#"+selectId).change(function () {
+      $("#" + selectId + " option:selected").each(function () {
+        if($(this).text() != "Choose an archive to restore...") {
           $("#"+buttonId).prop("disabled", false);
           $("#"+buttonId).removeClass("ui-button-disabled ui-state-disabled");
           $("#"+buttonId).addClass("ui-state-default");
-	      } else {
+        } else {
           $("#"+buttonId).prop("disabled", true);
           $("#"+buttonId).addClass("ui-button-disabled ui-state-disabled");
           $("#"+buttonId).removeClass("ui-state-default");
-	      }
-	    })
-	  })
+        }
+      })
+    })
   }
 //]]>  
 </script>
@@ -81,59 +81,59 @@
 </div>
 
 <div class="column">
-	<div class="portlet">
-	  <div class="portlet-header">Configuration rules archives management</div>
-	  <div class="portlet-content"> 
-	   
-	    <div class="intro">
-	      <div>
-	        This widget allows to create new configuration rules archives and restore archive chosen by date.
-	      </div>
-	    </div>
-	
-	    <hr class="spacer"/>
-	    <div class="deca">
-	    
-		    <div class="lift:administration.Archives.configurationRulesForm archiveAction" id="configurationRulesForm">
-		      <form class="lift:form.ajax">
+  <div class="portlet">
+    <div class="portlet-header">Configuration rules archives management</div>
+    <div class="portlet-content"> 
+     
+      <div class="intro">
+        <div>
+          This widget allows to create new configuration rules archives and restore archive chosen by date.
+        </div>
+      </div>
+  
+      <hr class="spacer"/>
+      <div class="deca">
+      
+        <div class="lift:administration.Archives.configurationRulesForm archiveAction" id="configurationRulesForm">
+          <form class="lift:form.ajax">
             <br/>
-		        <input id="exportConfigurationRulesButton" type="submit" value="[Export CR]"/> 
+            <input id="exportConfigurationRulesButton" type="submit" value="[Export CR]"/> 
             <br/>
             <br/>
-	          <select id="importConfigurationRulesSelect">
-	            <option>2011-10-08 21:21:21</option>
-	            <option>2011-10-09 21:21:21</option>
-	            <option>2011-10-10 21:21:21</option>
-	            <option>2011-10-11 21:21:21</option>
-	          </select>
-		        <input id="importConfigurationRulesButton" type="submit" value="[Import CR]"/> 
+            <select id="importConfigurationRulesSelect">
+              <option>2011-10-08 21:21:21</option>
+              <option>2011-10-09 21:21:21</option>
+              <option>2011-10-10 21:21:21</option>
+              <option>2011-10-11 21:21:21</option>
+            </select>
+            <input id="importConfigurationRulesButton" type="submit" value="[Import CR]"/> 
             <br/>
-		        <lift:msg id="configurationRulesFormNotice" errorClass="error">[error]</lift:msg>
+            <lift:msg id="configurationRulesFormNotice" errorClass="error">[error]</lift:msg>
             <br/>
-		      </form>
-		    </div>
-	    </div>
-	  </div>
-	  <br/>
-	</div>
-	
-		    
-	<div class="portlet">
-	  <div class="portlet-header">Policy library archives management</div>
-	  <div class="portlet-content"> 
-	   
-	    <div class="intro">
-	      <div>
-	        This widget allows to create new policy library archives and restore archive chosen by date.
-	      </div>
-	    </div>
-	
-	    <hr class="spacer"/>
-	    <div class="deca">
-		    <div class="lift:administration.Archives.policyLibraryForm archiveAction" id="policyLibraryForm">
-		      <form class="lift:form.ajax">
+          </form>
+        </div>
+      </div>
+    </div>
+    <br/>
+  </div>
+  
+        
+  <div class="portlet">
+    <div class="portlet-header">Policy library archives management</div>
+    <div class="portlet-content"> 
+     
+      <div class="intro">
+        <div>
+          This widget allows to create new policy library archives and restore archive chosen by date.
+        </div>
+      </div>
+  
+      <hr class="spacer"/>
+      <div class="deca">
+        <div class="lift:administration.Archives.policyLibraryForm archiveAction" id="policyLibraryForm">
+          <form class="lift:form.ajax">
             <br/>
-		        <input id="exportPolicyLibraryButton" type="submit" value="[Export PolicyLibrary]"/> 
+            <input id="exportPolicyLibraryButton" type="submit" value="[Export PolicyLibrary]"/> 
             <br/>
             <br/>
             <select id="importPolicyLibrarySelect">
@@ -142,35 +142,35 @@
               <option>2011-10-10 21:21:21</option>
               <option>2011-10-11 21:21:21</option>
             </select>
-		        <input id="importPolicyLibraryButton" type="submit" value="[Import PolicyLibrary]"/> 
+            <input id="importPolicyLibraryButton" type="submit" value="[Import PolicyLibrary]"/> 
             <br/>
-		        <lift:msg id="policyLibraryFormNotice" errorClass="error">[error]</lift:msg>
+            <lift:msg id="policyLibraryFormNotice" errorClass="error">[error]</lift:msg>
             <br/>
-		      </form>
-		    </div>
-	    </div>
-	  </div>
+          </form>
+        </div>
+      </div>
+    </div>
     <br/>
-	</div>
+  </div>
 </div>
 
 <div class="column">
-	<div class="portlet">
-	  <div class="portlet-header">Groups archives management</div>
-	  <div class="portlet-content"> 
-	   
-	    <div class="intro">
-	      <div>
-	        This widget allows to create new configuration rules archivesand restore archive chosen by date.
-	      </div>
-	    </div>
-	
-	    <hr class="spacer"/>
-	    <div class="deca">
-		    <div class="lift:administration.Archives.groupLibraryForm archiveAction" id="groupLibraryForm">
-		      <form class="lift:form.ajax">
+  <div class="portlet">
+    <div class="portlet-header">Groups archives management</div>
+    <div class="portlet-content"> 
+     
+      <div class="intro">
+        <div>
+          This widget allows to create new configuration rules archivesand restore archive chosen by date.
+        </div>
+      </div>
+  
+      <hr class="spacer"/>
+      <div class="deca">
+        <div class="lift:administration.Archives.groupLibraryForm archiveAction" id="groupLibraryForm">
+          <form class="lift:form.ajax">
             <br/>
-		        <input id="exportGroupLibraryButton" type="submit" value="[Export GroupLibrary]"/> 
+            <input id="exportGroupLibraryButton" type="submit" value="[Export GroupLibrary]"/> 
             <br/>
             <br/>
             <select id="importGroupLibrarySelect">
@@ -179,16 +179,16 @@
               <option>2011-10-10 21:21:21</option>
               <option>2011-10-11 21:21:21</option>
             </select>
-		        <input id="importGroupLibraryButton" type="submit" value="[Import GroupLibrary]"/> 
+            <input id="importGroupLibraryButton" type="submit" value="[Import GroupLibrary]"/> 
             <br/>
-		        <lift:msg id="groupLibraryFormNotice" errorClass="error">[error]</lift:msg>
+            <lift:msg id="groupLibraryFormNotice" errorClass="error">[error]</lift:msg>
             <br/>
-		      </form>
-		    </div>
-	    </div>
-	  </div>
+          </form>
+        </div>
+      </div>
+    </div>
     <br/>
-	</div>
+  </div>
 </div>
 </lift:surround>
 

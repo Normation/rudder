@@ -56,55 +56,55 @@ import com.normation.utils.Control._
 
 trait NodeInfoService {
 
-	/**
-	 * Return a NodeInfo from a NodeId. First check the ou=Node, then fetch the other data
-	 * @param nodeId
-	 * @return
-	 */
-	def getNodeInfo(nodeId: NodeId) : Box[NodeInfo]
-	
-	/**
-	 * Return a seq of NodeInfo from a seq of NodeId. 
-	 * If any of them fails, then we return Failure
-	 * @param nodeId
-	 * @return
-	 */
-	def find(nodeIds: Seq[NodeId]) : Box[Seq[NodeInfo]]
-	
-	
-	/**
-	 * Return a PolicyServerNodeInfo from its id
-	 * @param policyServerNodeId
-	 * @return
-	 */
-	def getPolicyServerNodeInfo(policyServerNodeId : NodeId) : Box[PolicyServerNodeInfo]
-	
-	
-	/**
-	 * Return a seq of PolicyServerNodeInfo from a seq of NodeId. 
-	 * If any of them fails, then we return Failure
-	 * @param nodeId
-	 * @return
-	 */
-	def findPolicyServerNodeInfos(nodeIds: Seq[NodeId]) : Box[Seq[PolicyServerNodeInfo]] 
-	
-	/**
-	 * Get all node ids
-	 */
-	def getAllIds() : Box[Seq[NodeId]]
-	
-	/**
-	 * Get all "simple" node ids (i.e, all user nodes, 
-	 * for example, NOT policy servers)
-	 */
-	def getAllUserNodeIds() : Box[Seq[NodeId]]
-	
-	/**
-	 * Get all systen node ids, for example 
-	 * policy server node ids. 
-	 * @return
-	 */
-	def getAllSystemNodeIds() : Box[Seq[NodeId]]	
+  /**
+   * Return a NodeInfo from a NodeId. First check the ou=Node, then fetch the other data
+   * @param nodeId
+   * @return
+   */
+  def getNodeInfo(nodeId: NodeId) : Box[NodeInfo]
+  
+  /**
+   * Return a seq of NodeInfo from a seq of NodeId. 
+   * If any of them fails, then we return Failure
+   * @param nodeId
+   * @return
+   */
+  def find(nodeIds: Seq[NodeId]) : Box[Seq[NodeInfo]]
+  
+  
+  /**
+   * Return a PolicyServerNodeInfo from its id
+   * @param policyServerNodeId
+   * @return
+   */
+  def getPolicyServerNodeInfo(policyServerNodeId : NodeId) : Box[PolicyServerNodeInfo]
+  
+  
+  /**
+   * Return a seq of PolicyServerNodeInfo from a seq of NodeId. 
+   * If any of them fails, then we return Failure
+   * @param nodeId
+   * @return
+   */
+  def findPolicyServerNodeInfos(nodeIds: Seq[NodeId]) : Box[Seq[PolicyServerNodeInfo]] 
+  
+  /**
+   * Get all node ids
+   */
+  def getAllIds() : Box[Seq[NodeId]]
+  
+  /**
+   * Get all "simple" node ids (i.e, all user nodes, 
+   * for example, NOT policy servers)
+   */
+  def getAllUserNodeIds() : Box[Seq[NodeId]]
+  
+  /**
+   * Get all systen node ids, for example 
+   * policy server node ids. 
+   * @return
+   */
+  def getAllSystemNodeIds() : Box[Seq[NodeId]]  
 }
 
 object NodeInfoServiceImpl {
@@ -112,17 +112,17 @@ object NodeInfoServiceImpl {
 }
 
 class NodeInfoServiceImpl(
-		nodeDit : NodeDit,
-		rudderDit:RudderDit,
-		inventoryDit:InventoryDit,
-		ldap:LDAPConnectionProvider,
-		ldapMapper:LDAPEntityMapper
+    nodeDit : NodeDit,
+    rudderDit:RudderDit,
+    inventoryDit:InventoryDit,
+    ldap:LDAPConnectionProvider,
+    ldapMapper:LDAPEntityMapper
 ) extends NodeInfoService with Loggable {
   import NodeInfoServiceImpl._
 
-	def getNodeInfo(nodeId: NodeId) : Box[NodeInfo] = {
-		logger.trace("Fetching node info for node id %s".format(nodeId.value))
-		for {
+  def getNodeInfo(nodeId: NodeId) : Box[NodeInfo] = {
+    logger.trace("Fetching node info for node id %s".format(nodeId.value))
+    for {
       con <- ldap
       node <- con.get(nodeDit.NODES.NODE.dn(nodeId.value), nodeInfoAttributes:_*) ?~! "Node with ID '%s' was not found".format(nodeId.value)
       nodeInfo <- {
@@ -136,39 +136,39 @@ class NodeInfoServiceImpl(
           }
         }
       }
-		} yield {
-			nodeInfo
-		}
-	}
-	
-	
-	def find(nodeIds: Seq[NodeId]) : Box[Seq[NodeInfo]] = {
-	  sequence(nodeIds) { nodeId =>
-	    getNodeInfo(nodeId)
-	  }
-	}
-	
-	def getPolicyServerNodeInfo(policyServerNodeId : NodeId) : Box[PolicyServerNodeInfo] = {
-		(for {
+    } yield {
+      nodeInfo
+    }
+  }
+  
+  
+  def find(nodeIds: Seq[NodeId]) : Box[Seq[NodeInfo]] = {
+    sequence(nodeIds) { nodeId =>
+      getNodeInfo(nodeId)
+    }
+  }
+  
+  def getPolicyServerNodeInfo(policyServerNodeId : NodeId) : Box[PolicyServerNodeInfo] = {
+    (for {
       con <- ldap
       node <- con.get(nodeDit.NODES.NODE.dn(policyServerNodeId.value), nodeInfoAttributes:_*)
       nodeInfo <- ldapMapper.convertEntryToPolicyServerNodeInfo(node)
-		} yield {
-			nodeInfo
-		})
-	}
-	
-	def findPolicyServerNodeInfos(nodeIds: Seq[NodeId]) : Box[Seq[PolicyServerNodeInfo]] = {
-		(for {
+    } yield {
+      nodeInfo
+    })
+  }
+  
+  def findPolicyServerNodeInfos(nodeIds: Seq[NodeId]) : Box[Seq[PolicyServerNodeInfo]] = {
+    (for {
       con <- ldap
       nodes <- boxSequence(nodeIds.map(policyServerNodeId => con.get(nodeDit.NODES.NODE.dn(policyServerNodeId.value), nodeInfoAttributes:_*)))
       nodesInfo <- sequence(nodes) { node => ldapMapper.convertEntryToPolicyServerNodeInfo(node) }
-		} yield {
-			nodesInfo
-		})
-	}
-	
-	
+    } yield {
+      nodesInfo
+    })
+  }
+  
+  
   /**
    * Get all node ids
    */

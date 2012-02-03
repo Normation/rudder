@@ -205,7 +205,7 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
       }
     }
     
-  	inLock {
+    inLock {
       LOGGER.debug("Updating node configuration %s".format(target.nodeInfo.id.value) )
       if (target.identifiableCFCPIs.size == 0) {
         LOGGER.warn("Cannot create server {} without policy", target.nodeInfo.id.value)
@@ -213,71 +213,71 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
       }
 
       deduplicateUniquePolicyInstances(target.identifiableCFCPIs) match {
-      	case f : EmptyBox => 
-      	  LOGGER.debug( (f ?~! "An error happened when finding unique policy instances").messageChain )
-      	  LOGGER.error("Could not convert policy instance beans")
-      	  f
-      	  
-      	case Full(policiesInstances) =>
+        case f : EmptyBox => 
+          LOGGER.debug( (f ?~! "An error happened when finding unique policy instances").messageChain )
+          LOGGER.error("Could not convert policy instance beans")
+          f
+          
+        case Full(policiesInstances) =>
 
           /*
            * Try to find the node configuration. If none are found (or one is found but 
            * mapping lead to an error, create a new one. 
            */
-  	      val nodeConfiguration = repository.findNodeConfiguration(target.nodeInfo.id) match {
-  	      	case f : Failure => 
-  	      	  LOGGER.debug("An error occured when trying to fetch the node with id %s : %s".format(target.nodeInfo.id, f.messageChain))
-  	      	  
-  	      	  //try to delete the bad, bad node configuration
-  	      	  LOGGER.debug("We are trying to erase the node configuration and create a new one")
-  	      	  repository.deleteNodeConfiguration(target.nodeInfo.id.value) match {
-  	      	    case f:Failure => 
-  	      	      LOGGER.error("Can not delete the inconsistent node configuration with id: {}. The error does not seems to be corrected automatically, please contact your administrator.",target.nodeInfo.id.value)
-  	      	      return f
-  	      	    case _ => //ok
-  	      	      createNodeConfiguration()
-  	      	  }
-  	      	  
-  	      	case Empty => //create server
-  	      	  createNodeConfiguration()
-  	      	case Full(server : SimpleNodeConfiguration) => 									      		
-  	      		//update nodeconfiguration
+          val nodeConfiguration = repository.findNodeConfiguration(target.nodeInfo.id) match {
+            case f : Failure => 
+              LOGGER.debug("An error occured when trying to fetch the node with id %s : %s".format(target.nodeInfo.id, f.messageChain))
+              
+              //try to delete the bad, bad node configuration
+              LOGGER.debug("We are trying to erase the node configuration and create a new one")
+              repository.deleteNodeConfiguration(target.nodeInfo.id.value) match {
+                case f:Failure => 
+                  LOGGER.error("Can not delete the inconsistent node configuration with id: {}. The error does not seems to be corrected automatically, please contact your administrator.",target.nodeInfo.id.value)
+                  return f
+                case _ => //ok
+                  createNodeConfiguration()
+              }
+              
+            case Empty => //create server
+              createNodeConfiguration()
+            case Full(server : SimpleNodeConfiguration) =>                             
+              //update nodeconfiguration
               //server.id  = target.nodeInfo.id.value //not mutable TODO: use it in the constructor
-  	      		
-  	      		server.copy(
-  	      		    __targetPoliciesInstances = Seq[IdentifiableCFCPI](),
-  	      		    targetMinimalNodeConfig = new MinimalNodeConfig(
-  	      		    		target.nodeInfo.name ,
-  	      		    		target.nodeInfo.hostname ,
-  	      		    		target.nodeInfo.agentsName ,
-  	      		    		target.nodeInfo.policyServerId.value ,
-  	      		    		target.nodeInfo.localAdministratorAccountName
-  	      		    		),
-  	      		    targetSystemVariables = target.nodeContext
-  	      	  )
+              
+              server.copy(
+                  __targetPoliciesInstances = Seq[IdentifiableCFCPI](),
+                  targetMinimalNodeConfig = new MinimalNodeConfig(
+                      target.nodeInfo.name ,
+                      target.nodeInfo.hostname ,
+                      target.nodeInfo.agentsName ,
+                      target.nodeInfo.policyServerId.value ,
+                      target.nodeInfo.localAdministratorAccountName
+                      ),
+                  targetSystemVariables = target.nodeContext
+              )
 
-  	      		
-  	      	case Full(server : RootNodeConfiguration) => 								
-  	      		server.copy(
-  	      		    __targetPoliciesInstances = Seq[IdentifiableCFCPI](),
-  	      		    targetMinimalNodeConfig = new MinimalNodeConfig(
-  	      		    		target.nodeInfo.name ,
-  	      		    		target.nodeInfo.hostname ,
-  	      		    		target.nodeInfo.agentsName ,
-  	      		    		target.nodeInfo.policyServerId.value ,
-  	      		    		target.nodeInfo.localAdministratorAccountName
-  	      		    		),
-  	      		    targetSystemVariables = target.nodeContext
-  	      		 )
+              
+            case Full(server : RootNodeConfiguration) =>                 
+              server.copy(
+                  __targetPoliciesInstances = Seq[IdentifiableCFCPI](),
+                  targetMinimalNodeConfig = new MinimalNodeConfig(
+                      target.nodeInfo.name ,
+                      target.nodeInfo.hostname ,
+                      target.nodeInfo.agentsName ,
+                      target.nodeInfo.policyServerId.value ,
+                      target.nodeInfo.localAdministratorAccountName
+                      ),
+                  targetSystemVariables = target.nodeContext
+               )
              
-        	}
-        	
-        	for {
-        	  addPoliciesOK          <- addPolicies(nodeConfiguration, policiesInstances) ?~! "Error when adding policies for node configuration %s".format(target.nodeInfo.id.value)
-        	  nodeConfigurationSaved <- repository.saveNodeConfiguration(addPoliciesOK) ?~! "Error when saving node configuration %s".format(target.nodeInfo.id.value)
-        	} yield {
-        	  nodeConfigurationSaved
-        	}
+          }
+          
+          for {
+            addPoliciesOK          <- addPolicies(nodeConfiguration, policiesInstances) ?~! "Error when adding policies for node configuration %s".format(target.nodeInfo.id.value)
+            nodeConfigurationSaved <- repository.saveNodeConfiguration(addPoliciesOK) ?~! "Error when saving node configuration %s".format(target.nodeInfo.id.value)
+          } yield {
+            nodeConfigurationSaved
+          }
       }
     }
   }
@@ -287,7 +287,7 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
    * update the serials, and save them
    */
   def incrementSerials(crs: Seq[(ConfigurationRuleId,Int)], nodes : Seq[NodeConfiguration]) : Box[Seq[NodeConfiguration]] = {
-  		repository.saveMultipleNodeConfigurations(nodes.map(x => x.setSerial(crs)))    
+      repository.saveMultipleNodeConfigurations(nodes.map(x => x.setSerial(crs)))    
   }
   
   
@@ -298,68 +298,68 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
    * @return
    */
   def addNodeConfiguration(target : TargetNodeConfiguration) : Box[NodeConfiguration] = {
-  	inLock {
+    inLock {
       if (target.identifiableCFCPIs.size == 0) {
         LOGGER.warn("Cannot create server {} without policy", target.nodeInfo.id.value)
         return ParamFailure[Seq[IdentifiableCFCPI]]("Cannot create a server without policies", Full(new PolicyException("Cannot create a server without any policies")), Empty, target.identifiableCFCPIs)
       }
       
       val isPolicyServer = target.nodeInfo match {
-      	case t: PolicyServerNodeInfo => true
-      	case t : NodeInfo => false
+        case t: PolicyServerNodeInfo => true
+        case t : NodeInfo => false
       }
       
       var server = target.nodeInfo match {
-      	case t: PolicyServerNodeInfo => 
-      			new RootNodeConfiguration(
-		          target.nodeInfo.id.value,
-		          Seq(),
-		          Seq(),
-		          isPolicyServer = true,
-		          new MinimalNodeConfig("", "", Seq(), "", ""),
-		          new MinimalNodeConfig(
-		              target.nodeInfo.name,
-		              target.nodeInfo.hostname,
-		              target.nodeInfo.agentsName,
-		              target.nodeInfo.policyServerId.value,
-		              target.nodeInfo.localAdministratorAccountName
-		              ),
-		          None,
-		          Map(),
-		          target.nodeContext)
-      	case t : NodeInfo =>
-      	  	new SimpleNodeConfiguration(
-		          target.nodeInfo.id.value,
-		          Seq(),
-		          Seq(),
-		          isPolicyServer = false,
-		          new MinimalNodeConfig("", "", Seq(), "", ""),
-		          new MinimalNodeConfig(
-		              target.nodeInfo.name,
-		              target.nodeInfo.hostname,
-		              target.nodeInfo.agentsName,
-		              target.nodeInfo.policyServerId.value,
-		              target.nodeInfo.localAdministratorAccountName
-		              ),
-		          None,
-		          Map(),
-		          target.nodeContext)
+        case t: PolicyServerNodeInfo => 
+            new RootNodeConfiguration(
+              target.nodeInfo.id.value,
+              Seq(),
+              Seq(),
+              isPolicyServer = true,
+              new MinimalNodeConfig("", "", Seq(), "", ""),
+              new MinimalNodeConfig(
+                  target.nodeInfo.name,
+                  target.nodeInfo.hostname,
+                  target.nodeInfo.agentsName,
+                  target.nodeInfo.policyServerId.value,
+                  target.nodeInfo.localAdministratorAccountName
+                  ),
+              None,
+              Map(),
+              target.nodeContext)
+        case t : NodeInfo =>
+            new SimpleNodeConfiguration(
+              target.nodeInfo.id.value,
+              Seq(),
+              Seq(),
+              isPolicyServer = false,
+              new MinimalNodeConfig("", "", Seq(), "", ""),
+              new MinimalNodeConfig(
+                  target.nodeInfo.name,
+                  target.nodeInfo.hostname,
+                  target.nodeInfo.agentsName,
+                  target.nodeInfo.policyServerId.value,
+                  target.nodeInfo.localAdministratorAccountName
+                  ),
+              None,
+              Map(),
+              target.nodeContext)
       }
         
         
       
       deduplicateUniquePolicyInstances(target.identifiableCFCPIs) match {
-      	case f : EmptyBox => f
-      	case Full(policiesInstances) =>
-      			
-	      		addPolicies(server, policiesInstances) match {
-	      			case f: EmptyBox => return f
-	      			case Full(server) => 
-	      			for {
-	      				saved <- repository.saveNodeConfiguration(server)
-	      				findBack <- repository.findNodeConfiguration(NodeId(server.id))
-	      			} yield findBack
-      			}
+        case f : EmptyBox => f
+        case Full(policiesInstances) =>
+            
+            addPolicies(server, policiesInstances) match {
+              case f: EmptyBox => return f
+              case Full(server) => 
+              for {
+                saved <- repository.saveNodeConfiguration(server)
+                findBack <- repository.findNodeConfiguration(NodeId(server.id))
+              } yield findBack
+            }
       }
     }
   }
@@ -506,7 +506,7 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
    * @param pIs
    * @return
    */  
-  private def deduplicateUniquePolicyInstances(pIs: Seq[IdentifiableCFCPI]) : Box[Seq[IdentifiableCFCPI]] = { 	
+  private def deduplicateUniquePolicyInstances(pIs: Seq[IdentifiableCFCPI]) : Box[Seq[IdentifiableCFCPI]] = {   
     val policiesInstances = ArrayBuffer[IdentifiableCFCPI]();
     
     for (policyToAdd <- pIs.sortBy(x => x.policyInstance.priority)) {
@@ -554,29 +554,29 @@ class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter,
     var modifiedServer = server
     
     for (policyInstance <- policyInstances) {
-  			// check the legit character of the policy
-		    if (modifiedServer.getPolicyInstance(policyInstance.policyInstance.id) != None) {
-		      LOGGER.warn("Cannot add a policy instance with the same id than an already existing one {} ", policyInstance.policyInstance.id)
-		      return ParamFailure[IdentifiableCFCPI]("Duplicate policy instance", Full(new PolicyException("Duplicate policy instance " +policyInstance.policyInstance.id)), Empty, policyInstance)
-		    }
-		    
+        // check the legit character of the policy
+        if (modifiedServer.getPolicyInstance(policyInstance.policyInstance.id) != None) {
+          LOGGER.warn("Cannot add a policy instance with the same id than an already existing one {} ", policyInstance.policyInstance.id)
+          return ParamFailure[IdentifiableCFCPI]("Duplicate policy instance", Full(new PolicyException("Duplicate policy instance " +policyInstance.policyInstance.id)), Empty, policyInstance)
+        }
+        
 
-		    val policy = policyService.getPolicy(policyInstance.policyInstance.policyId).getOrElse(return Failure("Error: can not find policy with name '%s' with policy service".format(policyInstance.policyInstance.policyId)))
+        val policy = policyService.getPolicy(policyInstance.policyInstance.policyId).getOrElse(return Failure("Error: can not find policy with name '%s' with policy service".format(policyInstance.policyInstance.policyId)))
 
         // Check that the policy can be multiinstances
-		    if (modifiedServer.findPolicyInstanceByPolicy(policyInstance.policyInstance.policyId).filter(x => policy.isMultiInstance==false).size>0) {
-		      LOGGER.warn("Cannot add a policy instance from the same non duplicable policy %s than an already existing one %s ".format(policyInstance.policyInstance.policyId), modifiedServer.findPolicyInstanceByPolicy(policyInstance.policyInstance.policyId))
-		      return ParamFailure[IdentifiableCFCPI]("Duplicate unique policy", Full(new PolicyException("Duplicate unique policy " +policyInstance.policyInstance.policyId)), Empty, policyInstance)    
-		    }
-		   
-		    modifiedServer.addPolicyInstance(policyInstance) match {
-		      case Full(server : NodeConfiguration) => modifiedServer = server
-		      case f:EmptyBox => return f
-		    }
-		    
-  	}
+        if (modifiedServer.findPolicyInstanceByPolicy(policyInstance.policyInstance.policyId).filter(x => policy.isMultiInstance==false).size>0) {
+          LOGGER.warn("Cannot add a policy instance from the same non duplicable policy %s than an already existing one %s ".format(policyInstance.policyInstance.policyId), modifiedServer.findPolicyInstanceByPolicy(policyInstance.policyInstance.policyId))
+          return ParamFailure[IdentifiableCFCPI]("Duplicate unique policy", Full(new PolicyException("Duplicate unique policy " +policyInstance.policyInstance.policyId)), Empty, policyInstance)    
+        }
+       
+        modifiedServer.addPolicyInstance(policyInstance) match {
+          case Full(server : NodeConfiguration) => modifiedServer = server
+          case f:EmptyBox => return f
+        }
+        
+    }
         
     return Full(modifiedServer)
-  	
+    
   }  
 }

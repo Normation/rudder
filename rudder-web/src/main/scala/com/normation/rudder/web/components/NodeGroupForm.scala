@@ -261,11 +261,11 @@ class NodeGroupForm(
               <hr class="spacer" />
             </div>
             <div class="simplemodal-bottom">
-	    			  <hr/>
-						  <div class="popupButton">
-				 			  <span>
-                	<button class="simplemodal-close" onClick="return false;">Cancel</button>
-                	{removeButton(target)}
+              <hr/>
+              <div class="popupButton">
+                 <span>
+                  <button class="simplemodal-close" onClick="return false;">Cancel</button>
+                  {removeButton(target)}
                 </span>
               </div>
             </div>

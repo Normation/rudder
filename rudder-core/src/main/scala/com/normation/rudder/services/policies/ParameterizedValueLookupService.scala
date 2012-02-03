@@ -346,7 +346,7 @@ trait ParameterizedValueLookupService_lookupConfigurationRuleParameterization ex
         }
       }
     } else {
-    	logger.error("Wrong accessor : %s".format(targetAccessorName))
+      logger.error("Wrong accessor : %s".format(targetAccessorName))
       Failure("Unknown accessor name: %s".format(targetAccessorName))
     }
   }

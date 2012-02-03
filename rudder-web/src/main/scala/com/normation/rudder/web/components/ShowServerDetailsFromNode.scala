@@ -204,7 +204,7 @@ class ShowServerDetailsFromNode(
     override def body = {
         <a><span class="treeGroupCategoryName tooltipable" tooltipid={category.id.value.replaceAll("/", "")} >{category.name}</span></a>
         <div class="tooltipContent" id={category.id.value.replaceAll("/", "")}><h3>{category.name}</h3><div>{category.description}</div></div>
-  	}
+    }
   
     override val attrs =
       ( "rel" -> { if(category.id == rootCategoryId) "root-category" else "category" } ) ::
@@ -235,8 +235,8 @@ class ShowServerDetailsFromNode(
         }
       case x => new JsTreeNode {
          override def body = { <span class="treeGroupName tooltipable" tooltipid={targetInfo.target.target} >{targetInfo.name} <span class="greyscala">(special)</span></span>
-         		<div class="tooltipContent" id={targetInfo.target.target}><h3>{targetInfo.name}</h3><div>{targetInfo.description}</div></div>
-      		}
+             <div class="tooltipContent" id={targetInfo.target.target}><h3>{targetInfo.name}</h3><div>{targetInfo.description}</div></div>
+          }
          override def children = Nil
          override val attrs = ( "rel" -> "special_target" ) :: Nil
       }

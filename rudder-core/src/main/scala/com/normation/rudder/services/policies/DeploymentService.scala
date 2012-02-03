@@ -328,23 +328,23 @@ trait DeploymentService_buildConfigurationRuleVals extends DeploymentService {
      sequence(configurationRuleVals) { crv => {
        for {
          updatedPolicies <- { sequence(crv.policies) {
-        	 policy => 
-           	for {
-           		replacedVariables <- parameterizedValueLookupService.lookupConfigurationRuleParameterization(policy.variables.values.toSeq) ?~! 
-           				"Error when processing configuration rule (%s/%s:%s/%s) with variables: %s".format(
-           				    crv.configurationRuleId.value, 
-           				    policy.policyPackageId.name.value, 
-           				    policy.policyPackageId.version.toString, 
-           				    policy.policyInstanceId.value, 
-           				    policy.variables.values.toSeq
-           				)
-           	} yield {
-          	 policy.copy(variables = replacedVariables.map(v => (v.spec.name -> v)).toMap)
-           	}
-         	}
+           policy => 
+             for {
+               replacedVariables <- parameterizedValueLookupService.lookupConfigurationRuleParameterization(policy.variables.values.toSeq) ?~! 
+                   "Error when processing configuration rule (%s/%s:%s/%s) with variables: %s".format(
+                       crv.configurationRuleId.value, 
+                       policy.policyPackageId.name.value, 
+                       policy.policyPackageId.version.toString, 
+                       policy.policyInstanceId.value, 
+                       policy.variables.values.toSeq
+                   )
+             } yield {
+             policy.copy(variables = replacedVariables.map(v => (v.spec.name -> v)).toMap)
+             }
+           }
          }
        } yield {
-      	 crv.copy(policies = updatedPolicies)
+         crv.copy(policies = updatedPolicies)
        }
      }
      }
@@ -417,7 +417,7 @@ trait DeploymentService_buildTargetNodeConfigurations extends DeploymentService 
                 case Full(nodeConfig) => targetNodeConfigMap(nodeConfig.nodeInfo.id) = nodeConfig
               }
             case Some(nodeConfig) => //add PolicyInstanceContainer to the list of policies for that node
- 	              nodeConfig.identifiableCFCPIs ++= crv.toIdentifiableCFCPI
+                 nodeConfig.identifiableCFCPIs ++= crv.toIdentifiableCFCPI
           }
         }
       }    
@@ -458,11 +458,11 @@ trait DeploymentService_buildTargetNodeConfigurations extends DeploymentService 
       } yield {
         policy.copy(
             policyInstance = new CFCPolicyInstance(policy.policyInstance.id,
-                	policy.policyInstance.policyId,
-                	__variableMap = policy.policyInstance.getVariables ++ replacedVars.map(v => (v.spec.name, v)),
-                	policy.policyInstance.TrackerVariable,
-                	priority = policy.policyInstance.priority,
-                	serial = policy.policyInstance.serial)
+                  policy.policyInstance.policyId,
+                  __variableMap = policy.policyInstance.getVariables ++ replacedVars.map(v => (v.spec.name, v)),
+                  policy.policyInstance.TrackerVariable,
+                  priority = policy.policyInstance.priority,
+                  serial = policy.policyInstance.serial)
             )
       } ) match {
         case e:EmptyBox => e
@@ -526,7 +526,7 @@ trait DeploymentService_updateAndWriteConfigurationRule extends DeploymentServic
        case Full(cr) => 
          configurationRuleRepo.incrementSerial(cr.id) match {
            case Full(newSerial) => logger.trace("Updating cr %s to serial %d".format(cr.id.value, newSerial))
-           												Full((updated :+ (cr.id,newSerial), deleted))
+                                   Full((updated :+ (cr.id,newSerial), deleted))
            case f : EmptyBox => return f
          }
        case Empty => 
@@ -564,11 +564,11 @@ trait DeploymentService_updateAndWriteConfigurationRule extends DeploymentServic
 
 
 trait DeploymentService_setExpectedReports extends DeploymentService {
-	def reportingService : ReportingService
-	
-	def setExpectedReports(configurationRuleVal : Seq[ConfigurationRuleVal], deletedCrs : Seq[ConfigurationRuleId]) : Box[Seq[ConfigurationExpectedReports]] = {
-		reportingService.updateExpectedReports(configurationRuleVal, deletedCrs)
-	}
+  def reportingService : ReportingService
+  
+  def setExpectedReports(configurationRuleVal : Seq[ConfigurationRuleVal], deletedCrs : Seq[ConfigurationRuleId]) : Box[Seq[ConfigurationExpectedReports]] = {
+    reportingService.updateExpectedReports(configurationRuleVal, deletedCrs)
+  }
 }
 
 

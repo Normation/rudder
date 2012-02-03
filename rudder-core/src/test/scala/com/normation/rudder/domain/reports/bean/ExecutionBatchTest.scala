@@ -55,11 +55,11 @@ class ExecutionBatchTest extends Specification {
   
   "An execution Batch, with one component, cardinality one, one node" should {
          
-  	val uniqueExecutionBatch = new ConfigurationExecutionBatch(
+    val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "cr", 
        Seq[PolicyExpectedReports](new PolicyExpectedReports(
-           				"policy",
-           				Seq(new ComponentCard("component", 1, Seq("None")  )))),
+                   "policy",
+                   Seq(new ComponentCard("component", 1, Seq("None")  )))),
        12,
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "cr", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
@@ -108,8 +108,8 @@ class ExecutionBatchTest extends Specification {
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
        "cr", 
        Seq[PolicyExpectedReports](new PolicyExpectedReports(
-           				"policy",
-           				Seq(new ComponentCard("component", 1, Seq("None") )))),
+                   "policy",
+                   Seq(new ComponentCard("component", 1, Seq("None") )))),
        12,
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "cr", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
@@ -155,8 +155,8 @@ class ExecutionBatchTest extends Specification {
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
        "cr", 
        Seq[PolicyExpectedReports](new PolicyExpectedReports(
-           				"policy",
-           				Seq(new ComponentCard("component", 1, Seq("None") )))),
+                   "policy",
+                   Seq(new ComponentCard("component", 1, Seq("None") )))),
        12,
        DateTime.now(),
        reports,
@@ -202,8 +202,8 @@ class ExecutionBatchTest extends Specification {
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
        "cr", 
        Seq[PolicyExpectedReports](new PolicyExpectedReports(
-           				"policy",
-           				Seq(new ComponentCard("component", 2, Seq("None", "None") )))),
+                   "policy",
+                   Seq(new ComponentCard("component", 2, Seq("None", "None") )))),
        12,
        DateTime.now(),
        reports,
@@ -258,8 +258,8 @@ class ExecutionBatchTest extends Specification {
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
        "cr", 
        Seq[PolicyExpectedReports](new PolicyExpectedReports(
-           				"policy",
-           				Seq(new ComponentCard("component", 2, Seq("None", "None") )))),
+                   "policy",
+                   Seq(new ComponentCard("component", 2, Seq("None", "None") )))),
        12,
        DateTime.now(),
        reports,
@@ -313,11 +313,11 @@ class ExecutionBatchTest extends Specification {
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
        "cr", 
        Seq[PolicyExpectedReports](new PolicyExpectedReports(
-           				"policy1",
-           				Seq(new ComponentCard("component1", 1, Seq("None") ))),
-           				new PolicyExpectedReports(
-           				"policy2",
-           				Seq(new ComponentCard("component2", 1, Seq("None") )))
+                   "policy1",
+                   Seq(new ComponentCard("component1", 1, Seq("None") ))),
+                   new PolicyExpectedReports(
+                   "policy2",
+                   Seq(new ComponentCard("component2", 1, Seq("None") )))
        ),
        12,
        DateTime.now(),
@@ -368,8 +368,8 @@ class ExecutionBatchTest extends Specification {
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
        "cr", 
        Seq[PolicyExpectedReports](new PolicyExpectedReports(
-           				"policy",
-           				Seq(new ComponentCard("component", 2, Seq("value1", "value2") )))),
+                   "policy",
+                   Seq(new ComponentCard("component", 2, Seq("value1", "value2") )))),
        12,
        DateTime.now(),
        reports,
@@ -404,11 +404,11 @@ class ExecutionBatchTest extends Specification {
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
        "cr", 
        Seq[PolicyExpectedReports](new PolicyExpectedReports(
-           				"policy1",
-           				Seq(new ComponentCard("motdConfiguration", 1, Seq("None") ))),
-           		new PolicyExpectedReports(
-           				"policy2",
-           				Seq(new ComponentCard("aptPackageInstallation", 1, Seq("vim") )))		
+                   "policy1",
+                   Seq(new ComponentCard("motdConfiguration", 1, Seq("None") ))),
+               new PolicyExpectedReports(
+                   "policy2",
+                   Seq(new ComponentCard("aptPackageInstallation", 1, Seq("vim") )))    
        ),
        12,
        DateTime.now(),

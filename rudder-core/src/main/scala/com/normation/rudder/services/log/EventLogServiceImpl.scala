@@ -98,8 +98,8 @@ class EventLogServiceImpl(
    * Save an entry 
    */
   def saveEventLog(entry : EventLog) : Box[EventLog] = {
-	  repository.saveEventLog(entry)
-	  //entry
+    repository.saveEventLog(entry)
+    //entry
   }
   
   /**
@@ -108,11 +108,11 @@ class EventLogServiceImpl(
    * This is really the only way to save the entrylog along with their causes
    */
   def saveEventLogs(entries : EventLogNode) : Box[Seq[EventLog]] = {
-	  repository.saveEventLog(entries.entry) match {
-	 	  case Full(log) => 
-	 	      recursiveWriteEntry(entries, log.id.get).map(logs => log +: logs)
-	 	  case _ => Failure("Cannot save value")
-	  }
+    repository.saveEventLog(entries.entry) match {
+       case Full(log) => 
+           recursiveWriteEntry(entries, log.id.get).map(logs => log +: logs)
+       case _ => Failure("Cannot save value")
+    }
   }
   
      

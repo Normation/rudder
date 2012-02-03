@@ -53,11 +53,11 @@ import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
 
 case class MinimalNodeConfig(
-		name: String,
-		hostname : String,
-		agentsName : Seq[AgentType],
-		policyServerId : String,
-		localAdministratorAccountName : String
+    name                         : String
+  , hostname                     : String
+  , agentsName                   : Seq[AgentType]
+  , policyServerId               : String
+  , localAdministratorAccountName: String
 ) extends HashcodeCaching
 
 /**
@@ -90,13 +90,13 @@ case class SimpleNodeConfiguration(
     targetPoliciesInstances.get(policy.policyInstance.id) match {
       case None =>
         // we first need to fetch all the policies in a mutable map to modify them
-      	val newPoliciesInstances =  mutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI]() 
-      	__targetPoliciesInstances.foreach { pi => 
-      	  	newPoliciesInstances += ( pi.policyInstance.id ->pi.copy()) }
-      	
-      	
+        val newPoliciesInstances =  mutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI]() 
+        __targetPoliciesInstances.foreach { pi => 
+            newPoliciesInstances += ( pi.policyInstance.id ->pi.copy()) }
+        
+        
   
-      	updateAllUniqueVariables(policy.policyInstance,newPoliciesInstances)
+        updateAllUniqueVariables(policy.policyInstance,newPoliciesInstances)
         newPoliciesInstances += (policy.policyInstance.id -> policy.copy())
         
         
@@ -107,14 +107,14 @@ case class SimpleNodeConfiguration(
  
   def setSerial(crs : Seq[(ConfigurationRuleId,Int)]) : SimpleNodeConfiguration = {
     val newPoliciesInstances =  mutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI]() 
-      	__targetPoliciesInstances.foreach { pi => 
-      	  	newPoliciesInstances += ( pi.policyInstance.id ->pi.copy()) }
-      	
+        __targetPoliciesInstances.foreach { pi => 
+            newPoliciesInstances += ( pi.policyInstance.id ->pi.copy()) }
+        
     
     for ( (id,serial) <- crs) {
       newPoliciesInstances ++= newPoliciesInstances.
-      			filter(x => x._2.configurationRuleId == id).
-      			map(x => (x._1 -> new IdentifiableCFCPI(x._2.configurationRuleId, x._2.policyInstance.copy(serial = serial))))
+            filter(x => x._2.configurationRuleId == id).
+            map(x => (x._1 -> new IdentifiableCFCPI(x._2.configurationRuleId, x._2.policyInstance.copy(serial = serial))))
     }
     copy(__targetPoliciesInstances = newPoliciesInstances.values.toSeq)
   }
@@ -138,7 +138,7 @@ case class SimpleNodeConfiguration(
    * @return nothing
    */
   def rollbackModification() : SimpleNodeConfiguration = {
-  	copy(__targetPoliciesInstances = this.__currentPoliciesInstances,
+    copy(__targetPoliciesInstances = this.__currentPoliciesInstances,
         targetMinimalNodeConfig = this.currentMinimalNodeConfig,
         targetSystemVariables = this.currentSystemVariables 
         )
@@ -147,12 +147,12 @@ case class SimpleNodeConfiguration(
  
   /*
   def setCurrentSystemVariables(map : immutable.Map[String, Variable])  = {
-  	currentSystemVariables.clear 
-  	currentSystemVariables ++= map.map(x => (x._1 -> Variable.matchCopy(x._2)))
+    currentSystemVariables.clear 
+    currentSystemVariables ++= map.map(x => (x._1 -> Variable.matchCopy(x._2)))
   }
   def setTargetSystemVariables(map : immutable.Map[String, Variable])  = {
-  	targetSystemVariables.clear 
-  	targetSystemVariables ++= map.map(x => (x._1 -> Variable.matchCopy(x._2)))
+    targetSystemVariables.clear 
+    targetSystemVariables ++= map.map(x => (x._1 -> Variable.matchCopy(x._2)))
   }
   */
   

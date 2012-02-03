@@ -624,23 +624,23 @@ class AppConfig extends Loggable {
   @Bean
   def asyncDeploymentAgent: AsyncDeploymentAgent = {
     val agent = new AsyncDeploymentAgent(new DeploymentServiceImpl(
-		      ldapConfigurationRuleRepository,
-		      configurationRuleValService,
-		      new ParameterizedValueLookupServiceImpl(
-		        nodeInfoService,
-		        policyInstanceTargetService,
-		        ldapConfigurationRuleRepository,
-		        configurationRuleValService),
-		      systemVariableService,
-		      policyInstanceTargetService,
-		      serverService,
-		      nodeInfoService,
-		      nodeConfigurationChangeDetectService,
-		      reportingService,
-		      historizationService)
-    	, logService
-    	, autoDeployOnModification
-    	, deploymentStatusSerialisation)
+          ldapConfigurationRuleRepository,
+          configurationRuleValService,
+          new ParameterizedValueLookupServiceImpl(
+            nodeInfoService,
+            policyInstanceTargetService,
+            ldapConfigurationRuleRepository,
+            configurationRuleValService),
+          systemVariableService,
+          policyInstanceTargetService,
+          serverService,
+          nodeInfoService,
+          nodeConfigurationChangeDetectService,
+          reportingService,
+          historizationService)
+      , logService
+      , autoDeployOnModification
+      , deploymentStatusSerialisation)
     policyPackageService.registerCallback(
         new DeployOnPolicyTemplateCallback("DeployOnPTLibUpdate", agent)
     )
@@ -913,7 +913,7 @@ class AppConfig extends Loggable {
 
   @Bean
   def removeNodeService = new RemoveNodeServiceImpl(
-		nodeDit
+    nodeDit
       , rudderDit
       , ldap
       , ldapEntityMapper

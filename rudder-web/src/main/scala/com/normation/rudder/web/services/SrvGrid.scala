@@ -77,7 +77,7 @@ object SrvGrid {
  * - call the display(servers) method  
  */
 class SrvGrid {
-	
+  
   private def templatePath = List("templates-hidden", "srv_grid")
   private def template() =  Templates(templatePath) match {
     case Empty | Failure(_,_,_) => 
@@ -144,10 +144,10 @@ class SrvGrid {
             "bFilter" :%s,
             "bPaginate" :%s,
             "bLengthChange": true,
-        		"sPaginationType": "full_numbers",
-        		"oLanguage": {
-            	"sSearch": "Filter:"
-        		},
+            "sPaginationType": "full_numbers",
+            "oLanguage": {
+              "sSearch": "Filter:"
+            },
             "bJQueryUI": false,
             "aaSorting": [[ 0, "asc" ]],
             "aoColumns": [ 
@@ -214,10 +214,10 @@ class SrvGrid {
         )
       })
     )}</table>
-    	<div class={tableId +"_pagination"}>
-				<div id={tableId +"_paginate_area"}></div>
-				<div id={tableId +"_filter_area"}></div>
-			</div>
+      <div class={tableId +"_pagination"}>
+        <div id={tableId +"_paginate_area"}></div>
+        <div id={tableId +"_filter_area"}></div>
+      </div>
   }
 
 }

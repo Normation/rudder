@@ -72,23 +72,23 @@ import LDAPConstants._
  *
  */
 class SearchServerComponent(
-		htmlId : String, // unused ...
-		_query : Option[Query],
-		_srvList : Box[Seq[NodeInfo]],
-		onUpdateCallback : () => JsCmd = { () => Noop }, // this one is not used yet
-		onClickCallback :  (String) => JsCmd = { (x:String) => Noop }, // this callback is used when we click on an element in the grid
-		onSearchCallback :  (Boolean) => JsCmd = { (x:Boolean) => Noop }, // this callback is used when a research is done and the state of the Search button changes
+    htmlId : String, // unused ...
+    _query : Option[Query],
+    _srvList : Box[Seq[NodeInfo]],
+    onUpdateCallback : () => JsCmd = { () => Noop }, // this one is not used yet
+    onClickCallback :  (String) => JsCmd = { (x:String) => Noop }, // this callback is used when we click on an element in the grid
+    onSearchCallback :  (Boolean) => JsCmd = { (x:Boolean) => Noop }, // this callback is used when a research is done and the state of the Search button changes
     saveButtonId : String = "" // the id of the save button, that gets disabled when one change the form
 )extends DispatchSnippet {
   import SearchServerComponent._
   
-	//our local copy of things we work on
-	private[this] var query = _query.map(x => x.copy())
-	private[this] var srvList = _srvList.map(x => Seq() ++ x)
-	
-	
-	private[this] val nodeInfoService = inject[NodeInfoService]
-	private[this] val queryProcessor = inject[QueryProcessor]("queryProcessor")
+  //our local copy of things we work on
+  private[this] var query = _query.map(x => x.copy())
+  private[this] var srvList = _srvList.map(x => Seq() ++ x)
+  
+  
+  private[this] val nodeInfoService = inject[NodeInfoService]
+  private[this] val queryProcessor = inject[QueryProcessor]("queryProcessor")
 
   
   // The portlet for the server detail
@@ -104,20 +104,20 @@ class SearchServerComponent(
   private[this] def queryUpdate = chooseTemplate("update","query",content)
 
   
-	
-	/**
-	 * External exposition of the current state of server list.
-	 * Page/component which includes SearchServerComponent can use it.
-	 * @return
-	 */
-	def getSrvList() : Box[Seq[NodeInfo]] = srvList
   
-	
-	/**
+  /**
+   * External exposition of the current state of server list.
+   * Page/component which includes SearchServerComponent can use it.
+   * @return
+   */
+  def getSrvList() : Box[Seq[NodeInfo]] = srvList
+  
+  
+  /**
    * External exposition of the current state of query.
    * Page/component which includes SearchServerComponent can use it.
-	 * @return
-	 */
+   * @return
+   */
   def getQuery() : Option[Query] = query
 
   var dispatch : DispatchIt = {
@@ -133,7 +133,7 @@ class SearchServerComponent(
   def head() : NodeSeq = {
     <head>
       {
-    	  srvGrid.head
+        srvGrid.head
       }
     </head>
   }
@@ -178,8 +178,8 @@ class SearchServerComponent(
       query = Some(newQuery)
       if(errors.filter(_.isDefined).size == 0) {
         // ********* EXECUTE QUERY ***********
-    	  srvList = queryProcessor.process(newQuery)
-    	  activateSubmitButton = false
+        srvList = queryProcessor.process(newQuery)
+        activateSubmitButton = false
         initUpdate = true
       } else {
         // ********* ERRORS FOUND ***********"
@@ -194,7 +194,7 @@ class SearchServerComponent(
      * Refresh the query parameter part
      */
     def ajaxCriteriaRefresh : JsCmd = {
-      		Replace("queryParameters", displayQuery(queryUpdate))& activateButtonOnChange & JsRaw("correctButtons();")
+          Replace("queryParameters", displayQuery(queryUpdate))& activateButtonOnChange & JsRaw("correctButtons();")
     }
     
     /**
@@ -203,20 +203,20 @@ class SearchServerComponent(
      * 
      */
     def displayQuery(html: NodeSeq ) : NodeSeq = {
-    	val Query(otName,comp, criteria) = query.get
-    	SHtml.ajaxForm(bind("query", html,
-    			"composition" -> SHtml.radio(Seq("And", "Or"), Full(if(comp == Or) "Or" else "And"), {value:String => 
-	        composition = CriterionComposition.parse(value).getOrElse(And) //default to AND on unknow composition string
-	      }, ("class", "radio")).flatMap(e => <span class="compositionRadio">{e.xhtml} {e.key.toString}</span>),
-	      "lines" -> {(ns: NodeSeq) => 
-	        /*
-	         * General remark :
+      val Query(otName,comp, criteria) = query.get
+      SHtml.ajaxForm(bind("query", html,
+          "composition" -> SHtml.radio(Seq("And", "Or"), Full(if(comp == Or) "Or" else "And"), {value:String => 
+          composition = CriterionComposition.parse(value).getOrElse(And) //default to AND on unknow composition string
+        }, ("class", "radio")).flatMap(e => <span class="compositionRadio">{e.xhtml} {e.key.toString}</span>),
+        "lines" -> {(ns: NodeSeq) => 
+          /*
+           * General remark :
          * - bind parameter of closure to lines (so that they actually get the current value of the line when evaluated)
          * - bind parameter out of closure to ot/a/c/v so that they have the current value (and not a past one)
          */
       
         {
-        	criteria.zipWithIndex.flatMap { case (CriterionLine(ot,a,c,v),i) => 
+          criteria.zipWithIndex.flatMap { case (CriterionLine(ot,a,c,v),i) => 
           
           for(j <- lines.size to i) {
             lines.append(defaultLine)
@@ -247,10 +247,10 @@ class SearchServerComponent(
         } else NodeSeq.Empty}
       },
       "submit" -> {if (activateSubmitButton) 
-    	  SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton")) 
-    	  			else  
-    	  SHtml.ajaxSubmit("Search", processForm, ("disabled" -> "true"), ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
-    	  }
+        SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton")) 
+              else  
+        SHtml.ajaxSubmit("Search", processForm, ("disabled" -> "true"), ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
+        }
       )) 
     }
     
@@ -259,8 +259,8 @@ class SearchServerComponent(
      */
     def showQueryAndGridContent() : NodeSeq = {
       bind("content",searchServers, 
-	      "query" -> {x:NodeSeq => displayQuery(x)},
-	      "gridResult" -> srvGrid.display(Seq(), "serverGrid", Seq(), "") // we need to set something, or IE moans
+        "query" -> {x:NodeSeq => displayQuery(x)},
+        "gridResult" -> srvGrid.display(Seq(), "serverGrid", Seq(), "") // we need to set something, or IE moans
       )
     }
     showQueryAndGridContent()  ++ Script(OnLoad(ajaxGridRefresh))
@@ -273,11 +273,11 @@ class SearchServerComponent(
    * @return
    */
   def ajaxGridRefresh() : JsCmd = {
-    	val grid = gridResult
-    	JE.JsRaw("""$("#serverGrid_info").remove();""") &
+      val grid = gridResult
+      JE.JsRaw("""$("#serverGrid_info").remove();""") &
       JE.JsRaw("""$("#serverGrid_length").remove();""") &
-    	SetHtml("gridResult", grid._1) & grid._2 & activateButtonOnChange  
-    	
+      SetHtml("gridResult", grid._1) & grid._2 & activateButtonOnChange  
+      
   }
   
   
@@ -287,25 +287,25 @@ class SearchServerComponent(
    * @return
    */
   def activateButtonOnChange() : JsCmd = {
-  	onSearchCallback(activateSubmitButton & !initUpdate) &
-	  JE.JsRaw("""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "%s", "%s");  """.format(activateSubmitButton, saveButtonId))
+    onSearchCallback(activateSubmitButton & !initUpdate) &
+    JE.JsRaw("""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "%s", "%s");  """.format(activateSubmitButton, saveButtonId))
   }
   
   /**
    * From the computed result, return the NodeSeq corresponding to the grid, plus the initialisation JS
    */
   def gridResult : (NodeSeq, JsCmd) = {
-	  // Ideally this would just check the size first ?
+    // Ideally this would just check the size first ?
     srvList match {
-    	case Full(seq) => 
-    		(srvGrid.display(seq, "serverGrid", Seq(), ""),
-    		srvGrid.initJs("serverGrid", Seq(), "", false, true, onClickCallback))
-    	
-    	case Empty => 
-    		(srvGrid.display(Seq(), "serverGrid", Seq(), ""),
-    		srvGrid.initJs("serverGrid", Seq(), "", false, true, onClickCallback))
-    		
-    	case f@Failure(_,_,_) => (<div><h4>Error</h4>{f.messageChain}</div>, Noop)   	
+      case Full(seq) => 
+        (srvGrid.display(seq, "serverGrid", Seq(), ""),
+        srvGrid.initJs("serverGrid", Seq(), "", false, true, onClickCallback))
+      
+      case Empty => 
+        (srvGrid.display(Seq(), "serverGrid", Seq(), ""),
+        srvGrid.initJs("serverGrid", Seq(), "", false, true, onClickCallback))
+        
+      case f@Failure(_,_,_) => (<div><h4>Error</h4>{f.messageChain}</div>, Noop)     
     }
   }  
   

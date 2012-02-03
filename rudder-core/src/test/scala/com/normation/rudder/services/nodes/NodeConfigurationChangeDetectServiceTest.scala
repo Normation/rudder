@@ -60,17 +60,17 @@ class DummyUserPolicyTemplateRepository extends UserPolicyTemplateRepository {
   
   val userPtMap = Map[PolicyPackageName, UserPolicyTemplate](
       PolicyPackageName("ppId") -> new UserPolicyTemplate(null,
-          														PolicyPackageName("ppId"),
-          														scala.collection.immutable.Map(PolicyVersion("1.0") ->new DateTime(0)),
-          														Nil,
-          														true,
-          														true),
+                                      PolicyPackageName("ppId"),
+                                      scala.collection.immutable.Map(PolicyVersion("1.0") ->new DateTime(0)),
+                                      Nil,
+                                      true,
+                                      true),
       PolicyPackageName("ppId1") -> new UserPolicyTemplate(null,
-          														PolicyPackageName("ppId1"),
-          														scala.collection.immutable.Map(PolicyVersion("1.0") ->new DateTime(0)),
-          														Nil,
-          														true,
-          														true)  
+                                      PolicyPackageName("ppId1"),
+                                      scala.collection.immutable.Map(PolicyVersion("1.0") ->new DateTime(0)),
+                                      Nil,
+                                      true,
+                                      true)  
   )
   
   def getUserPolicyTemplate(id:UserPolicyTemplateId) = Failure("Can't call this")
@@ -105,83 +105,83 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
   val service = new NodeConfigurationChangeDetectServiceImpl(new DummyUserPolicyTemplateRepository)
   
   private val simplePolicy = new IdentifiableCFCPI(
-	    new ConfigurationRuleId("crId"),
-	    new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId"),
-			new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0")), 
-			Map(),
-			TrackerVariableSpec().toVariable(),
-			priority = 0, serial = 0) // no variable
-	)
+      new ConfigurationRuleId("crId"),
+      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId"),
+      new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0")), 
+      Map(),
+      TrackerVariableSpec().toVariable(),
+      priority = 0, serial = 0) // no variable
+  )
   
   private val policyVaredOne = new IdentifiableCFCPI(
-	    new ConfigurationRuleId("crId1"),
-	    new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
-			new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
-			Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))),
-			TrackerVariableSpec().toVariable(),
-			priority = 0, serial = 0)  // one variable
-	)
+      new ConfigurationRuleId("crId1"),
+      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
+      new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
+      Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))),
+      TrackerVariableSpec().toVariable(),
+      priority = 0, serial = 0)  // one variable
+  )
 
-	
-	private val policyOtherVaredOne = new IdentifiableCFCPI(
-	    new ConfigurationRuleId("crId1"),
-	    new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
-			new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
-			Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("two"))), 
-			TrackerVariableSpec().toVariable(),
-			priority = 0, serial = 0)  // one variable
-	)
+  
+  private val policyOtherVaredOne = new IdentifiableCFCPI(
+      new ConfigurationRuleId("crId1"),
+      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
+      new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
+      Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("two"))), 
+      TrackerVariableSpec().toVariable(),
+      priority = 0, serial = 0)  // one variable
+  )
   
   private val nextPolicyVaredOne = new IdentifiableCFCPI(
-	    new ConfigurationRuleId("crId1"),
-	    new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
-			new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
-			Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))),
-			TrackerVariableSpec().toVariable(),
-			priority = 0, serial = 1)  // one variable
-	)
+      new ConfigurationRuleId("crId1"),
+      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
+      new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
+      Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))),
+      TrackerVariableSpec().toVariable(),
+      priority = 0, serial = 1)  // one variable
+  )
   
   
   private val minNodeConf = new MinimalNodeConfig(
-	    "name",
-	    "hostname",
-	    Seq(),
-	    "psId",
-	    "root"
-	)
+      "name",
+      "hostname",
+      Seq(),
+      "psId",
+      "root"
+  )
   
   private val minNodeConf2 = new MinimalNodeConfig(
-	    "name2",
-	    "hostname",
-	    Seq(),
-	    "psId",
-	    "root"
-	)
+      "name2",
+      "hostname",
+      Seq(),
+      "psId",
+      "root"
+  )
   
   
   
   "An empty node " should {
     "not have a change if everything is equal" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(),
-							    Seq(),
-							    false,
-							    minNodeConf,
-							    minNodeConf,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) must beTheSameAs(Set())
+                  Seq(),
+                  Seq(),
+                  false,
+                  minNodeConf,
+                  minNodeConf,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) must beTheSameAs(Set())
     }
     "not have a change if the minimal are different, but there is no CR" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(),
-							    Seq(),
-							    false,
-							    minNodeConf,
-							    minNodeConf2,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) must beTheSameAs(Set())
+                  Seq(),
+                  Seq(),
+                  false,
+                  minNodeConf,
+                  minNodeConf2,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) must beTheSameAs(Set())
     }
   }
   
@@ -189,136 +189,136 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
   "An node with one easy CR " should {
     "not have a change if everything is equal" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(simplePolicy),
-							    Seq(simplePolicy),
-							    false,
-							    minNodeConf,
-							    minNodeConf,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) must beTheSameAs(Set())
+                  Seq(simplePolicy),
+                  Seq(simplePolicy),
+                  false,
+                  minNodeConf,
+                  minNodeConf,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) must beTheSameAs(Set())
     }
     
     "have its CR that changed if the minimal are different" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(simplePolicy),
-							    Seq(simplePolicy),
-							    false,
-							    minNodeConf,
-							    minNodeConf2,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) === Set(new ConfigurationRuleId("crId"))
+                  Seq(simplePolicy),
+                  Seq(simplePolicy),
+                  false,
+                  minNodeConf,
+                  minNodeConf2,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) === Set(new ConfigurationRuleId("crId"))
     }
   }
   
   "An node with one complex CR " should {
     "not have a change if everything is equal" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(policyVaredOne),
-							    Seq(policyVaredOne),
-							    false,
-							    minNodeConf,
-							    minNodeConf,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) must beTheSameAs(Set())
+                  Seq(policyVaredOne),
+                  Seq(policyVaredOne),
+                  false,
+                  minNodeConf,
+                  minNodeConf,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) must beTheSameAs(Set())
     }
     
     "have a change if a variable is not equal" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(policyVaredOne),
-							    Seq(policyOtherVaredOne),
-							    false,
-							    minNodeConf,
-							    minNodeConf,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Seq(policyVaredOne),
+                  Seq(policyOtherVaredOne),
+                  false,
+                  minNodeConf,
+                  minNodeConf,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) === Set(new ConfigurationRuleId("crId1"))
     }
     
     "have a change if serial is not equals (but same variable)" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(policyVaredOne),
-							    Seq(nextPolicyVaredOne),
-							    false,
-							    minNodeConf,
-							    minNodeConf,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Seq(policyVaredOne),
+                  Seq(nextPolicyVaredOne),
+                  false,
+                  minNodeConf,
+                  minNodeConf,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) === Set(new ConfigurationRuleId("crId1"))
     }
     
     "have a change if minimal is not equals" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(policyVaredOne),
-							    Seq(nextPolicyVaredOne),
-							    false,
-							    minNodeConf,
-							    minNodeConf2,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Seq(policyVaredOne),
+                  Seq(nextPolicyVaredOne),
+                  false,
+                  minNodeConf,
+                  minNodeConf2,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) === Set(new ConfigurationRuleId("crId1"))
     }
     
     "have a change if minimal is not equals and serial different" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(policyVaredOne),
-							    Seq(nextPolicyVaredOne),
-							    false,
-							    minNodeConf,
-							    minNodeConf2,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Seq(policyVaredOne),
+                  Seq(nextPolicyVaredOne),
+                  false,
+                  minNodeConf,
+                  minNodeConf2,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) === Set(new ConfigurationRuleId("crId1"))
     }
     
     "have a change if nothing is different, but previous CR is not existant" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(),
-							    Seq(policyVaredOne),
-							    false,
-							    minNodeConf,
-							    minNodeConf,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Seq(),
+                  Seq(policyVaredOne),
+                  false,
+                  minNodeConf,
+                  minNodeConf,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) === Set(new ConfigurationRuleId("crId1"))
     }
     
     "have a change if nothing is different, but previous CR is existant and current is non existant" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(policyVaredOne),
-							    Seq(),
-							    false,
-							    minNodeConf,
-							    minNodeConf,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Seq(policyVaredOne),
+                  Seq(),
+                  false,
+                  minNodeConf,
+                  minNodeConf,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) === Set(new ConfigurationRuleId("crId1"))
     }
     
     "have a change if min is different, previous CR is existant and current is non existant" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(policyVaredOne),
-							    Seq(),
-							    false,
-							    minNodeConf,
-							    minNodeConf2,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Seq(policyVaredOne),
+                  Seq(),
+                  false,
+                  minNodeConf,
+                  minNodeConf2,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) === Set(new ConfigurationRuleId("crId1"))
     }
     
     "have a change if min is different, previous CR is non existant and current is existant" in {
       service.detectChangeInNode(new SimpleNodeConfiguration("id",
-      						Seq(),
-							    Seq(policyVaredOne),
-							    false,
-							    minNodeConf,
-							    minNodeConf2,
-							    Some(new DateTime(1)),
-							    Map(),
-							    Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Seq(),
+                  Seq(policyVaredOne),
+                  false,
+                  minNodeConf,
+                  minNodeConf2,
+                  Some(new DateTime(1)),
+                  Map(),
+                  Map())) === Set(new ConfigurationRuleId("crId1"))
     }
   }
   

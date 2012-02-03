@@ -116,8 +116,8 @@ class CreateUserPolicyTemplateCategoryPopup(onSuccessCallback : () => JsCmd = { 
   }
 
   private[this] val piContainer = new WBSelectField("Parent category: ",
-			(categories.open_!.map(x => (x.id.value -> x.name))),
-			"") {
+      (categories.open_!.map(x => (x.id.value -> x.name))),
+      "") {
     override def className = "twoCol"
   }
 
@@ -134,9 +134,9 @@ class CreateUserPolicyTemplateCategoryPopup(onSuccessCallback : () => JsCmd = { 
   /**
    * Update the form when something happened
    */
-	private[this] def updateFormClientSide() : JsCmd = {
+  private[this] def updateFormClientSide() : JsCmd = {
     SetHtml("createPTCategoryContainer", popupContent(NodeSeq.Empty))&
-	  initJs
+    initJs
   }
 
 

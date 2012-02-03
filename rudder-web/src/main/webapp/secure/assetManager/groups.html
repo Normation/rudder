@@ -10,46 +10,46 @@
  <div class="portlet-header">List groups</div>
  <div class="portlet-content">
   <div class="intro">
- 	 <div>This portlet lists the groups configured for the node in your infrastructure and allows you to create, modify and delete them.<br/> 
- 	These node groups will later be used to define Configuration Rules.
- 	 </div>
+    <div>This portlet lists the groups configured for the node in your infrastructure and allows you to create, modify and delete them.<br/> 
+   These node groups will later be used to define Configuration Rules.
+    </div>
   </div>
  
   <hr class="spacer"/> 
   <div class="groupDisplay">
-	  <lift:asset.Groups.groupHierarchy>
-	  <fieldset class="hierarchy">
-	     <legend>Group hierarchy</legend>
-	     <div>
-	     <p class="green">Drag'n'drop items to change the hierarchy</p>
-	     </div>
-	       <div id="newItem">
-	    		Here comes the New item Button
-	       </div>
-	   <fieldset>
-	  	  <div id="groupTree">
-	  	  		Here comes the Groups Tree	  	  
-	  	  </div>
-	  	 
-	  	</fieldset>
-	   </fieldset>
-	  
-	  </lift:asset.Groups.groupHierarchy>
-	  
-	  <div id="ajaxItemContainer">
-	    <lift:asset.Groups.initRightPanel/>
-	  	<lift:ignore>
-				This div gets the content of the item selected in the js tree
-			</lift:ignore>
-	  </div>
-	</div>
+    <lift:asset.Groups.groupHierarchy>
+    <fieldset class="hierarchy">
+       <legend>Group hierarchy</legend>
+       <div>
+       <p class="green">Drag'n'drop items to change the hierarchy</p>
+       </div>
+         <div id="newItem">
+          Here comes the New item Button
+         </div>
+     <fieldset>
+        <div id="groupTree">
+            Here comes the Groups Tree        
+        </div>
+       
+      </fieldset>
+     </fieldset>
+    
+    </lift:asset.Groups.groupHierarchy>
+    
+    <div id="ajaxItemContainer">
+      <lift:asset.Groups.initRightPanel/>
+      <lift:ignore>
+        This div gets the content of the item selected in the js tree
+      </lift:ignore>
+    </div>
+  </div>
 
   </div>
 
   <div id="createGroupPopup" class="nodisplay">
-  	<lift:ignore>
-			This div gets the content of the createCategoryOrGroup injected within
-		</lift:ignore>
+    <lift:ignore>
+      This div gets the content of the createCategoryOrGroup injected within
+    </lift:ignore>
     <div id="createGroupContainer"/></div>
   </div>
  

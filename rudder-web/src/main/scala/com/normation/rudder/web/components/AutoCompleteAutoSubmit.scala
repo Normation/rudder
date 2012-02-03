@@ -143,7 +143,7 @@ class AutoCompleteAutoSubmit {
                        ("matchContains","true") ::
                        ("formatItem","function(row, i, max) { return row.name; }") ::
                        Nil ::: jsonOptions
-	  val json = jqOptions.map(t => t._1 + ":" + t._2).mkString("{", ",", "}")
+    val json = jqOptions.map(t => t._1 + ":" + t._2).mkString("{", ",", "}")
       val autocompleteOptions = JsRaw(json)
 
       val onLoad = JsRaw("""

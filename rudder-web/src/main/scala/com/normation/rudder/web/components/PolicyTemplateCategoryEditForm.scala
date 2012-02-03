@@ -142,7 +142,7 @@ class PolicyTemplateCategoryEditForm(
 
   val categoryName = new WBTextField("Category name: ", currentCategory.name) {
     override def displayNameHtml = Some(<b>{displayName}</b>)
-  	override def setFilter = notNull _ :: trim _ :: Nil
+    override def setFilter = notNull _ :: trim _ :: Nil
     override def validations = 
       valMinLen(3, "The category name must have at least 3 characters") _ :: Nil
   }
@@ -155,7 +155,7 @@ class PolicyTemplateCategoryEditForm(
       
     override def toForm_! = bind("field", 
     <div class="wbBaseField">
-    	<field:errors />
+      <field:errors />
       <label for={id} class="wbBaseFieldLabel threeCol textright"><b><field:label /></b></label>
       <field:input />
       <field:infos />
@@ -194,7 +194,7 @@ class PolicyTemplateCategoryEditForm(
         <hr class="spacer"/>
         <div class="spacerscala">
           <update:submit />
-        	<update:delete/>
+          <update:delete/>
         </div>
         <hr class="spacer"/>
       </div>)
@@ -234,7 +234,7 @@ class PolicyTemplateCategoryEditForm(
          }
        } ),
        "delete" -> {
-      	 if(currentCategory.id != rootCategoryId && currentCategory.children.isEmpty && currentCategory.items.isEmpty) {
+         if(currentCategory.id != rootCategoryId && currentCategory.children.isEmpty && currentCategory.items.isEmpty) {
               {Script(OnLoad(JsRaw("""$( "#deleteCategoryButton" ).click(function() { 
                 $("#removeCategoryActionDialog").modal(); 
                 $('#simplemodal-container').css('height', 'auto');

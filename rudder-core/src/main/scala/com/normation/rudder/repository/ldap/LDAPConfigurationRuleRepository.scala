@@ -208,19 +208,19 @@ class LDAPConfigurationRuleRepository(
    * @return
    */
   def getAllActivated() : Box[Seq[ConfigurationRule]] = {
-  	// First fetch the activated groups
-  	val groupsId = (
-  	  for {
+    // First fetch the activated groups
+    val groupsId = (
+      for {
         con             <- ldap
         activatedGroups =  con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_RUDDER_NODE_GROUP), EQ(A_IS_ACTIVATED, true.toLDAPString)), "1.1")
         groupIds        <- sequence(activatedGroups) { entry =>
                           rudderDit.GROUP.getGroupId(entry.dn)
                         }
-  	  } yield {
-  	    groupIds 
-  	  })
-  	
-  	logger.debug("Activated groups are %s".format(groupsId.mkString(";")))
+      } yield {
+        groupIds 
+      })
+    
+    logger.debug("Activated groups are %s".format(groupsId.mkString(";")))
     (for {
       con                <- ldap
       activatedUPT_entry =  con.searchSub(rudderDit.POLICY_TEMPLATE_LIB.dn, AND(IS(OC_USER_POLICY_TEMPLATE), EQ(A_IS_ACTIVATED, true.toLDAPString)), "1.1")
@@ -244,20 +244,20 @@ class LDAPConfigurationRuleRepository(
     } yield {
       configRules
     } ) match {
-  		case Full(list) =>
-  		// a config rule activated point to an activated group, or to a special target
-  			Full(list.filter( cr => cr.isActivated && ( (cr.target, cr.policyInstanceIds) match {
-  			  case (Some(t), pis) if pis.size > 0 => //should be the case, given the request
-  			    t match {      			  
-      				case GroupTarget(group) =>
-      						logger.debug("Checking activation of group %s for the target of cr %s".format(group.value, cr.id.value))
-      						groupsId.openOr(Seq()).contains(group.value)
-      				case _ => true
-  			    }
-  			  case _ => false  
-  			} ) ))
-  		case f : EmptyBox => f
-  	}	
+      case Full(list) =>
+      // a config rule activated point to an activated group, or to a special target
+        Full(list.filter( cr => cr.isActivated && ( (cr.target, cr.policyInstanceIds) match {
+          case (Some(t), pis) if pis.size > 0 => //should be the case, given the request
+            t match {
+              case GroupTarget(group) =>
+                  logger.debug("Checking activation of group %s for the target of cr %s".format(group.value, cr.id.value))
+                  groupsId.openOr(Seq()).contains(group.value)
+              case _ => true
+            }
+          case _ => false
+        } ) ))
+      case f : EmptyBox => f
+    }
   }
 
   /**

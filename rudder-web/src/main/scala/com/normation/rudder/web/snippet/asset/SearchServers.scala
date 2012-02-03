@@ -97,7 +97,7 @@ class SearchServers extends StatefulSnippet with Loggable {
   val searchServerComponent = new LocalSnippet[SearchServerComponent] 
   
   private[this] def setNodeGroupCategoryForm(query:Option[Query]) : SearchServerComponent = {    
-	 	val sc = new SearchServerComponent(
+     val sc = new SearchServerComponent(
         "htmlIdCategory"
       , query
       , srvList
@@ -129,8 +129,8 @@ class SearchServers extends StatefulSnippet with Loggable {
   
   var dispatch : DispatchIt = {
     case "showQuery" => searchServerComponent.is match {
-    	case Full(component) => { _ => component.buildQuery }
-    	case _ => { _ => <div>The component is not set</div><div></div> }
+      case Full(component) => { _ => component.buildQuery }
+      case _ => { _ => <div>The component is not set</div><div></div> }
     }
     case "head" => head _
     case "createGroup" => createGroup _
@@ -176,29 +176,29 @@ class SearchServers extends StatefulSnippet with Loggable {
       val regex = """.+\[(.+)\]""".r
       s match {
         case regex(id) => 
-        	SetHtml("serverDetails", (new ShowServerDetailsFromNode(NodeId(id)).display)) &
-        	updateLocationHash(id)
+          SetHtml("serverDetails", (new ShowServerDetailsFromNode(NodeId(id)).display)) &
+          updateLocationHash(id)
         case _ => 
-        	Alert("No server was selected")
+          Alert("No server was selected")
       }
     }
     
-	  bind("server", serverPortletTemplate,
-	      "quicksearch" -> AutoCompleteAutoSubmit("", buildQuery _, { s:String => parse(s) }, ("style" -> "width:400px")),
-	      /*"quicksearchSubmit" -> SHtml.ajaxSubmit("OK", { () => 
-	         nodeId match {
-	           case Some(id) => SetHtml("serverDetails", (new ShowServerDetailsFromNode(id).display) )
-	           case None => Alert("No server was selected")
-	         }
-	      } ),*/
-	 		  "details" -> NodeSeq.Empty
-	 	)
+    bind("server", serverPortletTemplate,
+        "quicksearch" -> AutoCompleteAutoSubmit("", buildQuery _, { s:String => parse(s) }, ("style" -> "width:400px")),
+        /*"quicksearchSubmit" -> SHtml.ajaxSubmit("OK", { () => 
+           nodeId match {
+             case Some(id) => SetHtml("serverDetails", (new ShowServerDetailsFromNode(id).display) )
+             case None => Alert("No server was selected")
+           }
+        } ),*/
+         "details" -> NodeSeq.Empty
+     )
   }
     
   def createGroup(html:NodeSeq) : NodeSeq = {
-		  SHtml.ajaxButton("Create node group from this query", {
-		 	() =>   showPopup()  },
-		 	("class", "largeButton"))
+      SHtml.ajaxButton("Create node group from this query", {
+       () =>   showPopup()  },
+       ("class", "largeButton"))
   }
   
   /**

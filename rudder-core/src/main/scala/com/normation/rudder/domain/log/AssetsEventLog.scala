@@ -150,7 +150,7 @@ object RefuseNodeEventLog extends EventLogFilter {
 // Accepted node part
 
 final case class NodeLogDetails(
-    node 			: NodeInfo
+    node: NodeInfo
 ) extends HashcodeCaching 
 
 sealed trait NodeEventLog extends EventLog 
@@ -163,8 +163,8 @@ object NodeEventLog {
    * Print to XML a node detail
    */
   def toXml(
-      node		: NodeInfo
-    , action    : String
+      node  : NodeInfo
+    , action: String
   ) = {
     scala.xml.Utility.trim(
       <node action={action} fileFormat={xmlVersion}>
@@ -207,7 +207,7 @@ object DeleteNodeEventLog extends EventLogFilter {
   def fromNodeLogDetails(
       id              : Option[Int] = None
     , principal       : EventActor
-    , node			  : NodeInfo
+    , node            : NodeInfo
     , creationDate    : DateTime = DateTime.now()
     , severity        : Int = 100         
   ) : DeleteNodeEventLog = {

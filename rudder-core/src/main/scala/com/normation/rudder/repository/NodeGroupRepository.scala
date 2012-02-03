@@ -55,7 +55,7 @@ final case class CategoryAndNodeGroup(
 
 trait NodeGroupRepository {
 
-	/**
+  /**
    * Get a server group by its id
    * @param id
    * @return

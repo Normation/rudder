@@ -70,8 +70,8 @@ class LDAPNodeGroupRepository(
   , autoExportOnModify: Boolean 
   , groupLibMutex     : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends NodeGroupRepository with Loggable {
-	
-	/**
+  
+  /**
    * Look in the group subtree 
    * for and entry with the given id. 
    * We expect at most one result, more is a Failure
@@ -95,7 +95,7 @@ class LDAPNodeGroupRepository(
   
 
   private[this] def getNodeGroup[ID](id: ID, filter: ID => Filter): Box[NodeGroup] = { 
-  	for {
+    for {
       con <- ldap
       sgEntry <- getSGEntry(con, id, filter)
       sg <- mapper.entry2NodeGroup(sgEntry) ?~! "Error when mapping server group entry to its entity. Entry: %s".format(sgEntry)
@@ -167,11 +167,11 @@ class LDAPNodeGroupRepository(
   }
   
   def getNodeGroup(id: NodeGroupId): Box[NodeGroup] = { 
- 	   groupLibMutex.readLock { this.getNodeGroup[NodeGroupId](id, { id => EQ(A_NODE_GROUP_UUID, id.value) } ) }
+      groupLibMutex.readLock { this.getNodeGroup[NodeGroupId](id, { id => EQ(A_NODE_GROUP_UUID, id.value) } ) }
   }
 
   def createNodeGroup(name: String, description: String, q: Option[Query], isDynamic: Boolean, srvList: Set[NodeId], into: NodeGroupCategoryId, isActivated : Boolean, actor:EventActor): Box[AddNodeGroupDiff] = {
-	  for {
+    for {
       con           <- ldap
       exists        <- if (nodeGroupExists(con, name)) Failure("Cannot create a group with name %s : there is already a group with the same name".format(name))
                        else Full(Unit)
@@ -179,13 +179,13 @@ class LDAPNodeGroupRepository(
       uuid          = uuidGen.newUuid
       nodeGroup     = NodeGroup(NodeGroupId(uuid), name, description, q, isDynamic, srvList, isActivated, false)
       entry         = rudderDit.GROUP.groupModel(uuid,
-      													categoryEntry.dn, 
-      													name, 
-      													description, 
-      													q,
-      													isDynamic,
-      													srvList,
-      													isActivated)
+                                categoryEntry.dn,
+                                name,
+                                description,
+                                q,
+                                isDynamic,
+                                srvList,
+                                isActivated)
       result        <- groupLibMutex.writeLock { con.save(entry, true) }
       diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result)
       loggedAction  <- actionLogger.saveAddNodeGroup(principal = actor, addDiff = diff )
@@ -196,9 +196,9 @@ class LDAPNodeGroupRepository(
                            archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)), Some(commiter))
                          } yield archived
                        } else Full("ok")
-  	} yield {
-  		diff
-  	} 
+    } yield {
+      diff
+    } 
   }
   
   def update(nodeGroup:NodeGroup, actor:EventActor): Box[Option[ModifyNodeGroupDiff]] = {
@@ -279,7 +279,7 @@ class LDAPNodeGroupRepository(
    * @return
    */
   def getParentGroupCategory(id: NodeGroupId): Box[NodeGroupCategory] = { 
-  	 groupLibMutex.readLock { for {
+    groupLibMutex.readLock { for {
       con <- ldap
       groupEntry <- getSGEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
       parentCategoryEntry <- con.get(groupEntry.dn.getParent)

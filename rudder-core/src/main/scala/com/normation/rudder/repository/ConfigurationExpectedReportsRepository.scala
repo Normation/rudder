@@ -112,14 +112,17 @@ trait ConfigurationExpectedReportsRepository {
 
   /**
    * Save an expected reports.
-	 * I'm not really happy with this API
+   * I'm not really happy with this API
    * @param configurationRuleId : the id of the configuration rule (the main id)
    * @param policyInstanceId : the id of the policy instance (secondary id, used to check for the changes)
    * @param nodes : the nodes that are expected to be the target of this rule 
    * @param cardinality : the cardinality of the expected reports
    * @return
    */
-    def saveExpectedReports(configurationRuleId : ConfigurationRuleId, serial: Int,
-      				policyExpectedReports : Seq[PolicyExpectedReports],
-      				nodes : Seq[NodeId]) : Box[ConfigurationExpectedReports]
+    def saveExpectedReports(
+        configurationRuleId  : ConfigurationRuleId
+      , serial						   : Int
+      , policyExpectedReports: Seq[PolicyExpectedReports]
+      , nodes                : Seq[NodeId]
+    ) : Box[ConfigurationExpectedReports]
 }

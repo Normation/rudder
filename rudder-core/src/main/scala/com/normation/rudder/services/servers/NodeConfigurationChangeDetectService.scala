@@ -81,12 +81,12 @@ class NodeConfigurationChangeDetectServiceImpl(
     if (current.size != target.size) true
     else if(current.keySet != target.keySet) true
     else {
-    	for ( (key, value )<- current ) {
-    	  
-    		if (compareVariablesValues(target.getOrElse(key, return true), value)) {
-    		  val mytarget  = target.get(key).get
-    		  return true
-    		}
+      for ( (key, value )<- current ) {
+        
+        if (compareVariablesValues(target.getOrElse(key, return true), value)) {
+          val mytarget  = target.get(key).get
+          return true
+        }
       }
       false
     }
@@ -151,12 +151,12 @@ class NodeConfigurationChangeDetectServiceImpl(
     
     mySet ++= currents.filter(x => getAcceptationDate(x._2.policyInstance.policyId) match {
       case Full(acceptationDate) =>  
-      	node.writtenDate match {
-      	  case Some(writtenDate) => acceptationDate.isAfter(writtenDate)
-      	  case None => true
-      	}
+        node.writtenDate match {
+          case Some(writtenDate) => acceptationDate.isAfter(writtenDate)
+          case None => true
+        }
       case _ => logger.warn("Could not find the acceptation date for policy package %s version %s".format(x._2.policyInstance.policyId.name, x._2.policyInstance.policyId.version.toString))
-      					false
+                false
       
     }).map(x => x._2.configurationRuleId)
 

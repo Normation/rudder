@@ -63,10 +63,10 @@ class DummyNodeInfoService extends NodeInfoService {
   }
 
   def find(nodeIds: Seq[NodeId]) : Box[Seq[NodeInfo]] = {
-	  sequence(nodeIds) { nodeId =>
-	    getNodeInfo(nodeId)
-	  }
-	}
+    sequence(nodeIds) { nodeId =>
+      getNodeInfo(nodeId)
+    }
+  }
 
   def getPolicyServerNodeInfo(policyServerNodeId : NodeId) : Box[PolicyServerNodeInfo] = {
     allNodes.filter(x => x.id == policyServerNodeId).filter(x => x.isInstanceOf[PolicyServerNodeInfo]) match {
@@ -81,9 +81,9 @@ class DummyNodeInfoService extends NodeInfoService {
 
   def findPolicyServerNodeInfos(nodeIds: Seq[NodeId]) : Box[Seq[PolicyServerNodeInfo]] = {
     sequence(nodeIds) { nodeId =>
-	    getPolicyServerNodeInfo(nodeId)
-	  }
-	}
+      getPolicyServerNodeInfo(nodeId)
+    }
+  }
 
   def getAllIds() : Box[Seq[NodeId]] = {
     Full(allNodes.map(_.id))

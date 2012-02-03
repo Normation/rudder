@@ -93,7 +93,7 @@ class ConfigurationRuleManagement extends DispatchSnippet with SpringExtendableS
 
 
   private def setCreationPopup : Unit = {
-  		 	creationPopup.set(Full(new CreateConfigurationRulePopup(
+         creationPopup.set(Full(new CreateConfigurationRulePopup(
             onSuccessCallback = onCreateConfigurationRule )))
    }
   
@@ -101,11 +101,11 @@ class ConfigurationRuleManagement extends DispatchSnippet with SpringExtendableS
     * Create the popup
     */
   def createPopup : NodeSeq = {
-  	creationPopup.is match {
-  		case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
-  		case Empty => <div>The component is not set</div>
-  		case Full(popup) => popup.popupContent(NodeSeq.Empty)
-  	}
+    creationPopup.is match {
+      case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
+      case Empty => <div>The component is not set</div>
+      case Full(popup) => popup.popupContent(NodeSeq.Empty)
+    }
   }
 
   private[this] val currentConfigurationRuleForm = new LocalSnippet[ConfigurationRuleEditForm] 

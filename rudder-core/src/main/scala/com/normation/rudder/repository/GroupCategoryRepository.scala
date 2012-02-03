@@ -55,7 +55,7 @@ object NodeGroupCategoryOrdering extends Ordering[List[NodeGroupCategoryId]] {
 
 trait GroupCategoryRepository {
 
-	/**
+  /**
    * Root group category
    */
   def getRootCategory() : NodeGroupCategory

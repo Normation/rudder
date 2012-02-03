@@ -57,8 +57,8 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
  *
  */
 class NodeGroupCategoryForm(
-	htmlIdCategory : String,
-	nodeGroupCategory : NodeGroupCategory,
+  htmlIdCategory : String,
+  nodeGroupCategory : NodeGroupCategory,
   onSuccessCallback : () => JsCmd = { () => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
@@ -66,36 +66,36 @@ class NodeGroupCategoryForm(
 
   var _nodeGroupCategory = nodeGroupCategory.copy()
 
-	val groupCategoryRepository = inject[GroupCategoryRepository]
-	
-	val categories = groupCategoryRepository.getAllNonSystemCategories.open_!.filter(x => x.id != _nodeGroupCategory.id)
-	val parentCategory = groupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id )
-	
-	val parentCategoryId = parentCategory match {
-		case Full(x) =>  x.id.value
-		case _ => ""
-	}
-	
-	def dispatch = { 
+  val groupCategoryRepository = inject[GroupCategoryRepository]
+  
+  val categories = groupCategoryRepository.getAllNonSystemCategories.open_!.filter(x => x.id != _nodeGroupCategory.id)
+  val parentCategory = groupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id )
+  
+  val parentCategoryId = parentCategory match {
+    case Full(x) =>  x.id.value
+    case _ => ""
+  }
+  
+  def dispatch = { 
     case "showForm" => { _ => showForm }
   }
-	
-	def initJs : JsCmd = {
+  
+  def initJs : JsCmd = {
     JsRaw("correctButtons();")
   }
-	   
-	def showForm() : NodeSeq = {
-		 val html = SHtml.ajaxForm(<fieldset class="groupCategoryUpdateComponent"><legend>Category: {nodeGroupCategory.name}</legend>
-		 <pi:notifications />
-		 <hr class="spacer"/>
-		 <pi:name/>
-		 <hr class="spacer"/>
-		 <pi:description/>
-		 <hr class="spacer"/>
-		 <pi:container/>
-		 <hr class="spacer"/>
-		 <div class="margins" align="right"><pi:save/> <pi:delete/></div>
-		 </fieldset>) ++ Script(JsRaw("correctButtons();"))
+     
+  def showForm() : NodeSeq = {
+     val html = SHtml.ajaxForm(<fieldset class="groupCategoryUpdateComponent"><legend>Category: {nodeGroupCategory.name}</legend>
+     <pi:notifications />
+     <hr class="spacer"/>
+     <pi:name/>
+     <hr class="spacer"/>
+     <pi:description/>
+     <hr class="spacer"/>
+     <pi:container/>
+     <hr class="spacer"/>
+     <div class="margins" align="right"><pi:save/> <pi:delete/></div>
+     </fieldset>) ++ Script(JsRaw("correctButtons();"))
 
     if (_nodeGroupCategory.isSystem) {
       ("input" #> {(n:NodeSeq) => n match {
@@ -121,38 +121,38 @@ class NodeGroupCategoryForm(
         "notifications" -> updateAndDisplayNotifications()
       )
     }
-	 }
-	 
+   }
+   
 
-	///////////// delete management /////////////
-	
-	/**
-	 * Delete button is only enabled is that category
-	 * has zero child
-	 */
-	private[this] def deleteButton : NodeSeq = {
+  ///////////// delete management /////////////
+  
+  /**
+   * Delete button is only enabled is that category
+   * has zero child
+   */
+  private[this] def deleteButton : NodeSeq = {
 
-	  if(parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
-	    (
-	      <button id="removeButton">Delete</button>
+    if(parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
+      (
+        <button id="removeButton">Delete</button>
         <div id="removeActionDialog" class="nodisplay">
           <div class="simplemodal-title">
             <h1>Delete a group category</h1>
             <hr/>
           </div>
           <div class="simplemodal-content">    
-	    			<div>
-	    				<img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-            	<h3>Are you sure that you want to completely delete this category ?</h3>
-	    			</div>
-           	<hr class="spacer" />
-        	</div>
-					<div class="simplemodal-bottom">
-	    			<hr/>
-						<div class="popupButton">
-				 			<span>
-	    					<button class="simplemodal-close" onClick="return false;">Cancel</button>
-              	{SHtml.ajaxButton("Delete", onDelete _)}
+            <div>
+              <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+              <h3>Are you sure that you want to completely delete this category ?</h3>
+            </div>
+             <hr class="spacer" />
+          </div>
+          <div class="simplemodal-bottom">
+            <hr/>
+            <div class="popupButton">
+               <span>
+                <button class="simplemodal-close" onClick="return false;">Cancel</button>
+                {SHtml.ajaxButton("Delete", onDelete _)}
               </span>
             </div>
           </div>
@@ -164,27 +164,27 @@ class NodeGroupCategoryForm(
           return false;
         });
         """))
-	  } else {
-	    <button disabled="disabled">Delete</button><br/>
-	    <span class="catdelete">Only empty and non root categories can be deleted</span>
-	  }
-	}
-	
-	private[this] def onDelete() : JsCmd = {
-	  groupCategoryRepository.delete(_nodeGroupCategory.id, CurrentUser.getActor) match {
-	    case Full(id) => 
-	      JsRaw("""$.modal.close();""") &
-	      SetHtml(htmlIdCategory, NodeSeq.Empty) &
-	      onSuccessCallback() &
-	      successPopup
-	    case e:EmptyBox =>    
-	      val m = (e ?~! "Error when trying to delete the category").messageChain
-	      formTracker.addFormError(error(m))
-	      updateFormClientSide & onFailureCallback()
-	  } 
-	}
-	
-	
+    } else {
+      <button disabled="disabled">Delete</button><br/>
+      <span class="catdelete">Only empty and non root categories can be deleted</span>
+    }
+  }
+  
+  private[this] def onDelete() : JsCmd = {
+    groupCategoryRepository.delete(_nodeGroupCategory.id, CurrentUser.getActor) match {
+      case Full(id) => 
+        JsRaw("""$.modal.close();""") &
+        SetHtml(htmlIdCategory, NodeSeq.Empty) &
+        onSuccessCallback() &
+        successPopup
+      case e:EmptyBox =>    
+        val m = (e ?~! "Error when trying to delete the category").messageChain
+        formTracker.addFormError(error(m))
+        updateFormClientSide & onFailureCallback()
+    } 
+  }
+  
+  
   ///////////// fields for category settings ///////////////////
   private[this] val piName = new WBTextField("Category name: ", _nodeGroupCategory.name) {
     override def displayNameHtml = Some(<b>{displayName}</b>)
@@ -193,13 +193,13 @@ class NodeGroupCategoryForm(
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
   
-	private[this] val piDescription = new WBTextAreaField("Category description: ", _nodeGroupCategory.description.toString) {
+  private[this] val piDescription = new WBTextAreaField("Category description: ", _nodeGroupCategory.description.toString) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:10em")
 
     override def toForm_! = bind("field", 
     <div class="wbBaseField">
-    	<field:errors />
+      <field:errors />
       <label for={id} class="wbBaseFieldLabel threeCol textright"><b><field:label /></b></label>
       <field:input />
       <field:infos />
@@ -219,25 +219,25 @@ class NodeGroupCategoryForm(
     }
   )
   }
-	
-	/**
-	 * If there is no parent, it is its own parent
-	 */
-	private[this] val piContainer = parentCategory match {
-		case x:EmptyBox => new WBSelectField("Parent category: ", Seq(_nodeGroupCategory.id.value -> _nodeGroupCategory.name), _nodeGroupCategory.id .value, Seq("disabled"->"true")) {
-			//	override def setFilter = notNull _ :: trim _ :: Nil
-			}
-		case Full(category) => new WBSelectField("Parent category: ", categories.map(x => (x.id.value -> x.name)), parentCategoryId) {
-			//	override def setFilter = notNull _ :: trim _ :: Nil
-			}    
+  
+  /**
+   * If there is no parent, it is its own parent
+   */
+  private[this] val piContainer = parentCategory match {
+    case x:EmptyBox => new WBSelectField("Parent category: ", Seq(_nodeGroupCategory.id.value -> _nodeGroupCategory.name), _nodeGroupCategory.id .value, Seq("disabled"->"true")) {
+      //  override def setFilter = notNull _ :: trim _ :: Nil
+      }
+    case Full(category) => new WBSelectField("Parent category: ", categories.map(x => (x.id.value -> x.name)), parentCategoryId) {
+      //  override def setFilter = notNull _ :: trim _ :: Nil
+      }    
   }
-	
-	
-	private[this] val formTracker = new FormTracker(piName,piDescription,piContainer)
+  
+  
+  private[this] val formTracker = new FormTracker(piName,piDescription,piContainer)
   
   private[this] var notifications = List.empty[NodeSeq]
   
-	private[this] def updateFormClientSide : JsCmd = {
+  private[this] def updateFormClientSide : JsCmd = {
     SetHtml(htmlIdCategory, showForm()) &
     initJs
   }
@@ -274,14 +274,14 @@ class NodeGroupCategoryForm(
       groupCategoryRepository.saveGroupCategory(newNodeGroup,
             NodeGroupCategoryId(piContainer.is), CurrentUser.getActor) match {
         case Full(x) =>
-    			_nodeGroupCategory = x
-    			onSuccess & onSuccessCallback() & successPopup
-    		case Empty =>
-    			logger.error("An error occurred while saving the GroupCategory")
-    		 	formTracker.addFormError(error("An error occurred while saving the GroupCategory"))
+          _nodeGroupCategory = x
+          onSuccess & onSuccessCallback() & successPopup
+        case Empty =>
+          logger.error("An error occurred while saving the GroupCategory")
+           formTracker.addFormError(error("An error occurred while saving the GroupCategory"))
           onFailure & onFailureCallback()
         case Failure(m,_,_) =>
-    			logger.error("An error occurred while saving the GroupCategory:" + m)
+          logger.error("An error occurred while saving the GroupCategory:" + m)
           formTracker.addFormError(error("An error occurred while saving the GroupCategory: " + m))
           onFailure & onFailureCallback()
       }

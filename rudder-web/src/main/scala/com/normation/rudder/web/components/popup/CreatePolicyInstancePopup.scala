@@ -113,7 +113,7 @@ class CreatePolicyInstancePopup(
     
   }
 
-	///////////// fields for category settings ///////////////////
+  ///////////// fields for category settings ///////////////////
   private[this] val piName = new WBTextField("Name: ", "") {
     override def displayNameHtml = Some(<b>{displayName}</b>)
     override def setFilter = notNull _ :: trim _ :: Nil
@@ -146,7 +146,7 @@ class CreatePolicyInstancePopup(
   /**
    * Update the form when something happened
    */
-	private[this] def updateFormClientSide() : JsCmd = {
+  private[this] def updateFormClientSide() : JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
 

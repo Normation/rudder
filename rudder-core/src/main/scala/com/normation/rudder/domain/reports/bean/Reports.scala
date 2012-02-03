@@ -49,124 +49,142 @@ import com.normation.utils.HashcodeCaching
  *
  */
 trait Reports {
-  val executionDate : DateTime
-  val configurationRuleId : ConfigurationRuleId
-  val policyInstanceId : PolicyInstanceId
-  val nodeId : NodeId
-  val serial : Int
-  val component : String
+  val executionDate      : DateTime
+  val configurationRuleId: ConfigurationRuleId
+  val policyInstanceId   : PolicyInstanceId
+  val nodeId             : NodeId
+  val serial             : Int
+  val component          : String
   val keyValue : String // the key of the component
   val executionTimestamp : DateTime
   val severity : String
   val message : String
 }
 
-sealed case class ResultSuccessReport(val executionDate : DateTime,
-		val configurationRuleId : ConfigurationRuleId,
-    val policyInstanceId : PolicyInstanceId,
-    val nodeId : NodeId,
-    val serial : Int,
-    val component : String,
-    val keyValue : String,
-    val executionTimestamp : DateTime,
-    val message : String) extends Reports with HashcodeCaching {
+sealed case class ResultSuccessReport(
+    executionDate      : DateTime
+  , configurationRuleId: ConfigurationRuleId
+  , policyInstanceId   : PolicyInstanceId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends Reports with HashcodeCaching {
   val severity = Reports.RESULT_SUCCESS
 }
 
-sealed case class ResultRepairedReport(val executionDate : DateTime,
-		val configurationRuleId : ConfigurationRuleId,
-    val policyInstanceId : PolicyInstanceId,
-    val nodeId : NodeId,
-    val serial : Int,
-    val component : String,
-    val keyValue : String,
-    val executionTimestamp : DateTime,
-    val message : String) extends Reports with HashcodeCaching {
+sealed case class ResultRepairedReport(
+    executionDate      : DateTime
+  , configurationRuleId: ConfigurationRuleId
+  , policyInstanceId   : PolicyInstanceId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends Reports with HashcodeCaching {
   val severity = Reports.RESULT_REPAIRED
 }
 
-sealed case class ResultErrorReport(val executionDate : DateTime,
-		val configurationRuleId : ConfigurationRuleId,
-    val policyInstanceId : PolicyInstanceId,
-    val nodeId : NodeId,
-    val serial : Int,
-    val component : String,
-    val keyValue : String,
-    val executionTimestamp : DateTime,
-    val message : String) extends Reports with HashcodeCaching {
+sealed case class ResultErrorReport(
+    executionDate      : DateTime
+  , configurationRuleId: ConfigurationRuleId
+  , policyInstanceId   : PolicyInstanceId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends Reports with HashcodeCaching {
   val severity = Reports.RESULT_ERROR
 }
 
 
-sealed case class LogRepairedReport(val executionDate : DateTime,
-		val configurationRuleId : ConfigurationRuleId,
-    val policyInstanceId : PolicyInstanceId,
-    val nodeId : NodeId,
-    val serial : Int,
-    val component : String,
-    val keyValue : String,
-    val executionTimestamp : DateTime,
-    val message : String) extends Reports with HashcodeCaching {
+sealed case class LogRepairedReport(
+    executionDate      : DateTime
+  , configurationRuleId: ConfigurationRuleId
+  , policyInstanceId   : PolicyInstanceId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends Reports with HashcodeCaching {
   val severity = Reports.LOG_REPAIRED
 }
   
-sealed case class LogWarnReport(val executionDate : DateTime,
-    val configurationRuleId : ConfigurationRuleId,
-    val policyInstanceId : PolicyInstanceId,
-    val nodeId : NodeId,
-    val serial : Int,
-    val component : String,
-    val keyValue : String,
-    val executionTimestamp : DateTime,
-    val message : String) extends Reports with HashcodeCaching {
+sealed case class LogWarnReport(
+    executionDate      : DateTime
+  , configurationRuleId: ConfigurationRuleId
+  , policyInstanceId   : PolicyInstanceId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends Reports with HashcodeCaching {
   val severity = Reports.LOG_WARN
 }
 
-sealed case class LogInformReport(val executionDate : DateTime,
-    val configurationRuleId : ConfigurationRuleId,
-    val policyInstanceId : PolicyInstanceId,
-    val nodeId : NodeId,
-    val serial : Int,
-    val component : String,
-    val keyValue : String,
-    val executionTimestamp : DateTime,
-    val message : String) extends Reports with HashcodeCaching {
+sealed case class LogInformReport(
+    executionDate      : DateTime
+  , configurationRuleId: ConfigurationRuleId
+  , policyInstanceId   : PolicyInstanceId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends Reports with HashcodeCaching {
   val severity = Reports.LOG_INFO
 }
 
-sealed case class LogDebugReport(val executionDate : DateTime,
-    val configurationRuleId : ConfigurationRuleId,
-    val policyInstanceId : PolicyInstanceId,
-    val nodeId : NodeId,
-    val serial : Int,
-    val component : String,
-    val keyValue : String,
-    val executionTimestamp : DateTime,
-    val message : String) extends Reports with HashcodeCaching {
+sealed case class LogDebugReport(
+    executionDate      : DateTime
+  , configurationRuleId: ConfigurationRuleId
+  , policyInstanceId   : PolicyInstanceId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends Reports with HashcodeCaching {
   val severity = Reports.LOG_DEBUG
 }
 
-sealed case class LogTraceReport(val executionDate : DateTime,
-    val configurationRuleId : ConfigurationRuleId,
-    val policyInstanceId : PolicyInstanceId,
-    val nodeId : NodeId,
-    val serial : Int,
-    val component : String,
-    val keyValue : String,
-    val executionTimestamp : DateTime,
-    val message : String) extends Reports with HashcodeCaching {
+sealed case class LogTraceReport(
+    executionDate      : DateTime
+  , configurationRuleId: ConfigurationRuleId
+  , policyInstanceId   : PolicyInstanceId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends Reports with HashcodeCaching {
   val severity = Reports.LOG_TRACE
 }
 
-sealed case class UnknownReport(val executionDate : DateTime,
-    val configurationRuleId : ConfigurationRuleId,
-		val policyInstanceId : PolicyInstanceId,
-    val nodeId : NodeId,
-    val serial : Int,
-    val component : String,
-    val keyValue : String,
-    val executionTimestamp : DateTime,
-    val message : String) extends Reports with HashcodeCaching {
+sealed case class UnknownReport(
+    executionDate      : DateTime
+  , configurationRuleId: ConfigurationRuleId
+  , policyInstanceId   : PolicyInstanceId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends Reports with HashcodeCaching {
   val severity = "Unknown"
 }
 
@@ -175,8 +193,8 @@ object Reports {
   val logger = LoggerFactory.getLogger(classOf[Reports])
   
   def factory(executionDate : DateTime, configurationRuleId : ConfigurationRuleId,
-  		policyInstanceId : PolicyInstanceId, nodeId : NodeId,  serial : Int,
-  			component : String, keyValue : String,executionTimestamp : DateTime,
+      policyInstanceId : PolicyInstanceId, nodeId : NodeId,  serial : Int,
+        component : String, keyValue : String,executionTimestamp : DateTime,
         severity : String,  message : String) : Reports = {
     severity.toLowerCase match {
       case RESULT_ERROR => new ResultErrorReport(executionDate, configurationRuleId, policyInstanceId, nodeId, 
@@ -211,8 +229,8 @@ object Reports {
   }
 
   def apply(executionDate : DateTime, configurationRuleId : ConfigurationRuleId,
-  		policyInstanceId : PolicyInstanceId, nodeId : NodeId,serial : Int,
-  			component : String, keyValue : String, executionTimestamp : DateTime,
+      policyInstanceId : PolicyInstanceId, nodeId : NodeId,serial : Int,
+        component : String, keyValue : String, executionTimestamp : DateTime,
         severity : String,  message : String) : Reports = {
     factory(executionDate, configurationRuleId, policyInstanceId, nodeId, serial, component, keyValue, executionTimestamp, severity,  message)
   }

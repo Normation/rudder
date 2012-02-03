@@ -408,8 +408,8 @@ class PolicyInstanceManagement extends DispatchSnippet with Loggable {
       override def body = { 
         val tooltipid = Helpers.nextFuncName
         ( <a><span class="treeUptCategoryName tooltipable" tooltipid={tooltipid}>{Text(category.name)}</span></a>
-      	  <div class="tooltipContent" id={tooltipid}>{category.description}</div>  
-      	)
+          <div class="tooltipContent" id={tooltipid}>{category.description}</div>  
+        )
       }
       override def children = 
           category.children.flatMap(treeUtilService.getUptCategory( _,logger )).toList.

@@ -72,128 +72,128 @@ class EventLogJdbcRepository(
   , override val eventLogFactory: EventLogFactory
 ) extends EventLogRepository {
 
-	 val logger = LoggerFactory.getLogger(classOf[EventLogRepository])
+   val logger = LoggerFactory.getLogger(classOf[EventLogRepository])
   
-	 val INSERT_SQL = "insert into EventLog (creationDate, principal, eventType, severity, data) values (?, ?, ?, ?, ?)"
-	 val INSERT_SQL_CAUSEID = "insert into EventLog (creationDate, principal, eventType, severity, data, causeId) values (?, ?, ?, ?, ?, ?)"
+   val INSERT_SQL = "insert into EventLog (creationDate, principal, eventType, severity, data) values (?, ?, ?, ?, ?)"
+   val INSERT_SQL_CAUSEID = "insert into EventLog (creationDate, principal, eventType, severity, data, causeId) values (?, ?, ?, ?, ?, ?)"
  
-	 val SELECT_SQL = "SELECT id, creationDate, principal, eventType, severity, data, causeId FROM EventLog where 1=1 "
-	 
-	/**
-	 * Save an eventLog
-	 * Optionnal : the user. At least one of the eventLog user or user must be defined
-	 * Return the event log with its serialization number
-	 */
-	def saveEventLog(eventLog : EventLog) : Box[EventLog] = {
-		 val keyHolder = new GeneratedKeyHolder()
-		 eventLog.cause match {
-		   case None => jdbcTemplate.update(
-				 new PreparedStatementCreator() {
-					 def createPreparedStatement(connection : Connection) : PreparedStatement = {
-						 val sqlXml = connection.createSQLXML()
-						 sqlXml.setString(eventLog.details.toString)
-						 val ps = connection.prepareStatement(INSERT_SQL, Seq[String]("id").toArray[String]);
-						 ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
-						 ps.setString(2, eventLog.principal.name)
-						 ps.setString(3, eventLog.eventType.serialize)
-						 ps.setInt(4, eventLog.severity)
-						 ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
-						 ps
-					 }
-				 },
-				 keyHolder)
-		   case Some(causeId) =>
-		     jdbcTemplate.update(
-				 new PreparedStatementCreator() {
-					 def createPreparedStatement(connection : Connection) : PreparedStatement = {
-						 val sqlXml = connection.createSQLXML()
-						 sqlXml.setString(eventLog.details.toString)
-						 val ps = connection.prepareStatement(INSERT_SQL_CAUSEID, Seq[String]("id").toArray[String]);
-						 ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
-						 ps.setString(2, eventLog.principal.name)
-						 ps.setString(3, eventLog.eventType.serialize)
-						 ps.setInt(4, eventLog.severity)
-						 ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
-						 ps.setInt(6, causeId) 
-						 ps
-					 }
-				 },
-				 keyHolder)
-		 }
-		 
-		 
-		 getEventLog(keyHolder.getKey().intValue)
-		 
-	}
-	
-	/**
-	 * Save an eventLog with its cause id (because it cannot be held in the VO)
-	 * Return the event log with its serialization number
-	 * TODO : it seems unused, to be checked
-	 */
-	def saveEventLog(eventLog : EventLog, causeId : Int) : Box[EventLog] = {
-		 val keyHolder = new GeneratedKeyHolder()
-		 jdbcTemplate.update(
-				 new PreparedStatementCreator() {
-					 def createPreparedStatement(connection : Connection) : PreparedStatement = {
-						 val sqlXml = connection.createSQLXML()
-						 sqlXml.setString(eventLog.details.toString)
-						 val ps = connection.prepareStatement(INSERT_SQL_CAUSEID, Seq[String]("id").toArray[String]);
-						 ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
-						 ps.setString(2, eventLog.principal.name)
-						 ps.setString(3, eventLog.eventType.serialize)
-						 ps.setInt(4, eventLog.severity)
-						 ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
-						 ps.setInt(6, causeId) 
-						 ps
-					 }
-				 },
-		 keyHolder)
-		 
-		getEventLog(keyHolder.getKey().intValue)
-	}
-	
-	
-	def getEventLog(id : Int) : Box[EventLog] = {
-		val list = jdbcTemplate.query(SELECT_SQL + " and id = ?" ,
-				Array[AnyRef](id.asInstanceOf[AnyRef]),
-				EventLogReportsMapper)
-		list.size match {
-			case 0 => Empty
-			case 1 => Full(list.get(0))
-			case _ => Failure("Too many event log for this id")
-		}
-	}
-	
-	def getEventLogByCriteria(criteria : Option[String], limit:Option[Int] = None, orderBy:Option[String]) : Box[Seq[EventLog]] = {
-	  val select = SELECT_SQL + 
-	      criteria.map( c => " and " + c).getOrElse("") + 
-	      orderBy.map(o => " order by " + o).getOrElse("") +
-	      limit.map( l => " limit " + l).getOrElse("")
-	  
-		val list = jdbcTemplate.query(select, EventLogReportsMapper)
-		
-		list.size match {
-			case 0 => Empty
-			case _ => Full(Seq[EventLog]() ++ list)
-		}
-	}
+   val SELECT_SQL = "SELECT id, creationDate, principal, eventType, severity, data, causeId FROM EventLog where 1=1 "
+   
+  /**
+   * Save an eventLog
+   * Optionnal : the user. At least one of the eventLog user or user must be defined
+   * Return the event log with its serialization number
+   */
+  def saveEventLog(eventLog : EventLog) : Box[EventLog] = {
+     val keyHolder = new GeneratedKeyHolder()
+     eventLog.cause match {
+       case None => jdbcTemplate.update(
+         new PreparedStatementCreator() {
+           def createPreparedStatement(connection : Connection) : PreparedStatement = {
+             val sqlXml = connection.createSQLXML()
+             sqlXml.setString(eventLog.details.toString)
+             val ps = connection.prepareStatement(INSERT_SQL, Seq[String]("id").toArray[String]);
+             ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
+             ps.setString(2, eventLog.principal.name)
+             ps.setString(3, eventLog.eventType.serialize)
+             ps.setInt(4, eventLog.severity)
+             ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
+             ps
+           }
+         },
+         keyHolder)
+       case Some(causeId) =>
+         jdbcTemplate.update(
+         new PreparedStatementCreator() {
+           def createPreparedStatement(connection : Connection) : PreparedStatement = {
+             val sqlXml = connection.createSQLXML()
+             sqlXml.setString(eventLog.details.toString)
+             val ps = connection.prepareStatement(INSERT_SQL_CAUSEID, Seq[String]("id").toArray[String]);
+             ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
+             ps.setString(2, eventLog.principal.name)
+             ps.setString(3, eventLog.eventType.serialize)
+             ps.setInt(4, eventLog.severity)
+             ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
+             ps.setInt(6, causeId) 
+             ps
+           }
+         },
+         keyHolder)
+     }
+     
+     
+     getEventLog(keyHolder.getKey().intValue)
+     
+  }
+  
+  /**
+   * Save an eventLog with its cause id (because it cannot be held in the VO)
+   * Return the event log with its serialization number
+   * TODO : it seems unused, to be checked
+   */
+  def saveEventLog(eventLog : EventLog, causeId : Int) : Box[EventLog] = {
+     val keyHolder = new GeneratedKeyHolder()
+     jdbcTemplate.update(
+         new PreparedStatementCreator() {
+           def createPreparedStatement(connection : Connection) : PreparedStatement = {
+             val sqlXml = connection.createSQLXML()
+             sqlXml.setString(eventLog.details.toString)
+             val ps = connection.prepareStatement(INSERT_SQL_CAUSEID, Seq[String]("id").toArray[String]);
+             ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
+             ps.setString(2, eventLog.principal.name)
+             ps.setString(3, eventLog.eventType.serialize)
+             ps.setInt(4, eventLog.severity)
+             ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
+             ps.setInt(6, causeId) 
+             ps
+           }
+         },
+     keyHolder)
+     
+    getEventLog(keyHolder.getKey().intValue)
+  }
+  
+  
+  def getEventLog(id : Int) : Box[EventLog] = {
+    val list = jdbcTemplate.query(SELECT_SQL + " and id = ?" ,
+        Array[AnyRef](id.asInstanceOf[AnyRef]),
+        EventLogReportsMapper)
+    list.size match {
+      case 0 => Empty
+      case 1 => Full(list.get(0))
+      case _ => Failure("Too many event log for this id")
+    }
+  }
+  
+  def getEventLogByCriteria(criteria : Option[String], limit:Option[Int] = None, orderBy:Option[String]) : Box[Seq[EventLog]] = {
+    val select = SELECT_SQL + 
+        criteria.map( c => " and " + c).getOrElse("") + 
+        orderBy.map(o => " order by " + o).getOrElse("") +
+        limit.map( l => " limit " + l).getOrElse("")
+    
+    val list = jdbcTemplate.query(select, EventLogReportsMapper)
+    
+    list.size match {
+      case 0 => Empty
+      case _ => Full(Seq[EventLog]() ++ list)
+    }
+  }
 }
 
 object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
     
   def mapRow(rs : ResultSet, rowNum: Int) : EventLog = {
     val eventLogDetails = EventLogDetails(
-        id 				= Some(rs.getInt("id"))
-      , principal 		= EventActor(rs.getString("principal"))
-      , creationDate 	= new DateTime(rs.getTimestamp("creationDate"))
-      , cause 			= {
-					          if(rs.getInt("causeId")>0) {
-					            Some(rs.getInt("causeId"))
-					          } else None
-					        }
-      , severity = rs.getInt("severity")
-      , details = XML.load(rs.getSQLXML("data").getBinaryStream() )
+        id          = Some(rs.getInt("id"))
+      , principal   = EventActor(rs.getString("principal"))
+      , creationDate= new DateTime(rs.getTimestamp("creationDate"))
+      , cause       = {
+                        if(rs.getInt("causeId")>0) {
+                          Some(rs.getInt("causeId"))
+                        } else None
+                      }
+      , severity    = rs.getInt("severity")
+      , details     = XML.load(rs.getSQLXML("data").getBinaryStream() )
     )
     
     mapEventLog(
@@ -223,20 +223,20 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
     
   
   private[this] def mapEventLog(
-      eventType 		: EventLogType
-    , eventLogDetails	: EventLogDetails
+      eventType     : EventLogType
+    , eventLogDetails  : EventLogDetails
   ) : Box[EventLog] = {
   
-	logFilters.find {
-	  pf => pf.isDefinedAt((eventType, eventLogDetails))
-	}.map(
-	  x => x.apply((eventType, eventLogDetails))    
-	) match {
-	  case Some(value) => Full(value)
-	  case None =>
-	    logger.error("Could not match event type %s".format(eventType.serialize))
-	    Failure("Unknow Event type")
-	}
+  logFilters.find {
+    pf => pf.isDefinedAt((eventType, eventLogDetails))
+  }.map(
+    x => x.apply((eventType, eventLogDetails))
+  ) match {
+    case Some(value) => Full(value)
+    case None =>
+      logger.error("Could not match event type %s".format(eventType.serialize))
+      Failure("Unknow Event type")
+  }
 
   }
 

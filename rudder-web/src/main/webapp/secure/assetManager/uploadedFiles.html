@@ -1,49 +1,49 @@
 <lift:surround with="menu/menu-asset" at="content">
-	
+  
 <head>
 <title>Rudder - Upload Files</title>
 </head>
 
 <head>
     <script type="text/javascript" language="javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
-</head>	
+</head>  
 <div class="portlet">
  <div class="portlet-header">Manage uploaded files</div>
- <div class="portlet-content">	
+ <div class="portlet-content">  
   <div class="intro">
    <div>This portlet lists all the files that have been uploaded and are ready to be deployed. You can alse upload files to be deployed on nodes. 
    </div>
   </div> 
   <hr class="spacer"/> 
-	<lift:UploadedFiles.list form="POST">
-		<table cellspacing="0" id="uploaded_files_grid">
-		<thead>
-			<tr class="head">
-				<th>Name<span/></th>
-				<th>Size<span/></th>
-				<th>Date<span/></th>
-				<th><files:delete/></th>
-			</tr>
-		</thead>
-		<tbody>		
-			<files:lines>
-				<tr>
-					<td><line:name /></td>
-					<td><line:size /></td>
-					<td><line:date /></td>
-					<td><line:delete /></td>
-				</tr>
-			</files:lines>
-		</tbody>
-		</table>
-		<div id="uploaded_files_grid_filter_area"/>
-	</lift:UploadedFiles.list>	
-		
-	<lift:UploadedFiles.upload multipart="true" form="POST">	
-		<div id="upload">
-			<p>Upload a file: <files:select /> <files:upload /></p>
-		</div>
-	</lift:UploadedFiles.upload>
+  <lift:UploadedFiles.list form="POST">
+    <table cellspacing="0" id="uploaded_files_grid">
+    <thead>
+      <tr class="head">
+        <th>Name<span/></th>
+        <th>Size<span/></th>
+        <th>Date<span/></th>
+        <th><files:delete/></th>
+      </tr>
+    </thead>
+    <tbody>    
+      <files:lines>
+        <tr>
+          <td><line:name /></td>
+          <td><line:size /></td>
+          <td><line:date /></td>
+          <td><line:delete /></td>
+        </tr>
+      </files:lines>
+    </tbody>
+    </table>
+    <div id="uploaded_files_grid_filter_area"/>
+  </lift:UploadedFiles.list>  
+    
+  <lift:UploadedFiles.upload multipart="true" form="POST">  
+    <div id="upload">
+      <p>Upload a file: <files:select /> <files:upload /></p>
+    </div>
+  </lift:UploadedFiles.upload>
   </div>
   <br/>
  </div>

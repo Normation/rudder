@@ -52,15 +52,15 @@
   <bean id="machineRepository" class="com.normation.rudder.repository.xml.ServerRepositoryXML" scope="prototype">
     <constructor-arg  ref="rootServerParser"/>
     <constructor-arg  ref="serverParser"/>
-	  <constructor-arg  value="src/test/resources/testConfig.xml"/>
-	  <constructor-arg  value="true"/>
+    <constructor-arg  value="src/test/resources/testConfig.xml"/>
+    <constructor-arg  value="true"/>
   </bean>
  
 
   <bean id="pathComputer" class="com.normation.rudder.services.path.PathComputerImpl">
     <constructor-arg ref="machineRepository"/>
     <constructor-arg name="baseFolder"  value="/baseFolder/"/>
- 	<constructor-arg name="backupFolder"  value="/backup/"/>
+   <constructor-arg name="backupFolder"  value="/backup/"/>
   </bean>
 
   <bean id="policyTranslator" class="com.normation.rudder.services.policies.DummyPolicyTranslator"/>
@@ -102,10 +102,10 @@
   <bean id="opExpectedRepo" class="com.normation.rudder.repository.inMemory.InMemoryOperationExpectedReportsRepository" lazy-init="true" scope="singleton" />
 
   <bean id="configurationExpectedRepo" class="com.normation.rudder.repository.jdbc.ConfigurationExpectedReportsJdbcRepository" lazy-init="true" scope="singleton" >
-  	<constructor-arg ref="jdbcTemplate"/>
+    <constructor-arg ref="jdbcTemplate"/>
   </bean>
    <bean id="operationExpectedRepo" class="com.normation.rudder.repository.jdbc.OperationExpectedReportsJdbcRepository" lazy-init="true" scope="singleton" >
-  	<constructor-arg ref="jdbcTemplate"/>
+    <constructor-arg ref="jdbcTemplate"/>
   </bean>
   
  <!-- Event Log part --> 
@@ -113,7 +113,7 @@
   </bean>
 
    <bean id="jdbcEventLogRepository" class="com.normation.rudder.repository.jdbc.EventLogJdbcRepository" lazy-init="true" scope="singleton" >
-     	<constructor-arg ref="jdbcTemplate"/>
+       <constructor-arg ref="jdbcTemplate"/>
    </bean>
     
    <bean id="eventLogService" class="com.normation.rudder.services.log.EventLogServiceImpl" lazy-init="true">
@@ -127,59 +127,59 @@
   <bean id="inventoryEventLogSpecializer" class="com.normation.rudder.domain.log.specializer.InventoryEventLogSpecializer"/>
   
   <bean id="policyInstanceEventLogSpecializer" class="com.normation.rudder.domain.log.specializer.PolicyInstanceEventLogSpecializer">
-  	<constructor-arg ref = "rudderVariableParser" />
+    <constructor-arg ref = "rudderVariableParser" />
   </bean>
   
   <bean id="serverEventLogSpecializer" class="com.normation.rudder.domain.log.specializer.ServerEventLogSpecializer"/>
   
   <bean id="eventLogConverter" class="com.normation.eventlog.EventLogConverter">
-  	<constructor-arg>
-  		<list>
-  			<ref bean="policyInstanceEventLogSpecializer"/>
-  			<ref bean="serverEventLogSpecializer"/>
-  			<ref bean="inventoryEventLogSpecializer"/>
-  			<ref bean="guiEventLogSpecializer"/>
-  		</list>
-  	</constructor-arg>
+    <constructor-arg>
+      <list>
+        <ref bean="policyInstanceEventLogSpecializer"/>
+        <ref bean="serverEventLogSpecializer"/>
+        <ref bean="inventoryEventLogSpecializer"/>
+        <ref bean="guiEventLogSpecializer"/>
+      </list>
+    </constructor-arg>
   </bean>
   
   <bean id="reportsRepository" class="com.normation.rudder.repository.jdbc.ReportsJdbcRepository">
-  	<constructor-arg ref="jdbcTemplate"/>
+    <constructor-arg ref="jdbcTemplate"/>
   </bean>
   
   <!-- JDBC connectivity -->
 
-	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
-		<property name="locations" value="classpath:database.properties"/>
-	</bean>
+  <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+    <property name="locations" value="classpath:database.properties"/>
+  </bean>
 
-	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
-		<property name="driverClassName" value="${jdbc.driverClassName}" />
-		<property name="url" value="${jdbc.url}" />
-		<property name="username" value="${jdbc.username}" />
-		<property name="password" value="${jdbc.password}" />
-	</bean>
+  <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+    <property name="driverClassName" value="${jdbc.driverClassName}" />
+    <property name="url" value="${jdbc.url}" />
+    <property name="username" value="${jdbc.username}" />
+    <property name="password" value="${jdbc.password}" />
+  </bean>
 
-	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
-		<property name="dataSource"><ref bean="dataSource"/></property>
-	</bean>
+  <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+    <property name="dataSource"><ref bean="dataSource"/></property>
+  </bean>
 
-<!-- 	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
-	    <property name="driverClassName" value="org.postgresql.Driver"/>
-	    <property name="url" value="jdbc:postgresql://localhost:5432/test"/>
-	    <property name="username" value="test"/>
-	    <property name="password" value="test"/>
-	    <property name="maxIdle" value="10"/>
-	    <property name="maxActive" value="100"/>
-	    <property name="maxWait" value="10000"/>
-	    <property name="validationQuery" value="select 1"/>
-	    <property name="testOnBorrow" value="false"/>
-	    <property name="testWhileIdle" value="true"/>
-	    <property name="timeBetweenEvictionRunsMillis" value="1200000"/>
-	    <property name="minEvictableIdleTimeMillis" value="1800000"/>
-	    <property name="numTestsPerEvictionRun" value="5"/>
-	    <property name="defaultAutoCommit" value="true"/>
-	</bean>
+<!--   <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+      <property name="driverClassName" value="org.postgresql.Driver"/>
+      <property name="url" value="jdbc:postgresql://localhost:5432/test"/>
+      <property name="username" value="test"/>
+      <property name="password" value="test"/>
+      <property name="maxIdle" value="10"/>
+      <property name="maxActive" value="100"/>
+      <property name="maxWait" value="10000"/>
+      <property name="validationQuery" value="select 1"/>
+      <property name="testOnBorrow" value="false"/>
+      <property name="testWhileIdle" value="true"/>
+      <property name="timeBetweenEvictionRunsMillis" value="1200000"/>
+      <property name="minEvictableIdleTimeMillis" value="1800000"/>
+      <property name="numTestsPerEvictionRun" value="5"/>
+      <property name="defaultAutoCommit" value="true"/>
+  </bean>
 
    -->
   

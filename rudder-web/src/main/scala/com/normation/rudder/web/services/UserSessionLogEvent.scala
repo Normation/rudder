@@ -82,7 +82,7 @@ class UserSessionLogEvent(
             repository.saveEventLog(
                 BadCredentialsEventLog(
                     EventLogDetails( 
-                    	principal = EventActor(u)
+                      principal = EventActor(u)
                       , details = EventLog.emptyDetails
                     )
                 )

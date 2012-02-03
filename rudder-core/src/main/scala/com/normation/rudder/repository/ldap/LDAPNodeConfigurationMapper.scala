@@ -73,9 +73,9 @@ class LDAPNodeConfigurationMapper(
     var returnedMap = scala.collection.mutable.Map[String, Variable]()
     for ((variableName, values) <- variableMap) {
       try {
-      	val settedVariable = SystemVariable(systemVariableSpecService.get(variableName))
-      	settedVariable.values = values
-      	returnedMap += (settedVariable.spec.name -> settedVariable)
+        val settedVariable = SystemVariable(systemVariableSpecService.get(variableName))
+        settedVariable.values = values
+        returnedMap += (settedVariable.spec.name -> settedVariable)
       } catch {
         case e: Exception => logger.error("Could not fetch spec for system variable %s".format(variableName)) 
       }
@@ -215,12 +215,12 @@ class LDAPNodeConfigurationMapper(
       } yield {
         if(tree.root.isA(OC_ROOT_POLICY_SERVER)) {
           val server = new RootNodeConfiguration(id, currentPIs,targetPIs, true, 
-              	getCurrentMinimalNodeConfig(tree.root()), 
-              	targetNodeConfig, 
-              	writtenDate.map(_.dateTime),
-              	setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_SYSTEM_VARIABLE).toSeq)),
-              	setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE).toSeq))
-              	)
+                getCurrentMinimalNodeConfig(tree.root()),
+                targetNodeConfig,
+                writtenDate.map(_.dateTime),
+                setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_SYSTEM_VARIABLE).toSeq)),
+                setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE).toSeq))
+                )
  
           server
         } else {

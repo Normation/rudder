@@ -65,8 +65,8 @@ import net.liftweb.http.Templates
  * Show the reports from cfengine (raw data)
  */
 class LogDisplayer(reportRepository :ReportsRepository,
-		policyInstanceRepository : PolicyInstanceRepository, 
-		configurationRuleRepository : ConfigurationRuleRepository) {
+    policyInstanceRepository : PolicyInstanceRepository, 
+    configurationRuleRepository : ConfigurationRuleRepository) {
 
 
   private val templatePath = List("templates-hidden", "node_logs_tabs")
@@ -85,17 +85,17 @@ class LogDisplayer(reportRepository :ReportsRepository,
 
     
   def display(nodeId : NodeId) : NodeSeq = {
-  	val PIMap = mutable.Map[PolicyInstanceId, String]()
-	  val CRMap = mutable.Map[ConfigurationRuleId, String]()
-	
-	  
-	  def getPIName(policyInstanceId : PolicyInstanceId) : String = {
-	  	PIMap.get(policyInstanceId).getOrElse({val result = policyInstanceRepository.getPolicyInstance(policyInstanceId).map(_.name).openOr(policyInstanceId.value); PIMap += ( policyInstanceId -> result); result } )
-	  }
-	
-	  def getCRName(configurationRuleId : ConfigurationRuleId) : String = {
-	  	CRMap.get(configurationRuleId).getOrElse({val result = configurationRuleRepository.get(configurationRuleId).map(x => x.name).openOr(configurationRuleId.value); CRMap += ( configurationRuleId -> result); result } )
-	  }
+    val PIMap = mutable.Map[PolicyInstanceId, String]()
+    val CRMap = mutable.Map[ConfigurationRuleId, String]()
+  
+    
+    def getPIName(policyInstanceId : PolicyInstanceId) : String = {
+      PIMap.get(policyInstanceId).getOrElse({val result = policyInstanceRepository.getPolicyInstance(policyInstanceId).map(_.name).openOr(policyInstanceId.value); PIMap += ( policyInstanceId -> result); result } )
+    }
+  
+    def getCRName(configurationRuleId : ConfigurationRuleId) : String = {
+      CRMap.get(configurationRuleId).getOrElse({val result = configurationRuleRepository.get(configurationRuleId).map(x => x.name).openOr(configurationRuleId.value); CRMap += ( configurationRuleId -> result); result } )
+    }
   
     bind("logsGrid", content,
         "lines" -> reportRepository.findReportsByServer(nodeId, None, None, None, None).flatMap {
@@ -122,12 +122,12 @@ class LogDisplayer(reportRepository :ReportsRepository,
             "bFilter" :true,
             "bPaginate" :true,
             "bLengthChange": false,
-        		"sPaginationType": "full_numbers",
-        		"oLanguage": {
-            	"sSearch": "Filter:"
-        		},
+            "sPaginationType": "full_numbers",
+            "oLanguage": {
+              "sSearch": "Filter:"
+            },
             "bJQueryUI": false,
-        		"aaSorting":[],
+            "aaSorting":[],
             "aoColumns": [
               { "sWidth": "120px" },
               { "sWidth": "80px" },

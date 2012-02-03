@@ -101,10 +101,10 @@ class PathComputerImpl(
     var path = ""
     while (machineDest != fromServer) {
       path ="/" + servedPrefix + machineDest.id ;
-    	nodeConfigurationRepository.findNodeConfiguration(NodeId(machineDest.targetMinimalNodeConfig.policyServerId)) match {
-    		case Full(node) => machineDest = node
-    		case _ => throw new HierarchicalException("Wrong hierarchy for node : " + toServer)
-    	}
+      nodeConfigurationRepository.findNodeConfiguration(NodeId(machineDest.targetMinimalNodeConfig.policyServerId)) match {
+        case Full(node) => machineDest = node
+        case _ => throw new HierarchicalException("Wrong hierarchy for node : " + toServer)
+      }
     }
     
     return FilenameUtils.normalize(path)
@@ -116,11 +116,11 @@ class PathComputerImpl(
    * @return
    */
   def getRootPath(agentType : AgentType) : String = {
-  	agentType match {
-	    	case NOVA_AGENT => "/var/cfengine/inputs"
-	    	case COMMUNITY_AGENT =>  "/var/rudder/cfengine-community/inputs"
-	    	case x => throw new BusinessException("Unrecognized agent type: %s".format(x))
-  	}
+    agentType match {
+        case NOVA_AGENT => "/var/cfengine/inputs"
+        case COMMUNITY_AGENT =>  "/var/rudder/cfengine-community/inputs"
+        case x => throw new BusinessException("Unrecognized agent type: %s".format(x))
+    }
   }
   
   
@@ -140,11 +140,11 @@ class PathComputerImpl(
       return path
     
     nodeConfigurationRepository.findNodeConfiguration(NodeId(toServer.targetMinimalNodeConfig.policyServerId)) match {
-    	case Full(root : RootNodeConfiguration) => 
-    			recurseComputePath(fromServer, root, path)
-    	case Full(policyParent) =>
-    			recurseComputePath(fromServer, policyParent, policyParent.id + "/" + servedPrefix + path)
-    	case _ =>throw new HierarchicalException("Wrong hierarchy for node :" + toServer)
+      case Full(root : RootNodeConfiguration) => 
+          recurseComputePath(fromServer, root, path)
+      case Full(policyParent) =>
+          recurseComputePath(fromServer, policyParent, policyParent.id + "/" + servedPrefix + path)
+      case _ =>throw new HierarchicalException("Wrong hierarchy for node :" + toServer)
     }
   }
 }

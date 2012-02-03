@@ -209,8 +209,8 @@ class ConfigurationRuleGrid(
       
       if(seq.size < 1) <i>None</i>
       else { 
-      	val popupId = Helpers.nextFuncName
-      	val tableId_listPI = Helpers.nextFuncName
+        val popupId = Helpers.nextFuncName
+        val tableId_listPI = Helpers.nextFuncName
         <span class="popcurs" onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name + (if (seq.size > 1) ", ..." else "")}</span> ++
         <div id={popupId} class="nodisplay">
           <div class="simplemodal-title">
@@ -223,38 +223,38 @@ class ConfigurationRuleGrid(
             <hr class="spacer"/>
             <br/>
             <br/>
-        		<table id={tableId_listPI} cellspacing="0">
-        			<thead>
-        				<tr class="head">
-        				 <th>Policy Instance<span/></th>
-        				 <th>Policy Template<span/></th>
-        				</tr>
-        			</thead>
-        			<tbody>
+            <table id={tableId_listPI} cellspacing="0">
+              <thead>
+                <tr class="head">
+                 <th>Policy Instance<span/></th>
+                 <th>Policy Template<span/></th>
+                </tr>
+              </thead>
+              <tbody>
             { 
               (
                 "span" #> seq.map { case(pi,upt) => "#link" #> <tr><td>{piLink(pi)}</td><td>{upt.referencePolicyTemplateName}</td></tr> }
               )(<span id="link"/>
               )
             }
-            	</tbody>
+              </tbody>
             </table>
             <hr class="spacer" />
           </div>
           <div class="simplemodal-bottom">
-           	<hr/>
-           	<div class="popupButton">
-           		<span>
-             		<button class="simplemodal-close" onClick="return false;">
-               		Close
-             		</button>
-           		</span>
+             <hr/>
+             <div class="popupButton">
+               <span>
+                 <button class="simplemodal-close" onClick="return false;">
+                   Close
+                 </button>
+               </span>
            </div>
          </div>
         </div> ++
         Script(OnLoad(JsRaw("""
           %1$s_tableId = $('#%2$s').dataTable({
-        		"asStripClasses": [ 'color1', 'color2' ],
+            "asStripClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" : false,
             "bPaginate" : true,
@@ -452,7 +452,7 @@ class ConfigurationRuleGrid(
             case None => Text("No Reports")
             case Some(reports) =>
             ((reports.getSuccessServer().map ( x =>  ("Success" , x)) ++
-            	 reports.getRepairedServer().map ( x => ("Repaired" , x)) ++
+               reports.getRepairedServer().map ( x => ("Repaired" , x)) ++
                //reports.getWarnServer().map ( x => ("Warn" , x)) ++
                reports.getErrorServer().map ( x =>  ("Error" , x)) ++
                reports.getPendingServer().map ( x =>  ("Applying" , x)) ++
@@ -479,13 +479,13 @@ class ConfigurationRuleGrid(
     }<hr class="spacer" />
     </div>
     <div class="simplemodal-bottom">
-			<hr/>
-			<div class="popupButton">
-				<span>
-	        <button class="simplemodal-close" onClick="return false;">
+      <hr/>
+      <div class="popupButton">
+        <span>
+          <button class="simplemodal-close" onClick="return false;">
           Close
-  	      </button>
-  	    </span>
+          </button>
+        </span>
       </div>
     </div>
 
