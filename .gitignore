@@ -8,3 +8,4 @@ target*
 .externalToolBuilders
 .cache
 *.ldif.log
+*configuration.properties
