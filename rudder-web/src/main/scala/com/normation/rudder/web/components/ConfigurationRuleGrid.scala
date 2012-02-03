@@ -208,11 +208,10 @@ class ConfigurationRuleGrid(
         }</a>
       
       if(seq.size < 1) <i>None</i>
-      else if(seq.size == 1) piLink(seq.head._1)
       else { 
       	val popupId = Helpers.nextFuncName
       	val tableId_listPI = Helpers.nextFuncName
-        <span class="popcurs" onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name +  ", ..."}</span> ++
+        <span class="popcurs" onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name + (if (seq.size > 1) ", ..." else "")}</span> ++
         <div id={popupId} class="nodisplay">
           <div class="simplemodal-title">
             <h1>List of policy instances</h1>
