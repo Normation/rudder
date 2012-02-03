@@ -65,6 +65,17 @@ class FusionReportEndpoint(
   //start the report processor actor
   ReportProcessor.start
   
+  
+  /**
+   * A status URL that just allow to check
+   * that the endpoint is alive
+   */
+  @RequestMapping(
+    value = Array("/api/status"),
+    method = Array(RequestMethod.GET)
+  )
+  def checkStatus() = new ResponseEntity("OK", HttpStatus.OK)
+  
   /**
    * The actual endpoint. It's here that 
    * upload requests arrive
