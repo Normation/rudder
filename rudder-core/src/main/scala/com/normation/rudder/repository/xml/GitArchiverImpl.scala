@@ -141,7 +141,7 @@ class GitConfigurationRuleArchiverImpl(
                       logger.debug("Deleted archive of configuration rule: " + crFile.getPath)
                     }
         commited <- gitCommitCr match {
-                      case Some(commiter) => commitRmFile(commiter, toGitPath(crFile), "Delete archive of configuration rule with ID '%s' on %s ".format(crId.value))
+                      case Some(commiter) => commitRmFile(commiter, toGitPath(crFile), "Delete archive of configuration rule with ID '%s'".format(crId.value))
                       case None => Full("OK")
                     }
       } yield {
@@ -522,7 +522,7 @@ class GitPolicyInstanceArchiverImpl(
                         logger.debug("Deleted archive of policy instance: " + piFile.getPath)
                       }
           commited <- gitCommit match {
-                        case Some(commiter) => commitRmFile(commiter, toGitPath(piFile), "Delete archive of policy instance with ID '%s' on %s ".format(piId.value))
+                        case Some(commiter) => commitRmFile(commiter, toGitPath(piFile), "Delete archive of policy instance with ID '%s'".format(piId.value))
                         case None => Full("OK")
                       }
         } yield {
