@@ -10,18 +10,38 @@
         <th>Severity<span/></th>
         <th>Policy<span/></th>
         <th>Configuration rule<span/></th>
+        <th>Component<span/></th>
+        <th>Key Value<span/></th>
         <th>Message<span/></th>
       </tr>
     </thead>
 
     <tbody>
-      <logsGrid:lines>
-          <td><line:executionDate /></td>
-          <td><line:severity /></td>
-          <td><line:policy /></td>
-          <td><line:crId /></td>
-          <td><line:msg /></td>
-      </logsGrid:lines>
+      <tr class="color1">
+        <td>2012-02-05 09:55</td>
+        <td>log_info</td>
+        <td>Common</td>
+        <td>Rudder system policy: basic setup (common)</td>
+        <td>common</td>
+        <td>EndRun</td>
+        <td>End execution</td>
+      </tr><tr class="color2">
+        <td>2012-02-05 09:55</td>
+        <td>result_success</td>
+        <td>DateTime Configuration</td>
+        <td>NTP Configuration</td>
+        <td>Hardware clock (RTC)</td>
+        <td>-</td>
+        <td>It is not yet time to synchronize the hardware clock with the NTP time. Skipping...</td>
+      </tr><tr class="color1">
+        <td>2012-02-05 09:55</td>
+        <td>result_success</td>
+        <td>DateTime Configuration</td>
+        <td>NTP Configuration</td>
+        <td>Time zone</td>
+        <td>-</td>
+        <td>Time zone edition disabled</td>
+      </tr>
     </tbody>
   </table>
 
