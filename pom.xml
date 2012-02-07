@@ -65,6 +65,12 @@ limitations under the License.
       <snapshots><enabled>true</enabled></snapshots>
     </repository>
     <repository>
+      <id>rudder-project</id>
+      <url>http://www.rudder-project.org/maven-repo/</url>
+      <layout>default</layout>
+      <snapshots><enabled>false</enabled></snapshots>
+    </repository>
+    <repository>
       <id>scala-tools.org</id>
       <name>Scala-tools Maven2 Repository</name>
       <url>http://scala-tools.org/repo-releases</url>
