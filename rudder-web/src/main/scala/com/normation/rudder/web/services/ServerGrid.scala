@@ -170,8 +170,8 @@ class ServerGrid(getServerAndMachine:LDAPFullInventoryRepository) extends Loggab
             
               var aData = jQuery(#table_var#.fnGetData( aPos[0] ));
               var node = jQuery(aData[aPos[1]]);
-              var jsid = node.prop("jsuuid");
-              var ajaxParam = JSON.stringify({"jsid":jsid , "id":node.prop("serverid") , "status":node.prop("nodeStatus")});
+              var jsid = node.attr("jsuuid");
+              var ajaxParam = JSON.stringify({"jsid":jsid , "id":node.attr("serverid") , "status":node.attr("nodeStatus")});
               #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
               %s;
             }

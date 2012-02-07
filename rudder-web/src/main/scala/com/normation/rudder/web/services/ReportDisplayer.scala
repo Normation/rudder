@@ -204,8 +204,8 @@ class ReportDisplayer(configurationRuleRepository : ConfigurationRuleRepository,
 //            
 //              var aData = jQuery(#table_var#.fnGetData( aPos[0] ));
 //              var node = jQuery(aData[aPos[1]]);
-//              var id = node.prop("crId");
-//              var jsid = node.prop("jsuuid");
+//              var id = node.attr("crId");
+//              var jsid = node.attr("jsuuid");
 //              var ajaxParam = jsid + "|" + id;
 //              #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
 //              %s;

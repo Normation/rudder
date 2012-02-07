@@ -133,7 +133,7 @@ class EventListDisplayer(
                 #table_var#.fnClose(nTr);
               } else {
                 jTr.prop("open", "opened");
-            var jsid = jTr.prop("jsuuid");
+            var jsid = jTr.attr("jsuuid");
                 #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
                 %s;
               }
