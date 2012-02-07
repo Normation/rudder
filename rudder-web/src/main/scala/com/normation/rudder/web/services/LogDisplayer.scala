@@ -97,18 +97,21 @@ class LogDisplayer(reportRepository :ReportsRepository,
 	  	CRMap.get(configurationRuleId).getOrElse({val result = configurationRuleRepository.get(configurationRuleId).map(x => x.name).openOr(configurationRuleId.value); CRMap += ( configurationRuleId -> result); result } )
 	  }
   
-    bind("logsGrid", content,
-        "lines" -> reportRepository.findReportsByServer(nodeId, None, None, None, None).flatMap {
+    val lines = reportRepository.findReportsByServer(nodeId, None, None, None, None).flatMap {
           case Reports(executionDate, configurationRuleId, policyInstanceId, nodeId, serial, component, keyValue, executionTimestamp, severity, message) =>
            <tr>
             <td>{DateFormaterService.getFormatedDate(executionDate)}</td>
             <td>{severity}</td>
             <td>{getPIName(policyInstanceId)}</td>
             <td>{getCRName(configurationRuleId)}</td>
+            <td>{component}</td>
+            <td>{if("None" == keyValue) "-" else keyValue}</td>
             <td>{message}</td>
            </tr>
         }
-      )
+     
+    ("tbody *" #> lines)(content)
+    
   }
 
   def initJs() : JsCmd = {
@@ -133,6 +136,8 @@ class LogDisplayer(reportRepository :ReportsRepository,
               { "sWidth": "80px" },
               { "sWidth": "110px" },
               { "sWidth": "120px" },
+              { "sWidth": "100px" },
+              { "sWidth": "100px" },
               { "sWidth": "220px" }
             ]
           });moveFilterAndFullPaginateArea('#%s');""".format(gridName,gridName).replaceAll("#table_var#",jsVarNameForId(gridName))
