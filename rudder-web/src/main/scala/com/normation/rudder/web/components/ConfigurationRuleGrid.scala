@@ -63,6 +63,9 @@ object ConfigurationRuleGrid {
   def staticInit =     
     <head>
       <script type="text/javascript" language="javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
+      <style type="text/css">
+        #actions_zone , .dataTables_length , .dataTables_filter {{ display: inline-block; }}
+      </style>
     </head>
 }
 
@@ -142,9 +145,9 @@ class ConfigurationRuleGrid(
       #table_var# = $('#%1$s').dataTable({
         "asStripClasses": [ 'color1', 'color2' ],
         "bAutoWidth": false,
-        "bFilter" : false,
+        "bFilter" : true,
         "bPaginate" : true,
-        "bLengthChange": false,
+        "bLengthChange": true,
         "sPaginationType": "full_numbers",
         "bJQueryUI": false,
         "oLanguage": {
@@ -160,7 +163,10 @@ class ConfigurationRuleGrid(
           { "sWidth": "100px"  },
           { "sWidth": "100px" } %2$s
         ]
-      });moveFilterAndFullPaginateArea('#%1$s'); createTooltip();""".format(
+      });moveFilterAndFullPaginateArea('#%1$s'); 
+      $("#%1$s_filter").insertAfter('#actions_zone');
+      $("#%1$s_length").insertAfter('#actions_zone');
+      createTooltip();""".format(
           htmlId_rulesGridId,
           { if(showCheckboxColumn) """, { "sWidth": "30px" }""" else "" }
       ).replaceAll("#table_var#",jsVarNameForId(htmlId_rulesGridId))
