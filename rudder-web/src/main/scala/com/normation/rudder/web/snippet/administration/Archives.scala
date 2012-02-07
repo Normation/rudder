@@ -237,7 +237,7 @@ class Archives extends DispatchSnippet with Loggable {
               case ( (d1,_), (d2,_) ) => d1.isAfter(d2) 
             }.map { 
               case (date,tag) => 
-                val display = "%s at %s".format(date.toString("YYYY-MM-DD"), date.toString("HH:mm:ss"))
+                val display = "%s at %s".format(date.toString("YYYY-MM-dd"), date.toString("HH:mm:ss"))
                 (tag, display)
             }
             
