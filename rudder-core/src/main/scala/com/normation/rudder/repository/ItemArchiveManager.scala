@@ -90,12 +90,23 @@ trait ItemArchiveManager {
    */
   def importAll(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit]
 
-  
   def importConfigurationRules(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit]
   
   def importPolicyLibrary(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit]
   
   def importGroupLibrary(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit]
+  
+
+  /**
+   * Import the item archive from HEAD (corresponding to last commit)
+   */
+  def importHeadAll(includeSystem:Boolean = false) : Box[Unit]
+  
+  def importHeadConfigurationRules(includeSystem:Boolean = false) : Box[Unit]
+  
+  def importHeadPolicyLibrary(includeSystem:Boolean = false) : Box[Unit]
+  
+  def importHeadGroupLibrary(includeSystem:Boolean = false) : Box[Unit]
   
   
   /**
@@ -109,7 +120,7 @@ trait ItemArchiveManager {
   def getPolicyLibraryTags : Box[Map[DateTime,RevTag]]
   
   def getConfigurationRulesTags : Box[Map[DateTime,RevTag]]
-  
+    
 }
 
 

@@ -178,7 +178,7 @@ class ItemArchiveManagerImpl(
           logger.error(e)
         case _ => //ok
       }
-      parsed
+
     }
   }
   
@@ -201,6 +201,56 @@ class ItemArchiveManagerImpl(
         imported
       }
   }
+
+  def importHeadAll(includeSystem:Boolean = false) : Box[Unit] = {
+    logger.info("Importing full archive from HEAD")
+    for {
+      configurationRules <- importHeadConfigurationRules(includeSystem)
+      userLib            <- importHeadPolicyLibrary(includeSystem)
+      groupLIb           <- importHeadGroupLibrary(includeSystem)
+    } yield {
+      configurationRules
+    }
+  }
+  
+  def importHeadConfigurationRules(includeSystem:Boolean = false) : Box[Unit] = {
+    logger.info("Importing configuration rules archive from HEAD")
+    for {
+      parsed   <- parseConfigurationRules.getLastArchive
+      imported <- configurationRuleRepository.swapConfigurationRules(parsed)
+    } yield {
+      //try to clean
+      configurationRuleRepository.deleteSavedCr(imported) match {
+        case eb:EmptyBox =>
+          val e = eb ?~! ("Error when trying to delete saved archive of old cr: " + imported)
+          logger.error(e)
+        case _ => //ok
+      }
+
+    }
+  }
+  
+  def importHeadPolicyLibrary(includeSystem:Boolean = false) : Box[Unit] = {
+    logger.info("Importing policy library archive from HEAD")
+    for {
+      parsed   <- parsePolicyLibrary.getLastArchive
+      imported <- importPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
+    } yield {
+      imported
+    }
+  }
+  
+  def importHeadGroupLibrary(includeSystem:Boolean = false) : Box[Unit] = {
+    logger.info("Importing groups archive from HEAD")
+    for {
+      parsed   <- parseGroupLibrary.getLastArchive
+      imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
+    } yield {
+      imported
+    }
+  }
+  
+    
   
   def getFullArchiveTags : Box[Map[DateTime,RevTag]] = this.getTags()
   

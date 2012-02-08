@@ -55,6 +55,7 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.services.user.PersonIdentService
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.rudder.web.components.DateFormaterService
+import net.liftweb.http.SHtml.PairStringPromoter
 
 class Archives extends DispatchSnippet with Loggable {
 
@@ -73,8 +74,6 @@ class Archives extends DispatchSnippet with Loggable {
    * Advertise on success and error
    */
   private[this] def allForm = {
-    var selectedTag : RevTag = null
-    
     actionFormBuilder(
         formName                  = "allForm"
       , archiveButtonId           = "exportAllButton"
@@ -84,19 +83,16 @@ class Archives extends DispatchSnippet with Loggable {
       , archiveSuccessDebugMessage= s => "Exporting groups, policy library and configuration rules on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importAllSelect"
       , archiveListFunction       = itemArchiver.getFullArchiveTags _
-      , setRevTag                 = { tag => selectedTag = tag }
-      , getRevTag                 = () => selectedTag
       , restoreButtonId           = "importAllButton"
       , restoreButtonName         = "Restore everything"
       , restoreFunction           = itemArchiver.importAll
+      , restoreHeadFunction       = itemArchiver.importHeadAll
       , restoreErrorMessage       = "Error when importing groups, policy library and configuration rules."
       , restoreSuccessDebugMessage= "Importing groups, policy library and configuration rules on user request"
     )
   }
   
   private[this] def configurationRulesForm = {
-    var selectedTag : RevTag = null
-     
     actionFormBuilder(
         formName                  = "configurationRulesForm"
       , archiveButtonId           = "exportConfigurationRulesButton"
@@ -106,19 +102,16 @@ class Archives extends DispatchSnippet with Loggable {
       , archiveSuccessDebugMessage= s => "Exporting configuration rules on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importConfigurationRulesSelect"
       , archiveListFunction       = itemArchiver.getConfigurationRulesTags _
-      , setRevTag                 = { tag => selectedTag = tag }
-      , getRevTag                 = () => selectedTag
       , restoreButtonId           = "importConfigurationRulesButton"
       , restoreButtonName         = "Restore configuration rules"
       , restoreFunction           = itemArchiver.importConfigurationRules
+      , restoreHeadFunction       = itemArchiver.importHeadConfigurationRules
       , restoreErrorMessage       = "Error when imporing configuration rules."
       , restoreSuccessDebugMessage= "Importing configuration rules on user request"
     )
   }  
 
   private[this] def policyLibraryForm = {
-    var selectedTag : RevTag = null
-
     actionFormBuilder(
         formName                  = "policyLibraryForm"
       , archiveButtonId           = "exportPolicyLibraryButton"
@@ -128,19 +121,16 @@ class Archives extends DispatchSnippet with Loggable {
       , archiveSuccessDebugMessage= s => "Exporting policy library on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importPolicyLibrarySelect"
       , archiveListFunction       = itemArchiver.getPolicyLibraryTags _
-      , setRevTag                 = { tag => selectedTag = tag }
-      , getRevTag                 = () => selectedTag
       , restoreButtonId           = "importPolicyLibraryButton"
       , restoreButtonName         = "Restore policy library"
       , restoreFunction           = itemArchiver.importPolicyLibrary
+      , restoreHeadFunction       = itemArchiver.importHeadPolicyLibrary
       , restoreErrorMessage       = "Error when importing policy library."
       , restoreSuccessDebugMessage= "Importing policy library on user request"
     )
   }
   
   private[this] def groupLibraryForm =  {
-    var selectedTag : RevTag = null
-
     actionFormBuilder(
         formName                  = "groupLibraryForm"
       , archiveButtonId           = "exportGroupLibraryButton"
@@ -150,11 +140,10 @@ class Archives extends DispatchSnippet with Loggable {
       , archiveSuccessDebugMessage= s => "Exporting groups on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importGroupLibrarySelect"
       , archiveListFunction       = itemArchiver.getGroupLibraryTags _
-      , setRevTag                 = { tag => selectedTag = tag }
-      , getRevTag                 = () => selectedTag
       , restoreButtonId           = "importGroupLibraryButton"
       , restoreButtonName         = "Restore groups"
       , restoreFunction           = itemArchiver.importGroupLibrary
+      , restoreHeadFunction       = itemArchiver.importHeadGroupLibrary
       , restoreErrorMessage       = "Error when importing groups."
       , restoreSuccessDebugMessage= "Importing groups on user request"
     )
@@ -173,16 +162,19 @@ class Archives extends DispatchSnippet with Loggable {
     , archiveSuccessDebugMessage: String => String     //debug log - the string param is the archive id
     , archiveDateSelectId       : String
     , archiveListFunction       : () => Box[Map[DateTime,RevTag]]
-    , setRevTag                 : RevTag => Unit
-    , getRevTag                 : () => RevTag
     , restoreButtonId           : String               //input button
     , restoreButtonName         : String               //what is displayed on the button to the user
     , restoreFunction           : (RevTag,Boolean) => Box[Unit] //the actual logic to execute the action
+    , restoreHeadFunction       : (Boolean) => Box[Unit] //the actual logic to execute the restore from HEAD
     , restoreErrorMessage       : String               //error message to display to the user
     , restoreSuccessDebugMessage: String               //debug log - the string param is the archive id
   ) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+
+    type RESTORER = () => Box[Unit]
     
     val noticeId = formName + "Notice"
+    
+    var restoreFun = Option.empty[RESTORER]
     
     def error(eb:EmptyBox, msg:String) = {
       val e = eb ?~! msg
@@ -216,36 +208,52 @@ class Archives extends DispatchSnippet with Loggable {
     
     def restore(): JsCmd = {
       S.clearCurrentNotices
-      if(null == getRevTag()) error(Empty, "A valid archive must be chosen")
-      else restoreFunction(getRevTag(),false) match {
-        case eb:EmptyBox => error(eb, restoreErrorMessage)
-        case Full( _ )   => success(restoreSuccessDebugMessage)
+      restoreFun match {
+        case None    => error(Empty, "A valid archive must be chosen")
+        case Some(f) => f() match {
+          case eb:EmptyBox => error(eb, restoreErrorMessage)
+          case Full( _ )   => success(restoreSuccessDebugMessage)
+        }
       }
+    }
+    
+    //the method that displays archive label: date, last, etc
+    //we are tricky, and we store
+    def archiveIdLabel : PairStringPromoter[AnyRef] = (x:AnyRef) => x match {
+      case "HEAD"                 => "Get archive from current Git HEAD"
+      case (d:DateTime, _:RevTag) => DateFormaterService.getFormatedDate(d)
+      case _                      => "Choose an archive to restore..."
     }
     
     ("#"+archiveButtonId) #> { 
       SHtml.ajaxSubmit(archiveButtonName, archive _ , ("id" -> archiveButtonId)) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
     } &
     ("#"+archiveDateSelectId) #> {
-      archiveListFunction() match {
-        case eb:EmptyBox =>
-          logger.error(eb ?~! "Error when looking for archives")
-          Text("(no archive available)")
+      //we have at least "Choose an archive to restore..." and "get archive from current Git HEAD"
+      
+      val baseOptions: List[(RESTORER , String )] = 
+        ( () => Empty, "Choose an archive to restore...") ::
+        ( () => restoreHeadFunction(false) , "Latest Git commit") ::
+        Nil
+      
+      //and perhaps we have also some dates/rev tags
+      val tagOptions: List[(RESTORER , String )] = archiveListFunction() match {
+        case Empty =>
+          logger.debug("No archive available from tags")
+          Nil
+        case f:Failure =>
+          logger.error(f ?~! "Error when looking for archives from tags")
+          Nil
           
         case Full(m) if(m.size > 0) => 
-          
-          val options = m.toList.sortWith { 
-              case ( (d1,_), (d2,_) ) => d1.isAfter(d2) 
-            }.map { 
-              case (date,tag) => 
-                val display = DateFormaterService.getFormatedDate(date)
-                (tag, display)
-            }
-            
-          SHtml.selectObj[RevTag]((null, "Choose an archive to restore...") :: options, Box.legacyNullTest(getRevTag()), {revTag => setRevTag(revTag)}, ("id" -> archiveDateSelectId) )
-        
-        case _ => Text("(no archive available)")
+          m.toList.sortWith { 
+            case ( (d1,_), (d2,_) ) => d1.isAfter(d2) 
+          }.map { case (date,revTag) =>
+            (() => restoreFunction(revTag,false), DateFormaterService.getFormatedDate(date) )
+          }
       }
+
+      SHtml.selectObj[RESTORER](baseOptions ::: tagOptions, Box(restoreFun), { f => restoreFun = Some(f)}, ("id" -> archiveDateSelectId) )
     } &
     ("#"+restoreButtonId) #> { 
       SHtml.ajaxSubmit(restoreButtonName, restore _, ("id" -> restoreButtonId), ("disabled" -> "disabled") ) ++ 

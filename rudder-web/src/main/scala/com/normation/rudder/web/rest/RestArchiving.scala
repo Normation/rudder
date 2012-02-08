@@ -74,19 +74,34 @@ class RestArchiving(
       listTags(itemArchiveManager.getFullArchiveTags _, "full archive")
   }
   
-  // restore last archive /api/archives/restore/{groups,..}/latest
+  // restore last archive /api/archives/restore/{groups,..}/latestArchive
   serve {
-    case Get("api" :: "archives" :: "restore" :: "groups" :: "latest" :: Nil, _) => 
-      restoreLatest(itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, "groups")
+    case Get("api" :: "archives" :: "restore" :: "groups" :: "latestArchive" :: Nil, _) => 
+      restoreLatestArchive(itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, "groups")
 
-    case Get("api" :: "archives" :: "restore" :: "policyLibrary" :: "latest" :: Nil, _) =>
-      restoreLatest(itemArchiveManager.getPolicyLibraryTags _, itemArchiveManager.importPolicyLibrary, "policy library")
+    case Get("api" :: "archives" :: "restore" :: "policyLibrary" :: "latestArchive" :: Nil, _) =>
+      restoreLatestArchive(itemArchiveManager.getPolicyLibraryTags _, itemArchiveManager.importPolicyLibrary, "policy library")
 
-    case Get("api" :: "archives" :: "restore" :: "configurationRules" :: "latest" :: Nil, _) => 
-      restoreLatest(itemArchiveManager.getConfigurationRulesTags _, itemArchiveManager.importConfigurationRules, "configuration rules")
+    case Get("api" :: "archives" :: "restore" :: "configurationRules" :: "latestArchive" :: Nil, _) => 
+      restoreLatestArchive(itemArchiveManager.getConfigurationRulesTags _, itemArchiveManager.importConfigurationRules, "configuration rules")
 
-    case Get("api" :: "archives" :: "restore" :: "full" :: "latest" :: Nil, _) => 
-      restoreLatest(itemArchiveManager.getFullArchiveTags _, itemArchiveManager.importAll, "full archive")
+    case Get("api" :: "archives" :: "restore" :: "full" :: "latestArchive" :: Nil, _) => 
+      restoreLatestArchive(itemArchiveManager.getFullArchiveTags _, itemArchiveManager.importAll, "full archive")
+  }
+
+  // restore from Git HEAD /api/archives/restore/{groups,..}/latestCommit
+  serve {
+    case Get("api" :: "archives" :: "restore" :: "groups" :: "latestCommit" :: Nil, _) => 
+      restoreLatestCommit(itemArchiveManager.importHeadGroupLibrary, "groups")
+
+    case Get("api" :: "archives" :: "restore" :: "policyLibrary" :: "latestCommit" :: Nil, _) =>
+      restoreLatestCommit(itemArchiveManager.importHeadPolicyLibrary, "policy library")
+
+    case Get("api" :: "archives" :: "restore" :: "configurationRules" :: "latestCommit" :: Nil, _) => 
+      restoreLatestCommit(itemArchiveManager.importHeadConfigurationRules, "configuration rules")
+
+    case Get("api" :: "archives" :: "restore" :: "full" :: "latestCommit" :: Nil, _) => 
+      restoreLatestCommit(itemArchiveManager.importHeadAll, "full archive")
   }
   
   // archive /api/archives/archive/{groups, ...}
@@ -161,11 +176,25 @@ class RestArchiving(
   }
 
   
-  private[this] def restoreLatest(list:() => Box[Map[DateTime,RevTag]], restore:(RevTag,Boolean) => Box[Unit], archiveType:String) = {
+  private[this] def restoreLatestArchive(list:() => Box[Map[DateTime,RevTag]], restore:(RevTag,Boolean) => Box[Unit], archiveType:String) = {
     (for {
       archives   <- list()
       (date,tag) <- Box(archives.toList.sortWith { case ( (d1,_), (d2,_) ) => d1.isAfter(d2) }.headOption) ?~! "No archive is available"
       restored   <- restore(tag,false)
+    } yield {
+      restored
+    }) match {
+      case eb:EmptyBox =>
+        val e = eb ?~! "Error when trying to restore the latest archive for %s.".format(archiveType)
+        PlainTextResponse(e.messageChain, 503)
+      case Full(x) =>
+        PlainTextResponse("OK")
+    }
+  }
+  
+  private[this] def restoreLatestCommit(restore: Boolean => Box[Unit], archiveType:String) = {
+    (for {
+      restored   <- restore(false)
     } yield {
       restored
     }) match {
