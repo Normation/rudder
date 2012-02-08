@@ -65,6 +65,12 @@ limitations under the License.
       <snapshots><enabled>true</enabled></snapshots>
     </repository>
     <repository>
+      <id>rudder-project</id>
+      <url>http://www.rudder-project.org/maven-repo/</url>
+      <layout>default</layout>
+      <snapshots><enabled>false</enabled></snapshots>
+    </repository>
+    <repository>
       <id>scala-tools.org</id>
       <name>Scala-tools Maven2 Repository</name>
       <url>http://scala-tools.org/repo-releases</url>
@@ -134,6 +140,11 @@ limitations under the License.
       </extension>
     </extensions>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-war-plugin</artifactId>
+          <version>2.1.1</version>
+       </plugin>
        <plugin>
         <groupId>org.scala-tools</groupId>
         <artifactId>maven-scala-plugin</artifactId>
