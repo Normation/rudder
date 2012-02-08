@@ -54,6 +54,7 @@ import scala.xml.Text
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.services.user.PersonIdentService
 import org.eclipse.jgit.lib.PersonIdent
+import com.normation.rudder.web.components.DateFormaterService
 
 class Archives extends DispatchSnippet with Loggable {
 
@@ -237,7 +238,7 @@ class Archives extends DispatchSnippet with Loggable {
               case ( (d1,_), (d2,_) ) => d1.isAfter(d2) 
             }.map { 
               case (date,tag) => 
-                val display = "%s at %s".format(date.toString("YYYY-MM-dd"), date.toString("HH:mm:ss"))
+                val display = DateFormaterService.getFormatedDate(date)
                 (tag, display)
             }
             
