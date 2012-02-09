@@ -46,6 +46,7 @@ import com.normation.cfclerk.services.PolicyPackageService
 import com.normation.cfclerk.domain.PolicyPackageId
 import com.normation.rudder.repository.ConfigurationRuleRepository
 import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.repository.jdbc.SerializedGroups
 
 /**
  * At each deployment, we compare the content of the groups/PI/CR in the ldap with the content
@@ -126,7 +127,7 @@ class HistorizationServiceImpl(
       // detect changes 
       val changed = nodeGroups.filter(x => registered.get(x.id.value) match {
         case None => true
-        case Some(entry) => (entry.groupName != x.name || entry.groupDescription != x.description || entry.nodeCount != x.serverList.size)
+        case Some(entry) => (entry.groupName != x.name || entry.groupDescription != x.description || entry.nodeCount != x.serverList.size || SerializedGroups.fromSQLtoDynamic(entry.groupStatus) != Some(x.isDynamic))
       })
       
       // a group closable is a group that is current in the database, but don't exist in the
@@ -181,6 +182,7 @@ class HistorizationServiceImpl(
                      (entry.policyInstanceName != pi.name || 
                   entry.policyInstanceDescription != pi.shortDescription || 
                   entry.priority != pi.priority ||
+                  entry.policyTemplateHumanName != policyPackage.name ||
                   entry.policyPackageName != userPT.referencePolicyTemplateName.value ||
                   entry.policyPackageDescription != policyPackage.description ||
                   entry.policyPackageVersion != pi.policyTemplateVersion.toString )
