@@ -30,7 +30,18 @@ final case class UpdatePolicyServer(
 object UpdatePolicyServer extends EventLogFilter {
   override val eventType = UpdatePolicyServerEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : UpdatePolicyServer = UpdatePolicyServer(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : UpdatePolicyServer = UpdatePolicyServer(x._2)
+  
+  def buildDetails(oldNetworks: Seq[String], newNetworks: Seq[String]) : NodeSeq = {
+    EventLog.withContent {
+      <oldAuthorizedNetworks>{
+        oldNetworks.map { net => <net>{net}</net>}
+      }</oldAuthorizedNetworks>
+      <newAuthorizedNetworks>{
+        newNetworks.map { net => <net>{net}</net>}
+      }</newAuthorizedNetworks>
+    }
+  }
 }
 
 object PolicyServerEventLogsFilter {

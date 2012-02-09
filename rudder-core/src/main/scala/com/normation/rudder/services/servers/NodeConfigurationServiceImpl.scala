@@ -82,7 +82,6 @@ import com.normation.exceptions.TechnicalException
 class NodeConfigurationServiceImpl(policyTranslator : TemplateWriter, 
     repository : NodeConfigurationRepository,
     policyService : PolicyPackageService,
-    eventLogService : EventLogService,
     lockFolder : String) extends NodeConfigurationService {
 
   val LOGGER = LoggerFactory.getLogger(classOf[NodeConfigurationServiceImpl])

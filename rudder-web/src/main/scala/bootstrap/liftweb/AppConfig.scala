@@ -433,7 +433,6 @@ class AppConfig extends Loggable {
     policyTranslator,
     serverRepository,
     policyPackageService,
-    logService,
     lockFolder)
 
   @Bean

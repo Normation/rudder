@@ -50,12 +50,17 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.services.servers.NodeConfigurationService
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
+import com.normation.eventlog.EventLogService
+import com.normation.rudder.domain.log.ClearCacheEventLog
+import com.normation.eventlog.EventLogDetails
+import com.normation.eventlog.EventLog
 
 
 class ClearCache extends DispatchSnippet with Loggable {
 
   private[this] val nodeConfigurationService = inject[NodeConfigurationService]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
+  private[this] val eventLogService = inject[EventLogService]
   
   def dispatch = {
     case "render" => clearCache
@@ -76,6 +81,13 @@ class ClearCache extends DispatchSnippet with Loggable {
           val e = empty ?~! "Error when clearing caches"
           S.error(e.messageChain)
         case Full(set) => 
+          eventLogService.saveEventLog(ClearCacheEventLog(EventLogDetails(principal = CurrentUser.getActor, details = EventLog.emptyDetails))) match {
+            case eb:EmptyBox => 
+              val e = eb ?~! "Error when logging the cache event"
+              logger.error(e.messageChain)
+              logger.debug(e.exceptionChain)
+            case _ => //ok
+          }
           logger.debug("Delete node configurations on user clear cache demand: " + set.mkString(", ") )
           asyncDeploymentAgent ! AutomaticStartDeployment(CurrentUser.getActor)
           S.notice("Caches were correctly cleaned")
