@@ -58,6 +58,8 @@ import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisation
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.log.NodeLogDetails
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.log.AuthorizedNetworkModification
+import com.normation.cfclerk.domain.PolicyPackageId
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -96,13 +98,21 @@ trait EventLogDetailsService {
   
   def getNodeGroupModifyDetails(xml:NodeSeq) : Box[ModifyNodeGroupDiff]
   
+  ///// node /////
+  
   def getAcceptNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]
   
   def getRefuseNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]
+    
+  def getDeleteNodeLogDetails(xml:NodeSeq) : Box[NodeLogDetails]
+  
+  ///// other /////
   
   def getDeploymentStatusDetails(xml:NodeSeq) : Box[CurrentDeploymentStatus]
-  
-  def getDeleteNodeLogDetails(xml:NodeSeq) : Box[NodeLogDetails]
+
+  def getUpdatePolicyServerDetails(xml:NodeSeq) : Box[AuthorizedNetworkModification]
+
+  def getPolicyTemplateLibraryReloadDetails(xml:NodeSeq) : Box[Seq[PolicyPackageId]]
 }
 
 
@@ -538,4 +548,59 @@ class EventLogDetailsServiceImpl(
     }
   }
   
+  /**
+   *  <oldAuthorizedNetworks>
+        <net>XXXXX</net>
+        <net>SSSSS</net>
+      </oldAuthorizedNetworks>
+      <newAuthorizedNetworks>
+        <net>XXXXX</net>
+        <net>SSSSS</net>
+        <net>PPPPP</net>
+      </newAuthorizedNetworks>
+   */
+  def getUpdatePolicyServerDetails(xml:NodeSeq) : Box[AuthorizedNetworkModification] = {
+    for {
+      entry   <- getEntryContent(xml)
+      oldsXml  <- (entry \ "oldAuthorizedNetworks").headOption ?~! ("Missing attribute 'oldAuthorizedNetworks' in entry: " + entry)
+      newsXml  <- (entry \ "newAuthorizedNetworks").headOption ?~! ("Missing attribute 'newAuthorizedNetworks' in entry: " + entry)
+    } yield {
+      AuthorizedNetworkModification(
+          oldNetworks = (oldsXml \ "net").map( _.text )
+        , newNetworks = (newsXml \ "net").map( _.text )
+      )
+    }
+  }
+  
+  
+  /**
+   * <policyTemplateReloaded>
+       <modifiedPolicyTemplate>
+         <name>{name.value}</name>
+         <version>{version.toString}</version>
+       </modifiedPolicyTemplate>
+       <modifiedPolicyTemplate>
+         <name>{name.value}</name>
+         <version>{version.toString}</version>
+       </modifiedPolicyTemplate>
+       ....
+     </policyTemplateReloaded>
+   */
+  def getPolicyTemplateLibraryReloadDetails(xml:NodeSeq) : Box[Seq[PolicyPackageId]] = {
+    for {
+      entry   <- getEntryContent(xml)
+      details <- (entry \ "policyTemplateReloaded").headOption ?~! ("Entry type is not a policyTemplateReloaded: " + entry)
+      ptIds   <- sequence((details \ "modifiedPolicyTemplate")) { pt =>
+                   for {
+                     name    <- (pt \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type policyTemplateReloaded : " + entry)
+                     version <- (pt \ "version").headOption.map( _.text ) ?~! ("Missing attribute 'version' in entry type policyTemplateReloaded : " + entry)
+                     v       <- tryo { PolicyVersion(version) }
+                   } yield {
+                     PolicyPackageId(PolicyPackageName(name),v)
+                   }
+                 }
+    } yield {
+      ptIds
+    }
+  }
 }

@@ -53,14 +53,17 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.SHtml
 import com.normation.rudder.repository.EventLogRepository
 import net.liftweb.http.S
+import com.normation.rudder.batch.SuccessStatus
+import com.normation.rudder.batch.ErrorStatus
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment), 
  * or in the administration EventLogsViewer
  */
 class EventListDisplayer(
-      logDetailsService :EventLogDetailsService
-    , repos :EventLogRepository) extends Loggable {
+      logDetailsService: EventLogDetailsService
+    , repos            : EventLogRepository
+) extends Loggable {
 
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
  // private[this] val gridName = "eventLogsGrid"
@@ -262,6 +265,11 @@ class EventListDisplayer(
       case x:ModifyNodeGroup => groupDesc(x,Text(" modified"))
       case x:DeleteNodeGroup => groupDesc(x,Text(" deleted"))
       case x:AddNodeGroup    => groupDesc(x,Text(" added"))
+      case x:ClearCacheEventLog => Text("Clear Policy Server caches")
+      case x:UpdatePolicyServer => Text("Change Policy Server authorized network")
+      case x:ReloadPolicyTemplateLibrary => Text("Policy template library reloaded")
+      case x:SuccessfulDeployment => Text("Successful deployment")
+      case x:FailedDeployment => Text("Failed deployment")
       case _ => Text("Unknow event type")
       
     }
@@ -466,18 +474,67 @@ class EventListDisplayer(
       ////////// deployment //////////
         
       case x:SuccessfulDeployment => 
-       "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
-          case Full(details) =>
-            <div class="evloglmargin"><p>Success deployment:</p>{
-            }</div>
+        "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
+          case Full(SuccessStatus(id,started,ended,_)) =>
+            <div class="evloglmargin">
+              <p>Successful deployment (id {id})</p>
+              <table>
+                <tr><td>Start time:</td><td>{DateFormaterService.getFormatedDate(started)}</td></tr>
+                <tr><td>End time:</td><td>{DateFormaterService.getFormatedDate(ended)}</td></tr>
+              </table>
+            </div>
+          case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
           case e:EmptyBox => errorMessage(e)
         })
         
       case x:FailedDeployment => 
-       "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
-          case Full(details) =>
-            <div class="evloglmargin"><p>Failed deployment:</p>{
+        "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
+          case Full(ErrorStatus(id,started,ended,failure)) =>
+            <div class="evloglmargin">
+              <p>Failed deployment (id {id})</p>
+              <table>
+                <tr><td>Start time:</td><td>{DateFormaterService.getFormatedDate(started)}</td></tr>
+                <tr><td>End time:</td><td>{DateFormaterService.getFormatedDate(ended)}</td></tr>
+                <tr><td>Error stack trace:</td><td>
+                  <ul>{failure.messageChain.map { msg => <li>cause: {msg}</li>}}</ul>
+                </td></tr>
+              </table>
+            </div>
+          case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
+          case e:EmptyBox => errorMessage(e)
+        })
+        
+      ////////// change authorized networks //////////
+      
+      case x:UpdatePolicyServer =>
+        "*" #> (logDetailsService.getUpdatePolicyServerDetails(x.details) match {
+          case Full(details) => 
+            
+            def networksToXML(nets:Seq[String]) = {
+              <ul>{ nets.map { n => <li>{n}</li> } }</ul>
+            }
+            
+            <div class="evloglmargin">{
+              (
+                  ".diffOldValue" #> networksToXML(details.oldNetworks) &
+                  ".diffNewValue" #> networksToXML(details.newNetworks)
+              )(authorizedNetworksXML)
             }</div>
+          case e:EmptyBox => errorMessage(e)
+        })
+      
+      // policy template library reloaded
+      
+      case x:ReloadPolicyTemplateLibrary =>
+        "*" #> (logDetailsService.getPolicyTemplateLibraryReloadDetails(x.details) match {
+          case Full(details) => 
+              <div>
+                The policy template library was reloaded and following policy templates were updated:
+                <table>{ details.map {pt => 
+                  <tr><td>{ "%s (version %s)".format(pt.name.value, pt.version.toString)}</td></tr>
+                } }</table>
+              </div>
+            
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -485,7 +542,6 @@ class EventListDisplayer(
       case _ => "*" #> ""
     
     })(event.details)
-  
   }
   
   
@@ -683,4 +739,21 @@ class EventListDisplayer(
       {liModDetailsXML("isActivated", "Activation status")}
       {liModDetailsXML("isSystem", "System")}
     </xml:group>
+      
+      
+  private[this] def authorizedNetworksXML() = (
+    <div>
+      Networks authorized on policy server were updated:
+      <table>
+        <thead><tr><th>from:</th><th>to:</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="diffOldValue">old value</span></td>
+            <td><span class="diffNewValue">new value</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
+
 }

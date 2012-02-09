@@ -27,21 +27,27 @@ final case class UpdatePolicyServer(
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
+final case class AuthorizedNetworkModification(
+   oldNetworks: Seq[String]
+ , newNetworks: Seq[String] 
+)
+
 object UpdatePolicyServer extends EventLogFilter {
   override val eventType = UpdatePolicyServerEventType
  
   override def apply(x : (EventLogType, EventLogDetails)) : UpdatePolicyServer = UpdatePolicyServer(x._2)
   
-  def buildDetails(oldNetworks: Seq[String], newNetworks: Seq[String]) : NodeSeq = {
+  def buildDetails(modification: AuthorizedNetworkModification) : NodeSeq = {
     EventLog.withContent {
       <oldAuthorizedNetworks>{
-        oldNetworks.map { net => <net>{net}</net>}
+        modification.oldNetworks.map { net => <net>{net}</net>}
       }</oldAuthorizedNetworks>
       <newAuthorizedNetworks>{
-        newNetworks.map { net => <net>{net}</net>}
+        modification.newNetworks.map { net => <net>{net}</net>}
       }</newAuthorizedNetworks>
     }
   }
+  
 }
 
 object PolicyServerEventLogsFilter {

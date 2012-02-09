@@ -88,6 +88,7 @@ import com.normation.rudder.services.marshalling._
 import com.normation.utils.ScalaLock
 import com.normation.rudder.web.rest._
 import com.normation.rudder.services.user.TrivialPersonIdentService
+import com.normation.rudder.services.log.EventLogFactoryImpl
 
 /**
  * Spring configuration for services
@@ -423,10 +424,14 @@ class AppConfig extends Loggable {
 
   
   @Bean
-  def policyPackageService = new PolicyPackageServiceImpl(
-      policyPackagesReader
-    , Seq(policyTemplateAcceptationDatetimeUpdater)
-  )
+  def policyPackageService = {
+    val service = new PolicyPackageServiceImpl(
+        policyPackagesReader
+      , Seq(policyTemplateAcceptationDatetimeUpdater)
+    )
+    service.registerCallback(new LogEventOnPolicyTemplateReloadCallback("LogEventOnPTLibUpdate", logService))
+    service
+  }
 
   @Bean
   def serverService: NodeConfigurationService = new NodeConfigurationServiceImpl(

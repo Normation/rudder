@@ -54,6 +54,7 @@ import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.domain.log.UpdatePolicyServer
 import com.normation.eventlog.EventLogDetails
 import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.domain.log.AuthorizedNetworkModification
 
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       
@@ -130,9 +131,10 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       //if no errors, actually save
       if(S.errors.isEmpty) {
         (for {
-          currentNetworks <- psService.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID)
-          changeNetwork   <- psService.setAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID, goodNets, CurrentUser.getActor) 
-          eventSaved      <- eventLogService.saveEventLog(UpdatePolicyServer(EventLogDetails(principal = CurrentUser.getActor, details = UpdatePolicyServer.buildDetails(currentNetworks, goodNets))))
+          currentNetworks <- psService.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID) ?~! "Error when getting the list of current authorized networks"
+          changeNetwork   <- psService.setAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID, goodNets, CurrentUser.getActor) ?~! "Error when saving new allowed networks"
+          modifications   =  UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(currentNetworks, goodNets)) 
+          eventSaved      <- eventLogService.saveEventLog(UpdatePolicyServer(EventLogDetails(principal = CurrentUser.getActor, details = modifications))) ?~! "Unable to save the user event log for modification on authorized networks"
         } yield {
         }) match {
           case Full(_) => 

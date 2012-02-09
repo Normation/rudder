@@ -32,34 +32,46 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.snippet.administration
+package com.normation.rudder.domain.log
 
-import com.normation.eventlog.EventLog
-import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.web.services.EventListDisplayer
 
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
+import com.normation.eventlog._
+import scala.xml._
+import com.normation.rudder.domain.policies._
+import org.joda.time.DateTime
 import net.liftweb.common._
-import net.liftweb.http.js.JsCmds.Script
-import net.liftweb.http.DispatchSnippet
+import com.normation.cfclerk.domain._
+import com.normation.utils.HashcodeCaching
+import com.normation.eventlog.EventLogDetails
 
-class EventLogsViewer extends DispatchSnippet with Loggable {
-  private[this] val repos = inject[EventLogRepository]
-  private[this] val eventList = inject[EventListDisplayer]
-  
-  private[this] val gridName = "eventLogsGrid"
-  
-  def getLastEvents : Box[Seq[EventLog]] = {
-    repos.getEventLogByCriteria(None, Some(1000), Some("id DESC")) 
+sealed trait PolicyTemplateEventLog extends EventLog { override final val eventLogCategory = PolicyTemplateLogCategory }
+
+final case class ReloadPolicyTemplateLibrary(
+    override val eventDetails : EventLogDetails
+) extends PolicyTemplateEventLog with HashcodeCaching {
+  override val cause = None
+  override val eventType = ReloadPolicyTemplateLibrary.eventType
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+}
+
+object ReloadPolicyTemplateLibrary extends EventLogFilter {
+  override val eventType = ReloadPolicyTemplateLibraryType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : ReloadPolicyTemplateLibrary = ReloadPolicyTemplateLibrary(x._2) 
+
+  def buildDetails(policyPackageIds:Seq[PolicyPackageId]) : NodeSeq = EventLog.withContent { 
+    <policyTemplateReloaded>{ policyPackageIds.map { case PolicyPackageId(name, version) =>
+      <modifiedPolicyTemplate>
+        <name>{name.value}</name>
+        <version>{version.toString}</version>
+      </modifiedPolicyTemplate>
+    } }</policyTemplateReloaded>
   }
-    
-  def dispatch = { 
-    case "display" => xml => getLastEvents match {
-      case Full(seq) => eventList.display(seq,gridName) ++ Script(eventList.initJs(gridName))
-      case Empty => eventList.display(Seq(), gridName) ++ Script(eventList.initJs(gridName))
-      case f:Failure => 
-        <div class="error">Error when trying to get last event logs. Error message was: {f.msg}</div>
-    } 
-  } 
 
+}
+
+object PolicyTemplateEventLogsFilter {
+  final val eventList : List[EventLogFilter] = List(
+      ReloadPolicyTemplateLibrary 
+    )
 }

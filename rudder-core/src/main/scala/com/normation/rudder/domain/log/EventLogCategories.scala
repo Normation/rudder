@@ -110,6 +110,11 @@ final case object ActivateRedButtonEventType extends EventLogType {
 final case object ReleaseRedButtonEventType extends EventLogType {
   def serialize = "ReleaseRedButton"
 }
+
+final case object ReloadPolicyTemplateLibraryType extends EventLogType {
+  def serialize = "ReloadPolicyTemplateLibrary"
+}
+
 // configuration rule related event type
 final case object AddConfigurationRuleEventType extends EventLogType {
   def serialize = "ConfigurationRuleAdded"
@@ -184,7 +189,7 @@ object ModificationWatchList {
     , ModifyNodeGroupEventType
     , ClearCacheEventType
     , UpdatePolicyServerEventType
-    // must add delete and reload pt
+    , ReloadPolicyTemplateLibraryType
   )
   
 }
@@ -212,6 +217,7 @@ object EventTypeFactory {
     , ApplicationStartedEventType
     , ActivateRedButtonEventType
     , ReleaseRedButtonEventType
+    , ReloadPolicyTemplateLibraryType 
       
     , AddConfigurationRuleEventType
     , DeleteConfigurationRuleEventType
@@ -231,7 +237,8 @@ object EventTypeFactory {
     , ExportCrsEventType
     , ImportCrsEventType
     , ExportAllLibrariesEventType
-    , ImportAllLibrariesEventType)
+    , ImportAllLibrariesEventType
+  )
       
   def apply(s:String) : EventLogType = {
     eventTypes.find {

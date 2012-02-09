@@ -38,8 +38,11 @@ import com.normation.cfclerk.domain.PolicyPackageId
 import com.normation.cfclerk.services.ReferenceLibraryUpdateNotification
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
-import net.liftweb.common.Loggable
 import com.normation.eventlog.EventActor
+import com.normation.eventlog.EventLogService
+import com.normation.rudder.domain.log.ReloadPolicyTemplateLibrary
+import com.normation.eventlog.EventLogDetails
+import net.liftweb.common._
 
 class DeployOnPolicyTemplateCallback(
     override val name   : String
@@ -51,3 +54,23 @@ class DeployOnPolicyTemplateCallback(
     asyncDeploymentAgent ! AutomaticStartDeployment(actor)
   }
 }
+
+class LogEventOnPolicyTemplateReloadCallback(
+    override val name: String
+  , eventLogService  : EventLogService
+) extends ReferenceLibraryUpdateNotification with Loggable {
+
+  override def updatedPolicyPackage(policyPackageIds:Seq[PolicyPackageId], actor:EventActor) : Unit = {
+    eventLogService.saveEventLog(ReloadPolicyTemplateLibrary(EventLogDetails(
+        principal = actor
+      , details = ReloadPolicyTemplateLibrary.buildDetails(policyPackageIds)
+    ))) match {
+      case eb:EmptyBox => 
+        val error = eb ?~! "Error when saving log related to policy template reloading event"
+        logger.error(error)
+        logger.debug(error.exceptionChain)
+      case Full(x) => //OK
+    }
+  }
+}
+

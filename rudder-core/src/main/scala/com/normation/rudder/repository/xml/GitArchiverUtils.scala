@@ -87,10 +87,12 @@ trait GitArchiverUtils extends Loggable {
     tryo {
       gitRepo.git.add.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
-      if(status.getAdded.contains(gitPath)||status.getChanged.contains(gitPath)) {
-        gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-        newArchiveId
-      } else throw new Exception("Auto-archive git failure: not found in git added files: " + gitPath)
+      //for debugging
+      if(!status.getAdded.contains(gitPath)||status.getChanged.contains(gitPath)) {
+        logger.debug("Auto-archive git failure: not found in git added files: " + gitPath)
+      }
+      gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
+      newArchiveId
     }
   }
   
@@ -102,10 +104,11 @@ trait GitArchiverUtils extends Loggable {
     tryo {
       gitRepo.git.rm.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
-      if(status.getRemoved.contains(gitPath)) {
-        gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-        newArchiveId
-      } else throw new Exception("Auto-archive git failure: not found in git removed files: " + gitPath)
+      if(!status.getRemoved.contains(gitPath)) {
+        logger.debug("Auto-archive git failure: not found in git removed files: " + gitPath)
+      }
+      gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
+      newArchiveId
     }
   }
   
@@ -122,10 +125,11 @@ trait GitArchiverUtils extends Loggable {
       gitRepo.git.add.addFilepattern(newGitPath).call
       gitRepo.git.add.setUpdate(true).addFilepattern(newGitPath).call //if some files were removed from dest dir
       val status = gitRepo.git.status.call
-      if(status.getAdded.exists( path => path.startsWith(newGitPath) ) ) {
-        gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-        newArchiveId
-      } else throw new Exception("Auto-archive git failure when moving directory (not found in added file): " + newGitPath)
+      if(!status.getAdded.exists( path => path.startsWith(newGitPath) ) ) {
+        logger.debug("Auto-archive git failure when moving directory (not found in added file): " + newGitPath)
+      }
+      gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
+      newArchiveId
     }
   }
   
