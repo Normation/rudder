@@ -101,26 +101,3 @@ object PromisesEventLogsFilter {
     , FailedDeployment
     )
 }
-
-/**
- * List of event generating a modification of promises
- */
-object ModificationWatchList {
-  val events = Seq[EventLogType](
-      AcceptNodeEventType
-    , DeleteNodeEventType
-    , AddConfigurationRuleEventType
-    , DeleteConfigurationRuleEventType
-    , ModifyConfigurationRuleEventType
-    , AddPolicyInstanceEventType
-    , DeletePolicyInstanceEventType
-    , ModifyPolicyInstanceEventType
-    , AddNodeGroupEventType
-    , DeleteNodeGroupEventType
-    , ModifyNodeGroupEventType
-    , ClearCacheEventType
-    , UpdatePolicyServerEventType
-    // must add delete and reload pt
-  )
-  
-}
