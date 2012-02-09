@@ -49,10 +49,17 @@ import com.normation.utils.NetUtils.isValidNetwork
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.services.servers.PolicyServerManagementService
+import com.normation.eventlog.EventLogService
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.domain.log.UpdatePolicyServer
+import com.normation.eventlog.EventLogDetails
+import com.normation.rudder.batch.AutomaticStartDeployment
 
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       
   private[this] val psService = inject[PolicyServerManagementService]
+  private[this] val eventLogService = inject[EventLogService]
+  private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
   
   /*
    * We are forced to use that class to deals with multiple request
@@ -122,8 +129,15 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       
       //if no errors, actually save
       if(S.errors.isEmpty) {
-        psService.setAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID, goodNets, CurrentUser.getActor) match {
+        (for {
+          currentNetworks <- psService.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID)
+          changeNetwork   <- psService.setAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID, goodNets, CurrentUser.getActor) 
+          eventSaved      <- eventLogService.saveEventLog(UpdatePolicyServer(EventLogDetails(principal = CurrentUser.getActor, details = UpdatePolicyServer.buildDetails(currentNetworks, goodNets))))
+        } yield {
+        }) match {
           case Full(_) => 
+            asyncDeploymentAgent ! AutomaticStartDeployment(CurrentUser.getActor)
+            
             Replace("allowedNetworksForm", outerXml.applyAgain) &
             successPopup 
           case e:EmptyBox => SetHtml("allowedNetworksForm",errorMessage(e)(outerXml.applyAgain))
