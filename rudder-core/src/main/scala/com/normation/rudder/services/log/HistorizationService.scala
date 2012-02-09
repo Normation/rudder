@@ -181,6 +181,7 @@ class HistorizationServiceImpl(
                      (entry.policyInstanceName != pi.name || 
                   entry.policyInstanceDescription != pi.shortDescription || 
                   entry.priority != pi.priority ||
+                  entry.policyTemplateHumanName != policyPackage.name ||
                   entry.policyPackageName != userPT.referencePolicyTemplateName.value ||
                   entry.policyPackageDescription != policyPackage.description ||
                   entry.policyPackageVersion != pi.policyTemplateVersion.toString )

@@ -353,6 +353,7 @@ case class SerializedPIs(
     @Column("policyinstancedescription") policyInstanceDescription: String,
     @Column("priority") priority: Int,
     @Column("policypackagename") policyPackageName: String,
+    @Column("policytemplatehumanname") policyTemplateHumanName: String,
     @Column("policypackagedescription") policyPackageDescription: String,
     @Column("policypackageversion") policyPackageVersion: String,
     @Column("starttime") startTime: Timestamp,
@@ -371,6 +372,7 @@ object SerializedPIs {
             policyInstance.shortDescription,
             policyInstance.priority,
             userPT.referencePolicyTemplateName.value,
+            policyPackage.name,
             policyPackage.description,
             policyInstance.policyTemplateVersion.toString,
             new Timestamp(DateTime.now().getMillis), null )
