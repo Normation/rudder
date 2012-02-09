@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2012 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -33,15 +33,7 @@
 */
 
 -- Migration script of the databases from Rudder 2.3 to 2.4
--- Add the two necessary columns PolicyTemplateHumanName in policyinstances to store the
--- human readable name
--- and GroupStatus in groups to store the status of the groups (dynamic/static/unknown)
-
-ALTER TABlE PolicyInstances
-ADD COLUMN PolicyTemplateHumanName text;
+-- Add column GroupStatus in groups to store the status of the groups (dynamic/static/unknown)
 
 ALTER TABLE Groups
 ADD COLUMN GroupStatus char(1) default '0'; -- '0' is for unknown
-
-
-
