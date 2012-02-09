@@ -45,7 +45,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
 
-sealed trait NodeGroupEventLog extends EventLog
+sealed trait NodeGroupEventLog extends EventLog { override final val eventLogCategory = NodeGroupLogCategory }
 
 
 final case class AddNodeGroup(
@@ -53,9 +53,7 @@ final case class AddNodeGroup(
 ) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = AddNodeGroup.eventType
-  override val eventLogCategory = NodeGroupLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object AddNodeGroup extends EventLogFilter {
@@ -70,9 +68,7 @@ final case class DeleteNodeGroup(
 ) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = DeleteNodeGroup.eventType
-  override val eventLogCategory = NodeGroupLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object DeleteNodeGroup extends EventLogFilter {
@@ -86,9 +82,7 @@ final case class ModifyNodeGroup(
 ) extends NodeGroupEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = ModifyNodeGroup.eventType
-  override val eventLogCategory = NodeGroupLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object ModifyNodeGroup extends EventLogFilter {
@@ -96,7 +90,6 @@ object ModifyNodeGroup extends EventLogFilter {
  
   override def apply(x : (EventLogType, EventLogDetails)) : ModifyNodeGroup = ModifyNodeGroup(x._2) 
 }
-
 
 object NodeGroupEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(

@@ -39,13 +39,13 @@ import scala.xml.NodeSeq
 import org.joda.time.DateTime
 import com.normation.utils.HashcodeCaching
 
+sealed trait PromiseEventLog extends EventLog { override final val eventLogCategory = DeploymentLogCategory }
+
 final case class AutomaticStartDeployement(
     override val eventDetails : EventLogDetails
-) extends EventLog with HashcodeCaching {
+) extends PromiseEventLog with HashcodeCaching {
   override val eventType = AutomaticStartDeployement.eventType
-  override val eventLogCategory = DeploymentLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object AutomaticStartDeployement extends EventLogFilter {
@@ -54,14 +54,11 @@ object AutomaticStartDeployement extends EventLogFilter {
   override def apply(x : (EventLogType, EventLogDetails)) : AutomaticStartDeployement = AutomaticStartDeployement(x._2) 
 }
 
-
 final case class ManualStartDeployement(
     override val eventDetails : EventLogDetails
-) extends EventLog with HashcodeCaching {
+) extends PromiseEventLog with HashcodeCaching {
   override val eventType = ManualStartDeployement.eventType
-  override val eventLogCategory = DeploymentLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object ManualStartDeployement extends EventLogFilter {
@@ -72,11 +69,9 @@ object ManualStartDeployement extends EventLogFilter {
 
 final case class SuccessfulDeployment (
     override val eventDetails : EventLogDetails
-) extends EventLog with HashcodeCaching {
+) extends PromiseEventLog with HashcodeCaching {
   override val eventType = SuccessfulDeployment.eventType
-  override val eventLogCategory = DeploymentLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object SuccessfulDeployment extends EventLogFilter {
@@ -87,11 +82,9 @@ object SuccessfulDeployment extends EventLogFilter {
 
 final case class FailedDeployment (
     override val eventDetails : EventLogDetails
-) extends EventLog with HashcodeCaching {
+) extends PromiseEventLog with HashcodeCaching {
   override val eventType = FailedDeployment.eventType
-  override val eventLogCategory = DeploymentLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object FailedDeployment extends EventLogFilter {
@@ -99,7 +92,6 @@ object FailedDeployment extends EventLogFilter {
  
   override def apply(x : (EventLogType, EventLogDetails)) : FailedDeployment = FailedDeployment(x._2) 
 }
-
 
 object PromisesEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
@@ -128,7 +120,7 @@ object ModificationWatchList {
     , ModifyNodeGroupEventType
     , ClearCacheEventType
     , UpdatePolicyServerEventType
-    // must add delete and reloadpt
+    // must add delete and reload pt
   )
   
 }

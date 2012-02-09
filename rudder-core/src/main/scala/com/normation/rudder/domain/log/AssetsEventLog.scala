@@ -57,7 +57,9 @@ final case class InventoryLogDetails(
   , actorIp         : String
 ) extends HashcodeCaching 
 
-sealed trait InventoryEventLog extends EventLog 
+sealed trait AssetEventLog extends EventLog { override final val eventLogCategory = AssetLogCategory }
+
+sealed trait InventoryEventLog extends AssetEventLog 
 
 object InventoryEventLog {
   
@@ -88,10 +90,8 @@ final case class AcceptNodeEventLog (
     override val eventDetails : EventLogDetails
 ) extends InventoryEventLog with HashcodeCaching {
   
-  override val eventLogCategory = AssetLogCategory
   override val eventType = AcceptNodeEventLog.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-    
 }
 
 object AcceptNodeEventLog extends EventLogFilter {
@@ -118,7 +118,6 @@ object AcceptNodeEventLog extends EventLogFilter {
 final case class RefuseNodeEventLog (
     override val eventDetails : EventLogDetails
 ) extends InventoryEventLog with HashcodeCaching {
-  override val eventLogCategory = AssetLogCategory
   override val eventType = RefuseNodeEventLog.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
@@ -153,7 +152,7 @@ final case class NodeLogDetails(
     node: NodeInfo
 ) extends HashcodeCaching 
 
-sealed trait NodeEventLog extends EventLog 
+sealed trait NodeEventLog extends AssetEventLog
 
 object NodeEventLog {
   
@@ -191,7 +190,6 @@ object NodeEventLog {
 final case class DeleteNodeEventLog (
     override val eventDetails : EventLogDetails
 ) extends NodeEventLog with HashcodeCaching {
-  override val eventLogCategory = AssetLogCategory
   override val eventType = DeleteNodeEventLog.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 

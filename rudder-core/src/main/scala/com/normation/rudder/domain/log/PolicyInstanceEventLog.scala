@@ -43,16 +43,14 @@ import net.liftweb.common._
 import com.normation.cfclerk.domain._
 import com.normation.utils.HashcodeCaching
 
-sealed trait PolicyInstanceEventLog extends EventLog
+sealed trait PolicyInstanceEventLog extends EventLog { override final val eventLogCategory = PolicyInstanceLogCategory }
 
 final case class AddPolicyInstance(
     override val eventDetails : EventLogDetails
 ) extends PolicyInstanceEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = AddPolicyInstance.eventType
-  override val eventLogCategory = PolicyInstanceLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object AddPolicyInstance extends EventLogFilter {
@@ -66,9 +64,7 @@ final case class DeletePolicyInstance(
 ) extends PolicyInstanceEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = DeletePolicyInstance.eventType
-  override val eventLogCategory = PolicyInstanceLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object DeletePolicyInstance extends EventLogFilter {
@@ -77,15 +73,12 @@ object DeletePolicyInstance extends EventLogFilter {
   override def apply(x : (EventLogType, EventLogDetails)) : DeletePolicyInstance = DeletePolicyInstance(x._2) 
 }
 
-
 final case class ModifyPolicyInstance(
     override val eventDetails : EventLogDetails
 ) extends PolicyInstanceEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = ModifyPolicyInstance.eventType
-  override val eventLogCategory = PolicyInstanceLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object ModifyPolicyInstance extends EventLogFilter {

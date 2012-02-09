@@ -99,21 +99,21 @@ object ReleaseRedButton extends EventLogFilter {
 /**
  * Clear cache
  */
-final case class ClearCache(
+final case class ClearCacheEventLog(
    override val eventDetails : EventLogDetails
 ) extends EventLog with HashcodeCaching {
   
-  override val eventType = ClearCache.eventType
+  override val eventType = ClearCacheEventLog.eventType
   override def details = EventLog.emptyDetails
   override val eventLogCategory = RudderApplicationLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
 }
 
-object ClearCache extends EventLogFilter {
+object ClearCacheEventLog extends EventLogFilter {
   override val eventType = ClearCacheEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ClearCache = ClearCache(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ClearCacheEventLog = ClearCacheEventLog(x._2) 
 }
 
 
@@ -122,6 +122,6 @@ object GenericEventLogsFilter {
       ApplicationStarted 
     , ActivateRedButton 
     , ReleaseRedButton
-    , ClearCache
+    , ClearCacheEventLog
     )
 }

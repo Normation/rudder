@@ -44,7 +44,8 @@ import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.EventLogType
 
 sealed trait UserEventLog extends EventLog {
-  override val details = EventLog.emptyDetails
+  override final val details = EventLog.emptyDetails
+  override final val eventLogCategory = UserLogCategory
 }
 
 
@@ -53,9 +54,7 @@ final case class LoginEventLog(
 ) extends UserEventLog with HashcodeCaching {
   
   override val eventType = LoginEventLog.eventType
-  override val eventLogCategory = UserLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object LoginEventLog extends EventLogFilter {
@@ -69,9 +68,7 @@ final case class BadCredentialsEventLog(
 ) extends UserEventLog with HashcodeCaching {
 
   override val eventType = BadCredentialsEventLog.eventType
-  override val eventLogCategory = UserLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object BadCredentialsEventLog extends EventLogFilter {
@@ -86,9 +83,7 @@ final case class LogoutEventLog(
 ) extends UserEventLog with HashcodeCaching {
   
   override val eventType = LogoutEventLog.eventType
-  override val eventLogCategory = UserLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object LogoutEventLog extends EventLogFilter {

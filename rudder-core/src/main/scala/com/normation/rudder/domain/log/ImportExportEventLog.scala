@@ -6,7 +6,7 @@ import org.joda.time.DateTime
 import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
 
-sealed trait ImportExportEventLog  extends EventLog
+sealed trait ImportExportEventLog  extends EventLog { override final val eventLogCategory = ImportExportItemsLogCategory }
 
 
 
@@ -14,9 +14,7 @@ final case class ExportGroups(
     override val eventDetails : EventLogDetails
 ) extends ImportExportEventLog with HashcodeCaching {
   override val eventType = ExportGroups.eventType
-  override val eventLogCategory = ImportExportItemsLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object ExportGroups extends EventLogFilter {
@@ -29,10 +27,9 @@ final case class ImportGroups(
     override val eventDetails : EventLogDetails
 ) extends ImportExportEventLog with HashcodeCaching {
   override val eventType = ImportGroups.eventType
-  override val eventLogCategory = ImportExportItemsLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
+
 object ImportGroups extends EventLogFilter {
   override val eventType = ImportGroupsEventType
  
@@ -43,9 +40,7 @@ final case class ExportPolicyLibrary(
     override val eventDetails : EventLogDetails
 ) extends ImportExportEventLog with HashcodeCaching {
   override val eventType = ExportPolicyLibrary.eventType
-  override val eventLogCategory = ImportExportItemsLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object ExportPolicyLibrary extends EventLogFilter {
@@ -58,9 +53,7 @@ final case class ImportPolicyLibrary(
     override val eventDetails : EventLogDetails
 ) extends ImportExportEventLog with HashcodeCaching {
   override val eventType = ImportPolicyLibrary.eventType
-  override val eventLogCategory = ImportExportItemsLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object ImportPolicyLibrary extends EventLogFilter {
@@ -74,9 +67,7 @@ final case class ExportCRs(
     override val eventDetails : EventLogDetails
 ) extends ImportExportEventLog with HashcodeCaching {
   override val eventType = ExportCRs.eventType
-  override val eventLogCategory = ImportExportItemsLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object ExportCRs extends EventLogFilter {
@@ -89,9 +80,7 @@ final case class ImportCRs(
     override val eventDetails : EventLogDetails
 ) extends ImportExportEventLog with HashcodeCaching {
   override val eventType = ImportCRs.eventType
-  override val eventLogCategory = ImportExportItemsLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object ImportCRs extends EventLogFilter {
@@ -104,9 +93,7 @@ final case class ExportAllLibraries(
     override val eventDetails : EventLogDetails
 ) extends ImportExportEventLog with HashcodeCaching {
   override val eventType = ExportAllLibraries.eventType
-  override val eventLogCategory = ImportExportItemsLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object ExportAllLibraries extends EventLogFilter {
@@ -119,9 +106,7 @@ final case class ImportAllLibraries(
     override val eventDetails : EventLogDetails
 ) extends ImportExportEventLog with HashcodeCaching {
   override val eventType = ImportAllLibraries.eventType
-  override val eventLogCategory = ImportExportItemsLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object ImportAllLibraries extends EventLogFilter {

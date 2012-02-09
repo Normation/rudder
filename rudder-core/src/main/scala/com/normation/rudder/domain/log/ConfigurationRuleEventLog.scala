@@ -43,15 +43,13 @@ import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
 
 
-sealed trait ConfigurationRuleEventLog extends EventLog
+sealed trait ConfigurationRuleEventLog extends EventLog { override final val eventLogCategory = ConfigurationRuleLogCategory }
 
 final case class AddConfigurationRule(
     override val eventDetails : EventLogDetails
 ) extends ConfigurationRuleEventLog with HashcodeCaching {
   override val eventType = AddConfigurationRule.eventType
-  override val eventLogCategory = ConfigurationRuleLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-  
 }
 
 object AddConfigurationRule extends EventLogFilter {
@@ -65,9 +63,7 @@ final case class DeleteConfigurationRule(
     override val eventDetails : EventLogDetails
 ) extends ConfigurationRuleEventLog with HashcodeCaching {
   override val eventType = DeleteConfigurationRule.eventType
-  override val eventLogCategory = ConfigurationRuleLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-  
 }
 
 object DeleteConfigurationRule extends EventLogFilter {
@@ -81,9 +77,7 @@ final case class ModifyConfigurationRule(
     override val eventDetails : EventLogDetails
 ) extends ConfigurationRuleEventLog with HashcodeCaching {
   override val eventType = ModifyConfigurationRule.eventType
-  override val eventLogCategory = ConfigurationRuleLogCategory
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-  
 }
 
 object ModifyConfigurationRule extends EventLogFilter {
