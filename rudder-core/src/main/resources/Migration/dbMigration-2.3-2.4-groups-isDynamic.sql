@@ -36,4 +36,4 @@
 -- Add column GroupStatus in groups to store the status of the groups (dynamic/static/unknown)
 
 ALTER TABLE Groups
-ADD COLUMN GroupStatus char(1) default '0'; -- '0' is for unknown
+ADD COLUMN GroupStatus int default 2; -- '2' is for unknown

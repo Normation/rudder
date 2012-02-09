@@ -105,7 +105,6 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   }
   
   def getAllOpenedGroups() : Seq[SerializedGroups] = {
-   
     squerylConnectionProvider.ourTransaction {
       val q = from(Groups.groups)(group => 
         where(group.endTime.isNull)
@@ -294,6 +293,7 @@ case class SerializedGroups(
     @Column("groupname") groupName: String,
     @Column("groupdescription") groupDescription: String,
     @Column("nodecount") nodeCount: Int,
+    @Column("groupstatus") groupStatus: Int,
     @Column("starttime") startTime: Timestamp,
     @Column("endtime") endTime: Option[Timestamp]
 ) extends KeyedEntity[Long] {
@@ -306,8 +306,24 @@ object SerializedGroups {
     new SerializedGroups(nodeGroup.id.value, 
             nodeGroup.name, 
             nodeGroup.description, 
-            nodeGroup.serverList.size, 
+            nodeGroup.serverList.size,
+            isDynamicToSql(nodeGroup.isDynamic),
             new Timestamp(DateTime.now().getMillis), None )
+  }
+ 
+  def isDynamicToSql(boolean : Boolean) : Int = {
+    boolean match {
+      case true => 1;
+      case false => 0;
+    }
+  }
+  
+  def fromSQLtoDynamic(value : Int) : Option[Boolean] = {
+    value match {
+      case 1 => Some(true)
+      case 0 => Some(false)
+      case _ => None
+    }
   }
 }
 
