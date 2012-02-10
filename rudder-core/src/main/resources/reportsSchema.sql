@@ -122,6 +122,7 @@ groupId text NOT NULL CHECK (groupId <> ''),
 groupName text,
 groupDescription text,
 nodeCount int,
+groupStatus int default 2,
 startTime timestamp with time zone default now(),
 endTime timestamp with time zone
 );
@@ -144,6 +145,7 @@ priority integer NOT NULL,
 policyPackageName text,
 policyPackageVersion text,
 policyPackageDescription text,
+policyTemplateHumanName text,
 startTime timestamp with time zone NOT NULL,
 endTime timestamp with time zone
 );
