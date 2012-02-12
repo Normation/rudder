@@ -41,9 +41,7 @@ import org.eclipse.jgit.revwalk.RevTag
 
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.GitRevisionProvider
-import com.normation.rudder.repository.ParsePolicyLibrary
-import com.normation.rudder.repository.UptCategoryContent
-import com.normation.rudder.repository.UptContent
+import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling.PolicyInstanceUnserialisation
 import com.normation.rudder.services.marshalling.UserPolicyTemplateCategoryUnserialisation
 import com.normation.rudder.services.marshalling.UserPolicyTemplateUnserialisation
@@ -61,28 +59,15 @@ class GitParsePolicyLibrary(
     categoryUnserialiser: UserPolicyTemplateCategoryUnserialisation
   , uptUnserialiser     : UserPolicyTemplateUnserialisation
   , piUnserialiser      : PolicyInstanceUnserialisation
-  , revisionProvider    : GitRevisionProvider
   , repo                : GitRepositoryProvider
   , libRootDirectory    : String //relative name to git root file
   , uptcFileName        : String = "category.xml"
   , uptFileName         : String = "userPolicyTemplateSettings.xml"    
 ) extends ParsePolicyLibrary {
   
-  /**
-   * Parse the use policy template library. 
-   * The structure is purely recursive:
-   * - a directory must contains either category.xml or userPolicyTemplateSettings.xml
-   * - the root directory contains category.xml
-   * - a directory with a category.xml file must contains only sub-directories (ignore files)
-   * - a directory containing userPolicyTemplateSettings.xml may contain UUID.xml files (ignore sub-directories and other files)
-   */
-  def getLastArchive : Box[UptCategoryContent] = {
-    getArchiveForRevTreeId(revisionProvider.getAvailableRevTreeId)
-  }
-  
-  def getArchive(archiveId:RevTag) = {
+  def getArchive(archiveId:GitCommitId) = {
     for {
-      treeId  <- GitFindUtils.findRevTreeFromPath(repo.db, archiveId.getName)
+      treeId  <- GitFindUtils.findRevTreeFromRevString(repo.db, archiveId.value)
       archive <- getArchiveForRevTreeId(treeId)
     } yield {
       archive

@@ -84,7 +84,7 @@ class LDAPGitRevisionProvider(
   }
 
   override def getAvailableRevTreeId: ObjectId = {
-    GitFindUtils.findRevTreeFromPath(gitRepo.db, refPath) match {
+    GitFindUtils.findRevTreeFromRevString(gitRepo.db, refPath) match {
       case Full(id) => id
       case eb:EmptyBox => 
         val e = eb ?~! "Error when looking for a commit tree in git"

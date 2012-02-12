@@ -34,60 +34,20 @@
 
 package com.normation.rudder.repository.xml
 
-import java.io.File
-import scala.xml.PrettyPrinter
-import org.apache.commons.io.FileUtils
-import org.eclipse.jgit.api.Git
-import org.joda.time.format.ISODateTimeFormat
-import org.joda.time.DateTime
-import com.normation.cfclerk.domain.PolicyPackageName
-import com.normation.cfclerk.domain.SectionSpec
-import com.normation.cfclerk.services.GitRepositoryProvider
-import com.normation.exceptions.TechnicalException
-import com.normation.rudder.domain.policies.ConfigurationRule
-import com.normation.rudder.domain.policies.ConfigurationRuleId
-import com.normation.rudder.domain.policies.PolicyInstance
-import com.normation.rudder.domain.policies.PolicyInstanceId
-import com.normation.rudder.domain.policies.UserPolicyTemplate
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategoryId
-import com.normation.rudder.domain.policies.UserPolicyTemplateId
-import com.normation.rudder.repository.ArchiveId
-import com.normation.rudder.repository.GitConfigurationRuleArchiver
-import com.normation.rudder.repository.GitPolicyInstanceArchiver
-import com.normation.rudder.repository.GitUserPolicyTemplateArchiver
-import com.normation.rudder.repository.GitUserPolicyTemplateCategoryArchiver
-import com.normation.rudder.services.marshalling.ConfigurationRuleSerialisation
-import com.normation.rudder.services.marshalling.PolicyInstanceSerialisation
-import com.normation.rudder.services.marshalling.UserPolicyTemplateCategorySerialisation
-import com.normation.rudder.services.marshalling.UserPolicyTemplateSerialisation
-import com.normation.utils.Utils
-import com.normation.utils.Control.sequence
-import net.liftweb.common._
-import net.liftweb.util.Helpers.tryo
-import com.normation.cfclerk.domain.PolicyPackage
-import com.normation.cfclerk.services.PolicyPackageService
-import com.normation.rudder.repository.PolicyInstanceRepository
-import scala.collection.mutable.Buffer
-import scala.collection.JavaConversions._
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.repository.GitNodeGroupCategoryArchiver
-import com.normation.rudder.services.marshalling.NodeGroupCategorySerialisation
-import com.normation.rudder.domain.nodes.NodeGroupCategory
-import com.normation.rudder.repository.GitNodeGroupArchiver
-import com.normation.rudder.services.marshalling.NodeGroupSerialisation
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.nodes.NodeGroup
-import scala.xml.Elem
-import org.eclipse.jgit.treewalk.TreeWalk
-import org.eclipse.jgit.treewalk.filter.TreeFilter
-import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.lib.{Constants => JConstants}
 import java.io.InputStream
-import org.eclipse.jgit.treewalk.filter.PathFilter
-import java.io.FileNotFoundException
+
+import org.eclipse.jgit.lib.{Constants => JConstants}
 import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.treewalk.filter.PathFilter
+import org.eclipse.jgit.treewalk.filter.TreeFilter
+import org.eclipse.jgit.treewalk.TreeWalk
+
+import com.normation.utils.HashcodeCaching
+
+import net.liftweb.common._
+
 
 /**
  * Utility trait to find/list/get content
@@ -168,10 +128,10 @@ object GitFindUtils extends Loggable {
    * Retrieve the commit tree from a path name.
    * The path may be any one of {@code org.eclipse.jgit.lib.Repository#resolve}
    */
-  def findRevTreeFromPath(db:Repository, path:String) : Box[ObjectId] = {
-    val tree = db.resolve(path)
+  def findRevTreeFromRevString(db:Repository, revString:String) : Box[ObjectId] = {
+    val tree = db.resolve(revString)
     if (null == tree) {
-      Failure("The reference branch '%s' is not found in the Policy Templates User Library's git repository".format(path))
+      Failure("The reference branch '%s' is not found in the Policy Templates User Library's git repository".format(revString))
     } else {
       val rw = new RevWalk(db)
       val id = rw.parseTree(tree).getId
@@ -181,6 +141,11 @@ object GitFindUtils extends Loggable {
   }
 }
 
+/**
+ * A Git filter that allows to find files in a tree, optionally looking only
+ * for file under a given path, and optionally looking only for files with a 
+ * given end of path (for example, a given extension name)
+ */
 class FileTreeFilter(rootDirectory:Option[String], endPath: Option[String]) extends TreeFilter {
   private[this] val endRawPath = {
     endPath match {

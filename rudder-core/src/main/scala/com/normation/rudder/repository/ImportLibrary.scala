@@ -42,7 +42,6 @@ import com.normation.rudder.domain.policies.UserPolicyTemplate
 import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
 import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.ConfigurationRule
-import org.eclipse.jgit.revwalk.RevTag
 
 /**
  * A category of the policy library. 
@@ -73,16 +72,10 @@ case class UserPolicyLibraryArchiveId(value:String)
 trait ParsePolicyLibrary {
 
   /**
-   * That method parse an user policy library from the
-   * file system. 
-   */
-  def getLastArchive : Box[UptCategoryContent]
-  
-  /**
    * That method parse configuration rules from the
    * file system for an archive with the given ID. 
    */
-  def getArchive(archiveId:RevTag) : Box[UptCategoryContent]
+  def getArchive(archiveId:GitCommitId) : Box[UptCategoryContent]
 }
 
 /**
@@ -94,15 +87,9 @@ trait ParseConfigurationRules {
 
   /**
    * That method parse configuration rules from the
-   * file system. 
-   */
-  def getLastArchive : Box[Seq[ConfigurationRule]]
-  
-  /**
-   * That method parse configuration rules from the
    * file system for an archive with the given ID. 
    */
-  def getArchive(archiveId:RevTag) : Box[Seq[ConfigurationRule]]
+  def getArchive(archiveId:GitCommitId) : Box[Seq[ConfigurationRule]]
 }
 
 /**
@@ -122,16 +109,10 @@ case class NodeGroupLibraryArchiveId(value:String)
 trait ParseGroupLibrary {
 
   /**
-   * That method parse an user policy library from the
-   * file system. 
-   */
-  def getLastArchive : Box[NodeGroupCategoryContent]
-  
-  /**
    * That method parse a group library from the
    * file system for an archive with the given ID. 
    */
-  def getArchive(archiveId:RevTag) : Box[NodeGroupCategoryContent]
+  def getArchive(archiveId:GitCommitId) : Box[NodeGroupCategoryContent]
 }
 
 

@@ -45,17 +45,15 @@ import scala.xml.NodeSeq
 import collection.mutable.Buffer
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.domain.policies.ConfigurationRuleId
-import com.normation.rudder.repository.ConfigurationRuleRepository
-import com.normation.rudder.repository.ItemArchiveManager
-import com.normation.rudder.repository.ArchiveId
-import org.eclipse.jgit.revwalk.RevTag
-import org.joda.time.DateTime
-import scala.xml.Text
-import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.repository._
 import com.normation.rudder.services.user.PersonIdentService
-import org.eclipse.jgit.lib.PersonIdent
+import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.components.DateFormaterService
 import net.liftweb.http.SHtml.PairStringPromoter
+import org.eclipse.jgit.revwalk.RevTag
+import org.joda.time.DateTime
+import org.eclipse.jgit.lib.PersonIdent
+import scala.xml.Text
 
 class Archives extends DispatchSnippet with Loggable {
 
@@ -157,20 +155,20 @@ class Archives extends DispatchSnippet with Loggable {
       formName                  : String               //the element name to update on error/succes
     , archiveButtonId           : String               //input button
     , archiveButtonName         : String               //what is displayed on the button to the user
-    , archiveFunction           : (PersonIdent, Boolean) => Box[ArchiveId] //the actual logic to execute the action
+    , archiveFunction           : (PersonIdent, Boolean) => Box[GitArchiveId] //the actual logic to execute the action
     , archiveErrorMessage       : String               //error message to display to the user
     , archiveSuccessDebugMessage: String => String     //debug log - the string param is the archive id
     , archiveDateSelectId       : String
-    , archiveListFunction       : () => Box[Map[DateTime,RevTag]]
+    , archiveListFunction       : () => Box[Map[DateTime,GitArchiveId]]
     , restoreButtonId           : String               //input button
     , restoreButtonName         : String               //what is displayed on the button to the user
-    , restoreFunction           : (RevTag,Boolean) => Box[Unit] //the actual logic to execute the action
-    , restoreHeadFunction       : (Boolean) => Box[Unit] //the actual logic to execute the restore from HEAD
+    , restoreFunction           : (GitCommitId,Boolean) => Box[GitCommitId] //the actual logic to execute the action
+    , restoreHeadFunction       : (Boolean) => Box[GitCommitId] //the actual logic to execute the restore from HEAD
     , restoreErrorMessage       : String               //error message to display to the user
     , restoreSuccessDebugMessage: String               //debug log - the string param is the archive id
   ) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
 
-    type RESTORER = () => Box[Unit]
+    type RESTORER = () => Box[GitCommitId]
     
     val noticeId = formName + "Notice"
     
@@ -202,7 +200,7 @@ class Archives extends DispatchSnippet with Loggable {
         archive
       }) match {
         case eb:EmptyBox => error(eb, archiveErrorMessage)
-        case Full(aid)   => success(archiveSuccessDebugMessage(aid.value))
+        case Full(aid)   => success(archiveSuccessDebugMessage(aid.commit.value))
       }
     }
     
@@ -245,11 +243,11 @@ class Archives extends DispatchSnippet with Loggable {
           logger.error(f ?~! "Error when looking for archives from tags")
           Nil
           
-        case Full(m) if(m.size > 0) => 
+        case Full(m) => 
           m.toList.sortWith { 
             case ( (d1,_), (d2,_) ) => d1.isAfter(d2) 
           }.map { case (date,revTag) =>
-            (() => restoreFunction(revTag,false), DateFormaterService.getFormatedDate(date) )
+            (() => restoreFunction(revTag.commit,false), DateFormaterService.getFormatedDate(date) )
           }
       }
 

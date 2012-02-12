@@ -34,21 +34,19 @@
 
 package com.normation.rudder.web.rest
 
-import net.liftweb.http._
-import net.liftweb.http.rest._
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.ManualStartDeployment
-import com.normation.rudder.repository.ItemArchiveManager
+import com.normation.rudder.repository._
+import com.normation.rudder.repository.xml._
+import com.normation.rudder.services.user.PersonIdentService
+import net.liftweb.http._
+import net.liftweb.http.rest._
 import net.liftweb.common._
-import com.normation.rudder.repository.xml.GitTagDateTimeFormatter
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
-import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
-import com.normation.rudder.repository.ArchiveId
-import org.eclipse.jgit.lib.PersonIdent
-import com.normation.rudder.services.user.PersonIdentService
 import net.liftweb.util.Helpers.tryo
+import org.eclipse.jgit.lib.PersonIdent
   
 /**
  * A rest api that allows to deploy promises.
@@ -143,7 +141,7 @@ class RestArchiving(
   //////////////////////////////////////////////////////////// 
   
   
-  private[this] def listTags(list:() => Box[Map[DateTime,RevTag]], archiveType:String) = {
+  private[this] def listTags(list:() => Box[Map[DateTime, GitArchiveId]], archiveType:String) = {
       list() match {
         case eb : EmptyBox => 
           val e = eb ?~! "Error when trying to list available archives for %s".format(archiveType)
@@ -158,7 +156,7 @@ class RestArchiving(
    * (the most recent is the first in the array)
    * { "archiveType" : [ { "id" : "datetimeID", "date": "human readable date" , "commiter": "name", "gitPath": "path" }, ... ]
    */
-  private[this] def formatList(archiveType:String, availableArvhives: Map[DateTime, RevTag]) : JValue = {
+  private[this] def formatList(archiveType:String, availableArvhives: Map[DateTime, GitArchiveId]) : JValue = {
     case class JsonArchive(id:String, date:String, commiter:String, gitPath:String)
     val ordered = availableArvhives.toList.sortWith { 
                     case ( (d1,_), (d2,_) ) => d1.isAfter(d2) 
@@ -166,21 +164,19 @@ class RestArchiving(
                     case (date,tag) => 
                         val id = date.toString(GitTagDateTimeFormatter)
                         val datetime = "%s at %s".format(date.toString("YYYY-MM-DD"), date.toString("HH:mm:ss"))
-                        val commiter = tag.getTaggerIdent.getName
-                        val gitPath = tag.getTagName
                         //json
-                        ("id" -> id) ~ ("date" -> datetime) ~ ("commiter" -> commiter) ~ ("gitPath" -> gitPath)
+                        ("id" -> id) ~ ("date" -> datetime) ~ ("commiter" -> tag.commiter.getName) ~ ("gitCommit" -> tag.commit.value)
                   }
                   
     JField(archiveType,  ordered)
   }
 
   
-  private[this] def restoreLatestArchive(list:() => Box[Map[DateTime,RevTag]], restore:(RevTag,Boolean) => Box[Unit], archiveType:String) = {
+  private[this] def restoreLatestArchive(list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,Boolean) => Box[GitCommitId], archiveType:String) = {
     (for {
       archives   <- list()
       (date,tag) <- Box(archives.toList.sortWith { case ( (d1,_), (d2,_) ) => d1.isAfter(d2) }.headOption) ?~! "No archive is available"
-      restored   <- restore(tag,false)
+      restored   <- restore(tag.commit,false)
     } yield {
       restored
     }) match {
@@ -192,7 +188,7 @@ class RestArchiving(
     }
   }
   
-  private[this] def restoreLatestCommit(restore: Boolean => Box[Unit], archiveType:String) = {
+  private[this] def restoreLatestCommit(restore: Boolean => Box[GitCommitId], archiveType:String) = {
     (for {
       restored   <- restore(false)
     } yield {
@@ -206,12 +202,12 @@ class RestArchiving(
     }
   }
   
-  private[this] def restoreByDatetime(list:() => Box[Map[DateTime,RevTag]], restore:(RevTag,Boolean) => Box[Unit], datetime:String, archiveType:String) = {
+  private[this] def restoreByDatetime(list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,Boolean) => Box[GitCommitId], datetime:String, archiveType:String) = {
     (for {
       valideDate <- tryo { GitTagDateTimeFormatter.parseDateTime(datetime) } ?~! "The given archive id is not a valid archive tag: %s".format(datetime)
       archives   <- list()
       tag        <- Box(archives.get(valideDate)) ?~! "The archive with tag '%s' is not available. Available archives: %s".format(datetime,archives.keySet.map( _.toString(GitTagDateTimeFormatter)).mkString(", "))
-      restored   <- restore(tag,false)
+      restored   <- restore(tag.commit,false)
     } yield {
       restored
     }) match {
@@ -223,7 +219,7 @@ class RestArchiving(
     }
   }
 
-  private[this] def archive(req:Req, archive:(PersonIdent,Boolean) => Box[ArchiveId], archiveType:String) = {
+  private[this] def archive(req:Req, archive:(PersonIdent,Boolean) => Box[GitArchiveId], archiveType:String) = {
     (for {
       commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
       archiveId <- archive(commiter,false)

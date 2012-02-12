@@ -5,6 +5,11 @@ import scala.xml._
 import org.joda.time.DateTime
 import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.repository.NodeGroupCategoryContent
+import com.normation.rudder.repository.UptCategoryContent
+import com.normation.rudder.repository.jdbc.ConfigurationRules
+import com.normation.rudder.domain.policies.ConfigurationRule
+import com.normation.rudder.repository.GitPath
 
 sealed trait ImportExportEventLog  extends EventLog { override final val eventLogCategory = ImportExportItemsLogCategory }
 
@@ -21,6 +26,11 @@ object ExportGroups extends EventLogFilter {
   override val eventType = ExportGroupsEventType
  
   override def apply(x : (EventLogType, EventLogDetails)) : ExportGroups = ExportGroups(x._2) 
+  
+  def buildDetails(gitPath:GitPath, groups:NodeGroupCategoryContent) = EventLog.withContent {
+    
+    error("TODO")
+  }
 }
 
 final case class ImportGroups(
@@ -34,6 +44,11 @@ object ImportGroups extends EventLogFilter {
   override val eventType = ImportGroupsEventType
  
   override def apply(x : (EventLogType, EventLogDetails)) : ImportGroups = ImportGroups(x._2) 
+  
+  def buildDetails(gitPath:GitPath, groups:NodeGroupCategoryContent) = EventLog.withContent {
+    
+    error("TODO")
+  }
 }
 
 final case class ExportPolicyLibrary(
@@ -47,6 +62,11 @@ object ExportPolicyLibrary extends EventLogFilter {
   override val eventType = ExportPolicyLibraryEventType
  
   override def apply(x : (EventLogType, EventLogDetails)) : ExportPolicyLibrary = ExportPolicyLibrary(x._2) 
+  
+  def buildDetails(gitPath:GitPath, policyLibrary:UptCategoryContent) = EventLog.withContent {
+    
+    error("TODO")
+  }
 }
 
 final case class ImportPolicyLibrary(
@@ -60,6 +80,10 @@ object ImportPolicyLibrary extends EventLogFilter {
   override val eventType = ImportPolicyLibraryEventType
  
   override def apply(x : (EventLogType, EventLogDetails)) : ImportPolicyLibrary = ImportPolicyLibrary(x._2) 
+  def buildDetails(gitPath:GitPath, policyLibrary:UptCategoryContent) = EventLog.withContent {
+    
+    error("TODO")
+  }
 }
 
 
@@ -74,6 +98,11 @@ object ExportCRs extends EventLogFilter {
   override val eventType = ExportCrsEventType
  
   override def apply(x : (EventLogType, EventLogDetails)) : ExportCRs = ExportCRs(x._2) 
+
+  def buildDetails(gitPath:GitPath, configurationRules:Seq[ConfigurationRule]) = EventLog.withContent {
+    
+    error("TODO")
+  }
 }
 
 final case class ImportCRs(
@@ -87,6 +116,11 @@ object ImportCRs extends EventLogFilter {
   override val eventType = ImportCrsEventType
  
   override def apply(x : (EventLogType, EventLogDetails)) : ImportCRs = ImportCRs(x._2) 
+
+  def buildDetails(gitPath:GitPath, configurationRules:Seq[ConfigurationRule]) = EventLog.withContent {
+    
+    error("TODO")
+  }
 }
 
 final case class ExportAllLibraries(
@@ -100,6 +134,11 @@ object ExportAllLibraries extends EventLogFilter {
   override val eventType = ExportAllLibrariesEventType
  
   override def apply(x : (EventLogType, EventLogDetails)) : ExportAllLibraries = ExportAllLibraries(x._2) 
+
+  def buildDetails(gitPath:GitPath) = EventLog.withContent {
+    
+    error("TODO")
+  }
 }
 
 final case class ImportAllLibraries(
@@ -113,6 +152,11 @@ object ImportAllLibraries extends EventLogFilter {
   override val eventType = ImportAllLibrariesEventType
  
   override def apply(x : (EventLogType, EventLogDetails)) : ImportAllLibraries = ImportAllLibraries(x._2) 
+
+  def buildDetails(gitPath:GitPath) = EventLog.withContent {
+    
+    error("TODO")
+  }
 }
 
 object ImportExportEventLogsFilter {

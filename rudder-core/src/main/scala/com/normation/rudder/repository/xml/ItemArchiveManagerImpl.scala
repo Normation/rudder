@@ -44,12 +44,14 @@ import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
 import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
+import com.normation.cfclerk.services.GitRevisionProvider
 
 class ItemArchiveManagerImpl(
     configurationRuleRepository          : ConfigurationRuleRepository
   , uptRepository                        : UserPolicyTemplateRepository
   , groupRepository                      : NodeGroupRepository
   , override val gitRepo                 : GitRepositoryProvider
+  , revisionProvider                     : GitRevisionProvider
   , gitConfigurationRuleArchiver         : GitConfigurationRuleArchiver
   , gitUserPolicyTemplateCategoryArchiver: GitUserPolicyTemplateCategoryArchiver
   , gitUserPolicyTemplateArchiver        : GitUserPolicyTemplateArchiver
@@ -71,7 +73,7 @@ class ItemArchiveManagerImpl(
   
   ///// implementation /////
   
-  def exportAll(commiter:PersonIdent, includeSystem:Boolean = false): Box[ArchiveId] = { 
+  def exportAll(commiter:PersonIdent, includeSystem:Boolean = false): Box[GitArchiveId] = { 
     for {
       saveCrs     <- exportConfigurationRules(commiter, includeSystem)
       saveUserLib <- exportPolicyLibrary(commiter, includeSystem)
@@ -81,22 +83,12 @@ class ItemArchiveManagerImpl(
                        , FULL_ARCHIVE_TAG + " Archive and tag groups, policy library and configuration rules"
                      )
     } yield {
-      saveUserLib
+      archiveAll
     }
   }
+
   
-  def importAll(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit] = {
-    logger.info("Importing full archive with id '%s'".format(archiveId.getTagName))
-    for {
-      configurationRules <- importConfigurationRules(archiveId, includeSystem)
-      userLib            <- importPolicyLibrary(archiveId, includeSystem)
-      groupLIb           <- importGroupLibrary(archiveId, includeSystem)
-    } yield {
-      configurationRules
-    }
-  }
-  
-  def exportConfigurationRules(commiter:PersonIdent, includeSystem:Boolean = false): Box[ArchiveId] = { 
+  def exportConfigurationRules(commiter:PersonIdent, includeSystem:Boolean = false): Box[GitArchiveId] = { 
     for {
       crs         <- configurationRuleRepository.getAll(false)
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitConfigurationRuleArchiver.getRootDirectory) }
@@ -105,11 +97,11 @@ class ItemArchiveManagerImpl(
                      }
       commitId    <- gitConfigurationRuleArchiver.commitConfigurationRules(commiter)
     } yield {
-      ArchiveId(commitId)
+      commitId
     }
   }
   
-  def exportPolicyLibrary(commiter:PersonIdent, includeSystem:Boolean = false): Box[ArchiveId] = { 
+  def exportPolicyLibrary(commiter:PersonIdent, includeSystem:Boolean = false): Box[GitArchiveId] = { 
     for { 
       catWithUPT   <- uptRepository.getUPTbyCategory(includeSystem = true)
       //remove systems things if asked (both system categories and system upts in non-system categories)
@@ -133,11 +125,11 @@ class ItemArchiveManagerImpl(
                      }
       commitId    <- gitUserPolicyTemplateCategoryArchiver.commitUserPolicyLibrary(commiter)
     } yield {
-      ArchiveId(commitId)
+      commitId
     }
   }
   
-  def exportGroupLibrary(commiter:PersonIdent, includeSystem:Boolean = false): Box[ArchiveId] = { 
+  def exportGroupLibrary(commiter:PersonIdent, includeSystem:Boolean = false): Box[GitArchiveId] = { 
     for { 
       catWithGroups   <- groupRepository.getGroupsByCategory(includeSystem = true)
       //remove systems things if asked (both system categories and system groups in non-system categories)
@@ -161,12 +153,28 @@ class ItemArchiveManagerImpl(
                          }
       commitId        <- gitNodeGroupCategoryArchiver.commitGroupLibrary(commiter)
     } yield {
-      ArchiveId(commitId)
+      commitId
     }
   }
   
-  def importConfigurationRules(archiveId:RevTag, includeSystem:Boolean = false) : Box[Unit] = {
-    logger.info("Importing configuration rules archive with id '%s'".format(archiveId.getTagName))
+  
+  ////////// Import //////////
+  
+  
+  
+  def importAll(archiveId:GitCommitId, includeSystem:Boolean = false) : Box[GitCommitId] = {
+    logger.info("Importing full archive with id '%s'".format(archiveId.value))
+    for {
+      configurationRules <- importConfigurationRules(archiveId, includeSystem)
+      userLib            <- importPolicyLibrary(archiveId, includeSystem)
+      groupLIb           <- importGroupLibrary(archiveId, includeSystem)
+    } yield {
+      archiveId
+    }
+  }
+  
+  def importConfigurationRules(archiveId:GitCommitId, includeSystem:Boolean = false) : Box[GitCommitId] = {
+    logger.info("Importing configuration rules archive with id '%s'".format(archiveId.value))
     for {
       parsed   <- parseConfigurationRules.getArchive(archiveId)
       imported <- configurationRuleRepository.swapConfigurationRules(parsed)
@@ -178,86 +186,58 @@ class ItemArchiveManagerImpl(
           logger.error(e)
         case _ => //ok
       }
-
+      archiveId
     }
   }
   
-  def importPolicyLibrary(archiveId:RevTag, includeSystem:Boolean) : Box[Unit] = {
-    logger.info("Importing policy library archive with id '%s'".format(archiveId.getTagName))
+  def importPolicyLibrary(archiveId:GitCommitId, includeSystem:Boolean) : Box[GitCommitId] = {
+    logger.info("Importing policy library archive with id '%s'".format(archiveId.value))
       for {
         parsed   <- parsePolicyLibrary.getArchive(archiveId)
         imported <- importPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
       } yield {
-        imported
+        archiveId
       }
   }
   
-  def importGroupLibrary(archiveId:RevTag, includeSystem:Boolean) : Box[Unit] = {
-    logger.info("Importing groups archive with id '%s'".format(archiveId.getTagName))
+  def importGroupLibrary(archiveId:GitCommitId, includeSystem:Boolean) : Box[GitCommitId] = {
+    logger.info("Importing groups archive with id '%s'".format(archiveId.value))
       for {
         parsed   <- parseGroupLibrary.getArchive(archiveId)
         imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
       } yield {
-        imported
+        archiveId
       }
   }
 
-  def importHeadAll(includeSystem:Boolean = false) : Box[Unit] = {
+  private[this] def lastGitCommitId = GitCommitId(revisionProvider.getAvailableRevTreeId.getName)
+  
+  def importHeadAll(includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing full archive from HEAD")
-    for {
-      configurationRules <- importHeadConfigurationRules(includeSystem)
-      userLib            <- importHeadPolicyLibrary(includeSystem)
-      groupLIb           <- importHeadGroupLibrary(includeSystem)
-    } yield {
-      configurationRules
-    }
+    this.importAll(lastGitCommitId, includeSystem)
   }
   
-  def importHeadConfigurationRules(includeSystem:Boolean = false) : Box[Unit] = {
+  def importHeadConfigurationRules(includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing configuration rules archive from HEAD")
-    for {
-      parsed   <- parseConfigurationRules.getLastArchive
-      imported <- configurationRuleRepository.swapConfigurationRules(parsed)
-    } yield {
-      //try to clean
-      configurationRuleRepository.deleteSavedCr(imported) match {
-        case eb:EmptyBox =>
-          val e = eb ?~! ("Error when trying to delete saved archive of old cr: " + imported)
-          logger.error(e)
-        case _ => //ok
-      }
-
-    }
+    this.importConfigurationRules(lastGitCommitId,includeSystem)
   }
   
-  def importHeadPolicyLibrary(includeSystem:Boolean = false) : Box[Unit] = {
+  def importHeadPolicyLibrary(includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing policy library archive from HEAD")
-    for {
-      parsed   <- parsePolicyLibrary.getLastArchive
-      imported <- importPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
-    } yield {
-      imported
-    }
+    this.importPolicyLibrary(lastGitCommitId,includeSystem)
   }
   
-  def importHeadGroupLibrary(includeSystem:Boolean = false) : Box[Unit] = {
+  def importHeadGroupLibrary(includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing groups archive from HEAD")
-    for {
-      parsed   <- parseGroupLibrary.getLastArchive
-      imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
-    } yield {
-      imported
-    }
+    this.importGroupLibrary(lastGitCommitId, includeSystem)
   }
   
-    
-  
-  def getFullArchiveTags : Box[Map[DateTime,RevTag]] = this.getTags()
+  def getFullArchiveTags : Box[Map[DateTime,GitArchiveId]] = this.getTags()
   
   // groups, policy library and configuration rules may use
   // their own tag or a global one. 
   
-  def getGroupLibraryTags : Box[Map[DateTime,RevTag]] = {
+  def getGroupLibraryTags : Box[Map[DateTime,GitArchiveId]] = {
     for {
       globalTags <- this.getTags()
       groupsTags <- gitNodeGroupCategoryArchiver.getTags()
@@ -266,7 +246,7 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  def getPolicyLibraryTags : Box[Map[DateTime,RevTag]] = {
+  def getPolicyLibraryTags : Box[Map[DateTime,GitArchiveId]] = {
     for {
       globalTags    <- this.getTags()
       policyLibTags <- gitUserPolicyTemplateCategoryArchiver.getTags()
@@ -275,7 +255,7 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  def getConfigurationRulesTags : Box[Map[DateTime,RevTag]] = {
+  def getConfigurationRulesTags : Box[Map[DateTime,GitArchiveId]] = {
     for {
       globalTags <- this.getTags()
       crTags     <- gitConfigurationRuleArchiver.getTags()

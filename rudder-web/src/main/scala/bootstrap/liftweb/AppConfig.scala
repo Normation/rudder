@@ -326,6 +326,7 @@ class AppConfig extends Loggable {
     , ldapUserPolicyTemplateRepository
     , ldapNodeGroupRepository
     , gitRepo
+    , gitRevisionProvider
     , gitConfigurationRuleArchiver
     , gitUserPolicyTemplateCategoryArchiver
     , gitUserPolicyTemplateArchiver
@@ -810,7 +811,6 @@ class AppConfig extends Loggable {
   @Bean
   def parseConfigurationRules : ParseConfigurationRules = new GitParseConfigurationRules(
       configurationRuleUnserialisation
-    , gitRevisionProvider
     , gitRepo
     , configurationRulesDirectoryName
   )
@@ -820,7 +820,6 @@ class AppConfig extends Loggable {
       userPolicyTemplateCategoryUnserialisation
     , userPolicyTemplateUnserialisation
     , policyInstanceUnserialisation
-    , gitRevisionProvider
     , gitRepo
     , userLibraryDirectoryName
   )
@@ -837,7 +836,6 @@ class AppConfig extends Loggable {
   def parseGroupLibrary : ParseGroupLibrary = new GitParseGroupLibrary(
       nodeGroupCategoryUnserialisation
     , nodeGroupUnserialisation
-    , gitRevisionProvider
     , gitRepo
     , groupLibraryDirectoryName
   )

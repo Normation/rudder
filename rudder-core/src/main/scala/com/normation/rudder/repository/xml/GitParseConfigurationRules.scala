@@ -40,7 +40,7 @@ import org.eclipse.jgit.revwalk.RevTag
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.rudder.domain.policies.ConfigurationRule
-import com.normation.rudder.repository.ParseConfigurationRules
+import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisation
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
@@ -51,26 +51,13 @@ import net.liftweb.common.Loggable
 
 class GitParseConfigurationRules(
     configurationRuleUnserialisation: ConfigurationRuleUnserialisation
-  , revisionProvider                : GitRevisionProvider
   , repo                            : GitRepositoryProvider
   , configurationRulesRootDirectory : String //relative name to git root file
 ) extends ParseConfigurationRules with Loggable {
   
-  
-  
-  /**
-   * Parse the group library. 
-   * The structure is purely recursive:
-   * - a directory must contains a category.xml or is ignored
-   * - a directory with a category.xml may contain UUID.xml files and sub-directories (ignore other files)
-   */
-  def getLastArchive : Box[Seq[ConfigurationRule]] = {
-    getArchiveForRevTreeId(revisionProvider.getAvailableRevTreeId)
-  }
-  
-  def getArchive(archiveId:RevTag) = {
+  def getArchive(archiveId:GitCommitId) = {
     for {
-      treeId  <- GitFindUtils.findRevTreeFromPath(repo.db, archiveId.getName)
+      treeId  <- GitFindUtils.findRevTreeFromRevString(repo.db, archiveId.value)
       archive <- getArchiveForRevTreeId(treeId)
     } yield {
       archive

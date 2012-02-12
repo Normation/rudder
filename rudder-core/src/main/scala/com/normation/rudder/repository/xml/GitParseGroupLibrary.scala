@@ -43,8 +43,7 @@ import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.PolicyInstanceTargetInfo
-import com.normation.rudder.repository.NodeGroupCategoryContent
-import com.normation.rudder.repository.ParseGroupLibrary
+import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisation
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisation
 import com.normation.utils.Control._
@@ -56,25 +55,14 @@ import net.liftweb.common.Box
 class GitParseGroupLibrary(
     categoryUnserialiser: NodeGroupCategoryUnserialisation
   , groupUnserialiser   : NodeGroupUnserialisation
-  , revisionProvider    : GitRevisionProvider
   , repo                : GitRepositoryProvider
   , libRootDirectory    : String //relative name to git root file
   , categoryFileName    : String = "category.xml"
 ) extends ParseGroupLibrary {
   
-  /**
-   * Parse the group library. 
-   * The structure is purely recursive:
-   * - a directory must contains a category.xml or is ignored
-   * - a directory with a category.xml may contain UUID.xml files and sub-directories (ignore other files)
-   */
-  def getLastArchive : Box[NodeGroupCategoryContent] = {
-    getArchiveForRevTreeId(revisionProvider.getAvailableRevTreeId)
-  }
-  
-  def getArchive(archiveId:RevTag) = {
+  def getArchive(archiveId:GitCommitId) = {
     for {
-      treeId  <- GitFindUtils.findRevTreeFromPath(repo.db, archiveId.getName)
+      treeId  <- GitFindUtils.findRevTreeFromRevString(repo.db, archiveId.value)
       archive <- getArchiveForRevTreeId(treeId)
     } yield {
       archive

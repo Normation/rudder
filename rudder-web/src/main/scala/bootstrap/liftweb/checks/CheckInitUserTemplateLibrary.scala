@@ -73,9 +73,11 @@ class CheckInitUserTemplateLibrary(
               logger.info("The user policy template library is not marked as being initialized: adding all policies from reference library...")
               copyReferenceLib(con) match {
                 case Full(x) => logger.info("...done")
-                case e:EmptyBox =>
-                  val msg = (e ?~! "Some error where encountered during the initialization of the user library").messageChain.split("<-").mkString("\n ->")
+                case eb:EmptyBox =>
+                  val e = eb ?~! "Some error where encountered during the initialization of the user library"
+                  val msg = e.messageChain.split("<-").mkString("\n ->")
                   logger.warn(msg)
+                  logger.debug(e.exceptionChain)
               }
               root += (A_OC, OC_USER_LIB_VERSION)
               root +=! (A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)

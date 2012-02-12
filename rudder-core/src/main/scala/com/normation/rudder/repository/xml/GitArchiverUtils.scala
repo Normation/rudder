@@ -44,7 +44,6 @@ import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.DateTime
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.exceptions.TechnicalException
-import com.normation.rudder.repository.ArchiveId
 import com.normation.utils.Utils
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
@@ -53,6 +52,7 @@ import org.joda.time.DateTimeFieldType
 import org.eclipse.jgit.revwalk.RevTag
 import org.eclipse.jgit.api.errors.JGitInternalException
 import org.eclipse.jgit.lib.PersonIdent
+import com.normation.rudder.repository._
 
 
 /**
@@ -66,7 +66,7 @@ trait GitArchiverUtils extends Loggable {
   def xmlPrettyPrinter : PrettyPrinter
   def encoding : String
 
-  def newArchiveId = ArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
+  def newDateTimeTagString = (DateTime.now()).toString(ISODateTimeFormat.dateTime)
   
   lazy val getRootDirectory : File = { 
     val file = new File(gitRootDirectory, relativePath)
@@ -83,16 +83,16 @@ trait GitArchiverUtils extends Loggable {
    * Files in gitPath are added. 
    * commitMessage is used for the message of the commit. 
    */
-  def commitAddFile(commiter:PersonIdent, gitPath:String, commitMessage:String) = synchronized {
+  def commitAddFile(commiter:PersonIdent, gitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
     tryo {
       gitRepo.git.add.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
       //for debugging
       if(!status.getAdded.contains(gitPath)||status.getChanged.contains(gitPath)) {
-        logger.debug("Auto-archive git failure: not found in git added files: " + gitPath)
+        logger.debug("Auto-archive git failure: not found in gist added files: " + gitPath)
       }
-      gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-      newArchiveId
+      val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
+      GitCommitId(rev.getName)
     }
   }
   
@@ -100,15 +100,15 @@ trait GitArchiverUtils extends Loggable {
    * Files in gitPath are removed. 
    * commitMessage is used for the message of the commit. 
    */
-  def commitRmFile(commiter:PersonIdent, gitPath:String, commitMessage:String) = synchronized {
+  def commitRmFile(commiter:PersonIdent, gitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
     tryo {
       gitRepo.git.rm.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
       if(!status.getRemoved.contains(gitPath)) {
         logger.debug("Auto-archive git failure: not found in git removed files: " + gitPath)
       }
-      gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-      newArchiveId
+      val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
+      GitCommitId(rev.getName)
     }
   }
   
@@ -119,7 +119,7 @@ trait GitArchiverUtils extends Loggable {
    * 'git added' (with and without the 'update' mode). 
    * commitMessage is used for the message of the commit. 
    */
-  def commitMvDirectory(commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) = synchronized {
+  def commitMvDirectory(commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
     tryo {
       gitRepo.git.rm.addFilepattern(oldGitPath).call
       gitRepo.git.add.addFilepattern(newGitPath).call
@@ -128,8 +128,8 @@ trait GitArchiverUtils extends Loggable {
       if(!status.getAdded.exists( path => path.startsWith(newGitPath) ) ) {
         logger.debug("Auto-archive git failure when moving directory (not found in added file): " + newGitPath)
       }
-      gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-      newArchiveId
+      val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
+      GitCommitId(rev.getName)
     }
   }
   
@@ -161,19 +161,20 @@ trait GitArchiverFullCommitUtils extends Loggable {
    * Commit all the modifications for files under the given path.
    * The commitMessage is used in the commit. 
    */
-  def commitFullGitPathContentAndTag(commiter:PersonIdent, commitMessage:String) : Box[String] = synchronized {
+  def commitFullGitPathContentAndTag(commiter:PersonIdent, commitMessage:String) : Box[GitArchiveId] = {
     tryo {
       //remove existing and add modified
       gitRepo.git.add.setUpdate(true).addFilepattern(relativePath).call
       //also add new one
       gitRepo.git.add.addFilepattern(relativePath).call
       val commit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-      val path = tagPrefix+DateTime.now.toString(GitTagDateTimeFormatter)
+      val path = GitPath(tagPrefix+DateTime.now.toString(GitTagDateTimeFormatter))
       logger.info("Create a new archive: " + path)
-      gitRepo.git.tag.setMessage(commitMessage).
-        setName(path).
+      val tagCommit = gitRepo.git.tag.setMessage(commitMessage).
+        setName(path.value).
         setTagger(commiter).
         setObjectId(commit).call.name
+      GitArchiveId(path, GitCommitId(tagCommit),commiter)
     }
   }
   
@@ -182,17 +183,17 @@ trait GitArchiverFullCommitUtils extends Loggable {
    * The DateTime is the one from the name, which may differ from the 
    * date of the tag. 
    */
-  def getTags() : Box[Map[DateTime,RevTag]] = {
+  def getTags() : Box[Map[DateTime, GitArchiveId]] = {
     import scala.collection.JavaConversions._
     tryo {
       gitRepo.git.tagList.call.flatMap { revTag => 
           val name = revTag.getTagName
           if(name.startsWith(tagPrefix)) {
             val t = try {
-              Some(
+              Some((
                   GitTagDateTimeFormatter.parseDateTime(name.substring(tagPrefix.size, name.size))
-                , revTag
-              )
+                , GitArchiveId(GitPath(name), GitCommitId(revTag.getName), revTag.getTaggerIdent)
+              ))
             } catch {
               case ex:IllegalArgumentException =>
                 logger.info("Error when parsing tag with name '%s' as a valid archive tag name, ignoring it.".format(name))
