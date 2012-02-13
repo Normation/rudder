@@ -54,6 +54,7 @@ import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
 import scala.xml.Text
+import com.normation.eventlog.EventActor
 
 class Archives extends DispatchSnippet with Loggable {
 
@@ -155,15 +156,15 @@ class Archives extends DispatchSnippet with Loggable {
       formName                  : String               //the element name to update on error/succes
     , archiveButtonId           : String               //input button
     , archiveButtonName         : String               //what is displayed on the button to the user
-    , archiveFunction           : (PersonIdent, Boolean) => Box[GitArchiveId] //the actual logic to execute the action
+    , archiveFunction           : (PersonIdent, EventActor, Boolean) => Box[GitArchiveId] //the actual logic to execute the action
     , archiveErrorMessage       : String               //error message to display to the user
     , archiveSuccessDebugMessage: String => String     //debug log - the string param is the archive id
     , archiveDateSelectId       : String
     , archiveListFunction       : () => Box[Map[DateTime,GitArchiveId]]
     , restoreButtonId           : String               //input button
     , restoreButtonName         : String               //what is displayed on the button to the user
-    , restoreFunction           : (GitCommitId,Boolean) => Box[GitCommitId] //the actual logic to execute the action
-    , restoreHeadFunction       : (Boolean) => Box[GitCommitId] //the actual logic to execute the restore from HEAD
+    , restoreFunction           : (GitCommitId, EventActor, Boolean) => Box[GitCommitId] //the actual logic to execute the action
+    , restoreHeadFunction       : (EventActor, Boolean) => Box[GitCommitId] //the actual logic to execute the restore from HEAD
     , restoreErrorMessage       : String               //error message to display to the user
     , restoreSuccessDebugMessage: String               //debug log - the string param is the archive id
   ) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
@@ -195,7 +196,7 @@ class Archives extends DispatchSnippet with Loggable {
       S.clearCurrentNotices
       (for {
         commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.getActor.name)
-        archive  <- archiveFunction(commiter, false)
+        archive  <- archiveFunction(commiter, CurrentUser.getActor, false)
       } yield {
         archive
       }) match {
@@ -231,7 +232,7 @@ class Archives extends DispatchSnippet with Loggable {
       
       val baseOptions: List[(RESTORER , String )] = 
         ( () => Empty, "Choose an archive to restore...") ::
-        ( () => restoreHeadFunction(false) , "Latest Git commit") ::
+        ( () => restoreHeadFunction(CurrentUser.getActor, false) , "Latest Git commit") ::
         Nil
       
       //and perhaps we have also some dates/rev tags
@@ -247,7 +248,7 @@ class Archives extends DispatchSnippet with Loggable {
           m.toList.sortWith { 
             case ( (d1,_), (d2,_) ) => d1.isAfter(d2) 
           }.map { case (date,revTag) =>
-            (() => restoreFunction(revTag.commit,false), DateFormaterService.getFormatedDate(date) )
+            (() => restoreFunction(revTag.commit, CurrentUser.getActor, false), DateFormaterService.getFormatedDate(date) )
           }
       }
 

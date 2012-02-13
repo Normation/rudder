@@ -51,10 +51,10 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.SHtml
-import com.normation.rudder.repository.EventLogRepository
 import net.liftweb.http.S
 import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.batch.ErrorStatus
+import com.normation.rudder.repository._
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment), 
@@ -270,6 +270,14 @@ class EventListDisplayer(
       case x:ReloadPolicyTemplateLibrary => Text("Policy template library reloaded")
       case x:SuccessfulDeployment => Text("Successful deployment")
       case x:FailedDeployment => Text("Failed deployment")
+      case x:ExportGroupsArchive => Text("New groups archive")
+      case x:ExportPolicyLibraryArchive => Text("New policy library archive")
+      case x:ExportConfigurationRulesArchive => Text("New configuration rules archives")
+      case x:ExportFullArchive => Text("New full archive")
+      case x:ImportGroupsArchive => Text("Restoring group archive")
+      case x:ImportPolicyLibraryArchive => Text("Restoring policy library archive")
+      case x:ImportConfigurationRulesArchive => Text("Restoring configuration rules archive")
+      case x:ImportFullArchive => Text("Restoring full archive")
       case _ => Text("Unknow event type")
       
     }
@@ -538,13 +546,45 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         })
         
+      // archiving & restoring 
+        
+      case x:ExportEventLog => 
+        "*" #> (logDetailsService.getNewArchiveDetails(x.details, x) match {
+          case Full(gitArchiveId) => displayExportArchiveDetails(gitArchiveId)
+          case e:EmptyBox => errorMessage(e)
+        })
+        
+      case x:ImportEventLog => 
+        "*" #> (logDetailsService.getRestoreArchiveDetails(x.details, x) match {
+          case Full(gitArchiveId) => displayImportArchiveDetails(gitArchiveId)
+          case e:EmptyBox => errorMessage(e)
+        })
+
       // other case: do not display details at all
       case _ => "*" #> ""
     
     })(event.details)
   }
   
-  
+  private[this] def displayExportArchiveDetails(gitArchiveId: GitArchiveId) = 
+    <div>
+      Details of the new archive:
+      <table>
+        <tr><td>Git path of the archive:</td><td>{gitArchiveId.path.value}</td></tr>
+        <tr><td>Commit ID (hash):</td><td>{gitArchiveId.commit.value}</td></tr>
+        <tr><td>Commiter name:</td><td>{gitArchiveId.commiter.getName}</td></tr>
+        <tr><td>Commiter email:</td><td>{gitArchiveId.commiter.getEmailAddress}</td></tr>
+      </table>
+    </div>
+        
+  private[this] def displayImportArchiveDetails(gitCommitId: GitCommitId) = 
+    <div>
+      Details of the restored archive:
+      <table>
+        <tr><td>Commit ID (hash):</td><td>{gitCommitId.value}</td></tr>
+      </table>
+    </div>
+
   private[this] def displayDiff(tag:String)(xml:NodeSeq) = 
       "From value '%s' to value '%s'".format(
           ("from ^*" #> "X" & "* *" #> (x => x))(xml) 

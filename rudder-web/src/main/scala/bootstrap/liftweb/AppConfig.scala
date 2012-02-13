@@ -337,6 +337,8 @@ class AppConfig extends Loggable {
     , importPolicyLibrary
     , parseGroupLibrary
     , importGroupLibrary
+    , logService
+    , asyncDeploymentAgent
   )
   
   ///// end /////

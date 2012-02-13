@@ -58,8 +58,12 @@ import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisation
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.log.NodeLogDetails
 import com.normation.inventory.domain.AgentType
-import com.normation.rudder.domain.log.AuthorizedNetworkModification
+import com.normation.rudder.domain.log._
 import com.normation.cfclerk.domain.PolicyPackageId
+import com.normation.rudder.repository.GitPath
+import com.normation.rudder.repository.GitCommitId
+import com.normation.rudder.repository.GitArchiveId
+import org.eclipse.jgit.lib.PersonIdent
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -113,6 +117,11 @@ trait EventLogDetailsService {
   def getUpdatePolicyServerDetails(xml:NodeSeq) : Box[AuthorizedNetworkModification]
 
   def getPolicyTemplateLibraryReloadDetails(xml:NodeSeq) : Box[Seq[PolicyPackageId]]
+  
+  ///// archiving & restoration /////
+  
+  def getNewArchiveDetails[T <: ExportEventLog](xml:NodeSeq, archive:T) : Box[GitArchiveId]
+  def getRestoreArchiveDetails[T <: ImportEventLog](xml:NodeSeq, archive:T) : Box[GitCommitId]
 }
 
 
@@ -603,4 +612,48 @@ class EventLogDetailsServiceImpl(
       ptIds
     }
   }
+  
+  
+  
+  def getNewArchiveDetails[T <: ExportEventLog](xml:NodeSeq, archive:T) : Box[GitArchiveId] = {
+    def getCommitInfo(xml:NodeSeq, tagName:String) = {
+      for {
+        entry    <- getEntryContent(xml)
+        details  <- (entry \ tagName).headOption ?~! ("Entry type is not a '%s': %s".format(tagName, entry))
+        path     <- (details \ "path").headOption.map( _.text ) ?~! ("Missing attribute 'path' in entry: " + xml)
+        commitId <- (details \ "commit").headOption.map( _.text ) ?~! ("Missing attribute 'commit' in entry: " + xml)
+        name     <- (details \ "commiterName").headOption.map( _.text ) ?~! ("Missing attribute 'commiterName' in entry: " + xml)
+        email    <- (details \ "commiterEmail").headOption.map( _.text ) ?~! ("Missing attribute 'commiterEmail' in entry: " + xml)
+      } yield {
+        GitArchiveId(GitPath(path), GitCommitId(commitId), new PersonIdent(name, email))
+      }
+    }
+    
+    archive match {
+      case x:ExportGroupsArchive => getCommitInfo(xml, ExportGroupsArchive.tagName)
+      case x:ExportPolicyLibraryArchive => getCommitInfo(xml, ExportPolicyLibraryArchive.tagName)
+      case x:ExportConfigurationRulesArchive => getCommitInfo(xml, ExportConfigurationRulesArchive.tagName)
+      case x:ExportFullArchive => getCommitInfo(xml, ExportFullArchive.tagName)
+    }
+  }
+  
+  def getRestoreArchiveDetails[T <: ImportEventLog](xml:NodeSeq, archive:T) : Box[GitCommitId] = {
+    def getCommitInfo(xml:NodeSeq, tagName:String) = {
+      for {
+        entry    <- getEntryContent(xml)
+        details  <- (entry \ tagName).headOption ?~! ("Entry type is not a '%s': %s".format(tagName, entry))
+        commitId <- (details \ "commit").headOption.map( _.text ) ?~! ("Missing attribute 'commit' in entry: " + xml)
+      } yield {
+        GitCommitId(commitId)
+      }
+    }
+    
+    archive match {
+      case x:ImportGroupsArchive => getCommitInfo(xml, ImportGroupsArchive.tagName)
+      case x:ImportPolicyLibraryArchive => getCommitInfo(xml, ImportPolicyLibraryArchive.tagName)
+      case x:ImportConfigurationRulesArchive => getCommitInfo(xml, ImportConfigurationRulesArchive.tagName)
+      case x:ImportFullArchive => getCommitInfo(xml, ImportFullArchive.tagName)
+    }
+  }
+
 }

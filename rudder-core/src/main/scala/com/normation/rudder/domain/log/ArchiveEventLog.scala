@@ -10,164 +10,228 @@ import com.normation.rudder.repository.UptCategoryContent
 import com.normation.rudder.repository.jdbc.ConfigurationRules
 import com.normation.rudder.domain.policies.ConfigurationRule
 import com.normation.rudder.repository.GitPath
+import com.normation.rudder.repository.GitArchiveId
+import com.normation.rudder.repository.GitCommitId
 
 sealed trait ImportExportEventLog  extends EventLog { override final val eventLogCategory = ImportExportItemsLogCategory }
 
+sealed trait ImportEventLog  extends ImportExportEventLog
+sealed trait ExportEventLog  extends ImportExportEventLog
 
+object ImportExportEventLog {
+  
+  def buildCommonExportDetails(tagName:String, gitArchiveId: GitArchiveId) : Elem = 
+    EventLog.withContent(new Elem(null, tagName, Null, TopScope, child = (  
+        <path>{gitArchiveId.path.value}</path>
+        <commit>{gitArchiveId.commit.value}</commit>
+        <commiterName>{gitArchiveId.commiter.getName}</commiterName>
+        <commiterEmail>{gitArchiveId.commiter.getEmailAddress}</commiterEmail>
+      ):_*
+    ) )
 
-final case class ExportGroups(
-    override val eventDetails : EventLogDetails
-) extends ImportExportEventLog with HashcodeCaching {
-  override val eventType = ExportGroups.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+  def buildCommonImportDetails(tagName:String, gitCommitId: GitCommitId) : NodeSeq = (
+    EventLog.withContent(new Elem(null, tagName, Null, TopScope, child = (  
+        <commit>{gitCommitId.value}</commit>
+      ):_*
+    ) )
+  )
+  
 }
 
-object ExportGroups extends EventLogFilter {
+final case class ExportGroupsArchive(
+    override val eventDetails : EventLogDetails
+) extends ExportEventLog with HashcodeCaching {
+  override val eventType = ExportGroupsArchive.eventType
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+  def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
+      principal = actor
+    , details = ExportGroupsArchive.buildDetails(gitArchiveId)
+  ))
+}
+
+object ExportGroupsArchive extends EventLogFilter {
   override val eventType = ExportGroupsEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ExportGroups = ExportGroups(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ExportGroupsArchive = ExportGroupsArchive(x._2) 
   
-  def buildDetails(gitPath:GitPath, groups:NodeGroupCategoryContent) = EventLog.withContent {
+  def buildDetails(gitArchiveId:GitArchiveId) = 
+    ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
     
-    error("TODO")
-  }
+  val tagName = "NewGroupsArchive"
 }
 
-final case class ImportGroups(
+final case class ImportGroupsArchive(
     override val eventDetails : EventLogDetails
-) extends ImportExportEventLog with HashcodeCaching {
-  override val eventType = ImportGroups.eventType
+) extends ImportEventLog with HashcodeCaching {
+  override val eventType = ImportGroupsArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+  def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
+      principal = actor
+    , details = ImportGroupsArchive.buildDetails(gitCommitId)
+  ))
 }
 
-object ImportGroups extends EventLogFilter {
+object ImportGroupsArchive extends EventLogFilter {
   override val eventType = ImportGroupsEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ImportGroups = ImportGroups(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ImportGroupsArchive = ImportGroupsArchive(x._2) 
   
-  def buildDetails(gitPath:GitPath, groups:NodeGroupCategoryContent) = EventLog.withContent {
-    
-    error("TODO")
-  }
+  def buildDetails(gitCommitId:GitCommitId) =
+    ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
+
+  val tagName = "RestoreGroupsArchive"
 }
 
-final case class ExportPolicyLibrary(
+final case class ExportPolicyLibraryArchive(
     override val eventDetails : EventLogDetails
-) extends ImportExportEventLog with HashcodeCaching {
-  override val eventType = ExportPolicyLibrary.eventType
+) extends ExportEventLog with HashcodeCaching {
+  override val eventType = ExportPolicyLibraryArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+  def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
+      principal = actor
+    , details = ExportPolicyLibraryArchive.buildDetails(gitArchiveId)
+  ))
 }
 
-object ExportPolicyLibrary extends EventLogFilter {
+object ExportPolicyLibraryArchive extends EventLogFilter {
   override val eventType = ExportPolicyLibraryEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ExportPolicyLibrary = ExportPolicyLibrary(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ExportPolicyLibraryArchive = ExportPolicyLibraryArchive(x._2) 
   
-  def buildDetails(gitPath:GitPath, policyLibrary:UptCategoryContent) = EventLog.withContent {
+  def buildDetails(gitArchiveId:GitArchiveId) = 
+    ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
     
-    error("TODO")
-  }
+  val tagName = "NewPolicyLibraryArchive"
 }
 
-final case class ImportPolicyLibrary(
+final case class ImportPolicyLibraryArchive(
     override val eventDetails : EventLogDetails
-) extends ImportExportEventLog with HashcodeCaching {
-  override val eventType = ImportPolicyLibrary.eventType
+) extends ImportEventLog with HashcodeCaching {
+  override val eventType = ImportPolicyLibraryArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+  def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
+      principal = actor
+    , details = ImportPolicyLibraryArchive.buildDetails(gitCommitId)
+  ))
 }
 
-object ImportPolicyLibrary extends EventLogFilter {
+object ImportPolicyLibraryArchive extends EventLogFilter {
   override val eventType = ImportPolicyLibraryEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ImportPolicyLibrary = ImportPolicyLibrary(x._2) 
-  def buildDetails(gitPath:GitPath, policyLibrary:UptCategoryContent) = EventLog.withContent {
-    
-    error("TODO")
-  }
+  override def apply(x : (EventLogType, EventLogDetails)) : ImportPolicyLibraryArchive = ImportPolicyLibraryArchive(x._2) 
+
+  def buildDetails(gitCommitId:GitCommitId) =
+    ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
+  
+  val tagName = "RestorePolicyLibraryArchive"
 }
 
 
-final case class ExportCRs(
+final case class ExportConfigurationRulesArchive(
     override val eventDetails : EventLogDetails
-) extends ImportExportEventLog with HashcodeCaching {
-  override val eventType = ExportCRs.eventType
+) extends ExportEventLog with HashcodeCaching {
+  override val eventType = ExportConfigurationRulesArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+  def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
+      principal = actor
+    , details = ExportConfigurationRulesArchive.buildDetails(gitArchiveId)
+  ))
 }
 
-object ExportCRs extends EventLogFilter {
-  override val eventType = ExportCrsEventType
+object ExportConfigurationRulesArchive extends EventLogFilter {
+  override val eventType = ExportConfigurationRulesEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ExportCRs = ExportCRs(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ExportConfigurationRulesArchive = ExportConfigurationRulesArchive(x._2) 
 
-  def buildDetails(gitPath:GitPath, configurationRules:Seq[ConfigurationRule]) = EventLog.withContent {
+  def buildDetails(gitArchiveId:GitArchiveId) = 
+    ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
     
-    error("TODO")
-  }
+  val tagName = "NewGroupsArchive"
 }
 
-final case class ImportCRs(
+final case class ImportConfigurationRulesArchive(
     override val eventDetails : EventLogDetails
-) extends ImportExportEventLog with HashcodeCaching {
-  override val eventType = ImportCRs.eventType
+) extends ImportEventLog with HashcodeCaching {
+  override val eventType = ImportConfigurationRulesArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+  def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
+      principal = actor
+    , details = ImportConfigurationRulesArchive.buildDetails(gitCommitId)
+  ))
 }
 
-object ImportCRs extends EventLogFilter {
-  override val eventType = ImportCrsEventType
+object ImportConfigurationRulesArchive extends EventLogFilter {
+  override val eventType = ImportConfigurationRulesEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ImportCRs = ImportCRs(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ImportConfigurationRulesArchive = ImportConfigurationRulesArchive(x._2) 
 
-  def buildDetails(gitPath:GitPath, configurationRules:Seq[ConfigurationRule]) = EventLog.withContent {
-    
-    error("TODO")
-  }
+  def buildDetails(gitCommitId:GitCommitId) =
+    ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
+
+  val tagName = "RestoreConfigurationRulesArchive"
 }
 
-final case class ExportAllLibraries(
+final case class ExportFullArchive(
     override val eventDetails : EventLogDetails
-) extends ImportExportEventLog with HashcodeCaching {
-  override val eventType = ExportAllLibraries.eventType
+) extends ExportEventLog with HashcodeCaching {
+  override val eventType = ExportFullArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+  def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
+      principal = actor
+    , details = ExportFullArchive.buildDetails(gitArchiveId)
+  ))
 }
 
-object ExportAllLibraries extends EventLogFilter {
-  override val eventType = ExportAllLibrariesEventType
+object ExportFullArchive extends EventLogFilter {
+  override val eventType = ExportFullArchiveEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ExportAllLibraries = ExportAllLibraries(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ExportFullArchive = ExportFullArchive(x._2) 
 
-  def buildDetails(gitPath:GitPath) = EventLog.withContent {
+  def buildDetails(gitArchiveId:GitArchiveId) = 
+    ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
     
-    error("TODO")
-  }
+  val tagName = "NewFullArchive"
 }
 
-final case class ImportAllLibraries(
+final case class ImportFullArchive(
     override val eventDetails : EventLogDetails
-) extends ImportExportEventLog with HashcodeCaching {
-  override val eventType = ImportAllLibraries.eventType
+) extends ImportEventLog with HashcodeCaching {
+  override val eventType = ImportFullArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+  def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
+      principal = actor
+    , details = ImportFullArchive.buildDetails(gitCommitId)
+  ))
 }
 
-object ImportAllLibraries extends EventLogFilter {
-  override val eventType = ImportAllLibrariesEventType
+object ImportFullArchive extends EventLogFilter {
+  override val eventType = ImportFullArchiveEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ImportAllLibraries = ImportAllLibraries(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ImportFullArchive = ImportFullArchive(x._2) 
 
-  def buildDetails(gitPath:GitPath) = EventLog.withContent {
-    
-    error("TODO")
-  }
+  def buildDetails(gitCommitId:GitCommitId) =
+    ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
+
+  val tagName = "RestoreFullArchive"
 }
 
 object ImportExportEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      ExportGroups 
-    , ImportGroups 
-    , ExportPolicyLibrary
-    , ImportPolicyLibrary
-    , ExportCRs
-    , ImportCRs
-    , ExportAllLibraries
-    , ImportAllLibraries
+      ExportGroupsArchive 
+    , ExportPolicyLibraryArchive
+    , ExportConfigurationRulesArchive
+    , ExportFullArchive
+    , ImportGroupsArchive 
+    , ImportPolicyLibraryArchive
+    , ImportConfigurationRulesArchive
+    , ImportFullArchive
     )
 }

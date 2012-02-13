@@ -56,6 +56,7 @@ import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.utils.HashcodeCaching
+import com.normation.eventlog.EventActor
 
 
 
@@ -95,14 +96,13 @@ trait ItemArchiveManager {
    * Save all items handled by that archive manager 
    * and return an ID for the archive on success. 
    */
-  def exportAll(commiter:PersonIdent, includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportAll(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
   
+  def exportConfigurationRules(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
   
-  def exportConfigurationRules(commiter:PersonIdent, includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportPolicyLibrary(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
   
-  def exportPolicyLibrary(commiter:PersonIdent, includeSystem:Boolean = false) : Box[GitArchiveId]
-  
-  def exportGroupLibrary(commiter:PersonIdent, includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportGroupLibrary(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
   
   /**
    * Import the archive with the given ID in Rudder. 
@@ -112,25 +112,25 @@ trait ItemArchiveManager {
    * was required. 
    * 
    */
-  def importAll(archiveId:GitCommitId, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importAll(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
 
-  def importConfigurationRules(archiveId:GitCommitId, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importConfigurationRules(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importPolicyLibrary(archiveId:GitCommitId, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importPolicyLibrary(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importGroupLibrary(archiveId:GitCommitId, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importGroupLibrary(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
 
   /**
    * Import the item archive from HEAD (corresponding to last commit)
    */
-  def importHeadAll(includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadAll(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importHeadConfigurationRules(includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadConfigurationRules(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importHeadPolicyLibrary(includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadPolicyLibrary(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importHeadGroupLibrary(includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadGroupLibrary(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
   
   /**

@@ -157,17 +157,17 @@ final case object ExportPolicyLibraryEventType extends EventLogType {
 final case object ImportPolicyLibraryEventType extends EventLogType {
   def serialize = "ImportPolicyLibrary"
 }
-final case object ExportCrsEventType extends EventLogType {
-  def serialize = "ExportCRs"
+final case object ExportConfigurationRulesEventType extends EventLogType {
+  def serialize = "ExportConfigurationRules"
 }
-final case object ImportCrsEventType extends EventLogType {
-  def serialize = "ImportCRs"
+final case object ImportConfigurationRulesEventType extends EventLogType {
+  def serialize = "ImportConfigurationRules"
 }
-final case object ExportAllLibrariesEventType extends EventLogType {
-  def serialize = "ExportAllLibraries"
+final case object ExportFullArchiveEventType extends EventLogType {
+  def serialize = "ExportFullArchive"
 }
-final case object ImportAllLibrariesEventType extends EventLogType {
-  def serialize = "ImportAllLibraries"
+final case object ImportFullArchiveEventType extends EventLogType {
+  def serialize = "ImportFullArchive"
 }
 
 
@@ -234,10 +234,10 @@ object EventTypeFactory {
     , ImportGroupsEventType
     , ExportPolicyLibraryEventType
     , ImportPolicyLibraryEventType
-    , ExportCrsEventType
-    , ImportCrsEventType
-    , ExportAllLibrariesEventType
-    , ImportAllLibrariesEventType
+    , ExportConfigurationRulesEventType
+    , ImportConfigurationRulesEventType
+    , ExportFullArchiveEventType
+    , ImportFullArchiveEventType
   )
       
   def apply(s:String) : EventLogType = {

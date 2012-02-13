@@ -47,6 +47,7 @@ import net.liftweb.json.JsonDSL._
 import org.joda.time.DateTime
 import net.liftweb.util.Helpers.tryo
 import org.eclipse.jgit.lib.PersonIdent
+import com.normation.eventlog.EventActor
   
 /**
  * A rest api that allows to deploy promises.
@@ -74,32 +75,32 @@ class RestArchiving(
   
   // restore last archive /api/archives/restore/{groups,..}/latestArchive
   serve {
-    case Get("api" :: "archives" :: "restore" :: "groups" :: "latestArchive" :: Nil, _) => 
-      restoreLatestArchive(itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, "groups")
+    case Get("api" :: "archives" :: "restore" :: "groups" :: "latestArchive" :: Nil, req) => 
+      restoreLatestArchive(req, itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, "groups")
 
-    case Get("api" :: "archives" :: "restore" :: "policyLibrary" :: "latestArchive" :: Nil, _) =>
-      restoreLatestArchive(itemArchiveManager.getPolicyLibraryTags _, itemArchiveManager.importPolicyLibrary, "policy library")
+    case Get("api" :: "archives" :: "restore" :: "policyLibrary" :: "latestArchive" :: Nil, req) =>
+      restoreLatestArchive(req, itemArchiveManager.getPolicyLibraryTags _, itemArchiveManager.importPolicyLibrary, "policy library")
 
-    case Get("api" :: "archives" :: "restore" :: "configurationRules" :: "latestArchive" :: Nil, _) => 
-      restoreLatestArchive(itemArchiveManager.getConfigurationRulesTags _, itemArchiveManager.importConfigurationRules, "configuration rules")
+    case Get("api" :: "archives" :: "restore" :: "configurationRules" :: "latestArchive" :: Nil, req) => 
+      restoreLatestArchive(req, itemArchiveManager.getConfigurationRulesTags _, itemArchiveManager.importConfigurationRules, "configuration rules")
 
-    case Get("api" :: "archives" :: "restore" :: "full" :: "latestArchive" :: Nil, _) => 
-      restoreLatestArchive(itemArchiveManager.getFullArchiveTags _, itemArchiveManager.importAll, "full archive")
+    case Get("api" :: "archives" :: "restore" :: "full" :: "latestArchive" :: Nil, req) => 
+      restoreLatestArchive(req, itemArchiveManager.getFullArchiveTags _, itemArchiveManager.importAll, "full archive")
   }
 
   // restore from Git HEAD /api/archives/restore/{groups,..}/latestCommit
   serve {
-    case Get("api" :: "archives" :: "restore" :: "groups" :: "latestCommit" :: Nil, _) => 
-      restoreLatestCommit(itemArchiveManager.importHeadGroupLibrary, "groups")
+    case Get("api" :: "archives" :: "restore" :: "groups" :: "latestCommit" :: Nil, req) => 
+      restoreLatestCommit(req, itemArchiveManager.importHeadGroupLibrary, "groups")
 
-    case Get("api" :: "archives" :: "restore" :: "policyLibrary" :: "latestCommit" :: Nil, _) =>
-      restoreLatestCommit(itemArchiveManager.importHeadPolicyLibrary, "policy library")
+    case Get("api" :: "archives" :: "restore" :: "policyLibrary" :: "latestCommit" :: Nil, req) =>
+      restoreLatestCommit(req, itemArchiveManager.importHeadPolicyLibrary, "policy library")
 
-    case Get("api" :: "archives" :: "restore" :: "configurationRules" :: "latestCommit" :: Nil, _) => 
-      restoreLatestCommit(itemArchiveManager.importHeadConfigurationRules, "configuration rules")
+    case Get("api" :: "archives" :: "restore" :: "configurationRules" :: "latestCommit" :: Nil, req) => 
+      restoreLatestCommit(req, itemArchiveManager.importHeadConfigurationRules, "configuration rules")
 
-    case Get("api" :: "archives" :: "restore" :: "full" :: "latestCommit" :: Nil, _) => 
-      restoreLatestCommit(itemArchiveManager.importHeadAll, "full archive")
+    case Get("api" :: "archives" :: "restore" :: "full" :: "latestCommit" :: Nil, req) => 
+      restoreLatestCommit(req, itemArchiveManager.importHeadAll, "full archive")
   }
   
   // archive /api/archives/archive/{groups, ...}
@@ -120,17 +121,17 @@ class RestArchiving(
   //restore a given archive
   // restore last archive /api/archives/restore/{groups,..}/latest
   serve {
-    case Get("api" :: "archives" :: "restore" :: "groups" :: "datetime" :: datetime :: Nil, _) => 
-      restoreByDatetime(itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, datetime, "groups")
+    case Get("api" :: "archives" :: "restore" :: "groups" :: "datetime" :: datetime :: Nil, req) => 
+      restoreByDatetime(req, itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, datetime, "groups")
 
-    case Get("api" :: "archives" :: "restore" :: "policyLibrary" :: "datetime" :: datetime :: Nil, _) =>
-      restoreByDatetime(itemArchiveManager.getPolicyLibraryTags _, itemArchiveManager.importPolicyLibrary, datetime, "policy library")
+    case Get("api" :: "archives" :: "restore" :: "policyLibrary" :: "datetime" :: datetime :: Nil, req) =>
+      restoreByDatetime(req, itemArchiveManager.getPolicyLibraryTags _, itemArchiveManager.importPolicyLibrary, datetime, "policy library")
 
-    case Get("api" :: "archives" :: "restore" :: "configurationRules" :: "datetime" :: datetime :: Nil, _) => 
-      restoreByDatetime(itemArchiveManager.getConfigurationRulesTags _, itemArchiveManager.importConfigurationRules, datetime, "configuration rules")
+    case Get("api" :: "archives" :: "restore" :: "configurationRules" :: "datetime" :: datetime :: Nil, req) => 
+      restoreByDatetime(req, itemArchiveManager.getConfigurationRulesTags _, itemArchiveManager.importConfigurationRules, datetime, "configuration rules")
 
-    case Get("api" :: "archives" :: "restore" :: "full" :: "datetime" :: datetime :: Nil, _) => 
-      restoreByDatetime(itemArchiveManager.getFullArchiveTags _, itemArchiveManager.importAll, datetime, "full archive")
+    case Get("api" :: "archives" :: "restore" :: "full" :: "datetime" :: datetime :: Nil, req) => 
+      restoreByDatetime(req, itemArchiveManager.getFullArchiveTags _, itemArchiveManager.importAll, datetime, "full archive")
   }
   
 
@@ -172,11 +173,11 @@ class RestArchiving(
   }
 
   
-  private[this] def restoreLatestArchive(list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,Boolean) => Box[GitCommitId], archiveType:String) = {
+  private[this] def restoreLatestArchive(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,EventActor,Boolean) => Box[GitCommitId], archiveType:String) = {
     (for {
       archives   <- list()
       (date,tag) <- Box(archives.toList.sortWith { case ( (d1,_), (d2,_) ) => d1.isAfter(d2) }.headOption) ?~! "No archive is available"
-      restored   <- restore(tag.commit,false)
+      restored   <- restore(tag.commit,RestUtils.getActor(req),false)
     } yield {
       restored
     }) match {
@@ -188,9 +189,9 @@ class RestArchiving(
     }
   }
   
-  private[this] def restoreLatestCommit(restore: Boolean => Box[GitCommitId], archiveType:String) = {
+  private[this] def restoreLatestCommit(req:Req, restore: (EventActor,Boolean) => Box[GitCommitId], archiveType:String) = {
     (for {
-      restored   <- restore(false)
+      restored   <- restore(RestUtils.getActor(req),false)
     } yield {
       restored
     }) match {
@@ -202,12 +203,12 @@ class RestArchiving(
     }
   }
   
-  private[this] def restoreByDatetime(list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,Boolean) => Box[GitCommitId], datetime:String, archiveType:String) = {
+  private[this] def restoreByDatetime(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,EventActor,Boolean) => Box[GitCommitId], datetime:String, archiveType:String) = {
     (for {
       valideDate <- tryo { GitTagDateTimeFormatter.parseDateTime(datetime) } ?~! "The given archive id is not a valid archive tag: %s".format(datetime)
       archives   <- list()
       tag        <- Box(archives.get(valideDate)) ?~! "The archive with tag '%s' is not available. Available archives: %s".format(datetime,archives.keySet.map( _.toString(GitTagDateTimeFormatter)).mkString(", "))
-      restored   <- restore(tag.commit,false)
+      restored   <- restore(tag.commit,RestUtils.getActor(req),false)
     } yield {
       restored
     }) match {
@@ -219,10 +220,10 @@ class RestArchiving(
     }
   }
 
-  private[this] def archive(req:Req, archive:(PersonIdent,Boolean) => Box[GitArchiveId], archiveType:String) = {
+  private[this] def archive(req:Req, archive:(PersonIdent,EventActor,Boolean) => Box[GitArchiveId], archiveType:String) = {
     (for {
       commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
-      archiveId <- archive(commiter,false)
+      archiveId <- archive(commiter,RestUtils.getActor(req),false)
     } yield {
       archiveId
     }) match {

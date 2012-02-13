@@ -45,6 +45,11 @@ import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.cfclerk.services.GitRevisionProvider
+import com.normation.eventlog.EventLogService
+import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.log._
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AutomaticStartDeployment
 
 class ItemArchiveManagerImpl(
     configurationRuleRepository          : ConfigurationRuleRepository
@@ -62,6 +67,8 @@ class ItemArchiveManagerImpl(
   , importPolicyLibrary                  : ImportPolicyLibrary
   , parseGroupLibrary                    : ParseGroupLibrary
   , importGroupLibrary                   : ImportGroupLibrary
+  , eventLogger                          : EventLogService
+  , asyncDeploymentAgent                 : AsyncDeploymentAgent
 ) extends 
   ItemArchiveManager with 
   Loggable with 
@@ -73,22 +80,27 @@ class ItemArchiveManagerImpl(
   
   ///// implementation /////
   
-  def exportAll(commiter:PersonIdent, includeSystem:Boolean = false): Box[GitArchiveId] = { 
+  def exportAll(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false): Box[GitArchiveId] = { 
     for {
-      saveCrs     <- exportConfigurationRules(commiter, includeSystem)
-      saveUserLib <- exportPolicyLibrary(commiter, includeSystem)
-      saveGroups  <- exportGroupLibrary(commiter, includeSystem)
+      saveCrs     <- exportConfigurationRulesAndDeploy(commiter, actor, includeSystem, false)
+      saveUserLib <- exportPolicyLibraryAndDeploy(commiter, actor, includeSystem, false)
+      saveGroups  <- exportGroupLibraryAndDeploy(commiter, actor, includeSystem, false)
       archiveAll  <- this.commitFullGitPathContentAndTag(
                          commiter
                        , FULL_ARCHIVE_TAG + " Archive and tag groups, policy library and configuration rules"
                      )
+      eventLogged <- eventLogger.saveEventLog(new ExportFullArchive(actor,archiveAll))
     } yield {
+      asyncDeploymentAgent ! AutomaticStartDeployment(actor)
       archiveAll
     }
   }
 
   
-  def exportConfigurationRules(commiter:PersonIdent, includeSystem:Boolean = false): Box[GitArchiveId] = { 
+  def exportConfigurationRules(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false): Box[GitArchiveId] =
+    exportConfigurationRulesAndDeploy(commiter, actor, includeSystem)
+    
+  private[this] def exportConfigurationRulesAndDeploy(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = { 
     for {
       crs         <- configurationRuleRepository.getAll(false)
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitConfigurationRuleArchiver.getRootDirectory) }
@@ -96,12 +108,17 @@ class ItemArchiveManagerImpl(
                        gitConfigurationRuleArchiver.archiveConfigurationRule(cr,None)
                      }
       commitId    <- gitConfigurationRuleArchiver.commitConfigurationRules(commiter)
+      eventLogged <- eventLogger.saveEventLog(new ExportConfigurationRulesArchive(actor,commitId))
     } yield {
+      if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(actor) }
       commitId
     }
   }
   
-  def exportPolicyLibrary(commiter:PersonIdent, includeSystem:Boolean = false): Box[GitArchiveId] = { 
+  def exportPolicyLibrary(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false): Box[GitArchiveId] =
+    exportPolicyLibraryAndDeploy(commiter, actor, includeSystem) 
+    
+  private[this] def exportPolicyLibraryAndDeploy(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = { 
     for { 
       catWithUPT   <- uptRepository.getUPTbyCategory(includeSystem = true)
       //remove systems things if asked (both system categories and system upts in non-system categories)
@@ -124,12 +141,17 @@ class ItemArchiveManagerImpl(
                        }
                      }
       commitId    <- gitUserPolicyTemplateCategoryArchiver.commitUserPolicyLibrary(commiter)
+      eventLogged <- eventLogger.saveEventLog(new ExportPolicyLibraryArchive(actor,commitId))
     } yield {
+      if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(actor) }
       commitId
     }
   }
   
-  def exportGroupLibrary(commiter:PersonIdent, includeSystem:Boolean = false): Box[GitArchiveId] = { 
+  def exportGroupLibrary(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false): Box[GitArchiveId] = 
+    exportGroupLibraryAndDeploy(commiter, actor, includeSystem) 
+    
+  private[this] def exportGroupLibraryAndDeploy(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = { 
     for { 
       catWithGroups   <- groupRepository.getGroupsByCategory(includeSystem = true)
       //remove systems things if asked (both system categories and system groups in non-system categories)
@@ -152,7 +174,9 @@ class ItemArchiveManagerImpl(
                            }
                          }
       commitId        <- gitNodeGroupCategoryArchiver.commitGroupLibrary(commiter)
+      eventLogged <- eventLogger.saveEventLog(new ExportGroupsArchive(actor,commitId))
     } yield {
+      if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(actor) }
       commitId
     }
   }
@@ -162,22 +186,28 @@ class ItemArchiveManagerImpl(
   
   
   
-  def importAll(archiveId:GitCommitId, includeSystem:Boolean = false) : Box[GitCommitId] = {
+  def importAll(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing full archive with id '%s'".format(archiveId.value))
     for {
-      configurationRules <- importConfigurationRules(archiveId, includeSystem)
-      userLib            <- importPolicyLibrary(archiveId, includeSystem)
-      groupLIb           <- importGroupLibrary(archiveId, includeSystem)
+      configurationRules <- importConfigurationRulesAndDeploy(archiveId, actor, includeSystem, false)
+      userLib            <- importPolicyLibraryAndDeploy(archiveId, actor, includeSystem, false)
+      groupLIb           <- importGroupLibraryAndDeploy(archiveId, actor, includeSystem, false)
+      eventLogged        <- eventLogger.saveEventLog(new ImportFullArchive(actor,archiveId))
     } yield {
+      asyncDeploymentAgent ! AutomaticStartDeployment(actor)
       archiveId
     }
   }
   
-  def importConfigurationRules(archiveId:GitCommitId, includeSystem:Boolean = false) : Box[GitCommitId] = {
+  def importConfigurationRules(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) =
+    importConfigurationRulesAndDeploy(archiveId, actor, includeSystem)
+        
+  private[this] def importConfigurationRulesAndDeploy(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing configuration rules archive with id '%s'".format(archiveId.value))
     for {
-      parsed   <- parseConfigurationRules.getArchive(archiveId)
-      imported <- configurationRuleRepository.swapConfigurationRules(parsed)
+      parsed      <- parseConfigurationRules.getArchive(archiveId)
+      imported    <- configurationRuleRepository.swapConfigurationRules(parsed)
+      eventLogged <- eventLogger.saveEventLog(new ImportConfigurationRulesArchive(actor,archiveId))
     } yield {
       //try to clean
       configurationRuleRepository.deleteSavedCr(imported) match {
@@ -186,50 +216,61 @@ class ItemArchiveManagerImpl(
           logger.error(e)
         case _ => //ok
       }
+      if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(actor) }
       archiveId
     }
   }
   
-  def importPolicyLibrary(archiveId:GitCommitId, includeSystem:Boolean) : Box[GitCommitId] = {
+  def importPolicyLibrary(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean) : Box[GitCommitId] = 
+    importPolicyLibraryAndDeploy(archiveId, actor, includeSystem)
+  
+  private[this] def importPolicyLibraryAndDeploy(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing policy library archive with id '%s'".format(archiveId.value))
       for {
-        parsed   <- parsePolicyLibrary.getArchive(archiveId)
-        imported <- importPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
+        parsed      <- parsePolicyLibrary.getArchive(archiveId)
+        imported    <- importPolicyLibrary.swapUserPolicyLibrary(parsed, includeSystem)
+        eventLogged <- eventLogger.saveEventLog(new ImportPolicyLibraryArchive(actor,archiveId))
       } yield {
+        if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(actor) }
         archiveId
       }
   }
   
-  def importGroupLibrary(archiveId:GitCommitId, includeSystem:Boolean) : Box[GitCommitId] = {
+  def importGroupLibrary(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean) : Box[GitCommitId] =
+    importGroupLibraryAndDeploy(archiveId, actor, includeSystem)
+
+  private[this] def importGroupLibraryAndDeploy(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing groups archive with id '%s'".format(archiveId.value))
       for {
-        parsed   <- parseGroupLibrary.getArchive(archiveId)
-        imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
+        parsed      <- parseGroupLibrary.getArchive(archiveId)
+        imported    <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
+        eventLogged <- eventLogger.saveEventLog(new ImportGroupsArchive(actor,archiveId))
       } yield {
+        if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(actor) }
         archiveId
       }
   }
 
   private[this] def lastGitCommitId = GitCommitId(revisionProvider.getAvailableRevTreeId.getName)
   
-  def importHeadAll(includeSystem:Boolean = false) : Box[GitCommitId] = {
+  def importHeadAll(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing full archive from HEAD")
-    this.importAll(lastGitCommitId, includeSystem)
+    this.importAll(lastGitCommitId, actor, includeSystem)
   }
   
-  def importHeadConfigurationRules(includeSystem:Boolean = false) : Box[GitCommitId] = {
+  def importHeadConfigurationRules(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing configuration rules archive from HEAD")
-    this.importConfigurationRules(lastGitCommitId,includeSystem)
+    this.importConfigurationRules(lastGitCommitId, actor, includeSystem)
   }
   
-  def importHeadPolicyLibrary(includeSystem:Boolean = false) : Box[GitCommitId] = {
+  def importHeadPolicyLibrary(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing policy library archive from HEAD")
-    this.importPolicyLibrary(lastGitCommitId,includeSystem)
+    this.importPolicyLibrary(lastGitCommitId, actor, includeSystem)
   }
   
-  def importHeadGroupLibrary(includeSystem:Boolean = false) : Box[GitCommitId] = {
+  def importHeadGroupLibrary(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing groups archive from HEAD")
-    this.importGroupLibrary(lastGitCommitId, includeSystem)
+    this.importGroupLibrary(lastGitCommitId, actor, includeSystem)
   }
   
   def getFullArchiveTags : Box[Map[DateTime,GitArchiveId]] = this.getTags()
