@@ -54,6 +54,6 @@ trait PersonIdentService {
 
 class TrivialPersonIdentService extends PersonIdentService {
   override def getPersonIdentOrDefault(username:String) : Box[PersonIdent] = {
-    Full(new PersonIdent(username, "<email not set>"))
+    Full(new PersonIdent(username, "email not set"))
   }
 }
