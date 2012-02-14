@@ -89,7 +89,7 @@ trait GitArchiverUtils extends Loggable {
       val status = gitRepo.git.status.call
       //for debugging
       if(!status.getAdded.contains(gitPath)||status.getChanged.contains(gitPath)) {
-        logger.debug("Auto-archive git failure: not found in gist added files: " + gitPath)
+        logger.error("Auto-archive git failure: not found in gist added files: " + gitPath)
       }
       val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
       GitCommitId(rev.getName)
@@ -105,7 +105,7 @@ trait GitArchiverUtils extends Loggable {
       gitRepo.git.rm.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
       if(!status.getRemoved.contains(gitPath)) {
-        logger.debug("Auto-archive git failure: not found in git removed files: " + gitPath)
+        logger.error("Auto-archive git failure: not found in git removed files: " + gitPath)
       }
       val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
       GitCommitId(rev.getName)
@@ -126,7 +126,7 @@ trait GitArchiverUtils extends Loggable {
       gitRepo.git.add.setUpdate(true).addFilepattern(newGitPath).call //if some files were removed from dest dir
       val status = gitRepo.git.status.call
       if(!status.getAdded.exists( path => path.startsWith(newGitPath) ) ) {
-        logger.debug("Auto-archive git failure when moving directory (not found in added file): " + newGitPath)
+        logger.error("Auto-archive git failure when moving directory (not found in added file): " + newGitPath)
       }
       val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
       GitCommitId(rev.getName)
