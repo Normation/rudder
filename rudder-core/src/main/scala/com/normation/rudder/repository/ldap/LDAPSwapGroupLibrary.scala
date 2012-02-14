@@ -200,7 +200,7 @@ class ImportGroupLibraryImpl(
             groups        <- sequence(content.groups.toSeq) { nodeGroup =>
                                val nodeGroupEntry = rudderDit.GROUP.groupModel(
                                   nodeGroup.id.value,
-                                  categoryEntry.dn.getParent,
+                                  categoryEntry.dn,
                                   nodeGroup.name,
                                   nodeGroup.description,
                                   nodeGroup.query,
