@@ -114,7 +114,7 @@ class ExpectedPolicyPopup(
         "#dependentRulesGrid" #> rulesGrid 
     )(bind("expectedPolicyPopup",expectedPolicyTemplate, 
       "server" -> displayServer(serverId), 
-      "close" -> <button onClick="$.modal.close(); return false;">Close</button>
+      "close" -> <button onClick="$.modal.close(); return false;"> test Close</button>
     ) ) 
   }
   

@@ -56,7 +56,8 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.exceptions.TechnicalException
 import com.normation.utils.Control.sequence
 import com.normation.rudder.domain.log.RudderEventActor
-import org.eclipse.jetty.client.webdav.MkcolExchange
+import com.normation.cfclerk.domain.PolicyPackage
+import com.normation.cfclerk.services.PolicyPackageService
 
 
 object ConfigurationRuleGrid {
@@ -86,7 +87,9 @@ class ConfigurationRuleGrid(
   private[this] val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   private[this] val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
   private[this] val tableId_reportsPopup = "reportsGrid"
-
+  
+  private[this] val policyPackageName = inject[PolicyPackageService] 
+   
   def templatePath = List("templates-hidden", "reports_grid")
   def template() =  Templates(templatePath) match {
     case Empty | Failure(_,_,_) =>
@@ -99,7 +102,6 @@ class ConfigurationRuleGrid(
     case "configurationRulesGrid" => { _:NodeSeq => configurationRulesGrid() }
   }
   
-
   def jsVarNameForId(tableId:String) = "oTable" + tableId
   
   def configurationRulesGrid(linkCompliancePopup:Boolean = true) : NodeSeq = {
@@ -181,13 +183,13 @@ class ConfigurationRuleGrid(
     case class OKLine(
         cr:ConfigurationRule,
         compliance:Option[ComplianceLevel],
-        trackerVariables: Seq[(PolicyInstance,UserPolicyTemplate)],
+        trackerVariables: Seq[(PolicyInstance,UserPolicyTemplate,PolicyPackage)],
         target:Option[PolicyInstanceTargetInfo]
     ) extends Line
     
     case class ErrorLine(
         cr:ConfigurationRule,
-        trackerVariables: Box[Seq[(PolicyInstance,UserPolicyTemplate)]],
+        trackerVariables: Box[Seq[(PolicyInstance,UserPolicyTemplate,PolicyPackage)]],
         target:Box[Option[PolicyInstanceTargetInfo]]
     ) extends Line
     
@@ -200,18 +202,18 @@ class ConfigurationRuleGrid(
     final case object NotAppliedCrDisabled extends NotAppliedStatus
     
     final case object FullyApplied extends AppliedStatus
-    final case class PartiallyApplied(disabled: Seq[(PolicyInstance,UserPolicyTemplate)]) extends AppliedStatus
+    final case class PartiallyApplied(disabled: Seq[(PolicyInstance,UserPolicyTemplate, PolicyPackage)]) extends AppliedStatus
     
     
     //is a cr applied for real ?
     def isApplied(
         cr:ConfigurationRule,
-        trackerVariables: Seq[(PolicyInstance,UserPolicyTemplate)],
+        trackerVariables: Seq[(PolicyInstance,UserPolicyTemplate,PolicyPackage)],
         target:Option[PolicyInstanceTargetInfo]
     ) : ApplicationStatus = {
       if(cr.isActivated) {
         if(target.isDefined && target.get.isActivated) {
-          val disabled = trackerVariables.filterNot { case (pi,upt) => pi.isActivated && upt.isActivated }
+          val disabled = trackerVariables.filterNot { case (pi,upt, pt) => pi.isActivated && upt.isActivated }
           if(disabled.size == 0) FullyApplied
           else if(trackerVariables.size - disabled.size > 0) PartiallyApplied(disabled)
           else NotAppliedNoPI
@@ -227,7 +229,8 @@ class ConfigurationRuleGrid(
      * - if one define => <a href="policy">policy name</a>
      * - if more than one => <a href="policy">policy name</a>, ... + tooltip with the full list
      */
-    def displayPis(seq:Seq[(PolicyInstance,UserPolicyTemplate)]) : NodeSeq = {
+    
+    def displayPis(seq:Seq[(PolicyInstance,UserPolicyTemplate,PolicyPackage)]) : NodeSeq = {
       def piLink(pi:PolicyInstance) = <a href={"""/secure/configurationManager/policyInstanceManagement#{"piId":"%s"}""".format(pi.id.value)}>{
           pi.name + (if (pi.isActivated) "" else " (disabled)")
         }</a>
@@ -259,7 +262,7 @@ class ConfigurationRuleGrid(
         			<tbody>
             { 
               (
-                "span" #> seq.map { case(pi,upt) => "#link" #> <tr><td>{piLink(pi)}</td><td>{upt.referencePolicyTemplateName}</td></tr> }
+                "span" #> seq.map { case(pi,upt,pt) => "#link" #> <tr><td>{piLink(pi)}</td><td>{pt.name}</td></tr> }
               )(<span id="link"/>
               )
             }
@@ -307,15 +310,20 @@ class ConfigurationRuleGrid(
              }
           }
     }
-    
+    {
+      
+    }
     //for each rule, get all the required info and display them
     val lines:Seq[Line] = crs.map { cr =>
 
-      val trackerVariables: Box[Seq[(PolicyInstance,UserPolicyTemplate)]] = 
+      val trackerVariables: Box[Seq[(PolicyInstance,UserPolicyTemplate,PolicyPackage)]] = 
         sequence(cr.policyInstanceIds.toSeq) { id =>
           policyInstanceRepository.getPolicyInstance(id) match {
             case Full(pi) => policyInstanceRepository.getUserPolicyTemplate(id) match {
-              case Full(upt) => Full((pi,upt))
+              case Full(upt) => policyPackageName.getLastPolicyByName(upt.referencePolicyTemplateName) match {
+                case None => Failure("Can not find Policy Template for userPolicyTemplate with name %s referenced in configuration rule with ID %s".format(upt.referencePolicyTemplateName, cr.id))
+                case Some(pt) => Full((pi,upt,pt))
+              }
               case e:EmptyBox => //it's an error if the pi ID is defined and found but it is not attached to an upt
                 val error = e ?~! "Can not find User Policy Template for policy instance with ID %s referenced in configuration rule with ID %s".format(id, cr.id)
                 logger.debug(error.messageChain, error)
@@ -357,6 +365,7 @@ class ConfigurationRuleGrid(
           ErrorLine(cr,x,y)
       }
     }
+    
 
     //now, build html lines
     if(lines.isEmpty) {
@@ -379,7 +388,7 @@ class ConfigurationRuleGrid(
               case FullyApplied => Text("In application")
               case PartiallyApplied(seq) => 
                   val tooltipId = Helpers.nextFuncName
-                  val why = seq.map { case (pi, upt) => "Policy " + pi.name + " disabled" }.mkString(", ")
+                  val why = seq.map { case (pi, upt, pt) => "Policy " + pi.name + " disabled" }.mkString(", ")
 
                  <span class="tooltip tooltipable" tooltipid={tooltipId}>Partially applied</span>
                  <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
@@ -388,7 +397,7 @@ class ConfigurationRuleGrid(
                     (line.cr.isActivated, "Configuration rule disabled" ), 
                     ( line.trackerVariables.size > 0, "No policy defined"),
                     ( line.target.isDefined && line.target.get.isActivated, "Group disabled")
-                 ) ++ line.trackerVariables.flatMap { case (pi, upt) => Seq(
+                 ) ++ line.trackerVariables.flatMap { case (pi, upt,pt) => Seq(
                     ( pi.isActivated , "Policy " + pi.name + " disabled") , 
                     ( upt.isActivated, "Policy template for '" + pi.name + "' disabled") 
                  )}
