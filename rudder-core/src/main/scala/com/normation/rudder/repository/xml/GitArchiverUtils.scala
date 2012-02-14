@@ -88,7 +88,7 @@ trait GitArchiverUtils extends Loggable {
       gitRepo.git.add.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
       //for debugging
-      if(!status.getAdded.contains(gitPath)||status.getChanged.contains(gitPath)) {
+      if(!(status.getAdded.contains(gitPath) || status.getChanged.contains(gitPath))) {
         logger.error("Auto-archive git failure: not found in gist added files: " + gitPath)
       }
       val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
