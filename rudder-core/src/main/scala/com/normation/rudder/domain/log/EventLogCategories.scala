@@ -190,6 +190,10 @@ object ModificationWatchList {
     , ClearCacheEventType
     , UpdatePolicyServerEventType
     , ReloadPolicyTemplateLibraryType
+    , ImportGroupsEventType
+    , ImportPolicyLibraryEventType
+    , ImportConfigurationRulesEventType
+    , ImportFullArchiveEventType
   )
   
 }
