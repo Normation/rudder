@@ -88,7 +88,7 @@ trait GitArchiverUtils extends Loggable {
       gitRepo.git.add.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
       //for debugging
-      if(!status.getAdded.contains(gitPath)||status.getChanged.contains(gitPath)) {
+      if(!(status.getAdded.contains(gitPath) || status.getChanged.contains(gitPath))) {
         logger.error("Auto-archive git failure: not found in gist added files: " + gitPath)
       }
       val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
@@ -186,7 +186,9 @@ trait GitArchiverFullCommitUtils extends Loggable {
   def getTags() : Box[Map[DateTime, GitArchiveId]] = {
     import scala.collection.JavaConversions._
     tryo {
-      gitRepo.git.tagList.call.flatMap { revTag => 
+//      TODO: use that when JGit version > 1.2      
+//      gitRepo.git.tagList.call.flatMap { revTag => 
+      listTagWorkaround.flatMap { revTag => 
           val name = revTag.getTagName
           if(name.startsWith(tagPrefix)) {
             val t = try {
@@ -204,4 +206,49 @@ trait GitArchiverFullCommitUtils extends Loggable {
       }.toMap
     }
   }
-}  
+  
+  /**
+   * There is a bug in tag resolution of JGit 1.2, see:
+   * https://bugs.eclipse.org/bugs/show_bug.cgi?id=360650
+   * 
+   * They used a workaround here:
+   * http://git.eclipse.org/c/orion/org.eclipse.orion.server.git/commit/?id=5fca49ced7f0c220472c724678884ee84d13e09d
+   * 
+   * For now, we will just ignore tag which are no real tags
+   * 
+   * When the upgrade is done to JGit > 1.2, replace the call to
+   * listTagWorkaround in getTags by "gitRepo.git.tagList.call"
+   */
+  private[this] def listTagWorkaround = {
+    import java.io.IOException
+    import org.eclipse.jgit.api.errors.JGitInternalException
+    import org.eclipse.jgit.errors.IncorrectObjectTypeException
+    import org.eclipse.jgit.lib._
+    import org.eclipse.jgit.revwalk._
+    import scala.collection.mutable.{Map => MutMap, ArrayBuffer}
+    import scala.collection.JavaConversions._
+    
+    var refList = MutMap[String,Ref]()
+    val revWalk = new RevWalk(gitRepo.db)
+    val tags = ArrayBuffer[RevTag]()
+
+    try {
+      refList = gitRepo.db.getRefDatabase().getRefs(Constants.R_TAGS)
+      refList.values().foreach { ref =>
+        try {
+          val tag = revWalk.parseTag(ref.getObjectId())
+          tags.add(tag)
+        } catch {
+          case e:IncorrectObjectTypeException => 
+            logger.debug("Ignoring object due to JGit bug: " + ref.getName)
+            logger.debug(e)
+        }
+      }
+    } catch {
+      case e:IOException => throw new JGitInternalException(e.getMessage(), e)
+    } finally {
+      revWalk.release();
+    }
+    tags.sortWith( (o1, o2) => o1.getTagName().compareTo(o2.getTagName()) <= 0 )
+  }  
+}
