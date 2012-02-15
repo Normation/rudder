@@ -34,7 +34,6 @@ cp $HUDSON_RUDDER_CORE/src/main/resources/bootstrap.ldif $TREE/opt/rudder/src/ma
 cp $HUDSON_RUDDER_CORE/src/main/resources/sample-data.ldif $TREE/opt/rudder/src/main/resources/
 cp $HUDSON_RUDDER_CORE/src/main/resources/reportsSchema.sql $TREE/opt/rudder/src/main/resources/
 cp $HUDSON_RUDDER_CORE/src/test/resources/testSchema.sql $TREE/opt/rudder/src/test/resources/
-cp $HUDSON_RUDDER_CORE/src/test/resources/reportsInfo.sql $TREE/opt/rudder/src/test/resources/
 
 cp $HUDSON_INVENTORY/src/main/ldap/slapd.conf $TREE/opt/normation/etc/openldap/
 cp $HUDSON_INVENTORY/src/main/ldap/DB_CONFIG $TREE/var/lib/openldap-data/
