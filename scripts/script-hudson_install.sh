@@ -68,7 +68,7 @@ chmod 600 ~/.pgpass
 ##Remplissage BD
 psql -U rudder -h localhost -d rudder -f /opt/rudder/src/main/resources/reportsSchema.sql
 #psql -U test -h localhost -d test -f /opt/rudder/src/test/resources/testSchema.sql
-#psql -U test -h localhost -d test -f /opt/rudder/src/test/resources/reportsInfo.sql
+
 
 #Lancement de jetty
 /etc/init.d/jetty start
