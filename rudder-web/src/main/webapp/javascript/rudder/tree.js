@@ -51,7 +51,11 @@ var buildReferencePolicyTemplateTree = function(id,  initially_select) {
         "drop_target" : false,
         "drag_target" : false
       },
-      "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm"  ] 
+      "themes" : { 
+    	  "theme" : "rudder",
+    	  "url" : "javascript/jstree/themes/rudder/style.css"
+      },
+      "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm" ]
     })   
 }
 
@@ -122,7 +126,11 @@ var buildUserPolicyTemplateTree = function(id, foreignTreeId) {
       "drop_target" : false,
       "drag_target" : false
     },
-    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm"  ] 
+    "themes" : { 
+  	  "theme" : "rudder",
+  	  "url" : "javascript/jstree/themes/rudder/style.css"
+    },
+    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm" ] 
   })   
 }
 
@@ -175,7 +183,11 @@ var buildPolicyInstanceTree = function(id, initially_select) {
         "case_insensitive" : true,
         "show_only_matches": false
       },
-      "plugins" : [ "themes", "html_data", "ui", "types", "search" ] 
+      "themes" : { 
+    	  "theme" : "rudder",
+    	  "url" : "javascript/jstree/themes/rudder/style.css"
+      },
+      "plugins" : [ "themes", "html_data", "ui", "types", "search" ]      
   })
 }
 
@@ -237,6 +249,10 @@ var buildGroupTree = function(id, initially_select) {
       "drop_target" : false,
       "drag_target" : false
     },
+    "themes" : { 
+  	  "theme" : "rudder",
+  	  "url" : "javascript/jstree/themes/rudder/style.css"
+    },
     "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm" ] 
     });
 }
@@ -297,7 +313,11 @@ var buildPolicyTemplateDependencyTree = function(id, initially_select) {
             }
           }
         },
-      "plugins" : [ "themes", "html_data", "ui", "types" ] 
+        "themes" : { 
+      	  "theme" : "rudder",
+      	  "url" : "javascript/jstree/themes/rudder/style.css"
+        },
+      "plugins" : [ "themes", "html_data", "ui", "types"] 
     })
 }
 
@@ -350,7 +370,11 @@ var buildConfigurationRulePIdepTree = function(id, initially_select) {
           }
         }
       },
-      "plugins" : [ "themes", "html_data", "ui", "types" ]
+      "themes" : { 
+    	  "theme" : "rudder",
+    	  "url" : "javascript/jstree/themes/rudder/style.css"
+      },
+      "plugins" : [ "themes", "html_data", "ui", "types"]
     })
 }
 
