@@ -138,23 +138,10 @@ class PolicyInstanceManagement extends DispatchSnippet with Loggable {
    * TODO : factor out that part
    */
   def userLibrary() : NodeSeq = {
-    
-    val openAllJs  = "$('#%s').jstree('open_all'); return false".format(htmlId_userTree)
-    val closeAllJs = "$('#%s').jstree('close_all');return false".format(htmlId_userTree)
-    val searchJs = "if($(this).val() && $(this).val().length > 3) { $('#%s').jstree('search', $(this).val()) }".format(htmlId_userTree)
-    val focusSearchJs = "if($(this).val() == 'search') { $(this).val('') }"
-    val clearSearchJs = "$('#treeSearch').val('search');" + closeAllJs
-    
     (
-      <div id={htmlId_userTree + "_actions_zone"} style="margin:10px;">
-        <span onclick={openAllJs}><img src="/images/icadd.png" alt="Open All Nodes" title="Open All Nodes" width="16" height="16" style="float:none;margin:3px;vertical-align: middle"/></span>
-        <span onclick={closeAllJs}><img src="/images/icfail.png" alt="Close All Nodes" title="Open All Nodes" width="16" height="16" style="float:none;margin:3px;vertical-align: middle"/></span>
-        <span><input id="treeSearch" type="text" value="search" onkeyup={searchJs} onfocus={focusSearchJs}/></span>
-        <span onclick={clearSearchJs}><img src="/images/eraser.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:3px;vertical-align: middle"/></span>
-      </div>
-      <div id={htmlId_userTree}>
-        <ul>{jsTreeNodeOf_uptCategory(userPolicyTemplateCategoryRepository.getUserPolicyTemplateLibrary, "jstn_0").toXml}</ul>
-      </div>
+        <div id={htmlId_userTree}>
+          <ul>{jsTreeNodeOf_uptCategory(userPolicyTemplateCategoryRepository.getUserPolicyTemplateLibrary, "jstn_0").toXml}</ul>
+        </div>
     ) ++ Script(OnLoad(buildJsTree))
   }
   

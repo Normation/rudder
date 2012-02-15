@@ -173,7 +173,7 @@ var buildPolicyInstanceTree = function(id, initially_select) {
       },
       "search" : {
         "case_insensitive" : true,
-        "show_only_matches": false
+        "show_only_matches": true
       },
       "plugins" : [ "themes", "html_data", "ui", "types", "search" ] 
   })
