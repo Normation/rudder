@@ -91,7 +91,9 @@ class FusionReportEndpoint(
     val files = request.getFileMap.values
     
     files.size match {
-      case 0 => new ResponseEntity("No report send. You have to POST a request with exactly one file in attachment.", HttpStatus.PRECONDITION_FAILED)
+      case 0 => new ResponseEntity("""No report sent. You have to POST a request with exactly one file in attachment (with 'content-disposition': file)
+                                     |For example, for curl, use: curl -F "file=@path/to/file"
+                                     |""".stripMargin, HttpStatus.PRECONDITION_FAILED)
       case 1 =>
         val reportFile = files.toSeq(0)
         //copy the session file somewhere where it won't be deleted on that method return
