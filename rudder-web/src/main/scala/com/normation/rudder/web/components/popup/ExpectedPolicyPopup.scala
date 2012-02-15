@@ -88,7 +88,7 @@ class ExpectedPolicyPopup(
   private[this] val serverSummaryService = inject[ServerSummaryService]
   private[this] val dependenciesServices = inject[DependencyAndDeletionService]
   private[this] val dynGroupService = inject[DynGroupService]
-  private[this] val acceptedServersDit = inject[InventoryDit]("acceptedServersDit")
+  private[this] val pendingServersDit = inject[InventoryDit]("pendingServersDit")
 
 
 
@@ -133,11 +133,11 @@ class ExpectedPolicyPopup(
     
   
   private[this] def displayServer(serverId : NodeId) : NodeSeq = {
-    serverSummaryService.find(acceptedServersDit,serverId) match {
+    serverSummaryService.find(pendingServersDit,serverId) match {
       case Full(srv) => 
         srv.toList match {
-          case Nil => <div>No server found</div>
-          case head::Nil => Text(head.hostname + " - " +head.osName)
+          case Nil => <div>Node not found</div>
+          case head::Nil => Text(head.hostname + " - " +head.osFullName)
           case _ => logger.error("Too many nodes returned while searching server %s".format(serverId.value)) 
                   <p class="error">ERROR - Too many nodes</p>
         }
