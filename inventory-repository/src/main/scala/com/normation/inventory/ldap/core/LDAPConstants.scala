@@ -72,7 +72,7 @@ object LDAPConstants {
   val A_OS_RAM = "ram"
   val A_OS_SWAP = "swap"
   val A_ACCOUNT = "localAccountName"
-  val A_NODE_POLICIES = "nodePolicies"
+  val A_NODE_TECHNIQUES = "nodeTechniques"
   val A_INVENTORY_DATE = "inventoryDate"
     
   val A_LIST_OF_IP = "ipHostNumber"
@@ -293,7 +293,7 @@ object LDAPConstants {
       must = Set(A_NODE_UUID, A_OS_NAME, A_OS_FULL_NAME, A_OS_VERSION, A_OS_KERNEL_VERSION),
       may = Set(A_NAME,A_DESCRIPTION,A_PKEYS,A_AGENTS_NAME,A_HOSTED_VM_DN,
           A_CONTAINER_DN,A_SOFTWARE_DN,A_ACCOUNT,A_ROOT_USER,A_ARCH, A_LAST_LOGGED_USER, A_LAST_LOGGED_USER_TIME,
-          A_HOSTNAME,A_NODE_POLICIES,A_OS_RAM,A_OS_SWAP, A_LIST_OF_IP, A_OS_SERVICE_PACK) )
+          A_HOSTNAME,A_NODE_TECHNIQUES,A_OS_RAM,A_OS_SWAP, A_LIST_OF_IP, A_OS_SERVICE_PACK) )
   
   OC +=(OC_WINDOWS_NODE, sup = OC(OC_NODE),
       may = Set(A_WIN_USER_DOMAIN,A_WIN_COMPANY,A_WIN_KEY,A_WIN_ID) )
@@ -337,7 +337,7 @@ object LDAPConstants {
   // User defined properties : the regexp that the data should abide by
   val userDefinedPropertyRegex = """\{([^\}]+)\}(.+)""".r
   
-  // Policy bindings variable regexp : VariableName:FieldName
+  // variable bindings variable regexp : VariableName:FieldName
   val variableBindingRegex = """(.+):(.+)""".r
   
 }

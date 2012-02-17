@@ -618,7 +618,7 @@ class InventoryMapper(
     }:_*)
     
     root +=! (A_ACCOUNT, server.accounts:_*)
-    root +=! (A_NODE_POLICIES, server.policies:_*)
+    root +=! (A_NODE_TECHNIQUES, server.techniques:_*)
     root +=! (A_LIST_OF_IP, server.serverIps:_*)
 
     val tree = LDAPTree(root)
@@ -755,7 +755,7 @@ class InventoryMapper(
       hostedVmIds = mapSeqStringToMachineIdAndStatus(entry.valuesFor(A_HOSTED_VM_DN))
       inventoryDate = entry.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
       accounts = entry.valuesFor(A_ACCOUNT).toSeq
-      policies = entry.valuesFor(A_NODE_POLICIES).toSeq
+      techniques = entry.valuesFor(A_NODE_TECHNIQUES).toSeq
       serverIps = entry.valuesFor(A_LIST_OF_IP).toSeq
     } yield {
       NodeInventory(
@@ -773,7 +773,7 @@ class InventoryMapper(
          hostedVmIds,
          softwareIds,
          accounts,
-         policies,
+         techniques,
          serverIps,
          networks = Nil,
          fileSystems = Nil

@@ -206,15 +206,15 @@ object RudderAgentNameParsing extends FusionReportParsingExtension with Loggable
 
 
 /**
- * <POLICIES>
+ * <TECHNIQUES>
  */
-object RudderPoliciesParsing extends FusionReportParsingExtension {
-  override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "POLICIES" }
+object RudderTechniquesParsing extends FusionReportParsingExtension {
+  override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "TECHNIQUES" }
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {
-    x._2.copy( node = x._2.node.copy( policies = x._2.node.policies ++ processPolicies(x._1) ) )
+    x._2.copy( node = x._2.node.copy( techniques = x._2.node.techniques ++ processTechniques(x._1) ) )
   }
-  def processPolicies(xml:NodeSeq) : Seq[String] = {
-    (xml \ "POLICY").flatMap(e => optText(e))
+  def processTechniques(xml:NodeSeq) : Seq[String] = {
+    (xml \ "TECHNIQUE").flatMap(e => optText(e))
   }
 }
 

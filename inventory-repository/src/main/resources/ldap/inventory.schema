@@ -267,8 +267,8 @@ attributetype ( InventoryAttributes:300.8
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
 attributetype ( InventoryAttributes:300.9
-  NAME 'nodePolicies'
-  DESC 'Name of policies applied to that node'
+  NAME 'nodeTechniques'
+  DESC 'Name of techniques applied to that node'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
@@ -795,7 +795,7 @@ objectclass ( InventoryObjectClasses:14
          policyServerId $ osName $ osVersion $ osKernelVersion )
   MAY ( description $ cn $ publicKey $ agentName $ hostedVm $ container $ 
         software $  localAccountName $ osServicePack $
-        nodePolicies $ ram $ swap $ confirmed $
+        nodeTechniques $ ram $ swap $ confirmed $
         inventoryDate $ ipHostNumber $ osFullName $
         osArchitectureType $ lastLoggedUser $ lastLoggedUserTime ) )
 

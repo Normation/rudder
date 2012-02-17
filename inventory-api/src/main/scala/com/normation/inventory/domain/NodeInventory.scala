@@ -200,7 +200,7 @@ case class NodeInventory(
   hostedVmIds : Seq[(MachineUuid,InventoryStatus)] = Seq(),
   softwareIds : Seq[SoftwareUuid] = Seq(),
   accounts : Seq[String] = Seq(),
-  policies : Seq[String] = Seq(),
+  techniques : Seq[String] = Seq(),
   serverIps : Seq[String] = Seq(),
   networks: Seq[Network] = Seq(),
   fileSystems:Seq[FileSystem] = Seq()
