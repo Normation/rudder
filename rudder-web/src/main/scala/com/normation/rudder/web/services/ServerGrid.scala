@@ -163,9 +163,11 @@ class ServerGrid(getServerAndMachine:LDAPFullInventoryRepository) extends Loggab
             var opened = jQuery(nTr).prop("open");
             if (opened && opened.match("opened")) {
               jQuery(nTr).prop("open", "closed");
+              jQuery(nTr).find("span.listclose").removeClass("listclose").addClass("listopen");
               #table_var#.fnClose(nTr);
             } else {
               jQuery(nTr).prop("open", "opened");
+              jQuery(nTr).find("span.listopen").removeClass("listopen").addClass("listclose");
               var aPos = #table_var#.fnGetPosition( this );
             
               var aData = jQuery(#table_var#.fnGetData( aPos[0] ));
@@ -206,7 +208,7 @@ class ServerGrid(getServerAndMachine:LDAPFullInventoryRepository) extends Loggab
       "lines" -> ( servers.flatMap { case s@Srv(id,status, hostname,ostype,osname,osFullName,ips,creationDate) =>
         //build all table lines
         bind("line",chooseTemplate("servergrid","lines",tableTemplate),
-          "hostname" -> <span class="hostnamecurs" jsuuid={id.value.replaceAll("-","")} serverid={id.value} nodeStatus={status.name}>{(if(isEmpty(hostname)) "(Missing host name) " + id.value else hostname)}</span>,
+          "hostname" -> <span class="listopen" jsuuid={id.value.replaceAll("-","")} serverid={id.value} nodeStatus={status.name}>{(if(isEmpty(hostname)) "(Missing host name) " + id.value else hostname)}</span>,
           "fullos" -> osFullName,
           "ips" -> (ips.flatMap{ ip => <div class="ip">{ip}</div> }), // TODO : enhance this
           "other" -> (columns flatMap { c => <td>{c._2(s)}</td> })

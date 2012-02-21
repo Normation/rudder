@@ -79,6 +79,12 @@ class EventListDisplayer(
           else
             NodeSeq.Empty
         } &
+        ".logId [class]" #> {
+          if (event.details != <entry></entry> ) 
+            Text("listopen")
+          else
+            NodeSeq.Empty
+        } &
         ".logId *" #> event.id.getOrElse(0).toString &
         ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
         ".logActor *" #> event.principal.name &
@@ -133,9 +139,11 @@ class EventListDisplayer(
               var opened = jTr.prop("open");
               if (opened && opened.match("opened")) {
                 jTr.prop("open", "closed");
+                jQuery(nTr).find("td.listclose").removeClass("listclose").addClass("listopen");
                 #table_var#.fnClose(nTr);
               } else {
                 jTr.prop("open", "opened");
+                jQuery(nTr).find("td.listopen").removeClass("listopen").addClass("listclose");
             var jsid = jTr.attr("jsuuid");
                 #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
                 %s;

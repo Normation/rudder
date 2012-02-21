@@ -145,10 +145,10 @@ object PendingHistoryGrid extends Loggable {
          case x : AcceptNodeEventLog =>  
            logDetailsService.getAcceptNodeLogDetails(x.details) match {
              case Full(details) =>
-               <tr>
-                 <td>{DateFormaterService.getFormatedDate(x.creationDate)}</td>
+               <tr class="curspoint">
+                 <td><span class="listopen"></span>{DateFormaterService.getFormatedDate(x.creationDate)}</td>
                  <td name="serverName">
-                   <span class="curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} 
+                   <span jsuuid={jsuuid} serveruuid={details.nodeId.value} 
                      inventory={details.inventoryVersion.toString()}>{
                        details.hostname
                      }</span>
@@ -191,8 +191,10 @@ object PendingHistoryGrid extends Loggable {
             if (opened && opened.match("opened")) {
               #table_var#.fnClose(nTr);
               jQuery(nTr).prop("open", "closed");
+              jQuery(nTr).find("span.listclose").removeClass("listclose").addClass("listopen");
             } else {
              jQuery(nTr).prop("open", "opened");
+             jQuery(nTr).find("span.listopen").removeClass("listopen").addClass("listclose");
           
           var ajaxParam = jsuuid +  "|" + id + "|" + inventory;
           #table_var#.fnOpen( nTr, fnFormatDetails(jsuuid), 'displayPastInventory' );
