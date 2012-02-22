@@ -109,11 +109,11 @@ rudder.dir.config=/opt/rudder/etc/
 #
 rudder.dir.gitRoot=/var/rudder/configuration-repository
 #
-# The path of the root directory of the policy template library. 
-# It MUST be a the same directory of ${rudder.dir.gitRoot} 
+# The path of the root directory of the Technique library. 
+# It MUST be the same directory of ${rudder.dir.gitRoot} 
 # or one of its sub-directories
 #
-rudder.dir.policyPackages=/var/rudder/configuration-repository/policy-templates
+rudder.dir.policyPackages=/var/rudder/configuration-repository/techniques
 rudder.dir.licensesFolder=/opt/rudder/etc/licenses
 rudder.dir.policies=/var/rudder/
 rudder.dir.backup=/var/rudder/backup/
