@@ -39,17 +39,17 @@ set client_min_messages='warning';
 
 
 -- Create the sequences
-Create SEQUENCE confSerialId START 1;
+Create SEQUENCE ruleSerialId START 1;
 
-Create SEQUENCE confVersionId START 1;
+Create SEQUENCE ruleVersionId START 1;
 
--- Create the table for the configuration reports information
+-- Create the table for the reports information
 create table expectedReports (
-	pkId integer PRIMARY KEY DEFAULT nextval('confSerialId'),
+	pkId integer PRIMARY KEY DEFAULT nextval('ruleSerialId'),
 	nodeJoinKey integer NOT NULL,
-	configurationRuleId text NOT NULL CHECK (configurationRuleId <> ''),
+	ruleId text NOT NULL CHECK (ruleId <> ''),
 	serial integer NOT NULL,
-	policyInstanceId text NOT NULL CHECK (policyInstanceId <> ''),
+	directiveId text NOT NULL CHECK (directiveId <> ''),
 	component text NOT NULL CHECK (component <> ''),
 	cardinality integer NOT NULL,
 	componentsValues text NOT NULL, -- this is the serialisation of the expected values 
@@ -58,7 +58,7 @@ create table expectedReports (
 );
 
 create index expectedReports_versionId on expectedReports (nodeJoinKey);
-create index expectedReports_serialId on expectedReports (configurationRuleId, serial);
+create index expectedReports_serialId on expectedReports (ruleId, serial);
 
 create table expectedReportsNodes (
 	nodeJoinKey integer NOT NULL ,
@@ -77,8 +77,8 @@ CREATE TABLE RudderSysEvents (
 id integer PRIMARY KEY default nextval('serial'),
 executionDate timestamp with time zone NOT NULL, 
 nodeId text NOT NULL CHECK (nodeId <> ''),
-policyInstanceId text NOT NULL CHECK (policyInstanceId <> ''),
-configurationRuleId text NOT NULL CHECK (configurationRuleId <> ''),
+directiveId text NOT NULL CHECK (directiveId <> ''),
+ruleId text NOT NULL CHECK (ruleId <> ''),
 serial integer NOT NULL,
 component text NOT NULL CHECK (component <> ''),
 keyValue text,
@@ -91,7 +91,7 @@ msg text
 
 create index nodeid_idx on RudderSysEvents (nodeId);
 create index reports_idx on RudderSysEvents (executionTimeStamp, nodeId);
-create index configurationRuleId_node_idx on RudderSysEvents (configurationRuleId, nodeId, serial, executionTimeStamp);
+create index ruleId_node_idx on RudderSysEvents (ruleId, nodeId, serial, executionTimeStamp);
 
 
 
@@ -133,57 +133,57 @@ create index groups_id_start on Groups (groupId, startTime);
 create index groups_end on Groups (endTime);
 
 
-create sequence PolicyInstancesId START 101;
+create sequence directivesId START 101;
 
 
-CREATE TABLE PolicyInstances (
-id integer PRIMARY KEY default nextval('PolicyInstancesId'),
-policyInstanceId text NOT NULL CHECK (policyInstanceId <> ''),
-policyInstanceName text,
-policyInstanceDescription text,
+CREATE TABLE Directives (
+id integer PRIMARY KEY default nextval('directivesId'),
+directiveId text NOT NULL CHECK (policyInstanceId <> ''),
+directiveName text,
+directiveDescription text,
 priority integer NOT NULL,
-policyPackageName text,
-policyPackageVersion text,
-policyPackageDescription text,
-policyTemplateHumanName text,
+techniqueName text,
+techniqueVersion text,
+techniqueDescription text,
+techniqueHumanName text,
 startTime timestamp with time zone NOT NULL,
 endTime timestamp with time zone
 );
 
 
-create index pi_id_start on PolicyInstances (policyInstanceId, startTime);
-create index pi_end on PolicyInstances (endTime);
+create index directive_id_start on Directives (directiveId, startTime);
+create index directive_end on Directives (endTime);
 
-create sequence ConfigurationRulesId START 101;
+create sequence rulesId START 101;
 
 
-CREATE TABLE ConfigurationRules (
-id integer PRIMARY KEY default nextval('ConfigurationRulesId'),
-configurationRuleId text NOT NULL CHECK (configurationRuleId <> ''),
+CREATE TABLE Rules (
+rulePkeyId integer PRIMARY KEY default nextval('rulesId'),
+ruleId text NOT NULL CHECK (ruleId <> ''),
 serial integer NOT NULL,
 name text,
 shortdescription text,
 longdescription text,
-isActivated boolean,
+isEnabled boolean,
 startTime timestamp with time zone NOT NULL,
 endTime timestamp with time zone
 );
 
-CREATE TABLE ConfigurationRulesGroups (
-CrId integer, -- really the id of the table ConfigurationRules
+CREATE TABLE RulesGroupJoin (
+rulePkeyId integer, -- really the id of the table Rules
 groupId text NOT NULL CHECK (groupId <> ''),
-PRIMARY KEY(CrId, groupId)
+PRIMARY KEY(rulePkeyId, groupId)
 );
 
-CREATE TABLE ConfigurationRulesPolicyInstance (
-CrId integer, -- really the id of the table ConfigurationRules
-policyInstanceId text NOT NULL CHECK (policyInstanceId <> ''),
-PRIMARY KEY(CrId, policyInstanceId)
+CREATE TABLE RulesDirectivesJoin (
+rulePkeyId integer, -- really the id of the table Rules
+directiveId text NOT NULL CHECK (policyInstanceId <> ''),
+PRIMARY KEY(rulePkeyId, directiveId)
 );
 
 
-create index cr_id_start on ConfigurationRules (configurationRuleId, startTime);
-create index cr_end on ConfigurationRules (endTime);
+create index rule_id_start on Rules (ruleId, startTime);
+create index rule_end on Rules (endTime);
 
 
 

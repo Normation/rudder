@@ -35,14 +35,14 @@
 package com.normation.rudder.services.policies
 
 import com.normation.rudder.domain.policies.{
-  GroupTarget,PolicyInstanceTarget
+  GroupTarget,RuleTarget
 }
 import com.unboundid.ldap.sdk.DN
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.rudder.domain.policies.PolicyInstance
-import com.normation.rudder.domain.policies.ConfigurationRule
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.Rule
 import net.liftweb.common._
-import com.normation.rudder.domain.policies.{UserPolicyTemplateId, ConfigurationRuleId, PolicyInstanceId}
+import com.normation.rudder.domain.policies.{ActiveTechniqueId, RuleId, DirectiveId}
 import com.normation.rudder.domain.{RudderLDAPConstants, RudderDit}
 import RudderLDAPConstants._
 import com.normation.utils.Control.sequence
@@ -56,27 +56,27 @@ import com.normation.utils.HashcodeCaching
 /**
  * A container for items which depend on policy instances
  */
-case class PolicyInstanceDependencies(
-  policyInstanceId:PolicyInstanceId,
-  configurationRules:Seq[ConfigurationRule]
+case class DirectiveDependencies(
+  directiveId:DirectiveId,
+  rules:Seq[Rule]
 ) extends HashcodeCaching 
 
 /**
  * A container for items which depend on policy instances
  */
 case class TargetDependencies(
-  target:PolicyInstanceTarget,
-  configurationRules:Seq[ConfigurationRule]
+  target:RuleTarget,
+  rules:Seq[Rule]
 ) extends HashcodeCaching 
 
 /**
  * A container for items which depend on policy template
  * For now, we don't care of policy instance <-> configuration rules
  */
-case class PolicyTemplateDependencies(
-  userPolicyTemplateId:UserPolicyTemplateId,
-  policyInstances:Map[PolicyInstanceId, (PolicyInstance,Seq[ConfigurationRuleId])],
-  configurationRules:Map[ConfigurationRuleId,ConfigurationRule]
+case class TechniqueDependencies(
+  activeTechniqueId:ActiveTechniqueId,
+  directives:Map[DirectiveId, (Directive,Seq[RuleId])],
+  rules:Map[RuleId,Rule]
 ) extends HashcodeCaching 
 
 
@@ -102,11 +102,11 @@ trait DependencyAndDeletionService {
    * they should have if the parent become of a given status.
    * For example, if <code>onlyForState</code> is set to OnlyEnableable,
    * that method only return dependent items which will switch from disabled to enabled 
-   * if that policyInstance was switching from disabled to enabled 
+   * if that directive was switching from disabled to enabled 
    * (independently from the actual status of that policy instance).
    * The DontCare ModificationStatus does not filter. 
    */
-  def policyInstanceDependencies(id:PolicyInstanceId, onlyForState:ModificationStatus = DontCare) : Box[PolicyInstanceDependencies]
+  def directiveDependencies(id:DirectiveId, onlyForState:ModificationStatus = DontCare) : Box[DirectiveDependencies]
 
   /**
    * Delete a given item and modify all objects that depends on it.
@@ -114,7 +114,7 @@ trait DependencyAndDeletionService {
    * be: delete item, make the item no more use that policy instance, etc. 
    * Return the list of items actually modified.
    */
-  def cascadeDeletePolicyInstance(id:PolicyInstanceId, actor:EventActor) : Box[PolicyInstanceDependencies]
+  def cascadeDeleteDirective(id:DirectiveId, actor:EventActor) : Box[DirectiveDependencies]
 
   /**
    * Find all Configuration rules and policy isntances that depend on that
@@ -127,7 +127,7 @@ trait DependencyAndDeletionService {
    * (independently from the actual status of that policy template).
    * The DontCare ModificationStatus does not filter. 
    */
-  def policyTemplateDependencies(id:UserPolicyTemplateId, onlyForState:ModificationStatus = DontCare) : Box[PolicyTemplateDependencies]
+  def techniqueDependencies(id:ActiveTechniqueId, onlyForState:ModificationStatus = DontCare) : Box[TechniqueDependencies]
 
   /**
    * Delete a given item and modify all objects that depends on it.
@@ -135,7 +135,7 @@ trait DependencyAndDeletionService {
    * be: delete item, make the item no more use that policy instance, etc. 
    * Return the list of items actually modified.
    */
-  def cascadeDeletePolicyTemplate(id:UserPolicyTemplateId, actor:EventActor) : Box[PolicyTemplateDependencies]
+  def cascadeDeleteTechnique(id:ActiveTechniqueId, actor:EventActor) : Box[TechniqueDependencies]
 
   /**
    * Find all Configuration rules that depend on that
@@ -145,7 +145,7 @@ trait DependencyAndDeletionService {
    * if that target was switching from disabled to enabled 
    * (independently from the actual status of that target).
    */
-  def targetDependencies(target:PolicyInstanceTarget, onlyEnableable:Boolean = true) : Box[TargetDependencies]
+  def targetDependencies(target:RuleTarget, onlyEnableable:Boolean = true) : Box[TargetDependencies]
 
   /**
    * Delete a given item and modify all objects that depends on it.
@@ -153,7 +153,7 @@ trait DependencyAndDeletionService {
    * be: delete item, make the item no more use that policy instance, etc. 
    * Return the list of items actually modified.
    */
-  def cascadeDeleteTarget(target:PolicyInstanceTarget, actor:EventActor) : Box[TargetDependencies]
+  def cascadeDeleteTarget(target:RuleTarget, actor:EventActor) : Box[TargetDependencies]
   
   
 }
@@ -165,24 +165,24 @@ trait DependencyAndDeletionService {
 class DependencyAndDeletionServiceImpl(
     ldap                       : LDAPConnectionProvider
   , rudderDit                  : RudderDit
-  , policyInstanceRepository   : PolicyInstanceRepository
-  , policyTemplateRepository   : UserPolicyTemplateRepository
-  , configurationRuleRepository: ConfigurationRuleRepository
+  , directiveRepository   : DirectiveRepository
+  , techniqueRepository   : ActiveTechniqueRepository
+  , ruleRepository: RuleRepository
   , groupRepository            : NodeGroupRepository
   , mapper                     : LDAPEntityMapper
-  , targetService              : PolicyInstanceTargetService
+  , targetService              : RuleTargetService
 ) extends DependencyAndDeletionService with Loggable {
 
   /**
    * Utility method that find configuration rules which depends upon a policy instance. 
    * Some configuration rules may be omited
    */
-  private[this] def searchConfigurationRules(
+  private[this] def searchRules(
       con:ReadOnlyLDAPConnection
-    , id:PolicyInstanceId
-  ):Box[Seq[ConfigurationRule]] = {
-    sequence(con.searchOne(rudderDit.CONFIG_RULE.dn, EQ(A_WBPI_UUID, id.value))) { entry =>
-      mapper.entry2ConfigurationRule(entry)
+    , id:DirectiveId
+  ):Box[Seq[Rule]] = {
+    sequence(con.searchOne(rudderDit.RULES.dn, EQ(A_DIRECTIVE_UUID, id.value))) { entry =>
+      mapper.entry2Rule(entry)
     }
   }
   
@@ -195,19 +195,19 @@ class DependencyAndDeletionServiceImpl(
    * - have a target ;
    * - the target is enable ;
    */
-   private[this] def filterConfigurationRules(crs:Seq[ConfigurationRule]) : Box[Seq[ConfigurationRule]] = {
-        val switchableCr: Seq[(ConfigurationRule,PolicyInstanceTarget)] = 
-          //only cr with "own status == true" and completly defined (else their states can't change)
-          crs.collect { case cr if(cr.isActivated) => (cr, cr.target.get) }
+   private[this] def filterRules(rules:Seq[Rule]) : Box[Seq[Rule]] = {
+        val switchableCr: Seq[(Rule,RuleTarget)] = 
+          //only rule with "own status == true" and completly defined (else their states can't change)
+          rules.collect { case rule if(rule.isEnabled) => (rule, rule.target.get) }
 
         //group by target, and check if target status is enable
-        //if the target is disable, we can't change the cr status anyhow
-        (sequence(switchableCr.groupBy { case (cr,t) => t }.toSeq) { case (target, seq) =>
+        //if the target is disable, we can't change the rule status anyhow
+        (sequence(switchableCr.groupBy { case (rule,t) => t }.toSeq) { case (target, seq) =>
           for {
             targetInfo <- targetService.getTargetInfo(target)
           } yield {
-            if(targetInfo.isActivated) {
-              seq.map { case(cr,_) => cr }
+            if(targetInfo.isEnabled) {
+              seq.map { case(rule,_) => rule }
             } else {
               Seq()
             }
@@ -217,26 +217,26 @@ class DependencyAndDeletionServiceImpl(
   
   
   /////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////// PolicyInstance dependencies //////////////////////////////
+  ////////////////////////////// Directive dependencies //////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
    * Find all Configuration rules that depend on that
    * policy instance.
    * For now, we don't care about dependencies yielded by parameterized values,
-   * and so we just look for Configuration Rules with policyInstance=piId
+   * and so we just look for Configuration Rules with directive=directiveId
    */
-  override def policyInstanceDependencies(id:PolicyInstanceId, onlyForState:ModificationStatus = DontCare) : Box[PolicyInstanceDependencies] = {
+  override def directiveDependencies(id:DirectiveId, onlyForState:ModificationStatus = DontCare) : Box[DirectiveDependencies] = {
     for {
       con <- ldap
-      configRules <- searchConfigurationRules(con,id)
-      filtered:Seq[ConfigurationRule] <- onlyForState match {
+      configRules <- searchRules(con,id)
+      filtered:Seq[Rule] <- onlyForState match {
         case DontCare => Full(configRules)
-        case OnlyEnableable => filterConfigurationRules(configRules)
-        case OnlyDisableable => filterConfigurationRules(configRules)
+        case OnlyEnableable => filterRules(configRules)
+        case OnlyDisableable => filterRules(configRules)
       }
     } yield {
-      PolicyInstanceDependencies(id,filtered)
+      DirectiveDependencies(id,filtered)
     }
   }
 
@@ -244,34 +244,34 @@ class DependencyAndDeletionServiceImpl(
    * Delete a given item and all its dependencies.
    * Return the list of items actually deleted.
    */
-  override def cascadeDeletePolicyInstance(id:PolicyInstanceId, actor:EventActor) : Box[PolicyInstanceDependencies] = {
+  override def cascadeDeleteDirective(id:DirectiveId, actor:EventActor) : Box[DirectiveDependencies] = {
     for {
       con          <- ldap
-      configRules  <- searchConfigurationRules(con,id)
-      updatedRules <- sequence(configRules) { cr =>
+      configRules  <- searchRules(con,id)
+      updatedRules <- sequence(configRules) { rule =>
                         //check that target is actually "target", and remove it
-                        if(cr.policyInstanceIds.exists(i => id == i)) {
-                          configurationRuleRepository.update(cr.copy(policyInstanceIds = cr.policyInstanceIds - id), actor) ?~!
-                            "Can not update configuration rule with ID %s. %s".format(cr.id, {
-                               val alreadyUpdated = configRules.takeWhile(x => x.id != cr.id)
+                        if(rule.directiveIds.exists(i => id == i)) {
+                          ruleRepository.update(rule.copy(directiveIds = rule.directiveIds - id), actor) ?~!
+                            "Can not update configuration rule with ID %s. %s".format(rule.id, {
+                               val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
                                if(alreadyUpdated.isEmpty) ""
                                else "Some rules were already updated: %s".format(alreadyUpdated.mkString(", "))
                             })
                         } else {
-                          logger.debug("Do not remove policy instance with ID '%s' from configuration rule '%s' (already not present?)".format(id.value, cr.id.value))
+                          logger.debug("Do not remove policy instance with ID '%s' from configuration rule '%s' (already not present?)".format(id.value, rule.id.value))
                           None
                         }
       }
-      diff         <- policyInstanceRepository.delete(id,actor) ?~! 
+      diff         <- directiveRepository.delete(id,actor) ?~! 
                       "Error when deleting policy instanc with ID %s. All dependent configuration rules where deleted %s.".format(
                           id, configRules.map( _.id.value ).mkString(" (", ", ", ")"))
     } yield {
-      PolicyInstanceDependencies(id,configRules)
+      DirectiveDependencies(id,configRules)
     }
   }
   
   /////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////// PolicyTemplate dependencies //////////////////////////////
+  ////////////////////////////// Technique dependencies //////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
@@ -279,42 +279,42 @@ class DependencyAndDeletionServiceImpl(
    * policy template.
    * If onlyEnableable is set to true, that method only return
    * dependent configuration rules which will switch from disabled to enabled 
-   * if that policyTemplate was switching from disabled to enabled 
+   * if that technique was switching from disabled to enabled 
    * (independently from the actual status of that policy template).
    */
-  def policyTemplateDependencies(id:UserPolicyTemplateId, onlyForState:ModificationStatus = DontCare) : Box[PolicyTemplateDependencies] = {
+  def techniqueDependencies(id:ActiveTechniqueId, onlyForState:ModificationStatus = DontCare) : Box[TechniqueDependencies] = {
     for {
       con <- ldap
-      pis <- policyInstanceRepository.getPolicyInstances(id)
-      //if we are asked only for enable pis, remove disabled ones
+      directives <- directiveRepository.getDirectives(id)
+      //if we are asked only for enable directives, remove disabled ones
       val filteredPis = onlyForState match {
-        case DontCare => pis
+        case DontCare => directives
         //if the policy template is not internally enable, there is no chance that its status will ever change
-        case _ => pis.filter(pi => pi.isActivated)
+        case _ => directives.filter(directive => directive.isEnabled)
       }
-      piAndCrs <- sequence(filteredPis) { pi =>
+      piAndCrs <- sequence(filteredPis) { directive =>
         for {
-          configRules <- searchConfigurationRules(con,pi.id)
-          filtered:Seq[ConfigurationRule] <- onlyForState match {
+          configRules <- searchRules(con,directive.id)
+          filtered:Seq[Rule] <- onlyForState match {
             case DontCare => Full(configRules)
-            case OnlyEnableable => filterConfigurationRules(configRules)
-            case OnlyDisableable => filterConfigurationRules(configRules)
+            case OnlyEnableable => filterRules(configRules)
+            case OnlyDisableable => filterRules(configRules)
           }
         } yield {
-          ( pi.id , (pi,filtered) )
+          ( directive.id , (directive,filtered) )
         }
       }
     } yield {
       val allCrs = (for {
-        (piId, (pi,seqCrs )) <- piAndCrs 
-        cr <- seqCrs
+        (directiveId, (directive,seqCrs )) <- piAndCrs 
+        rule <- seqCrs
       } yield {
-        (cr.id, cr)
+        (rule.id, rule)
       }).toMap
       
-      PolicyTemplateDependencies(
+      TechniqueDependencies(
         id,
-        piAndCrs.map { case ( (piId, (pi,seqCrs )) ) => (piId, (pi, seqCrs.map( _.id))) }.toMap, 
+        piAndCrs.map { case ( (directiveId, (directive,seqCrs )) ) => (directiveId, (directive, seqCrs.map( _.id))) }.toMap, 
         allCrs
       )
     }
@@ -324,22 +324,22 @@ class DependencyAndDeletionServiceImpl(
    * Delete a given item and all its dependencies.
    * Return the list of items actually deleted.
    */
-  def cascadeDeletePolicyTemplate(id:UserPolicyTemplateId, actor:EventActor) : Box[PolicyTemplateDependencies] = {
+  def cascadeDeleteTechnique(id:ActiveTechniqueId, actor:EventActor) : Box[TechniqueDependencies] = {
     for {
       con <- ldap
-      pis <- policyInstanceRepository.getPolicyInstances(id)
-      piMap = pis.map(pi => (pi.id, pi) ).toMap
-      deletedPis <- sequence(pis) { pi =>
-        cascadeDeletePolicyInstance(pi.id, actor) 
+      directives <- directiveRepository.getDirectives(id)
+      piMap = directives.map(directive => (directive.id, directive) ).toMap
+      deletedPis <- sequence(directives) { directive =>
+        cascadeDeleteDirective(directive.id, actor) 
       }
-      deletedUpt <- policyTemplateRepository.delete(id, actor)
+      deletedActiveTechnique <- techniqueRepository.delete(id, actor)
     } yield {
-      val allCrs = scala.collection.mutable.Map[ConfigurationRuleId,ConfigurationRule]()
-      val pis = deletedPis.map { case PolicyInstanceDependencies(policyInstanceId,seqCrs) =>
-        allCrs ++= seqCrs.map( cr => (cr.id,cr))
-        (policyInstanceId, (piMap(policyInstanceId),seqCrs.map( _.id)))
+      val allCrs = scala.collection.mutable.Map[RuleId,Rule]()
+      val directives = deletedPis.map { case DirectiveDependencies(directiveId,seqCrs) =>
+        allCrs ++= seqCrs.map( rule => (rule.id,rule))
+        (directiveId, (piMap(directiveId),seqCrs.map( _.id)))
       }
-      PolicyTemplateDependencies(id,pis.toMap,allCrs.toMap)
+      TechniqueDependencies(id,directives.toMap,allCrs.toMap)
     }
     
   }
@@ -349,9 +349,9 @@ class DependencyAndDeletionServiceImpl(
   ////////////////////////////// Target dependencies //////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////
   
-  private[this] def searchConfigurationRules(con:ReadOnlyLDAPConnection, target:PolicyInstanceTarget) : Box[Seq[ConfigurationRule]] = {
-    sequence(con.searchOne(rudderDit.CONFIG_RULE.dn, EQ(A_POLICY_TARGET, target.target))) { entry =>
-      mapper.entry2ConfigurationRule(entry)
+  private[this] def searchRules(con:ReadOnlyLDAPConnection, target:RuleTarget) : Box[Seq[Rule]] = {
+    sequence(con.searchOne(rudderDit.RULES.dn, EQ(A_RULE_TARGET, target.target))) { entry =>
+      mapper.entry2Rule(entry)
     }  
   }
 
@@ -361,23 +361,23 @@ class DependencyAndDeletionServiceImpl(
    * For now, we don't care about dependencies yielded by parameterized values,
    * and so we just look for Configuration Rules with targetname=target
    */
-  override def targetDependencies(target:PolicyInstanceTarget, onlyEnableable:Boolean = false) : Box[TargetDependencies] = {
+  override def targetDependencies(target:RuleTarget, onlyEnableable:Boolean = false) : Box[TargetDependencies] = {
     /* utility method to call if only enableable is set to true, and which filter configuration rule that:
      * - the configuration rule own status is enable ;
      * - have a policy instance ;
      * - the policy instance is enable ;
      */
-    def filterConfigurationRules(crs:Seq[ConfigurationRule]) : Box[Seq[ConfigurationRule]] = {
-        val enabledCr: Seq[(ConfigurationRule,PolicyInstanceId)] = crs.collect { 
-          case cr if(cr.isActivatedStatus && cr.policyInstanceIds.size > 0) => cr.policyInstanceIds.map(id => (cr, id)) 
+    def filterRules(rules:Seq[Rule]) : Box[Seq[Rule]] = {
+        val enabledCr: Seq[(Rule,DirectiveId)] = rules.collect { 
+          case rule if(rule.isEnabledStatus && rule.directiveIds.size > 0) => rule.directiveIds.map(id => (rule, id)) 
         }.flatten
         //group by target, and check if target is enable
-        (sequence(enabledCr.groupBy { case (cr,id) => id }.toSeq) { case (id, seq) =>
+        (sequence(enabledCr.groupBy { case (rule,id) => id }.toSeq) { case (id, seq) =>
           for {
-            pi <- policyInstanceRepository.getPolicyInstance(id)
-            upt <- policyInstanceRepository.getUserPolicyTemplate(id)
+            directive <- directiveRepository.getDirective(id)
+            activeTechnique <- directiveRepository.getActiveTechnique(id)
           } yield {
-            if(pi.isActivated && upt.isActivated) {
+            if(directive.isEnabled && activeTechnique.isEnabled) {
               seq.map { case(id,_) => id }
             } else {
               Seq()
@@ -388,8 +388,8 @@ class DependencyAndDeletionServiceImpl(
     
     for {
       con <- ldap
-      configRules <- searchConfigurationRules(con,target)
-      filtered:Seq[ConfigurationRule] <- if(onlyEnableable) filterConfigurationRules(configRules) else Full(configRules)
+      configRules <- searchRules(con,target)
+      filtered:Seq[Rule] <- if(onlyEnableable) filterRules(configRules) else Full(configRules)
     } yield {
       TargetDependencies(target,filtered)
     }
@@ -399,27 +399,27 @@ class DependencyAndDeletionServiceImpl(
    * Delete a given item and all its dependencies.
    * Return the list of items actually deleted.
    */
-  override def cascadeDeleteTarget(target:PolicyInstanceTarget, actor:EventActor) : Box[TargetDependencies] = {
+  override def cascadeDeleteTarget(target:RuleTarget, actor:EventActor) : Box[TargetDependencies] = {
     target match {
       case GroupTarget(groupId) =>
         for {
           con           <- ldap
-          configRules   <- searchConfigurationRules(con,target)
-          updatedRules  <- sequence(configRules) { cr =>
+          configRules   <- searchRules(con,target)
+          updatedRules  <- sequence(configRules) { rule =>
                              //check that target is actually "target", and remove it
-                             cr.target match {
+                             rule.target match {
                                case Some(t) if(t == target) => 
-                                 configurationRuleRepository.update(cr.copy(target = None), actor) ?~! 
+                                 ruleRepository.update(rule.copy(target = None), actor) ?~! 
                                    "Can not remove target '%s' from configuration rule with Dd '%s'. %s".format(
-                                       target.target, cr.id.value, {
-                                         val alreadyUpdated = configRules.takeWhile(x => x.id != cr.id)
+                                       target.target, rule.id.value, {
+                                         val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
                                          if(alreadyUpdated.isEmpty) ""
                                          else "Some rules were already updated: %s".format(alreadyUpdated.mkString(", "))
                                        }
                                    )
                                case x => 
                                  logger.debug("Do not cascade modify configuration rule with ID '%s', because its target is '%s' and we are deleting '%s'".
-                                     format(cr.id.value, cr.target.map( _.target), target.target))
+                                     format(rule.id.value, rule.target.map( _.target), target.target))
                                  Full(None)
                              }
                            }

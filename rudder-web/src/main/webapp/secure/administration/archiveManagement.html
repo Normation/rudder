@@ -1,7 +1,7 @@
 <lift:surround with="menu/menu-administration" at="content">
 
 <head>
-<title>Rudder - Policy Server Management</title>
+<title>Rudder - Policy Node Management</title>
 <style>
 <!--
   .archiveAction {
@@ -94,21 +94,21 @@
       <hr class="spacer"/>
       <div class="deca">
       
-        <div class="lift:administration.Archives.configurationRulesForm archiveAction" id="configurationRulesForm">
+        <div class="lift:administration.Archives.rulesForm archiveAction" id="rulesForm">
           <form class="lift:form.ajax">
             <br/>
-            <input id="exportConfigurationRulesButton" type="submit" value="[Export CR]"/> 
+            <input id="exportRulesButton" type="submit" value="[Export CR]"/> 
             <br/>
             <br/>
-            <select id="importConfigurationRulesSelect">
+            <select id="importRulesSelect">
               <option>2011-10-08 21:21:21</option>
               <option>2011-10-09 21:21:21</option>
               <option>2011-10-10 21:21:21</option>
               <option>2011-10-11 21:21:21</option>
             </select>
-            <input id="importConfigurationRulesButton" type="submit" value="[Import CR]"/> 
+            <input id="importRulesButton" type="submit" value="[Import CR]"/> 
             <br/>
-            <lift:msg id="configurationRulesFormNotice" errorClass="error">[error]</lift:msg>
+            <lift:msg id="rulesFormNotice" errorClass="error">[error]</lift:msg>
             <br/>
           </form>
         </div>
@@ -133,16 +133,16 @@
         <div class="lift:administration.Archives.policyLibraryForm archiveAction" id="policyLibraryForm">
           <form class="lift:form.ajax">
             <br/>
-            <input id="exportPolicyLibraryButton" type="submit" value="[Export PolicyLibrary]"/> 
+            <input id="exportTechniqueLibraryButton" type="submit" value="[Export TechniqueLibrary]"/> 
             <br/>
             <br/>
-            <select id="importPolicyLibrarySelect">
+            <select id="importTechniqueLibrarySelect">
               <option>2011-10-08 21:21:21</option>
               <option>2011-10-09 21:21:21</option>
               <option>2011-10-10 21:21:21</option>
               <option>2011-10-11 21:21:21</option>
             </select>
-            <input id="importPolicyLibraryButton" type="submit" value="[Import PolicyLibrary]"/> 
+            <input id="importTechniqueLibraryButton" type="submit" value="[Import TechniqueLibrary]"/> 
             <br/>
             <lift:msg id="policyLibraryFormNotice" errorClass="error">[error]</lift:msg>
             <br/>

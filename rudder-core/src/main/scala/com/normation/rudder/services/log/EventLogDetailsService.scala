@@ -38,8 +38,8 @@ import scala.xml.{Node => XNode, _}
 import net.liftweb.common._
 import net.liftweb.common.Box._
 import net.liftweb.util.Helpers.tryo
-import com.normation.cfclerk.domain.PolicyVersion
-import com.normation.cfclerk.domain.PolicyPackageName
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.utils.Control.sequence
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
@@ -48,9 +48,9 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.log.InventoryLogDetails
 import org.joda.time.format.ISODateTimeFormat
-import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisation
+import com.normation.rudder.services.marshalling.RuleUnserialisation
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisation
-import com.normation.rudder.services.marshalling.PolicyInstanceUnserialisation
+import com.normation.rudder.services.marshalling.DirectiveUnserialisation
 import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.domain.servers.NodeConfiguration
@@ -59,11 +59,12 @@ import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.log.NodeLogDetails
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.log._
-import com.normation.cfclerk.domain.PolicyPackageId
+import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.repository.GitPath
 import com.normation.rudder.repository.GitCommitId
 import com.normation.rudder.repository.GitArchiveId
 import org.eclipse.jgit.lib.PersonIdent
+import com.normation.rudder.domain.Constants
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -80,19 +81,19 @@ trait EventLogDetailsService {
 
   ///// configuration Rule /////
   
-  def getConfigurationRuleAddDetails(xml:NodeSeq) : Box[AddConfigurationRuleDiff]
+  def getRuleAddDetails(xml:NodeSeq) : Box[AddRuleDiff]
   
-  def getConfigurationRuleDeleteDetails(xml:NodeSeq) : Box[DeleteConfigurationRuleDiff]
+  def getRuleDeleteDetails(xml:NodeSeq) : Box[DeleteRuleDiff]
   
-  def getConfigurationRuleModifyDetails(xml:NodeSeq) : Box[ModifyConfigurationRuleDiff]
+  def getRuleModifyDetails(xml:NodeSeq) : Box[ModifyRuleDiff]
   
   ///// policy Instance /////
   
-  def getPolicyInstanceAddDetails(xml:NodeSeq) : Box[(AddPolicyInstanceDiff, SectionVal)]
+  def getDirectiveAddDetails(xml:NodeSeq) : Box[(AddDirectiveDiff, SectionVal)]
   
-  def getPolicyInstanceDeleteDetails(xml:NodeSeq) : Box[(DeletePolicyInstanceDiff, SectionVal)]
+  def getDirectiveDeleteDetails(xml:NodeSeq) : Box[(DeleteDirectiveDiff, SectionVal)]
   
-  def getPolicyInstanceModifyDetails(xml:NodeSeq) : Box[ModifyPolicyInstanceDiff]
+  def getDirectiveModifyDetails(xml:NodeSeq) : Box[ModifyDirectiveDiff]
 
   ///// node group /////
   
@@ -116,7 +117,7 @@ trait EventLogDetailsService {
 
   def getUpdatePolicyServerDetails(xml:NodeSeq) : Box[AuthorizedNetworkModification]
 
-  def getPolicyTemplateLibraryReloadDetails(xml:NodeSeq) : Box[Seq[PolicyPackageId]]
+  def getTechniqueLibraryReloadDetails(xml:NodeSeq) : Box[Seq[TechniqueId]]
   
   ///// archiving & restoration /////
   
@@ -130,9 +131,9 @@ trait EventLogDetailsService {
  */
 class EventLogDetailsServiceImpl(
     cmdbQueryParser  : CmdbQueryParser
-  , piUnserialiser   : PolicyInstanceUnserialisation
+  , piUnserialiser   : DirectiveUnserialisation
   , groupUnserialiser: NodeGroupUnserialisation
-  , crUnserialiser   : ConfigurationRuleUnserialisation
+  , crUnserialiser   : RuleUnserialisation
   , deploymentStatusUnserialisation : DeploymentStatusUnserialisation
 ) extends EventLogDetailsService {
 
@@ -177,99 +178,99 @@ class EventLogDetailsServiceImpl(
   }  
   
   /**
-   * Version 1:
-     <configurationRule changeType="add" fileFormat="1.0">
-        <id>{cr.id.value}</id>
-        <name>{cr.name}</name>
-        <serial>{cr.serial}</serial>
-        <target>{ cr.target.map( _.target).getOrElse("") }</target>
-        <policyInstanceIds>{
-          cr.policyInstanceIds.map { id => <id>{id.value}</id> } 
-        }</policyInstanceIds>
-        <shortDescription>{cr.shortDescription}</shortDescription>
-        <longDescription>{cr.longDescription}</longDescription>
-        <isActivated>{cr.isActivatedStatus}</isActivated>
-        <isSystem>{cr.isSystem}</isSystem>
-      </configurationRule>
+   * Version 2:
+     <rule changeType="add" fileFormat="2.0">
+        <id>{rule.id.value}</id>
+        <name>{rule.name}</name>
+        <serial>{rule.serial}</serial>
+        <target>{ rule.target.map( _.target).getOrElse("") }</target>
+        <directiveIds>{
+          rule.directiveIds.map { id => <id>{id.value}</id> } 
+        }</directiveIds>
+        <shortDescription>{rule.shortDescription}</shortDescription>
+        <longDescription>{rule.longDescription}</longDescription>
+        <isEnabled>{rule.isEnabledStatus}</isEnabled>
+        <isSystem>{rule.isSystem}</isSystem>
+      </rule>
    */
-  override def getConfigurationRuleAddDetails(xml:NodeSeq) : Box[AddConfigurationRuleDiff] = {
-    getConfigurationRuleFromXML(xml, "add").map { cr =>
-      AddConfigurationRuleDiff(cr)
+  override def getRuleAddDetails(xml:NodeSeq) : Box[AddRuleDiff] = {
+    getRuleFromXML(xml, "add").map { rule =>
+      AddRuleDiff(rule)
     }
   }
   
   /**
-   * Version 1:
-     <configurationRule changeType="delete" fileFormat="1.0">
-        <id>{cr.id.value}</id>
-        <name>{cr.name}</name>
-        <serial>{cr.serial}</serial>
-        <target>{ cr.target.map( _.target).getOrElse("") }</target>
-        <policyInstanceIds>{
-          cr.policyInstanceIds.map { id => <id>{id.value}</id> } 
-        }</policyInstanceIds>
-        <shortDescription>{cr.shortDescription}</shortDescription>
-        <longDescription>{cr.longDescription}</longDescription>
-        <isActivated>{cr.isActivatedStatus}</isActivated>
-        <isSystem>{cr.isSystem}</isSystem>
-      </configurationRule>
+   * Version 2:
+     <rule changeType="delete" fileFormat="2.0">
+        <id>{rule.id.value}</id>
+        <name>{rule.name}</name>
+        <serial>{rule.serial}</serial>
+        <target>{ rule.target.map( _.target).getOrElse("") }</target>
+        <directiveIds>{
+          rule.directiveIds.map { id => <id>{id.value}</id> } 
+        }</directiveIds>
+        <shortDescription>{rule.shortDescription}</shortDescription>
+        <longDescription>{rule.longDescription}</longDescription>
+        <isEnabled>{rule.isEnabledStatus}</isEnabled>
+        <isSystem>{rule.isSystem}</isSystem>
+      </rule>
    */
-  override def getConfigurationRuleDeleteDetails(xml:NodeSeq) : Box[DeleteConfigurationRuleDiff] = {
-    getConfigurationRuleFromXML(xml, "delete").map { cr =>
-      DeleteConfigurationRuleDiff(cr)
+  override def getRuleDeleteDetails(xml:NodeSeq) : Box[DeleteRuleDiff] = {
+    getRuleFromXML(xml, "delete").map { rule =>
+      DeleteRuleDiff(rule)
     }
   }
   
   /**
-   * <configurationRule changeType="modify">
+   * <rule changeType="modify">
      <id>012f3064-d392-43a3-bec9-b0f75950a7ea</id>
      <displayName>cr1</displayName>
      <name><from>cr1</from><to>cr1-x</to></name>
      <target><from>....</from><to>....</to></target>
-     <policyInstanceIds><from><id>...</id><id>...</id></from><to><id>...</id></to></policyInstanceIds>
+     <directiveIds><from><id>...</id><id>...</id></from><to><id>...</id></to></directiveIds>
      <shortDescription><from>...</from><to>...</to></shortDescription>
      <longDescription><from>...</from><to>...</to></longDescription>
-     </configurationRule>
+     </rule>
    */
-  override def getConfigurationRuleModifyDetails(xml:NodeSeq) : Box[ModifyConfigurationRuleDiff] = {
+  override def getRuleModifyDetails(xml:NodeSeq) : Box[ModifyRuleDiff] = {
     for {
       entry             <- getEntryContent(xml)
-      cr                <- (entry \ "configurationRule").headOption ?~! ("Entry type is not configurationRule : " + entry)
+      rule                <- (entry \ "rule").headOption ?~! ("Entry type is not rule : " + entry)
       changeTypeAddOk   <- {
-                             if(cr.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
-                             else Failure("ConfigurationRule attribute does not have changeType=modify: " + entry)
+                             if(rule.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
+                             else Failure("Rule attribute does not have changeType=modify: " + entry)
                            }
       fileFormatOk      <- {
-                             if(cr.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
-                             else Failure("Bad fileFormat (expecting 1.0): " + entry)
+                             if(rule.attribute("fileFormat").map( _.text ) == Some(Constants.XML_FILE_FORMAT_2_0)) Full("OK")
+                             else Failure("Bad fileFormat (expecting %s): %s".format(Constants.XML_FILE_FORMAT_2_0, entry))
                            }
-      id                <- (cr \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type configurationRule : " + entry)
-      displayName       <- (cr \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type configurationRule : " + entry)
-      name              <- getFromToString((cr \ "name").headOption)
-      serial            <- getFromTo[Int]((cr \ "serial").headOption, { x => tryo(x.text.toInt) } )
-      target            <- getFromTo[Option[PolicyInstanceTarget]]((cr \ "target").headOption, {s =>  
+      id                <- (rule \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type rule : " + entry)
+      displayName       <- (rule \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type rule : " + entry)
+      name              <- getFromToString((rule \ "name").headOption)
+      serial            <- getFromTo[Int]((rule \ "serial").headOption, { x => tryo(x.text.toInt) } )
+      target            <- getFromTo[Option[RuleTarget]]((rule \ "target").headOption, {s =>  
                               //check for <from><none></none></from> or the same with <to>, <none/>, etc
-                              if( (s \ "none").isEmpty) Full(PolicyInstanceTarget.unser(s.text))
+                              if( (s \ "none").isEmpty) Full(RuleTarget.unser(s.text))
                               else Full(None)
                             } )
-      shortDescription  <- getFromToString((cr \ "shortDescription").headOption)
-      longDescription   <- getFromToString((cr \ "longDescription").headOption)
-      isActivated       <- getFromTo[Boolean]((cr \ "isActivated").headOption, { s => tryo { s.text.toBoolean } } ) 
-      isSystem          <- getFromTo[Boolean]((cr \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
-      policyInstanceIds <- getFromTo[Set[PolicyInstanceId]]((cr \ "policyInstanceIds").headOption, { x:NodeSeq => 
-                            Full((x \ "id").toSet.map( (y:NodeSeq) => PolicyInstanceId( y.text ) ))
+      shortDescription  <- getFromToString((rule \ "shortDescription").headOption)
+      longDescription   <- getFromToString((rule \ "longDescription").headOption)
+      isEnabled       <- getFromTo[Boolean]((rule \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } ) 
+      isSystem          <- getFromTo[Boolean]((rule \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
+      directiveIds <- getFromTo[Set[DirectiveId]]((rule \ "directiveIds").headOption, { x:NodeSeq => 
+                            Full((x \ "id").toSet.map( (y:NodeSeq) => DirectiveId( y.text ) ))
                           } )
     } yield {
-      ModifyConfigurationRuleDiff(
-          id = ConfigurationRuleId(id)
+      ModifyRuleDiff(
+          id = RuleId(id)
         , name = displayName
         , modName = name
         , modSerial = serial
         , modTarget = target
-        , modPolicyInstanceIds = policyInstanceIds
+        , modDirectiveIds = directiveIds
         , modShortDescription = shortDescription
         , modLongDescription = longDescription
-        , modIsActivatedStatus = isActivated
+        , modIsActivatedStatus = isEnabled
         , modIsSystem = isSystem
       )
     }
@@ -278,17 +279,17 @@ class EventLogDetailsServiceImpl(
   /**
    * Map XML into a configuration rule
    */
-  private[this] def getConfigurationRuleFromXML(xml:NodeSeq, changeType:String) : Box[ConfigurationRule] = {  
+  private[this] def getRuleFromXML(xml:NodeSeq, changeType:String) : Box[Rule] = {  
     for {
       entry           <- getEntryContent(xml)
-      crXml           <- (entry \ "configurationRule").headOption ?~! ("Entry type is not a configurationRule: " + entry)
+      crXml           <- (entry \ "rule").headOption ?~! ("Entry type is not a rule: " + entry)
       changeTypeAddOk <- {
                            if(crXml.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
-                           else Failure("ConfigurationRule attribute does not have changeType=%s: ".format(changeType) + entry)
+                           else Failure("Rule attribute does not have changeType=%s: ".format(changeType) + entry)
                          }
-      cr              <- crUnserialiser.unserialise(crXml)
+      rule              <- crUnserialiser.unserialise(crXml)
     } yield {
-      cr
+      rule
     }
   }
   
@@ -299,13 +300,13 @@ class EventLogDetailsServiceImpl(
   /**
    * Map XML into a policy instance
    */
-  private[this] def getPolicyInstanceFromXML(xml:NodeSeq, changeType:String) : Box[(PolicyPackageName, PolicyInstance, SectionVal)] = {  
+  private[this] def getDirectiveFromXML(xml:NodeSeq, changeType:String) : Box[(TechniqueName, Directive, SectionVal)] = {  
     for {
       entry                 <- getEntryContent(xml)
-      piXml                 <- (entry \ "policyInstance").headOption ?~! ("Entry type is not a policyInstance: " + entry)
+      piXml                 <- (entry \ "directive").headOption ?~! ("Entry type is not a directive: " + entry)
       changeTypeAddOk       <- {
                                   if(piXml.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
-                                  else Failure("PolicyInstance attribute does not have changeType=%s: ".format(changeType) + entry)
+                                  else Failure("Directive attribute does not have changeType=%s: ".format(changeType) + entry)
                                 }
       ptPiSectionVals       <- piUnserialiser.unserialise(piXml)
     } yield {
@@ -314,57 +315,57 @@ class EventLogDetailsServiceImpl(
   }
   
 
-  def getPolicyInstanceAddDetails(xml:NodeSeq) : Box[(AddPolicyInstanceDiff, SectionVal)] = {
-    getPolicyInstanceFromXML(xml, "add").map { case (ptName, pi,sectionVal) =>
-      (AddPolicyInstanceDiff(ptName, pi),sectionVal)
+  def getDirectiveAddDetails(xml:NodeSeq) : Box[(AddDirectiveDiff, SectionVal)] = {
+    getDirectiveFromXML(xml, "add").map { case (ptName, directive,sectionVal) =>
+      (AddDirectiveDiff(ptName, directive),sectionVal)
     }
   }
   
-  def getPolicyInstanceDeleteDetails(xml:NodeSeq) : Box[(DeletePolicyInstanceDiff, SectionVal)] = {
-    getPolicyInstanceFromXML(xml, "delete").map { case(ptName, pi,sectionVal) =>
-      (DeletePolicyInstanceDiff(ptName, pi),sectionVal)
+  def getDirectiveDeleteDetails(xml:NodeSeq) : Box[(DeleteDirectiveDiff, SectionVal)] = {
+    getDirectiveFromXML(xml, "delete").map { case(ptName, directive,sectionVal) =>
+      (DeleteDirectiveDiff(ptName, directive),sectionVal)
     }
   }
   
-  def getPolicyInstanceModifyDetails(xml:NodeSeq) : Box[ModifyPolicyInstanceDiff] = {
+  def getDirectiveModifyDetails(xml:NodeSeq) : Box[ModifyDirectiveDiff] = {
     for {
       entry <- getEntryContent(xml)
-      pi                    <- (entry \ "policyInstance").headOption ?~! ("Entry type is not policyInstance : " + entry)
+      directive                    <- (entry \ "directive").headOption ?~! ("Entry type is not directive : " + entry)
       changeTypeAddOk       <- {
-                                 if(pi.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
-                                 else Failure("PolicyInstance attribute does not have changeType=modify: " + entry)
+                                 if(directive.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
+                                 else Failure("Directive attribute does not have changeType=modify: " + entry)
                                }
       fileFormatOk          <- {
-                                 if(pi.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
-                                 else Failure("Bad fileFormat (expecting 1.0): " + entry)
+                                 if(directive.attribute("fileFormat").map( _.text ) == Some(Constants.XML_FILE_FORMAT_2_0)) Full("OK")
+                                 else Failure("Bad fileFormat (expecting %s): %s".format(Constants.XML_FILE_FORMAT_2_0, entry))
                                }
-      id                    <- (pi \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type policyInstance : " + entry)
-      ptName                <- (pi \ "policyTemplateName").headOption.map( _.text ) ?~! ("Missing attribute 'policyTemplateName' in entry type policyInstance : " + entry)
-      displayName           <- (pi \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type policyInstance : " + entry)
-      name                  <- getFromToString((pi \ "name").headOption)
-      policyTemplateVersion <- getFromTo[PolicyVersion]((pi \ "policyTemplateVersion").headOption, {v =>
-                                  tryo(PolicyVersion(v.text))
+      id                    <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + entry)
+      ptName                <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + entry)
+      displayName           <- (directive \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type directive : " + entry)
+      name                  <- getFromToString((directive \ "name").headOption)
+      techniqueVersion <- getFromTo[TechniqueVersion]((directive \ "techniqueVersion").headOption, {v =>
+                                  tryo(TechniqueVersion(v.text))
                                 } )
-      parameters            <- getFromTo[SectionVal]((pi \ "parameters").headOption, {parameter =>
+      parameters            <- getFromTo[SectionVal]((directive \ "parameters").headOption, {parameter =>
                                 piUnserialiser.parseSectionVal(parameter)
                               })
-      shortDescription      <- getFromToString((pi \ "shortDescription").headOption)
-      longDescription       <- getFromToString((pi \ "longDescription").headOption)
-      priority              <- getFromTo[Int]((pi \ "priority").headOption, { x => tryo(x.text.toInt) } )
-      isActivated           <- getFromTo[Boolean]((pi \ "isActivated").headOption, { s => tryo { s.text.toBoolean } } ) 
-      isSystem              <- getFromTo[Boolean]((pi \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
+      shortDescription      <- getFromToString((directive \ "shortDescription").headOption)
+      longDescription       <- getFromToString((directive \ "longDescription").headOption)
+      priority              <- getFromTo[Int]((directive \ "priority").headOption, { x => tryo(x.text.toInt) } )
+      isEnabled           <- getFromTo[Boolean]((directive \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } ) 
+      isSystem              <- getFromTo[Boolean]((directive \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
     } yield {
-      ModifyPolicyInstanceDiff(
-          policyTemplateName = PolicyPackageName(ptName)
-        , id = PolicyInstanceId(id)
+      ModifyDirectiveDiff(
+          techniqueName = TechniqueName(ptName)
+        , id = DirectiveId(id)
         , name = displayName
         , modName = name
-        , modPolicyTemplateVersion = policyTemplateVersion
+        , modTechniqueVersion = techniqueVersion
         , modParameters = parameters
         , modShortDescription = shortDescription
         , modLongDescription = longDescription
         , modPriority = priority
-        , modIsActivated = isActivated
+        , modIsActivated = isEnabled
         , modIsSystem = isSystem
       )
     }
@@ -393,8 +394,8 @@ class EventLogDetailsServiceImpl(
                             else Failure("NodeGroup attribute does not have changeType=modify: " + entry)
                           }
       fileFormatOk    <- {
-                           if(group.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
-                           else Failure("Bad fileFormat (expecting 1.0): " + entry)
+                           if(group.attribute("fileFormat").map( _.text ) == Some(Constants.XML_FILE_FORMAT_2_0)) Full("OK")
+                           else Failure("Bad fileFormat (expecting %s): %s".format(Constants.XML_FILE_FORMAT_2_0, entry))
                          }
       id              <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry)
       displayName     <- (group \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry)
@@ -409,7 +410,7 @@ class EventLogDetailsServiceImpl(
       serverList      <- getFromTo[Set[NodeId]]((group \ "nodeIds").headOption, { x:NodeSeq => 
                             Full((x \ "id").toSet.map( (y:NodeSeq) => NodeId( y.text ) ))
                           } )
-      isActivated     <- getFromTo[Boolean]((group \ "isActivated").headOption, { s => tryo { s.text.toBoolean } } ) 
+      isEnabled     <- getFromTo[Boolean]((group \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } ) 
       isSystem        <- getFromTo[Boolean]((group \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
     } yield {
       ModifyNodeGroupDiff(
@@ -419,8 +420,8 @@ class EventLogDetailsServiceImpl(
         , modDescription = description
         , modQuery = query
         , modIsDynamic = isDynamic
-        , modServerList = serverList
-        , modIsActivated = isActivated
+        , modNodeList = serverList
+        , modIsActivated = isEnabled
         , modIsSystem = isSystem
       )
     }
@@ -464,8 +465,8 @@ class EventLogDetailsServiceImpl(
                         else Failure("node attribute does not have action=%s: ".format(action) + entry)
                       }
       fileFormatOk <- {
-                        if(details.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
-                        else Failure("Bad fileFormat (expecting 1.0): " + entry)
+                        if(details.attribute("fileFormat").map( _.text ) == Some(Constants.XML_FILE_FORMAT_2_0)) Full("OK")
+                        else Failure("Bad fileFormat (expecting %s): %s".format(Constants.XML_FILE_FORMAT_2_0, entry))
                       }
       nodeId       <- (details \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type node: " + entry)
       version      <- (details \ "inventoryVersion").headOption.map( _.text ) ?~! ("Missing attribute 'inventoryVersion' in entry type node : " + entry)
@@ -500,8 +501,8 @@ class EventLogDetailsServiceImpl(
                           else Failure("node attribute does not have action=%s: ".format(action) + entry)
                         }
       fileFormatOk   <- {
-                          if(details.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
-                          else Failure("Bad fileFormat (expecting 1.0): " + entry)
+                          if(details.attribute("fileFormat").map( _.text ) == Some(Constants.XML_FILE_FORMAT_2_0)) Full("OK")
+                          else Failure("Bad fileFormat (expecting %s): %s".format(Constants.XML_FILE_FORMAT_2_0, entry))
                         }
       nodeId         <- (details \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type node: " + entry)
       name           <- (details \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type node : " + entry)
@@ -583,33 +584,33 @@ class EventLogDetailsServiceImpl(
   
   
   /**
-   * <policyTemplateReloaded>
-       <modifiedPolicyTemplate>
+   * <techniqueReloaded>
+       <modifiedTechnique>
          <name>{name.value}</name>
          <version>{version.toString}</version>
-       </modifiedPolicyTemplate>
-       <modifiedPolicyTemplate>
+       </modifiedTechnique>
+       <modifiedTechnique>
          <name>{name.value}</name>
          <version>{version.toString}</version>
-       </modifiedPolicyTemplate>
+       </modifiedTechnique>
        ....
-     </policyTemplateReloaded>
+     </techniqueReloaded>
    */
-  def getPolicyTemplateLibraryReloadDetails(xml:NodeSeq) : Box[Seq[PolicyPackageId]] = {
+  def getTechniqueLibraryReloadDetails(xml:NodeSeq) : Box[Seq[TechniqueId]] = {
     for {
       entry   <- getEntryContent(xml)
-      details <- (entry \ "policyTemplateReloaded").headOption ?~! ("Entry type is not a policyTemplateReloaded: " + entry)
-      ptIds   <- sequence((details \ "modifiedPolicyTemplate")) { pt =>
+      details <- (entry \ "techniqueReloaded").headOption ?~! ("Entry type is not a techniqueReloaded: " + entry)
+      activeTechniqueIds   <- sequence((details \ "modifiedTechnique")) { technique =>
                    for {
-                     name    <- (pt \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type policyTemplateReloaded : " + entry)
-                     version <- (pt \ "version").headOption.map( _.text ) ?~! ("Missing attribute 'version' in entry type policyTemplateReloaded : " + entry)
-                     v       <- tryo { PolicyVersion(version) }
+                     name    <- (technique \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type techniqueReloaded : " + entry)
+                     version <- (technique \ "version").headOption.map( _.text ) ?~! ("Missing attribute 'version' in entry type techniqueReloaded : " + entry)
+                     v       <- tryo { TechniqueVersion(version) }
                    } yield {
-                     PolicyPackageId(PolicyPackageName(name),v)
+                     TechniqueId(TechniqueName(name),v)
                    }
                  }
     } yield {
-      ptIds
+      activeTechniqueIds
     }
   }
   
@@ -631,8 +632,8 @@ class EventLogDetailsServiceImpl(
     
     archive match {
       case x:ExportGroupsArchive => getCommitInfo(xml, ExportGroupsArchive.tagName)
-      case x:ExportPolicyLibraryArchive => getCommitInfo(xml, ExportPolicyLibraryArchive.tagName)
-      case x:ExportConfigurationRulesArchive => getCommitInfo(xml, ExportConfigurationRulesArchive.tagName)
+      case x:ExportTechniqueLibraryArchive => getCommitInfo(xml, ExportTechniqueLibraryArchive.tagName)
+      case x:ExportRulesArchive => getCommitInfo(xml, ExportRulesArchive.tagName)
       case x:ExportFullArchive => getCommitInfo(xml, ExportFullArchive.tagName)
     }
   }
@@ -650,8 +651,8 @@ class EventLogDetailsServiceImpl(
     
     archive match {
       case x:ImportGroupsArchive => getCommitInfo(xml, ImportGroupsArchive.tagName)
-      case x:ImportPolicyLibraryArchive => getCommitInfo(xml, ImportPolicyLibraryArchive.tagName)
-      case x:ImportConfigurationRulesArchive => getCommitInfo(xml, ImportConfigurationRulesArchive.tagName)
+      case x:ImportTechniqueLibraryArchive => getCommitInfo(xml, ImportTechniqueLibraryArchive.tagName)
+      case x:ImportRulesArchive => getCommitInfo(xml, ImportRulesArchive.tagName)
       case x:ImportFullArchive => getCommitInfo(xml, ImportFullArchive.tagName)
     }
   }

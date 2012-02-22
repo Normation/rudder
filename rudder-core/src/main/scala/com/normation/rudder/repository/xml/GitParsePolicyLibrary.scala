@@ -42,9 +42,9 @@ import org.eclipse.jgit.revwalk.RevTag
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.rudder.repository._
-import com.normation.rudder.services.marshalling.PolicyInstanceUnserialisation
-import com.normation.rudder.services.marshalling.UserPolicyTemplateCategoryUnserialisation
-import com.normation.rudder.services.marshalling.UserPolicyTemplateUnserialisation
+import com.normation.rudder.services.marshalling.DirectiveUnserialisation
+import com.normation.rudder.services.marshalling.ActiveTechniqueCategoryUnserialisation
+import com.normation.rudder.services.marshalling.ActiveTechniqueUnserialisation
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
 import com.normation.utils.XmlUtils
@@ -55,15 +55,15 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 
 
-class GitParsePolicyLibrary(
-    categoryUnserialiser: UserPolicyTemplateCategoryUnserialisation
-  , uptUnserialiser     : UserPolicyTemplateUnserialisation
-  , piUnserialiser      : PolicyInstanceUnserialisation
+class GitParseActiveTechniqueLibrary(
+    categoryUnserialiser: ActiveTechniqueCategoryUnserialisation
+  , uptUnserialiser     : ActiveTechniqueUnserialisation
+  , piUnserialiser      : DirectiveUnserialisation
   , repo                : GitRepositoryProvider
   , libRootDirectory    : String //relative name to git root file
   , uptcFileName        : String = "category.xml"
-  , uptFileName         : String = "userPolicyTemplateSettings.xml"    
-) extends ParsePolicyLibrary {
+  , uptFileName         : String = "activeTechniqueSettings.xml"    
+) extends ParseActiveTechniqueLibrary {
   
   def getArchive(archiveId:GitCommitId) = {
     for {
@@ -87,7 +87,7 @@ class GitParsePolicyLibrary(
     val paths = GitFindUtils.listFiles(repo.db, revTreeId, Some(root.substring(0, root.size-1)), None)
         
     //directoryPath must end with "/"
-    def recParseDirectory(directoryPath:String) : Box[Either[UptCategoryContent, UptContent]] = {
+    def recParseDirectory(directoryPath:String) : Box[Either[ActiveTechniqueCategoryContent, ActiveTechniqueContent]] = {
 
       val category = directoryPath + uptcFileName
       val template = directoryPath + uptFileName
@@ -97,8 +97,8 @@ class GitParsePolicyLibrary(
         case (false, false) => Failure("The directory '%s' does not contain '%s' or '%s' and should not have been considered".format(directoryPath,category,template))
         case (true, true) => Failure("The directory '%s' contains both '%s' and '%s' descriptor file. Only one of them is authorized".format(directoryPath, uptcFileName, uptFileName))
         case (true, false) =>
-          // that's the directory of an UserPolicyTemplateCategory. 
-          // ignore files other than uptcFileName (parsed as an UserPolicyTemplateCategory), recurse on sub-directories
+          // that's the directory of an ActiveTechniqueCategory. 
+          // ignore files other than uptcFileName (parsed as an ActiveTechniqueCategory), recurse on sub-directories
           // don't forget to sub-categories and UPT and UPTC
           for {
             uptcXml  <- GitFindUtils.getFileContent(repo.db, revTreeId, category){ inputStream =>
@@ -124,22 +124,22 @@ class GitParsePolicyLibrary(
             val upts = subItems.collect { case Right(x) => x }.toSet
             
             val category = uptc.copy(
-                children = subCats.map { case UptCategoryContent(cat, _, _) => cat.id }.toList
-              , items = upts.map { case UptContent(upt, _) => upt.id}.toList
+                children = subCats.map { case ActiveTechniqueCategoryContent(cat, _, _) => cat.id }.toList
+              , items = upts.map { case ActiveTechniqueContent(activeTechnique, _) => activeTechnique.id}.toList
             )
             
-            Left(UptCategoryContent(category, subCats, upts))
+            Left(ActiveTechniqueCategoryContent(category, subCats, upts))
           }
           
         case (false, true) => 
-          // that's the directory of an UserPolicyTemplate
-          // ignore sub-directories, parse uptFileName as an UserPolicyTemplate, parse UUID.xml as PI
+          // that's the directory of an ActiveTechnique
+          // ignore sub-directories, parse uptFileName as an ActiveTechnique, parse UUID.xml as PI
           // don't forget to add PI ids to UPT
           for {
             uptXml  <- GitFindUtils.getFileContent(repo.db, revTreeId, template){ inputStream =>
                          XmlUtils.parseXml(inputStream, Some(template)) ?~! "Error when parsing file '%s' as a category".format(template)
                        }
-            upt     <- uptUnserialiser.unserialise(uptXml) ?~! "Error when unserializing template for file '%s'".format(template)
+            activeTechnique     <- uptUnserialiser.unserialise(uptXml) ?~! "Error when unserializing template for file '%s'".format(template)
             piFiles =  {
                          paths.filter { p =>
                            p.size > directoryPath.size && 
@@ -148,20 +148,20 @@ class GitParsePolicyLibrary(
                            UuidRegex.isValid(p.substring(directoryPath.size, p.size - 4))
                          }
                        }
-            pis     <- sequence(piFiles.toSeq) { piFile =>
+            directives     <- sequence(piFiles.toSeq) { piFile =>
                          for {
                            piXml      <-  GitFindUtils.getFileContent(repo.db, revTreeId, piFile){ inputStream =>
                                             XmlUtils.parseXml(inputStream, Some(piFile)) ?~! "Error when parsing file '%s' as a policy instance".format(piFile)
                                           }
-                           (_, pi, _) <-  piUnserialiser.unserialise(piXml) ?~! "Error when unserializing ppolicy instance for file '%s'".format(piFile)
+                           (_, directive, _) <-  piUnserialiser.unserialise(piXml) ?~! "Error when unserializing ppolicy instance for file '%s'".format(piFile)
                          } yield {
-                           pi
+                           directive
                          }
                        }
           } yield {
-            val pisSet = pis.toSet
-            Right(UptContent(
-                upt.copy(policyInstances = pisSet.map(_.id).toList)
+            val pisSet = directives.toSet
+            Right(ActiveTechniqueContent(
+                activeTechnique.copy(directives = pisSet.map(_.id).toList)
               , pisSet
             ))
           }
@@ -173,7 +173,7 @@ class GitParsePolicyLibrary(
       
       case Full(Right(x)) => 
         Failure("We found an User Policy Template where we were expected the root of user policy library, and so a category. Path: '%s'; found: '%s'".format(
-            root, x.upt))
+            root, x.activeTechnique))
       
       case Empty => Failure("Error when parsing the root directory for policy library '%s'. Perhaps the '%s' file is missing in that directory, or the saved policy library was not correctly exported".format(
                       root, uptcFileName

@@ -42,7 +42,7 @@ import org.eclipse.jgit.revwalk.RevTag
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.rudder.domain.policies.PolicyInstanceTargetInfo
+import com.normation.rudder.domain.policies.RuleTargetInfo
 import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisation
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisation
@@ -133,11 +133,11 @@ class GitParseGroupLibrary(
         val cat = category.copy(
             children = s.map { _.category.id }.toList
           , items = g.map { x => 
-                      PolicyInstanceTargetInfo(
+                      RuleTargetInfo(
                           target      = GroupTarget(x.id)
                         , name        = x.name
                         , description = x.description
-                        , isActivated = x.isActivated
+                        , isEnabled = x.isEnabled
                         , isSystem    = x.isSystem
                       )
                     }.toList

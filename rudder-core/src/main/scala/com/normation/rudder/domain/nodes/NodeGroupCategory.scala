@@ -34,7 +34,7 @@
 
 package com.normation.rudder.domain.nodes
 
-import com.normation.rudder.domain.policies.PolicyInstanceTargetInfo
+import com.normation.rudder.domain.policies.RuleTargetInfo
 import com.normation.rudder.domain.categories.ItemCategory
 import com.normation.utils.HashcodeCaching
 
@@ -57,7 +57,7 @@ case class NodeGroupCategory(
   name : String,
   description : String,
   children: List[NodeGroupCategoryId],
-  items : List[PolicyInstanceTargetInfo],
+  items : List[RuleTargetInfo],
   isSystem : Boolean = false
   
-) extends ItemCategory[NodeGroupCategoryId,PolicyInstanceTargetInfo] with HashcodeCaching {}
+) extends ItemCategory[NodeGroupCategoryId,RuleTargetInfo] with HashcodeCaching {}

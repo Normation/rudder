@@ -34,6 +34,6 @@
 
 package com.normation.rudder.exceptions
 
-class PolicyException(message:String) extends RuntimeException(message) {
+class TechniqueException(message:String) extends RuntimeException(message) {
   def this() = this("Error with the policy")
 }

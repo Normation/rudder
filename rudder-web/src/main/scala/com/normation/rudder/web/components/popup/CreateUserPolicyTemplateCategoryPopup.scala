@@ -39,7 +39,7 @@ import net.liftweb.http.LocalSnippet
 import net.liftweb.http.js._
 import JsCmds._
 import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.domain.policies.{UserPolicyTemplateCategory,UserPolicyTemplateCategoryId}
+import com.normation.rudder.domain.policies.{ActiveTechniqueCategory,ActiveTechniqueCategoryId}
 
 // For implicits
 import JE._
@@ -57,7 +57,7 @@ import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 
 
-class CreateUserPolicyTemplateCategoryPopup(onSuccessCallback : () => JsCmd = { () => Noop },
+class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
        ) extends DispatchSnippet with Loggable {
 
@@ -68,13 +68,13 @@ class CreateUserPolicyTemplateCategoryPopup(onSuccessCallback : () => JsCmd = { 
        error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
      case Full(n) => n
   }
-  def popupTemplate = chooseTemplate("pt", "createCategoryPopup", template)
+  def popupTemplate = chooseTemplate("technique", "createCategoryPopup", template)
 
 
-  private[this] val userPolicyTemplateCategoryRepository = inject[UserPolicyTemplateCategoryRepository]
+  private[this] val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
 
-  private[this] val categories = userPolicyTemplateCategoryRepository.getAllUserPolicyTemplateCategories()
+  private[this] val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories()
 
   def dispatch = {
     case "popupContent" => popupContent _
@@ -145,7 +145,7 @@ class CreateUserPolicyTemplateCategoryPopup(onSuccessCallback : () => JsCmd = { 
       onFailure & onFailureCallback()
     } else {
       // First retrieve the parent category
-      userPolicyTemplateCategoryRepository.getUserPolicyTemplateCategory(new UserPolicyTemplateCategoryId(piContainer.is)) match {
+      activeTechniqueCategoryRepository.getActiveTechniqueCategory(new ActiveTechniqueCategoryId(piContainer.is)) match {
         case Empty =>
             logger.error("An error occurred while fetching the parent category")
             formTracker.addFormError(error("An error occurred while fetching the parent category"))
@@ -155,9 +155,9 @@ class CreateUserPolicyTemplateCategoryPopup(onSuccessCallback : () => JsCmd = { 
             formTracker.addFormError(error("An error occurred while fetching the parent category: " + m))
             onFailure & onFailureCallback()
         case Full(parent) =>
-          userPolicyTemplateCategoryRepository.addUserPolicyTemplateCategory(
-              new UserPolicyTemplateCategory(
-                 UserPolicyTemplateCategoryId(uuidGen.newUuid),
+          activeTechniqueCategoryRepository.addActiveTechniqueCategory(
+              new ActiveTechniqueCategory(
+                 ActiveTechniqueCategoryId(uuidGen.newUuid),
                  name = piName.is,
                  description = piDescription.is,
                  children = Nil,

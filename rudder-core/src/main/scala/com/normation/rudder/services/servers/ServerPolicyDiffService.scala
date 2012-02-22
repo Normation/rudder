@@ -34,15 +34,15 @@
 
 package com.normation.rudder.services.servers
 
-import com.normation.rudder.domain.servers.{ModifiedPolicy,ModifiedVariable,DeletedPolicy,AddedPolicy,ServerPolicyDiff,NodeConfiguration}
+import com.normation.rudder.domain.servers.{ModifiedPolicy,ModifiedVariable,DeletedPolicy,AddedPolicy,NodeConfigurationDiff,NodeConfiguration}
 
-class ServerPolicyDiffService {
+class NodeConfigurationDiffService {
   
   
-  def getDiff(server:NodeConfiguration) : Seq[ServerPolicyDiff] = {
-    val buffer = scala.collection.mutable.Buffer[ServerPolicyDiff]()
-    val cps = server.getCurrentPolicyInstances.keySet
-    val tps = server.getPolicyInstances.keySet
+  def getDiff(server:NodeConfiguration) : Seq[NodeConfigurationDiff] = {
+    val buffer = scala.collection.mutable.Buffer[NodeConfigurationDiff]()
+    val cps = server.getCurrentDirectives.keySet
+    val tps = server.getDirectives.keySet
     //added
     buffer ++= (tps -- cps).map(AddedPolicy(_))
     //deleted 
@@ -50,8 +50,8 @@ class ServerPolicyDiffService {
     //check for modified
     for( cp <- (cps & tps) ) {
       val modVars = scala.collection.mutable.Buffer[ModifiedVariable]()
-      val oldInstanceVars = server.getCurrentPolicyInstance(cp).get.policyInstance.getVariables
-      val newInstanceVars = server.getPolicyInstance(cp).get.policyInstance.getVariables
+      val oldInstanceVars = server.getCurrentDirective(cp).get.cf3PolicyDraft.getVariables
+      val newInstanceVars = server.getDirective(cp).get.cf3PolicyDraft.getVariables
       for {
         key <- oldInstanceVars.keySet ++ newInstanceVars.keySet
         oldVar <- oldInstanceVars.get(key)

@@ -40,5 +40,5 @@ package bootstrap.liftweb
  */
 object RudderContext {
   //Is the root server correctly defined ?
-  var rootServerNotDefined = true
+  var rootNodeNotDefined = true
 }

@@ -35,19 +35,19 @@
 package com.normation.rudder.repository
 
 import java.io.File
-import com.normation.rudder.domain.policies.ConfigurationRule
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
 import net.liftweb.common.Box
-import com.normation.rudder.domain.policies.PolicyInstance
-import com.normation.rudder.domain.policies.PolicyInstanceId
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategoryId
-import com.normation.rudder.domain.policies.UserPolicyTemplate
-import com.normation.rudder.domain.policies.UserPolicyTemplateId
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategoryId
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.cfclerk.domain.SectionSpec
-import com.normation.cfclerk.domain.PolicyPackageName
-import com.normation.cfclerk.domain.PolicyPackage
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -98,9 +98,9 @@ trait ItemArchiveManager {
    */
   def exportAll(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
   
-  def exportConfigurationRules(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportRules(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
   
-  def exportPolicyLibrary(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportTechniqueLibrary(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
   
   def exportGroupLibrary(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
   
@@ -114,9 +114,9 @@ trait ItemArchiveManager {
    */
   def importAll(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
 
-  def importConfigurationRules(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importRules(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importPolicyLibrary(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importTechniqueLibrary(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
   def importGroupLibrary(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
@@ -126,9 +126,9 @@ trait ItemArchiveManager {
    */
   def importHeadAll(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importHeadConfigurationRules(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadRules(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importHeadPolicyLibrary(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadTechniqueLibrary(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
   def importHeadGroupLibrary(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
   
@@ -140,9 +140,9 @@ trait ItemArchiveManager {
   
   def getGroupLibraryTags : Box[Map[DateTime,GitArchiveId]]
   
-  def getPolicyLibraryTags : Box[Map[DateTime,GitArchiveId]]
+  def getTechniqueLibraryTags : Box[Map[DateTime,GitArchiveId]]
   
-  def getConfigurationRulesTags : Box[Map[DateTime,GitArchiveId]]
+  def getRulesTags : Box[Map[DateTime,GitArchiveId]]
     
 }
 
@@ -150,7 +150,7 @@ trait ItemArchiveManager {
 /**
  * A specific trait to create archive of configuration rules
  */
-trait GitConfigurationRuleArchiver {
+trait GitRuleArchiver {
   /**
    * Archive a configuration rule in a file system
    * managed by git. 
@@ -158,7 +158,7 @@ trait GitConfigurationRuleArchiver {
    * saved in git. Else, no modification in git are saved.
    * 
    */
-  def archiveConfigurationRule(cr:ConfigurationRule, gitCommitCr:Option[PersonIdent]) : Box[GitPath]
+  def archiveRule(rule:Rule, gitCommitCr:Option[PersonIdent]) : Box[GitPath]
   
   /**
    * Commit modification done in the Git repository for any
@@ -167,7 +167,7 @@ trait GitConfigurationRuleArchiver {
    * The returned commit hash is the one for the tag. 
    * Return the git commit id. 
    */
-  def commitConfigurationRules(commiter:PersonIdent) : Box[GitArchiveId]
+  def commitRules(commiter:PersonIdent) : Box[GitArchiveId]
   
   def getTags() : Box[Map[DateTime,GitArchiveId]]
   
@@ -176,7 +176,7 @@ trait GitConfigurationRuleArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteConfigurationRule(crId:ConfigurationRuleId, gitCommitCr:Option[PersonIdent]) : Box[GitPath]
+  def deleteRule(ruleId:RuleId, gitCommitCr:Option[PersonIdent]) : Box[GitPath]
   
   /**
    * Get the root directory where configuration rules are saved
@@ -190,7 +190,7 @@ trait GitConfigurationRuleArchiver {
 /**
  * A specific trait to create archive of an user policy template category.
  */
-trait GitUserPolicyTemplateCategoryArchiver {
+trait GitActiveTechniqueCategoryArchiver {
   
   /**
    * Archive an user policy template category in a file system
@@ -198,20 +198,20 @@ trait GitUserPolicyTemplateCategoryArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveUserPolicyTemplateCategory(uptc:UserPolicyTemplateCategory, getParents:List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def archiveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
     
   /**
    * Delete an archived user policy template category. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteUserPolicyTemplateCategory(uptcId:UserPolicyTemplateCategoryId, getParents:List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def deleteActiveTechniqueCategory(uptcId:ActiveTechniqueCategoryId, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
   
   /**
    * Move an archived policy template category from a 
    * parent category to an other. 
    */
-  def moveUserPolicyTemplateCategory(uptc:UserPolicyTemplateCategory, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def moveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
 
   /**
    * Get the root directory where user policy template categories are saved.
@@ -224,7 +224,7 @@ trait GitUserPolicyTemplateCategoryArchiver {
    * user policy library.
    * Return the git commit id. 
    */
-  def commitUserPolicyLibrary(commiter:PersonIdent) : Box[GitArchiveId]
+  def commitActiveTechniqueLibrary(commiter:PersonIdent) : Box[GitArchiveId]
   
   def getTags() : Box[Map[DateTime,GitArchiveId]]
 }
@@ -232,7 +232,7 @@ trait GitUserPolicyTemplateCategoryArchiver {
 /**
  * A specific trait to create archive of an user policy template category.
  */
-trait GitUserPolicyTemplateArchiver {
+trait GitActiveTechniqueArchiver {
   
   /**
    * Archive an user policy template in a file system
@@ -240,20 +240,20 @@ trait GitUserPolicyTemplateArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveUserPolicyTemplate(upt:UserPolicyTemplate, parents:List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def archiveActiveTechnique(activeTechnique:ActiveTechnique, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
     
   /**
    * Delete an archived user policy template. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteUserPolicyTemplate(ptName:PolicyPackageName, parents:List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def deleteActiveTechnique(ptName:TechniqueName, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
   
   /**
    * Move an archived policy template from a 
    * parent category to an other. 
    */
-  def moveUserPolicyTemplate(upt:UserPolicyTemplate, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
 
   /**
    * Get the root directory where user policy template categories are saved.
@@ -264,17 +264,17 @@ trait GitUserPolicyTemplateArchiver {
 /**
  * A specific trait to create archive of a policy instance.
  */
-trait GitPolicyInstanceArchiver {
+trait GitDirectiveArchiver {
   /**
    * Archive a policy instance in a file system
    * managed by git. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archivePolicyInstance(
-      pi                 : PolicyInstance
-    , ptName             : PolicyPackageName
-    , catIds             : List[UserPolicyTemplateCategoryId]
+  def archiveDirective(
+      directive                 : Directive
+    , ptName             : TechniqueName
+    , catIds             : List[ActiveTechniqueCategoryId]
     , variableRootSection: SectionSpec
     , gitCommit          : Option[PersonIdent]
   ) : Box[GitPath]
@@ -284,10 +284,10 @@ trait GitPolicyInstanceArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deletePolicyInstance(
-      piId     : PolicyInstanceId
-    , ptName   : PolicyPackageName
-    , catIds   : List[UserPolicyTemplateCategoryId]
+  def deleteDirective(
+      directiveId     : DirectiveId
+    , ptName   : TechniqueName
+    , catIds   : List[ActiveTechniqueCategoryId]
     , gitCommit: Option[PersonIdent]
   ) : Box[GitPath]
   

@@ -44,7 +44,7 @@ import JE._
 import scala.xml.NodeSeq
 import collection.mutable.Buffer
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository._
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.web.model.CurrentUser
@@ -63,7 +63,7 @@ class Archives extends DispatchSnippet with Loggable {
   
   def dispatch = {
     case "allForm" => allForm 
-    case "configurationRulesForm" => configurationRulesForm
+    case "rulesForm" => rulesForm
     case "groupLibraryForm" => groupLibraryForm
     case "policyLibraryForm" => policyLibraryForm
   }
@@ -91,20 +91,20 @@ class Archives extends DispatchSnippet with Loggable {
     )
   }
   
-  private[this] def configurationRulesForm = {
+  private[this] def rulesForm = {
     actionFormBuilder(
-        formName                  = "configurationRulesForm"
-      , archiveButtonId           = "exportConfigurationRulesButton"
+        formName                  = "rulesForm"
+      , archiveButtonId           = "exportRulesButton"
       , archiveButtonName         = "Archive configuration rules"
-      , archiveFunction           = itemArchiver.exportConfigurationRules
+      , archiveFunction           = itemArchiver.exportRules
       , archiveErrorMessage       = "Error when exporting configuration rules."
       , archiveSuccessDebugMessage= s => "Exporting configuration rules on user request, archive id: %s".format(s)
-      , archiveDateSelectId       = "importConfigurationRulesSelect"
-      , archiveListFunction       = itemArchiver.getConfigurationRulesTags _
-      , restoreButtonId           = "importConfigurationRulesButton"
+      , archiveDateSelectId       = "importRulesSelect"
+      , archiveListFunction       = itemArchiver.getRulesTags _
+      , restoreButtonId           = "importRulesButton"
       , restoreButtonName         = "Restore configuration rules"
-      , restoreFunction           = itemArchiver.importConfigurationRules
-      , restoreHeadFunction       = itemArchiver.importHeadConfigurationRules
+      , restoreFunction           = itemArchiver.importRules
+      , restoreHeadFunction       = itemArchiver.importHeadRules
       , restoreErrorMessage       = "Error when imporing configuration rules."
       , restoreSuccessDebugMessage= "Importing configuration rules on user request"
     )
@@ -113,17 +113,17 @@ class Archives extends DispatchSnippet with Loggable {
   private[this] def policyLibraryForm = {
     actionFormBuilder(
         formName                  = "policyLibraryForm"
-      , archiveButtonId           = "exportPolicyLibraryButton"
+      , archiveButtonId           = "exportTechniqueLibraryButton"
       , archiveButtonName         = "Archive policy library"
-      , archiveFunction           = itemArchiver.exportPolicyLibrary
+      , archiveFunction           = itemArchiver.exportTechniqueLibrary
       , archiveErrorMessage       = "Error when exporting policy library."
       , archiveSuccessDebugMessage= s => "Exporting policy library on user request, archive id: %s".format(s)
-      , archiveDateSelectId       = "importPolicyLibrarySelect"
-      , archiveListFunction       = itemArchiver.getPolicyLibraryTags _
-      , restoreButtonId           = "importPolicyLibraryButton"
+      , archiveDateSelectId       = "importTechniqueLibrarySelect"
+      , archiveListFunction       = itemArchiver.getTechniqueLibraryTags _
+      , restoreButtonId           = "importTechniqueLibraryButton"
       , restoreButtonName         = "Restore policy library"
-      , restoreFunction           = itemArchiver.importPolicyLibrary
-      , restoreHeadFunction       = itemArchiver.importHeadPolicyLibrary
+      , restoreFunction           = itemArchiver.importTechniqueLibrary
+      , restoreHeadFunction       = itemArchiver.importHeadTechniqueLibrary
       , restoreErrorMessage       = "Error when importing policy library."
       , restoreSuccessDebugMessage= "Importing policy library on user request"
     )

@@ -36,9 +36,9 @@ package com.normation.rudder.domain
 
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.{PolicyInstanceId, ConfigurationRuleId}
+import com.normation.rudder.domain.policies.{DirectiveId, RuleId}
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.cfclerk.domain.PolicyPackageId
+import com.normation.cfclerk.domain.TechniqueId
 
 import org.joda.time.Duration
 
@@ -55,10 +55,10 @@ object Constants {
    * For the given policy server, what is the ID of its 
    * "distributePolicy" instance ?
    */
-  def buildCommonPolicyInstanceId(policyServerId:NodeId) = 
-    PolicyInstanceId("common-" + policyServerId.value)
+  def buildCommonDirectiveId(policyServerId:NodeId) = 
+    DirectiveId("common-" + policyServerId.value)
   
-  /////////// Policy Server: DistributePolicy policy instance variable //////////
+  /////////// Policy Node: DistributePolicy policy instance variable //////////
   val V_ALLOWED_NETWORK = "ALLOWEDNETWORK"
     
   /**
@@ -73,10 +73,12 @@ object Constants {
   
   
   val XML_FILE_FORMAT_1_0 = "1.0"
+  val XML_FILE_FORMAT_2_0 = "2.0"
     
-  val CONFIGURATION_RULES_ARCHIVE_TAG = "#configuration-rules-archive"
+    
+  val CONFIGURATION_RULES_ARCHIVE_TAG = "#rules-archive"
   val GROUPS_ARCHIVE_TAG = "#groups-archive" 
-  val POLICY_LIBRARY_ARCHIVE_TAG = "#policy-library-archive"
+  val POLICY_LIBRARY_ARCHIVE_TAG = "#directives-archive"
   val FULL_ARCHIVE_TAG = "#full-archive"
     
 }

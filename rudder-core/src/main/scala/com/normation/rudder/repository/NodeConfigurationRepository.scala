@@ -36,12 +36,12 @@ package com.normation.rudder.repository
 
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common.Box
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.RuleId
 import scala.collection._
 import com.normation.rudder.domain.servers._
 import com.normation.rudder.domain._
 import com.normation.rudder.exceptions._
-  import com.normation.cfclerk.domain.{PolicyPackageId}
+import com.normation.cfclerk.domain.{TechniqueId}
 
 trait NodeConfigurationRepository {
 
@@ -111,14 +111,14 @@ trait NodeConfigurationRepository {
    * Look for all server which have the given policy instance ID in 
    * their CURRENT policy instances.
    */
-  def findNodeConfigurationByCurrentConfigurationRuleId(uuid:ConfigurationRuleId) : Box[Seq[NodeConfiguration]] 
+  def findNodeConfigurationByCurrentRuleId(uuid:RuleId) : Box[Seq[NodeConfiguration]] 
   
   /**
    * Look for all server which have the given policy name (however 
    * TARGET policy instances of that policy they have, as long 
    * as they have at least one)
    */
-  def findNodeConfigurationByTargetPolicyName(policyName:PolicyPackageId) : Box[Seq[NodeConfiguration]] 
+  def findNodeConfigurationByTargetPolicyName(policyName:TechniqueId) : Box[Seq[NodeConfiguration]] 
   
   /**
    * Return all the server that need to be commited

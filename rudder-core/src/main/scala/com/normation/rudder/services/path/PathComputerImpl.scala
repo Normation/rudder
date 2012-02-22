@@ -75,7 +75,7 @@ class PathComputerImpl(
    * @param searchedNodeConfiguration : the machine we search
    * @return
    */  
-  def computeBaseServerPath(searchedServer : NodeConfiguration) :  (String, String) = {
+  def computeBaseNodePath(searchedNode : NodeConfiguration) :  (String, String) = {
     val root = nodeConfigurationRepository.getRootNodeConfiguration match {
       case Full(s) => s
       case e:EmptyBox =>
@@ -83,27 +83,27 @@ class PathComputerImpl(
         logger.error(msg,e)
         throw new BusinessException(msg)
     }
-    val path = recurseComputePath(root, searchedServer, "/"  + searchedServer.id)
+    val path = recurseComputePath(root, searchedNode, "/"  + searchedNode.id)
     return (FilenameUtils.normalize(baseFolder + servedPrefix + path) , FilenameUtils.normalize(backupFolder + path))
   }
   /**
    * compute the relative path from one machine to another
    * typically, something like '/share/uuid-B/share/uuid-C'
-   * @param fromServer e.g machineA
-   * @param toServer e.g machineC
+   * @param fromNode e.g machineA
+   * @param toNode e.g machineC
    * @return
    */
-  def computeRelativePath(fromServer : NodeConfiguration, toServer : NodeConfiguration) : String = {
-    if (fromServer == toServer)
+  def computeRelativePath(fromNode : NodeConfiguration, toNode : NodeConfiguration) : String = {
+    if (fromNode == toNode)
       return "/"
     
-    var machineDest = toServer
+    var machineDest = toNode
     var path = ""
-    while (machineDest != fromServer) {
+    while (machineDest != fromNode) {
       path ="/" + servedPrefix + machineDest.id ;
       nodeConfigurationRepository.findNodeConfiguration(NodeId(machineDest.targetMinimalNodeConfig.policyServerId)) match {
         case Full(node) => machineDest = node
-        case _ => throw new HierarchicalException("Wrong hierarchy for node : " + toServer)
+        case _ => throw new HierarchicalException("Wrong hierarchy for node : " + toNode)
       }
     }
     
@@ -125,26 +125,26 @@ class PathComputerImpl(
   
   
   /**
-   * Return the path from a machine to another, excluding the top rootServer
+   * Return the path from a machine to another, excluding the top rootNode
    * If we have the hierarchy Root, A, B :
    * recurseComputePath(root, B, path) will return : machineA/share/ + path
    * recurseComputePath(A, B, path) will return : machineA/share/+ path
    * recurseComputePath(root, A, path) will return :  path
-   * @param fromServer
-   * @param toServer
+   * @param fromNode
+   * @param toNode
    * @param path
    * @return
    */
-  private def recurseComputePath(fromServer : NodeConfiguration, toServer : NodeConfiguration, path : String) : String = {
-    if (fromServer == toServer)
+  private def recurseComputePath(fromNode : NodeConfiguration, toNode : NodeConfiguration, path : String) : String = {
+    if (fromNode == toNode)
       return path
     
-    nodeConfigurationRepository.findNodeConfiguration(NodeId(toServer.targetMinimalNodeConfig.policyServerId)) match {
+    nodeConfigurationRepository.findNodeConfiguration(NodeId(toNode.targetMinimalNodeConfig.policyServerId)) match {
       case Full(root : RootNodeConfiguration) => 
-          recurseComputePath(fromServer, root, path)
+          recurseComputePath(fromNode, root, path)
       case Full(policyParent) =>
-          recurseComputePath(fromServer, policyParent, policyParent.id + "/" + servedPrefix + path)
-      case _ =>throw new HierarchicalException("Wrong hierarchy for node :" + toServer)
+          recurseComputePath(fromNode, policyParent, policyParent.id + "/" + servedPrefix + path)
+      case _ =>throw new HierarchicalException("Wrong hierarchy for node :" + toNode)
     }
   }
 }

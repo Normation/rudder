@@ -47,7 +47,7 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.BuildFilter._
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.rudder.repository.ConfigurationRuleRepository
+import com.normation.rudder.repository.RuleRepository
 
 // For implicits
 import JE._
@@ -61,13 +61,13 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 class HomePage extends Loggable {
 
   private[this] val ldap = inject[LDAPConnectionProvider]
-  private[this] val pendingServersDit = inject[InventoryDit]("pendingServersDit")
+  private[this] val pendingNodesDit = inject[InventoryDit]("pendingNodesDit")
   private[this] val nodeDit = inject[NodeDit]("nodeDit")
-  private[this] val configurationRuleRepository = inject[ConfigurationRuleRepository]
+  private[this] val ruleRepository = inject[RuleRepository]
 
   private def countPendingNodes() : Box[Int] = {
     ldap.map { con =>
-      con.searchOne(pendingServersDit.NODES.dn,ALL)
+      con.searchOne(pendingNodesDit.NODES.dn,ALL)
     }.map(x => x.size)
   }
 
@@ -78,7 +78,7 @@ class HomePage extends Loggable {
   }
 
   private def countAllCr() : Box[Int] = {
-    configurationRuleRepository.getAll().map(_.size)
+    ruleRepository.getAll().map(_.size)
   }
 
 
@@ -89,7 +89,7 @@ class HomePage extends Loggable {
           logger.error("Could not fetch the number of pending nodes. reason : %s".format(m.messageChain))
           <div>Could not fetch the number of pending nodes</div>
       case Full(x) if x == 0 => <li>There are no pending nodes</li>
-      case Full(x) => <li>There are <a href="secure/assetManager/manageNewServer">{x} pending nodes</a></li>
+      case Full(x) => <li>There are <a href="secure/assetManager/manageNewNode">{x} pending nodes</a></li>
     }
   }
 
@@ -100,18 +100,18 @@ class HomePage extends Loggable {
           logger.error("Could not fetch the number of accepted nodes. reason : %s".format(m.messageChain))
           <div>Could not fetch the number of accepted nodes</div>
       case Full(x) if x == 0 => <li>There are no accepted nodes</li>
-      case Full(x) => <li>There are <a href={"""secure/assetManager/searchServers#{"query":{"select":"node","composition":"and","where":[{"objectType":"node","attribute":"osVersion","comparator":"exists"}]}}"""}>{x} accepted nodes</a></li>
+      case Full(x) => <li>There are <a href={"""secure/assetManager/searchNodes#{"query":{"select":"node","composition":"and","where":[{"objectType":"node","attribute":"osVersion","comparator":"exists"}]}}"""}>{x} accepted nodes</a></li>
     }
   }
 
-  def crs(html : NodeSeq) : NodeSeq = {
+  def rules(html : NodeSeq) : NodeSeq = {
     countAllCr match {
       case Empty => <li>There are no configuration rules defined</li>
       case m:Failure =>
           logger.error("Could not fetch the number of configuration rules. reason : %s".format(m.messageChain))
           <div>Could not fetch the number of configuration rules</div>
       case Full(x) if x == 0 => <li>There are no configuration rules defined</li>
-      case Full(x) => <li>There are <a href="secure/configurationManager/configurationRuleManagement">{x} configuration rules defined</a></li>
+      case Full(x) => <li>There are <a href="secure/configurationManager/ruleManagement">{x} configuration rules defined</a></li>
     }
   }
 

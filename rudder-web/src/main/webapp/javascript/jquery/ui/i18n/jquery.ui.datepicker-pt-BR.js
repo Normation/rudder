@@ -1,7 +1,7 @@
 /* Brazilian initialisation for the jQuery UI date picker plugin. */
 /* Written by Leonildo Costa Silva (leocsilva@gmail.com). */
 jQuery(function($){
-	$.datepicker.regional['pt-BR'] = {
+	$.datepicker.regional['technique-BR'] = {
 		closeText: 'Fechar',
 		prevText: '&#x3c;Anterior',
 		nextText: 'Pr&oacute;ximo&#x3e;',
@@ -19,5 +19,5 @@ jQuery(function($){
 		isRTL: false,
 		showMonthAfterYear: false,
 		yearSuffix: ''};
-	$.datepicker.setDefaults($.datepicker.regional['pt-BR']);
+	$.datepicker.setDefaults($.datepicker.regional['technique-BR']);
 });

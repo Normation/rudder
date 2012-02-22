@@ -50,9 +50,9 @@ import com.normation.rudder.services.policies.VariableBuilderService
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.Constants._
 import com.normation.rudder.domain.servers._
-import com.normation.rudder.domain.policies.{IdentifiableCFCPI,ConfigurationRuleId}
+import com.normation.rudder.domain.policies.{RuleWithCf3PolicyDraft,RuleId}
 import org.joda.time.DateTime
-import com.normation.cfclerk.services.PolicyPackageService
+import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.domain._
 import net.liftweb.common._
 import net.liftweb.common.Box._
@@ -63,7 +63,7 @@ class LDAPNodeConfigurationMapper(
     rudderDit                 : RudderDit
   , inventoryDit              : InventoryDit
   , systemVariableSpecService : SystemVariableSpecService
-  , policyPackageService      : PolicyPackageService
+  , techniqueRepository       : TechniqueRepository
   , variableBuilderService    : VariableBuilderService
   , ldap                      : LDAPConnectionProvider
 ) extends Loggable {
@@ -84,62 +84,62 @@ class LDAPNodeConfigurationMapper(
   }
   
   
-      //////////////////////////////    CFCPolicyInstance    //////////////////////////////
+      //////////////////////////////    Cf3PolicyDraft    //////////////////////////////
 
     /**
      * Utility method that maps an LDAP entry to a policy instance
-     * Return a pair PolicyInstance,Boolean where the boolean stands
+     * Return a pair Directive,Boolean where the boolean stands
      * for "is the policy instance a target policy instance ?"
      */
-    def toPolicyInstance(e:LDAPEntry) : Box[(IdentifiableCFCPI,Boolean)] = {
+    def toRuleWithCf3PolicyDraft(e:LDAPEntry) : Box[(RuleWithCf3PolicyDraft,Boolean)] = {
       def errorMessage(attr:String) = "Can not map entry to policy instance: missing attribute %s in entry %s".format(attr,e.dn)
       for {
         id <- {
-          if(e.isA(OC_ABSTRACT_POLICY_INSTANCE)) {
-            if(e.isA(OC_CR_POLICY_INSTANCE)) {
-              e(A_POLICY_INSTANCE_UUID) ?~! errorMessage(A_POLICY_INSTANCE_UUID)
-            } else if(e.isA(OC_TARGET_CR_POLICY_INSTANCE)){
-              e(A_TARGET_POLICY_INSTANCE_UUID) ?~! errorMessage(A_TARGET_POLICY_INSTANCE_UUID)
+          if(e.isA(OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT)) {
+            if(e.isA(OC_RULE_WITH_CF3POLICYDRAFT)) {
+              e(A_DIRECTIVE_UUID) ?~! errorMessage(A_DIRECTIVE_UUID)
+            } else if(e.isA(OC_TARGET_RULE_WITH_CF3POLICYDRAFT)){
+              e(A_TARGET_DIRECTIVE_UUID) ?~! errorMessage(A_TARGET_DIRECTIVE_UUID)
             } else Failure("Entry %s is not mappable to policy instance (unknow policy instance type)".format(e.dn))
-         } else Failure("Entry %s is not mappable to policy instance (it misses object class %s)".format(e.dn,OC_ABSTRACT_POLICY_INSTANCE))
+         } else Failure("Entry %s is not mappable to policy instance (it misses object class %s)".format(e.dn,OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT))
         }
-        policyId <- e(A_REFERENCE_POLICY_TEMPLATE_UUID).map(x => PolicyPackageName(x)) ?~! errorMessage(A_REFERENCE_POLICY_TEMPLATE_UUID)
+        techniqueId <- e(A_TECHNIQUE_UUID).map(x => TechniqueName(x)) ?~! errorMessage(A_TECHNIQUE_UUID)
         policyVersion <- for {
-            attr <- e(A_REFERENCE_POLICY_TEMPLATE_VERSION) ?~! errorMessage(A_REFERENCE_POLICY_TEMPLATE_VERSION)
-            v <- tryo(PolicyVersion(attr))
+            attr <- e(A_TECHNIQUE_VERSION) ?~! errorMessage(A_TECHNIQUE_VERSION)
+            v <- tryo(TechniqueVersion(attr))
           } yield {
             v
           }
-        crId <- e(A_CONFIGURATION_RULE_UUID) ?~! errorMessage(A_CONFIGURATION_RULE_UUID)
-        policyPackage <- policyPackageService.getPolicy(PolicyPackageId(policyId,policyVersion)) ?~! "Can not found policy template '%s'".format(PolicyPackageId(policyId,policyVersion).toString)
+        ruleId <- e(A_RULE_UUID) ?~! errorMessage(A_RULE_UUID)
+        policyPackage <- techniqueRepository.get(TechniqueId(techniqueId,policyVersion)) ?~! "Can not found policy template '%s'".format(TechniqueId(techniqueId,policyVersion).toString)
         varSpecs = policyPackage.getAllVariableSpecs
-        vared <- variableBuilderService.buildVariables(varSpecs, parsePolicyVariables(e.valuesFor(A_POLICY_VARIABLES).toSeq)) ?~! "Error when building variables from their specs and values"
+        vared <- variableBuilderService.buildVariables(varSpecs, parsePolicyVariables(e.valuesFor(A_DIRECTIVE_VARIABLES).toSeq)) ?~! "Error when building variables from their specs and values"
         priority <- e.getAsInt(A_PRIORITY) ?~! errorMessage(A_PRIORITY)
         serial <- e.getAsInt(A_SERIAL) ?~! errorMessage(A_SERIAL)
-        pi = new IdentifiableCFCPI(new ConfigurationRuleId(crId),
-            new CFCPolicyInstance(CFCPolicyInstanceId(id),PolicyPackageId(policyId, policyVersion),
+        directive = new RuleWithCf3PolicyDraft(new RuleId(ruleId),
+            new Cf3PolicyDraft(Cf3PolicyDraftId(id),TechniqueId(techniqueId, policyVersion),
             //remove trackerVariableVar
             vared.filterKeys(k => k != policyPackage.trackerVariableSpec.name),
             vared.get(policyPackage.trackerVariableSpec.name).map(x => x.asInstanceOf[TrackerVariable]).getOrElse(policyPackage.trackerVariableSpec.toVariable()),
             priority,
             serial))
         
-      } yield (pi, e.isA(OC_TARGET_CR_POLICY_INSTANCE))
+      } yield (directive, e.isA(OC_TARGET_RULE_WITH_CF3POLICYDRAFT))
     }
 
     
-        //////////////////////////////    CFCServer (NodeConfiguration ?)    //////////////////////////////
+        //////////////////////////////    CFCNode (NodeConfiguration ?)    //////////////////////////////
 
     
     
   /**
    * Create a server from an LDAPTree
-   * The root entry of the tree must be of type OC_RUDDER_SERVER
+   * The root entry of the tree must be of type OC_NODE_CONFIGURATION
    * @param e
    * @return
    */
   def toNodeConfiguration(tree:LDAPTree) : Box[NodeConfiguration] = {
-    if(!tree.root.isA(OC_RUDDER_SERVER)) {
+    if(!tree.root.isA(OC_NODE_CONFIGURATION)) {
       Failure("Unknow server type, or bad root for LDAPEntry tree: " + tree.root)
     } else {
       //ok, we actually have a server, start to find its policy instances (current and target)
@@ -148,10 +148,10 @@ class LDAPNodeConfigurationMapper(
       //it will be regenerated next time (can not be much worse than completly blocking
       //deployment
 
-      val nodePolicyInstances = tree.children.valuesIterator.flatMap { t =>
-        if(t.root.isA(OC_ABSTRACT_POLICY_INSTANCE)) {
-          toPolicyInstance(t.root) match {
-            case Full((pi,isTarget)) => Some((pi,isTarget))
+      val nodeDirectives = tree.children.valuesIterator.flatMap { t =>
+        if(t.root.isA(OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT)) {
+          toRuleWithCf3PolicyDraft(t.root) match {
+            case Full((directive,isTarget)) => Some((directive,isTarget))
             case e:EmptyBox =>
               logger.warn(e ?~! "Error when mapping node configuration's policy instance with DN: '%s'. We are going to try to delete it".format(t.root.dn), e)
               try {
@@ -168,8 +168,8 @@ class LDAPNodeConfigurationMapper(
         }
       }.toSeq
             
-      val currentPIs = nodePolicyInstances.collect { case(pi, false) => pi }
-      val targetPIs  = nodePolicyInstances.collect { case(pi, true)  => pi }
+      val currentPIs = nodeDirectives.collect { case(directive, false) => directive }
+      val targetPIs  = nodeDirectives.collect { case(directive, true)  => directive }
           
       //map server datas - all mandatories
       def E_MSG(attr:String, dn:DN) = "Error, missing attribute '%s' for server %s which is mandatory".format(attr,dn)
@@ -254,25 +254,25 @@ class LDAPNodeConfigurationMapper(
      * split from a server (it is only used to build the parent dn
      * of these entries)
      */
-    def fromPolicyInstance(identifiable:IdentifiableCFCPI,  serverEntry:LDAPEntry, isCurrent:Boolean) : LDAPEntry = {
+    def fromDirective(identifiable:RuleWithCf3PolicyDraft,  serverEntry:LDAPEntry, isCurrent:Boolean) : LDAPEntry = {
       
       val entry =
-        if(isCurrent) rudderDit.RUDDER_NODES.SERVER.POLICY_INSTANCE.model(identifiable.policyInstance.id.value, serverEntry.dn)
-        else rudderDit.RUDDER_NODES.SERVER.TARGET_POLICY_INSTANCE.model(identifiable.policyInstance.id.value, serverEntry.dn)
+        if(isCurrent) rudderDit.NODE_CONFIGS.NODE_CONFIG.CF3POLICYDRAFT.model(identifiable.cf3PolicyDraft.id.value, serverEntry.dn)
+        else rudderDit.NODE_CONFIGS.NODE_CONFIG.TARGET_CF3POLICYDRAFT.model(identifiable.cf3PolicyDraft.id.value, serverEntry.dn)
       
-      val vars = identifiable.policyInstance.getVariables().values.toSeq :+ identifiable.policyInstance.TrackerVariable
-      entry +=! (A_CONFIGURATION_RULE_UUID, identifiable.configurationRuleId.value)
+      val vars = identifiable.cf3PolicyDraft.getVariables().values.toSeq :+ identifiable.cf3PolicyDraft.trackerVariable
+      entry +=! (A_RULE_UUID, identifiable.ruleId.value)
 
-      entry +=! (A_REFERENCE_POLICY_TEMPLATE_UUID, identifiable.policyInstance.policyId.name.value)
-      entry +=! (A_REFERENCE_POLICY_TEMPLATE_VERSION, identifiable.policyInstance.policyId.version.toString)
-      entry +=! (A_LAST_UPDATE_DATE, GeneralizedTime(identifiable.policyInstance.modificationDate).toString)
+      entry +=! (A_TECHNIQUE_UUID, identifiable.cf3PolicyDraft.techniqueId.name.value)
+      entry +=! (A_TECHNIQUE_VERSION, identifiable.cf3PolicyDraft.techniqueId.version.toString)
+      entry +=! (A_LAST_UPDATE_DATE, GeneralizedTime(identifiable.cf3PolicyDraft.modificationDate).toString)
       //put variable under Map[String, Seq[String]]
-      /*val variables = policyInstance.getVariables().map { case(name,v) =>
+      /*val variables = directive.getVariables().map { case(name,v) =>
         (name, v.values)
       }.toMap*/
-      entry +=! (A_POLICY_VARIABLES, variableToSeq(vars):_*)
-      entry +=! (A_SERIAL, identifiable.policyInstance.serial.toString)
-      entry +=! (A_PRIORITY, identifiable.policyInstance.priority.toString)
+      entry +=! (A_DIRECTIVE_VARIABLES, variableToSeq(vars):_*)
+      entry +=! (A_SERIAL, identifiable.cf3PolicyDraft.serial.toString)
+      entry +=! (A_PRIORITY, identifiable.cf3PolicyDraft.priority.toString)
       entry
     }
     
@@ -281,8 +281,8 @@ class LDAPNodeConfigurationMapper(
     
     //Build the server entry and its children (role an policy instances)
     val serverEntry : LDAPEntry = server match {
-      case rootNodeConfiguration:RootNodeConfiguration => rudderDit.RUDDER_NODES.SERVER.rootPolicyServerModel(id)
-      case s => rudderDit.RUDDER_NODES.SERVER.nodeConfigurationModel(id)
+      case rootNodeConfiguration:RootNodeConfiguration => rudderDit.NODE_CONFIGS.NODE_CONFIG.rootPolicyServerModel(id)
+      case s => rudderDit.NODE_CONFIGS.NODE_CONFIG.nodeConfigurationModel(id)
     }
     serverEntry +=!(A_SERVER_IS_MODIFIED, server.isModified.toLDAPString)
     //serverEntry +=!(A_LAST_UPDATE_DATE, GeneralizedTime( Utils.??(server.modificationDate).getOrElse(DateTime.now) ).toString)
@@ -311,8 +311,8 @@ class LDAPNodeConfigurationMapper(
     //should be ok, that's why we use an exception
     LDAPTree(
       Seq(serverEntry) ++  //server root entry
-      { server.getCurrentPolicyInstances.map( pi => fromPolicyInstance(pi._2, serverEntry, true)) } ++
-      { server.getPolicyInstances.map( pi => fromPolicyInstance(pi._2, serverEntry, false)) }
+      { server.getCurrentDirectives.map( directive => fromDirective(directive._2, serverEntry, true)) } ++
+      { server.getDirectives.map( directive => fromDirective(directive._2, serverEntry, false)) }
     ) match {
       case Full(tree) => tree
       case e:EmptyBox => 

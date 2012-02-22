@@ -3,7 +3,7 @@
 /*
  * Reference policy template library tree
  */
-var buildReferencePolicyTemplateTree = function(id,  initially_select) {
+var buildReferenceTechniqueTree = function(id,  initially_select) {
   $(id).bind("loaded.jstree", function (event, data) {
     data.inst.open_all(-1);
   }).jstree({ 
@@ -62,7 +62,7 @@ var buildReferencePolicyTemplateTree = function(id,  initially_select) {
 /*
  * User policy template library tree
  */
-var buildUserPolicyTemplateTree = function(id, foreignTreeId) {
+var buildActiveTechniqueTree = function(id, foreignTreeId) {
   $(id).bind("loaded.jstree", function (event, data) {
 	  data.inst.open_all(-1);
   }).jstree({ 
@@ -111,8 +111,8 @@ var buildUserPolicyTemplateTree = function(id, foreignTreeId) {
           //only accept to move a node from the reference tree if it does not exists in that tree
           var checkNotAlreadyBound = true;
           if(foreignTreeId == m.ot.get_container().prop("id")) {
-            //look if there is an li with attr ptid == moved object ptid
-            checkNotAlreadyBound =  $(id + " [ptId=" + m.o.prop("ptId") + "]").size() < 1 ;
+            //look if there is an li with attr activeTechniqueId == moved object activeTechniqueId
+            checkNotAlreadyBound =  $(id + " [activeTechniqueId=" + m.o.prop("activeTechniqueId") + "]").size() < 1 ;
           }
           //only accept "inside" node move (yes, comparing m.p == "inside" does not work)
           //and into a new parent node. 
@@ -137,7 +137,7 @@ var buildUserPolicyTemplateTree = function(id, foreignTreeId) {
 /*
  * Policy instance management
  */
-var buildPolicyInstanceTree = function(id, initially_select) {
+var buildDirectiveTree = function(id, initially_select) {
   jQuery(id).jstree({ 
       "core" : { 
       "animation" : 0,
@@ -264,7 +264,7 @@ var buildGroupTree = function(id, initially_select) {
  *       we don't want/have to allow node move -
  *       that tree is read only.
  */
-var buildPolicyTemplateDependencyTree = function(id, initially_select) {
+var buildTechniqueDependencyTree = function(id, initially_select) {
   jQuery(id).
     bind("loaded.jstree", function (event, data) {
       data.inst.open_all(-1);
@@ -323,7 +323,7 @@ var buildPolicyTemplateDependencyTree = function(id, initially_select) {
 
 
 
-var buildConfigurationRulePIdepTree = function(id, initially_select) {
+var buildRulePIdepTree = function(id, initially_select) {
   jQuery(id).
     bind("loaded.jstree", function (event, data) {
       data.inst.open_all(-1);

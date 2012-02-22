@@ -56,16 +56,16 @@ import com.normation.rudder.domain.log.RudderEventActor
 class CheckInitUserTemplateLibrary(
   rudderDit:RudderDit,
   ldap:LDAPConnectionProvider, 
-  refTemplateService:PolicyPackageService, 
-  userCategoryService:UserPolicyTemplateCategoryRepository, 
-  userTempalteService:UserPolicyTemplateRepository
+  refTemplateService:TechniqueRepository, 
+  userCategoryService:ActiveTechniqueCategoryRepository, 
+  userTempalteService:ActiveTechniqueRepository
 ) extends BootstrapChecks with Loggable {
 
  
   override def checks() : Unit = {
     ldap.foreach { con =>
     
-        con.get(rudderDit.POLICY_TEMPLATE_LIB.dn, A_INIT_DATETIME, A_OC) match {
+        con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_INIT_DATETIME, A_OC) match {
           case e:EmptyBox => logger.error("The root entry of the user template library was not found")
           case Full(root) => root.getAsGTime(A_INIT_DATETIME) match {
             case Some(date) => logger.debug("The root user template library was initialized on %s".format(date.dateTime.toString("YYYY/MM/dd HH:mm")))
@@ -79,7 +79,7 @@ class CheckInitUserTemplateLibrary(
                   logger.warn(msg)
                   logger.debug(e.exceptionChain)
               }
-              root += (A_OC, OC_USER_LIB_VERSION)
+              root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
               root +=! (A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
               con.save(root)
         }
@@ -91,11 +91,11 @@ class CheckInitUserTemplateLibrary(
    * Actually copy from reference policy lib to user lib.
    */
   private[this] def copyReferenceLib(con:LDAPConnection) : Box[AnyRef] = {
-    def recCopyRef(fromCatId:PolicyPackageCategoryId, toParentCat:UserPolicyTemplateCategory) : Box[UserPolicyTemplateCategory] = {
+    def recCopyRef(fromCatId:TechniqueCategoryId, toParentCat:ActiveTechniqueCategory) : Box[ActiveTechniqueCategory] = {
         
       for {
-        fromCat <- refTemplateService.getPolicyTemplateCategory(fromCatId)
-        newUserPTCat = UserPolicyTemplateCategory(
+        fromCat <- refTemplateService.getTechniqueCategory(fromCatId)
+        newUserPTCat = ActiveTechniqueCategory(
             id = genUserCatId(fromCat)
           , name = fromCat.name
           , description = fromCat.description
@@ -106,17 +106,17 @@ class CheckInitUserTemplateLibrary(
             Full(newUserPTCat)
           } else {
             for {
-              updatedParentCat <- userCategoryService.addUserPolicyTemplateCategory(newUserPTCat, toParentCat, RudderEventActor) ?~! 
+              updatedParentCat <- userCategoryService.addActiveTechniqueCategory(newUserPTCat, toParentCat, RudderEventActor) ?~! 
                 "Error when adding category '%s' to user library parent category '%s'".format(newUserPTCat.id.value, toParentCat.id.value)
                 //now, add items and subcategories, in a "try to do the max you can" way
                 fullRes <- boxSequence(
                   //policy templates
                   bestEffort(fromCat.packageIds.groupBy(id => id.name).toSeq) { case (name, ids) =>
                     for {
-                      upt <- userTempalteService.addPolicyTemplateInUserLibrary(newUserPTCat.id, name, ids.map( _.version).toSeq, RudderEventActor) ?~!
+                      activeTechnique <- userTempalteService.addTechniqueInUserLibrary(newUserPTCat.id, name, ids.map( _.version).toSeq, RudderEventActor) ?~!
                         "Error when adding Policy Template '%s' into user library category '%s'".format(name.value, newUserPTCat.id.value)
                     } yield {
-                      upt
+                      activeTechnique
                     }
                   } ::
                   //recurse on children categories of reference lib
@@ -133,14 +133,14 @@ class CheckInitUserTemplateLibrary(
     }
 
     //apply with root cat children ids
-    bestEffort(refTemplateService.getReferencePolicyTemplateLibrary.subCategoryIds.toSeq) { id =>
-      recCopyRef(id, userCategoryService.getUserPolicyTemplateLibrary)
+    bestEffort(refTemplateService.getTechniqueLibrary.subCategoryIds.toSeq) { id =>
+      recCopyRef(id, userCategoryService.getActiveTechniqueLibrary)
     }    
   }
   
-  private[this] def genUserCatId(fromCat:PolicyPackageCategory) : UserPolicyTemplateCategoryId = {
-      //for the pt ID, use the last part of the path used for the cat id.
-      UserPolicyTemplateCategoryId("userlib_" + fromCat.id.name.value)
+  private[this] def genUserCatId(fromCat:TechniqueCategory) : ActiveTechniqueCategoryId = {
+      //for the technique ID, use the last part of the path used for the cat id.
+      ActiveTechniqueCategoryId("userlib_" + fromCat.id.name.value)
   }
   
 }

@@ -44,24 +44,23 @@ object RudderLDAPConstants extends Loggable {
   /* UUIDs */
   val A_NODE_POLICY_SERVER = "policyServerId"
   val A_TARGET_NODE_POLICY_SERVER = "targetPolicyServerId"
-  val A_WBPI_UUID = "policyInstanceId"
-  val A_POLICY_INSTANCE_UUID = "policyInstanceId"
-  val A_TARGET_POLICY_INSTANCE_UUID = "targetPolicyInstanceId"
+  val A_DIRECTIVE_UUID = "directiveId"
+  val A_TARGET_DIRECTIVE_UUID = "targetDirectiveId"
   val A_GROUP_CATEGORY_UUID = "groupCategoryId"
-  val A_CATEGORY_UUID = "policyCategoryId"
-  val A_REFERENCE_POLICY_TEMPLATE_UUID = "referencePolicyTemplateId"
-  val A_USER_POLICY_TEMPLATE_UUID = "userPolicyTemplateId"
+  val A_TECHNIQUE_CATEGORY_UUID = "techniqueCategoryId"
+  val A_TECHNIQUE_UUID = "techniqueId"
+  val A_ACTIVE_TECHNIQUE_UUID = "activeTechniqueId"
   val A_NODE_GROUP_UUID = "nodeGroupId"
-  val A_CONFIGURATION_RULE_UUID = "configurationRuleId"
+  val A_RULE_UUID = "ruleId"
     
   /* other things */
-  val A_REF_LIB_VERSION = "referenceLibraryVersion"
-  val A_REFERENCE_POLICY_TEMPLATE_VERSION = "referencePolicyTemplateVersion"
+  val A_TECHNIQUE_LIB_VERSION = "techniqueLibraryVersion"
+  val A_TECHNIQUE_VERSION = "techniqueVersion"
   val A_INIT_DATETIME = "initTimestamp"
   val A_QUERY_NODE_GROUP = "jsonNodeGroupQuery"
-  val A_POLICY_TARGET = "configurationRuleTarget"
+  val A_RULE_TARGET = "ruleTarget"
   val A_LAST_UPDATE_DATE = "lastUpdateTimestamp"
-  val A_POLICY_VARIABLES = "policyInstanceVariable"
+  val A_DIRECTIVE_VARIABLES = "directiveVariable"
   val A_WRITTEN_DATE = "writtenTimestamp"
   /*
    * Last time a User Policy Template was 
@@ -74,7 +73,7 @@ object RudderLDAPConstants extends Loggable {
 
   val A_SERVER_IS_MODIFIED = "isModified"
   /* does the given object is activated ? Boolean expected */
-  val A_IS_ACTIVATED = "isActivated"
+  val A_IS_ENABLED = "isEnabled"
   val A_IS_DYNAMIC = "isDynamic"
   /* is it a system object ? boolean */
   val A_IS_SYSTEM = "isSystem"
@@ -82,7 +81,7 @@ object RudderLDAPConstants extends Loggable {
   val A_IS_POLICY_SERVER = "isPolicyServer"
 
 
-  val A_PRIORITY = "policyInstancePriority"
+  val A_PRIORITY = "directivePriority"
   val A_LONG_DESCRIPTION = "longDescription"
   val A_SERIAL = "serial"
     
@@ -107,27 +106,27 @@ object RudderLDAPConstants extends Loggable {
   //
   val OC_RUDDER_NODE = "rudderNode"
   val OC_POLICY_SERVER_NODE = "rudderPolicyServer"
-  val OC_CATEGORY = "policyCategory"
+  val OC_TECHNIQUE_CATEGORY = "techniqueCategory"
   val OC_GROUP_CATEGORY = "groupCategory"
   val OC_RUDDER_NODE_GROUP = "nodeGroup"
-  val OC_SPECIAL_TARGET = "specialConfigurationRuleTarget"
+  val OC_SPECIAL_TARGET = "specialRuleTarget"
   val OC_ROOT_POLICY_SERVER = "rootPolicyServerNodeConfiguration"
-  val OC_USER_POLICY_TEMPLATE = "userPolicyTemplate"
-  val OC_WBPI = "policyInstance" 
-  val OC_CONFIGURATION_RULE = "configurationRule"
-  val OC_USER_LIB_VERSION = "userLibraryVersion"
-  val OC_ABSTRACT_POLICY_INSTANCE = "abstractPolicyInstanceNodeConfiguration"
-  val OC_CR_POLICY_INSTANCE = "policyInstanceNodeConfiguration"
-  val OC_TARGET_CR_POLICY_INSTANCE = "targetPolicyInstanceNodeConfiguration"
-  val OC_RUDDER_SERVER = "nodeConfiguration" //actually a node configuration, not a "rudder server"
+  val OC_ACTIVE_TECHNIQUE = "activeTechnique"
+  val OC_DIRECTIVE = "directive" 
+  val OC_RULE = "rule"
+  val OC_ACTIVE_TECHNIQUE_LIB_VERSION = "activeTechniqueLibraryVersion"
+  val OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT = "abstractDirectiveNodeConfiguration"
+  val OC_RULE_WITH_CF3POLICYDRAFT = "directiveNodeConfiguration"
+  val OC_TARGET_RULE_WITH_CF3POLICYDRAFT = "targetDirectiveNodeConfiguration"
+  val OC_NODE_CONFIGURATION = "nodeConfiguration" //actually a node configuration, not a "rudder server"
 
   OC += (OC_SPECIAL_TARGET,
-    must = Set(A_POLICY_TARGET, A_NAME),
-    may = Set(A_DESCRIPTION, A_IS_ACTIVATED, A_IS_SYSTEM))
+    must = Set(A_RULE_TARGET, A_NAME),
+    may = Set(A_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM))
 
-  OC += (OC_CONFIGURATION_RULE,
-    must = Set(A_CONFIGURATION_RULE_UUID),
-    may = Set(A_NAME, A_DESCRIPTION, A_LONG_DESCRIPTION, A_IS_ACTIVATED, A_IS_SYSTEM, A_POLICY_TARGET, A_WBPI_UUID, A_SERIAL))
+  OC += (OC_RULE,
+    must = Set(A_RULE_UUID),
+    may = Set(A_NAME, A_DESCRIPTION, A_LONG_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM, A_RULE_TARGET, A_DIRECTIVE_UUID, A_SERIAL))
 
   OC += (OC_RUDDER_NODE,
     must = Set(A_NODE_UUID, A_NAME, A_IS_BROKEN, A_IS_SYSTEM),
@@ -139,17 +138,17 @@ object RudderLDAPConstants extends Loggable {
 
     may = Set(A_DESCRIPTION))
 
-  OC += (OC_WBPI,
-    must = Set(A_WBPI_UUID),
+  OC += (OC_DIRECTIVE,
+    must = Set(A_DIRECTIVE_UUID),
     may = Set(A_NAME, A_DESCRIPTION, A_LONG_DESCRIPTION,
-      A_PRIORITY, A_IS_ACTIVATED, A_POLICY_VARIABLES, A_IS_SYSTEM))
+      A_PRIORITY, A_IS_ENABLED, A_DIRECTIVE_VARIABLES, A_IS_SYSTEM))
 
-  OC += (OC_USER_POLICY_TEMPLATE,
-    must = Set(A_USER_POLICY_TEMPLATE_UUID, A_REFERENCE_POLICY_TEMPLATE_UUID),
-    may = Set(A_IS_ACTIVATED, A_IS_SYSTEM))
+  OC += (OC_ACTIVE_TECHNIQUE,
+    must = Set(A_ACTIVE_TECHNIQUE_UUID, A_TECHNIQUE_UUID),
+    may = Set(A_IS_ENABLED, A_IS_SYSTEM))
 
-  OC += (OC_CATEGORY,
-    must = Set(A_CATEGORY_UUID, A_NAME, A_IS_SYSTEM),
+  OC += (OC_TECHNIQUE_CATEGORY,
+    must = Set(A_TECHNIQUE_CATEGORY_UUID, A_NAME, A_IS_SYSTEM),
     may = Set(A_DESCRIPTION))
 
   OC += (OC_GROUP_CATEGORY,
@@ -158,33 +157,33 @@ object RudderLDAPConstants extends Loggable {
 
   OC += (OC_RUDDER_NODE_GROUP,
     must = Set(A_NODE_GROUP_UUID, A_NAME, A_IS_DYNAMIC),
-    may = Set(A_NODE_UUID, A_DESCRIPTION, A_QUERY_NODE_GROUP, A_IS_SYSTEM, A_IS_ACTIVATED))
+    may = Set(A_NODE_UUID, A_DESCRIPTION, A_QUERY_NODE_GROUP, A_IS_SYSTEM, A_IS_ENABLED))
 
-  OC += (OC_RUDDER_SERVER,
+  OC += (OC_NODE_CONFIGURATION,
     must = Set(A_NODE_UUID, A_IS_POLICY_SERVER),
     may = Set(A_DESCRIPTION, A_SERVER_IS_MODIFIED,
       A_NAME, A_HOSTNAME, A_NODE_POLICY_SERVER, A_ROOT_USER, A_AGENTS_NAME,
       A_TARGET_NAME, A_TARGET_HOSTNAME, A_TARGET_NODE_POLICY_SERVER, A_TARGET_ROOT_USER, A_TARGET_AGENTS_NAME,
       A_NODE_CONFIGURATION_SYSTEM_VARIABLE, A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE, A_WRITTEN_DATE))
 
-  OC += (OC_ROOT_POLICY_SERVER, sup = OC(OC_RUDDER_SERVER))
+  OC += (OC_ROOT_POLICY_SERVER, sup = OC(OC_NODE_CONFIGURATION))
 
-  OC += (OC_ABSTRACT_POLICY_INSTANCE,
+  OC += (OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT,
     must = Set(A_NAME, A_LAST_UPDATE_DATE),
-    may = Set(A_DESCRIPTION, A_POLICY_TARGET, A_POLICY_VARIABLES,
-              A_IS_SYSTEM, A_IS_ACTIVATED))
+    may = Set(A_DESCRIPTION, A_RULE_TARGET, A_DIRECTIVE_VARIABLES,
+              A_IS_SYSTEM, A_IS_ENABLED))
 
-  OC += (OC_CR_POLICY_INSTANCE, sup = OC(OC_ABSTRACT_POLICY_INSTANCE),
-    must = Set(A_POLICY_INSTANCE_UUID, A_CONFIGURATION_RULE_UUID, A_PRIORITY, A_SERIAL))
+  OC += (OC_RULE_WITH_CF3POLICYDRAFT, sup = OC(OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT),
+    must = Set(A_DIRECTIVE_UUID, A_RULE_UUID, A_PRIORITY, A_SERIAL))
 
-  OC += (OC_TARGET_CR_POLICY_INSTANCE, sup = OC(OC_ABSTRACT_POLICY_INSTANCE),
-    must = Set(A_TARGET_POLICY_INSTANCE_UUID, A_CONFIGURATION_RULE_UUID, A_PRIORITY, A_SERIAL))
+  OC += (OC_TARGET_RULE_WITH_CF3POLICYDRAFT, sup = OC(OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT),
+    must = Set(A_TARGET_DIRECTIVE_UUID, A_RULE_UUID, A_PRIORITY, A_SERIAL))
 
-  OC += (OC_USER_LIB_VERSION,
+  OC += (OC_ACTIVE_TECHNIQUE_LIB_VERSION,
     may = Set(A_INIT_DATETIME))
 
   /**
-   * Serialize and unserialize variables in A_POLICY_VARIABLES
+   * Serialize and unserialize variables in A_DIRECTIVE_VARIABLES
    */
   val VSEP = ":"
   // '(?m)' => multiligne
@@ -269,7 +268,7 @@ object RudderLDAPConstants extends Loggable {
   /**
    * Serialize a map of variables into a sequence of string in
    * the expected format for an LDAP attribute values.
-   * This method should really not be used anymore, however as long as the PolicyInstance doesn't hold Variables,
+   * This method should really not be used anymore, however as long as the Directive doesn't hold Variables,
    * we have to keep it.
    * consistency is partially checked.
    */

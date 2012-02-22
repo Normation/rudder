@@ -58,7 +58,7 @@ import com.normation.exceptions.TechnicalException
 import net.liftweb.http.Templates
 
 /**
- * Very much like the ServerGrid, but with the new WB and without ldap information
+ * Very much like the NodeGrid, but with the new WB and without ldap information
  * 
  * @author Nicolas CHARLES
  *
@@ -91,7 +91,7 @@ class SrvGrid {
   /*
    * All JS/CSS needed to have datatable working
    */
-  def head() : NodeSeq = headTemplate ++ DisplayServer.head
+  def head() : NodeSeq = headTemplate ++ DisplayNode.head
   
   def jsVarNameForId(tableId:String) = "oTable" + tableId
   

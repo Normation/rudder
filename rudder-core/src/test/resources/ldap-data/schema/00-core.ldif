@@ -155,11 +155,11 @@ attributeTypes: ( 2.5.4.48 NAME 'protocolInformation'
 attributeTypes: ( 2.5.4.50 NAME 'uniqueMember' EQUALITY uniqueMemberMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 X-ORIGIN 'RFC 4519' )
 attributeTypes: ( 1.3.6.1.4.1.26027.1.1.585 NAME 'lastExternalChangelogCookie'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 X-ORIGIN 'OpenDS Directory Server' )
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 X-ORIGIN 'OpenDS Directory Node' )
 attributeTypes: ( 1.3.6.1.4.1.26027.1.1.593 NAME 'firstChangeNumber'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 X-ORIGIN 'OpenDS Directory Server' )
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 X-ORIGIN 'OpenDS Directory Node' )
 attributeTypes: ( 1.3.6.1.4.1.26027.1.1.594 NAME 'lastChangeNumber'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 X-ORIGIN 'OpenDS Directory Server' )
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 X-ORIGIN 'OpenDS Directory Node' )
 attributeTypes: ( 2.5.4.51 NAME 'houseIdentifier' EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768}
   X-ORIGIN 'RFC 4519' )
@@ -209,7 +209,7 @@ attributeTypes: ( 2.5.21.10 NAME 'governingStructureRule' EQUALITY integerMatch
   USAGE directoryOperation X-ORIGIN 'RFC 4512' )
 attributeTypes: ( 1.3.6.1.4.1.1466.101.120.5 NAME 'namingContexts'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 USAGE dSAOperation X-ORIGIN 'RFC 4512' )
-attributeTypes: ( 1.3.6.1.4.1.1466.101.120.6 NAME 'altServer'
+attributeTypes: ( 1.3.6.1.4.1.1466.101.120.6 NAME 'altNode'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 USAGE dSAOperation X-ORIGIN 'RFC 4512' )
 attributeTypes: ( 1.3.6.1.4.1.1466.101.120.7 NAME 'supportedExtension'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 USAGE dSAOperation X-ORIGIN 'RFC 4512' )
@@ -385,31 +385,31 @@ attributeTypes: ( 2.16.840.1.113730.3.1.55 NAME 'aci'
   DESC 'Sun-defined access control information attribute type'
   EQUALITY octetStringMatch
   SYNTAX 1.3.6.1.4.1.26027.1.3.4 USAGE directoryOperation
-  X-ORIGIN 'Sun Java System Directory Server' )
+  X-ORIGIN 'Sun Java System Directory Node' )
 attributeTypes: ( 1.3.6.1.4.1.42.2.27.9.1.39 NAME 'aclRights'
   DESC 'Sun-defined access control effective rights attribute type'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation
-  X-ORIGIN 'Sun Java System Directory Server' )
+  X-ORIGIN 'Sun Java System Directory Node' )
 attributeTypes: ( 1.3.6.1.4.1.42.2.27.9.1.40 NAME 'aclRightsInfo'
   DESC 'Sun-defined access control effective rights information attribute type'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation
-  X-ORIGIN 'Sun Java System Directory Server' )
+  X-ORIGIN 'Sun Java System Directory Node' )
 attributeTypes: ( 2.16.840.1.113730.3.1.542 NAME 'nsUniqueId'
   DESC 'Sun-defined unique identifier' SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
   SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation
-  X-ORIGIN 'Sun Java System Directory Server' )
+  X-ORIGIN 'Sun Java System Directory Node' )
 attributeTypes: ( 1.3.6.1.4.1.1466.101.120.1 NAME 'administratorsAddress'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 USAGE directoryOperation
   X-ORIGIN 'draft-wahl-ldap-adminaddr' )
 attributeTypes: ( 2.16.840.1.113730.3.1.198 NAME 'memberURL'
   DESC 'Sun-defined attribute type' SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
-  X-ORIGIN 'Sun Java System Directory Server' )
+  X-ORIGIN 'Sun Java System Directory Node' )
 attributeTypes: ( 1.3.6.1.4.1.42.2.27.9.1.792 NAME 'isMemberOf'
   DESC 'Sun-defined attribute type' SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
   NO-USER-MODIFICATION USAGE directoryOperation
-  X-ORIGIN 'Sun Java System Directory Server' )
+  X-ORIGIN 'Sun Java System Directory Node' )
 attributeTypes: ( 0.9.2342.19200300.100.1.54 NAME 'dITRedirect'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 X-ORIGIN 'RFC 1274' )
 attributeTypes: ( 0.9.2342.19200300.100.1.49 NAME 'dSAQuality'
@@ -616,7 +616,7 @@ objectClasses: ( 1.3.6.1.4.1.7628.5.6.1.1 NAME 'inheritableLDAPSubEntry'
 objectClasses: ( 2.16.840.1.113730.3.2.33 NAME 'groupOfURLs'
   DESC 'Sun-defined objectclass' SUP top STRUCTURAL MUST ( cn )
   MAY ( memberURL $ businessCategory $ description $ o $ ou $ owner $ seeAlso )
-  X-ORIGIN 'Sun Java System Directory Server' )
+  X-ORIGIN 'Sun Java System Directory Node' )
 objectClasses: ( 0.9.2342.19200300.100.4.3 NAME 'pilotObject'
   SUP top MAY ( audio $ dITRedirect $ info $ jpegPhoto $ lastModifiedBy $
   lastModifiedTime $ manager $ photo $ uniqueIdentifier ) X-ORIGIN 'RFC 1274' )

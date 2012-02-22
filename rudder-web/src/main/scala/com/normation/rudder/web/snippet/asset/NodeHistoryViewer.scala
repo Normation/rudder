@@ -36,7 +36,7 @@ package com.normation.rudder.web.snippet.asset
 
 import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
 
-import com.normation.rudder.web.services.DisplayServer
+import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.model.JsNodeId
 
 import com.normation.inventory.domain.NodeId
@@ -65,7 +65,7 @@ import JE._
 import net.liftweb.http.SHtml._
 
 /**
- * A simple service that displays a ServerDetail widget from
+ * A simple service that displays a NodeDetail widget from
  * a list of LDIF entries
  */
 class NodeHistoryViewer extends StatefulSnippet {
@@ -92,7 +92,7 @@ class NodeHistoryViewer extends StatefulSnippet {
               case Failure(m,_,_) => <div class="error">Error while trying to display node history. Error message: {m}</div>
               case Empty => <div class="error">No history was retrieved for the chosen date</div>
               case Full(sm) => 
-                <div id={hid}>{DisplayServer.showPannedContent(sm.data, "hist") ++ Script(DisplayServer.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs")))}</div>
+                <div id={hid}>{DisplayNode.showPannedContent(sm.data, "hist") ++ Script(DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs")))}</div>
           } }
         </div>
         
@@ -127,8 +127,8 @@ class NodeHistoryViewer extends StatefulSnippet {
       case Empty => Alert("No history was retrieved for the chosen date")
       case Full(sm) => 
         SetHtml(hid,
-          DisplayServer.showPannedContent(sm.data, "hist")) & 
-          DisplayServer.jsInit(sm.data.node.main.id, sm.data.node.softwareIds,"hist", Some("node_tabs")
+          DisplayNode.showPannedContent(sm.data, "hist")) & 
+          DisplayNode.jsInit(sm.data.node.main.id, sm.data.node.softwareIds,"hist", Some("node_tabs")
         )
     }
   }

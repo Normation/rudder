@@ -862,7 +862,7 @@
 				p.ot = $.jstree._reference(p.o) || this;
 				p.rt = $.jstree._reference(p.r) || this; // r === -1 ? p.ot : $.jstree._reference(p.r) || this
 				if(p.r === -1 || !p.r) {
-					p.cr = -1;
+					p.rule = -1;
 					switch(p.p) {
 						case "first":
 						case "before":
@@ -885,28 +885,28 @@
 					switch(p.p) {
 						case "before":
 							p.cp = p.r.index();
-							p.cr = p.rt._get_parent(p.r);
+							p.rule = p.rt._get_parent(p.r);
 							break;
 						case "after":
 							p.cp = p.r.index() + 1;
-							p.cr = p.rt._get_parent(p.r);
+							p.rule = p.rt._get_parent(p.r);
 							break;
 						case "inside":
 						case "first":
 							p.cp = 0;
-							p.cr = p.r;
+							p.rule = p.r;
 							break;
 						case "last":
 							p.cp = p.r.find(" > ul > li").length; 
-							p.cr = p.r;
+							p.rule = p.r;
 							break;
 						default: 
 							p.cp = p.p;
-							p.cr = p.r;
+							p.rule = p.r;
 							break;
 					}
 				}
-				p.np = p.cr == -1 ? p.rt.get_container() : p.cr;
+				p.np = p.rule == -1 ? p.rt.get_container() : p.rule;
 				p.op = p.ot._get_parent(p.o);
 				p.cop = p.o.index();
 				if(p.op === -1) { p.op = p.ot ? p.ot.get_container() : this.get_container(); }
@@ -3925,9 +3925,9 @@
 				if(!this.__call_old()) { return false; }
 				var m  = this._get_move(),
 					s  = m.rt._get_settings().types,
-					mc = m.rt._check("max_children", m.cr),
-					md = m.rt._check("max_depth", m.cr),
-					vc = m.rt._check("valid_children", m.cr),
+					mc = m.rt._check("max_children", m.rule),
+					md = m.rt._check("max_depth", m.rule),
+					vc = m.rt._check("valid_children", m.rule),
 					ch = 0, d = 1, t;
 
 				if(vc === "none") { return false; } 
@@ -3938,7 +3938,7 @@
 					if(d === false) { return false; }
 				}
 				if(s.max_children !== -2 && mc !== -1) {
-					ch = m.cr === -1 ? this.get_container().find("> ul > li").not(m.o).length : m.cr.find("> ul > li").not(m.o).length;
+					ch = m.rule === -1 ? this.get_container().find("> ul > li").not(m.o).length : m.rule.find("> ul > li").not(m.o).length;
 					if(ch + m.o.length > mc) { return false; }
 				}
 				if(s.max_depth !== -2 && md !== -1) {

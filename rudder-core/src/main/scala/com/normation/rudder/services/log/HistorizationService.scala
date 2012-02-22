@@ -36,15 +36,15 @@ package com.normation.rudder.services.log
 
 import net.liftweb.common._
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.policies.PolicyInstance
-import com.normation.rudder.domain.policies.ConfigurationRuleVal
-import com.normation.rudder.domain.policies.ConfigurationRule
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.RuleVal
+import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.repository.HistorizationRepository
 import com.normation.rudder.repository.NodeGroupRepository
-import com.normation.rudder.repository.PolicyInstanceRepository
-import com.normation.cfclerk.services.PolicyPackageService
-import com.normation.cfclerk.domain.PolicyPackageId
-import com.normation.rudder.repository.ConfigurationRuleRepository
+import com.normation.rudder.repository.DirectiveRepository
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.rudder.repository.RuleRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.repository.jdbc.SerializedGroups
 
@@ -72,7 +72,7 @@ trait HistorizationService {
    */
   def updatePINames() : Box[Unit]
   
-  def updatesConfigurationRuleNames() : Box[Unit]
+  def updatesRuleNames() : Box[Unit]
 
 }
 
@@ -81,9 +81,9 @@ class HistorizationServiceImpl(
     historizationRepository : HistorizationRepository,
     nodeInfoService : NodeInfoService,
     nodeGroupRepository : NodeGroupRepository,
-    policyInstanceRepository : PolicyInstanceRepository,
-    policyPackageService : PolicyPackageService,
-    configurationRuleRepository : ConfigurationRuleRepository) extends HistorizationService with  Loggable {
+    directiveRepository : DirectiveRepository,
+    techniqueRepository : TechniqueRepository,
+    ruleRepository : RuleRepository) extends HistorizationService with  Loggable {
   
   
   def updateNodes() : Box[Unit] = {
@@ -150,94 +150,94 @@ class HistorizationServiceImpl(
     // starting by the policy instances, then search for the userPT (which can fails)
     // then look on the file system for the matching policypackagename/policyversion
     // againt, it should not fail (but report an error nonetheless)
-      val policyInstances = policyInstanceRepository.getAll().openOr(Seq()).map(x => 
-            (x, policyInstanceRepository.getUserPolicyTemplate(x.id)))
-              .filter { case (pi, userPt) => 
+      val directives = directiveRepository.getAll().openOr(Seq()).map(x => 
+            (x, directiveRepository.getActiveTechnique(x.id)))
+              .filter { case (directive, userPt) => 
                           userPt match {
                               case Full(userPT) => true
-                              case _ => logger.error("Could not find matching PT for PI %s".format(pi.id.value))
+                              case _ => logger.error("Could not find matching PT for PI %s".format(directive.id.value))
                                     false
                           }
               }.
               map(x =>( x._1 -> x._2.openTheBox)). // shoud not fail if a PT is deleted
-              map { case (pi, userPT) => 
-                (pi, userPT, policyPackageService.getPolicy(new PolicyPackageId(userPT.referencePolicyTemplateName, pi.policyTemplateVersion)))
-              }.filter { case (pi, userPt, policyPackage) => 
+              map { case (directive, userPT) => 
+                (directive, userPT, techniqueRepository.get(new TechniqueId(userPT.techniqueName, directive.techniqueVersion)))
+              }.filter { case (directive, userPt, policyPackage) => 
                           policyPackage match {
                               case Some(pp) => true
-                              case _ => logger.error("Could not find matching PolicyPackage for PI %s".format(pi.id.value))
+                              case _ => logger.error("Could not find matching Technique for PI %s".format(directive.id.value))
                                     false
                           }
               }.map(x =>( x._1 , x._2 , x._3.get))
               
               
               
-      val registered = historizationRepository.getAllOpenedPIs().map(x => x.policyInstanceId -> x).toMap
+      val registered = historizationRepository.getAllOpenedDirectives().map(x => x.directiveId -> x).toMap
       
       
-      val changed = policyInstances.filter { case (pi, userPT, policyPackage) => 
-          registered.get(pi.id.value) match {
+      val changed = directives.filter { case (directive, userPT, technique) => 
+          registered.get(directive.id.value) match {
               case None => true
               case Some(entry) => 
-                     (entry.policyInstanceName != pi.name || 
-                  entry.policyInstanceDescription != pi.shortDescription || 
-                  entry.priority != pi.priority ||
-                  entry.policyTemplateHumanName != policyPackage.name ||
-                  entry.policyPackageName != userPT.referencePolicyTemplateName.value ||
-                  entry.policyPackageDescription != policyPackage.description ||
-                  entry.policyPackageVersion != pi.policyTemplateVersion.toString )
+                     (entry.directiveName != directive.name || 
+                  entry.directiveDescription != directive.shortDescription || 
+                  entry.priority != directive.priority ||
+                  entry.techniqueHumanName != technique.name ||
+                  entry.techniqueName != userPT.techniqueName.value ||
+                  entry.techniqueDescription != technique.description ||
+                  entry.techniqueVersion != directive.techniqueVersion.toString )
                 
          }
      }
      
-     val closable = registered.keySet.filter(x => !(policyInstances.map(pi => pi._1.id.value)).contains(x))
+     val closable = registered.keySet.filter(x => !(directives.map(directive => directive._1.id.value)).contains(x))
   
-     historizationRepository.updatePIs(changed, closable.toSeq)
+     historizationRepository.updateDirectives(changed, closable.toSeq)
      Full(Unit)
     } catch {
-      case e:Exception => logger.error("Could not update the pis. Reason : "+e.getMessage())
-                          Failure("Could not update the pis. Reason : "+e.getMessage())
+      case e:Exception => logger.error("Could not update the directives. Reason : "+e.getMessage())
+                          Failure("Could not update the directives. Reason : "+e.getMessage())
     }
   }
   
-  def updatesConfigurationRuleNames() : Box[Unit] = {
+  def updatesRuleNames() : Box[Unit] = {
     try {
-      val crs = configurationRuleRepository.getAll().openOr({
+      val rules = ruleRepository.getAll().openOr({
           logger.error("Could not fetch all CRs");
           Seq()})
           
-      val registered = historizationRepository.getAllOpenedCRs().map(x => x.id -> x).toMap
+      val registered = historizationRepository.getAllOpenedRules().map(x => x.id -> x).toMap
    
       
-      val changed = crs.filter(cr => registered.get(cr.id) match {
+      val changed = rules.filter(rule => registered.get(rule.id) match {
           case None => true
           case Some(entry) =>
-            !isEqual(entry, cr)
+            !isEqual(entry, rule)
       })
       
-      // a closable cr is a cr that is in the database, but not in the ldap
-      val closable = registered.keySet.filter(x => !(crs.map(cr => cr.id)).contains(x)).
+      // a closable rule is a rule that is in the database, but not in the ldap
+      val closable = registered.keySet.filter(x => !(rules.map(rule => rule.id)).contains(x)).
                     map(x => x.value)
   
-      historizationRepository.updateCrs(changed, closable.toSeq)
+      historizationRepository.updateRules(changed, closable.toSeq)
       Full(Unit)
     } catch {
-      case e:Exception => logger.error("Could not update the crs. Reason : "+e.getMessage())
-                          Failure("Could not update the crs. Reason : "+e.getMessage())
+      case e:Exception => logger.error("Could not update the rules. Reason : "+e.getMessage())
+                          Failure("Could not update the rules. Reason : "+e.getMessage())
     } 
   }
     
 
-  private def isEqual(entry : ConfigurationRule, cr : ConfigurationRule) : Boolean = {
-    (entry.name == cr.name &&
-                entry.shortDescription == cr.shortDescription &&
-                entry.longDescription == cr.longDescription &&
-                entry.isActivatedStatus == cr.isActivatedStatus &&
+  private def isEqual(entry : Rule, rule : Rule) : Boolean = {
+    (entry.name == rule.name &&
+                entry.shortDescription == rule.shortDescription &&
+                entry.longDescription == rule.longDescription &&
+                entry.isEnabledStatus == rule.isEnabledStatus &&
                 (
-                    entry.target == cr.target // TODO : this won't do with multi target
+                    entry.target == rule.target // TODO : this won't do with multi target
                 ) && 
                 (
-                    entry.policyInstanceIds == cr.policyInstanceIds 
+                    entry.directiveIds == rule.directiveIds 
                 )
                 
     )

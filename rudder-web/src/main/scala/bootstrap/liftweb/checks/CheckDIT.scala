@@ -50,7 +50,7 @@ import javax.servlet.UnavailableException
  *
  */
 class CheckDIT(
-  pendingServersDit:InventoryDit,
+  pendingNodesDit:InventoryDit,
   acceptedDit:InventoryDit,
   rudderDit:RudderDit,
   ldap:LDAPConnectionProvider
@@ -73,7 +73,7 @@ class CheckDIT(
     }
     
     //check that all base DN's entry are already in the LDAP
-    val baseDns = pendingServersDit.BASE_DN :: pendingServersDit.SOFTWARE_BASE_DN :: 
+    val baseDns = pendingNodesDit.BASE_DN :: pendingNodesDit.SOFTWARE_BASE_DN :: 
       acceptedDit.BASE_DN :: acceptedDit.SOFTWARE_BASE_DN :: 
       rudderDit.BASE_DN :: Nil
     
@@ -102,7 +102,7 @@ class CheckDIT(
     }
       
     //now, check that all DIT entries are here, add missing ones
-    val ditEntries = pendingServersDit.getDITEntries ++ acceptedDit.getDITEntries ++ rudderDit.getDITEntries
+    val ditEntries = pendingNodesDit.getDITEntries ++ acceptedDit.getDITEntries ++ rudderDit.getDITEntries
     
     ldap.map { con =>
       (for {

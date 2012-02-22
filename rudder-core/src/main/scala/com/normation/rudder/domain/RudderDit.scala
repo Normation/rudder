@@ -52,7 +52,7 @@ import net.liftweb.json._
 import JsonDSL._
 import com.normation.cfclerk.domain._
 import org.joda.time.DateTime 
-import com.normation.rudder.repository.UserPolicyLibraryArchiveId
+import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
 import com.normation.rudder.repository.NodeGroupLibraryArchiveId
 
 class CATEGORY(
@@ -97,7 +97,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   /**
    * Create a new category for the user policy library
    */
-  def userPolicyTemplateCategory(
+  def activeTechniqueCategory(
       uuid       : String
     , parentDN   : DN
     , name       : String = ""
@@ -108,8 +108,8 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       , name            = name
       , description     = description
       , parentDN        = parentDN
-      , objectClass     = OC_CATEGORY
-      , objectClassUuid = A_CATEGORY_UUID
+      , objectClass     = OC_TECHNIQUE_CATEGORY
+      , objectClassUuid = A_TECHNIQUE_CATEGORY_UUID
     )
   }
   
@@ -130,15 +130,15 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   }
   
   
-  //here, we can't use userPolicyTemplateCategory because we want a subclass
-  val POLICY_TEMPLATE_LIB = new CATEGORY(
-      uuid = "UserPolicyTemplateLibraryRoot",
+  //here, we can't use activeTechniqueCategory because we want a subclass
+  val ACTIVE_TECHNIQUES_LIB = new CATEGORY(
+      uuid = "Active Techniques",
       parentDN = BASE_DN,
-      name = "User policy template library's root",
-      description = "This is the root category for the user library of Policy Templates. It contains subcategories and policy templates",
+      name = "Root of active techniques's library",
+      description = "This is the root category for active techniques. It contains subcategories, actives techniques and directives",
       isSystem = true,
-      objectClass = OC_CATEGORY,
-      objectClassUuid = A_CATEGORY_UUID
+      objectClass = OC_TECHNIQUE_CATEGORY,
+      objectClassUuid = A_TECHNIQUE_CATEGORY_UUID
   ) {
     uptLib => 
     
@@ -155,64 +155,64 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     /**
      * From a DN of a user policy template, return the value of the rdn (uuid)
      */
-    def getUserPolicyTemplateId(dn:DN) : Box[String] = singleRdnValue(dn,A_USER_POLICY_TEMPLATE_UUID)
+    def getActiveTechniqueId(dn:DN) : Box[String] = singleRdnValue(dn,A_ACTIVE_TECHNIQUE_UUID)
     
     
-    def getLDAPConfigurationRuleID(dn:DN) : Box[String] = singleRdnValue(dn,A_WBPI_UUID)
+    def getLDAPRuleID(dn:DN) : Box[String] = singleRdnValue(dn,A_DIRECTIVE_UUID)
     
     /**
      * Return a new sub category 
      */
-    def userPolicyTemplateCategoryModel(uuid:String, parentDN:DN) : LDAPEntry = userPolicyTemplateCategory(uuid, parentDN).model
+    def activeTechniqueCategoryModel(uuid:String, parentDN:DN) : LDAPEntry = activeTechniqueCategory(uuid, parentDN).model
     
     /**
      * Create a new user policy template entry
      */
-    def userPolicyTemplateModel(
+    def activeTechniqueModel(
         uuid:String
       , parentDN:DN
-      , referencePolicyTemplateName:PolicyPackageName
+      , techniqueName:TechniqueName
       , acceptationDateTimes:JObject
-      , isActivated:Boolean
+      , isEnabled:Boolean
       , isSystem : Boolean
     ) : LDAPEntry = {
-      val mod = LDAPEntry(new DN(new RDN(A_USER_POLICY_TEMPLATE_UUID,uuid),parentDN))
-      mod +=! (A_OC, OC.objectClassNames(OC_USER_POLICY_TEMPLATE).toSeq:_*)
-      mod +=! (A_REFERENCE_POLICY_TEMPLATE_UUID, referencePolicyTemplateName.value)
-      mod +=! (A_IS_ACTIVATED, isActivated.toLDAPString)
+      val mod = LDAPEntry(new DN(new RDN(A_ACTIVE_TECHNIQUE_UUID,uuid),parentDN))
+      mod +=! (A_OC, OC.objectClassNames(OC_ACTIVE_TECHNIQUE).toSeq:_*)
+      mod +=! (A_TECHNIQUE_UUID, techniqueName.value)
+      mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
       mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
       mod +=! (A_ACCEPTATION_DATETIME, Printer.compact(JsonAST.render(acceptationDateTimes)))
       mod
     }
     
-    def policyInstanceModel(uuid:String, referencePolicyTemplateVersion:PolicyVersion, parentDN:DN) : LDAPEntry = {
-      val mod = LDAPEntry(new DN(new RDN(A_WBPI_UUID,uuid),parentDN))
-      mod +=! (A_REFERENCE_POLICY_TEMPLATE_VERSION, referencePolicyTemplateVersion.toString)
-      mod +=! (A_OC, OC.objectClassNames(OC_WBPI).toSeq:_*)
+    def directiveModel(uuid:String, techniqueVersion:TechniqueVersion, parentDN:DN) : LDAPEntry = {
+      val mod = LDAPEntry(new DN(new RDN(A_DIRECTIVE_UUID,uuid),parentDN))
+      mod +=! (A_TECHNIQUE_VERSION, techniqueVersion.toString)
+      mod +=! (A_OC, OC.objectClassNames(OC_DIRECTIVE).toSeq:_*)
       mod
     }
     
   }
   
-  val CONFIG_RULE = new OU("Configuration Rules", BASE_DN) {
-    crs =>
+  val RULES = new OU("Rules", BASE_DN) {
+    rules =>
     //check for the presence of that entry at bootstrap
-    dit.register(crs.model)
+    dit.register(rules.model)
     
-    def getConfigurationRuleId(dn:DN) : Box[String] = singleRdnValue(dn,A_CONFIGURATION_RULE_UUID)
+    def getRuleId(dn:DN) : Box[String] = singleRdnValue(dn,A_RULE_UUID)
     
-    def configRuleDN(uuid:String) = new DN(new RDN(A_CONFIGURATION_RULE_UUID, uuid), crs.dn)
+    def configRuleDN(uuid:String) = new DN(new RDN(A_RULE_UUID, uuid), rules.dn)
 
-    def configurationRuleModel(
+    def ruleModel(
       uuid:String,
       name:String,
-      isActivated : Boolean,
+      isEnabled : Boolean,
       isSystem : Boolean
     ) : LDAPEntry = {
       val mod = LDAPEntry(configRuleDN(uuid))
-      mod +=! (A_OC,OC.objectClassNames(OC_CONFIGURATION_RULE).toSeq:_*)
+      mod +=! (A_OC,OC.objectClassNames(OC_RULE).toSeq:_*)
       mod +=! (A_NAME, name)
-      mod +=! (A_IS_ACTIVATED, isActivated.toLDAPString)
+      mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
       mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
       mod
     }
@@ -256,12 +256,12 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     /**
      * Create a new group entry
      */
-    def groupModel(uuid:String, parentDN:DN, name:String, description : String, query: Option[Query], isDynamic : Boolean, srvList : Set[NodeId], isActivated : Boolean, isSystem : Boolean = false) : LDAPEntry = {
+    def groupModel(uuid:String, parentDN:DN, name:String, description : String, query: Option[Query], isDynamic : Boolean, srvList : Set[NodeId], isEnabled : Boolean, isSystem : Boolean = false) : LDAPEntry = {
       val mod = LDAPEntry(group.groupDN(uuid, parentDN))
       mod +=! (A_OC, OC.objectClassNames(OC_RUDDER_NODE_GROUP).toSeq:_*)
       mod +=! (A_NAME, name)
       mod +=! (A_DESCRIPTION, description)
-      mod +=! (A_IS_ACTIVATED, isActivated.toLDAPString)
+      mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
       mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
       mod +=! (A_IS_DYNAMIC, isDynamic.toLDAPString)
       mod +=! (A_NODE_UUID, srvList.map(x => x.value).toSeq:_*)
@@ -291,9 +291,9 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       //check for the presence of that entry at bootstrap
       dit.register(system.model)
       
-      def targetDN(target:PolicyInstanceTarget) : DN = target match {
+      def targetDN(target:RuleTarget) : DN = target match {
         case GroupTarget(groupId) => group.groupDN(groupId.value, system.dn)
-        case t => new DN(new RDN(A_POLICY_TARGET, target.target), system.dn)
+        case t => new DN(new RDN(A_RULE_TARGET, target.target), system.dn)
       }
         
       
@@ -303,14 +303,14 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   /**
    * That branch contains definition for Rudder server type.
    */
-  val RUDDER_NODES = new OU("Nodes Configuration", BASE_DN) {
+  val NODE_CONFIGS = new OU("Nodes Configuration", BASE_DN) {
     servers =>
  
     /**
      * There is two actual implementations of Rudder server, which 
      * differ only slightly in their identification.
      */  
-    val SERVER = new ENTRY1(A_NODE_UUID) {
+    val NODE_CONFIG = new ENTRY1(A_NODE_UUID) {
       server => 
       
       //get id from dn
@@ -327,7 +327,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       
       def nodeConfigurationModel(uuid:NodeId) : LDAPEntry = {
         val mod = LDAPEntry(this.dn(uuid.value))
-        mod +=! (A_OC, OC.objectClassNames(OC_RUDDER_SERVER).toSeq:_*)
+        mod +=! (A_OC, OC.objectClassNames(OC_NODE_CONFIGURATION).toSeq:_*)
         mod
       }     
      
@@ -337,70 +337,53 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
        * There is both current and target policy instances,
        * they only differ on the objectType
        */
-      val POLICY_INSTANCE = new ENTRY1(A_POLICY_INSTANCE_UUID) {
-        def dn(uuid:String,serverDN:DN) : DN = {
-          require(nonEmpty(uuid), "A policy instance UUID can not be empty")
-          require( !serverDN.isNullDN , "The parent (server) DN of a Server Role can not be empty")
-          new DN(this.rdn(uuid),serverDN)
+      val CF3POLICYDRAFT = new ENTRY1(A_DIRECTIVE_UUID) {
+        def dn(uuid:String,nodeConfigurationDN:DN) : DN = {
+          require(nonEmpty(uuid), "A CF3 Policy Draft ID can not be empty")
+          require( !nodeConfigurationDN.isNullDN , "Can not use a null DN for the Cf3 Policy Draft's node configuration")
+          new DN(this.rdn(uuid),nodeConfigurationDN)
         }
         
-        def model(policyInstanceUUID:String,serverDN:DN) : LDAPEntry = {
-          val mod = LDAPEntry(this.dn(policyInstanceUUID,serverDN))
-          mod +=! (A_OC, OC.objectClassNames(OC_CR_POLICY_INSTANCE).toSeq:_*)
+        def model(directiveUUID:String,serverDN:DN) : LDAPEntry = {
+          val mod = LDAPEntry(this.dn(directiveUUID,serverDN))
+          mod +=! (A_OC, OC.objectClassNames(OC_RULE_WITH_CF3POLICYDRAFT).toSeq:_*)
           mod
         }     
-      } //end POLICY_INSTANCE
+      } //end CF3POLICYDRAFT
       
-      val TARGET_POLICY_INSTANCE = new ENTRY1(A_TARGET_POLICY_INSTANCE_UUID) {
+      val TARGET_CF3POLICYDRAFT = new ENTRY1(A_TARGET_DIRECTIVE_UUID) {
         def dn(uuid:String,serverDN:DN) : DN = {
-          require(nonEmpty(uuid), "A policy instance UUID can not be empty")
-          require( !serverDN.isNullDN , "The parent (server) DN of a Server Role can not be empty")
+          require(nonEmpty(uuid), "A CF3 Policy Draft ID can not be empty")
+          require( !serverDN.isNullDN , "Can not use a null DN for the Cf3 Policy Draft's node configuration")
           new DN(this.rdn(uuid),serverDN)
         }
         
-       def model(policyInstanceUUID:String,serverDN:DN) : LDAPEntry = {
-          val mod = LDAPEntry(this.dn(policyInstanceUUID,serverDN))
-          mod +=! (A_OC, OC.objectClassNames(OC_TARGET_CR_POLICY_INSTANCE).toSeq:_*)
+       def model(directiveUUID:String,serverDN:DN) : LDAPEntry = {
+          val mod = LDAPEntry(this.dn(directiveUUID,serverDN))
+          mod +=! (A_OC, OC.objectClassNames(OC_TARGET_RULE_WITH_CF3POLICYDRAFT).toSeq:_*)
           mod
         }
         
-      } //end TARGET_POLICY_INSTANCE
+      } //end TARGET_CF3POLICYDRAFT
       
-    } //end SERVER
+    } //end NODE_CONFIG
     
-  } //end RUDDER_NODES
-  
-//  val POLICY_INSTANCES = new OU("Policy Instances", BASE_DN) {
-//    policies =>
-//    
-//    val POLICY_INSTANCE = new ENTRY1(A_POLICY_INSTANCE_UUID) {
-//      policy => 
-//      
-//      def model(id:Option[LDAPConfigurationRuleUUID]) : LDAPEntry = {
-//        val mod = id match {
-//          case None =>  LDAPEntry(None,Some(policies.dn))
-//          case Some(u) => LDAPEntry(LDAPLDAPConfigurationRuleID(u,policies.dn).dn)
-//        }
-//        mod +=! (A_OC, OC.objectClassNames(OC_POLICY_INSTANCE).toSeq:_*)
-//        mod
-//      }
-//    }
-//  }
+  } //end NODE_CONFIGS
   
   val ARCHIVES = new OU("Archives", BASE_DN) {
     archives =>
     //check for the presence of that entry at bootstrap
     dit.register(archives.model)
     
-    def configurationRuleModel(
-      crArchiveId : CRArchiveId
+    def ruleModel(
+      crArchiveId : RuleArchiveId
     ) : LDAPEntry = {
-      (new OU("ConfigurationRules-" + crArchiveId.value, archives.dn)).model
+      (new OU("Rules-" + crArchiveId.value, archives.dn)).model
     }
     
-    def userLibDN(id:UserPolicyLibraryArchiveId) : DN = {
-      userPolicyTemplateCategory(
-          uuid     = "UserPolicyLibrary-" + id.value
+    def userLibDN(id:ActiveTechniqueLibraryArchiveId) : DN = {
+      activeTechniqueCategory(
+          uuid     = "ActiveTechniqueLibrary-" + id.value
         , parentDN = archives.dn
       ).model.dn
     }

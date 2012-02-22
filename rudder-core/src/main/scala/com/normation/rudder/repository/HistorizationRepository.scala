@@ -35,14 +35,14 @@
 package com.normation.rudder.repository
 import com.normation.rudder.repository.jdbc.SerializedGroups
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.repository.jdbc.SerializedPIs
-import com.normation.rudder.domain.policies.PolicyInstance
-import com.normation.rudder.domain.policies.UserPolicyTemplate
-import com.normation.cfclerk.domain.PolicyPackage
-import com.normation.rudder.domain.policies.ConfigurationRule
-import com.normation.rudder.repository.jdbc.SerializedCRPIs
-import com.normation.rudder.repository.jdbc.SerializedCRGroups
-import com.normation.rudder.repository.jdbc.SerializedCRs
+import com.normation.rudder.repository.jdbc.SerializedDirectives
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.cfclerk.domain.Technique
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.repository.jdbc.SerializedRuleDirectives
+import com.normation.rudder.repository.jdbc.SerializedRuleGroups
+import com.normation.rudder.repository.jdbc.SerializedRules
 import org.joda.time.DateTime
 import com.normation.rudder.repository.jdbc.SerializedNodes
 import com.normation.rudder.domain.nodes.NodeInfo
@@ -61,18 +61,18 @@ trait HistorizationRepository {
   
   def updateGroups(nodes : Seq[NodeGroup], closable : Seq[String]) :Seq[SerializedGroups]
   
-  def getAllPIs(after : Option[DateTime]) : Seq[SerializedPIs] 
+  def getAllDirectives(after : Option[DateTime]) : Seq[SerializedDirectives] 
   
-  def getAllOpenedPIs() : Seq[SerializedPIs]
+  def getAllOpenedDirectives() : Seq[SerializedDirectives]
   
-  def updatePIs(pis : Seq[(PolicyInstance, UserPolicyTemplate, PolicyPackage)], 
-              closable : Seq[String]) :Seq[SerializedPIs]
+  def updateDirectives(directives : Seq[(Directive, ActiveTechnique, Technique)], 
+              closable : Seq[String]) :Seq[SerializedDirectives]
    
-  def getAllCRs(after : Option[DateTime]) : Seq[(SerializedCRs, Seq[SerializedCRGroups],  Seq[SerializedCRPIs])]
+  def getAllRules(after : Option[DateTime]) : Seq[(SerializedRules, Seq[SerializedRuleGroups],  Seq[SerializedRuleDirectives])]
   
-  def getAllOpenedCRs() : Seq[ConfigurationRule] 
+  def getAllOpenedRules() : Seq[Rule] 
   
-  def updateCrs(crs : Seq[ConfigurationRule], closable : Seq[String]) : Unit
+  def updateRules(rules : Seq[Rule], closable : Seq[String]) : Unit
   
  
 }

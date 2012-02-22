@@ -35,10 +35,10 @@
 package com.normation.rudder.repository
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.bean._
 import org.joda.time._
-import com.normation.cfclerk.domain.{CFCPolicyInstanceId}
+import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
 
 /**
  * An overly simple repository for searching through the cfengine reports
@@ -49,33 +49,55 @@ import com.normation.cfclerk.domain.{CFCPolicyInstanceId}
 trait ReportsRepository {
 
   /**
-   * Returns all reports for the configurationRuleId, between the two differents date (optionnally)
+   * Returns all reports for the ruleId, between the two differents date (optionnally)
    */
-  def findReportsByConfigurationRule(configurationRuleId : ConfigurationRuleId, serial : Option[Int],  beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[Reports]
+  def findReportsByRule(
+      ruleId   : RuleId
+    , serial   : Option[Int]
+    , beginDate: Option[DateTime]
+    , endDate  : Option[DateTime]
+  ) : Seq[Reports]
   
   
   /**
    * Return the last (really the last, serial wise, with full execution) reports for a configuration rule
    */
-  def findLastReportByConfigurationRule(configurationRuleId : ConfigurationRuleId, serial : Int, node : Option[NodeId]) : Seq[Reports]
+  def findLastReportByRule(
+      ruleId: RuleId
+    , serial: Int
+    , node  : Option[NodeId]
+  ) : Seq[Reports]
   
   
   /**
    * Returns all reports for the node, between the two differents date (optionnal)
    * for a configuration rule (optionnal) and for a specific serial of this configuration rule (optionnal)
-   * Note : serial is used only if configurationrule is used
+   * Note : serial is used only if rule is used
    * Note : only the 1000 first entry are returned
    */
-  def findReportsByServer(nodeId : NodeId, configurationRuleId : Option[ConfigurationRuleId], serial : Option[Int], beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[Reports]
+  def findReportsByNode(
+      nodeId   : NodeId
+    , ruleId   : Option[RuleId]
+    , serial   : Option[Int]
+    , beginDate: Option[DateTime]
+    , endDate  : Option[DateTime]
+  ) : Seq[Reports]
   
   /**
-   * All reports for a node and cr/serial, between two date, ordered by date
+   * All reports for a node and rule/serial, between two date, ordered by date
    */
-  def findReportsByNode(nodeId : NodeId, configurationRuleId : ConfigurationRuleId,
-      serial : Int, beginDate : DateTime, endDate : Option[DateTime]) : Seq[Reports]
+  def findReportsByNode(
+      nodeId   : NodeId
+    , ruleId   : RuleId
+    , serial   : Int
+    , beginDate: DateTime
+    , endDate  : Option[DateTime]
+  ) : Seq[Reports]
   
-  def findExecutionTimeByNode(nodeId : NodeId, 
-      beginDate: DateTime, 
-      endDate: Option[DateTime] ) : Seq[DateTime]
+  def findExecutionTimeByNode(
+      nodeId   : NodeId
+    , beginDate: DateTime
+    , endDate  : Option[DateTime]
+  ) : Seq[DateTime]
   
 }

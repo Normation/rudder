@@ -39,7 +39,7 @@ import org.joda.time.DateTime
 import org.slf4j.{Logger,LoggerFactory}
 import com.normation.eventlog._
 import com.normation.rudder.domain.log._
-import com.normation.cfclerk.domain.CFCPolicyInstanceId
+import com.normation.cfclerk.domain.Cf3PolicyDraftId
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core._
 import java.sql.ResultSet
@@ -53,8 +53,8 @@ import scala.xml._
 import java.security.Principal
 import scala.collection.JavaConversions._
 import org.joda.time.format.ISODateTimeFormat
-import com.normation.rudder.domain.policies.DeleteConfigurationRuleDiff
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.DeleteRuleDiff
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.log.EventLogFactory
 import com.normation.rudder.domain.log._
@@ -211,15 +211,15 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
   
   private[this] val logFilters = 
         AssetsEventLogsFilter.eventList ::: 
-        ConfigurationRuleEventLogsFilter.eventList :::
+        RuleEventLogsFilter.eventList :::
         GenericEventLogsFilter.eventList :::
         ImportExportEventLogsFilter.eventList :::
         NodeGroupEventLogsFilter.eventList :::
-        PolicyInstanceEventLogsFilter.eventList :::
+        DirectiveEventLogsFilter.eventList :::
         PolicyServerEventLogsFilter.eventList :::
         PromisesEventLogsFilter.eventList :::
         UserEventLogsFilter.eventList :::
-        PolicyTemplateEventLogsFilter.eventList
+        TechniqueEventLogsFilter.eventList
         
     
   

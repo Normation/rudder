@@ -65,7 +65,7 @@ trait QueryChecker {
    *    list of server which have to be tested for query   
    * @return
    *   Empty or Failure in case of a error during the process 
-   *   Full(seq) with seq being the list of serverId which verify
+   *   Full(seq) with seq being the list of nodeId which verify
    *   query.
    */
   def check(query:Query, nodeIds:Seq[NodeId]) : Box[Seq[NodeId]]

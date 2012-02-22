@@ -47,13 +47,13 @@ import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField
 }
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import CreatePolicyInstancePopup._
-import com.normation.cfclerk.services.PolicyPackageService
-import com.normation.cfclerk.domain.{PolicyVersion,PolicyPackageName}
+import CreateDirectivePopup._
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.cfclerk.domain.{TechniqueVersion,TechniqueName}
 
 
 
-object CreatePolicyInstancePopup {
+object CreateDirectivePopup {
   val htmlId_popupContainer = "createPiContainer"
   val htmlId_popup = "createPiPopup"
     
@@ -85,11 +85,11 @@ object CreatePolicyInstancePopup {
 }
 
 
-class CreatePolicyInstancePopup(
+class CreateDirectivePopup(
   ptName:String,
   ptDescription:String,
-  ptVersion:PolicyVersion,
-  onSuccessCallback : (PolicyInstance) => JsCmd = { (pi : PolicyInstance) => Noop },
+  ptVersion:TechniqueVersion,
+  onSuccessCallback : (Directive) => JsCmd = { (directive : Directive) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
   
@@ -155,16 +155,16 @@ class CreatePolicyInstancePopup(
     if(formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
-      val pi = new PolicyInstance(
-        id = PolicyInstanceId(uuidGen.newUuid),
-        policyTemplateVersion = ptVersion,
+      val directive = new Directive(
+        id = DirectiveId(uuidGen.newUuid),
+        techniqueVersion = ptVersion,
         parameters = Map(),
         name = piName.is,
         shortDescription = piShortDescription.is,
-        isActivated = true
+        isEnabled = true
       )
 
-      closePopup() & onSuccessCallback(pi)
+      closePopup() & onSuccessCallback(directive)
     }
   }
 

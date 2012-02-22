@@ -53,7 +53,7 @@ import net.liftweb.http.SHtml._
  */
 class ConfigurationManager {
   def index(xhtml:NodeSeq) : NodeSeq = {
-    S.redirectTo("configurationRuleManagement")
+    S.redirectTo("ruleManagement")
   }
 
 }

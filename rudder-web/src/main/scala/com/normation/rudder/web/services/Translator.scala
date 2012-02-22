@@ -39,10 +39,10 @@ import scala.collection.mutable.{ Map => MutMap }
 import net.liftweb.common._
 import org.apache.commons.io.FilenameUtils
 
-class Serializer[T](pts: (String, T => String)*) {
+class Serializer[T](techniques: (String, T => String)*) {
   //all the known properties for that type
   private val propReg: MutMap[String, T => String] = MutMap()
-  pts foreach { case (prop, t) => add(prop, t) }
+  techniques foreach { case (prop, t) => add(prop, t) }
 
   def add(prop: String, t: T => String): Unit = propReg += (prop.toLowerCase -> t)
 
@@ -64,10 +64,10 @@ class Serializer[T](pts: (String, T => String)*) {
   def iterator: Iterator[(String, T => String)] = propReg.iterator
 }
 
-class Unserializer[T](pts: (String, String => Box[T])*) {
+class Unserializer[T](techniques: (String, String => Box[T])*) {
   //all the known properties for that type
   private val propReg: MutMap[String, String => Box[T]] = MutMap()
-  pts foreach { case (prop, t) => add(prop, t) }
+  techniques foreach { case (prop, t) => add(prop, t) }
 
   def add(prop: String, t: String => Box[T]): Unit = propReg += (prop.toLowerCase -> t)
 

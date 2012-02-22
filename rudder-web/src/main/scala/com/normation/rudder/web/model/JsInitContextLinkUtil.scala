@@ -35,8 +35,8 @@
 package com.normation.rudder.web.model
 
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.policies.PolicyInstanceId
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
 
 /**
@@ -49,12 +49,12 @@ object JsInitContextLinkUtil {
   def groupLink(id:NodeGroupId) = 
     """/secure/assetManager/groups#{"groupId":"%s"}""".format(id.value)
   
-  def configurationRuleLink(id:ConfigurationRuleId) = 
-    """/secure/configurationManager/configurationRuleManagement#{"crId":"%s"}""".format(id.value)
+  def ruleLink(id:RuleId) = 
+    """/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(id.value)
   
-  def policyInstanceLink(id:PolicyInstanceId) = 
-    """/secure/configurationManager/policyInstanceManagement#{"piId":"%s"}""".format(id.value)
+  def directiveLink(id:DirectiveId) = 
+    """/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(id.value)
     
   def nodeLink(id:NodeId) = 
-    """/secure/assetManager/searchServers#{"nodeId":"%s"}""".format(id.value)
+    """/secure/assetManager/searchNodes#{"nodeId":"%s"}""".format(id.value)
 }

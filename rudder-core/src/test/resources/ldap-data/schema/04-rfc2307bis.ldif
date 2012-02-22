@@ -26,7 +26,7 @@
 #
 # This file contains schema definitions from the draft-howard-rfc2307bis
 # specification, used to store naming service information in the Directory
-# Server.
+# Node.
 dn: cn=schema
 objectClass: top
 objectClass: ldapSubentry

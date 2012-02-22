@@ -36,21 +36,21 @@ package com.normation.rudder.domain.servers
 
 
 
-import com.normation.rudder.domain.policies.IdentifiableCFCPI
+import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
 import com.normation.cfclerk.domain.Variable
 import net.liftweb.common._
 import org.joda.time.DateTime
-import com.normation.cfclerk.domain.CFCPolicyInstance
+import com.normation.cfclerk.domain.Cf3PolicyDraft
 import scala.collection._
-import com.normation.cfclerk.domain.{PolicyPackageId, CFCPolicyInstanceId,CFCPolicyInstance, PoliciesContainer}
-import com.normation.rudder.domain.policies.{ConfigurationRule,ConfigurationRuleId}
+import com.normation.cfclerk.domain.{TechniqueId, Cf3PolicyDraftId,Cf3PolicyDraft, Cf3PolicyDraftContainer}
+import com.normation.rudder.domain.policies.{Rule,RuleId}
 
 
 trait NodeConfiguration extends Loggable {
 
   def id: String
-  def __currentPoliciesInstances : Seq[IdentifiableCFCPI]  
-  def __targetPoliciesInstances : Seq[IdentifiableCFCPI] 
+  def __currentPoliciesInstances : Seq[RuleWithCf3PolicyDraft]  
+  def __targetPoliciesInstances : Seq[RuleWithCf3PolicyDraft] 
   def isPolicyServer : Boolean 
   def currentMinimalNodeConfig : MinimalNodeConfig
   def targetMinimalNodeConfig : MinimalNodeConfig
@@ -58,9 +58,9 @@ trait NodeConfiguration extends Loggable {
   def currentSystemVariables :  Map[String, Variable]
   def targetSystemVariables :  Map[String, Variable]
   
-  lazy val currentPoliciesInstances = __currentPoliciesInstances.map(pi => ( pi.policyInstance.id -> pi.copy()) ).toMap  
+  lazy val currentPoliciesInstances = __currentPoliciesInstances.map(ruleWithCf3PolicyDraft => ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id -> ruleWithCf3PolicyDraft.copy()) ).toMap  
     
-  lazy val targetPoliciesInstances = __targetPoliciesInstances.map(pi => ( pi.policyInstance.id -> pi.copy()) ).toMap
+  lazy val targetPoliciesInstances = __targetPoliciesInstances.map(ruleWithCf3PolicyDraft => ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id -> ruleWithCf3PolicyDraft.copy()) ).toMap
   
   
   /**
@@ -68,9 +68,9 @@ trait NodeConfiguration extends Loggable {
    * @param policy
    * @return
    */
-  def addPolicyInstance(policy : IdentifiableCFCPI) : Box[NodeConfiguration]
+  def addDirective(policy : RuleWithCf3PolicyDraft) : Box[NodeConfiguration]
   
-  def setSerial(crs : Seq[(ConfigurationRuleId,Int)]) : NodeConfiguration
+  def setSerial(rules : Seq[(RuleId,Int)]) : NodeConfiguration
   
   /**
    * Called when we have written the promesses, to say that the current configuration is indeed the target one
@@ -100,7 +100,7 @@ trait NodeConfiguration extends Loggable {
         (key,currentCFC) <- currentPoliciesInstances
       } {
         val targetPi = targetPoliciesInstances.getOrElse(key,return true)
-        if(currentCFC.policyInstance.serial != targetPi.policyInstance.serial) return true
+        if(currentCFC.cf3PolicyDraft.serial != targetPi.cf3PolicyDraft.serial) return true
       }
       false
     }
@@ -108,16 +108,16 @@ trait NodeConfiguration extends Loggable {
   }
   
   /**
-   * Go through each CFCPolicyInstance and update the unique variable
+   * Go through each Cf3PolicyDraft and update the unique variable
    * it has a side effect on policies
    * @param policy
    */
-  protected def updateAllUniqueVariables(policy : CFCPolicyInstance,
-              policies : mutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI]) = {
+  protected def updateAllUniqueVariables(policy : Cf3PolicyDraft,
+              policies : mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]) = {
     for (uniqueVariable <- policy.getVariables.filter(x => (x._2 .spec.isUniqueVariable ))) {
       // We need to update only the variable that already exists, not add them !!
-      for (instance <- policies.filter(x => (x._2.policyInstance.getVariable(uniqueVariable._1) != None ))) {
-        instance._2.policyInstance.setVariable(uniqueVariable._2)
+      for (instance <- policies.filter(x => (x._2.cf3PolicyDraft.getVariable(uniqueVariable._1) != None ))) {
+        instance._2.cf3PolicyDraft.setVariable(uniqueVariable._2)
       }
     }
     
@@ -128,37 +128,37 @@ trait NodeConfiguration extends Loggable {
   
   
   
-  def findPolicyInstanceByPolicy(policyId : PolicyPackageId): Map[CFCPolicyInstanceId, IdentifiableCFCPI] = {
+  def findDirectiveByPolicy(techniqueId : TechniqueId): Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft] = {
     targetPoliciesInstances.filter(x => 
-      x._2.policyInstance.policyId.name.value.equalsIgnoreCase(policyId.name.value) &&
-      x._2.policyInstance.policyId.version == policyId.version
+      x._2.cf3PolicyDraft.techniqueId.name.value.equalsIgnoreCase(techniqueId.name.value) &&
+      x._2.cf3PolicyDraft.techniqueId.version == techniqueId.version
     ).map(x => (x._1, x._2 .copy()))
   }
   
-  def findCurrentPolicyInstanceByPolicy(policyId : PolicyPackageId) = {
+  def findCurrentDirectiveByPolicy(techniqueId : TechniqueId) = {
     currentPoliciesInstances.filter { x => 
-      x._2.policyInstance.policyId.name.value.equalsIgnoreCase(policyId.name.value) &&
-      x._2.policyInstance.policyId.version == policyId.version
+      x._2.cf3PolicyDraft.techniqueId.name.value.equalsIgnoreCase(techniqueId.name.value) &&
+      x._2.cf3PolicyDraft.techniqueId.version == techniqueId.version
     }.map(x => (x._1, x._2 .copy()))
   }
   
-  def getAllPoliciesNames() :Set[PolicyPackageId] = {
-    targetPoliciesInstances.map(x => x._2 .policyInstance.policyId).toSet[PolicyPackageId]
+  def getAllPoliciesNames() :Set[TechniqueId] = {
+    targetPoliciesInstances.map(x => x._2 .cf3PolicyDraft.techniqueId).toSet[TechniqueId]
   }
   
   
-  def getCurrentPolicyInstances() :  immutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI] = {
+  def getCurrentDirectives() :  immutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft] = {
     currentPoliciesInstances.map(x => (x._1, x._2.copy())).toMap
   }
   
-  def getPolicyInstances() : immutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI] = {
+  def getDirectives() : immutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft] = {
     targetPoliciesInstances.map(x => (x._1, x._2.copy())).toMap
   }
   
-  def getCurrentPolicyInstance(id : CFCPolicyInstanceId) : Option[IdentifiableCFCPI] = {
+  def getCurrentDirective(id : Cf3PolicyDraftId) : Option[RuleWithCf3PolicyDraft] = {
     currentPoliciesInstances.get(id).map(x => x.copy())
   }
-  def getPolicyInstance(id : CFCPolicyInstanceId) : Option[IdentifiableCFCPI] = {
+  def getDirective(id : Cf3PolicyDraftId) : Option[RuleWithCf3PolicyDraft] = {
     targetPoliciesInstances.get(id).map(x => x.copy())
   }
   
@@ -175,9 +175,9 @@ trait NodeConfiguration extends Loggable {
 
 object NodeConfiguration {
   
-  def toContainer(outPath : String, server : NodeConfiguration) : PoliciesContainer = {
-    val container = new PoliciesContainer(outPath)
-    server.targetPoliciesInstances foreach (x =>  container.addPolicyInstance(x._2.policyInstance))
+  def toContainer(outPath : String, server : NodeConfiguration) : Cf3PolicyDraftContainer = {
+    val container = new Cf3PolicyDraftContainer(outPath)
+    server.targetPoliciesInstances foreach (x =>  container.add(x._2.cf3PolicyDraft))
     container
   }
   

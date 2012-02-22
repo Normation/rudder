@@ -62,7 +62,7 @@ class LDAPNodeGroupRepository(
   , ldap              : LDAPConnectionProvider
   , mapper            : LDAPEntityMapper
   , diffMapper        : LDAPDiffMapper
-  , categoryRepo      : GroupCategoryRepository
+  , categoryRepo      : NodeGroupCategoryRepository
   , uuidGen           : StringUuidGenerator
   , actionLogger      : EventLogRepository
   , gitArchiver       : GitNodeGroupArchiver
@@ -170,14 +170,14 @@ class LDAPNodeGroupRepository(
       groupLibMutex.readLock { this.getNodeGroup[NodeGroupId](id, { id => EQ(A_NODE_GROUP_UUID, id.value) } ) }
   }
 
-  def createNodeGroup(name: String, description: String, q: Option[Query], isDynamic: Boolean, srvList: Set[NodeId], into: NodeGroupCategoryId, isActivated : Boolean, actor:EventActor): Box[AddNodeGroupDiff] = {
+  def createNodeGroup(name: String, description: String, q: Option[Query], isDynamic: Boolean, srvList: Set[NodeId], into: NodeGroupCategoryId, isEnabled : Boolean, actor:EventActor): Box[AddNodeGroupDiff] = {
     for {
       con           <- ldap
       exists        <- if (nodeGroupExists(con, name)) Failure("Cannot create a group with name %s : there is already a group with the same name".format(name))
                        else Full(Unit)
       categoryEntry <- getCategoryEntry(con, into) ?~! "Entry with ID '%s' was not found".format(into)
       uuid          = uuidGen.newUuid
-      nodeGroup     = NodeGroup(NodeGroupId(uuid), name, description, q, isDynamic, srvList, isActivated, false)
+      nodeGroup     = NodeGroup(NodeGroupId(uuid), name, description, q, isDynamic, srvList, isEnabled, false)
       entry         = rudderDit.GROUP.groupModel(uuid,
                                 categoryEntry.dn,
                                 name,
@@ -185,7 +185,7 @@ class LDAPNodeGroupRepository(
                                 q,
                                 isDynamic,
                                 srvList,
-                                isActivated)
+                                isEnabled)
       result        <- groupLibMutex.writeLock { con.save(entry, true) }
       diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result)
       loggedAction  <- actionLogger.saveAddNodeGroup(principal = actor, addDiff = diff )
@@ -215,7 +215,7 @@ class LDAPNodeGroupRepository(
                                 nodeGroup.query,
                                 nodeGroup.isDynamic,
                                 nodeGroup.serverList,
-                                nodeGroup.isActivated,
+                                nodeGroup.isEnabled,
                                 nodeGroup.isSystem)
       result       <- groupLibMutex.writeLock { con.save(entry, true) ?~! "Error when saving entry: %s".format(entry) }
       optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result) ?~! "Error when mapping change record to a diff object: %s".format(result)
@@ -292,7 +292,7 @@ class LDAPNodeGroupRepository(
   def getAll : Box[Seq[NodeGroup]] = {
     groupLibMutex.readLock { for {
       con <- ldap
-      //for each pi entry, map it. if one fails, all fails
+      //for each directive entry, map it. if one fails, all fails
       groups <- sequence(con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP))) { groupEntry => 
         mapper.entry2NodeGroup(groupEntry) ?~! "Error when transforming LDAP entry into a Group instance. Entry: %s".format(groupEntry)
       }

@@ -44,34 +44,34 @@ import com.normation.cfclerk.domain._
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.EventLogDetails
 
-sealed trait PolicyTemplateEventLog extends EventLog { override final val eventLogCategory = PolicyTemplateLogCategory }
+sealed trait TechniqueEventLog extends EventLog { override final val eventLogCategory = TechniqueLogCategory }
 
-final case class ReloadPolicyTemplateLibrary(
+final case class ReloadTechniqueLibrary(
     override val eventDetails : EventLogDetails
-) extends PolicyTemplateEventLog with HashcodeCaching {
+) extends TechniqueEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = ReloadPolicyTemplateLibrary.eventType
+  override val eventType = ReloadTechniqueLibrary.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object ReloadPolicyTemplateLibrary extends EventLogFilter {
-  override val eventType = ReloadPolicyTemplateLibraryType
+object ReloadTechniqueLibrary extends EventLogFilter {
+  override val eventType = ReloadTechniqueLibraryType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ReloadPolicyTemplateLibrary = ReloadPolicyTemplateLibrary(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2) 
 
-  def buildDetails(policyPackageIds:Seq[PolicyPackageId]) : NodeSeq = EventLog.withContent { 
-    <policyTemplateReloaded>{ policyPackageIds.map { case PolicyPackageId(name, version) =>
-      <modifiedPolicyTemplate>
+  def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent { 
+    <techniqueReloaded>{ TechniqueIds.map { case TechniqueId(name, version) =>
+      <modifiedTechnique>
         <name>{name.value}</name>
         <version>{version.toString}</version>
-      </modifiedPolicyTemplate>
-    } }</policyTemplateReloaded>
+      </modifiedTechnique>
+    } }</techniqueReloaded>
   }
 
 }
 
-object PolicyTemplateEventLogsFilter {
+object TechniqueEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      ReloadPolicyTemplateLibrary 
+      ReloadTechniqueLibrary 
     )
 }

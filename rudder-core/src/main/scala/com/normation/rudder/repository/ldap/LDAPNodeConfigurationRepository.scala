@@ -34,7 +34,7 @@
 
 package com.normation.rudder.repository.ldap
 
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.NodeConfigurationRepository
 import com.unboundid.ldap.sdk.DN
 import com.normation.rudder.exceptions.HierarchicalException
@@ -47,7 +47,7 @@ import BuildFilter._
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.cfclerk.domain.PolicyPackageId
+import com.normation.cfclerk.domain.TechniqueId
 import com.normation.utils.Control.bestEffort
 
 class LDAPNodeConfigurationRepository(
@@ -66,8 +66,8 @@ class LDAPNodeConfigurationRepository(
    */
   def getRootNodeIds() : Box[Seq[NodeId]] = {
     ldap.map { con =>
-      con.searchOne(rudderDit.RUDDER_NODES.dn, IS(OC_ROOT_POLICY_SERVER), "1:1" ).collect {
-        case e if(rudderDit.RUDDER_NODES.SERVER.idFromDn(e.dn).isDefined) => rudderDit.RUDDER_NODES.SERVER.idFromDn(e.dn).get
+      con.searchOne(rudderDit.NODE_CONFIGS.dn, IS(OC_ROOT_POLICY_SERVER), "1:1" ).collect {
+        case e if(rudderDit.NODE_CONFIGS.NODE_CONFIG.idFromDn(e.dn).isDefined) => rudderDit.NODE_CONFIGS.NODE_CONFIG.idFromDn(e.dn).get
       }
     }
   }
@@ -87,7 +87,7 @@ class LDAPNodeConfigurationRepository(
     ( (Full(List[NodeConfiguration]()):Box[List[NodeConfiguration]]) /: dns  ) { 
       case (e:EmptyBox,_) => e
       case (Full(list),dn) =>
-        if(!dn.getRDN.isMultiValued && dn.getRDN.hasAttribute(rudderDit.RUDDER_NODES.SERVER.rdnAttribute._1)) {
+        if(!dn.getRDN.isMultiValued && dn.getRDN.hasAttribute(rudderDit.NODE_CONFIGS.NODE_CONFIG.rdnAttribute._1)) {
           (for {
             tree <- con.getTree(dn)
             server <- mapper.toNodeConfiguration(tree)
@@ -101,7 +101,7 @@ class LDAPNodeConfigurationRepository(
   
   def getRootNodeConfiguration() : Box[RootNodeConfiguration] = {
     ldap.flatMap { con =>
-      val seq = con.searchOne(rudderDit.RUDDER_NODES.dn, IS(OC_ROOT_POLICY_SERVER), "1:1" )
+      val seq = con.searchOne(rudderDit.NODE_CONFIGS.dn, IS(OC_ROOT_POLICY_SERVER), "1:1" )
       
       if(seq.size == 1) {
         findNodeConfigurationFromNodeConfigurationEntryDN(con,Set(seq(0).dn)) match {
@@ -127,7 +127,7 @@ class LDAPNodeConfigurationRepository(
   def findNodeConfiguration(id : NodeId) : Box[NodeConfiguration] = {
       for {
         con <- ldap
-        tree <- con.getTree(rudderDit.RUDDER_NODES.SERVER.dn(id.value)) 
+        tree <- con.getTree(rudderDit.NODE_CONFIGS.NODE_CONFIG.dn(id.value)) 
         server <- mapper.toNodeConfiguration(tree) ?~! "Mapping from LDAP representation to NodeConfiguration failed" 
       } yield server
   }
@@ -143,8 +143,8 @@ class LDAPNodeConfigurationRepository(
     ldap.flatMap { con => 
       findNodeConfigurationFromNodeConfigurationEntryDN(con,
         con.searchOne(
-          rudderDit.RUDDER_NODES.dn, 
-          OR(ids.toSet[NodeId].map(id => EQ(rudderDit.RUDDER_NODES.SERVER.rdnAttribute._1,id.value)).toSeq:_*),
+          rudderDit.NODE_CONFIGS.dn, 
+          OR(ids.toSet[NodeId].map(id => EQ(rudderDit.NODE_CONFIGS.NODE_CONFIG.rdnAttribute._1,id.value)).toSeq:_*),
           "1:1"
         ).map(_.dn).toSet
       ).map(_.toSet)
@@ -193,7 +193,7 @@ class LDAPNodeConfigurationRepository(
   def deleteNodeConfiguration(id:String) : Box[String] = {
     for {
       con <- ldap
-      deleted <- con.delete(rudderDit.RUDDER_NODES.SERVER.dn(id), true)
+      deleted <- con.delete(rudderDit.NODE_CONFIGS.NODE_CONFIG.dn(id), true)
     } yield {
       id
     }
@@ -205,13 +205,13 @@ class LDAPNodeConfigurationRepository(
   def deleteAllNodeConfigurations : Box[Set[NodeId]] = {
     for {
       con           <- ldap
-      nodeConfigDns <- Full(con.searchOne(rudderDit.RUDDER_NODES.dn, ALL, "1:1").map(_.dn))
+      nodeConfigDns <- Full(con.searchOne(rudderDit.NODE_CONFIGS.dn, ALL, "1:1").map(_.dn))
       deleted       <- bestEffort(nodeConfigDns) { dn => 
                          con.delete(dn, recurse = true )
                        }
     } yield {
       nodeConfigDns.flatMap { dn => 
-        rudderDit.RUDDER_NODES.SERVER.idFromDn(dn)
+        rudderDit.NODE_CONFIGS.NODE_CONFIG.idFromDn(dn)
       }.toSet
     }
   }
@@ -223,19 +223,19 @@ class LDAPNodeConfigurationRepository(
    */
   def getAll() : Box[Map[String, NodeConfiguration]] = {
     ldap.flatMap { con => 
-      findNodeConfigurationFromNodeConfigurationEntryDN(con, con.searchOne(rudderDit.RUDDER_NODES.dn, ALL, "1:1").map(_.dn).toSet)
+      findNodeConfigurationFromNodeConfigurationEntryDN(con, con.searchOne(rudderDit.NODE_CONFIGS.dn, ALL, "1:1").map(_.dn).toSet)
     }.map { seq => seq.map(s => (s.id,s)).toMap }
   }
   
    /**
    * Look for all server which have the given policy instance ID.
    */
-  def findNodeConfigurationByCurrentConfigurationRuleId(id:ConfigurationRuleId) : Box[Seq[NodeConfiguration]] = {
+  def findNodeConfigurationByCurrentRuleId(id:RuleId) : Box[Seq[NodeConfiguration]] = {
     ldap.flatMap { con =>
       findNodeConfigurationFromNodeConfigurationEntryDN(con, 
         con.searchSub(
-          rudderDit.RUDDER_NODES.dn, 
-          AND(IS(OC_CR_POLICY_INSTANCE),EQ(A_POLICY_INSTANCE_UUID,id.value)),
+          rudderDit.NODE_CONFIGS.dn, 
+          AND(IS(OC_NODE_CONFIGURATION),EQ(A_DIRECTIVE_UUID,id.value)),
           "1:1"
         ).map { e => e.dn.getParent }.toSet
       )
@@ -246,12 +246,12 @@ class LDAPNodeConfigurationRepository(
    * Look for all server which have the given policy name (however policy instance
    * of that policy they, as long as they have at least one)
    */
-  def findNodeConfigurationByTargetPolicyName(policyId:PolicyPackageId) : Box[Seq[NodeConfiguration]]  = {
+  def findNodeConfigurationByTargetPolicyName(techniqueId:TechniqueId) : Box[Seq[NodeConfiguration]]  = {
     ldap.flatMap { con =>
       findNodeConfigurationFromNodeConfigurationEntryDN(con, 
         con.searchSub(
-          rudderDit.RUDDER_NODES.dn, 
-          AND(IS(OC_TARGET_CR_POLICY_INSTANCE),EQ(A_NAME,policyId.name.value),EQ(A_REFERENCE_POLICY_TEMPLATE_VERSION,policyId.version.toString)), 
+          rudderDit.NODE_CONFIGS.dn, 
+          AND(IS(OC_TARGET_RULE_WITH_CF3POLICYDRAFT),EQ(A_NAME,techniqueId.name.value),EQ(A_TECHNIQUE_VERSION,techniqueId.version.toString)), 
           "1:1"
         ).map { e => e.dn.getParent }.toSet
       )
@@ -271,8 +271,8 @@ class LDAPNodeConfigurationRepository(
     ldap.flatMap { con =>
       findNodeConfigurationFromNodeConfigurationEntryDN(con, 
         con.searchOne(
-          rudderDit.RUDDER_NODES.dn, 
-          AND(IS(OC_RUDDER_SERVER),EQ(A_SERVER_IS_MODIFIED,true.toLDAPString)),
+          rudderDit.NODE_CONFIGS.dn, 
+          AND(IS(OC_NODE_CONFIGURATION),EQ(A_SERVER_IS_MODIFIED,true.toLDAPString)),
           "1:1"
         ).map(_.dn).toSet
       )

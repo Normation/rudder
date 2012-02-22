@@ -90,23 +90,23 @@ class SectionValTest extends Specification with Loggable {
     val mapOk = Map("var1" -> Seq("var1A"))
     
     "be mappable from the good map" in {
-      sectionVal === SectionVal.piValToSectionVal(simpleSpec, mapOk)
+      sectionVal === SectionVal.directiveValToSectionVal(simpleSpec, mapOk)
     }
     
     "be idempotent starting from the map" in {
-      mapOk ===  SectionVal.toMapVariables(SectionVal.piValToSectionVal(simpleSpec, mapOk))
+      mapOk ===  SectionVal.toMapVariables(SectionVal.directiveValToSectionVal(simpleSpec, mapOk))
     }
     
     "be idempotent starting from the sectionVal" in {
-      sectionVal ===  SectionVal.piValToSectionVal(simpleSpec, SectionVal.toMapVariables(sectionVal))
+      sectionVal ===  SectionVal.directiveValToSectionVal(simpleSpec, SectionVal.toMapVariables(sectionVal))
     }
     
     "accept empty values for vars" in {
-      SectionVal.piValToSectionVal(simpleSpec, Map()) === emptySectionVal
+      SectionVal.directiveValToSectionVal(simpleSpec, Map()) === emptySectionVal
     }
     
     "ignore unspecified var name in the map of values" in {
-      SectionVal.piValToSectionVal(simpleSpec, Map("foo" -> Seq("bar"))) === emptySectionVal
+      SectionVal.directiveValToSectionVal(simpleSpec, Map("foo" -> Seq("bar"))) === emptySectionVal
     }
   }
   
@@ -279,7 +279,7 @@ class SectionValTest extends Specification with Loggable {
     )
     
     "be correctly map to a SectionVal" in {
-      SectionVal.piValToSectionVal(spec,mapOK1) === sectionVal
+      SectionVal.directiveValToSectionVal(spec,mapOK1) === sectionVal
     }
     
   }

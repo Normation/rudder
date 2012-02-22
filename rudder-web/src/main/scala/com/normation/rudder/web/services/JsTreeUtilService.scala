@@ -35,15 +35,15 @@
 package com.normation.rudder.web.services
 
 
-import com.normation.cfclerk.domain.PolicyPackage
-import com.normation.cfclerk.services.PolicyPackageService
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.repository._
 import net.liftweb.common._
-import com.normation.cfclerk.domain.PolicyPackageCategoryId
-import com.normation.cfclerk.domain.PolicyPackageName
-import com.normation.cfclerk.domain.PolicyPackageCategory
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
+import com.normation.cfclerk.domain.TechniqueCategoryId
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 
 /**
  * An utility service for policy* trees. 
@@ -52,15 +52,15 @@ import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
  *
  */
 class JsTreeUtilService(
-    userPolicyTemplateCategoryRepository: UserPolicyTemplateCategoryRepository
-  , userPolicyTemplateRepository:UserPolicyTemplateRepository
-  , policyInstanceRepository:PolicyInstanceRepository
-  , policyPackageService:PolicyPackageService
+    activeTechniqueCategoryRepository: ActiveTechniqueCategoryRepository
+  , activeTechniqueRepository:ActiveTechniqueRepository
+  , directiveRepository:DirectiveRepository
+  , techniqueRepository:TechniqueRepository
 ) {
 
     // get the user policy template category, log on error
-    def getUptCategory(id:UserPolicyTemplateCategoryId,logger:Logger) : Option[UserPolicyTemplateCategory] = {
-      userPolicyTemplateCategoryRepository.getUserPolicyTemplateCategory(id) match {
+    def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId,logger:Logger) : Option[ActiveTechniqueCategory] = {
+      activeTechniqueCategoryRepository.getActiveTechniqueCategory(id) match {
         //remove sytem category
         case Full(cat) => if(cat.isSystem) None else Some(cat)
         case e:EmptyBox => 
@@ -70,13 +70,13 @@ class JsTreeUtilService(
     }
     
     // get the user policy template, loqg on error
-    def getUpt(id : UserPolicyTemplateId,logger:Logger) : Option[(UserPolicyTemplate,PolicyPackage)] = {
+    def getActiveTechnique(id : ActiveTechniqueId,logger:Logger) : Option[(ActiveTechnique,Technique)] = {
       (for {
-        upt <- userPolicyTemplateRepository.getUserPolicyTemplate(id) ?~! "Error while fetching user policy template %s".format(id)
-        pt <- Box(policyPackageService.getLastPolicyByName(upt.referencePolicyTemplateName)) ?~! 
-              "Can not find referenced Policy Template '%s' in reference library".format(upt.referencePolicyTemplateName.value)
+        activeTechnique <- activeTechniqueRepository.getActiveTechnique(id) ?~! "Error while fetching user policy template %s".format(id)
+        technique <- Box(techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)) ?~! 
+              "Can not find referenced Policy Template '%s' in reference library".format(activeTechnique.techniqueName.value)
       } yield {
-        (upt,pt)
+        (activeTechnique,technique)
       }) match {
         case Full(pair) => Some(pair)
         case e:EmptyBox => 
@@ -87,16 +87,16 @@ class JsTreeUtilService(
     }
     
     // get the policy instance, log on error
-    def getPi(id:PolicyInstanceId,logger:Logger) : Option[PolicyInstance] = policyInstanceRepository.getPolicyInstance(id) match {
-      case Full(pi) => Some(pi)
+    def getPi(id:DirectiveId,logger:Logger) : Option[Directive] = directiveRepository.getDirective(id) match {
+      case Full(directive) => Some(directive)
       case e:EmptyBox => 
         logger.error("Error while fetching node %s".format(id), e?~! "Error message was:")
         None
     }
   
 
-    def getPtCategory(id:PolicyPackageCategoryId,logger:Logger) : Option[PolicyPackageCategory] = {
-      policyPackageService.getPolicyTemplateCategory(id) match {
+    def getPtCategory(id:TechniqueCategoryId,logger:Logger) : Option[TechniqueCategory] = {
+      techniqueRepository.getTechniqueCategory(id) match {
         //remove sytem category
         case Full(cat) => if(cat.isSystem) None else Some(cat)
         case e:EmptyBox => 
@@ -107,8 +107,8 @@ class JsTreeUtilService(
     }
     
     //check policy template existence and transform it to a tree node
-    def getPt(name : PolicyPackageName,logger:Logger) : Option[PolicyPackage] = {
-      policyPackageService.getLastPolicyByName(name).orElse {
+    def getPt(name : TechniqueName,logger:Logger) : Option[Technique] = {
+      techniqueRepository.getLastTechniqueByName(name).orElse {
         logger.error("Can not find policy template: " + name)
         None
       }
@@ -119,19 +119,19 @@ class JsTreeUtilService(
     // Different sorting
     //
     
-    def sortPtCategory(x:PolicyPackageCategory,y:PolicyPackageCategory) : Boolean = {
+    def sortPtCategory(x:TechniqueCategory,y:TechniqueCategory) : Boolean = {
       sort(x.name , y.name)
     }
     
-    def sortUptCategory(x:UserPolicyTemplateCategory,y:UserPolicyTemplateCategory) : Boolean = {
+    def sortActiveTechniqueCategory(x:ActiveTechniqueCategory,y:ActiveTechniqueCategory) : Boolean = {
       sort(x.name , y.name)
     }
     
-    def sortPt(x:PolicyPackage,y:PolicyPackage) : Boolean = {
+    def sortPt(x:Technique,y:Technique) : Boolean = {
       sort(x.name , y.name)
     }
 
-    def sortPi(x:PolicyInstance,y:PolicyInstance) : Boolean = {
+    def sortPi(x:Directive,y:Directive) : Boolean = {
       sort(x.name , y.name)
     }
     

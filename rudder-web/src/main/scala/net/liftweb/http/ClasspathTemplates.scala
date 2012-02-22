@@ -95,10 +95,10 @@ object ClasspathTemplates extends Loggable {
     else {
       import scala.xml.dtd.ValidationException
       val xmlb = try {
-        val cr = new ClassPathResource(name)
+        val rule = new ClassPathResource(name)
         var is : InputStream = null
         try {
-          is = cr.getInputStream
+          is = rule.getInputStream
           if(null != is) parserFunction(is)
           else Failure("Input stream for resource '%s' is null".format(name))
         } finally {

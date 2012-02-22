@@ -37,11 +37,11 @@ package com.normation.rudder.web.services
 
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies.ConfigurationRuleId
-import com.normation.rudder.domain.policies.ConfigurationRuleVal
-import com.normation.rudder.services.servers.ServerSummaryService
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleVal
+import com.normation.rudder.services.servers.NodeSummaryService
 import com.normation.rudder.web.model._
-import com.normation.rudder.repository.{ReportsRepository, ConfigurationRuleRepository}
+import com.normation.rudder.repository.{ReportsRepository, RuleRepository}
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.bean.Reports
 import com.normation.rudder.web.components.DateFormaterService
@@ -55,9 +55,9 @@ import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import com.normation.rudder.repository.PolicyInstanceRepository
+import com.normation.rudder.repository.DirectiveRepository
 import scala.collection._
-import com.normation.rudder.domain.policies.PolicyInstanceId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.exceptions.TechnicalException
 import net.liftweb.http.Templates
 
@@ -65,8 +65,8 @@ import net.liftweb.http.Templates
  * Show the reports from cfengine (raw data)
  */
 class LogDisplayer(reportRepository :ReportsRepository,
-    policyInstanceRepository : PolicyInstanceRepository, 
-    configurationRuleRepository : ConfigurationRuleRepository) {
+    directiveRepository : DirectiveRepository, 
+    ruleRepository : RuleRepository) {
 
 
   private val templatePath = List("templates-hidden", "node_logs_tabs")
@@ -85,25 +85,25 @@ class LogDisplayer(reportRepository :ReportsRepository,
 
     
   def display(nodeId : NodeId) : NodeSeq = {
-    val PIMap = mutable.Map[PolicyInstanceId, String]()
-    val CRMap = mutable.Map[ConfigurationRuleId, String]()
+    val PIMap = mutable.Map[DirectiveId, String]()
+    val CRMap = mutable.Map[RuleId, String]()
   
     
-    def getPIName(policyInstanceId : PolicyInstanceId) : String = {
-      PIMap.get(policyInstanceId).getOrElse({val result = policyInstanceRepository.getPolicyInstance(policyInstanceId).map(_.name).openOr(policyInstanceId.value); PIMap += ( policyInstanceId -> result); result } )
+    def getPIName(directiveId : DirectiveId) : String = {
+      PIMap.get(directiveId).getOrElse({val result = directiveRepository.getDirective(directiveId).map(_.name).openOr(directiveId.value); PIMap += ( directiveId -> result); result } )
     }
   
-    def getCRName(configurationRuleId : ConfigurationRuleId) : String = {
-      CRMap.get(configurationRuleId).getOrElse({val result = configurationRuleRepository.get(configurationRuleId).map(x => x.name).openOr(configurationRuleId.value); CRMap += ( configurationRuleId -> result); result } )
+    def getCRName(ruleId : RuleId) : String = {
+      CRMap.get(ruleId).getOrElse({val result = ruleRepository.get(ruleId).map(x => x.name).openOr(ruleId.value); CRMap += ( ruleId -> result); result } )
     }
   
-    val lines = reportRepository.findReportsByServer(nodeId, None, None, None, None).flatMap {
-          case Reports(executionDate, configurationRuleId, policyInstanceId, nodeId, serial, component, keyValue, executionTimestamp, severity, message) =>
+    val lines = reportRepository.findReportsByNode(nodeId, None, None, None, None).flatMap {
+          case Reports(executionDate, ruleId, directiveId, nodeId, serial, component, keyValue, executionTimestamp, severity, message) =>
            <tr>
             <td>{DateFormaterService.getFormatedDate(executionDate)}</td>
             <td>{severity}</td>
-            <td>{getPIName(policyInstanceId)}</td>
-            <td>{getCRName(configurationRuleId)}</td>
+            <td>{getPIName(directiveId)}</td>
+            <td>{getCRName(ruleId)}</td>
             <td>{component}</td>
             <td>{if("None" == keyValue) "-" else keyValue}</td>
             <td>{message}</td>

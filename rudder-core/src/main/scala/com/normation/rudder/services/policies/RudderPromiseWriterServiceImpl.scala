@@ -39,8 +39,8 @@ import com.normation.inventory.domain.COMMUNITY_AGENT
 import com.normation.cfclerk.domain.{ InputVariable, InputVariableSpec}
 import com.normation.inventory.domain.NOVA_AGENT
 import com.normation.cfclerk.domain.Variable
-import com.normation.cfclerk.services.PolicyPackageService
-import com.normation.cfclerk.services.impl.PromiseWriterServiceImpl
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.cfclerk.services.impl.Cf3PromisesFileWriterServiceImpl
 import scala.collection._
 import scala.io.Source
 import net.liftweb.common._
@@ -69,8 +69,8 @@ import com.normation.inventory.domain.AgentType
 import net.liftweb.util.Helpers.tryo
 import com.normation.cfclerk.services.SystemVariableSpecService
 
-class RudderPromiseWriterServiceImpl(
-  policyService: PolicyPackageService,
+class RudderCf3PromisesFileWriterServiceImpl(
+  techniqueRepository: TechniqueRepository,
   pathComputer: PathComputer,
   val nodeConfigurationRepository: NodeConfigurationRepository,
   nodeInfoService: NodeInfoService,
@@ -86,8 +86,8 @@ class RudderPromiseWriterServiceImpl(
   communityPort: String,
   communityCheckPromises: String,
   novaCheckPromises: String
-) extends PromiseWriterServiceImpl(
-  policyService, systemVariableSpecService, baseFolder, backupFolder
+) extends Cf3PromisesFileWriterServiceImpl(
+  techniqueRepository, systemVariableSpecService, baseFolder, backupFolder
 ) with TemplateWriter with Loggable {
 
   logger.debug("baseFolder %s".format(baseFolder))
@@ -118,7 +118,7 @@ class RudderPromiseWriterServiceImpl(
     val folders = mutable.Buffer[(NodeConfiguration, String, String, String)]()
     // Writing the policy 
     for (node <- updateBatch.updatedNodeConfigurations.valuesIterator) {
-      if (node.getPolicyInstances.size == 0) {
+      if (node.getDirectives.size == 0) {
         logger.error("Could not write the promises for server %s : No policy found on server".format(node.id))
         throw new Exception("Could not write the promises : no policy on machine " + node)
       }
@@ -127,7 +127,7 @@ class RudderPromiseWriterServiceImpl(
         logger.error(msg)
         throw new RuntimeException(msg)
       }
-      val (baseNodePath, backupNodePath) = pathComputer.computeBaseServerPath(node)
+      val (baseNodePath, backupNodePath) = pathComputer.computeBaseNodePath(node)
 
       prepareRulesForAgents(baseNodePath, backupNodePath, node) match {
         case Full(x) => 
@@ -171,12 +171,12 @@ class RudderPromiseWriterServiceImpl(
         case _ => (baseNodePath, baseNodePath + newPostfix, backupNodePath, baseNodePath + newPostfix + "/rules" + agentType.toRulesPath()) // we'll want to move the root folders
       }
 
-      val tmls = prepareTmls(NodeConfiguration.toContainer(newNodeRulePath, node), systemVariables)
+      val tmls = prepareCf3PromisesFileTemplate(NodeConfiguration.toContainer(newNodeRulePath, node), systemVariables)
 
       logger.debug("Prepared the tml for the node %s".format(node.id))
 
       // write the promises of the current machine
-      for { (ptId, preparedTemplate) <- tmls } {
+      for { (activeTechniqueId, preparedTemplate) <- tmls } {
         writePromisesFiles(preparedTemplate.templatesToCopy , preparedTemplate.environmentVariables , newNodeRulePath)
       }
       

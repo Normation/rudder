@@ -37,31 +37,31 @@ package com.normation.rudder.repository
 import java.io.File
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
-import com.normation.rudder.domain.policies.PolicyInstance
-import com.normation.rudder.domain.policies.UserPolicyTemplate
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import net.liftweb.common.Box
-import com.normation.rudder.domain.policies.ConfigurationRule
+import com.normation.rudder.domain.policies.Rule
 
 /**
  * A category of the policy library. 
  * 
  */
-case class UptCategoryContent(
-    category  : UserPolicyTemplateCategory
-  , categories: Set[UptCategoryContent]
-  , templates : Set[UptContent]
+case class ActiveTechniqueCategoryContent(
+    category  : ActiveTechniqueCategory
+  , categories: Set[ActiveTechniqueCategoryContent]
+  , templates : Set[ActiveTechniqueContent]
 )
 
-case class UptContent(
-    upt : UserPolicyTemplate
-  , pis : Set[PolicyInstance]
+case class ActiveTechniqueContent(
+    activeTechnique : ActiveTechnique
+  , directives      : Set[Directive]
 )
 
 /**
  * Identifier for user library archive
  */
-case class UserPolicyLibraryArchiveId(value:String)
+case class ActiveTechniqueLibraryArchiveId(value:String)
 
 /**
  * That trait allows to manage the import of user policy template library 
@@ -69,13 +69,13 @@ case class UserPolicyLibraryArchiveId(value:String)
  * the LDAP. 
  */
 
-trait ParsePolicyLibrary {
+trait ParseActiveTechniqueLibrary {
 
   /**
    * That method parse configuration rules from the
    * file system for an archive with the given ID. 
    */
-  def getArchive(archiveId:GitCommitId) : Box[UptCategoryContent]
+  def getArchive(archiveId:GitCommitId) : Box[ActiveTechniqueCategoryContent]
 }
 
 /**
@@ -83,13 +83,13 @@ trait ParsePolicyLibrary {
  * from the File System into the LDAP. 
  * That part read the last CR archive.
  */
-trait ParseConfigurationRules {
+trait ParseRules {
 
   /**
    * That method parse configuration rules from the
    * file system for an archive with the given ID. 
    */
-  def getArchive(archiveId:GitCommitId) : Box[Seq[ConfigurationRule]]
+  def getArchive(archiveId:GitCommitId) : Box[Seq[Rule]]
 }
 
 /**
@@ -117,14 +117,14 @@ trait ParseGroupLibrary {
 
 
 
-trait ImportPolicyLibrary {  
+trait ImportTechniqueLibrary {  
   /**
    * That method swap an existing user policy library in LDAP
    * to a new one. 
    * 
    * In case of error, we try to restore the old policy library. 
    */
-  def swapUserPolicyLibrary(rootCategory: UptCategoryContent, includeSystem: Boolean = false) : Box[Unit]
+  def swapActiveTechniqueLibrary(rootCategory: ActiveTechniqueCategoryContent, includeSystem: Boolean = false) : Box[Unit]
 }
 
 

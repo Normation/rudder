@@ -38,23 +38,23 @@ package com.normation.rudder.repository.jdbc
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import com.normation.rudder.domain.policies.PolicyInstanceId
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import org.joda.time.DateTime
 
 @RunWith(classOf[JUnitRunner])
-class ConfigurationExpectedReportsRepoTest  extends Specification  {
+class RuleExpectedReportsRepoTest  extends Specification  {
 
-   val service = new ConfigurationExpectedReportsJdbcRepository(null)
+   val service = new RuleExpectedReportsJdbcRepository(null)
   
    val beginDate = DateTime.now()
    
    private val uniqueMapping = Seq(ExpectedConfRuleMapping(1,
        1,
-       new ConfigurationRuleId("cr1"),
+       new RuleId("cr1"),
        11,
-       new PolicyInstanceId("pi1"),
+       new DirectiveId("pi1"),
        "component",
        2,
        Seq("None", "None"),
@@ -62,18 +62,18 @@ class ConfigurationExpectedReportsRepoTest  extends Specification  {
        
     private val secondMapping = Seq(ExpectedConfRuleMapping(1,
        1,
-       new ConfigurationRuleId("cr1"),
+       new RuleId("cr1"),
        12, // only the serial change
-       new PolicyInstanceId("pi1"),
+       new DirectiveId("pi1"),
        "component",
        2,
        Seq("None", "None"),
        beginDate))
  
-   private val equaledUniqueMapping = new ConfigurationExpectedReports(
-       new ConfigurationRuleId("cr1"),
-       Seq(new PolicyExpectedReports(new PolicyInstanceId("pi1"),
-                       Seq(new ComponentCard("component", 2, Seq("None", "None") ))
+   private val equaledUniqueMapping = new RuleExpectedReports(
+       new RuleId("cr1"),
+       Seq(new DirectiveExpectedReports(new DirectiveId("pi1"),
+                       Seq(new ReportComponent("component", 2, Seq("None", "None") ))
                  )),
        11,
        1, 
@@ -90,76 +90,76 @@ class ConfigurationExpectedReportsRepoTest  extends Specification  {
                                    
    
    
-   private def buildExpectedConfRule(crId : String, piId : Seq[String], component : String) : Seq[ExpectedConfRuleMapping] = {
-     piId.map(id => new ExpectedConfRuleMapping(1, 1, new ConfigurationRuleId(crId), 11, new PolicyInstanceId(id), component,1, Seq("None"), beginDate))
+   private def buildExpectedConfRule(ruleId : String, directiveId : Seq[String], component : String) : Seq[ExpectedConfRuleMapping] = {
+     directiveId.map(id => new ExpectedConfRuleMapping(1, 1, new RuleId(ruleId), 11, new DirectiveId(id), component,1, Seq("None"), beginDate))
    }
    
    
    "a simple line in db" should {
-     "generate only one ConfigurationExpectedReports" in {
-       service.toConfigurationExpectedReports(uniqueMapping) === Seq(equaledUniqueMapping)
+     "generate only one RuleExpectedReports" in {
+       service.toRuleExpectedReports(uniqueMapping) === Seq(equaledUniqueMapping)
      }
    }
    
    "two lines with differents serial in db" should {
-     "generate two ConfigurationExpectedReports" in {
-       service.toConfigurationExpectedReports(uniqueMapping ++ secondMapping) must have size(2)
+     "generate two RuleExpectedReports" in {
+       service.toRuleExpectedReports(uniqueMapping ++ secondMapping) must have size(2)
      }
    }
     
    "two simple lines in db, one CR, two PI, one component" should {
-     val mapping = service.toConfigurationExpectedReports(multiLine)
-     "generate only one ConfigurationExpectedReports" in {
+     val mapping = service.toRuleExpectedReports(multiLine)
+     "generate only one RuleExpectedReports" in {
        mapping.size == 1
      }
-     "have two  PolicyExpectedReports" in {
-       mapping.head.policyExpectedReports.length == 2
+     "have two  DirectiveExpectedReports" in {
+       mapping.head.directiveExpectedReports.length == 2
      }
      "have a serial of 11" in {
        mapping.head.serial == 11
      }
      "have the expected PI" in {
-       mapping.head.policyExpectedReports.map(x => x.policyInstanceId) === Seq(new PolicyInstanceId("pi1"), new PolicyInstanceId("pi2"))
+       mapping.head.directiveExpectedReports.map(x => x.directiveId) === Seq(new DirectiveId("pi1"), new DirectiveId("pi2"))
      }    
      
    }
    
    "three simple lines in db, one CR, one PI, three component" should {
-     val mapping = service.toConfigurationExpectedReports(multiComponent)
-     "generate only one ConfigurationExpectedReports" in {
+     val mapping = service.toRuleExpectedReports(multiComponent)
+     "generate only one RuleExpectedReports" in {
        mapping.size == 1
      }
-     "have one PolicyExpectedReports" in {
-       mapping.head.policyExpectedReports.length == 1
+     "have one DirectiveExpectedReports" in {
+       mapping.head.directiveExpectedReports.length == 1
      }
      "have a serial of 11" in {
        mapping.head.serial == 11
      }
      "have three component" in {
-       mapping.head.policyExpectedReports.head.components.size == 3
+       mapping.head.directiveExpectedReports.head.components.size == 3
      }    
      
    }
    
    "four lines in db, one CR, three PI, two component" should {
-     val mapping = service.toConfigurationExpectedReports(multiPiComponent)
-     "generate only one ConfigurationExpectedReports" in {
+     val mapping = service.toRuleExpectedReports(multiPiComponent)
+     "generate only one RuleExpectedReports" in {
        mapping.size == 1
      }
-     "have three PolicyExpectedReports" in {
-       mapping.head.policyExpectedReports.length == 3
+     "have three DirectiveExpectedReports" in {
+       mapping.head.directiveExpectedReports.length == 3
      }
      "have a serial of 11" in {
        mapping.head.serial == 11
      }
      "have pi1 with two components" in {
-       mapping.head.policyExpectedReports.find(x => x.policyInstanceId == new PolicyInstanceId("pi1")).get.components.size == 2
+       mapping.head.directiveExpectedReports.find(x => x.directiveId == new DirectiveId("pi1")).get.components.size == 2
      }  
      "have pi2 with one component" in {
-       mapping.head.policyExpectedReports.find(x => x.policyInstanceId == new PolicyInstanceId("pi2")).get.components.size == 1
+       mapping.head.directiveExpectedReports.find(x => x.directiveId == new DirectiveId("pi2")).get.components.size == 1
      } 
      "have pi4 with one component" in {
-       mapping.head.policyExpectedReports.find(x => x.policyInstanceId == new PolicyInstanceId("pi4")).get.components.size == 1
+       mapping.head.directiveExpectedReports.find(x => x.directiveId == new DirectiveId("pi4")).get.components.size == 1
      } 
      
    }

@@ -82,20 +82,20 @@ class Boot extends Loggable {
     LiftRules.statelessDispatchTable.append(RestStatus)
     LiftRules.statelessDispatchTable.append(inject[RestDeploy])
     LiftRules.statelessDispatchTable.append(inject[RestDyngroupReload])
-    LiftRules.statelessDispatchTable.append(inject[RestPolicyTemplateReload])
+    LiftRules.statelessDispatchTable.append(inject[RestTechniqueReload])
     LiftRules.statelessDispatchTable.append(inject[RestArchiving])
   
     // URL rewrites
     LiftRules.statefulRewrite.append {
       //if no policy server if configured, force to configure one
-//      case RewriteRequest(path,_,_) if(RudderContext.rootServerNotDefined && (path match { 
+//      case RewriteRequest(path,_,_) if(RudderContext.rootNodeNotDefined && (path match { 
 //        case ParsePath("secure"::"assetManager"::"policyServers"::Nil, _, _, _) => false 
 //        case _ => true
 //      })) => RewriteResponse("secure"::"assetManager"::"policyServers"::Nil)
-      case RewriteRequest(ParsePath("secure" :: "configurationManager" :: "policyTemplateLibraryManagement" :: ptId :: Nil, _, _, _), GetRequest, _) =>
-        RewriteResponse("secure" :: "configurationManager" :: "policyTemplateLibraryManagement" :: Nil, Map("policyTemplateId" -> ptId))
-      case RewriteRequest(ParsePath("secure"::"assetManager"::"searchServers"::nodeId::Nil, _, _, _), GetRequest, _) =>
-        RewriteResponse("secure"::"assetManager"::"searchServers"::Nil, Map("nodeId" -> nodeId))
+      case RewriteRequest(ParsePath("secure" :: "configurationManager" :: "techniqueLibraryManagement" :: activeTechniqueId :: Nil, _, _, _), GetRequest, _) =>
+        RewriteResponse("secure" :: "configurationManager" :: "techniqueLibraryManagement" :: Nil, Map("techniqueId" -> activeTechniqueId))
+      case RewriteRequest(ParsePath("secure"::"assetManager"::"searchNodes"::nodeId::Nil, _, _, _), GetRequest, _) =>
+        RewriteResponse("secure"::"assetManager"::"searchNodes"::Nil, Map("nodeId" -> nodeId))
     }
     
     // Fix relative path to css resources
@@ -143,13 +143,13 @@ class Boot extends Loggable {
     
       
     val assetManagerMenu = 
-      Menu("AssetManagerHome", <span>Asset Management</span>)    / "secure" / "assetManager" / "index" submenus(
+      Menu("AssetManagerHome", <span>Asset Management</span>)  / "secure" / "assetManager" / "index" submenus(
           
-          Menu("SearchServers", <span>Search nodes</span>)       / "secure" / "assetManager" / "searchServers" >> LocGroup("nodeGroup") 
+          Menu("SearchNodes", <span>Search nodes</span>)       / "secure" / "assetManager" / "searchNodes" >> LocGroup("nodeGroup") 
         
-        , Menu("ManageNewServer", <span>Accept new nodes</span>) / "secure" / "assetManager" / "manageNewServer" >>  LocGroup("nodeGroup")
+        , Menu("ManageNewNode", <span>Accept new nodes</span>) / "secure" / "assetManager" / "manageNewNode" >>  LocGroup("nodeGroup")
           
-        , Menu("Groups", <span>Groups</span>)                    / "secure" / "assetManager" / "groups" >> LocGroup("groupGroup") 
+        , Menu("Groups", <span>Groups</span>)                  / "secure" / "assetManager" / "groups" >> LocGroup("groupGroup") 
         
         //Menu(Loc("PolicyServers", List("secure", "assetManager","policyServers"), <span>Rudder server</span>,  LocGroup("assetGroup"))) ::
         //Menu(Loc("UploadedFiles", List("secure", "assetManager","uploadedFiles"), <span>Manage uploaded files</span>, LocGroup("filesGroup"))) ::
@@ -158,14 +158,14 @@ class Boot extends Loggable {
     def buildManagerMenu(name:String) = 
       Menu(name+"ManagerHome", <span>{name.capitalize} Management</span>) / "secure" / (name+"Manager") / "index" submenus(
           
-          Menu(name+"ConfigurationRuleManagement", <span>Configuration Rules</span>) / 
-            "secure" / (name+"Manager") / "configurationRuleManagement" >> LocGroup(name+"Group")
+          Menu(name+"RuleManagement", <span>Rules</span>) / 
+            "secure" / (name+"Manager") / "ruleManagement" >> LocGroup(name+"Group")
             
-        , Menu(name+"PolicyInstanceManagement", <span>Policy Instances</span>) / 
-            "secure" / (name+"Manager") / "policyInstanceManagement" >> LocGroup(name+"Group")
+        , Menu(name+"DirectiveManagement", <span>Directive</span>) / 
+            "secure" / (name+"Manager") / "directiveManagement" >> LocGroup(name+"Group")
             
-        , Menu("configurationPolicyTemplateLibraryManagement", <span>Policy Templates</span>) /
-            "secure" / (name+"Manager") / "policyTemplateLibraryManagement" >>  LocGroup(name+"Group")
+        , Menu("TechniqueLibraryManagement", <span>Techniques</span>) /
+            "secure" / (name+"Manager") / "techniqueLibraryManagement" >>  LocGroup(name+"Group")
       )
       
       
@@ -175,7 +175,7 @@ class Boot extends Loggable {
           Menu("eventLogViewer", <span>Event Logs</span>) / 
             "secure" / "administration" / "eventLogs" >> LocGroup("administrationGroup")
             
-        , Menu("policyServerManagement", <span>Policy Server</span>) / 
+        , Menu("policyServerManagement", <span>Policy Node</span>) / 
             "secure" / "administration" / "policyServerManagement" >> LocGroup("administrationGroup")
             
         , Menu("pluginManagement", <span>Plugins</span>) / 

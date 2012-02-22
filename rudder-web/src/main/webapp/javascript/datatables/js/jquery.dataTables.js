@@ -855,7 +855,7 @@
 		{
 			this.fnRecordsTotal = function ()
 			{
-				if ( this.oFeatures.bServerSide ) {
+				if ( this.oFeatures.bNodeSide ) {
 					return parseInt(this._iRecordsTotal, 10);
 				} else {
 					return this.aiDisplayMaster.length;
@@ -864,7 +864,7 @@
 			
 			this.fnRecordsDisplay = function ()
 			{
-				if ( this.oFeatures.bServerSide ) {
+				if ( this.oFeatures.bNodeSide ) {
 					return parseInt(this._iRecordsDisplay, 10);
 				} else {
 					return this.aiDisplay.length;
@@ -873,7 +873,7 @@
 			
 			this.fnDisplayEnd = function ()
 			{
-				if ( this.oFeatures.bServerSide ) {
+				if ( this.oFeatures.bNodeSide ) {
 					if ( this.oFeatures.bPaginate === false || this._iDisplayLength == -1 ) {
 						return this._iDisplayStart+this.aiDisplay.length;
 					} else {
@@ -914,7 +914,7 @@
 				"bProcessing": false,
 				"bSortClasses": true,
 				"bStateSave": false,
-				"bServerSide": false
+				"bNodeSide": false
 			};
 			
 			/*
@@ -1270,11 +1270,11 @@
 			this.bAjaxDataGet = true;
 			
 			/*
-			 * Variable: fnServerData
+			 * Variable: fnNodeData
 			 * Purpose:  Function to get the server-side data - can be overruled by the developer
 			 * Scope:    jQuery.dataTable.classSettings
 			 */
-			this.fnServerData = function ( url, data, callback ) {
+			this.fnNodeData = function ( url, data, callback ) {
 				$.ajax( {
 					"url": url,
 					"data": data,
@@ -2352,9 +2352,9 @@
 			}
 			
 			/* if there is an ajax source load the data */
-			if ( oSettings.sAjaxSource !== null && !oSettings.oFeatures.bServerSide )
+			if ( oSettings.sAjaxSource !== null && !oSettings.oFeatures.bNodeSide )
 			{
-				oSettings.fnServerData.call( oSettings.oInstance, oSettings.sAjaxSource, [], function(json) {
+				oSettings.fnNodeData.call( oSettings.oInstance, oSettings.sAjaxSource, [], function(json) {
 					/* Got the data - add it to the table */
 					for ( i=0 ; i<json.aaData.length ; i++ )
 					{
@@ -2383,8 +2383,8 @@
 				return;
 			}
 			
-			/* Server-side processing initialisation complete is done at the end of _fnDraw */
-			if ( !oSettings.oFeatures.bServerSide )
+			/* Node-side processing initialisation complete is done at the end of _fnDraw */
+			if ( !oSettings.oFeatures.bNodeSide )
 			{
 				_fnProcessingDisplay( oSettings, false );
 				_fnInitComplete( oSettings );
@@ -3032,7 +3032,7 @@
 			/* Check and see if we have an initial draw position from state saving */
 			if ( typeof oSettings.iInitDisplayStart != 'undefined' && oSettings.iInitDisplayStart != -1 )
 			{
-				if ( oSettings.oFeatures.bServerSide )
+				if ( oSettings.oFeatures.bNodeSide )
 				{
 					oSettings._iDisplayStart = oSettings.iInitDisplayStart;
 				}
@@ -3046,12 +3046,12 @@
 			}
 			
 			/* If we are dealing with Ajax - do it here */
-			if ( !oSettings.bDestroying && oSettings.oFeatures.bServerSide && 
+			if ( !oSettings.bDestroying && oSettings.oFeatures.bNodeSide && 
 			     !_fnAjaxUpdate( oSettings ) )
 			{
 				return;
 			}
-			else if ( !oSettings.oFeatures.bServerSide )
+			else if ( !oSettings.oFeatures.bNodeSide )
 			{
 				oSettings.iDraw++;
 			}
@@ -3061,7 +3061,7 @@
 				var iStart = oSettings._iDisplayStart;
 				var iEnd = oSettings._iDisplayEnd;
 				
-				if ( oSettings.oFeatures.bServerSide )
+				if ( oSettings.oFeatures.bNodeSide )
 				{
 					iStart = 0;
 					iEnd = oSettings.aoData.length;
@@ -3206,7 +3206,7 @@
 			oSettings.bFiltered = false;
 			oSettings.bDrawing = false;
 			
-			if ( oSettings.oFeatures.bServerSide )
+			if ( oSettings.oFeatures.bNodeSide )
 			{
 				_fnProcessingDisplay( oSettings, false );
 				if ( typeof oSettings._bInitComplete == 'undefined' )
@@ -3302,7 +3302,7 @@
 					}
 				}
 				
-				oSettings.fnServerData.call( oSettings.oInstance, oSettings.sAjaxSource, aoData,
+				oSettings.fnNodeData.call( oSettings.oInstance, oSettings.sAjaxSource, aoData,
 					function(json) {
 						_fnAjaxUpdateDraw( oSettings, json );
 					} );
@@ -4367,7 +4367,7 @@
 				aoColumns = oSettings.aoColumns;
 			
 			/* No sorting required if server-side or no sorting array */
-			if ( !oSettings.oFeatures.bServerSide && 
+			if ( !oSettings.oFeatures.bNodeSide && 
 				(oSettings.aaSorting.length !== 0 || oSettings.aaSortingFixed !== null) )
 			{
 				if ( oSettings.aaSortingFixed !== null )
@@ -4572,7 +4572,7 @@
 					_fnProcessingDisplay( oSettings, true );
 					setTimeout( function() {
 						fnInnerSorting();
-						if ( !oSettings.oFeatures.bServerSide )
+						if ( !oSettings.oFeatures.bNodeSide )
 						{
 							_fnProcessingDisplay( oSettings, false );
 						}
@@ -6481,7 +6481,7 @@
 				_fnMap( oSettings.oFeatures, oInit, "bProcessing" );
 				_fnMap( oSettings.oFeatures, oInit, "bAutoWidth" );
 				_fnMap( oSettings.oFeatures, oInit, "bSortClasses" );
-				_fnMap( oSettings.oFeatures, oInit, "bServerSide" );
+				_fnMap( oSettings.oFeatures, oInit, "bNodeSide" );
 				_fnMap( oSettings.oScroll, oInit, "sScrollX", "sX" );
 				_fnMap( oSettings.oScroll, oInit, "sScrollXInner", "sXInner" );
 				_fnMap( oSettings.oScroll, oInit, "sScrollY", "sY" );
@@ -6495,7 +6495,7 @@
 				_fnMap( oSettings, oInit, "fnFooterCallback" );
 				_fnMap( oSettings, oInit, "fnCookieCallback" );
 				_fnMap( oSettings, oInit, "fnInitComplete" );
-				_fnMap( oSettings, oInit, "fnServerData" );
+				_fnMap( oSettings, oInit, "fnNodeData" );
 				_fnMap( oSettings, oInit, "fnFormatNumber" );
 				_fnMap( oSettings, oInit, "aaSorting" );
 				_fnMap( oSettings, oInit, "aaSortingFixed" );
@@ -6536,7 +6536,7 @@
 					} );
 				}
 				
-				if ( oSettings.oFeatures.bServerSide && oSettings.oFeatures.bSort &&
+				if ( oSettings.oFeatures.bNodeSide && oSettings.oFeatures.bSort &&
 					   oSettings.oFeatures.bSortClasses )
 				{
 					/* Enable sort classes for server-side processing. Safe to do it here, since server-side

@@ -34,7 +34,7 @@
 
 package com.normation.rudder.batch
 
-import com.normation.cfclerk.services.UpdatePolicyTemplateLibrary
+import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.rudder.domain.Constants.PTLIB_MINIMUM_UPDATE_INTERVAL
 import net.liftweb.actor.{LiftActor, LAPinger}
 import net.liftweb.common.Loggable
@@ -51,8 +51,8 @@ case class StartLibUpdate(actor: EventActor)
  * - for updateInterval between 1 and a minimum value, use the minimum value
  * - else, use the given value. 
  */
-class CheckPolicyTemplateLibrary(
-    policyPackageUpdater: UpdatePolicyTemplateLibrary
+class CheckTechniqueLibrary(
+    policyPackageUpdater: UpdateTechniqueLibrary
   , asyncDeploymentAgent: AsyncDeploymentAgent
   , updateInterval      : Int // in secondes
 ) extends Loggable {

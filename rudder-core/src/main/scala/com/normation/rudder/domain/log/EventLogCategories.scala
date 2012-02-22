@@ -41,9 +41,9 @@ import com.normation.eventlog.UnknownEventLogType
 ///// Define intersting categories /////
 final case object UserLogCategory extends EventLogCategory
 final case object RudderApplicationLogCategory extends EventLogCategory
-final case object ConfigurationRuleLogCategory extends EventLogCategory
-final case object PolicyInstanceLogCategory extends EventLogCategory
-final case object PolicyTemplateLogCategory extends EventLogCategory
+final case object RuleLogCategory extends EventLogCategory
+final case object DirectiveLogCategory extends EventLogCategory
+final case object TechniqueLogCategory extends EventLogCategory
 final case object DeploymentLogCategory extends EventLogCategory
 final case object NodeGroupLogCategory extends EventLogCategory
 final case object AssetLogCategory extends EventLogCategory
@@ -90,14 +90,14 @@ final case object ModifyNodeGroupEventType extends EventLogType {
   def serialize = "NodeGroupModified"
 }
 // policy instance related
-final case object AddPolicyInstanceEventType extends EventLogType {
-  def serialize = "PolicyInstanceAdded"
+final case object AddDirectiveEventType extends EventLogType {
+  def serialize = "DirectiveAdded"
 }
-final case object DeletePolicyInstanceEventType extends EventLogType {
-  def serialize = "PolicyInstanceDeleted"
+final case object DeleteDirectiveEventType extends EventLogType {
+  def serialize = "DirectiveDeleted"
 }
-final case object ModifyPolicyInstanceEventType extends EventLogType {
-  def serialize = "PolicyInstanceModified"
+final case object ModifyDirectiveEventType extends EventLogType {
+  def serialize = "DirectiveModified"
 }
 
 // the generic event related event type
@@ -111,19 +111,19 @@ final case object ReleaseRedButtonEventType extends EventLogType {
   def serialize = "ReleaseRedButton"
 }
 
-final case object ReloadPolicyTemplateLibraryType extends EventLogType {
-  def serialize = "ReloadPolicyTemplateLibrary"
+final case object ReloadTechniqueLibraryType extends EventLogType {
+  def serialize = "ReloadTechniqueLibrary"
 }
 
-// configuration rule related event type
-final case object AddConfigurationRuleEventType extends EventLogType {
-  def serialize = "ConfigurationRuleAdded"
+// rule related event type
+final case object AddRuleEventType extends EventLogType {
+  def serialize = "RuleAdded"
 }
-final case object DeleteConfigurationRuleEventType extends EventLogType {
-  def serialize = "ConfigurationRuleDeleted"
+final case object DeleteRuleEventType extends EventLogType {
+  def serialize = "RuleDeleted"
 }
-final case object ModifyConfigurationRuleEventType extends EventLogType {
-  def serialize = "ConfigurationRuleModified"
+final case object ModifyRuleEventType extends EventLogType {
+  def serialize = "RuleModified"
 }
 // asset related event type
 final case object AcceptNodeEventType extends EventLogType {
@@ -151,17 +151,17 @@ final case object ExportGroupsEventType extends EventLogType {
 final case object ImportGroupsEventType extends EventLogType {
   def serialize = "ImportGroups"
 }
-final case object ExportPolicyLibraryEventType extends EventLogType {
-  def serialize = "ExportPolicyLibrary"
+final case object ExportTechniqueLibraryEventType extends EventLogType {
+  def serialize = "ExportTechniqueLibrary"
 }
-final case object ImportPolicyLibraryEventType extends EventLogType {
-  def serialize = "ImportPolicyLibrary"
+final case object ImportTechniqueLibraryEventType extends EventLogType {
+  def serialize = "ImportTechniqueLibrary"
 }
-final case object ExportConfigurationRulesEventType extends EventLogType {
-  def serialize = "ExportConfigurationRules"
+final case object ExportRulesEventType extends EventLogType {
+  def serialize = "ExportRules"
 }
-final case object ImportConfigurationRulesEventType extends EventLogType {
-  def serialize = "ImportConfigurationRules"
+final case object ImportRulesEventType extends EventLogType {
+  def serialize = "ImportRules"
 }
 final case object ExportFullArchiveEventType extends EventLogType {
   def serialize = "ExportFullArchive"
@@ -178,21 +178,21 @@ object ModificationWatchList {
   val events = Seq[EventLogType](
       AcceptNodeEventType
     , DeleteNodeEventType
-    , AddConfigurationRuleEventType
-    , DeleteConfigurationRuleEventType
-    , ModifyConfigurationRuleEventType
-    , AddPolicyInstanceEventType
-    , DeletePolicyInstanceEventType
-    , ModifyPolicyInstanceEventType
+    , AddRuleEventType
+    , DeleteRuleEventType
+    , ModifyRuleEventType
+    , AddDirectiveEventType
+    , DeleteDirectiveEventType
+    , ModifyDirectiveEventType
     , AddNodeGroupEventType
     , DeleteNodeGroupEventType
     , ModifyNodeGroupEventType
     , ClearCacheEventType
     , UpdatePolicyServerEventType
-    , ReloadPolicyTemplateLibraryType
+    , ReloadTechniqueLibraryType
     , ImportGroupsEventType
-    , ImportPolicyLibraryEventType
-    , ImportConfigurationRulesEventType
+    , ImportTechniqueLibraryEventType
+    , ImportRulesEventType
     , ImportFullArchiveEventType
   )
   
@@ -214,18 +214,18 @@ object EventTypeFactory {
     , DeleteNodeGroupEventType
     , ModifyNodeGroupEventType
     
-    , AddPolicyInstanceEventType
-    , DeletePolicyInstanceEventType
-    , ModifyPolicyInstanceEventType
+    , AddDirectiveEventType
+    , DeleteDirectiveEventType
+    , ModifyDirectiveEventType
     
     , ApplicationStartedEventType
     , ActivateRedButtonEventType
     , ReleaseRedButtonEventType
-    , ReloadPolicyTemplateLibraryType 
+    , ReloadTechniqueLibraryType 
       
-    , AddConfigurationRuleEventType
-    , DeleteConfigurationRuleEventType
-    , ModifyConfigurationRuleEventType
+    , AddRuleEventType
+    , DeleteRuleEventType
+    , ModifyRuleEventType
       
     , AcceptNodeEventType
     , RefuseNodeEventType
@@ -236,10 +236,10 @@ object EventTypeFactory {
       
     , ExportGroupsEventType
     , ImportGroupsEventType
-    , ExportPolicyLibraryEventType
-    , ImportPolicyLibraryEventType
-    , ExportConfigurationRulesEventType
-    , ImportConfigurationRulesEventType
+    , ExportTechniqueLibraryEventType
+    , ImportTechniqueLibraryEventType
+    , ExportRulesEventType
+    , ImportRulesEventType
     , ExportFullArchiveEventType
     , ImportFullArchiveEventType
   )

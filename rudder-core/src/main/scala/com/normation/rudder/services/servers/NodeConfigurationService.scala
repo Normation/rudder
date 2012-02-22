@@ -38,10 +38,10 @@ import com.normation.inventory.domain.AgentType
 import scala.collection._
 import com.normation.rudder.domain.servers._
 import net.liftweb.common.Box
-import com.normation.cfclerk.domain.{CFCPolicyInstanceId,PolicyPackageId}
-import com.normation.rudder.services.policies.TargetNodeConfiguration
+import com.normation.cfclerk.domain.{Cf3PolicyDraftId,TechniqueId}
+import com.normation.rudder.services.policies.targetNodeConfiguration
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.{ConfigurationRule,ConfigurationRuleId}
+import com.normation.rudder.domain.policies.{Rule,RuleId}
 
 trait NodeConfigurationService {
 
@@ -50,7 +50,7 @@ trait NodeConfigurationService {
    * @param nodeId
    * @return
    */
-  def findServer(nodeId: NodeId) : Option[NodeConfiguration]
+  def findNode(nodeId: NodeId) : Option[NodeConfiguration]
   
   /**
    * Return multiple NodeConfigurations by their uuid
@@ -68,19 +68,19 @@ trait NodeConfigurationService {
   def getAllNodeConfigurations() : Map[String, NodeConfiguration]
   
   /**
-   * Update a node configuration using a TargetNodeConfiguration :
+   * Update a node configuration using a targetNodeConfiguration :
    * update the policy instances and the node context, as well as the agentsName 
    * (well, every fields actually)
    * @param target
    * @return
    */
-  def updateNodeConfiguration(target : TargetNodeConfiguration) : Box[NodeConfiguration]
+  def updateNodeConfiguration(target : targetNodeConfiguration) : Box[NodeConfiguration]
   
     /**
-   * From the list of updated crs (is it what we need) ? and the list of ALL NODES (caution, we must have 'em all)
+   * From the list of updated rules (is it what we need) ? and the list of ALL NODES (caution, we must have 'em all)
    * update the serials, and save them
    */
-  def incrementSerials(crs: Seq[(ConfigurationRuleId,Int)], nodes : Seq[NodeConfiguration]) : Box[Seq[NodeConfiguration]]
+  def incrementSerials(rules: Seq[(RuleId,Int)], nodes : Seq[NodeConfiguration]) : Box[Seq[NodeConfiguration]]
   
   
   /**
@@ -89,7 +89,7 @@ trait NodeConfigurationService {
    * @param target
    * @return
    */
-  def addNodeConfiguration(target : TargetNodeConfiguration) : Box[NodeConfiguration]
+  def addNodeConfiguration(target : targetNodeConfiguration) : Box[NodeConfiguration]
   
   /**
    * Delete a NodeConfiguration by its uuid
@@ -128,10 +128,10 @@ trait NodeConfigurationService {
   /**
    * Find the NodeConfigurations having all the policies name listed (it's policy name, not instance)
    */
-  def getNodeConfigurationsMatchingPolicy(policyName : PolicyPackageId) : Seq[NodeConfiguration]
+  def getNodeConfigurationsMatchingPolicy(policyName : TechniqueId) : Seq[NodeConfiguration]
 
   /**
-   * Find the NodeConfigurations having the policyInstance named (it's the policyInstanceId)
+   * Find the NodeConfigurations having the directive named (it's the directiveId)
    */
-  def getNodeConfigurationsMatchingPolicyInstance(policyInstanceId : CFCPolicyInstanceId) : Seq[NodeConfiguration]
+  def getNodeConfigurationsMatchingDirective(directiveId : Cf3PolicyDraftId) : Seq[NodeConfiguration]
 }

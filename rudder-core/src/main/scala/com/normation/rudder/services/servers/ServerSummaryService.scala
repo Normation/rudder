@@ -44,7 +44,7 @@ import Box._
 
 import com.normation.rudder.domain.servers.Srv
 
-trait ServerSummaryService {
+trait NodeSummaryService {
   
   /**
    * Retrieve minimal information about the server
@@ -60,11 +60,11 @@ import com.normation.rudder.domain.RudderLDAPConstants._
 import org.joda.time.DateTime
 
 
-class ServerSummaryServiceImpl(
+class NodeSummaryServiceImpl(
     inventoryDitService:InventoryDitService, 
     inventoryMapper:InventoryMapper,
     ldap:LDAPConnectionProvider
-) extends ServerSummaryService with Loggable {
+) extends NodeSummaryService with Loggable {
   
   /**
    * build a Srv from an LDAP Entry, using a node inventory

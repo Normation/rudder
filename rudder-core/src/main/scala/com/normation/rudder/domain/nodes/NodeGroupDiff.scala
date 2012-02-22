@@ -58,7 +58,7 @@ final case class ModifyNodeGroupDiff(
   , modDescription: Option[SimpleDiff[String]]        = None
   , modQuery      : Option[SimpleDiff[Option[Query]]] = None
   , modIsDynamic  : Option[SimpleDiff[Boolean]]       = None
-  , modServerList : Option[SimpleDiff[Set[NodeId]]]   = None
+  , modNodeList : Option[SimpleDiff[Set[NodeId]]]   = None
   , modIsActivated: Option[SimpleDiff[Boolean]]       = None
   , modIsSystem   : Option[SimpleDiff[Boolean]]       = None
 ) extends NodeGroupDiff with HashcodeCaching

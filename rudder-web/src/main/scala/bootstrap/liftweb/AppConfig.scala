@@ -82,7 +82,7 @@ import net.liftweb.common.Loggable
 import com.normation.rudder.services.servers.NodeConfigurationChangeDetectServiceImpl
 import org.apache.commons.dbcp.BasicDataSource
 import com.normation.rudder.services.log.HistorizationServiceImpl
-import com.normation.rudder.services.policies.DeployOnPolicyTemplateCallback
+import com.normation.rudder.services.policies.DeployOnTechniqueCallback
 import scala.xml.PrettyPrinter
 import com.normation.rudder.services.marshalling._
 import com.normation.utils.ScalaLock
@@ -205,17 +205,17 @@ class AppConfig extends Loggable {
   val prettyPrinter = new PrettyPrinter(120, 2)
 
   
-  val userLibraryDirectoryName = "policy-library"
+  val userLibraryDirectoryName = "directives"
     
   val groupLibraryDirectoryName = "groups"
   
-  val configurationRulesDirectoryName = "configuration-rules"
+  val rulesDirectoryName = "rules"
     
-  // policy.xml parser
+  // metadata.xml parser
   @Bean
-  def policyParser = {
+  def techniqueParser = {
     val variableSpecParser = new VariableSpecParser()
-    new PolicyParser(variableSpecParser,new SectionSpecParser(variableSpecParser),new TmlParser,systemVariableSpecService)
+    new TechniqueParser(variableSpecParser,new SectionSpecParser(variableSpecParser),new Cf3PromisesFileTemplateParser,systemVariableSpecService)
   }
 
   @Bean
@@ -225,31 +225,31 @@ class AppConfig extends Loggable {
   def variableBuilderService: VariableBuilderService = new VariableBuilderServiceImpl()
 
   @Bean
-  def ldapEntityMapper = new LDAPEntityMapper(rudderDit, nodeDit, acceptedServersDit, queryParser)
+  def ldapEntityMapper = new LDAPEntityMapper(rudderDit, nodeDit, acceptedNodesDit, queryParser)
 
   @Bean
-  def ldapNodeConfigurationMapper = new LDAPNodeConfigurationMapper(rudderDit, acceptedServersDit, systemVariableSpecService, policyPackageService, variableBuilderService, ldap)
+  def ldapNodeConfigurationMapper = new LDAPNodeConfigurationMapper(rudderDit, acceptedNodesDit, systemVariableSpecService, techniqueRepository, variableBuilderService, ldap)
 
   @Bean
-  def serverRepository = new LDAPNodeConfigurationRepository(ldap, rudderDit, ldapNodeConfigurationMapper)
+  def ldapNodeConfigurationRepository = new LDAPNodeConfigurationRepository(ldap, rudderDit, ldapNodeConfigurationMapper)
 
   ///// items serializer - service that transforms items to XML /////
   
   @Bean 
-  def configurationRuleSerialisation: ConfigurationRuleSerialisation = 
-    new ConfigurationRuleSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+  def ruleSerialisation: RuleSerialisation = 
+    new RuleSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
 
   @Bean 
-  def userPolicyTemplateCategorySerialisation: UserPolicyTemplateCategorySerialisation = 
-    new UserPolicyTemplateCategorySerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+  def activeTechniqueCategorySerialisation: ActiveTechniqueCategorySerialisation = 
+    new ActiveTechniqueCategorySerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
 
   @Bean 
-  def userPolicyTemplateSerialisation: UserPolicyTemplateSerialisation = 
-    new UserPolicyTemplateSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+  def activeTechniqueSerialisation: ActiveTechniqueSerialisation = 
+    new ActiveTechniqueSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
   
   @Bean 
-  def policyInstanceSerialisation: PolicyInstanceSerialisation = 
-    new PolicyInstanceSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+  def directiveSerialisation: DirectiveSerialisation = 
+    new DirectiveSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
 
   @Bean 
   def nodeGroupCategorySerialisation: NodeGroupCategorySerialisation = 
@@ -267,37 +267,37 @@ class AppConfig extends Loggable {
   ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
   
   @Bean
-  def gitConfigurationRuleArchiver: GitConfigurationRuleArchiver = new GitConfigurationRuleArchiverImpl(
+  def gitRuleArchiver: GitRuleArchiver = new GitRuleArchiverImpl(
       gitRepo
     , new File(gitRoot)
-    , configurationRuleSerialisation
-    , configurationRulesDirectoryName
+    , ruleSerialisation
+    , rulesDirectoryName
     , prettyPrinter
   )
   
   @Bean
-  def gitUserPolicyTemplateCategoryArchiver: GitUserPolicyTemplateCategoryArchiver = new GitUserPolicyTemplateCategoryArchiverImpl(
+  def gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver = new GitActiveTechniqueCategoryArchiverImpl(
       gitRepo
     , new File(gitRoot)
-    , userPolicyTemplateCategorySerialisation
+    , activeTechniqueCategorySerialisation
     , userLibraryDirectoryName
     , prettyPrinter
   )
   
   @Bean
-  def gitUserPolicyTemplateArchiver: GitUserPolicyTemplateArchiverImpl = new GitUserPolicyTemplateArchiverImpl(
+  def gitActiveTechniqueArchiver: GitActiveTechniqueArchiverImpl = new GitActiveTechniqueArchiverImpl(
       gitRepo
     , new File(gitRoot)
-    , userPolicyTemplateSerialisation
+    , activeTechniqueSerialisation
     , userLibraryDirectoryName
     , prettyPrinter
   )
   
   @Bean
-  def gitPolicyInstanceArchiver: GitPolicyInstanceArchiver = new GitPolicyInstanceArchiverImpl(
+  def gitDirectiveArchiver: GitDirectiveArchiver = new GitDirectiveArchiverImpl(
       gitRepo
     , new File(gitRoot)
-    , policyInstanceSerialisation
+    , directiveSerialisation
     , userLibraryDirectoryName
     , prettyPrinter
   )
@@ -322,19 +322,19 @@ class AppConfig extends Loggable {
   
   @Bean
   def itemArchiveManager = new ItemArchiveManagerImpl(
-      ldapConfigurationRuleRepository
-    , ldapUserPolicyTemplateRepository
+      ldapRuleRepository
+    , ldapActiveTechniqueRepository
     , ldapNodeGroupRepository
     , gitRepo
     , gitRevisionProvider
-    , gitConfigurationRuleArchiver
-    , gitUserPolicyTemplateCategoryArchiver
-    , gitUserPolicyTemplateArchiver
+    , gitRuleArchiver
+    , gitActiveTechniqueCategoryArchiver
+    , gitActiveTechniqueArchiver
     , gitNodeGroupCategoryArchiver
     , gitNodeGroupArchiver
-    , parseConfigurationRules
-    , parsePolicyLibrary
-    , importPolicyLibrary
+    , parseRules
+    , ParseActiveTechniqueLibrary
+    , importTechniqueLibrary
     , parseGroupLibrary
     , importGroupLibrary
     , logService
@@ -344,7 +344,7 @@ class AppConfig extends Loggable {
   ///// end /////
   
   @Bean
-  def eventLogFactory = new EventLogFactoryImpl(configurationRuleSerialisation,policyInstanceSerialisation, nodeGroupSerialisation)
+  def eventLogFactory = new EventLogFactoryImpl(ruleSerialisation,directiveSerialisation, nodeGroupSerialisation)
   
   @Bean
   def logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
@@ -360,7 +360,7 @@ class AppConfig extends Loggable {
 
   @Bean
   def pathComputer = new PathComputerImpl(
-    serverRepository,
+    ldapNodeConfigurationRepository,
     baseFolder,
     backupFolder)
 
@@ -371,18 +371,18 @@ class AppConfig extends Loggable {
   def gitRevisionProvider = new LDAPGitRevisionProvider(ldap, rudderDit, gitRepo, ptRefsPath)
 
   @Bean
-  def policyPackagesReader: PolicyPackagesReader = {
+  def techniqueReader: TechniqueReader = {
     //find the relative path from gitRepo to the ptlib root
     val gitSlash = new File(gitRoot).getPath + "/"
     if(!policyPackages.startsWith(gitSlash)) {
       throw new RuntimeException("The policy template library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(gitRoot, policyPackages))
     }
     val relativePath = policyPackages.substring(gitSlash.size, policyPackages.size)
-    new GitPolicyPackagesReader(
-        policyParser
+    new GitTechniqueReader(
+        techniqueParser
       , gitRevisionProvider
       , gitRepo
-      , "policy.xml", "category.xml"
+      , "metadata.xml", "category.xml"
       , Some(relativePath)
     )
   }
@@ -391,9 +391,9 @@ class AppConfig extends Loggable {
   def systemVariableService: SystemVariableService = new SystemVariableServiceImpl(licenseRepository,
     new ParameterizedValueLookupServiceImpl(
       nodeInfoService,
-      policyInstanceTargetService,
-      ldapConfigurationRuleRepository,
-      configurationRuleValService),
+      ruleTargetService,
+      ldapRuleRepository,
+      ruleValService),
     systemVariableSpecService,
     nodeInfoService,
     baseFolder,
@@ -403,10 +403,10 @@ class AppConfig extends Loggable {
     sharedFilesFolder)
 
   @Bean
-  def policyTranslator = new RudderPromiseWriterServiceImpl(
-    policyPackageService,
+  def rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(
+    techniqueRepository,
     pathComputer,
-    serverRepository,
+    ldapNodeConfigurationRepository,
     nodeInfoService,
     licenseRepository,
     reportingService,
@@ -421,37 +421,37 @@ class AppConfig extends Loggable {
     communityCheckPromises,
     novaCheckPromises)
 
-  //must be here because of cirular dependency if in policyPackageService
-  @Bean def policyTemplateAcceptationDatetimeUpdater: ReferenceLibraryUpdateNotification =
-    new PolicyTemplateAcceptationDatetimeUpdater("UpdatePTAcceptationDatetime", ldapUserPolicyTemplateRepository)
+  //must be here because of cirular dependency if in techniqueRepository
+  @Bean def techniqueAcceptationDatetimeUpdater: TechniquesLibraryUpdateNotification =
+    new TechniqueAcceptationDatetimeUpdater("UpdatePTAcceptationDatetime", ldapActiveTechniqueRepository)
 
   
   @Bean
-  def policyPackageService = {
-    val service = new PolicyPackageServiceImpl(
-        policyPackagesReader
-      , Seq(policyTemplateAcceptationDatetimeUpdater)
+  def techniqueRepository = {
+    val service = new TechniqueRepositoryImpl(
+        techniqueReader
+      , Seq(techniqueAcceptationDatetimeUpdater)
     )
-    service.registerCallback(new LogEventOnPolicyTemplateReloadCallback("LogEventOnPTLibUpdate", logService))
+    service.registerCallback(new LogEventOnTechniqueReloadCallback("LogEventOnPTLibUpdate", logService))
     service
   }
 
   @Bean
-  def serverService: NodeConfigurationService = new NodeConfigurationServiceImpl(
-    policyTranslator,
-    serverRepository,
-    policyPackageService,
+  def nodeConfigurationService: NodeConfigurationService = new NodeConfigurationServiceImpl(
+    rudderCf3PromisesFileWriterService,
+    ldapNodeConfigurationRepository,
+    techniqueRepository,
     lockFolder)
 
   @Bean
-  def licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, serverRepository, licensesFolder)
+  def licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, licensesFolder)
 
   @Bean
-  def reportingService: ReportingService = new ReportingServiceImpl(policyInstanceTargetService, 
-      configurationExpectedRepo, reportsRepository, policyPackageService)
+  def reportingService: ReportingService = new ReportingServiceImpl(ruleTargetService, 
+      configurationExpectedRepo, reportsRepository, techniqueRepository)
 
   @Bean
-  def configurationExpectedRepo = new com.normation.rudder.repository.jdbc.ConfigurationExpectedReportsJdbcRepository(jdbcTemplate)
+  def configurationExpectedRepo = new com.normation.rudder.repository.jdbc.RuleExpectedReportsJdbcRepository(jdbcTemplate)
 
   @Bean
   def reportsRepository = new com.normation.rudder.repository.jdbc.ReportsJdbcRepository(jdbcTemplate)
@@ -502,10 +502,10 @@ class AppConfig extends Loggable {
   }
 
   @Bean
-  def acceptedServersDit: InventoryDit = new InventoryDit(ACCEPTED_INVENTORIES_DN, SOFTWARE_INVENTORIES_DN, "Accepted inventories")
+  def acceptedNodesDit: InventoryDit = new InventoryDit(ACCEPTED_INVENTORIES_DN, SOFTWARE_INVENTORIES_DN, "Accepted inventories")
 
   @Bean
-  def pendingServersDit: InventoryDit = new InventoryDit(PENDING_INVENTORIES_DN, SOFTWARE_INVENTORIES_DN, "Pending inventories")
+  def pendingNodesDit: InventoryDit = new InventoryDit(PENDING_INVENTORIES_DN, SOFTWARE_INVENTORIES_DN, "Pending inventories")
 
   @Bean
   def rudderDit: RudderDit = new RudderDit(RUDDER_DN)
@@ -514,7 +514,7 @@ class AppConfig extends Loggable {
   def nodeDit: NodeDit = new NodeDit(NODE_DN)
 
   @Bean
-  def inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingServersDit, acceptedServersDit)
+  def inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDit, acceptedNodesDit)
 
   @Bean
   def uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
@@ -534,16 +534,16 @@ class AppConfig extends Loggable {
    * than the accepted ones. 
    */
   @Bean
-  def ditQueryData = new DitQueryData(acceptedServersDit)
+  def ditQueryData = new DitQueryData(acceptedNodesDit)
   //query processor for accepted nodes
   @Bean
   def queryProcessor = new AccepetedNodesLDAPQueryProcessor(
     nodeDit,
-    new InternalLDAPQueryProcessor(ldap, acceptedServersDit, ditQueryData, ldapEntityMapper))
+    new InternalLDAPQueryProcessor(ldap, acceptedNodesDit, ditQueryData, ldapEntityMapper))
 
   //onoy a LDAP query checker for nodes in pending
   @Bean
-  def inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(ldap, pendingServersDit, new DitQueryData(pendingServersDit), ldapEntityMapper))
+  def inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(ldap, pendingNodesDit, new DitQueryData(pendingNodesDit), ldapEntityMapper))
 
   @Bean
   def queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
@@ -554,10 +554,10 @@ class AppConfig extends Loggable {
   def dynGroupService: DynGroupService = new DynGroupServiceImpl(rudderDit, ldap, ldapEntityMapper, inventoryQueryChecker)
 
   @Bean
-  def policyInstanceTargetService: PolicyInstanceTargetService = new PolicyInstanceTargetServiceImpl(
+  def ruleTargetService: RuleTargetService = new RuleTargetServiceImpl(
     ldapNodeGroupRepository, nodeInfoService,
     Seq(
-      new SpecialAllTargetUpits: UnitPolicyInstanceTargetService,
+      new SpecialAllTargetUpits: UnitRuleTargetService,
       new SpecialAllTargetExceptPolicyServersTargetUpits(nodeInfoService),
       new PolicyServerTargetUpits(nodeInfoService),
       new GroupTargetUpits(ldapNodeGroupRepository)),
@@ -566,12 +566,12 @@ class AppConfig extends Loggable {
     ldapEntityMapper)
 
   @Bean
-  def inventoryMapper: InventoryMapper = new InventoryMapper(inventoryDitService, pendingServersDit, acceptedServersDit)
+  def inventoryMapper: InventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDit, acceptedNodesDit)
 
   @Bean
-  def metaEntryManagement: LDAPFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap)
+  def ldapFullInventoryRepository: LDAPFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap)
   @Bean
-  def metaEntryService: FullInventoryFromLdapEntries = new FullInventoryFromLdapEntriesImpl(inventoryDitService, inventoryMapper)
+  def fullInventoryFromLdapEntries: FullInventoryFromLdapEntries = new FullInventoryFromLdapEntriesImpl(inventoryDitService, inventoryMapper)
 
   @Bean
   def unitRefuseGroup: UnitRefuseInventory = new RefuseGroups(
@@ -581,12 +581,12 @@ class AppConfig extends Loggable {
   @Bean
   def acceptInventory: UnitAcceptInventory with UnitRefuseInventory = new AcceptInventory(
     "accept_new_server:inventory",
-    pendingServersDit,
-    acceptedServersDit,
-    metaEntryManagement)
+    pendingNodesDit,
+    acceptedNodesDit,
+    ldapFullInventoryRepository)
 
   @Bean
-  def acceptServerAndMachineInNodeOu: UnitAcceptInventory with UnitRefuseInventory = new AcceptFullInventoryInNodeOu(
+  def acceptNodeAndMachineInNodeOu: UnitAcceptInventory with UnitRefuseInventory = new AcceptFullInventoryInNodeOu(
     "accept_new_server:ou=node",
     nodeDit,
     ldap,
@@ -594,53 +594,53 @@ class AppConfig extends Loggable {
     PendingInventory)
 
   @Bean
-  def acceptServerConfigurationRule: UnitAcceptInventory with UnitRefuseInventory = new AcceptServerConfigurationRule(
+  def acceptNodeRule: UnitAcceptInventory with UnitRefuseInventory = new AcceptNodeRule(
     "accept_new_server:add_system_configuration_rules",
     asyncDeploymentAgent,
     ldapNodeGroupRepository,
-    serverRepository,
+    ldapNodeConfigurationRepository,
     AcceptedInventory)
 
   @Bean
-  def addServerToDynGroup: UnitAcceptInventory with UnitRefuseInventory = new AddServerToDynGroup(
+  def addNodeToDynGroup: UnitAcceptInventory with UnitRefuseInventory = new AddNodeToDynGroup(
     "add_server_to_dyngroup",
     ldapNodeGroupRepository,
     dynGroupService,
     PendingInventory)
 
   @Bean
-  def configurationRuleValService: ConfigurationRuleValService = new ConfigurationRuleValServiceImpl(
-    ldapConfigurationRuleRepository,
-    ldapPolicyInstanceRepository,
-    policyPackageService,
+  def ruleValService: RuleValService = new RuleValServiceImpl(
+    ldapRuleRepository,
+    ldapDirectiveRepository,
+    techniqueRepository,
     variableBuilderService)
 
   @Bean
   def psMngtService: PolicyServerManagementService = new PolicyServerManagementServiceImpl(
-    ldapPolicyInstanceRepository, asyncDeploymentAgent)
+    ldapDirectiveRepository, asyncDeploymentAgent)
 
   @Bean
   def historizationService = new HistorizationServiceImpl(
     historizationJdbcRepository,
     nodeInfoService,
     ldapNodeGroupRepository,
-    ldapPolicyInstanceRepository,
-    policyPackageService,
-    ldapConfigurationRuleRepository)
+    ldapDirectiveRepository,
+    techniqueRepository,
+    ldapRuleRepository)
 
   @Bean
   def asyncDeploymentAgent: AsyncDeploymentAgent = {
     val agent = new AsyncDeploymentAgent(new DeploymentServiceImpl(
-          ldapConfigurationRuleRepository,
-          configurationRuleValService,
+          ldapRuleRepository,
+          ruleValService,
           new ParameterizedValueLookupServiceImpl(
             nodeInfoService,
-            policyInstanceTargetService,
-            ldapConfigurationRuleRepository,
-            configurationRuleValService),
+            ruleTargetService,
+            ldapRuleRepository,
+            ruleValService),
           systemVariableService,
-          policyInstanceTargetService,
-          serverService,
+          ruleTargetService,
+          nodeConfigurationService,
           nodeInfoService,
           nodeConfigurationChangeDetectService,
           reportingService,
@@ -648,37 +648,37 @@ class AppConfig extends Loggable {
       , logService
       , autoDeployOnModification
       , deploymentStatusSerialisation)
-    policyPackageService.registerCallback(
-        new DeployOnPolicyTemplateCallback("DeployOnPTLibUpdate", agent)
+    techniqueRepository.registerCallback(
+        new DeployOnTechniqueCallback("DeployOnPTLibUpdate", agent)
     )
     agent
   }
   
   @Bean
-  def newServerManager: NewServerManager =
-    new NewServerManagerImpl(
+  def newNodeManager: NewNodeManager =
+    new NewNodeManagerImpl(
       ldap,
-      pendingServersDit, acceptedServersDit,
+      pendingNodesDit, acceptedNodesDit,
       serverSummaryService,
-      metaEntryManagement,
+      ldapFullInventoryRepository,
       //the sequence of unit process to accept a new inventory
-      addServerToDynGroup ::
-        acceptServerAndMachineInNodeOu ::
+      addNodeToDynGroup ::
+        acceptNodeAndMachineInNodeOu ::
         acceptInventory ::
-        acceptServerConfigurationRule ::
+        acceptNodeRule ::
         Nil,
       //the sequence of unit process to refuse a new inventory
       unitRefuseGroup ::
-        acceptServerAndMachineInNodeOu ::
+        acceptNodeAndMachineInNodeOu ::
         acceptInventory ::
-        acceptServerConfigurationRule ::
+        acceptNodeRule ::
         Nil)
 
   @Bean
-  def nodeConfigurationChangeDetectService = new NodeConfigurationChangeDetectServiceImpl(ldapUserPolicyTemplateRepository)
+  def nodeConfigurationChangeDetectService = new NodeConfigurationChangeDetectServiceImpl(ldapActiveTechniqueRepository)
 
   @Bean
-  def serverGrid = new ServerGrid(metaEntryManagement)
+  def serverGrid = new NodeGrid(ldapFullInventoryRepository)
   
   @Bean
   def srvGrid = new SrvGrid
@@ -693,14 +693,14 @@ class AppConfig extends Loggable {
   def softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, ldap, inventoryMapper)
   
   @Bean
-  def serverSummaryService = new ServerSummaryServiceImpl(inventoryDitService, inventoryMapper, ldap)
+  def serverSummaryService = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, ldap)
 
   @Bean
   def diffRepos: InventoryHistoryLogRepository =
-    new InventoryHistoryLogRepository(INVENTORIES_HISTORY_ROOT_DIR, new FullInventoryFileMarshalling(metaEntryService, inventoryMapper))
+    new InventoryHistoryLogRepository(INVENTORIES_HISTORY_ROOT_DIR, new FullInventoryFileMarshalling(fullInventoryFromLdapEntries, inventoryMapper))
 
   @Bean
-  def serverPolicyDiffService = new ServerPolicyDiffService
+  def serverPolicyDiffService = new NodeConfigurationDiffService
 
   @Bean 
   def ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryParser)
@@ -716,41 +716,41 @@ class AppConfig extends Loggable {
   val groupLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
   
   @Bean
-  def ldapUserPolicyTemplateCategoryRepository:LDAPUserPolicyTemplateCategoryRepository = new LDAPUserPolicyTemplateCategoryRepository(
+  def ldapActiveTechniqueCategoryRepository:LDAPActiveTechniqueCategoryRepository = new LDAPActiveTechniqueCategoryRepository(
       rudderDit, ldap, ldapEntityMapper
-    , gitUserPolicyTemplateCategoryArchiver
+    , gitActiveTechniqueCategoryArchiver
     , personIdentService
     , autoArchiveItems
     , uptLibReadWriteMutex
   )
   
   @Bean
-  def ldapUserPolicyTemplateRepository = new LDAPUserPolicyTemplateRepository(
+  def ldapActiveTechniqueRepository = new LDAPActiveTechniqueRepository(
       rudderDit, ldap, ldapEntityMapper
     , uuidGen
-    , ldapUserPolicyTemplateCategoryRepository
-    , gitUserPolicyTemplateArchiver
+    , ldapActiveTechniqueCategoryRepository
+    , gitActiveTechniqueArchiver
     , personIdentService
     , autoArchiveItems
     , uptLibReadWriteMutex
   )
   
   @Bean
-  def ldapPolicyInstanceRepository = {
+  def ldapDirectiveRepository = {
     
-    val repo = new LDAPPolicyInstanceRepository(
+    val repo = new LDAPDirectiveRepository(
         rudderDit, ldap, ldapEntityMapper, ldapDiffMapper
-      , ldapUserPolicyTemplateRepository
-      , policyPackageService,logRepository
-      , gitPolicyInstanceArchiver
+      , ldapActiveTechniqueRepository
+      , techniqueRepository,logRepository
+      , gitDirectiveArchiver
       , personIdentService
       , autoArchiveItems
       , uptLibReadWriteMutex
     )
   
-    gitUserPolicyTemplateArchiver.uptModificationCallback += new UpdatePiOnUptEvent(
-        gitPolicyInstanceArchiver
-      , policyPackageService
+    gitActiveTechniqueArchiver.uptModificationCallback += new UpdatePiOnActiveTechniqueEvent(
+        gitDirectiveArchiver
+      , techniqueRepository
       , repo
     )
 
@@ -758,17 +758,17 @@ class AppConfig extends Loggable {
   }
   
   @Bean
-  def ldapConfigurationRuleRepository: ConfigurationRuleRepository = new LDAPConfigurationRuleRepository(
+  def ldapRuleRepository: RuleRepository = new LDAPRuleRepository(
     rudderDit, nodeDit, ldap, ldapEntityMapper, ldapDiffMapper,
     ldapNodeGroupRepository,
-    policyPackageService,logRepository,
-    gitConfigurationRuleArchiver,
+    techniqueRepository,logRepository,
+    gitRuleArchiver,
     personIdentService,
     autoArchiveItems
   )
 
   @Bean
-  def ldapGroupCategoryRepository = new LDAPGroupCategoryRepository(
+  def ldapNodeGroupCategoryRepository = new LDAPNodeGroupCategoryRepository(
       rudderDit, ldap, ldapEntityMapper
     , gitNodeGroupCategoryArchiver
     , personIdentService
@@ -780,7 +780,7 @@ class AppConfig extends Loggable {
   def ldapNodeGroupRepository = new LDAPNodeGroupRepository(
       rudderDit, ldap, ldapEntityMapper
     , ldapDiffMapper
-    , ldapGroupCategoryRepository
+    , ldapNodeGroupCategoryRepository
     , uuidGen
     , logRepository
     , gitNodeGroupArchiver
@@ -790,13 +790,13 @@ class AppConfig extends Loggable {
   )
 
   @Bean 
-  def userPolicyTemplateCategoryUnserialisation = new UserPolicyTemplateCategoryUnserialisationImpl
+  def activeTechniqueCategoryUnserialisation = new ActiveTechniqueCategoryUnserialisationImpl
 
   @Bean
-  def userPolicyTemplateUnserialisation = new UserPolicyTemplateUnserialisationImpl
+  def activeTechniqueUnserialisation = new ActiveTechniqueUnserialisationImpl
   
   @Bean
-  def policyInstanceUnserialisation = new PolicyInstanceUnserialisationImpl
+  def directiveUnserialisation = new DirectiveUnserialisationImpl
   
   @Bean
   def nodeGroupCategoryUnserialisation = new NodeGroupCategoryUnserialisationImpl
@@ -805,29 +805,29 @@ class AppConfig extends Loggable {
   def nodeGroupUnserialisation = new NodeGroupUnserialisationImpl(queryParser)
   
   @Bean
-  def configurationRuleUnserialisation = new ConfigurationRuleUnserialisationImpl
+  def ruleUnserialisation = new RuleUnserialisationImpl
  
   @Bean
   def deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
 
   @Bean
-  def parseConfigurationRules : ParseConfigurationRules = new GitParseConfigurationRules(
-      configurationRuleUnserialisation
+  def parseRules : ParseRules = new GitParseRules(
+      ruleUnserialisation
     , gitRepo
-    , configurationRulesDirectoryName
+    , rulesDirectoryName
   )
   
   @Bean
-  def parsePolicyLibrary : ParsePolicyLibrary = new GitParsePolicyLibrary(
-      userPolicyTemplateCategoryUnserialisation
-    , userPolicyTemplateUnserialisation
-    , policyInstanceUnserialisation
+  def ParseActiveTechniqueLibrary : ParseActiveTechniqueLibrary = new GitParseActiveTechniqueLibrary(
+      activeTechniqueCategoryUnserialisation
+    , activeTechniqueUnserialisation
+    , directiveUnserialisation
     , gitRepo
     , userLibraryDirectoryName
   )
   
   @Bean
-  def importPolicyLibrary : ImportPolicyLibrary = new ImportPolicyLibraryImpl(
+  def importTechniqueLibrary : ImportTechniqueLibrary = new ImportTechniqueLibraryImpl(
      rudderDit
    , ldap
    , ldapEntityMapper
@@ -853,30 +853,30 @@ class AppConfig extends Loggable {
   @Bean 
   def eventLogDetailsService : EventLogDetailsService = new EventLogDetailsServiceImpl(
       queryParser
-    , new PolicyInstanceUnserialisationImpl
+    , new DirectiveUnserialisationImpl
     , new NodeGroupUnserialisationImpl(queryParser)
-    , new ConfigurationRuleUnserialisationImpl
+    , new RuleUnserialisationImpl
     , new DeploymentStatusUnserialisationImpl
   )
   
   @Bean
-  def nodeInfoService: NodeInfoService = new NodeInfoServiceImpl(nodeDit, rudderDit, acceptedServersDit, ldap, ldapEntityMapper)
+  def nodeInfoService: NodeInfoService = new NodeInfoServiceImpl(nodeDit, rudderDit, acceptedNodesDit, ldap, ldapEntityMapper)
 
   @Bean
   def dependencyAndDeletionService: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
         ldap
       , rudderDit
-      , ldapPolicyInstanceRepository
-      , ldapUserPolicyTemplateRepository
-      , ldapConfigurationRuleRepository
+      , ldapDirectiveRepository
+      , ldapActiveTechniqueRepository
+      , ldapRuleRepository
       , ldapNodeGroupRepository
       , ldapEntityMapper
-      , policyInstanceTargetService
+      , ruleTargetService
   )
 
   @Bean
   def quickSearchService: QuickSearchService = new QuickSearchServiceImpl(
-    ldap, nodeDit, acceptedServersDit, ldapEntityMapper,
+    ldap, nodeDit, acceptedNodesDit, ldapEntityMapper,
     //nodeAttributes
     Seq(LDAPConstants.A_NAME, LDAPConstants.A_NODE_UUID),
     //serverAttributes
@@ -891,7 +891,7 @@ class AppConfig extends Loggable {
     ))
 
   @Bean
-  def logDisplayer: LogDisplayer = new com.normation.rudder.web.services.LogDisplayer(reportsRepository, ldapPolicyInstanceRepository, ldapConfigurationRuleRepository)
+  def logDisplayer: LogDisplayer = new com.normation.rudder.web.services.LogDisplayer(reportsRepository, ldapDirectiveRepository, ldapRuleRepository)
 
   @Bean
   def dyngroupUpdaterBatch: UpdateDynamicGroups = new UpdateDynamicGroups(
@@ -902,8 +902,8 @@ class AppConfig extends Loggable {
   )
 
   @Bean
-  def ptLibCron = new CheckPolicyTemplateLibrary(
-      policyPackageService
+  def ptLibCron = new CheckTechniqueLibrary(
+      techniqueRepository
     , asyncDeploymentAgent
     , ptlibUpdateInterval
   )
@@ -913,7 +913,7 @@ class AppConfig extends Loggable {
 
   @Bean
   def jsTreeUtilService = new JsTreeUtilService(
-    ldapUserPolicyTemplateCategoryRepository, ldapUserPolicyTemplateRepository, ldapPolicyInstanceRepository, policyPackageService)
+    ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository, ldapDirectiveRepository, techniqueRepository)
 
   @Bean
   def removeNodeService = new RemoveNodeServiceImpl(
@@ -922,7 +922,7 @@ class AppConfig extends Loggable {
       , ldap
       , ldapEntityMapper
       , ldapNodeGroupRepository
-      , metaEntryManagement
+      , ldapFullInventoryRepository
       , logRepository
       , nodeInfoService)
   /**
@@ -932,13 +932,12 @@ class AppConfig extends Loggable {
    */
   @Bean
   def allChecks = new SequentialImmediateBootStrapChecks(
-    new CheckDIT(pendingServersDit, acceptedServersDit, rudderDit, ldap),
-    new CheckPolicyBindings(),
-    new CheckRootServerUnicity(serverRepository),
-    new CheckSystemPolicyInstances(rudderDit, ldapConfigurationRuleRepository),
+    new CheckDIT(pendingNodesDit, acceptedNodesDit, rudderDit, ldap),
+    new CheckRootNodeUnicity(ldapNodeConfigurationRepository),
+    new CheckSystemDirectives(rudderDit, ldapRuleRepository),
     new CheckInitUserTemplateLibrary(
-      rudderDit, ldap, policyPackageService,
-      ldapUserPolicyTemplateCategoryRepository, ldapUserPolicyTemplateRepository) //new CheckPolicyInstanceBusinessRules()
+      rudderDit, ldap, techniqueRepository,
+      ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository) //new CheckDirectiveBusinessRules()
       )
 
   
@@ -954,7 +953,7 @@ class AppConfig extends Loggable {
   def restDyngroup = new RestDyngroupReload(dyngroupUpdaterBatch)
   
   @Bean
-  def restDptLibReload = new RestPolicyTemplateReload(policyPackageService)
+  def restDptLibReload = new RestTechniqueReload(techniqueRepository)
   
   @Bean
   def restArchiving = new RestArchiving(itemArchiveManager,personIdentService)
@@ -971,10 +970,10 @@ class AppConfig extends Loggable {
   val frenchDateFormatter = DateTimeFormat.forPattern("dd/MM/yyyy").withLocale(Locale.FRANCE)
   val frenchTimeFormatter = DateTimeFormat.forPattern("kk:mm:ss").withLocale(Locale.FRANCE)
 
-  object FieldFactoryImpl extends PolicyFieldFactory {
+  object FieldFactoryImpl extends DirectiveFieldFactory {
     //only one field
 
-    override def forType(v: VariableSpec, id: String): PolicyField = {
+    override def forType(v: VariableSpec, id: String): DirectiveField = {
       val prefixSize = "size-"
       v match {
         case selectOne: SelectOneVariableSpec => new SelectOneField(id, selectOne.valueslabels)
@@ -1014,11 +1013,11 @@ class AppConfig extends Loggable {
   }
 
   @Bean
-  def policyEditorService: PolicyEditorService =
-    new PolicyEditorServiceImpl(policyPackageService, section2FieldService)
+  def directiveEditorService: DirectiveEditorService =
+    new DirectiveEditorServiceImpl(techniqueRepository, section2FieldService)
 
   @Bean
-  def reportDisplayer = new ReportDisplayer(ldapConfigurationRuleRepository, reportingService)
+  def reportDisplayer = new ReportDisplayer(ldapRuleRepository, reportingService)
 
   ////////////////////// Snippet plugins & extension register //////////////////////
   import com.normation.plugins.{ SnippetExtensionRegister, SnippetExtensionRegisterImpl }

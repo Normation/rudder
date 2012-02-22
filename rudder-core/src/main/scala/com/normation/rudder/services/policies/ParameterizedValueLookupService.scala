@@ -34,16 +34,16 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.rudder.repository.ConfigurationRuleRepository
+import com.normation.rudder.repository.RuleRepository
 import com.normation.rudder.domain.nodes.PolicyServerNodeInfo
 import com.normation.rudder.services.nodes.NodeInfoService
 import net.liftweb.common._
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
 import com.normation.cfclerk.domain.{VariableSpec, Variable}
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.utils.Control.sequence
-import com.normation.rudder.domain.policies.PolicyInstanceTarget
+import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.utils.HashcodeCaching
 
 /**
@@ -129,7 +129,7 @@ trait ParameterizedValueLookupService {
    * TODO: handle cache !!
    * 
    */
-  def lookupConfigurationRuleParameterization(variables:Seq[Variable]) : Box[Seq[Variable]]
+  def lookupRuleParameterization(variables:Seq[Variable]) : Box[Seq[Variable]]
   
   
   
@@ -227,12 +227,12 @@ trait ParameterizedValueLookupService {
 
 class ParameterizedValueLookupServiceImpl(
     override val nodeInfoService : NodeInfoService,
-    override val policyInstanceTargetService : PolicyInstanceTargetService,
-    override val configurationRuleRepo : ConfigurationRuleRepository,
-    override val configurationRuleValService : ConfigurationRuleValService
+    override val directiveTargetService : RuleTargetService,
+    override val ruleRepo : RuleRepository,
+    override val ruleValService : RuleValService
 ) extends ParameterizedValueLookupService with 
   ParameterizedValueLookupService_lookupNodeParameterization with 
-  ParameterizedValueLookupService_lookupConfigurationRuleParameterization 
+  ParameterizedValueLookupService_lookupRuleParameterization 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -272,29 +272,29 @@ trait ParameterizedValueLookupService_lookupNodeParameterization extends Paramet
 
 
 
-trait ParameterizedValueLookupService_lookupConfigurationRuleParameterization extends ParameterizedValueLookupService with Loggable {
+trait ParameterizedValueLookupService_lookupRuleParameterization extends ParameterizedValueLookupService with Loggable {
   
    
-  def policyInstanceTargetService : PolicyInstanceTargetService
+  def directiveTargetService : RuleTargetService
   def nodeInfoService : NodeInfoService
-  def configurationRuleRepo : ConfigurationRuleRepository
-  def configurationRuleValService : ConfigurationRuleValService
+  def ruleRepo : RuleRepository
+  def ruleValService : RuleValService
   
   /**
    * Replace all parameterization of the form
    * ${CONFGIGURATION_RULE_ID.XXX} by their values
    */
-  override def lookupConfigurationRuleParameterization(variables:Seq[Variable]) : Box[Seq[Variable]] = {
+  override def lookupRuleParameterization(variables:Seq[Variable]) : Box[Seq[Variable]] = {
      sequence(variables) { variable =>
      logger.debug("Processing variable : %s".format(variable))
        (sequence(variable.values) { value =>
          value match {
            case CrParametrization(CrTargetParametrization(targetConfiguRuleId, targetAccessorName)) =>
              logger.debug("Processing configuration rule's parameterized value on target: %s".format(value))
-             lookupTargetParameter(variable.spec, ConfigurationRuleId(targetConfiguRuleId), targetAccessorName)
+             lookupTargetParameter(variable.spec, RuleId(targetConfiguRuleId), targetAccessorName)
            case CrParametrization(CrVarParametrization(targetConfiguRuleId, varAccessorName)) =>
              logger.debug("Processing configuration rule's parameterized value on variable: %s".format(value))
-             lookupVariableParameter(variable.spec, ConfigurationRuleId(targetConfiguRuleId), varAccessorName)
+             lookupVariableParameter(variable.spec, RuleId(targetConfiguRuleId), varAccessorName)
            case CrParametrization(BadParametrization(name)) =>
              logger.debug("Ignoring parameterized value (can not handle such parameter): %s".format(value))
              Full(Seq(value))
@@ -312,23 +312,23 @@ trait ParameterizedValueLookupService_lookupConfigurationRuleParameterization ex
 
  
    /**
-    * Lookup the variable with name varName in ConfigurationRuleVal.id in crv.
+    * Lookup the variable with name varName in RuleVal.id in crv.
     * Try to first lookup the values in cache, and if it is not yet present,
-    * update it with the value from ConfigurationRuleVal.
-    * If ConfigurationRuleVal does not have such a variable name, fails.
+    * update it with the value from RuleVal.
+    * If RuleVal does not have such a variable name, fails.
     * If the looked-up variable's values contain a parameterized value, fails.
     * @param crv
     * @param varName
     * @param cache
     * @return
     */
-  private[this] def lookupTargetParameter(sourceVariableSpec:VariableSpec, targetConfiguRuleId:ConfigurationRuleId, targetAccessorName:String) : Box[Seq[String]] = {
+  private[this] def lookupTargetParameter(sourceVariableSpec:VariableSpec, targetConfiguRuleId:RuleId, targetAccessorName:String) : Box[Seq[String]] = {
     if(isValidAccessorName(targetAccessorName)) {
       for {
-        configurationRule <- configurationRuleRepo.get(targetConfiguRuleId)
-        cf = logger.trace("Fetched configuration rule : %s".format(configurationRule))
-        target <- Box(configurationRule.target) ?~! "Missing target for configuration rule with ID %s. Can not lookup parameters for a not fully defined configuration rule". format(targetConfiguRuleId)
-        nodeIds <- policyInstanceTargetService.getNodeIds(target)
+        rule <- ruleRepo.get(targetConfiguRuleId)
+        cf = logger.trace("Fetched configuration rule : %s".format(rule))
+        target <- Box(rule.target) ?~! "Missing target for configuration rule with ID %s. Can not lookup parameters for a not fully defined configuration rule". format(targetConfiguRuleId)
+        nodeIds <- directiveTargetService.getNodeIds(target)
         cf1 = logger.trace("Fetched nodes ids : %s".format(nodeIds))
         nodeInfos <- sequence(nodeIds) { nodeId =>
           nodeInfoService.getNodeInfo(nodeId)
@@ -354,23 +354,23 @@ trait ParameterizedValueLookupService_lookupConfigurationRuleParameterization ex
   
 
    /**
-    * Lookup the variable with name varName in ConfigurationRuleVal.id in crv.
+    * Lookup the variable with name varName in RuleVal.id in crv.
     * Try to first lookup the values in cache, and if it is not yet present,
-    * update it with the value from ConfigurationRuleVal.
-    * If ConfigurationRuleVal does not have such a variable name, fails.
+    * update it with the value from RuleVal.
+    * If RuleVal does not have such a variable name, fails.
     * If the looked-up variable's values contain a parameterized value, fails.
     * @param crv
     * @param varName
     * @param cache
     * @return
     */
-  private[this] def lookupVariableParameter(sourceVariableSpec:VariableSpec, targetConfiguRuleId:ConfigurationRuleId, varAccessorName:String) : Box[Seq[String]] = {
+  private[this] def lookupVariableParameter(sourceVariableSpec:VariableSpec, targetConfiguRuleId:RuleId, varAccessorName:String) : Box[Seq[String]] = {
      for {
-       crv <- configurationRuleValService.findConfigurationRuleVal(targetConfiguRuleId)
-       variables = crv.policies.map(x => x.variables.get(varAccessorName)).filter(x => x != None).flatten
+       crv <- ruleValService.findRuleVal(targetConfiguRuleId)
+       variables = crv.directiveVals.map(x => x.variables.get(varAccessorName)).filter(x => x != None).flatten
        exists <- {
          if(variables.size == 0) Failure("Can not lookup variable %s for configuration rule %s.".format(
-                                                      varAccessorName, crv.configurationRuleId))
+                                                      varAccessorName, crv.ruleId))
          else Full("OK")   
        }
        values <- Full(variables.flatten(x => x.values)) 
@@ -380,7 +380,7 @@ trait ParameterizedValueLookupService_lookupConfigurationRuleParameterization ex
          else Full("OK")
        }
        okNoParameterizedVariables <- {
-         if(containsParameterizedValue(values)) Failure("A parameterized value for variable %s in configuration rule %s is parameterized and is used as a target of another configuration rule. That is not supported".format(sourceVariableSpec.name, crv.configurationRuleId))
+         if(containsParameterizedValue(values)) Failure("A parameterized value for variable %s in configuration rule %s is parameterized and is used as a target of another configuration rule. That is not supported".format(sourceVariableSpec.name, crv.ruleId))
          else Full("OK") 
        }
      } yield {

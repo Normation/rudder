@@ -42,6 +42,7 @@ import com.normation.rudder.domain.servers.Srv
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.Constants
 
 
 /**
@@ -62,9 +63,7 @@ sealed trait AssetEventLog extends EventLog { override final val eventLogCategor
 sealed trait InventoryEventLog extends AssetEventLog 
 
 object InventoryEventLog {
-  
-  val xmlVersion = "1.0"
-    
+      
   /**
    * Print to XML an inventory details, used
    * for "accept" and "refuse" actions. 
@@ -74,7 +73,7 @@ object InventoryEventLog {
     , action    : String
   ) = {
     scala.xml.Utility.trim(
-      <node action={action} fileFormat={xmlVersion}>
+      <node action={action} fileFormat={Constants.XML_FILE_FORMAT_2_0}>
         <id>{logDetails.nodeId.value}</id>
         <inventoryVersion>{logDetails.inventoryVersion}</inventoryVersion>
         <hostname>{logDetails.hostname}</hostname>
@@ -166,7 +165,7 @@ object NodeEventLog {
     , action: String
   ) = {
     scala.xml.Utility.trim(
-      <node action={action} fileFormat={xmlVersion}>
+      <node action={action} fileFormat={Constants.XML_FILE_FORMAT_2_0}>
         <id>{node.id.value}</id>
         <name>{node.name}</name>
         <hostname>{node.hostname}</hostname>

@@ -66,7 +66,7 @@ class NodeGroupCategoryForm(
 
   var _nodeGroupCategory = nodeGroupCategory.copy()
 
-  val groupCategoryRepository = inject[GroupCategoryRepository]
+  val groupCategoryRepository = inject[NodeGroupCategoryRepository]
   
   val categories = groupCategoryRepository.getAllNonSystemCategories.open_!.filter(x => x.id != _nodeGroupCategory.id)
   val parentCategory = groupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id )
@@ -86,15 +86,15 @@ class NodeGroupCategoryForm(
      
   def showForm() : NodeSeq = {
      val html = SHtml.ajaxForm(<fieldset class="groupCategoryUpdateComponent"><legend>Category: {nodeGroupCategory.name}</legend>
-     <pi:notifications />
+     <directive:notifications />
      <hr class="spacer"/>
-     <pi:name/>
+     <directive:name/>
      <hr class="spacer"/>
-     <pi:description/>
+     <directive:description/>
      <hr class="spacer"/>
-     <pi:container/>
+     <directive:container/>
      <hr class="spacer"/>
-     <div class="margins" align="right"><pi:save/> <pi:delete/></div>
+     <div class="margins" align="right"><directive:save/> <directive:delete/></div>
      </fieldset>) ++ Script(JsRaw("correctButtons();"))
 
     if (_nodeGroupCategory.isSystem) {
@@ -103,7 +103,7 @@ class NodeGroupCategoryForm(
       } } &
         "textarea" #> {(n:NodeSeq) => n match {
         case input: Elem => input % ("disabled", "true")
-      } }) (bind("pi", html,
+      } }) (bind("directive", html,
         "name" -> piName.toForm_! ,
         "description" -> piDescription.toForm_!,
         "container" -> piContainer.toForm_!,
@@ -112,7 +112,7 @@ class NodeGroupCategoryForm(
         "notifications" -> updateAndDisplayNotifications()
       ))
     } else {
-       bind("pi", html,
+       bind("directive", html,
         "name" -> piName.toForm_!,
         "description" -> piDescription.toForm_!,
         "container" -> piContainer.toForm_!,

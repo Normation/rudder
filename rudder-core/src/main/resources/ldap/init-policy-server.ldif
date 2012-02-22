@@ -52,7 +52,7 @@
 ###############################################################################
 
 #######################################################################################################################
-## Root Policy Server
+## Root Policy Node
 #######################################################################################################################
 
 
@@ -115,15 +115,15 @@ isDynamic: FALSE
 nodeGroupId: hasPolicyServer-root
 nodeId: root
 isSystem: TRUE
-isActivated: TRUE
+isEnabled: TRUE
 
-dn: configurationRuleTarget=policyServer:root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
-objectClass: specialConfigurationRuleTarget
+dn: ruleTarget=policyServer:root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialRuleTarget
 objectClass: top
-configurationRuleTarget: policyServer:root
+ruleTarget: policyServer:root
 cn: Root policy server
 description: A special target which only matches the policy server with the ID given after the semicolon
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: TRUE
 
 
@@ -131,70 +131,68 @@ isSystem: TRUE
 ## Policy instances
 #######################################################################################################################
 
-dn: policyInstanceId=root-distributePolicy,userPolicyTemplateId=distributePolicy,policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
-objectClass: policyInstance
+dn: directiveId=root-distributePolicy,activeTechniqueId=distributePolicy,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
 objectClass: top
-policyInstanceId: root-distributePolicy
+directiveId: root-distributePolicy
 cn: Distribute Policy
 description: Distribute policy - Technical
-referencePolicyTemplateVersion: 0:1.0
-isActivated: TRUE
+techniqueVersion: 0:1.0
+isEnabled: TRUE
 isSystem: TRUE
-policyInstancePriority: 0
-policyInstanceVariable: SERVINGIP[0]:%%POLICY_SERVER_IP%%
+directivePriority: 0
+directiveVariable: SERVINGIP[0]:%%POLICY_SERVER_IP%%
 
 # common (has policy server)
 
-dn: policyInstanceId=common-root,userPolicyTemplateId=common,policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
-objectClass: policyInstance
+dn: directiveId=common-root,activeTechniqueId=common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
 objectClass: top
-policyInstanceId: common-root
+directiveId: common-root
 cn: Common
 description: Common - Technical
-referencePolicyTemplateVersion: 0:1.0
-isActivated: TRUE
+techniqueVersion: 0:1.0
+isEnabled: TRUE
 isSystem: TRUE
-policyInstancePriority: 0
-policyInstanceVariable: OWNER[0]:${node.admin}
-policyInstanceVariable: UUID[0]:${node.id}
-policyInstanceVariable: POLICYSERVER[0]:%%POLICY_SERVER_HOSTNAME%%
-policyInstanceVariable: POLICYSERVER_ID[0]:root
-policyInstanceVariable: POLICYSERVER_ADMIN[0]:root
-policyInstanceVariable: ALLOWEDNETWORK[0]:%%POLICY_SERVER_ALLOWED_NETWORKS%%
-policyInstanceVariable: POLICYCHILDREN[0]:${hasPolicyServer-root.target.hostname}
-policyInstanceVariable: ADMIN[0]:${hasPolicyServer-root.target.admin}
-policyInstanceVariable: CHILDRENID[0]:${hasPolicyServer-root.target.id}
+directivePriority: 0
+directiveVariable: OWNER[0]:${node.admin}
+directiveVariable: UUID[0]:${node.id}
+directiveVariable: POLICYSERVER[0]:%%POLICY_SERVER_HOSTNAME%%
+directiveVariable: POLICYSERVER_ID[0]:root
+directiveVariable: POLICYSERVER_ADMIN[0]:root
+directiveVariable: ALLOWEDNETWORK[0]:%%POLICY_SERVER_ALLOWED_NETWORKS%%
+directiveVariable: POLICYCHILDREN[0]:${hasPolicyServer-root.target.hostname}
+directiveVariable: ADMIN[0]:${hasPolicyServer-root.target.admin}
+directiveVariable: CHILDRENID[0]:${hasPolicyServer-root.target.id}
 
 
 #######################################################################################################################
-## Configuration rule library
+## Rules
 #######################################################################################################################
 
-# CR
-
-dn: configurationRuleId=root-DP,ou=Configuration Rules,ou=Rudder,cn=rudder-configuration
-objectClass: configurationRule
+dn: ruleId=root-DP,ou=Rules,ou=Rudder,cn=rudder-configuration
+objectClass: rule
 objectClass: top
-configurationRuleId: root-DP
-configurationRuleTarget: policyServer:root
-policyInstanceId: root-distributePolicy
+ruleId: root-DP
+ruleTarget: policyServer:root
+directiveId: root-distributePolicy
 cn: distributePolicy
 description: Distribute Policy - Technical
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: TRUE
-longDescription: This CR is to distribute policies to the hosts
+longDescription: This rule allows to distribute policies to nodes
 serial: 0
 
-dn: configurationRuleId=hasPolicyServer-root,ou=Configuration Rules,ou=Rudder,cn=rudder-configuration
-objectClass: configurationRule
+dn: ruleId=hasPolicyServer-root,ou=Rules,ou=Rudder,cn=rudder-configuration
+objectClass: rule
 objectClass: top
-configurationRuleId: hasPolicyServer-root
-configurationRuleTarget: group:hasPolicyServer-root
-policyInstanceId: common-root
+ruleId: hasPolicyServer-root
+ruleTarget: group:hasPolicyServer-root
+directiveId: common-root
 cn: Rudder system policy: basic setup (common)
 description: Common - Technical
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: TRUE
-longDescription: This CR is the basic CR all nodes must have
+longDescription: This is the basic system rule which all nodes must have.
 serial: 0
 

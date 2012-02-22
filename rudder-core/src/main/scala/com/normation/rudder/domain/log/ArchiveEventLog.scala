@@ -6,9 +6,9 @@ import org.joda.time.DateTime
 import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.repository.NodeGroupCategoryContent
-import com.normation.rudder.repository.UptCategoryContent
-import com.normation.rudder.repository.jdbc.ConfigurationRules
-import com.normation.rudder.domain.policies.ConfigurationRule
+import com.normation.rudder.repository.ActiveTechniqueCategoryContent
+import com.normation.rudder.repository.jdbc.Rules
+import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.repository.GitPath
 import com.normation.rudder.repository.GitArchiveId
 import com.normation.rudder.repository.GitCommitId
@@ -84,69 +84,69 @@ object ImportGroupsArchive extends EventLogFilter {
   val tagName = "RestoreGroupsArchive"
 }
 
-final case class ExportPolicyLibraryArchive(
+final case class ExportTechniqueLibraryArchive(
     override val eventDetails : EventLogDetails
 ) extends ExportEventLog with HashcodeCaching {
-  override val eventType = ExportPolicyLibraryArchive.eventType
+  override val eventType = ExportTechniqueLibraryArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
       principal = actor
-    , details = ExportPolicyLibraryArchive.buildDetails(gitArchiveId)
+    , details = ExportTechniqueLibraryArchive.buildDetails(gitArchiveId)
   ))
 }
 
-object ExportPolicyLibraryArchive extends EventLogFilter {
-  override val eventType = ExportPolicyLibraryEventType
+object ExportTechniqueLibraryArchive extends EventLogFilter {
+  override val eventType = ExportTechniqueLibraryEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ExportPolicyLibraryArchive = ExportPolicyLibraryArchive(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ExportTechniqueLibraryArchive = ExportTechniqueLibraryArchive(x._2) 
   
   def buildDetails(gitArchiveId:GitArchiveId) = 
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
     
-  val tagName = "NewPolicyLibraryArchive"
+  val tagName = "NewTechniqueLibraryArchive"
 }
 
-final case class ImportPolicyLibraryArchive(
+final case class ImportTechniqueLibraryArchive(
     override val eventDetails : EventLogDetails
 ) extends ImportEventLog with HashcodeCaching {
-  override val eventType = ImportPolicyLibraryArchive.eventType
+  override val eventType = ImportTechniqueLibraryArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
       principal = actor
-    , details = ImportPolicyLibraryArchive.buildDetails(gitCommitId)
+    , details = ImportTechniqueLibraryArchive.buildDetails(gitCommitId)
   ))
 }
 
-object ImportPolicyLibraryArchive extends EventLogFilter {
-  override val eventType = ImportPolicyLibraryEventType
+object ImportTechniqueLibraryArchive extends EventLogFilter {
+  override val eventType = ImportTechniqueLibraryEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ImportPolicyLibraryArchive = ImportPolicyLibraryArchive(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ImportTechniqueLibraryArchive = ImportTechniqueLibraryArchive(x._2) 
 
   def buildDetails(gitCommitId:GitCommitId) =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
   
-  val tagName = "RestorePolicyLibraryArchive"
+  val tagName = "RestoreTechniqueLibraryArchive"
 }
 
 
-final case class ExportConfigurationRulesArchive(
+final case class ExportRulesArchive(
     override val eventDetails : EventLogDetails
 ) extends ExportEventLog with HashcodeCaching {
-  override val eventType = ExportConfigurationRulesArchive.eventType
+  override val eventType = ExportRulesArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
       principal = actor
-    , details = ExportConfigurationRulesArchive.buildDetails(gitArchiveId)
+    , details = ExportRulesArchive.buildDetails(gitArchiveId)
   ))
 }
 
-object ExportConfigurationRulesArchive extends EventLogFilter {
-  override val eventType = ExportConfigurationRulesEventType
+object ExportRulesArchive extends EventLogFilter {
+  override val eventType = ExportRulesEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ExportConfigurationRulesArchive = ExportConfigurationRulesArchive(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ExportRulesArchive = ExportRulesArchive(x._2) 
 
   def buildDetails(gitArchiveId:GitArchiveId) = 
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
@@ -154,27 +154,27 @@ object ExportConfigurationRulesArchive extends EventLogFilter {
   val tagName = "NewGroupsArchive"
 }
 
-final case class ImportConfigurationRulesArchive(
+final case class ImportRulesArchive(
     override val eventDetails : EventLogDetails
 ) extends ImportEventLog with HashcodeCaching {
-  override val eventType = ImportConfigurationRulesArchive.eventType
+  override val eventType = ImportRulesArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
       principal = actor
-    , details = ImportConfigurationRulesArchive.buildDetails(gitCommitId)
+    , details = ImportRulesArchive.buildDetails(gitCommitId)
   ))
 }
 
-object ImportConfigurationRulesArchive extends EventLogFilter {
-  override val eventType = ImportConfigurationRulesEventType
+object ImportRulesArchive extends EventLogFilter {
+  override val eventType = ImportRulesEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ImportConfigurationRulesArchive = ImportConfigurationRulesArchive(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ImportRulesArchive = ImportRulesArchive(x._2) 
 
   def buildDetails(gitCommitId:GitCommitId) =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
 
-  val tagName = "RestoreConfigurationRulesArchive"
+  val tagName = "RestoreRulesArchive"
 }
 
 final case class ExportFullArchive(
@@ -226,12 +226,12 @@ object ImportFullArchive extends EventLogFilter {
 object ImportExportEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
       ExportGroupsArchive 
-    , ExportPolicyLibraryArchive
-    , ExportConfigurationRulesArchive
+    , ExportTechniqueLibraryArchive
+    , ExportRulesArchive
     , ExportFullArchive
     , ImportGroupsArchive 
-    , ImportPolicyLibraryArchive
-    , ImportConfigurationRulesArchive
+    , ImportTechniqueLibraryArchive
+    , ImportRulesArchive
     , ImportFullArchive
     )
 }

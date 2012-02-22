@@ -51,19 +51,19 @@ trait PathComputer {
    * the searched server will fetch, and the backup folder
    * Finish by the server name, with no trailing /
    * Ex : /opt/hive/cfserved/serverA/served/serverB, /opt/hive/backup/serverA/served/serverB
-   * @param searchedServer : the server we search
+   * @param searchedNode : the server we search
    * @return
    */  
-  def computeBaseServerPath(searchedServer : NodeConfiguration) :  (String, String)
+  def computeBaseNodePath(searchedNode : NodeConfiguration) :  (String, String)
 
   /**
    * compute the relative path from one server to another
    * typically, something like '/served/serverB/served/serverC'
-   * @param fromServer e.g serverA
-   * @param toServer e.g serverC
+   * @param fromNode e.g serverA
+   * @param toNode e.g serverC
    * @return
    */
-  def computeRelativePath(fromServer : NodeConfiguration, toServer : NodeConfiguration) : String
+  def computeRelativePath(fromNode : NodeConfiguration, toNode : NodeConfiguration) : String
 
 
   /**

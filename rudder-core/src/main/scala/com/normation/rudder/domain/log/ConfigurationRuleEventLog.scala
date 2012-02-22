@@ -43,53 +43,53 @@ import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
 
 
-sealed trait ConfigurationRuleEventLog extends EventLog { override final val eventLogCategory = ConfigurationRuleLogCategory }
+sealed trait RuleEventLog extends EventLog { override final val eventLogCategory = RuleLogCategory }
 
-final case class AddConfigurationRule(
+final case class AddRule(
     override val eventDetails : EventLogDetails
-) extends ConfigurationRuleEventLog with HashcodeCaching {
-  override val eventType = AddConfigurationRule.eventType
+) extends RuleEventLog with HashcodeCaching {
+  override val eventType = AddRule.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object AddConfigurationRule extends EventLogFilter {
-  override val eventType = AddConfigurationRuleEventType
+object AddRule extends EventLogFilter {
+  override val eventType = AddRuleEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : AddConfigurationRule = AddConfigurationRule(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : AddRule = AddRule(x._2) 
 }
 
 
-final case class DeleteConfigurationRule(
+final case class DeleteRule(
     override val eventDetails : EventLogDetails
-) extends ConfigurationRuleEventLog with HashcodeCaching {
-  override val eventType = DeleteConfigurationRule.eventType
+) extends RuleEventLog with HashcodeCaching {
+  override val eventType = DeleteRule.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object DeleteConfigurationRule extends EventLogFilter {
-  override val eventType = DeleteConfigurationRuleEventType
+object DeleteRule extends EventLogFilter {
+  override val eventType = DeleteRuleEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : DeleteConfigurationRule = DeleteConfigurationRule(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : DeleteRule = DeleteRule(x._2) 
 }
 
 
-final case class ModifyConfigurationRule(
+final case class ModifyRule(
     override val eventDetails : EventLogDetails
-) extends ConfigurationRuleEventLog with HashcodeCaching {
-  override val eventType = ModifyConfigurationRule.eventType
+) extends RuleEventLog with HashcodeCaching {
+  override val eventType = ModifyRule.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object ModifyConfigurationRule extends EventLogFilter {
-  override val eventType = ModifyConfigurationRuleEventType
+object ModifyRule extends EventLogFilter {
+  override val eventType = ModifyRuleEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyConfigurationRule = ModifyConfigurationRule(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyRule = ModifyRule(x._2) 
 }
 
-object ConfigurationRuleEventLogsFilter {
+object RuleEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      AddConfigurationRule 
-    , DeleteConfigurationRule 
-    , ModifyConfigurationRule
+      AddRule 
+    , DeleteRule 
+    , ModifyRule
     )
 }

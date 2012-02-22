@@ -25,7 +25,7 @@
 #
 #
 # This file contains schema definitions from RFC 4876, which defines a schema # for storing Directory User Agent (DUA) profiles and preferences in the
-# Directory Server.
+# Directory Node.
 #
 # Example profile
 # dn: ou=profile,dc=example,dc=com
@@ -37,7 +37,7 @@
 # objectClass: top
 # objectClass: DUAConfigProfile
 # cn: Solaris
-# defaultServerList: ldap1.example.com ldap2.example.com
+# defaultNodeList: ldap1.example.com ldap2.example.com
 # defaultSearchBase: dc=example,dc=com
 # defaultSearchScope: one
 # searchTimeLimit: 30
@@ -51,14 +51,14 @@ dn: cn=schema
 objectClass: top
 objectClass: ldapSubentry
 objectClass: subschema
-attributeTypes: ( 1.3.6.1.4.1.11.1.3.1.1.0 NAME 'defaultServerList'
+attributeTypes: ( 1.3.6.1.4.1.11.1.3.1.1.0 NAME 'defaultNodeList'
   DESC 'List of default servers' EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   SINGLE-VALUE X-ORIGIN 'RFC 4876' )
 attributeTypes: ( 1.3.6.1.4.1.11.1.3.1.1.1 NAME 'defaultSearchBase'
   DESC 'Default base for searches' EQUALITY distinguishedNameMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE X-ORIGIN 'RFC 4876' )
-attributeTypes: ( 1.3.6.1.4.1.11.1.3.1.1.2 NAME 'preferredServerList'
+attributeTypes: ( 1.3.6.1.4.1.11.1.3.1.1.2 NAME 'preferredNodeList'
   DESC 'List of preferred servers' EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   SINGLE-VALUE X-ORIGIN 'RFC 4876' )
@@ -119,7 +119,7 @@ attributeTypes: ( 1.3.6.1.4.1.11.1.3.1.1.16 NAME 'dereferenceAliases'
   1.3.6.1.4.1.1466.115.121.1.7 SINGLE-VALUE X-ORIGIN 'RFC 4876' )
 objectClasses: ( 1.3.6.1.4.1.11.1.3.1.2.5 NAME 'DUAConfigProfile'
   SUP top STRUCTURAL DESC 'Abstraction of a base configuration for a DUA'
-  MUST ( cn ) MAY ( defaultServerList $ preferredServerList $
+  MUST ( cn ) MAY ( defaultNodeList $ preferredNodeList $
   defaultSearchBase $ defaultSearchScope $ searchTimeLimit $ bindTimeLimit $
   credentialLevel $ authenticationMethod $ followReferrals $
   dereferenceAliases $ serviceSearchDescriptor $ serviceCredentialLevel $

@@ -152,7 +152,7 @@ class TestQueryProcessor extends Loggable {
     testQueries( q0 :: q1 :: q2 :: Nil)
   }
   
-  @Test def basicQueriesOnOneServerParameter() {
+  @Test def basicQueriesOnOneNodeParameter() {
     // only two servers have RAM: server1(RAM) = 10000000, server2(RAM) = 1
     
     val q2_0 = TestQuery(

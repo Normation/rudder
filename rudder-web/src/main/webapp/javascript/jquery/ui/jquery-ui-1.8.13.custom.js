@@ -10579,7 +10579,7 @@ $.fn.extend({
 	// helper functions
 	cssUnit: function(key) {
 		var style = this.css(key), val = [];
-		$.each( ['em','px','%','pt'], function(i, unit){
+		$.each( ['em','px','%','technique'], function(i, unit){
 			if(style.indexOf(unit) > 0)
 				val = [parseFloat(style), unit];
 		});

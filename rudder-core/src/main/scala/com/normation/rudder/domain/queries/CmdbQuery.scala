@@ -389,13 +389,13 @@ case object GroupOfDnsComparator extends CriterionType {
   import com.normation.inventory.ldap.core._
 
   lazy val ldap = inject[LDAPConnectionProvider]
-  lazy val acceptedServersDit = inject[Dit]("acceptedServersDit")
+  lazy val acceptedNodesDit = inject[Dit]("acceptedNodesDit")
   /*
    * Find group names from the LDAP
    * Groups are denoted by map (name,dispayName)
    */
   def groups:Map[String,String] = ldap map { con =>
-    con.searchSub(acceptedServersDit.GROUPS.dn, EQ(A_OC,OC_GROUP_OF_DNS),A_NAME).map{ e => 
+    con.searchSub(acceptedNodesDit.GROUPS.dn, EQ(A_OC,OC_GROUP_OF_DNS),A_NAME).map{ e => 
       val name = e(A_NAME).getOrElse("") 
       (name -> toDisplayName(name,e.dn)) 
     }.toMap
@@ -406,7 +406,7 @@ case object GroupOfDnsComparator extends CriterionType {
   }
   
   private def toDisplayName(name:String,dn:DN) : String = {
-    val base : List[RDN] = acceptedServersDit.GROUPS.dn
+    val base : List[RDN] = acceptedNodesDit.GROUPS.dn
     val parents = (dn.getParent:List[RDN]).filter(x => !base.contains(x)).
       map(rdn => rdn.getAttributeValues()(0))
     (name :: parents).reverse.mkString(" \u2192 ") // a nice ->

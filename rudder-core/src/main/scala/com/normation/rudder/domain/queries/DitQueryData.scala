@@ -276,7 +276,7 @@ case class LDAPObjectType(
     "slotPhysicalElement" -> QueryMachineDn,
     "soundCardPhysicalElement" -> QueryMachineDn,
     "videoCardPhysicalElement" -> QueryMachineDn
-    //,"groupOfDns" -> QueryServerDn
+    //,"groupOfDns" -> QueryNodeDn
   )
 
   //Join attribute between Kind

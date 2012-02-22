@@ -57,10 +57,10 @@ import JE._
 import net.liftweb.http.SHtml._
 import net.liftweb.json._
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.repository.GroupCategoryRepository
+import com.normation.rudder.repository.NodeGroupCategoryRepository
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.rudder.domain.policies.PolicyInstanceTargetInfo
+import com.normation.rudder.domain.policies.RuleTargetInfo
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.repository.NodeGroupRepository
 import com.normation.rudder.domain.nodes.NodeGroupCategory
@@ -85,7 +85,7 @@ object Groups {
 class Groups extends StatefulSnippet with Loggable {
   import Groups._
   
-  private[this] val groupCategoryRepository = inject[GroupCategoryRepository]
+  private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
   private[this] val nodeGroupRepository = inject[NodeGroupRepository]
   
   var dispatch : DispatchIt = {
@@ -396,7 +396,7 @@ class Groups extends StatefulSnippet with Loggable {
   }
   
   //fetch server group id and transform it to a tree node
-  private implicit def policyTargetInfoToJsTreeNode(targetInfo:PolicyInstanceTargetInfo) : JsTreeNode = {
+  private implicit def policyTargetInfoToJsTreeNode(targetInfo:RuleTargetInfo) : JsTreeNode = {
     targetInfo.target match {
       case GroupTarget(id) => 
         nodeGroupRepository.getNodeGroup(id) match {

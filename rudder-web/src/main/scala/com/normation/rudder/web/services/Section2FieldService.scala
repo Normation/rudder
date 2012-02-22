@@ -35,7 +35,7 @@
 package com.normation.rudder.web.services
 
 import bootstrap.liftweb._
-import com.normation.rudder.domain.policies.PolicyInstanceId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.web.model._
 import scala.xml._
 import net.liftweb.common._
@@ -55,19 +55,19 @@ import com.normation.utils.HashcodeCaching
  * so all information have to be given.
  *
  */
-class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators: Translators) {
+class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translators: Translators) {
 
   val logger = LoggerFactory.getLogger(classOf[Section2FieldService])
 
 
   /**
-   * Fully initialize a PolicyEditor from a list of variables
+   * Fully initialize a DirectiveEditor from a list of variables
    */
-  def initPolicyEditor(
-      policy          : PolicyPackage
-    , policyInstanceId: PolicyInstanceId
+  def initDirectiveEditor(
+      policy          : Technique
+    , directiveId: DirectiveId
     , vars            : Seq[Variable]
-  ): Box[PolicyEditor] = {
+  ): Box[DirectiveEditor] = {
     
     val valuesByName = vars.map(v => (v.spec.name, v.values)).toMap
     val variableSpecs = vars.map(v => (v.spec.name -> v.spec)).toMap
@@ -76,11 +76,11 @@ class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators
     //a policy is a new one if we don't have any saved values
     //Don't forget that we may have empty saved value.
     val isNewPolicy = valuesByName.size < 1 || valuesByName.forall { case (n,vals) => vals.size < 1 }
-    logger.debug("Is it a new pi ? " + isNewPolicy)
+    logger.debug("Is it a new directive ? " + isNewPolicy)
     
     val sectionField = createSectionField(sections, valuesByName, isNewPolicy)
 
-    Full(PolicyEditor(policy.id, policyInstanceId, policy.name, policy.description, sectionField, variableSpecs))
+    Full(DirectiveEditor(policy.id, directiveId, policy.name, policy.description, sectionField, variableSpecs))
   }
   
   // --------------------------------------------
@@ -134,7 +134,7 @@ class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators
     // only variables of the current section
     var varMappings = Map[String, () => String]()
 
-    def createVarField(varSpec: VariableSpec, valueOpt: Option[String]): PolicyField = {
+    def createVarField(varSpec: VariableSpec, valueOpt: Option[String]): DirectiveField = {
       val fieldKey = varSpec.name
       val field = fieldFactory.forType(varSpec, fieldKey)
 
@@ -176,7 +176,7 @@ class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators
     // only variables of the current section
     var varMappings = Map[String, () => String]()
 
-    def createVarField(varSpec: SectionVariableSpec, valueOpt: Option[String]): PolicyField = {
+    def createVarField(varSpec: SectionVariableSpec, valueOpt: Option[String]): DirectiveField = {
       val fieldKey = varSpec.name
       val field = fieldFactory.forType(varSpec, fieldKey)
 
@@ -246,7 +246,7 @@ class Section2FieldService(val fieldFactory: PolicyFieldFactory, val translators
 
   private def setValueForField(
     value: String,
-    currentField: PolicyField,
+    currentField: DirectiveField,
     unserializer: Unserializer[_]): Unit = {
     //if the var is not a GUI only var, just find the field unserializer and use it
     unserializer.get("self") match {

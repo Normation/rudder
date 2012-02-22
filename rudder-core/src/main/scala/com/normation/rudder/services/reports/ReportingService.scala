@@ -35,14 +35,14 @@
 package com.normation.rudder.services.reports
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.ConfigurationRuleId
-import com.normation.rudder.domain.reports.ConfigurationExpectedReports
-import com.normation.rudder.domain.policies.ConfigurationRuleVal
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.reports.RuleExpectedReports
+import com.normation.rudder.domain.policies.RuleVal
 import com.normation.rudder.domain.transporter._
 import net.liftweb.common.Box
 import com.normation.rudder.domain.reports.bean._
 import org.joda.time._
-import com.normation.cfclerk.domain.{CFCPolicyInstanceId}
+import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
 
 /**
  * The reporting service. It is used to 
@@ -57,22 +57,22 @@ trait ReportingService {
 
   /**
    * Update the list of expected reports when we do a deployment
-   * For each ConfigurationRuleVal, we check if it was present or modified
+   * For each RuleVal, we check if it was present or modified
    * If it was present and not changed, nothing is done for it
    * If it changed, then the previous version is closed, and the new one is opened
 
    *   
-   * @param configurationRuleVal
+   * @param ruleVal
    * @return
    */
-  def updateExpectedReports(configurationRuleVal : Seq[ConfigurationRuleVal], deletedCrs : Seq[ConfigurationRuleId]) : Box[Seq[ConfigurationExpectedReports]]
+  def updateExpectedReports(ruleVal : Seq[RuleVal], deletedCrs : Seq[RuleId]) : Box[Seq[RuleExpectedReports]]
   
   
     
   /**
    * Returns the operation reports for a configuration rule (for all servers)
    */
-  def findReportsByConfigurationRule(configurationRuleId : ConfigurationRuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch]
+  def findReportsByRule(ruleId : RuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch]
   
   /**
    * Returns the reports for a server (for all policy instance)
@@ -83,18 +83,18 @@ trait ReportingService {
    * Find the latest reports for a given configuration rule (for all servers)
    * Note : if there is an expected report, and that we don't have it, we should say that it is empty
    */
-  def findImmediateReportsByConfigurationRule(configurationRuleId : ConfigurationRuleId) : Option[ExecutionBatch]
+  def findImmediateReportsByRule(ruleId : RuleId) : Option[ExecutionBatch]
   
   /**
    *  find the last reports for a given node, for a sequence of policyinstance
    *  look for each CR for the current report
    */
-  def findImmediateReportsByNodeAndCrs(nodeId : NodeId, configurationRuleIds : Seq[ConfigurationRuleId]) : Seq[ExecutionBatch]
+  def findImmediateReportsByNodeAndCrs(nodeId : NodeId, ruleIds : Seq[RuleId]) : Seq[ExecutionBatch]
   
    /**
    *  find the last reports for a given server
    */
-  def findCurrentReportsByServer(nodeId : NodeId) : Seq[ExecutionBatch]
+  def findCurrentReportsByNode(nodeId : NodeId) : Seq[ExecutionBatch]
   
   /**
    * Find the latest (15 minutes) reports for a given node (all CR)

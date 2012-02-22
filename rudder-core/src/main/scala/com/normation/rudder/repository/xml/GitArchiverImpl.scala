@@ -34,7 +34,7 @@
 
 package com.normation.rudder.repository.xml
 
-import com.normation.cfclerk.domain.PolicyPackageName
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.exceptions.TechnicalException
@@ -43,9 +43,9 @@ import com.normation.rudder.repository._
 import com.normation.rudder.services.marshalling._
 import com.normation.utils.Utils
 import com.normation.utils.Control.sequence
-import com.normation.cfclerk.domain.PolicyPackage
-import com.normation.cfclerk.services.PolicyPackageService
-import com.normation.rudder.repository.PolicyInstanceRepository
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.rudder.repository.DirectiveRepository
 import com.normation.rudder.domain.Constants.{
     CONFIGURATION_RULES_ARCHIVE_TAG
   , GROUPS_ARCHIVE_TAG
@@ -69,37 +69,37 @@ import scala.collection.mutable.Buffer
 import scala.collection.JavaConversions._
 
 
-class GitConfigurationRuleArchiverImpl(
+class GitRuleArchiverImpl(
     override val gitRepo            : GitRepositoryProvider
   , override val gitRootDirectory   : File
-  , configurationRuleSerialisation  : ConfigurationRuleSerialisation
-  , configurationRuleRootDir        : String //relative path !
+  , ruleSerialisation  : RuleSerialisation
+  , ruleRootDir        : String //relative path !
   , override val xmlPrettyPrinter   : PrettyPrinter
   , override val encoding           : String = "UTF-8"
 ) extends 
-  GitConfigurationRuleArchiver with 
+  GitRuleArchiver with 
   Loggable with 
   GitArchiverUtils with 
   GitArchiverFullCommitUtils 
 {
 
 
-  override val relativePath = configurationRuleRootDir
+  override val relativePath = ruleRootDir
   override val tagPrefix = "archives/configurations-rules/"
   
-  private[this] def newCrFile(crId:ConfigurationRuleId) = new File(getRootDirectory, crId.value + ".xml")
+  private[this] def newCrFile(ruleId:RuleId) = new File(getRootDirectory, ruleId.value + ".xml")
   
-  def archiveConfigurationRule(cr:ConfigurationRule, gitCommitCr:Option[PersonIdent]) : Box[GitPath] = {
-    val crFile = newCrFile(cr.id)
+  def archiveRule(rule:Rule, doCommit:Option[PersonIdent]) : Box[GitPath] = {
+    val crFile = newCrFile(rule.id)
     val gitPath = toGitPath(crFile)
     for {   
       archive <- writeXml(
                      crFile
-                   , configurationRuleSerialisation.serialise(cr)
+                   , ruleSerialisation.serialise(rule)
                    , "Archived Configuration rule: " + crFile.getPath
                  )
-      commit  <- gitCommitCr match {
-                   case Some(commiter) => commitAddFile(commiter, gitPath, "Archive configuration rule with ID '%s'".format(cr.id.value))
+      commit  <- doCommit match {
+                   case Some(commiter) => commitAddFile(commiter, gitPath, "Archive configuration rule with ID '%s'".format(rule.id.value))
                    case None => Full("ok")
                  }
     } yield {
@@ -107,15 +107,15 @@ class GitConfigurationRuleArchiverImpl(
     }
   }
 
-  def commitConfigurationRules(commiter:PersonIdent) : Box[GitArchiveId] = {
+  def commitRules(commiter:PersonIdent) : Box[GitArchiveId] = {
     this.commitFullGitPathContentAndTag(
         commiter
-      , CONFIGURATION_RULES_ARCHIVE_TAG + " Commit all modification done on configuration rules (git path: '%s')".format(configurationRuleRootDir)
+      , CONFIGURATION_RULES_ARCHIVE_TAG + " Commit all modification done on configuration rules (git path: '%s')".format(ruleRootDir)
     )
   }
   
-  def deleteConfigurationRule(crId:ConfigurationRuleId, gitCommitCr:Option[PersonIdent]) : Box[GitPath] = {
-    val crFile = newCrFile(crId)
+  def deleteRule(ruleId:RuleId, doCommit:Option[PersonIdent]) : Box[GitPath] = {
+    val crFile = newCrFile(ruleId)
     val gitPath = toGitPath(crFile)
     if(crFile.exists) {
       for {
@@ -123,8 +123,8 @@ class GitConfigurationRuleArchiverImpl(
                       FileUtils.forceDelete(crFile) 
                       logger.debug("Deleted archive of configuration rule: " + crFile.getPath)
                     }
-        commited <- gitCommitCr match {
-                      case Some(commiter) => commitRmFile(commiter, gitPath, "Delete archive of configuration rule with ID '%s'".format(crId.value))
+        commited <- doCommit match {
+                      case Some(commiter) => commitRmFile(commiter, gitPath, "Delete archive of configuration rule with ID '%s'".format(ruleId.value))
                       case None => Full("OK")
                     }
       } yield {
@@ -171,42 +171,42 @@ trait BuildCategoryPathName[T] {
  * A specific trait to create archive of an user policy template category.
  * 
  * Basically, we directly map the category tree to file-system directories,
- * with the root category being the file denoted by "policyLibraryRootDir"
+ * with the root category being the file denoted by "techniqueLibraryRootDir"
  * 
  */
-class GitUserPolicyTemplateCategoryArchiverImpl(
-    override val gitRepo                   : GitRepositoryProvider
-  , override val gitRootDirectory          : File
-  , userPolicyTemplateCategorySerialisation: UserPolicyTemplateCategorySerialisation
-  , policyLibraryRootDir                   : String //relative path !
-  , override val xmlPrettyPrinter          : PrettyPrinter
-  , override val encoding                  : String = "UTF-8"
-  , serializedCategoryName                 : String = "category.xml"
+class GitActiveTechniqueCategoryArchiverImpl(
+    override val gitRepo                : GitRepositoryProvider
+  , override val gitRootDirectory       : File
+  , activeTechniqueCategorySerialisation: ActiveTechniqueCategorySerialisation
+  , techniqueLibraryRootDir                : String //relative path !
+  , override val xmlPrettyPrinter       : PrettyPrinter
+  , override val encoding               : String = "UTF-8"
+  , serializedCategoryName              : String = "category.xml"
 ) extends 
-  GitUserPolicyTemplateCategoryArchiver with 
+  GitActiveTechniqueCategoryArchiver with 
   Loggable with 
   GitArchiverUtils with 
-  BuildCategoryPathName[UserPolicyTemplateCategoryId] with 
+  BuildCategoryPathName[ActiveTechniqueCategoryId] with 
   GitArchiverFullCommitUtils 
 {
 
 
-  override lazy val relativePath = policyLibraryRootDir
-  override def  getCategoryName(categoryId:UserPolicyTemplateCategoryId) = categoryId.value
+  override lazy val relativePath = techniqueLibraryRootDir
+  override def  getCategoryName(categoryId:ActiveTechniqueCategoryId) = categoryId.value
   
-  override lazy val tagPrefix = "archives/policy-library/"
+  override lazy val tagPrefix = "archives/directives/"
   
-  private[this] def newUptcFile(uptcId:UserPolicyTemplateCategoryId, parents: List[UserPolicyTemplateCategoryId]) = {
+  private[this] def newActiveTechniquecFile(uptcId:ActiveTechniqueCategoryId, parents: List[ActiveTechniqueCategoryId]) = {
     new File(newCategoryDirectory(uptcId, parents), serializedCategoryName) 
   }
   
-  private[this] def archiveWithRename(uptc:UserPolicyTemplateCategory, oldParents: Option[List[UserPolicyTemplateCategoryId]], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {     
-    val uptcFile = newUptcFile(uptc.id, newParents)
+  private[this] def archiveWithRename(uptc:ActiveTechniqueCategory, oldParents: Option[List[ActiveTechniqueCategoryId]], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {     
+    val uptcFile = newActiveTechniquecFile(uptc.id, newParents)
     val gitPath = toGitPath(uptcFile)
     for {
       archive     <- writeXml(
                          uptcFile
-                       , userPolicyTemplateCategorySerialisation.serialise(uptc)
+                       , activeTechniqueCategorySerialisation.serialise(uptc)
                        , "Archived policy library category: " + uptcFile.getPath
                      )
       uptcGitPath =  gitPath
@@ -214,7 +214,7 @@ class GitUserPolicyTemplateCategoryArchiverImpl(
                        case Some(commiter) =>
                          oldParents match {
                            case Some(olds) => 
-                             commitMvDirectory(commiter, toGitPath(newUptcFile(uptc.id, olds)), uptcGitPath, "Move archive of policy library category with ID '%s'".format(uptc.id.value))
+                             commitMvDirectory(commiter, toGitPath(newActiveTechniquecFile(uptc.id, olds)), uptcGitPath, "Move archive of policy library category with ID '%s'".format(uptc.id.value))
                            case None       => 
                              commitAddFile(commiter, uptcGitPath, "Archive of policy library category with ID '%s'".format(uptc.id.value))
                          }
@@ -225,12 +225,12 @@ class GitUserPolicyTemplateCategoryArchiverImpl(
     }
   }
 
-  def archiveUserPolicyTemplateCategory(uptc:UserPolicyTemplateCategory, getParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {     
+  def archiveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, getParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {     
     archiveWithRename(uptc, None, getParents, gitCommit)
   }
   
-  def deleteUserPolicyTemplateCategory(uptcId:UserPolicyTemplateCategoryId, getParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {
-    val uptcFile = newUptcFile(uptcId, getParents)
+  def deleteActiveTechniqueCategory(uptcId:ActiveTechniqueCategoryId, getParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {
+    val uptcFile = newActiveTechniquecFile(uptcId, getParents)
     val gitPath = toGitPath(uptcFile)
     if(uptcFile.exists) {
       for {
@@ -252,9 +252,9 @@ class GitUserPolicyTemplateCategoryArchiverImpl(
   }
   // TODO : keep content when moving !!!
   // well, for now, that's ok, because we can only move empty categories
-  def moveUserPolicyTemplateCategory(uptc:UserPolicyTemplateCategory, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {
+  def moveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {
     for {
-      deleted  <- deleteUserPolicyTemplateCategory(uptc.id, oldParents, None)
+      deleted  <- deleteActiveTechniqueCategory(uptc.id, oldParents, None)
       archived <- archiveWithRename(uptc, Some(oldParents), newParents, gitCommit)
     } yield {
       archived
@@ -267,106 +267,106 @@ class GitUserPolicyTemplateCategoryArchiverImpl(
    * user policy library.
    * Return the git commit id. 
    */
-  def commitUserPolicyLibrary(commiter:PersonIdent) : Box[GitArchiveId] = {
+  def commitActiveTechniqueLibrary(commiter:PersonIdent) : Box[GitArchiveId] = {
     this.commitFullGitPathContentAndTag(
         commiter
-      , POLICY_LIBRARY_ARCHIVE_TAG + " Commit all modification done in the User Policy Library (git path: '%s')".format(policyLibraryRootDir)
+      , POLICY_LIBRARY_ARCHIVE_TAG + " Commit all modification done in the User Policy Library (git path: '%s')".format(techniqueLibraryRootDir)
     )
   }
 }
 
 
-trait UptModificationCallback {
+trait ActiveTechniqueModificationCallback {
   
   //Name of the callback, for debugging
   def uptModificationCallbackName : String
 
   /**
-   * What to do on upt save
+   * What to do on activeTechnique save
    */
-  def onArchive(upt:UserPolicyTemplate, parents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[Unit]
+  def onArchive(activeTechnique:ActiveTechnique, parents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[Unit]
 
   /**
-   * What to do on upt deletion
+   * What to do on activeTechnique deletion
    */
-  def onDelete(ptName:PolicyPackageName, getParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[Unit]
+  def onDelete(ptName:TechniqueName, getParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[Unit]
 
   /**
-   * What to do on upt move
+   * What to do on activeTechnique move
    */
-  def onMove(upt:UserPolicyTemplate, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[Unit]
+  def onMove(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[Unit]
 }
 
-class UpdatePiOnUptEvent(
-    gitPiArchiver: GitPolicyInstanceArchiver
-  , ptRepository : PolicyPackageService
-  , piRepository : PolicyInstanceRepository    
-) extends UptModificationCallback with Loggable {
+class UpdatePiOnActiveTechniqueEvent(
+    gitDirectiveArchiver: GitDirectiveArchiver
+  , techniqeRepository  : TechniqueRepository
+  , directiveRepository : DirectiveRepository    
+) extends ActiveTechniqueModificationCallback with Loggable {
   override val uptModificationCallbackName = "Update PI on UPT events"
   
-  def onArchive(upt:UserPolicyTemplate, parents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[Unit] = {
+  def onArchive(activeTechnique:ActiveTechnique, parents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[Unit] = {
     
-    logger.debug("Executing archivage of PIs for UPT '%s'".format(upt))
+    logger.debug("Executing archivage of PIs for UPT '%s'".format(activeTechnique))
     
-    if(upt.policyInstances.isEmpty) Full("OK")
+    if(activeTechnique.directives.isEmpty) Full("OK")
     else {
       for {
-        pt  <- Box(ptRepository.getLastPolicyByName(upt.referencePolicyTemplateName))
-        pis <- sequence(upt.policyInstances) { piId =>
+        technique  <- Box(techniqeRepository.getLastTechniqueByName(activeTechnique.techniqueName))
+        directives <- sequence(activeTechnique.directives) { directiveId =>
                  for {
-                   pi         <- piRepository.getPolicyInstance(piId)
-                   archivedPi <- gitPiArchiver.archivePolicyInstance(pi, pt.id.name, parents, pt.rootSection, None)
+                   directive         <- directiveRepository.getDirective(directiveId)
+                   archivedPi <- gitDirectiveArchiver.archiveDirective(directive, technique.id.name, parents, technique.rootSection, None)
                  } yield {
                    archivedPi
                  }
                }
       } yield {
-        pis
+        directives
       }
     }
   }
   
-  override def onDelete(ptName:PolicyPackageName, getParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) = Full({})
-  override def onMove(upt:UserPolicyTemplate, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) = Full({})
+  override def onDelete(ptName:TechniqueName, getParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) = Full({})
+  override def onMove(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) = Full({})
 }
 
 /**
  * A specific trait to create archive of an user policy template.
  */
-class GitUserPolicyTemplateArchiverImpl(
+class GitActiveTechniqueArchiverImpl(
     override val gitRepo           : GitRepositoryProvider
   , override val gitRootDirectory  : File
-  , userPolicyTemplateSerialisation: UserPolicyTemplateSerialisation
-  , policyLibraryRootDir           : String //relative path !
+  , activeTechniqueSerialisation: ActiveTechniqueSerialisation
+  , techniqueLibraryRootDir           : String //relative path !
   , override val xmlPrettyPrinter  : PrettyPrinter
   , override val encoding          : String = "UTF-8"
-  , val uptModificationCallback    : Buffer[UptModificationCallback] = Buffer()
-  , val userPolicyTemplateFileName : String = "userPolicyTemplateSettings.xml"
-) extends GitUserPolicyTemplateArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[UserPolicyTemplateCategoryId] {
+  , val uptModificationCallback    : Buffer[ActiveTechniqueModificationCallback] = Buffer()
+  , val activeTechniqueFileName : String = "activeTechniqueSettings.xml"
+) extends GitActiveTechniqueArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[ActiveTechniqueCategoryId] {
 
-  override lazy val relativePath = policyLibraryRootDir
-  override def  getCategoryName(categoryId:UserPolicyTemplateCategoryId) = categoryId.value
+  override lazy val relativePath = techniqueLibraryRootDir
+  override def  getCategoryName(categoryId:ActiveTechniqueCategoryId) = categoryId.value
 
-  private[this] def newUptFile(ptName:PolicyPackageName, parents: List[UserPolicyTemplateCategoryId]) = {
+  private[this] def newActiveTechniqueFile(ptName:TechniqueName, parents: List[ActiveTechniqueCategoryId]) = {
     //parents can not be null: we must have at least the root category
     parents match {
       case Nil => Failure("UPT '%s' was asked to be saved in a category which does not exists (empty list of parents, not even the root cateogy was given!)".format(ptName.value))
-      case h::tail => Full(new File(new File(newCategoryDirectory(h,tail),ptName.value), userPolicyTemplateFileName))
+      case h::tail => Full(new File(new File(newCategoryDirectory(h,tail),ptName.value), activeTechniqueFileName))
     }
   }
   
-  def archiveUserPolicyTemplate(upt:UserPolicyTemplate, parents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {     
+  def archiveActiveTechnique(activeTechnique:ActiveTechnique, parents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {     
     for {
-      uptFile   <- newUptFile(upt.referencePolicyTemplateName, parents)
+      uptFile   <- newActiveTechniqueFile(activeTechnique.techniqueName, parents)
       gitPath   =  toGitPath(uptFile)
       archive   <- writeXml(
                        uptFile
-                     , userPolicyTemplateSerialisation.serialise(upt)
+                     , activeTechniqueSerialisation.serialise(activeTechnique)
                      , "Archived policy library template: " + uptFile.getPath
                    )
-      callbacks <- sequence(uptModificationCallback) { _.onArchive(upt, parents, None) }
+      callbacks <- sequence(uptModificationCallback) { _.onArchive(activeTechnique, parents, None) }
       commit    <- gitCommit match {
-                     case Some(commiter) => commitAddFile(commiter, gitPath, "Archive of policy library template for policy template name '%s'".format(upt.referencePolicyTemplateName.value))
+                     case Some(commiter) => commitAddFile(commiter, gitPath, "Archive of policy library template for policy template name '%s'".format(activeTechnique.techniqueName.value))
                      case None => Full("ok")
                    }
     } yield {
@@ -374,8 +374,8 @@ class GitUserPolicyTemplateArchiverImpl(
     }
   }
   
-  def deleteUserPolicyTemplate(ptName:PolicyPackageName, parents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {
-    newUptFile(ptName, parents) match {
+  def deleteActiveTechnique(ptName:TechniqueName, parents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {
+    newActiveTechniqueFile(ptName, parents) match {
       case Full(uptFile) if(uptFile.exists) =>
         for {
           //don't forget to delete the category *directory*
@@ -405,33 +405,33 @@ class GitUserPolicyTemplateArchiverImpl(
    * As we can't know at all if all PI currently defined for an UPT were saved, we
    * DO have to always consider a fresh new archive. 
    */
-  def moveUserPolicyTemplate(upt:UserPolicyTemplate, oldParents: List[UserPolicyTemplateCategoryId], newParents: List[UserPolicyTemplateCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {
+  def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath] = {
     for {
-      oldUptFile      <- newUptFile(upt.referencePolicyTemplateName, oldParents)
-      oldUptDirectory =  oldUptFile.getParentFile
-      newUptFile      <- newUptFile(upt.referencePolicyTemplateName, newParents)
-      newUptDirectory =  newUptFile.getParentFile
+      oldActiveTechniqueFile      <- newActiveTechniqueFile(activeTechnique.techniqueName, oldParents)
+      oldActiveTechniqueDirectory =  oldActiveTechniqueFile.getParentFile
+      newActiveTechniqueFile      <- newActiveTechniqueFile(activeTechnique.techniqueName, newParents)
+      newActiveTechniqueDirectory =  newActiveTechniqueFile.getParentFile
       clearNew        <- tryo {
-                           if(newUptDirectory.exists) FileUtils.forceDelete(newUptDirectory)
+                           if(newActiveTechniqueDirectory.exists) FileUtils.forceDelete(newActiveTechniqueDirectory)
                            else "ok"
                          }
       deleteOld       <- tryo {
-                           if(oldUptDirectory.exists) FileUtils.forceDelete(oldUptDirectory)
+                           if(oldActiveTechniqueDirectory.exists) FileUtils.forceDelete(oldActiveTechniqueDirectory)
                            else "ok"
                          }
-      archived        <- archiveUserPolicyTemplate(upt, newParents, None)
+      archived        <- archiveActiveTechnique(activeTechnique, newParents, None)
       commited        <- gitCommit match {
                            case Some(commiter) => 
                              commitMvDirectory(
                                  commiter
-                               , toGitPath(oldUptDirectory)
-                               , toGitPath(newUptDirectory)
-                               , "Move user policy template for policy template name '%s'".format(upt.referencePolicyTemplateName.value)
+                               , toGitPath(oldActiveTechniqueDirectory)
+                               , toGitPath(newActiveTechniqueDirectory)
+                               , "Move user policy template for policy template name '%s'".format(activeTechnique.techniqueName.value)
                              )
                            case None => Full("OK")
                          }
     } yield {
-      GitPath(toGitPath(newUptDirectory))
+      GitPath(toGitPath(newActiveTechniqueDirectory))
     }
   }
 }
@@ -440,48 +440,48 @@ class GitUserPolicyTemplateArchiverImpl(
 /**
  * A specific trait to create archive of an user policy template.
  */
-class GitPolicyInstanceArchiverImpl(
+class GitDirectiveArchiverImpl(
     override val gitRepo           : GitRepositoryProvider
   , override val gitRootDirectory  : File
-  , policyInstanceSerialisation    : PolicyInstanceSerialisation
-  , policyLibraryRootDir           : String //relative path !
+  , directiveSerialisation    : DirectiveSerialisation
+  , techniqueLibraryRootDir           : String //relative path !
   , override val xmlPrettyPrinter  : PrettyPrinter
   , override val encoding          : String = "UTF-8"
-) extends GitPolicyInstanceArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[UserPolicyTemplateCategoryId] {
+) extends GitDirectiveArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[ActiveTechniqueCategoryId] {
 
-  override lazy val relativePath = policyLibraryRootDir
-  override def  getCategoryName(categoryId:UserPolicyTemplateCategoryId) = categoryId.value
+  override lazy val relativePath = techniqueLibraryRootDir
+  override def  getCategoryName(categoryId:ActiveTechniqueCategoryId) = categoryId.value
 
   private[this] def newPiFile(
-      piId   : PolicyInstanceId
-    , ptName : PolicyPackageName
-    , parents: List[UserPolicyTemplateCategoryId]
+      directiveId   : DirectiveId
+    , ptName : TechniqueName
+    , parents: List[ActiveTechniqueCategoryId]
   ) = {
     parents match {
-      case Nil => Failure("Can not save policy instance '%s' for policy template '%s' because no category (not even the root one) was given as parent for that policy template".format(piId.value, ptName.value))
+      case Nil => Failure("Can not save policy instance '%s' for policy template '%s' because no category (not even the root one) was given as parent for that policy template".format(directiveId.value, ptName.value))
       case h::tail => 
-        Full(new File(new File(newCategoryDirectory(h, tail), ptName.value), piId.value+".xml"))
+        Full(new File(new File(newCategoryDirectory(h, tail), ptName.value), directiveId.value+".xml"))
     }
   }
   
-  def archivePolicyInstance(
-      pi                 : PolicyInstance
-    , ptName             : PolicyPackageName
-    , catIds             : List[UserPolicyTemplateCategoryId]
+  def archiveDirective(
+      directive                 : Directive
+    , ptName             : TechniqueName
+    , catIds             : List[ActiveTechniqueCategoryId]
     , variableRootSection: SectionSpec
     , gitCommit          : Option[PersonIdent]
   ) : Box[GitPath] = {
         
     for {
-      piFile  <- newPiFile(pi.id, ptName, catIds)
+      piFile  <- newPiFile(directive.id, ptName, catIds)
       gitPath =  toGitPath(piFile)
       archive <- writeXml( 
                      piFile
-                   , policyInstanceSerialisation.serialise(ptName, variableRootSection, pi)
+                   , directiveSerialisation.serialise(ptName, variableRootSection, directive)
                    , "Archived policy instance: " + piFile.getPath
                  )
       commit  <- gitCommit match {
-                   case Some(commiter) => commitAddFile(commiter, gitPath, "Archive policy instance with ID '%s'".format(pi.id.value))
+                   case Some(commiter) => commitAddFile(commiter, gitPath, "Archive policy instance with ID '%s'".format(directive.id.value))
                    case None => Full("ok")
                  }
     } yield {
@@ -494,13 +494,13 @@ class GitPolicyInstanceArchiverImpl(
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deletePolicyInstance(
-      piId:PolicyInstanceId
-    , ptName   : PolicyPackageName
-    , catIds   : List[UserPolicyTemplateCategoryId]
+  def deleteDirective(
+      directiveId:DirectiveId
+    , ptName   : TechniqueName
+    , catIds   : List[ActiveTechniqueCategoryId]
     , gitCommit: Option[PersonIdent]
   ) : Box[GitPath] = {
-    newPiFile(piId, ptName, catIds) match {
+    newPiFile(directiveId, ptName, catIds) match {
       case Full(piFile) if(piFile.exists) =>
         for {
           deleted  <- tryo { 
@@ -509,7 +509,7 @@ class GitPolicyInstanceArchiverImpl(
                       }
           gitPath  =  toGitPath(piFile)
           commited <- gitCommit match {
-                        case Some(commiter) => commitRmFile(commiter, gitPath, "Delete archive of policy instance with ID '%s'".format(piId.value))
+                        case Some(commiter) => commitRmFile(commiter, gitPath, "Delete archive of policy instance with ID '%s'".format(directiveId.value))
                         case None => Full("OK")
                       }
         } yield {
@@ -660,7 +660,7 @@ class GitNodeGroupCategoryArchiverImpl(
  * A specific trait to create archive of a node group.
  * 
  * Basically, we directly map the category tree to file-system directories,
- * with the root category being the file denoted by "policyLibraryRootDir"
+ * with the root category being the file denoted by "techniqueLibraryRootDir"
  * 
  */
 class GitNodeGroupArchiverImpl(

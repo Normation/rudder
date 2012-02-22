@@ -47,7 +47,7 @@ import com.normation.rudder.domain.log._
 import com.normation.eventlog._
 import com.normation.rudder.domain.log._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import com.normation.rudder.web.services.DisplayServer
+import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.components.DateFormaterService
 
@@ -94,7 +94,7 @@ object PendingHistoryGrid extends Loggable {
     
   }
   
-  def jsVarNameForId() = "pendingServerHistoryTable"
+  def jsVarNameForId() = "pendingNodeHistoryTable"
   
   def initJs() : JsCmd = {
     JsRaw("""
@@ -222,8 +222,8 @@ object PendingHistoryGrid extends Loggable {
         case Full(sm) => 
           SetHtml(
             jsuuid,
-            DisplayServer.showPannedContent(sm.data, "hist")) & 
-            DisplayServer.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs"))
+            DisplayNode.showPannedContent(sm.data, "hist")) & 
+            DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs"))
       }
     }
   }

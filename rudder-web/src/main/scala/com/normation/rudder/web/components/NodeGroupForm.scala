@@ -122,7 +122,7 @@ class NodeGroupForm(
   private[this] var _nodeGroup = nodeGroup.map(x => x.copy())
   
   private[this] val nodeGroupRepository = inject[NodeGroupRepository]
-  private[this] val groupCategoryRepository = inject[GroupCategoryRepository]
+  private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
   private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] val dependencyService = inject[DependencyAndDeletionService]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
@@ -136,14 +136,14 @@ class NodeGroupForm(
 
   
   // Import the search server component
-  val searchServerComponent = new LocalSnippet[SearchServerComponent] 
+  val searchNodeComponent = new LocalSnippet[SearchNodeComponent] 
   
   var query : Option[Query] = _nodeGroup.flatMap(x => x.query)
   var srvList : Box[Seq[NodeInfo]] = _nodeGroup.map( x => nodeInfoService.find(x.serverList.toSeq) ).getOrElse(None)
   
   private def setNodeGroupCategoryForm : Unit = {
     updateLocalParentCategory()
-    searchServerComponent.set(Full(new SearchServerComponent(
+    searchNodeComponent.set(Full(new SearchNodeComponent(
         htmlIdCategory
       , query
       , srvList
@@ -160,7 +160,7 @@ class NodeGroupForm(
   private[this] def onClickCallBack(s:String) : JsCmd = {
     s.split("\\|").toList match {
       case _ :: id :: _ =>
-        SetHtml("serverDetails", (new ShowServerDetailsFromNode(new NodeId(id))).display) &
+        SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(id))).display) &
         JsRaw( """ createPopup("nodeDetailsPopup",500,1000)
         """)
         
@@ -173,7 +173,7 @@ class NodeGroupForm(
   
   def dispatch = { 
     case "showForm" => { _ => showForm }
-    case "showGroup" => searchServerComponent.is match {
+    case "showGroup" => searchNodeComponent.is match {
       case Full(component) => { _ => component.buildQuery }
       case _ => x : NodeSeq => <div>The component is not set</div><div></div>
     }
@@ -185,30 +185,30 @@ class NodeGroupForm(
      
   def showForm() : NodeSeq = {
      val html = SHtml.ajaxForm(<fieldset class="groupUpdateComponent"><legend>Group: {_nodeGroup.map( x => x.name).getOrElse("Create a new group")}</legend>
-     <pi:notifications />
+     <directive:notifications />
      <hr class="spacer"/>
-     <pi:name/>
+     <directive:name/>
      <hr class="spacer"/>
-     <pi:description/>
+     <directive:description/>
      <hr class="spacer"/>
-     <pi:container/>
+     <directive:container/>
      <hr class="spacer"/>
-     <pi:static/>
+     <directive:static/>
      <hr class="spacer"/>
-     <fieldset class="searchServers"><legend>Group criteria</legend>
-       <div id="SearchServers">
-       <pi:showGroup />
+     <fieldset class="searchNodes"><legend>Group criteria</legend>
+       <div id="SearchNodes">
+       <directive:showGroup />
       </div>
-     <div class="margins" align="right"><pi:save/> <pi:delete/></div>
+     <div class="margins" align="right"><directive:save/> <directive:delete/></div>
      </fieldset>
      </fieldset>)
 
-     bind("pi", html,
+     bind("directive", html,
       "name" -> piName.toForm_!,
       "description" -> piDescription.toForm_!,
       "container" -> piContainer.toForm_!,
       "static" -> piStatic.toForm_!,
-      "showGroup" -> searchServerComponent.is.open_!.buildQuery,
+      "showGroup" -> searchNodeComponent.is.open_!.buildQuery,
       "save" ->   {_nodeGroup match {
             case Some(x) => SHtml.ajaxSubmit("Update", onSubmit _)  %  ("id", saveButtonId)
             case None => SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)
@@ -227,11 +227,11 @@ class NodeGroupForm(
       case Some(group) => 
         //pop-up: their content should be retrieve lazily
         val target = GroupTarget(group.id)
-        val removePopupGridXml = dependencyService.targetDependencies(target).map( _.configurationRules ) match {
+        val removePopupGridXml = dependencyService.targetDependencies(target).map( _.rules ) match {
           case e:EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
-          case Full(crs) => {
-            val cmp = new ConfigurationRuleGrid("remove_popup_grid", crs, None, false)
-            cmp.configurationRulesGrid(linkCompliancePopup=false)
+          case Full(rules) => {
+            val cmp = new RuleGrid("remove_popup_grid", rules, None, false)
+            cmp.rulesGrid(linkCompliancePopup=false)
           }
         }
         
@@ -392,8 +392,8 @@ class NodeGroupForm(
   
   private[this] def onSubmit() : JsCmd = {
     // Since we are doing the submit from the component, it ought to exist 
-    query = searchServerComponent.is.open_!.getQuery
-    srvList = searchServerComponent.is.open_!.getSrvList
+    query = searchNodeComponent.is.open_!.getQuery
+    srvList = searchNodeComponent.is.open_!.getSrvList
     if(formTracker.hasErrors) {
       
       onFailure & onFailureCallback()
@@ -474,8 +474,8 @@ class NodeGroupForm(
    * @param container
    * @return
    */
-  private def updateGroup(originalNodeGroup : NodeGroup, name : String, description : String, query : Query, isDynamic : Boolean, nodeList : List[NodeId], isActivated : Boolean = true ) : JsCmd = {
-    val newNodeGroup = new NodeGroup(originalNodeGroup.id, name, description, Some(query), isDynamic, nodeList.toSet, isActivated, originalNodeGroup.isSystem)
+  private def updateGroup(originalNodeGroup : NodeGroup, name : String, description : String, query : Query, isDynamic : Boolean, nodeList : List[NodeId], isEnabled : Boolean = true ) : JsCmd = {
+    val newNodeGroup = new NodeGroup(originalNodeGroup.id, name, description, Some(query), isDynamic, nodeList.toSet, isEnabled, originalNodeGroup.isSystem)
     (for {
       saved <- nodeGroupRepository.update(newNodeGroup, CurrentUser.getActor) ?~! "Error when updating the group %s".format(originalNodeGroup.id)
       deploy <- {

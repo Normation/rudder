@@ -37,7 +37,7 @@ package com.normation.rudder.web.components.popup
 import net.liftweb.http.js._
 import JsCmds._
 import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.domain.policies.{ConfigurationRule,ConfigurationRuleId}
+import com.normation.rudder.domain.policies.{Rule,RuleId}
 
 // For implicits
 import JE._
@@ -51,26 +51,26 @@ import com.normation.rudder.web.model.{
 }
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import CreateConfigurationRulePopup._
-import com.normation.rudder.domain.log.AddConfigurationRule
+import CreateRulePopup._
+import com.normation.rudder.domain.log.AddRule
 import com.normation.rudder.web.model.CurrentUser
 
-class CreateConfigurationRulePopup(
-  onSuccessCallback : (ConfigurationRule) => JsCmd = { (cr : ConfigurationRule) => Noop },
+class CreateRulePopup(
+  onSuccessCallback : (Rule) => JsCmd = { (rule : Rule) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
        ) extends DispatchSnippet with Loggable {
 
   // Load the template from the popup
-  def templatePath = List("templates-hidden", "Popup", "createConfigurationRule")
+  def templatePath = List("templates-hidden", "Popup", "createRule")
   def template() =  Templates(templatePath) match {
      case Empty | Failure(_,_,_) =>
        error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
      case Full(n) => n
   }
-  def popupTemplate = chooseTemplate("cr", "createConfigurationRulePopup", template)
+  def popupTemplate = chooseTemplate("rule", "createRulePopup", template)
 
 
-  private[this] val configurationRuleRepository = inject[ConfigurationRuleRepository]
+  private[this] val ruleRepository = inject[RuleRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
 
   def dispatch = {
@@ -135,17 +135,17 @@ class CreateConfigurationRulePopup(
       onFailure & onFailureCallback()
     } else {
 
-      val cr = ConfigurationRule(
-          id = ConfigurationRuleId(uuidGen.newUuid),
+      val rule = Rule(
+          id = RuleId(uuidGen.newUuid),
           name = piName.is,
           serial = 0,
           shortDescription = piShortDescription.is,
-          isActivatedStatus = true)
+          isEnabledStatus = true)
 
 
-      configurationRuleRepository.create(cr, CurrentUser.getActor) match {
+      ruleRepository.create(rule, CurrentUser.getActor) match {
           case Full(x) => 
-            closePopup() & onSuccessCallback(cr)
+            closePopup() & onSuccessCallback(rule)
           case Empty =>
             logger.error("An error occurred while saving the configuration rule")
             formTracker.addFormError(error("An error occurred while saving the configuration rule"))
@@ -187,7 +187,7 @@ class CreateConfigurationRulePopup(
 }
 
 
-object CreateConfigurationRulePopup {
-  val htmlId_popupContainer = "createCRContainer"
-  val htmlId_popup = "createCRPopup"
+object CreateRulePopup {
+  val htmlId_popupContainer = "createRuleContainer"
+  val htmlId_popup = "createRulePopup"
 }

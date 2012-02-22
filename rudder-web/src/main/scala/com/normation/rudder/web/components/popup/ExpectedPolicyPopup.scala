@@ -34,7 +34,7 @@
 
 package com.normation.rudder.web.components.popup
 
-import com.normation.rudder.services.servers.ServerSummaryService
+import com.normation.rudder.services.servers.NodeSummaryService
 import com.normation.rudder.domain.policies._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.queries.DynGroupService
@@ -59,21 +59,21 @@ import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.web.services.ServerGrid
-import com.normation.rudder.web.components.ConfigurationRuleGrid
+import com.normation.rudder.web.services.NodeGrid
+import com.normation.rudder.web.components.RuleGrid
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 
 
 object ExpectedPolicyPopup {
    
-  def expectedPolicyTemplatePath = List("templates-hidden", "Popup", "expected_policy_popup")
-  def template() =  Templates(expectedPolicyTemplatePath) match {
+  def expectedTechniquePath = List("templates-hidden", "Popup", "expected_policy_popup")
+  def template() =  Templates(expectedTechniquePath) match {
     case Empty | Failure(_,_,_) => 
-      throw new TechnicalException("Template for server grid not found. I was looking for %s.html".format(expectedPolicyTemplatePath.mkString("/")))
+      throw new TechnicalException("Template for server grid not found. I was looking for %s.html".format(expectedTechniquePath.mkString("/")))
     case Full(n) => n
   }
   
-  def expectedPolicyTemplate = chooseTemplate("expectedPolicyPopup","template",template)
+  def expectedTechnique = chooseTemplate("expectedPolicyPopup","template",template)
   
   def jsVarNameForId(tableId:String) = "oTable" + tableId 
   
@@ -81,14 +81,14 @@ object ExpectedPolicyPopup {
 
 class ExpectedPolicyPopup(
   htmlId_popup:String, 
-  serverId : NodeId
+  nodeId : NodeId
 ) extends DispatchSnippet with Loggable {
   import ExpectedPolicyPopup._
   
-  private[this] val serverSummaryService = inject[ServerSummaryService]
+  private[this] val serverSummaryService = inject[NodeSummaryService]
   private[this] val dependenciesServices = inject[DependencyAndDeletionService]
   private[this] val dynGroupService = inject[DynGroupService]
-  private[this] val pendingServersDit = inject[InventoryDit]("pendingServersDit")
+  private[this] val pendingNodesDit = inject[InventoryDit]("pendingNodesDit")
 
 
 
@@ -100,9 +100,9 @@ class ExpectedPolicyPopup(
   def display : NodeSeq = {
     
     //find the list of dyn groups on which that server would be and from that, the configuration rules
-    val rulesGrid : NodeSeq = configurationRules match {
+    val rulesGrid : NodeSeq = rules match {
       case Full(seq) => 
-        (new ConfigurationRuleGrid("dependentRulesGrid", seq, None, false)).configurationRulesGrid(false)
+        (new RuleGrid("dependentRulesGrid", seq, None, false)).rulesGrid(false)
       case e:EmptyBox => 
         val msg = "Error when trying to find dependencies for that group"
         logger.error(msg, e)
@@ -112,33 +112,33 @@ class ExpectedPolicyPopup(
     (
         ClearClearable & 
         "#dependentRulesGrid" #> rulesGrid 
-    )(bind("expectedPolicyPopup",expectedPolicyTemplate, 
-      "server" -> displayServer(serverId), 
+    )(bind("expectedPolicyPopup",expectedTechnique, 
+      "server" -> displayNode(nodeId), 
       "close" -> <button onClick="$.modal.close(); return false;">Close</button>
     ) ) 
   }
   
   
-  private[this] val configurationRules:Box[Seq[ConfigurationRule]] = {
+  private[this] val rules:Box[Seq[Rule]] = {
     for {
-      groupMap <- dynGroupService.findDynGroups(Seq(serverId)) ?~! "Error when building the map of dynamic group to update by node"
-      seqNodeGroupId = groupMap.get(serverId).getOrElse(Seq())
+      groupMap <- dynGroupService.findDynGroups(Seq(nodeId)) ?~! "Error when building the map of dynamic group to update by node"
+      seqNodeGroupId = groupMap.get(nodeId).getOrElse(Seq())
       seqTargetDeps <- sequence(seqNodeGroupId) { groupId => 
         dependenciesServices.targetDependencies(GroupTarget(groupId)) ?~! "Error when building the list of configuration rules depending on group %s".format(groupId)
       }
     } yield {
-      seqTargetDeps.flatMap { case TargetDependencies(target, configurationRules) => configurationRules }.distinct
+      seqTargetDeps.flatMap { case TargetDependencies(target, rules) => rules }.distinct
     }
   }
     
   
-  private[this] def displayServer(serverId : NodeId) : NodeSeq = {
-    serverSummaryService.find(pendingServersDit,serverId) match {
+  private[this] def displayNode(nodeId : NodeId) : NodeSeq = {
+    serverSummaryService.find(pendingNodesDit,nodeId) match {
       case Full(srv) => 
         srv.toList match {
           case Nil => <div>Node not found</div>
           case head::Nil => Text(head.hostname + " - " +head.osFullName)
-          case _ => logger.error("Too many nodes returned while searching server %s".format(serverId.value)) 
+          case _ => logger.error("Too many nodes returned while searching server %s".format(nodeId.value)) 
                   <p class="error">ERROR - Too many nodes</p>
         }
       case _ => <div>No node found</div>

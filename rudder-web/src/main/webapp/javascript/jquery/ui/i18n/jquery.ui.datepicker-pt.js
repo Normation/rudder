@@ -1,6 +1,6 @@
 /* Portuguese initialisation for the jQuery UI date picker plugin. */
 jQuery(function($){
-	$.datepicker.regional['pt'] = {
+	$.datepicker.regional['technique'] = {
 		closeText: 'Fechar',
 		prevText: '&#x3c;Anterior',
 		nextText: 'Seguinte',
@@ -18,5 +18,5 @@ jQuery(function($){
 		isRTL: false,
 		showMonthAfterYear: false,
 		yearSuffix: ''};
-	$.datepicker.setDefaults($.datepicker.regional['pt']);
+	$.datepicker.setDefaults($.datepicker.regional['technique']);
 });

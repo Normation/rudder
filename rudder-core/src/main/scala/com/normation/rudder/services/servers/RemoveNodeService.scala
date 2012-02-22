@@ -79,7 +79,7 @@ class RemoveNodeServiceImpl(
     logger.debug("Trying to remove node %s from ou=Nodes Configuration".format(nodeId.value))
     for {
       con    <- ldap
-      dn     =  rudderDit.RUDDER_NODES.SERVER.dn(nodeId.value)
+      dn     =  rudderDit.NODE_CONFIGS.NODE_CONFIG.dn(nodeId.value)
       result <- con.delete(dn)
     } yield {
       result

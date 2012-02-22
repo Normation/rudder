@@ -43,54 +43,54 @@ import net.liftweb.common._
 import com.normation.cfclerk.domain._
 import com.normation.utils.HashcodeCaching
 
-sealed trait PolicyInstanceEventLog extends EventLog { override final val eventLogCategory = PolicyInstanceLogCategory }
+sealed trait DirectiveEventLog extends EventLog { override final val eventLogCategory = DirectiveLogCategory }
 
-final case class AddPolicyInstance(
+final case class AddDirective(
     override val eventDetails : EventLogDetails
-) extends PolicyInstanceEventLog with HashcodeCaching {
+) extends DirectiveEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = AddPolicyInstance.eventType
+  override val eventType = AddDirective.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object AddPolicyInstance extends EventLogFilter {
-  override val eventType = AddPolicyInstanceEventType
+object AddDirective extends EventLogFilter {
+  override val eventType = AddDirectiveEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : AddPolicyInstance = AddPolicyInstance(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : AddDirective = AddDirective(x._2) 
 }
 
-final case class DeletePolicyInstance(
+final case class DeleteDirective(
     override val eventDetails : EventLogDetails
-) extends PolicyInstanceEventLog with HashcodeCaching {
+) extends DirectiveEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = DeletePolicyInstance.eventType
+  override val eventType = DeleteDirective.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object DeletePolicyInstance extends EventLogFilter {
-  override val eventType = DeletePolicyInstanceEventType
+object DeleteDirective extends EventLogFilter {
+  override val eventType = DeleteDirectiveEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : DeletePolicyInstance = DeletePolicyInstance(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : DeleteDirective = DeleteDirective(x._2) 
 }
 
-final case class ModifyPolicyInstance(
+final case class ModifyDirective(
     override val eventDetails : EventLogDetails
-) extends PolicyInstanceEventLog with HashcodeCaching {
+) extends DirectiveEventLog with HashcodeCaching {
   override val cause = None
-  override val eventType = ModifyPolicyInstance.eventType
+  override val eventType = ModifyDirective.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object ModifyPolicyInstance extends EventLogFilter {
-  override val eventType = ModifyPolicyInstanceEventType
+object ModifyDirective extends EventLogFilter {
+  override val eventType = ModifyDirectiveEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyPolicyInstance = ModifyPolicyInstance(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyDirective = ModifyDirective(x._2) 
 }
 
-object PolicyInstanceEventLogsFilter {
+object DirectiveEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      AddPolicyInstance 
-    , DeletePolicyInstance 
-    , ModifyPolicyInstance
+      AddDirective 
+    , DeleteDirective 
+    , ModifyDirective
     )
 }

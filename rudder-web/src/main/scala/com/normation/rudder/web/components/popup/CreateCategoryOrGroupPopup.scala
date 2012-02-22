@@ -89,7 +89,7 @@ class CreateCategoryOrGroupPopup(
 
 
   private[this] val nodeGroupRepository = inject[NodeGroupRepository]
-  private[this] val groupCategoryRepository = inject[GroupCategoryRepository]
+  private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
   private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] val categories = groupCategoryRepository.getAllNonSystemCategories
   private[this] val uuidGen = inject[StringUuidGenerator]

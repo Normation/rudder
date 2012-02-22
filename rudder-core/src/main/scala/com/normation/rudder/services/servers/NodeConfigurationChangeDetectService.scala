@@ -34,15 +34,15 @@
 
 package com.normation.rudder.services.servers
 import com.normation.rudder.domain.servers.NodeConfiguration
-import com.normation.rudder.domain.policies.ConfigurationRuleId
-import com.normation.rudder.domain.policies.IdentifiableCFCPI
-import com.normation.cfclerk.domain.CFCPolicyInstanceId
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
+import com.normation.cfclerk.domain.Cf3PolicyDraftId
 import com.normation.cfclerk.domain.Variable
 import net.liftweb.common.Loggable
-import com.normation.rudder.repository.UserPolicyTemplateRepository
+import com.normation.rudder.repository.ActiveTechniqueRepository
 import net.liftweb.common.Box
 import org.joda.time.DateTime
-import com.normation.cfclerk.domain.PolicyPackageId
+import com.normation.cfclerk.domain.TechniqueId
 import net.liftweb.common.Full
 
 
@@ -51,15 +51,15 @@ import net.liftweb.common.Full
  */
 trait NodeConfigurationChangeDetectService {
 
-  def detectChangeInNode(node : NodeConfiguration) : Set[ConfigurationRuleId]
+  def detectChangeInNode(node : NodeConfiguration) : Set[RuleId]
   
-  def detectChangeInNodes(nodes : Seq[NodeConfiguration]) : Seq[ConfigurationRuleId]
+  def detectChangeInNodes(nodes : Seq[NodeConfiguration]) : Seq[RuleId]
   
 }
 
 
 class NodeConfigurationChangeDetectServiceImpl(
-    userPolicyTemplateRepository : UserPolicyTemplateRepository) extends NodeConfigurationChangeDetectService with Loggable {
+    activeTechniqueRepository : ActiveTechniqueRepository) extends NodeConfigurationChangeDetectService with Loggable {
   
   /**
    * Return true if the variables are differents
@@ -96,45 +96,45 @@ class NodeConfigurationChangeDetectServiceImpl(
   /**
    * Fetch the acceptation date of a Policy Template
    */
-  private def getAcceptationDate(policyPackageId : PolicyPackageId) : Box[DateTime] = {
-    userPolicyTemplateRepository.getUserPolicyTemplate(policyPackageId.name).map(x => 
-      x.acceptationDatetimes(policyPackageId.version))
+  private def getAcceptationDate(TechniqueId : TechniqueId) : Box[DateTime] = {
+    activeTechniqueRepository.getActiveTechnique(TechniqueId.name).map(x => 
+      x.acceptationDatetimes(TechniqueId.version))
     
   }
   
 
-  def detectChangeInNode(node : NodeConfiguration) : Set[ConfigurationRuleId] = {
+  def detectChangeInNode(node : NodeConfiguration) : Set[RuleId] = {
     logger.info("Checking changes in node %s".format( node.id) )
     
     // First case : a change in the minimalnodeconfig is a change of all CRs
     if (node.currentMinimalNodeConfig != node.targetMinimalNodeConfig) {
       logger.trace("A change in the minimal configuration of node %s".format( node.id) )
-      return node.getCurrentPolicyInstances.map(x => x._2.configurationRuleId).toSet ++ node.getPolicyInstances.map(x => x._2.configurationRuleId).toSet
+      return node.getCurrentDirectives.map(x => x._2.ruleId).toSet ++ node.getDirectives.map(x => x._2.ruleId).toSet
     }
       
     // Second case : a change in the system variable is a change of all CRs
     if (detectChangeInSystemVar(node.getCurrentSystemVariables, node.getTargetSystemVariables)) {
       logger.trace("A change in the system variable node %s".format( node.id) )
-      return node.getCurrentPolicyInstances.map(x => x._2.configurationRuleId).toSet ++ node.getPolicyInstances.map(x => x._2.configurationRuleId).toSet
+      return node.getCurrentDirectives.map(x => x._2.ruleId).toSet ++ node.getDirectives.map(x => x._2.ruleId).toSet
     }
       
-    val mySet = scala.collection.mutable.Set[ConfigurationRuleId]()
+    val mySet = scala.collection.mutable.Set[RuleId]()
     
-    val currents = node.getCurrentPolicyInstances
-    val targets  = node.getPolicyInstances
+    val currents = node.getCurrentDirectives
+    val targets  = node.getDirectives
     // Other case :
     // Added or modified policy instance
     for (target <- targets) {
       currents.get(target._1) match {
-        case None =>  mySet += target._2.configurationRuleId
+        case None =>  mySet += target._2.ruleId
         case Some(currentIdPi) =>
           // Check that the PI is in the same CR
-          if (currentIdPi.configurationRuleId != target._2.configurationRuleId) {
-            mySet += target._2.configurationRuleId
-            mySet += currentIdPi.configurationRuleId
+          if (currentIdPi.ruleId != target._2.ruleId) {
+            mySet += target._2.ruleId
+            mySet += currentIdPi.ruleId
           } else {
-            if (!currentIdPi.policyInstance.equalsWithSameValues(target._2.policyInstance)) {
-              mySet += currentIdPi.configurationRuleId
+            if (!currentIdPi.cf3PolicyDraft.equalsWithSameValues(target._2.cf3PolicyDraft)) {
+              mySet += currentIdPi.ruleId
               // todo : check the date also
             }
           }
@@ -144,21 +144,21 @@ class NodeConfigurationChangeDetectServiceImpl(
     // Removed PI
     for ((currentCFCId, currentIdentifiable) <- currents) {
       targets.get(currentCFCId) match {
-        case None => mySet += currentIdentifiable.configurationRuleId
+        case None => mySet += currentIdentifiable.ruleId
         case Some(x) => // Nothing to do, it has been handled previously
       } 
     }
     
-    mySet ++= currents.filter(x => getAcceptationDate(x._2.policyInstance.policyId) match {
+    mySet ++= currents.filter(x => getAcceptationDate(x._2.cf3PolicyDraft.techniqueId) match {
       case Full(acceptationDate) =>  
         node.writtenDate match {
           case Some(writtenDate) => acceptationDate.isAfter(writtenDate)
           case None => true
         }
-      case _ => logger.warn("Could not find the acceptation date for policy package %s version %s".format(x._2.policyInstance.policyId.name, x._2.policyInstance.policyId.version.toString))
+      case _ => logger.warn("Could not find the acceptation date for policy package %s version %s".format(x._2.cf3PolicyDraft.techniqueId.name, x._2.cf3PolicyDraft.techniqueId.version.toString))
                 false
       
-    }).map(x => x._2.configurationRuleId)
+    }).map(x => x._2.ruleId)
 
     mySet.toSet
     

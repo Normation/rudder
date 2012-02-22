@@ -34,63 +34,63 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.rudder.domain.policies.ConfigurationRuleId
-import com.normation.rudder.domain.policies.ConfigurationRuleVal
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleVal
 import net.liftweb.common._
-import com.normation.cfclerk.services.PolicyPackageService
-import com.normation.rudder.repository.PolicyInstanceRepository
-import com.normation.rudder.repository.ConfigurationRuleRepository
-import com.normation.rudder.domain.policies.PolicyInstanceContainer
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.rudder.repository.DirectiveRepository
+import com.normation.rudder.repository.RuleRepository
+import com.normation.rudder.domain.policies.DirectiveVal
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.exceptions._
 import com.normation.utils.Control.sequence
 
-trait ConfigurationRuleValService {
-  def findConfigurationRuleVal(configurationRuleId:ConfigurationRuleId) : Box[ConfigurationRuleVal]
+trait RuleValService {
+  def findRuleVal(ruleId:RuleId) : Box[RuleVal]
   
 }
 
 
-class ConfigurationRuleValServiceImpl (
-  val configurationRuleRepo : ConfigurationRuleRepository,
-  val policyInstanceRepo : PolicyInstanceRepository,
-  val policyPackageService : PolicyPackageService,
+class RuleValServiceImpl (
+  val ruleRepo : RuleRepository,
+  val directiveRepo : DirectiveRepository,
+  val techniqueRepository : TechniqueRepository,
   val variableBuilderService: VariableBuilderService
-) extends ConfigurationRuleValService with Loggable {
+) extends RuleValService with Loggable {
  
-  def findConfigurationRuleVal(configurationRuleId:ConfigurationRuleId) : Box[ConfigurationRuleVal] = {
+  def findRuleVal(ruleId:RuleId) : Box[RuleVal] = {
     for {
-      cr <- configurationRuleRepo.get(configurationRuleId)
-      target <- Box(cr.target) ?~! "Can not fetch configuration rule values for configuration rule with id %s. The reference target is not defined and I can not build a ConfigurationRuleVal for a not fully defined configuration rule".format(configurationRuleId)
-      pisId = cr.policyInstanceIds.toSeq
-      containers <- sequence(pisId) { piId => {
+      rule <- ruleRepo.get(ruleId)
+      target <- Box(rule.target) ?~! "Can not fetch configuration rule values for configuration rule with id %s. The reference target is not defined and I can not build a RuleVal for a not fully defined configuration rule".format(ruleId)
+      pisId = rule.directiveIds.toSeq
+      containers <- sequence(pisId) { directiveId => {
         for {
-        pi <- policyInstanceRepo.getPolicyInstance(piId) ?~! "Can not fetch policy instance %s for configuration rule with id %s. ".format(piId.value, configurationRuleId)
-        upt <- policyInstanceRepo.getUserPolicyTemplate(piId)  ?~! "Can not fetch policy template %s for configuration rule with id %s. ".format(piId.value, configurationRuleId)
-        policyPackage <- policyPackageService.getPolicy(PolicyPackageId(upt.referencePolicyTemplateName,pi.policyTemplateVersion))
+        directive <- directiveRepo.getDirective(directiveId) ?~! "Can not fetch policy instance %s for configuration rule with id %s. ".format(directiveId.value, ruleId)
+        activeTechnique <- directiveRepo.getActiveTechnique(directiveId)  ?~! "Can not fetch policy template %s for configuration rule with id %s. ".format(directiveId.value, ruleId)
+        policyPackage <- techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion))
         varSpecs = policyPackage.rootSection.getAllVariables ++ policyPackage.systemVariableSpecs :+ policyPackage.trackerVariableSpec
-        vared <- variableBuilderService.buildVariables(varSpecs, pi.parameters)
+        vared <- variableBuilderService.buildVariables(varSpecs, directive.parameters)
         trackerVariable <- vared.get(policyPackage.trackerVariableSpec.name)
         otherVars = vared - policyPackage.trackerVariableSpec.name
         } yield {
-          logger.debug("Creating a PolicyInstanceContainer %s from the configurationRuleId %s".format(upt.referencePolicyTemplateName, configurationRuleId))
+          logger.debug("Creating a DirectiveVal %s from the ruleId %s".format(activeTechnique.techniqueName, ruleId))
         
-          PolicyInstanceContainer(
+          DirectiveVal(
               policyPackage.id,
-              upt.id,
-              pi.id,
-              pi.priority,
+              activeTechnique.id,
+              directive.id,
+              directive.priority,
               policyPackage.trackerVariableSpec.toVariable(trackerVariable.values),
               otherVars
           )
         }
       } }
     } yield {
-      ConfigurationRuleVal(
-        cr.id,
+      RuleVal(
+        rule.id,
         target,
         containers,
-        cr.serial
+        rule.serial
       )
     }
   } 

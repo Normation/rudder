@@ -27,7 +27,7 @@ description: Branch that stores all Rudder specific data
 dn: ou=Nodes Configuration,ou=Rudder,cn=rudder-configuration
 objectClass: organizationalUnit
 objectClass: top
-ou: Servers
+ou: Nodes
 
 ## Inventories related branches
 
@@ -59,7 +59,7 @@ description: Containers for servers from ou=Nodes, such as physical machines or 
 dn: ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
 objectClass: organizationalUnit
-ou: Servers
+ou: Nodes
 description: Logical servers, an OS installation. May be on a virtual machine or a physical machine, from ou=Machines.
 
 ## Same structure, for pending inventories (before acceptation)
@@ -80,7 +80,7 @@ description: Containers for servers from ou=Nodes, such as physical machines or 
 dn: ou=Nodes,ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
 objectClass: organizationalUnit
-ou: Servers
+ou: Nodes
 description: Logical servers, an OS installation. May be on a virtual machine or a physical machine, from ou=Machines.
 
 # System groups
@@ -102,102 +102,102 @@ description: That category holds all the system and special target
 groupCategoryId: SystemGroups
 isSystem: TRUE
 
-dn: configurationRuleTarget=special:all,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
-objectClass: specialConfigurationRuleTarget
+dn: ruleTarget=special:all,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialRuleTarget
 objectClass: top
-configurationRuleTarget: special:all
+ruleTarget: special:all
 cn: All servers
 description: A special target which matches absolutly all known nodes, including policy servers
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: TRUE
 
-dn: configurationRuleTarget=special:all_exceptPolicyServers,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
-objectClass: specialConfigurationRuleTarget
+dn: ruleTarget=special:all_exceptPolicyServers,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialRuleTarget
 objectClass: top
-configurationRuleTarget: special:all_exceptPolicyServers
+ruleTarget: special:all_exceptPolicyServers
 cn: All user servers
 description: A special target which matches all user nodes (no policy server s)
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: TRUE
 
 
 # User policy template library
-dn: policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
-objectClass: policyCategory
+dn: techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: techniqueCategory
 objectClass: top
-cn: User policy template library's root
-description: This is the root category for the user library of Policy Templates. It contains subcategories and policy templates
-policyCategoryId: UserPolicyTemplateLibraryRoot
+cn: Root of active techniques's library
+description: This is the root category for active techniques. It contains subcategories, actives techniques and directives
+techniqueCategoryId: Active Techniques
 isSystem: TRUE
 
 # System user policy templates
-dn: policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
-objectClass: policyCategory
+dn: techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: techniqueCategory
 objectClass: top
-cn: System User policy template library
-description: This is the root category for the system Policy Templates.
-policyCategoryId: SystemUserPolicyTemplate
+cn: Active techniques used by Rudder
+description: This category contains "system" active techniques, used to configure Rudder agents and essential parts of Rudder server.
+techniqueCategoryId: Rudder Internal
 isSystem: TRUE
 
 # Distribute policy (root policy server)
-dn: userPolicyTemplateId=distributePolicy,policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
-objectClass: userPolicyTemplate
+dn: activeTechniqueId=distributePolicy,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
 objectClass: top
-referencePolicyTemplateId: distributePolicy
-userPolicyTemplateId: distributePolicy
+techniqueId: distributePolicy
+activeTechniqueId: distributePolicy
 acceptationTimestamp: {"1.0":"20110715124328.999Z"}
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: TRUE
 
 # common (has policy server)
-dn: userPolicyTemplateId=common,policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
-objectClass: userPolicyTemplate
+dn: activeTechniqueId=common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
 objectClass: top
-referencePolicyTemplateId: common
-userPolicyTemplateId: common
+techniqueId: common
+activeTechniqueId: common
 acceptationTimestamp: {"1.0":"20110715124328.999Z"}
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: TRUE
 
 # inventory
-dn: userPolicyTemplateId=inventory,policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
-objectClass: userPolicyTemplate
+dn: activeTechniqueId=inventory,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
 objectClass: top
-referencePolicyTemplateId: inventory
-userPolicyTemplateId: inventory
+techniqueId: inventory
+activeTechniqueId: inventory
 acceptationTimestamp: {"1.0":"20110715124328.999Z"}
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: TRUE
 
-dn: policyInstanceId=inventory-all,userPolicyTemplateId=inventory,policyCategoryId=SystemUserPolicyTemplate,policyCategoryId=UserPolicyTemplateLibraryRoot,ou=Rudder,cn=rudder-configuration
-objectClass: policyInstance
+dn: directiveId=inventory-all,activeTechniqueId=inventory,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
 objectClass: top
-policyInstanceId: inventory-all
-referencePolicyTemplateVersion: 0:1.0
+directiveId: inventory-all
+techniqueVersion: 0:1.0
 cn: Inventory
 description: inventory - Technical
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: TRUE
-policyInstancePriority: 0
+directivePriority: 0
 
 #######################################################################################################################
-## Configuration rule library
+## Rules
 #######################################################################################################################
-dn: ou=Configuration Rules,ou=Rudder,cn=rudder-configuration
+dn: ou=Rules,ou=Rudder,cn=rudder-configuration
 objectClass: organizationalUnit
 objectClass: top
-ou: Configuration Rules
+ou: Rules
 
-dn: configurationRuleId=inventory-all,ou=Configuration Rules,ou=Rudder,cn=rudder-configuration
-objectClass: configurationRule
+dn: ruleId=inventory-all,ou=Rules,ou=Rudder,cn=rudder-configuration
+objectClass: rule
 objectClass: top
-configurationRuleId: inventory-all
-configurationRuleTarget: special:all_exceptPolicyServers
-policyInstanceId: inventory-all
+ruleId: inventory-all
+ruleTarget: special:all_exceptPolicyServers
+directiveId: inventory-all
 cn: Rudder system policy: daily inventory
 description: Inventory
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: TRUE
-longDescription: This CR is to have all node doing inventories
+longDescription: This rule makes all nodes do daily self inventories
 serial: 0
 

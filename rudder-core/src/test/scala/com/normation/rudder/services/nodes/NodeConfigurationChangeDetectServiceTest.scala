@@ -40,59 +40,59 @@ import org.specs2.runner._
 import com.normation.cfclerk.domain._
 import com.normation.inventory.domain.AgentType
 import com.normation.cfclerk.domain._
-import com.normation.rudder.domain.policies.IdentifiableCFCPI
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.servers._
 import com.normation.rudder.services.servers.NodeConfigurationChangeDetectServiceImpl
 import com.normation.rudder.domain.policies._
-import com.normation.cfclerk.domain.PolicyPackageName
+import com.normation.cfclerk.domain.TechniqueName
 import net.liftweb.common._
-import com.normation.cfclerk.domain.PolicyVersion
+import com.normation.cfclerk.domain.TechniqueVersion
 import org.joda.time.DateTime
-import com.normation.rudder.repository.UserPolicyTemplateRepository
-import com.normation.rudder.repository.CategoryAndUPT
+import com.normation.rudder.repository.ActiveTechniqueRepository
+import com.normation.rudder.repository.CategoryWithActiveTechniques
 import scala.collection.immutable.SortedMap
 import com.normation.eventlog.EventActor
 
 
-class DummyUserPolicyTemplateRepository extends UserPolicyTemplateRepository {
+class DummyActiveTechniqueRepository extends ActiveTechniqueRepository {
   
   
-  val userPtMap = Map[PolicyPackageName, UserPolicyTemplate](
-      PolicyPackageName("ppId") -> new UserPolicyTemplate(null,
-                                      PolicyPackageName("ppId"),
-                                      scala.collection.immutable.Map(PolicyVersion("1.0") ->new DateTime(0)),
+  val userPtMap = Map[TechniqueName, ActiveTechnique](
+      TechniqueName("ppId") -> new ActiveTechnique(null,
+                                      TechniqueName("ppId"),
+                                      scala.collection.immutable.Map(TechniqueVersion("1.0") ->new DateTime(0)),
                                       Nil,
                                       true,
                                       true),
-      PolicyPackageName("ppId1") -> new UserPolicyTemplate(null,
-                                      PolicyPackageName("ppId1"),
-                                      scala.collection.immutable.Map(PolicyVersion("1.0") ->new DateTime(0)),
+      TechniqueName("ppId1") -> new ActiveTechnique(null,
+                                      TechniqueName("ppId1"),
+                                      scala.collection.immutable.Map(TechniqueVersion("1.0") ->new DateTime(0)),
                                       Nil,
                                       true,
                                       true)  
   )
   
-  def getUserPolicyTemplate(id:UserPolicyTemplateId) = Failure("Can't call this")
-  def getUPTbyCategory(includeSystem:Boolean = false) : Box[SortedMap[List[UserPolicyTemplateCategoryId], CategoryAndUPT]] = Failure("Can't call this")
+  def getActiveTechnique(id:ActiveTechniqueId) = Failure("Can't call this")
+  def getActiveTechniqueByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = Failure("Can't call this")
 
-  def getUserPolicyTemplate(id:PolicyPackageName) = userPtMap.get(id)
+  def getActiveTechnique(id:TechniqueName) = userPtMap.get(id)
   
-  def addPolicyTemplateInUserLibrary(
-    categoryId:UserPolicyTemplateCategoryId, 
-    policyTemplateName:PolicyPackageName,
-    versions:Seq[PolicyVersion], actor: EventActor
+  def addTechniqueInUserLibrary(
+    categoryId:ActiveTechniqueCategoryId, 
+    techniqueName:TechniqueName,
+    versions:Seq[TechniqueVersion], actor: EventActor
   ) = Failure("Can't call this")
   
-  def move(uptId:UserPolicyTemplateId, newCategoryId:UserPolicyTemplateCategoryId, actor: EventActor) = Failure("Can't call this") 
+  def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, actor: EventActor) = Failure("Can't call this") 
   
-  def changeStatus(uptId:UserPolicyTemplateId, status:Boolean, actor: EventActor) : Box[UserPolicyTemplateId] = Failure("Can't call this") 
+  def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, actor: EventActor) : Box[ActiveTechniqueId] = Failure("Can't call this") 
   
-  def setAcceptationDatetimes(uptId:UserPolicyTemplateId, datetimes: Map[PolicyVersion,DateTime], actor: EventActor) = Failure("Can't call this")
+  def setAcceptationDatetimes(uactiveTechniqueId:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], actor: EventActor) = Failure("Can't call this")
   
-  def delete(uptId:UserPolicyTemplateId, actor: EventActor) = Failure("Can't call this")
+  def delete(uactiveTechniqueId:ActiveTechniqueId, actor: EventActor) = Failure("Can't call this")
   
-  def userPolicyTemplateBreadCrump(id:UserPolicyTemplateId) = Failure("Can't call this")
+  def activeTechniqueBreadCrump(id:ActiveTechniqueId) = Failure("Can't call this")
   
 }
 
@@ -102,40 +102,40 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
 
   /* Test the change in node */
 
-  val service = new NodeConfigurationChangeDetectServiceImpl(new DummyUserPolicyTemplateRepository)
+  val service = new NodeConfigurationChangeDetectServiceImpl(new DummyActiveTechniqueRepository)
   
-  private val simplePolicy = new IdentifiableCFCPI(
-      new ConfigurationRuleId("crId"),
-      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId"),
-      new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0")), 
+  private val simplePolicy = new RuleWithCf3PolicyDraft(
+      new RuleId("ruleId"),
+      new Cf3PolicyDraft(new Cf3PolicyDraftId("cfcId"),
+      new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0")), 
       Map(),
       TrackerVariableSpec().toVariable(),
       priority = 0, serial = 0) // no variable
   )
   
-  private val policyVaredOne = new IdentifiableCFCPI(
-      new ConfigurationRuleId("crId1"),
-      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
-      new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
+  private val policyVaredOne = new RuleWithCf3PolicyDraft(
+      new RuleId("ruleId1"),
+      new Cf3PolicyDraft(new Cf3PolicyDraftId("cfcId1"),
+      new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0")),
       Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))),
       TrackerVariableSpec().toVariable(),
       priority = 0, serial = 0)  // one variable
   )
 
   
-  private val policyOtherVaredOne = new IdentifiableCFCPI(
-      new ConfigurationRuleId("crId1"),
-      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
-      new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
+  private val policyOtherVaredOne = new RuleWithCf3PolicyDraft(
+      new RuleId("ruleId1"),
+      new Cf3PolicyDraft(new Cf3PolicyDraftId("cfcId1"),
+      new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0")),
       Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("two"))), 
       TrackerVariableSpec().toVariable(),
       priority = 0, serial = 0)  // one variable
   )
   
-  private val nextPolicyVaredOne = new IdentifiableCFCPI(
-      new ConfigurationRuleId("crId1"),
-      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
-      new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
+  private val nextPolicyVaredOne = new RuleWithCf3PolicyDraft(
+      new RuleId("ruleId1"),
+      new Cf3PolicyDraft(new Cf3PolicyDraftId("cfcId1"),
+      new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0")),
       Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))),
       TrackerVariableSpec().toVariable(),
       priority = 0, serial = 1)  // one variable
@@ -208,7 +208,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf2,
                   Some(new DateTime(1)),
                   Map(),
-                  Map())) === Set(new ConfigurationRuleId("crId"))
+                  Map())) === Set(new RuleId("ruleId"))
     }
   }
   
@@ -234,7 +234,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf,
                   Some(new DateTime(1)),
                   Map(),
-                  Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Map())) === Set(new RuleId("ruleId1"))
     }
     
     "have a change if serial is not equals (but same variable)" in {
@@ -246,7 +246,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf,
                   Some(new DateTime(1)),
                   Map(),
-                  Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Map())) === Set(new RuleId("ruleId1"))
     }
     
     "have a change if minimal is not equals" in {
@@ -258,7 +258,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf2,
                   Some(new DateTime(1)),
                   Map(),
-                  Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Map())) === Set(new RuleId("ruleId1"))
     }
     
     "have a change if minimal is not equals and serial different" in {
@@ -270,7 +270,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf2,
                   Some(new DateTime(1)),
                   Map(),
-                  Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Map())) === Set(new RuleId("ruleId1"))
     }
     
     "have a change if nothing is different, but previous CR is not existant" in {
@@ -282,7 +282,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf,
                   Some(new DateTime(1)),
                   Map(),
-                  Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Map())) === Set(new RuleId("ruleId1"))
     }
     
     "have a change if nothing is different, but previous CR is existant and current is non existant" in {
@@ -294,7 +294,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf,
                   Some(new DateTime(1)),
                   Map(),
-                  Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Map())) === Set(new RuleId("ruleId1"))
     }
     
     "have a change if min is different, previous CR is existant and current is non existant" in {
@@ -306,7 +306,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf2,
                   Some(new DateTime(1)),
                   Map(),
-                  Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Map())) === Set(new RuleId("ruleId1"))
     }
     
     "have a change if min is different, previous CR is non existant and current is existant" in {
@@ -318,7 +318,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf2,
                   Some(new DateTime(1)),
                   Map(),
-                  Map())) === Set(new ConfigurationRuleId("crId1"))
+                  Map())) === Set(new RuleId("ruleId1"))
     }
   }
   

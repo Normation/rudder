@@ -50,7 +50,7 @@ class NovaLicenseServiceImpl(licenseRepository : LicenseRepository, nodeConfigur
 
   val logger = LoggerFactory.getLogger(classOf[NovaLicenseServiceImpl])
 
-  def findLicenseForServer(server: String): Option[NovaLicense] = { 
+  def findLicenseForNode(server: String): Option[NovaLicense] = { 
     licenseRepository.findLicense(server)
   }
 

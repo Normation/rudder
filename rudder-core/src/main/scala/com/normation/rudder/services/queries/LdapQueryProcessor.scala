@@ -70,7 +70,7 @@ sealed trait SpecialFilter extends ExtendedFilter
 final case class RegexFilter(attributeName:String, regex:String) extends SpecialFilter with HashcodeCaching 
 
 /*
- * An ServerQuery differ a little from a Query because it's component are sorted in two way :
+ * An NodeQuery differ a little from a Query because it's component are sorted in two way :
  * - the server is apart with it's possible filter from criteria;
  * - other criteria are sorted by group of things that share the same dependency path to server,
  *   and the attribute on witch join are made.
@@ -78,11 +78,11 @@ final case class RegexFilter(attributeName:String, regex:String) extends Special
  *   For now, there is 3 groups:
  *   - Software : get their DN ;
  *   - Machine and physical element : get the Machine DN
- *   - Logical Element : get the Server DN
+ *   - Logical Element : get the Node DN
  *   
  *   More over, we need a "DN to filter" function for the requested object type
  */
-case class LDAPServerQuery(
+case class LDAPNodeQuery(
     returnTypeFilters: Option[Set[ExtendedFilter]],    
     composition:CriterionComposition,           //the final composition to apply
     objectTypesFilters: Map[DnType, Map[String,Set[ExtendedFilter]]] //that map MUST not contains returnType
@@ -212,7 +212,7 @@ class InternalLDAPQueryProcessor(
    *     (donc pour nous, les serveurs) 
    *     Ca nous permet d'obtenir une liste de serverDn, softwareDn,
    *     machineDn à tester. 
-   *     A partir de là, on crée les filtres qui vont bien pour
+   *     A partir de là, on ruleée les filtres qui vont bien pour
    *     chaque type, à ANDer en tête de chaque autre requete.
    *     PROBLEME: on peut se retrouver avec tout l'annuaire en "et".
    * 2/  requete des différents autres types, avec les bon filter.
@@ -510,7 +510,7 @@ class InternalLDAPQueryProcessor(
     }
   }
   
-  private def normalize(query:Query) : Box[LDAPServerQuery] = {
+  private def normalize(query:Query) : Box[LDAPNodeQuery] = {
         
     //validate that we knows the requested object type
     if(!objectTypes.isDefinedAt(query.returnType)) 
@@ -540,7 +540,7 @@ class InternalLDAPQueryProcessor(
         s
     }
 
-    Full(LDAPServerQuery(requestedTypeSetFilter, query.composition, groupedSetFilter.groupBy( kv => objectDnTypes(kv._1))))
+    Full(LDAPNodeQuery(requestedTypeSetFilter, query.composition, groupedSetFilter.groupBy( kv => objectDnTypes(kv._1))))
   }
 
   /**

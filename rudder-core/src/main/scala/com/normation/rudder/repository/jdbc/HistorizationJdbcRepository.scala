@@ -44,14 +44,14 @@ import org.squeryl.KeyedEntity
 import java.sql.Timestamp
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.repository.HistorizationRepository
-import com.normation.rudder.domain.policies.PolicyInstance
-import com.normation.rudder.domain.policies.UserPolicyTemplate
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.utils.HashcodeCaching
-import com.normation.cfclerk.domain.PolicyPackage
+import com.normation.cfclerk.domain.Technique
 import org.squeryl.dsl.CompositeKey2
-import com.normation.rudder.domain.policies.ConfigurationRule
-import com.normation.rudder.domain.policies.PolicyInstanceId
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.Node
@@ -147,132 +147,132 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   }
   
   
-  def getAllOpenedPIs() : Seq[SerializedPIs] = {
+  def getAllOpenedDirectives() : Seq[SerializedDirectives] = {
    
     squerylConnectionProvider.ourTransaction {
-      val q = from(PolicyInstances.policyInstances)(pi => 
-        where(pi.endTime.isNull)
-        select(pi)
+      val q = from(Directives.directives)(directive => 
+        where(directive.endTime.isNull)
+        select(directive)
       )
       q.toList
       
     }
   }
   
-   def getAllPIs(after : Option[DateTime]) : Seq[SerializedPIs] = {
+   def getAllDirectives(after : Option[DateTime]) : Seq[SerializedDirectives] = {
     squerylConnectionProvider.ourTransaction {
-      val q = from(PolicyInstances.policyInstances)(pi =>
+      val q = from(Directives.directives)(directive =>
         where(after.map(date => {
-          pi.startTime > toTimeStamp(date) or
-          (pi.endTime.isNotNull and pi.endTime > toTimeStamp(date))
+          directive.startTime > toTimeStamp(date) or
+          (directive.endTime.isNotNull and directive.endTime > toTimeStamp(date))
         }).getOrElse(1===1))
-        select(pi)
+        select(directive)
       )
       q.toList
 
     }
   }
 
-  def updatePIs(pis : Seq[(PolicyInstance, UserPolicyTemplate, PolicyPackage)], 
-              closable : Seq[String]) :Seq[SerializedPIs] = {
+  def updateDirectives(directives : Seq[(Directive, ActiveTechnique, Technique)], 
+              closable : Seq[String]) :Seq[SerializedDirectives] = {
 
     squerylConnectionProvider.ourTransaction {
-      // close the pis
-      val q = update(PolicyInstances.policyInstances)(pi => 
-        where(pi.endTime.isNull and pi.policyInstanceId.in(pis.map(x => x._1.id.value) ++ closable))
-        set(pi.endTime := toTimeStamp(DateTime.now()))
+      // close the directives
+      val q = update(Directives.directives)(directive => 
+        where(directive.endTime.isNull and directive.directiveId.in(directives.map(x => x._1.id.value) ++ closable))
+        set(directive.endTime := toTimeStamp(DateTime.now()))
       )
       
-      val insertion = PolicyInstances.policyInstances.insert(pis.map(x => SerializedPIs.fromPolicyInstance(x._1, x._2, x._3)))
+      val insertion = Directives.directives.insert(directives.map(x => SerializedDirectives.fromDirective(x._1, x._2, x._3)))
       // add the new ones
      
      Seq()
     }
   }
   
-  def getAllOpenedCRs() : Seq[ConfigurationRule] = {
+  def getAllOpenedRules() : Seq[Rule] = {
     squerylConnectionProvider.ourTransaction {
-      val q = from(ConfigurationRules.configurationRules)(cr => 
-        where(cr.endTime.isNull)
-        select(cr)
+      val q = from(Rules.rules)(rule => 
+        where(rule.endTime.isNull)
+        select(rule)
       )
-      val crs = q.toList
+      val rules = q.toList
       
       
       // Now that we have the opened CR, we must complete them
-      val pis = from(ConfigurationRules.pis)(pi => 
-        where(pi.crid.in(crs.map(x => x.id)))
-        select(pi)
+      val directives = from(Rules.directives)(directive => 
+        where(directive.crid.in(rules.map(x => x.id)))
+        select(directive)
       )
-      val groups = from(ConfigurationRules.groups)(group => 
-        where(group.crid.in(crs.map(x => x.id)))
+      val groups = from(Rules.groups)(group => 
+        where(group.crid.in(rules.map(x => x.id)))
         select(group)
       )
       
       
-      val (piSeq, groupSeq) = (pis.toList, groups.toList)
+      val (piSeq, groupSeq) = (directives.toList, groups.toList)
           
-      crs.map ( cr => (cr, 
-          groupSeq.filter(group => group.crid == cr.id),
-          piSeq.filter(pi => pi.crid == cr.id)            
-      )).map( x=> SerializedCRs.fromSerialized(x._1, x._2, x._3) )
+      rules.map ( rule => (rule, 
+          groupSeq.filter(group => group.crid == rule.id),
+          piSeq.filter(directive => directive.crid == rule.id)            
+      )).map( x=> SerializedRules.fromSerialized(x._1, x._2, x._3) )
     }
     
   }
 
-  def getAllCRs(after : Option[DateTime]) : Seq[(SerializedCRs, Seq[SerializedCRGroups],  Seq[SerializedCRPIs])] = {
+  def getAllRules(after : Option[DateTime]) : Seq[(SerializedRules, Seq[SerializedRuleGroups],  Seq[SerializedRuleDirectives])] = {
     squerylConnectionProvider.ourTransaction {
-      val q = from(ConfigurationRules.configurationRules)(cr => 
+      val q = from(Rules.rules)(rule => 
          where(after.map(date => {
-          cr.startTime > toTimeStamp(date) or
-          (cr.endTime.isNotNull and cr.endTime > toTimeStamp(date))
+          rule.startTime > toTimeStamp(date) or
+          (rule.endTime.isNotNull and rule.endTime > toTimeStamp(date))
         }).getOrElse(1===1))
-        select(cr)
+        select(rule)
       )
-      val crs = q.toList
+      val rules = q.toList
       
       
       // Now that we have the opened CR, we must complete them
-      val pis = from(ConfigurationRules.pis)(pi => 
-        where(pi.crid.in(crs.map(x => x.id)))
-        select(pi)
+      val directives = from(Rules.directives)(directive => 
+        where(directive.crid.in(rules.map(x => x.id)))
+        select(directive)
       )
-      val groups = from(ConfigurationRules.groups)(group => 
-        where(group.crid.in(crs.map(x => x.id)))
+      val groups = from(Rules.groups)(group => 
+        where(group.crid.in(rules.map(x => x.id)))
         select(group)
       )
       
       
-      val (piSeq, groupSeq) = crs.size match {
+      val (piSeq, groupSeq) = rules.size match {
         case 0 => (Seq(), Seq())
-        case _ => (pis.toSeq, groups.toSeq)
+        case _ => (directives.toSeq, groups.toSeq)
       }
           
-      crs.map ( cr => (cr, 
-          groupSeq.filter(group => group.crid == cr.id),
-          piSeq.filter(pi => pi.crid == cr.id)            
+      rules.map ( rule => (rule, 
+          groupSeq.filter(group => group.crid == rule.id),
+          piSeq.filter(directive => directive.crid == rule.id)            
       ))
     }
     
   }
   
   
-  def updateCrs(crs : Seq[ConfigurationRule], closable : Seq[String]) : Unit = {
+  def updateRules(rules : Seq[Rule], closable : Seq[String]) : Unit = {
     squerylConnectionProvider.ourTransaction {     
-      // close the crs
-      val q = update(ConfigurationRules.configurationRules)(cr => 
-        where(cr.endTime.isNull and cr.configurationRuleId.in(crs.map(x => x.id.value) ++ closable))
-        set(cr.endTime := toTimeStamp(DateTime.now()))
+      // close the rules
+      val q = update(Rules.rules)(rule => 
+        where(rule.endTime.isNull and rule.ruleId.in(rules.map(x => x.id.value) ++ closable))
+        set(rule.endTime := toTimeStamp(DateTime.now()))
       )
    
-      crs.map( cr => {  
-        val serialized = ConfigurationRules.configurationRules.insert(SerializedCRs.toSerialized(cr))
+      rules.map( rule => {  
+        val serialized = Rules.rules.insert(SerializedRules.toSerialized(rule))
         
         
-        cr.policyInstanceIds.map( pi => ConfigurationRules.pis.insert(new SerializedCRPIs(serialized.id, pi.value)))
+        rule.directiveIds.map( directive => Rules.directives.insert(new SerializedRuleDirectives(serialized.id, directive.value)))
         
-        cr.target.map(group => group match {
-          case GroupTarget(groupId) => ConfigurationRules.groups.insert(new SerializedCRGroups(serialized.id, groupId.value))
+        rule.target.map(group => group match {
+          case GroupTarget(groupId) => Rules.groups.insert(new SerializedRuleGroups(serialized.id, groupId.value))
           case _ => //
         })
       })
@@ -363,15 +363,15 @@ object Nodes extends Schema {
       t.id.is(autoIncremented("nodesid"), primaryKey)))
 }
 
-case class SerializedPIs(
-    @Column("policyinstanceid") policyInstanceId: String,
-    @Column("policyinstancename") policyInstanceName: String,
-    @Column("policyinstancedescription") policyInstanceDescription: String,
+case class SerializedDirectives(
+    @Column("directiveid") directiveId: String,
+    @Column("directivename") directiveName: String,
+    @Column("directivedescription") directiveDescription: String,
     @Column("priority") priority: Int,
-    @Column("policypackagename") policyPackageName: String,
-    @Column("policytemplatehumanname") policyTemplateHumanName: String,
-    @Column("policypackagedescription") policyPackageDescription: String,
-    @Column("policypackageversion") policyPackageVersion: String,
+    @Column("techniquename") techniqueName: String,
+    @Column("techniquehumanname") techniqueHumanName: String,
+    @Column("techniquedescription") techniqueDescription: String,
+    @Column("techniqueversion") techniqueVersion: String,
     @Column("starttime") startTime: Timestamp,
     @Column("endtime") endTime: Timestamp
 ) extends KeyedEntity[Long]  {
@@ -379,96 +379,96 @@ case class SerializedPIs(
   val id = 0L
 }
 
-object SerializedPIs {
-  def fromPolicyInstance(policyInstance : PolicyInstance, 
-      userPT : UserPolicyTemplate,
-      policyPackage : PolicyPackage) : SerializedPIs = {
-    new SerializedPIs(policyInstance.id.value,
-            policyInstance.name,
-            policyInstance.shortDescription,
-            policyInstance.priority,
-            userPT.referencePolicyTemplateName.value,
-            policyPackage.name,
-            policyPackage.description,
-            policyInstance.policyTemplateVersion.toString,
+object SerializedDirectives {
+  def fromDirective(directive : Directive, 
+      userPT : ActiveTechnique,
+      technique : Technique) : SerializedDirectives = {
+    new SerializedDirectives(directive.id.value,
+            directive.name,
+            directive.shortDescription,
+            directive.priority,
+            userPT.techniqueName.value,
+            technique.name,
+            technique.description,
+            directive.techniqueVersion.toString,
             new Timestamp(DateTime.now().getMillis), null )
   }
 }
 
-object PolicyInstances extends Schema {
-  val policyInstances = table[SerializedPIs]("policyinstances")
+object Directives extends Schema {
+  val directives = table[SerializedDirectives]("directives")
   
-  on(policyInstances)(t => declare( 
-      t.id.is(autoIncremented("policyinstancesid"), primaryKey)))
+  on(directives)(t => declare( 
+      t.id.is(autoIncremented("directivesid"), primaryKey)))
 }
 
-case class SerializedCRs(
-    @Column("configurationruleid") configurationRuleId: String,
+case class SerializedRules(
+    @Column("ruleid") ruleId: String,
     @Column("serial") serial: Int,
     @Column("name") name: String,
     @Column("shortdescription") shortDescription: String,
     @Column("longdescription") longDescription: String,
-    @Column("isactivated") isActivatedStatus: Boolean,
+    @Column("isenabled") isEnabledStatus: Boolean,
     @Column("starttime") startTime: Timestamp,
     @Column("endtime") endTime: Timestamp
 ) extends KeyedEntity[Long]  {
-  @Column("id")
+  @Column("rulepkeyid")
   val id = 0L
 }
 
-case class SerializedCRGroups(
-    @Column("crid") crid: Long,// really, the id (not the cr one)
+case class SerializedRuleGroups(
+    @Column("rulepkeyid") crid: Long,// really, the id (not the cr one)
     @Column("groupid") groupId: String
 ) extends KeyedEntity[CompositeKey2[Long,String]]  {
  
   def id = compositeKey(crid, groupId)
 }
 
-case class SerializedCRPIs(
-    @Column("crid") crid: Long,// really, the id (not the cr one)
-    @Column("policyinstanceid") piid: String
+case class SerializedRuleDirectives(
+    @Column("rulepkeyid") crid: Long,// really, the id (not the cr one)
+    @Column("directiveid") directiveId: String
 ) extends KeyedEntity[CompositeKey2[Long,String]]  {
  
-  def id = compositeKey(crid, piid)
+  def id = compositeKey(crid, directiveId)
 }
 
-object SerializedCRs {
-  def fromSerialized(cr : SerializedCRs, 
-                    crgr : Seq[SerializedCRGroups],
-                    crpi : Seq[SerializedCRPIs] ) : ConfigurationRule = {
-    ConfigurationRule(
-        ConfigurationRuleId(cr.configurationRuleId),
-        cr.name, 
-        cr.serial,
+object SerializedRules {
+  def fromSerialized(rule : SerializedRules, 
+                    crgr : Seq[SerializedRuleGroups],
+                    crpi : Seq[SerializedRuleDirectives] ) : Rule = {
+    Rule(
+        RuleId(rule.ruleId),
+        rule.name, 
+        rule.serial,
         crgr.headOption.map(x => new GroupTarget(new NodeGroupId(x.groupId))), 
-        crpi.map(x => new PolicyInstanceId(x.piid)).toSet,
-        cr.shortDescription,
-        cr.longDescription,
-        cr.isActivatedStatus,
+        crpi.map(x => new DirectiveId(x.directiveId)).toSet,
+        rule.shortDescription,
+        rule.longDescription,
+        rule.isEnabledStatus,
         false
     )
     
   }
 
-  def toSerialized(cr : ConfigurationRule) : SerializedCRs = {
-    new SerializedCRs(cr.id.value,
-        cr.serial,
-        cr.name,
-        cr.shortDescription,
-        cr.longDescription, 
-        cr.isActivatedStatus,
+  def toSerialized(rule : Rule) : SerializedRules = {
+    new SerializedRules(rule.id.value,
+        rule.serial,
+        rule.name,
+        rule.shortDescription,
+        rule.longDescription, 
+        rule.isEnabledStatus,
         new Timestamp(DateTime.now().getMillis), null)
   }
   
 }
 
-object ConfigurationRules extends Schema {
-  val configurationRules = table[SerializedCRs]("configurationrules")
-  val groups = table[SerializedCRGroups]("configurationrulesgroups")
-  val pis = table[SerializedCRPIs]("configurationrulespolicyinstance")
+object Rules extends Schema {
+  val rules = table[SerializedRules]("rules")
+  val groups = table[SerializedRuleGroups]("rulesgroupjoin")
+  val directives = table[SerializedRuleDirectives]("rulesdirectivesjoin")
   
-  on(configurationRules)(t => declare( 
-      t.id.is(autoIncremented("configurationrulesid"), primaryKey)))
+  on(rules)(t => declare(
+      t.id.is(autoIncremented("rulesid"), primaryKey)))
 
 }
 

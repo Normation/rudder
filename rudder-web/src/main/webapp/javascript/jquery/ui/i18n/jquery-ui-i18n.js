@@ -926,7 +926,7 @@ jQuery(function($){
 /* Brazilian initialisation for the jQuery UI date picker plugin. */
 /* Written by Leonildo Costa Silva (leocsilva@gmail.com). */
 jQuery(function($){
-	$.datepicker.regional['pt-BR'] = {
+	$.datepicker.regional['technique-BR'] = {
 		closeText: 'Fechar',
 		prevText: '&#x3c;Anterior',
 		nextText: 'Pr&oacute;ximo&#x3e;',
@@ -944,10 +944,10 @@ jQuery(function($){
 		isRTL: false,
 		showMonthAfterYear: false,
 		yearSuffix: ''};
-	$.datepicker.setDefaults($.datepicker.regional['pt-BR']);
+	$.datepicker.setDefaults($.datepicker.regional['technique-BR']);
 });/* Portuguese initialisation for the jQuery UI date picker plugin. */
 jQuery(function($){
-	$.datepicker.regional['pt'] = {
+	$.datepicker.regional['technique'] = {
 		closeText: 'Fechar',
 		prevText: '&#x3c;Anterior',
 		nextText: 'Seguinte',
@@ -965,7 +965,7 @@ jQuery(function($){
 		isRTL: false,
 		showMonthAfterYear: false,
 		yearSuffix: ''};
-	$.datepicker.setDefaults($.datepicker.regional['pt']);
+	$.datepicker.setDefaults($.datepicker.regional['technique']);
 });/* Romansh initialisation for the jQuery UI date picker plugin. */
 /* Written by Yvonne Gienal (yvonne.gienal@educa.ch). */
 jQuery(function($){
@@ -1005,7 +1005,7 @@ jQuery(function($){
 		dayNames: ['Duminică', 'Luni', 'Marţi', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'],
 		dayNamesShort: ['Dum', 'Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm'],
 		dayNamesMin: ['Du','Lu','Ma','Mi','Jo','Vi','Sâ'],
-		weekHeader: 'Săpt',
+		weekHeader: 'Sătechnique',
 		dateFormat: 'dd.mm.yy',
 		firstDay: 1,
 		isRTL: false,

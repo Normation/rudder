@@ -36,10 +36,10 @@ package com.normation.rudder.web.services
 
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.repository.ConfigurationRuleRepository
-import com.normation.rudder.domain.policies.ConfigurationRuleId
-import com.normation.rudder.domain.policies.ConfigurationRuleVal
-import com.normation.rudder.services.servers.ServerSummaryService
+import com.normation.rudder.repository.RuleRepository
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleVal
+import com.normation.rudder.services.servers.NodeSummaryService
 import com.normation.rudder.web.components.DateFormaterService
 
 import com.normation.rudder.web.model._
@@ -69,22 +69,22 @@ import net.liftweb.http.Templates
  * @author Nicolas CHARLES
  *
  */
-class ReportDisplayer(configurationRuleRepository : ConfigurationRuleRepository,
+class ReportDisplayer(ruleRepository : RuleRepository,
     reportingService : ReportingService) {
   
   
   
-  def templateByServerPath = List("templates-hidden", "reports_server")
-  def templateByServer() =  Templates(templateByServerPath) match {
+  def templateByNodePath = List("templates-hidden", "reports_server")
+  def templateByNode() =  Templates(templateByNodePath) match {
     case Empty | Failure(_,_,_) => 
-      throw new TechnicalException("Template for execution batch history not found. I was looking for %s.html".format(templateByServerPath.mkString("/")))
+      throw new TechnicalException("Template for execution batch history not found. I was looking for %s.html".format(templateByNodePath.mkString("/")))
     case Full(n) => n
   }
   
   
 
-  def reportByServerTemplate = chooseTemplate("batches", "list", templateByServer)
-  def policyInstanceDetails = chooseTemplate("policyInstance", "foreach", templateByServer)
+  def reportByNodeTemplate = chooseTemplate("batches", "list", templateByNode)
+  def directiveDetails = chooseTemplate("directive", "foreach", templateByNode)
   
  
   
@@ -94,14 +94,14 @@ class ReportDisplayer(configurationRuleRepository : ConfigurationRuleRepository,
  
   def display(reportsSeq : Seq[ExecutionBatch], tableId:String): NodeSeq = {
     
-    staticReportsSeq = reportsSeq.filter( x => configurationRuleRepository.get(x.configurationRuleId).isDefined  )
-    bind("lastReportGrid",reportByServerTemplate,
-           "intro" ->  (staticReportsSeq.filter(x => ( (x.getErrorServer.size>0) || 
-                                                //(x.getWarnServer.size>0) ||
-                                                (x.getRepairedServer.size>0) ||
-                                                (x.getServerWithNoReports.size>0))).toList match {
+    staticReportsSeq = reportsSeq.filter( x => ruleRepository.get(x.ruleId).isDefined  )
+    bind("lastReportGrid",reportByNodeTemplate,
+           "intro" ->  (staticReportsSeq.filter(x => ( (x.getErrorNodeIds.size>0) || 
+                                                //(x.getWarnNode.size>0) ||
+                                                (x.getRepairedNodeIds.size>0) ||
+                                                (x.getNoReportNodeIds.size>0))).toList match {
              case x if (x.size > 0) => <div>There are {x.size} out of {staticReportsSeq.size} reports that require our attention</div>
-             case _ => if (staticReportsSeq.filter(x => (x.getPendingServer().size>0)).size>0) {
+             case _ => if (staticReportsSeq.filter(x => (x.getPendingNodeIds().size>0)).size>0) {
                      <div>Deployment in progress</div>
                    } else {
                      <div>All the last execution reports for this server are ok</div>
@@ -109,21 +109,21 @@ class ReportDisplayer(configurationRuleRepository : ConfigurationRuleRepository,
            } ),
            "lines" -> 
                (((staticReportsSeq.map { x => x match { 
-                 case ex:ExecutionBatch if (ex.getErrorServer.size > 0) => ("Error", ex)
-                 //case ex:ExecutionBatch if (ex.getWarnServer.size > 0) => ("Warning", ex)
-                 case ex:ExecutionBatch if (ex.getServerWithNoReports.size > 0) => ("No answer", ex)
-                 case ex:ExecutionBatch if (ex.getPendingServer.size > 0) => ("Applying", ex)
-                 case ex:ExecutionBatch if (ex.getRepairedServer.size > 0) => ("Repaired", ex)
-                 case ex:ExecutionBatch if (ex.getSuccessServer.size > 0) => ("Success", ex)
+                 case ex:ExecutionBatch if (ex.getErrorNodeIds.size > 0) => ("Error", ex)
+                 //case ex:ExecutionBatch if (ex.getWarnNode.size > 0) => ("Warning", ex)
+                 case ex:ExecutionBatch if (ex.getNoReportNodeIds.size > 0) => ("No answer", ex)
+                 case ex:ExecutionBatch if (ex.getPendingNodeIds.size > 0) => ("Applying", ex)
+                 case ex:ExecutionBatch if (ex.getRepairedNodeIds.size > 0) => ("Repaired", ex)
+                 case ex:ExecutionBatch if (ex.getSuccessNodeIds.size > 0) => ("Success", ex)
                  case ex:ExecutionBatch => ("Unknown", ex)
                }
                }):Seq[(String, ExecutionBatch)]).flatMap {       
                    case s@(severity:String, executionBatch:ExecutionBatch) =>
-                   configurationRuleRepository.get(executionBatch.configurationRuleId) match {
-                       case Full(cr) =>                    
+                   ruleRepository.get(executionBatch.ruleId) match {
+                       case Full(rule) =>                    
                         <tr class={severity.replaceAll(" ", "")}>
-                        {bind("line",chooseTemplate("lastReportGrid","lines",reportByServerTemplate),
-                         "cr" -> <span jsuuid={executionBatch.configurationRuleId.value.replaceAll("-","")} crId={executionBatch.configurationRuleId.value}>{cr.name}</span> ,
+                        {bind("line",chooseTemplate("lastReportGrid","lines",reportByNodeTemplate),
+                         "rule" -> <span jsuuid={executionBatch.ruleId.value.replaceAll("-","")} ruleId={executionBatch.ruleId.value}>{rule.name}</span> ,
                          "severity" -> severity )}
                         </tr>
                        case _ => NodeSeq.Empty 
@@ -204,7 +204,7 @@ class ReportDisplayer(configurationRuleRepository : ConfigurationRuleRepository,
 //            
 //              var aData = jQuery(#table_var#.fnGetData( aPos[0] ));
 //              var node = jQuery(aData[aPos[1]]);
-//              var id = node.attr("crId");
+//              var id = node.attr("ruleId");
 //              var jsid = node.attr("jsuuid");
 //              var ajaxParam = jsid + "|" + id;
 //              #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
@@ -233,9 +233,9 @@ class ReportDisplayer(configurationRuleRepository : ConfigurationRuleRepository,
   /**
    * Look in the service for the given policyinstance uuid and returns some basic data
    */
-//  private def showPolicyDetail(instance : ConfigurationRuleVal) : NodeSeq = {
+//  private def showPolicyDetail(instance : RuleVal) : NodeSeq = {
 //      <div class="reportsList"> 
-//        <div class="reportsTitle">{instance.policyPackageId.value} : {}</div>
+//        <div class="reportsTitle">{instance.TechniqueId.value} : {}</div>
 //        <span>
 //        </span>
 //          { /* if (instance.executionPlanning != None) {

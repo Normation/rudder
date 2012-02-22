@@ -48,7 +48,7 @@ import com.normation.cfclerk.domain._
 import com.normation.rudder.web.model._
 import org.springframework.context.{ ApplicationContext, ApplicationContextAware }
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
-import com.normation.rudder.domain.policies.ConfigurationRuleVal
+import com.normation.rudder.domain.policies.RuleVal
 import org.springframework.context.annotation.{ Bean, Configuration, Import }
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Lazy
@@ -113,7 +113,7 @@ class Section2FieldServiceTest extends Specification {
     }
   }
 
-  def haveId(id: String)(implicit varField: PolicyField) = {
+  def haveId(id: String)(implicit varField: DirectiveField) = {
     "have id '%s'".format(id) in {
       varField.id mustEqual id
     }
@@ -121,19 +121,19 @@ class Section2FieldServiceTest extends Specification {
 
   def haveAllVars(implicit section: SectionField) = {
     "have all kinds of variable" in {
-      val vars = section.childFields.collect { case v: PolicyField => v }
+      val vars = section.childFields.collect { case v: DirectiveField => v }
       isSelect(vars(0))
 
     }
   }
 
-  def isSelect(varField: PolicyField) = {
+  def isSelect(varField: DirectiveField) = {
     "is a select variable" in {
       varField must beAnInstanceOf[SelectField]
     }
   }
 
-  def isText(varField: PolicyField) = {
+  def isText(varField: DirectiveField) = {
     "is an input variable" in {
       varField must beAnInstanceOf[TextField]
     }
@@ -179,10 +179,10 @@ class Section2FieldServiceTest extends Specification {
 @Configuration
 class ConfigSection2FieldService {
 
-  object FieldFactoryImpl extends PolicyFieldFactory {
+  object FieldFactoryImpl extends DirectiveFieldFactory {
     //only one field
 
-    override def forType(v: VariableSpec, id: String): PolicyField = {
+    override def forType(v: VariableSpec, id: String): DirectiveField = {
       v match {
         case selectOne: SelectOneVariableSpec => new SelectOneField(id, selectOne.valueslabels)
         case select: SelectVariableSpec => new SelectField(id, select.valueslabels)

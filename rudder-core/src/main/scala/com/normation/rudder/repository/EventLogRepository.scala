@@ -55,45 +55,45 @@ trait EventLogRepository {
    */
   def saveEventLog(eventLog : EventLog) : Box[EventLog]
                          
-  def saveAddConfigurationRule(principal: EventActor, addDiff: AddConfigurationRuleDiff) = {
-    saveEventLog(eventLogFactory.getAddConfigurationRuleFromDiff(
+  def saveAddRule(principal: EventActor, addDiff: AddRuleDiff) = {
+    saveEventLog(eventLogFactory.getAddRuleFromDiff(
         principal = principal
       , addDiff   = addDiff
     ))
   }
   
-  def saveDeleteConfigurationRule(principal: EventActor, deleteDiff: DeleteConfigurationRuleDiff) = {
-    saveEventLog(eventLogFactory.getDeleteConfigurationRuleFromDiff(
+  def saveDeleteRule(principal: EventActor, deleteDiff: DeleteRuleDiff) = {
+    saveEventLog(eventLogFactory.getDeleteRuleFromDiff(
         principal  = principal
       , deleteDiff = deleteDiff
     ))
   }
 
-  def saveModifyConfigurationRule(principal: EventActor, modifyDiff: ModifyConfigurationRuleDiff) = {
-    saveEventLog(eventLogFactory.getModifyConfigurationRuleFromDiff(
+  def saveModifyRule(principal: EventActor, modifyDiff: ModifyRuleDiff) = {
+    saveEventLog(eventLogFactory.getModifyRuleFromDiff(
         principal = principal
       , modifyDiff = modifyDiff
     ))
   }
 
-  def saveAddPolicyInstance(principal: EventActor, addDiff: AddPolicyInstanceDiff, varsRootSectionSpec: SectionSpec) = {
-    saveEventLog(eventLogFactory.getAddPolicyInstanceFromDiff(
+  def saveAddDirective(principal: EventActor, addDiff: AddDirectiveDiff, varsRootSectionSpec: SectionSpec) = {
+    saveEventLog(eventLogFactory.getAddDirectiveFromDiff(
         principal           = principal
       , addDiff             = addDiff
       , varsRootSectionSpec = varsRootSectionSpec
     ))
   }
   
-  def saveDeletePolicyInstance(principal : EventActor, deleteDiff:DeletePolicyInstanceDiff, varsRootSectionSpec: SectionSpec) = {
-    saveEventLog(eventLogFactory.getDeletePolicyInstanceFromDiff(
+  def saveDeleteDirective(principal : EventActor, deleteDiff:DeleteDirectiveDiff, varsRootSectionSpec: SectionSpec) = {
+    saveEventLog(eventLogFactory.getDeleteDirectiveFromDiff(
         principal  = principal
       , deleteDiff = deleteDiff
       , varsRootSectionSpec = varsRootSectionSpec
     ))
   }
 
-  def saveModifyPolicyInstance(principal : EventActor, modifyDiff: ModifyPolicyInstanceDiff) = {
-    saveEventLog(eventLogFactory.getModifyPolicyInstanceFromDiff(
+  def saveModifyDirective(principal : EventActor, modifyDiff: ModifyDirectiveDiff) = {
+    saveEventLog(eventLogFactory.getModifyDirectiveFromDiff(
         principal = principal
       , modifyDiff = modifyDiff
     ))

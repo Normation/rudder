@@ -35,11 +35,11 @@
 package com.normation.rudder.services.marshalling
 
 import scala.xml.Elem
-import com.normation.rudder.domain.policies.ConfigurationRule
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
-import com.normation.rudder.domain.policies.UserPolicyTemplate
-import com.normation.cfclerk.domain.PolicyPackageName
-import com.normation.rudder.domain.policies.PolicyInstance
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.rudder.domain.policies.Directive
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroupCategory
@@ -51,83 +51,83 @@ import com.normation.rudder.domain.nodes.NodeGroup
  * That trait allow to serialise 
  * Configuration Rule to an XML file. 
  */
-trait ConfigurationRuleSerialisation {
+trait RuleSerialisation {
   /**
-   * Version 1:
-     <configurationRule fileFormat="1.0">
-        <id>{cr.id.value}</id>
-        <name>{cr.name}</name>
-        <serial>{cr.serial}</serial>
-        <target>{ cr.target.map( _.target).getOrElse("") }</target>
-        <policyInstanceIds>{
-          cr.policyInstanceIds.map { id => <id>{id.value}</id> } 
-        }</policyInstanceIds>
-        <shortDescription>{cr.shortDescription}</shortDescription>
-        <longDescription>{cr.longDescription}</longDescription>
-        <isActivated>{cr.isActivatedStatus}</isActivated>
-        <isSystem>{cr.isSystem}</isSystem>
-      </configurationRule>
+   * Version 2:
+     <rule fileFormat="2.0">
+        <id>{rule.id.value}</id>
+        <name>{rule.name}</name>
+        <serial>{rule.serial}</serial>
+        <target>{ rule.target.map( _.target).getOrElse("") }</target>
+        <directiveIds>{
+          rule.directiveIds.map { id => <id>{id.value}</id> } 
+        }</directiveIds>
+        <shortDescription>{rule.shortDescription}</shortDescription>
+        <longDescription>{rule.longDescription}</longDescription>
+        <isEnabled>{rule.isEnabledStatus}</isEnabled>
+        <isSystem>{rule.isSystem}</isSystem>
+      </rule>
    */
-  def serialise(cr:ConfigurationRule):  Elem
+  def serialise(rule:Rule):  Elem
 }
 
 /**
  * That trait allows to serialise 
  * User policy templates categories to an XML file. 
  */
-trait UserPolicyTemplateCategorySerialisation {
+trait ActiveTechniqueCategorySerialisation {
   /**
-   * Version 1:
-     <policyLibraryCategory fileFormat="1.0">
+   * Version 2:
+     <policyLibraryCategory fileFormat="2.0">
         <id>{uptc.id.value}</id>
         <displayName>{uptc.name}</displayName>
         <description>{uptc.description}</serial>
         <isSystem>{uptc.isSystem}</isSystem>
       </policyLibraryCategory>
    */
-  def serialise(uptc:UserPolicyTemplateCategory):  Elem
+  def serialise(uptc:ActiveTechniqueCategory):  Elem
 }
 
 /**
  * That trait allows to serialise 
  * User policy templates to an XML file. 
  */
-trait UserPolicyTemplateSerialisation {
+trait ActiveTechniqueSerialisation {
   /**
-   * Version 1:
-     <policyLibraryTemplate fileFormat="1.0">
-        <id>{upt.id.value}</id>
-        <policyTemplateName>{upt.referencePolicyTemplateName}</policyTemplateName>
-        <isActivated>{upt.isSystem}</isActivated>
-        <isSystem>{upt.isSystem}</isSystem>
+   * Version 2:
+     <policyLibraryTemplate fileFormat="2.0">
+        <id>{activeTechnique.id.value}</id>
+        <techniqueName>{activeTechnique.techniqueName}</techniqueName>
+        <isEnabled>{activeTechnique.isSystem}</isEnabled>
+        <isSystem>{activeTechnique.isSystem}</isSystem>
         <versions>
-          <version name="1.0">{upt.acceptationDate("1.0") in iso-8601}</version>
-          <version name="1.1">{upt.acceptationDate("1.1") in iso-8601}</version>
-          <version name="2.0">{upt.acceptationDate("2.0") in iso-8601}</version>
+          <version name="1.0">{activeTechnique.acceptationDate("1.0") in iso-8601}</version>
+          <version name="1.1">{activeTechnique.acceptationDate("1.1") in iso-8601}</version>
+          <version name="2.0">{activeTechnique.acceptationDate("2.0") in iso-8601}</version>
         </versions>
       </policyLibraryTemplate>
    */
-  def serialise(uptc:UserPolicyTemplate):  Elem
+  def serialise(uptc:ActiveTechnique):  Elem
 }
 
 /**
  * That trait allows to serialise 
  * User policy templates to an XML file. 
  */
-trait PolicyInstanceSerialisation {
+trait DirectiveSerialisation {
   /**
-   * Version 1:
-     <policyInstance fileFormat="1.0">
-      <id>{pi.id.value}</id>
-      <displayName>{pi.name}</displayName>
-      <policyTemplateName>{policy template name on with depend that pi}</policyTemplateName>
-      <policyTemplateVersion>{pi.policyTemplateVersion.toString}</policyTemplateVersion>
-      <shortDescription>{pi.shortDescription}</shortDescription>
-      <longDescription>{pi.longDescription}</longDescription>
-      <priority>{pi.priority}</priority>
-      <isActivated>{pi.isActivated}</isActivated>
-      <isSystem>{pi.isSystem}</isSystem>
-      <!-- That section is generated by the serialization of pi section -->
+   * Version 2:
+     <directive fileFormat="2.0">
+      <id>{directive.id.value}</id>
+      <displayName>{directive.name}</displayName>
+      <techniqueName>{policy template name on with depend that directive}</techniqueName>
+      <techniqueVersion>{directive.techniqueVersion.toString}</techniqueVersion>
+      <shortDescription>{directive.shortDescription}</shortDescription>
+      <longDescription>{directive.longDescription}</longDescription>
+      <priority>{directive.priority}</priority>
+      <isEnabled>{directive.isEnabled}</isEnabled>
+      <isSystem>{directive.isSystem}</isSystem>
+      <!-- That section is generated by the serialization of directive section -->
       <section name="sections">
         <section name="section1">
           <var name="var1">XXX</var>
@@ -139,12 +139,12 @@ trait PolicyInstanceSerialisation {
           <var name="var2">YYY</var>
         </section>
       </section>
-    </policyInstance>
+    </directive>
    */
   def serialise(
-      ptName             : PolicyPackageName
+      ptName             : TechniqueName
     , variableRootSection: SectionSpec
-    , pi                 : PolicyInstance):  Elem
+    , directive                 : Directive):  Elem
 }
 
 
@@ -154,8 +154,8 @@ trait PolicyInstanceSerialisation {
  */
 trait NodeGroupCategorySerialisation {
   /**
-   * Version 1: (ngc: nodeGroupCategory)
-     <groupLibraryCategory fileFormat="1.0">
+   * Version 2: (ngc: nodeGroupCategory)
+     <groupLibraryCategory fileFormat="2.0">
         <id>{ngc.id.value}</id>
         <displayName>{ngc.name}</displayName>
         <description>{ngc.description}</serial>
@@ -171,13 +171,13 @@ trait NodeGroupCategorySerialisation {
  */
 trait NodeGroupSerialisation {
   /**
-   * Version 1: 
-     <nodeGroup fileFormat="1.0">
+   * Version 2: 
+     <nodeGroup fileFormat="2.0">
        <id>{group.id.value}</id>
        <displayName>{group.id.name}</displayName>
        <description>{group.id.description}</description>
        <isDynamic>{group.isDynamic}</isDynamic>
-       <isActivated>{group.isActivated}</isActivated>
+       <isEnabled>{group.isEnabled}</isEnabled>
        <isSystem>{group.isSystem}</isSystem>
        <query>{group.query}</query>
        <nodeIds>
@@ -194,8 +194,8 @@ trait NodeGroupSerialisation {
  */
 trait DeploymentStatusSerialisation {
   /**
-   * Version 1:
-     <deploymentStatus fileFormat="1.0">
+   * Version 2:
+     <deploymentStatus fileFormat="2.0">
       <id>{deploymentStatus.id.value}</id>
       <started>{deploymentStatus.started}</started>
       <ended>{deploymentStatus.end}</ended>

@@ -57,12 +57,12 @@ attributetype ( RudderAttributes:101
   SUP uuid )
 
 attributetype ( RudderAttributes:102
-  NAME 'policyInstanceId'
+  NAME 'directiveId'
   DESC 'Unique identifier for a policy instance'
   SUP uuid )
   
 attributetype ( RudderAttributes:103
-  NAME 'targetPolicyInstanceId'
+  NAME 'targetDirectiveId'
   DESC 'Unique identifier for a policy instance'
   SUP uuid )
 
@@ -72,17 +72,17 @@ attributetype ( RudderAttributes:104
   SUP uuid )
     
 attributetype ( RudderAttributes:105
-  NAME 'policyCategoryId'
+  NAME 'techniqueCategoryId'
   DESC 'Unique identifier for a rudder category'
   SUP uuid )
   
 attributetype ( RudderAttributes:106
-  NAME 'referencePolicyTemplateId'
+  NAME 'techniqueId'
   DESC 'Unique identifier for a policy template from reference library'
   SUP uuid )
 
 attributetype ( RudderAttributes:107
-  NAME 'userPolicyTemplateId'
+  NAME 'activeTechniqueId'
   DESC 'Unique identifier for an policy template in user library'
   SUP uuid )
 
@@ -92,21 +92,21 @@ attributetype ( RudderAttributes:108
   SUP uuid )
 
 attributetype ( RudderAttributes:109
-  NAME 'configurationRuleId'
-  DESC 'Unique identifier for a configuration rule'
+  NAME 'ruleId'
+  DESC 'Unique identifier for a rule'
   SUP uuid )
   
 #######################################################################
   
 attributetype ( RudderAttributes:201
-  NAME 'referenceLibraryVersion'
+  NAME 'techniqueLibraryVersion'
   DESC 'The version'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
 attributetype ( RudderAttributes:202
-  NAME 'referencePolicyTemplateVersion'
+  NAME 'techniqueVersion'
   DESC 'The version'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
@@ -127,7 +127,7 @@ attributetype ( RudderAttributes:204
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
 attributetype ( RudderAttributes:205
-  NAME 'configurationRuleTarget'
+  NAME 'ruleTarget'
   DESC 'Target of the policy instance. It is something of the form targetType:targetUuid'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
@@ -153,7 +153,7 @@ attributetype ( RudderAttributes:207
 # variableName[index]:variableValue
 #
 attributetype ( RudderAttributes:208
-  NAME 'policyInstanceVariable'
+  NAME 'directiveVariable'
   DESC 'Pair of variable:value'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
@@ -181,7 +181,7 @@ attributetype ( RudderAttributes:211
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
   
 attributetype ( RudderAttributes:212
-  NAME 'isActivated'
+  NAME 'isEnabled'
   DESC 'Define if the object is currently activated or not (and so should be ignore)'
   EQUALITY booleanMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
@@ -211,7 +211,7 @@ attributetype ( RudderAttributes:216
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
 
 attributetype ( RudderAttributes:217
-  NAME 'policyInstancePriority'
+  NAME 'directivePriority'
   DESC 'The priority of the object compare to other. Higher has more priority'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   EQUALITY integerMatch
@@ -226,7 +226,7 @@ attributetype ( RudderAttributes:218
 
 attributetype ( RudderAttributes:219
   NAME 'serial'
-  DESC 'The serial of the Configuration Rule'
+  DESC 'The serial of the Rule'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   EQUALITY integerMatch
   ORDERING integerOrderingMatch )
@@ -285,9 +285,9 @@ attributetype ( RudderAttributes:225
 # * node group categories 
 # * node groups 
 # * user library of policy template categories
-# * userPolicyTemplate
-# * policyInstance
-# * configuration rules
+# * activeTechnique
+# * directive
+# * rules
 # 
 
 
@@ -328,62 +328,62 @@ objectclass ( RudderObjectClasses:11
   MUST ( nodeGroupId $
    cn $ isDynamic )
   MAY ( nodeId $ description $ jsonNodeGroupQuery $ 
-        isActivated $ isSystem  ) )
+        isEnabled $ isSystem  ) )
 
 objectclass ( RudderObjectClasses:12
-  NAME 'specialConfigurationRuleTarget'
+  NAME 'specialRuleTarget'
   DESC 'A special target (other than a nodeGroup), for example: all servers'
   SUP top
   STRUCTURAL
-  MUST ( configurationRuleTarget $ cn )
-  MAY (  description $ isActivated $ isSystem ) )  
+  MUST ( ruleTarget $ cn )
+  MAY (  description $ isEnabled $ isSystem ) )  
 
 ### user policy library ###
 
 objectclass ( RudderObjectClasses:20
-  NAME 'userLibraryVersion'
+  NAME 'activeTechniqueLibraryVersion'
   DESC 'An object class to contain information about the user library (version, initialisation timestamp)'
   SUP top
   AUXILIARY
-  MAY ( initTimestamp $ referenceLibraryVersion ) )
+  MAY ( initTimestamp $ techniqueLibraryVersion ) )
 
 objectclass ( RudderObjectClasses:21
-  NAME 'policyCategory'
+  NAME 'techniqueCategory'
   DESC 'The Rudder category'
   SUP top
   STRUCTURAL
-  MUST ( policyCategoryId $ cn )
+  MUST ( techniqueCategoryId $ cn )
   MAY ( description $ isSystem ) )
   
 objectclass ( RudderObjectClasses:22
-  NAME 'userPolicyTemplate'
+  NAME 'activeTechnique'
   DESC 'The Rudder category'
   SUP top
   STRUCTURAL
-  MUST ( userPolicyTemplateId $ referencePolicyTemplateId $ acceptationTimestamp)
-  MAY ( isActivated $ isSystem ) )
+  MUST ( activeTechniqueId $ techniqueId $ acceptationTimestamp)
+  MAY ( isEnabled $ isSystem ) )
 
 objectclass ( RudderObjectClasses:23
-  NAME 'policyInstance'
+  NAME 'directive'
   DESC 'The Rudder policy instance (real)'
   SUP top
   STRUCTURAL
-  MUST ( policyInstanceId $ referencePolicyTemplateVersion )
-  MAY ( cn $ description $ longDescription $ isActivated $ isSystem $
-        policyInstancePriority $ policyInstanceVariable  ) )
+  MUST ( directiveId $ techniqueVersion )
+  MAY ( cn $ description $ longDescription $ isEnabled $ isSystem $
+        directivePriority $ directiveVariable  ) )
 
-### configuration rules ###
+### rules ###
   
 objectclass ( RudderObjectClasses:30
-  NAME 'configurationRule'
-  DESC 'A configuration rule'
+  NAME 'rule'
+  DESC 'A rule'
   SUP top
   STRUCTURAL
-  MUST ( configurationRuleId  $ serial )
+  MUST ( ruleId  $ serial )
   MAY ( cn $ description $ longDescription $ 
-        isActivated $ isSystem $ 
-        configurationRuleTarget $ 
-        policyInstanceId ) )
+        isEnabled $ isSystem $ 
+        ruleTarget $ 
+        directiveId ) )
 
 
 #
@@ -415,28 +415,28 @@ objectclass ( RudderObjectClasses:102
 
 #cn is the policy name for the instance
 objectClass ( RudderObjectClasses:103
-  NAME 'abstractPolicyInstanceNodeConfiguration'
+  NAME 'abstractDirectiveNodeConfiguration'
   DESC 'An abstract instance of a policy instance'
   SUP top
   ABSTRACT
-  MUST ( referencePolicyTemplateId )
+  MUST ( techniqueId )
   MAY ( lastUpdateTimestamp $ 
-        description $ configurationRuleTarget $ policyInstanceVariable $
-        isActivated $ isSystem $ serial $ policyInstancePriority $
-        referencePolicyTemplateId $ referencePolicyTemplateVersion $
-        configurationRuleId ) )
+        description $ ruleTarget $ directiveVariable $
+        isEnabled $ isSystem $ serial $ directivePriority $
+        techniqueId $ techniqueVersion $
+        ruleId ) )
 
 objectclass ( RudderObjectClasses:104
-  NAME 'policyInstanceNodeConfiguration'
+  NAME 'directiveNodeConfiguration'
   DESC 'An instance of a policy'
-  SUP abstractPolicyInstanceNodeConfiguration
+  SUP abstractDirectiveNodeConfiguration
   STRUCTURAL
-  MUST ( policyInstanceId ) )
+  MUST ( directiveId ) )
 
 objectclass ( RudderObjectClasses:105
-  NAME 'targetPolicyInstanceNodeConfiguration'
+  NAME 'targetDirectiveNodeConfiguration'
   DESC 'An instance of a target state for a policy instance'
-  SUP abstractPolicyInstanceNodeConfiguration
+  SUP abstractDirectiveNodeConfiguration
   STRUCTURAL
-  MUST ( targetpolicyInstanceId ) )
+  MUST ( targetdirectiveId ) )
 

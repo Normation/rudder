@@ -34,7 +34,7 @@
 
 package com.normation.rudder.domain.servers
 
-import com.normation.cfclerk.domain.CFCPolicyInstance
+import com.normation.cfclerk.domain.Cf3PolicyDraft
 import com.normation.rudder.domain._
 import scala.collection._
 import org.slf4j.{Logger,LoggerFactory}
@@ -42,11 +42,11 @@ import scala.xml._
 import com.normation.cfclerk.domain.Variable
 import org.joda.time.DateTime
 import org.joda.time.format._
-import com.normation.rudder.domain.policies.IdentifiableCFCPI
+import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
 import scala.collection._
 import net.liftweb.common._
-import com.normation.rudder.domain.policies.{ConfigurationRule,ConfigurationRuleId}
-import com.normation.cfclerk.domain.{PolicyPackageId, CFCPolicyInstanceId,CFCPolicyInstance, PoliciesContainer}
+import com.normation.rudder.domain.policies.{Rule,RuleId}
+import com.normation.cfclerk.domain.{TechniqueId, Cf3PolicyDraftId,Cf3PolicyDraft, Cf3PolicyDraftContainer}
 import com.normation.utils.HashcodeCaching
 
 
@@ -56,51 +56,51 @@ import com.normation.utils.HashcodeCaching
  *
  */
 case class RootNodeConfiguration(
-    val id: String,
-    val __currentPoliciesInstances : Seq[IdentifiableCFCPI] = Seq(), 
-    val __targetPoliciesInstances : Seq[IdentifiableCFCPI] = Seq(),
-    val isPolicyServer : Boolean,
-   val currentMinimalNodeConfig : MinimalNodeConfig,
-   val targetMinimalNodeConfig : MinimalNodeConfig,
-   val writtenDate : Option[DateTime],
-   val currentSystemVariables :  Map[String, Variable],
-   val targetSystemVariables :  Map[String, Variable]
+    id                         : String
+  , __currentPoliciesInstances : Seq[RuleWithCf3PolicyDraft] = Seq()
+  , __targetPoliciesInstances  : Seq[RuleWithCf3PolicyDraft] = Seq()
+  , isPolicyServer             : Boolean
+  , currentMinimalNodeConfig   : MinimalNodeConfig
+  , targetMinimalNodeConfig    : MinimalNodeConfig
+  , writtenDate                : Option[DateTime]
+  , currentSystemVariables     : Map[String, Variable]
+  , targetSystemVariables      : Map[String, Variable]
 ) extends NodeConfiguration with HashcodeCaching {
 
    /**
-   * Add a policy instance
-   * @param policy
+   * Add a ruleWithCf3PolicyDraft instance
+   * @param ruleWithCf3PolicyDraft
    * @return
    */
-  def addPolicyInstance(policy : IdentifiableCFCPI) : Box[RootNodeConfiguration]= {
-    targetPoliciesInstances.get(policy.policyInstance.id) match {
+  def addDirective(ruleWithCf3PolicyDraft : RuleWithCf3PolicyDraft) : Box[RootNodeConfiguration]= {
+    targetPoliciesInstances.get(ruleWithCf3PolicyDraft.cf3PolicyDraft.id) match {
       case None =>
         // we first need to fetch all the policies in a mutable map to modify them
-        val newPoliciesInstances =  mutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI]() 
-        __targetPoliciesInstances.foreach { pi => 
-            newPoliciesInstances += ( pi.policyInstance.id ->pi.copy()) }
+        val newPoliciesInstances =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]() 
+        __targetPoliciesInstances.foreach { ruleWithCf3PolicyDraft => 
+            newPoliciesInstances += ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id ->ruleWithCf3PolicyDraft.copy()) }
         
         
   
-        updateAllUniqueVariables(policy.policyInstance,newPoliciesInstances)
-        newPoliciesInstances += (policy.policyInstance.id -> policy.copy())
+        updateAllUniqueVariables(ruleWithCf3PolicyDraft.cf3PolicyDraft,newPoliciesInstances)
+        newPoliciesInstances += (ruleWithCf3PolicyDraft.cf3PolicyDraft.id -> ruleWithCf3PolicyDraft.copy())
         
         
         Full(copy(__targetPoliciesInstances = newPoliciesInstances.values.toSeq))
-      case Some(x) => Failure("An instance of the policy with the same identifier %s already exists".format(policy.policyInstance.id.value))
+      case Some(x) => Failure("An instance of the ruleWithCf3PolicyDraft with the same identifier %s already exists".format(ruleWithCf3PolicyDraft.cf3PolicyDraft.id.value))
     }
   }
  
-  def setSerial(crs : Seq[(ConfigurationRuleId,Int)]) : RootNodeConfiguration = {
-    val newPoliciesInstances =  mutable.Map[CFCPolicyInstanceId, IdentifiableCFCPI]() 
-        __targetPoliciesInstances.foreach { pi => 
-            newPoliciesInstances += ( pi.policyInstance.id ->pi.copy()) }
+  def setSerial(rules : Seq[(RuleId,Int)]) : RootNodeConfiguration = {
+    val newPoliciesInstances =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]() 
+        __targetPoliciesInstances.foreach { ruleWithCf3PolicyDraft => 
+            newPoliciesInstances += ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id ->ruleWithCf3PolicyDraft.copy()) }
         
     
-    for ((id,serial) <- crs) {
+    for ((id,serial) <- rules) {
       newPoliciesInstances ++= newPoliciesInstances.
-            filter(x => x._2.configurationRuleId == id).
-            map(x => (x._1 -> new IdentifiableCFCPI(x._2.configurationRuleId, x._2.policyInstance.copy(serial = serial))))
+            filter(x => x._2.ruleId == id).
+            map(x => (x._1 -> new RuleWithCf3PolicyDraft(x._2.ruleId, x._2.cf3PolicyDraft.copy(serial = serial))))
     }
     copy(__targetPoliciesInstances = newPoliciesInstances.values.toSeq)
   }
@@ -153,8 +153,8 @@ case class RootNodeConfiguration(
 object RootNodeConfiguration {
   def apply(server:NodeConfiguration) : RootNodeConfiguration = {
     val root = new RootNodeConfiguration(server.id,
-        server.getCurrentPolicyInstances.valuesIterator.toSeq, 
-        server.getPolicyInstances.valuesIterator.toSeq, 
+        server.getCurrentDirectives.valuesIterator.toSeq, 
+        server.getDirectives.valuesIterator.toSeq, 
         server.isPolicyServer,
         server.currentMinimalNodeConfig,
         server.targetMinimalNodeConfig,

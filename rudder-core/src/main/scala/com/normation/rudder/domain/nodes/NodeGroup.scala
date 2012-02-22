@@ -39,7 +39,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.utils.HashcodeCaching
 
 /**
- * UUId type for Server Groups, so that they
+ * UUId type for Node Groups, so that they
  * can be uniquely identified in our world.
  */
 case class NodeGroupId(value:String) extends HashcodeCaching 
@@ -61,6 +61,6 @@ case class NodeGroup(
   , query      : Option[Query]
   , isDynamic  : Boolean = true
   , serverList : Set[NodeId]
-  , isActivated: Boolean
+  , isEnabled  : Boolean
   , isSystem   : Boolean = false
  ) extends HashcodeCaching

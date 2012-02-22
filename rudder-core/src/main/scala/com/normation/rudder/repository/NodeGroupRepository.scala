@@ -45,7 +45,7 @@ import scala.collection.SortedMap
 
 /**
  * A simple container for a category 
- * and its direct children UserPolicyTemplates
+ * and its direct children ActiveTechniques
  */
 final case class CategoryAndNodeGroup(
     category: NodeGroupCategory
@@ -116,7 +116,7 @@ trait NodeGroupRepository {
    */
   def createNodeGroup( name:String, description : String, q: Option[Query],
         isDynamic : Boolean, srvList : Set[NodeId], into: NodeGroupCategoryId,
-                       isActivated : Boolean, actor:EventActor): Box[AddNodeGroupDiff]
+                       isEnabled : Boolean, actor:EventActor): Box[AddNodeGroupDiff]
   
   
   /**

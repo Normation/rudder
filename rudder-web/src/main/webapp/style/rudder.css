@@ -34,7 +34,7 @@
 
 
 /**********************************
- *Server inventory details
+ *Node inventory details
  **********************************/
 .hostnamecurs{
   cursor:pointer;
@@ -577,23 +577,23 @@ div#Detail {
  *define the group/section table
  **********************************/
  
-table.policyInstanceSectionDef {
+table.directiveSectionDef {
 
 }
 
-table.policyInstanceSectionDisplay {
+table.directiveSectionDisplay {
 
 }
 
-table.policyInstanceGroupDef {
+table.directiveGroupDef {
 
 }
 
-table.policyInstanceGroupDisplay {
+table.directiveGroupDisplay {
 
 }
 
-div.policyInstanceGroup {
+div.directiveGroup {
 
 }
 
@@ -605,7 +605,7 @@ fieldset.groupFieldset {
   padding: 1px 10px 1px 10px;
 }
 
-fieldset.policyTemplateDetailsFieldset {
+fieldset.techniqueDetailsFieldset {
   margin: 10px;
   padding: 1px 10px 1px 10px;
 }
@@ -622,18 +622,18 @@ fieldset.policyTemplateDetailsFieldset {
   text-align: right;
 }
 
-div.policyInstanceDeleteGroup {
+div.directiveDeleteGroup {
   float:right;
   margin: -20px 0 0 0;
 }
 
-div.policyInstanceAddGroup {
+div.directiveAddGroup {
   float:right;
   margin: -20px 0 0 0;
 }
 
 
-td.policyInstanceVarLabel {
+td.directiveVarLabel {
   width:30%;
   margin-right:2px;
   text-align: right;
@@ -642,12 +642,12 @@ td.policyInstanceVarLabel {
   vertical-align: middle;
 }
 
-td.policyInstanceVarLabel span {
+td.directiveVarLabel span {
   font-size: 12px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
 }
 
-td.policyInstanceVarValue  {
+td.directiveVarValue  {
   width:50%;
   margin-right:2px;
 }
@@ -722,27 +722,27 @@ padding:0 20px;
   float:right; 
   margin:10px;
 }
-table.searchServers {
+table.searchNodes {
   width: 545px;
   margin:0 0 0 5px;
 }
 
-table.searchServers tbody td.first {
+table.searchNodes tbody td.first {
   border-left: solid 1px #ABABAB;
 }
 
-table.searchServers tbody td.last {
+table.searchNodes tbody td.last {
   border-right: solid 1px #ABABAB;
 }
 
-fieldset.searchServers {
+fieldset.searchNodes {
   padding:5px;
   margin:5px;
   width: 555px;
   clear: both;
 }
 
-fieldset.searchServersAction {
+fieldset.searchNodesAction {
   padding:5px;
   margin:5px;
   width: 530px;
@@ -1866,11 +1866,11 @@ div.tabInform {
   border: 1px solid #2d2d2d;
 }
 
-.policyInstanceContainer {
+.directiveContainer {
   margin : 5px;
 }
 
-.policyInstanceTitle {
+.directiveTitle {
   font-weight:bold;
 }
 
@@ -1901,7 +1901,7 @@ div.tabInform {
   border: 1px solid #2d2d2d;
 }
 
-.reportsServer {
+.reportsNode {
   margin : 10px;
   padding : 5px;
 }
@@ -1955,11 +1955,11 @@ tr.Noanswer {
   cursor:hand;
 }
 
-.treeGroupName , .treePolicyInstance, .treePolicyTemplateName, .treeRuleName { 
+.treeGroupName , .treeDirective, .treeTechniqueName, .treeRuleName { 
   font-size:0.95em; 
 }
 
-.treeUptName , .treeUptCategoryName , .treeGroupCategoryName {
+.treeActiveTechniqueName , .treeActiveTechniqueCategoryName , .treeGroupCategoryName {
   font-weight: bold;
 }
 

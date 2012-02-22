@@ -42,7 +42,7 @@ package com.normation.rudder.domain.servers
  * Used by StringTemplate !
  * 
  */
-class ServerBean(uuid:String, hostname:String, name:String, servingIp:Option[String] = None ) {
+class NodeBean(uuid:String, hostname:String, name:String, servingIp:Option[String] = None ) {
 
   def getUuid() : String = {
     uuid

@@ -41,26 +41,26 @@ import net.liftweb.common._
 import com.normation.eventlog.EventActor
 import com.normation.utils.HashcodeCaching
 import scala.collection.SortedMap
-import com.normation.rudder.services.marshalling.PolicyInstanceUnserialisation
-import com.normation.rudder.services.marshalling.UserPolicyTemplateUnserialisation
-import com.normation.rudder.services.marshalling.UserPolicyTemplateCategoryUnserialisation
-import com.normation.rudder.repository.ParsePolicyLibrary
+import com.normation.rudder.services.marshalling.DirectiveUnserialisation
+import com.normation.rudder.services.marshalling.ActiveTechniqueUnserialisation
+import com.normation.rudder.services.marshalling.ActiveTechniqueCategoryUnserialisation
+import com.normation.rudder.repository.ParseActiveTechniqueLibrary
 import com.normation.utils.XmlUtils
 import com.normation.rudder.repository.NodeGroupCategoryContent
 import java.io.File
 import java.io.FileInputStream
 import com.normation.utils.UuidRegex
 import com.normation.utils.Control.sequence
-import com.normation.rudder.repository.ImportPolicyLibrary
-import com.normation.rudder.domain.policies.UserPolicyTemplateId
-import com.normation.rudder.domain.policies.PolicyInstanceId
+import com.normation.rudder.repository.ImportTechniqueLibrary
+import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.unboundid.ldap.sdk.RDN
 import com.normation.rudder.domain.RudderDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.utils.ScalaReadWriteLock
 import com.unboundid.ldap.sdk.DN
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategoryId
-import com.normation.cfclerk.domain.PolicyPackageName
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.ldap.sdk.LDAPConnection
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -191,7 +191,7 @@ class ImportGroupLibraryImpl(
       def saveUserLib(con:LDAPConnection, userLib:NodeGroupCategoryContent) : Box[Unit] = {
         def recSaveUserLib(parentDN:DN, content:NodeGroupCategoryContent) : Box[Unit] = {
           //start with the category
-          //then with pt/pi for that category
+          //then with technique/directive for that category
           //then recurse on sub-categories
           val categoryEntry = mapper.nodeGroupCategory2ldap(content.category, parentDN)
           
@@ -206,7 +206,7 @@ class ImportGroupLibraryImpl(
                                   nodeGroup.query,
                                   nodeGroup.isDynamic,
                                   nodeGroup.serverList,
-                                  nodeGroup.isActivated,
+                                  nodeGroup.isEnabled,
                                   nodeGroup.isSystem
                                )
                                
@@ -307,7 +307,7 @@ class ImportGroupLibraryImpl(
             val subNodeGroups = content.groups.flatMap( sanitizeNodeGroup(_) ).toSet
             
             //remove from sub cat groups that where not correct
-            val policyInstanceTargetInfos = cat.items.filter { info => 
+            val directiveTargetInfos = cat.items.filter { info => 
               info.target match {
                 case GroupTarget(id) => subNodeGroups.exists(g => g.id == id )
                 case x => true
@@ -317,7 +317,7 @@ class ImportGroupLibraryImpl(
             Some(content.copy(
                 category  = cat.copy(
                                 children = subCategories.toList.map( _.category.id )
-                              , items = policyInstanceTargetInfos
+                              , items = directiveTargetInfos
                             )
               , categories = subCategories
               , groups     = subNodeGroups

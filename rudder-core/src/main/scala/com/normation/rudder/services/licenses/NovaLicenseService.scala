@@ -49,7 +49,7 @@ trait NovaLicenseService {
    * @param server
    * @return
    */
-  def findLicenseForServer(server: String) : Option[NovaLicense]
+  def findLicenseForNode(server: String) : Option[NovaLicense]
   
   /**
    * Add a license file

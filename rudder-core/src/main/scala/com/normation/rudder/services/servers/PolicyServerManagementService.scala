@@ -37,7 +37,7 @@ package com.normation.rudder.services.servers
 import java.net.InetAddress
 import net.liftweb.common.Box
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.repository.PolicyInstanceRepository
+import com.normation.rudder.repository.DirectiveRepository
 import com.normation.rudder.domain.Constants
 import com.normation.utils.Control.bestEffort
 import net.liftweb.util.Helpers._
@@ -71,7 +71,7 @@ trait PolicyServerManagementService {
 
 
 class PolicyServerManagementServiceImpl(
-    policyInstanceRepository:PolicyInstanceRepository
+    directiveRepository:DirectiveRepository
   , asyncDeploymentAgent:AsyncDeploymentAgent
 ) extends PolicyServerManagementService with Loggable {
 
@@ -82,9 +82,9 @@ class PolicyServerManagementServiceImpl(
    */
   override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = {
     for {
-      pi <- policyInstanceRepository.getPolicyInstance(Constants.buildCommonPolicyInstanceId(policyServerId))
+      directive <- directiveRepository.getDirective(Constants.buildCommonDirectiveId(policyServerId))
     } yield {
-      val allowedNetworks = pi.parameters.getOrElse(Constants.V_ALLOWED_NETWORK, List())
+      val allowedNetworks = directive.parameters.getOrElse(Constants.V_ALLOWED_NETWORK, List())
       allowedNetworks
     }
   }
@@ -92,7 +92,7 @@ class PolicyServerManagementServiceImpl(
   
   override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], actor:EventActor) : Box[Seq[String]] = {
 
-    val piId = Constants.buildCommonPolicyInstanceId(policyServerId)
+    val directiveId = Constants.buildCommonDirectiveId(policyServerId)
     
     //filter out bad networks
     val validNets = networks.flatMap { case net =>
@@ -104,10 +104,10 @@ class PolicyServerManagementServiceImpl(
     }
     
     for {
-      pi <- policyInstanceRepository.getPolicyInstance(piId) ?~! "Error when retrieving policy instance with ID '%s'".format(piId.value)
-      upt <- policyInstanceRepository.getUserPolicyTemplate(piId) ?~! "Error when getting user policy template for policy instance with ID '%s'".format(piId.value)
-      newPi = pi.copy(parameters = pi.parameters + (Constants.V_ALLOWED_NETWORK -> networks.map( _.toString)))
-      saved <- policyInstanceRepository.savePolicyInstance(upt.id, newPi, actor) ?~! "Can not save policy instance for User Policy Template '%s'".format(upt.id.value)
+      directive <- directiveRepository.getDirective(directiveId) ?~! "Error when retrieving policy instance with ID '%s'".format(directiveId.value)
+      activeTechnique <- directiveRepository.getActiveTechnique(directiveId) ?~! "Error when getting user policy template for policy instance with ID '%s'".format(directiveId.value)
+      newPi = directive.copy(parameters = directive.parameters + (Constants.V_ALLOWED_NETWORK -> networks.map( _.toString)))
+      saved <- directiveRepository.saveDirective(activeTechnique.id, newPi, actor) ?~! "Can not save policy instance for User Policy Template '%s'".format(activeTechnique.id.value)
     } yield {
       //ask for a new policy deployment
       asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)

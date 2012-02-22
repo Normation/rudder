@@ -22,35 +22,35 @@
     <constructor-arg ref = "rudderVariableParser" />
   </bean>
   
-  <bean id="reportsInfoPolicyInstanceParser" class="com.normation.rudder.services.domain.ReportsInfoPolicyInstanceParser">
+  <bean id="reportsInfoDirectiveParser" class="com.normation.rudder.services.domain.ReportsInfoDirectiveParser">
     <constructor-arg ref = "rudderVariableParser" />
   </bean>
 <!-- 
-  <bean id="rootServerParser" class="com.normation.rudder.services.domain.RootServerParser">
-    <constructor-arg ref = "rudderPolicyInstanceParser" />
+  <bean id="rootNodeParser" class="com.normation.rudder.services.domain.RootNodeParser">
+    <constructor-arg ref = "rudderDirectiveParser" />
   </bean>
 
-  <bean id="serverParser" class="com.normation.rudder.services.domain.ServerParser">
-    <constructor-arg ref = "rudderPolicyInstanceParser" />
+  <bean id="serverParser" class="com.normation.rudder.services.domain.NodeParser">
+    <constructor-arg ref = "rudderDirectiveParser" />
   </bean> -->
     
-  <bean id="tmlParser" class="com.normation.cfclerk.services.domain.TmlParser">
+  <bean id="tmlParser" class="com.normation.cfclerk.services.domain.Cf3PromisesFileTemplateParser">
     <constructor-arg ref = "rudderVariableSpecParser" />
   </bean> 
-  <bean id="policyParser" class="com.normation.cfclerk.services.domain.PolicyParser">
+  <bean id="policyParser" class="com.normation.cfclerk.services.domain.TechniqueParser">
     <constructor-arg ref = "tmlParser" />
   </bean>
-  <bean id="rudderPolicyInstanceParser" class="com.normation.rudder.services.domain.RudderPolicyInstanceParser">
+  <bean id="rudderDirectiveParser" class="com.normation.rudder.services.domain.RudderDirectiveParser">
     <constructor-arg ref = "rudderVariableParser" />
   </bean>  
 
   <bean id="policyBindingsRepository" class="com.normation.rudder.repository.DummyPolicyBindingsRepository"/>
   
   
-  <bean id="policyPackageReader" class="com.normation.rudder.services.policies.DummyPolicyPackagesReader"/>
+  <bean id="policyPackageReader" class="com.normation.rudder.services.policies.DummyTechniqueReader"/>
 
-  <bean id="machineRepository" class="com.normation.rudder.repository.xml.ServerRepositoryXML" scope="prototype">
-    <constructor-arg  ref="rootServerParser"/>
+  <bean id="machineRepository" class="com.normation.rudder.repository.xml.NodeRepositoryXML" scope="prototype">
+    <constructor-arg  ref="rootNodeParser"/>
     <constructor-arg  ref="serverParser"/>
     <constructor-arg  value="src/test/resources/testConfig.xml"/>
     <constructor-arg  value="true"/>
@@ -65,20 +65,20 @@
 
   <bean id="policyTranslator" class="com.normation.rudder.services.policies.DummyPolicyTranslator"/>
 
-  <bean id="policyService" class="com.normation.rudder.services.policies.DummyPolicyService" lazy-init="true">
+  <bean id="techniqueRepository" class="com.normation.rudder.services.policies.DummyPolicyService" lazy-init="true">
   </bean>
 
-  <bean id="machineService" class="com.normation.rudder.services.servers.ServerServiceImpl">
+  <bean id="machineService" class="com.normation.rudder.services.servers.NodeServiceImpl">
     <constructor-arg ref = "policyTranslator" />
     <constructor-arg ref="machineRepository"/>
-    <constructor-arg ref="policyService"/>
-    <constructor-arg ref="policyInstanceAdapter"/>
+    <constructor-arg ref="techniqueRepository"/>
+    <constructor-arg ref="directiveAdapter"/>
     <constructor-arg ref="eventLogService"/>
     <constructor-arg value="/tmp/rudder-tests/var/rudder/lock/"/>
   </bean>
   
-  <bean id="policyInstanceAdapter" class="com.normation.cfclerk.adapters.PolicyInstanceAdapter">
-   <constructor-arg ref="policyService"/>
+  <bean id="directiveAdapter" class="com.normation.cfclerk.adapters.DirectiveAdapter">
+   <constructor-arg ref="techniqueRepository"/>
   </bean>
   
   
@@ -92,16 +92,16 @@
   </bean>
   
    <bean id="reportsInfoRepository" class="com.normation.rudder.repository.xml.ReportsInfoRepositoryXML" lazy-init="true" scope="singleton"  init-method="loadReportsInfo">
-    <constructor-arg ref="reportsInfoPolicyInstanceParser"/>
+    <constructor-arg ref="reportsInfoDirectiveParser"/>
     <constructor-arg  value="src/test/resources/reportsInfo.xml"/>
     <constructor-arg  value="true"/>
   </bean>
   
-  <bean id="confExpectedRepo" class="com.normation.rudder.repository.inMemory.InMemoryConfigurationExpectedReportsRepository" lazy-init="true" scope="singleton" />
+  <bean id="confExpectedRepo" class="com.normation.rudder.repository.inMemory.InMemoryRuleExpectedReportsRepository" lazy-init="true" scope="singleton" />
 
   <bean id="opExpectedRepo" class="com.normation.rudder.repository.inMemory.InMemoryOperationExpectedReportsRepository" lazy-init="true" scope="singleton" />
 
-  <bean id="configurationExpectedRepo" class="com.normation.rudder.repository.jdbc.ConfigurationExpectedReportsJdbcRepository" lazy-init="true" scope="singleton" >
+  <bean id="configurationExpectedRepo" class="com.normation.rudder.repository.jdbc.RuleExpectedReportsJdbcRepository" lazy-init="true" scope="singleton" >
     <constructor-arg ref="jdbcTemplate"/>
   </bean>
    <bean id="operationExpectedRepo" class="com.normation.rudder.repository.jdbc.OperationExpectedReportsJdbcRepository" lazy-init="true" scope="singleton" >
@@ -126,16 +126,16 @@
   
   <bean id="inventoryEventLogSpecializer" class="com.normation.rudder.domain.log.specializer.InventoryEventLogSpecializer"/>
   
-  <bean id="policyInstanceEventLogSpecializer" class="com.normation.rudder.domain.log.specializer.PolicyInstanceEventLogSpecializer">
+  <bean id="directiveEventLogSpecializer" class="com.normation.rudder.domain.log.specializer.DirectiveEventLogSpecializer">
     <constructor-arg ref = "rudderVariableParser" />
   </bean>
   
-  <bean id="serverEventLogSpecializer" class="com.normation.rudder.domain.log.specializer.ServerEventLogSpecializer"/>
+  <bean id="serverEventLogSpecializer" class="com.normation.rudder.domain.log.specializer.NodeEventLogSpecializer"/>
   
   <bean id="eventLogConverter" class="com.normation.eventlog.EventLogConverter">
     <constructor-arg>
       <list>
-        <ref bean="policyInstanceEventLogSpecializer"/>
+        <ref bean="directiveEventLogSpecializer"/>
         <ref bean="serverEventLogSpecializer"/>
         <ref bean="inventoryEventLogSpecializer"/>
         <ref bean="guiEventLogSpecializer"/>

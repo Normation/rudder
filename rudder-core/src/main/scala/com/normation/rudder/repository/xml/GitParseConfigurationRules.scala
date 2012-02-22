@@ -39,9 +39,9 @@ import org.eclipse.jgit.revwalk.RevTag
 
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.GitRevisionProvider
-import com.normation.rudder.domain.policies.ConfigurationRule
+import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.repository._
-import com.normation.rudder.services.marshalling.ConfigurationRuleUnserialisation
+import com.normation.rudder.services.marshalling.RuleUnserialisation
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
 import com.normation.utils.XmlUtils
@@ -49,11 +49,11 @@ import com.normation.utils.XmlUtils
 import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 
-class GitParseConfigurationRules(
-    configurationRuleUnserialisation: ConfigurationRuleUnserialisation
+class GitParseRules(
+    ruleUnserialisation: RuleUnserialisation
   , repo                            : GitRepositoryProvider
-  , configurationRulesRootDirectory : String //relative name to git root file
-) extends ParseConfigurationRules with Loggable {
+  , rulesRootDirectory : String //relative name to git root file
+) extends ParseRules with Loggable {
   
   def getArchive(archiveId:GitCommitId) = {
     for {
@@ -67,7 +67,7 @@ class GitParseConfigurationRules(
   private[this] def getArchiveForRevTreeId(revTreeId:ObjectId) = {
     
     val root = {
-      val p = configurationRulesRootDirectory.trim
+      val p = rulesRootDirectory.trim
       if(p.size == 0) ""
       else if(p.endsWith("/")) p.substring(0, p.size-1)
       else p
@@ -90,11 +90,11 @@ class GitParseConfigurationRules(
                      XmlUtils.parseXml(inputStream, Some(crPath))
                    }
                  }
-      crs     <- sequence(xmls) { xml =>
-                   configurationRuleUnserialisation.unserialise(xml)
+      rules     <- sequence(xmls) { xml =>
+                   ruleUnserialisation.unserialise(xml)
                  }
     } yield {
-      crs
+      rules
     }
   }        
 }

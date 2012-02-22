@@ -47,7 +47,7 @@ dn: nodeId=node1,ou=Nodes,cn=rudder-configuration
 changeType: add
 objectClass: rudderNode
 objectClass: top
-cn: Server 1
+cn: Node 1
 nodeId: node1
 description: a description
 isSystem: FALSE
@@ -126,7 +126,7 @@ isBroken: FALSE
 
 
 #######################################################################################################################
-## ServerInventory
+## NodeInventory
 #######################################################################################################################
 
 
@@ -154,8 +154,8 @@ ipHostNumber: 192.168.100.12
 nodeId: node1
 container: machineId=e5c5e6a7-4ec4-4e72-9b24-42e2b8eca94d,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 PolicyServerId: root
-nodePolicies: HasPolicyServer
-nodePolicies: Inventory
+nodeTechniques: HasPolicyServer
+nodeTechniques: Inventory
 localAccountName: games
 localAccountName: proxy
 localAccountName: jclarke
@@ -207,9 +207,9 @@ publicKey: MIIBCAKCAQEAtDv4fsw33RGCh9HrjWvMKZVpfh0dJ7FV1Q/uzsJVKcSQO2l2ClSx92Q
 nodeId: node2
 PolicyServerId: root
 container: machineId=2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-nodePolicies: ConfigureNTP
-nodePolicies: Inventory
-nodePolicies: HasPolicyServer
+nodeTechniques: ConfigureNTP
+nodeTechniques: Inventory
+nodeTechniques: HasPolicyServer
 localAccountName: landscape
 localAccountName: man
 localAccountName: ntp
@@ -244,8 +244,8 @@ publicKey: MIIBCAKCAQEAuijCPiWrA1ecLe5N9lv2/uSmNZ6AoLIwUb+r51Go6D1eGOujy/FA km
  g1T5Eji1iWgQ/Jwc7M/FaEGtv6IAPBz8YIg8eyJovjoBX86+Ru F2lqz3H/47dqlmEOwlZdPDj2UO
  Bz5XJJgdfD66AMPFurHhlZ5FZLS85IWNq+6mQq VABjzhPpHG2MtTeWCw34m0SRK/hxeYryIfe9w1
  5XYTfijWcV6iN1bQPIoIq4gIgT xz7J+kZinkLJeio7W8xRwGb9ZJixrr30SwIBIw==
-nodePolicies: Inventory
-nodePolicies: HasPolicyServer
+nodeTechniques: Inventory
+nodeTechniques: HasPolicyServer
 nodeHostname: fedora.livebox.home
 PolicyServerId: root
 container: machineId=3,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
@@ -264,7 +264,7 @@ objectClass: windowsNode
 osName: windows
 osVersion: N/A
 osKernelVersion: N/A
-osFullName: Microsoft Windows Server 2003 R2 Enterprise x64 Edition
+osFullName: Microsoft Windows Node 2003 R2 Enterprise x64 Edition
 windowsRegistrationCompany: Normation
 windowsId: 91118-301-6267284-52050
 windowsKey: DFVBV-YQ98G-DYXF3-Q9R89-C6CCD
@@ -322,8 +322,8 @@ ipHostNumber: 192.168.101.12
 nodeId: node5
 container: machineId=e5c5e6a7-4ec4-4e72-9b24-42e2b8eca94d,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 PolicyServerId: root
-nodePolicies: HasPolicyServer
-nodePolicies: Inventory
+nodeTechniques: HasPolicyServer
+nodeTechniques: Inventory
 localAccountName: games
 localAccountName: proxy
 localAccountName: jclarke
@@ -375,9 +375,9 @@ publicKey: M66BCAKCAQEAtDv4fsw33RGCh9HrjWvMKZVpfh0dJ7FV1Q/uzsJVKcSQO2l2ClSx92Q
 nodeId: node6
 PolicyServerId: root
 container: machineId=6,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-nodePolicies: ConfigureNTP
-nodePolicies: Inventory
-nodePolicies: HasPolicyServer
+nodeTechniques: ConfigureNTP
+nodeTechniques: Inventory
+nodeTechniques: HasPolicyServer
 localAccountName: landscape
 localAccountName: man
 localAccountName: ntp
@@ -411,8 +411,8 @@ publicKey: MIRRRAKCAQEAuijCPiWrA1ecLe5N9lv2/uSmNZ6AoLIwUb+r51Go6D1eGOujy/FA km
  g1T5Eji1iWgQ/Jwc7M/FaEGtv6IAPBz8YIg8eyJovjoBX86+Ru F2lqz3H/47dqlmEOwlZdPDj2UO
  Bz5XJJgdfD66AMPFurHhlZ5FZLS85IWNq+6mQq VABjzhPpHG2MtTeWCw34m0SRK/hxeYryIfe9w1
  5XYTfijWcV6iN1bQPIoIq4gIgT xz7J+kZinkLJeio7W8xRwGb9ZJixrr30SwIBIw==
-nodePolicies: Inventory
-nodePolicies: HasPolicyServer
+nodeTechniques: Inventory
+nodeTechniques: HasPolicyServer
 nodeHostname: fedora.livebox.home
 PolicyServerId: root
 container: machineId=7,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
@@ -431,7 +431,7 @@ objectClass: windowsNode
 osName: windows
 osVersion: N/A
 osKernelVersion: N/A
-osFullName: Microsoft Windows Server 2008
+osFullName: Microsoft Windows Node 2008
 windowsRegistrationCompany: Normation
 windowsId: 91118-301-6267284-52050
 windowsKey: DFVBV-YQ98G-DYXF3-Q9R89-C6CCD
@@ -490,7 +490,7 @@ cn: All windows
 isDynamic: TRUE
 nodeGroupId: 4b609e8e-3bcc-4b7e-8d26-1c8512fd0f4e
 jsonNodeGroupQuery: { "select":"node", "composition":"And", "where":[ {"objectType":"node","attribute":"OS","comparator":"eq","value":"Windows"}] }
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: FALSE
 nodeId: node4
 nodeId: node8
@@ -504,7 +504,7 @@ cn: All servers
 isDynamic: TRUE
 nodeGroupId: 4fe62f07-ccb7-4836-ad55-8a104700048f
 jsonNodeGroupQuery: { "select":"node", "composition":"And", "where":[ {"objectType":"node","attribute":"nodeId","comparator":"exists","value":""}]}
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: FALSE
 nodeId: node1
 nodeId: node2
@@ -524,7 +524,7 @@ cn: All linux
 isDynamic: TRUE
 nodeGroupId: f4b27025-b5a9-46fe-8289-cf9d56e07a8a
 jsonNodeGroupQuery: { "select":"node", "composition":"And", "where":[ {"objectType":"node","attribute":"OS","comparator":"eq","value":"Linux"}]}
-isActivated: TRUE
+isEnabled: TRUE
 isSystem: FALSE
 nodeId: node1
 nodeId: node2

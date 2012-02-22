@@ -52,7 +52,7 @@ import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.log.PolicyInstanceEventLog
+import com.normation.rudder.domain.log.DirectiveEventLog
 import com.normation.rudder.services.queries._
 import org.joda.time.Duration
 import org.joda.time.DateTime
@@ -82,43 +82,43 @@ class LDAPDiffMapper(
   ///////////////////////////////////////////////////////////////////////////////////////
   
   
-  ///// Configuration rule diff /////
+  ///// rule diff /////
   
-  def addChangeRecords2ConfigurationRuleDiff(crDn:DN, change:LDIFChangeRecord) : Box[AddConfigurationRuleDiff] = {
+  def addChangeRecords2RuleDiff(crDn:DN, change:LDIFChangeRecord) : Box[AddRuleDiff] = {
     if(change.getParsedDN == crDn ) {
       change match {
         case add:LDIFAddChangeRecord => 
           val e = LDAPEntry(add.toAddRequest().toEntry)
           for {
-            cr <- mapper.entry2ConfigurationRule(e)
-          } yield AddConfigurationRuleDiff(cr)
-        case _ => Failure("Bad change record type for requested action 'add configuration rule': %s".format(change))
+            rule <- mapper.entry2Rule(e)
+          } yield AddRuleDiff(rule)
+        case _ => Failure("Bad change record type for requested action 'add rule': %s".format(change))
       }
         
     } else {
-      Failure("The following change record does not belong to Configuration Rule entry '%s': %s".format(crDn,change))
+      Failure("The following change record does not belong to Rule entry '%s': %s".format(crDn,change))
     }
   }
   
   
   /**
    * Map a list of com.unboundid.ldif.LDIFChangeRecord into a
-   * ConfigurationRuleDiff.
+   * RuleDiff.
    * 
    * If several changes are applied on the same monovalued attribute, 
    * it's an error. 
    */
-  def modChangeRecords2ConfigurationRuleDiff(beforeChangeEntry:LDAPEntry, change:LDIFChangeRecord) : Box[Option[ModifyConfigurationRuleDiff]] = {
+  def modChangeRecords2RuleDiff(beforeChangeEntry:LDAPEntry, change:LDIFChangeRecord) : Box[Option[ModifyRuleDiff]] = {
     if(change.getParsedDN == beforeChangeEntry.dn ) {
       change match {
         case modify:LDIFModifyChangeRecord => 
           for {
-            oldCr <- mapper.entry2ConfigurationRule(beforeChangeEntry)
-            diff <- pipeline(modify.getModifications(), ModifyConfigurationRuleDiff(oldCr.id, oldCr.name)) { (mod, diff) =>
+            oldCr <- mapper.entry2Rule(beforeChangeEntry)
+            diff <- pipeline(modify.getModifications(), ModifyRuleDiff(oldCr.id, oldCr.name)) { (mod, diff) =>
               mod.getAttributeName() match {
                 case A_SERIAL => 
                   tryo(diff.copy(modSerial = Some(SimpleDiff(oldCr.serial, mod.getAttribute().getValueAsInteger()))))
-                case A_POLICY_TARGET => 
+                case A_RULE_TARGET => 
                   mod.getModificationType match {
                     case ADD | REPLACE if(mod.getAttribute.getValues.size > 0) => //if there is no values, we have to put "none" 
                       for {
@@ -130,16 +130,16 @@ class LDAPDiffMapper(
                       Full(diff.copy(modTarget = Some(SimpleDiff(oldCr.target,None))))
                     case _ => Failure("Bad modification type for modification '%s' in change record: '%s'".format(mod, change))
                   }
-                case A_WBPI_UUID => 
-                  Full(diff.copy(modPolicyInstanceIds = Some(SimpleDiff(oldCr.policyInstanceIds, mod.getValues.map( PolicyInstanceId(_) ).toSet))))
+                case A_DIRECTIVE_UUID => 
+                  Full(diff.copy(modDirectiveIds = Some(SimpleDiff(oldCr.directiveIds, mod.getValues.map( DirectiveId(_) ).toSet))))
                 case A_NAME =>
                   Full(diff.copy(modName = Some(SimpleDiff(oldCr.name, mod.getAttribute().getValue))))
                 case A_DESCRIPTION => 
                   Full(diff.copy(modShortDescription = Some(SimpleDiff(oldCr.shortDescription, mod.getAttribute().getValue()))))
                 case A_LONG_DESCRIPTION => 
                   Full(diff.copy(modLongDescription = Some(SimpleDiff(oldCr.longDescription, mod.getAttribute().getValue()))))
-                case A_IS_ACTIVATED => 
-                  tryo(diff.copy(modIsActivatedStatus = Some(SimpleDiff(oldCr.isActivatedStatus, mod.getAttribute().getValueAsBoolean))))
+                case A_IS_ENABLED => 
+                  tryo(diff.copy(modIsActivatedStatus = Some(SimpleDiff(oldCr.isEnabledStatus, mod.getAttribute().getValueAsBoolean))))
                 case A_IS_SYSTEM => 
                   tryo(diff.copy(modIsSystem = Some(SimpleDiff(oldCr.isSystem,mod.getAttribute().getValueAsBoolean))))
                 case x => Failure("Unknown diff attribute: " + x)
@@ -151,37 +151,37 @@ class LDAPDiffMapper(
         
         case noop:LDIFNoopChangeRecord => Full(None)
           
-        case _ => Failure("Bad change record type for requested action 'update configuration rule': %s".format(change))
+        case _ => Failure("Bad change record type for requested action 'update rule': %s".format(change))
       }
     } else {
-      Failure("The following change record does not belong to Configuration Rule entry '%s': %s".format(beforeChangeEntry.dn,change))
+      Failure("The following change record does not belong to Rule entry '%s': %s".format(beforeChangeEntry.dn,change))
     }
   }
 
   
   ///// Policy instance diff /////
 
-  def modChangeRecords2PolicyInstanceSaveDiff(ptName:PolicyPackageName, variableRootSection:SectionSpec, piDn:DN, oldPiEntry:Option[LDAPEntry], change:LDIFChangeRecord) : Box[Option[PolicyInstanceSaveDiff]] = {
+  def modChangeRecords2DirectiveSaveDiff(ptName:TechniqueName, variableRootSection:SectionSpec, piDn:DN, oldPiEntry:Option[LDAPEntry], change:LDIFChangeRecord) : Box[Option[DirectiveSaveDiff]] = {
     if(change.getParsedDN == piDn ) {
       //if oldPI is None, we want and addChange, else a modifyChange
       (change, oldPiEntry) match {
         case (add:LDIFAddChangeRecord, None) => 
           val e = LDAPEntry(add.toAddRequest().toEntry)
             for {
-              pi <- mapper.entry2PolicyInstance(e)
-            } yield Some(AddPolicyInstanceDiff(ptName, pi))
+              directive <- mapper.entry2Directive(e)
+            } yield Some(AddDirectiveDiff(ptName, directive))
 
         case (modify:LDIFModifyChangeRecord, Some(beforeChangeEntry)) => 
           for {
-            oldPi <- mapper.entry2PolicyInstance(beforeChangeEntry)
-            diff <- pipeline(modify.getModifications(), ModifyPolicyInstanceDiff(ptName, oldPi.id, oldPi.name)) { (mod,diff) =>
+            oldPi <- mapper.entry2Directive(beforeChangeEntry)
+            diff <- pipeline(modify.getModifications(), ModifyDirectiveDiff(ptName, oldPi.id, oldPi.name)) { (mod,diff) =>
               mod.getAttributeName() match {
-                case A_REFERENCE_POLICY_TEMPLATE_VERSION =>
-                  tryo(diff.copy(modPolicyTemplateVersion = Some(SimpleDiff(oldPi.policyTemplateVersion, PolicyVersion(mod.getAttribute().getValue)))))
-                case A_POLICY_VARIABLES =>
+                case A_TECHNIQUE_VERSION =>
+                  tryo(diff.copy(modTechniqueVersion = Some(SimpleDiff(oldPi.techniqueVersion, TechniqueVersion(mod.getAttribute().getValue)))))
+                case A_DIRECTIVE_VARIABLES =>
                   Full(diff.copy(modParameters = Some(SimpleDiff(
-                      SectionVal.piValToSectionVal(variableRootSection,oldPi.parameters), 
-                      SectionVal.piValToSectionVal(variableRootSection,parsePolicyVariables(mod.getAttribute().getValues)))
+                      SectionVal.directiveValToSectionVal(variableRootSection,oldPi.parameters), 
+                      SectionVal.directiveValToSectionVal(variableRootSection,parsePolicyVariables(mod.getAttribute().getValues)))
                   )))
                 case A_NAME =>
                   Full(diff.copy(modName = Some(SimpleDiff(oldPi.name, mod.getAttribute().getValue))))
@@ -191,8 +191,8 @@ class LDAPDiffMapper(
                   Full(diff.copy(modLongDescription = Some(SimpleDiff(oldPi.longDescription, mod.getAttribute().getValue()))))
                 case A_PRIORITY => 
                   tryo(diff.copy(modPriority = Some(SimpleDiff(oldPi.priority, mod.getAttribute().getValueAsInteger))))
-                case A_IS_ACTIVATED => 
-                  tryo(diff.copy(modIsActivated = Some(SimpleDiff(oldPi.isActivated, mod.getAttribute().getValueAsBoolean))))
+                case A_IS_ENABLED => 
+                  tryo(diff.copy(modIsActivated = Some(SimpleDiff(oldPi.isEnabled, mod.getAttribute().getValueAsBoolean))))
                 case A_IS_SYSTEM => 
                   tryo(diff.copy(modIsSystem = Some(SimpleDiff(oldPi.isSystem,mod.getAttribute().getValueAsBoolean))))
                 case x => Failure("Unknown diff attribute: " + x)
@@ -241,7 +241,7 @@ class LDAPDiffMapper(
                 case A_NAME =>
                   Full(diff.copy(modName = Some(SimpleDiff(oldGroup.name, mod.getAttribute().getValue))))
                 case A_NODE_UUID =>
-                  Full(diff.copy(modServerList = Some(SimpleDiff(oldGroup.serverList, mod.getValues.map(x => NodeId(x) ).toSet ) ) ) )
+                  Full(diff.copy(modNodeList = Some(SimpleDiff(oldGroup.serverList, mod.getValues.map(x => NodeId(x) ).toSet ) ) ) )
                 case A_QUERY_NODE_GROUP =>
                   mod.getModificationType match {
                     case ADD | REPLACE if(mod.getAttribute.getValues.size > 0) => //if there is no values, we have to put "none" 
@@ -258,8 +258,8 @@ class LDAPDiffMapper(
                   Full(diff.copy(modDescription = Some(SimpleDiff(oldGroup.description, mod.getAttribute().getValue))))
                 case A_IS_DYNAMIC => 
                   tryo(diff.copy(modIsDynamic = Some(SimpleDiff(oldGroup.isDynamic, mod.getAttribute().getValueAsBoolean))))
-                case A_IS_ACTIVATED => 
-                  tryo(diff.copy(modIsActivated = Some(SimpleDiff(oldGroup.isActivated, mod.getAttribute().getValueAsBoolean))))
+                case A_IS_ENABLED => 
+                  tryo(diff.copy(modIsActivated = Some(SimpleDiff(oldGroup.isEnabled, mod.getAttribute().getValueAsBoolean))))
                 case A_IS_SYSTEM => 
                   tryo(diff.copy(modIsSystem = Some(SimpleDiff(oldGroup.isSystem,mod.getAttribute().getValueAsBoolean))))
                 case x => Failure("Unknown diff attribute: " + x)

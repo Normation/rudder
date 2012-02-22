@@ -46,14 +46,14 @@ import javax.servlet.UnavailableException
  * In none is defined, add a flag that force the user to configure the root
  * server. Before anything else. 
  */
-class CheckRootServerUnicity(
-  ldapServerRepository:LDAPNodeConfigurationRepository  
+class CheckRootNodeUnicity(
+  ldapNodeRepository:LDAPNodeConfigurationRepository  
 ) extends BootstrapChecks with Loggable {
   
   @throws(classOf[ UnavailableException ])
   override def checks() : Unit = {
  
-    ldapServerRepository.getRootNodeIds match {
+    ldapNodeRepository.getRootNodeIds match {
       case Failure(m,_,_) =>  
         val msg = "Fatal error when trying to retrieve Root server in LDAP repository. Error message was: " + m
         logger.error(msg)
@@ -64,13 +64,13 @@ class CheckRootServerUnicity(
         throw new UnavailableException(msg)
       case Full(seq) => 
         if(seq.size == 0) { //set-up flag to redirect all request to init wizard
-          RudderContext.rootServerNotDefined = true
+          RudderContext.rootNodeNotDefined = true
         } else if(seq.size > 1) { //that's an error, ask the user what to do
-          val msg = "More than one Root Policy Server were found in the LDAP repository, and that is not supported. Please correct LDAP content before restarting"
+          val msg = "More than one Root Policy Node were found in the LDAP repository, and that is not supported. Please correct LDAP content before restarting"
           logger.error(msg)
           throw new UnavailableException(msg)
         } else { //OK, remove the redirection flag if set
-          RudderContext.rootServerNotDefined = false
+          RudderContext.rootNodeNotDefined = false
         }
     }   
   }

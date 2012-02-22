@@ -1,29 +1,29 @@
 package com.normation.rudder.services.log
-import com.normation.rudder.domain.policies.ModifyConfigurationRuleDiff
-import com.normation.rudder.domain.log.ModifyConfigurationRule
-import com.normation.rudder.domain.log.AddConfigurationRule
-import com.normation.rudder.domain.policies.AddConfigurationRuleDiff
+import com.normation.rudder.domain.policies.ModifyRuleDiff
+import com.normation.rudder.domain.log.ModifyRule
+import com.normation.rudder.domain.log.AddRule
+import com.normation.rudder.domain.policies.AddRuleDiff
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.policies.DeleteConfigurationRuleDiff
-import com.normation.rudder.domain.log.DeleteConfigurationRule
-import com.normation.rudder.services.marshalling.ConfigurationRuleSerialisation
+import com.normation.rudder.domain.policies.DeleteRuleDiff
+import com.normation.rudder.domain.log.DeleteRule
+import com.normation.rudder.services.marshalling.RuleSerialisation
 import org.joda.time.DateTime
 import com.normation.eventlog.EventLog
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.policies.SimpleDiff
 import net.liftweb.util.Helpers._
-import com.normation.rudder.domain.policies.PolicyInstanceTarget
+import com.normation.rudder.domain.policies.RuleTarget
 import scala.xml.Text
-import com.normation.rudder.domain.policies.PolicyInstanceId
-import com.normation.rudder.domain.policies.AddPolicyInstanceDiff
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.AddDirectiveDiff
 import com.normation.cfclerk.domain.SectionSpec
-import com.normation.rudder.domain.policies.ModifyPolicyInstanceDiff
-import com.normation.rudder.domain.policies.DeletePolicyInstanceDiff
-import com.normation.rudder.services.marshalling.PolicyInstanceSerialisation
-import com.normation.cfclerk.domain.PolicyVersion
-import com.normation.rudder.domain.log.ModifyPolicyInstance
-import com.normation.rudder.domain.log.AddPolicyInstance
-import com.normation.rudder.domain.log.DeletePolicyInstance
+import com.normation.rudder.domain.policies.ModifyDirectiveDiff
+import com.normation.rudder.domain.policies.DeleteDirectiveDiff
+import com.normation.rudder.services.marshalling.DirectiveSerialisation
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.rudder.domain.log.ModifyDirective
+import com.normation.rudder.domain.log.AddDirective
+import com.normation.rudder.domain.log.DeleteDirective
 import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.log.DeleteNodeGroup
@@ -38,56 +38,56 @@ import com.normation.eventlog.EventLogDetails
 
 trait EventLogFactory {
   
-  def getAddConfigurationRuleFromDiff(
+  def getAddRuleFromDiff(
       id          : Option[Int] = None
     , principal   : EventActor
-    , addDiff     : AddConfigurationRuleDiff
+    , addDiff     : AddRuleDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
-  ) : AddConfigurationRule
+  ) : AddRule
 
   
-  def getDeleteConfigurationRuleFromDiff(
+  def getDeleteRuleFromDiff(
       id          : Option[Int] = None
     , principal   : EventActor
-    , deleteDiff  : DeleteConfigurationRuleDiff
+    , deleteDiff  : DeleteRuleDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
-  ) : DeleteConfigurationRule
+  ) : DeleteRule
   
-  def getModifyConfigurationRuleFromDiff(
+  def getModifyRuleFromDiff(
       id          : Option[Int] = None
     , principal   : EventActor
-    , modifyDiff  : ModifyConfigurationRuleDiff
+    , modifyDiff  : ModifyRuleDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
-  ) : ModifyConfigurationRule
+  ) : ModifyRule
   
-  def getAddPolicyInstanceFromDiff(
+  def getAddDirectiveFromDiff(
       id                 : Option[Int] = None
     , principal          : EventActor
-    , addDiff            : AddPolicyInstanceDiff
+    , addDiff            : AddDirectiveDiff
     , varsRootSectionSpec: SectionSpec
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
-  ) : AddPolicyInstance
+  ) : AddDirective
   
-  def getDeletePolicyInstanceFromDiff(
+  def getDeleteDirectiveFromDiff(
       id                 : Option[Int] = None
     , principal          : EventActor
-    , deleteDiff         : DeletePolicyInstanceDiff
+    , deleteDiff         : DeleteDirectiveDiff
     , varsRootSectionSpec: SectionSpec
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
-  ) : DeletePolicyInstance
+  ) : DeleteDirective
   
-  def getModifyPolicyInstanceFromDiff(
+  def getModifyDirectiveFromDiff(
       id          : Option[Int] = None
     , principal   : EventActor
-    , modifyDiff  : ModifyPolicyInstanceDiff
+    , modifyDiff  : ModifyDirectiveDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
-  ) : ModifyPolicyInstance
+  ) : ModifyDirective
   
   def getAddNodeGroupFromDiff(
       id          : Option[Int] = None
@@ -116,8 +116,8 @@ trait EventLogFactory {
 }
 
 class EventLogFactoryImpl(
-    crToXml   : ConfigurationRuleSerialisation
-  , piToXml   : PolicyInstanceSerialisation
+    crToXml   : RuleSerialisation
+  , piToXml   : DirectiveSerialisation
   , groutToXml: NodeGroupSerialisation
 ) extends EventLogFactory {
   
@@ -125,15 +125,15 @@ class EventLogFactoryImpl(
   ///// Configuration Rules /////
   /////
   
-  def getAddConfigurationRuleFromDiff(
+  def getAddRuleFromDiff(
       id          : Option[Int] = None
     , principal   : EventActor
-    , addDiff     : AddConfigurationRuleDiff
+    , addDiff     : AddRuleDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
-  ) : AddConfigurationRule= {
-    val details = EventLog.withContent(crToXml.serialise(addDiff.cr) % ("changeType" -> "add"))
-    AddConfigurationRule(EventLogDetails(
+  ) : AddRule= {
+    val details = EventLog.withContent(crToXml.serialise(addDiff.rule) % ("changeType" -> "add"))
+    AddRule(EventLogDetails(
         id = id
       , principal = principal
       , details = details
@@ -142,15 +142,15 @@ class EventLogFactoryImpl(
   }
 
   
-  def getDeleteConfigurationRuleFromDiff(    
+  def getDeleteRuleFromDiff(    
       id          : Option[Int] = None
     , principal   : EventActor
-    , deleteDiff  : DeleteConfigurationRuleDiff
+    , deleteDiff  : DeleteRuleDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
-  ) : DeleteConfigurationRule= {
-    val details = EventLog.withContent(crToXml.serialise(deleteDiff.cr) % ("changeType" -> "delete"))
-    DeleteConfigurationRule(EventLogDetails(
+  ) : DeleteRule= {
+    val details = EventLog.withContent(crToXml.serialise(deleteDiff.rule) % ("changeType" -> "delete"))
+    DeleteRule(EventLogDetails(
         id = id
       , principal = principal
       , details = details
@@ -158,38 +158,38 @@ class EventLogFactoryImpl(
       , severity = severity))
   }
   
-  def getModifyConfigurationRuleFromDiff(    
+  def getModifyRuleFromDiff(    
       id          : Option[Int] = None
     , principal   : EventActor
-    , modifyDiff  : ModifyConfigurationRuleDiff
+    , modifyDiff  : ModifyRuleDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
-  ) : ModifyConfigurationRule = {
+  ) : ModifyRule = {
     val details = EventLog.withContent{
       scala.xml.Utility.trim(
-        <configurationRule changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_1_0}>
+        <rule changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_2_0}>
           <id>{modifyDiff.id.value}</id>
           <displayName>{modifyDiff.name}</displayName>{
             modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
             modifyDiff.modSerial.map(x => SimpleDiff.intToXml(<serial/>, x ) ) ++
-            modifyDiff.modTarget.map(x => SimpleDiff.toXml[Option[PolicyInstanceTarget]](<target/>, x){ t =>
+            modifyDiff.modTarget.map(x => SimpleDiff.toXml[Option[RuleTarget]](<target/>, x){ t =>
               t match {
                 case None => <none/>
                 case Some(y) => Text(y.target)
               }
             } ) ++
-            modifyDiff.modPolicyInstanceIds.map(x => SimpleDiff.toXml[Set[PolicyInstanceId]](<policyInstanceIds/>, x){ ids =>
+            modifyDiff.modDirectiveIds.map(x => SimpleDiff.toXml[Set[DirectiveId]](<directiveIds/>, x){ ids =>
                 ids.toSeq.map { id => <id>{id.value}</id> }
               } ) ++
             modifyDiff.modShortDescription.map(x => SimpleDiff.stringToXml(<shortDescription/>, x ) ) ++
             modifyDiff.modLongDescription.map(x => SimpleDiff.stringToXml(<longDescription/>, x ) ) ++
-            modifyDiff.modIsActivatedStatus.map(x => SimpleDiff.booleanToXml(<isActivated/>, x ) ) ++
+            modifyDiff.modIsActivatedStatus.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x ) ) ++
             modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) )
           }
-        </configurationRule>
+        </rule>
       )
     }
-    ModifyConfigurationRule(EventLogDetails(
+    ModifyRule(EventLogDetails(
         id = id
       , principal = principal
       , details = details
@@ -201,16 +201,16 @@ class EventLogFactoryImpl(
   ///// Policy Instance /////
   /////
   
-  def getAddPolicyInstanceFromDiff(
+  def getAddDirectiveFromDiff(
       id                 : Option[Int] = None
     , principal          : EventActor
-    , addDiff            : AddPolicyInstanceDiff
+    , addDiff            : AddDirectiveDiff
     , varsRootSectionSpec: SectionSpec
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
   ) = {
-    val details = EventLog.withContent(piToXml.serialise(addDiff.policyTemplateName, varsRootSectionSpec, addDiff.pi) % ("changeType" -> "add"))
-    AddPolicyInstance(EventLogDetails(
+    val details = EventLog.withContent(piToXml.serialise(addDiff.techniqueName, varsRootSectionSpec, addDiff.directive) % ("changeType" -> "add"))
+    AddDirective(EventLogDetails(
         id = id
       , principal = principal
       , details = details
@@ -218,16 +218,16 @@ class EventLogFactoryImpl(
       , severity = severity))
   }
   
-  def getDeletePolicyInstanceFromDiff(
+  def getDeleteDirectiveFromDiff(
       id                 : Option[Int] = None
     , principal          : EventActor
-    , deleteDiff         : DeletePolicyInstanceDiff
+    , deleteDiff         : DeleteDirectiveDiff
     , varsRootSectionSpec: SectionSpec
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
   ) = {
-    val details = EventLog.withContent(piToXml.serialise(deleteDiff.policyTemplateName, varsRootSectionSpec, deleteDiff.pi) % ("changeType" -> "delete"))
-    DeletePolicyInstance(EventLogDetails(
+    val details = EventLog.withContent(piToXml.serialise(deleteDiff.techniqueName, varsRootSectionSpec, deleteDiff.directive) % ("changeType" -> "delete"))
+    DeleteDirective(EventLogDetails(
         id = id
       , principal = principal
       , details = details
@@ -235,21 +235,21 @@ class EventLogFactoryImpl(
       , severity = severity))    
   }
   
-  def getModifyPolicyInstanceFromDiff(
+  def getModifyDirectiveFromDiff(
       id          : Option[Int] = None
     , principal   : EventActor
-    , modifyDiff  : ModifyPolicyInstanceDiff
+    , modifyDiff  : ModifyDirectiveDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
   ) = {
     val details = EventLog.withContent{
       scala.xml.Utility.trim(
-        <policyInstance changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_1_0}>
+        <directive changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_2_0}>
           <id>{modifyDiff.id.value}</id>
-          <policyTemplateName>{modifyDiff.policyTemplateName.value}</policyTemplateName>
+          <techniqueName>{modifyDiff.techniqueName.value}</techniqueName>
           <displayName>{modifyDiff.name}</displayName>{
             modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
-            modifyDiff.modPolicyTemplateVersion.map(x => SimpleDiff.toXml[PolicyVersion](<policyTemplateVersion/>, x){ v =>
+            modifyDiff.modTechniqueVersion.map(x => SimpleDiff.toXml[TechniqueVersion](<techniqueVersion/>, x){ v =>
               Text(v.toString)
             } ) ++
             modifyDiff.modParameters.map(x => SimpleDiff.toXml[SectionVal](<parameters/>, x){ sv =>
@@ -258,13 +258,13 @@ class EventLogFactoryImpl(
             modifyDiff.modShortDescription.map(x => SimpleDiff.stringToXml(<shortDescription/>, x ) ) ++
             modifyDiff.modLongDescription.map(x => SimpleDiff.stringToXml(<longDescription/>, x ) ) ++
             modifyDiff.modPriority.map(x => SimpleDiff.intToXml(<priority/>, x ) ) ++
-            modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isActivated/>, x ) ) ++
+            modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x ) ) ++
             modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) )
           }
-        </policyInstance>
+        </directive>
       )
     }
-    ModifyPolicyInstance(EventLogDetails(
+    ModifyDirective(EventLogDetails(
         id = id
       , principal = principal
       , details = details
@@ -313,7 +313,7 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
   ) : ModifyNodeGroup = {
     val details = EventLog.withContent{
-      scala.xml.Utility.trim(<nodeGroup changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_1_0}>
+      scala.xml.Utility.trim(<nodeGroup changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_2_0}>
         <id>{modifyDiff.id.value}</id>
         <displayName>{modifyDiff.name}</displayName>{
           modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
@@ -325,10 +325,10 @@ class EventLogFactoryImpl(
             }
           } ) ++
           modifyDiff.modIsDynamic.map(x => SimpleDiff.booleanToXml(<isDynamic/>, x ) ) ++
-          modifyDiff.modServerList.map(x => SimpleDiff.toXml[Set[NodeId]](<nodeIds/>, x){ ids =>
+          modifyDiff.modNodeList.map(x => SimpleDiff.toXml[Set[NodeId]](<nodeIds/>, x){ ids =>
               ids.toSeq.map { id => <id>{id.value}</id> }
             } ) ++
-          modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isActivated/>, x ) ) ++
+          modifyDiff.modIsActivated.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x ) ) ++
           modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) )
         }
       </nodeGroup>)

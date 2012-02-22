@@ -35,14 +35,14 @@
 package com.normation.rudder.domain.reports.bean
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.PolicyInstanceId
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
 import org.joda.time._
 import org.slf4j.{Logger,LoggerFactory}
 import com.normation.utils.HashcodeCaching
 /**
  * Store the reports entry from the execution
- * Contains : the datetime at which it was generated, the cr/policyinstanceid, 
+ * Contains : the datetime at which it was generated, the rule/policyinstanceid, 
  * the server on which it has been run, the severity, and the message,
  * and the serial (id of generation), the component and its key value
  * @author Nicolas CHARLES
@@ -50,21 +50,21 @@ import com.normation.utils.HashcodeCaching
  */
 trait Reports {
   val executionDate      : DateTime
-  val configurationRuleId: ConfigurationRuleId
-  val policyInstanceId   : PolicyInstanceId
+  val ruleId             : RuleId
+  val directiveId        : DirectiveId
   val nodeId             : NodeId
   val serial             : Int
   val component          : String
-  val keyValue : String // the key of the component
+  val keyValue           : String // the key of the component
   val executionTimestamp : DateTime
-  val severity : String
-  val message : String
+  val severity           : String
+  val message            : String
 }
 
 sealed case class ResultSuccessReport(
     executionDate      : DateTime
-  , configurationRuleId: ConfigurationRuleId
-  , policyInstanceId   : PolicyInstanceId
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
   , nodeId             : NodeId
   , serial             : Int
   , component          : String
@@ -77,8 +77,8 @@ sealed case class ResultSuccessReport(
 
 sealed case class ResultRepairedReport(
     executionDate      : DateTime
-  , configurationRuleId: ConfigurationRuleId
-  , policyInstanceId   : PolicyInstanceId
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
   , nodeId             : NodeId
   , serial             : Int
   , component          : String
@@ -91,8 +91,8 @@ sealed case class ResultRepairedReport(
 
 sealed case class ResultErrorReport(
     executionDate      : DateTime
-  , configurationRuleId: ConfigurationRuleId
-  , policyInstanceId   : PolicyInstanceId
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
   , nodeId             : NodeId
   , serial             : Int
   , component          : String
@@ -106,8 +106,8 @@ sealed case class ResultErrorReport(
 
 sealed case class LogRepairedReport(
     executionDate      : DateTime
-  , configurationRuleId: ConfigurationRuleId
-  , policyInstanceId   : PolicyInstanceId
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
   , nodeId             : NodeId
   , serial             : Int
   , component          : String
@@ -120,8 +120,8 @@ sealed case class LogRepairedReport(
   
 sealed case class LogWarnReport(
     executionDate      : DateTime
-  , configurationRuleId: ConfigurationRuleId
-  , policyInstanceId   : PolicyInstanceId
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
   , nodeId             : NodeId
   , serial             : Int
   , component          : String
@@ -134,8 +134,8 @@ sealed case class LogWarnReport(
 
 sealed case class LogInformReport(
     executionDate      : DateTime
-  , configurationRuleId: ConfigurationRuleId
-  , policyInstanceId   : PolicyInstanceId
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
   , nodeId             : NodeId
   , serial             : Int
   , component          : String
@@ -148,8 +148,8 @@ sealed case class LogInformReport(
 
 sealed case class LogDebugReport(
     executionDate      : DateTime
-  , configurationRuleId: ConfigurationRuleId
-  , policyInstanceId   : PolicyInstanceId
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
   , nodeId             : NodeId
   , serial             : Int
   , component          : String
@@ -162,8 +162,8 @@ sealed case class LogDebugReport(
 
 sealed case class LogTraceReport(
     executionDate      : DateTime
-  , configurationRuleId: ConfigurationRuleId
-  , policyInstanceId   : PolicyInstanceId
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
   , nodeId             : NodeId
   , serial             : Int
   , component          : String
@@ -176,8 +176,8 @@ sealed case class LogTraceReport(
 
 sealed case class UnknownReport(
     executionDate      : DateTime
-  , configurationRuleId: ConfigurationRuleId
-  , policyInstanceId   : PolicyInstanceId
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
   , nodeId             : NodeId
   , serial             : Int
   , component          : String
@@ -192,51 +192,59 @@ object Reports {
   
   val logger = LoggerFactory.getLogger(classOf[Reports])
   
-  def factory(executionDate : DateTime, configurationRuleId : ConfigurationRuleId,
-      policyInstanceId : PolicyInstanceId, nodeId : NodeId,  serial : Int,
+  def factory(executionDate : DateTime, ruleId : RuleId,
+      directiveId : DirectiveId, nodeId : NodeId,  serial : Int,
         component : String, keyValue : String,executionTimestamp : DateTime,
         severity : String,  message : String) : Reports = {
     severity.toLowerCase match {
-      case RESULT_ERROR => new ResultErrorReport(executionDate, configurationRuleId, policyInstanceId, nodeId, 
+      case RESULT_ERROR => new ResultErrorReport(executionDate, ruleId, directiveId, nodeId, 
               serial, component, keyValue, executionTimestamp, message )
-      case RESULT_SUCCESS => new ResultSuccessReport(executionDate, configurationRuleId, policyInstanceId, nodeId, 
+      case RESULT_SUCCESS => new ResultSuccessReport(executionDate, ruleId, directiveId, nodeId, 
               serial, component, keyValue, executionTimestamp, message )
-      case RESULT_REPAIRED => new ResultRepairedReport(executionDate, configurationRuleId, policyInstanceId, nodeId, 
-              serial, component, keyValue, executionTimestamp, message )
-
-      case LOG_REPAIRED => new LogRepairedReport(executionDate, configurationRuleId, policyInstanceId, nodeId, 
-              serial, component, keyValue, executionTimestamp, message )
-      
-      case LOG_WARN | LOG_WARNING  => new LogWarnReport(executionDate, configurationRuleId, policyInstanceId, nodeId, 
+      case RESULT_REPAIRED => new ResultRepairedReport(executionDate, ruleId, directiveId, nodeId, 
               serial, component, keyValue, executionTimestamp, message )
 
-      case LOG_INFO | LOG_INFORM => new LogInformReport(executionDate, configurationRuleId, policyInstanceId, nodeId, 
+      case LOG_REPAIRED => new LogRepairedReport(executionDate, ruleId, directiveId, nodeId, 
+              serial, component, keyValue, executionTimestamp, message )
+      
+      case LOG_WARN | LOG_WARNING  => new LogWarnReport(executionDate, ruleId, directiveId, nodeId, 
+              serial, component, keyValue, executionTimestamp, message )
+
+      case LOG_INFO | LOG_INFORM => new LogInformReport(executionDate, ruleId, directiveId, nodeId, 
               serial, component, keyValue, executionTimestamp, message )
       
       
-      case LOG_DEBUG => new LogDebugReport(executionDate, configurationRuleId, policyInstanceId, nodeId, 
+      case LOG_DEBUG => new LogDebugReport(executionDate, ruleId, directiveId, nodeId, 
               serial, component, keyValue, executionTimestamp, message )
             
-      case LOG_TRACE => new LogTraceReport(executionDate, configurationRuleId, policyInstanceId, nodeId, 
+      case LOG_TRACE => new LogTraceReport(executionDate, ruleId, directiveId, nodeId, 
               serial, component, keyValue, executionTimestamp, message )
             
      
       case _ =>
-        logger.error("Invalid report type {} for policyInstance {}", severity, policyInstanceId)
-        new UnknownReport(executionDate, configurationRuleId, policyInstanceId, nodeId, 
+        logger.error("Invalid report type {} for directive {}", severity, directiveId)
+        new UnknownReport(executionDate, ruleId, directiveId, nodeId, 
               serial, component, keyValue, executionTimestamp, message)
     }
   }
 
-  def apply(executionDate : DateTime, configurationRuleId : ConfigurationRuleId,
-      policyInstanceId : PolicyInstanceId, nodeId : NodeId,serial : Int,
-        component : String, keyValue : String, executionTimestamp : DateTime,
-        severity : String,  message : String) : Reports = {
-    factory(executionDate, configurationRuleId, policyInstanceId, nodeId, serial, component, keyValue, executionTimestamp, severity,  message)
+  def apply(
+      executionDate      : DateTime
+    , ruleId             : RuleId
+    , directiveId        : DirectiveId
+    , nodeId             : NodeId
+    , serial             : Int
+    , component          : String
+    , keyValue           : String
+    , executionTimestamp : DateTime
+    , severity           : String
+    , message            : String
+  ) : Reports = {
+    factory(executionDate, ruleId, directiveId, nodeId, serial, component, keyValue, executionTimestamp, severity,  message)
   }
 
-  def unapply(report : Reports) = Some(report.executionDate, report.configurationRuleId,
-    report.policyInstanceId, report.nodeId, report.serial, report.component, report.keyValue, report.executionTimestamp, report.severity, report.message)
+  def unapply(report : Reports) = Some(report.executionDate, report.ruleId,
+    report.directiveId, report.nodeId, report.serial, report.component, report.keyValue, report.executionTimestamp, report.severity, report.message)
 
     
   val LOG_TRACE = "log_trace"

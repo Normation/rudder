@@ -35,15 +35,15 @@
 package com.normation.rudder.domain.reports.bean
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.ConfigurationRuleId
-import com.normation.rudder.domain.policies.PolicyInstanceId
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.DirectiveId
 import scala.collection._
 import org.joda.time._
 import org.joda.time.format._
 import com.normation.rudder.domain.Constants
-import com.normation.cfclerk.domain.{CFCPolicyInstanceId}
-import com.normation.rudder.domain.reports.ComponentCard
-import com.normation.rudder.domain.reports.PolicyExpectedReports
+import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
+import com.normation.rudder.domain.reports.ReportComponent
+import com.normation.rudder.domain.reports.DirectiveExpectedReports
 
 /**
  * An execution batch contains the servers reports for a given CR/PI at a given date
@@ -51,16 +51,16 @@ import com.normation.rudder.domain.reports.PolicyExpectedReports
  * @author Nicolas CHARLES
  */
 trait ExecutionBatch {
-  val configurationRuleId : ConfigurationRuleId
-  val serial : Int // the serial of the configuration rule
+  val ruleId : RuleId
+  val serial : Int // the serial of the rule
   
   val executionTime : DateTime // this is the time of the batch
   
-  val policies : Seq[PolicyExpectedReports] // the list of policies, list of component and cardinality
+  val directiveExpectedReports : Seq[DirectiveExpectedReports] // the list of policies, list of component and cardinality
   
   val executionReports : Seq[Reports]
   
-  val allExpectedServer : Seq[NodeId]
+  val expectedNodeIds : Seq[NodeId]
   
   def getSuccessReports() : Seq[Reports] = {
     executionReports.filter(x => x.isInstanceOf[ResultSuccessReport])
@@ -84,38 +84,38 @@ trait ExecutionBatch {
    * Returns all the server that have only success reports
    * @return
    */
-  def getSuccessServer() : Seq[NodeId] 
+  def getSuccessNodeIds() : Seq[NodeId] 
 
   /**
    * Returns all the server that have repaired reports
    * @return
    */
-  def getRepairedServer() : Seq[NodeId]
+  def getRepairedNodeIds() : Seq[NodeId]
   
   /**
    * Returns all the server that have  success reports, and some war/error
    * @return
    */
- // def getWarnServer() : Seq[NodeId] 
+ // def getWarnNodeIds() : Seq[NodeId] 
   
   /**
    * Returns all the server that don't have enough success
    * @return
    */
-  def getErrorServer() : Seq[NodeId]
+  def getErrorNodeIds() : Seq[NodeId]
   
   /**
    * A pending server is a server that was just configured, and we don't 
    * have answer yet
    */
-  def getPendingServer() : Seq[NodeId]
+  def getPendingNodeIds() : Seq[NodeId]
   /**
    * return the server that did not send reports
    * @return
    */
-  def getServerWithNoReports() : Seq[NodeId]
+  def getNoReportNodeIds() : Seq[NodeId]
   
-  def getUnknownNodes() : Seq[NodeId]
+  def getUnknownNodeIds() : Seq[NodeId]
 }
 
 
@@ -125,14 +125,15 @@ trait ExecutionBatch {
  * 
  */
 class ConfigurationExecutionBatch( 
-    val configurationRuleId : ConfigurationRuleId, 
-    val policies : Seq[PolicyExpectedReports], 
-    val serial : Int,
-    val executionTime : DateTime,
-    val executionReports : Seq[Reports],
-    val allExpectedServer : Seq[NodeId],
-    val beginDate : DateTime, 
-    val endDate : Option[DateTime]) extends ExecutionBatch {  
+    val ruleId                  : RuleId
+  , val directiveExpectedReports: Seq[DirectiveExpectedReports]
+  , val serial                  : Int
+  , val executionTime           : DateTime
+  , val executionReports        : Seq[Reports]
+  , val expectedNodeIds         : Seq[NodeId]
+  , val beginDate               : DateTime
+  , val endDate                 : Option[DateTime]
+) extends ExecutionBatch {  
   
   val cache = scala.collection.mutable.Map[String, Seq[NodeId]]()
   
@@ -141,12 +142,12 @@ class ConfigurationExecutionBatch(
    * a success server have all the expected success report, 
    * for each component, and no warn nor error nor repaired
    */
-  def getSuccessServer() : Seq[NodeId] = {
+  def getSuccessNodeIds() : Seq[NodeId] = {
     cache.getOrElseUpdate("Success", {
-      (for {server <- allExpectedServer;
-         val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
+      (for {nodeId <- expectedNodeIds;
+         val nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
          if (nodeFilteredReports.filter(x => (( x.isInstanceOf[ResultErrorReport] || x.isInstanceOf[ResultRepairedReport] ) )).size == 0)
-         if (policies.forall { policy => 
+         if (directiveExpectedReports.forall { policy => 
            policy.components.forall { component => // must be true for each component
                  component.componentsValues.forall { value => // for each value
                    if (value == "None") {
@@ -165,7 +166,7 @@ class ConfigurationExecutionBatch(
          //component <- policy.components
          //if (executionReports.filter(x => 
          //    (x.nodeId==server && x.component == component.componentName && x.isInstanceOf[ResultSuccessReport])).size >= component.cardinality)  
-      } yield server).distinct
+      } yield nodeId).distinct
     })
     
   }
@@ -174,13 +175,13 @@ class ConfigurationExecutionBatch(
    * a success server have at least one repaired, and no error, but must have
    * the EXACT number of success or repaired per component
    */
-  def getRepairedServer() : Seq[NodeId] = {
+  def getRepairedNodeIds() : Seq[NodeId] = {
     cache.getOrElseUpdate("Repaired", {
-      (for {server <- allExpectedServer;
-        val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
+      (for {nodeId <- expectedNodeIds;
+        val nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
         if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultErrorReport]  ) ).size == 0)
         if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultRepairedReport]  ) ).size > 0)
-        if (policies.forall { policy => 
+        if (directiveExpectedReports.forall { policy => 
           policy.components.forall { component => // must be true for each component
                component.componentsValues.forall { value => // for each value
                  if (value == "None") {
@@ -196,7 +197,7 @@ class ConfigurationExecutionBatch(
                }
           }
          })
-      } yield server).distinct
+      } yield nodeId).distinct
    })  
      
   }
@@ -204,8 +205,8 @@ class ConfigurationExecutionBatch(
   /**
    * a warn server have all the expected success report, and warn or error 
    *//*
-  def getWarnServer() : Seq[NodeId] = {
-    (for {server <- allExpectedServer;
+  def getWarnNodeIds() : Seq[NodeId] = {
+    (for {server <- allExpectedNode;
       policy <- policies
       component <- policy.components
       if (executionReports.filter(x => 
@@ -218,12 +219,12 @@ class ConfigurationExecutionBatch(
   /**
    * a error server have not all the expected success report, and/or error 
    */
-  def getErrorServer() : Seq[NodeId] = {
+  def getErrorNodeIds() : Seq[NodeId] = {
     cache.getOrElseUpdate("Error", {
-      (for {server <- allExpectedServer;
-         val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
+      (for {nodeId <- expectedNodeIds;
+         val nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
   
-         policy <- policies
+         policy <- directiveExpectedReports
          if (nodeFilteredReports.filter( x => x.isInstanceOf[ResultErrorReport] ).size > 0 ) || 
            ( (policy.components.forall { component => // must be true for each component
                component.componentsValues.forall { value => // for each value              
@@ -255,7 +256,7 @@ class ConfigurationExecutionBatch(
              ( filtered.filter(x => x.isInstanceOf[ResultErrorReport]).size > 0 )
          
   */
-      } yield server).distinct
+      } yield nodeId).distinct
      }) 
   }
   
@@ -263,12 +264,12 @@ class ConfigurationExecutionBatch(
    * A pending server is a server that was just configured, and we don't 
    * have answer yet
    */
-  def getPendingServer() : Seq[NodeId] = {
+  def getPendingNodeIds() : Seq[NodeId] = {
     if (beginDate.plus(Constants.pendingDuration).isAfter(DateTime.now())) {
       cache.getOrElseUpdate("Pending", {
-        (for {server <- allExpectedServer;
-           if (executionReports.filter(x => (x.nodeId==server)).size == 0)
-        } yield server).distinct
+        (for {nodeId <- expectedNodeIds;
+           if (executionReports.filter(x => (x.nodeId==nodeId)).size == 0)
+        } yield nodeId).distinct
       })
     } else {
       Seq()
@@ -278,12 +279,12 @@ class ConfigurationExecutionBatch(
   /**
    * A server with no reports should have send reports, but didn't
    */
-  def getServerWithNoReports() : Seq[NodeId] = {
+  def getNoReportNodeIds() : Seq[NodeId] = {
     if (beginDate.plus(Constants.pendingDuration).isBefore(DateTime.now())) {
       cache.getOrElseUpdate("NoAnswer", {
-        (for {server <- allExpectedServer;
-           if (executionReports.filter(x => (x.nodeId==server)).size == 0)
-        } yield server).distinct
+        (for {nodeId <- expectedNodeIds;
+           if (executionReports.filter(x => (x.nodeId==nodeId)).size == 0)
+        } yield nodeId).distinct
       })
     } else {
       Seq()
@@ -294,12 +295,12 @@ class ConfigurationExecutionBatch(
   /**
    * An unknown node isn't success, repaired, error, pending nor no reports
    */
-  def getUnknownNodes() : Seq[NodeId] = {
-    allExpectedServer.filter(node => !(getSuccessServer().contains(node)))
-                     .filter(node => !(getRepairedServer().contains(node)))
-                     .filter(node => !(getErrorServer().contains(node)))
-                     .filter(node => !(getPendingServer().contains(node)))
-                     .filter(node => !(getServerWithNoReports().contains(node)))
+  def getUnknownNodeIds() : Seq[NodeId] = {
+    expectedNodeIds.filter(nodeId => !(getSuccessNodeIds().contains(nodeId)))
+                   .filter(nodeId => !(getRepairedNodeIds().contains(nodeId)))
+                   .filter(nodeId => !(getErrorNodeIds().contains(nodeId)))
+                   .filter(nodeId => !(getPendingNodeIds().contains(nodeId)))
+                   .filter(nodeId => !(getNoReportNodeIds().contains(nodeId)))
     
   }
 }

@@ -53,5 +53,5 @@ import net.liftweb.http.SHtml._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.ldap.sdk.LDAPConnectionProvider
 
-object CurrentPolicyEditor extends SessionVar[Option[PolicyEditor]](None) 
+object CurrentDirectiveEditor extends SessionVar[Option[DirectiveEditor]](None) 
 

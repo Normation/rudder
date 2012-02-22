@@ -127,10 +127,10 @@ class SystemVariableServiceImpl(
     // else it's only the policy server
     nodeInfo match {
       case policyServer: PolicyServerNodeInfo =>
-        val allowedServerVar = new SystemVariable(SystemVariableSpec(name = "${hasPolicyServer-" + policyServer.id.value + ".target.hostname}", description = "", multivalued = true))
-        allowedServerVar.values = Seq("${hasPolicyServer-" + policyServer.id.value + ".target.hostname}")
+        val allowedNodeVar = new SystemVariable(SystemVariableSpec(name = "${hasPolicyServer-" + policyServer.id.value + ".target.hostname}", description = "", multivalued = true))
+        allowedNodeVar.values = Seq("${hasPolicyServer-" + policyServer.id.value + ".target.hostname}")
 
-        parameterizedValueLookupService.lookupConfigurationRuleParameterization(Seq(allowedServerVar)) match {
+        parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNodeVar)) match {
           case Full(variable) =>
             allowConnect ++= variable.flatMap(x => x.values)
             clientList ++= variable.flatMap(x => x.values)

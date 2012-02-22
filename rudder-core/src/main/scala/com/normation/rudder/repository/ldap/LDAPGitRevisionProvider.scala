@@ -38,7 +38,7 @@ import org.eclipse.jgit.lib.ObjectId
 import com.normation.rudder.domain.RudderDit
 import net.liftweb.common._
 import com.normation.exceptions.TechnicalException
-import com.normation.rudder.domain.RudderLDAPConstants.{ A_REF_LIB_VERSION, OC_USER_LIB_VERSION }
+import com.normation.rudder.domain.RudderLDAPConstants.{ A_TECHNIQUE_LIB_VERSION, OC_ACTIVE_TECHNIQUE_LIB_VERSION }
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
 import com.normation.cfclerk.services.GitRevisionProvider
@@ -62,8 +62,8 @@ class LDAPGitRevisionProvider(
     //try to read from LDAP, and if we can't, returned the last available from git 
     (for {
       con <- ldap
-      entry <- con.get(rudderDit.POLICY_TEMPLATE_LIB.dn, A_REF_LIB_VERSION)
-      refLib <- entry(A_REF_LIB_VERSION)
+      entry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_TECHNIQUE_LIB_VERSION)
+      refLib <- entry(A_TECHNIQUE_LIB_VERSION)
     } yield {
       refLib
     }) match {
@@ -98,11 +98,11 @@ class LDAPGitRevisionProvider(
 
   override def setCurrentRevTreeId(id: ObjectId): Unit = {
     ldap.foreach { con =>
-      con.get(rudderDit.POLICY_TEMPLATE_LIB.dn, A_OC) match {
+      con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_OC) match {
         case e: EmptyBox => logger.error("The root entry of the user template library was not found, the current revision won't be persisted")
         case Full(root) =>
-          root += (A_OC, OC_USER_LIB_VERSION)
-          root +=! (A_REF_LIB_VERSION, id.getName)
+          root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
+          root +=! (A_TECHNIQUE_LIB_VERSION, id.getName)
           con.save(root)
       }
     }

@@ -44,8 +44,8 @@ import org.junit.runners.BlockJUnit4ClassRunner
 import com.normation.cfclerk.domain._
 import com.normation.inventory.domain.AgentType
 import com.normation.cfclerk.domain._
-import com.normation.rudder.domain.policies.IdentifiableCFCPI
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
+import com.normation.rudder.domain.policies.RuleId
 import net.liftweb.common._
 
 
@@ -53,46 +53,46 @@ import net.liftweb.common._
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class NodeConfigurationTest {
 
-  private val simplePolicy = new IdentifiableCFCPI(
-      new ConfigurationRuleId("crId"),
-      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId"),
-      new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0")), 
+  private val simplePolicy = new RuleWithCf3PolicyDraft(
+      new RuleId("ruleId"),
+      new Cf3PolicyDraft(new Cf3PolicyDraftId("cfcId"),
+      new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0")), 
       Map(), TrackerVariableSpec().toVariable(),
       priority = 0, serial = 0) // no variable
   )
   
-  private val policyVaredOne = new IdentifiableCFCPI(
-      new ConfigurationRuleId("crId1"),
-      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
-      new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
+  private val policyVaredOne = new RuleWithCf3PolicyDraft(
+      new RuleId("ruleId1"),
+      new Cf3PolicyDraft(new Cf3PolicyDraftId("cfcId1"),
+      new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0")),
       Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))),
       TrackerVariableSpec().toVariable(),
       priority = 0, serial = 0)  // one variable
   )
 
   
-  private val policyOtherVaredOne = new IdentifiableCFCPI(
-      new ConfigurationRuleId("crId1"),
-      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
-      new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
+  private val policyOtherVaredOne = new RuleWithCf3PolicyDraft(
+      new RuleId("ruleId1"),
+      new Cf3PolicyDraft(new Cf3PolicyDraftId("cfcId1"),
+      new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0")),
       Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("two"))), 
       TrackerVariableSpec().toVariable(),
       priority = 0, serial = 0)  // one variable
   )
   
-  private val policyNextVaredOne = new IdentifiableCFCPI(
-      new ConfigurationRuleId("crId1"),
-      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId1"),
-      new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0")),
+  private val policyNextVaredOne = new RuleWithCf3PolicyDraft(
+      new RuleId("ruleId1"),
+      new Cf3PolicyDraft(new Cf3PolicyDraftId("cfcId1"),
+      new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0")),
       Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))),
       TrackerVariableSpec().toVariable(),
       priority = 0, serial = 1)  // next serial than policyVaredOne
   )
   
-  private val policyVaredTwo = new IdentifiableCFCPI(
-      new ConfigurationRuleId("crId2"),
-      new CFCPolicyInstance(new CFCPolicyInstanceId("cfcId2"),
-      new PolicyPackageId(PolicyPackageName("ppId2"), PolicyVersion("1.0")),
+  private val policyVaredTwo = new RuleWithCf3PolicyDraft(
+      new RuleId("ruleId2"),
+      new Cf3PolicyDraft(new Cf3PolicyDraftId("cfcId2"),
+      new TechniqueId(TechniqueName("ppId2"), TechniqueVersion("1.0")),
       Map("two" -> InputVariable(InputVariableSpec("two", ""), Seq("two"))), 
       TrackerVariableSpec().toVariable(),
       priority = 0, serial = 0) // one variable
@@ -120,8 +120,8 @@ class NodeConfigurationTest {
         Map(),
         Map())
     assertEquals(newNode.isPolicyServer, false)
-    assertEquals(newNode.getCurrentPolicyInstances.size, 0)
-    assertEquals(newNode.getPolicyInstances.size, 0)
+    assertEquals(newNode.getCurrentDirectives.size, 0)
+    assertEquals(newNode.getDirectives.size, 0)
     
     assertEquals(newNode.getCurrentSystemVariables.size, 0)
     assertEquals(newNode.getTargetSystemVariables.size, 0)
@@ -130,25 +130,25 @@ class NodeConfigurationTest {
     assertEquals(newNode.targetMinimalNodeConfig.agentsName.size, 0)
     
     // Now add a policy
-    newNode.addPolicyInstance(simplePolicy) match {
+    newNode.addDirective(simplePolicy) match {
       case f: EmptyBox => 
-        val e = f ?~! "Error when adding policy instance %s on node %s".format(simplePolicy.configurationRuleId, newNode.id)
+        val e = f ?~! "Error when adding policy instance %s on node %s".format(simplePolicy.ruleId, newNode.id)
         throw new RuntimeException(e.messageChain)
       case Full(node) => 
     
     
         assertEquals(node.isModified, true)
         // Current policy don't change, but target does
-        assertEquals(node.getCurrentPolicyInstances.size, 0)
-        assertEquals(node.getPolicyInstances.size, 1)
+        assertEquals(node.getCurrentDirectives.size, 0)
+        assertEquals(node.getDirectives.size, 1)
         
-        assertEquals(node.findPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0"))).size, 1)
-        assertEquals(node.findPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0"))).size, 0)
+        assertEquals(node.findDirectiveByPolicy(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size, 1)
+        assertEquals(node.findDirectiveByPolicy(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size, 0)
     
-        assertEquals(node.findCurrentPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0"))).size, 0)
+        assertEquals(node.findCurrentDirectiveByPolicy(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size, 0)
     
         assertEquals(node.getAllPoliciesNames().size, 1)
-        assertEquals(node.getAllPoliciesNames().contains(new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0"))), true)
+        assertEquals(node.getAllPoliciesNames().contains(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))), true)
     }
   }
   
@@ -164,8 +164,8 @@ class NodeConfigurationTest {
         Map())
       
     assertEquals(newNode.isPolicyServer, false)
-    assertEquals(newNode.getCurrentPolicyInstances.size, 1)
-    assertEquals(newNode.getPolicyInstances.size, 1)
+    assertEquals(newNode.getCurrentDirectives.size, 1)
+    assertEquals(newNode.getDirectives.size, 1)
     
     assertEquals(newNode.getCurrentSystemVariables.size, 0)
     assertEquals(newNode.getTargetSystemVariables.size, 0)
@@ -173,10 +173,10 @@ class NodeConfigurationTest {
     assertEquals(newNode.isModified, false)
     assertEquals(newNode.targetMinimalNodeConfig.agentsName.size, 0)
     
-    assertEquals(newNode.findPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0"))).size, 1)
-    assertEquals(newNode.findPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId"), PolicyVersion("1.0"))).size, 0)
+    assertEquals(newNode.findDirectiveByPolicy(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size, 1)
+    assertEquals(newNode.findDirectiveByPolicy(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size, 0)
 
-    assertEquals(newNode.findCurrentPolicyInstanceByPolicy(new PolicyPackageId(PolicyPackageName("ppId1"), PolicyVersion("1.0"))).size, 1)
+    assertEquals(newNode.findCurrentDirectiveByPolicy(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size, 1)
       
     
     val modified = newNode.copy(targetSystemVariables = Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))))

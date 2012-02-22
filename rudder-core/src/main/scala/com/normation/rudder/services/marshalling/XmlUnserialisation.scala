@@ -37,30 +37,30 @@ package com.normation.rudder.services.marshalling
 import scala.xml.{Node => XNode}
 import scala.xml.NodeSeq
 
-import com.normation.cfclerk.domain.PolicyPackageName
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
-import com.normation.rudder.domain.policies.ConfigurationRule
-import com.normation.rudder.domain.policies.PolicyInstance
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.SectionVal
-import com.normation.rudder.domain.policies.UserPolicyTemplate
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 
 import net.liftweb.common.Box
 
 
 trait DeploymentStatusUnserialisation {
   /**
-   * version 1:
-   * <deploymentStatus fileFormat="1.0">
+   * Version 2:
+   * <deploymentStatus fileFormat="2.0">
           <id>{d.id}</id>
           <started>{d.started}</started>
           <ended>{d.ended}</ended>
           <status>success</status>
      </deploymentStatus>
      
-     <deploymentStatus fileFormat="1.0">
+     <deploymentStatus fileFormat="2.0">
           <id>{d.id}</id>
           <started>{d.started}</started>
           <ended>{d.ended}</ended>
@@ -82,8 +82,8 @@ trait DeploymentStatusUnserialisation {
  */
 trait NodeGroupCategoryUnserialisation {
   /**
-   * Version 1:
-     <groupLibraryCategory fileFormat="1.0">
+   * Version 2:
+     <groupLibraryCategory fileFormat="2.0">
         <id>{cat.id.value}</id>
         <displayName>{cat.name}</displayName>
         <description>{cat.description}</serial>
@@ -99,13 +99,13 @@ trait NodeGroupCategoryUnserialisation {
  */
 trait NodeGroupUnserialisation {
   /**
-   * Version 1.0
-     <nodeGroup fileFormat="1.0">
+   * Version 2.0
+     <nodeGroup fileFormat="2.0">
        <id>{group.id.value}</id>
        <displayName>{group.id.name}</displayName>
        <description>{group.id.description}</description>
        <isDynamic>{group.isDynamic}</isDynamic>
-       <isActivated>{group.isActivated}</isActivated>
+       <isEnabled>{group.isEnabled}</isEnabled>
        <isSystem>{group.isSystem}</isSystem>
        <query>{group.query}</query>
        <nodeIds>
@@ -121,24 +121,24 @@ trait NodeGroupUnserialisation {
  * That trait allow to unserialise 
  * Configuration Rule from an XML file. 
  */
-trait ConfigurationRuleUnserialisation {
+trait RuleUnserialisation {
   /**
-   * Version 1:
-     <configurationRule fileName="1.0">
-        <id>{cr.id.value}</id>
-        <name>{cr.name}</name>
-        <serial>{cr.serial}</serial>
-        <target>{ cr.target.map( _.target).getOrElse("") }</target>
-        <policyInstanceIds>{
-          cr.policyInstanceIds.map { id => <id>{id.value}</id> } 
-        }</policyInstanceIds>
-        <shortDescription>{cr.shortDescription}</shortDescription>
-        <longDescription>{cr.longDescription}</longDescription>
-        <isActivated>{cr.isActivatedStatus}</isActivated>
-        <isSystem>{cr.isSystem}</isSystem>
-      </configurationRule>
+   * Version 2:
+     <rule fileName="1.0">
+        <id>{rule.id.value}</id>
+        <name>{rule.name}</name>
+        <serial>{rule.serial}</serial>
+        <target>{ rule.target.map( _.target).getOrElse("") }</target>
+        <directiveIds>{
+          rule.directiveIds.map { id => <id>{id.value}</id> } 
+        }</directiveIds>
+        <shortDescription>{rule.shortDescription}</shortDescription>
+        <longDescription>{rule.longDescription}</longDescription>
+        <isEnabled>{rule.isEnabledStatus}</isEnabled>
+        <isSystem>{rule.isSystem}</isSystem>
+      </rule>
    */
-  def unserialise(xml:XNode) : Box[ConfigurationRule]
+  def unserialise(xml:XNode) : Box[Rule]
 }
 
 /**
@@ -149,60 +149,60 @@ trait ConfigurationRuleUnserialisation {
  * always be empty here, as they are not serialized. 
  * 
  */
-trait UserPolicyTemplateCategoryUnserialisation {
+trait ActiveTechniqueCategoryUnserialisation {
   /**
-   * Version 1:
-     <policyLibraryCategory fileFormat="1.0">
+   * Version 2:
+     <policyLibraryCategory fileFormat="2.0">
         <id>{uptc.id.value}</id>
         <displayName>{uptc.name}</displayName>
         <description>{uptc.description}</serial>
         <isSystem>{uptc.isSystem}</isSystem>
       </policyLibraryCategory>
    */
-  def unserialise(xml:XNode): Box[UserPolicyTemplateCategory]
+  def unserialise(xml:XNode): Box[ActiveTechniqueCategory]
 }
 
 /**
  * That trait allow to unserialise 
  * user policy template from an XML file. 
  * 
- * BE CAREFUL: policyInstance will be empty as they are not serialized. 
+ * BE CAREFUL: directive will be empty as they are not serialized. 
  */
-trait UserPolicyTemplateUnserialisation {
+trait ActiveTechniqueUnserialisation {
   /**
-   * Version 1:
-     <policyLibraryTemplate fileFormat="1.0">
-        <id>{upt.id.value}</id>
-        <policyTemplateName>{upt.referencePolicyTemplateName}</policyTemplateName>
-        <isActivated>{upt.isSystem}</isActivated>
-        <isSystem>{upt.isSystem}</isSystem>
+   * Version 2:
+     <policyLibraryTemplate fileFormat="2.0">
+        <id>{activeTechnique.id.value}</id>
+        <techniqueName>{activeTechnique.techniqueName}</techniqueName>
+        <isEnabled>{activeTechnique.isSystem}</isEnabled>
+        <isSystem>{activeTechnique.isSystem}</isSystem>
         <versions>
-          <version name="1.0">{upt.acceptationDate("1.0") in iso-8601}</version>
-          <version name="1.1">{upt.acceptationDate("1.1") in iso-8601}</version>
-          <version name="2.0">{upt.acceptationDate("2.0") in iso-8601}</version>
+          <version name="1.0">{activeTechnique.acceptationDate("1.0") in iso-8601}</version>
+          <version name="1.1">{activeTechnique.acceptationDate("1.1") in iso-8601}</version>
+          <version name="2.0">{activeTechnique.acceptationDate("2.0") in iso-8601}</version>
         </versions>
       </policyLibraryTemplate>
    */
-  def unserialise(xml:XNode): Box[UserPolicyTemplate]
+  def unserialise(xml:XNode): Box[ActiveTechnique]
 }
 
 /**
  * That trait allow to unserialise 
  * policy instance from an XML file. 
  */
-trait PolicyInstanceUnserialisation {
+trait DirectiveUnserialisation {
   /**
-   * Version 1.0
-     <policyInstance fileFormat="1.0">
-       <id>{pi.id.value}</id>
-       <displayName>{pi.name}</displayName>
-       <policyTemplateName>{PT name}</policyTemplateName>
-       <policyTemplateVersion>{pi.policyTemplateVersion}</policyTemplateVersion>
-       <shortDescription>{pi.shortDescription}</shortDescription>
-       <longDescription>{pi.longDescription}</longDescription>
-       <priority>{pi.priority}</priority>
-       <isActivated>{piisActivated.}</isActivated>
-       <isSystem>{pi.isSystem}</isSystem>
+   * Version 2.0
+     <directive fileFormat="2.0">
+       <id>{directive.id.value}</id>
+       <displayName>{directive.name}</displayName>
+       <techniqueName>{PT name}</techniqueName>
+       <techniqueVersion>{directive.techniqueVersion}</techniqueVersion>
+       <shortDescription>{directive.shortDescription}</shortDescription>
+       <longDescription>{directive.longDescription}</longDescription>
+       <priority>{directive.priority}</priority>
+       <isEnabled>{piisEnabled.}</isEnabled>
+       <isSystem>{directive.isSystem}</isSystem>
        <section name="sections">
          <section name="ptTest1-section1">
            <var name="ptTest1-section1-var1">value0</var>
@@ -214,9 +214,9 @@ trait PolicyInstanceUnserialisation {
            </section>
          </section>
        </section>
-     </policyInstance>
+     </directive>
    */
-  def unserialise(xml:XNode) : Box[(PolicyPackageName, PolicyInstance, SectionVal)]
+  def unserialise(xml:XNode) : Box[(TechniqueName, Directive, SectionVal)]
   
   
   /**

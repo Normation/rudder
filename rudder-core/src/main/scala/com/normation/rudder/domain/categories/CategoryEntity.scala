@@ -36,7 +36,7 @@ package com.normation.rudder.domain.categories
 
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
-import com.normation.rudder.domain.RudderLDAPConstants.A_CATEGORY_UUID
+import com.normation.rudder.domain.RudderLDAPConstants.A_TECHNIQUE_CATEGORY_UUID
 import com.unboundid.ldap.sdk.DN
 import com.normation.utils.HashcodeCaching
 
@@ -57,7 +57,7 @@ case class CaetgoryEntity(
 
 
 /**
- * This trait is used for Policy Template Category, and for Server Group Category
+ * This trait is used for Policy Template Category, and for Node Group Category
  * ID : the class identifying the category
  * C The category class
  * T The item class

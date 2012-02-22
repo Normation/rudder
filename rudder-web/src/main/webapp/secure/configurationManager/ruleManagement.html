@@ -1,0 +1,51 @@
+
+<lift:surround with="menu/menu-configure" at="content">
+
+<head>
+<title>Rudder - Rules Management</title>
+</head>
+
+<lift:configuration.RuleManagement.head />
+
+<div class="portlet">
+  <div class="portlet-header">Rule Management</div>
+  <div class="portlet-content">
+    <div class="intro">
+      <div>
+        This portlet allows you to list, create, delete and change <em>Rules</em> on your infrastructure, based on previously defined <a href="secure/configurationManager/directiveManagement"><em>Directives</em></a>. 
+      </div>
+    </div>
+    <hr class="spacer"/>
+    <div>
+      <div class="portlet">
+        <div class="portlet-header">List of rules</div>
+        <div class="portlet-content">
+          <lift:configuration.RuleManagement.viewRules />
+        </div>
+      </div>
+    </div>
+    
+    <hr class="spacer"/>
+    <div>
+      <div class="portlet">
+        <div class="portlet-header">Rule settings</div>
+        <div class="portlet-content">
+          <lift:configuration.RuleManagement.editRule />  
+        </div>
+      </div>
+    </div>
+    
+  </div>
+
+  <div id="createRulePopup" class="nodisplay">
+    <lift:ignore>
+      This div gets the content of the createRule injected within
+    </lift:ignore>
+    <div id="createRuleContainer"/>
+  </div>
+
+
+  
+</div>
+</lift:surround>
+

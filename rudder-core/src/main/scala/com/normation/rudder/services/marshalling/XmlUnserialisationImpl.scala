@@ -40,23 +40,23 @@ import net.liftweb.common.Box._
 import com.normation.rudder.services.queries.CmdbQueryParser
 import net.liftweb.common.Failure
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.policies.ConfigurationRule
-import com.normation.rudder.domain.policies.PolicyInstance
-import com.normation.cfclerk.domain.PolicyPackageName
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.Directive
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.policies.SectionVal
 import scala.xml.{Node => XNode}
 import com.normation.utils.Control.sequence
-import com.normation.cfclerk.domain.PolicyVersion
+import com.normation.cfclerk.domain.TechniqueVersion
 import net.liftweb.util.Helpers.tryo
-import com.normation.rudder.domain.policies.PolicyInstanceId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.PolicyInstanceTarget
+import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.policies.ConfigurationRuleId
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategoryId
-import com.normation.rudder.domain.policies.UserPolicyTemplate
-import com.normation.rudder.domain.policies.UserPolicyTemplateId
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.ActiveTechniqueId
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.batch.ErrorStatus
@@ -65,7 +65,7 @@ import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 
-class PolicyInstanceUnserialisationImpl extends PolicyInstanceUnserialisation {
+class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
   
   override def parseSectionVal(xml:NodeSeq) : Box[SectionVal] = {
     def recValParseSection(elt:XNode) : Box[(String, SectionVal)] = {
@@ -104,39 +104,39 @@ class PolicyInstanceUnserialisationImpl extends PolicyInstanceUnserialisation {
     }
   }
   
-  override def unserialise(xml:XNode) : Box[(PolicyPackageName, PolicyInstance, SectionVal)] = {
+  override def unserialise(xml:XNode) : Box[(TechniqueName, Directive, SectionVal)] = {
     for {
-      pi                    <- {
-                                 if(xml.label == "policyInstance") Full(xml)
-                                 else Failure("Entry type is not a policyInstance: " + xml)
+      directive                    <- {
+                                 if(xml.label == "directive") Full(xml)
+                                 else Failure("Entry type is not a directive: " + xml)
                                }
       fileFormatOk          <- {
-                                 if(pi.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
+                                 if(directive.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
                                  else Failure("Bad fileFormat (expecting 1.0): " + xml)
                                }
-      id                    <- (pi \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type policyInstance : " + xml)
-      ptName                <- (pi \ "policyTemplateName").headOption.map( _.text ) ?~! ("Missing attribute 'policyTemplateName' in entry type policyInstance : " + xml)
-      name                  <- (pi \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type policyInstance : " + xml)
-      policyTemplateVersion <- (pi \ "policyTemplateVersion").headOption.map( x => PolicyVersion(x.text) ) ?~! ("Missing attribute 'policyTemplateVersion' in entry type policyInstance : " + xml)
-      sectionVal            <- parseSectionVal(pi)
-      shortDescription      <- (pi \ "shortDescription").headOption.map( _.text ) ?~! ("Missing attribute 'shortDescription' in entry type policyInstance : " + xml)
-      longDescription       <- (pi \ "longDescription").headOption.map( _.text ) ?~! ("Missing attribute 'longDescription' in entry type policyInstance : " + xml)
-      isActivated           <- (pi \ "isActivated").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isActivated' in entry type policyInstance : " + xml)
-      priority              <- (pi \ "priority").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! ("Missing or bad attribute 'priority' in entry type policyInstance : " + xml)
-      isSystem              <- (pi \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type policyInstance : " + xml)
-      policyInstanceIds     =  (pi \ "policyInstanceIds" \ "id" ).map( n => PolicyInstanceId( n.text ) ).toSet
+      id                    <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + xml)
+      ptName                <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + xml)
+      name                  <- (directive \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type directive : " + xml)
+      techniqueVersion <- (directive \ "techniqueVersion").headOption.map( x => TechniqueVersion(x.text) ) ?~! ("Missing attribute 'techniqueVersion' in entry type directive : " + xml)
+      sectionVal            <- parseSectionVal(directive)
+      shortDescription      <- (directive \ "shortDescription").headOption.map( _.text ) ?~! ("Missing attribute 'shortDescription' in entry type directive : " + xml)
+      longDescription       <- (directive \ "longDescription").headOption.map( _.text ) ?~! ("Missing attribute 'longDescription' in entry type directive : " + xml)
+      isEnabled           <- (directive \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type directive : " + xml)
+      priority              <- (directive \ "priority").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! ("Missing or bad attribute 'priority' in entry type directive : " + xml)
+      isSystem              <- (directive \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type directive : " + xml)
+      directiveIds     =  (directive \ "directiveIds" \ "id" ).map( n => DirectiveId( n.text ) ).toSet
     } yield {
       (
-          PolicyPackageName(ptName)
-        , PolicyInstance(
-              id = PolicyInstanceId(id)
+          TechniqueName(ptName)
+        , Directive(
+              id = DirectiveId(id)
             , name = name
-            , policyTemplateVersion = policyTemplateVersion
+            , techniqueVersion = techniqueVersion
             , parameters = SectionVal.toMapVariables(sectionVal)
             , shortDescription = shortDescription
             , longDescription = longDescription
             , priority = priority
-            , isActivated = isActivated
+            , isEnabled = isEnabled
             , isSystem = isSystem
           )
         , sectionVal
@@ -200,7 +200,7 @@ class NodeGroupUnserialisationImpl(
                           }
       isDynamic       <- (group \ "isDynamic").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isDynamic' in entry type nodeGroup : " + entry)
       serverList      =  (group \ "nodeIds" \ "id" ).map( n => NodeId( n.text ) ).toSet
-      isActivated     <- (group \ "isActivated").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isActivated' in entry type nodeGroup : " + entry)
+      isEnabled     <- (group \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type nodeGroup : " + entry)
       isSystem        <- (group \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
     } yield {
       NodeGroup(
@@ -210,7 +210,7 @@ class NodeGroupUnserialisationImpl(
         , query = query
         , isDynamic = isDynamic
         , serverList = serverList
-        , isActivated = isActivated
+        , isEnabled = isEnabled
         , isSystem = isSystem
       )
     }    
@@ -218,45 +218,45 @@ class NodeGroupUnserialisationImpl(
 }
 
 
-class ConfigurationRuleUnserialisationImpl extends ConfigurationRuleUnserialisation {
-  def unserialise(entry:XNode) : Box[ConfigurationRule] = {
+class RuleUnserialisationImpl extends RuleUnserialisation {
+  def unserialise(entry:XNode) : Box[Rule] = {
     for {
-      cr               <- {
-                            if(entry.label ==  "configurationRule") Full(entry)
-                            else Failure("Entry type is not a configurationRule: " + entry)
+      rule               <- {
+                            if(entry.label ==  "rule") Full(entry)
+                            else Failure("Entry type is not a rule: " + entry)
                           }
       fileFormatOk     <- {
-                            if(cr.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
+                            if(rule.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
                             else Failure("Bad fileFormat (expecting 1.0): " + entry)
                           }
-      id               <- (cr \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type configurationRule : " + entry)
-      name             <- (cr \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type configurationRule : " + entry)
-      serial           <- (cr \ "serial").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! ("Missing or bad attribute 'serial' in entry type configurationRule : " + entry)
-      target           <- (cr \ "target").headOption.map(s =>  PolicyInstanceTarget.unser(s.text) )  ?~! ("Missing attribute 'target' in entry type configurationRule : " + entry)
-      shortDescription <- (cr \ "shortDescription").headOption.map( _.text ) ?~! ("Missing attribute 'shortDescription' in entry type configurationRule : " + entry)
-      longDescription  <- (cr \ "longDescription").headOption.map( _.text ) ?~! ("Missing attribute 'longDescription' in entry type configurationRule : " + entry)
-      isActivated      <- (cr \ "isActivated").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isActivated' in entry type configurationRule : " + entry)
-      isSystem         <- (cr \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type configurationRule : " + entry)
-      policyInstanceIds = (cr \ "policyInstanceIds" \ "id" ).map( n => PolicyInstanceId( n.text ) ).toSet
+      id               <- (rule \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type rule : " + entry)
+      name             <- (rule \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type rule : " + entry)
+      serial           <- (rule \ "serial").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! ("Missing or bad attribute 'serial' in entry type rule : " + entry)
+      target           <- (rule \ "target").headOption.map(s =>  RuleTarget.unser(s.text) )  ?~! ("Missing attribute 'target' in entry type rule : " + entry)
+      shortDescription <- (rule \ "shortDescription").headOption.map( _.text ) ?~! ("Missing attribute 'shortDescription' in entry type rule : " + entry)
+      longDescription  <- (rule \ "longDescription").headOption.map( _.text ) ?~! ("Missing attribute 'longDescription' in entry type rule : " + entry)
+      isEnabled      <- (rule \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type rule : " + entry)
+      isSystem         <- (rule \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type rule : " + entry)
+      directiveIds = (rule \ "directiveIds" \ "id" ).map( n => DirectiveId( n.text ) ).toSet
     } yield {
-      ConfigurationRule(
-          id = ConfigurationRuleId(id)
+      Rule(
+          id = RuleId(id)
         , name = name
         , serial = serial
         , target = target
-        , policyInstanceIds = policyInstanceIds
+        , directiveIds = directiveIds
         , shortDescription = shortDescription
         , longDescription = longDescription
-        , isActivatedStatus = isActivated
+        , isEnabledStatus = isEnabled
         , isSystem = isSystem
       )
     }    
   }
 }
 
-class UserPolicyTemplateCategoryUnserialisationImpl extends UserPolicyTemplateCategoryUnserialisation {
+class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategoryUnserialisation {
   
-  def unserialise(entry:XNode): Box[UserPolicyTemplateCategory] = {
+  def unserialise(entry:XNode): Box[ActiveTechniqueCategory] = {
     for {
       uptc             <- {
                             if(entry.label ==  "policyLibraryCategory") Full(entry)
@@ -271,8 +271,8 @@ class UserPolicyTemplateCategoryUnserialisationImpl extends UserPolicyTemplateCa
       description      <- (uptc \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type policyLibraryCategory : " + entry)
       isSystem         <- (uptc \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type policyLibraryCategory : " + entry)
     } yield {
-      UserPolicyTemplateCategory(
-          id = UserPolicyTemplateCategoryId(id)
+      ActiveTechniqueCategory(
+          id = ActiveTechniqueCategoryId(id)
         , name = name
         , description = description
         , items = Nil
@@ -283,29 +283,29 @@ class UserPolicyTemplateCategoryUnserialisationImpl extends UserPolicyTemplateCa
   }
 }
 
-class UserPolicyTemplateUnserialisationImpl extends UserPolicyTemplateUnserialisation {
+class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation {
   
   //we expect acceptation date to be in ISO-8601 format
   private[this] val dateFormatter = ISODateTimeFormat.dateTime
   
-  def unserialise(entry:XNode): Box[UserPolicyTemplate] = {
+  def unserialise(entry:XNode): Box[ActiveTechnique] = {
     for {
-      upt              <- {
+      activeTechnique              <- {
                             if(entry.label ==  "policyLibraryTemplate") Full(entry)
                             else Failure("Entry type is not a policyLibraryCategory: " + entry)
                           }
       fileFormatOk     <- {
-                            if(upt.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
+                            if(activeTechnique.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
                             else Failure("Bad fileFormat (expecting 1.0): " + entry)
                           }
-      id               <- (upt \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type policyLibraryTemplate : " + entry)
-      ptName           <- (upt \ "policyTemplateName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type policyLibraryTemplate : " + entry)
-      isSystem         <- (upt \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type policyLibraryTemplate : " + entry)
-      isActivated      <- (upt \ "isActivated").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isActivated' in entry type policyLibraryTemplate : " + entry)
-      acceptationDates <- sequence(upt \ "versions" \ "version" ) { version => 
+      id               <- (activeTechnique \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type policyLibraryTemplate : " + entry)
+      ptName           <- (activeTechnique \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type policyLibraryTemplate : " + entry)
+      isSystem         <- (activeTechnique \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type policyLibraryTemplate : " + entry)
+      isEnabled      <- (activeTechnique \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type policyLibraryTemplate : " + entry)
+      acceptationDates <- sequence(activeTechnique \ "versions" \ "version" ) { version => 
                             for {
                               ptVersionName   <- version.attribute("name").map( _.text) ?~! "Missing attribute 'name' for acceptation date in PT '%s' (%s): '%s'".format(ptName, id, version)
-                              ptVersion       <- tryo { PolicyVersion(ptVersionName) }
+                              ptVersion       <- tryo { TechniqueVersion(ptVersionName) }
                               acceptationDate <- tryo { dateFormatter.parseDateTime(version.text) }
                             } yield {
                               (ptVersion, acceptationDate)
@@ -317,12 +317,12 @@ class UserPolicyTemplateUnserialisationImpl extends UserPolicyTemplateUnserialis
                             else Full(map)
                           }
     } yield {
-      UserPolicyTemplate(
-          id = UserPolicyTemplateId(id)
-        , referencePolicyTemplateName = PolicyPackageName(ptName)
+      ActiveTechnique(
+          id = ActiveTechniqueId(id)
+        , techniqueName = TechniqueName(ptName)
         , acceptationDatetimes = acceptationMap
-        , policyInstances = Nil
-        , isActivated = isActivated
+        , directives = Nil
+        , isEnabled = isEnabled
         , isSystem = isSystem
       )
     }    

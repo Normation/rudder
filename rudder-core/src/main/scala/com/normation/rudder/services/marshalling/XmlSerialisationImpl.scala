@@ -34,27 +34,27 @@
 
 package com.normation.rudder.services.marshalling
 
-import com.normation.rudder.domain.policies.PolicyInstance
-import com.normation.cfclerk.domain.PolicyPackageName
+import com.normation.rudder.domain.policies.Directive
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.domain.policies.SectionVal
 import net.liftweb.common._
 import scala.xml.NodeSeq
 import scala.xml.{Node => XNode, _}
 import net.liftweb.common.Box._
-import com.normation.cfclerk.domain.PolicyVersion
+import com.normation.cfclerk.domain.TechniqueVersion
 import net.liftweb.util.Helpers.tryo
 import com.normation.utils.Control.sequence
-import com.normation.rudder.domain.policies.PolicyInstanceId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.policies.ConfigurationRule
-import com.normation.rudder.domain.policies.PolicyInstanceTarget
-import com.normation.rudder.domain.policies.ConfigurationRuleId
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.exceptions.TechnicalException
-import com.normation.rudder.domain.policies.UserPolicyTemplateCategory
-import com.normation.rudder.domain.policies.UserPolicyTemplate
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechnique
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.batch.{CurrentDeploymentStatus,SuccessStatus,ErrorStatus}
@@ -62,22 +62,22 @@ import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.utils.XmlUtils
 
 
-class ConfigurationRuleSerialisationImpl(xmlVersion:String) extends ConfigurationRuleSerialisation {
-  def serialise(cr:ConfigurationRule):  Elem = {
+class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
+  def serialise(rule:Rule):  Elem = {
     XmlUtils.trim {
-      <configurationRule fileFormat={xmlVersion}>
-        <id>{cr.id.value}</id>
-        <displayName>{cr.name}</displayName>
-        <serial>{cr.serial}</serial>
-        <target>{ cr.target.map( _.target).getOrElse("") }</target>
-        <policyInstanceIds>{
-          cr.policyInstanceIds.map { id => <id>{id.value}</id> } 
-        }</policyInstanceIds>
-        <shortDescription>{cr.shortDescription}</shortDescription>
-        <longDescription>{cr.longDescription}</longDescription>
-        <isActivated>{cr.isActivatedStatus}</isActivated>
-        <isSystem>{cr.isSystem}</isSystem>
-      </configurationRule>
+      <rule fileFormat={xmlVersion}>
+        <id>{rule.id.value}</id>
+        <displayName>{rule.name}</displayName>
+        <serial>{rule.serial}</serial>
+        <target>{ rule.target.map( _.target).getOrElse("") }</target>
+        <directiveIds>{
+          rule.directiveIds.map { id => <id>{id.value}</id> } 
+        }</directiveIds>
+        <shortDescription>{rule.shortDescription}</shortDescription>
+        <longDescription>{rule.longDescription}</longDescription>
+        <isEnabled>{rule.isEnabledStatus}</isEnabled>
+        <isSystem>{rule.isSystem}</isSystem>
+      </rule>
     }
   }
 }
@@ -86,9 +86,9 @@ class ConfigurationRuleSerialisationImpl(xmlVersion:String) extends Configuratio
  * That trait allow to serialise 
  * User policy templates categories to an XML file. 
  */
-class UserPolicyTemplateCategorySerialisationImpl(xmlVersion:String) extends UserPolicyTemplateCategorySerialisation {
+class ActiveTechniqueCategorySerialisationImpl(xmlVersion:String) extends ActiveTechniqueCategorySerialisation {
 
-  def serialise(uptc:UserPolicyTemplateCategory):  Elem = {
+  def serialise(uptc:ActiveTechniqueCategory):  Elem = {
     XmlUtils.trim {
       <policyLibraryCategory fileFormat={xmlVersion}>
         <id>{uptc.id.value}</id>
@@ -104,16 +104,16 @@ class UserPolicyTemplateCategorySerialisationImpl(xmlVersion:String) extends Use
  * That trait allows to serialise 
  * User policy templates to an XML file. 
  */
-class UserPolicyTemplateSerialisationImpl(xmlVersion:String) extends UserPolicyTemplateSerialisation {
+class ActiveTechniqueSerialisationImpl(xmlVersion:String) extends ActiveTechniqueSerialisation {
 
-  def serialise(upt:UserPolicyTemplate):  Elem = {
+  def serialise(activeTechnique:ActiveTechnique):  Elem = {
     XmlUtils.trim {
       <policyLibraryTemplate fileFormat={xmlVersion}>
-        <id>{upt.id.value}</id>
-        <policyTemplateName>{upt.referencePolicyTemplateName}</policyTemplateName>
-        <isActivated>{upt.isActivated}</isActivated>
-        <isSystem>{upt.isSystem}</isSystem>
-        <versions>{ upt.acceptationDatetimes.map { case(version,date) =>
+        <id>{activeTechnique.id.value}</id>
+        <techniqueName>{activeTechnique.techniqueName}</techniqueName>
+        <isEnabled>{activeTechnique.isEnabled}</isEnabled>
+        <isSystem>{activeTechnique.isSystem}</isSystem>
+        <versions>{ activeTechnique.acceptationDatetimes.map { case(version,date) =>
           <version name={version.toString}>{date.toString(ISODateTimeFormat.dateTime)}</version>
         } }</versions>
       </policyLibraryTemplate>
@@ -125,26 +125,26 @@ class UserPolicyTemplateSerialisationImpl(xmlVersion:String) extends UserPolicyT
  * That trait allows to serialise 
  * policy instances an XML file. 
  */
-class PolicyInstanceSerialisationImpl(xmlVersion:String) extends PolicyInstanceSerialisation {
+class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisation {
   
   def serialise(
-      ptName             : PolicyPackageName
+      ptName             : TechniqueName
     , variableRootSection: SectionSpec
-    , pi                 : PolicyInstance
+    , directive                 : Directive
   ) = {
     XmlUtils.trim {
-      <policyInstance fileFormat={xmlVersion}>
-        <id>{pi.id.value}</id>
-        <displayName>{pi.name}</displayName>
-        <policyTemplateName>{ptName.value}</policyTemplateName>
-        <policyTemplateVersion>{pi.policyTemplateVersion}</policyTemplateVersion>
-        {SectionVal.toXml(SectionVal.piValToSectionVal(variableRootSection, pi.parameters))}
-        <shortDescription>{pi.shortDescription}</shortDescription>
-        <longDescription>{pi.longDescription}</longDescription>
-        <priority>{pi.priority}</priority>
-        <isActivated>{pi.isActivated}</isActivated>
-        <isSystem>{pi.isSystem}</isSystem>
-      </policyInstance>
+      <directive fileFormat={xmlVersion}>
+        <id>{directive.id.value}</id>
+        <displayName>{directive.name}</displayName>
+        <techniqueName>{ptName.value}</techniqueName>
+        <techniqueVersion>{directive.techniqueVersion}</techniqueVersion>
+        {SectionVal.toXml(SectionVal.directiveValToSectionVal(variableRootSection, directive.parameters))}
+        <shortDescription>{directive.shortDescription}</shortDescription>
+        <longDescription>{directive.longDescription}</longDescription>
+        <priority>{directive.priority}</priority>
+        <isEnabled>{directive.isEnabled}</isEnabled>
+        <isSystem>{directive.isSystem}</isSystem>
+      </directive>
     }
   }
 }
@@ -179,7 +179,7 @@ class NodeGroupSerialisationImpl(xmlVersion:String) extends NodeGroupSerialisati
         <nodeIds>{
           group.serverList.map { id => <id>{id.value}</id> } 
         }</nodeIds>
-        <isActivated>{group.isActivated}</isActivated>
+        <isEnabled>{group.isEnabled}</isEnabled>
         <isSystem>{group.isSystem}</isSystem>
       </nodeGroup>    
     }
@@ -193,13 +193,13 @@ class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentSta
   def serialise(
       deploymentStatus : CurrentDeploymentStatus) : Elem = {
   XmlUtils.trim { deploymentStatus match {
-      case d : SuccessStatus => <deploymentStatus fileFormat="1.0">
+      case d : SuccessStatus => <deploymentStatus fileFormat="2.0">
           <id>{d.id}</id>
           <started>{d.started}</started>
           <ended>{d.ended}</ended>
           <status>success</status>
           </deploymentStatus>
-      case d : ErrorStatus => <deploymentStatus fileFormat="1.0">
+      case d : ErrorStatus => <deploymentStatus fileFormat="2.0">
           <id>{d.id}</id>
           <started>{d.started}</started>
           <ended>{d.ended}</ended>
