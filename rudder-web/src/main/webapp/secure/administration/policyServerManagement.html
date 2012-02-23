@@ -1,7 +1,7 @@
 <lift:surround with="menu/menu-administration" at="content">
 
 <head>
-<title>Rudder - Policy Node Management</title>
+<title>Rudder - Management</title>
 
 <style type="text/css">
   .deca input {
@@ -21,10 +21,10 @@
     <div class="intro"><div>
       <p>
         Configure the networks from which nodes are allowed to connect to Rudder policy server
-        to get their updated configuration rules. 
+        to get their updated Rules. 
       </p>
       <p>
-        You can add as many network as you want, the expected format is: <b>networkip/mask</b>,
+        You can add as many networks as you want, the expected format is: <b>NetworkIP/mask</b>,
         for example "42.42.0.0/16" 
       </p>
     </div></div>
@@ -64,7 +64,7 @@
     
     <div class="intro"><div>
       <p>
-        Clear cached datas, like node configuration. That will trigger a full redeployment,
+        Clear cached datas, like node configuration. This will trigger a full redeployment,
         with regeneration of all promises files 
       </p>
     </div></div>
@@ -92,7 +92,7 @@
       <p>
         Reload dynamic groups, so that new nodes and their inventories are taken
         into account. Normally, dynamic group are automatically reloaded unless
-        that feature is explicitly disable in Rudder configuration file. 
+        this feature is explicitly disabled in Rudder configuration file. 
       </p>
     </div></div>
     <br/>

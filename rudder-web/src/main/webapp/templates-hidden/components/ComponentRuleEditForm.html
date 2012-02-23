@@ -50,7 +50,7 @@
 
 <div id="editCrZone">
 <ul id="configRuleDetailsTabMenu">
-  <li><a href="#configRuleDetailsEditTab">Edit configuration rule parameters</a></li>
+  <li><a href="#configRuleDetailsEditTab">Edit Rule parameters</a></li>
 </ul>
 
 <div id="configRuleDetailsEditTab">
@@ -68,7 +68,7 @@
       modifications done in the edit zone. 
     </p>
     
-    <legend>Modify configuration rule status</legend>
+    <legend>Modify Rule status</legend>
 
     <div id="removeAction" class="twoColumns">
 <!--      <label for="removeButton" id="removeButtonLabel">Remove from user library</label>-->
@@ -76,13 +76,13 @@
     </div>
     <div id="removeActionDialog" class="nodisplay">
       <div class="simplemodal-title">
-        <h1>Delete a configuration rule</h1>
+        <h1>Delete a Rule</h1>
         <hr/>
       </div>
       <div class="simplemodal-content">    
         <div>
           <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-          <h2>Deleting this configuration rule will also delete its history and compliance reports.</h2>
+          <h2>Deleting this Rule will also delete its history and compliance reports.</h2>
         </div>
         <hr class="spacer" />
         <br />
@@ -107,12 +107,12 @@
     
     <div id="desactivateActionDialog" class="nodisplay">
       <div class="simplemodal-title">
-        <h1><span id="dialogDeactivateTitle">Disable</span> a configuration rule</h1>
+        <h1><span id="dialogDeactivateTitle">Disable</span> a Rule</h1>
         <hr/>
       </div>
       <div class="simplemodal-content">
         <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-        <h2>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this configuration rule?</h2>
+        <h2>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this Rule?</h2>
          <hr class="spacer" />
       </div>
       <div class="simplemodal-bottom">
@@ -127,14 +127,14 @@
     </div>
     
     <div class="disableNotice">
-        Note: the configuration rule will be applied only if its status is Enabled and 
-        its policy, policy template and target node group are all Enabled.
+        Note: the Rule will be applied only if its status is Enabled and 
+        its Directive, Technique and target node group are all Enabled.
     </div>
     
   </fieldset>
 
   <fieldset class="editZone">
-    <legend>Modify configuration rule parameters</legend>
+    <legend>Modify Rule parameters</legend>
 
     <div id="notification">
       <ul>
@@ -154,9 +154,9 @@
     </div>
     
     <div class="groupedEditZone">
-       <fieldset class="crEditHierarchy"><legend>Policy instance</legend>
+       <fieldset class="crEditHierarchy"><legend>Directive</legend>
           <div id="selectPiField">
-            Here comes the policy instance selection field
+            Here comes the Directive selection field
           </div>
         </fieldset>
         <fieldset class="crEditHierarchy"><legend>Group hierarchy</legend>

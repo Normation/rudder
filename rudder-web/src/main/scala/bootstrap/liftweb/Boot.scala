@@ -87,7 +87,7 @@ class Boot extends Loggable {
   
     // URL rewrites
     LiftRules.statefulRewrite.append {
-      //if no policy server if configured, force to configure one
+      //if no Directive server if configured, force to configure one
 //      case RewriteRequest(path,_,_) if(RudderContext.rootNodeNotDefined && (path match { 
 //        case ParsePath("secure"::"assetManager"::"policyServers"::Nil, _, _, _) => false 
 //        case _ => true
@@ -175,7 +175,7 @@ class Boot extends Loggable {
           Menu("eventLogViewer", <span>Event Logs</span>) / 
             "secure" / "administration" / "eventLogs" >> LocGroup("administrationGroup")
             
-        , Menu("policyServerManagement", <span>Policy Node</span>) / 
+        , Menu("policyServerManagement", <span>Policy Server</span>) / 
             "secure" / "administration" / "policyServerManagement" >> LocGroup("administrationGroup")
             
         , Menu("pluginManagement", <span>Plugins</span>) / 

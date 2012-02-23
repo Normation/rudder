@@ -60,14 +60,14 @@ object CreateDirectivePopup {
   val html =  SHtml.ajaxForm(
   <div id="createPiContainer">
     <div class="simplemodal-title">
-      <h1>Create a new policy based on <span id="ptName">TEMPLATE NAME</span></h1>
+      <h1>Create a new Directive based on <span id="ptName">TEMPLATE NAME</span></h1>
       <hr/>
     </div>
     <div class="simplemodal-content">
       <hr class="spacer"/>
       <div id="notifications">Here comes validation messages</div>
       <hr class="spacer"/>
-      <div id="itemName">Here come the policy name</div>
+      <div id="itemName">Here come the Directive name</div>
       <hr class="spacer"/>
       <div id="itemDescription">Here come the short description</div>
       <hr class="spacer"/>

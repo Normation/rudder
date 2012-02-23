@@ -105,7 +105,7 @@ rudder.dir.config=/opt/rudder/etc/
 #
 # The full path to the directory on witch
 # git repository (containing share folder, 
-# policy template library, etc)
+# Technique library, etc)
 #
 rudder.dir.gitRoot=/var/rudder/configuration-repository
 #
@@ -161,10 +161,10 @@ rudder.nova.checkpromises.command=/bin/true
 rudder.batch.dyngroup.updateInterval=5
 #
 # Interval of time (in seconds) between two checks
-# for a policy template library update.
+# for a Technique library update.
 # 300s = 5minutes
 # A minimum of 60 seconds is mandatory.
-# If O is given, the periodic update of policy template
+# If O is given, the periodic update of Technique
 # library features will be disabled
 #
 rudder.batch.ptlib.updateInterval=300
@@ -172,7 +172,7 @@ rudder.batch.ptlib.updateInterval=300
 
 #
 # Configure the refs path to use for the git repository for
-# the Policy Template Reference Library. 
+# the Technique Reference Library. 
 # The default is to use "refs/heads/master" (the local master
 # branche). 
 # You have to use the full ref path. 
@@ -180,8 +180,8 @@ rudder.ptlib.git.refs.path=refs/heads/master
 
 #
 # Boolean, defaults to true.
-# If true, an archive of configuration rules, groups, 
-# policy instances and user policy templates is recorded
+# If true, an archive of Rules, groups, 
+# Directives and user Techniques is recorded
 # to the rudder.dir.gitRoot directory specified above
 # and a git commit is performed when any of these items is modified.
 # 
@@ -189,7 +189,7 @@ rudder.autoArchiveItems=true
 
 #
 # Boolean, defaults to true.
-# If true, when a policy instance, configuration rule,
+# If true, when a Directive, Rule,
 # group, node ... is modified, promises will be automatically
 # regenerated. If false, only a manual request for deployment
 # will trigger a deployment.

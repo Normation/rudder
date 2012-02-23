@@ -100,7 +100,7 @@ trait DeploymentService extends Loggable {
       val log1_5 = logger.debug("Historization of name done in %d millisec".format((DateTime.now().getMillis - historizeTime)))
       
       val crValTime = DateTime.now().getMillis
-      ruleVals <- buildRuleVals(rules) ?~! "Cannot build configuration rule vals"
+      ruleVals <- buildRuleVals(rules) ?~! "Cannot build Rule vals"
       val log2 = logger.debug("RuleVals built in %d millisec, start to build targetNodeConfiguration".format((DateTime.now().getMillis - crValTime)))
 
       val targetNodeTime = DateTime.now().getMillis

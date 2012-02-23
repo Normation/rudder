@@ -141,7 +141,7 @@ class ReportDisplayer(ruleRepository : RuleRepository,
   
   /**
    * show the execution batches of a unique server
-   * Ought to be the last execution of a server, so that all policyinstance are unique
+   * Ought to be the last execution of a server, so that all Directiveinstance are unique
    * otherwise the result might be unpredictable 
    * @param batches
    * @return
@@ -231,7 +231,7 @@ class ReportDisplayer(ruleRepository : RuleRepository,
   
   
   /**
-   * Look in the service for the given policyinstance uuid and returns some basic data
+   * Look in the service for the given Directive uuid and returns some basic data
    */
 //  private def showPolicyDetail(instance : RuleVal) : NodeSeq = {
 //      <div class="reportsList"> 
@@ -277,9 +277,9 @@ class ReportDisplayer(ruleRepository : RuleRepository,
   
   
   /**
-   * Look in the service for the given policyinstance uuid and returns some basic data
+   * Look in the service for the given Directive uuid and returns some basic data
    */
 //  private def showPolicyDetail(uuid : String) : NodeSeq = {
-//    <div class="error">TODO: correct the configuration rule display with id {uuid}</div>
+//    <div class="error">TODO: correct the Rule display with id {uuid}</div>
 //  }
 }

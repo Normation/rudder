@@ -500,7 +500,7 @@ div#Detail {
 
 
 /********************
-* Policy display
+* Directive display
 ********************/
 .inlineml{
   display:inline;
@@ -1789,8 +1789,8 @@ hr.spacer {
 
 /************************************
 Portlet content for object details
-(for example, details about a policy 
-template, a policy instance, etc)
+(for example, details about a Directive 
+template, a Directive, etc)
 ************************************/
 
 .object-details {
@@ -1847,7 +1847,7 @@ div.tabInform {
 
 
 /***********************************
- *Policy display
+ *Directive display
 ************************************/
 
 .policyTitle {

@@ -97,7 +97,7 @@ object RuleEditForm {
 }
 
 /**
- * The form that handles policy instance edition
+ * The form that handles Directive edition
  * (not creation)
  * - update name, description, etc
  * - update parameters 
@@ -112,7 +112,7 @@ object RuleEditForm {
  */
 class RuleEditForm(
   htmlId_rule:String, //HTML id for the div around the form
-  val rule:Rule, //the configuration rule to edit
+  val rule:Rule, //the Rule to edit
   //JS to execute on form success (update UI parts)
   //there are call by name to have the context matching their execution when called
   onSuccessCallback : () => JsCmd = { () => Noop },
@@ -230,7 +230,7 @@ class RuleEditForm(
   
   /*
    * from a JSON array: [ "id1", "id2", ...], get the list of
-   * policy instance Ids. 
+   * Directive Ids. 
    * Never fails, but returned an empty list. 
    */
   private[this] def unserializedirectiveIds(ids:String) : Seq[DirectiveId] = {
@@ -271,14 +271,14 @@ class RuleEditForm(
         }) match {
           case Full(x) => 
             onSuccessCallback() & 
-            SetHtml(htmlId_rule, <div id={htmlId_rule}>Configuration rule successfully deleted</div> ) & 
+            SetHtml(htmlId_rule, <div id={htmlId_rule}>Rule successfully deleted</div> ) & 
             //show success popup
             successPopup 
           case Empty => //arg. 
-            formTracker.addFormError(error("An error occurred while deleting the configuration rule"))
+            formTracker.addFormError(error("An error occurred while deleting the Rule"))
             onFailure
           case Failure(m,_,_) =>
-            formTracker.addFormError(error("An error occurred while saving the configuration rule: " + m))
+            formTracker.addFormError(error("An error occurred while saving the Rule: " + m))
             onFailure
         }
       }
@@ -328,7 +328,7 @@ class RuleEditForm(
   /////////////////////////////// Edit form ///////////////////////////////
   /////////////////////////////////////////////////////////////////////////
 
-  ///////////// fields for Configuration Rule settings ///////////////////
+  ///////////// fields for Rule settings ///////////////////
   
   private[this] val crName = new WBTextField("Name: ", rule.name) {
     override def displayNameHtml = Some(<b>{displayName}</b>)
@@ -399,10 +399,10 @@ class RuleEditForm(
         case Full(x) => 
           onSuccess
         case Empty => //arg. 
-          formTracker.addFormError(error("An error occurred while saving the configuration rule"))
+          formTracker.addFormError(error("An error occurred while saving the Rule"))
           onFailure
         case f:Failure =>
-          formTracker.addFormError(error("An error occurred while saving the configuration rule: " + f.messageChain))
+          formTracker.addFormError(error("An error occurred while saving the Rule: " + f.messageChain))
           onFailure
       }      
   }
@@ -463,7 +463,7 @@ class RuleEditForm(
         case false => Full(nodeGroupCategoryToJsTreeNode(category))
       }
       case e:EmptyBox =>
-        val f = e ?~! "Error while fetching policy template category %s".format(id)
+        val f = e ?~! "Error while fetching Technique category %s".format(id)
         logger.error(f.messageChain)
         f
     }
@@ -524,14 +524,14 @@ class RuleEditForm(
    * Transform ActiveTechniqueCategory into category JsTree nodes in User Library:
    * - contains
    *   - other user categories
-   *   - user policy templates
+   *   - Active Techniques
 
    */
   private def activeTechniqueCategoryToJsTreeNode(category:ActiveTechniqueCategory) : JsTreeNode = {
     def activeTechniqueIdToJsTreeNode(id : ActiveTechniqueId) : (JsTreeNode, Option[Technique]) = {
       def activeTechniqueToJsTreeNode(activeTechnique : ActiveTechnique, technique:Technique) : JsTreeNode = {
         
-        //check policy instance existence and transform it to a tree node
+        //check Directive existence and transform it to a tree node
         def directiveIdToJsTreeNode(directiveId : DirectiveId) : (JsTreeNode,Option[Directive]) = {
           
           directiveRepository.getDirective(directiveId) match {
@@ -601,7 +601,7 @@ class RuleEditForm(
     }
 
     
-    //chech user policy template category id and transform it to a tree node
+    //chech Active Technique category id and transform it to a tree node
     def activeTechniqueCategoryIdToJsTreeNode(id:ActiveTechniqueCategoryId) : Box[(JsTreeNode,ActiveTechniqueCategory)] = {
       activeTechniqueCategoryRepository.getActiveTechniqueCategory(id) match {
         //remove sytem category
@@ -610,7 +610,7 @@ class RuleEditForm(
           case false => Full((activeTechniqueCategoryToJsTreeNode(cat),cat))
         }
         case e:EmptyBox =>
-          val f = e ?~! "Error while fetching for policy template category %s".format(id)
+          val f = e ?~! "Error while fetching for Technique category %s".format(id)
           logger.error(f.messageChain)
           f
       }

@@ -91,7 +91,7 @@ object DirectiveEditForm {
 }
 
 /**
- * The form that handles policy instance edition
+ * The form that handles Directive edition
  * (not creation)
  * - update name, description, etc
  * - update parameters
@@ -129,9 +129,9 @@ class DirectiveEditForm(
     withVars = directive.parameters) match {
       case Full(pe) => pe
       case Empty =>
-        throw new IllegalArgumentException("Can not initialize the parameter editor for policy instance %s (template %s). No error returned".format(directive.id, technique.id))
+        throw new IllegalArgumentException("Can not initialize the parameter editor for Directive %s (template %s). No error returned".format(directive.id, technique.id))
       case Failure(m, _, _) =>
-        throw new IllegalArgumentException("Can not initialize the parameter editor for policy instance %s (template %s). Error message: %s".format(directive.id, technique.id, m))
+        throw new IllegalArgumentException("Can not initialize the parameter editor for Directive %s (template %s). Error message: %s".format(directive.id, technique.id, m))
     }
 
   private[this] var piCurrentStatusIsActivated = directive.isEnabled
@@ -234,7 +234,7 @@ class DirectiveEditForm(
           {
             if (piCreation) {
               onSuccessCallback() &
-                SetHtml(htmlId_policyConf, <div id={ htmlId_policyConf }>Policy instance successfully deleted</div>) &
+                SetHtml(htmlId_policyConf, <div id={ htmlId_policyConf }>Directive successfully deleted</div>) &
                 //show success popup
                 successPopup
             } else {
@@ -249,14 +249,14 @@ class DirectiveEditForm(
               }) match {
                 case Full(x) =>
                   onSuccessCallback() &
-                    SetHtml(htmlId_policyConf, <div id={ htmlId_policyConf }>Policy instance successfully deleted</div>) &
+                    SetHtml(htmlId_policyConf, <div id={ htmlId_policyConf }>Directive successfully deleted</div>) &
                     //show success popup
                     successPopup
                 case Empty => //arg.
-                  formTracker.addFormError(error("An error occurred while deleting the policy instance (no more information)"))
+                  formTracker.addFormError(error("An error occurred while deleting the Directive (no more information)"))
                   onFailure
                 case f@Failure(m, _, _) =>
-                  val msg = (f ?~! "An error occurred while deleting the policy instance: ").messageChain
+                  val msg = (f ?~! "An error occurred while deleting the Directive: ").messageChain
                   logger.debug(msg, f)
                   formTracker.addFormError(error(msg + m))
                   onFailure
@@ -292,9 +292,9 @@ class DirectiveEditForm(
 
   private[this] def dialogDisableWarning: String = {
     if (piCurrentStatusIsActivated) {
-      "Disabling this policy will also disable the following configuration rules which depend on it."
+      "Disabling this Directive will also disable the following Rules which depend on it."
     } else {
-      "Enabling this policy will also enable the following configuration rules which depend on it."
+      "Enabling this Directive will also enable the following Rules which depend on it."
     }
   }
 
@@ -302,9 +302,9 @@ class DirectiveEditForm(
     <span>
       {
         if (technique.isMultiInstance) {
-          { <b>Multi instance</b> } ++ Text(": several policies derived from that template can be deployed on a given server")
+          { <b>Multi instance</b> } ++ Text(": several Directives derived from that template can be deployed on a given server")
         } else {
-          { <b>Unique</b> } ++ Text(": an unique policy derived from that template can be deployed on a given server")
+          { <b>Unique</b> } ++ Text(": an unique Directive derived from that template can be deployed on a given server")
         }
       }
     </span>
@@ -314,7 +314,7 @@ class DirectiveEditForm(
   /////////////////////////////// Edit form ///////////////////////////////
   /////////////////////////////////////////////////////////////////////////
 
-  ///////////// fields for Policy Instance settings ///////////////////
+  ///////////// fields for Directive settings ///////////////////
 
   private[this] val piName = new WBTextField("Name: ", directive.name) {
     override def displayNameHtml = Some(<b>{ displayName }</b>)
@@ -339,11 +339,11 @@ class DirectiveEditForm(
     (0 to 10).map(i => (i, i.toString)),
     defaultValue = directive.priority) {
     override val displayHtml = <span class="tooltipable greytooltip" tooltipid="priorityId">Priority:<div class="tooltipContent" id="priorityId">
-                                                                                                                                  If a node is configured with several policy instance derived from that template, 
-the one with the higher priority will be applied first. If several policy instances have
+                                                                                                                                  If a node is configured with several Directive derived from that template, 
+the one with the higher priority will be applied first. If several Directives have
 the same priority, the application order between these two will be random. 
-If the template is unique, only one policy derived from it may be used at a given time on
-one given node. The one with the highest priority is chosen. If several policies have
+If the template is unique, only one Directive derived from it may be used at a given time on
+one given node. The one with the highest priority is chosen. If several Directives have
 the same priority, one of them will be applied at random. You should always try
 to avoid that last case.<br/>
                                                                                                                                   The highest priority is 0
@@ -412,10 +412,10 @@ to avoid that last case.<br/>
     }) match {
       case Full(x) => onSuccess
       case Empty => //arg.
-        formTracker.addFormError(error("An error occurred while saving the policy instance"))
+        formTracker.addFormError(error("An error occurred while saving the Directive"))
         onFailure
       case Failure(m, _, _) =>
-        formTracker.addFormError(error("An error occurred while saving the policy instance: " + m))
+        formTracker.addFormError(error("An error occurred while saving the Directive: " + m))
         onFailure
     }
   }

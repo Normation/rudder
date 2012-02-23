@@ -46,7 +46,7 @@ import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 
 /**
- * An utility service for policy* trees. 
+ * An utility service for Directive* trees. 
  * 
  * Allow to find node with logging, sorts nodes, etc
  *
@@ -58,35 +58,35 @@ class JsTreeUtilService(
   , techniqueRepository:TechniqueRepository
 ) {
 
-    // get the user policy template category, log on error
+    // get the Active Technique category, log on error
     def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId,logger:Logger) : Option[ActiveTechniqueCategory] = {
       activeTechniqueCategoryRepository.getActiveTechniqueCategory(id) match {
         //remove sytem category
         case Full(cat) => if(cat.isSystem) None else Some(cat)
         case e:EmptyBox => 
-          logger.error("Error when displaying category", e ?~! "Error while fetching user policy template category %s".format(id))
+          logger.error("Error when displaying category", e ?~! "Error while fetching Active Technique category %s".format(id))
           None
       }
     }
     
-    // get the user policy template, loqg on error
+    // get the Active Technique, loqg on error
     def getActiveTechnique(id : ActiveTechniqueId,logger:Logger) : Option[(ActiveTechnique,Technique)] = {
       (for {
-        activeTechnique <- activeTechniqueRepository.getActiveTechnique(id) ?~! "Error while fetching user policy template %s".format(id)
+        activeTechnique <- activeTechniqueRepository.getActiveTechnique(id) ?~! "Error while fetching Active Technique %s".format(id)
         technique <- Box(techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)) ?~! 
-              "Can not find referenced Policy Template '%s' in reference library".format(activeTechnique.techniqueName.value)
+              "Can not find referenced Technique '%s' in reference library".format(activeTechnique.techniqueName.value)
       } yield {
         (activeTechnique,technique)
       }) match {
         case Full(pair) => Some(pair)
         case e:EmptyBox => 
-          val f = e ?~! "Error when trying to display user policy template with id '%s' as a tree node".format(id)
+          val f = e ?~! "Error when trying to display Active Technique with id '%s' as a tree node".format(id)
           logger.error(f.messageChain)
           None
       }
     }
     
-    // get the policy instance, log on error
+    // get the Directive, log on error
     def getPi(id:DirectiveId,logger:Logger) : Option[Directive] = directiveRepository.getDirective(id) match {
       case Full(directive) => Some(directive)
       case e:EmptyBox => 
@@ -100,16 +100,16 @@ class JsTreeUtilService(
         //remove sytem category
         case Full(cat) => if(cat.isSystem) None else Some(cat)
         case e:EmptyBox => 
-          val f = e ?~! "Error while fetching policy template category %s".format(id)
+          val f = e ?~! "Error while fetching Technique category %s".format(id)
           logger.error(f.messageChain)
           None
       }
     }
     
-    //check policy template existence and transform it to a tree node
+    //check Technique existence and transform it to a tree node
     def getPt(name : TechniqueName,logger:Logger) : Option[Technique] = {
       techniqueRepository.getLastTechniqueByName(name).orElse {
-        logger.error("Can not find policy template: " + name)
+        logger.error("Can not find Technique: " + name)
         None
       }
     }

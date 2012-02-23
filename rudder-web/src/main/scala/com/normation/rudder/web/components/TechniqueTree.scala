@@ -56,10 +56,10 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 
 /**
  * A component to display a tree based on a
- * policy template.
+ * Technique.
  * 
- * The tree show all parent of the policy template
- * and dependent configuration rules.
+ * The tree show all parent of the Technique
+ * and dependent Rules.
  * 
  */
 class TechniqueTree(
@@ -68,11 +68,11 @@ class TechniqueTree(
   switchStatusFilter : ModificationStatus 
 ) extends DispatchSnippet with Loggable {
   
-  //find policy template
+  //find Technique
   val techniqueRepository = inject[TechniqueRepository]
   //find & create user categories
   val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
-  //find & create user policy templates
+  //find & create Active Techniques
   val activeTechniqueRepository = inject[ActiveTechniqueRepository]
   
   val dependencyService = inject[DependencyAndDeletionService]
@@ -102,7 +102,7 @@ class TechniqueTree(
           """buildTechniqueDependencyTree('#%s'); createTooltip();""".format(htmlId_userTree)
       )))
       case e:EmptyBox => 
-        val msg = "Can not build tree of dependencies for policy template %s".format(techniqueId)
+        val msg = "Can not build tree of dependencies for Technique %s".format(techniqueId)
         logger.error(msg,e)
         (new JsTreeNode {
           override def body = <span class="error">Can not find dependencies. <span class="errorDetails">{(e ?~! msg).messageChain}</span></span>
@@ -151,11 +151,11 @@ class TechniqueTree(
         override def children = Nil
       }
       case e:EmptyBox => 
-        val msg = "Can not build tree of dependencies for policy template %s".format(techniqueId)
+        val msg = "Can not build tree of dependencies for Technique %s".format(techniqueId)
         logger.error(msg, e)
         
         new JsTreeNode {
-          override def body = <span class="error">Can not find configuration rule details for id {id}. <span class="errorDetails">{(e?~!msg)}</span></span>
+          override def body = <span class="error">Can not find Rule details for id {id}. <span class="errorDetails">{(e?~!msg)}</span></span>
           override def children = Nil
         }
     }

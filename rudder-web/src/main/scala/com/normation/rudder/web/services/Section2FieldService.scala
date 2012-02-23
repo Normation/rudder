@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory
 import com.normation.utils.HashcodeCaching
 
 /**
- * Create web representation of policy instance in the goal
+ * Create web representation of Directive in the goal
  * to configure them.
  *
  * This service does not ask anything on the backend, and

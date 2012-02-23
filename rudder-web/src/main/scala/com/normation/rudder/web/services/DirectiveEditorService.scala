@@ -49,8 +49,8 @@ import org.joda.time.{ LocalDate, LocalTime, Duration, DateTime }
 trait DirectiveEditorService {
 
   /**
-   * Retrieve a policyEditor given the policy name,
-   * if such policy is known in the system
+   * Retrieve a policyEditor given the Directive name,
+   * if such Directive is known in the system
    */
   def get(
     techniqueId: TechniqueId,
@@ -65,7 +65,7 @@ class DirectiveEditorServiceImpl(
   section2FieldService: Section2FieldService) extends DirectiveEditorService {
 
   /**
-   * Retrieve vars for the given policy.
+   * Retrieve vars for the given Directive.
    * First, we try to retrieve default vars
    * from the techniqueRepository.
    * Then, we look in the parameter vars to
@@ -92,8 +92,8 @@ class DirectiveEditorServiceImpl(
     withVarValues: Map[String, Seq[String]] = Map()): Box[DirectiveEditor] = {
 
     for {
-      //start by checking policy existence
-      pol <- techniqueRepository.get(policyName) ?~! ("Error when retrieving policy details for " + policyName)
+      //start by checking Directive existence
+      pol <- techniqueRepository.get(policyName) ?~! ("Error when retrieving Directive details for " + policyName)
       val allVars = pol.rootSection.getAllVariables
       val vars = getVars(allVars, withVarValues)
       pe <- section2FieldService.initDirectiveEditor(pol, directiveId, vars)

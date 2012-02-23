@@ -53,7 +53,7 @@ class RestTechniqueReload(
       updatePTLibService.update(RestUtils.getActor(req)) match {
         case Full(x) => PlainTextResponse("OK")
         case eb:EmptyBox => 
-          val e = eb ?~! "An error occured when updating the policy template library from file system"
+          val e = eb ?~! "An error occured when updating the Technique library from file system"
           logger.debug(e.messageChain, e)
           PlainTextResponse("Error: " + e.messageChain.mkString("\n","\ncause:","\n"))
       }

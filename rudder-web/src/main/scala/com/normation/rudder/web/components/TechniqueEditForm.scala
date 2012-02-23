@@ -103,15 +103,15 @@ class TechniqueEditForm(
   import TechniqueEditForm._
   
 
-  //find policy template
+  //find Technique
   private[this] val techniqueRepository = inject[TechniqueRepository]
   //find & create user categories
   private[this] val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
-  //find & create user policy templates
+  //find & create Active Techniques
   private[this] val activeTechniqueRepository = inject[ActiveTechniqueRepository]
   //generate new uuid
   private[this] val uuidGen = inject[StringUuidGenerator]
-  //transform policy template variable to human viewable HTML fields
+  //transform Technique variable to human viewable HTML fields
   private[this] val directiveEditorService = inject[DirectiveEditorService]
   private[this] val dependencyService = inject[DependencyAndDeletionService]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
@@ -120,7 +120,7 @@ class TechniqueEditForm(
   
 //  private[this] val directives = directiveRepository.getAll() match {
 //    case Full(seq) => seq
-//    case Empty => throw new ComponentInitializationException(Failure("Error while getting the list of available policies"))
+//    case Empty => throw new ComponentInitializationException(Failure("Error while getting the list of available Directives"))
 //    case f:Failure => throw new ComponentInitializationException(f)
 //  }
     
@@ -210,14 +210,14 @@ class TechniqueEditForm(
         }) match {
           case Full(x) => 
             onSuccessCallback() & 
-            SetHtml(htmlId_technique, <div id={htmlId_technique}>Configuration rule successfully deleted</div> ) & 
+            SetHtml(htmlId_technique, <div id={htmlId_technique}>Rule successfully deleted</div> ) & 
             //show success popup
             successPopup 
           case Empty => //arg. 
-            //formTracker.addFormError(error("An error occurred while saving the configuration rule"))
+            //formTracker.addFormError(error("An error occurred while saving the Rule"))
             onFailure
           case Failure(m,_,_) =>
-            //formTracker.addFormError(error("An error occurred while saving the configuration rule: " + m))
+            //formTracker.addFormError(error("An error occurred while saving the Rule: " + m))
             onFailure
         }
       }
@@ -249,9 +249,9 @@ class TechniqueEditForm(
 
   private[this] def dialogDisableWarning(activeTechnique:ActiveTechnique) : NodeSeq = {
     if(activeTechnique.isEnabled) {
-      <h2>Disabling this policy template will also disable the following policies and configuration rules which depend on it.</h2>
+      <h2>Disabling this Technique will also disable the following Directives and Rules which depend on it.</h2>
     } else {
-      <h2>Enabling this policy template will also enable the following policies and configuration rules which depend on it.</h2>
+      <h2>Enabling this Technique will also enable the following Directives and Rules which depend on it.</h2>
     }
   }
 
@@ -271,10 +271,10 @@ class TechniqueEditForm(
   }
   
   /**
-   * Display user library category information in the details of a Policy Template.
+   * Display user library category information in the details of a Technique.
    * That detail has its own snippet because it is multi-stated and state are 
    * updated by ajax:
-   * - display the category breadcrump if policy template is already in user lib;
+   * - display the category breadcrump if Technique is already in user lib;
    * - display a "click on a category" message if not set in user lib and no category previously chosen
    * - else display an add button to add in the current category
    */
@@ -290,10 +290,10 @@ class TechniqueEditForm(
               case None => <span class="greenscala">Click on a category in the user library</span>
               case Some(category) => {
                 /*
-                 * Actually add the policy template to category:
+                 * Actually add the Technique to category:
                  * - add it in the backend storage
                  * - trigger user lib js tree update
-                 * - trigger policy template details update
+                 * - trigger Technique details update
                  */
                 def onClickAddTechniqueToCategory() : JsCmd = {
                   //back-end action
@@ -305,7 +305,7 @@ class TechniqueEditForm(
                 }
   
                 SHtml.ajaxButton(
-                   Text("Add this policy template to user library category ")++ <b>{category.name}</b>,
+                   Text("Add this Technique to user library category ")++ <b>{category.name}</b>,
                    onClickAddTechniqueToCategory _
                 )
               }
@@ -318,7 +318,7 @@ class TechniqueEditForm(
     directiveEditorService.get(technique.id, DirectiveId("just-for-read-only")) match {
       case Full(pe) => pe.toHtmlNodeSeq
       case e:EmptyBox => 
-        val msg = "Error when fetching parameter of policy template."
+        val msg = "Error when fetching parameter of Technique."
         logger.error(msg, e)
         <span class="error">{msg}</span>
     }    
@@ -328,17 +328,17 @@ class TechniqueEditForm(
     <span>
       {
         if(technique.isMultiInstance) {
-          {<b>Multi instance</b>} ++ Text(": several policies derived from that template can be deployed on a given server")
+          {<b>Multi instance</b>} ++ Text(": several Directives derived from that template can be deployed on a given server")
         } else {
-          {<b>Unique</b>} ++ Text(": an unique policy derived from that template can be deployed on a given server")
+          {<b>Unique</b>} ++ Text(": an unique Directive derived from that template can be deployed on a given server")
         }
       }
     </span>
   }
   
   /**
-   * Display details about a policy template.
-   * A policy template is in the context of a reference library (it's an error if the policy 
+   * Display details about a Technique.
+   * A Technique is in the context of a reference library (it's an error if the Directive 
    * template is not in it) and an user Library (it may not be in it)
    */
 //  private def showTechnique(
@@ -381,11 +381,11 @@ class TechniqueEditForm(
   
 
   /**
-   * Build the breadcrump of categories that leads to given target policy template in the context
-   * of given root policy template library.
+   * Build the breadcrump of categories that leads to given target Technique in the context
+   * of given root Technique library.
    * The template must be in the library. 
    * @throws 
-   *   RuntimeException if the library does not contain the policy template
+   *   RuntimeException if the library does not contain the Technique
    */
   @throws(classOf[RuntimeException])
   private def findBreadCrump(target:Technique) : Seq[TechniqueCategory] = {
@@ -393,13 +393,13 @@ class TechniqueEditForm(
       case Full(b) => b
       case e:EmptyBox => 
         logger.debug("Bread crumb error: %s".format(e) )
-        throw new RuntimeException("The reference policy template category does not hold target node %s".format(target.name))
+        throw new RuntimeException("The reference Technique category does not hold target node %s".format(target.name))
     }
   }
   
   /**
-   * Build the breadcrump of categories that leads to given target policy template in the context
-   * of given root user policy template library.
+   * Build the breadcrump of categories that leads to given target Technique in the context
+   * of given root Active Technique library.
    * The template may not be present in the library. 
    */
   private def findUserBreadCrump(target:Technique) : Option[List[ActiveTechniqueCategory]] = {
@@ -442,10 +442,10 @@ class TechniqueEditForm(
       }) match {
         case Full(x) => onSuccess
         case Empty => //arg. 
-         // formTracker.addFormError(error("An error occurred while saving the configuration rule"))
+         // formTracker.addFormError(error("An error occurred while saving the Rule"))
           onFailure
         case f:Failure =>
-         // formTracker.addFormError(error("An error occurred while saving the configuration rule: " + f.messageChain))
+         // formTracker.addFormError(error("An error occurred while saving the Rule: " + f.messageChain))
           onFailure
       }      
   }

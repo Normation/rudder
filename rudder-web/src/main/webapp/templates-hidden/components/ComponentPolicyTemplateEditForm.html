@@ -43,11 +43,11 @@ All text that will be modified will be put in []
 
 <component:body>
 <div id="editForm" class="object-details">
-<fieldset class="techniqueDetailsFieldset"><legend>Policy template details</legend>
+<fieldset class="techniqueDetailsFieldset"><legend>Technique details</legend>
 
   <div class="groupedEditZone">
     <div class="groupDiv">
-      <h3><span id="techniqueName">[policy template name]</span></h3>
+      <h3><span id="techniqueName">[Technique name]</span></h3>
     <div class="groupDiv">
     </div>
       <h4><span id="techniqueDescription">[technique.description]</span></h4>
@@ -55,7 +55,7 @@ All text that will be modified will be put in []
     
     <div class="groupDiv">
       <p id="techniqueLongDescription">[technique.longDescription]</p>
-      <p id="isSingle">Unique policy template</p>
+      <p id="isSingle">Unique Technique</p>
       <p></p>
       <p><span id="compatibility">[Supported operating systems : debian-5]</span></p>
     </div>
@@ -67,27 +67,27 @@ All text that will be modified will be put in []
       modifications done in the edit zone. 
     </p>
     
-    <legend>Modify policy template status</legend>
+    <legend>Modify Technique status</legend>
 
     <div id="deleteAction" class="twoColumns">
       <button id="deleteButton">Delete</button>
     </div>
     <div id="deleteActionDialog" class="nodisplay">
       <div class="simplemodal-title">
-        <h1>Delete a policy template</h1>
+        <h1>Delete a Technique</h1>
         <hr/>
       </div>
       <div class="simplemodal-content">    
         <div>
           <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
           <h2>
-            Deleting this policy template will also delete its history and compliance reports, 
-            and the following policies and configuration rules.
+            Deleting this Technique will also delete its history and compliance reports, 
+            and the following Directives and Rules.
           </h2>
         </div>
         <hr class="spacer" />
           <div id="deleteItemDependencies">
-            [Here comes the tree of policies / configuration rules that will be removed]
+            [Here comes the tree of Directives / Rules that will be removed]
           </div>
         <br />
         <br />
@@ -111,23 +111,23 @@ All text that will be modified will be put in []
     
       <div id="disableActionDialog" class="nodisplay">
         <div class="simplemodal-title">
-          <h1><span id="dialogDisableTitle">Disable</span> a policy template</h1>
+          <h1><span id="dialogDisableTitle">Disable</span> a Technique</h1>
         </div>
         <hr/>
         <div class="simplemodal-content">
           <div>
             <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
             <h2 id="dialogdisableWarning">
-              Disabling this policy template will also disable the following policies and configuration rules which depend on it.
+              Disabling this Technique will also disable the following Directives and Rules which depend on it.
             </h2>
           </div>
           <hr class="spacer" />
           <div id="disableItemDependencies">
-            [Here comes the tree of policies / configuration rules that will be removed]
+            [Here comes the tree of Directives / Rules that will be removed]
           </div>
           <br />
           <br />
-          <h2>Are you sure that you want to <span id="dialogDisableLabel">[disable]</span> this policy template?</h2>
+          <h2>Are you sure that you want to <span id="dialogDisableLabel">[disable]</span> this Technique?</h2>
            <hr class="spacer" />
         </div>
         <div class="simplemodal-bottom">
@@ -142,8 +142,8 @@ All text that will be modified will be put in []
     </div>
     
     <div class="disableNotice">
-        Note: the configuration rule will be applied only if its status is Enabled and 
-        its policy, policy template and target node group are all Enabled.
+        Note: the Rule will be applied only if its status is Enabled and 
+        its Directive, Technique and target node group are all Enabled.
     </div>
     
   </fieldset>

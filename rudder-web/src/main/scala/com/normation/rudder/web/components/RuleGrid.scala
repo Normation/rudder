@@ -122,7 +122,7 @@ class RuleGrid(
                 <th>Status<span/></th>
                 <th>Deployment status<span/></th>
                 <th>Compliance<span/></th>
-                <th>Policy instance<span/></th>
+                <th>Directive<span/></th>
                 <th>Target node group<span/></th>
                 { if(showCheckboxColumn) <th></th> else NodeSeq.Empty }
               </tr>
@@ -139,7 +139,7 @@ class RuleGrid(
       JsRaw("""
         var #table_var#;
       """.replaceAll("#table_var#",jsVarNameForId(htmlId_rulesGridId))) &      
-      //pop-ups for multiple policy instances
+      //pop-ups for multiple Directives
       JsRaw( """var openMultiPiPopup = function(popupid) {
           createPopup(popupid,300,520);          
      }""") &
@@ -206,10 +206,10 @@ class RuleGrid(
     }
     
     /*
-     * For the policy instance:
+     * For the Directive:
      * - if none defined => "None"
-     * - if one define => <a href="policy">policy name</a>
-     * - if more than one => <a href="policy">policy name</a>, ... + tooltip with the full list
+     * - if one define => <a href="Directive">Directive name</a>
+     * - if more than one => <a href="Directive">Directive name</a>, ... + tooltip with the full list
      */
     
     def displayPis(seq:Seq[(Directive,ActiveTechnique,Technique)]) : NodeSeq = {
@@ -224,20 +224,20 @@ class RuleGrid(
         <span class="popcurs" onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name + (if (seq.size > 1) ", ..." else "")}</span> ++
         <div id={popupId} class="nodisplay">
           <div class="simplemodal-title">
-            <h1>List of policy instances</h1>
+            <h1>List of Directives</h1>
             <hr/>
           </div>
           <div class="simplemodal-content">
             <br/>
-            <h2>Click on a policy name to go to its configuration screen</h2>
+            <h2>Click on a Directive name to go to its configuration screen</h2>
             <hr class="spacer"/>
             <br/>
             <br/>
             <table id={tableId_listPI} cellspacing="0">
               <thead>
                 <tr class="head">
-                 <th>Policy Instance<span/></th>
-                 <th>Policy Template<span/></th>
+                 <th>Directive<span/></th>
+                 <th>Technique<span/></th>
                 </tr>
               </thead>
               <tbody>
@@ -302,16 +302,16 @@ class RuleGrid(
           directiveRepository.getDirective(id) match {
             case Full(directive) => directiveRepository.getActiveTechnique(id) match {
               case Full(activeTechnique) => techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
-                case None => Failure("Can not find Policy Template for activeTechnique with name %s referenced in configuration rule with ID %s".format(activeTechnique.techniqueName, rule.id))
+                case None => Failure("Can not find Technique for activeTechnique with name %s referenced in Rule with ID %s".format(activeTechnique.techniqueName, rule.id))
                 case Some(technique) => Full((directive,activeTechnique,technique))
               }
               case e:EmptyBox => //it's an error if the directive ID is defined and found but it is not attached to an activeTechnique
-                val error = e ?~! "Can not find User Policy Template for policy instance with ID %s referenced in configuration rule with ID %s".format(id, rule.id)
+                val error = e ?~! "Can not find Active Technique for Directive with ID %s referenced in Rule with ID %s".format(id, rule.id)
                 logger.debug(error.messageChain, error)
                 error
             }
             case e:EmptyBox => //it's an error if the directive ID is defined and such directive is not found
-              val error = e ?~! "Can not find Policy Instance with ID %s referenced in configuration rule with ID %s".format(id, rule.id)
+              val error = e ?~! "Can not find Directive with ID %s referenced in Rule with ID %s".format(id, rule.id)
               logger.debug(error.messageChain, error)
               error
           }
@@ -325,7 +325,7 @@ class RuleGrid(
               logger.debug(m)
               Failure(m)             
             case f:Failure => //it's an error if the directive ID is defined and such id is not found
-              val error = f ?~! "Can not find Target information for target %s referenced in configuration rule with ID %s".format(target.target, rule.id)
+              val error = f ?~! "Can not find Target information for target %s referenced in Rule with ID %s".format(target.target, rule.id)
               logger.debug(error.messageChain, error)
               error
           }
@@ -336,7 +336,7 @@ class RuleGrid(
           val compliance = if(isApplied(rule, seq, target)) computeCompliance(rule) else None
           OKLine(rule, compliance, seq, target)
         case (x,y) =>
-          //the configuration rule has some error, try to disactivate it
+          //the Rule has some error, try to disactivate it
           ruleRepository.update(rule.copy(isEnabledStatus=false),RudderEventActor) 
 
           ErrorLine(rule,x,y)
@@ -364,12 +364,12 @@ class RuleGrid(
             if(isApplied(line.rule, line.trackerVariables, line.target)) Text("In application")
             else {
                 val conditions = Seq(
-                    (line.rule.isEnabled, "Configuration rule disabled" ), 
-                    ( line.trackerVariables.size > 0, "No policy defined"),
+                    (line.rule.isEnabled, "Rule disabled" ), 
+                    ( line.trackerVariables.size > 0, "No Directive defined"),
                     ( line.target.isDefined && line.target.get.isEnabled, "Group disabled")
                  ) ++ line.trackerVariables.flatMap { case (directive, activeTechnique,technique) => Seq(
-                    ( directive.isEnabled , "Policy " + directive.name + " disabled") , 
-                    ( activeTechnique.isEnabled, "Policy template for '" + directive.name + "' disabled") 
+                    ( directive.isEnabled , "Directive " + directive.name + " disabled") , 
+                    ( activeTechnique.isEnabled, "Technique for '" + directive.name + "' disabled") 
                  )}
                
                 val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ") 
@@ -380,7 +380,7 @@ class RuleGrid(
           <td>{ //  COMPLIANCE
             buildComplianceChart(line.compliance, line.rule, linkCompliancePopup)
           }</td>
-          <td>{ //  POLICY INSTANCE: <not defined> or PIName [(disabled)]
+          <td>{ //  Directive: <not defined> or PIName [(disabled)]
             displayPis(line.trackerVariables)
            }</td>
           <td>{ //  TARGET NODE GROUP
@@ -408,7 +408,7 @@ class RuleGrid(
           <td>{ //  COMPLIANCE
             "N/A"
           }</td>
-          <td>{ //  POLICY INSTANCE: <not defined> or PIName [(disabled)]
+          <td>{ //  Directive: <not defined> or PIName [(disabled)]
             line.trackerVariables.map(displayPis _).getOrElse("ERROR")
            }</td>
           <td>{ //  TARGET NODE GROUP
@@ -458,7 +458,7 @@ class RuleGrid(
     val batch = reportingService.findImmediateReportsByRule(rule.id)
 
     <div class="simplemodal-title">
-      <h1>List of nodes having the {Text(rule.name)} configuration rule</h1>
+      <h1>List of nodes having the {Text(rule.name)} Rule</h1>
       <hr/>
     </div>
     <div class="simplemodal-content"> { bind("lastReportGrid",reportTemplate,

@@ -1,27 +1,27 @@
 <lift:surround with="menu/menu-configure" at="content">
 
 <head>
-<title>Rudder - Policy Template Library Management</title>
+<title>Rudder - Technique Library Management</title>
 </head>
 
 <lift:configuration.TechniqueLibraryManagement.head />
 
 <div class="portlet">
-  <div class="portlet-header">Policy Template Library Management</div>
+  <div class="portlet-header">Technique Library Management</div>
   <div class="portlet-content">  
     <div class="intro">
       <div>
-        View available policy templates and configure your custom policy library.
+        View available Techniques and configure your custom Directive library.
         <br/>
-        Drag'n'drop new policy templates from Reference library to User library categories to be able to create <a href="secure/configurationManager/directiveManagement">new policies</a>.
+        Drag'n'drop new Techniques from Reference library to User library categories to be able to create <a href="secure/configurationManager/directiveManagement">new Directives</a>.
         <br/>
-        Drag'n'drop policy templates and categories in user library so that everything is nice and tidy.
+        Drag'n'drop Techniques and categories in user library so that everything is nice and tidy.
         <br/>
       </div>
       <div>
         <div class="lift:configuration.TechniqueLibraryManagement.reloadTechniqueLibrary" id="reloadPTLibForm">
           <form class="lift:form.ajax">
-            <span>You can load the last available version of the policy template library</span>
+            <span>You can load the last available version of the Technique library</span>
             <input type="submit" value="Reload"/>
             <lift:Msgs showAll="true">[messages]</lift:Msgs>
           </form>
@@ -32,7 +32,7 @@
     
     <div class="column">
       <div class="portlet">
-        <div class="portlet-header">Reference policy template library</div>
+        <div class="portlet-header">Reference Technique library</div>
         <div class="portlet-content">
           <lift:configuration.TechniqueLibraryManagement.systemLibrary />
         </div>
@@ -40,7 +40,7 @@
     </div>
     <div class="column">
       <div class="portlet">
-        <div class="portlet-header">User policy template library</div>
+        <div class="portlet-header">Active Techniques library</div>
         <div class="portlet-content">
           <lift:configuration.TechniqueLibraryManagement.userLibraryAction />
           <lift:configuration.TechniqueLibraryManagement.userLibrary />
@@ -53,7 +53,7 @@
     <lift:configuration.TechniqueLibraryManagement.bottomPanel /> 
         
 <!--    <div class="techniqueDetails">-->
-<!--      <fieldset class="techniqueDetailsFieldset"><legend>Policy template details</legend>-->
+<!--      <fieldset class="techniqueDetailsFieldset"><legend>Technique details</legend>-->
 <!--        <lift:TechniqueLibraryManagement.showTechniqueDetails />-->
 <!--      </fieldset>-->
 <!--    </div>-->

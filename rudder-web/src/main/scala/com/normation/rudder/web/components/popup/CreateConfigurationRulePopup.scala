@@ -147,12 +147,12 @@ class CreateRulePopup(
           case Full(x) => 
             closePopup() & onSuccessCallback(rule)
           case Empty =>
-            logger.error("An error occurred while saving the configuration rule")
-            formTracker.addFormError(error("An error occurred while saving the configuration rule"))
+            logger.error("An error occurred while saving the Rule")
+            formTracker.addFormError(error("An error occurred while saving the Rule"))
             onFailure & onFailureCallback()
           case Failure(m,_,_) =>
-            logger.error("An error occurred while saving the configuration rule:" + m)
-            formTracker.addFormError(error("An error occurred while saving the configuration rule: " + m))
+            logger.error("An error occurred while saving the Rule:" + m)
+            formTracker.addFormError(error("An error occurred while saving the Rule: " + m))
             onFailure & onFailureCallback()
       }
     }

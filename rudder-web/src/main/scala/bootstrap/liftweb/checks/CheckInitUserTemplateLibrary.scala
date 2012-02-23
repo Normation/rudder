@@ -70,7 +70,7 @@ class CheckInitUserTemplateLibrary(
           case Full(root) => root.getAsGTime(A_INIT_DATETIME) match {
             case Some(date) => logger.debug("The root user template library was initialized on %s".format(date.dateTime.toString("YYYY/MM/dd HH:mm")))
             case None => 
-              logger.info("The user policy template library is not marked as being initialized: adding all policies from reference library...")
+              logger.info("The Active Technique library is not marked as being initialized: adding all policies from reference library...")
               copyReferenceLib(con) match {
                 case Full(x) => logger.info("...done")
                 case eb:EmptyBox =>
@@ -88,7 +88,7 @@ class CheckInitUserTemplateLibrary(
   }
 
   /**
-   * Actually copy from reference policy lib to user lib.
+   * Actually copy from reference Directive lib to user lib.
    */
   private[this] def copyReferenceLib(con:LDAPConnection) : Box[AnyRef] = {
     def recCopyRef(fromCatId:TechniqueCategoryId, toParentCat:ActiveTechniqueCategory) : Box[ActiveTechniqueCategory] = {
@@ -102,7 +102,7 @@ class CheckInitUserTemplateLibrary(
           , children = Nil
           , items = Nil
         )
-        res <- if(fromCat.isSystem) { //system policy template category are handle elsewhere
+        res <- if(fromCat.isSystem) { //Rudder internal Technique category are handle elsewhere
             Full(newUserPTCat)
           } else {
             for {
@@ -110,11 +110,11 @@ class CheckInitUserTemplateLibrary(
                 "Error when adding category '%s' to user library parent category '%s'".format(newUserPTCat.id.value, toParentCat.id.value)
                 //now, add items and subcategories, in a "try to do the max you can" way
                 fullRes <- boxSequence(
-                  //policy templates
+                  //Techniques
                   bestEffort(fromCat.packageIds.groupBy(id => id.name).toSeq) { case (name, ids) =>
                     for {
                       activeTechnique <- userTempalteService.addTechniqueInUserLibrary(newUserPTCat.id, name, ids.map( _.version).toSeq, RudderEventActor) ?~!
-                        "Error when adding Policy Template '%s' into user library category '%s'".format(name.value, newUserPTCat.id.value)
+                        "Error when adding Technique '%s' into user library category '%s'".format(name.value, newUserPTCat.id.value)
                     } yield {
                       activeTechnique
                     }

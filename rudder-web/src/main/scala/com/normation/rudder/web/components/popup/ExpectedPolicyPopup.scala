@@ -99,7 +99,7 @@ class ExpectedPolicyPopup(
 
   def display : NodeSeq = {
     
-    //find the list of dyn groups on which that server would be and from that, the configuration rules
+    //find the list of dyn groups on which that server would be and from that, the Rules
     val rulesGrid : NodeSeq = rules match {
       case Full(seq) => 
         (new RuleGrid("dependentRulesGrid", seq, None, false)).rulesGrid(false)
@@ -124,7 +124,7 @@ class ExpectedPolicyPopup(
       groupMap <- dynGroupService.findDynGroups(Seq(nodeId)) ?~! "Error when building the map of dynamic group to update by node"
       seqNodeGroupId = groupMap.get(nodeId).getOrElse(Seq())
       seqTargetDeps <- sequence(seqNodeGroupId) { groupId => 
-        dependenciesServices.targetDependencies(GroupTarget(groupId)) ?~! "Error when building the list of configuration rules depending on group %s".format(groupId)
+        dependenciesServices.targetDependencies(GroupTarget(groupId)) ?~! "Error when building the list of Rules depending on group %s".format(groupId)
       }
     } yield {
       seqTargetDeps.flatMap { case TargetDependencies(target, rules) => rules }.distinct

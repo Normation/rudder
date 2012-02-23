@@ -77,17 +77,17 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   import TechniqueLibraryManagement._
  
-  //find policy template
+  //find Technique
   val techniqueRepository = inject[TechniqueRepository]
-  //find policy template
+  //find Technique
   val updatePTLibService = inject[UpdateTechniqueLibrary]
   //find & create user categories
   val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
-  //find & create user policy templates
+  //find & create Active Techniques
   val activeTechniqueRepository = inject[ActiveTechniqueRepository]
   //generate new uuid
   val uuidGen = inject[StringUuidGenerator]
-  //transform policy template variable to human viewable HTML fields
+  //transform Technique variable to human viewable HTML fields
   val directiveEditorService = inject[DirectiveEditorService]
   val treeUtilService = inject[JsTreeUtilService]
 
@@ -115,7 +115,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   
   private[this] val techniqueId: Box[String] = S.param("techniqueId")
     
-  //create a new policy template edit form and update currentTechniqueDetails
+  //create a new Technique edit form and update currentTechniqueDetails
   private[this] def updateCurrentTechniqueDetails(technique:Technique) = {
     currentTechniqueDetails.set(Full(new TechniqueEditForm(
         htmlId_bottomPanel,
@@ -125,7 +125,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     )))
   }
   
-  //create a new policy template edit form and update currentTechniqueDetails
+  //create a new Technique edit form and update currentTechniqueDetails
   private[this] def updateCurrentTechniqueCategoryDetails(category:ActiveTechniqueCategory) = {
     currentTechniqueCategoryDetails.set(Full(new TechniqueCategoryEditForm(
         htmlId_bottomPanel,
@@ -167,7 +167,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   ////////////////////   
   /**
    * Display the Technique system library, which is 
-   * what policy template are known by the system. 
+   * what Technique are known by the system. 
    * Technique are classified by category, one technique
    * belonging at most to one category. 
    * Categories are ordered in trees of subcategories. 
@@ -188,7 +188,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   /**
    *  Display the Technique user library, which is
-   * what policy template are configurable as policy instance.
+   * what Technique are configurable as Directive.
    * Technique are classified by category, one technique
    * belonging at most to one category. 
    * Categories are ordered in trees of subcategories. 
@@ -286,22 +286,22 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         showTechniqueDetails()
       case _ => 
         <div id={htmlId_bottomPanel} class="centertext">
-          Click on a policy template or a category from user library to
+          Click on a Technique or a category from user library to
           display its details.
         </div>
     }
   }
   
   /**
-   * Configure a system technique to be usable in the
+   * Configure a Rudder internal Technique to be usable in the
    * user Technique (private) library. 
    */
   def showTechniqueDetails() : NodeSeq = {
     currentTechniqueDetails.is match {
       case e:EmptyBox => 
         <div id={htmlId_bottomPanel}>
-        <fieldset class="techniqueDetailsFieldset"><legend>Policy template details</legend>
-          <p>Click on a policy template to display its details</p>
+        <fieldset class="techniqueDetailsFieldset"><legend>Technique details</legend>
+          <p>Click on a Technique to display its details</p>
         </fieldset></div>
       case Full(form) => form.showForm
     }
@@ -331,20 +331,20 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
        }) match {
         case (sourceactiveTechniqueId, destCatId) :: Nil =>
           (for {
-            activeTechnique <- activeTechniqueRepository.getActiveTechnique(TechniqueName(sourceactiveTechniqueId)) ?~! "Error while trying to find user policy template with requested id %s".format(sourceactiveTechniqueId)
-            result <- activeTechniqueRepository.move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId), CurrentUser.getActor)?~! "Error while trying to move user policy template with requested id '%s' to category id '%s'".format(sourceactiveTechniqueId,destCatId)
+            activeTechnique <- activeTechniqueRepository.getActiveTechnique(TechniqueName(sourceactiveTechniqueId)) ?~! "Error while trying to find Active Technique with requested id %s".format(sourceactiveTechniqueId)
+            result <- activeTechniqueRepository.move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId), CurrentUser.getActor)?~! "Error while trying to move Active Technique with requested id '%s' to category id '%s'".format(sourceactiveTechniqueId,destCatId)
           } yield {
             result
           }) match {
             case Full(res) => 
               refreshTree() & JsRaw("""setTimeout(function() { $("[activeTechniqueId=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceactiveTechniqueId)) & refreshBottomPanel(res) 
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
-            case Empty => Alert("Error while trying to move user policy template with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceactiveTechniqueId,destCatId))
+            case Empty => Alert("Error while trying to move Active Technique with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceactiveTechniqueId,destCatId))
           }
-        case _ => Alert("Error while trying to move user policy template: bad client parameters")
+        case _ => Alert("Error while trying to move Active Technique: bad client parameters")
       }      
     } catch {
-      case e:Exception => Alert("Error while trying to move user policy template")
+      case e:Exception => Alert("Error while trying to move Active Technique")
     }
   }
    
@@ -390,19 +390,19 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         case (sourceactiveTechniqueId, destCatId) :: Nil =>
           val ptName = TechniqueName(sourceactiveTechniqueId)
           (for {
-            result <- activeTechniqueRepository.addTechniqueInUserLibrary(ActiveTechniqueCategoryId(destCatId), ptName, techniqueRepository.getTechniqueVersions(ptName).toSeq, CurrentUser.getActor) ?~! "Error while trying to add system policy template with requested id '%s' in user library category '%s'".format(sourceactiveTechniqueId,destCatId)
+            result <- activeTechniqueRepository.addTechniqueInUserLibrary(ActiveTechniqueCategoryId(destCatId), ptName, techniqueRepository.getTechniqueVersions(ptName).toSeq, CurrentUser.getActor) ?~! "Error while trying to add Rudder internal Technique with requested id '%s' in user library category '%s'".format(sourceactiveTechniqueId,destCatId)
           } yield {
             result
           }) match {
             case Full(res) => 
               refreshTree() & JsRaw("""setTimeout(function() { $("[activeTechniqueId=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceactiveTechniqueId)) & refreshBottomPanel(res.id) 
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
-            case Empty => Alert("Error while trying to move user policy template with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceactiveTechniqueId,destCatId))
+            case Empty => Alert("Error while trying to move Active Technique with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceactiveTechniqueId,destCatId))
           }
-        case _ => Alert("Error while trying to move user policy template: bad client parameters")
+        case _ => Alert("Error while trying to move Active Technique: bad client parameters")
       }      
     } catch {
-      case e:Exception => Alert("Error while trying to move user policy template")
+      case e:Exception => Alert("Error while trying to move Active Technique")
     }
   }
 
@@ -450,7 +450,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     
   
     
-  //ajax function that update the bottom of the page when a policy template is clicked
+  //ajax function that update the bottom of the page when a Technique is clicked
   private[this] def onClickTemplateNode(technique : Technique): JsCmd = {
     updateCurrentTechniqueDetails(technique)
       
@@ -465,7 +465,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Transform a WBTechniqueCategory into category JsTree node in reference library:
    * - contains:
    *   - other categories
-   *   - policy templates
+   *   - Techniques
    * - no action can be done with such node. 
    */
   private[this] def jsTreeNodeOf_ptCategory(category:TechniqueCategory) : JsTreeNode = {
@@ -513,12 +513,12 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Transform ActiveTechniqueCategory into category JsTree nodes in User Library:
    * - contains 
    *   - other user categories
-   *   - user policy templates
+   *   - Active Techniques
    * - are clickable
    *   - on the left (triangle) : open contents
    *   - on the name : update zones
    *     - "add a subcategory here"
-   *     - "add the current policy template which is not yet in the User Library here" 
+   *     - "add the current Technique which is not yet in the User Library here" 
    *   
    * @param category
    * @return
@@ -600,9 +600,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       def process = {
         updatePTLibService.update(CurrentUser.getActor) match {
           case Full(x) => 
-            S.notice("updateOk", "The policy template library was successfully reloaded")
+            S.notice("updateOk", "The Technique library was successfully reloaded")
           case e:EmptyBox =>
-            val error = e ?~! "An error occured when updating the policy template library from file system"
+            val error = e ?~! "An error occured when updating the Technique library from file system"
             logger.debug(error.messageChain, e)
             S.error("updateKO", error.msg)
         }

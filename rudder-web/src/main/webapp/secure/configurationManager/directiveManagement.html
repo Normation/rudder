@@ -28,28 +28,28 @@ var clearSearchFieldTree = function(inputId, treeId) {
 <lift:configuration.DirectiveManagement.head />
 
 <div class="portlet">
-  <div class="portlet-header">Policy Management</div>
+  <div class="portlet-header">Directive Management</div>
   <div class="portlet-content">  
     <div class="intro">
       <div>
-        List, create and delete your instances of <a href="secure/configurationManager/techniqueLibraryManagement"><em>Policy Templates</em></a> and configure them.
+        List, create and delete your instances of <a href="secure/configurationManager/techniqueLibraryManagement"><em>Techniques</em></a> and configure them.
       </div>
     </div>
     <hr class="spacer"/>
     
     <div class="column">
       <div class="portlet">
-        <div class="portlet-header">User policy library</div>
+        <div class="portlet-header">Active Techniques library</div>
         <div class="portlet-content">
           <div class="deca">
-            <p>This library displays all available <em>Policy Templates</em>, grouped by categories, and any <em>Policy Instances</em> that you have created for each one.</p>
+            <p>This library displays all available <em>Techniques</em>, grouped by categories, and any <em>Directives</em> that you have created for each one.</p>
 
             <p><br/>You may:</p>
-            <p>- Click on the name of a <em>Policy Template</em> to see its description.</p>
-            <p>- Click on the name of a <em>Policy Instance</em> to see its configuration items. Details of the <em>Policy Template</em> it's based on will also be displayed.</p>
+            <p>- Click on the name of a <em>Technique</em> to see its description.</p>
+            <p>- Click on the name of a <em>Directive</em> to see its configuration items. Details of the <em>Technique</em> it's based on will also be displayed.</p>
 
-            <p><br/>Additional <em>Policy Templates</em> may be available through the 
-              <a href="secure/configurationManager/techniqueLibraryManagement">Policy Templates screen</a>.</p>
+            <p><br/>Additional <em>Techniques</em> may be available through the 
+              <a href="secure/configurationManager/techniqueLibraryManagement">Techniques screen</a>.</p>
           </div>
 
           <div id="userTree_actions_zone" style="margin:10px;">
@@ -65,23 +65,23 @@ var clearSearchFieldTree = function(inputId, treeId) {
     </div>
     <div class="column">
       <div class="portlet">
-        <div class="portlet-header"><span id="detailsPortletTitle">Policy Template summary</span></div>
+        <div class="portlet-header"><span id="detailsPortletTitle">Technique summary</span></div>
         <div class="portlet-content">
           <lift:configuration.DirectiveManagement.techniqueDetails>
             <div id="polityTemplateDetails">
             <fieldset class="deca"><legend id="detailFieldsetId">Template details</legend>
               <div id="directiveIntro">
-                The policy instance <b class="directive">[policy]</b> is based on following policy template:
+                The Directive <b class="directive">[Directive]</b> is based on following Technique:
                 <br/><br/>
               </div>
               <div>
-                <h3><span id="techniqueName">[policy template name]</span></h3>
+                <h3><span id="techniqueName">[Technique name]</span></h3>
                 <i><span id="techniqueDescription">[technique.description]</span></i>
               </div>
             
               <div class="groupDiv">
                 <p id="techniqueLongDescription">[technique.longDescription]</p>
-                <p id="isSingle">[Unique policy template]</p>
+                <p id="isSingle">[Unique Technique]</p>
                 <p></p>
                 <p><span id="compatibility">[Supported operating systems : debian-5]</span></p>
               </div>
@@ -92,7 +92,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
                 <div id="migrate">
                   <br/>
                   <form>
-                    Migrate policy to policy template version:
+                    Migrate Directive to Technique version:
                     <select><option>1.1</option><option>2.0</option></select>
                     <input type="submit" value="Migrate" />
                   </form>
@@ -136,8 +136,8 @@ var clearSearchFieldTree = function(inputId, treeId) {
       </div>
       <hr class="spacer" />
       <br />
-      <p>To finish the policy migration to the new version, you have to edit and save the policy parameters.</p>
-      <p>You can cancel the migration by reloading the page or choosing an other policy in the tree 
+      <p>To finish the Directive migration to the new version, you have to edit and save the Directive parameters.</p>
+      <p>You can cancel the migration by reloading the page or choosing an other Directive in the tree 
         without saving the form. 
       </p>    
       <br />

@@ -375,7 +375,7 @@ class AppConfig extends Loggable {
     //find the relative path from gitRepo to the ptlib root
     val gitSlash = new File(gitRoot).getPath + "/"
     if(!policyPackages.startsWith(gitSlash)) {
-      throw new RuntimeException("The policy template library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(gitRoot, policyPackages))
+      throw new RuntimeException("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(gitRoot, policyPackages))
     }
     val relativePath = policyPackages.substring(gitSlash.size, policyPackages.size)
     new GitTechniqueReader(
@@ -959,7 +959,7 @@ class AppConfig extends Loggable {
   def restArchiving = new RestArchiving(itemArchiveManager,personIdentService)
   
   //////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////// Policy Editor and web fields //////////////////////////////
+  ////////////////////////////// Directive Editor and web fields //////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
 
   import com.normation.rudder.web.model._

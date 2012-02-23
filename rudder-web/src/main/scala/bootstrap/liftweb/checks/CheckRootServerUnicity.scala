@@ -66,7 +66,7 @@ class CheckRootNodeUnicity(
         if(seq.size == 0) { //set-up flag to redirect all request to init wizard
           RudderContext.rootNodeNotDefined = true
         } else if(seq.size > 1) { //that's an error, ask the user what to do
-          val msg = "More than one Root Policy Node were found in the LDAP repository, and that is not supported. Please correct LDAP content before restarting"
+          val msg = "More than one Root Policy Server were found in the LDAP repository, and that is not supported. Please correct LDAP content before restarting"
           logger.error(msg)
           throw new UnavailableException(msg)
         } else { //OK, remove the redirection flag if set

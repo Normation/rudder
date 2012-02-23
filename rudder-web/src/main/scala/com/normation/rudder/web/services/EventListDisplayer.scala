@@ -219,7 +219,7 @@ class EventListDisplayer(
     def crDesc(x:EventLog, actionName: NodeSeq) = {
         val id = (x.details \ "rule" \ "id").text
         val name = (x.details \ "rule" \ "displayName").text
-        Text("Configuration rule ") ++ {
+        Text("Rule ") ++ {
           if(id.size < 1) Text(name)
           else <a href={ruleLink(RuleId(id))}>{name}</a> ++ actionName
         }
@@ -228,7 +228,7 @@ class EventListDisplayer(
     def piDesc(x:EventLog, actionName: NodeSeq) = {
         val id = (x.details \ "directive" \ "id").text
         val name = (x.details \ "directive" \ "displayName").text
-        Text("Policy instance ") ++ {
+        Text("Directive ") ++ {
           if(id.size < 1) Text(name)
           else <a href={directiveLink(DirectiveId(id))}>{name}</a> ++ actionName
         }
@@ -261,8 +261,8 @@ class EventListDisplayer(
       case x:LoginEventLog => Text("User '%s' login".format(x.principal.name))
       case x:LogoutEventLog => Text("User '%s' logout".format(x.principal.name))
       case x:BadCredentialsEventLog => Text("User '%s' failed to login: bad credentials".format(x.principal.name))
-      case x:AutomaticStartDeployement => Text("Automatically deploy policy on nodes")
-      case x:ManualStartDeployement => Text("Manually deploy policy on nodes")
+      case x:AutomaticStartDeployement => Text("Automatically deploy Directive on nodes")
+      case x:ManualStartDeployement => Text("Manually deploy Directive on nodes")
       case x:ApplicationStarted => Text("Rudder starts")
       case x:ModifyRule => crDesc(x,Text(" modified"))
       case x:DeleteRule => crDesc(x,Text(" deleted"))
@@ -273,18 +273,18 @@ class EventListDisplayer(
       case x:ModifyNodeGroup => groupDesc(x,Text(" modified"))
       case x:DeleteNodeGroup => groupDesc(x,Text(" deleted"))
       case x:AddNodeGroup    => groupDesc(x,Text(" added"))
-      case x:ClearCacheEventLog => Text("Clear Policy Node caches")
-      case x:UpdatePolicyServer => Text("Change Policy Node authorized network")
-      case x:ReloadTechniqueLibrary => Text("Policy template library reloaded")
+      case x:ClearCacheEventLog => Text("Clear Policy Server caches")
+      case x:UpdatePolicyServer => Text("Change Policy Server authorized network")
+      case x:ReloadTechniqueLibrary => Text("Technique library reloaded")
       case x:SuccessfulDeployment => Text("Successful deployment")
       case x:FailedDeployment => Text("Failed deployment")
       case x:ExportGroupsArchive => Text("New groups archive")
-      case x:ExportTechniqueLibraryArchive => Text("New policy library archive")
-      case x:ExportRulesArchive => Text("New configuration rules archives")
+      case x:ExportTechniqueLibraryArchive => Text("New Directive library archive")
+      case x:ExportRulesArchive => Text("New Rules archives")
       case x:ExportFullArchive => Text("New full archive")
       case x:ImportGroupsArchive => Text("Restoring group archive")
-      case x:ImportTechniqueLibraryArchive => Text("Restoring policy library archive")
-      case x:ImportRulesArchive => Text("Restoring configuration rules archive")
+      case x:ImportTechniqueLibraryArchive => Text("Restoring Directive library archive")
+      case x:ImportRulesArchive => Text("Restoring Rules archive")
       case x:ImportFullArchive => Text("Restoring full archive")
       case _ => Text("Unknow event type")
       
@@ -303,7 +303,7 @@ class EventListDisplayer(
       case add:AddRule =>
         "*" #> (logDetailsService.getRuleAddDetails(add.details) match {
           case Full(addDiff) => 
-            <div class="evloglmargin"><p>Configuration rule <b>"{addDiff.rule.name}"</b> (ID:{addDiff.rule.id.value}) added with parameters:</p>{
+            <div class="evloglmargin"><p>Rule <b>"{addDiff.rule.name}"</b> (ID:{addDiff.rule.id.value}) added with parameters:</p>{
               ruleDetails(crDetailsXML,addDiff.rule)
             }</div>
           case e:EmptyBox => errorMessage(e)
@@ -312,7 +312,7 @@ class EventListDisplayer(
       case del:DeleteRule =>
         "*" #> (logDetailsService.getRuleDeleteDetails(del.details) match {
           case Full(delDiff) =>
-            <div class="evloglmargin"><p>Configuration rule <b>"{delDiff.rule.name}"</b> (ID:{delDiff.rule.id.value}) deleted with parameters:</p>{
+            <div class="evloglmargin"><p>Rule <b>"{delDiff.rule.name}"</b> (ID:{delDiff.rule.id.value}) deleted with parameters:</p>{
               ruleDetails(crDetailsXML,delDiff.rule)
             }</div>
           case e:EmptyBox => errorMessage(e)
@@ -321,7 +321,7 @@ class EventListDisplayer(
       case mod:ModifyRule =>
         "*" #> (logDetailsService.getRuleModifyDetails(mod.details) match {
           case Full(modDiff) =>            
-            <div class="evloglmargin"><p>Configuration rule <b>"{modDiff.name}"</b>(ID:{modDiff.id.value}) was modified:</p>{
+            <div class="evloglmargin"><p>Rule <b>"{modDiff.name}"</b>(ID:{modDiff.id.value}) was modified:</p>{
               (
                 "#name" #> mapSimpleDiff(modDiff.modName) &
                 "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivatedStatus) &
@@ -352,12 +352,12 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         })
 
-      ///////// Policy Instance /////////
+      ///////// Directive /////////
         
       case x:ModifyDirective =>   
         "*" #> (logDetailsService.getDirectiveModifyDetails(x.details) match {
           case Full(modDiff) =>
-            <div class="evloglmargin"><p>Policy Instance <b>"{modDiff.name}"</b>(ID:{modDiff.id.value}) was modified:</p>{
+            <div class="evloglmargin"><p>Directive <b>"{modDiff.name}"</b>(ID:{modDiff.id.value}) was modified:</p>{
               (
                 "#name" #> mapSimpleDiff(modDiff.modName) &
                 "#priority *" #> mapSimpleDiff(modDiff.modPriority) &
@@ -381,7 +381,7 @@ class EventListDisplayer(
       case x:AddDirective =>   
         "*" #> (logDetailsService.getDirectiveAddDetails(x.details) match {
           case Full((diff,sectionVal)) =>
-            <div class="evloglmargin"><p>Policy Instance <b>"{diff.directive.name}"</b> (ID:{diff.directive.id.value}) added. Parameters were:</p>{
+            <div class="evloglmargin"><p>Directive <b>"{diff.directive.name}"</b> (ID:{diff.directive.id.value}) added. Parameters were:</p>{
               directiveDetails(piDetailsXML,diff.techniqueName, diff.directive,sectionVal)
             }</div>
           case e:EmptyBox => errorMessage(e)
@@ -391,7 +391,7 @@ class EventListDisplayer(
       case x:DeleteDirective =>   
         "*" #> (logDetailsService.getDirectiveDeleteDetails(x.details) match {
           case Full((diff,sectionVal)) =>
-            <div class="evloglmargin"><p>Policy Instance <b>"{diff.directive.name}"</b> (ID:{diff.directive.id.value}) deleted. Parameters were:</p>{
+            <div class="evloglmargin"><p>Directive <b>"{diff.directive.name}"</b> (ID:{diff.directive.id.value}) deleted. Parameters were:</p>{
               directiveDetails(piDetailsXML,diff.techniqueName, diff.directive,sectionVal)
             }</div>
           case e:EmptyBox => errorMessage(e)
@@ -539,13 +539,13 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         })
       
-      // policy template library reloaded
+      // Technique library reloaded
       
       case x:ReloadTechniqueLibrary =>
         "*" #> (logDetailsService.getTechniqueLibraryReloadDetails(x.details) match {
           case Full(details) => 
               <div>
-                The policy template library was reloaded and following policy templates were updated:
+                The Technique library was reloaded and following Techniques were updated:
                 <table>{ details.map {technique => 
                   <tr><td>{ "%s (version %s)".format(technique.name.value, technique.version.toString)}</td></tr>
                 } }</table>
@@ -687,7 +687,7 @@ class EventListDisplayer(
   private[this] val crDetailsXML = 
     <ul class="evlogviewpad">
       <li><b>target:</b>'<value id="target"/>'</li>
-      <li><b>policies:</b>'<value id="policy"/>'</li>
+      <li><b>Directives:</b>'<value id="policy"/>'</li>
       <li><b>enabled:</b>'<value id="isEnabled"/>'</li>
       <li><b>system:</b>'<value id="isSystem"/>'</li>
       <li><b>description:</b>'<value id="shortDescription"/>'</li>
@@ -696,14 +696,14 @@ class EventListDisplayer(
       
   private[this] val piDetailsXML = 
     <ul class="evlogviewpad">
-      <li><b>policy template name:</b><value id="ptName"/></li>
-      <li><b>policy template version:</b><value id="ptVersion"/></li>
+      <li><b>Technique name:</b><value id="ptName"/></li>
+      <li><b>Technique version:</b><value id="ptVersion"/></li>
       <li><b>priority:</b>'<value id="priority"/>'</li>
       <li><b>enabled:</b>'<value id="isEnabled"/>'</li>
       <li><b>system:</b>'<value id="isSystem"/>'</li>
       <li><b>description:</b>'<value id="shortDescription"/>'</li>
       <li><b>details:</b>'<value id="longDescription"/>'</li>
-      <li><b>policy parameters:</b><value id="parameters"/></li>
+      <li><b>Directive parameters:</b><value id="parameters"/></li>
     </ul>
     
   private[this] val groupDetailsXML = 

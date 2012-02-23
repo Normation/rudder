@@ -247,7 +247,7 @@ class NodeGroupForm(
                 <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
                 <h2>
                   Deleting this group will also remove it as a target for
-                  the following configuration rules which depend on it.
+                  the following Rules which depend on it.
                 </h2>
               </div>
               <hr class="spacer" />

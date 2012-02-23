@@ -58,27 +58,27 @@
         modifications done in the edit zone.
       </p>
 
-      <legend>Modify policy status</legend>
+      <legend>Modify Directive status</legend>
 
       <div id="removeAction" class="twoColumns">
         <button id="removeButton">Delete</button>
       </div>
       <div id="removeActionDialog" class="nodisplay">
         <div class="simplemodal-title">
-          <h1>Delete a policy instance</h1>
+          <h1>Delete a Directive</h1>
           <hr/>
         </div>
         <div class="simplemodal-content">
           <div>
             <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
             <h2>
-              Deleting this policy will also remove it as a part of
-              the following configuration rules which depend on it.
+              Deleting this Directive will also remove it as a part of
+              the following Rules which depend on it.
             </h2>
           </div>
           <hr class="spacer" />
           <div id="removeItemDependencies">
-            Here comes the grid of configuration rules that will be removed
+            Here comes the grid of Rules that will be removed
           </div>
           <br />
           <br />
@@ -101,23 +101,23 @@
       </div>
       <div id="desactivateActionDialog" class="nodisplay">
         <div class="simplemodal-title">
-          <h1>Disable a policy instance</h1>
+          <h1>Disable a Directive</h1>
           <hr/>
         </div>
         <div class="simplemodal-content">
           <div>
             <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
             <h2 id="dialogDisactivateWarning">
-              Disabling this policy will also disable the following configuration rules which depend on it.
+              Disabling this Directive will also disable the following Rules which depend on it.
             </h2>
           </div>
           <hr class="spacer" />
           <div id="disableItemDependencies">
-            Here comes the grid of configuration rules that will be removed
+            Here comes the grid of Rules that will be removed
           </div>
           <br />
           <br />
-          <h3>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this policy?</h3>
+          <h3>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this Directive?</h3>
           <br />
         </div>
         <div class="simplemodal-bottom">
@@ -131,14 +131,14 @@
         </div>
       </div>
       <div class="disableNotice">
-        Note: A policy's status may be Enabled, but it will be effectively disabled
-        if the policy template it's based on is disabled.
+        Note: A Directive's status may be Enabled, but it will be effectively disabled
+        if the Technique it's based on is disabled.
        </div>
       
     </fieldset>
 
     <fieldset class="editZone">
-      <legend>Policy settings</legend>
+      <legend>Directive settings</legend>
 
       <div id="notification">
         <ul>
@@ -147,9 +147,9 @@
       </div>
       <hr class="spacer" />
 
-      <p>This policy is based on the <b><span id="techniqueName"/></b> policy template.</p>
-      <p id="isSingle">Unique policy template</p> 
-      <fieldset><legend>Description of the policy template</legend><span id="techniqueDescription"/></fieldset>
+      <p>This Directive is based on the <b><span id="techniqueName"/></b> Technique.</p>
+      <p id="isSingle">Unique Technique</p> 
+      <fieldset><legend>Description of the Technique</legend><span id="techniqueDescription"/></fieldset>
       <br/>
       <div id="nameField">
         Here comes the name field

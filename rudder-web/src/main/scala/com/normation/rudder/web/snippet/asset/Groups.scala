@@ -389,7 +389,7 @@ class Groups extends StatefulSnippet with Loggable {
         case false => Full(group)
       }
       case e:EmptyBox => 
-        val f = e ?~! "Error while fetching policy template category %s".format(id)
+        val f = e ?~! "Error while fetching Technique category %s".format(id)
         logger.error(f.messageChain)
         f
     }

@@ -69,7 +69,7 @@ class Archives extends DispatchSnippet with Loggable {
   }
   
   /**
-   * Export all items (CR, user policy library, groups)
+   * Export all items (CR, Active Techniques library, groups)
    * Advertise on success and error
    */
   private[this] def allForm = {
@@ -78,16 +78,16 @@ class Archives extends DispatchSnippet with Loggable {
       , archiveButtonId           = "exportAllButton"
       , archiveButtonName         = "Archive everything"
       , archiveFunction           = itemArchiver.exportAll
-      , archiveErrorMessage       = "Error when exporting groups, policy library and configuration rules."
-      , archiveSuccessDebugMessage= s => "Exporting groups, policy library and configuration rules on user request, archive id: %s".format(s)
+      , archiveErrorMessage       = "Error when exporting groups, Directive library and Rules."
+      , archiveSuccessDebugMessage= s => "Exporting groups, Directive library and Rules on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importAllSelect"
       , archiveListFunction       = itemArchiver.getFullArchiveTags _
       , restoreButtonId           = "importAllButton"
       , restoreButtonName         = "Restore everything"
       , restoreFunction           = itemArchiver.importAll
       , restoreHeadFunction       = itemArchiver.importHeadAll
-      , restoreErrorMessage       = "Error when importing groups, policy library and configuration rules."
-      , restoreSuccessDebugMessage= "Importing groups, policy library and configuration rules on user request"
+      , restoreErrorMessage       = "Error when importing groups, Directive library and Rules."
+      , restoreSuccessDebugMessage= "Importing groups, Directive library and Rules on user request"
     )
   }
   
@@ -95,18 +95,18 @@ class Archives extends DispatchSnippet with Loggable {
     actionFormBuilder(
         formName                  = "rulesForm"
       , archiveButtonId           = "exportRulesButton"
-      , archiveButtonName         = "Archive configuration rules"
+      , archiveButtonName         = "Archive Rules"
       , archiveFunction           = itemArchiver.exportRules
-      , archiveErrorMessage       = "Error when exporting configuration rules."
-      , archiveSuccessDebugMessage= s => "Exporting configuration rules on user request, archive id: %s".format(s)
+      , archiveErrorMessage       = "Error when exporting Rules."
+      , archiveSuccessDebugMessage= s => "Exporting Rules on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importRulesSelect"
       , archiveListFunction       = itemArchiver.getRulesTags _
       , restoreButtonId           = "importRulesButton"
-      , restoreButtonName         = "Restore configuration rules"
+      , restoreButtonName         = "Restore Rules"
       , restoreFunction           = itemArchiver.importRules
       , restoreHeadFunction       = itemArchiver.importHeadRules
-      , restoreErrorMessage       = "Error when imporing configuration rules."
-      , restoreSuccessDebugMessage= "Importing configuration rules on user request"
+      , restoreErrorMessage       = "Error when imporing Rules."
+      , restoreSuccessDebugMessage= "Importing Rules on user request"
     )
   }  
 
@@ -114,18 +114,18 @@ class Archives extends DispatchSnippet with Loggable {
     actionFormBuilder(
         formName                  = "policyLibraryForm"
       , archiveButtonId           = "exportTechniqueLibraryButton"
-      , archiveButtonName         = "Archive policy library"
+      , archiveButtonName         = "Archive Directive library"
       , archiveFunction           = itemArchiver.exportTechniqueLibrary
-      , archiveErrorMessage       = "Error when exporting policy library."
-      , archiveSuccessDebugMessage= s => "Exporting policy library on user request, archive id: %s".format(s)
+      , archiveErrorMessage       = "Error when exporting Directive library."
+      , archiveSuccessDebugMessage= s => "Exporting Directive library on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importTechniqueLibrarySelect"
       , archiveListFunction       = itemArchiver.getTechniqueLibraryTags _
       , restoreButtonId           = "importTechniqueLibraryButton"
-      , restoreButtonName         = "Restore policy library"
+      , restoreButtonName         = "Restore Directive library"
       , restoreFunction           = itemArchiver.importTechniqueLibrary
       , restoreHeadFunction       = itemArchiver.importHeadTechniqueLibrary
-      , restoreErrorMessage       = "Error when importing policy library."
-      , restoreSuccessDebugMessage= "Importing policy library on user request"
+      , restoreErrorMessage       = "Error when importing Directive library."
+      , restoreSuccessDebugMessage= "Importing Directive library on user request"
     )
   }
   

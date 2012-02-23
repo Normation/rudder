@@ -66,8 +66,8 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
 
 /**
- * Snippet for managing Configuration Rules.
- * It allows to see what Configuration Rules are available,
+ * Snippet for managing Rules.
+ * It allows to see what Rules are available,
  * remove or edit them, 
  * and add new ones. 
  */
@@ -167,7 +167,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
     currentRuleForm.is match {
       case f:Failure => errorDiv(f)
-      case Empty => <div id={htmlId_editCrDiv} class="info">Add a new configuration rule or click on an existing one in the grid to edit its parameters</div>
+      case Empty => <div id={htmlId_editCrDiv} class="info">Add a new Rule or click on an existing one in the grid to edit its parameters</div>
       case Full(form) => form.dispatch("showForm")(NodeSeq.Empty)
     }
   }

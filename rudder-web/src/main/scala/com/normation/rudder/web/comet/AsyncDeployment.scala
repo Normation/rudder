@@ -135,15 +135,15 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   
   private[this] def lastStatus : NodeSeq = {
     deploymentStatus.current match {
-      case NoStatus => <span>Configuration rules application status unavailable</span>
+      case NoStatus => <span>Rules application status unavailable</span>
       case SuccessStatus(id,start,end,configurationNodes) => 
         <span class="deploymentSuccess">
           <img src="/images/icOK.png" alt="Error" height="16" width="16" class="iconscala" />
-          Success: configuration rules applied at {DateFormaterService.getFormatedDate(start)} (took {formatPeriod(new Duration(start,end))})
+          Success: Rules applied at {DateFormaterService.getFormatedDate(start)} (took {formatPeriod(new Duration(start,end))})
         </span>
       case ErrorStatus(id,start,end,failure) => 
         {<span class="error deploymentError"><img src="/images/icfail.png" alt="Error" height="16" width="16" class="iconscala" />
-          Error: configuration rules not applied at {DateFormaterService.getFormatedDate(start)} <br/>(took {formatPeriod(new Duration(start,end))} -
+          Error: Rules not applied at {DateFormaterService.getFormatedDate(start)} <br/>(took {formatPeriod(new Duration(start,end))} -
           <span class="errorscala" id="errorDetailsLink" onClick={
             """$('#errorDetailsDialog').modal({ minHeight:140, minWidth: 300 }); 
                $('#simplemodal-container').css('height', 'auto');
@@ -174,17 +174,17 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       case Processing(id, start) =>
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
-          Generating configuration rules (started at {DateFormaterService.getFormatedDate(start)})
+          Generating Rules (started at {DateFormaterService.getFormatedDate(start)})
         </span>
       case ProcessingAndPendingAuto(asked, Processing(id, start), actor, logId) => 
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
-          Generating configuration rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
+          Generating Rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
         </span>
       case ProcessingAndPendingManual(asked, Processing(id, start), actor, logId) => 
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
-          Generating configuration rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
+          Generating Rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
         </span>
     }
   }

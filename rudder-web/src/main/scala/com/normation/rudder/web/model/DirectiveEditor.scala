@@ -389,11 +389,11 @@ case class MultivaluedSectionField(
 
 /**
  * A stateful class that maintains information about
- * a policy and every things needed in the web part to
+ * a Directive and every things needed in the web part to
  * configure it (fields, etc).
  *
- * @parameter Policy
- *   policy: the policy for witch this editor is build
+ * @parameter Directive
+ *   Directive: the Directive for witch this editor is build
  */
 case class DirectiveEditor(
   //       techniqueId / directiveId here.
@@ -436,7 +436,7 @@ case class DirectiveEditor(
     <div class="policyDisplay">
       <div class="variableDefinition">
         <br/>
-        <div>Variables to be defined for this policy template</div>
+        <div>Variables to be defined for this Technique</div>
         <table class="directiveVarDisplay">
           { sectionField.childFields.flatMap(_.toHtmlNodeSeq) }
         </table>

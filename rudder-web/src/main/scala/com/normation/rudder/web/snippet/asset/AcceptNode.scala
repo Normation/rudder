@@ -317,7 +317,7 @@ class AcceptNode {
   }
   
   /**
-   * Display the expected policies for a machine
+   * Display the expected Directives for a machine
    */
   def showExpectedPolicyPopup(nodeId : NodeId) = {
     
@@ -334,7 +334,7 @@ class AcceptNode {
         Seq( 
             (Text("Since"),
                    {e => Text(DateFormaterService.getFormatedDate(e.creationDate))}),
-            (Text("Policy"), 
+            (Text("Directive"), 
                   { e => SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { 
                       () =>  showExpectedPolicyPopup(e.id)
                     }, ("class", "smallButton")

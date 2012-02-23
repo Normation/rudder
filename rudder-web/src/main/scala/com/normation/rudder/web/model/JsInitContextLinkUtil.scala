@@ -41,8 +41,8 @@ import com.normation.inventory.domain.NodeId
 
 /**
  * That class helps user to create valide JS initialisation context 
- * links for pages that support them (search, policy instance, 
- * configuration rule). 
+ * links for pages that support them (search, Directive, 
+ * Rule). 
  */
 object JsInitContextLinkUtil {
 

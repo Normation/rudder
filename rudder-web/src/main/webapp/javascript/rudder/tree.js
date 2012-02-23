@@ -1,7 +1,7 @@
 
 
 /*
- * Reference policy template library tree
+ * Reference Technique library tree
  */
 var buildReferenceTechniqueTree = function(id,  initially_select) {
   $(id).bind("loaded.jstree", function (event, data) {
@@ -60,7 +60,7 @@ var buildReferenceTechniqueTree = function(id,  initially_select) {
 }
 
 /*
- * User policy template library tree
+ * Active Techniques library tree
  */
 var buildActiveTechniqueTree = function(id, foreignTreeId) {
   $(id).bind("loaded.jstree", function (event, data) {
@@ -135,7 +135,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId) {
 }
 
 /*
- * Policy instance management
+ * Directive management
  */
 var buildDirectiveTree = function(id, initially_select) {
   jQuery(id).jstree({ 
@@ -166,9 +166,9 @@ var buildDirectiveTree = function(id, initially_select) {
               "icon" : { 
                 "image" : "images/tree/blueprint_16x16.png" 
               },
-              "valid_children" : [ "policy" ]
+              "valid_children" : [ "Directive" ]
             },
-            "policy" : {
+            "Directive" : {
               "icon" : { 
                 "image" : "images/tree/policy_16x16.gif" 
               },
@@ -259,7 +259,7 @@ var buildGroupTree = function(id, initially_select) {
 
 
 /*
- * Policy instance management
+ * Directive management
  * NOTE: all children are set to none because
  *       we don't want/have to allow node move -
  *       that tree is read only.
@@ -294,9 +294,9 @@ var buildTechniqueDependencyTree = function(id, initially_select) {
               "icon" : { 
                 "image" : "images/tree/blueprint_16x16.png" 
               },
-              "valid_children" : [ "policy" ]
+              "valid_children" : [ "Directive" ]
             },
-            "policy" : {
+            "Directive" : {
               "icon" : { 
                 "image" : "images/tree/policy_16x16.gif" 
               },
@@ -356,10 +356,10 @@ var buildRulePIdepTree = function(id, initially_select) {
             "icon" : { 
               "image" : "images/tree/blueprint_16x16.png" 
             },
-            "valid_children" : [ "policy" ],
+            "valid_children" : [ "Directive" ],
             "select_node" : false
           },
-          "policy" : {
+          "Directive" : {
             "icon" : { 
               "image" : "images/tree/policy_16x16.gif" 
             },

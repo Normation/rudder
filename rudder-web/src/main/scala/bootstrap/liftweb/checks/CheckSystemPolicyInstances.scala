@@ -52,10 +52,10 @@ class CheckSystemDirectives(
   @throws(classOf[ UnavailableException ])
   override def checks() : Unit = {
     
-    //TODO : validation of system configuration rules 
+    //TODO : validation of system Rules 
     /*
-     * Check for system policy templates, policy instances and
-     * configuration rules. 
+     * Check for Rudder internal Techniques, Directives and
+     * Rules. 
      */
     
   }

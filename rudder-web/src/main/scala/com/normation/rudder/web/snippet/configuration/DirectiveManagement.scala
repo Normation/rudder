@@ -160,7 +160,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     case Full(id) => <div id={ htmlId_policyConf } /> ++ Script(OnLoad(displayDirectiveDetails(DirectiveId(id)) & 
         //Here, we MUST add a Noop because of a Lift bug that add a comment on the last JsLine. 
         Noop ))
-    case _ =>  <div id={ htmlId_policyConf }>Click on a policy instance in the tree above to show and modify its settings.</div>
+    case _ =>  <div id={ htmlId_policyConf }>Click on a Directive in the tree above to show and modify its settings.</div>
   }
   
   
@@ -168,10 +168,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   def initTechniqueDetails : MemoizeTransform = SHtml.memoize {
 
     "#polityTemplateDetails *" #> ( currentTechnique match { 
-      case None => "*" #> <span class="greenscala">Click on a Policy or on a Policy Template...</span>
+      case None => "*" #> <span class="greenscala">Click on a Directive or on a Technique...</span>
       case Some((technique, activeTechnique)) =>
         "#detailFieldsetId *" #> (if(currentDirectiveSettingForm.is.isDefined) {
-                                  "Policy instance's template"
+                                  "Directive's template"
                                 } else {
                                   "Template details"
                                 })&
@@ -186,7 +186,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         "#ptVersions" #> showVersions(activeTechnique) &
         "#migrate" #> showMigration(technique, activeTechnique) &
         "#addButton" #> SHtml.ajaxButton( 
-            { Text("Create a new policy based on template ") ++ <b>{technique.name}</b> },
+            { Text("Create a new Directive based on template ") ++ <b>{technique.name}</b> },
             { () =>  SetHtml(CreateDirectivePopup.htmlId_popup, newCreationPopup(technique,activeTechnique) ) &
                      JsRaw( """ createPopup("%s",300,400) """.format(CreateDirectivePopup.htmlId_popup) ) },
             ("class", "autoWidthButton")
@@ -198,16 +198,16 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     <span>
       {
         if(technique.isMultiInstance) {
-          {<b>Multi instance</b>} ++ Text(": several policies derived from that template can be deployed on a given server")
+          {<b>Multi instance</b>} ++ Text(": several Directives derived from that template can be deployed on a given server")
         } else {
-          {<b>Unique</b>} ++ Text(": an unique policy derived from that template can be deployed on a given server")
+          {<b>Unique</b>} ++ Text(": an unique Directive derived from that template can be deployed on a given server")
         }
       }
     </span>
   }
     
   private[this] def showVersions(activeTechnique:ActiveTechnique) : NodeSeq = {
-    //if we are on a directive node, add a "in use" after the currently used version
+    //if we are on a Policy Server, add a "in use" after the currently used version
     val piVersion = currentDirectiveSettingForm.is.map { form => form.directive.techniqueVersion }
     
     techniqueRepository.getTechniqueVersions(activeTechnique.techniqueName).toSeq.map { v =>
@@ -229,7 +229,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       val id = TechniqueId(activeTechnique.techniqueName, v)
       (for {
         technique <- techniqueRepository.get(id) ?~!
-                          "No policy template with ID=%s found in reference library.".format(id)
+                          "No Technique with ID=%s found in reference library.".format(id)
       } yield {
         technique
       }) match {
@@ -252,7 +252,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                     onSubmitMigration(v,form.directive,activeTechnique)
                 } ) % ( "style", "width:60px;") ) &
               ":submit" #> SHtml.ajaxSubmit("Migrate", { () => 
-                  //update UI: policy instance details
+                  //update UI: Directive details
                   Replace(html_ptDetails, techniqueDetails.applyAgain) &
                   setRightPanelHeader(false) &
                   Replace(htmlId_policyConf, showDirectiveDetails) & 
@@ -279,13 +279,13 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
   
   /**
-   * Configure a system technique to be usable in the
+   * Configure a Rudder internal Technique to be usable in the
    * user Technique (private) library. 
    */
   private[this] def showDirectiveDetails() : NodeSeq = {
     currentDirectiveSettingForm.is match {
-      case Failure(m,_,_) => <div id={htmlId_policyConf} class="error">An error happened when trying to load policy configuration. Error message was: {m}</div>
-      case Empty => <div id={htmlId_policyConf}>Click on a policy instance to show and modify its settings</div>
+      case Failure(m,_,_) => <div id={htmlId_policyConf} class="error">An error happened when trying to load Directive configuration. Error message was: {m}</div>
+      case Empty => <div id={htmlId_policyConf}>Click on a Directive to show and modify its settings</div>
       //here we CAN NOT USE <lift:DirectiveEditForm.showForm /> because lift seems to cache things
       //strangely, and if so, after an form save, clicking on tree node does nothing
       // (or more exactly, the call to "onclicknode" is correct, the currentDirectiveSettingForm
@@ -307,15 +307,15 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
    
   private[this] def displayDirectiveDetails(directiveId: DirectiveId): JsCmd = {
-    //Set current policy instance edition component to the given value
+    //Set current Directive edition component to the given value
     (for {
       directive <- directiveRepository.getDirective(directiveId) ?~! 
-            "No user policy instance with ID=%s.".format(directiveId)
+            "No user Directive with ID=%s.".format(directiveId)
       activeTechnique <- directiveRepository.getActiveTechnique(directiveId) ?~! 
-                            "Can not find the user policy template for policy instance %s".format(directiveId)
+                            "Can not find the Active Technique for Directive %s".format(directiveId)
       activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
       technique <- techniqueRepository.get(activeTechniqueId) ?~!
-                        "No policy template with ID=%s found in reference library.".format(activeTechniqueId)
+                        "No Technique with ID=%s found in reference library.".format(activeTechniqueId)
     } yield {
       (technique, activeTechnique,directive)
     }) match {
@@ -325,7 +325,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case e:EmptyBox => currentDirectiveSettingForm.set(e)
     }
     
-    //update UI: policy instance details
+    //update UI: Directive details
     Replace(html_ptDetails, techniqueDetails.applyAgain) &
     setRightPanelHeader(true) &
     Replace(htmlId_policyConf, showDirectiveDetails) &
@@ -346,7 +346,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * Transform ActiveTechniqueCategory into category JsTree nodes in User Library:
    * - contains 
    *   - other user categories
-   *   - user policy templates
+   *   - Active Techniques
    */
   private[this] def jsTreeNodeOf_uptCategory(category:ActiveTechniqueCategory, nodeId:String) : JsTreeNode = {
     /*
@@ -402,7 +402,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
     
     /*
-     * Transform a Policy template category into a JsTree node
+     * Transform a Technique category into a JsTree node
      */
     new JsTreeNode {
       override def body = { 
