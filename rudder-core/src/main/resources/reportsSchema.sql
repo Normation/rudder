@@ -177,7 +177,7 @@ PRIMARY KEY(rulePkeyId, groupId)
 
 CREATE TABLE RulesDirectivesJoin (
 rulePkeyId integer, -- really the id of the table Rules
-directiveId text NOT NULL CHECK (policyInstanceId <> ''),
+directiveId text NOT NULL CHECK (directiveId <> ''),
 PRIMARY KEY(rulePkeyId, directiveId)
 );
 
