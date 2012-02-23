@@ -200,8 +200,8 @@ rudder.autoDeployOnModification=true
 #
 # Boolean, defaults to true
 # If true, REST API urls under /api/... won't require
-# to be authenticated to be use. 
-# The rational to have default=true for that is that the
+# to be authenticated to be accessed. 
+# The reason to have default=true for that is that the
 # authorization/authentication part for the REST API
 # will be done by a third party software, like Apache
 #
