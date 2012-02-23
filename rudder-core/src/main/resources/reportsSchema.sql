@@ -138,7 +138,7 @@ create sequence directivesId START 101;
 
 CREATE TABLE Directives (
 id integer PRIMARY KEY default nextval('directivesId'),
-directiveId text NOT NULL CHECK (policyInstanceId <> ''),
+directiveId text NOT NULL CHECK (directiveId <> ''),
 directiveName text,
 directiveDescription text,
 priority integer NOT NULL,
