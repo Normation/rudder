@@ -27,7 +27,7 @@ description: Branch that stores all Rudder specific data
 dn: ou=Nodes Configuration,ou=Rudder,cn=rudder-configuration
 objectClass: organizationalUnit
 objectClass: top
-ou: Nodes
+ou: Nodes Configuration
 
 ## Inventories related branches
 
