@@ -35,7 +35,6 @@
 package com.normation.rudder.repository.xml
 
 import java.io.InputStream
-
 import org.eclipse.jgit.lib.{Constants => JConstants}
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
@@ -43,10 +42,11 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import org.eclipse.jgit.treewalk.filter.TreeFilter
 import org.eclipse.jgit.treewalk.TreeWalk
-
 import com.normation.utils.HashcodeCaching
-
 import net.liftweb.common._
+import com.normation.utils.ZipUtils
+import java.io.File
+import java.io.ByteArrayOutputStream
 
 
 /**
@@ -139,6 +139,43 @@ object GitFindUtils extends Loggable {
       Full(id)
     }
   }
+  
+  
+ /**
+  * Get a zip file containing files for commit "revTreeId". 
+  * You can filter files only some directory by giving 
+  * a root path. 
+  */
+  def getZip(db:Repository, revTreeId:ObjectId, onlyUnderPath: String = "") : Box[Array[Byte]] = {
+    import scala.collection.mutable.{Set,Buffer}
+    import com.normation.utils.ZipUtils.Zippable
+
+    
+    val directories = scala.collection.mutable.Set[String]()
+    
+    val zipEntries = scala.collection.mutable.Buffer[Zippable]()
+    try {
+      val tw = new TreeWalk(db)
+      tw.setFilter(new FileTreeFilter( { if(onlyUnderPath == "") None else Some(onlyUnderPath) }, None))
+      tw.setRecursive(true)
+      tw.reset(revTreeId)
+  
+      while(tw.next) {
+        val path = tw.getPathString
+        directories += (new File(path)).getParent
+        zipEntries += Zippable(path, Some(GitFindUtils.getFileContent(db,revTreeId,path) _))
+      }
+       
+      //start by creating all directories, then all content
+      val all = directories.map(p => Zippable(p, None)).toSeq ++ zipEntries
+      val out = new ByteArrayOutputStream()
+      
+      ZipUtils.zip(out, all)
+      Full(out.toByteArray())
+    } catch {
+      case e:Exception => Failure("Error when creating a zip from files in commit with id: '%s'".format(revTreeId))
+    }
+  }  
 }
 
 /**
