@@ -81,7 +81,7 @@ object RuleEditForm {
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
     } yield {
-      chooseTemplate("component", "body", xml) ++ Script(OnLoad(JsRaw("""$( "#editCrZone" ).tabs()""") ))
+      chooseTemplate("component", "body", xml) ++ Script(OnLoad(JsRaw("""$( "#editRuleZone" ).tabs()""") ))
     }) openOr Nil
 
   private def crForm = 
@@ -93,7 +93,7 @@ object RuleEditForm {
 
     
   val htmlId_groupTree = "groupTree"
-  val htmlId_userTree = "userPiTree"
+  val htmlId_activeTechniquesTree = "userPiTree"
 }
 
 /**
@@ -169,7 +169,7 @@ class RuleEditForm(
       "#nameField" #> crName.toForm_! &
       "#shortDescriptionField" #> crShortDescription.toForm_! &
       "#longDescriptionField" #> crLongDescription.toForm_! &
-      "#selectPiField" #> {<div id={htmlId_userTree}>
+      "#selectPiField" #> {<div id={htmlId_activeTechniquesTree}>
             <ul>{activeTechniqueCategoryToJsTreeNode(activeTechniqueCategoryRepository.getActiveTechniqueLibrary).toXml}</ul>
            </div> } &
       "#selectGroupField" #> { <div id={htmlId_groupTree}>
@@ -197,7 +197,7 @@ class RuleEditForm(
           $('#selectedPis').val(JSON.stringify(
             $.jstree._reference('#%s').get_selected().map(function(){
               return this.id;
-            }).get()));""".format(htmlId_userTree) 
+            }).get()));""".format(htmlId_activeTechniquesTree) 
         ))) &
       OnLoad(
         //build jstree and
@@ -209,7 +209,7 @@ class RuleEditForm(
         )) &
         //function to update list of PIs before submiting form
         JsRaw("buildRulePIdepTree('#%1$s', %2$s);".format(  
-            htmlId_userTree,
+            htmlId_activeTechniquesTree,
             serializedirectiveIds(selectedPis.toSeq)
         )) &
         After(TimeSpan(50), JsRaw("""createTooltip();"""))

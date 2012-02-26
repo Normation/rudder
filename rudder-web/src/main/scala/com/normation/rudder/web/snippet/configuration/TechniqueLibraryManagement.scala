@@ -121,7 +121,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         htmlId_bottomPanel,
         technique,
         currentTechniqueCategoryDetails.is.map( _.getCategory ),
-        { () => Replace(htmlId_userTree, userLibrary) } 
+        { () => Replace(htmlId_activeTechniquesTree, userLibrary) } 
     )))
   }
   
@@ -131,7 +131,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         htmlId_bottomPanel,
         category,
         rootCategoryId,
-        { () => Replace(htmlId_userTree, userLibrary) } 
+        { () => Replace(htmlId_activeTechniquesTree, userLibrary) } 
     )))
   }
   
@@ -173,7 +173,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Categories are ordered in trees of subcategories. 
    */
   def systemLibrary() : NodeSeq = {
-    <div id={htmlId_referenceTree}>
+    <div id={htmlId_techniqueLibraryTree}>
       <ul>{jsTreeNodeOf_ptCategory(techniqueRepository.getTechniqueLibrary).toXml}</ul>
       {Script(OnLoad(buildReferenceLibraryJsTree))}
     </div>  
@@ -183,7 +183,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Display the actions bar of the user library
    */
   def userLibraryAction() : NodeSeq = {
-    <div>{SHtml.ajaxButton("Create a new category", () => showCreateUserPTCategoryPopup(), ("class", "autoWidthButton"))}</div>
+    <div>{SHtml.ajaxButton("Create a new category", () => showCreateActiveTechniqueCategoryPopup(), ("class", "autoWidthButton"))}</div>
   }
 
   /**
@@ -194,7 +194,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Categories are ordered in trees of subcategories. 
    */
   def userLibrary() : NodeSeq = {
-    <div id={htmlId_userTree}>
+    <div id={htmlId_activeTechniquesTree}>
       <ul>{jsTreeNodeOf_uptCategory(activeTechniqueCategoryRepository.getActiveTechniqueLibrary).toXml}</ul>
       { 
         Script(OnLoad(
@@ -259,7 +259,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             });
           """.format(
             // %1$s 
-            htmlId_userTree , 
+            htmlId_activeTechniquesTree , 
             // %2$s
             SHtml.ajaxCall(JsVar("arg"), bindTechnique _ )._2.toJsCmd,
             // %3$s
@@ -267,7 +267,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             // %4$s
             SHtml.ajaxCall(JsVar("arg"), moveCategory _)._2.toJsCmd,
             
-            htmlId_referenceTree
+            htmlId_techniqueLibraryTree
           )))
         )
       }
@@ -407,8 +407,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def refreshTree() : JsCmd =  {
-    Replace(htmlId_referenceTree, systemLibrary) &
-    Replace(htmlId_userTree, userLibrary) &
+    Replace(htmlId_techniqueLibraryTree, systemLibrary) &
+    Replace(htmlId_activeTechniquesTree, userLibrary) &
     OnLoad(After(TimeSpan(100), JsRaw("""createTooltip();""")))
   }
   
@@ -432,7 +432,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Javascript to initialize the reference library tree
    */
   private[this] def buildReferenceLibraryJsTree : JsExp = JsRaw(
-    """buildReferenceTechniqueTree('#%s','%s')""".format(htmlId_referenceTree,{
+    """buildReferenceTechniqueTree('#%s','%s')""".format(htmlId_techniqueLibraryTree,{
       techniqueId match {
         case Full(activeTechniqueId) => "ref-technique-"+activeTechniqueId
         case _ => ""
@@ -444,7 +444,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Javascript to initialize the user library tree
    */
   private[this] def buildUserLibraryJsTree : JsExp = JsRaw(
-    """buildActiveTechniqueTree('#%s', '%s')""".format(htmlId_userTree, htmlId_referenceTree)
+    """buildActiveTechniqueTree('#%s', '%s')""".format(htmlId_activeTechniquesTree, htmlId_techniqueLibraryTree)
   )
 
     
@@ -586,12 +586,12 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     """)
   }
 
-  private[this] def showCreateUserPTCategoryPopup() : JsCmd = {
+  private[this] def showCreateActiveTechniqueCategoryPopup() : JsCmd = {
     setCreationPopup
 
     //update UI
-    SetHtml("createPTCategoryContainer", createPopup) &
-    JsRaw( """ createPopup("createPTCategoryPopup",300,400)
+    SetHtml("createActiveTechniquesCategoryContainer", createPopup) &
+    JsRaw( """ createPopup("createActiveTechniqueCategoryPopup",300,400)
      """)
 
   }
@@ -606,7 +606,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             logger.debug(error.messageChain, e)
             S.error("updateKO", error.msg)
         }
-        Replace("reloadPTLibForm",outerXml.applyAgain) & refreshTree
+        Replace("reloadTechniqueLibForm",outerXml.applyAgain) & refreshTree
       }
       
       
@@ -624,9 +624,9 @@ object TechniqueLibraryManagement {
   /*
    * HTML id for zones with Ajax / snippet output
    */
-  val htmlId_referenceTree = "referenceTree"
-  val htmlId_userTree = "userTree"
+  val htmlId_techniqueLibraryTree = "techniqueLibraryTree"
+  val htmlId_activeTechniquesTree = "activeTechniquesTree"
   val htmlId_addPopup = "addPopup"
-  val htmlId_addToUserLib = "addToUserLib"
+  val htmlId_addToActiveTechniques = "addToActiveTechniques"
   val htmlId_bottomPanel = "bottomPanel"
 }

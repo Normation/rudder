@@ -113,7 +113,7 @@ class ExpectedPolicyPopup(
         ClearClearable & 
         "#dependentRulesGrid" #> rulesGrid 
     )(bind("expectedPolicyPopup",expectedTechnique, 
-      "server" -> displayNode(nodeId), 
+      "node" -> displayNode(nodeId), 
       "close" -> <button onClick="$.modal.close(); return false;">Close</button>
     ) ) 
   }

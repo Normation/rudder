@@ -163,11 +163,11 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
   }
   
   def editRule() : NodeSeq = {
-    def errorDiv(f:Failure) = <div id={htmlId_editCrDiv} class="error">Error in the form: {f.messageChain}</div>
+    def errorDiv(f:Failure) = <div id={htmlId_editRuleDiv} class="error">Error in the form: {f.messageChain}</div>
 
     currentRuleForm.is match {
       case f:Failure => errorDiv(f)
-      case Empty => <div id={htmlId_editCrDiv} class="info">Add a new Rule or click on an existing one in the grid to edit its parameters</div>
+      case Empty => <div id={htmlId_editRuleDiv} class="info">Add a new Rule or click on an existing one in the grid to edit its parameters</div>
       case Full(form) => form.dispatch("showForm")(NodeSeq.Empty)
     }
   }
@@ -177,7 +177,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
     //update UI
     Replace(htmlId_viewAll,  viewRules()) &
-    Replace(htmlId_editCrDiv, editRule()) 
+    Replace(htmlId_editRuleDiv, editRule()) 
   }
    
   /**
@@ -221,7 +221,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
   private[this] def updateEditComponent(rule:Rule) : Unit = {
     val form = new RuleEditForm(
-        htmlId_editCrDiv+"Form",
+        htmlId_editRuleDiv+"Form",
         rule,
         onSuccessCallback = { () => 
           //update UI
@@ -234,7 +234,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
   private[this] def detailsCallbackLink(rule:Rule) : JsCmd = {
     updateEditComponent(rule)
     //update UI
-    Replace(htmlId_editCrDiv, editRule()) &
+    Replace(htmlId_editRuleDiv, editRule()) &
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'ruleId':'%s'})""".format(rule.id.value)) 
   }
   
@@ -242,8 +242,8 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
 
 object RuleManagement {
-  val htmlId_editCrDiv = "editCrZone"
-  val htmlId_viewAll = "viewAllCrZone"
+  val htmlId_editRuleDiv = "editRuleZone"
+  val htmlId_viewAll = "viewAllRulesZone"
   val htmlId_addPopup = "add-rule-popup"
   val htmlId_addCrButton = "add-rule-button"
 }

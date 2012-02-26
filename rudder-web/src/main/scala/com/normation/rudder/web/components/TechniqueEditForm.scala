@@ -83,7 +83,7 @@ object TechniqueEditForm {
   
   val htmlId_techniqueConf = "techniqueConfiguration"
   val htmlId_addPopup = "addPopup"
-  val htmlId_addToUserLib = "addToUserLib"
+  val htmlId_addToActiveTechniques = "addToActiveTechniques"
   val htmlId_userCategoryDetails = "userCategoryDetails"
   val htmlId_addUserCategoryForm = "addUserCategoryForm"
 }
@@ -279,7 +279,7 @@ class TechniqueEditForm(
    * - else display an add button to add in the current category
    */
   def showTechniqueUserCategory() : NodeSeq = {
-    <div id={htmlId_addToUserLib}>Client category: { 
+    <div id={htmlId_addToActiveTechniques}>Client category: { 
         findUserBreadCrump(technique) match {
           case Some(listCat) => 
             <ul class="inlinenotop">
@@ -300,7 +300,7 @@ class TechniqueEditForm(
                   activeTechniqueRepository.addTechniqueInUserLibrary(category.id, technique.id.name, techniqueRepository.getTechniqueVersions(technique.id.name).toSeq, CurrentUser.getActor) 
                   
                   //update UI
-                  Replace(htmlId_addToUserLib, showTechniqueUserCategory() ) &
+                  Replace(htmlId_addToActiveTechniques, showTechniqueUserCategory() ) &
                   onSuccessCallback()
                 }
   

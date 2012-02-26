@@ -63,7 +63,7 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
  * 
  */
 class TechniqueTree(
-  htmlId_userTree:String, 
+  htmlId_activeTechniquesTree:String, 
   techniqueId:ActiveTechniqueId,
   switchStatusFilter : ModificationStatus 
 ) extends DispatchSnippet with Loggable {
@@ -99,7 +99,7 @@ class TechniqueTree(
       categoryNode(rootCat,subCats, dep, technique, activeTechnique)
     }) match {
       case Full(treeNode) => {<ul>{treeNode.toXml}</ul>} ++ Script(OnLoad(JsRaw(
-          """buildTechniqueDependencyTree('#%s'); createTooltip();""".format(htmlId_userTree)
+          """buildTechniqueDependencyTree('#%s'); createTooltip();""".format(htmlId_activeTechniquesTree)
       )))
       case e:EmptyBox => 
         val msg = "Can not build tree of dependencies for Technique %s".format(techniqueId)

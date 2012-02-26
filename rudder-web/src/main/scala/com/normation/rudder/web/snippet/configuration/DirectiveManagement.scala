@@ -134,12 +134,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   
   
   /**
-   * Almost same as Technique/userTree
+   * Almost same as Technique/activeTechniquesTree
    * TODO : factor out that part
    */
   def userLibrary() : NodeSeq = {
     (
-        <div id={htmlId_userTree}>
+        <div id={htmlId_activeTechniquesTree}>
           <ul>{jsTreeNodeOf_uptCategory(activeTechniqueCategoryRepository.getActiveTechniqueLibrary, "jstn_0").toXml}</ul>
         </div>
     ) ++ Script(OnLoad(buildJsTree))
@@ -147,7 +147,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   
 
   private[this] def buildJsTree() : JsCmd = {
-    JsRaw("""buildDirectiveTree('#%s', '%s')""".format(htmlId_userTree, {
+    JsRaw("""buildDirectiveTree('#%s', '%s')""".format(htmlId_activeTechniquesTree, {
       directiveId match {
         case Full(id) => "jsTree-" + id
         case _ => ""
@@ -167,7 +167,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   
   def initTechniqueDetails : MemoizeTransform = SHtml.memoize {
 
-    "#polityTemplateDetails *" #> ( currentTechnique match { 
+    "#techniqueDetails *" #> ( currentTechnique match { 
       case None => "*" #> <span class="greenscala">Click on a Directive or on a Technique...</span>
       case Some((technique, activeTechnique)) =>
         "#detailFieldsetId *" #> (if(currentDirectiveSettingForm.is.isDefined) {
@@ -183,7 +183,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         "#techniqueDescription" #>  technique.description &
         "#techniqueLongDescription" #>  technique.longDescription &
         "#isSingle *" #> showIsSingle(technique) &
-        "#ptVersions" #> showVersions(activeTechnique) &
+        "#techniqueVersions" #> showVersions(activeTechnique) &
         "#migrate" #> showMigration(technique, activeTechnique) &
         "#addButton" #> SHtml.ajaxButton( 
             { Text("Create a new Directive based on template ") ++ <b>{technique.name}</b> },
@@ -208,11 +208,11 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     
   private[this] def showVersions(activeTechnique:ActiveTechnique) : NodeSeq = {
     //if we are on a Policy Server, add a "in use" after the currently used version
-    val piVersion = currentDirectiveSettingForm.is.map { form => form.directive.techniqueVersion }
+    val directiveVersion = currentDirectiveSettingForm.is.map { form => form.directive.techniqueVersion }
     
     techniqueRepository.getTechniqueVersions(activeTechnique.techniqueName).toSeq.map { v =>
           <li><b>{v.toString}</b>, last accepted on: {DateFormaterService.getFormatedDate(activeTechnique.acceptationDatetimes(v))} {
-            piVersion match {
+            directiveVersion match {
               case Full(x) if(x == v) => <i>(version used)</i>
               case _ => NodeSeq.Empty
             }
@@ -253,7 +253,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                 } ) % ( "style", "width:60px;") ) &
               ":submit" #> SHtml.ajaxSubmit("Migrate", { () => 
                   //update UI: Directive details
-                  Replace(html_ptDetails, techniqueDetails.applyAgain) &
+                  Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
                   setRightPanelHeader(false) &
                   Replace(htmlId_policyConf, showDirectiveDetails) & 
                   displayFinishMigrationPopup
@@ -326,7 +326,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
     
     //update UI: Directive details
-    Replace(html_ptDetails, techniqueDetails.applyAgain) &
+    Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
     setRightPanelHeader(true) &
     Replace(htmlId_policyConf, showDirectiveDetails) &
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})""".format(directiveId.value))
@@ -335,7 +335,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] def updateCf3PolicyDraftInstanceSettingFormComponent(technique:Technique,activeTechnique:ActiveTechnique,directive:Directive, piCreation : Boolean = false) : Unit = {
     currentDirectiveSettingForm.set(Full(
         new DirectiveEditForm(htmlId_policyConf,technique, activeTechnique,directive,
-            onSuccessCallback = { () => Replace(htmlId_userTree, userLibrary()) },
+            onSuccessCallback = { () => Replace(htmlId_activeTechniquesTree, userLibrary()) },
             piCreation = piCreation
         )))
   }
@@ -361,7 +361,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             currentDirectiveSettingForm.set(Empty)
               
             //Update UI
-            Replace(html_ptDetails, techniqueDetails.applyAgain) &
+            Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
             setRightPanelHeader(false) &
             Replace(htmlId_policyConf, showDirectiveDetails) & JsRaw("""correctButtons();""")
         }
@@ -427,11 +427,11 @@ object DirectiveManagement {
   /*
    * HTML id for zones with Ajax / snippet output
    */
-  val htmlId_userTree = "userTree"
+  val htmlId_activeTechniquesTree = "activeTechniquesTree"
   val htmlId_policyConf = "policyConfiguration"
   val htmlId_currentActiveTechniqueActions = "currentActiveTechniqueActions"
   val html_addPiInActiveTechnique = "addNewDirective" 
-  val html_ptDetails = "polityTemplateDetails"
+  val html_techniqueDetails = "techniqueDetails"
 
 }
 

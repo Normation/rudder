@@ -120,7 +120,7 @@ class TechniqueCategoryEditForm(
       case Full(id) =>
         //update UI
         JsRaw("$.modal.close();") & 
-        onSuccessCallback() & //Replace(htmlId_userTree, userLibrary) & 
+        onSuccessCallback() & //Replace(htmlId_activeTechniquesTree, userLibrary) & 
         SetHtml(htmlId_form, <span class="greenscala">Category successfully deleted</span>) &
         successPopup
           
@@ -229,7 +229,7 @@ class TechniqueCategoryEditForm(
            } else {
              successPopup &
              SetHtml(htmlId_categoryDetailsForm, categoryDetailsForm) &
-             onSuccessCallback() //Replace(htmlId_userTree, <lift:configuration.TechniqueLibraryManagement.userLibrary />) & buildUserLibraryJsTree
+             onSuccessCallback() //Replace(htmlId_activeTechniquesTree, <lift:configuration.TechniqueLibraryManagement.userLibrary />) & buildUserLibraryJsTree
            }
          }
        } ),

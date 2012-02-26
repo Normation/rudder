@@ -52,12 +52,12 @@ var clearSearchFieldTree = function(inputId, treeId) {
               <a href="secure/configurationManager/techniqueLibraryManagement">Techniques screen</a>.</p>
           </div>
 
-          <div id="userTree_actions_zone" style="margin:10px;">
-            <span onclick="openAllNodes('#userTree');"><img src="/images/open-plus.png" alt="Open all categories" title="Open all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
-            <span onclick="closeAllNodes('#userTree');"><img src="/images/close-minus.png" alt="Close all categories" title="Close all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
-            <span><input id="treeSearch" type="text" value="Search" onkeyup="searchTree('#treeSearch', '#userTree');" onfocus="focusSearchFieldTree('#treeSearch');" class="tooltipable" tooltipid="treeSearchTooltip"/></span>
+          <div id="activeTechniquesTree_actions_zone" style="margin:10px;">
+            <span onclick="openAllNodes('#activeTechniquesTree');"><img src="/images/open-plus.png" alt="Open all categories" title="Open all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
+            <span onclick="closeAllNodes('#activeTechniquesTree');"><img src="/images/close-minus.png" alt="Close all categories" title="Close all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
+            <span><input id="treeSearch" type="text" value="Search" onkeyup="searchTree('#treeSearch', '#activeTechniquesTree');" onfocus="focusSearchFieldTree('#treeSearch');" class="tooltipable" tooltipid="treeSearchTooltip"/></span>
             <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
-            <span onclick="clearSearchFieldTree('#treeSearch', '#userTree')"><img src="/images/close-cross.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
+            <span onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree')"><img src="/images/close-cross.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
           </div>
           <lift:configuration.DirectiveManagement.userLibrary />
         </div>
@@ -68,8 +68,8 @@ var clearSearchFieldTree = function(inputId, treeId) {
         <div class="portlet-header"><span id="detailsPortletTitle">Technique summary</span></div>
         <div class="portlet-content">
           <lift:configuration.DirectiveManagement.techniqueDetails>
-            <div id="polityTemplateDetails">
-            <fieldset class="deca"><legend id="detailFieldsetId">Template details</legend>
+            <div id="techniqueDetails">
+            <fieldset class="deca"><legend id="detailFieldsetId">Technique details</legend>
               <div id="directiveIntro">
                 The Directive <b class="directive">[Directive]</b> is based on following Technique:
                 <br/><br/>
@@ -87,7 +87,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
               </div>
               <fieldset class="pimversionspad"><legend>Versions available</legend>
                 <ul class="evlogviewpad">
-                  <li id="ptVersions">[here come version: date]</li>
+                  <li id="techniqueVersions">[here come version: date]</li>
                 </ul>
                 <div id="migrate">
                   <br/>
@@ -108,7 +108,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
       </div>
     </div>
     
-    <div id="createPiPopup" class="nodisplay">
+    <div id="createDirectivePopup" class="nodisplay">
       <lift:ignore>
       This div gets the content of the createDirective injected within
       </lift:ignore>

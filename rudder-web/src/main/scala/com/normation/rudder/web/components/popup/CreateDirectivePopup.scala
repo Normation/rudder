@@ -36,74 +36,95 @@ package com.normation.rudder.web.components.popup
 
 import net.liftweb.http.js._
 import JsCmds._
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.domain.policies.{Rule,RuleId}
-
-// For implicits
+import com.normation.rudder.domain.policies._
 import JE._
 import net.liftweb.common._
 import net.liftweb.http.{SHtml,DispatchSnippet,Templates}
 import scala.xml._
 import net.liftweb.util.Helpers._
-
+import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField
 }
-import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import CreateRulePopup._
-import com.normation.rudder.domain.log.AddRule
-import com.normation.rudder.web.model.CurrentUser
+import CreateDirectivePopup._
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.cfclerk.domain.{TechniqueVersion,TechniqueName}
 
-class CreateRulePopup(
-  onSuccessCallback : (Rule) => JsCmd = { (rule : Rule) => Noop },
+
+
+object CreateDirectivePopup {
+  val htmlId_popupContainer = "createDirectiveContainer"
+  val htmlId_popup = "createDirectivePopup"
+    
+  val html =  SHtml.ajaxForm(
+  <div id="createDirectiveContainer">
+    <div class="simplemodal-title">
+      <h1>Create a new Directive based on <span id="techniqueName">TECHNIQUE NAME</span></h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+      <hr class="spacer"/>
+      <div id="notifications">Here comes validation messages</div>
+      <hr class="spacer"/>
+      <div id="itemName">Here come the Directive name</div>
+      <hr class="spacer"/>
+      <div id="itemDescription">Here come the short description</div>
+      <hr class="spacer"/>
+    </div>
+    <div class="simplemodal-bottom">
+      <hr/>
+      <div class="popupButton">
+        <span>
+          <button id="cancel" class="simplemodal-close">Cancel</button>
+          <button id="save">Configure</button>
+        </span>
+     </div>
+   </div>
+  </div>)
+}
+
+
+class CreateDirectivePopup(
+  techniqueName:String,
+  techniqueDescription:String, // this field is unused
+  techniqueVersion:TechniqueVersion,
+  onSuccessCallback : (Directive) => JsCmd = { (directive : Directive) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
-       ) extends DispatchSnippet with Loggable {
-
-  // Load the template from the popup
-  def templatePath = List("templates-hidden", "Popup", "createRule")
-  def template() =  Templates(templatePath) match {
-     case Empty | Failure(_,_,_) =>
-       error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
-     case Full(n) => n
-  }
-  def popupTemplate = chooseTemplate("rule", "createRulePopup", template)
-
-
-  private[this] val ruleRepository = inject[RuleRepository]
+) extends DispatchSnippet with Loggable {
+  
   private[this] val uuidGen = inject[StringUuidGenerator]
 
   def dispatch = {
-    case "popupContent" => popupContent _
+    case "popupContent" => { _ => popupContent }
   }
 
-  def initJs : JsCmd = {
-      JsRaw("correctButtons();")
-  }
 
-  def popupContent(html : NodeSeq) : NodeSeq = {
+  def popupContent() : NodeSeq = {
 
-    SHtml.ajaxForm(bind("item", popupTemplate,
-      "itemName" -> piName.toForm_!,
-      "itemShortDescription" -> piShortDescription.toForm_!,
-      "notifications" -> updateAndDisplayNotifications(),
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","3")
-    ))
+    (
+      "#techniqueName" #> techniqueName &
+      "#itemName" #> directiveName.toForm_! &
+      "#itemDescription" #> directiveShortDescription.toForm_! &
+      "#notifications" #> updateAndDisplayNotifications() &
+      "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"))&
+      "#save" #> (SHtml.ajaxSubmit("Configure", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3"))
+    )(html ++ Script(OnLoad(JsRaw("correctButtons();"))))
+    
   }
 
   ///////////// fields for category settings ///////////////////
-  private[this] val piName = new WBTextField("Name: ", "") {
+  private[this] val directiveName = new WBTextField("Name: ", "") {
     override def displayNameHtml = Some(<b>{displayName}</b>)
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "twoCol"
     override def errorClassName = ""
-    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createCRSaveButton')") % ("tabindex","1")
+    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val piShortDescription = new WBTextAreaField("Short description: ", "") {
+  private[this] val directiveShortDescription = new WBTextAreaField("Short description: ", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
     override def className = "twoCol"
@@ -112,7 +133,7 @@ class CreateRulePopup(
 
   }
 
-  private[this] val formTracker = new FormTracker(piName,piShortDescription)
+  private[this] val formTracker = new FormTracker(directiveName,directiveShortDescription)
 
   private[this] var notifications = List.empty[NodeSeq]
 
@@ -126,47 +147,27 @@ class CreateRulePopup(
    * Update the form when something happened
    */
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml(htmlId_popupContainer, popupContent(NodeSeq.Empty)) &
-    initJs
+    SetHtml(htmlId_popupContainer, popupContent())
   }
 
   private[this] def onSubmit() : JsCmd = {
+    
     if(formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
+      val directive = new Directive(
+        id = DirectiveId(uuidGen.newUuid),
+        techniqueVersion = techniqueVersion,
+        parameters = Map(),
+        name = directiveName.is,
+        shortDescription = directiveShortDescription.is,
+        isEnabled = true
+      )
 
-      val rule = Rule(
-          id = RuleId(uuidGen.newUuid),
-          name = piName.is,
-          serial = 0,
-          shortDescription = piShortDescription.is,
-          isEnabledStatus = true)
-
-
-      ruleRepository.create(rule, CurrentUser.getActor) match {
-          case Full(x) => 
-            closePopup() & onSuccessCallback(rule)
-          case Empty =>
-            logger.error("An error occurred while saving the Rule")
-            formTracker.addFormError(error("An error occurred while saving the Rule"))
-            onFailure & onFailureCallback()
-          case Failure(m,_,_) =>
-            logger.error("An error occurred while saving the Rule:" + m)
-            formTracker.addFormError(error("An error occurred while saving the Rule: " + m))
-            onFailure & onFailureCallback()
-      }
+      closePopup() & onSuccessCallback(directive)
     }
   }
-/*
-  private[this] def onCreateSuccess : JsCmd = {
-    notifications ::=  <span class="greenscala">The group was successfully created</span>
-    updateFormClientSide
-  }
-  private[this] def onUpdateSuccess : JsCmd = {
-    notifications ::=  <span class="greenscala">The group was successfully updated</span>
-    updateFormClientSide
-  }
-*/
+
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
     updateFormClientSide() 
@@ -187,7 +188,3 @@ class CreateRulePopup(
 }
 
 
-object CreateRulePopup {
-  val htmlId_popupContainer = "createRuleContainer"
-  val htmlId_popup = "createRulePopup"
-}

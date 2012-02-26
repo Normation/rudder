@@ -34,94 +34,85 @@
 
 package com.normation.rudder.web.components.popup
 
-import net.liftweb.http.LocalSnippet
-
 import net.liftweb.http.js._
 import JsCmds._
 import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.domain.policies.{ActiveTechniqueCategory,ActiveTechniqueCategoryId}
+import com.normation.rudder.domain.policies.{Rule,RuleId}
 
 // For implicits
 import JE._
 import net.liftweb.common._
-import net.liftweb.http.{SHtml,S,DispatchSnippet,Templates}
+import net.liftweb.http.{SHtml,DispatchSnippet,Templates}
 import scala.xml._
-import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 
-
 import com.normation.rudder.web.model.{
-  WBTextField, FormTracker, WBTextAreaField,WBSelectField, CurrentUser
+  WBTextField, FormTracker, WBTextAreaField
 }
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
+import CreateRulePopup._
+import com.normation.rudder.domain.log.AddRule
+import com.normation.rudder.web.model.CurrentUser
 
-
-class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () => Noop },
+class CreateRulePopup(
+  onSuccessCallback : (Rule) => JsCmd = { (rule : Rule) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
        ) extends DispatchSnippet with Loggable {
 
- // Load the template from the popup
-  def templatePath = List("templates-hidden", "Popup", "createUserPTCategory")
+  // Load the template from the popup
+  def templatePath = List("templates-hidden", "Popup", "createRule")
   def template() =  Templates(templatePath) match {
      case Empty | Failure(_,_,_) =>
        error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
      case Full(n) => n
   }
-  def popupTemplate = chooseTemplate("technique", "createCategoryPopup", template)
+  def popupTemplate = chooseTemplate("rule", "createRulePopup", template)
 
 
-  private[this] val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
+  private[this] val ruleRepository = inject[RuleRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
-
-  private[this] val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories()
 
   def dispatch = {
     case "popupContent" => popupContent _
   }
 
   def initJs : JsCmd = {
-    JsRaw("correctButtons();")
+      JsRaw("correctButtons();")
   }
 
   def popupContent(html : NodeSeq) : NodeSeq = {
+
     SHtml.ajaxForm(bind("item", popupTemplate,
-      "itemName" -> piName.toForm_!,
-      "itemContainer" -> piContainer.toForm_!,
-      "itemDescription" -> piDescription.toForm_!,
+      "itemName" -> ruleName.toForm_!,
+      "itemShortDescription" -> ruleShortDescription.toForm_!,
       "notifications" -> updateAndDisplayNotifications(),
       "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createUPTCSaveButton") % ("tabindex","3")
+      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","3")
     ))
   }
 
-///////////// fields for category settings ///////////////////
-  private[this] val piName = new WBTextField("Name: ", "") {
+  ///////////// fields for category settings ///////////////////
+  private[this] val ruleName = new WBTextField("Name: ", "") {
     override def displayNameHtml = Some(<b>{displayName}</b>)
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "twoCol"
     override def errorClassName = ""
-    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createUPTCSaveButton')") % ("tabindex","1")
+    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createCRSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val piDescription = new WBTextAreaField("Description: ", "") {
+  private[this] val ruleShortDescription = new WBTextAreaField("Short description: ", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:10em") % ("tabindex","2")
+    override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
     override def className = "twoCol"
     override def errorClassName = ""
     override def validations = Nil
 
   }
 
-  private[this] val piContainer = new WBSelectField("Parent category: ",
-      (categories.open_!.map(x => (x.id.value -> x.name))),
-      "") {
-    override def className = "twoCol"
-  }
-
-  private[this] val formTracker = new FormTracker(piName,piDescription,piContainer)
+  private[this] val formTracker = new FormTracker(ruleName,ruleShortDescription)
 
   private[this] var notifications = List.empty[NodeSeq]
 
@@ -135,57 +126,50 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
    * Update the form when something happened
    */
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml("createPTCategoryContainer", popupContent(NodeSeq.Empty))&
+    SetHtml(htmlId_popupContainer, popupContent(NodeSeq.Empty)) &
     initJs
   }
-
 
   private[this] def onSubmit() : JsCmd = {
     if(formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
-      // First retrieve the parent category
-      activeTechniqueCategoryRepository.getActiveTechniqueCategory(new ActiveTechniqueCategoryId(piContainer.is)) match {
-        case Empty =>
-            logger.error("An error occurred while fetching the parent category")
-            formTracker.addFormError(error("An error occurred while fetching the parent category"))
+
+      val rule = Rule(
+          id = RuleId(uuidGen.newUuid),
+          name = ruleName.is,
+          serial = 0,
+          shortDescription = ruleShortDescription.is,
+          isEnabledStatus = true)
+
+
+      ruleRepository.create(rule, CurrentUser.getActor) match {
+          case Full(x) => 
+            closePopup() & onSuccessCallback(rule)
+          case Empty =>
+            logger.error("An error occurred while saving the Rule")
+            formTracker.addFormError(error("An error occurred while saving the Rule"))
             onFailure & onFailureCallback()
-        case Failure(m,_,_) =>
-            logger.error("An error occurred while fetching the parent category:" + m)
-            formTracker.addFormError(error("An error occurred while fetching the parent category: " + m))
+          case Failure(m,_,_) =>
+            logger.error("An error occurred while saving the Rule:" + m)
+            formTracker.addFormError(error("An error occurred while saving the Rule: " + m))
             onFailure & onFailureCallback()
-        case Full(parent) =>
-          activeTechniqueCategoryRepository.addActiveTechniqueCategory(
-              new ActiveTechniqueCategory(
-                 ActiveTechniqueCategoryId(uuidGen.newUuid),
-                 name = piName.is,
-                 description = piDescription.is,
-                 children = Nil,
-                 items = Nil
-               ),
-               parent, CurrentUser.getActor
-             ) match {
-               case Failure(m,_,_) =>
-                  logger.error("An error occurred while saving the category:" + m)
-                  formTracker.addFormError(error("An error occurred while saving the category:" + m))
-                  onFailure & onFailureCallback()
-               case Empty =>
-                  logger.error("An error occurred while saving the category")
-                  formTracker.addFormError(error("An error occurred while saving the category"))
-                  onFailure & onFailureCallback()
-               case Full(updatedParent) =>
-                 formTracker.clean
-                 closePopup() & onSuccessCallback()
-             }
-           }
       }
+    }
   }
-
-
-
+/*
+  private[this] def onCreateSuccess : JsCmd = {
+    notifications ::=  <span class="greenscala">The group was successfully created</span>
+    updateFormClientSide
+  }
+  private[this] def onUpdateSuccess : JsCmd = {
+    notifications ::=  <span class="greenscala">The group was successfully updated</span>
+    updateFormClientSide
+  }
+*/
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
-    updateFormClientSide()
+    updateFormClientSide() 
   }
 
 
@@ -200,4 +184,10 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
       html
     }
   }
+}
+
+
+object CreateRulePopup {
+  val htmlId_popupContainer = "createRuleContainer"
+  val htmlId_popup = "createRulePopup"
 }
