@@ -273,7 +273,7 @@ class EventListDisplayer(
       case x:ModifyNodeGroup => groupDesc(x,Text(" modified"))
       case x:DeleteNodeGroup => groupDesc(x,Text(" deleted"))
       case x:AddNodeGroup    => groupDesc(x,Text(" added"))
-      case x:ClearCacheEventLog => Text("Clear Policy Server caches")
+      case x:ClearCacheEventLog => Text("Clear caches of all nodes")
       case x:UpdatePolicyServer => Text("Change Policy Server authorized network")
       case x:ReloadTechniqueLibrary => Text("Technique library reloaded")
       case x:SuccessfulDeployment => Text("Successful deployment")
