@@ -79,13 +79,13 @@ trait QuickSearchService {
 }
 
 class QuickSearchServiceImpl(
-    ldap:LDAPConnectionProvider,
-    nodeDit : NodeDit,
-    inventoryDit : InventoryDit,
-    mapper:LDAPEntityMapper,
-    nodeAttributes : Seq[String],
-    serverAttributes : Seq[String],
-    timeLimit:Int = 5
+    ldap            : LDAPConnectionProvider //manage LDAP connection
+  , nodeDit         : NodeDit                //LDAP structure of nodes branch
+  , inventoryDit    : InventoryDit           //LDAP structure of inventory branch
+  , mapper          : LDAPEntityMapper       //map LDAP entries to domain object
+  , nodeAttributes  : Seq[String]            //attributes of Node entries in node branch to scan for match
+  , serverAttributes: Seq[String]            //attributes of NodeInventorory entries in inventory branch to scan for match
+  , timeLimit       : Int = 5                //LDAP server max search time, in secondes
 ) extends QuickSearchService {
 
   /**
@@ -97,35 +97,33 @@ class QuickSearchServiceImpl(
     
     if(validateInput(in)) {
       for {
-        con <- ldap
-        nodeEntries <- search(con, nodeDit.NODES.dn, maxResult, nodeFilter(in), nodeInfoAttributes)
-        nodePairs <- { sequence(nodeEntries) { e => 
-          nodeDit.NODES.NODE.idFromDn(e.dn).map(id => (id,e)) 
-        } }.map( _.toMap )
-        val nodeIdSet1 = nodePairs.keySet
-        serverEntries <- search(con, inventoryDit.NODES.dn, maxResult, serverFilter(in, nodeIdSet1), nodeInfoAttributes)
-        serverPairs <- { sequence(serverEntries) { e => 
-          e(A_NODE_UUID).map(id => (NodeId(id),e)) 
-        } }.map( _.toMap )
-        val nodeIdSet2 = serverPairs.keySet
+        con                <- ldap
+        nodeEntries        <- search(con, nodeDit.NODES.dn, maxResult, nodeFilter(in), nodeInfoAttributes)
+        nodePairs          <- { sequence(nodeEntries) { e => 
+                                nodeDit.NODES.NODE.idFromDn(e.dn).map(id => (id,e)) 
+                              } }.map( _.toMap )
+        nodeIdSet1         =  nodePairs.keySet
+        serverEntries      <- search(con, inventoryDit.NODES.dn, maxResult, serverFilter(in, nodeIdSet1), nodeInfoAttributes)
+        serverPairs        <- { sequence(serverEntries) { e => 
+                                e(A_NODE_UUID).map(id => (NodeId(id),e)) 
+                              } }.map( _.toMap )
+        nodeIdSet2         =  serverPairs.keySet
         //now, we have to find back entries missing from nodes but in server
-        val filter = OR( (nodeIdSet2 -- nodeIdSet1).map(id => EQ(A_NODE_UUID,id.value) ).toSeq:_* )
+        filter             =  OR( (nodeIdSet2 -- nodeIdSet1).map(id => EQ(A_NODE_UUID,id.value) ).toSeq:_* )
         missingNodeEntries <- search(con, nodeDit.NODES.dn, 0, filter, nodeInfoAttributes) 
-        missingNodePairs <- { sequence(missingNodeEntries) { e =>
-          nodeDit.NODES.NODE.idFromDn(e.dn).map(id => (id,e)) 
-        } }.map( _.toMap )
+        missingNodePairs   <- { sequence(missingNodeEntries) { e =>
+                                nodeDit.NODES.NODE.idFromDn(e.dn).map(id => (id,e)) 
+                              } }.map( _.toMap )
         //now, map to node info
-        val allNodePairs = {
-          nodePairs ++ missingNodePairs
-        }
-        nodeInfos <- sequence( serverPairs.toSeq ) { case(id,serverEntry) =>
-          for {
-            nodeEntry <- Box(allNodePairs.get(id)) ?~! "Missing required node entry with id %s".format(id)
-            nodeInfos <- mapper.convertEntriesToNodeInfos(nodeEntry, serverEntry)
-          } yield {
-            nodeInfos
-          }
-        }
+        val allNodePairs   =  nodePairs ++ missingNodePairs
+        nodeInfos          <- sequence( serverPairs.toSeq ) { case(id,serverEntry) =>
+                                for {
+                                  nodeEntry <- Box(allNodePairs.get(id)) ?~! "Missing required node entry with id %s".format(id)
+                                  nodeInfos <- mapper.convertEntriesToNodeInfos(nodeEntry, serverEntry)
+                                } yield {
+                                  nodeInfos
+                                }
+                              }
       } yield {
         nodeInfos
       }
@@ -172,7 +170,7 @@ class QuickSearchServiceImpl(
     } catch {
       case e:LDAPSearchException if(e.getResultCode == ResultCode.TIME_LIMIT_EXCEEDED) => handleException(e)
       case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) => handleException(e)
-      case e => Failure("Error in quick search query", Full(e), Empty)
+      case e:Exception => Failure("Error in quick search query", Full(e), Empty)
     }
   }
   
