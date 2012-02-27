@@ -43,6 +43,11 @@ object Control {
     Full(buf)
   }
  
+  /**
+   * Iter on all elements of seq, applying f to each one of them. 
+   * If the result of f is Full, continue, else abort the procesing, 
+   * returning the Empty or Failure. 
+   */
   def sequence[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
     val buf = scala.collection.mutable.Buffer[T]()
     seq.foreach { u => f(u) match {
