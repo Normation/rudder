@@ -545,7 +545,7 @@ class RuleEditForm(
                   </a>
                 }
                 override def children = Nil
-                override val attrs = ( "rel" -> "policy") :: ( "id" -> ("jsTree-" + directive.id.value) ) :: (if(!directive.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
+                override val attrs = ( "rel" -> "directive") :: ( "id" -> ("jsTree-" + directive.id.value) ) :: (if(!directive.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
               },
               Some(directive)
             )

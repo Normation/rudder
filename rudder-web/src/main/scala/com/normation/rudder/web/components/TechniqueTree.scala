@@ -137,7 +137,7 @@ class TechniqueTree(
     val (directive, ruleIds) = dep.directives(id)
     
     new JsTreeNode {
-      override val attrs = ( "rel" -> "policy") :: Nil ::: (if(!directive.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
+      override val attrs = ( "rel" -> "directive") :: Nil ::: (if(!directive.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
       override def body = {  <a href="#"><span class="treeDirective tooltipable" tooltipid={directive.id.value} title={directive.shortDescription}>{directive.name}</span></a><div class="tooltipContent" id={directive.id.value}><h3>{directive.name}</h3><div>{directive.shortDescription}</div></div> }
       override def children = ruleIds.map ( k => ruleNode(k) ).toList
     }

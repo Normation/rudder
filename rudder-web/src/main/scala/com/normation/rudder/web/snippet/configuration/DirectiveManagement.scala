@@ -397,7 +397,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             <div class="tooltipContent" id={tooltipid}>{directive.shortDescription}</div>
         )} 
         override def children = Nil
-        override val attrs = ( "rel" -> "policy") :: ( "id" -> ("jsTree-"+directive.id.value)) :: Nil ::: (if(!directive.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
+        override val attrs = ( "rel" -> "directive") :: ( "id" -> ("jsTree-"+directive.id.value)) :: Nil ::: (if(!directive.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
       }
     }
     

@@ -166,9 +166,9 @@ var buildDirectiveTree = function(id, initially_select) {
               "icon" : { 
                 "image" : "images/tree/blueprint_16x16.png" 
               },
-              "valid_children" : [ "Directive" ]
+              "valid_children" : [ "directive" ]
             },
-            "Directive" : {
+            "directive" : {
               "icon" : { 
                 "image" : "images/tree/policy_16x16.gif" 
               },
@@ -294,9 +294,9 @@ var buildTechniqueDependencyTree = function(id, initially_select) {
               "icon" : { 
                 "image" : "images/tree/blueprint_16x16.png" 
               },
-              "valid_children" : [ "Directive" ]
+              "valid_children" : [ "directive" ]
             },
-            "Directive" : {
+            "directive" : {
               "icon" : { 
                 "image" : "images/tree/policy_16x16.gif" 
               },
@@ -356,10 +356,10 @@ var buildRulePIdepTree = function(id, initially_select) {
             "icon" : { 
               "image" : "images/tree/blueprint_16x16.png" 
             },
-            "valid_children" : [ "Directive" ],
+            "valid_children" : [ "directive" ],
             "select_node" : false
           },
-          "Directive" : {
+          "directive" : {
             "icon" : { 
               "image" : "images/tree/policy_16x16.gif" 
             },

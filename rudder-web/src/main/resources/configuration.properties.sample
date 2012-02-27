@@ -181,7 +181,7 @@ rudder.ptlib.git.refs.path=refs/heads/master
 #
 # Boolean, defaults to true.
 # If true, an archive of Rules, groups, 
-# Directives and user Techniques is recorded
+# Directives and Active Techniques are recorded
 # to the rudder.dir.gitRoot directory specified above
 # and a git commit is performed when any of these items is modified.
 # 
