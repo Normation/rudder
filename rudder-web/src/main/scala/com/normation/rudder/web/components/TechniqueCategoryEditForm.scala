@@ -100,13 +100,18 @@ class TechniqueCategoryEditForm(
             <div class="simplemodal-content">    
               <hr class="spacer" />
               <br />
-              <br />
+              <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
               <h2>Are you sure that you want to completely delete this item?</h2>
-              <br />
               <br/>
-              <div align="center">
-                <button class="simplemodal-close" onClick="return false;">Cancel</button>
+              <hr class="spacer" />
+            </div> 
+            <div class="simplemodal-bottom">
+              <hr/>
+              <div class="popupButton">
+                <span>
+                 <button class="simplemodal-close" onClick="return false;">Cancel</button>
                 {SHtml.ajaxButton(<span class="red">Delete</span>, deleteCategory _)}
+                </span>
               </div>
             </div>
           </div> 
