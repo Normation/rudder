@@ -5,17 +5,20 @@
 <title>Rudder - Directives Management</title>
 <script type="text/javascript">
 //<![CDATA[
+var modifiedSearch = false ;
 var openAllNodes = function(treeId)  { $(treeId).jstree('open_all' ); return false; }
 var closeAllNodes = function(treeId) { $(treeId).jstree('close_all'); return false; }
 var searchTree = function(inputId, treeId) {
-  if($(inputId).val() && $(inputId).val().length >= 3) { 
-    $(treeId).jstree('search', $(inputId).val());
-  } else {
-    $(treeId).jstree('clear_search');
+  if (modifiedSearch==true){
+	if($(inputId).val() && $(inputId).val().length >= 3) { 
+	    $(treeId).jstree('search', $(inputId).val());
+	} else {
+	    $(treeId).jstree('clear_search');
+	 }
   }
   return false;
 }
-var focusSearchFieldTree = function(inputId) { if( $(inputId).val() == 'Search') { $(inputId).val('') }; return false; } 
+var focusSearchFieldTree = function(inputId) { if( $(inputId).val() == 'Search') { $(inputId).val('') ; modifiedSearch = true}; return false; } 
 var clearSearchFieldTree = function(inputId, treeId) { 
   $(inputId).val('Search');
   $(treeId).jstree('clear_search');

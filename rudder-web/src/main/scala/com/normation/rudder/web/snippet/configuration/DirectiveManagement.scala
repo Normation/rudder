@@ -152,7 +152,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         case Full(id) => "jsTree-" + id
         case _ => ""
       }
-    })) & OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();""")))
+    })) & OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();
+        searchTree('#treeSearch', '#activeTechniquesTree');""")))
   }
   
   
