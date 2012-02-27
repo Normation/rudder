@@ -330,7 +330,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
     setRightPanelHeader(true) &
     Replace(htmlId_policyConf, showDirectiveDetails) &
-    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})""".format(directiveId.value))
+    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})""".format(directiveId.value)) &
+    JsRaw("""scrollToElement('%s')""".format(htmlId_policyConf))
   }
   
   private[this] def updateCf3PolicyDraftInstanceSettingFormComponent(technique:Technique,activeTechnique:ActiveTechnique,directive:Directive, piCreation : Boolean = false) : Unit = {
