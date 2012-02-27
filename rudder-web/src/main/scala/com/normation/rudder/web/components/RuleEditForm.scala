@@ -97,7 +97,7 @@ object RuleEditForm {
 }
 
 /**
- * The form that handles Directive edition
+ * The form that handles Rule edition
  * (not creation)
  * - update name, description, etc
  * - update parameters 
@@ -528,7 +528,11 @@ class RuleEditForm(
 
    */
   private def activeTechniqueCategoryToJsTreeNode(category:ActiveTechniqueCategory) : JsTreeNode = {
-    def activeTechniqueIdToJsTreeNode(id : ActiveTechniqueId) : (JsTreeNode, Option[Technique]) = {
+    /*
+     *converts activeTechniqueId into Option[(JsTreeNode, Option[Technique])]
+     *returns some(something) if the technique has some derivated directives, else returns none
+     * */
+    def activeTechniqueIdToJsTreeNode(id : ActiveTechniqueId) : Option[(JsTreeNode, Option[Technique])] = { 
       def activeTechniqueToJsTreeNode(activeTechnique : ActiveTechnique, technique:Technique) : JsTreeNode = {
         
         //check Directive existence and transform it to a tree node
@@ -581,11 +585,11 @@ class RuleEditForm(
       activeTechniqueRepository.getActiveTechnique(id) match {
         case Full(activeTechnique) => 
           techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
-            case Some(refPt) => 
-              ( activeTechniqueToJsTreeNode(activeTechnique,refPt), Some(refPt))
-
+            case Some(refPt) if activeTechnique.directives.size>0 => 
+              Some( activeTechniqueToJsTreeNode(activeTechnique,refPt), Some(refPt))
+            case Some(refPt) if activeTechnique.directives.size==0 => None
             case None => 
-              (new JsTreeNode {
+              Some(new JsTreeNode {
                 override def body = <span class="error">Can not find node {activeTechnique.techniqueName}</span>
                 override def children = Nil
               },None)
@@ -593,7 +597,7 @@ class RuleEditForm(
 
         case x =>
           logger.error("Error while fetching node %s: %s".format(id, x.toString))
-          (new JsTreeNode {
+          Some(new JsTreeNode {
             override def body = <span class="error">Can not find node {id.value}</span>
             override def children = Nil
           },None)
@@ -625,14 +629,17 @@ class RuleEditForm(
       </a>
       }
       override def children = {
-        val sortedActiveTechnique = category.items.map(x => activeTechniqueIdToJsTreeNode(x)).toList.
+        /*
+         * sortedActiveTechnique contains only techniques that have directives
+         */
+        val sortedActiveTechnique = category.items.map(x => activeTechniqueIdToJsTreeNode(x)).toList.flatten.
             sortWith {
               case ( (_, None) , _ ) => true
               case ( _ , (_, None) ) => false
               case ( (node1, Some(refPt1)) , (node2, Some(refPt2)) ) => treeUtilService.sortPt(refPt1,refPt2)
             }.map { case (node,_) => node }
       
-        val sortedCat = category.children.flatMap(x => activeTechniqueCategoryIdToJsTreeNode(x)).toList.
+        val sortedCat = category.children.filter(categoryId => activeTechniqueCategoryRepository.containsDirective(categoryId)).flatMap(x => activeTechniqueCategoryIdToJsTreeNode(x)).toList.
             sortWith {
               case ( (node1, cat1) , (node2, cat2) ) => treeUtilService.sortActiveTechniqueCategory(cat1,cat2)
             }.map { case (node,_) => node }

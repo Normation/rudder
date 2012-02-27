@@ -140,4 +140,9 @@ trait ActiveTechniqueCategoryRepository {
    */
   def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, actor: EventActor) : Box[ActiveTechniqueCategoryId]
   
+  /**
+   * Return true if at least one directive exists in this category (or a sub category 
+   * of this category) 
+   */
+  def containsDirective(id: ActiveTechniqueCategoryId) : Boolean
 }

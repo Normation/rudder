@@ -51,6 +51,7 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_IS_SYSTEM
 import com.normation.rudder.domain.RudderLDAPConstants.A_ACTIVE_TECHNIQUE_UUID
 import com.normation.rudder.domain.RudderLDAPConstants.OC_TECHNIQUE_CATEGORY
 import com.normation.rudder.domain.RudderLDAPConstants.OC_ACTIVE_TECHNIQUE
+import com.normation.rudder.domain.RudderLDAPConstants.OC_DIRECTIVE
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
@@ -112,6 +113,23 @@ class LDAPActiveTechniqueCategoryRepository(
     }
   }
   
+  /**
+   * Return true if at least one directive exists in this category (or a sub category 
+   * of this category) 
+   */
+  def containsDirective(id: ActiveTechniqueCategoryId) : Boolean = {
+    (for {
+      con               <- ldap
+      locked            <- userLibMutex.readLock
+      category          <- getCategoryEntry(con, id) ?~! "Entry with ID '%s' was not found".format(id)
+    } yield {
+      val results = con.searchSub(category.dn, IS(OC_DIRECTIVE), Seq[String]():_*)
+      results.map( x => mapper.entry2Directive(x) ).flatten.size > 0
+    }) match {
+      case Full(x) => x
+      case _ => false
+    }
+  }
   /**
    * Root user categories
    */
