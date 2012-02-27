@@ -56,7 +56,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.rudder.web.services.JsTreeUtilService
 
 /**
- * Snippet for managing the System and User Technique libraries.
+ * Snippet for managing the System and Active Technique libraries.
  * 
  * It allow to see what Techniques are available in the
  * system library, choose and configure which one to use in 
@@ -301,7 +301,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         onSuccessCallback = { (directive : Directive) =>
           updateCf3PolicyDraftInstanceSettingFormComponent(technique,activeTechnique,directive, true)
           //Update UI
-          Replace(htmlId_policyConf, showDirectiveDetails)
+          Replace(htmlId_policyConf, showDirectiveDetails) &
+          JsRaw("""scrollToElement('%s')""".format(htmlId_policyConf))
         }
     ).popupContent
   }
