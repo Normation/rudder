@@ -82,22 +82,37 @@ class TestQuickSearchService extends QuickSearchServiceSpec {
      * 
      */
     
-//    "yield 8 results" in {
-//      
-//      quickSearch.lookup("node", 100) match {
-//        case eb:EmptyBox => 
-//          val e = eb ?~! "test1 failed"
-//          e.exceptionChain.foreach( t => logger.debug(t) )
-//          failure(e.messageChain)
-//        case Full(res) => res must have size(8)
-//      }
-//      
-//    }
-    
+   "ignore superfluous server entries" in {
+     
+     quickSearch.lookup("node", 100) match {
+       case eb:EmptyBox => 
+         val e = eb ?~! "test1 failed"
+         e.exceptionChain.foreach( t => logger.debug(t) )
+         failure(e.messageChain)
+       case Full(res) => res must have size(8)
+     }
+     
+   }
+  "not matchsuperfluous server entries" in {
+     
+     quickSearch.lookup("node0_0", 100) match {
+       case Full(res) => res must have size(0)
+     }
+     
+   }
+  
+
     
   }
   
-  "test2: todo" should { "succeed" in success }
+  "" should { "succeed" in success }
+
+  "when entry is invalid" should {
+    "return an empty sequence" in {
+      quickSearch.lookup("", 100) must beEqualTo(Full(Seq()))
+    }
+
+  }
   
 }
 
