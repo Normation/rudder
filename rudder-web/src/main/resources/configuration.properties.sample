@@ -113,7 +113,7 @@ rudder.dir.gitRoot=/var/rudder/configuration-repository
 # It MUST be the same directory of ${rudder.dir.gitRoot} 
 # or one of its sub-directories
 #
-rudder.dir.policyPackages=/var/rudder/configuration-repository/techniques
+rudder.dir.techniques=/var/rudder/configuration-repository/techniques
 rudder.dir.licensesFolder=/opt/rudder/etc/licenses
 rudder.dir.policies=/var/rudder/
 rudder.dir.backup=/var/rudder/backup/
@@ -167,7 +167,7 @@ rudder.batch.dyngroup.updateInterval=5
 # If O is given, the periodic update of Technique
 # library features will be disabled
 #
-rudder.batch.ptlib.updateInterval=300
+rudder.batch.techniqueLibrary.updateInterval=300
 
 
 #
@@ -176,7 +176,7 @@ rudder.batch.ptlib.updateInterval=300
 # The default is to use "refs/heads/master" (the local master
 # branche). 
 # You have to use the full ref path. 
-rudder.ptlib.git.refs.path=refs/heads/master
+rudder.techniqueLibrary.git.refs.path=refs/heads/master
 
 #
 # Boolean, defaults to true.

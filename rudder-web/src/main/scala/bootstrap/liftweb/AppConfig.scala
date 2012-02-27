@@ -181,16 +181,16 @@ class AppConfig extends Loggable {
   var configFolder = ""
   @Value("${rudder.dir.gitRoot}")
   var gitRoot = ""
-  @Value("${rudder.dir.policyPackages}")
+  @Value("${rudder.dir.techniques}")
   var policyPackages = ""
 
   @Value("${rudder.batch.dyngroup.updateInterval}")
   var dyngroupUpdateInterval = 60 //one hour
   
-  @Value("${rudder.batch.ptlib.updateInterval}")
+  @Value("${rudder.batch.techniqueLibrary.updateInterval}")
   var ptlibUpdateInterval = 60 * 5 //five minutes
 
-  @Value("${rudder.ptlib.git.refs.path}")
+  @Value("${rudder.techniqueLibrary.git.refs.path}")
   var ptRefsPath = ""
     
   @Value("${rudder.autoArchiveItems}")
