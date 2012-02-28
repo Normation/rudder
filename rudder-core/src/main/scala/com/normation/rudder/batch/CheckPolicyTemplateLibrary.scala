@@ -57,7 +57,7 @@ class CheckTechniqueLibrary(
   , updateInterval      : Int // in secondes
 ) extends Loggable {
   
-  private val propertyName = "rudder.batch.ptlib.updateInterval"
+  private val propertyName = "rudder.batch.techniqueLibrary.updateInterval"
    
   //start batch
   if(updateInterval < 1) {
