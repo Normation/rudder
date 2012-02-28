@@ -173,7 +173,10 @@ class Boot extends Loggable {
     def administrationMenu = 
       Menu("AdministrationHome", <span>Administration</span>) / "secure" / "administration" /"index" submenus(
           
-          Menu("eventLogViewer", <span>Event Logs</span>) / 
+          Menu("archivesManagement", <span>Archives</span>) / 
+            "secure" / "administration" / "archiveManagement" >> LocGroup("administrationGroup")
+            
+        , Menu("eventLogViewer", <span>Event Logs</span>) / 
             "secure" / "administration" / "eventLogs" >> LocGroup("administrationGroup")
             
         , Menu("policyServerManagement", <span>Policy Server</span>) / 
@@ -182,8 +185,6 @@ class Boot extends Loggable {
         , Menu("pluginManagement", <span>Plugins</span>) / 
             "secure" / "administration" / "pluginManagement" >> LocGroup("administrationGroup") 
             
-        , Menu("archivesManagement", <span>Archives</span>) / 
-            "secure" / "administration" / "archiveManagement" >> LocGroup("administrationGroup")
       )
   
     
