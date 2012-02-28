@@ -42,7 +42,7 @@
 #vakata-dragged.jstree-rudder .jstree-invalid { background:url("d.png") -18px -53px no-repeat !important; }
 #jstree-marker.jstree-rudder { background:url("d.png") -41px -57px no-repeat !important; text-indent:-100px; }
 
-.jstree-rudder a.jstree-search { color:aqua; }
+.jstree-rudder a.jstree-search { color:#EE7F00; }
 .jstree-rudder .jstree-locked a { color:silver; cursor:default; }
 
 #vakata-contextmenu.jstree-rudder-context, 
