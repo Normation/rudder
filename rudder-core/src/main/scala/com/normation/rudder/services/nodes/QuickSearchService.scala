@@ -95,19 +95,28 @@ class QuickSearchServiceImpl(
    */
   def lookup(in:String, maxResult:Int) : Box[Seq[NodeInfo]] = {
     
-    if(validateInput(in)) {
-      for {
+    if(validateInput(in))
+      searchNodesInLdap(in, maxResult)
+    else 
+      Full(Seq())
+  }
+
+  def searchNodesInLdap(in : String, maxResult: Int) : Box[Seq[NodeInfo]] = {
+    for {
         con                <- ldap
+
         nodeEntries        <- search(con, nodeDit.NODES.dn, maxResult, nodeFilter(in), nodeInfoAttributes)
         nodePairs          <- { sequence(nodeEntries) { e => 
                                 nodeDit.NODES.NODE.idFromDn(e.dn).map(id => (id,e)) 
                               } }.map( _.toMap )
         nodeIdSet1         =  nodePairs.keySet
+
         serverEntries      <- search(con, inventoryDit.NODES.dn, maxResult, serverFilter(in, nodeIdSet1), nodeInfoAttributes)
         serverPairs        <- { sequence(serverEntries) { e => 
                                 e(A_NODE_UUID).map(id => (NodeId(id),e)) 
                               } }.map( _.toMap )
         nodeIdSet2         =  serverPairs.keySet
+
         //now, we have to find back entries missing from nodes but in server
         filter             =  OR( (nodeIdSet2 -- nodeIdSet1).map(id => EQ(A_NODE_UUID,id.value) ).toSeq:_* )
         missingNodeEntries <- search(con, nodeDit.NODES.dn, 0, filter, nodeInfoAttributes) 
@@ -116,21 +125,27 @@ class QuickSearchServiceImpl(
                               } }.map( _.toMap )
         //now, map to node info
         val allNodePairs   =  nodePairs ++ missingNodePairs
-        nodeInfos          <- sequence( serverPairs.toSeq ) { case(id,serverEntry) =>
-                                for {
-                                  nodeEntry <- Box(allNodePairs.get(id)) ?~! "Missing required node entry with id %s".format(id)
-                                  nodeInfos <- mapper.convertEntriesToNodeInfos(nodeEntry, serverEntry)
-                                } yield {
-                                  nodeInfos
-                                }
-                              }
+
+        nodeInfos          <- matchNodeInfoPairs( serverPairs, allNodePairs )
       } yield {
         nodeInfos
       }
-    } else Full(Seq())
   }
   
-  
+
+def matchNodeInfoPairs( serverPairs:Map[NodeId,LDAPEntry], allNodePairs:Map[NodeId,LDAPEntry] ): Box[Seq[NodeInfo]] = {
+  sequence( allNodePairs.toSeq ) { 
+    case(id,nodeEntry) =>
+      for {
+        serverEntry <- Box(serverPairs.get(id)) ?~! "Missing required node entry with id %s".format(id)
+        nodeInfos <- mapper.convertEntriesToNodeInfos(nodeEntry, serverEntry)
+      } yield {
+        nodeInfos
+      }
+  }
+}
+
+
   //filter for ou=nodes based on attributes to look for in quicksearch
   private[this] def nodeFilter(in:String) = OR( nodeAttributes.map(attr =>  SUB(attr, null, Array(in), null) ) :_* )
   //filter for ou=severs in inventory based on attributes to look for in quicksearch
@@ -182,7 +197,7 @@ class QuickSearchServiceImpl(
    */
   private[this] def validateInput(in:String) : Boolean = {
     in.trim match {
-      case null | "" => false
+      case "" => false
       case s if(s.length < 2) => false
       case _ => true
     }
