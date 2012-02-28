@@ -280,7 +280,7 @@ input.queryInputValue, select.queryInputValue {
   text-decoration:underline;
 }
 .listopen:before{
-  content:url('/rudder/images/tableau/flecheBasGris.png');
+  content:url('/rudder/images/tableau/flecheDroiteGris.png');
 }
 .listclose:before{
   content:url('/rudder/images/tableau/flecheHautGris.png');
