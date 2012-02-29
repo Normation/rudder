@@ -12,12 +12,12 @@
 .jstree-rudder .jstree-closed > ins { background-position:-54px 0; }
 .jstree-rudder .jstree-leaf > ins { background-position:-36px 0; }
 
-.jstree-rudder .jstree-hovered { background:#e7f4f9; border:1px solid #d8f0fa; padding:0 2px 0 1px; }
-.jstree-rudder .jstree-clicked { background:#80bad0; border:1px solid #1f1e1e; padding:0 2px 0 1px; }
+.jstree-rudder .jstree-hovered { background:#ffffee; border:1px dotted #974807; padding:0 2px 0 1px; }
+.jstree-rudder .jstree-clicked { background:#fff3c9; border:1px dotted #974807; padding:0 2px 0 1px; }
 .jstree-rudder a .jstree-icon { background-position:-56px -19px; }
 .jstree-rudder a.jstree-loading .jstree-icon { background:url("throbber.gif") center center no-repeat !important; }
 
-.jstree-rudder.jstree-focused { background:#ffffee; }
+.jstree-rudder.jstree-focused { background:transparent; }
 
 .jstree-rudder .jstree-no-dots li, 
 .jstree-rudder .jstree-no-dots .jstree-leaf > ins { background:transparent; }

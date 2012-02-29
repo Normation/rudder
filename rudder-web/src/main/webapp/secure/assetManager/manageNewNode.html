@@ -8,12 +8,7 @@
  <div class="portlet-header">Accept new nodes</div>
  <div class="portlet-content">
  <div class="intro">
-  <div>This portlet lists the nodes in your infrastructure that have presented themselves for the first time to Rudder with an inventory report.
-  <br/>Your validation is required:<br/>
-  <ul>
-    <li>Either to accept these nodes in Rudder if you acknowledge their inventory settings,</li>
-    <li>Or to refuse them if you don't want them in Rudder</li>
-  </ul>
+  <div>Accept or Refuse Nodes in your infrastructure that have presented themselves for the first time to Rudder with an inventory report.
   </div>
  </div>
    
@@ -27,9 +22,9 @@
     
     <div id="review_new_server">
       <div class="tabInform">
-      <p>You can review new nodes here and decide whether to accept or refuse them.</p>
+      <p>Review new nodes and accept or refuse them.</p>
       <p>Click on a node name to access its full inventory information.</p>
-      <p>Select the <img src="images/icPolicies.jpg"/> icon to list all Rules that would be applied to this node if it is accepted in Rudder.</p>
+      <p>Click on <img src="images/icPolicies.jpg"/> to list Rules that will be applied to this node after validation.</p>
       </div>
       <lift:ignore>
         The template for the table can be found at 
@@ -54,8 +49,8 @@
     </div>
     <div id="history">
      <div class="tabInform">
-      You can review here all actions taken in the past for new nodes trying to join Rudder
-      Select a node name to access its full inventory information at the time of its review.
+      <p>View History of Nodes validation.</p>
+      <p>Click on a node name to display full inventory information at review time.</p>
      </div>    
     <lift:asset.PendingHistoryGrid.displayAndInit>
       <pending:history/>

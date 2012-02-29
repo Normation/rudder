@@ -35,25 +35,15 @@ var clearSearchFieldTree = function(inputId, treeId) {
   <div class="portlet-content">  
     <div class="intro">
       <div>
-        List, create and delete your instances of <a href="secure/configurationManager/techniqueLibraryManagement"><em>Techniques</em></a> and configure them.
+        Configure the Directives based on <a href="secure/configurationManager/techniqueLibraryManagement"><em>Active Techniques</em></a>.
       </div>
     </div>
     <hr class="spacer"/>
     
     <div class="column">
       <div class="portlet">
-        <div class="portlet-header">Active Techniques library</div>
+        <div class="portlet-header">Library</div>
         <div class="portlet-content">
-          <div class="deca">
-            <p>This library displays all available <em>Techniques</em>, grouped by categories, and any <em>Directives</em> that you have created for each one.</p>
-
-            <p><br/>You may:</p>
-            <p>- Click on the name of a <em>Technique</em> to see its description.</p>
-            <p>- Click on the name of a <em>Directive</em> to see its configuration items. Details of the <em>Technique</em> it's based on will also be displayed.</p>
-
-            <p><br/>Additional <em>Techniques</em> may be available through the 
-              <a href="secure/configurationManager/techniqueLibraryManagement">Techniques screen</a>.</p>
-          </div>
 
           <div id="activeTechniquesTree_actions_zone" style="margin:10px;">
             <span onclick="openAllNodes('#activeTechniquesTree');"><img src="/images/open-plus.png" alt="Open all categories" title="Open all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
@@ -68,7 +58,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
     </div>
     <div class="column">
       <div class="portlet">
-        <div class="portlet-header"><span id="detailsPortletTitle">Technique summary</span></div>
+        <div class="portlet-header"><span id="detailsPortletTitle">Usage</span></div>
         <div class="portlet-content">
           <lift:configuration.DirectiveManagement.techniqueDetails>
             <div id="techniqueDetails">

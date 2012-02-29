@@ -33,7 +33,7 @@ var buildReferenceTechniqueTree = function(id,  initially_select) {
           },
           "template" : {
             "icon" : { 
-              "image" : "images/tree/blueprint_16x16.png" 
+              "image" : "images/tree/technique_16x16.png" 
             },
             "valid_children" : "none"
           },
@@ -95,7 +95,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId) {
         },
         "template" : {
           "icon" : { 
-            "image" : "images/tree/blueprint_16x16.png" 
+            "image" : "images/tree/technique_16x16.png" 
           },
           "valid_children" : "none"
         },
@@ -164,13 +164,13 @@ var buildDirectiveTree = function(id, initially_select) {
             },
             "template" : {
               "icon" : { 
-                "image" : "images/tree/blueprint_16x16.png" 
+                "image" : "images/tree/technique_16x16.png" 
               },
               "valid_children" : [ "directive" ]
             },
             "directive" : {
               "icon" : { 
-                "image" : "images/tree/policy_16x16.gif" 
+                "image" : "images/tree/directive_16x16.gif" 
               },
               "valid_children" : "none"
             },
@@ -292,13 +292,13 @@ var buildTechniqueDependencyTree = function(id, initially_select) {
             },
             "template" : {
               "icon" : { 
-                "image" : "images/tree/blueprint_16x16.png" 
+                "image" : "images/tree/technique_16x16.png" 
               },
               "valid_children" : [ "directive" ]
             },
             "directive" : {
               "icon" : { 
-                "image" : "images/tree/policy_16x16.gif" 
+                "image" : "images/tree/directive_16x16.gif" 
               },
               "valid_children" : [ "rule" ]
             },
@@ -354,14 +354,14 @@ var buildRulePIdepTree = function(id, initially_select) {
           },
           "template" : {
             "icon" : { 
-              "image" : "images/tree/blueprint_16x16.png" 
+              "image" : "images/tree/technique_16x16.png" 
             },
             "valid_children" : [ "directive" ],
             "select_node" : false
           },
           "directive" : {
             "icon" : { 
-              "image" : "images/tree/policy_16x16.gif" 
+              "image" : "images/tree/directive_16x16.gif" 
             },
             "valid_children" : "none"
           },

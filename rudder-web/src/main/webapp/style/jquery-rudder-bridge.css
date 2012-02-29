@@ -295,8 +295,10 @@ div#progressbar {
 /* Interaction states --*/
 .ui-state-default, .ui-widget-content .ui-state-default {
    font-weight: bold;/* texte des boutons*/
-   color: #000;
+   color: #000;   
+   border: 1px solid #B4B3A8;
    background: none;
+   background-color: #eee;
 /*  width: 130px;*/
 }
 
@@ -314,6 +316,7 @@ div#progressbar {
    color: #000;
    border: 1px solid #B4B3A8;
    background: none;
+   background-color: #EEEBE7;
 }
 .ui-state-hover a, .ui-state-hover a:hover {
    color: #c77405;

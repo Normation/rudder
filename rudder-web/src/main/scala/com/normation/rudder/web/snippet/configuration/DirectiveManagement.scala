@@ -161,7 +161,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     case Full(id) => <div id={ htmlId_policyConf } /> ++ Script(OnLoad(displayDirectiveDetails(DirectiveId(id)) & 
         //Here, we MUST add a Noop because of a Lift bug that add a comment on the last JsLine. 
         Noop ))
-    case _ =>  <div id={ htmlId_policyConf }>Click on a Directive in the tree above to show and modify its settings.</div>
+    case _ =>  <div id={ htmlId_policyConf }></div>
   }
   
   
@@ -169,7 +169,16 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   def initTechniqueDetails : MemoizeTransform = SHtml.memoize {
 
     "#techniqueDetails *" #> ( currentTechnique match { 
-      case None => "*" #> <span class="greenscala">Click on a Directive or on a Technique...</span>
+      case None => "*" #> <div class="deca">
+                            <p><em>Directives</em> are displayed in the tree of <a href="secure/configurationManager/techniqueLibraryManagement"><em>Active Techniques</em></a>, 
+                              grouped by categories.</p>
+                            <ul><li>Fold/unfold category folders;</li>
+                                <li>Click on the name of a <em>Technique</em> to see its description;</li>
+                                <li>Click on the name of a <em>Directive</em> to see its configuration items. Details of the <em>Technique</em> it's based on will also be displayed.</li>
+                            </ul>
+                            <p>Additional <em>Techniques</em> may be available through the 
+                            <a href="secure/configurationManager/techniqueLibraryManagement">Techniques screen</a>.</p>
+                          </div>
       case Some((technique, activeTechnique)) =>
         "#detailFieldsetId *" #> (if(currentDirectiveSettingForm.is.isDefined) {
                                   "Directive's template"
@@ -266,8 +275,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   
   private[this] def setRightPanelHeader(isDirective:Boolean) : JsCmd = {
     val title = 
-      if(isDirective) "Directive general information"
-      else "Technique summary"
+      if(isDirective) "About this Directive"
+      else "About this Technique"
       
       SetHtml("detailsPortletTitle", Text(title))
   }
@@ -286,7 +295,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] def showDirectiveDetails() : NodeSeq = {
     currentDirectiveSettingForm.is match {
       case Failure(m,_,_) => <div id={htmlId_policyConf} class="error">An error happened when trying to load Directive configuration. Error message was: {m}</div>
-      case Empty => <div id={htmlId_policyConf}>Click on a Directive to show and modify its settings</div>
+      case Empty => <div id={htmlId_policyConf}></div>
       //here we CAN NOT USE <lift:DirectiveEditForm.showForm /> because lift seems to cache things
       //strangely, and if so, after an form save, clicking on tree node does nothing
       // (or more exactly, the call to "onclicknode" is correct, the currentDirectiveSettingForm
