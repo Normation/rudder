@@ -281,9 +281,11 @@ input.queryInputValue, select.queryInputValue {
 }
 .listopen:before{
   content:url('/rudder/images/tableau/flecheDroiteGris.png');
+  padding-right: 3px;
 }
 .listclose:before{
-  content:url('/rudder/images/tableau/flecheHautGris.png');
+  content:url('/rudder/images/tableau/flecheBasGris.png');
+  padding-right: 3px;
 }
 
 input.hasDatepicker {

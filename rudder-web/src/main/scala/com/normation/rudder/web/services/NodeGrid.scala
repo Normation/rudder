@@ -157,7 +157,7 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
    * initialization.
    */
   def initJsCallBack(tableId:String) : JsCmd = {
-      JsRaw("""$('td[name="serverName"]', #table_var#.fnGetNodes() ).each( function () {
+      JsRaw("""$('td.curspoint', #table_var#.fnGetNodes() ).each( function () {
           $(this).click( function () {
             var nTr = this.parentNode;
             var opened = jQuery(nTr).prop("open");
@@ -168,12 +168,9 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
             } else {
               jQuery(nTr).prop("open", "opened");
               jQuery(nTr).find("span.listopen").removeClass("listopen").addClass("listclose");
-              var aPos = #table_var#.fnGetPosition( this );
-            
-              var aData = jQuery(#table_var#.fnGetData( aPos[0] ));
-              var node = jQuery(aData[aPos[1]]);
-              var jsid = node.attr("jsuuid");
-              var ajaxParam = JSON.stringify({"jsid":jsid , "id":node.attr("serverid") , "status":node.attr("nodeStatus")});
+              var jsid = jQuery(nTr).attr("jsuuid");
+              var node = jQuery(nTr).attr("nodeid");
+              var ajaxParam = JSON.stringify({"jsid":jsid , "id":jQuery(nTr).attr("nodeid") , "status":jQuery(nTr).attr("nodeStatus")});
               #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
               %s;
             }
@@ -207,16 +204,26 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
       "header" -> (columns flatMap { c => <th>{c._1}<span/></th> }),
       "lines" -> ( servers.flatMap { case s@Srv(id,status, hostname,ostype,osname,osFullName,ips,creationDate) =>
         //build all table lines
-        bind("line",chooseTemplate("servergrid","lines",tableTemplate),
-          "hostname" -> <span class="listopen" jsuuid={id.value.replaceAll("-","")} serverid={id.value} nodeStatus={status.name}>{(if(isEmpty(hostname)) "(Missing host name) " + id.value else hostname)}</span>,
-          "fullos" -> osFullName,
-          "ips" -> (ips.flatMap{ ip => <div class="ip">{ip}</div> }), // TODO : enhance this
-          "other" -> (columns flatMap { c => <td>{c._2(s)}</td> })
-        )
+        
+        (".hostname *" #> {(if(isEmpty(hostname)) "(Missing host name) " + id.value else hostname)} &
+         ".fullos *" #> osFullName &
+         ".ips *" #> (ips.flatMap{ ip => <div class="ip">{ip}</div> }) & // TODO : enhance this
+         ".other" #> (columns flatMap { c => <td>{c._2(s)}</td> }) &
+         ".nodetr [jsuuid]" #> {id.value.replaceAll("-","")} &
+         ".nodetr [nodeid]" #> {id.value} &
+         ".nodetr [nodestatus]" #> {status.name}
+         )(datatableXml)
       })
     )}</table>  
   }
-
+  private[this] val datatableXml = {
+    <tr class="nodetr" jsuuid="id" nodeid="nodeid" nodestatus="status">
+      <td class="curspoint"><span class="hostname listopen"></span></td>
+      <td class="fullos curspoint"></td>
+      <td class="ips curspoint"></td>
+      <td class="other"></td>
+    </tr>
+  }
   /**
    * We expect a json string with paramaters:
    * jsid: javascript id
