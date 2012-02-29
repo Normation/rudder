@@ -39,8 +39,6 @@
 # is installed on), and must be configured with the following variables:
 #     - POLICY_SERVER_HOSTNAME: Full hostname of this server, that clients
 #                               can use to reach it.
-#     - POLICY_SERVER_IP: IP address for the Cfengine policy server to listen
-#                         on. This must be specified.
 #     - POLICY_SERVER_ALLOWED_NETWORKS: List of networks in network/bits
 #                                       format that are allowed to connect to
 #                                       the Cfengine policy server.
@@ -48,7 +46,6 @@
 # These variables can be replaced using sed commands as follows:
 # sed -i "s/%%POLICY_SERVER_HOSTNAME%%/demo.normation.com/g" me.ldif
 # sed -i "s#%%POLICY_SERVER_ALLOWED_NETWORKS%%#192\\.168\\.100\\.0/24#g" me.ldif
-# sed -i "s/%%POLICY_SERVER_IP%%/192.168.100.63/g" me.ldif
 ###############################################################################
 
 #######################################################################################################################
@@ -94,7 +91,7 @@ isSystem: TRUE
 isBroken: FALSE
 nodeHostname: %%POLICY_SERVER_HOSTNAME%%
 publicKey: Currently not used
-ipHostNumber: %%POLICY_SERVER_IP%%
+ipHostNumber: 127.0.0.1
 #agentsName: Nova
 agentName: Community
 inventoryDate: 20100818225137+0200
@@ -141,7 +138,6 @@ techniqueVersion: 0:1.0
 isEnabled: TRUE
 isSystem: TRUE
 directivePriority: 0
-directiveVariable: SERVINGIP[0]:%%POLICY_SERVER_IP%%
 
 # common (has policy server)
 
