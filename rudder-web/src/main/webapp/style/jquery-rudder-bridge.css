@@ -296,10 +296,13 @@ div#progressbar {
 .ui-state-default, .ui-widget-content .ui-state-default {
    font-weight: bold;/* texte des boutons*/
    color: #000;   
-   border: 1px solid #B4B3A8;
    background: none;
-   background-color: #eee;
 /*  width: 130px;*/
+}
+
+.ui-state-default, .ui-widget-content .ui-button, .ui-widget input, .ui-widget select  {
+   border: 1px solid #B4B3A8;
+   background-color: #eee;
 }
 
 .ui-state-default[disabled], .ui-widget-content .ui-state-default[disabled] {
@@ -314,10 +317,13 @@ div#progressbar {
 .ui-state-hover, .ui-widget-content .ui-state-hover, .ui-state-focus, .ui-widget-content .ui-state-focus {
    font-weight: bold;
    color: #000;
-   border: 1px solid #B4B3A8;
    background: none;
+}
+.ui-button:hover {
+   border: 1px solid #B4B3A8;
    background-color: #EEEBE7;
 }
+
 .ui-state-hover a, .ui-state-hover a:hover {
    color: #c77405;
    text-decoration: none;
