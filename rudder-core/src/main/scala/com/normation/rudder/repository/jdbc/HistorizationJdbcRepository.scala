@@ -201,11 +201,11 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
       
       // Now that we have the opened CR, we must complete them
       val directives = from(Rules.directives)(directive => 
-        where(directive.crid.in(rules.map(x => x.id)))
+        where(directive.rulePkeyId.in(rules.map(x => x.id)))
         select(directive)
       )
       val groups = from(Rules.groups)(group => 
-        where(group.crid.in(rules.map(x => x.id)))
+        where(group.rulePkeyId.in(rules.map(x => x.id)))
         select(group)
       )
       
@@ -213,8 +213,8 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
       val (piSeq, groupSeq) = (directives.toList, groups.toList)
           
       rules.map ( rule => (rule, 
-          groupSeq.filter(group => group.crid == rule.id),
-          piSeq.filter(directive => directive.crid == rule.id)            
+          groupSeq.filter(group => group.rulePkeyId == rule.id),
+          piSeq.filter(directive => directive.rulePkeyId == rule.id)            
       )).map( x=> SerializedRules.fromSerialized(x._1, x._2, x._3) )
     }
     
@@ -234,11 +234,11 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
       
       // Now that we have the opened CR, we must complete them
       val directives = from(Rules.directives)(directive => 
-        where(directive.crid.in(rules.map(x => x.id)))
+        where(directive.rulePkeyId.in(rules.map(x => x.id)))
         select(directive)
       )
       val groups = from(Rules.groups)(group => 
-        where(group.crid.in(rules.map(x => x.id)))
+        where(group.rulePkeyId.in(rules.map(x => x.id)))
         select(group)
       )
       
@@ -249,8 +249,8 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
       }
           
       rules.map ( rule => (rule, 
-          groupSeq.filter(group => group.crid == rule.id),
-          piSeq.filter(directive => directive.crid == rule.id)            
+          groupSeq.filter(group => group.rulePkeyId == rule.id),
+          piSeq.filter(directive => directive.rulePkeyId == rule.id)            
       ))
     }
     
@@ -417,19 +417,19 @@ case class SerializedRules(
 }
 
 case class SerializedRuleGroups(
-    @Column("rulepkeyid") crid: Long,// really, the id (not the cr one)
+    @Column("rulepkeyid") rulePkeyId: Long,// really, the id (not the cr one)
     @Column("groupid") groupId: String
 ) extends KeyedEntity[CompositeKey2[Long,String]]  {
  
-  def id = compositeKey(crid, groupId)
+  def id = compositeKey(rulePkeyId, groupId)
 }
 
 case class SerializedRuleDirectives(
-    @Column("rulepkeyid") crid: Long,// really, the id (not the cr one)
+    @Column("rulepkeyid") rulePkeyId: Long,// really, the id (not the cr one)
     @Column("directiveid") directiveId: String
 ) extends KeyedEntity[CompositeKey2[Long,String]]  {
  
-  def id = compositeKey(crid, directiveId)
+  def id = compositeKey(rulePkeyId, directiveId)
 }
 
 object SerializedRules {
