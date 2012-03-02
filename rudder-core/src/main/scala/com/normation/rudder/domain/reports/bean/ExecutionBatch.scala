@@ -46,8 +46,8 @@ import com.normation.rudder.domain.reports.ReportComponent
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
 
 /**
- * An execution batch contains the servers reports for a given CR/PI at a given date
- * An execution Batch is at a given time <- Is it relevant when we have several node ?
+ * An execution batch contains the node reports for a given Rule / Directive at a given date
+ * An execution Batch is at a given time <- TODO : Is it relevant when we have several node ?
  * @author Nicolas CHARLES
  */
 trait ExecutionBatch {
@@ -81,36 +81,36 @@ trait ExecutionBatch {
   }
   
   /**
-   * Returns all the server that have only success reports
+   * Returns all the nodes that have only success reports
    * @return
    */
   def getSuccessNodeIds() : Seq[NodeId] 
 
   /**
-   * Returns all the server that have repaired reports
+   * Returns all the nodes that have repaired reports
    * @return
    */
   def getRepairedNodeIds() : Seq[NodeId]
   
   /**
-   * Returns all the server that have  success reports, and some war/error
+   * Returns all the nodes that have success reports, and some warn/error
    * @return
    */
  // def getWarnNodeIds() : Seq[NodeId] 
   
   /**
-   * Returns all the server that don't have enough success
+   * Returns all the nodes that don't have enough success
    * @return
    */
   def getErrorNodeIds() : Seq[NodeId]
   
   /**
-   * A pending server is a server that was just configured, and we don't 
-   * have answer yet
+   * A pending node is a node that was just configured, and we don't 
+   * have answer yet from it
    */
   def getPendingNodeIds() : Seq[NodeId]
   /**
-   * return the server that did not send reports
+   * return the nodes that did not send reports
    * @return
    */
   def getNoReportNodeIds() : Seq[NodeId]
@@ -121,7 +121,7 @@ trait ExecutionBatch {
 
 
 /**
- * The execution batch for a configuration, still a lot of intelligence to add within
+ * The execution batch for a rule, still a lot of intelligence to add within
  * 
  */
 class ConfigurationExecutionBatch( 
@@ -135,11 +135,12 @@ class ConfigurationExecutionBatch(
   , val endDate                 : Option[DateTime]
 ) extends ExecutionBatch {  
   
+  // A cache of the already computed values
   val cache = scala.collection.mutable.Map[String, Seq[NodeId]]()
   
   
   /**
-   * a success server have all the expected success report, 
+   * a success node has all the expected success report, 
    * for each component, and no warn nor error nor repaired
    */
   def getSuccessNodeIds() : Seq[NodeId] = {
@@ -147,8 +148,8 @@ class ConfigurationExecutionBatch(
       (for {nodeId <- expectedNodeIds;
          val nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
          if (nodeFilteredReports.filter(x => (( x.isInstanceOf[ResultErrorReport] || x.isInstanceOf[ResultRepairedReport] ) )).size == 0)
-         if (directiveExpectedReports.forall { policy => 
-           policy.components.forall { component => // must be true for each component
+         if (directiveExpectedReports.forall { directive => 
+           directive.components.forall { component => // must be true for each component
                  component.componentsValues.forall { value => // for each value
                    if (value == "None") {
                      nodeFilteredReports.filter( x => 
@@ -163,16 +164,14 @@ class ConfigurationExecutionBatch(
                  }
            }
          })
-         //component <- policy.components
-         //if (executionReports.filter(x => 
-         //    (x.nodeId==server && x.component == component.componentName && x.isInstanceOf[ResultSuccessReport])).size >= component.cardinality)  
+         
       } yield nodeId).distinct
     })
     
   }
   
   /**
-   * a success server have at least one repaired, and no error, but must have
+   * a success node has at least one repaired, and no error, but must have
    * the EXACT number of success or repaired per component
    */
   def getRepairedNodeIds() : Seq[NodeId] = {
@@ -181,8 +180,8 @@ class ConfigurationExecutionBatch(
         val nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
         if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultErrorReport]  ) ).size == 0)
         if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultRepairedReport]  ) ).size > 0)
-        if (directiveExpectedReports.forall { policy => 
-          policy.components.forall { component => // must be true for each component
+        if (directiveExpectedReports.forall { directive => 
+          directive.components.forall { component => // must be true for each component
                component.componentsValues.forall { value => // for each value
                  if (value == "None") {
                    nodeFilteredReports.filter( x => 
@@ -203,30 +202,21 @@ class ConfigurationExecutionBatch(
   }
   
   /**
-   * a warn server have all the expected success report, and warn or error 
-   *//*
-  def getWarnNodeIds() : Seq[NodeId] = {
-    (for {server <- allExpectedNode;
-      policy <- policies
-      component <- policy.components
-      if (executionReports.filter(x => 
-           (x.nodeId==server && x.component == component.componentName && x.isInstanceOf[SuccessReport])).size >= component.cardinality)
-      if (executionReports.filter(x => 
-           (x.nodeId==server && x.component == component.componentName && (x.isInstanceOf[WarnReport]  || x.isInstanceOf[ErrorReport]))).size > 0)
-    } yield server).distinct
-  }*/
+   * a warn node have all the expected success report, and warn or error 
+   */
+ 
   
   /**
-   * a error server have not all the expected success report, and/or error 
+   * a error node have not all the expected success report, and/or error 
    */
   def getErrorNodeIds() : Seq[NodeId] = {
     cache.getOrElseUpdate("Error", {
       (for {nodeId <- expectedNodeIds;
          val nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
   
-         policy <- directiveExpectedReports
+         directive <- directiveExpectedReports
          if (nodeFilteredReports.filter( x => x.isInstanceOf[ResultErrorReport] ).size > 0 ) || 
-           ( (policy.components.forall { component => // must be true for each component
+           ( (directive.components.forall { component => // must be true for each component
                component.componentsValues.forall { value => // for each value              
                  if (value == "None") {
                      nodeFilteredReports.filter( x => 
@@ -246,7 +236,7 @@ class ConfigurationExecutionBatch(
                                              x.isInstanceOf[ResultErrorReport]
                                        ).size > 0 ) 
            
-         /*component <- policy.components
+         /*component <- directive.components
          
          val filtered = executionReports.filter(x =>  (x.nodeId==server && x.component == component.componentName))
         
@@ -261,7 +251,7 @@ class ConfigurationExecutionBatch(
   }
   
   /**
-   * A pending server is a server that was just configured, and we don't 
+   * A pending node is a node that was just configured, and we don't 
    * have answer yet
    */
   def getPendingNodeIds() : Seq[NodeId] = {
@@ -277,7 +267,7 @@ class ConfigurationExecutionBatch(
   }
   
   /**
-   * A server with no reports should have send reports, but didn't
+   * A node with no reports should have send reports, but didn't
    */
   def getNoReportNodeIds() : Seq[NodeId] = {
     if (beginDate.plus(Constants.pendingDuration).isBefore(DateTime.now())) {

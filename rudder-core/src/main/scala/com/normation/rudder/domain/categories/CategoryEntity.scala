@@ -57,7 +57,7 @@ case class CaetgoryEntity(
 
 
 /**
- * This trait is used for Policy Template Category, and for Node Group Category
+ * This trait is used for Technique Category, and for Node Group Category
  * ID : the class identifying the category
  * C The category class
  * T The item class

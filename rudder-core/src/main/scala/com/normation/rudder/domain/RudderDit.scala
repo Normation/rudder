@@ -140,17 +140,17 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       objectClass = OC_TECHNIQUE_CATEGORY,
       objectClassUuid = A_TECHNIQUE_CATEGORY_UUID
   ) {
-    uptLib => 
+    activeTechniques => 
     
     //check for the presence of that entry at bootstrap
-    dit.register(uptLib.model)
+    dit.register(activeTechniques.model)
 
     
      
     /**
      * From a DN of a category, return the value of the rdn (uuid)
      */
-    def getCategoryIdValue(dn:DN) = singleRdnValue(dn,uptLib.rdnAttribute._1)
+    def getCategoryIdValue(dn:DN) = singleRdnValue(dn,activeTechniques.rdnAttribute._1)
     
     /**
      * From a DN of a user policy template, return the value of the rdn (uuid)

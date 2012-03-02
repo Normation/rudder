@@ -49,7 +49,7 @@ trait TemplateWriter extends Loggable {
   def getSharesFolder() : String
 
   /**
-   * Write the promises of all the machine
+   * Write the promises of all the nodes
    * @param updateBatch : the container for the server to be updated
    */
   def writePromisesForMachines(updateBatch : UpdateBatch) : Box[Seq[PromisesFinalMoveInfo]]

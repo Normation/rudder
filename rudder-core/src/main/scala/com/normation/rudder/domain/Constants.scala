@@ -67,7 +67,7 @@ object Constants {
    */
   val pendingDuration = new Duration(10*1000*60)
   
-  val PTLIB_MINIMUM_UPDATE_INTERVAL = 60 //in seconds
+  val TECHLIB_MINIMUM_UPDATE_INTERVAL = 60 //in seconds
   
   val DYNGROUP_MINIMUM_UPDATE_INTERVAL = 1 //in minutes
   

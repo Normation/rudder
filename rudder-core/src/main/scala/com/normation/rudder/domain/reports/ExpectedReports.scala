@@ -44,7 +44,7 @@ import com.normation.utils.HashcodeCaching
 
 
 /**
- * The representation of the database object for the expected reports for a configuration policy
+ * The representation of the database object for the expected reports for a rule
  * 
  * @author Nicolas CHARLES
  *
@@ -70,7 +70,7 @@ case class ReportComponent(
 ) extends HashcodeCaching 
     
 /**
- * A policy instance may have several components
+ * A Directive may have several components
  */
 case class DirectiveExpectedReports (
     directiveId: DirectiveId

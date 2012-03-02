@@ -42,7 +42,7 @@ import org.slf4j.{Logger,LoggerFactory}
 import com.normation.utils.HashcodeCaching
 /**
  * Store the reports entry from the execution
- * Contains : the datetime at which it was generated, the rule/policyinstanceid, 
+ * Contains : the datetime at which it was generated, the rule/directive, 
  * the server on which it has been run, the severity, and the message,
  * and the serial (id of generation), the component and its key value
  * @author Nicolas CHARLES

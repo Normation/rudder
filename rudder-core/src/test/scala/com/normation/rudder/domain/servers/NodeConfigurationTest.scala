@@ -142,10 +142,10 @@ class NodeConfigurationTest {
         assertEquals(node.getCurrentDirectives.size, 0)
         assertEquals(node.getDirectives.size, 1)
         
-        assertEquals(node.findDirectiveByPolicy(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size, 1)
-        assertEquals(node.findDirectiveByPolicy(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size, 0)
+        assertEquals(node.findDirectiveByTechnique(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size, 1)
+        assertEquals(node.findDirectiveByTechnique(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size, 0)
     
-        assertEquals(node.findCurrentDirectiveByPolicy(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size, 0)
+        assertEquals(node.findCurrentDirectiveByTechnique(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size, 0)
     
         assertEquals(node.getAllPoliciesNames().size, 1)
         assertEquals(node.getAllPoliciesNames().contains(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))), true)
@@ -173,10 +173,10 @@ class NodeConfigurationTest {
     assertEquals(newNode.isModified, false)
     assertEquals(newNode.targetMinimalNodeConfig.agentsName.size, 0)
     
-    assertEquals(newNode.findDirectiveByPolicy(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size, 1)
-    assertEquals(newNode.findDirectiveByPolicy(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size, 0)
+    assertEquals(newNode.findDirectiveByTechnique(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size, 1)
+    assertEquals(newNode.findDirectiveByTechnique(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size, 0)
 
-    assertEquals(newNode.findCurrentDirectiveByPolicy(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size, 1)
+    assertEquals(newNode.findCurrentDirectiveByTechnique(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size, 1)
       
     
     val modified = newNode.copy(targetSystemVariables = Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))))

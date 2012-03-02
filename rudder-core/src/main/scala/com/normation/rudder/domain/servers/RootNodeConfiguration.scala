@@ -57,8 +57,8 @@ import com.normation.utils.HashcodeCaching
  */
 case class RootNodeConfiguration(
     id                         : String
-  , __currentPoliciesInstances : Seq[RuleWithCf3PolicyDraft] = Seq()
-  , __targetPoliciesInstances  : Seq[RuleWithCf3PolicyDraft] = Seq()
+  , __currentRulePolicyDrafts  : Seq[RuleWithCf3PolicyDraft] = Seq()
+  , __targetRulePolicyDrafts   : Seq[RuleWithCf3PolicyDraft] = Seq()
   , isPolicyServer             : Boolean
   , currentMinimalNodeConfig   : MinimalNodeConfig
   , targetMinimalNodeConfig    : MinimalNodeConfig
@@ -73,36 +73,36 @@ case class RootNodeConfiguration(
    * @return
    */
   def addDirective(ruleWithCf3PolicyDraft : RuleWithCf3PolicyDraft) : Box[RootNodeConfiguration]= {
-    targetPoliciesInstances.get(ruleWithCf3PolicyDraft.cf3PolicyDraft.id) match {
+    targetRulePolicyDrafts.get(ruleWithCf3PolicyDraft.cf3PolicyDraft.id) match {
       case None =>
         // we first need to fetch all the policies in a mutable map to modify them
-        val newPoliciesInstances =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]() 
-        __targetPoliciesInstances.foreach { ruleWithCf3PolicyDraft => 
-            newPoliciesInstances += ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id ->ruleWithCf3PolicyDraft.copy()) }
+        val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]() 
+        __targetRulePolicyDrafts.foreach { ruleWithCf3PolicyDraft => 
+            newRulePolicyDrafts += ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id ->ruleWithCf3PolicyDraft.copy()) }
         
         
   
-        updateAllUniqueVariables(ruleWithCf3PolicyDraft.cf3PolicyDraft,newPoliciesInstances)
-        newPoliciesInstances += (ruleWithCf3PolicyDraft.cf3PolicyDraft.id -> ruleWithCf3PolicyDraft.copy())
+        updateAllUniqueVariables(ruleWithCf3PolicyDraft.cf3PolicyDraft,newRulePolicyDrafts)
+        newRulePolicyDrafts += (ruleWithCf3PolicyDraft.cf3PolicyDraft.id -> ruleWithCf3PolicyDraft.copy())
         
         
-        Full(copy(__targetPoliciesInstances = newPoliciesInstances.values.toSeq))
+        Full(copy(__targetRulePolicyDrafts = newRulePolicyDrafts.values.toSeq))
       case Some(x) => Failure("An instance of the ruleWithCf3PolicyDraft with the same identifier %s already exists".format(ruleWithCf3PolicyDraft.cf3PolicyDraft.id.value))
     }
   }
  
   def setSerial(rules : Seq[(RuleId,Int)]) : RootNodeConfiguration = {
-    val newPoliciesInstances =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]() 
-        __targetPoliciesInstances.foreach { ruleWithCf3PolicyDraft => 
-            newPoliciesInstances += ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id ->ruleWithCf3PolicyDraft.copy()) }
+    val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]() 
+        __targetRulePolicyDrafts.foreach { ruleWithCf3PolicyDraft => 
+            newRulePolicyDrafts += ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id ->ruleWithCf3PolicyDraft.copy()) }
         
     
     for ((id,serial) <- rules) {
-      newPoliciesInstances ++= newPoliciesInstances.
+      newRulePolicyDrafts ++= newRulePolicyDrafts.
             filter(x => x._2.ruleId == id).
             map(x => (x._1 -> new RuleWithCf3PolicyDraft(x._2.ruleId, x._2.cf3PolicyDraft.copy(serial = serial))))
     }
-    copy(__targetPoliciesInstances = newPoliciesInstances.values.toSeq)
+    copy(__targetRulePolicyDrafts = newRulePolicyDrafts.values.toSeq)
   }
   
   /**
@@ -112,7 +112,7 @@ case class RootNodeConfiguration(
   def commitModification() : RootNodeConfiguration = {
     logger.debug("Commiting server " + this);
     
-    copy(__currentPoliciesInstances = this.__targetPoliciesInstances,
+    copy(__currentRulePolicyDrafts = this.__targetRulePolicyDrafts,
         currentMinimalNodeConfig = this.targetMinimalNodeConfig,
         currentSystemVariables = this.targetSystemVariables,
         writtenDate = Some(DateTime.now()))
@@ -124,7 +124,7 @@ case class RootNodeConfiguration(
    * @return nothing
    */
   def rollbackModification() : RootNodeConfiguration = {
-    copy(__targetPoliciesInstances = this.__currentPoliciesInstances,
+    copy(__targetRulePolicyDrafts = this.__currentRulePolicyDrafts,
         targetMinimalNodeConfig = this.currentMinimalNodeConfig,
         targetSystemVariables = this.currentSystemVariables 
         )
@@ -135,8 +135,8 @@ case class RootNodeConfiguration(
   override def clone() : RootNodeConfiguration = {
     val returned = new RootNodeConfiguration(
          this.id,
-      currentPoliciesInstances.valuesIterator.map( x => x.copy()).toSeq,
-      targetPoliciesInstances.valuesIterator.map( x => x.copy()).toSeq,
+      currentRulePolicyDrafts.valuesIterator.map( x => x.copy()).toSeq,
+      targetRulePolicyDrafts.valuesIterator.map( x => x.copy()).toSeq,
       isPolicyServer,
       currentMinimalNodeConfig,
       targetMinimalNodeConfig,

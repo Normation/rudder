@@ -247,7 +247,7 @@ class NodeConfigurationServiceImpl(
               //server.id  = target.nodeInfo.id.value //not mutable TODO: use it in the constructor
               
               node.copy(
-                  __targetPoliciesInstances = Seq[RuleWithCf3PolicyDraft](),
+                  __targetRulePolicyDrafts = Seq[RuleWithCf3PolicyDraft](),
                   targetMinimalNodeConfig = new MinimalNodeConfig(
                       target.nodeInfo.name ,
                       target.nodeInfo.hostname ,
@@ -261,7 +261,7 @@ class NodeConfigurationServiceImpl(
               
             case Full(rootServer : RootNodeConfiguration) =>                 
               rootServer.copy(
-                  __targetPoliciesInstances = Seq[RuleWithCf3PolicyDraft](),
+                  __targetRulePolicyDrafts = Seq[RuleWithCf3PolicyDraft](),
                   targetMinimalNodeConfig = new MinimalNodeConfig(
                       target.nodeInfo.name ,
                       target.nodeInfo.hostname ,
@@ -567,8 +567,8 @@ class NodeConfigurationServiceImpl(
         // Check that the directive can be multiinstances
         // to check that, either make sure that it is multiinstance, or that it is not
         // multiinstance and that there are no existing directives based on it
-        if (modifiedNode.findDirectiveByPolicy(directive.cf3PolicyDraft.techniqueId).filter(x => technique.isMultiInstance==false).size>0) {
-          LOGGER.warn("Cannot add a directive from the same non duplicable technique %s than an already existing one %s ".format(directive.cf3PolicyDraft.techniqueId), modifiedNode.findDirectiveByPolicy(directive.cf3PolicyDraft.techniqueId))
+        if (modifiedNode.findDirectiveByTechnique(directive.cf3PolicyDraft.techniqueId).filter(x => technique.isMultiInstance==false).size>0) {
+          LOGGER.warn("Cannot add a directive from the same non duplicable technique %s than an already existing one %s ".format(directive.cf3PolicyDraft.techniqueId), modifiedNode.findDirectiveByTechnique(directive.cf3PolicyDraft.techniqueId))
           return ParamFailure[RuleWithCf3PolicyDraft]("Duplicate unique technique", Full(new TechniqueException("Duplicate unique policy " +directive.cf3PolicyDraft.techniqueId)), Empty, directive)    
         }
         modifiedNode.addDirective(directive) match {

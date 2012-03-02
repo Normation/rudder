@@ -44,7 +44,7 @@ import net.liftweb.common._
  * a context (list of values to try to put in variable). 
  * 
  * Different implementation may be more or less strict about how they handle
- * missmatch between context and variable specs. 
+ * mismatch between context and variable specs. 
  */
 trait VariableBuilderService {
   /**

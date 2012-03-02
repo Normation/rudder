@@ -64,24 +64,24 @@ import com.normation.eventlog.EventActor
 
 
 /**
- * A trait to manage the acceptation of new server in Rudder
+ * A trait to manage the acceptation of new node in Rudder
  */
 trait NewNodeManager {
 
   /**
-   * List all pending servers
+   * List all pending node
    */
   def listNewNodes : Box[Seq[Srv]]
   
   /**
-   * Accept a pending server in Rudder
+   * Accept a pending node in Rudder
    */
   def accept(ids:Seq[NodeId], actor:EventActor) : Seq[Box[NodeId]]
 
   /**
-   * refuse server
-   * @param ids : the servers id
-   * @return : the srv representations of the refused server
+   * refuse node
+   * @param ids : the node id
+   * @return : the srv representations of the refused node
    */
   def refuse(ids:Seq[NodeId], actor:EventActor) : Seq[Box[Srv]]
 
@@ -93,7 +93,7 @@ trait NewNodeManager {
 /**
  * Default implementation: a new server manager composed with a sequence of 
  * "unit" accept, one by main goals of what it means to accept a server; 
- * Each unit accept provides its main logic of accpecting a server, optionnaly
+ * Each unit accept provides its main logic of accepting a server, optionnaly
  * a global post accept task, and a rollback mechanism.
  * Rollback is always a "best effort" task. 
  */

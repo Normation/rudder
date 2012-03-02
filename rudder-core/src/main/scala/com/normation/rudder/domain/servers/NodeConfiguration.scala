@@ -48,23 +48,23 @@ import com.normation.rudder.domain.policies.{Rule,RuleId}
 
 trait NodeConfiguration extends Loggable {
 
-  def id: String
-  def __currentPoliciesInstances : Seq[RuleWithCf3PolicyDraft]  
-  def __targetPoliciesInstances : Seq[RuleWithCf3PolicyDraft] 
-  def isPolicyServer : Boolean 
-  def currentMinimalNodeConfig : MinimalNodeConfig
-  def targetMinimalNodeConfig : MinimalNodeConfig
-  def writtenDate : Option[DateTime]
-  def currentSystemVariables :  Map[String, Variable]
-  def targetSystemVariables :  Map[String, Variable]
+  def id                        : String
+  def __currentRulePolicyDrafts : Seq[RuleWithCf3PolicyDraft]  
+  def __targetRulePolicyDrafts  : Seq[RuleWithCf3PolicyDraft] 
+  def isPolicyServer            : Boolean 
+  def currentMinimalNodeConfig  : MinimalNodeConfig
+  def targetMinimalNodeConfig   : MinimalNodeConfig
+  def writtenDate               : Option[DateTime]
+  def currentSystemVariables    : Map[String, Variable]
+  def targetSystemVariables     : Map[String, Variable]
   
-  lazy val currentPoliciesInstances = __currentPoliciesInstances.map(ruleWithCf3PolicyDraft => ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id -> ruleWithCf3PolicyDraft.copy()) ).toMap  
+  lazy val currentRulePolicyDrafts = __currentRulePolicyDrafts.map(ruleWithCf3PolicyDraft => ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id -> ruleWithCf3PolicyDraft.copy()) ).toMap  
     
-  lazy val targetPoliciesInstances = __targetPoliciesInstances.map(ruleWithCf3PolicyDraft => ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id -> ruleWithCf3PolicyDraft.copy()) ).toMap
+  lazy val targetRulePolicyDrafts = __targetRulePolicyDrafts.map(ruleWithCf3PolicyDraft => ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id -> ruleWithCf3PolicyDraft.copy()) ).toMap
   
   
   /**
-   * Add a policy instance
+   * Add a directive
    * @param policy
    * @return
    */
@@ -73,33 +73,33 @@ trait NodeConfiguration extends Loggable {
   def setSerial(rules : Seq[(RuleId,Int)]) : NodeConfiguration
   
   /**
-   * Called when we have written the promesses, to say that the current configuration is indeed the target one
-   * @return nothing
+   * Called when we have written the promises, to say that the current configuration is indeed the target one
+   * @return the commmited NodeConfiguration
    */
   def commitModification() : NodeConfiguration
   
    /**
    * Called when we want to rollback modification, to say that the target configuration is the current one
-   * @return nothing
+   * @return the rolled back NodeConfiguration
    */
   def rollbackModification() : NodeConfiguration
   
   
   /**
-   * Check if the server is modified and must be written
+   * Check if the node is modified and must be written
    * Modified is : 
    * * Not the same number of policies
    * * Not the same ID of policies
    * * Serial different between two policies 
    */
   def isModified : Boolean = {
-    if(currentPoliciesInstances.size != targetPoliciesInstances.size) true
-    else if(currentPoliciesInstances.keySet != targetPoliciesInstances.keySet) true
+    if(currentRulePolicyDrafts.size != targetRulePolicyDrafts.size) true
+    else if(currentRulePolicyDrafts.keySet != targetRulePolicyDrafts.keySet) true
     else {
       for { 
-        (key,currentCFC) <- currentPoliciesInstances
+        (key,currentCFC) <- currentRulePolicyDrafts
       } {
-        val targetPi = targetPoliciesInstances.getOrElse(key,return true)
+        val targetPi = targetRulePolicyDrafts.getOrElse(key,return true)
         if(currentCFC.cf3PolicyDraft.serial != targetPi.cf3PolicyDraft.serial) return true
       }
       false
@@ -128,38 +128,38 @@ trait NodeConfiguration extends Loggable {
   
   
   
-  def findDirectiveByPolicy(techniqueId : TechniqueId): Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft] = {
-    targetPoliciesInstances.filter(x => 
+  def findDirectiveByTechnique(techniqueId : TechniqueId): Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft] = {
+    targetRulePolicyDrafts.filter(x => 
       x._2.cf3PolicyDraft.techniqueId.name.value.equalsIgnoreCase(techniqueId.name.value) &&
       x._2.cf3PolicyDraft.techniqueId.version == techniqueId.version
     ).map(x => (x._1, x._2 .copy()))
   }
   
-  def findCurrentDirectiveByPolicy(techniqueId : TechniqueId) = {
-    currentPoliciesInstances.filter { x => 
+  def findCurrentDirectiveByTechnique(techniqueId : TechniqueId) = {
+    currentRulePolicyDrafts.filter { x => 
       x._2.cf3PolicyDraft.techniqueId.name.value.equalsIgnoreCase(techniqueId.name.value) &&
       x._2.cf3PolicyDraft.techniqueId.version == techniqueId.version
     }.map(x => (x._1, x._2 .copy()))
   }
   
   def getAllPoliciesNames() :Set[TechniqueId] = {
-    targetPoliciesInstances.map(x => x._2 .cf3PolicyDraft.techniqueId).toSet[TechniqueId]
+    targetRulePolicyDrafts.map(x => x._2 .cf3PolicyDraft.techniqueId).toSet[TechniqueId]
   }
   
   
   def getCurrentDirectives() :  immutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft] = {
-    currentPoliciesInstances.map(x => (x._1, x._2.copy())).toMap
+    currentRulePolicyDrafts.map(x => (x._1, x._2.copy())).toMap
   }
   
   def getDirectives() : immutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft] = {
-    targetPoliciesInstances.map(x => (x._1, x._2.copy())).toMap
+    targetRulePolicyDrafts.map(x => (x._1, x._2.copy())).toMap
   }
   
   def getCurrentDirective(id : Cf3PolicyDraftId) : Option[RuleWithCf3PolicyDraft] = {
-    currentPoliciesInstances.get(id).map(x => x.copy())
+    currentRulePolicyDrafts.get(id).map(x => x.copy())
   }
   def getDirective(id : Cf3PolicyDraftId) : Option[RuleWithCf3PolicyDraft] = {
-    targetPoliciesInstances.get(id).map(x => x.copy())
+    targetRulePolicyDrafts.get(id).map(x => x.copy())
   }
   
   def getCurrentSystemVariables() : immutable.Map[String, Variable] = {
@@ -177,7 +177,7 @@ object NodeConfiguration {
   
   def toContainer(outPath : String, server : NodeConfiguration) : Cf3PolicyDraftContainer = {
     val container = new Cf3PolicyDraftContainer(outPath)
-    server.targetPoliciesInstances foreach (x =>  container.add(x._2.cf3PolicyDraft))
+    server.targetRulePolicyDrafts foreach (x =>  container.add(x._2.cf3PolicyDraft))
     container
   }
   

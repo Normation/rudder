@@ -54,7 +54,7 @@ import com.normation.utils.HashcodeCaching
 case class DirectiveVal(
     techniqueId      : TechniqueId
   , activeTechniqueId: ActiveTechniqueId
-  //TODO: why there is no technique version ?
+  //TODO: why there is no technique version ? ANS : The technique Version is within the ActiveTechniqueId
   , directiveId      : DirectiveId
   , priority         : Int
   , trackerVariable  : TrackerVariable
@@ -67,7 +67,7 @@ case class RuleVal(
   ruleId       : RuleId,
   target       : RuleTarget,  //list of target for that policy instance (server groups, server ids, etc)
   directiveVals: Seq[DirectiveVal],
-  serial       : Int // the generation serial of the CR
+  serial       : Int // the generation serial of the Rule
 ) extends HashcodeCaching {
   
   def toRuleWithCf3PolicyDraft : Seq[RuleWithCf3PolicyDraft] = 
@@ -78,7 +78,7 @@ case class RuleVal(
 }
 
 /**
- * A composite class, to keep the link between the applied PI and the CR
+ * A composite class, to keep the link between the applied Directive and the Rule
  */
 case class RuleWithCf3PolicyDraft (
     ruleId        : RuleId

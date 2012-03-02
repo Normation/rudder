@@ -49,7 +49,7 @@ import com.normation.utils.HashcodeCaching
 
 
 /**
- * Class that only contains most meaningfull data about a server
+ * Class that only contains most meaningfull data about a server (a non registered node)
  * (it's a server, shorten, so its name)
  * Properties are "web friendly" (i.e: string, never null, perhaps empty)
  * @param id - uuid of the server, ex: 27e0e8e8-dfc4-487e-975f-065b073f0b1f

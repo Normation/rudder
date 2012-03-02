@@ -73,13 +73,13 @@ class ReportingServiceImpl(
    * Update the list of expected reports when we do a deployment
    * For each RuleVal, we check if it was present or it serial changed
    *   
-   * Note : deletedCrs is not really used (maybe it will in the future)
+   * Note : deleteRules is not really used (maybe it will in the future)
    * @param ruleVal
    * @return
    */
-  def updateExpectedReports(ruleVal : Seq[RuleVal], deletedCrs : Seq[RuleId]) : Box[Seq[RuleExpectedReports]] = {
+  def updateExpectedReports(ruleVal : Seq[RuleVal], deleteRules : Seq[RuleId]) : Box[Seq[RuleExpectedReports]] = {
     
-    // First we need to get the targets of each configuration rule
+    // First we need to get the targets of each rule
     val confAndNodes = ruleVal.map(x => (x -> (directiveTargetService.getNodeIds(x.target)).openOr(Seq())))
    
     // All the rule and serial. Used to know which one are to be removed
@@ -89,19 +89,19 @@ class ReportingServiceImpl(
     val confToAdd = mutable.Map[RuleId, (RuleVal,Seq[NodeId])]()
     
     // Then we need to compare each of them with the one stored
-    for (conf@(crVal, _) <- confAndNodes) {
-      currentConfigurationsToRemove.get(crVal.ruleId) match {
+    for (conf@(ruleVal, _) <- confAndNodes) {
+      currentConfigurationsToRemove.get(ruleVal.ruleId) match {
                     // non existant, add it
-        case None => confToAdd += (  crVal.ruleId -> conf)
+        case None => confToAdd += (  ruleVal.ruleId -> conf)
         
-        case Some(serial) if (serial == crVal.serial) => // no change if same serial
-            currentConfigurationsToRemove.remove(crVal.ruleId)
+        case Some(serial) if (serial == ruleVal.serial) => // no change if same serial
+            currentConfigurationsToRemove.remove(ruleVal.ruleId)
             
         case Some(serial) => // not the same serial
-            confToAdd += (  crVal.ruleId -> conf)
-            confToClose += crVal.ruleId
+            confToAdd += (  ruleVal.ruleId -> conf)
+            confToClose += ruleVal.ruleId
             
-            currentConfigurationsToRemove.remove(crVal.ruleId)
+            currentConfigurationsToRemove.remove(ruleVal.ruleId)
       }
     }
     
@@ -116,11 +116,11 @@ class ReportingServiceImpl(
     }
   
     // compute the cardinality and save them
-    sequence(confToAdd.values.toSeq) { case(crVal, nodeIds) => 
+    sequence(confToAdd.values.toSeq) { case(ruleVal, nodeIds) => 
       ( for {
-        policyExpectedReports <- sequence(crVal.directiveVals) { policy =>
+        policyExpectedReports <- sequence(ruleVal.directiveVals) { policy =>
                                    ( for {
-                                     seq <- getCardinality(policy) ?~! "Can not get cardinality for configuration rule %s".format(crVal.ruleId)
+                                     seq <- getCardinality(policy) ?~! "Can not get cardinality for configuration rule %s".format(ruleVal.ruleId)
                                     } yield {
                                       seq.map { case(componentName, componentsValues) =>
                                         DirectiveExpectedReports(policy.directiveId, Seq(ReportComponent(componentName, componentsValues.size, componentsValues)))
@@ -128,8 +128,8 @@ class ReportingServiceImpl(
                                    } )
                                  }
          expectedReport <- confExpectedRepo.saveExpectedReports(
-                               crVal.ruleId
-                             , crVal.serial
+                               ruleVal.ruleId
+                             , ruleVal.serial
                              , policyExpectedReports.flatten
                              , nodeIds
                            )
@@ -206,7 +206,7 @@ class ReportingServiceImpl(
    */
   def findImmediateReportsByNodeAndCrs(nodeId : NodeId, ruleIds : Seq[RuleId]) : Seq[ExecutionBatch] = {
   
-    //  fetch the current expected configuration report
+    //  fetch the current expected rule report
     confExpectedRepo.findCurrentExpectedReportsByNode(nodeId).
             filter(x => ruleIds.contains(x.ruleId)).
             map(x => x.copy(nodeIds = Seq[NodeId](nodeId))).
@@ -236,7 +236,7 @@ class ReportingServiceImpl(
   
  
    /**
-   * From a RuleExpectedReports, create batch synthetizing these information by
+   * From a RuleExpectedReports, create batch synthesizing these information by
    * searching reports in the database from the beginDate to the endDate
    * @param expectedOperationReports
    * @param reports
@@ -311,7 +311,7 @@ class ReportingServiceImpl(
      * If there is no component for that policy, the policy is autobounded to DEFAULT_COMPONENT_KEY
      */
     for {
-      technique <- Box(techniqueRepository.get(container.techniqueId)) ?~! "Can not find policy template %s".format(container.techniqueId)
+      technique <- Box(techniqueRepository.get(container.techniqueId)) ?~! "Can not find technique %s".format(container.techniqueId)
     } yield {
       val allComponents = technique.rootSection.getAllSections.flatMap { section =>
         if(section.isComponent) {
@@ -330,7 +330,7 @@ class ReportingServiceImpl(
       }
       
       if(allComponents.size < 1) {
-        logger.debug("Policy '%s' does not define any components, assigning default component with expected report = 1 for instance %s".format(
+        logger.debug("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
           container.techniqueId, container.directiveId))
         Seq((container.techniqueId.name.value, getTrackingVariableCardinality))
       } else {

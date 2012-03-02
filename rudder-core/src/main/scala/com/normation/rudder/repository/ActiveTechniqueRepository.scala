@@ -54,13 +54,13 @@ final case class CategoryWithActiveTechniques(
 
 
 /**
- * Define action on User policy template with the
+ * Define action on active technique with the
  * back-end : save them, retrieve them, etc. 
  */
 trait ActiveTechniqueRepository {
 
   /**
-   * Get all pairs of (category details, Set(User policy templates))
+   * Get all pairs of (category details, Set(active technique))
    * in a map in which keys are the parent category of the
    * the template. The map is sorted by categories:
    * SortedMap {
@@ -73,32 +73,32 @@ trait ActiveTechniqueRepository {
   def getActiveTechniqueByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]]
     
   /**
-   * Find back an user policy template thanks to its id. 
-   * Return Empty if the user policy template is not found, 
+   * Find back an active technique thanks to its id. 
+   * Return Empty if the active technique is not found, 
    * Fails on error.
    */
   def getActiveTechnique(id:ActiveTechniqueId) : Box[ActiveTechnique]
   
   
   /**
-   * Find back an user policy template thanks to the id of its referenced
+   * Find back an active technique thanks to the id of its referenced
    * Policy Template. 
-   * Return Empty if the user policy template is not found, 
+   * Return Empty if the active technique is not found, 
    * Fails on error.
    */
   def getActiveTechnique(techniqueName:TechniqueName) : Box[ActiveTechnique]
   
   
   /**
-   * Create a user policy template from the parameter WBTechnique
+   * Create a active technique from the parameter WBTechnique
    * and add it in the given ActiveTechniqueCategory
    * 
    * Returned the freshly created ActiveTechnique
    * 
    * Fails if 
-   *   - the Policy Template id refer to none Policy Template, 
+   *   - the active technique id refer to no technique, 
    *   - the category id does not exists,
-   *   - the policy template is already in the user policy template 
+   *   - the technique is already in the active technique 
    *     library
    */
   def addTechniqueInUserLibrary(
@@ -110,15 +110,15 @@ trait ActiveTechniqueRepository {
 
   
   /**
-   * Move a policy template to a new category.
-   * Failure if the given policy template or category
+   * Move an active technique to a new category.
+   * Failure if the given active technique or category
    * does not exists. 
    * 
    */
   def move(id:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, actor: EventActor) : Box[ActiveTechniqueId] 
   
   /**
-   * Set the status of the policy template to the new value
+   * Set the status of the active technique to the new value
    */
   def changeStatus(id:ActiveTechniqueId, status:Boolean, actor: EventActor) : Box[ActiveTechniqueId] 
   
@@ -126,20 +126,20 @@ trait ActiveTechniqueRepository {
    * Add new (version,acceptation datetime) to existing 
    * acceptation datetimes by the new one.
    * 
-   * Return empty if the uptIs not in the repos,
+   * Return empty if the active technique not in the repos,
    * Failure if an error happened, 
    * Full(id) when success
    */
   def setAcceptationDatetimes(id:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], actor: EventActor) : Box[ActiveTechniqueId]
   
   /**
-   * Delete the policy template in user library.
+   * Delete the active technique in the active tehcnique library.
    * If no such element exists, it is a success.
    */
   def delete(id:ActiveTechniqueId, actor: EventActor) : Box[ActiveTechniqueId] 
   
   /**
-   * Retrieve the list of parents for the given policy template, 
+   * Retrieve the list of parents for the given active technique, 
    * till the root of policy library.
    * Return empty if the path can not be build
    * (missing policy template, missing category, etc)

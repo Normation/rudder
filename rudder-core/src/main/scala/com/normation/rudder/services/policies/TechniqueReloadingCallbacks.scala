@@ -50,7 +50,7 @@ class DeployOnTechniqueCallback(
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
   override def updatedTechniques(TechniqueIds:Seq[TechniqueId], actor:EventActor) : Unit = {
-    logger.debug("Ask for a deployment since policy template library was reloaded")
+    logger.debug("Ask for a deployment since technique library was reloaded")
     asyncDeploymentAgent ! AutomaticStartDeployment(actor)
   }
 }
@@ -66,7 +66,7 @@ class LogEventOnTechniqueReloadCallback(
       , details = ReloadTechniqueLibrary.buildDetails(TechniqueIds)
     ))) match {
       case eb:EmptyBox => 
-        val error = eb ?~! "Error when saving log related to policy template reloading event"
+        val error = eb ?~! "Error when saving log related to technique reloading event"
         logger.error(error)
         logger.debug(error.exceptionChain)
       case Full(x) => //OK

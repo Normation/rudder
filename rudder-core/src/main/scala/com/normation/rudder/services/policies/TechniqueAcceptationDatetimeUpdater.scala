@@ -44,7 +44,7 @@ import com.normation.eventlog.EventActor
 
 class TechniqueAcceptationDatetimeUpdater(
     override val name:String
-  , uptRepo : ActiveTechniqueRepository
+  , activeTechniqueRepo : ActiveTechniqueRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
   
     def updatedTechniques(TechniqueIds:Seq[TechniqueId], actor:EventActor) : Unit = {
@@ -54,19 +54,19 @@ class TechniqueAcceptationDatetimeUpdater(
       val acceptationDatetime = DateTime.now()
                     
       byNames.foreach { case( name, versions ) =>
-        uptRepo.getActiveTechnique(name) match {
+        activeTechniqueRepo.getActiveTechnique(name) match {
           case e:EmptyBox => 
-            //OK, that policy package is not in the User Lib, do nothing
+            //OK, that policy package is not in the Active Technique Library, do nothing
             //log in case it was a real problem
-            val error = e ?~! ("The policy package with name '%s' has been marked as updated in the Reference Library ".format(name) +
-                "but was not found in the user library - it's expected if the policy package was not added (or was removed) from user library")
+            val error = e ?~! ("The Technique with name '%s' has been marked as updated in the Technique Library ".format(name) +
+                "but was not found in the Active Technique Library - it's expected if the technique was not added (or was removed) from Active Technique Library")
             logger.debug(error.messageChain)
           case Full(activeTechnique) => 
             logger.debug("Update acceptation datetime for: " + activeTechnique.techniqueName)
             val versionsMap = versions.map( v => (v,acceptationDatetime)).toMap
-            uptRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap,  actor) match {
+            activeTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap,  actor) match {
               case e:EmptyBox =>
-                logger.error("Error when saving User Policy Template " + activeTechnique.id, (e ?~! "Error was:"))
+                logger.error("Error when saving Active Technique " + activeTechnique.id, (e ?~! "Error was:"))
               case _ => //ok
             }
         }

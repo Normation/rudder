@@ -41,7 +41,7 @@ import com.normation.eventlog.EventActor
 
 
 /**
- * The policy instance repository. 
+ * The directive repository. 
  * 
  * Policy instance are instance of policy template
  * (a policy template + values for its parameters)
@@ -50,9 +50,9 @@ import com.normation.eventlog.EventActor
 trait DirectiveRepository {
 
   /**
-   * Try to find the policy instance with the given ID.
-   * Empty: no policy instance with such ID
-   * Full((parent,directive)) : found the policy instance (directive.id == directiveId) in given parent
+   * Try to find the directive with the given ID.
+   * Empty: no directive with such ID
+   * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
    * Failure => an error happened.
    */
   def getDirective(directiveId:DirectiveId) : Box[Directive]
@@ -62,36 +62,36 @@ trait DirectiveRepository {
    * Find the user policy template for which the given policy
    * instance is an instance. 
    * 
-   * Return empty if no such policy instance is known, 
-   * fails if no User policy template match the policy instance.
+   * Return empty if no such directive is known, 
+   * fails if no User policy template match the directive.
    */
   def getActiveTechnique(id:DirectiveId) : Box[ActiveTechnique]  
   
   /**
-   * Get policy instances for given policy template.
+   * Get directives for given policy template.
    * A not known policy template id is a failure.
    */
   def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : Box[Seq[Directive]]
   
   /**
-   * Save the given policy instance into given user policy template
-   * If the policy instance is already present in the system but not
+   * Save the given directive into given user policy template
+   * If the directive is already present in the system but not
    * in the given category, raise an error.
-   * If the policy instance is already in the given policy template,
-   * update the policy instance.
-   * If the policy instance is not in the system, add it.
+   * If the directive is already in the given policy template,
+   * update the directive.
+   * If the directive is not in the system, add it.
    * 
    * Returned the saved UserDirective
    */
   def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor) : Box[Option[DirectiveSaveDiff]]
  
   /**
-   * Get all policy instances defined in that repository
+   * Get all directives defined in that repository
    */
   def getAll(includeSystem:Boolean = false) : Box[Seq[Directive]]
 
   /**
-   * Delete a policy instance.
+   * Delete a directive.
    * No dependency check are done, and so you will have to
    * delete dependent configuration rule (or other items) by
    * hand if you want.

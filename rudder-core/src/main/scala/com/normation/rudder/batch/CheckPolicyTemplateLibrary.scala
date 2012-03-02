@@ -35,7 +35,7 @@
 package com.normation.rudder.batch
 
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.rudder.domain.Constants.PTLIB_MINIMUM_UPDATE_INTERVAL
+import com.normation.rudder.domain.Constants.TECHLIB_MINIMUM_UPDATE_INTERVAL
 import net.liftweb.actor.{LiftActor, LAPinger}
 import net.liftweb.common.Loggable
 import com.normation.eventlog.EventActor
@@ -44,7 +44,7 @@ import com.normation.rudder.domain.log.RudderEventActor
 case class StartLibUpdate(actor: EventActor)
 
 /**
- * A class that periodically check if PTLib was updated.
+ * A class that periodically check if the Technique Library was updated.
  * 
  * updateInterval has a special semantic:
  * - for 0 or a negative value, does not start the updater
@@ -63,23 +63,23 @@ class CheckTechniqueLibrary(
   if(updateInterval < 1) {
     logger.info("Disable dynamic group updates sinces property %s is 0 or negative".format(propertyName))
   } else {
-    logger.trace("***** starting PT library Update batch *****")
-    (new LAUpdatePTLibManager) ! StartLibUpdate(RudderEventActor)
+    logger.trace("***** starting Technique Library Update batch *****")
+    (new LAUpdateTechLibManager) ! StartLibUpdate(RudderEventActor)
   }
 
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////
   ////////////////////////////////////////////////////////////////
   
-  private class LAUpdatePTLibManager extends LiftActor with Loggable {
+  private class LAUpdateTechLibManager extends LiftActor with Loggable {
     updateManager => 
         
     private[this] var realUpdateInterval = {
-      if(updateInterval < PTLIB_MINIMUM_UPDATE_INTERVAL) {
+      if(updateInterval < TECHLIB_MINIMUM_UPDATE_INTERVAL) {
         logger.warn("Value '%s' for %s is too small, using '%s'".format(
-           updateInterval, propertyName, PTLIB_MINIMUM_UPDATE_INTERVAL 
+           updateInterval, propertyName, TECHLIB_MINIMUM_UPDATE_INTERVAL 
         ))
-        PTLIB_MINIMUM_UPDATE_INTERVAL
+        TECHLIB_MINIMUM_UPDATE_INTERVAL
       } else {
         updateInterval
       }

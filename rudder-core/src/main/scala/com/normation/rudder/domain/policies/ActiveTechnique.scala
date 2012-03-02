@@ -42,7 +42,7 @@ import com.normation.utils.HashcodeCaching
 case class ActiveTechniqueId(value:String) extends HashcodeCaching
 
 /**
- * An activated technique is a technique from the technique library
+ * An active technique is a technique from the technique library
  * that Rudder administrator choose to mark as "can be used to
  * derive directive from". 
  * Non activated techniques are not available to build

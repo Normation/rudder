@@ -74,16 +74,16 @@ trait ActiveTechniqueCategoryRepository {
 
 
   /**
-   * Get an user policy template by its ID
+   * Get an active technique by its ID
    */
   def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[ActiveTechniqueCategory]
   
   
   /**
-   * Add the given categoy into the given parent category in the
+   * Add the given category into the given parent category in the
    * user library. 
-   * Fails if the parent category does not exists in user lib or
-   * if it already contains that category, or a category of the
+   * Fails if the parent category does not exists in active technique library
+   * or if it already contains that category, or a category of the
    * same name (name must be unique for a given level)
    * 
    * return the modified parent category. 
@@ -95,7 +95,7 @@ trait ActiveTechniqueCategoryRepository {
   ) : Box[ActiveTechniqueCategory] 
   
   /**
-   * Update an existing policy template category
+   * Update an existing active technique category
    * Fail if the parent already contains a category of the
    * same name (name must be unique for a given level)
    */

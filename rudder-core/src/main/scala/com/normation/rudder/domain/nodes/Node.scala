@@ -40,8 +40,6 @@ import com.normation.utils.HashcodeCaching
 
 /**
  * The Node is a basic object, the entry point for the application 
- * The Node, the inventory server and the Node Configuration have the same RDN, only
- * the OU changes
  * @author Nicolas CHARLES
  *
  */

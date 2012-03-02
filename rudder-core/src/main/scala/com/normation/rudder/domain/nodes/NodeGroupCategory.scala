@@ -53,11 +53,11 @@ case class NodeGroupCategoryId(value:String) extends HashcodeCaching
  * some items
  */
 case class NodeGroupCategory(
-  id : NodeGroupCategoryId,
-  name : String,
-  description : String,
-  children: List[NodeGroupCategoryId],
-  items : List[RuleTargetInfo],
-  isSystem : Boolean = false
+    id          : NodeGroupCategoryId
+  , name        : String
+  , description : String
+  , children    : List[NodeGroupCategoryId]
+  , items       : List[RuleTargetInfo]
+  , isSystem    : Boolean = false
   
 ) extends ItemCategory[NodeGroupCategoryId,RuleTargetInfo] with HashcodeCaching {}
