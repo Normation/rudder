@@ -55,17 +55,20 @@ import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
 import scala.xml.Text
 import com.normation.eventlog.EventActor
+import com.normation.cfclerk.services.GitRevisionProvider
 
 class Archives extends DispatchSnippet with Loggable {
 
+  private[this] val DL_NAME = "Download as zip"
   private[this] val itemArchiver = inject[ItemArchiveManager]
   private[this] val personIdentService = inject[PersonIdentService]
+  private[this] val gitRevisionProvider = inject[GitRevisionProvider]
   
   def dispatch = {
     case "allForm" => allForm 
     case "rulesForm" => rulesForm
     case "groupLibraryForm" => groupLibraryForm
-    case "policyLibraryForm" => policyLibraryForm
+    case "directiveLibraryForm" => directiveLibraryForm
   }
   
   /**
@@ -85,9 +88,11 @@ class Archives extends DispatchSnippet with Loggable {
       , restoreButtonId           = "importAllButton"
       , restoreButtonName         = "Restore everything"
       , restoreFunction           = itemArchiver.importAll
-      , restoreHeadFunction       = itemArchiver.importHeadAll
       , restoreErrorMessage       = "Error when importing groups, Directive library and Rules."
       , restoreSuccessDebugMessage= "Importing groups, Directive library and Rules on user request"
+      , downloadButtonId          = "downloadAllButton"
+      , downloadButtonName        = DL_NAME
+      , downloadRestAction        = "all"
     )
   }
   
@@ -104,28 +109,32 @@ class Archives extends DispatchSnippet with Loggable {
       , restoreButtonId           = "importRulesButton"
       , restoreButtonName         = "Restore Rules"
       , restoreFunction           = itemArchiver.importRules
-      , restoreHeadFunction       = itemArchiver.importHeadRules
       , restoreErrorMessage       = "Error when imporing Rules."
       , restoreSuccessDebugMessage= "Importing Rules on user request"
+      , downloadButtonId          = "downloadRulesButton"
+      , downloadButtonName        = DL_NAME
+      , downloadRestAction        = "rules"
     )
   }  
 
-  private[this] def policyLibraryForm = {
+  private[this] def directiveLibraryForm = {
     actionFormBuilder(
-        formName                  = "policyLibraryForm"
-      , archiveButtonId           = "exportTechniqueLibraryButton"
+        formName                  = "directiveLibraryForm"
+      , archiveButtonId           = "exportDirectiveLibraryButton"
       , archiveButtonName         = "Archive Directive library"
       , archiveFunction           = itemArchiver.exportTechniqueLibrary
       , archiveErrorMessage       = "Error when exporting Directive library."
       , archiveSuccessDebugMessage= s => "Exporting Directive library on user request, archive id: %s".format(s)
-      , archiveDateSelectId       = "importTechniqueLibrarySelect"
+      , archiveDateSelectId       = "importDirectiveLibrarySelect"
       , archiveListFunction       = itemArchiver.getTechniqueLibraryTags _
-      , restoreButtonId           = "importTechniqueLibraryButton"
+      , restoreButtonId           = "importDirectiveLibraryButton"
       , restoreButtonName         = "Restore Directive library"
       , restoreFunction           = itemArchiver.importTechniqueLibrary
-      , restoreHeadFunction       = itemArchiver.importHeadTechniqueLibrary
       , restoreErrorMessage       = "Error when importing Directive library."
       , restoreSuccessDebugMessage= "Importing Directive library on user request"
+      , downloadButtonId          = "downloadDirectiveLibraryButton"
+      , downloadButtonName        = DL_NAME
+      , downloadRestAction        = "directives"
     )
   }
   
@@ -142,9 +151,11 @@ class Archives extends DispatchSnippet with Loggable {
       , restoreButtonId           = "importGroupLibraryButton"
       , restoreButtonName         = "Restore groups"
       , restoreFunction           = itemArchiver.importGroupLibrary
-      , restoreHeadFunction       = itemArchiver.importHeadGroupLibrary
       , restoreErrorMessage       = "Error when importing groups."
       , restoreSuccessDebugMessage= "Importing groups on user request"
+      , downloadButtonId          = "downloadGroupLibraryButton"
+      , downloadButtonName        = DL_NAME
+      , downloadRestAction        = "groups"
     )
   
   }
@@ -161,20 +172,21 @@ class Archives extends DispatchSnippet with Loggable {
     , archiveSuccessDebugMessage: String => String     //debug log - the string param is the archive id
     , archiveDateSelectId       : String
     , archiveListFunction       : () => Box[Map[DateTime,GitArchiveId]]
-    , restoreButtonId           : String               //input button
+    , restoreButtonId           : String               //input button id to restore an archive
     , restoreButtonName         : String               //what is displayed on the button to the user
     , restoreFunction           : (GitCommitId, EventActor, Boolean) => Box[GitCommitId] //the actual logic to execute the action
-    , restoreHeadFunction       : (EventActor, Boolean) => Box[GitCommitId] //the actual logic to execute the restore from HEAD
     , restoreErrorMessage       : String               //error message to display to the user
     , restoreSuccessDebugMessage: String               //debug log - the string param is the archive id
+    , downloadButtonId          : String               //input button id to download the zip of an archive
+    , downloadButtonName        : String               //what is displayed to download the zip of an archive
+    , downloadRestAction        : String               //the specific action for the REST api, i.e the %s in: /api/archives/zip/%s
   ) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
 
-    type RESTORER = () => Box[GitCommitId]
     
     val noticeId = formName + "Notice"
     
-    var restoreFun = Option.empty[RESTORER]
-    
+    var selectedCommitId = Option.empty[GitCommitId]
+        
     def error(eb:EmptyBox, msg:String) = {
       val e = eb ?~! msg
       logger.error(e.messageChain)
@@ -207,36 +219,33 @@ class Archives extends DispatchSnippet with Loggable {
     
     def restore(): JsCmd = {
       S.clearCurrentNotices
-      restoreFun match {
+      selectedCommitId match {
         case None    => error(Empty, "A valid archive must be chosen")
-        case Some(f) => f() match {
+        case Some(commit) => restoreFunction(commit, CurrentUser.getActor, false) match {
           case eb:EmptyBox => error(eb, restoreErrorMessage)
           case Full( _ )   => success(restoreSuccessDebugMessage)
         }
       }
     }
     
-    //the method that displays archive label: date, last, etc
-    //we are tricky, and we store
-    def archiveIdLabel : PairStringPromoter[AnyRef] = (x:AnyRef) => x match {
-      case "HEAD"                 => "Get archive from current Git HEAD"
-      case (d:DateTime, _:RevTag) => DateFormaterService.getFormatedDate(d)
-      case _                      => "Choose an archive to restore..."
+    def download() : JsCmd = {
+      S.clearCurrentNotices
+      selectedCommitId match {
+        case None    => error(Empty, "A valid archive must be chosen")
+        case Some(commit) => 
+          S.redirectTo("api/archives/zip/%s/%s".format(downloadRestAction, commit.value))
+      }
+      
     }
     
-    ("#"+archiveButtonId) #> { 
-      SHtml.ajaxSubmit(archiveButtonName, archive _ , ("id" -> archiveButtonId)) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
-    } &
-    ("#"+archiveDateSelectId) #> {
-      //we have at least "Choose an archive to restore..." and "get archive from current Git HEAD"
-      
-      val baseOptions: List[(RESTORER , String )] = 
-        ( () => Empty, "Choose an archive to restore...") ::
-        ( () => restoreHeadFunction(CurrentUser.getActor, false) , "Latest Git commit") ::
+    def buildCommitIdList : List[(Option[GitCommitId], String )] = {
+      val baseOptions: List[(Option[GitCommitId], String )] = 
+        ( None, "Choose an archive to restore...") ::
+        ( Some(GitCommitId(gitRevisionProvider.getAvailableRevTreeId.name)) , "Latest Git commit") ::
         Nil
       
       //and perhaps we have also some dates/rev tags
-      val tagOptions: List[(RESTORER , String )] = archiveListFunction() match {
+      val tagOptions: List[(Option[GitCommitId], String )] = archiveListFunction() match {
         case Empty =>
           logger.debug("No archive available from tags")
           Nil
@@ -248,16 +257,29 @@ class Archives extends DispatchSnippet with Loggable {
           m.toList.sortWith { 
             case ( (d1,_), (d2,_) ) => d1.isAfter(d2) 
           }.map { case (date,revTag) =>
-            (() => restoreFunction(revTag.commit, CurrentUser.getActor, false), DateFormaterService.getFormatedDate(date) )
+            ( Some(revTag.commit), DateFormaterService.getFormatedDate(date) )
           }
       }
-
-      SHtml.selectObj[RESTORER](baseOptions ::: tagOptions, Box(restoreFun), { f => restoreFun = Some(f)}, ("id" -> archiveDateSelectId) )
+      baseOptions ::: tagOptions
+    }
+    
+    ////////// Template filling //////////
+    
+    ("#"+archiveButtonId) #> { 
+      SHtml.ajaxSubmit(archiveButtonName, archive _ , ("id" -> archiveButtonId)) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
+    } &
+    ("#"+archiveDateSelectId) #> {
+      //we have at least "Choose an archive to restore..." and "get archive from current Git HEAD"
+      SHtml.selectObj[Option[GitCommitId]](buildCommitIdList, Full(selectedCommitId), { id => selectedCommitId = id}, ("id" -> archiveDateSelectId) )
     } &
     ("#"+restoreButtonId) #> { 
       SHtml.ajaxSubmit(restoreButtonName, restore _, ("id" -> restoreButtonId), ("disabled" -> "disabled") ) ++ 
       Script(OnLoad(JsRaw(""" correctButtons(); enableIfNonEmpty("%s", "%s");""".format(archiveDateSelectId, restoreButtonId))))
-    }
+    } &
+    ("#"+downloadButtonId) #> { 
+      SHtml.ajaxSubmit(downloadButtonName, download _, ("id" -> downloadButtonId), ("disabled" -> "disabled") ) ++ 
+      Script(OnLoad(JsRaw(""" correctButtons(); enableIfNonEmpty("%s", "%s");""".format(archiveDateSelectId, downloadButtonId))))
+    } 
   }
   
   ///////////// success pop-up ///////////////

@@ -50,10 +50,24 @@ class RestGetGitCommitAsZip(
 ) extends RestHelper {
   
   serve {
-    case Get("api" :: "archives" :: "zip" :: commitId :: Nil, req) =>
+    case Get("api" :: "archives" :: "zip" :: "groups"     :: commitId :: Nil, req) =>
+      getZip(commitId, List("groups"))
+      
+    case Get("api" :: "archives" :: "zip" :: "directives" :: commitId :: Nil, req) =>
+      getZip(commitId, List("directives"))
+      
+    case Get("api" :: "archives" :: "zip" :: "rules"      :: commitId :: Nil, req) =>
+      getZip(commitId, List("rules"))
+      
+    case Get("api" :: "archives" :: "zip" :: "all"        :: commitId :: Nil, req) =>
+      getZip(commitId, List("groups", "directives", "rules"))
+      
+  }
+  
+  private[this] def getZip(commitId:String, paths:List[String]) = {
       (for {
         treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, commitId)
-        bytes  <- GitFindUtils.getZip(repo.db, treeId)
+        bytes  <- GitFindUtils.getZip(repo.db, treeId, paths)
       } yield {
         bytes
       }) match {
@@ -67,9 +81,7 @@ class RestGetGitCommitAsZip(
            , Nil
            , 200
          )
-        
       }
-      
-  }
+  } 
   
 }

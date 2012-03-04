@@ -76,7 +76,7 @@ class GitParseRules(
     val directoryPath = root + "/"
 
     //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
-    val paths = GitFindUtils.listFiles(repo.db, revTreeId, Some(root), Some(".xml")).filter { p =>
+    val paths = GitFindUtils.listFiles(repo.db, revTreeId, List(root), List(".xml")).filter { p =>
                    p.size > directoryPath.size &&
                    p.startsWith(directoryPath) &&
                    p.endsWith(".xml") &&

@@ -64,10 +64,10 @@ object GitFindUtils extends Loggable {
    * - endPath  = Some(".xml")
    * //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
    */
-  def listFiles(db:Repository, revTreeId:ObjectId, rootDirectory:Option[String], endPath: Option[String]) : Set[String] = {
+  def listFiles(db:Repository, revTreeId:ObjectId, rootDirectories:List[String], endPaths: List[String]) : Set[String] = {
       //a first walk to find categories
       val tw = new TreeWalk(db)
-      tw.setFilter(new FileTreeFilter(rootDirectory, endPath))
+      tw.setFilter(new FileTreeFilter(rootDirectories, endPaths))
       tw.setRecursive(true)
       tw.reset(revTreeId)
       
@@ -146,7 +146,7 @@ object GitFindUtils extends Loggable {
   * You can filter files only some directory by giving 
   * a root path. 
   */
-  def getZip(db:Repository, revTreeId:ObjectId, onlyUnderPath: String = "") : Box[Array[Byte]] = {
+  def getZip(db:Repository, revTreeId:ObjectId, onlyUnderPaths: List[String] = Nil) : Box[Array[Byte]] = {
     import scala.collection.mutable.{Set,Buffer}
     import com.normation.utils.ZipUtils.Zippable
 
@@ -156,7 +156,8 @@ object GitFindUtils extends Loggable {
     val zipEntries = scala.collection.mutable.Buffer[Zippable]()
     try {
       val tw = new TreeWalk(db)
-      tw.setFilter(new FileTreeFilter( { if(onlyUnderPath == "") None else Some(onlyUnderPath) }, None))
+      //create a filter with a OR of all filters
+      tw.setFilter(new FileTreeFilter(onlyUnderPaths, Nil))
       tw.setRecursive(true)
       tw.reset(revTreeId)
   
@@ -180,30 +181,53 @@ object GitFindUtils extends Loggable {
 
 /**
  * A Git filter that allows to find files in a tree, optionally looking only
- * for file under a given path, and optionally looking only for files with a 
- * given end of path (for example, a given extension name)
+ * for file under given paths, and optionally looking only for files with a 
+ * given end of paths (for example, a given extension name)
+ * Empty path or extension are ignored (they are removed from the list)
  */
-class FileTreeFilter(rootDirectory:Option[String], endPath: Option[String]) extends TreeFilter {
-  private[this] val endRawPath = {
-    endPath match {
-      case None => JConstants.encode("")
-      case Some(path) => JConstants.encode(path)
-    }
+class FileTreeFilter(rootDirectories:List[String], endPaths: List[String]) extends TreeFilter {
+  
+  //paths must not end with "/"
+  
+  private[this] val startRawPaths = rootDirectories.filter( _ != "").map { p =>
+    val pp = p.reverse.dropWhile( _ == '/' ).reverse
+    JConstants.encode(pp)
   }
   
-  private[this] val startRawPath = {
-    rootDirectory match {
-      case None => JConstants.encode("")
-      case Some(path) => JConstants.encode(path)
-    }
+  private[this] val endRawPaths = endPaths.filter( _ != "").map { e =>
+    JConstants.encode(e)
   }
+
+  /**
+   * create the comparator that filter for given paths. An empty list is
+   * an accept ALL filter (no filtering). 
+   */
+  private[this] def pathComparator(walker:TreeWalk, paths:List[Array[Byte]], test: Array[Byte] => Boolean) = {
+    paths.size == 0 || paths.exists(p => test(p))
+  }
+  
   
   override def include(walker:TreeWalk) : Boolean = {
-    (startRawPath.size == 0 || (walker.isPathPrefix(startRawPath,startRawPath.size) == 0)) && //same root
-    ( walker.isSubtree || endRawPath.size == 0 || walker.isPathSuffix(endRawPath, endRawPath.size) )
+    //in an authorized path
+    pathComparator(walker, startRawPaths, x => walker.isPathPrefix(x,x.size) == 0) &&
+    (
+      walker.isSubtree || 
+      pathComparator(walker, endRawPaths, x =>  walker.isPathSuffix(x,x.size) )
+    )
   }
 
   override val shouldBeRecursive = true
   override def clone = this
-  override lazy val toString = "[%s.*%s]".format(rootDirectory.map( _ + "/").getOrElse(""), endPath.map( "/" + _).getOrElse(""))
+  override lazy val toString = {
+    val start = rootDirectories match {
+      case Nil => ""
+      case l   => l.mkString("(", ",", ")/")
+    }
+    val end = endPaths match {
+      case Nil => ""
+      case l   => l.mkString("(", ",", ")")
+    }
+  
+    start + ".*/" + end
+  }
 }

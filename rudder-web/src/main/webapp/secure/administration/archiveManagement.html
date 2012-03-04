@@ -62,7 +62,6 @@
         <form class="lift:form.ajax">
           <br/>
           <input id="exportAllButton" type="submit" value="[Export ALL]"/> 
-          <input id="donloadArchiveAllButton" type="submit" value="[Download archive ALL]"/>
           <br/>
           <br/>
           <select id="importAllSelect">
@@ -72,6 +71,7 @@
             <option>2011-10-11 21:21:21</option>
           </select>
           <input id="importAllButton" type="submit" value="[Importt ALL]"/> 
+          <input id="downloadAllButton" type="submit" value="[Download ALL]"/> 
           <br/>
           <lift:msg id="allFormNotice" errorClass="error">[error]</lift:msg>
           <br/>
@@ -108,6 +108,7 @@
               <option>2011-10-11 21:21:21</option>
             </select>
             <input id="importGroupLibraryButton" type="submit" value="[Import GroupLibrary]"/> 
+            <input id="downloadGroupLibraryButton" type="submit" value="[Download GroupLibrary]"/> 
             <br/>
             <lift:msg id="groupLibraryFormNotice" errorClass="error">[error]</lift:msg>
             <br/>
@@ -148,7 +149,8 @@
               <option>2011-10-10 21:21:21</option>
               <option>2011-10-11 21:21:21</option>
             </select>
-            <input id="importRulesButton" type="submit" value="[Import CR]"/> 
+            <input id="importRulesButton" type="submit" value="[Import Rules]"/> 
+            <input id="downloadRulesButton" type="submit" value="[Download Rules]"/> 
             <br/>
             <lift:msg id="rulesFormNotice" errorClass="error">[error]</lift:msg>
             <br/>
@@ -172,21 +174,22 @@
   
       <hr class="spacer"/>
       <div class="deca">
-        <div class="lift:administration.Archives.policyLibraryForm archiveAction" id="policyLibraryForm">
+        <div class="lift:administration.Archives.directiveLibraryForm archiveAction" id="directiveLibraryForm">
           <form class="lift:form.ajax">
             <br/>
-            <input id="exportTechniqueLibraryButton" type="submit" value="[Export TechniqueLibrary]"/> 
+            <input id="exportDirectiveLibraryButton" type="submit" value="[Export DirectiveLibrary]"/> 
             <br/>
             <br/>
-            <select id="importTechniqueLibrarySelect">
+            <select id="importDirectiveLibrarySelect">
               <option>2011-10-08 21:21:21</option>
               <option>2011-10-09 21:21:21</option>
               <option>2011-10-10 21:21:21</option>
               <option>2011-10-11 21:21:21</option>
             </select>
-            <input id="importTechniqueLibraryButton" type="submit" value="[Import TechniqueLibrary]"/> 
+            <input id="importDirectiveLibraryButton" type="submit" value="[Import DirectiveLibrary]"/> 
+            <input id="downloadDirectiveLibraryButton" type="submit" value="[Download DirectiveLibrary]"/> 
             <br/>
-            <lift:msg id="policyLibraryFormNotice" errorClass="error">[error]</lift:msg>
+            <lift:msg id="directiveLibraryFormNotice" errorClass="error">[error]</lift:msg>
             <br/>
           </form>
         </div>

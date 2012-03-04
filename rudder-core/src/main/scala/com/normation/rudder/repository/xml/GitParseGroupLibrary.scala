@@ -79,7 +79,7 @@ class GitParseGroupLibrary(
     }
         
     //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
-    val paths = GitFindUtils.listFiles(repo.db, revTreeId, Some(root.substring(0, root.size-1)), None)
+    val paths = GitFindUtils.listFiles(repo.db, revTreeId, List(root.substring(0, root.size-1)), Nil)
     
     //directoryPath must end with "/"
     def recParseDirectory(directoryPath:String) : Box[NodeGroupCategoryContent] = {
