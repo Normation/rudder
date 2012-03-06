@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.snippet.asset
+package com.normation.rudder.web.snippet.node
 
 
 import com.normation.inventory.ldap.core.InventoryHistoryLogRepository

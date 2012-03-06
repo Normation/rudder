@@ -47,10 +47,10 @@ import JE._
 import net.liftweb.http.SHtml._
 
 /**
- * Manage redirection for AssetManager 
+ * Manage redirection for NodeManager 
  * home page
  */
-class AssetManager {
+class NodeManager {
 
   def index(xhtml:NodeSeq) : NodeSeq = {
     S.redirectTo("searchNodes")

@@ -1,10 +1,10 @@
-<lift:surround with="menu/menu-asset" at="content">
+<lift:surround with="menu/menu-node" at="content">
 
 <head>
 <title>Rudder - Node Groups Management</title>
 </head>
 
-<lift:asset.Groups.head />
+<lift:node.Groups.head />
 
 <div class="portlet">
  <div class="portlet-header">Groups</div>
@@ -19,7 +19,7 @@
  
   <hr class="spacer"/> 
   <div class="groupDisplay">
-    <lift:asset.Groups.groupHierarchy>
+    <lift:node.Groups.groupHierarchy>
     <fieldset class="hierarchy">
        <legend>Group hierarchy</legend>
        <div>
@@ -36,10 +36,10 @@
       </fieldset>
      </fieldset>
     
-    </lift:asset.Groups.groupHierarchy>
+    </lift:node.Groups.groupHierarchy>
     
     <div id="ajaxItemContainer">
-      <lift:asset.Groups.initRightPanel/>
+      <lift:node.Groups.initRightPanel/>
       <lift:ignore>
         This div gets the content of the item selected in the js tree
       </lift:ignore>
@@ -57,6 +57,6 @@
  
   
   
-  <lift:asset.Groups.detailsPopup/>
+  <lift:node.Groups.detailsPopup/>
 </lift:surround>
    

@@ -1,4 +1,4 @@
-<lift:surround with="menu/menu-asset" at="content">
+<lift:surround with="menu/menu-node" at="content">
 
 <head>
 <title>Rudder - New Nodes Management</title>
@@ -12,7 +12,7 @@
   </div>
  </div>
    
-  <lift:asset.AcceptNode.head />
+  <lift:node.AcceptNode.head />
   <hr class="spacer"/>
   <div id="new_servers_tab" class="tabs">
      <ul>
@@ -32,7 +32,7 @@
         It is enhanced with a "select" column
       </lift:ignore>
       <div class="err"><lift:Msgs>[error]</lift:Msgs></div>
-      <lift:asset.AcceptNode.list>
+      <lift:node.AcceptNode.list>
         <pending:selectall/>
           <br/>
         <pending:servers/>
@@ -45,16 +45,16 @@
         </p>
         <pending:errors/>
       
-      </lift:asset.AcceptNode.list>
+      </lift:node.AcceptNode.list>
     </div>
     <div id="history">
      <div class="tabInform">
       <p>View History of Nodes validation.</p>
       <p>Click on a node name to display full inventory information at review time.</p>
      </div>    
-    <lift:asset.PendingHistoryGrid.displayAndInit>
+    <lift:node.PendingHistoryGrid.displayAndInit>
       <pending:history/>
-    </lift:asset.PendingHistoryGrid.displayAndInit>
+    </lift:node.PendingHistoryGrid.displayAndInit>
     </div>
   </div>
   <div id="manageNewNode"/>

@@ -89,7 +89,7 @@ class HomePage extends Loggable {
           logger.error("Could not fetch the number of pending nodes. reason : %s".format(m.messageChain))
           <div>Could not fetch the number of pending nodes</div>
       case Full(x) if x == 0 => <li>There are no pending nodes</li>
-      case Full(x) => <li>There are <a href="secure/assetManager/manageNewNode">{x} pending nodes</a></li>
+      case Full(x) => <li>There are <a href="secure/nodeManager/manageNewNode">{x} pending nodes</a></li>
     }
   }
 
@@ -100,7 +100,7 @@ class HomePage extends Loggable {
           logger.error("Could not fetch the number of accepted nodes. reason : %s".format(m.messageChain))
           <div>Could not fetch the number of accepted nodes</div>
       case Full(x) if x == 0 => <li>There are no accepted nodes</li>
-      case Full(x) => <li>There are <a href={"""secure/assetManager/searchNodes#{"query":{"select":"node","composition":"and","where":[{"objectType":"node","attribute":"osVersion","comparator":"exists"}]}}"""}>{x} accepted nodes</a></li>
+      case Full(x) => <li>There are <a href={"""secure/nodeManager/searchNodes#{"query":{"select":"node","composition":"and","where":[{"objectType":"node","attribute":"osVersion","comparator":"exists"}]}}"""}>{x} accepted nodes</a></li>
     }
   }
 

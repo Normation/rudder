@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.snippet.asset
+package com.normation.rudder.web.snippet.node
 
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.domain.NodeId
@@ -90,7 +90,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
                   )
              ),
             onSuccessCategory= { _ => Noop },
-            onSuccessGroup = { (node:NodeGroup) => RedirectTo("""secure/assetManager/groups#{"groupId":"%s"}""".format(node.id.value)) }
+            onSuccessGroup = { (node:NodeGroup) => RedirectTo("""secure/nodeManager/groups#{"groupId":"%s"}""".format(node.id.value)) }
          )))
   }
   

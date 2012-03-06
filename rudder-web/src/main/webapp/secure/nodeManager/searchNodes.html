@@ -1,13 +1,13 @@
-<lift:surround with="menu/menu-asset" at="content">
+<lift:surround with="menu/menu-node" at="content">
 
 <head>
 <title>Rudder - Search Nodes</title>
 </head>
 
 
-  <lift:asset.SearchNodes.head />
+  <lift:node.SearchNodes.head />
 
-  <lift:asset.SearchNodes.serverPorlet />
+  <lift:node.SearchNodes.serverPorlet />
 
   <div class="portlet">
    <div class="portlet-header">Search nodes</div>
@@ -16,7 +16,7 @@
      <div>
       <ul>
          <li>List nodes in your Rudder infrastructure that match different criteria</li>
-         <li>Define <a href="secure/assetManager/groups">node groups</a> from your search results</li>
+         <li>Define <a href="secure/nodeManager/groups">node groups</a> from your search results</li>
          <li>Access detailed reports for each node</li>
        </ul>
        
@@ -26,12 +26,12 @@
   
    <fieldset class="searchNodes"><legend>Search nodes</legend>
     <div id="SearchNodes">
-     <lift:asset.SearchNodes.showQuery/>
+     <lift:node.SearchNodes.showQuery/>
     </div>
     <br/>
    <div class="bottomButton">
     <fieldset class="searchNodesAction"><legend>Actions</legend>
-       <lift:asset.SearchNodes.createGroup/>
+       <lift:node.SearchNodes.createGroup/>
      </fieldset>
    </div>
    

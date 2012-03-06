@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.snippet.asset
+package com.normation.rudder.web.snippet.node
 
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.services.servers.NodeSummaryService

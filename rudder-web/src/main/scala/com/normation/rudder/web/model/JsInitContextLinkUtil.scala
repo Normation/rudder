@@ -47,7 +47,7 @@ import com.normation.inventory.domain.NodeId
 object JsInitContextLinkUtil {
 
   def groupLink(id:NodeGroupId) = 
-    """/secure/assetManager/groups#{"groupId":"%s"}""".format(id.value)
+    """/secure/nodeManager/groups#{"groupId":"%s"}""".format(id.value)
   
   def ruleLink(id:RuleId) = 
     """/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(id.value)
@@ -56,5 +56,5 @@ object JsInitContextLinkUtil {
     """/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(id.value)
     
   def nodeLink(id:NodeId) = 
-    """/secure/assetManager/searchNodes#{"nodeId":"%s"}""".format(id.value)
+    """/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(id.value)
 }

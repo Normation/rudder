@@ -284,7 +284,7 @@ class RuleGrid(
        target match {
             case None => <i>None</i>
             case Some(targetInfo) => targetInfo.target match {
-              case GroupTarget(groupId) => <a href={ """/secure/assetManager/groups#{"groupId":"%s"}""".format(groupId.value)}>{ 
+              case GroupTarget(groupId) => <a href={ """/secure/nodeManager/groups#{"groupId":"%s"}""".format(groupId.value)}>{ 
                   targetInfo.name + (if (targetInfo.isEnabled) "" else " (disabled)") 
                 }</a>
               case _ => Text({ targetInfo.name + (if (targetInfo.isEnabled) "" else " (disabled)") })
@@ -479,7 +479,7 @@ class RuleGrid(
                      case Full(nodeInfo)  => {
                         <tr class={severity.replaceAll(" ", "")}>
                         {bind("line",chooseTemplate("lastReportGrid","lines",reportTemplate),
-                         "hostname" -> <a href={"""secure/assetManager/searchNodes#{"nodeId":"%s"}""".format(uuid.value)}><span class="curspoint" jsuuid={uuid.value.replaceAll("-","")} serverid={uuid.value}>{nodeInfo.hostname}</span></a>,
+                         "hostname" -> <a href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(uuid.value)}><span class="curspoint" jsuuid={uuid.value.replaceAll("-","")} serverid={uuid.value}>{nodeInfo.hostname}</span></a>,
                          "severity" -> severity )}
                         </tr>
                      }

@@ -48,7 +48,7 @@ import net.liftweb.http.SHtml._
 
 
 /**
- * Manage redirection for AssetManager 
+ * Manage redirection for administration
  * home page
  */
 class Administration {

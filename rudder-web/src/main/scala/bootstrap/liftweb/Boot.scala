@@ -90,13 +90,13 @@ class Boot extends Loggable {
     LiftRules.statefulRewrite.append {
       //if no Directive server if configured, force to configure one
 //      case RewriteRequest(path,_,_) if(RudderContext.rootNodeNotDefined && (path match { 
-//        case ParsePath("secure"::"assetManager"::"policyServers"::Nil, _, _, _) => false 
+//        case ParsePath("secure"::"nodeManager"::"policyServers"::Nil, _, _, _) => false 
 //        case _ => true
-//      })) => RewriteResponse("secure"::"assetManager"::"policyServers"::Nil)
+//      })) => RewriteResponse("secure"::"nodeManager"::"policyServers"::Nil)
       case RewriteRequest(ParsePath("secure" :: "configurationManager" :: "techniqueLibraryManagement" :: activeTechniqueId :: Nil, _, _, _), GetRequest, _) =>
         RewriteResponse("secure" :: "configurationManager" :: "techniqueLibraryManagement" :: Nil, Map("techniqueId" -> activeTechniqueId))
-      case RewriteRequest(ParsePath("secure"::"assetManager"::"searchNodes"::nodeId::Nil, _, _, _), GetRequest, _) =>
-        RewriteResponse("secure"::"assetManager"::"searchNodes"::Nil, Map("nodeId" -> nodeId))
+      case RewriteRequest(ParsePath("secure"::"nodeManager"::"searchNodes"::nodeId::Nil, _, _, _), GetRequest, _) =>
+        RewriteResponse("secure"::"nodeManager"::"searchNodes"::Nil, Map("nodeId" -> nodeId))
     }
     
     // Fix relative path to css resources
@@ -143,17 +143,17 @@ class Boot extends Loggable {
     // All the following is related to the sitemap
     
       
-    val assetManagerMenu = 
-      Menu("AssetManagerHome", <span>Asset Management</span>)  / "secure" / "assetManager" / "index" submenus(
+    val nodeManagerMenu = 
+      Menu("NodeManagerHome", <span>Node Management</span>)  / "secure" / "nodeManager" / "index" submenus(
           
-          Menu("SearchNodes", <span>Search nodes</span>)       / "secure" / "assetManager" / "searchNodes" >> LocGroup("nodeGroup") 
+          Menu("SearchNodes", <span>Search nodes</span>)       / "secure" / "nodeManager" / "searchNodes" >> LocGroup("nodeGroup") 
         
-        , Menu("ManageNewNode", <span>Accept new nodes</span>) / "secure" / "assetManager" / "manageNewNode" >>  LocGroup("nodeGroup")
+        , Menu("ManageNewNode", <span>Accept new nodes</span>) / "secure" / "nodeManager" / "manageNewNode" >>  LocGroup("nodeGroup")
           
-        , Menu("Groups", <span>Groups</span>)                  / "secure" / "assetManager" / "groups" >> LocGroup("groupGroup") 
+        , Menu("Groups", <span>Groups</span>)                  / "secure" / "nodeManager" / "groups" >> LocGroup("groupGroup") 
         
-        //Menu(Loc("PolicyServers", List("secure", "assetManager","policyServers"), <span>Rudder server</span>,  LocGroup("assetGroup"))) ::
-        //Menu(Loc("UploadedFiles", List("secure", "assetManager","uploadedFiles"), <span>Manage uploaded files</span>, LocGroup("filesGroup"))) ::
+        //Menu(Loc("PolicyServers", List("secure", "nodeManager","policyServers"), <span>Rudder server</span>,  LocGroup("nodeGroup"))) ::
+        //Menu(Loc("UploadedFiles", List("secure", "nodeManager","uploadedFiles"), <span>Manage uploaded files</span>, LocGroup("filesGroup"))) ::
       )        
 
     def buildManagerMenu(name:String) = 
@@ -191,7 +191,7 @@ class Boot extends Loggable {
     val rootMenu = List(
         Menu("Home", <span>Home</span>) / "secure" / "index"
       , Menu("Login") / "index" >> Hidden
-      , assetManagerMenu 
+      , nodeManagerMenu 
       , buildManagerMenu("configuration") 
       , administrationMenu 
     ).map( _.toMenu )
