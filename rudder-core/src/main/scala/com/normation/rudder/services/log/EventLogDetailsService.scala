@@ -571,9 +571,14 @@ class EventLogDetailsServiceImpl(
    */
   def getUpdatePolicyServerDetails(xml:NodeSeq) : Box[AuthorizedNetworkModification] = {
     for {
-      entry   <- getEntryContent(xml)
-      oldsXml  <- (entry \ "oldAuthorizedNetworks").headOption ?~! ("Missing attribute 'oldAuthorizedNetworks' in entry: " + entry)
-      newsXml  <- (entry \ "newAuthorizedNetworks").headOption ?~! ("Missing attribute 'newAuthorizedNetworks' in entry: " + entry)
+      entry        <- getEntryContent(xml)
+      details      <- (entry \ "changeAuthorizedNetworks").headOption ?~! ("Entry type is not a changeAuthorizedNetworks: " + entry)
+      fileFormatOk <- {
+                          if(details.attribute("fileFormat").map( _.text ) == Some(Constants.XML_FILE_FORMAT_2_0)) Full("OK")
+                          else Failure("Bad fileFormat (expecting %s): %s".format(Constants.XML_FILE_FORMAT_2_0, entry))
+                        }
+      oldsXml      <- (entry \ "oldAuthorizedNetworks").headOption ?~! ("Missing attribute 'oldAuthorizedNetworks' in entry: " + entry)
+      newsXml      <- (entry \ "newAuthorizedNetworks").headOption ?~! ("Missing attribute 'newAuthorizedNetworks' in entry: " + entry)
     } yield {
       AuthorizedNetworkModification(
           oldNetworks = (oldsXml \ "net").map( _.text )
@@ -598,17 +603,17 @@ class EventLogDetailsServiceImpl(
    */
   def getTechniqueLibraryReloadDetails(xml:NodeSeq) : Box[Seq[TechniqueId]] = {
     for {
-      entry   <- getEntryContent(xml)
-      details <- (entry \ "techniqueReloaded").headOption ?~! ("Entry type is not a techniqueReloaded: " + entry)
-      activeTechniqueIds   <- sequence((details \ "modifiedTechnique")) { technique =>
-                   for {
-                     name    <- (technique \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type techniqueReloaded : " + entry)
-                     version <- (technique \ "version").headOption.map( _.text ) ?~! ("Missing attribute 'version' in entry type techniqueReloaded : " + entry)
-                     v       <- tryo { TechniqueVersion(version) }
-                   } yield {
-                     TechniqueId(TechniqueName(name),v)
-                   }
-                 }
+      entry              <- getEntryContent(xml)
+      details            <- (entry \ "reloadTechniqueLibrary").headOption ?~! ("Entry type is not a techniqueReloaded: " + entry)
+      activeTechniqueIds <- sequence((details \ "modifiedTechnique")) { technique =>
+                              for {
+                                name    <- (technique \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type techniqueReloaded : " + entry)
+                                version <- (technique \ "version").headOption.map( _.text ) ?~! ("Missing attribute 'version' in entry type techniqueReloaded : " + entry)
+                                v       <- tryo { TechniqueVersion(version) }
+                              } yield {
+                                TechniqueId(TechniqueName(name),v)
+                              }
+                            }
     } yield {
       activeTechniqueIds
     }

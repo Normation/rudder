@@ -64,9 +64,11 @@ import net.liftweb.http.Templates
 /**
  * Show the reports from cfengine (raw data)
  */
-class LogDisplayer(reportRepository :ReportsRepository,
-    directiveRepository : DirectiveRepository, 
-    ruleRepository : RuleRepository) {
+class LogDisplayer(
+    reportRepository   : ReportsRepository
+  , directiveRepository: DirectiveRepository
+  , ruleRepository     : RuleRepository
+) {
 
 
   private val templatePath = List("templates-hidden", "node_logs_tabs")

@@ -9,6 +9,7 @@ import scala.xml.NodeSeq
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.EventLogType
+import com.normation.rudder.domain.Constants
 
 
 /**
@@ -39,12 +40,14 @@ object UpdatePolicyServer extends EventLogFilter {
   
   def buildDetails(modification: AuthorizedNetworkModification) : NodeSeq = {
     EventLog.withContent {
-      <oldAuthorizedNetworks>{
-        modification.oldNetworks.map { net => <net>{net}</net>}
-      }</oldAuthorizedNetworks>
-      <newAuthorizedNetworks>{
-        modification.newNetworks.map { net => <net>{net}</net>}
-      }</newAuthorizedNetworks>
+      <changeAuthorizedNetworks fileFormat={Constants.XML_FILE_FORMAT_2_0}>
+        <oldAuthorizedNetworks>{
+          modification.oldNetworks.map { net => <net>{net}</net>}
+        }</oldAuthorizedNetworks>
+        <newAuthorizedNetworks>{
+          modification.newNetworks.map { net => <net>{net}</net>}
+        }</newAuthorizedNetworks>
+      </changeAuthorizedNetworks>
     }
   }
   

@@ -83,12 +83,12 @@ trait DeploymentStatusUnserialisation {
 trait NodeGroupCategoryUnserialisation {
   /**
    * Version 2:
-     <groupLibraryCategory fileFormat="2.0">
+     <nodeGroupCategory fileFormat="2.0">
         <id>{cat.id.value}</id>
         <displayName>{cat.name}</displayName>
         <description>{cat.description}</serial>
         <isSystem>{cat.isSystem}</isSystem>
-      </groupLibraryCategory>
+      </nodeGroupCategory>
    */
   def unserialise(xml:XNode): Box[NodeGroupCategory]
 }
@@ -152,12 +152,12 @@ trait RuleUnserialisation {
 trait ActiveTechniqueCategoryUnserialisation {
   /**
    * Version 2:
-     <policyLibraryCategory fileFormat="2.0">
+     <activeTechniqueCategory fileFormat="2.0">
         <id>{uptc.id.value}</id>
         <displayName>{uptc.name}</displayName>
         <description>{uptc.description}</serial>
         <isSystem>{uptc.isSystem}</isSystem>
-      </policyLibraryCategory>
+      </activeTechniqueCategory>
    */
   def unserialise(xml:XNode): Box[ActiveTechniqueCategory]
 }
@@ -171,7 +171,7 @@ trait ActiveTechniqueCategoryUnserialisation {
 trait ActiveTechniqueUnserialisation {
   /**
    * Version 2:
-     <policyLibraryTemplate fileFormat="2.0">
+     <activeTechnique fileFormat="2.0">
         <id>{activeTechnique.id.value}</id>
         <techniqueName>{activeTechnique.techniqueName}</techniqueName>
         <isEnabled>{activeTechnique.isSystem}</isEnabled>
@@ -181,7 +181,7 @@ trait ActiveTechniqueUnserialisation {
           <version name="1.1">{activeTechnique.acceptationDate("1.1") in iso-8601}</version>
           <version name="2.0">{activeTechnique.acceptationDate("2.0") in iso-8601}</version>
         </versions>
-      </policyLibraryTemplate>
+      </activeTechnique>
    */
   def unserialise(xml:XNode): Box[ActiveTechnique]
 }

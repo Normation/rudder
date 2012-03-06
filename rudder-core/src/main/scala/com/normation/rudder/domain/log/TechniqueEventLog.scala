@@ -43,6 +43,7 @@ import net.liftweb.common._
 import com.normation.cfclerk.domain._
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.EventLogDetails
+import com.normation.rudder.domain.Constants
 
 sealed trait TechniqueEventLog extends EventLog { override final val eventLogCategory = TechniqueLogCategory }
 
@@ -60,12 +61,12 @@ object ReloadTechniqueLibrary extends EventLogFilter {
   override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2) 
 
   def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent { 
-    <techniqueReloaded>{ TechniqueIds.map { case TechniqueId(name, version) =>
+    <reloadTechniqueLibrary fileFormat={Constants.XML_FILE_FORMAT_2_0}>{ TechniqueIds.map { case TechniqueId(name, version) =>
       <modifiedTechnique>
         <name>{name.value}</name>
         <version>{version.toString}</version>
       </modifiedTechnique>
-    } }</techniqueReloaded>
+    } }</reloadTechniqueLibrary>
   }
 
 }

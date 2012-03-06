@@ -90,12 +90,12 @@ class ActiveTechniqueCategorySerialisationImpl(xmlVersion:String) extends Active
 
   def serialise(uptc:ActiveTechniqueCategory):  Elem = {
     XmlUtils.trim {
-      <policyLibraryCategory fileFormat={xmlVersion}>
+      <activeTechniqueCategory fileFormat={xmlVersion}>
         <id>{uptc.id.value}</id>
         <displayName>{uptc.name}</displayName>
         <description>{uptc.description}</description>
         <isSystem>{uptc.isSystem}</isSystem>
-      </policyLibraryCategory>
+      </activeTechniqueCategory>
     }
   }
 }
@@ -108,7 +108,7 @@ class ActiveTechniqueSerialisationImpl(xmlVersion:String) extends ActiveTechniqu
 
   def serialise(activeTechnique:ActiveTechnique):  Elem = {
     XmlUtils.trim {
-      <policyLibraryTemplate fileFormat={xmlVersion}>
+      <activeTechnique fileFormat={xmlVersion}>
         <id>{activeTechnique.id.value}</id>
         <techniqueName>{activeTechnique.techniqueName}</techniqueName>
         <isEnabled>{activeTechnique.isEnabled}</isEnabled>
@@ -116,7 +116,7 @@ class ActiveTechniqueSerialisationImpl(xmlVersion:String) extends ActiveTechniqu
         <versions>{ activeTechnique.acceptationDatetimes.map { case(version,date) =>
           <version name={version.toString}>{date.toString(ISODateTimeFormat.dateTime)}</version>
         } }</versions>
-      </policyLibraryTemplate>
+      </activeTechnique>
     }
   }
 }
@@ -157,12 +157,12 @@ class NodeGroupCategorySerialisationImpl(xmlVersion:String) extends NodeGroupCat
 
   def serialise(ngc:NodeGroupCategory):  Elem = {
     XmlUtils.trim {
-      <groupLibraryCategory fileFormat={xmlVersion}>
+      <nodeGroupCategory fileFormat={xmlVersion}>
         <id>{ngc.id.value}</id>
         <displayName>{ngc.name}</displayName>
         <description>{ngc.description}</description>
         <isSystem>{ngc.isSystem}</isSystem>
-      </groupLibraryCategory>
+      </nodeGroupCategory>
     }
   }
 }

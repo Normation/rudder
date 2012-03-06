@@ -154,9 +154,7 @@ final case class NodeLogDetails(
 sealed trait NodeEventLog extends AssetEventLog
 
 object NodeEventLog {
-  
-  val xmlVersion = "1.0"
-    
+      
   /**
    * Print to XML a node detail
    */

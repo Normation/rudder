@@ -12,6 +12,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.repository.GitPath
 import com.normation.rudder.repository.GitArchiveId
 import com.normation.rudder.repository.GitCommitId
+import com.normation.rudder.domain.Constants
 
 sealed trait ImportExportEventLog  extends EventLog { override final val eventLogCategory = ImportExportItemsLogCategory }
 
@@ -21,18 +22,28 @@ sealed trait ExportEventLog  extends ImportExportEventLog
 object ImportExportEventLog {
   
   def buildCommonExportDetails(tagName:String, gitArchiveId: GitArchiveId) : Elem = 
-    EventLog.withContent(new Elem(null, tagName, Null, TopScope, child = (  
-        <path>{gitArchiveId.path.value}</path>
-        <commit>{gitArchiveId.commit.value}</commit>
-        <commiterName>{gitArchiveId.commiter.getName}</commiterName>
-        <commiterEmail>{gitArchiveId.commiter.getEmailAddress}</commiterEmail>
-      ):_*
+    EventLog.withContent(new Elem(
+        prefix = null
+      , label = tagName
+      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_FILE_FORMAT_2_0)), Null)
+      , scope = TopScope
+      , child = (  
+          <path>{gitArchiveId.path.value}</path>
+          <commit>{gitArchiveId.commit.value}</commit>
+          <commiterName>{gitArchiveId.commiter.getName}</commiterName>
+          <commiterEmail>{gitArchiveId.commiter.getEmailAddress}</commiterEmail>
+        ):_*
     ) )
 
   def buildCommonImportDetails(tagName:String, gitCommitId: GitCommitId) : NodeSeq = (
-    EventLog.withContent(new Elem(null, tagName, Null, TopScope, child = (  
-        <commit>{gitCommitId.value}</commit>
-      ):_*
+    EventLog.withContent(new Elem(
+        prefix = null
+      , label = tagName
+      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_FILE_FORMAT_2_0)), Null)
+      , scope = TopScope
+      , child = (  
+          <commit>{gitCommitId.value}</commit>
+        ):_*
     ) )
   )
   
@@ -58,7 +69,7 @@ object ExportGroupsArchive extends EventLogFilter {
   def buildDetails(gitArchiveId:GitArchiveId) = 
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
     
-  val tagName = "NewGroupsArchive"
+  val tagName = "newGroupsArchive"
 }
 
 final case class ImportGroupsArchive(
@@ -81,7 +92,7 @@ object ImportGroupsArchive extends EventLogFilter {
   def buildDetails(gitCommitId:GitCommitId) =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
 
-  val tagName = "RestoreGroupsArchive"
+  val tagName = "restoreGroupsArchive"
 }
 
 final case class ExportTechniqueLibraryArchive(
@@ -104,7 +115,7 @@ object ExportTechniqueLibraryArchive extends EventLogFilter {
   def buildDetails(gitArchiveId:GitArchiveId) = 
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
     
-  val tagName = "NewTechniqueLibraryArchive"
+  val tagName = "newDirectivesArchive"
 }
 
 final case class ImportTechniqueLibraryArchive(
@@ -127,7 +138,7 @@ object ImportTechniqueLibraryArchive extends EventLogFilter {
   def buildDetails(gitCommitId:GitCommitId) =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
   
-  val tagName = "RestoreTechniqueLibraryArchive"
+  val tagName = "restoreDirectivesArchive"
 }
 
 
@@ -151,7 +162,7 @@ object ExportRulesArchive extends EventLogFilter {
   def buildDetails(gitArchiveId:GitArchiveId) = 
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
     
-  val tagName = "NewGroupsArchive"
+  val tagName = "newRulesArchive"
 }
 
 final case class ImportRulesArchive(
@@ -174,7 +185,7 @@ object ImportRulesArchive extends EventLogFilter {
   def buildDetails(gitCommitId:GitCommitId) =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
 
-  val tagName = "RestoreRulesArchive"
+  val tagName = "restoreRulesArchive"
 }
 
 final case class ExportFullArchive(
@@ -197,7 +208,7 @@ object ExportFullArchive extends EventLogFilter {
   def buildDetails(gitArchiveId:GitArchiveId) = 
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
     
-  val tagName = "NewFullArchive"
+  val tagName = "newFullArchive"
 }
 
 final case class ImportFullArchive(
@@ -220,7 +231,7 @@ object ImportFullArchive extends EventLogFilter {
   def buildDetails(gitCommitId:GitCommitId) =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
 
-  val tagName = "RestoreFullArchive"
+  val tagName = "restoreFullArchive"
 }
 
 object ImportExportEventLogsFilter {
