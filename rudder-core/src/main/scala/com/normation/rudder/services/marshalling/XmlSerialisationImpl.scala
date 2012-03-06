@@ -193,13 +193,13 @@ class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentSta
   def serialise(
       deploymentStatus : CurrentDeploymentStatus) : Elem = {
   XmlUtils.trim { deploymentStatus match {
-      case d : SuccessStatus => <deploymentStatus fileFormat="2.0">
+      case d : SuccessStatus => <deploymentStatus fileFormat={xmlVersion}>
           <id>{d.id}</id>
           <started>{d.started}</started>
           <ended>{d.ended}</ended>
           <status>success</status>
           </deploymentStatus>
-      case d : ErrorStatus => <deploymentStatus fileFormat="2.0">
+      case d : ErrorStatus => <deploymentStatus fileFormat={xmlVersion}>
           <id>{d.id}</id>
           <started>{d.started}</started>
           <ended>{d.ended}</ended>

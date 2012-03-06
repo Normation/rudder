@@ -54,7 +54,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 trait RuleSerialisation {
   /**
    * Version 2:
-     <rule fileFormat="2.0">
+     <rule fileFormat="2">
         <id>{rule.id.value}</id>
         <name>{rule.name}</name>
         <serial>{rule.serial}</serial>
@@ -78,7 +78,7 @@ trait RuleSerialisation {
 trait ActiveTechniqueCategorySerialisation {
   /**
    * Version 2:
-     <policyLibraryCategory fileFormat="2.0">
+     <policyLibraryCategory fileFormat="2">
         <id>{uptc.id.value}</id>
         <displayName>{uptc.name}</displayName>
         <description>{uptc.description}</serial>
@@ -95,7 +95,7 @@ trait ActiveTechniqueCategorySerialisation {
 trait ActiveTechniqueSerialisation {
   /**
    * Version 2:
-     <policyLibraryTemplate fileFormat="2.0">
+     <policyLibraryTemplate fileFormat="2">
         <id>{activeTechnique.id.value}</id>
         <techniqueName>{activeTechnique.techniqueName}</techniqueName>
         <isEnabled>{activeTechnique.isSystem}</isEnabled>
@@ -117,7 +117,7 @@ trait ActiveTechniqueSerialisation {
 trait DirectiveSerialisation {
   /**
    * Version 2:
-     <directive fileFormat="2.0">
+     <directive fileFormat="2">
       <id>{directive.id.value}</id>
       <displayName>{directive.name}</displayName>
       <techniqueName>{policy template name on with depend that directive}</techniqueName>
@@ -155,7 +155,7 @@ trait DirectiveSerialisation {
 trait NodeGroupCategorySerialisation {
   /**
    * Version 2: (ngc: nodeGroupCategory)
-     <groupLibraryCategory fileFormat="2.0">
+     <groupLibraryCategory fileFormat="2">
         <id>{ngc.id.value}</id>
         <displayName>{ngc.name}</displayName>
         <description>{ngc.description}</serial>
@@ -172,7 +172,7 @@ trait NodeGroupCategorySerialisation {
 trait NodeGroupSerialisation {
   /**
    * Version 2: 
-     <nodeGroup fileFormat="2.0">
+     <nodeGroup fileFormat="2">
        <id>{group.id.value}</id>
        <displayName>{group.id.name}</displayName>
        <description>{group.id.description}</description>
@@ -195,7 +195,7 @@ trait NodeGroupSerialisation {
 trait DeploymentStatusSerialisation {
   /**
    * Version 2:
-     <deploymentStatus fileFormat="2.0">
+     <deploymentStatus fileFormat="2">
       <id>{deploymentStatus.id.value}</id>
       <started>{deploymentStatus.started}</started>
       <ended>{deploymentStatus.end}</ended>

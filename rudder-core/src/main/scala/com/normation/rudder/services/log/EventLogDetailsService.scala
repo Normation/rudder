@@ -65,6 +65,7 @@ import com.normation.rudder.repository.GitCommitId
 import com.normation.rudder.repository.GitArchiveId
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.services.marshalling.TestFileFormat
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -179,7 +180,7 @@ class EventLogDetailsServiceImpl(
   
   /**
    * Version 2:
-     <rule changeType="add" fileFormat="2.0">
+     <rule changeType="add" fileFormat="2">
         <id>{rule.id.value}</id>
         <name>{rule.name}</name>
         <serial>{rule.serial}</serial>
@@ -201,7 +202,7 @@ class EventLogDetailsServiceImpl(
   
   /**
    * Version 2:
-     <rule changeType="delete" fileFormat="2.0">
+     <rule changeType="delete" fileFormat="2">
         <id>{rule.id.value}</id>
         <name>{rule.name}</name>
         <serial>{rule.serial}</serial>
@@ -240,10 +241,7 @@ class EventLogDetailsServiceImpl(
                              if(rule.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
                              else Failure("Rule attribute does not have changeType=modify: " + entry)
                            }
-      fileFormatOk      <- {
-                             if(rule.attribute("fileFormat").map( _.text ) == Some(Constants.XML_FILE_FORMAT_2_0)) Full("OK")
-                             else Failure("Bad fileFormat (expecting %s): %s".format(Constants.XML_FILE_FORMAT_2_0, entry))
-                           }
+      fileFormatOk      <- TestFileFormat(rule)
       id                <- (rule \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type rule : " + entry)
       displayName       <- (rule \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type rule : " + entry)
       name              <- getFromToString((rule \ "name").headOption)
@@ -335,10 +333,7 @@ class EventLogDetailsServiceImpl(
                                  if(directive.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
                                  else Failure("Directive attribute does not have changeType=modify: " + entry)
                                }
-      fileFormatOk          <- {
-                                 if(directive.attribute("fileFormat").map( _.text ) == Some(Constants.XML_FILE_FORMAT_2_0)) Full("OK")
-                                 else Failure("Bad fileFormat (expecting %s): %s".format(Constants.XML_FILE_FORMAT_2_0, entry))
-                               }
+      fileFormatOk          <- TestFileFormat(directive)
       id                    <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + entry)
       ptName                <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + entry)
       displayName           <- (directive \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type directive : " + entry)
@@ -393,10 +388,7 @@ class EventLogDetailsServiceImpl(
                             if(group.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
                             else Failure("NodeGroup attribute does not have changeType=modify: " + entry)
                           }
-      fileFormatOk    <- {
-                           if(group.attribute("fileFormat").map( _.text ) == Some(Constants.XML_FILE_FORMAT_2_0)) Full("OK")
-                           else Failure("Bad fileFormat (expecting %s): %s".format(Constants.XML_FILE_FORMAT_2_0, entry))
-                         }
+      fileFormatOk    <- TestFileFormat(group)
       id              <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry)
       displayName     <- (group \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry)
       name            <- getFromToString((group \ "name").headOption)
@@ -464,10 +456,7 @@ class EventLogDetailsServiceImpl(
                         if(details.attribute("action").map( _.text ) == Some(action)) Full("OK")
                         else Failure("node attribute does not have action=%s: ".format(action) + entry)
                       }
-      fileFormatOk <- {
-                        if(details.attribute("fileFormat").map( _.text ) == Some(Constants.XML_FILE_FORMAT_2_0)) Full("OK")
-                        else Failure("Bad fileFormat (expecting %s): %s".format(Constants.XML_FILE_FORMAT_2_0, entry))
-                      }
+      fileFormatOk <- TestFileFormat(details)
       nodeId       <- (details \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type node: " + entry)
       version      <- (details \ "inventoryVersion").headOption.map( _.text ) ?~! ("Missing attribute 'inventoryVersion' in entry type node : " + entry)
       hostname     <- (details \ "hostname").headOption.map( _.text ) ?~! ("Missing attribute 'hostname' in entry type node : " + entry)
@@ -500,10 +489,7 @@ class EventLogDetailsServiceImpl(
                           if(details.attribute("action").map( _.text ) == Some(action)) Full("OK")
                           else Failure("node attribute does not have action=%s: ".format(action) + entry)
                         }
-      fileFormatOk   <- {
-                          if(details.attribute("fileFormat").map( _.text ) == Some(Constants.XML_FILE_FORMAT_2_0)) Full("OK")
-                          else Failure("Bad fileFormat (expecting %s): %s".format(Constants.XML_FILE_FORMAT_2_0, entry))
-                        }
+      fileFormatOk   <- TestFileFormat(details)
       nodeId         <- (details \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type node: " + entry)
       name           <- (details \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type node : " + entry)
       hostname       <- (details \ "hostname").headOption.map( _.text ) ?~! ("Missing attribute 'hostname' in entry type node : " + entry)
@@ -559,6 +545,7 @@ class EventLogDetailsServiceImpl(
   }
   
   /**
+   *  <changeAuthorizedNetworks fileFormat="2">
    *  <oldAuthorizedNetworks>
         <net>XXXXX</net>
         <net>SSSSS</net>
@@ -568,15 +555,13 @@ class EventLogDetailsServiceImpl(
         <net>SSSSS</net>
         <net>PPPPP</net>
       </newAuthorizedNetworks>
+      </changeAuthorizedNetworks>
    */
   def getUpdatePolicyServerDetails(xml:NodeSeq) : Box[AuthorizedNetworkModification] = {
     for {
       entry        <- getEntryContent(xml)
       details      <- (entry \ "changeAuthorizedNetworks").headOption ?~! ("Entry type is not a changeAuthorizedNetworks: " + entry)
-      fileFormatOk <- {
-                          if(details.attribute("fileFormat").map( _.text ) == Some(Constants.XML_FILE_FORMAT_2_0)) Full("OK")
-                          else Failure("Bad fileFormat (expecting %s): %s".format(Constants.XML_FILE_FORMAT_2_0, entry))
-                        }
+      fileFormatOk <- TestFileFormat(details)
       oldsXml      <- (entry \ "oldAuthorizedNetworks").headOption ?~! ("Missing attribute 'oldAuthorizedNetworks' in entry: " + entry)
       newsXml      <- (entry \ "newAuthorizedNetworks").headOption ?~! ("Missing attribute 'newAuthorizedNetworks' in entry: " + entry)
     } yield {
@@ -589,7 +574,7 @@ class EventLogDetailsServiceImpl(
   
   
   /**
-   * <techniqueReloaded>
+   * <techniqueReloaded fileFormat="2">
        <modifiedTechnique>
          <name>{name.value}</name>
          <version>{version.toString}</version>
@@ -605,6 +590,7 @@ class EventLogDetailsServiceImpl(
     for {
       entry              <- getEntryContent(xml)
       details            <- (entry \ "reloadTechniqueLibrary").headOption ?~! ("Entry type is not a techniqueReloaded: " + entry)
+      fileFormatOk       <- TestFileFormat(details)
       activeTechniqueIds <- sequence((details \ "modifiedTechnique")) { technique =>
                               for {
                                 name    <- (technique \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type techniqueReloaded : " + entry)
@@ -624,12 +610,13 @@ class EventLogDetailsServiceImpl(
   def getNewArchiveDetails[T <: ExportEventLog](xml:NodeSeq, archive:T) : Box[GitArchiveId] = {
     def getCommitInfo(xml:NodeSeq, tagName:String) = {
       for {
-        entry    <- getEntryContent(xml)
-        details  <- (entry \ tagName).headOption ?~! ("Entry type is not a '%s': %s".format(tagName, entry))
-        path     <- (details \ "path").headOption.map( _.text ) ?~! ("Missing attribute 'path' in entry: " + xml)
-        commitId <- (details \ "commit").headOption.map( _.text ) ?~! ("Missing attribute 'commit' in entry: " + xml)
-        name     <- (details \ "commiterName").headOption.map( _.text ) ?~! ("Missing attribute 'commiterName' in entry: " + xml)
-        email    <- (details \ "commiterEmail").headOption.map( _.text ) ?~! ("Missing attribute 'commiterEmail' in entry: " + xml)
+        entry        <- getEntryContent(xml)
+        details      <- (entry \ tagName).headOption ?~! ("Entry type is not a '%s': %s".format(tagName, entry))
+        fileFormatOk <- TestFileFormat(details)
+        path         <- (details \ "path").headOption.map( _.text ) ?~! ("Missing attribute 'path' in entry: " + xml)
+        commitId     <- (details \ "commit").headOption.map( _.text ) ?~! ("Missing attribute 'commit' in entry: " + xml)
+        name         <- (details \ "commiterName").headOption.map( _.text ) ?~! ("Missing attribute 'commiterName' in entry: " + xml)
+        email        <- (details \ "commiterEmail").headOption.map( _.text ) ?~! ("Missing attribute 'commiterEmail' in entry: " + xml)
       } yield {
         GitArchiveId(GitPath(path), GitCommitId(commitId), new PersonIdent(name, email))
       }
@@ -646,8 +633,9 @@ class EventLogDetailsServiceImpl(
   def getRestoreArchiveDetails[T <: ImportEventLog](xml:NodeSeq, archive:T) : Box[GitCommitId] = {
     def getCommitInfo(xml:NodeSeq, tagName:String) = {
       for {
-        entry    <- getEntryContent(xml)
-        details  <- (entry \ tagName).headOption ?~! ("Entry type is not a '%s': %s".format(tagName, entry))
+        entry        <- getEntryContent(xml)
+        details      <- (entry \ tagName).headOption ?~! ("Entry type is not a '%s': %s".format(tagName, entry))
+        fileFormatOk <- TestFileFormat(details)
         commitId <- (details \ "commit").headOption.map( _.text ) ?~! ("Missing attribute 'commit' in entry: " + xml)
       } yield {
         GitCommitId(commitId)
