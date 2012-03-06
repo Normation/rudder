@@ -128,7 +128,7 @@ attributetype ( RudderAttributes:204
 
 attributetype ( RudderAttributes:205
   NAME 'ruleTarget'
-  DESC 'Target of the policy instance. It is something of the form targetType:targetUuid'
+  DESC 'Target of the directive. It is something of the form targetType:targetUuid'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
@@ -365,7 +365,7 @@ objectclass ( RudderObjectClasses:22
 
 objectclass ( RudderObjectClasses:23
   NAME 'directive'
-  DESC 'The Rudder policy instance (real)'
+  DESC 'Rudder Directive (real)'
   SUP top
   STRUCTURAL
   MUST ( directiveId $ techniqueVersion )
@@ -413,10 +413,10 @@ objectclass ( RudderObjectClasses:102
   DESC 'The ROOT policy server of an Rudder Domain' )
 
 
-#cn is the policy name for the instance
+#cn is the policy name for the directive
 objectClass ( RudderObjectClasses:103
   NAME 'abstractDirectiveNodeConfiguration'
-  DESC 'An abstract instance of a policy instance'
+  DESC 'An abstract instance of a Directive'
   SUP top
   ABSTRACT
   MUST ( techniqueId )

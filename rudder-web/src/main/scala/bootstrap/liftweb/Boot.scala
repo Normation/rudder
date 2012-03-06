@@ -162,7 +162,7 @@ class Boot extends Loggable {
           Menu(name+"RuleManagement", <span>Rules</span>) / 
             "secure" / (name+"Manager") / "ruleManagement" >> LocGroup(name+"Group")
             
-        , Menu(name+"DirectiveManagement", <span>Directive</span>) / 
+        , Menu(name+"DirectiveManagement", <span>Directives</span>) / 
             "secure" / (name+"Manager") / "directiveManagement" >> LocGroup(name+"Group")
             
         , Menu("TechniqueLibraryManagement", <span>Techniques</span>) /
