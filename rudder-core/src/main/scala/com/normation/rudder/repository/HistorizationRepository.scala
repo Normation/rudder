@@ -47,31 +47,81 @@ import org.joda.time.DateTime
 import com.normation.rudder.repository.jdbc.SerializedNodes
 import com.normation.rudder.domain.nodes.NodeInfo
 
+/**
+ * Repository to retrieve information about Nodes, Groups, Policy Instances, Configuration Rules
+ * An item is said to be opened when it doesn't have an endTime, meaning it
+ * is the current version of the item (as reflected in the ldap)
+ */
 trait HistorizationRepository {
 
+  /**
+   * Return all the nodes that are still "opened"
+   */
   def getAllOpenedNodes() : Seq[SerializedNodes]
   
-  def getAllNodes(after : Option[DateTime]) : Seq[SerializedNodes]
+  /**
+   * Return all nodes that have been updated or created after a specific time (optionnal),
+   * If fetchUnclosed is set to true, it will also return the opened nodes, regardless of their
+   * opening time
+   */
+  def getAllNodes(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedNodes]
   
+  /**
+   * Update a list of nodes, and close (end) another list, based on their id
+   * Updating is really only setting now as a endTime for nodes, and creating them after
+   */
   def updateNodes(nodes : Seq[NodeInfo], closable : Seq[String]) :Seq[SerializedNodes]
   
-  def getAllGroups(after : Option[DateTime]) : Seq[SerializedGroups]
+  /**
+   * Return all groups that have been updated or created after a specific time (optionnal),
+   * If fetchUnclosed is set to true, it will also return the opened group, regardless of their
+   * opening time
+   */
+  def getAllGroups(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedGroups]
   
+  /**
+   * Return all the groups that are still "opened"
+   */
   def getAllOpenedGroups() : Seq[SerializedGroups] 
   
+  /**
+   * Update a list of groups, and close (end) another list, based on their id
+   * Updating is really setting a given endTime for the groups, and creating new ones, with all the nodes within 
+   */
   def updateGroups(nodes : Seq[NodeGroup], closable : Seq[String]) :Seq[SerializedGroups]
   
-  def getAllPIs(after : Option[DateTime]) : Seq[SerializedPIs] 
+  /**
+   * Return all policy instances that have been updated or created after a specific time (optionnal),
+   * If fetchUnclosed is set to true, it will also return the opened policy instances, regardless of their
+   * opening time
+   */
+  def getAllPIs(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedPIs] 
   
+  /**
+   * Return all the directives that are still "opened"
+   */
   def getAllOpenedPIs() : Seq[SerializedPIs]
   
+  /**
+   * Update a list of policy instance, and close (end) another list, based on their id
+   * Updating is really only setting now as a endTime for the policy instance, and then 
+   * (re)create the policy instance
+   */
   def updatePIs(pis : Seq[(PolicyInstance, UserPolicyTemplate, PolicyPackage)], 
       				closable : Seq[String]) :Seq[SerializedPIs]
-   
-  def getAllCRs(after : Option[DateTime]) : Seq[(SerializedCRs, Seq[SerializedCRGroups],  Seq[SerializedCRPIs])]
+  /**
+   * Return all configuration rules created or closed after a given time, and if 
+   * fetchUnclosed is true, return also the unclosed configuration rule
+   */ 
+  def getAllCRs(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[(SerializedCRs, Seq[SerializedCRGroups],  Seq[SerializedCRPIs])]
   
+  /**
+   * Return all the configuration rules that are still "opened"
+   */
   def getAllOpenedCRs() : Seq[ConfigurationRule] 
-  
+  /**
+   * close the configuration rules based on their id, update the rule to update (updating is closing and creating)
+   */
   def updateCrs(crs : Seq[ConfigurationRule], closable : Seq[String]) : Unit
   
  

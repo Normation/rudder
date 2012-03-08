@@ -70,22 +70,21 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 	      where(node.endTime.isNull)
 	      select(node)
 	    )
-      q.toList
+      Seq() ++ q.toList
     }
   }
  
-  def getAllNodes(after : Option[DateTime]) : Seq[SerializedNodes] = {
+  def getAllNodes(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedNodes] = {
     squerylConnectionProvider.ourTransaction {
 	    val q = from(Nodes.nodes)(node =>
 	      where(after.map(date => {
 	        node.startTime > toTimeStamp(date) or
-	        (node.endTime.isNotNull and node.endTime.>(Some(toTimeStamp(date))))
-	        
-	         
+	        (node.endTime.isNotNull and node.endTime.>(Some(toTimeStamp(date))))or
+          (fetchUnclosed and node.endTime.isNull)
 	      }).getOrElse(1===1))
 	      select(node)
 	    )
-      q.toList
+      Seq() ++ q.toList
     }
   }
   
@@ -111,22 +110,21 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 	      where(group.endTime.isNull)
 	      select(group)
 	    )
-	    q.toList
+	    Seq() ++ q.toList
     }
   }
   
-  def getAllGroups(after : Option[DateTime]) : Seq[SerializedGroups] = {
+  def getAllGroups(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedGroups] = {
     squerylConnectionProvider.ourTransaction {
 	    val q = from(Groups.groups)(group =>
 	      where(after.map(date => {
 	        group.startTime > toTimeStamp(date) or
-	        (group.endTime.isNotNull and group.endTime.>(Some(toTimeStamp(date))))
-	        
-	         
+	        (group.endTime.isNotNull and group.endTime.>(Some(toTimeStamp(date)))) or
+          (fetchUnclosed and group.endTime.isNull)
 	      }).getOrElse(1===1))
 	      select(group)
 	    )
-      q.toList
+      Seq() ++ q.toList
 	
     }
   }
@@ -155,21 +153,22 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 	      where(pi.endTime.isNull)
 	      select(pi)
 	    )
-	    q.toList
+	    Seq() ++ q.toList
 	    
     }
   }
   
-   def getAllPIs(after : Option[DateTime]) : Seq[SerializedPIs] = {
+   def getAllPIs(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedPIs] = {
     squerylConnectionProvider.ourTransaction {
 	    val q = from(PolicyInstances.policyInstances)(pi =>
 	      where(after.map(date => {
 	        pi.startTime > toTimeStamp(date) or
-	        (pi.endTime.isNotNull and pi.endTime > toTimeStamp(date))
+	        (pi.endTime.isNotNull and pi.endTime > toTimeStamp(date)) or
+          (fetchUnclosed and pi.endTime.isNull)
 	      }).getOrElse(1===1))
 	      select(pi)
 	    )
-      q.toList
+      Seq() ++ q.toList
 
     }
   }
@@ -197,7 +196,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 	      where(cr.endTime.isNull)
 	      select(cr)
 	    )
-	    val crs = q.toList
+	    val crs = Seq() ++ q.toList
 	    
 	    
 	    // Now that we have the opened CR, we must complete them
@@ -211,7 +210,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 	    )
 	    
 	    
-	    val (piSeq, groupSeq) = (pis.toList, groups.toList)
+	    val (piSeq, groupSeq) = (Seq() ++ pis.toList, Seq() ++ groups.toList)
 	        
 	    crs.map ( cr => (cr, 
 	    		groupSeq.filter(group => group.crid == cr.id),
@@ -221,16 +220,17 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
     
   }
 
-  def getAllCRs(after : Option[DateTime]) : Seq[(SerializedCRs, Seq[SerializedCRGroups],  Seq[SerializedCRPIs])] = {
+  def getAllCRs(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[(SerializedCRs, Seq[SerializedCRGroups],  Seq[SerializedCRPIs])] = {
     squerylConnectionProvider.ourTransaction {
 	    val q = from(ConfigurationRules.configurationRules)(cr => 
 	       where(after.map(date => {
 	        cr.startTime > toTimeStamp(date) or
-	        (cr.endTime.isNotNull and cr.endTime > toTimeStamp(date))
+	        (cr.endTime.isNotNull and cr.endTime > toTimeStamp(date)) or
+          (fetchUnclosed and cr.endTime.isNull)
 	      }).getOrElse(1===1))
 	      select(cr)
 	    )
-	    val crs = q.toList
+	    val crs = Seq() ++  q.toList
 	    
 	    
 	    // Now that we have the opened CR, we must complete them
@@ -246,7 +246,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 	    
 	    val (piSeq, groupSeq) = crs.size match {
 	      case 0 => (Seq(), Seq())
-	      case _ => (pis.toSeq, groups.toSeq)
+	      case _ => (Seq() ++ pis.toSeq, Seq() ++ groups.toSeq)
 	    }
 	        
 	    crs.map ( cr => (cr, 
