@@ -66,26 +66,25 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   def getAllOpenedNodes() : Seq[SerializedNodes] = {
    
     squerylConnectionProvider.ourTransaction {
-      val q = from(Nodes.nodes)(node => 
-        where(node.endTime.isNull)
-        select(node)
-      )
-      q.toList
+	    val q = from(Nodes.nodes)(node => 
+	      where(node.endTime.isNull)
+	      select(node)
+	    )
+      Seq() ++ q.toList
     }
   }
  
-  def getAllNodes(after : Option[DateTime]) : Seq[SerializedNodes] = {
+  def getAllNodes(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedNodes] = {
     squerylConnectionProvider.ourTransaction {
-      val q = from(Nodes.nodes)(node =>
-        where(after.map(date => {
-          node.startTime > toTimeStamp(date) or
-          (node.endTime.isNotNull and node.endTime.>(Some(toTimeStamp(date))))
-          
-           
-        }).getOrElse(1===1))
-        select(node)
-      )
-      q.toList
+	    val q = from(Nodes.nodes)(node =>
+	      where(after.map(date => {
+	        node.startTime > toTimeStamp(date) or
+	        (node.endTime.isNotNull and node.endTime.>(Some(toTimeStamp(date))))or
+          (fetchUnclosed and node.endTime.isNull)
+	      }).getOrElse(1===1))
+	      select(node)
+	    )
+      Seq() ++ q.toList
     }
   }
   
@@ -106,27 +105,26 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   
   def getAllOpenedGroups() : Seq[SerializedGroups] = {
     squerylConnectionProvider.ourTransaction {
-      val q = from(Groups.groups)(group => 
-        where(group.endTime.isNull)
-        select(group)
-      )
-      q.toList
+	    val q = from(Groups.groups)(group => 
+	      where(group.endTime.isNull)
+	      select(group)
+	    )
+	    Seq() ++ q.toList
+
     }
   }
   
-  def getAllGroups(after : Option[DateTime]) : Seq[SerializedGroups] = {
+  def getAllGroups(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedGroups] = {
     squerylConnectionProvider.ourTransaction {
-      val q = from(Groups.groups)(group =>
-        where(after.map(date => {
-          group.startTime > toTimeStamp(date) or
-          (group.endTime.isNotNull and group.endTime.>(Some(toTimeStamp(date))))
-          
-           
-        }).getOrElse(1===1))
-        select(group)
-      )
-      q.toList
-  
+	    val q = from(Groups.groups)(group =>
+	      where(after.map(date => {
+	        group.startTime > toTimeStamp(date) or
+	        (group.endTime.isNotNull and group.endTime.>(Some(toTimeStamp(date)))) or
+          (fetchUnclosed and group.endTime.isNull)
+	      }).getOrElse(1===1))
+	      select(group)
+	    )
+      Seq() ++ q.toList
     }
   }
   
@@ -154,21 +152,22 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
         where(directive.endTime.isNull)
         select(directive)
       )
-      q.toList
+      Seq() ++ q.toList
       
     }
   }
   
-   def getAllDirectives(after : Option[DateTime]) : Seq[SerializedDirectives] = {
+   def getAllDirectives(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedDirectives] = {
     squerylConnectionProvider.ourTransaction {
       val q = from(Directives.directives)(directive =>
         where(after.map(date => {
           directive.startTime > toTimeStamp(date) or
-          (directive.endTime.isNotNull and directive.endTime > toTimeStamp(date))
+          (directive.endTime.isNotNull and directive.endTime > toTimeStamp(date)) or
+          (fetchUnclosed and directive.endTime.isNull)
         }).getOrElse(1===1))
         select(directive)
       )
-      q.toList
+      Seq() ++ q.toList
 
     }
   }
@@ -196,7 +195,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
         where(rule.endTime.isNull)
         select(rule)
       )
-      val rules = q.toList
+      val rules = Seq() ++q.toList
       
       
       // Now that we have the opened CR, we must complete them
@@ -210,7 +209,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
       )
       
       
-      val (piSeq, groupSeq) = (directives.toList, groups.toList)
+      val (piSeq, groupSeq) = (Seq() ++directives.toList, Seq() ++groups.toList)
           
       rules.map ( rule => (rule, 
           groupSeq.filter(group => group.rulePkeyId == rule.id),
@@ -220,16 +219,17 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
     
   }
 
-  def getAllRules(after : Option[DateTime]) : Seq[(SerializedRules, Seq[SerializedRuleGroups],  Seq[SerializedRuleDirectives])] = {
+  def getAllRules(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[(SerializedRules, Seq[SerializedRuleGroups],  Seq[SerializedRuleDirectives])] = {
     squerylConnectionProvider.ourTransaction {
       val q = from(Rules.rules)(rule => 
          where(after.map(date => {
           rule.startTime > toTimeStamp(date) or
-          (rule.endTime.isNotNull and rule.endTime > toTimeStamp(date))
+          (rule.endTime.isNotNull and rule.endTime > toTimeStamp(date)) or
+          (fetchUnclosed and rule.endTime.isNull)
         }).getOrElse(1===1))
         select(rule)
       )
-      val rules = q.toList
+      val rules = Seq() ++ q.toList
       
       
       // Now that we have the opened CR, we must complete them
@@ -245,7 +245,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
       
       val (piSeq, groupSeq) = rules.size match {
         case 0 => (Seq(), Seq())
-        case _ => (directives.toSeq, groups.toSeq)
+        case _ => (Seq() ++directives.toSeq, Seq() ++ groups.toSeq)
       }
           
       rules.map ( rule => (rule, 
