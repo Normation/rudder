@@ -32,47 +32,22 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
+package bootstrap.liftweb
+package checks
 
+import net.liftweb.common.Loggable
+import com.normation.rudder.migration.ControlEventLogsMigration_10_2
 
-import com.normation.eventlog._
-import scala.xml._
-import com.normation.rudder.domain.policies._
-import org.joda.time.DateTime
-import net.liftweb.common._
-import com.normation.cfclerk.domain._
-import com.normation.utils.HashcodeCaching
-import com.normation.eventlog.EventLogDetails
-import com.normation.rudder.domain.Constants
+/**
+ * That class add all the available reference template in 
+ * the default user library 
+ * if it wasn't already initialized.
+ */
+class CheckMigrationEventLog10_2(
+  manageEventLogsMigration: ControlEventLogsMigration_10_2
+) extends BootstrapChecks with Loggable {
 
-sealed trait TechniqueEventLog extends EventLog { override final val eventLogCategory = TechniqueLogCategory }
-
-final case class ReloadTechniqueLibrary(
-    override val eventDetails : EventLogDetails
-) extends TechniqueEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = ReloadTechniqueLibrary.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-}
-
-object ReloadTechniqueLibrary extends EventLogFilter {
-  override val eventType = ReloadTechniqueLibraryType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2) 
-
-  def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent { 
-    <reloadTechniqueLibrary fileFormat={Constants.XML_FILE_FORMAT_2.toString}>{ TechniqueIds.map { case TechniqueId(name, version) =>
-      <modifiedTechnique>
-        <name>{name.value}</name>
-        <version>{version.toString}</version>
-      </modifiedTechnique>
-    } }</reloadTechniqueLibrary>
+  override def checks() : Unit = {
+    manageEventLogsMigration.migrate()
   }
-
-}
-
-object TechniqueEventLogsFilter {
-  final val eventList : List[EventLogFilter] = List(
-      ReloadTechniqueLibrary 
-    )
 }

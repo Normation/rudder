@@ -32,47 +32,19 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
+package com.normation.rudder.services.marshalling
 
-
-import com.normation.eventlog._
-import scala.xml._
-import com.normation.rudder.domain.policies._
-import org.joda.time.DateTime
 import net.liftweb.common._
-import com.normation.cfclerk.domain._
-import com.normation.utils.HashcodeCaching
-import com.normation.eventlog.EventLogDetails
 import com.normation.rudder.domain.Constants
+import scala.xml.Node
 
-sealed trait TechniqueEventLog extends EventLog { override final val eventLogCategory = TechniqueLogCategory }
 
-final case class ReloadTechniqueLibrary(
-    override val eventDetails : EventLogDetails
-) extends TechniqueEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = ReloadTechniqueLibrary.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-}
+object TestFileFormat {
 
-object ReloadTechniqueLibrary extends EventLogFilter {
-  override val eventType = ReloadTechniqueLibraryType
+  private[this] val currentFileFormat = Constants.XML_FILE_FORMAT_2
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2) 
-
-  def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent { 
-    <reloadTechniqueLibrary fileFormat={Constants.XML_FILE_FORMAT_2.toString}>{ TechniqueIds.map { case TechniqueId(name, version) =>
-      <modifiedTechnique>
-        <name>{name.value}</name>
-        <version>{version.toString}</version>
-      </modifiedTechnique>
-    } }</reloadTechniqueLibrary>
+  def apply(xml:Node, fileFormat:String = currentFileFormat.toString) : Box[String] = {
+    if(xml.attribute("fileFormat").map( _.text ) == Some(fileFormat)) Full("OK")
+    else Failure("Bad fileFormat (expecting %s): %s".format(fileFormat, xml))
   }
-
-}
-
-object TechniqueEventLogsFilter {
-  final val eventList : List[EventLogFilter] = List(
-      ReloadTechniqueLibrary 
-    )
 }

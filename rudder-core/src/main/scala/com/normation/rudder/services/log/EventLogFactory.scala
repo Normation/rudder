@@ -167,7 +167,7 @@ class EventLogFactoryImpl(
   ) : ModifyRule = {
     val details = EventLog.withContent{
       scala.xml.Utility.trim(
-        <rule changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_2}>
+        <rule changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_2.toString}>
           <id>{modifyDiff.id.value}</id>
           <displayName>{modifyDiff.name}</displayName>{
             modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
@@ -244,7 +244,7 @@ class EventLogFactoryImpl(
   ) = {
     val details = EventLog.withContent{
       scala.xml.Utility.trim(
-        <directive changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_2}>
+        <directive changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_2.toString}>
           <id>{modifyDiff.id.value}</id>
           <techniqueName>{modifyDiff.techniqueName.value}</techniqueName>
           <displayName>{modifyDiff.name}</displayName>{
@@ -313,7 +313,7 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
   ) : ModifyNodeGroup = {
     val details = EventLog.withContent{
-      scala.xml.Utility.trim(<nodeGroup changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_2}>
+      scala.xml.Utility.trim(<nodeGroup changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_2.toString}>
         <id>{modifyDiff.id.value}</id>
         <displayName>{modifyDiff.name}</displayName>{
           modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
