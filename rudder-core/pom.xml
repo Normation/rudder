@@ -99,6 +99,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
           <groupId>org.slf4j</groupId>
         </exclusion>
       </exclusions>
-    </dependency>
+    </dependency> 
+  
   </dependencies>
 </project>

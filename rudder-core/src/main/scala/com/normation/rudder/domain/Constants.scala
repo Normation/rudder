@@ -74,8 +74,9 @@ object Constants {
   
   val XML_FILE_FORMAT_1_0 = "1.0"
   //for 2 and above, we *only* use integer number
-  val XML_FILE_FORMAT_2 = "2"
-    
+  val XML_FILE_FORMAT_2 = 2
+  
+  val XML_CURRENT_FILE_FORMAT = XML_FILE_FORMAT_2
     
   val CONFIGURATION_RULES_ARCHIVE_TAG = "#rules-archive"
   val GROUPS_ARCHIVE_TAG = "#groups-archive" 

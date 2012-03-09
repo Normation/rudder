@@ -40,7 +40,7 @@ object UpdatePolicyServer extends EventLogFilter {
   
   def buildDetails(modification: AuthorizedNetworkModification) : NodeSeq = {
     EventLog.withContent {
-      <changeAuthorizedNetworks fileFormat={Constants.XML_FILE_FORMAT_2}>
+      <changeAuthorizedNetworks fileFormat={Constants.XML_FILE_FORMAT_2.toString}>
         <oldAuthorizedNetworks>{
           modification.oldNetworks.map { net => <net>{net}</net>}
         }</oldAuthorizedNetworks>

@@ -73,7 +73,7 @@ object InventoryEventLog {
     , action    : String
   ) = {
     scala.xml.Utility.trim(
-      <node action={action} fileFormat={Constants.XML_FILE_FORMAT_2}>
+      <node action={action} fileFormat={Constants.XML_FILE_FORMAT_2.toString}>
         <id>{logDetails.nodeId.value}</id>
         <inventoryVersion>{logDetails.inventoryVersion}</inventoryVersion>
         <hostname>{logDetails.hostname}</hostname>
@@ -163,7 +163,7 @@ object NodeEventLog {
     , action: String
   ) = {
     scala.xml.Utility.trim(
-      <node action={action} fileFormat={Constants.XML_FILE_FORMAT_2}>
+      <node action={action} fileFormat={Constants.XML_FILE_FORMAT_2.toString}>
         <id>{node.id.value}</id>
         <name>{node.name}</name>
         <hostname>{node.hostname}</hostname>

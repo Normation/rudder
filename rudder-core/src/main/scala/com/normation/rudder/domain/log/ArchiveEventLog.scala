@@ -25,7 +25,7 @@ object ImportExportEventLog {
     EventLog.withContent(new Elem(
         prefix = null
       , label = tagName
-      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_FILE_FORMAT_2)), Null)
+      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_FILE_FORMAT_2.toString)), Null)
       , scope = TopScope
       , child = (  
           <path>{gitArchiveId.path.value}</path>
@@ -39,7 +39,7 @@ object ImportExportEventLog {
     EventLog.withContent(new Elem(
         prefix = null
       , label = tagName
-      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_FILE_FORMAT_2)), Null)
+      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_FILE_FORMAT_2.toString)), Null)
       , scope = TopScope
       , child = (  
           <commit>{gitCommitId.value}</commit>

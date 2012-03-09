@@ -228,10 +228,10 @@ create sequence MigrationEventLogId start 1;
 
 CREATE TABLE MigrationEventLog(
   id                  integer PRIMARY KEY default(nextval('MigrationEventLogId'))
-, detectionTime       timestamp with time zone NOT NULL
+, detectionTime       timestamp NOT NULL
 , detectedFileFormat  integer
-, migrationStartTime  timestamp with time zone
-, migrationEndTime    timestamp with time zone 
+, migrationStartTime  timestamp
+, migrationEndTime    timestamp 
 , migrationFileFormat integer
 , description         text
 );
