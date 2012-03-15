@@ -146,15 +146,15 @@ class Boot extends Loggable {
     val nodeManagerMenu = 
       Menu("NodeManagerHome", <span>Node Management</span>)  / "secure" / "nodeManager" / "index" submenus(
           
-          Menu("SearchNodes", <span>Search nodes</span>)       / "secure" / "nodeManager" / "searchNodes" >> LocGroup("nodeGroup") 
+          Menu("SearchNodes", <span>Search nodes</span>)       / "secure" / "nodeManager" / "searchNodes" >> LocGroup("nodeGroup")
         
         , Menu("ManageNewNode", <span>Accept new nodes</span>) / "secure" / "nodeManager" / "manageNewNode" >>  LocGroup("nodeGroup")
           
-        , Menu("Groups", <span>Groups</span>)                  / "secure" / "nodeManager" / "groups" >> LocGroup("groupGroup") 
+        , Menu("Groups", <span>Groups</span>)                  / "secure" / "nodeManager" / "groups" >> LocGroup("groupGroup")
         
         //Menu(Loc("PolicyServers", List("secure", "nodeManager","policyServers"), <span>Rudder server</span>,  LocGroup("nodeGroup"))) ::
         //Menu(Loc("UploadedFiles", List("secure", "nodeManager","uploadedFiles"), <span>Manage uploaded files</span>, LocGroup("filesGroup"))) ::
-      )        
+      )
 
     def buildManagerMenu(name:String) = 
       Menu(name+"ManagerHome", <span>{name.capitalize} Management</span>) / "secure" / (name+"Manager") / "index" submenus(
