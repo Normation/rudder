@@ -39,6 +39,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.bean._
 import org.joda.time._
 import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
+import net.liftweb.common.Box
 
 /**
  * An overly simple repository for searching through the cfengine reports
@@ -99,5 +100,19 @@ trait ReportsRepository {
     , beginDate: DateTime
     , endDate  : Option[DateTime]
   ) : Seq[DateTime]
+  
+  
+  def getOldestReports() : Box[Reports]
+  
+  def getOldestArchivedReports() : Box[Reports]
+  
+  def getNewestReports() : Box[Reports]
+  
+  def getNewestArchivedReports() : Box[Reports]
+  
+  def getDatabaseSize() : Box[Long]
+  
+  
+  
   
 }

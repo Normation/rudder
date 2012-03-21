@@ -690,6 +690,9 @@ class AppConfig extends Loggable {
   def fileManager = new FileManager(UPLOAD_ROOT_DIRECTORY)
 
   @Bean
+  def databaseManager = new DatabaseManagerImpl(reportsRepository)
+  
+  @Bean
   def softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, ldap, inventoryMapper)
   
   @Bean

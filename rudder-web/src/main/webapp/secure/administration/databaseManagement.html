@@ -1,0 +1,40 @@
+<lift:surround with="menu/menu-administration" at="content">
+
+<head>
+<title>Rudder - Database Management</title>
+</head>
+
+<div class="portlet">
+  <div class="portlet-header">Database management</div>
+  <div class="portlet-content"> 
+   
+    <div class="intro">
+      <div>
+        Simple management of the Rudder database
+      </div>
+    </div>
+    <hr class="spacer"/>
+
+    <div class="lift:administration.DatabaseManagement.display">
+      <div class="deca">
+        <div>Information about the stored Reports</div>
+          <ul>
+            <li>The oldest report entry is: <b><span id="oldestEntry">[Here comes the oldest entry]</span></b></li>
+            <li>The newest report entry is: <b><span id="newestEntry">[Here comes the newest entry]</span></b></li>
+            <li>The space used by the Reports database is: <b><span id="databaseSize">[here comes the database size]</span></b></li>
+          </ul>
+          
+
+        <br/>
+        <div>Information about the Archived Reports</div>
+          <ul> 
+            <li>The oldest archived report entry is: <b><span id="oldestArchivedEntry">[Here comes the oldest archived entry]</span></b></li>
+            <li>The newest archived report entry is: <b><span id="newestArchivedEntry">[Here comes the newest archived entry]</span></b></li> 
+          </ul>
+      </div>
+    </div>
+ </div>
+ <br/>
+</div>
+</lift:surround>
+

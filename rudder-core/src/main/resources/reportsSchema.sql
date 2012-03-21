@@ -94,6 +94,23 @@ create index reports_idx on RudderSysEvents (executionTimeStamp, nodeId);
 create index ruleId_node_idx on RudderSysEvents (ruleId, nodeId, serial, executionTimeStamp);
 
 
+CREATE TABLE ArchivedRudderSysEvents (
+id integer PRIMARY KEY,
+executionDate timestamp with time zone NOT NULL, 
+nodeId text NOT NULL CHECK (nodeId <> ''),
+directiveId text NOT NULL CHECK (directiveId <> ''),
+ruleId text NOT NULL CHECK (ruleId <> ''),
+serial integer NOT NULL,
+component text NOT NULL CHECK (component <> ''),
+keyValue text,
+executionTimeStamp timestamp with time zone NOT NULL,
+eventType varchar(64),
+policy text,
+msg text
+);
+
+create index executionTimeStamp_idx on ArchivedRudderSysEvents (executionTimeStamp);
+
 
 CREATE SEQUENCE eventLogIdSeq START 1;
 

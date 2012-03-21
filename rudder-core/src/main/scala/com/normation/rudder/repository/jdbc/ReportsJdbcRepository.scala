@@ -43,16 +43,16 @@ import org.joda.time._
 import org.slf4j.{Logger,LoggerFactory}
 import com.normation.rudder.domain.reports.bean._
 import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
-
 import org.springframework.jdbc.core._
-import java.sql.ResultSet;
+import java.sql.ResultSet
 import java.sql.Timestamp
-
 import scala.collection.JavaConversions._
+import net.liftweb.common._
 
 class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsRepository {
 
   val baseQuery = "select executiondate, nodeid, ruleid, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents where 1=1 ";
+  val baseArchivedQuery = "select executiondate, nodeid, ruleid, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from archivedruddersysevents where 1=1 ";
   
   
   // find the last full run per node
@@ -208,6 +208,57 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
           array.toArray[AnyRef],
           ExecutionTimeMapper).toSeq;
   }
+  
+  def getOldestReports() : Box[Reports] = {
+    jdbcTemplate.query(baseQuery + " order by executionTimeStamp asc limit 1",
+          ReportsMapper).toSeq match {
+      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
+      case seq => seq.headOption
+      
+    } 
+  }
+  
+  def getOldestArchivedReports() : Box[Reports] = {
+    jdbcTemplate.query(baseArchivedQuery + " order by executionTimeStamp asc limit 1",
+          ReportsMapper).toSeq match {
+      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
+      case seq => seq.headOption
+      
+    } 
+  }
+  
+    def getNewestReports() : Box[Reports] = {
+    jdbcTemplate.query(baseQuery + " order by executionTimeStamp desc limit 1",
+          ReportsMapper).toSeq match {
+      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
+      case seq => seq.headOption
+      
+    } 
+  }
+  
+  def getNewestArchivedReports() : Box[Reports] = {
+    jdbcTemplate.query(baseArchivedQuery + " order by executionTimeStamp desc limit 1",
+          ReportsMapper).toSeq match {
+      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
+      case seq => seq.headOption
+      
+    } 
+  }
+  
+  def getDatabaseSize() : Box[Long] = {
+    jdbcTemplate.query(
+      """SELECT  nspname ||  '.'  ||  relname AS  "relation",
+          pg_relation_size(C.oid)  AS  "size"
+        FROM  pg_class C
+        LEFT  JOIN  pg_namespace N ON  (N.oid=  C.relnamespace)
+        WHERE  nspname NOT  IN  ('pg_catalog',  'information_schema') and relname = 'ruddersysevents' 
+        """
+        , DatabaseSizeMapper).toSeq match {
+      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
+      case seq  => seq.headOption
+      
+    } 
+  }
 }
 
 
@@ -229,5 +280,11 @@ object ReportsMapper extends RowMapper[Reports] {
 object ExecutionTimeMapper extends RowMapper[DateTime] {
    def mapRow(rs : ResultSet, rowNum: Int) : DateTime = {
         new DateTime(rs.getTimestamp("executionDate"))
+    }
+}
+
+object DatabaseSizeMapper extends RowMapper[Long] {
+   def mapRow(rs : ResultSet, rowNum: Int) : Long = {
+        rs.getLong("size")
     }
 }
