@@ -1,7 +1,21 @@
 <lift:surround with="menu/menu-administration" at="content">
 
 <head>
-<title>Rudder - Database Management</title>
+  <title>Rudder - Database Management</title>
+  <script type="text/javascript">
+    // <![CDATA[
+    var initReportDatepickler = function(selector) {
+      $(selector).datepicker({ 
+          dateFormat: 'yy-mm-dd' 
+        , showWeek: true
+        , firstDay: 1
+        , changeMonth: true
+        , changeYear: true
+        , showButtonPanel: true
+      })
+    };
+    // ]]>
+    </script>
 </head>
 
 <div class="portlet">
@@ -31,6 +45,15 @@
             <li>The oldest archived report entry is: <b><span id="oldestArchivedEntry">[Here comes the oldest archived entry]</span></b></li>
             <li>The newest archived report entry is: <b><span id="newestArchivedEntry">[Here comes the newest archived entry]</span></b></li> 
           </ul>
+          
+        <br/><br/>
+        <form class="lift:form.ajax">
+          <div>Archive all reports older than :<input id="reportFromDate" value=""/></div>
+          <lift:Msgs>
+             <lift:error_msg class="error" />
+          </lift:Msgs>
+          <div><button id="archiveReports">Archive report</button></div>  
+        </form>
       </div>
     </div>
  </div>

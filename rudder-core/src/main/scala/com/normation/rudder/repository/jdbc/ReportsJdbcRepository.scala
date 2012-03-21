@@ -48,6 +48,7 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 import scala.collection.JavaConversions._
 import net.liftweb.common._
+import java.sql.Types
 
 class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsRepository {
 
@@ -258,6 +259,24 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
       case seq  => seq.headOption
       
     } 
+  }
+  
+  def archiveEntries(date : DateTime) : Int = {
+    val migrate = jdbcTemplate.execute("""
+          insert into ArchivedRudderSysEvents 
+                (id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)
+          (select id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from RudderSysEvents
+        where executionTimeStamp < '%s')
+        """.format(date.toString("yyyy-MM-dd") )     
+    )
+    println("insert into ArchivedRudderSysEvents (id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)    (select id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from RudderSysEvents     where executionTimeStamp < '%s')    ".format(date.toString("yyyy-MM-dd")))
+        
+    val delete = jdbcTemplate.update("""
+        delete from RudderSysEvents  where executionTimeStamp < '%s'
+        """.format(date.toString("yyyy-MM-dd") )
+    )
+    delete
+    
   }
 }
 

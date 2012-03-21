@@ -44,10 +44,20 @@ import com.normation.rudder.services.system.DatabaseManager
 import com.normation.rudder.web.components.DateFormaterService
 import org.joda.time.DateTime
 import com.normation.inventory.domain.MemorySize
+import net.liftweb.http._
+import net.liftweb.http.js._
+import net.liftweb.http.js.JsCmds._
+import org.joda.time.format.DateTimeFormat
+import net.liftweb.http.js.JE.JsRaw
 
 class DatabaseManagement extends DispatchSnippet with Loggable {
 
   private[this] val databaseManager = inject[DatabaseManager]
+  private[this] var from : String = ""
+  
+
+  val DATETIME_FORMAT = "yyyy-MM-dd"
+  val DATETIME_PARSER = DateTimeFormat.forPattern(DATETIME_FORMAT)
   
   def dispatch = {
     case "display" => display
@@ -61,8 +71,37 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
       "#newestEntry" #> displayDate(reportsInterval.map( x => x._2 )) &
       "#databaseSize" #> databaseManager.getDatabaseSize().map(x => Text(MemorySize(x).toStringMo())).openOr(Text("could not fetch")) &
       "#oldestArchivedEntry" #> displayDate(archivedReportsInterval.map( x => x._1 )) &
-      "#newestArchivedEntry" #> displayDate(archivedReportsInterval.map( x => x._2 )) 
-    )(xml)
+      "#newestArchivedEntry" #> displayDate(archivedReportsInterval.map( x => x._2 )) &
+      "#archiveReports" #> SHtml.ajaxSubmit("Archive Report", process _) &
+      "#reportFromDate" #> SHtml.text(from, {x => from = x } ) 
+      
+    )(xml) ++ Script(OnLoad(JsRaw("""initReportDatepickler("#reportFromDate"); correctButtons(); """)))
+  }
+  
+  def process(): JsCmd = {
+    S.clearCurrentNotices
+    
+    (for {
+      fromDate <- tryo { DATETIME_PARSER.parseDateTime(from) } ?~! "Bad date format for 'Archive all reports older than' field"
+    } yield {
+      fromDate
+    }) match {
+        case eb:EmptyBox =>
+          val e = eb ?~! "An error occured"
+          logger.info(e.failureChain.map( _.msg ).mkString("", ": ", ""))
+          S.error(e.failureChain.map( _.msg ).mkString("", ": ", "")  )
+          Noop
+        case Full(date) =>
+          logger.info("Archiving all reports before %s".format(date))
+          try {
+            val result = databaseManager.archiveEntries(date)
+            Alert("Correctly archived %d reports".format(result))
+          } catch {
+            case e: Exception => logger.error("Could not archive reports", e)
+                                 Alert("An error occured while archiving reports")
+          }
+          
+    }
   }
   
   private[this] def displayDate( entry : Box[DateTime]) : NodeSeq= {

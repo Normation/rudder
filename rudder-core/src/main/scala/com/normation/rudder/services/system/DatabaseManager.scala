@@ -59,6 +59,9 @@ trait DatabaseManager {
    */
   def getDatabaseSize() : Box[Long]
   
+  
+  def archiveEntries(date : DateTime) : Int
+  
 }
 
 class DatabaseManagerImpl(
@@ -84,4 +87,6 @@ class DatabaseManagerImpl(
   }
   
    def getDatabaseSize() : Box[Long] = reportsRepository.getDatabaseSize()
+   
+   def archiveEntries(date : DateTime) = reportsRepository.archiveEntries(date)
 }

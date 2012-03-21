@@ -112,7 +112,7 @@ trait ReportsRepository {
   
   def getDatabaseSize() : Box[Long]
   
-  
+  def archiveEntries(date : DateTime) : Int
   
   
 }
