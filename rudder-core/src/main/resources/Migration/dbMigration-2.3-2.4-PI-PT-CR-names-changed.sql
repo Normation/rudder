@@ -76,8 +76,6 @@ ALTER TABLE confVersionId RENAME TO ruleVersionId;
 ALTER TABLE PolicyInstancesId RENAME TO directivesId;
 ALTER TABLE ConfigurationRulesId RENAME TO rulesId;
 
-ALTER INDEX configurationRuleId_node_idx rename to ruleId_node_idx;
-
 ALTER INDEX pi_id_start rename to directive_id_start;
 ALTER INDEX pi_end rename to directive_end;
 
@@ -85,4 +83,11 @@ ALTER INDEX cr_id_start rename to rule_id_start;
 ALTER INDEX cr_end rename to rule_end;
 
 
+DROP INDEX reports_idx ;
+DROP INDEX configurationRuleId_node_idx;
+
+CREATE INDEX executionTimeStamp_idx on RudderSysEvents (executionTimeStamp);
+CREATE INDEX component_idx on RudderSysEvents (component);
+CREATE INDEX keyValue_idx on RudderSysEvents (keyValue);
+CREATE INDEX ruleId_idx on RudderSysEvents (ruleId);
 
