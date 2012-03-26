@@ -90,8 +90,10 @@ msg text
 
 
 create index nodeid_idx on RudderSysEvents (nodeId);
-create index reports_idx on RudderSysEvents (executionTimeStamp, nodeId);
-create index ruleId_node_idx on RudderSysEvents (ruleId, nodeId, serial, executionTimeStamp);
+CREATE INDEX executionTimeStamp_idx on RudderSysEvents (executionTimeStamp);
+CREATE INDEX component_idx on RudderSysEvents (component);
+CREATE INDEX keyValue_idx on RudderSysEvents (keyValue);
+CREATE INDEX ruleId_idx on RudderSysEvents (ruleId);
 
 
 CREATE TABLE ArchivedRudderSysEvents (
