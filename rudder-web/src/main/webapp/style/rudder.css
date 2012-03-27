@@ -106,7 +106,7 @@ td.nodeIndernal {
  **********************************/
 
 .portlet-header {
-   padding: 2px 0 5px 5px;
+   padding: 5px 0 5px 5px;
    font-size: 1.3em;
    font-weight: bold;
    cursor: default;
@@ -951,11 +951,13 @@ div#container {
 }
 div#contenuInfos {
    overflow: hidden;
-   background: url(../images/fondMenuAux.jpg) #2e2d2d repeat-y;
+   Background-color: #2E2D2D;
 }
 div#navigation {
    float: left;
-   background: #2e2d2d url(../images/fondMenuAux.jpg) repeat-y;
+   background-color: #1e1e1e;
+   border-top-right-radius: 10px;
+   border-bottom-right-radius: 10px;
 }
 div#logo {
    padding: 5px 50px 2px 0;
@@ -1139,6 +1141,8 @@ menu secondaire
 }
 #navigation.minimized {
    width: 2%;
+   border-radius: 0 0 0 0;
+}
 }
 *html #navigation.minimized #slickbox {
    width: 10px;
@@ -1154,12 +1158,12 @@ div#slickbox {
    margin-bottom: 20px;
    width: 186px;
    height: 100%;
-   background: url(../images/fondMenuAux.jpg) #2e2d2d repeat-y;
+   background-color: #2e2d2d;
 }
 #slickbox h2 {
    padding-top: 7px;
    padding-left: 12px;
-   height: 38px;
+   height: 36px;
    color: #fff;
    font-size: 1.5em;
    background: url(../images/fondTitMenu.jpg) no-repeat;
@@ -1222,10 +1226,9 @@ div#slickbox {
 }
 a.menuHide {
    color: #f79d10;
-   margin: 0 20px 10px 0;
    padding: 12px 0;
-   background-image: url(../images/pointilles.jpg);
    display: block;
+   border-top-right-radius: 10px;
 }
 div.minimized a.menuHide {
 margin: 0;
@@ -1308,10 +1311,9 @@ p img {
    list-style-type: disc;
 }
 .portlet-header {
-   padding: 2px 0 5px 25px;
+   padding: 5px 0 5px 25px;
    font-size: 1.3em;
    font-weight: bold;
-   cursor: move;
    background: url(../images/icCroix.jpg) no-repeat top left;
 }
 *html .portlet-header {
@@ -1742,6 +1744,9 @@ div#footer {
    color: #999;
 }
 
+#footer p {
+	padding-top: 2px
+}
 /**************************************
 classes annexes
 **************************************/
