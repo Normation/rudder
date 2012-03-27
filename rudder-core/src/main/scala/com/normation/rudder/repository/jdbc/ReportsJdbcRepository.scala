@@ -56,8 +56,8 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   
   
   // find the last full run per node
-  // we are not looking for older request that 15 minutes for the moment
-  val lastQuery = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where configurationRuleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and executionTimeStamp > (now() - interval '15 minutes') group by nodeid"
+  val lastQuery = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where configurationRuleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' group by nodeid"
+  // todo : add a time limit
     
   val joinQuery = "select executiondate, nodeid, configurationruleid, policyinstanceid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQuery +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
   
@@ -166,16 +166,16 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   def findExecutionTimeByNode(nodeId : NodeId, 
       beginDate: DateTime, 
       endDate: Option[DateTime] ) : Seq[DateTime] = {
-    var query = "select distinct executionTimeStamp from ruddersysevents where configurationRuleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and nodeId = ? and executiontimestamp >= ?"
+    var query = "select distinct executiontimestamp as executionDate from ruddersysevents where configurationRuleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and nodeId = ? and executiontimestamp >= ?"
        
     var array = mutable.Buffer[AnyRef](nodeId.value, new Timestamp(beginDate.getMillis))
  
     endDate match {
       case None => ;
-      case Some(date) => query = query + " and executionTimeStamp < ?"; array += new Timestamp(date.getMillis)
+      case Some(date) => query = query + " and executionDate < ?"; array += new Timestamp(date.getMillis)
     }
     
-    query = query + " order by executionTimeStamp "
+    query = query + " order by executiontimestamp "
     
     jdbcTemplate.query(query,
           array.toArray[AnyRef],
@@ -201,7 +201,7 @@ object ReportsMapper extends RowMapper[Reports] {
 
 object ExecutionTimeMapper extends RowMapper[DateTime] {
    def mapRow(rs : ResultSet, rowNum: Int) : DateTime = {
-        new DateTime(rs.getTimestamp("executionTimeStamp"))
+        new DateTime(rs.getTimestamp("executionDate"))
     }
 }
 

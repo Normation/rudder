@@ -88,25 +88,9 @@ policy text,
 msg text
 );
 
-CREATE TABLE ArchivedRudderSysEvents (
-id integer PRIMARY KEY,
-executionDate timestamp with time zone NOT NULL, 
-nodeId text NOT NULL CHECK (nodeId <> ''),
-policyInstanceId text NOT NULL CHECK (policyInstanceId <> ''),
-configurationRuleId text NOT NULL CHECK (configurationRuleId <> ''),
-serial integer NOT NULL,
-component text NOT NULL CHECK (component <> ''),
-keyValue text,
-executionTimeStamp timestamp with time zone NOT NULL,
-eventType varchar(64),
-policy text,
-msg text
-);
-
-
 
 create index nodeid_idx on RudderSysEvents (nodeId);
-create index reports_idx on RudderSysEvents (executionTimeStamp, nodeId);
+create index reports_idx on RudderSysEvents (executionDate, nodeId);
 create index configurationRuleId_node_idx on RudderSysEvents (configurationRuleId, nodeId, serial, executionTimeStamp);
 
 
