@@ -46,9 +46,8 @@ import com.normation.rudder.domain.queries.{
 }
 import com.normation.rudder.services.queries.QueryProcessor
 import net.liftweb.http.Templates
-
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.common._
 import net.liftweb.http.{SHtml,S,DispatchSnippet}
@@ -59,9 +58,9 @@ import com.normation.exceptions.TechnicalException
 import com.normation.rudder.web.services.SrvGrid
 import scala.collection.mutable.ArrayBuffer
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-
 import com.normation.inventory.ldap.core.LDAPConstants
 import LDAPConstants._
+import com.normation.rudder.domain.queries.OstypeComparator
 
 /**
  * The Search Servers component
@@ -524,5 +523,15 @@ object SearchServerComponent {
     )
   }
   
-  val defaultLine : CriterionLine = CriterionLine(ditQueryData.criteriaMap(OC_NODE),ditQueryData.criteriaMap(OC_NODE).criteria(0),ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0))
+  val defaultLine : CriterionLine = {
+    //in case of further modification in ditQueryData
+    require(ditQueryData.criteriaMap(OC_NODE).criteria(0).name == "OS", "Error in search node criterion default line, did you change DitQueryData ?")
+    require(ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.isInstanceOf[OstypeComparator.type], "Error in search node criterion default line, did you change DitQueryData ?")
+    CriterionLine(
+      objectType = ditQueryData.criteriaMap(OC_NODE)
+    , attribute  = ditQueryData.criteriaMap(OC_NODE).criteria(0)
+    , comparator = ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0)
+    , value      = "Linux"
+  )
+  }
 }
