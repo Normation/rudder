@@ -180,7 +180,7 @@ class AcceptServer {
                             nodeId           = srv.id
                           , inventoryVersion = x
                           , hostname         = srv.hostname
-                          , fullOsName       = srv.osName
+                          , fullOsName       = srv.osFullName
                           , actorIp          = S.containerRequest.map(_.remoteAddress).openOr("Unknown IP")
                         )
                     )
@@ -218,7 +218,7 @@ class AcceptServer {
                       nodeId           = srv.id
                     , inventoryVersion = x
                     , hostname         = srv.hostname
-                    , fullOsName       = srv.osName
+                    , fullOsName       = srv.osFullName
                     , actorIp          = S.containerRequest.map(_.remoteAddress).openOr("Unknown IP")
                   )
               )
