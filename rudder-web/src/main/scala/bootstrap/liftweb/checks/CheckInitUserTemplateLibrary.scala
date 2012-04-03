@@ -140,7 +140,7 @@ class CheckInitUserTemplateLibrary(
   
   private[this] def genUserCatId(fromCat:TechniqueCategory) : ActiveTechniqueCategoryId = {
       //for the technique ID, use the last part of the path used for the cat id.
-      ActiveTechniqueCategoryId("userlib_" + fromCat.id.name.value)
+      ActiveTechniqueCategoryId(fromCat.id.name.value)
   }
   
 }
