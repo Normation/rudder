@@ -19,7 +19,7 @@ limitations under the License.
   
   <groupId>com.normation</groupId>
   <artifactId>parent-pom</artifactId>
-  <version>0.10.1-SNAPSHOT</version>
+  <version>0.11.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
@@ -59,12 +59,6 @@ limitations under the License.
 
   <repositories>
     <repository>
-      <id>maven.normation.com</id>
-      <url>https://maven.normation.com/</url>
-      <layout>default</layout>
-      <snapshots><enabled>true</enabled></snapshots>
-    </repository>
-    <repository>
       <id>rudder-project</id>
       <url>http://www.rudder-project.org/maven-repo/</url>
       <layout>default</layout>
@@ -100,14 +94,14 @@ limitations under the License.
 
   <distributionManagement>
     <snapshotRepository>
-      <id>ssh.normation.com</id>
-      <name>Normation internal repository for snapshot</name>
-      <url>scp://maven.normation.com:5190/var/www/maven.normation.com/</url>                                                                          
+      <id>nexus.normation.com</id>
+      <name>Normation internal nexus repository for snapshots</name>
+      <url>http://nexus.normation.com/nexus/content/repositories/snapshots</url>
     </snapshotRepository>
     <repository>
-      <id>ssh.normation.com</id>
-      <name>Normation internal repository</name>
-      <url>scp://maven.normation.com:5190/var/www/maven.normation.com</url>
+      <id>nexus.normation.com</id>
+      <name>Normation internal nexus repository for releases</name>
+      <url>http://nexus.normation.com/nexus/content/repositories/releases</url>
     </repository>
   </distributionManagement>
 
@@ -174,8 +168,7 @@ limitations under the License.
             <arg>${basedir}/.scala_dependencies</arg>
           </args>
           <jvmArgs>
-            <jvmArg>-Xmx1G</jvmArg>
-            <jvmArg>-client</jvmArg>
+            <jvmArg>-server</jvmArg>
           </jvmArgs>
         </configuration>
       </plugin>
@@ -278,16 +271,20 @@ limitations under the License.
     <scala-maven-plugin-version>2.15.0</scala-maven-plugin-version>
 
     <!-- Libraries version that MUST be used in all children project -->
-    <scala-version>2.9.0-1</scala-version>
-    <scala-lift-version>2.9.0-1</scala-lift-version>
-    <lift-version>2.4-M3.1</lift-version>
-    <slf4j-version>1.6.1</slf4j-version>
-    <logback-version>0.9.28</logback-version>
-    <junit-version>4.8.2</junit-version>
-    <jodatime-version>1.6.2</jodatime-version>
 
-    <spring-version>3.0.5.RELEASE</spring-version>
-    <spring-run-dep-version>0.10.1-SNAPSHOT</spring-run-dep-version>
+    <rudder-version>0.11.0-SNAPSHOT</rudder-version>
+    
+    <scala-version>2.9.1</scala-version>
+    <scala-lift-version>2.9.1</scala-lift-version>
+    <lift-version>2.4</lift-version>
+    <slf4j-version>1.6.4</slf4j-version>
+    <logback-version>1.0.0</logback-version>
+    <junit-version>4.8.2</junit-version>
+    <jodatime-version>2.0</jodatime-version>
+    <commons-io-version>2.1</commons-io-version>
+    
+    <spring-version>3.0.6.RELEASE</spring-version>
+    <spring-run-dep-version>0.11.0-SNAPSHOT</spring-run-dep-version>
   </properties>
   
   <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
@@ -303,6 +300,17 @@ limitations under the License.
       <groupId>joda-time</groupId>
       <artifactId>joda-time</artifactId>
       <version>${jodatime-version}</version>
+    </dependency>
+    <!-- 
+         The Scala compiler require to be able to find these symbol even if they are not used. 
+         So we mark them as needed for compilation, but "provided" so that it does not go into
+         the final jars. 
+     -->
+    <dependency>
+      <groupId>org.joda</groupId>
+      <artifactId>joda-convert</artifactId>
+      <version>1.2</version>
+      <scope>provided</scope>
     </dependency>
   
     <dependency>
@@ -341,7 +349,7 @@ limitations under the License.
     <dependency>
       <groupId>org.specs2</groupId>
       <artifactId>specs2_${scala-version}</artifactId>
-      <version>1.5</version>
+      <version>1.6.1</version>
       <scope>test</scope>
     </dependency>
     
