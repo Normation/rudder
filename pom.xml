@@ -63,10 +63,10 @@ limitations under the License.
 
   <repositories>
     <repository>
-      <id>maven.normation.com</id>
-      <url>https://maven.normation.com/</url>
+      <id>rudder-project</id>
+      <url>http://www.rudder-project.org/maven-repo/</url>
       <layout>default</layout>
-      <snapshots><enabled>true</enabled></snapshots>
+      <snapshots><enabled>false</enabled></snapshots>
     </repository>
   </repositories>
 
