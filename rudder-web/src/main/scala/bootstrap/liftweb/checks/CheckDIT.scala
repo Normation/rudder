@@ -50,10 +50,11 @@ import javax.servlet.UnavailableException
  *
  */
 class CheckDIT(
-  pendingNodesDit:InventoryDit,
-  acceptedDit:InventoryDit,
-  rudderDit:RudderDit,
-  ldap:LDAPConnectionProvider
+    pendingNodesDit:InventoryDit
+  , acceptedDit:InventoryDit
+  , removedDit:InventoryDit
+  , rudderDit:RudderDit
+  , ldap:LDAPConnectionProvider
 ) extends BootstrapChecks with Loggable {
   
   @throws(classOf[ UnavailableException ])
@@ -74,7 +75,8 @@ class CheckDIT(
     
     //check that all base DN's entry are already in the LDAP
     val baseDns = pendingNodesDit.BASE_DN :: pendingNodesDit.SOFTWARE_BASE_DN :: 
-      acceptedDit.BASE_DN :: acceptedDit.SOFTWARE_BASE_DN :: 
+      acceptedDit.BASE_DN :: acceptedDit.SOFTWARE_BASE_DN ::
+      removedDit.BASE_DN :: removedDit.SOFTWARE_BASE_DN ::
       rudderDit.BASE_DN :: Nil
     
     ldap.map { con =>
@@ -102,7 +104,7 @@ class CheckDIT(
     }
       
     //now, check that all DIT entries are here, add missing ones
-    val ditEntries = pendingNodesDit.getDITEntries ++ acceptedDit.getDITEntries ++ rudderDit.getDITEntries
+    val ditEntries = pendingNodesDit.getDITEntries ++ acceptedDit.getDITEntries ++ removedDit.getDITEntries ++ rudderDit.getDITEntries
     
     ldap.map { con =>
       (for {

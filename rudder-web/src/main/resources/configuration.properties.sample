@@ -63,6 +63,7 @@ ldap.authpw=secret
 ldap.inventories.software.basedn=ou=Inventories, cn=rudder-configuration
 ldap.inventories.accepted.basedn=ou=Accepted Inventories, ou=Inventories, cn=rudder-configuration
 ldap.inventories.pending.basedn=ou=Pending Inventories, ou=Inventories, cn=rudder-configuration
+ldap.inventories.removed.basedn=ou=Removed Inventories, ou=Inventories, cn=rudder-configuration
 
 #Base DN for Rudder Data
 ldap.rudder.base=ou=Rudder, cn=rudder-configuration

@@ -114,6 +114,9 @@ class AppConfig extends Loggable {
   @Value("${ldap.inventories.pending.basedn}")
   var PENDING_INVENTORIES_DN = ""
 
+  @Value("${ldap.inventories.removed.basedn}")
+  var REMOVED_INVENTORIES_DN = ""
+
   @Value("${ldap.inventories.software.basedn}")
   var SOFTWARE_INVENTORIES_DN = ""
 
@@ -508,13 +511,16 @@ class AppConfig extends Loggable {
   def pendingNodesDit: InventoryDit = new InventoryDit(PENDING_INVENTORIES_DN, SOFTWARE_INVENTORIES_DN, "Pending inventories")
 
   @Bean
+  def removedNodesDit = new InventoryDit(REMOVED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Removed Servers")
+
+  @Bean
   def rudderDit: RudderDit = new RudderDit(RUDDER_DN)
 
   @Bean
   def nodeDit: NodeDit = new NodeDit(NODE_DN)
 
   @Bean
-  def inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDit, acceptedNodesDit)
+  def inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDit, acceptedNodesDit,removedNodesDit)
 
   @Bean
   def uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
@@ -566,10 +572,10 @@ class AppConfig extends Loggable {
     ldapEntityMapper)
 
   @Bean
-  def inventoryMapper: InventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDit, acceptedNodesDit)
+  def inventoryMapper: InventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDit, acceptedNodesDit, removedNodesDit)
 
   @Bean
-  def ldapFullInventoryRepository: LDAPFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap)
+  def ldapFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap)
   @Bean
   def fullInventoryFromLdapEntries: FullInventoryFromLdapEntries = new FullInventoryFromLdapEntriesImpl(inventoryDitService, inventoryMapper)
 
@@ -717,6 +723,8 @@ class AppConfig extends Loggable {
   val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
   
   val groupLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  
+  val nodeReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
   
   @Bean
   def ldapActiveTechniqueCategoryRepository:LDAPActiveTechniqueCategoryRepository = new LDAPActiveTechniqueCategoryRepository(
@@ -920,14 +928,14 @@ class AppConfig extends Loggable {
 
   @Bean
   def removeNodeService = new RemoveNodeServiceImpl(
-    nodeDit
+        nodeDit
       , rudderDit
       , ldap
       , ldapEntityMapper
       , ldapNodeGroupRepository
       , ldapFullInventoryRepository
       , logRepository
-      , nodeInfoService)
+      , nodeReadWriteMutex)
   /**
    * *************************************************
    * Bootstrap check actions
@@ -935,7 +943,7 @@ class AppConfig extends Loggable {
    */
   @Bean
   def allChecks = new SequentialImmediateBootStrapChecks(
-    new CheckDIT(pendingNodesDit, acceptedNodesDit, rudderDit, ldap),
+    new CheckDIT(pendingNodesDit, acceptedNodesDit, removedNodesDit, rudderDit, ldap),
     new CheckRootNodeUnicity(ldapNodeConfigurationRepository),
     new CheckSystemDirectives(rudderDit, ldapRuleRepository),
     new CheckInitUserTemplateLibrary(

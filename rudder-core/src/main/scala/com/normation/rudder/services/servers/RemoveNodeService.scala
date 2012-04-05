@@ -12,10 +12,15 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.inventory.domain.InventoryStatus
-import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.{AcceptedInventory,RemovedInventory}
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.domain.log._
+import com.normation.utils.ScalaReadWriteLock
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.inventory.services.core.MachineRepository
+import com.normation.inventory.services.core.WriteOnlyMachineRepository
+import com.normation.inventory.services.core.ReadOnlyMachineRepository
 
 trait RemoveNodeService {
   
@@ -38,23 +43,39 @@ class RemoveNodeServiceImpl(
     , ldap                 : LDAPConnectionProvider
     , ldapEntityMapper     : LDAPEntityMapper
     , nodeGroupRepository  : NodeGroupRepository
-    , smRepo               : LDAPFullInventoryRepository 
+    , fullNodeRepo         : LDAPFullInventoryRepository
     , actionLogger         : EventLogRepository
-    , nodeInfoService      : NodeInfoService
+    , groupLibMutex        : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends RemoveNodeService with Loggable {
   
   
+  /**
+   * the removal of a node is a multi-step system
+   * First, fetch the node, then remove it from groups, and node configuration
+   * Move the node to the removed inventory (and don't forget to change its container dn)
+   * Then find its container, to see if it has others nodes on it
+   *        if so, copy the container to the removed inventory
+   *        if not, move the container to the removed inventory
+   * 
+   */
   def removeNode(nodeId : NodeId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
     logger.debug("Trying to remove node %s from the LDAP".format(nodeId.value))
     for {
-      nodeToDelete          <- nodeInfoService.getNodeInfo(nodeId)
+      moved    <- groupLibMutex.writeLock { atomicDelete(nodeId, actor) } ?~! "Error when archiving a node"
+    } yield {
+      moved
+    }
+  }
+  
+  
+  private[this] def atomicDelete(nodeId : NodeId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
+    for {
       cleanGroup            <- deleteFromGroups(nodeId, actor) ?~! "Could not remove the node '%s' from the groups".format(nodeId.value)
       cleanNodeConfiguration<- deleteFromNodesConfiguration(nodeId) ?~! "Could not remove the node configuration of node '%s'".format(nodeId.value)
       cleanNode             <- deleteFromNodes(nodeId) ?~! "Could not remove the node '%s' from the nodes list".format(nodeId.value)
-      cleanInventory        <- deleteNodeFromInventory(nodeId)?~! "Could not remove the node '%s' from the nodes list".format(nodeId.value)
-      loggedAction          <- actionLogger.saveEventLog(DeleteNodeEventLog.fromNodeLogDetails(principal = actor, node = nodeToDelete)) ?~! "Error when logging deletion of a node"
+      moveNodeInventory     <- fullNodeRepo.move(nodeId, AcceptedInventory, RemovedInventory)
     } yield {
-      cleanNodeConfiguration
+      cleanNodeConfiguration ++ cleanNode ++ moveNodeInventory
     }
   }
    
@@ -106,12 +127,5 @@ class RemoveNodeServiceImpl(
     }
   }
   
-  /**
-   * For the moment, eagerly delete the associated machine to a node
-   */
-  private def deleteNodeFromInventory(nodeId : NodeId) : Box[Seq[LDIFChangeRecord]] = {
-    logger.debug("Trying to remove node %s from the inventory".format(nodeId.value))
-
-    smRepo.delete(nodeId, AcceptedInventory)
-  }
+  
 }
