@@ -20,10 +20,12 @@ limitations under the License.
   <parent>
     <groupId>com.normation</groupId>
     <artifactId>parent-pom</artifactId>
-    <version>0.11.0-SNAPSHOT</version>
+    <version>0.10.1-SNAPSHOT</version>
   </parent>
   
+  <groupId>com.normation</groupId>
   <artifactId>commons-parent</artifactId>
+  <version>0.10.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <modules>
@@ -42,14 +44,14 @@ limitations under the License.
 
   <distributionManagement>
     <snapshotRepository>
-      <id>nexus.normation.com</id>
-      <name>Normation internal nexus repository for snapshots</name>
-      <url>http://nexus.normation.com/nexus/content/repositories/snapshots</url>
+      <id>ssh.normation.com</id>
+      <name>Normation internal repository for snapshot</name>
+      <url>scp://maven.normation.com:5190/var/www/maven.normation.com/</url>                                                                          
     </snapshotRepository>
     <repository>
-      <id>nexus.normation.com</id>
-      <name>Normation internal repository for releases</name>
-      <url>http://nexus.normation.com/nexus/content/repositories/releases</url>
+      <id>ssh.normation.com</id>
+      <name>Normation internal repository</name>
+      <url>scp://maven.normation.com:5190/var/www/maven.normation.com</url>
     </repository>
   </distributionManagement>
   <build>
@@ -63,10 +65,12 @@ limitations under the License.
   </build>
   <repositories>
     <repository>
-      <id>rudder-project</id>
-      <url>http://www.rudder-project.org/maven-repo/</url>
+      <id>maven.normation.com</id>
+      <url>https://maven.normation.com/</url>
       <layout>default</layout>
-      <snapshots><enabled>false</enabled></snapshots>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
     </repository>
   </repositories>
 </project>
