@@ -48,9 +48,10 @@ import InetAddressUtils._
 import com.normation.utils.Control.sequence
 
 class InventoryMapper(
-  ditService:InventoryDitService,
-  pendingDit:InventoryDit,
-  acceptedDit:InventoryDit
+    ditService:InventoryDitService
+  , pendingDit:InventoryDit
+  , acceptedDit:InventoryDit
+  , removedDit:InventoryDit
 ) extends Loggable {
 
   ////////////////////////////////////////////////////////////

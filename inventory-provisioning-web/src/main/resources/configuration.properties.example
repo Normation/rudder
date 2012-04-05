@@ -16,6 +16,7 @@ ldap.authpw=secret
 ldap.inventories.software.basedn=ou=Software, ou=Inventories, cn=rudder-configuration
 ldap.inventories.accepted.basedn=ou=Accepted Inventories, ou=Inventories, cn=rudder-configuration
 ldap.inventories.pending.basedn=ou=Pending Inventories, ou=Inventories, cn=rudder-configuration
+ldap.inventories.removed.basedn=ou=Removed Inventories, ou=Inventories, cn=rudder-configuration
 
 #where to store LDIF inventory versions
 history.inventories.rootdir=/tmp/normation/cmdb/inventoryVersion

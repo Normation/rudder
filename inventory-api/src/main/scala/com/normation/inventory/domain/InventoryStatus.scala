@@ -39,9 +39,10 @@ import com.normation.utils.HashcodeCaching
 /**
  * Defined the status of a machine or 
  * server.
- * For now, we only have two:
+ * For now, we only have three:
  * - accepted
  * - pending
+ * - removed
  */
 sealed abstract class InventoryStatus( val name : String)
 
@@ -49,11 +50,13 @@ object InventoryStatus {
   def apply(name:String) = name.toLowerCase match {
     case "accepted" => Some(AcceptedInventory)
     case "pending" => Some(PendingInventory)
+    case "removed" => Some(RemovedInventory)
     case _ => None
   }
 }
 
 case object AcceptedInventory extends InventoryStatus("accepted") with HashcodeCaching
 case object PendingInventory extends InventoryStatus("pending") with HashcodeCaching
+case object RemovedInventory extends InventoryStatus("removed") with HashcodeCaching
 
 //to be extended to "suspicious inventory" and other alike

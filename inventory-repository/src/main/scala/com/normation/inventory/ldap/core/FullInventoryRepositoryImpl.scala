@@ -34,13 +34,15 @@
 
 package com.normation.inventory.ldap.core
 
-import LDAPConstants.A_CONTAINER_DN
+import LDAPConstants.{A_CONTAINER_DN, A_NODE_UUID}
 import com.normation.inventory.services.core._
 import com.normation.inventory.domain._
 import com.normation.ldap.sdk._
 import net.liftweb.common._
 import com.unboundid.ldif.LDIFChangeRecord
 import com.unboundid.ldap.sdk.{Modification, ModificationType}
+import com.normation.ldap.sdk.BuildFilter.EQ
+
 
 trait LDAPFullInventoryRepository extends FullInventoryRepository[Seq[LDIFChangeRecord]]
 
@@ -63,6 +65,9 @@ class FullInventoryRepositoryImpl(
   private[this] def dn(uuid:NodeId, inventoryStatus : InventoryStatus) = {
     inventoryDitService.getDit(inventoryStatus).NODES.NODE.dn(uuid)
   }
+  private[this] def nodeDn(inventoryStatus : InventoryStatus) = {
+    inventoryDitService.getDit(inventoryStatus).NODES.dn
+  }
 
   /**
    * Get a machine by its ID
@@ -75,6 +80,23 @@ class FullInventoryRepositoryImpl(
     } yield {
       machine
     }   
+  }
+  
+  /**
+   * For a given machine, find all the node on it
+   */
+  override def getNodes(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[Seq[NodeId]] = {
+    val entries = (for {
+      con <- ldap
+      val entries = con.searchOne(nodeDn(inventoryStatus), EQ(A_CONTAINER_DN, dn(id, inventoryStatus).toString()), A_NODE_UUID)
+    } yield {
+      entries
+    })
+    entries match {
+      case e: EmptyBox => e
+      case Full(seq) => 
+         com.normation.utils.Control.boxSequence(seq.map(x => inventoryDitService.getDit(inventoryStatus).NODES.NODE.idFromDN(x.dn)))
+    }
   }
   
    
@@ -190,15 +212,30 @@ class FullInventoryRepositoryImpl(
           if(status == into) { //the machine is already in the same place than the node, great !
             Full(Seq())
           } else {
-            for {
-              machineMoved <- move(machineId,status,into)
-              //update reference dn for that machine in node
-              updatedContainer <- con.modify(
-                  dn(id,into), 
-                  new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dn(machineId,into).toString)
-              )
-            } yield {
-              machineMoved :+ updatedContainer
+            // is the machine linked to others machines ?
+            getNodes(machineId, status) match {
+              case e:EmptyBox => logger.error("cannot fetch nodes linked to machine %s, cause %s".format(machineId, e)); e
+              case Full(seq) =>
+                if (seq.size>1) {
+                  // more than one node linked to this machine, it has to be copied
+                  get(machineId, status) match {
+                    case e:EmptyBox => logger.error("cannot fetch machine linked to node %s, cause %s".format(id.value, e)); e
+                    case Full(entry) => 
+                      save( entry.copy(status = RemovedInventory))
+                  }
+                } else {
+                  // only this node on this machine, it has to be moved
+                  for {
+                    machineMoved <- move(machineId,status,into)
+                    //update reference dn for that machine in node
+                    updatedContainer <- con.modify(
+                        dn(id,into), 
+                        new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dn(machineId,into).toString)
+                    )
+                  } yield {
+                    machineMoved :+ updatedContainer
+                  }
+                }
             }
           }
       }

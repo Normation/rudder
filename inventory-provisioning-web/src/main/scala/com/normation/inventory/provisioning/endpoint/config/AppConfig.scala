@@ -90,6 +90,9 @@ class AppConfig {
   @Value("${ldap.inventories.pending.basedn}")
   var PENDING_INVENTORIES_DN = ""
   
+  @Value("${ldap.inventories.removed.basedn}")
+  var REMOVED_INVENTORIES_DN = ""
+
   @Value("${ldap.inventories.software.basedn}")
   var SOFTWARE_INVENTORIES_DN = ""
   
@@ -101,12 +104,16 @@ class AppConfig {
   
   @Bean
   def pendingNodesDit = new InventoryDit(PENDING_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Pending Servers")
+
+  @Bean
+  def removedNodesDit = new InventoryDit(REMOVED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Removed Servers")
+
   
   @Bean
-  def inventoryDitService = new InventoryDitServiceImpl(pendingNodesDit,acceptedNodesDit)
+  def inventoryDitService = new InventoryDitServiceImpl(pendingNodesDit,acceptedNodesDit, removedNodesDit)
   
   @Bean 
-  def inventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDit, acceptedNodesDit)
+  def inventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDit, acceptedNodesDit, removedNodesDit)
   
   /*
    * Implementation of thePipelined report unmarshaller
@@ -209,6 +216,8 @@ class AppConfig {
       , NamedMachineDNFinderAction("check_mother_board_uuid_accepted", new FromMotherBoardUuidIdFinder(ldapConnectionProvider,acceptedNodesDit,inventoryDitService))
         //see if it's in the "pending" branch
       , NamedMachineDNFinderAction("check_mother_board_uuid_pending", new FromMotherBoardUuidIdFinder(ldapConnectionProvider,pendingNodesDit,inventoryDitService))
+        //see if it's in the "removed" branch
+      , NamedMachineDNFinderAction("check_mother_board_uuid_removed", new FromMotherBoardUuidIdFinder(ldapConnectionProvider,removedNodesDit,inventoryDitService))
     ))
   
   @Bean

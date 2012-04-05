@@ -43,6 +43,8 @@ trait ReadOnlyMachineRepository {
    * TODO: allows to lazy-load some heavy parts, like software, machine elements, etc.
    */
   def get(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[MachineInventory]
+  
+
 }
 
 /**
@@ -74,6 +76,11 @@ trait ReadOnlyFullInventoryRepository {
    */
   def get(id:NodeId, inventoryStatus : InventoryStatus) : Box[FullInventory]
   def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : Box[(MachineUuid, InventoryStatus)]
+  
+  /**
+   * For a given machine, find all the node on it
+   */
+  def getNodes(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[Seq[NodeId]]
 }
 
 trait WriteOnlyFullInventoryRepository[R] {
