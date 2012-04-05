@@ -100,14 +100,14 @@ limitations under the License.
 
   <distributionManagement>
     <snapshotRepository>
-      <id>nexus.normation.com</id>
-      <name>Normation internal nexus repository for snapshots</name>
-      <url>http://nexus.normation.com/nexus/content/repositories/snapshots</url>
+      <id>ssh.normation.com</id>
+      <name>Normation internal repository for snapshot</name>
+      <url>scp://maven.normation.com:5190/var/www/maven.normation.com/</url>                                                                          
     </snapshotRepository>
     <repository>
-      <id>nexus.normation.com</id>
-      <name>Normation internal nexus repository for releases</name>
-      <url>http://nexus.normation.com/nexus/content/repositories/releases</url>
+      <id>ssh.normation.com</id>
+      <name>Normation internal repository</name>
+      <url>scp://maven.normation.com:5190/var/www/maven.normation.com</url>
     </repository>
   </distributionManagement>
 
