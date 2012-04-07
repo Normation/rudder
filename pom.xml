@@ -48,7 +48,7 @@ limitations under the License.
     </snapshotRepository>
     <repository>
       <id>nexus.normation.com</id>
-      <name>Normation internal repository for releases</name>
+      <name>Normation internal nexus repository for releases</name>
       <url>http://nexus.normation.com/nexus/content/repositories/releases</url>
     </repository>
   </distributionManagement>
@@ -63,12 +63,10 @@ limitations under the License.
   </build>
   <repositories>
     <repository>
-      <id>maven.normation.com</id>
-      <url>https://maven.normation.com/</url>
+      <id>rudder-project</id>
+      <url>http://www.rudder-project.org/maven-repo/</url>
       <layout>default</layout>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
+      <snapshots><enabled>false</enabled></snapshots>
     </repository>
   </repositories>
 </project>
