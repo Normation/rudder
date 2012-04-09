@@ -282,6 +282,7 @@ limitations under the License.
     <junit-version>4.8.2</junit-version>
     <jodatime-version>2.0</jodatime-version>
     <commons-io-version>2.1</commons-io-version>
+    <specs2-version>1.9</specs2-version>
     
     <spring-version>3.0.6.RELEASE</spring-version>
     <spring-run-dep-version>0.11.0-SNAPSHOT</spring-run-dep-version>
@@ -349,7 +350,7 @@ limitations under the License.
     <dependency>
       <groupId>org.specs2</groupId>
       <artifactId>specs2_${scala-version}</artifactId>
-      <version>1.6.1</version>
+      <version>${specs2-version}</version>
       <scope>test</scope>
     </dependency>
     
