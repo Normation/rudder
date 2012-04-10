@@ -150,7 +150,7 @@ policy.copyfile.destination.dir=/some/default/destination/directory/
 #
 # Command line to check the promises generated
 #
-rudder.community.checkpromises.command=/var/rudder/cfengine-community/bin/cf-promises
+rudder.community.checkpromises.command=/bin/true
 rudder.nova.checkpromises.command=/bin/true
 
 
