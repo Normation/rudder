@@ -10,7 +10,7 @@
   <!-- Default configuration : log on stdout appender, only root logger configured-->
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-      <Pattern>%-30(%d{HH:mm:ss.SSS} [%thread]) %-5level %logger{36} - %msg%n%xEx{10}</Pattern>
+      <Pattern>%-30(%d{HH:mm:ss.SSS} [%thread]) %-5level %logger - %msg%n%xEx{10}</Pattern>
     </encoder>
   </appender>
 
