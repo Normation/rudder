@@ -44,6 +44,8 @@ import com.normation.rudder.domain.Constants
 import com.normation.cfclerk.domain.{CFCPolicyInstanceId}
 import com.normation.rudder.domain.reports.ComponentCard
 import com.normation.rudder.domain.reports.PolicyExpectedReports
+import com.normation.utils.HashcodeCaching
+import scala.collection.mutable.Buffer
 
 /**
  * An execution batch contains the servers reports for a given CR/PI at a given date
@@ -147,24 +149,28 @@ class ConfigurationExecutionBatch(
 	    	 val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
 	       if (nodeFilteredReports.filter(x => (( x.isInstanceOf[ResultErrorReport] || x.isInstanceOf[ResultRepairedReport] ) )).size == 0)
 	       if (policies.forall { policy => 
-		       policy.components.forall { component => // must be true for each component
-		       			component.componentsValues.forall { value => // for each value
-		       			  if (value == "None") {
-		       			    nodeFilteredReports.filter( x => 
-			       			    x.component == component.componentName &&
-			       			    x.isInstanceOf[ResultSuccessReport]).size == component.cardinality
-		       			  } else {
-			       			  nodeFilteredReports.filter( x => 
-			       			    x.component == component.componentName &&
-			       			    x.keyValue == value &&
-			       			    x.isInstanceOf[ResultSuccessReport]).size == 1
-		       			  }
-		       			}
-		       }
+	         val linearised = linearisePolicyExpectedReports(policy)
+	         val filteredReports = nodeFilteredReports.filter(x => x.policyInstanceId == policy.policyInstanceId && x.isInstanceOf[ResultSuccessReport])
+
+	         // we expect exactly as much reports (success that is) that the one we are having, or else it's wrong
+	         filteredReports.size == linearised.size &&
+	         linearised.forall( expected =>
+	             expected.componentValue match {
+	               case "None" =>
+	                 // each non defined component key must have the right cardinality, no more, no less
+	                 filteredReports.filter( x => 
+	                     x.component == expected.componentName).size == expected.cardinality
+	               case string:String =>
+	                 // for a given component, if the key is not "None", then we are 
+	                 // checking that what is have is what we wish
+	                 // we can have more reports that what we expected, because of
+	                 // name collision, but it would be resolved by the total number 
+	                 filteredReports.filter( x => 
+	                   x.component == expected.componentName &&
+	                   x.keyValue == expected.componentValue).size >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
+	             }
+	         )
 	    	 })
-	       //component <- policy.components
-	       //if (executionReports.filter(x => 
-	       //  	(x.nodeId==server && x.component == component.componentName && x.isInstanceOf[ResultSuccessReport])).size >= component.cardinality)  
 	    } yield server).distinct
     })
     
@@ -180,21 +186,27 @@ class ConfigurationExecutionBatch(
 	    	val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
 		    if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultErrorReport]  ) ).size == 0)
 		    if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultRepairedReport]  ) ).size > 0)
-		    if (policies.forall { policy => 
-	      	policy.components.forall { component => // must be true for each component
-	       			component.componentsValues.forall { value => // for each value
-	       			  if (value == "None") {
-	       			    nodeFilteredReports.filter( x => 
-	       			  		x.component == component.componentName &&
-	       			    	(x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size == component.cardinality
-	       			  } else {
-	       			  	nodeFilteredReports.filter( x => 
-	       			  		x.component == component.componentName &&
-	       			    	x.keyValue == value &&
-	       			    	(x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size == 1
-	       			  }
-	       			}
-	      	}
+		    if (policies.forall { policy =>
+
+		      val linearised = linearisePolicyExpectedReports(policy)
+          val filteredReports = nodeFilteredReports.filter(x => 
+            x.policyInstanceId == policy.policyInstanceId && 
+            ( x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport])
+          )
+
+          // we can have more reports that those we really expected (repaired and success)
+          filteredReports.size >= linearised.size &&
+          linearised.forall( expected =>
+               expected.componentValue match {
+                 case "None" =>
+                   filteredReports.filter( x=> 
+                       x.component == expected.componentName).size >= expected.cardinality
+                 case string:String =>
+                   filteredReports.filter( x=> 
+                     x.component == expected.componentName &&
+                     x.keyValue == expected.componentValue).size >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing                   
+               }
+           )
 	       })
 	    } yield server).distinct
    })  
@@ -302,4 +314,27 @@ class ConfigurationExecutionBatch(
     								.filter(node => !(getServerWithNoReports().contains(node)))
     
   }
+  
+  private[this] def linearisePolicyExpectedReports(policy : PolicyExpectedReports) : Buffer[LinearisedExpectedReport] = {
+    val result = Buffer[LinearisedExpectedReport]()
+    
+    for (component <- policy.components) {
+      for (value <- component.componentsValues) {
+        result += LinearisedExpectedReport(
+              policy.policyInstanceId
+            , component.componentName
+            , component.cardinality
+            , value
+        )
+      }
+    }
+    result
+  }
 }
+
+case class LinearisedExpectedReport(
+    policyInstanceId  : PolicyInstanceId
+  , componentName     : String
+  , cardinality       : Int
+  , componentValue    : String
+) extends HashcodeCaching 
