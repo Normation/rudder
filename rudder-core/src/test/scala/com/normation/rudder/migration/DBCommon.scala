@@ -129,9 +129,9 @@ trait DBCommon extends Specification with Loggable with Tags {
   }
 
   //a row mapper for TestLog
-  lazy val testLogRowMapper = new RowMapper[TestLog] {
-    override def mapRow(rs:ResultSet, rowNum:Int) : TestLog = {
-      TestLog(
+  lazy val testLogRowMapper = new RowMapper[MigrationTestLog] {
+    override def mapRow(rs:ResultSet, rowNum:Int) : MigrationTestLog = {
+      MigrationTestLog(
         id        = Some(rs.getLong("id"))
       , principal = rs.getString("principal")
       , eventType = rs.getString("eventType")
