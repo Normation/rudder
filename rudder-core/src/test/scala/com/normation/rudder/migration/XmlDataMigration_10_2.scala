@@ -46,15 +46,15 @@ import scala.xml.Elem
  * a global value modification that was not taken
  * into account in a migration. 
  */
-object TestLog {
+object MigrationTestLog {
   //get a default TimeStamp value for that run
   val defaultTimestamp = new Timestamp(System.currentTimeMillis)
 }
 
-case class TestLog(
+case class MigrationTestLog(
     id       : Option[Long] = None
   , eventType: String
-  , timestamp: Timestamp = TestLog.defaultTimestamp
+  , timestamp: Timestamp = MigrationTestLog.defaultTimestamp
   , principal: String = "TestUser"
   , cause    : Option[Int] = None
   , severity : Int = 100
@@ -96,102 +96,102 @@ object Migration_10_2_DATA_EventLogs {
   }
   
   val data_10 = Map(
-      "rule_add"    -> TestLog(
+      "rule_add"    -> MigrationTestLog(
             eventType = "ConfigurationRuleAdded"
           , data      = RuleXml.rule_add_10
           )
-    , "rule_modify" -> TestLog(
+    , "rule_modify" -> MigrationTestLog(
             eventType = "ConfigurationRuleModified"
           , data      =  RuleXml.rule_modify_10
           )
-    , "rule_delete" -> TestLog(
+    , "rule_delete" -> MigrationTestLog(
             eventType = "ConfigurationRuleDeleted"
           , data      = RuleXml.rule_delete_10
           )
-    , "addPendingDeployment" -> TestLog(
+    , "addPendingDeployment" -> MigrationTestLog(
             eventType = "StartDeployement"
           , data      = OtherXml.addPendingDeployment_10
           )
-    , "node_accept" -> TestLog(
+    , "node_accept" -> MigrationTestLog(
             eventType = "AcceptNode"
           , data      = OtherXml.node_accept_10
           )
-    , "node_refuse" -> TestLog(
+    , "node_refuse" -> MigrationTestLog(
             eventType = "RefuseNode"
           , data      = OtherXml.node_refuse_10
           )
-    , "directive_add" -> TestLog(
+    , "directive_add" -> MigrationTestLog(
             eventType = "PolicyInstanceAdded"
           , data      = DirectiveXml.directive_add_10
           )
-    , "directive_modify" -> TestLog(
+    , "directive_modify" -> MigrationTestLog(
             eventType = "PolicyInstanceModified"
           , data      = DirectiveXml.directive_modify_10
           )
-    , "directive_delete" -> TestLog(
+    , "directive_delete" -> MigrationTestLog(
             eventType = "PolicyInstanceDeleted"
           , data      = DirectiveXml.directive_delete_10
           )
-    , "nodeGroup_add" -> TestLog(
+    , "nodeGroup_add" -> MigrationTestLog(
             eventType = "NodeGroupAdded"
           , data      = GroupXml.nodeGroup_add_10
           )
-    , "nodeGroup_modify" -> TestLog(
+    , "nodeGroup_modify" -> MigrationTestLog(
             eventType = "NodeGroupModified"
           , data      = GroupXml.nodeGroup_modify_10
           )
-    , "nodeGroup_delete" -> TestLog(
+    , "nodeGroup_delete" -> MigrationTestLog(
             eventType = "NodeGroupDeleted"
           , data      = GroupXml.nodeGroup_delete_10
           )
   )
   
   val data_2 = Map(
-      "rule_add"    -> TestLog(
+      "rule_add"    -> MigrationTestLog(
             eventType = "RuleAdded"
           , data      = RuleXml.rule_add_2
           )
-    , "rule_modify" -> TestLog(
+    , "rule_modify" -> MigrationTestLog(
             eventType = "RuleModified"
           , data      =  RuleXml.rule_modify_2
           )
-    , "rule_delete" -> TestLog(
+    , "rule_delete" -> MigrationTestLog(
             eventType = "RuleDeleted"
           , data      = RuleXml.rule_delete_2
           )
-    , "addPendingDeployment" -> TestLog(
+    , "addPendingDeployment" -> MigrationTestLog(
             eventType = "AutomaticStartDeployement"
           , data      = OtherXml.addPendingDeployment_2
           )
-    , "node_accept" -> TestLog(
+    , "node_accept" -> MigrationTestLog(
             eventType = "AcceptNode"
           , data      = OtherXml.node_accept_2
           )
-    , "node_refuse" -> TestLog(
+    , "node_refuse" -> MigrationTestLog(
             eventType = "RefuseNode"
           , data      = OtherXml.node_refuse_2
           )
-    , "directive_add" -> TestLog(
+    , "directive_add" -> MigrationTestLog(
             eventType = "DirectiveAdded"
           , data      = DirectiveXml.directive_add_2
           )
-    , "directive_modify" -> TestLog(
+    , "directive_modify" -> MigrationTestLog(
             eventType = "DirectiveModified"
           , data      = DirectiveXml.directive_modify_2
           )
-    , "directive_delete" -> TestLog(
+    , "directive_delete" -> MigrationTestLog(
             eventType = "DirectiveDeleted"
           , data      = DirectiveXml.directive_delete_2
           )
-    , "nodeGroup_add" -> TestLog(
+    , "nodeGroup_add" -> MigrationTestLog(
             eventType = "NodeGroupAdded"
           , data      = GroupXml.nodeGroup_add_2
           )
-    , "nodeGroup_modify" -> TestLog(
+    , "nodeGroup_modify" -> MigrationTestLog(
             eventType = "NodeGroupModified"
           , data      = GroupXml.nodeGroup_modify_2
           )
-    , "nodeGroup_delete" -> TestLog(
+    , "nodeGroup_delete" -> MigrationTestLog(
             eventType = "NodeGroupDeleted"
           , data      = GroupXml.nodeGroup_delete_2
           )

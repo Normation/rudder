@@ -90,14 +90,14 @@ CREATE TABLE EventLog (
 );
     """  
   
-  var logs10WithId : Map[String,TestLog] = null //init in initDn
-  var logs2WithId : Seq[TestLog] = null
+  var logs10WithId : Map[String,MigrationTestLog] = null //init in initDn
+  var logs2WithId : Seq[MigrationTestLog] = null
   
   override def initDb = {
     super.initDb
     
     // init datas, get the map of ids 
-    logs10WithId = withConnection[Map[String,TestLog]] { c =>
+    logs10WithId = withConnection[Map[String,MigrationTestLog]] { c =>
       (Migration_10_2_DATA_EventLogs.data_10.map { case (k,log) =>
         val id = log.insertSql(c)
         logger.debug("Inserting %s, id: %s".format(k,id))
@@ -136,7 +136,7 @@ CREATE TABLE EventLog (
       
       logs.size must beEqualTo(logs2WithId.size) and
       forallWhen(logs) {
-        case TestLog(Some(id), eventType, timestamp, principal, cause, severity, data) => 
+        case MigrationTestLog(Some(id), eventType, timestamp, principal, cause, severity, data) => 
           val l = logs2WithId.find(x => x.id.get == id).get
           
           (l.eventType === eventType) and
