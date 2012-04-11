@@ -763,4 +763,179 @@ class ExecutionBatchTest extends Specification {
       sameKeyExecutionBatch.getUnknownNodes.size == 0
     }
   }
+
+
+
+  // Test with CFEngine variables
+  "An execution Batch, with one component, one node, but with a component value being a cfengine variable" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")        
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[PolicyExpectedReports](new PolicyExpectedReports(
+                  "policy",
+                  Seq(new ComponentCard("component", 1, Seq("$(sys.workdir)") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+        
+    "have one success node" in {
+      sameKeyExecutionBatch.getSuccessServer.size == 1
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorServer.size == 0
+    }
+    
+    "have no repaired node" in {
+      sameKeyExecutionBatch.getRepairedServer.size == 0
+    }
+
+    "have no unknown node" in {
+      sameKeyExecutionBatch.getUnknownNodes.size == 0
+    }
+  }
+  
+  // Test with CFEngine variables
+  "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")        
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[PolicyExpectedReports](new PolicyExpectedReports(
+                  "policy",
+                  Seq(new ComponentCard("component", 1, Seq("${sys.workdir}") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+        
+    "have one success node" in {
+      sameKeyExecutionBatch.getSuccessServer.size == 1
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorServer.size == 0
+    }
+  }
+  
+  // Test with CFEngine variables
+  "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {, not matched" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")        
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[PolicyExpectedReports](new PolicyExpectedReports(
+                  "policy",
+                  Seq(new ComponentCard("component", 1, Seq("${sys.workdir}/inputs") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+        
+    "have no success node" in {
+      sameKeyExecutionBatch.getSuccessServer.size == 0
+    }
+    
+    "have one error node" in {
+      sameKeyExecutionBatch.getErrorServer.size == 1
+    }
+  }
+  // Test for mixed keys (with cfengine ones), two policies, with a value and valuetwice  expectation, and three results
+  "An execution Batch, with one component, one node, but the same key with a None expectation" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valuetwice", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valueCFENGINEKEY", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy2", "nodeId", 12, "component", "value", executionTimestamp, "message")
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[PolicyExpectedReports](new PolicyExpectedReports(
+                  "policy",
+                  Seq(new ComponentCard("component", 3, Seq("value", "valuetwice", "value${twice}") ))),
+                  new PolicyExpectedReports(
+                  "policy2",
+                  Seq(new ComponentCard("component", 1, Seq("value") )))
+       ),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+    
+    
+    "have one success node" in {
+      sameKeyExecutionBatch.getSuccessServer.size == 1
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorServer.size == 0
+    }
+    
+    "have no repaired node" in {
+      sameKeyExecutionBatch.getRepairedServer.size == 0
+    }
+
+    "have no unknown node" in {
+      sameKeyExecutionBatch.getUnknownNodes.size == 0
+    }
+  }
+  
+  // Test the multiple identical keys with cfengine values, for reparation
+  "An execution Batch, with one component, one node, but the same key cfengine key twices and only reparation" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valuecfenginekeyvalue", executionTimestamp, "message"),
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valuecfenginekeyvalue", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valuecfenginekeyvalue", executionTimestamp, "message")
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[PolicyExpectedReports](new PolicyExpectedReports(
+                  "policy",
+                  Seq(new ComponentCard("component", 2, Seq("value$(foo)value", "value$(foo)value") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+    
+    "have 3 reports when we create it with 3 reports" in {
+      sameKeyExecutionBatch.executionReports.size == 3
+    }
+    
+    "have zero success node" in {
+      sameKeyExecutionBatch.getSuccessServer.size == 0
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorServer.size == 0
+    }
+    
+    "have one repaired node" in {
+      sameKeyExecutionBatch.getRepairedServer.size == 1
+    }
+
+    "have no unknown node" in {
+      sameKeyExecutionBatch.getUnknownNodes.size == 0
+    }
+  }
+
 }

@@ -46,7 +46,7 @@ import com.normation.rudder.domain.reports.ComponentCard
 import com.normation.rudder.domain.reports.PolicyExpectedReports
 import com.normation.utils.HashcodeCaching
 import scala.collection.mutable.Buffer
-
+import com.normation.rudder.domain.reports.bean.ConfigurationExecutionBatch._
 /**
  * An execution batch contains the servers reports for a given CR/PI at a given date
  * An execution Batch is at a given time <- Is it relevant when we have several node ?
@@ -121,6 +121,10 @@ trait ExecutionBatch {
 }
 
 
+object ConfigurationExecutionBatch {
+  final val matchCFEngineVars = """.*\$(\{.+\}|\(.+\)).*""".r
+  final val replaceCFEngineVars = """\$\{.+\}|\$\(.+\)"""
+}
 
 /**
  * The execution batch for a configuration, still a lot of intelligence to add within
@@ -137,8 +141,7 @@ class ConfigurationExecutionBatch(
     val endDate : Option[DateTime]) extends ExecutionBatch {  
   
   val cache = scala.collection.mutable.Map[String, Seq[NodeId]]()
-  
-  
+   
   /**
    * a success server have all the expected success report, 
    * for each component, and no warn nor error nor repaired
@@ -160,6 +163,14 @@ class ConfigurationExecutionBatch(
 	                 // each non defined component key must have the right cardinality, no more, no less
 	                 filteredReports.filter( x => 
 	                     x.component == expected.componentName).size == expected.cardinality
+	               case matchCFEngineVars(someValue) =>
+	                 // this is a case when we have a CFEngine Variable
+	                 val matchableExpected = expected.componentValue.replaceAll(replaceCFEngineVars, ".*")
+	                 // We've converted the string into a regexp, by replacing ${} and $() by .*
+	                 filteredReports.filter( x => 
+                     x.component == expected.componentName &&
+                     x.keyValue.matches(matchableExpected)).size >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
+
 	               case string:String =>
 	                 // for a given component, if the key is not "None", then we are 
 	                 // checking that what is have is what we wish
@@ -201,6 +212,14 @@ class ConfigurationExecutionBatch(
                  case "None" =>
                    filteredReports.filter( x=> 
                        x.component == expected.componentName).size >= expected.cardinality
+                 case matchCFEngineVars(someValue) =>
+                   // this is a case when we have a CFEngine Variable
+                   val matchableExpected = expected.componentValue.replaceAll(replaceCFEngineVars, ".*")
+                   // We've converted the string into a regexp, by replacing ${} and $() by .*
+                   filteredReports.filter( x => 
+                     x.component == expected.componentName &&
+                     x.keyValue.matches(matchableExpected)).size >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
+
                  case string:String =>
                    filteredReports.filter( x=> 
                      x.component == expected.componentName &&
@@ -234,7 +253,40 @@ class ConfigurationExecutionBatch(
     cache.getOrElseUpdate("Error", {
 	    (for {server <- allExpectedServer;
 	       val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
-	
+	       // if there is an error report, then it's an error
+	       if ( (nodeFilteredReports.filter( x => x.isInstanceOf[ResultErrorReport] ).size > 0 ) ||
+	         // or if there is at least a policy instance that is not valid
+	         (policies.exists { policy =>
+	           val linearised = linearisePolicyExpectedReports(policy)
+	           val filteredReports = nodeFilteredReports.filter(x => 
+                x.policyInstanceId == policy.policyInstanceId && 
+                ( x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport])
+              )
+              // we shouldn't have less reports that those we really expected (repaired and success)
+              filteredReports.size < linearised.size ||
+              linearised.exists(expected =>
+                expected.componentValue match {
+                 case "None" =>
+                   filteredReports.filter( x=> 
+                       x.component == expected.componentName).size < expected.cardinality
+                 case matchCFEngineVars(someValue) =>
+                   // this is a case when we have a CFEngine Variable
+                   val matchableExpected = expected.componentValue.replaceAll(replaceCFEngineVars, ".*")
+                   // We've converted the string into a regexp, by replacing ${} and $() by .*
+                   filteredReports.filter( x => 
+                     x.component == expected.componentName &&
+                     x.keyValue.matches(matchableExpected)).size == 0 // no match
+
+                 case string:String =>
+                   filteredReports.filter( x=> 
+                     x.component == expected.componentName &&
+                     x.keyValue == expected.componentValue).size == 0 // no match                   
+               }
+                  
+              )
+	         }) && // must have results (otherwise it's a no answer)
+	         /*
+	       
 	       policy <- policies
 	       if (nodeFilteredReports.filter( x => x.isInstanceOf[ResultErrorReport] ).size > 0 ) || 
 	         ( (policy.components.forall { component => // must be true for each component
@@ -251,7 +303,7 @@ class ConfigurationExecutionBatch(
 		       			  
 	       			  }
 	       			}
-	         }) && // must have results (otherwise it's a no answer)
+	         }) && // must have results (otherwise it's a no answer) */
 	         nodeFilteredReports.filter ( x =>  x.isInstanceOf[ResultSuccessReport] || 
 	           																x.isInstanceOf[ResultRepairedReport] || 
 	           																x.isInstanceOf[ResultErrorReport]
