@@ -79,12 +79,11 @@ trait DBCommon extends Specification with Loggable with Tags {
   ) 
   
   def initDb = {
-    jdbcTemplate.execute(sqlClean)
-    jdbcTemplate.execute(sqlInit)
+    if(sqlInit.trim.size > 0) jdbcTemplate.execute(sqlInit)
   }
   
   def cleanDb = {
-    jdbcTemplate.execute(sqlClean)
+    if(sqlClean.trim.size > 0) jdbcTemplate.execute(sqlClean)
   }
   
   def now = new Timestamp(System.currentTimeMillis)
