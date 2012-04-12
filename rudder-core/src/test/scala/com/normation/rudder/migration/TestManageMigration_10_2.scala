@@ -72,15 +72,12 @@ import java.sql.Timestamp
 @RunWith(classOf[JUnitRunner])
 class TestManageMigration_10_2 extends DBCommon {
   
-  val sqlClean = """
-DROP TABLE IF EXISTS EventLog, MigrationEventLog;
-DROP SEQUENCE IF EXISTS eventLogIdSeq, MigrationEventLogId;
-"""    
+  val sqlClean = "" //no need to clean temp data table.   
   
   val sqlInit = """
-CREATE SEQUENCE eventLogIdSeq START 1;
+CREATE TEMP SEQUENCE eventLogIdSeq START 1;
 
-CREATE TABLE EventLog (
+CREATE TEMP TABLE EventLog (
   id integer PRIMARY KEY  DEFAULT nextval('eventLogIdSeq')
 , creationDate timestamp with time zone NOT NULL DEFAULT 'now'
 , severity integer
@@ -90,9 +87,9 @@ CREATE TABLE EventLog (
 , data xml
 );
 
-CREATE SEQUENCE MigrationEventLogId START 1;
+CREATE TEMP SEQUENCE MigrationEventLogId START 1;
 
-CREATE TABLE MigrationEventLog(
+CREATE TEMP TABLE MigrationEventLog(
   id                  integer PRIMARY KEY DEFAULT nextval('MigrationEventLogId')
 , detectionTime       timestamp NOT NULL
 , detectedFileFormat  integer

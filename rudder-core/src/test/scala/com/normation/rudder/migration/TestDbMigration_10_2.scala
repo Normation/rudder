@@ -71,15 +71,12 @@ case class MigEx102(msg:String) extends Exception(msg)
 @RunWith(classOf[JUnitRunner])
 class TestDbMigration_10_2 extends DBCommon {
   
-  val sqlClean = """
-DROP TABLE IF EXISTS EventLog;
-DROP SEQUENCE IF EXISTS eventLogIdSeq;
-"""    
-  
+  val sqlClean = "" //no need to clean temp data table. 
+    
   val sqlInit = """
-CREATE SEQUENCE eventLogIdSeq START 1;
+CREATE TEMP SEQUENCE eventLogIdSeq START 1;
 
-CREATE TABLE EventLog (
+CREATE TEMP TABLE EventLog (
   id integer PRIMARY KEY  DEFAULT nextval('eventLogIdSeq')
 , creationDate timestamp with time zone NOT NULL DEFAULT 'now'
 , severity integer
