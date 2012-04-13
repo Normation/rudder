@@ -318,34 +318,14 @@ class AppConfig extends Loggable {
   def reportsRepository = new com.normation.rudder.repository.jdbc.ReportsJdbcRepository(jdbcTemplate)
 
   @Bean
-  def dataSource = try {
-
-    Class.forName(jdbcDriver);
-
-    val pool = new BasicDataSource();
-    pool.setDriverClassName(jdbcDriver)
-    pool.setUrl(jdbcUrl)
-    pool.setUsername(jdbcUsername)
-    pool.setPassword(jdbcPassword)
-
-    /* try to get the connection */
-    val connection = pool.getConnection()
-    connection.close()
-
-    pool
-
-  } catch {
-    case e: Exception =>
-      logger.error("Could not initialise the access to the database")
-      throw e
-  }
+  def dataSourceProvider = new RudderDatasourceProvider(jdbcDriver, jdbcUrl, jdbcUsername, jdbcPassword)
 
   @Bean
-  def squerylDatasourceProvider = new SquerylConnectionProvider(dataSource)
+  def squerylDatasourceProvider = new SquerylConnectionProvider(dataSourceProvider.datasource)
 
   @Bean
   def jdbcTemplate = {
-    val template = new org.springframework.jdbc.core.JdbcTemplate(dataSource)
+    val template = new org.springframework.jdbc.core.JdbcTemplate(dataSourceProvider.datasource)
     template
   }
 
