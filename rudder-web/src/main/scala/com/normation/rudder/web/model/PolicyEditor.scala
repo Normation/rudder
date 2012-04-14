@@ -85,6 +85,17 @@ sealed trait SectionChildField extends DisplayableField with Loggable {
    * version of toFormNodeSeq 
    */
   def displayHtml: Text
+  
+  /**
+   * Remove duplicate section of that section.
+   * Only mutlivalued section actually have something 
+   * to do here
+   */
+  final def removeDuplicateSections : Unit = this match {
+    case m:MultivaluedSectionField => m.doRemoveDuplicateSections //stop recursion here: no multivalued section on multivalued section
+    case other : PolicyField  => ()
+    case other : SectionField => other.childFields.foreach { _.removeDuplicateSections }
+  }
 }
 
 trait PolicyField extends BaseField with SectionChildField {
@@ -290,6 +301,25 @@ case class MultivaluedSectionField(
       }
     }
   }
+  
+  def doRemoveDuplicateSections : Unit = {
+    val sects = allSections.map{ sect => sect.mapValueSeq }.zipWithIndex
+        
+    //find duplicates: set of ids to remove
+    val toRemove  = sects.map { case (s, i) =>
+      sects.collect { case(s2, i2) if i2 > i && s == s2 => i2 }
+    }.flatten.toSet
+    
+    //section to keep
+    val toKeep = sects.collect { case (_,i) if(!toRemove.contains(i)) => allSections(i) }
+    
+    //ok, remove duplicate: swap current section with toKeep
+    synchronized {
+      allSections.clear
+      allSections ++= toKeep
+    }
+    ()
+  }
 
   def size = synchronized { allSections.size }
   def iterator = synchronized { allSections.iterator }
@@ -406,6 +436,9 @@ case class PolicyEditor(
   val sectionField: SectionField,
   val variableSpecs: Map[String, VariableSpec]) {
 
+  
+  def removeDuplicateSections : Unit = sectionField.removeDuplicateSections
+  
   /**
    * Get the map of (varname, list(values)),
    * as awaited by LDAPConfigurationRuleID

@@ -372,7 +372,9 @@ to avoid that last case.<br/>
   private[this] def error(msg: String) = <span class="error">{ msg }</span>
 
   private[this] def onSubmit(): JsCmd = {
-    val values = parameterEditor.mapValueSeq
+    //keep only disctinct sub-section from multivalued section
+    parameterEditor.removeDuplicateSections
+    
     // check the variables
     for (vars <- parameterEditor.mapValueSeq) {
       try
