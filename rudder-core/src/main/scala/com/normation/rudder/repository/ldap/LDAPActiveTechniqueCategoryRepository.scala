@@ -201,9 +201,10 @@ class LDAPActiveTechniqueCategoryRepository(
    * return the modified parent category. 
    */
   def addActiveTechniqueCategory(
-      that:ActiveTechniqueCategory,
-      into:ActiveTechniqueCategory //parent category
+      that:ActiveTechniqueCategory
+    , into:ActiveTechniqueCategory //parent category
     , actor: EventActor
+    , reason: Option[String]
   ) : Box[ActiveTechniqueCategory] = {
     for {
       con                 <- ldap 
@@ -219,7 +220,7 @@ class LDAPActiveTechniqueCategoryRepository(
                                for {
                                  parents  <- this.getParentsForActiveTechniqueCategory(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitArchiver.archiveActiveTechniqueCategory(that,parents.map( _.id), Some(commiter))
+                                 archive  <- gitArchiver.archiveActiveTechniqueCategory(that,parents.map( _.id), Some(commiter, reason))
                                } yield archive
                              } else Full("ok")
     } yield {
@@ -231,7 +232,7 @@ class LDAPActiveTechniqueCategoryRepository(
    * Update an existing policy template category
    * Return the updated policy category
    */
-  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, actor: EventActor) : Box[ActiveTechniqueCategory] = {
+  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategory] = {
     for {
       con              <- ldap 
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
@@ -247,7 +248,7 @@ class LDAPActiveTechniqueCategoryRepository(
                             for {
                               parents  <- this.getParentsForActiveTechniqueCategory(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                              archive  <- gitArchiver.archiveActiveTechniqueCategory(updated,parents.map( _.id), Some(commiter))
+                              archive  <- gitArchiver.archiveActiveTechniqueCategory(updated,parents.map( _.id), Some(commiter, reason))
                             } yield archive
                           } else Full("ok")
     } yield {
@@ -304,7 +305,7 @@ class LDAPActiveTechniqueCategoryRepository(
     } }
   } 
   
-  def delete(id:ActiveTechniqueCategoryId, actor:EventActor, checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId] = {
+  def delete(id:ActiveTechniqueCategoryId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId] = {
     for {
       con <-ldap
       deleted <- {
@@ -323,7 +324,7 @@ class LDAPActiveTechniqueCategoryRepository(
               autoArchive <- (if(autoExportOnModify && ok.size > 0) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitArchiver.deleteActiveTechniqueCategory(id,parents.map( _.id), Some(commiter))
+                                 archive  <- gitArchiver.deleteActiveTechniqueCategory(id,parents.map( _.id), Some(commiter, reason))
                                } yield {
                                  archive
                                }
@@ -345,7 +346,7 @@ class LDAPActiveTechniqueCategoryRepository(
    * Both category to move and destination have to exists, else it is a failure.
    * The destination category can not be a child of the category to move. 
    */
-  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, actor: EventActor) : Box[ActiveTechniqueCategoryId] = {
+  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategoryId] = {
       for {
         con            <- ldap
         oldParents     <- if(autoExportOnModify) {
@@ -371,7 +372,7 @@ class LDAPActiveTechniqueCategoryRepository(
                               newCat   <- getActiveTechniqueCategory(categoryId)
                               parents  <- this.getParentsForActiveTechniqueCategory(categoryId)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                              moved    <- gitArchiver.moveActiveTechniqueCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some(commiter))
+                              moved    <- gitArchiver.moveActiveTechniqueCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some(commiter, reason))
                             } yield {
                               moved
                             }

@@ -55,68 +55,77 @@ trait EventLogRepository {
    */
   def saveEventLog(eventLog : EventLog) : Box[EventLog]
                          
-  def saveAddRule(principal: EventActor, addDiff: AddRuleDiff) = {
+  def saveAddRule(principal: EventActor, addDiff: AddRuleDiff, reason:Option[String]) = {
     saveEventLog(eventLogFactory.getAddRuleFromDiff(
         principal = principal
       , addDiff   = addDiff
+      , reason = reason
     ))
   }
   
-  def saveDeleteRule(principal: EventActor, deleteDiff: DeleteRuleDiff) = {
+  def saveDeleteRule(principal: EventActor, deleteDiff: DeleteRuleDiff, reason:Option[String]) = {
     saveEventLog(eventLogFactory.getDeleteRuleFromDiff(
         principal  = principal
       , deleteDiff = deleteDiff
+      , reason = reason
     ))
   }
 
-  def saveModifyRule(principal: EventActor, modifyDiff: ModifyRuleDiff) = {
+  def saveModifyRule(principal: EventActor, modifyDiff: ModifyRuleDiff, reason:Option[String]) = {
     saveEventLog(eventLogFactory.getModifyRuleFromDiff(
         principal = principal
       , modifyDiff = modifyDiff
+      , reason = reason
     ))
   }
 
-  def saveAddDirective(principal: EventActor, addDiff: AddDirectiveDiff, varsRootSectionSpec: SectionSpec) = {
+  def saveAddDirective(principal: EventActor, addDiff: AddDirectiveDiff, varsRootSectionSpec: SectionSpec, reason:Option[String]) = {
     saveEventLog(eventLogFactory.getAddDirectiveFromDiff(
         principal           = principal
       , addDiff             = addDiff
       , varsRootSectionSpec = varsRootSectionSpec
+      , reason = reason
     ))
   }
   
-  def saveDeleteDirective(principal : EventActor, deleteDiff:DeleteDirectiveDiff, varsRootSectionSpec: SectionSpec) = {
+  def saveDeleteDirective(principal : EventActor, deleteDiff:DeleteDirectiveDiff, varsRootSectionSpec: SectionSpec, reason:Option[String]) = {
     saveEventLog(eventLogFactory.getDeleteDirectiveFromDiff(
         principal  = principal
       , deleteDiff = deleteDiff
       , varsRootSectionSpec = varsRootSectionSpec
+      , reason = reason
     ))
   }
 
-  def saveModifyDirective(principal : EventActor, modifyDiff: ModifyDirectiveDiff) = {
+  def saveModifyDirective(principal : EventActor, modifyDiff: ModifyDirectiveDiff, reason:Option[String]) = {
     saveEventLog(eventLogFactory.getModifyDirectiveFromDiff(
         principal = principal
       , modifyDiff = modifyDiff
+      , reason = reason
     ))
   }
   
-  def saveAddNodeGroup(principal: EventActor, addDiff: AddNodeGroupDiff) = {
+  def saveAddNodeGroup(principal: EventActor, addDiff: AddNodeGroupDiff, reason:Option[String]) = {
     saveEventLog(eventLogFactory.getAddNodeGroupFromDiff(
         principal           = principal
       , addDiff             = addDiff
+      , reason = reason
     ))
   }
   
-  def saveDeleteNodeGroup(principal : EventActor, deleteDiff:DeleteNodeGroupDiff) = {
+  def saveDeleteNodeGroup(principal : EventActor, deleteDiff:DeleteNodeGroupDiff, reason:Option[String]) = {
     saveEventLog(eventLogFactory.getDeleteNodeGroupFromDiff(
         principal  = principal
       , deleteDiff = deleteDiff
+      , reason = reason
     ))
   }
 
-  def saveModifyNodeGroup(principal : EventActor, modifyDiff: ModifyNodeGroupDiff) = {
+  def saveModifyNodeGroup(principal : EventActor, modifyDiff: ModifyNodeGroupDiff, reason:Option[String]) = {
     saveEventLog(eventLogFactory.getModifyNodeGroupFromDiff(
         principal = principal
       , modifyDiff = modifyDiff
+      , reason = reason
     ))
   } 
   

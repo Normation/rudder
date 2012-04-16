@@ -261,7 +261,7 @@ class RuleEditForm(
       JsRaw("$.modal.close();") & 
       { 
         (for {
-          save <- ruleRepository.delete(rule.id, CurrentUser.getActor)
+          save <- ruleRepository.delete(rule.id, CurrentUser.getActor, Some("Rule deleted by user"))
           deploy <- {
             asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
             Full("Deployment request sent")
@@ -388,7 +388,7 @@ class RuleEditForm(
   
   private[this] def saveAndDeployRule(rule:Rule) : JsCmd = {
       (for {
-        save <- ruleRepository.update(rule, CurrentUser.getActor)
+        save <- ruleRepository.update(rule, CurrentUser.getActor, Some("Rule updated by user"))
         deploy <- {
           asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
           Full("Deployment request sent")

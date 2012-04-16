@@ -167,14 +167,14 @@ class Archives extends DispatchSnippet with Loggable {
       formName                  : String               //the element name to update on error/succes
     , archiveButtonId           : String               //input button
     , archiveButtonName         : String               //what is displayed on the button to the user
-    , archiveFunction           : (PersonIdent, EventActor, Boolean) => Box[GitArchiveId] //the actual logic to execute the action
+    , archiveFunction           : (PersonIdent, EventActor, Option[String], Boolean) => Box[GitArchiveId] //the actual logic to execute the action
     , archiveErrorMessage       : String               //error message to display to the user
     , archiveSuccessDebugMessage: String => String     //debug log - the string param is the archive id
     , archiveDateSelectId       : String
     , archiveListFunction       : () => Box[Map[DateTime,GitArchiveId]]
     , restoreButtonId           : String               //input button id to restore an archive
     , restoreButtonName         : String               //what is displayed on the button to the user
-    , restoreFunction           : (GitCommitId, EventActor, Boolean) => Box[GitCommitId] //the actual logic to execute the action
+    , restoreFunction           : (GitCommitId, EventActor, Option[String], Boolean) => Box[GitCommitId] //the actual logic to execute the action
     , restoreErrorMessage       : String               //error message to display to the user
     , restoreSuccessDebugMessage: String               //debug log - the string param is the archive id
     , downloadButtonId          : String               //input button id to download the zip of an archive
@@ -208,7 +208,7 @@ class Archives extends DispatchSnippet with Loggable {
       S.clearCurrentNotices
       (for {
         commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.getActor.name)
-        archive  <- archiveFunction(commiter, CurrentUser.getActor, false)
+        archive  <- archiveFunction(commiter, CurrentUser.getActor, Some("User requested archive creation"), false)
       } yield {
         archive
       }) match {
@@ -221,7 +221,7 @@ class Archives extends DispatchSnippet with Loggable {
       S.clearCurrentNotices
       selectedCommitId match {
         case None    => error(Empty, "A valid archive must be chosen")
-        case Some(commit) => restoreFunction(commit, CurrentUser.getActor, false) match {
+        case Some(commit) => restoreFunction(commit, CurrentUser.getActor, Some("User requested archive restoration"), false) match {
           case eb:EmptyBox => error(eb, restoreErrorMessage)
           case Full( _ )   => success(restoreSuccessDebugMessage)
         }

@@ -107,7 +107,8 @@ class PolicyServerManagementServiceImpl(
       directive <- directiveRepository.getDirective(directiveId) ?~! "Error when retrieving policy instance with ID '%s'".format(directiveId.value)
       activeTechnique <- directiveRepository.getActiveTechnique(directiveId) ?~! "Error when getting user policy template for policy instance with ID '%s'".format(directiveId.value)
       newPi = directive.copy(parameters = directive.parameters + (Constants.V_ALLOWED_NETWORK -> networks.map( _.toString)))
-      saved <- directiveRepository.saveDirective(activeTechnique.id, newPi, actor) ?~! "Can not save policy instance for User Policy Template '%s'".format(activeTechnique.id.value)
+      msg = Some("Automatic update of system directive due to modification of accepted networks ")
+      saved <- directiveRepository.saveDirective(activeTechnique.id, newPi, actor, msg) ?~! "Can not save policy instance for User Policy Template '%s'".format(activeTechnique.id.value)
     } yield {
       //ask for a new policy deployment
       asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)

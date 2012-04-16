@@ -123,6 +123,7 @@ CREATE TABLE EventLog (
     severity integer,
     causeId integer,
     principal varchar(64),
+    reason text,
     eventType varchar(64),
     data xml
 ); 

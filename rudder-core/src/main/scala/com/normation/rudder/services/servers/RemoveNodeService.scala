@@ -120,7 +120,8 @@ class RemoveNodeServiceImpl(
         nodeGroups   <- nodeGroupIds.map(nodeGroupId => nodeGroupRepository.getNodeGroup(nodeGroupId))
         nodeGroup    <- nodeGroups
         updatedGroup =  nodeGroup.copy(serverList = nodeGroup.serverList - nodeId)
-        diff         <- nodeGroupRepository.update(updatedGroup, actor)  ?~! "Could not update group %s to remove node '%s'".format(nodeGroup.id.value, nodeId.value)
+        msg          =  Some("Automatic update of group du to deletion of node " + nodeId.value)
+        diff         <- nodeGroupRepository.update(updatedGroup, actor, msg)  ?~! "Could not update group %s to remove node '%s'".format(nodeGroup.id.value, nodeId.value)
       } yield {
         diff
       }).flatten

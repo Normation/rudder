@@ -171,7 +171,7 @@ class NodeGroupCategoryForm(
   }
   
   private[this] def onDelete() : JsCmd = {
-    groupCategoryRepository.delete(_nodeGroupCategory.id, CurrentUser.getActor) match {
+    groupCategoryRepository.delete(_nodeGroupCategory.id, CurrentUser.getActor, Some("Node Group category deleted by user from UI")) match {
       case Full(id) => 
         JsRaw("""$.modal.close();""") &
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
@@ -271,8 +271,12 @@ class NodeGroupCategoryForm(
         _nodeGroupCategory.isSystem
       )
 
-      groupCategoryRepository.saveGroupCategory(newNodeGroup,
-            NodeGroupCategoryId(piContainer.is), CurrentUser.getActor) match {
+      groupCategoryRepository.saveGroupCategory(
+          newNodeGroup
+        , NodeGroupCategoryId(piContainer.is)
+        , CurrentUser.getActor
+        , Some("Node Group category saved by user from UI")
+      ) match {
         case Full(x) =>
           _nodeGroupCategory = x
           onSuccess & onSuccessCallback() & successPopup

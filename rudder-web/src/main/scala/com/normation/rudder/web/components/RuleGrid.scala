@@ -337,7 +337,7 @@ class RuleGrid(
           OKLine(rule, compliance, seq, target)
         case (x,y) =>
           //the Rule has some error, try to disactivate it
-          ruleRepository.update(rule.copy(isEnabledStatus=false),RudderEventActor) 
+          ruleRepository.update(rule.copy(isEnabledStatus=false),RudderEventActor, Some("Rule automatically disabled because it contains error (bad target or bad directives)")) 
 
           ErrorLine(rule,x,y)
       }

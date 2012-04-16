@@ -50,7 +50,7 @@ class RestTechniqueReload(
   
   serve {
     case Get("api" :: "techniqueLibrary" :: "reload" :: Nil, req) =>
-      updatePTLibService.update(RestUtils.getActor(req)) match {
+      updatePTLibService.update(RestUtils.getActor(req), Some("Technique library reloaded from REST API")) match {
         case Full(x) => PlainTextResponse("OK")
         case eb:EmptyBox => 
           val e = eb ?~! "An error occured when updating the Technique library from file system"

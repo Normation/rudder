@@ -70,7 +70,7 @@ trait DynGroupUpdaterService {
    * from the pre-update. 
    * @return
    */
-  def update(dynGroupId:NodeGroupId, actor:EventActor) : Box[DynGroupDiff]
+  def update(dynGroupId:NodeGroupId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff]
 }
 
 
@@ -81,7 +81,7 @@ class DynGroupUpdaterServiceImpl(
   
   
   
-  override def update(dynGroupId:NodeGroupId, actor:EventActor) : Box[DynGroupDiff] = {
+  override def update(dynGroupId:NodeGroupId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff] = {
     for {
       group <- nodeGroupRepository.getNodeGroup(dynGroupId)
       isDynamic <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
@@ -89,7 +89,7 @@ class DynGroupUpdaterServiceImpl(
       newMembers <- queryProcessor.process(query) ?~! "Error when processing request for updating dynamic group with id %s".format(dynGroupId)
       //save
       val newMemberIdsSet = newMembers.map( _.id).toSet
-      savedGroup <- nodeGroupRepository.update(group.copy(serverList = newMemberIdsSet ), actor) ?~! "Error when saving update for dynmic group '%s'".format(dynGroupId)
+      savedGroup <- nodeGroupRepository.update(group.copy(serverList = newMemberIdsSet ), actor, reason) ?~! "Error when saving update for dynmic group '%s'".format(dynGroupId)
     } yield {
       val plus = newMemberIdsSet -- group.serverList
       val minus = group.serverList -- newMemberIdsSet

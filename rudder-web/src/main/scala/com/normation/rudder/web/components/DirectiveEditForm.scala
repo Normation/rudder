@@ -239,7 +239,7 @@ class DirectiveEditForm(
                 successPopup
             } else {
               (for {
-                deleted <- dependencyService.cascadeDeleteDirective(directive.id, CurrentUser.getActor)
+                deleted <- dependencyService.cascadeDeleteDirective(directive.id, CurrentUser.getActor, Some("Directive deletion require by user")) //TODO why
                 deploy <- {
                   asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
                   Full("Deployment request sent")
@@ -277,7 +277,7 @@ class DirectiveEditForm(
           if (piCreation == true) {
             onSuccess
           } else {
-            saveAndDeployDirective(directive.copy(isEnabled = status))
+            saveAndDeployDirective(directive.copy(isEnabled = status), Some("Directive disabled by user"))
           }
         }
 
@@ -379,32 +379,30 @@ to avoid that last case.<br/>
       onFailure
     } else {
       //try to save the PI
-      if (piCreation) {
-        val newPi = directive.copy(
+      val newPi = if (piCreation) {
+        directive.copy(
           parameters = parameterEditor.mapValueSeq,
           name = piName.is,
           shortDescription = piShortDescription.is,
           priority = piPriority.is,
           longDescription = piLongDescription.is,
           isEnabled = piCurrentStatusIsActivated)
-
-        saveAndDeployDirective(newPi)
       } else {
-        val newPi = directive.copy(
+        directive.copy(
           parameters = parameterEditor.mapValueSeq,
           name = piName.is,
           shortDescription = piShortDescription.is,
           priority = piPriority.is,
           longDescription = piLongDescription.is)
-
-        saveAndDeployDirective(newPi)
       }
+      
+      saveAndDeployDirective(newPi, Some("Directive saved by user"))
     }
   }
 
-  private[this] def saveAndDeployDirective(directive: Directive): JsCmd = {
+  private[this] def saveAndDeployDirective(directive: Directive, why:Option[String]): JsCmd = {
     (for {
-      saved <- directiveRepository.saveDirective(activeTechnique.id, directive, CurrentUser.getActor)
+      saved <- directiveRepository.saveDirective(activeTechnique.id, directive, CurrentUser.getActor,why)
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
         Full("Deployment request sent")

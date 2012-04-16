@@ -536,7 +536,8 @@ class AddNodeToDynGroup(
         for {
           group <- groupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
           updatedGroup = group.copy( serverList = group.serverList + sm.node.main.id )
-          saved <- groupRepo.update(updatedGroup, actor) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
+          msg = Some("Automatic update of system group due to acceptation of node "+ sm.node.main.id.value)
+          saved <- groupRepo.update(updatedGroup, actor, msg) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
         } yield {
           saved 
         }
@@ -558,7 +559,8 @@ class AddNodeToDynGroup(
           for {
             group <- groupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
             updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
-            saved <- groupRepo.update(updatedGroup, actor) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
+            msg = Some("Automatic update of system group due to rollback of acceptation of node "+ sm.node.main.id.value)
+            saved <- groupRepo.update(updatedGroup, actor, msg) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
           } yield {
             saved 
           }
@@ -596,7 +598,8 @@ class RefuseGroups(
         for {
           group <- groupRepo.getNodeGroup(groupId)
           modGroup = group.copy( serverList = group.serverList - srv.id)
-          saved <- groupRepo.update(modGroup, actor)
+          msg = Some("Automatic update of groups due to refusal of node "+ srv.id.value)
+          saved <- groupRepo.update(modGroup, actor, msg)
         } yield {
           saved
         }
@@ -643,7 +646,8 @@ class AcceptNodeRule(
     for {
       group <- groupRepo.getNodeGroup(hasPolicyServerNodeGroup) ?~! "Technical group with ID '%s' was not found".format(hasPolicyServerNodeGroup)
       updatedGroup = group.copy( serverList = group.serverList + nodeId )
-      saved<- groupRepo.update(updatedGroup,actor) ?~! "Could not update the technical group with ID '%s'".format(updatedGroup.id )
+      msg = Some("Automatic update of system group due to acceptation of node "+ sm.node.main.id.value)
+      saved<- groupRepo.update(updatedGroup,actor, msg) ?~! "Could not update the technical group with ID '%s'".format(updatedGroup.id )
     } yield {
       nodeId
     } 
@@ -658,7 +662,8 @@ class AcceptNodeRule(
       (for {
         group <- groupRepo.getNodeGroup(buildHasPolicyServerGroupId(sm.node.main.policyServerId)) ?~! "Can not find group with id: %s".format(sm.node.main.policyServerId)
         updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
-        saved<- groupRepo.update(updatedGroup, actor)?~! "Error when trying to update dynamic group %s with member %s".format(updatedGroup.id,sm.node.main.id.value)
+        msg = Some("Automatic update of system group due to rollback of acceptation of node "+ sm.node.main.id.value)
+        saved<- groupRepo.update(updatedGroup, actor, msg)?~! "Error when trying to update dynamic group %s with member %s".format(updatedGroup.id,sm.node.main.id.value)
       } yield {
         sm
       }) match {

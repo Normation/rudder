@@ -89,7 +89,7 @@ class EventListDisplayer(
         ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
         ".logActor *" #> event.principal.name &
         ".logType *" #> event.eventType.serialize &
-        ".logCategory *" #> S.?("event.log.category."+event.eventLogCategory.getClass().getSimpleName()) &
+        ".logReason *" #> event.eventDetails.reason.getOrElse("") &
         ".logDescription *" #> displayDescription(event) 
       })
      )(dataTableXml(gridName)) 
@@ -187,7 +187,7 @@ class EventListDisplayer(
             <th>Date</th>
             <th>Actor</th>
             <th>Event Type</th>
-            <th>Event Category</th>
+            <th>Cause</th>
             <th>Description</th>
           </tr>
         </thead>
@@ -198,7 +198,7 @@ class EventListDisplayer(
             <td class="logDatetime">[Date and time of event]</td>
             <td class="logActor">[actor of the event]</td>
             <td class="logType">[type of event]</td>
-            <td class="logCategory">[category of event]</td>
+            <td class="logReason">[message explaining the reason of event]</td>
             <td class="logDescription">[some user readable info]</td>
           </tr>
         </tbody>
