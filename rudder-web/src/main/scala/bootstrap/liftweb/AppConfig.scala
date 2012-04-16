@@ -89,6 +89,12 @@ import com.normation.utils.ScalaLock
 import com.normation.rudder.web.rest._
 import com.normation.rudder.services.user.TrivialPersonIdentService
 import com.normation.rudder.services.log.EventLogFactoryImpl
+import com.normation.rudder.migration.ControlEventLogsMigration_10_2
+import com.normation.rudder.migration.EventLogsMigration_10_2
+import com.normation.rudder.migration.MigrationEventLogRepository
+import com.normation.rudder.migration.EventLogMigration_10_2
+import com.normation.rudder.migration.LogMigrationEventLog_10_2
+import com.normation.rudder.migration.XmlMigration_10_2
 
 /**
  * Spring configuration for services
@@ -240,31 +246,31 @@ class AppConfig extends Loggable {
   
   @Bean 
   def ruleSerialisation: RuleSerialisation = 
-    new RuleSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+    new RuleSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
 
   @Bean 
   def activeTechniqueCategorySerialisation: ActiveTechniqueCategorySerialisation = 
-    new ActiveTechniqueCategorySerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+    new ActiveTechniqueCategorySerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
 
   @Bean 
   def activeTechniqueSerialisation: ActiveTechniqueSerialisation = 
-    new ActiveTechniqueSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+    new ActiveTechniqueSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   
   @Bean 
   def directiveSerialisation: DirectiveSerialisation = 
-    new DirectiveSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+    new DirectiveSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
 
   @Bean 
   def nodeGroupCategorySerialisation: NodeGroupCategorySerialisation = 
-    new NodeGroupCategorySerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+    new NodeGroupCategorySerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
 
   @Bean 
   def nodeGroupSerialisation: NodeGroupSerialisation = 
-    new NodeGroupSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+    new NodeGroupSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   
   @Bean
   def deploymentStatusSerialisation : DeploymentStatusSerialisation =
-    new DeploymentStatusSerialisationImpl(Constants.XML_FILE_FORMAT_1_0)
+    new DeploymentStatusSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   
   
   ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
@@ -460,34 +466,14 @@ class AppConfig extends Loggable {
   def reportsRepository = new com.normation.rudder.repository.jdbc.ReportsJdbcRepository(jdbcTemplate)
 
   @Bean
-  def dataSource = try {
-
-    Class.forName(jdbcDriver);
-
-    val pool = new BasicDataSource();
-    pool.setDriverClassName(jdbcDriver)
-    pool.setUrl(jdbcUrl)
-    pool.setUsername(jdbcUsername)
-    pool.setPassword(jdbcPassword)
-
-    /* try to get the connection */
-    val connection = pool.getConnection()
-    connection.close()
-
-    pool
-
-  } catch {
-    case e: Exception =>
-      logger.error("Could not initialise the access to the database")
-      throw e
-  }
+  def dataSourceProvider = new RudderDatasourceProvider(jdbcDriver, jdbcUrl, jdbcUsername, jdbcPassword)
 
   @Bean
-  def squerylDatasourceProvider = new SquerylConnectionProvider(dataSource)
+  def squerylDatasourceProvider = new SquerylConnectionProvider(dataSourceProvider.datasource)
 
   @Bean
   def jdbcTemplate = {
-    val template = new org.springframework.jdbc.core.JdbcTemplate(dataSource)
+    val template = new org.springframework.jdbc.core.JdbcTemplate(dataSourceProvider.datasource)
     template
   }
 
@@ -936,6 +922,25 @@ class AppConfig extends Loggable {
       , ldapFullInventoryRepository
       , logRepository
       , nodeReadWriteMutex)
+  
+  /**
+   * Event log migration
+   */
+  @Bean
+  def eventLogsMigration_10_2 = new EventLogsMigration_10_2(
+      jdbcTemplate      = jdbcTemplate
+    , eventLogMigration = new EventLogMigration_10_2(new XmlMigration_10_2())
+    , errorLogger       = LogMigrationEventLog_10_2.defaultErrorLogger
+    , successLogger     = LogMigrationEventLog_10_2.defaultSuccessLogger
+    , batchSize         = 1000      
+   )
+  
+  @Bean
+  def eventLogsMigration_10_2_Management = new ControlEventLogsMigration_10_2(
+          migrationEventLogRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
+        , eventLogsMigration_10_2
+      )
+
   /**
    * *************************************************
    * Bootstrap check actions
@@ -943,13 +948,14 @@ class AppConfig extends Loggable {
    */
   @Bean
   def allChecks = new SequentialImmediateBootStrapChecks(
-    new CheckDIT(pendingNodesDit, acceptedNodesDit, removedNodesDit, rudderDit, ldap),
-    new CheckRootNodeUnicity(ldapNodeConfigurationRepository),
-    new CheckSystemDirectives(rudderDit, ldapRuleRepository),
-    new CheckInitUserTemplateLibrary(
-      rudderDit, ldap, techniqueRepository,
-      ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository) //new CheckDirectiveBusinessRules()
-      )
+      new CheckDIT(pendingNodesDit, acceptedNodesDit, removedNodesDit, rudderDit, ldap)
+    , new CheckRootNodeUnicity(ldapNodeConfigurationRepository)
+    , new CheckSystemDirectives(rudderDit, ldapRuleRepository)
+    , new CheckInitUserTemplateLibrary(
+        rudderDit, ldap, techniqueRepository,
+        ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository) //new CheckDirectiveBusinessRules()
+    , new CheckMigrationEventLog10_2(eventLogsMigration_10_2_Management)
+  )
 
   
   //////////////////////////////////////////////////////////////////////////////////////////

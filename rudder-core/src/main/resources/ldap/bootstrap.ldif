@@ -83,6 +83,27 @@ objectClass: organizationalUnit
 ou: Nodes
 description: Logical servers, an OS installation. May be on a virtual machine or a physical machine, from ou=Machines.
 
+## Same structure, for removed inventories (after deletion)
+dn: ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+objectclass: top
+objectclass: organizationalUnit
+ou: Removed Inventories
+description: Store inventories removed from Rudder
+
+# Machines, removed
+dn: ou=Machines,ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Machines
+description: Containers for servers from ou=Nodes, such as physical machines or virtual machines.
+
+# Nodes, removed
+dn: ou=Nodes,ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: organizationalUnit
+ou: Servers
+description: Logical servers, an OS installation. May be on a virtual machine or a physical machine, from ou=Machines.
+
 # System groups
 
 dn: groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration

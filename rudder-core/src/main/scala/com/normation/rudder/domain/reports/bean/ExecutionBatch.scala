@@ -44,6 +44,9 @@ import com.normation.rudder.domain.Constants
 import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
 import com.normation.rudder.domain.reports.ReportComponent
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
+import com.normation.utils.HashcodeCaching
+import scala.collection.mutable.Buffer
+import ConfigurationExecutionBatch._
 
 /**
  * An execution batch contains the node reports for a given Rule / Directive at a given date
@@ -119,6 +122,10 @@ trait ExecutionBatch {
 }
 
 
+object ConfigurationExecutionBatch {
+  final val matchCFEngineVars = """.*\$(\{.+\}|\(.+\)).*""".r
+  final val replaceCFEngineVars = """\$\{.+\}|\$\(.+\)"""
+}
 
 /**
  * The execution batch for a rule, still a lot of intelligence to add within
@@ -137,35 +144,48 @@ class ConfigurationExecutionBatch(
   
   // A cache of the already computed values
   val cache = scala.collection.mutable.Map[String, Seq[NodeId]]()
-  
-  
+   
   /**
    * a success node has all the expected success report, 
    * for each component, and no warn nor error nor repaired
    */
   def getSuccessNodeIds() : Seq[NodeId] = {
     cache.getOrElseUpdate("Success", {
-      (for {nodeId <- expectedNodeIds;
-         val nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
-         if (nodeFilteredReports.filter(x => (( x.isInstanceOf[ResultErrorReport] || x.isInstanceOf[ResultRepairedReport] ) )).size == 0)
-         if (directiveExpectedReports.forall { directive => 
-           directive.components.forall { component => // must be true for each component
-                 component.componentsValues.forall { value => // for each value
-                   if (value == "None") {
-                     nodeFilteredReports.filter( x => 
-                       x.component == component.componentName &&
-                       x.isInstanceOf[ResultSuccessReport]).size == component.cardinality
-                   } else {
-                     nodeFilteredReports.filter( x => 
-                       x.component == component.componentName &&
-                       x.keyValue == value &&
-                       x.isInstanceOf[ResultSuccessReport]).size == 1
-                   }
-                 }
-           }
-         })
-         
-      } yield nodeId).distinct
+	    (for {server <- expectedNodeIds;
+	    	 val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
+	       if (nodeFilteredReports.filter(x => (( x.isInstanceOf[ResultErrorReport] || x.isInstanceOf[ResultRepairedReport] ) )).size == 0)
+	       if (directiveExpectedReports.forall { directive => 
+	         val linearised = linearisePolicyExpectedReports(directive)
+	         val filteredReports = nodeFilteredReports.filter(x => x.directiveId == directive.directiveId && x.isInstanceOf[ResultSuccessReport])
+
+	         // we expect exactly as much reports (success that is) that the one we are having, or else it's wrong
+	         filteredReports.size == linearised.size &&
+	         linearised.forall( expected =>
+	             expected.componentValue match {
+	               case "None" =>
+	                 // each non defined component key must have the right cardinality, no more, no less
+	                 filteredReports.filter( x => 
+	                     x.component == expected.componentName).size == expected.cardinality
+	               case matchCFEngineVars(someValue) =>
+	                 // this is a case when we have a CFEngine Variable
+	                 val matchableExpected = expected.componentValue.replaceAll(replaceCFEngineVars, ".*")
+	                 // We've converted the string into a regexp, by replacing ${} and $() by .*
+	                 filteredReports.filter( x => 
+                     x.component == expected.componentName &&
+                     x.keyValue.matches(matchableExpected)).size >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
+
+	               case string:String =>
+	                 // for a given component, if the key is not "None", then we are 
+	                 // checking that what is have is what we wish
+	                 // we can have more reports that what we expected, because of
+	                 // name collision, but it would be resolved by the total number 
+	                 filteredReports.filter( x => 
+	                   x.component == expected.componentName &&
+	                   x.keyValue == expected.componentValue).size >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
+	             }
+	         )
+	    	 })
+	    } yield server).distinct
     })
     
   }
@@ -176,27 +196,41 @@ class ConfigurationExecutionBatch(
    */
   def getRepairedNodeIds() : Seq[NodeId] = {
     cache.getOrElseUpdate("Repaired", {
-      (for {nodeId <- expectedNodeIds;
-        val nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
-        if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultErrorReport]  ) ).size == 0)
-        if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultRepairedReport]  ) ).size > 0)
-        if (directiveExpectedReports.forall { directive => 
-          directive.components.forall { component => // must be true for each component
-               component.componentsValues.forall { value => // for each value
-                 if (value == "None") {
-                   nodeFilteredReports.filter( x => 
-                     x.component == component.componentName &&
-                     (x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size == component.cardinality
-                 } else {
-                   nodeFilteredReports.filter( x => 
-                     x.component == component.componentName &&
-                     x.keyValue == value &&
-                     (x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size == 1
-                 }
+	    (for {server <- expectedNodeIds;
+	    	val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
+		    if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultErrorReport]  ) ).size == 0)
+		    if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultRepairedReport]  ) ).size > 0)
+		    if (directiveExpectedReports.forall { directive =>
+
+		      val linearised = linearisePolicyExpectedReports(directive)
+          val filteredReports = nodeFilteredReports.filter(x => 
+            x.directiveId == directive.directiveId && 
+            ( x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport])
+          )
+
+          // we can have more reports that those we really expected (repaired and success)
+          filteredReports.size >= linearised.size &&
+          linearised.forall( expected =>
+               expected.componentValue match {
+                 case "None" =>
+                   filteredReports.filter( x=> 
+                       x.component == expected.componentName).size >= expected.cardinality
+                 case matchCFEngineVars(someValue) =>
+                   // this is a case when we have a CFEngine Variable
+                   val matchableExpected = expected.componentValue.replaceAll(replaceCFEngineVars, ".*")
+                   // We've converted the string into a regexp, by replacing ${} and $() by .*
+                   filteredReports.filter( x => 
+                     x.component == expected.componentName &&
+                     x.keyValue.matches(matchableExpected)).size >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
+
+                 case string:String =>
+                   filteredReports.filter( x=> 
+                     x.component == expected.componentName &&
+                     x.keyValue == expected.componentValue).size >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing                   
                }
-          }
-         })
-      } yield nodeId).distinct
+           )
+	       })
+	    } yield server).distinct
    })  
      
   }
@@ -211,43 +245,47 @@ class ConfigurationExecutionBatch(
    */
   def getErrorNodeIds() : Seq[NodeId] = {
     cache.getOrElseUpdate("Error", {
-      (for {nodeId <- expectedNodeIds;
-         val nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
-  
-         directive <- directiveExpectedReports
-         if (nodeFilteredReports.filter( x => x.isInstanceOf[ResultErrorReport] ).size > 0 ) || 
-           ( (directive.components.forall { component => // must be true for each component
-               component.componentsValues.forall { value => // for each value              
-                 if (value == "None") {
-                     nodeFilteredReports.filter( x => 
-                       x.component == component.componentName &&
-                       (x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size < component.cardinality
-                 } else {
-                     nodeFilteredReports.filter( x => 
-                       x.component == component.componentName &&
-                       x.keyValue == value &&
-                       (x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport] )).size < 1
-                   
-                 }
+	    (for {server <- expectedNodeIds;
+	       val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
+	       // if there is an error report, then it's an error
+	       if ( (nodeFilteredReports.filter( x => x.isInstanceOf[ResultErrorReport] ).size > 0 ) ||
+	         // or if there is at least a policy instance that is not valid
+	         (directiveExpectedReports.exists { directive =>
+	           val linearised = linearisePolicyExpectedReports(directive)
+	           val filteredReports = nodeFilteredReports.filter(x => 
+                x.directiveId == directive.directiveId && 
+                ( x.isInstanceOf[ResultSuccessReport] ||  x.isInstanceOf[ResultRepairedReport])
+              )
+              // we shouldn't have less reports that those we really expected (repaired and success)
+              filteredReports.size < linearised.size ||
+              linearised.exists(expected =>
+                expected.componentValue match {
+                 case "None" =>
+                   filteredReports.filter( x=> 
+                       x.component == expected.componentName).size < expected.cardinality
+                 case matchCFEngineVars(someValue) =>
+                   // this is a case when we have a CFEngine Variable
+                   val matchableExpected = expected.componentValue.replaceAll(replaceCFEngineVars, ".*")
+                   // We've converted the string into a regexp, by replacing ${} and $() by .*
+                   filteredReports.filter( x => 
+                     x.component == expected.componentName &&
+                     x.keyValue.matches(matchableExpected)).size == 0 // no match
+
+                 case string:String =>
+                   filteredReports.filter( x=> 
+                     x.component == expected.componentName &&
+                     x.keyValue == expected.componentValue).size == 0 // no match                   
                }
-           }) && // must have results (otherwise it's a no answer)
-           nodeFilteredReports.filter ( x =>  x.isInstanceOf[ResultSuccessReport] || 
-                                             x.isInstanceOf[ResultRepairedReport] || 
-                                             x.isInstanceOf[ResultErrorReport]
-                                       ).size > 0 ) 
-           
-         /*component <- directive.components
-         
-         val filtered = executionReports.filter(x =>  (x.nodeId==server && x.component == component.componentName))
-        
-         if ( ( filtered.filter(x => x.isInstanceOf[ResultSuccessReport] || x.isInstanceOf[ResultRepairedReport] ).size > 0 ) && 
-            ( filtered.filter(x => x.isInstanceOf[ResultSuccessReport]).size < component.cardinality ) &&
-             ( filtered.filter(x => x.isInstanceOf[ResultRepairedReport]).size < component.cardinality ) ) ||
-             ( filtered.filter(x => x.isInstanceOf[ResultErrorReport]).size > 0 )
-         
-  */
-      } yield nodeId).distinct
-     }) 
+                  
+              )
+	         }) && // must have results (otherwise it's a no answer)
+	         nodeFilteredReports.filter ( x =>  x.isInstanceOf[ResultSuccessReport] || 
+	           																x.isInstanceOf[ResultRepairedReport] || 
+	           																x.isInstanceOf[ResultErrorReport]
+	           													).size > 0 ) 
+
+	    } yield server).distinct
+	   }) 
   }
   
   /**
@@ -293,4 +331,27 @@ class ConfigurationExecutionBatch(
                    .filter(nodeId => !(getNoReportNodeIds().contains(nodeId)))
     
   }
+  
+  private[this] def linearisePolicyExpectedReports(directive : DirectiveExpectedReports) : Buffer[LinearisedExpectedReport] = {
+    val result = Buffer[LinearisedExpectedReport]()
+    
+    for (component <- directive.components) {
+      for (value <- component.componentsValues) {
+        result += LinearisedExpectedReport(
+              directive.directiveId
+            , component.componentName
+            , component.cardinality
+            , value
+        )
+      }
+    }
+    result
+  }
 }
+
+case class LinearisedExpectedReport(
+    directiveId     : DirectiveId
+  , componentName   : String
+  , cardinality     : Int
+  , componentValue  : String
+) extends HashcodeCaching 
