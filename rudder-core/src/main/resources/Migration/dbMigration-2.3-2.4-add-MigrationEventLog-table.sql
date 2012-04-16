@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2012 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,47 +32,18 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
+-- Migration script of the databases from Rudder 2.3 to 2.4
+-- Add datatable MigrationEventLog (and sequence MigrationEventLogId)
+-- so that we can trave EventLog migration status
 
+create sequence MigrationEventLogId start 1;
 
-import com.normation.eventlog._
-import scala.xml._
-import com.normation.rudder.domain.policies._
-import org.joda.time.DateTime
-import net.liftweb.common._
-import com.normation.cfclerk.domain._
-import com.normation.utils.HashcodeCaching
-import com.normation.eventlog.EventLogDetails
-import com.normation.rudder.domain.Constants
-
-sealed trait TechniqueEventLog extends EventLog { override final val eventLogCategory = TechniqueLogCategory }
-
-final case class ReloadTechniqueLibrary(
-    override val eventDetails : EventLogDetails
-) extends TechniqueEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = ReloadTechniqueLibrary.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-}
-
-object ReloadTechniqueLibrary extends EventLogFilter {
-  override val eventType = ReloadTechniqueLibraryType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2) 
-
-  def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent { 
-    <reloadTechniqueLibrary fileFormat={Constants.XML_FILE_FORMAT_2.toString}>{ TechniqueIds.map { case TechniqueId(name, version) =>
-      <modifiedTechnique>
-        <name>{name.value}</name>
-        <version>{version.toString}</version>
-      </modifiedTechnique>
-    } }</reloadTechniqueLibrary>
-  }
-
-}
-
-object TechniqueEventLogsFilter {
-  final val eventList : List[EventLogFilter] = List(
-      ReloadTechniqueLibrary 
-    )
-}
+CREATE TABLE MigrationEventLog(
+  id                  integer PRIMARY KEY default(nextval('MigrationEventLogId'))
+, detectionTime       timestamp with time zone NOT NULL
+, detectedFileFormat  integer
+, migrationStartTime  timestamp with time zone
+, migrationEndTime    timestamp with time zone 
+, migrationFileFormat integer
+, description         text
+);

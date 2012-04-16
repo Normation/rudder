@@ -224,4 +224,14 @@ endTime timestamp with time zone
 create index nodes_id_start on Nodes (nodeId, startTime);
 create index nodes_end on Nodes (endTime);
 
+create sequence MigrationEventLogId start 1;
 
+CREATE TABLE MigrationEventLog(
+  id                  integer PRIMARY KEY default(nextval('MigrationEventLogId'))
+, detectionTime       timestamp NOT NULL
+, detectedFileFormat  integer
+, migrationStartTime  timestamp
+, migrationEndTime    timestamp 
+, migrationFileFormat integer
+, description         text
+);

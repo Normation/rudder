@@ -32,47 +32,48 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
+package com.normation.rudder.repository.jdbc
 
 
-import com.normation.eventlog._
-import scala.xml._
-import com.normation.rudder.domain.policies._
-import org.joda.time.DateTime
-import net.liftweb.common._
-import com.normation.cfclerk.domain._
-import com.normation.utils.HashcodeCaching
-import com.normation.eventlog.EventLogDetails
-import com.normation.rudder.domain.Constants
+import javax.sql.DataSource
+import org.apache.commons.dbcp.BasicDataSource
+import net.liftweb.common.Loggable
 
-sealed trait TechniqueEventLog extends EventLog { override final val eventLogCategory = TechniqueLogCategory }
+/**
+ * A wrapper around the Squeryl default implementation to allow for several 
+ * databases connections, and still offer the multi-threading capabilities
+ */
+class RudderDatasourceProvider(
+    driver  : String
+  , url     : String
+  , username: String
+  , password: String    
+) extends Loggable {
 
-final case class ReloadTechniqueLibrary(
-    override val eventDetails : EventLogDetails
-) extends TechniqueEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = ReloadTechniqueLibrary.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-}
+  
+  lazy val datasource = try {
 
-object ReloadTechniqueLibrary extends EventLogFilter {
-  override val eventType = ReloadTechniqueLibraryType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2) 
+    Class.forName(driver);
 
-  def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent { 
-    <reloadTechniqueLibrary fileFormat={Constants.XML_FILE_FORMAT_2.toString}>{ TechniqueIds.map { case TechniqueId(name, version) =>
-      <modifiedTechnique>
-        <name>{name.value}</name>
-        <version>{version.toString}</version>
-      </modifiedTechnique>
-    } }</reloadTechniqueLibrary>
+    val pool = new BasicDataSource();
+    pool.setDriverClassName(driver)
+    pool.setUrl(url)
+    pool.setUsername(username)
+    pool.setPassword(password)
+    
+    //set parameters to test for dead connection
+    pool.setValidationQuery("SELECT tables.table_name FROM information_schema.tables WHERE lower(table_name) = 'eventlog'")
+
+    /* try to get the connection */
+    val connection = pool.getConnection()
+    connection.close()
+
+    pool
+
+  } catch {
+    case e: Exception =>
+      logger.error("Could not initialise the access to the database")
+      throw e
   }
-
-}
-
-object TechniqueEventLogsFilter {
-  final val eventList : List[EventLogFilter] = List(
-      ReloadTechniqueLibrary 
-    )
+  
 }

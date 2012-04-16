@@ -53,14 +53,14 @@ import net.liftweb.common.Box
 trait DeploymentStatusUnserialisation {
   /**
    * Version 2:
-   * <deploymentStatus fileFormat="2.0">
+   * <deploymentStatus fileFormat="2">
           <id>{d.id}</id>
           <started>{d.started}</started>
           <ended>{d.ended}</ended>
           <status>success</status>
      </deploymentStatus>
      
-     <deploymentStatus fileFormat="2.0">
+     <deploymentStatus fileFormat="2">
           <id>{d.id}</id>
           <started>{d.started}</started>
           <ended>{d.ended}</ended>
@@ -83,7 +83,7 @@ trait DeploymentStatusUnserialisation {
 trait NodeGroupCategoryUnserialisation {
   /**
    * Version 2:
-     <nodeGroupCategory fileFormat="2.0">
+     <nodeGroupCategory fileFormat="2">
         <id>{cat.id.value}</id>
         <displayName>{cat.name}</displayName>
         <description>{cat.description}</serial>
@@ -100,7 +100,7 @@ trait NodeGroupCategoryUnserialisation {
 trait NodeGroupUnserialisation {
   /**
    * Version 2.0
-     <nodeGroup fileFormat="2.0">
+     <nodeGroup fileFormat="2">
        <id>{group.id.value}</id>
        <displayName>{group.id.name}</displayName>
        <description>{group.id.description}</description>
@@ -152,7 +152,7 @@ trait RuleUnserialisation {
 trait ActiveTechniqueCategoryUnserialisation {
   /**
    * Version 2:
-     <activeTechniqueCategory fileFormat="2.0">
+     <activeTechniqueCategory fileFormat="2">
         <id>{uptc.id.value}</id>
         <displayName>{uptc.name}</displayName>
         <description>{uptc.description}</serial>
@@ -171,7 +171,7 @@ trait ActiveTechniqueCategoryUnserialisation {
 trait ActiveTechniqueUnserialisation {
   /**
    * Version 2:
-     <activeTechnique fileFormat="2.0">
+     <activeTechnique fileFormat="2">
         <id>{activeTechnique.id.value}</id>
         <techniqueName>{activeTechnique.techniqueName}</techniqueName>
         <isEnabled>{activeTechnique.isSystem}</isEnabled>
@@ -193,7 +193,7 @@ trait ActiveTechniqueUnserialisation {
 trait DirectiveUnserialisation {
   /**
    * Version 2.0
-     <directive fileFormat="2.0">
+     <directive fileFormat="2">
        <id>{directive.id.value}</id>
        <displayName>{directive.name}</displayName>
        <techniqueName>{PT name}</techniqueName>

@@ -64,6 +64,8 @@ import com.normation.rudder.batch.NoStatus
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import scala.xml.Node
+
 
 class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
   
@@ -110,10 +112,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
                                  if(xml.label == "directive") Full(xml)
                                  else Failure("Entry type is not a directive: " + xml)
                                }
-      fileFormatOk          <- {
-                                 if(directive.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
-                                 else Failure("Bad fileFormat (expecting 1.0): " + xml)
-                               }
+      fileFormatOk          <- TestFileFormat(directive)
       id                    <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + xml)
       ptName                <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + xml)
       name                  <- (directive \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type directive : " + xml)
@@ -154,10 +153,7 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
                             if(entry.label ==  "groupLibraryCategory") Full(entry)
                             else Failure("Entry type is not a groupLibraryCategory: " + entry)
                           }
-      fileFormatOk     <- {
-                            if(category.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
-                            else Failure("Bad fileFormat (expecting 1.0): " + entry)
-                          }
+      fileFormatOk     <- TestFileFormat(category)
       id               <- (category \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type groupLibraryCategory : " + entry)
       name             <- (category \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type groupLibraryCategory : " + entry)
       description      <- (category \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type groupLibraryCategory : " + entry)
@@ -185,10 +181,7 @@ class NodeGroupUnserialisationImpl(
                            if(entry.label == "nodeGroup") Full(entry)
                            else Failure("Entry type is not a nodeGroup: " + entry)
                          }
-      fileFormatOk    <- {
-                           if(group.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
-                           else Failure("Bad fileFormat (expecting 1.0): " + entry)
-                         }
+      fileFormatOk    <- TestFileFormat(group)
       id              <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry)
       name            <- (group \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry)
       description     <- (group \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type nodeGroup : " + entry)
@@ -225,10 +218,7 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
                             if(entry.label ==  "rule") Full(entry)
                             else Failure("Entry type is not a rule: " + entry)
                           }
-      fileFormatOk     <- {
-                            if(rule.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
-                            else Failure("Bad fileFormat (expecting 1.0): " + entry)
-                          }
+      fileFormatOk     <- TestFileFormat(rule)
       id               <- (rule \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type rule : " + entry)
       name             <- (rule \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type rule : " + entry)
       serial           <- (rule \ "serial").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! ("Missing or bad attribute 'serial' in entry type rule : " + entry)
@@ -262,10 +252,7 @@ class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategory
                             if(entry.label ==  "policyLibraryCategory") Full(entry)
                             else Failure("Entry type is not a policyLibraryCategory: " + entry)
                           }
-      fileFormatOk     <- {
-                            if(uptc.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
-                            else Failure("Bad fileFormat (expecting 1.0): " + entry)
-                          }
+      fileFormatOk     <- TestFileFormat(uptc)
       id               <- (uptc \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type policyLibraryCategory : " + entry)
       name             <- (uptc \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type policyLibraryCategory : " + entry)
       description      <- (uptc \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type policyLibraryCategory : " + entry)
@@ -294,10 +281,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
                             if(entry.label ==  "policyLibraryTemplate") Full(entry)
                             else Failure("Entry type is not a policyLibraryCategory: " + entry)
                           }
-      fileFormatOk     <- {
-                            if(activeTechnique.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
-                            else Failure("Bad fileFormat (expecting 1.0): " + entry)
-                          }
+      fileFormatOk     <- TestFileFormat(activeTechnique)
       id               <- (activeTechnique \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type policyLibraryTemplate : " + entry)
       ptName           <- (activeTechnique \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type policyLibraryTemplate : " + entry)
       isSystem         <- (activeTechnique \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type policyLibraryTemplate : " + entry)
@@ -336,10 +320,7 @@ class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisatio
                   if(entry.label ==  "deploymentStatus") Full(entry)
                             else Failure("Entry type is not a deploymentStatus: " + entry)
                           }
-      fileFormatOk     <- {
-                            if(depStatus.attribute("fileFormat").map( _.text ) == Some("1.0")) Full("OK")
-                            else Failure("Bad fileFormat (expecting 1.0): " + entry)
-                          }        
+      fileFormatOk     <- TestFileFormat(depStatus)
       id               <- (depStatus \ "id").headOption.flatMap(s => tryo {s.text.toInt } ) ?~! ("Missing attribute 'id' in entry type deploymentStatus : " + entry)
       status           <- (depStatus \ "status").headOption.map( _.text ) ?~! ("Missing attribute 'status' in entry type deploymentStatus : " + entry)
 

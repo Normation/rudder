@@ -58,7 +58,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   -->
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-      <Pattern>%-30(%d{HH:mm:ss.SSS} [%thread]) %-5level %logger{36} - %msg%n%xEx{30}</Pattern>
+      <Pattern>%-30(%d{HH:mm:ss.SSS} [%thread]) %-5level %logger - %msg%n%xEx{30}</Pattern>
     </encoder>
   </appender>
 
