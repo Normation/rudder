@@ -433,4 +433,509 @@ class ExecutionBatchTest extends Specification {
     }
     
   }
+
+  // Test the multiple identical keys
+  "An execution Batch, with one component, one node, but the same key twices" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message")        
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 2, Seq("value", "value") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+    
+    "have 2 reports when we create it with 2 reports" in {
+      sameKeyExecutionBatch.executionReports.size == 2
+    }
+    
+    "have one success node" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 1
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 0
+    }
+    
+    "have no repaired node" in {
+      sameKeyExecutionBatch.getRepairedNodeIds.size == 0
+    }
+
+    "have no unknown node" in {
+      sameKeyExecutionBatch.getUnknownNodeIds.size == 0
+    }
+  }
+  
+  // Test the multiple identical keys
+  "An execution Batch, with one component, one node, but the same key twices" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message")
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 2, Seq("value", "value") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+    
+    "have 3 reports when we create it with 3 reports" in {
+      sameKeyExecutionBatch.executionReports.size == 3
+    }
+    
+    "have no success node when there are too many success reports" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 0
+    }
+    
+    "have no error node when there are too many success reports" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 0
+    }
+    
+    "have no repaired node  when there are too many success reports" in {
+      sameKeyExecutionBatch.getRepairedNodeIds.size == 0
+    }
+
+    "have one unknown node  when there are too many success reports" in {
+      sameKeyExecutionBatch.getUnknownNodeIds.size == 1
+    }
+  }
+  
+  // Test the multiple identical keys, with the None expectation, twice, and two results
+  "An execution Batch, with one component, one node, but the same key with a None expectation" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message")        
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 2, Seq("None", "None") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+    
+    "have 2 reports when we create it with 2 reports" in {
+      sameKeyExecutionBatch.executionReports.size == 2
+    }
+    
+    "have one success node" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 1
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 0
+    }
+    
+    "have no repaired node" in {
+      sameKeyExecutionBatch.getRepairedNodeIds.size == 0
+    }
+
+    "have no unknown node" in {
+      sameKeyExecutionBatch.getUnknownNodeIds.size == 0
+    }
+  }
+  
+  // Test the multiple identical keys, with the None expectation, twice, and two results
+  "An execution Batch, with one component, one node, but the same key with a None expectation, and too many reports" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message")
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 2, Seq("None", "None") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+    
+    "have 3 reports when we create it with 3 reports" in {
+      sameKeyExecutionBatch.executionReports.size == 3
+    }
+    
+    "have no success node when there are too many success reports" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 0
+    }
+    
+    "have no error node when there are too many success reports" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 0
+    }
+    
+    "have no repaired node when there are too many success reports" in {
+      sameKeyExecutionBatch.getRepairedNodeIds.size == 0
+    }
+
+    "have one unknown node when there are too many success reports" in {
+      sameKeyExecutionBatch.getUnknownNodeIds.size == 1
+    }
+  }
+  
+  // Test the multiple identical keys, for reparation
+  "An execution Batch, with one component, one node, but the same key twices and only reparation" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message")        
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 2, Seq("value", "value") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+    
+    "have 2 reports when we create it with 2 reports" in {
+      sameKeyExecutionBatch.executionReports.size == 2
+    }
+    
+    "have zero success node" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 0
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 0
+    }
+    
+    "have one repaired node" in {
+      sameKeyExecutionBatch.getRepairedNodeIds.size == 1
+    }
+
+    "have no unknown node" in {
+      sameKeyExecutionBatch.getUnknownNodeIds.size == 0
+    }
+  }
+  
+  // Test the multiple identical keys, for reparation
+  "An execution Batch, with one component, one node, but the same key twices and only reparation" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message")
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 2, Seq("value", "value") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+    
+    "have 3 reports when we create it with 3 reports" in {
+      sameKeyExecutionBatch.executionReports.size == 3
+    }
+    
+    "have zero success node" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 0
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 0
+    }
+    
+    "have one repaired node" in {
+      sameKeyExecutionBatch.getRepairedNodeIds.size == 1
+    }
+
+    "have no unknown node" in {
+      sameKeyExecutionBatch.getUnknownNodeIds.size == 0
+    }
+  }
+  
+  // Test for mixed keys keys, with a value and valuetwice  expectation, and three results
+  "An execution Batch, with one component, one node, but the same key with a None expectation" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valuetwice", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valuetwice", executionTimestamp, "message")
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 3, Seq("value", "valuetwice", "valuetwice") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+    
+    "have 3 reports when we create it with 3 reports" in {
+      sameKeyExecutionBatch.executionReports.size == 3
+    }
+    
+    "have one success node" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 1
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 0
+    }
+    
+    "have no repaired node" in {
+      sameKeyExecutionBatch.getRepairedNodeIds.size == 0
+    }
+
+    "have no unknown node" in {
+      sameKeyExecutionBatch.getUnknownNodeIds.size == 0
+    }
+  }
+  
+  // Test for mixed keys keys, two policies, with a value and valuetwice  expectation, and three results
+  "An execution Batch, with one component, one node, but the same key with a None expectation" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valuetwice", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valuetwice", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy2", "nodeId", 12, "component", "value", executionTimestamp, "message")
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 3, Seq("value", "valuetwice", "valuetwice") ))),
+                  new DirectiveExpectedReports(
+                  "policy2",
+                  Seq(new ReportComponent("component", 1, Seq("value") )))
+       ),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+    
+    "have 4 reports when we create it with 4 reports" in {
+      sameKeyExecutionBatch.executionReports.size == 4
+    }
+    
+    "have one success node" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 1
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 0
+    }
+    
+    "have no repaired node" in {
+      sameKeyExecutionBatch.getRepairedNodeIds.size == 0
+    }
+
+    "have no unknown node" in {
+      sameKeyExecutionBatch.getUnknownNodeIds.size == 0
+    }
+  }
+
+
+
+  // Test with CFEngine variables
+  "An execution Batch, with one component, one node, but with a component value being a cfengine variable" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")        
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 1, Seq("$(sys.workdir)") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+        
+    "have one success node" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 1
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 0
+    }
+    
+    "have no repaired node" in {
+      sameKeyExecutionBatch.getRepairedNodeIds.size == 0
+    }
+
+    "have no unknown node" in {
+      sameKeyExecutionBatch.getUnknownNodeIds.size == 0
+    }
+  }
+  
+  // Test with CFEngine variables
+  "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")        
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 1, Seq("${sys.workdir}") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+        
+    "have one success node" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 1
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 0
+    }
+  }
+  
+  // Test with CFEngine variables
+  "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {, not matched" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")        
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 1, Seq("${sys.workdir}/inputs") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+        
+    "have no success node" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 0
+    }
+    
+    "have one error node" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 1
+    }
+  }
+  // Test for mixed keys (with cfengine ones), two policies, with a value and valuetwice  expectation, and three results
+  "An execution Batch, with one component, one node, but the same key with a None expectation" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valuetwice", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valueCFENGINEKEY", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy2", "nodeId", 12, "component", "value", executionTimestamp, "message")
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 3, Seq("value", "valuetwice", "value${twice}") ))),
+                  new DirectiveExpectedReports(
+                  "policy2",
+                  Seq(new ReportComponent("component", 1, Seq("value") )))
+       ),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+    
+    
+    "have one success node" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 1
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 0
+    }
+    
+    "have no repaired node" in {
+      sameKeyExecutionBatch.getRepairedNodeIds.size == 0
+    }
+
+    "have no unknown node" in {
+      sameKeyExecutionBatch.getUnknownNodeIds.size == 0
+    }
+  }
+  
+  // Test the multiple identical keys with cfengine values, for reparation
+  "An execution Batch, with one component, one node, but the same key cfengine key twices and only reparation" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valuecfenginekeyvalue", executionTimestamp, "message"),
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valuecfenginekeyvalue", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "valuecfenginekeyvalue", executionTimestamp, "message")
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 2, Seq("value$(foo)value", "value$(foo)value") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+    
+    "have 3 reports when we create it with 3 reports" in {
+      sameKeyExecutionBatch.executionReports.size == 3
+    }
+    
+    "have zero success node" in {
+      sameKeyExecutionBatch.getSuccessNodeIds.size == 0
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorNodeIds.size == 0
+    }
+    
+    "have one repaired node" in {
+      sameKeyExecutionBatch.getRepairedNodeIds.size == 1
+    }
+
+    "have no unknown node" in {
+      sameKeyExecutionBatch.getUnknownNodeIds.size == 0
+    }
+  }
+
 }

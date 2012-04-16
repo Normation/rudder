@@ -89,8 +89,7 @@ class LogDisplayer(
   def display(nodeId : NodeId) : NodeSeq = {
     val PIMap = mutable.Map[DirectiveId, String]()
     val CRMap = mutable.Map[RuleId, String]()
-  
-    
+
     def getPIName(directiveId : DirectiveId) : String = {
       PIMap.get(directiveId).getOrElse({val result = directiveRepository.getDirective(directiveId).map(_.name).openOr(directiveId.value); PIMap += ( directiveId -> result); result } )
     }
