@@ -303,7 +303,7 @@ case class MultivaluedSectionField(
   }
   
   def doRemoveDuplicateSections : Unit = {
-    val sects = allSections.map{ sect => sect.mapValueSeq }.zipWithIndex
+    val sects = allSections.map{ sect => sect.getAllSectionFields.map { _.mapValueSeq } }.zipWithIndex
         
     //find duplicates: set of ids to remove
     val toRemove  = sects.map { case (s, i) =>
