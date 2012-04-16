@@ -170,7 +170,7 @@ class LDAPNodeGroupRepository(
       groupLibMutex.readLock { this.getNodeGroup[NodeGroupId](id, { id => EQ(A_NODE_GROUP_UUID, id.value) } ) }
   }
 
-  def createNodeGroup(name: String, description: String, q: Option[Query], isDynamic: Boolean, srvList: Set[NodeId], into: NodeGroupCategoryId, isEnabled : Boolean, actor:EventActor): Box[AddNodeGroupDiff] = {
+  def createNodeGroup(name: String, description: String, q: Option[Query], isDynamic: Boolean, srvList: Set[NodeId], into: NodeGroupCategoryId, isEnabled : Boolean, actor:EventActor, reason:Option[String]): Box[AddNodeGroupDiff] = {
     for {
       con           <- ldap
       exists        <- if (nodeGroupExists(con, name)) Failure("Cannot create a group with name %s : there is already a group with the same name".format(name))
@@ -188,12 +188,12 @@ class LDAPNodeGroupRepository(
                                 isEnabled)
       result        <- groupLibMutex.writeLock { con.save(entry, true) }
       diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result)
-      loggedAction  <- actionLogger.saveAddNodeGroup(principal = actor, addDiff = diff )
+      loggedAction  <- actionLogger.saveAddNodeGroup(principal = actor, addDiff = diff, reason = reason )
       autoArchive   <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                          for {
                            parents  <- categoryRepo.getParents_NodeGroupCategory(into)
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)), Some(commiter))
+                           archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)), Some(commiter, reason))
                          } yield archived
                        } else Full("ok")
     } yield {
@@ -201,7 +201,7 @@ class LDAPNodeGroupRepository(
     } 
   }
   
-  def update(nodeGroup:NodeGroup, actor:EventActor): Box[Option[ModifyNodeGroupDiff]] = {
+  def update(nodeGroup:NodeGroup, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
     for {
       con          <- ldap
       existing     <- getSGEntry(con, nodeGroup.id) ?~! "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id)
@@ -221,14 +221,14 @@ class LDAPNodeGroupRepository(
       optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result) ?~! "Error when mapping change record to a diff object: %s".format(result)
       loggedAction <- optDiff match {
                         case None => Full("OK")
-                        case Some(diff) => actionLogger.saveModifyNodeGroup(principal = actor, modifyDiff = diff) ?~! "Error when logging modification as an event"
+                        case Some(diff) => actionLogger.saveModifyNodeGroup(principal = actor, modifyDiff = diff, reason = reason) ?~! "Error when logging modification as an event"
                       }
       autoArchive  <- if(autoExportOnModify && optDiff.isDefined) { //only persists if modification are present
                         for {
                           parent   <- getParentGroupCategory(nodeGroup.id)
                           parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some(commiter))
+                          archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some(commiter, reason))
                         } yield archived
                       } else Full("ok")
     } yield {
@@ -236,7 +236,7 @@ class LDAPNodeGroupRepository(
     } 
   }
 
-  def move(nodeGroup:NodeGroup, containerId : NodeGroupCategoryId, actor:EventActor): Box[Option[ModifyNodeGroupDiff]] = {
+  def move(nodeGroup:NodeGroup, containerId : NodeGroupCategoryId, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
     for {
       con          <- ldap
       oldParents   <- if(autoExportOnModify) {
@@ -254,7 +254,7 @@ class LDAPNodeGroupRepository(
       optDiff      <- diffMapper.modChangeRecords2NodeGroupDiff(existing, result)
       loggedAction <- optDiff match {
                         case None => Full("OK")
-                        case Some(diff) => actionLogger.saveModifyNodeGroup(principal = actor, modifyDiff = diff )
+                        case Some(diff) => actionLogger.saveModifyNodeGroup(principal = actor, modifyDiff = diff, reason = reason )
                       }
       autoArchive   <- (if(autoExportOnModify && optDiff.isDefined) { //only persists if that was a real move (not a move in the same category)
                          for {
@@ -262,7 +262,7 @@ class LDAPNodeGroupRepository(
                            parent   <- getParentGroupCategory(nodeGroup.id)
                            parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           moved    <- gitArchiver.moveNodeGroup(newGroup, oldParents, (parent::parents).map( _.id ), Some(commiter))
+                           moved    <- gitArchiver.moveNodeGroup(newGroup, oldParents, (parent::parents).map( _.id ), Some(commiter, reason))
                          } yield {
                            moved
                          }
@@ -317,7 +317,7 @@ class LDAPNodeGroupRepository(
    * @param id
    * @return
    */
-  def delete(id:NodeGroupId, actor:EventActor) : Box[DeleteNodeGroupDiff] = {
+  def delete(id:NodeGroupId, actor:EventActor, reason:Option[String]) : Box[DeleteNodeGroupDiff] = {
     for {
       con          <- ldap
       parents      <- if(autoExportOnModify) {
@@ -344,11 +344,11 @@ class LDAPNodeGroupRepository(
                         }
                       } 
       diff         =  DeleteNodeGroupDiff(oldGroup)
-      loggedAction <- actionLogger.saveDeleteNodeGroup(principal = actor, deleteDiff = diff ) ?~! "Error when saving user event log for node deletion"
+      loggedAction <- actionLogger.saveDeleteNodeGroup(principal = actor, deleteDiff = diff, reason = reason ) ?~! "Error when saving user event log for node deletion"
       autoArchive  <- if(autoExportOnModify) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archive  <- gitArchiver.deleteNodeGroup(id, parents, Some(commiter))
+                          archive  <- gitArchiver.deleteNodeGroup(id, parents, Some(commiter, reason))
                         } yield {
                           archive
                         }

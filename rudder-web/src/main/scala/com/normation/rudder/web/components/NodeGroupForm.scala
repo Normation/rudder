@@ -287,7 +287,7 @@ class NodeGroupForm(
       JsRaw("$.modal.close();") &
       {
         (for {
-          deleted <- dependencyService.cascadeDeleteTarget(target, CurrentUser.getActor)
+          deleted <- dependencyService.cascadeDeleteTarget(target, CurrentUser.getActor, Some("Group removed by user"))
           deploy <- {
             asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
             Full("Deployment request sent")
@@ -444,7 +444,7 @@ class NodeGroupForm(
    * @return
    */
   private def createGroup(name : String, description : String, query : Query, isDynamic : Boolean, nodeList : List[NodeId], container: String ) : JsCmd = {
-    nodeGroupRepository.createNodeGroup(name, description, Some(query), isDynamic, nodeList.toSet, new NodeGroupCategoryId(container), true, CurrentUser.getActor) match {
+    nodeGroupRepository.createNodeGroup(name, description, Some(query), isDynamic, nodeList.toSet, new NodeGroupCategoryId(container), true, CurrentUser.getActor, Some("Group created by user")) match {
         case Full(x) => 
           _nodeGroup = Some(x.group)
           
@@ -477,7 +477,7 @@ class NodeGroupForm(
   private def updateGroup(originalNodeGroup : NodeGroup, name : String, description : String, query : Query, isDynamic : Boolean, nodeList : List[NodeId], isEnabled : Boolean = true ) : JsCmd = {
     val newNodeGroup = new NodeGroup(originalNodeGroup.id, name, description, Some(query), isDynamic, nodeList.toSet, isEnabled, originalNodeGroup.isSystem)
     (for {
-      saved <- nodeGroupRepository.update(newNodeGroup, CurrentUser.getActor) ?~! "Error when updating the group %s".format(originalNodeGroup.id)
+      saved <- nodeGroupRepository.update(newNodeGroup, CurrentUser.getActor, Some("Group update by user")) ?~! "Error when updating the group %s".format(originalNodeGroup.id)
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
         Full("Deployment request sent")

@@ -154,7 +154,7 @@ class LDAPActiveTechniqueRepository(
       categoryId: ActiveTechniqueCategoryId, 
       techniqueName: TechniqueName,
       versions:Seq[TechniqueVersion],
-      actor: EventActor
+      actor: EventActor, reason: Option[String]
   ): Box[ActiveTechnique] = { 
     //check if the policy template is already in user lib, and if the category exists
     for {
@@ -177,7 +177,7 @@ class LDAPActiveTechniqueRepository(
                          for {
                            parents  <- this.activeTechniqueBreadCrump(newActiveTechnique.id)
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archive  <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(commiter))
+                           archive  <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(commiter, reason))
                          } yield archive
                        } else Full("ok")
     } yield {
@@ -202,7 +202,7 @@ class LDAPActiveTechniqueRepository(
    * does not exists. 
    * 
    */
-  def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, actor: EventActor) : Box[ActiveTechniqueId] = {
+  def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
      for {
       con         <- ldap
       oldParents  <- if(autoExportOnModify) {
@@ -216,7 +216,7 @@ class LDAPActiveTechniqueRepository(
                          parents  <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
                          newActiveTechnique   <- this.getActiveTechnique(uactiveTechniqueId)
                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                         moved    <- gitArchiver.moveActiveTechnique(newActiveTechnique, oldParents.map( _.id), parents.map( _.id), Some(commiter))
+                         moved    <- gitArchiver.moveActiveTechnique(newActiveTechnique, oldParents.map( _.id), parents.map( _.id), Some(commiter, reason))
                        } yield {
                          moved
                        }
@@ -229,7 +229,7 @@ class LDAPActiveTechniqueRepository(
   /**
    * Set the status of the policy template to the new value
    */
-  def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, actor: EventActor) : Box[ActiveTechniqueId] = {
+  def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
     for {
       con         <- ldap
       activeTechnique         <- getUPTEntry(con, uactiveTechniqueId, A_IS_ENABLED)
@@ -242,7 +242,7 @@ class LDAPActiveTechniqueRepository(
                            parents  <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
                            newActiveTechnique   <- getActiveTechnique(uactiveTechniqueId)
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archive  <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(commiter))
+                           archive  <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(commiter, reason))
                          } yield archive
                        } else Full("ok")
     } yield {
@@ -250,7 +250,7 @@ class LDAPActiveTechniqueRepository(
     }
   }
   
-  def setAcceptationDatetimes(uactiveTechniqueId:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], actor: EventActor) : Box[ActiveTechniqueId] = {
+  def setAcceptationDatetimes(uactiveTechniqueId:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
     for {
       con         <- ldap
       activeTechnique         <- getUPTEntry(con, uactiveTechniqueId, A_ACCEPTATION_DATETIME)
@@ -265,7 +265,7 @@ class LDAPActiveTechniqueRepository(
                            parents <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
                            newActiveTechnique  <- getActiveTechnique(uactiveTechniqueId)
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archive <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(commiter))
+                           archive <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(commiter, reason))
                          } yield archive
                        } else Full("ok")
     } yield {
@@ -278,7 +278,7 @@ class LDAPActiveTechniqueRepository(
    * Delete the policy template in user library.
    * If no such element exists, it is a success.
    */
-  def delete(uactiveTechniqueId:ActiveTechniqueId, actor: EventActor) : Box[ActiveTechniqueId] = {
+  def delete(uactiveTechniqueId:ActiveTechniqueId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
      for {
       con         <- ldap
       oldParents  <- if(autoExportOnModify) {
@@ -290,7 +290,7 @@ class LDAPActiveTechniqueRepository(
                        for {
                          ptName   <- Box(activeTechnique(A_TECHNIQUE_UUID)) ?~! "Missing required reference policy template name"
                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                         res      <- gitArchiver.deleteActiveTechnique(TechniqueName(ptName),oldParents.map( _.id), Some(commiter))
+                         res      <- gitArchiver.deleteActiveTechnique(TechniqueName(ptName),oldParents.map( _.id), Some(commiter, reason))
                        } yield res
                       } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
     } yield {

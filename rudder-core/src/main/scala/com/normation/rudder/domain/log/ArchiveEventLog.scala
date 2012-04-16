@@ -55,8 +55,9 @@ final case class ExportGroupsArchive(
   override val eventType = ExportGroupsArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
+  def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ExportGroupsArchive.buildDetails(gitArchiveId)
   ))
 }
@@ -78,8 +79,9 @@ final case class ImportGroupsArchive(
   override val eventType = ImportGroupsArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
+  def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ImportGroupsArchive.buildDetails(gitCommitId)
   ))
 }
@@ -101,8 +103,9 @@ final case class ExportTechniqueLibraryArchive(
   override val eventType = ExportTechniqueLibraryArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
+  def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ExportTechniqueLibraryArchive.buildDetails(gitArchiveId)
   ))
 }
@@ -124,8 +127,9 @@ final case class ImportTechniqueLibraryArchive(
   override val eventType = ImportTechniqueLibraryArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
+  def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ImportTechniqueLibraryArchive.buildDetails(gitCommitId)
   ))
 }
@@ -148,8 +152,9 @@ final case class ExportRulesArchive(
   override val eventType = ExportRulesArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
+  def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ExportRulesArchive.buildDetails(gitArchiveId)
   ))
 }
@@ -171,8 +176,9 @@ final case class ImportRulesArchive(
   override val eventType = ImportRulesArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
+  def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ImportRulesArchive.buildDetails(gitCommitId)
   ))
 }
@@ -194,8 +200,9 @@ final case class ExportFullArchive(
   override val eventType = ExportFullArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
+  def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ExportFullArchive.buildDetails(gitArchiveId)
   ))
 }
@@ -217,8 +224,9 @@ final case class ImportFullArchive(
   override val eventType = ImportFullArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
+  def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ImportFullArchive.buildDetails(gitCommitId)
   ))
 }

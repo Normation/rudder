@@ -287,7 +287,7 @@ class Groups extends StatefulSnippet with Loggable {
         case (sourceGroupId, destCatId) :: Nil =>
           (for {
             group <- nodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId)) ?~! "Error while trying to find group with requested id %s".format(sourceGroupId)
-            result <- nodeGroupRepository.move(group, NodeGroupCategoryId(destCatId), CurrentUser.getActor)?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
+            result <- nodeGroupRepository.move(group, NodeGroupCategoryId(destCatId), CurrentUser.getActor, Some("Group moved by user"))?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
             newGroup <- nodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId))
           } yield {
             newGroup
@@ -317,7 +317,7 @@ class Groups extends StatefulSnippet with Loggable {
         case (sourceCatId, destCatId) :: Nil =>
           (for {
             group <- groupCategoryRepository.getGroupCategory(NodeGroupCategoryId(sourceCatId)) ?~! "Error while trying to find category with requested id %s".format(sourceCatId)
-            result <- groupCategoryRepository.saveGroupCategory(group, NodeGroupCategoryId(destCatId), CurrentUser.getActor)?~! "Error while trying to move category with requested id '%s' to category id '%s'".format(sourceCatId,destCatId)
+            result <- groupCategoryRepository.saveGroupCategory(group, NodeGroupCategoryId(destCatId), CurrentUser.getActor, reason = None)?~! "Error while trying to move category with requested id '%s' to category id '%s'".format(sourceCatId,destCatId)
           } yield {
             (group,result)
           }) match {

@@ -105,7 +105,7 @@ trait ActiveTechniqueRepository {
       categoryId   : ActiveTechniqueCategoryId
     , techniqueName: TechniqueName
     , versions     : Seq[TechniqueVersion]
-    , actor        : EventActor
+    , actor        : EventActor, reason: Option[String]
   ) : Box[ActiveTechnique] 
 
   
@@ -115,12 +115,12 @@ trait ActiveTechniqueRepository {
    * does not exists. 
    * 
    */
-  def move(id:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, actor: EventActor) : Box[ActiveTechniqueId] 
+  def move(id:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] 
   
   /**
    * Set the status of the active technique to the new value
    */
-  def changeStatus(id:ActiveTechniqueId, status:Boolean, actor: EventActor) : Box[ActiveTechniqueId] 
+  def changeStatus(id:ActiveTechniqueId, status:Boolean, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] 
   
   /**
    * Add new (version,acceptation datetime) to existing 
@@ -130,13 +130,13 @@ trait ActiveTechniqueRepository {
    * Failure if an error happened, 
    * Full(id) when success
    */
-  def setAcceptationDatetimes(id:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], actor: EventActor) : Box[ActiveTechniqueId]
+  def setAcceptationDatetimes(id:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId]
   
   /**
    * Delete the active technique in the active tehcnique library.
    * If no such element exists, it is a success.
    */
-  def delete(id:ActiveTechniqueId, actor: EventActor) : Box[ActiveTechniqueId] 
+  def delete(id:ActiveTechniqueId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] 
   
   /**
    * Retrieve the list of parents for the given active technique, 

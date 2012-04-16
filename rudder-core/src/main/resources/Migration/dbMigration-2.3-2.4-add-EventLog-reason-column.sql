@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2012 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,26 +32,9 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
 
-import net.liftweb.http._
-import net.liftweb.http.rest._
-import com.normation.rudder.batch.AsyncDeploymentAgent
-import com.normation.rudder.batch.ManualStartDeployment
+-- Migration script to add a "reason" column in table EventLog in Rudder 2.4
 
+ALTER TABLE EventLog ADD COLUMN reason text;
 
-/**
- * A rest api that allows to deploy promises.
- * 
- */
-class RestDeploy(
-    asyncDeploymentAgent: AsyncDeploymentAgent
-) extends RestHelper {
-  
-  serve {
-    case Get("api" :: "deploy" :: "reload" :: Nil, req) =>
-      asyncDeploymentAgent ! ManualStartDeployment(RestUtils.getActor(req), "Regeneration asked by REST request")
-      PlainTextResponse("OK")
-  }
-  
-}
+ 

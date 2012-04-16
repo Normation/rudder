@@ -213,7 +213,9 @@ class Boot extends Loggable {
         ApplicationStarted(
             EventLogDetails(
                 principal = com.normation.rudder.domain.log.RudderEventActor
-              , details = EventLog.emptyDetails)
+              , details = EventLog.emptyDetails
+              , reason = None
+            )
         )
      )
   }
