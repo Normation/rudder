@@ -176,7 +176,7 @@ class SearchServers extends StatefulSnippet with Loggable {
       val regex = """.+\[(.+)\]""".r
       s match {
         case regex(id) => 
-        	SetHtml("serverDetails", (new ShowServerDetailsFromNode(NodeId(id)).display)) &
+          SetHtml("serverDetails", (new ShowServerDetailsFromNode(NodeId(id)).display())) &
         	updateLocationHash(id)
         case _ => 
         	Alert("No server was selected")
@@ -209,7 +209,7 @@ class SearchServers extends StatefulSnippet with Loggable {
    */
   private[this] def parseJsArg(): JsCmd = {
     def displayDetails(nodeId:String) = {
-      SetHtml("serverDetails", (new ShowServerDetailsFromNode(new NodeId(nodeId))).display)
+      SetHtml("serverDetails", (new ShowServerDetailsFromNode(new NodeId(nodeId))).display())
     }
     
     def executeQuery(query:String) : JsCmd = {
@@ -284,7 +284,7 @@ class SearchServers extends StatefulSnippet with Loggable {
   private def showServerDetails(s:String) : JsCmd = {
     val arr = s.split("\\|")
     val nodeId = arr(1)
-    SetHtml("serverDetails", (new ShowServerDetailsFromNode(new NodeId(nodeId))).display) &
+    SetHtml("serverDetails", (new ShowServerDetailsFromNode(new NodeId(nodeId))).display()) &
     updateLocationHash(nodeId)
   }
   

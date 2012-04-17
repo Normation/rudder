@@ -160,7 +160,7 @@ class NodeGroupForm(
   private[this] def onClickCallBack(s:String) : JsCmd = {
     s.split("\\|").toList match {
       case _ :: id :: _ =>
-        SetHtml("serverDetails", (new ShowServerDetailsFromNode(new NodeId(id))).display) &
+        SetHtml("serverDetails", (new ShowServerDetailsFromNode(new NodeId(id))).display(true)) &
         JsRaw( """ $("#nodeDetailsPopup").modal({
             minHeight:500,
             minWidth: 1000

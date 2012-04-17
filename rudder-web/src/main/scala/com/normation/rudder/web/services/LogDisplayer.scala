@@ -114,17 +114,23 @@ class LogDisplayer(reportRepository :ReportsRepository,
     
   }
 
-  def initJs() : JsCmd = {
+  /**
+   * If it is displayed within a popup, we only display 5 logs per page
+   */
+  def initJs(withinPopup: Boolean = false) : JsCmd = {
+    val extension = if (withinPopup) """"iDisplayLength": 5,""" else ""
+
     JsRaw("var %s;".format(jsVarNameForId(gridName))) &
     OnLoad(
         JsRaw("""
           /* Event handler function */
-          #table_var# = $('#%s').dataTable({
+          #table_var# = $('#%1$s').dataTable({
             "asStripClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" :true,
             "bPaginate" :true,
             "bLengthChange": false,
+            %2$s
         		"sPaginationType": "full_numbers",
         		"oLanguage": {
             	"sSearch": "Filter:"
@@ -140,7 +146,7 @@ class LogDisplayer(reportRepository :ReportsRepository,
               { "sWidth": "100px" },
               { "sWidth": "220px" }
             ]
-          });moveFilterAndFullPaginateArea('#%s');""".format(gridName,gridName).replaceAll("#table_var#",jsVarNameForId(gridName))
+          });moveFilterAndFullPaginateArea('#%3$s');""".format(gridName,extension, gridName).replaceAll("#table_var#",jsVarNameForId(gridName))
         )
     )
   }

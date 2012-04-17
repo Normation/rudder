@@ -109,11 +109,11 @@ class ShowServerDetailsFromNode(
   private[this] val dependencyService = inject[DependencyAndDeletionService]  
   
   def dispatch = {
-    case "display" => { _ => display }
+    case "display" => { _ => display(false) }
   }
   
   
-  def display() : NodeSeq = {
+  def display(withinPopup : Boolean = false) : NodeSeq = {
     nodeInfoService.getNodeInfo(nodeId) match {
       case Empty => 
         <div class="error">Node with id {nodeId.value} was not found</div>
@@ -129,7 +129,7 @@ class ShowServerDetailsFromNode(
             bindServer(server, sm) ++ Script(OnLoad(  
               DisplayServer.jsInit(server.id, sm.node.softwareIds, "", Some("node_tabs")) &
               reportDisplayer.initJs("reportsGrid") &
-              logDisplayer.initJs() &
+              logDisplayer.initJs(withinPopup) &
               OnLoad(buildJsTree(htmlId_crTree))             
             ))
           case e:EmptyBox =>
