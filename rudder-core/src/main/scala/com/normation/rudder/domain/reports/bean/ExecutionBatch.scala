@@ -145,6 +145,54 @@ class ConfigurationExecutionBatch(
   // A cache of the already computed values
   val cache = scala.collection.mutable.Map[String, Seq[NodeId]]()
    
+  
+  /*
+   * An utility method that check for the size of result compared to
+   * expected one. 
+   * We let three condition parameters:
+   */
+  private[this] def checkExpectedComponentValueSize(
+      linearised             : Seq[LinearisedExpectedReport]
+    , filteredReports        : Seq[Reports]
+      // define what will be the condition on the linearised expected reports : forall or exists
+    , linearisedTestType     : (Seq[LinearisedExpectedReport],LinearisedExpectedReport=>Boolean) => Boolean 
+      // define OP so that: filteredReportsCard:Int OP expectedCard:Int
+    , whenNoneCaseCondition  : (Int,Int) => Boolean 
+      // define OP so that: 'filteredReportsCard' OP card:Int
+    , whenCfeVarCaseCondition: Int => Boolean
+      // define OP so that: 'filteredReportsCard' OP card:Int
+    , whenStringCaseCondition: Int => Boolean
+  ) : Boolean = {
+    
+    linearisedTestType(linearised, expected =>
+      expected.componentValue match {
+        case "None" =>
+          // each non defined component key must have the right cardinality, no more, no less
+          whenNoneCaseCondition(
+              filteredReports.filter( x => x.component == expected.componentName).size 
+            , expected.cardinality
+          )
+        case matchCFEngineVars(_) =>
+          // this is a case when we have a CFEngine Variable
+          val matchableExpected = expected.componentValue.replaceAll(replaceCFEngineVars, ".*")
+          // We've converted the string into a regexp, by replacing ${} and $() by .*
+          whenCfeVarCaseCondition(filteredReports.filter( x =>  
+               x.component == expected.componentName 
+            && x.keyValue.matches(matchableExpected)
+          ).size)
+        case _:String =>
+          // for a given component, if the key is not "None", then we are 
+          // checking that what is have is what we wish
+          // we can have more reports that what we expected, because of
+          // name collision, but it would be resolved by the total number 
+          whenStringCaseCondition(filteredReports.filter( x => 
+               x.component == expected.componentName 
+            && x.keyValue == expected.componentValue
+          ).size)
+      }
+    )
+  }
+  
   /**
    * a success node has all the expected success report, 
    * for each component, and no warn nor error nor repaired
@@ -158,34 +206,18 @@ class ConfigurationExecutionBatch(
 	         val linearised = linearisePolicyExpectedReports(directive)
 	         val filteredReports = nodeFilteredReports.filter(x => x.directiveId == directive.directiveId && x.isInstanceOf[ResultSuccessReport])
 
-	         // we expect exactly as much reports (success that is) that the one we are having, or else it's wrong
-	         filteredReports.size == linearised.size &&
-	         linearised.forall( expected =>
-	             expected.componentValue match {
-	               case "None" =>
-	                 // each non defined component key must have the right cardinality, no more, no less
-	                 filteredReports.filter( x => 
-	                     x.component == expected.componentName).size == expected.cardinality
-	               case matchCFEngineVars(someValue) =>
-	                 // this is a case when we have a CFEngine Variable
-	                 val matchableExpected = expected.componentValue.replaceAll(replaceCFEngineVars, ".*")
-	                 // We've converted the string into a regexp, by replacing ${} and $() by .*
-	                 filteredReports.filter( x => 
-                     x.component == expected.componentName &&
-                     x.keyValue.matches(matchableExpected)).size >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
-
-	               case string:String =>
-	                 // for a given component, if the key is not "None", then we are 
-	                 // checking that what is have is what we wish
-	                 // we can have more reports that what we expected, because of
-	                 // name collision, but it would be resolved by the total number 
-	                 filteredReports.filter( x => 
-	                   x.component == expected.componentName &&
-	                   x.keyValue == expected.componentValue).size >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
-	             }
-	         )
-	    	 })
-	    } yield server).distinct
+           // we expect exactly as much reports (success that is) that the one we are having, or else it's wrong
+           filteredReports.size == linearised.size &&
+           checkExpectedComponentValueSize(
+              linearised
+            , filteredReports
+            , linearisedTestType      = (seq,cond) => seq.forall(cond)
+            , whenNoneCaseCondition   = (x,y) => x == y
+            , whenCfeVarCaseCondition =  x    => x >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
+            , whenStringCaseCondition =  x    => x >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
+           )
+         })
+      } yield server).distinct
     })
     
   }
@@ -201,7 +233,6 @@ class ConfigurationExecutionBatch(
 		    if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultErrorReport]  ) ).size == 0)
 		    if (nodeFilteredReports.filter(x => ( x.isInstanceOf[ResultRepairedReport]  ) ).size > 0)
 		    if (directiveExpectedReports.forall { directive =>
-
 		      val linearised = linearisePolicyExpectedReports(directive)
           val filteredReports = nodeFilteredReports.filter(x => 
             x.directiveId == directive.directiveId && 
@@ -210,35 +241,33 @@ class ConfigurationExecutionBatch(
 
           // we can have more reports that those we really expected (repaired and success)
           filteredReports.size >= linearised.size &&
-          linearised.forall( expected =>
-               expected.componentValue match {
-                 case "None" =>
-                   filteredReports.filter( x=> 
-                       x.component == expected.componentName).size >= expected.cardinality
-                 case matchCFEngineVars(someValue) =>
-                   // this is a case when we have a CFEngine Variable
-                   val matchableExpected = expected.componentValue.replaceAll(replaceCFEngineVars, ".*")
-                   // We've converted the string into a regexp, by replacing ${} and $() by .*
-                   filteredReports.filter( x => 
-                     x.component == expected.componentName &&
-                     x.keyValue.matches(matchableExpected)).size >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
-
-                 case string:String =>
-                   filteredReports.filter( x=> 
-                     x.component == expected.componentName &&
-                     x.keyValue == expected.componentValue).size >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing                   
-               }
+           checkExpectedComponentValueSize(
+              linearised
+            , filteredReports
+            , linearisedTestType      = (seq,cond) => seq.forall(cond)
+            , whenNoneCaseCondition   = (x,y) => x >= y
+            , whenCfeVarCaseCondition =  x    => x >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
+            , whenStringCaseCondition =  x    => x >= 1 // >= 1 for we accept at least one, but we check that we dont have too much by summing
            )
-	       })
-	    } yield server).distinct
+         })
+      } yield server).distinct
    })  
      
   }
   
   /**
    * a warn node have all the expected success report, and warn or error 
-   */
- 
+  def getWarnServer() : Seq[NodeId] = {
+    (for {server <- allExpectedServer;
+      policy <- policies
+      component <- policy.components
+      if (executionReports.filter(x => 
+           (x.nodeId==server && x.component == component.componentName && x.isInstanceOf[SuccessReport])).size >= component.cardinality)
+      if (executionReports.filter(x => 
+           (x.nodeId==server && x.component == component.componentName && (x.isInstanceOf[WarnReport]  || x.isInstanceOf[ErrorReport]))).size > 0)
+    } yield server).distinct
+  }*/
+
   
   /**
    * a error node have not all the expected success report, and/or error 
@@ -258,34 +287,21 @@ class ConfigurationExecutionBatch(
               )
               // we shouldn't have less reports that those we really expected (repaired and success)
               filteredReports.size < linearised.size ||
-              linearised.exists(expected =>
-                expected.componentValue match {
-                 case "None" =>
-                   filteredReports.filter( x=> 
-                       x.component == expected.componentName).size < expected.cardinality
-                 case matchCFEngineVars(someValue) =>
-                   // this is a case when we have a CFEngine Variable
-                   val matchableExpected = expected.componentValue.replaceAll(replaceCFEngineVars, ".*")
-                   // We've converted the string into a regexp, by replacing ${} and $() by .*
-                   filteredReports.filter( x => 
-                     x.component == expected.componentName &&
-                     x.keyValue.matches(matchableExpected)).size == 0 // no match
-
-                 case string:String =>
-                   filteredReports.filter( x=> 
-                     x.component == expected.componentName &&
-                     x.keyValue == expected.componentValue).size == 0 // no match                   
-               }
-                  
-              )
-	         }) && // must have results (otherwise it's a no answer)
-	         nodeFilteredReports.filter ( x =>  x.isInstanceOf[ResultSuccessReport] || 
-	           																x.isInstanceOf[ResultRepairedReport] || 
-	           																x.isInstanceOf[ResultErrorReport]
-	           													).size > 0 ) 
-
-	    } yield server).distinct
-	   }) 
+               checkExpectedComponentValueSize(
+                  linearised
+                , filteredReports
+                , linearisedTestType      = (seq,cond) => seq.exists(cond)
+                , whenNoneCaseCondition   = (x,y) => x < y
+                , whenCfeVarCaseCondition =  x    => x == 0 // no match 
+                , whenStringCaseCondition =  x    => x == 0 // no match 
+               )
+           }) && // must have results (otherwise it's a no answer)
+           nodeFilteredReports.filter ( x =>  x.isInstanceOf[ResultSuccessReport] || 
+                                             x.isInstanceOf[ResultRepairedReport] || 
+                                             x.isInstanceOf[ResultErrorReport]
+                                       ).size > 0 ) 
+      } yield server).distinct
+     }) 
   }
   
   /**
@@ -324,11 +340,13 @@ class ConfigurationExecutionBatch(
    * An unknown node isn't success, repaired, error, pending nor no reports
    */
   def getUnknownNodeIds() : Seq[NodeId] = {
-    expectedNodeIds.filter(nodeId => !(getSuccessNodeIds().contains(nodeId)))
-                   .filter(nodeId => !(getRepairedNodeIds().contains(nodeId)))
-                   .filter(nodeId => !(getErrorNodeIds().contains(nodeId)))
-                   .filter(nodeId => !(getPendingNodeIds().contains(nodeId)))
-                   .filter(nodeId => !(getNoReportNodeIds().contains(nodeId)))
+    expectedNodeIds.filter(node => 
+                           !(getSuccessNodeIds().contains(node))
+                        && !(getRepairedNodeIds().contains(node))
+                        && !(getErrorNodeIds().contains(node))
+                        && !(getPendingNodeIds().contains(node))
+                        && !(getNoReportNodeIds().contains(node))
+                      )
     
   }
   
