@@ -151,6 +151,7 @@ class ConfigurationExecutionBatch(
   private[this] def checkExpectedComponentValueSize(
       linearised             : Seq[LinearisedExpectedReport]
     , filteredReports        : Seq[Reports]
+      // define what will be the condition on the linearised expected reports : forall or exists
     , linearisedTestType     : (Seq[LinearisedExpectedReport],LinearisedExpectedReport=>Boolean) => Boolean 
       // define OP so that: filteredReportsCard:Int OP expectedCard:Int
     , whenNoneCaseCondition  : (Int,Int) => Boolean 
