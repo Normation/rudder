@@ -160,7 +160,7 @@ class NodeGroupForm(
   private[this] def onClickCallBack(s:String) : JsCmd = {
     s.split("\\|").toList match {
       case _ :: id :: _ =>
-        SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(id))).display) &
+        SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(id))).display(true)) &
         JsRaw( """ createPopup("nodeDetailsPopup",500,1000)
         """)
         
