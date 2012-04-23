@@ -44,8 +44,6 @@ import JsCmds._
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.nodes.NodeInfoService
-
-// For implicits
 import JE._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -58,6 +56,7 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.exceptions.TechnicalException
 import com.normation.utils.Control.sequence
 import com.normation.rudder.domain.log.RudderEventActor
+import org.eclipse.jetty.client.webdav.MkcolExchange
 
 
 object ConfigurationRuleGrid {
@@ -192,14 +191,34 @@ class ConfigurationRuleGrid(
         target:Box[Option[PolicyInstanceTargetInfo]]
     ) extends Line
     
+    sealed trait ApplicationStatus
+    sealed trait NotAppliedStatus extends ApplicationStatus
+    sealed trait AppliedStatus extends ApplicationStatus
+    
+    final case object NotAppliedNoPI extends NotAppliedStatus
+    final case object NotAppliedNoTarget extends NotAppliedStatus
+    final case object NotAppliedCrDisabled extends NotAppliedStatus
+    
+    final case object FullyApplied extends AppliedStatus
+    final case class PartiallyApplied(disabled: Seq[(PolicyInstance,UserPolicyTemplate)]) extends AppliedStatus
+    
+    
     //is a cr applied for real ?
     def isApplied(
         cr:ConfigurationRule,
         trackerVariables: Seq[(PolicyInstance,UserPolicyTemplate)],
         target:Option[PolicyInstanceTargetInfo]
-    ) : Boolean = {
-      cr.isActivated && target.isDefined && target.get.isActivated && trackerVariables.size > 0 && 
-      trackerVariables.forall { case (pi,upt) => pi.isActivated && upt.isActivated }        
+    ) : ApplicationStatus = {
+      if(cr.isActivated) {
+        if(target.isDefined && target.get.isActivated) {
+          val disabled = trackerVariables.filterNot { case (pi,upt) => pi.isActivated && upt.isActivated }
+          if(disabled.size == 0) FullyApplied
+          else if(trackerVariables.size - disabled.size > 0) PartiallyApplied(disabled)
+          else NotAppliedNoPI
+        } else {
+          NotAppliedNoTarget
+        }
+      } else NotAppliedCrDisabled
     }
     
     /*
@@ -325,7 +344,11 @@ class ConfigurationRuleGrid(
       
       (trackerVariables,targetInfo) match {
         case (Full(seq), Full(target)) => 
-          val compliance = if(isApplied(cr, seq, target)) computeCompliance(cr) else None
+          val compliance = isApplied(cr, seq, target) match {
+            case _:NotAppliedStatus => None
+            case _ =>  computeCompliance(cr)
+          }
+          
           OKLine(cr, compliance, seq, target)
         case (x,y) =>
           //the configuration rule has some error, try to disactivate it
@@ -352,8 +375,15 @@ class ConfigurationRuleGrid(
             if (line.cr.isActivatedStatus) "Enabled" else "Disabled"
           }</td>
           <td><b>{ // EFFECTIVE STATUS
-            if(isApplied(line.cr, line.trackerVariables, line.target)) Text("In application")
-            else {
+            isApplied(line.cr, line.trackerVariables, line.target) match {
+              case FullyApplied => Text("In application")
+              case PartiallyApplied(seq) => 
+                  val tooltipId = Helpers.nextFuncName
+                  val why = seq.map { case (pi, upt) => "Policy " + pi.name + " disabled" }.mkString(", ")
+
+                 <span class="tooltip tooltipable" tooltipid={tooltipId}>Partially applied</span>
+                 <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
+              case x:NotAppliedStatus =>
                 val conditions = Seq(
                     (line.cr.isActivated, "Configuration rule disabled" ), 
                     ( line.trackerVariables.size > 0, "No policy defined"),
