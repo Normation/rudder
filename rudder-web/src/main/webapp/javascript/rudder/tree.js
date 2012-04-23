@@ -42,6 +42,10 @@ var buildReferenceTechniqueTree = function(id,  initially_select) {
           }
         }
       },
+      "search" : {
+          "case_insensitive" : true,
+          "show_only_matches": true
+        },
       "crrm" : {
         "move" : {
           "check_move" : function () { return false; }
@@ -55,7 +59,7 @@ var buildReferenceTechniqueTree = function(id,  initially_select) {
     	  "theme" : "rudder",
     	  "url" : "javascript/jstree/themes/rudder/style.css"
       },
-      "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm" ]
+      "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search" ]
     })   
 }
 
@@ -122,6 +126,10 @@ var buildActiveTechniqueTree = function(id, foreignTreeId) {
         }
       }
     },
+    "search" : {
+        "case_insensitive" : true,
+        "show_only_matches": true
+      },
     "dnd" : {
       "drop_target" : false,
       "drag_target" : false
@@ -130,7 +138,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId) {
   	  "theme" : "rudder",
   	  "url" : "javascript/jstree/themes/rudder/style.css"
     },
-    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm" ] 
+    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search" ] 
   })   
 }
 
