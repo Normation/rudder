@@ -90,7 +90,7 @@ class ClearCache extends DispatchSnippet with Loggable {
           }
           logger.debug("Delete node configurations on user clear cache demand: " + set.mkString(", ") )
           asyncDeploymentAgent ! AutomaticStartDeployment(CurrentUser.getActor)
-          S.notice("Caches were correctly cleaned")
+          S.notice("clearCacheNotice","Caches were correctly cleaned")
       }
       
       Replace("clearCacheForm", outerXml.applyAgain) 

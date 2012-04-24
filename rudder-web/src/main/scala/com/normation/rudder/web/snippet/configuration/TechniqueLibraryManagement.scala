@@ -600,11 +600,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       def process = {
         updatePTLibService.update(CurrentUser.getActor) match {
           case Full(x) => 
-            S.notice("updateOk", "The Technique library was successfully reloaded")
+            S.notice("updateLib", "The Technique library was successfully reloaded")
           case e:EmptyBox =>
             val error = e ?~! "An error occured when updating the Technique library from file system"
             logger.debug(error.messageChain, e)
-            S.error("updateKO", error.msg)
+            S.error("updateLib", error.msg)
         }
         Replace("reloadTechniqueLibForm",outerXml.applyAgain) & refreshTree
       }
