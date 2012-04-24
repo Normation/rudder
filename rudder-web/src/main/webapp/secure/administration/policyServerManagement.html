@@ -76,13 +76,15 @@
        <form class="lift:form.ajax">
          <input id="clearCacheButton" type="submit" value="[Clear cache]"/> 
          <br/><br/>
-         <lift:Msgs>[error]</lift:Msgs>
+         <lift:Msg id="clearCacheNotice">[error]</lift:Msg>
        </form>
       </div>
     </div>
   </div>
   <br/>
 </div>    
+
+ 
  
 <div class="portlet">
   <div class="portlet-header">Policy server - Reload dynamic groups</div>
@@ -110,6 +112,31 @@
   </div>
   <br/>
 </div>
+
+<div class="portlet">
+  <div class="portlet-header">Policy server - Reload Techniques</div>
+  <div class="portlet-content">
+    
+    <div class="intro"><div>
+      <p>
+        Reload the last available version of the Technique library
+      </p>
+    </div></div>
+    <br/>
+
+    <hr class="spacer"/>
+    <div class="deca">
+     <div class="lift:configuration.TechniqueLibraryManagement.reloadTechniqueLibrary" id="reloadTechniqueLibForm">
+       <form class="lift:form.ajax">
+            <input type="submit" value="Reload"/>
+            <br/><br/>
+            <lift:Msg id="updateLib">[messages]</lift:Msg>
+        </form>
+      </div>
+    </div>
+  </div>
+  <br/>
+</div>   
 
 </lift:surround>
 
