@@ -83,7 +83,7 @@ class EventListDisplayer(
           if (event.details != <entry></entry> ) 
             Text("listopen")
           else
-            NodeSeq.Empty
+            Text("listEmpty")
         } &
         ".logId *" #> event.id.getOrElse(0).toString &
         ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
@@ -183,7 +183,7 @@ class EventListDisplayer(
       <table id={gridName} cellspacing="0">
         <thead>
           <tr class="head">
-            <th>ID</th>
+            <th class="titleId">ID</th>
             <th>Date</th>
             <th>Actor</th>
             <th>Event Type</th>
