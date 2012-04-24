@@ -259,9 +259,9 @@ class PolicyTemplateEditForm(
 
   private[this] def dialogDisableWarning(upt:UserPolicyTemplate) : NodeSeq = {
     if(upt.isActivated) {
-      <h2>Disabling this policy template will also disable the following policies and configuration rules which depend on it.</h2>
+      <h2>Disabling this policy template will affect the following policies and configuration rules.</h2>
     } else {
-      <h2>Enabling this policy template will also enable the following policies and configuration rules which depend on it.</h2>
+      <h2>Enabling this policy template will affect the following policies and configuration.</h2>
     }
   }
 

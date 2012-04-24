@@ -302,9 +302,9 @@ class PolicyInstanceEditForm(
 
   private[this] def dialogDisableWarning: String = {
     if (piCurrentStatusIsActivated) {
-      "Disabling this policy will also disable the following configuration rules which depend on it."
+      "Disabling this policy will affect the following configuration rules."
     } else {
-      "Enabling this policy will also enable the following configuration rules which depend on it."
+      "Enabling this policy will affect the following configuration rules"
     }
   }
 
