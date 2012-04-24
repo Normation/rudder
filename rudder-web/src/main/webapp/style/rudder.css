@@ -280,6 +280,9 @@ input.queryInputValue, select.queryInputValue {
   cursor:pointer;
   text-decoration:underline;
 }
+.listEmpty{
+  padding-left: 15px;
+}
 .listopen:before{
   content:url('/rudder/images/tableau/flecheDroiteGris.png');
   padding-right: 3px;
@@ -314,7 +317,9 @@ Tableau
   padding:0;
   height:200px;
 }
-
+.titleId{
+  padding-left: 15px;
+}
 .tablewidth{
   width:100%;
 }
