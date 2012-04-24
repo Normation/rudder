@@ -96,10 +96,11 @@ class TestQueryProcessor extends Loggable {
   val ditQueryData = new DitQueryData(DIT)
   
   val ldapMapper = new LDAPEntityMapper(null, nodeDit, DIT, null)
-  
+  val internalLDAPQueryProcessor = new InternalLDAPQueryProcessor(ldap,DIT,ditQueryData,ldapMapper)
+    
   val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
       nodeDit,
-      new InternalLDAPQueryProcessor(ldap,DIT,ditQueryData,ldapMapper)
+      internalLDAPQueryProcessor
   )
 
   val parser = new CmdbQueryParser with 
@@ -332,12 +333,21 @@ class TestQueryProcessor extends Loggable {
       val found = queryProcessor.process(query).open_!.map { nodeInfo =>
         nodeInfo.id
       }
+      //also test with requiring only the expected node to check consistancy 
+      //(that should not change anything)
+      
       assertEquals("[%s]Duplicate entries in result: %s".format(name,found),
           found.size,found.distinct.size)
       assertEquals("[%s]Size differ between awaited and found entry set  (process)\n Found: %s\n Wants: %s".
           format(name,found,ids),ids.size,found.size)
       assertTrue("[%s]Entries differ between awaited and found entry set (process)\n Found: %s\n Wants: %s".
           format(name,found,ids),found.forall { f => ids.exists( f == _) })
+          
+      val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, serverUuids = Some(ids)).open_!.map { entry =>
+        NodeId(entry("nodeId").get)
+      }).distinct
+      assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected enrties (process)\n Found: %s\n Wants: %s".
+          format(name,foundWithLimit,ids),ids.size,foundWithLimit.size)
   }
   
 //  private def testQueryResultChecker(name:String,query:Query, ids:Seq[NodeId]) = {
