@@ -66,14 +66,14 @@ object LDAPConstants {
   val A_MANUFACTURER_DATE = "manufacturerDate"
   val A_NODE_DN = "node"
   val A_MACHINE_DN = "machine"
-  val A_HOSTED_VM_DN = "hostedVm"
   val A_CONTAINER_DN = "container"
   val A_SOFTWARE_DN = "software"
   val A_OS_RAM = "ram"
   val A_OS_SWAP = "swap"
   val A_ACCOUNT = "localAccountName"
-  val A_NODE_TECHNIQUES = "nodeTechniques"
   val A_INVENTORY_DATE = "inventoryDate"
+  val A_EV = "environmentVariable"
+  val A_PROCESS = "process"
     
   val A_LIST_OF_IP = "ipHostNumber"
   val A_ARCH = "osArchitectureType"
@@ -117,6 +117,12 @@ object LDAPConstants {
   val A_PROCESSOR_SPEED = "cpuSpeed"
   val A_PROCESSOR_STEPPING = "cpuStepping"
   val A_PROCESSOR_FAMILLY = "cpuFamily"
+  val A_CORE = "cpuCore"
+  val A_THREAD = "cpuThread"
+  val A_PROCESSOR_FAMILY_NAME = "cpuFamilyName"
+  val A_PROCESSOR_ARCHITECTURE = "cpuArchitecture"
+  val A_CPUID = "cpuID"
+  val A_EXTERNAL_CLOCK = "cpuExternalClock"
   // memory
   val A_MEMORY_SLOT_NUMBER = "memorySlotNumber"
   val A_MEMORY_CAPACITY = "memoryCapacity"
@@ -154,7 +160,16 @@ object LDAPConstants {
   val A_VIDEO_NAME = "videoCardName"
   val A_VIDEO_CHIPSET = "videoChipset"
   val A_VIDEO_RESOLUTION = "videoResolution"
-  
+  //virtual machine
+  val A_VM_ID = "virtualMachineUuid"
+  val A_VM_TYPE = "vmType"
+  val A_VM_SUBSYSTEM = "subsystem"
+  val A_VM_OWNER = "vmOwner"
+  val A_VM_NAME = "vmName"
+  val A_VM_STATUS =  "vmStatus"
+  val A_VM_CPU = "vmCpu"
+  val A_VM_MEMORY = "vmMemory"
+
   val A_MEMBER = "member"
   val A_MEMBER_URL = "memberUrl"
 
@@ -193,6 +208,7 @@ object LDAPConstants {
   val OC_VM = "virtualMachine"
   val OC_FS = "fileSystemLogicalElement"
   val OC_NET_IF = "networkInterfaceLogicalElement"
+  val OC_VM_INFO = "virtualMachineLogicalElement"
   val OC_MEMORY = "memoryPhysicalElement"
   val OC_STORAGE = "storagePhysicalElement"
   val OC_BIOS = "biosPhysicalElement"
@@ -294,9 +310,9 @@ object LDAPConstants {
    */
   OC +=(OC_NODE, sup = OC(OC_TOP), 
       must = Set(A_NODE_UUID, A_OS_NAME, A_OS_FULL_NAME, A_OS_VERSION, A_OS_KERNEL_VERSION),
-      may = Set(A_NAME,A_DESCRIPTION,A_PKEYS,A_AGENTS_NAME,A_HOSTED_VM_DN,
-          A_CONTAINER_DN,A_SOFTWARE_DN,A_ACCOUNT,A_ROOT_USER,A_ARCH, A_LAST_LOGGED_USER, A_LAST_LOGGED_USER_TIME,
-          A_HOSTNAME,A_NODE_TECHNIQUES,A_OS_RAM,A_OS_SWAP, A_LIST_OF_IP, A_OS_SERVICE_PACK) )
+      may = Set(A_NAME,A_DESCRIPTION,A_PKEYS,A_AGENTS_NAME,
+          A_CONTAINER_DN,A_SOFTWARE_DN,A_ACCOUNT,A_EV , A_PROCESS ,A_ROOT_USER,A_ARCH, A_LAST_LOGGED_USER, A_LAST_LOGGED_USER_TIME,
+          A_HOSTNAME,A_OS_RAM,A_OS_SWAP, A_LIST_OF_IP, A_OS_SERVICE_PACK) )
   
   OC +=(OC_WINDOWS_NODE, sup = OC(OC_NODE),
       may = Set(A_WIN_USER_DOMAIN,A_WIN_COMPANY,A_WIN_KEY,A_WIN_ID) )
@@ -304,7 +320,6 @@ object LDAPConstants {
   OC +=(OC_LE,
       must = Set(),
       may = Set(A_NAME,A_DESCRIPTION) )
-      
   OC +=(OC_FS,
       must = Set(A_MOUNT_POINT),
       may = Set(A_FILE_COUNT,
@@ -315,7 +330,11 @@ object LDAPConstants {
           A_NETIF_DHCP,A_NETIF_GATEWAY,A_NETIF_MASK,
           A_NETIF_SUBNET,A_NETIF_MAC,A_NETIF_TYPE,
           A_NETIF_TYPE_MIB))
-          
+  OC +=(OC_VM_INFO,
+      must = Set(A_VM_ID),
+      may = Set(A_VM_CPU,A_VM_MEMORY,A_VM_NAME,
+          A_VM_OWNER, A_VM_STATUS, A_VM_SUBSYSTEM,
+          A_VM_TYPE))
       
   OC +=(OC_UNIX_NODE, sup = OC(OC_NODE))
   OC +=(OC_LINUX_NODE, sup = OC(OC_UNIX_NODE))

@@ -126,13 +126,11 @@ class AppConfig {
             new RudderPublicKeyParsing(keyNorm) ::
             RudderRootUserParsing :: 
             RudderAgentNameParsing :: 
-            RudderTechniquesParsing ::
             RudderHostnameParsing ::
             Nil
         )
         , contentParsingExtensions = (
             RudderUserListParsing ::
-            RudderVMsParsing ::
             Nil
         ) 
       )
@@ -241,7 +239,7 @@ class AppConfig {
     CheckOsType ::
     automaticMerger ::
     CheckMachineName ::
-    new LastInventoryDate() ::
+//    new LastInventoryDate() ::
     AddIpValues ::
     preCommitLogReport ::
     Nil

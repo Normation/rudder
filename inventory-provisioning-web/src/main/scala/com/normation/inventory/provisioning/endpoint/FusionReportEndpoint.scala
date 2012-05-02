@@ -158,8 +158,9 @@ class FusionReportEndpoint(
     override def act = {
       loop {
         react {
-          case i:InventoryReport => saveReport(i)
-        }
+          case i:InventoryReport =>
+              saveReport(i)
+              }
       }
     }
   }

@@ -286,7 +286,7 @@ attributetype ( InventoryAttributes:300.11
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
   EQUALITY generalizedTimeMatch
   ORDERING generalizedTimeOrderingMatch )
-  
+
 attributetype ( InventoryAttributes:300.12
   NAME 'agentName'
   DESC 'List of name of the agent (Nova, Community, ...)'
@@ -294,10 +294,25 @@ attributetype ( InventoryAttributes:300.12
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
+attributetype ( InventoryAttributes:300.13
+  NAME 'environmentVariable'
+  DESC 'List of environnement variable'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:300.14
+  NAME 'process'
+  DESC 'List of processes'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
 #
 # A node can have some complex "logical" elements: 
 # * network interfaces
 # * file systems
+# * vm
 #
 
 ### network interfaces
@@ -380,6 +395,64 @@ attributetype ( InventoryAttributes:400.9
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   EQUALITY integerMatch
   ORDERING integerOrderingMatch )
+
+### VM
+
+attributetype ( InventoryAttributes:200.42
+  NAME 'virtualMachineUuid'
+  DESC 'vm unique identifier'
+  SUP elementName )
+
+### VM attributes
+
+attributetype ( InventoryAttributes:400.10
+  NAME 'vmType'
+  DESC 'kind of VM'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.11
+  NAME 'subsystem'
+  DESC 'VM susbsystem'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.12
+  NAME 'vmOwner'
+  DESC 'VM owner'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.13
+  NAME 'vmName'
+  DESC 'VM name'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.14
+  NAME 'vmStatus'
+  DESC 'VM status'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.15
+  NAME 'vmCpu'
+  DESC 'VM cpu'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:400.16
+  NAME 'vmMemory'
+  DESC 'process virtual memory'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
 
 #
@@ -480,6 +553,7 @@ attributetype ( InventoryAttributes:500.9
   EQUALITY integerMatch
   ORDERING integerOrderingMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
+
   
 attributetype ( InventoryAttributes:500.10
   NAME 'cpuStepping'
@@ -490,11 +564,54 @@ attributetype ( InventoryAttributes:500.10
 
 attributetype ( InventoryAttributes:500.11
   NAME 'cpuFamily'
-  DESC 'Family name of the CPU'
+  DESC 'Family number of the CPU'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
-  
+
+attributetype ( InventoryAttributes:500.12
+  NAME 'cpuCore'
+  DESC 'Number of cores'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:500.13
+  NAME 'cpuThread'
+  DESC 'Number of threads'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:500.14
+  NAME 'cpuFamilyName'
+  DESC 'family name of the CPU'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:500.15
+  NAME 'cpuArchitecture'
+  DESC 'Achitecture of CPU'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:500.16
+  NAME 'cpuID'
+  DESC 'CPU ID'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+attributetype ( InventoryAttributes:500.17
+  NAME 'cpuExternalClock'
+  DESC 'Number of cores'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+
+
 ### memorySlot 
 
 attributetype ( InventoryAttributes:200.6
@@ -502,28 +619,28 @@ attributetype ( InventoryAttributes:200.6
   DESC 'Slot number of a ram chipset'
   SUP elementName )
 
-attributetype ( InventoryAttributes:500.12
+attributetype ( InventoryAttributes:500.18
   NAME 'memoryCapacity'
   DESC 'A memory capacity (ram, video, etc)'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
   
-attributetype ( InventoryAttributes:500.13
+attributetype ( InventoryAttributes:500.19
   NAME 'memoryCaption'
   DESC 'Information about a memory chip'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
-attributetype ( InventoryAttributes:500.14
+attributetype ( InventoryAttributes:500.20
   NAME 'memorySpeed'
   DESC 'Speed of a memory chipset'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
-attributetype ( InventoryAttributes:500.15
+attributetype ( InventoryAttributes:500.21
   NAME 'memoryType'
   DESC 'Memory type'
   EQUALITY caseIgnoreMatch
@@ -559,7 +676,7 @@ attributetype ( InventoryAttributes:200.10
   DESC 'Name of a storage element (hard drive, etc)'
   SUP elementName )
 
-attributetype ( InventoryAttributes:500.16
+attributetype ( InventoryAttributes:500.22
   NAME 'storageSize'
   DESC 'The size of a storage unit'
   EQUALITY caseIgnoreMatch
@@ -574,14 +691,14 @@ attributetype ( InventoryAttributes:200.11
   DESC 'Name of a video card'
   SUP elementName )
   
-attributetype ( InventoryAttributes:500.17
+attributetype ( InventoryAttributes:500.23
   NAME 'videoChipset'
   DESC 'Information '
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
-attributetype ( InventoryAttributes:500.18
+attributetype ( InventoryAttributes:500.24
   NAME 'videoResolution'
   DESC 'Max resolution for a video chipset'
   EQUALITY caseIgnoreMatch
@@ -762,7 +879,7 @@ objectclass ( InventoryObjectClasses:10
   SUP physicalElement
   STRUCTURAL
   MUST ( cpuName )
-  MAY ( cpuSpeed $ cpuStepping $ cpuFamily ) )
+  MAY ( cpuSpeed $ cpuStepping $ cpuFamily $ cpuCore $ cpuThread $ cpuFamilyName $ cpuArchitecture $ cpuID $ cpuExternalClock ) )
 
 objectclass ( InventoryObjectClasses:11
   NAME 'slotPhysicalElement'
@@ -797,7 +914,8 @@ objectclass ( InventoryObjectClasses:14
         software $  localAccountName $ osServicePack $
         nodeTechniques $ ram $ swap $ confirmed $
         inventoryDate $ ipHostNumber $ osFullName $
-        osArchitectureType $ lastLoggedUser $ lastLoggedUserTime ) )
+        osArchitectureType $ lastLoggedUser $ lastLoggedUserTime $
+        environmentVariable $ process ) )
 
 objectclass ( InventoryObjectClasses:15
   NAME 'windowsNode'
@@ -852,6 +970,15 @@ objectclass ( InventoryObjectClasses:21
   MUST ( softwareId )
   MAY ( cn $ description $ releaseDate $ editor $ softwareVersion $
         licenseExpirationDate $ licenseName $ licenseProductId $ licenseProductKey ) )
+
+
+objectclass ( InventoryObjectClasses:22
+  NAME 'virtualMachineLogicalElement'
+  DESC 'A VM installed on that node'
+  SUP logicalElement
+  STRUCTURAL
+  MUST ( virtualMachineUuid )
+  MAY (  vmType $ subsystem $ vmOwner $ vmName $ vmStatus $ vmCpu $ vmMemory ) )
 
 objectClass ( InventoryObjectClasses:31
   NAME 'dynGroup'

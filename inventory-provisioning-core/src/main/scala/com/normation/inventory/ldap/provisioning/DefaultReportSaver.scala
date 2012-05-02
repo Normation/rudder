@@ -93,12 +93,14 @@ class DefaultReportSaver(
     results = {
       for {
         con <- ldapConnectionProvider
+
         res <- con.saveTree(mapper.treeFromNode(report.node))
-      } yield { res }
+      } yield {
+        res }
     } :: results
     
     //finally, vms
-    report.vms foreach { x => 
+    report.vms foreach { x =>
        results = { for {
           con <- ldapConnectionProvider
           res <- con.saveTree(mapper.treeFromMachine(x))

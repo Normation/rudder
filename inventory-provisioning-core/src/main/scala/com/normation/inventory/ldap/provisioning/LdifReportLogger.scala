@@ -106,20 +106,21 @@ class DefaultLDIFReportLogger(val LDIFLogDir:String = DefaultLDIFReportLogger.de
 
         if (logger.isTraceEnabled()){
           logger.debug("LDIF log for report processing: " + LDIFFile.getAbsolutePath)
+
           writer = new LDIFWriter(LDIFFile)
 
           val ldif = LDIFRecords //that's important, else we evaluate again and again LDIFRecords
-          
+
           if(ldif.nonEmpty) { //don't check it if logger trace is not enabled
             writer.writeLDIFRecord(ldif.head, comments.getOrElse(null))
+
             ldif.tail.foreach { LDIFRecord => writer.writeLDIFRecord(LDIFRecord) }
           } else {
-            //write a dummy recored
-            val c = comments.getOrElse("") + "(There was no record to log, a dummy modification is added in log as a placeholder)" 
+            //write a dummy record
+            val c = comments.getOrElse("") + "(There was no record to log, a dummy modification is added in log as a placeholder)"
             writer.writeLDIFRecord(new LDIFModifyChangeRecord("cn=dummy", new Modification(REPLACE,"dummy", "dummy")), c)
           }
         }
-       
       } catch {
         case e:Exception => logger.error("Exception when loggin (ignored)",e)
       } finally {

@@ -64,7 +64,7 @@ case class InventoryReport(
   val inventoryAgentDevideId:String,
   val node:NodeInventory,
   val machine:MachineInventory,
-
+  val version:Option[Version],
   //maybe a list of hosted vms
   val vms : Seq[MachineInventory],
   

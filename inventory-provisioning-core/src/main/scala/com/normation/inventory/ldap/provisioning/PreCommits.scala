@@ -41,14 +41,12 @@ import net.liftweb.common.{Box,Full,Empty,EmptyBox,Failure}
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryMapper
 
-
 /**
  * Check OS Type. 
  * We can not handle "UnknownOsType", we just don't know what
  * to do with them
  */
 object CheckOsType extends PreCommit {
-  
   
   override val name = "pre_commit_inventory:check_os_type_is_known"
     
@@ -102,7 +100,6 @@ class LogReportPreCommit(
   mapper:InventoryMapper,
   ldifLogger:LDIFReportLogger
 ) extends PreCommit {
-  
   private[this] def reportToLdif( report:InventoryReport ) = {
     mapper.treeFromNode( report.node ).toLDIFRecords ++
     mapper.treeFromMachine( report.machine ).toLDIFRecords ++
@@ -123,7 +120,7 @@ class LogReportPreCommit(
   
 }
 
-
+/*
 /**
  * Update last inventory date for Server and machine
  */
@@ -140,7 +137,7 @@ class LastInventoryDate() extends PreCommit {
       machine = report.machine.copy( inventoryDate = Some(now) )
     ) )
   }
-}
+}*/
 
 
 /**
@@ -155,6 +152,7 @@ object AddIpValues extends PreCommit {
     val ips = report.node.networks.flatMap(x => x.ifAddresses).map(x => x.getHostAddress() )
     
     Full(report.copy( node = report.node.copy( serverIps = ips ) ) )
+
     
   }
 }

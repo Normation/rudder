@@ -49,12 +49,12 @@ sealed abstract class AgentType {
 }
 
 final case object NOVA_AGENT extends AgentType with HashcodeCaching {
-  override def toString() = A_NOVA_AGENT
+  override def toString() = "Cfengine "+A_NOVA_AGENT
   override def toRulesPath() = "/cfengine-nova"
 }
 
 final case object COMMUNITY_AGENT extends AgentType with HashcodeCaching {
-  override def toString() = A_COMMUNITY_AGENT
+  override def toString() = "Cfengine "+A_COMMUNITY_AGENT
   override def toRulesPath() = "/cfengine-community"
 }
 
@@ -65,7 +65,7 @@ object AgentType {
     string match {
       case A_NOVA_AGENT => Full(NOVA_AGENT)
       case A_COMMUNITY_AGENT => Full(COMMUNITY_AGENT)
-      case _ => Failure("Wrong type of value for the agent %s".format(string)) 
+      case _ => Failure("Wrong type of value for the agent %s".format(string))
     }
   }
 }

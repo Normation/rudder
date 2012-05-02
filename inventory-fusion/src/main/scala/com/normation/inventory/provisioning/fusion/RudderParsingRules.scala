@@ -40,11 +40,11 @@ import net.liftweb.common._
 import java.security.MessageDigest
 import com.normation.utils.UuidRegex
 
-///////////// <CONTENT> ///////////// 
+///////////// <CONTENT> /////////////
 
 /**
- * <USERSLIST>
- */
+* <USERSLIST>
+*/
 object RudderUserListParsing extends FusionReportParsingExtension {
   def processUserList(xml:Node) : Seq[String] = {
     (xml \ "USER").flatMap(e => optText(e))
@@ -55,22 +55,11 @@ object RudderUserListParsing extends FusionReportParsingExtension {
   }
 }
 
-/**
- * <VMS>
- */
-object RudderVMsParsing extends FusionReportParsingExtension {
-  override def isDefinedAt(x:(Node,InventoryReport)) = x._1.label == "VMS"
-  override def apply(x:(Node,InventoryReport)) : InventoryReport = {
-    //TODO
-    x._2 
-  }
-}
-
-///////////// ROOT+1 ///////////// 
+///////////// ROOT+1 /////////////
 
 /**
- * <UUID>
- */
+* <UUID>
+*/
 object RudderNodeIdParsing extends FusionReportParsingExtension {
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "UUID" }
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {
@@ -82,8 +71,8 @@ object RudderNodeIdParsing extends FusionReportParsingExtension {
 }
 
 /**
- * <POLICY_SERVER>
- */
+* <POLICY_SERVER>
+*/
 object RudderPolicyServerParsing extends FusionReportParsingExtension {
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "POLICY_SERVER" }
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {
@@ -95,13 +84,13 @@ object RudderPolicyServerParsing extends FusionReportParsingExtension {
 }
 
 /**
- * <MACHINEID>
- * 
- * Must be executed after <UUID> parsing rule. 
- * 
- * If <MACHINEID> is not present or its content is not a valid UUID, 
- * define the machine ID based on the md5 of node ID. 
- */
+* <MACHINEID>
+*
+* Must be executed after <UUID> parsing rule.
+*
+* If <MACHINEID> is not present or its content is not a valid UUID,
+* define the machine ID based on the md5 of node ID.
+*/
 object RudderMachineIdParsing extends FusionReportParsingExtension {
   private[this] def buildMachineId(report:InventoryReport) = {
     val md5 = MessageDigest.getInstance("MD5").digest(report.node.main.id.value.getBytes)
@@ -126,29 +115,32 @@ object RudderMachineIdParsing extends FusionReportParsingExtension {
   }
 }
 
-/**
- * <PROCESSORS>
- */
 object RudderCpuParsing extends FusionReportParsingExtension with Loggable {
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "PROCESSORS" }
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {
-    x._2.copy( machine = x._2.machine.copy( processors = x._2.machine.processors ++ processProcessors(x._1) ) ) 
+    val procs = processProcessors(x._1).map( proc => x._2.machine.processors.map(oldproc => if(oldproc.name==proc.name){oldproc.copy(stepping = proc.stepping, model = proc.model, family= proc.family)} else oldproc)).flatten
+    x._2.copy( machine = x._2.machine.copy( processors = procs ) )
   }
   def processProcessors(xml:NodeSeq) : Seq[Processor] = {
     val buf = scala.collection.mutable.Buffer[Processor]()
     (xml \ "PROCESSOR").zipWithIndex.map { case (p,i) =>
-      optText(p\"NAME").map { x => x + " num " + i} match {
+      optText(p\"NAME").map { x => x } match {
         case None =>
           logger.debug("Ignoring Processor entry because NAME tag is empty")
           logger.debug(p)
         case Some(name) =>
           val cpu = Processor(
-              name = name
-            , speed = optText(p\"FREQUENCY").map(_.toFloat.toInt)
-            , model = optText(p\"MODEL")
-            , family = optText(p\"FAMILY")
-            , manufacturer = optText(p\"VENDOR") map { Manufacturer(_) }
-            , stepping = optText(p\"STEPPING") map { _.toInt }
+                manufacturer = optText(p\"MANUFACTURER").map(new Manufacturer(_))
+              , arch = optText(p\"ARCH")
+              , name = name
+              , speed = optText(p\"SPEED").map(_.toFloat)
+              , externalClock = optText(p\"EXTERNAL_CLOCK").map(_.toFloat)
+              , core = optText(p\"CORE").map(_.toInt)
+              , thread = optText(p\"THREAD").map(_.toInt)
+              , cpuid = optText(p\"ID")
+              , stepping = optText(p\"STEPPING").map(_.toInt)
+              , model = optText(p\"MODEL").map(_.toInt)
+              , family = optText(p\"FAMILY").map(_.toInt)
           )
           buf += cpu
       }
@@ -158,8 +150,8 @@ object RudderCpuParsing extends FusionReportParsingExtension with Loggable {
 }
 
 /**
- * <CFKEY>
- */
+* <CFKEY>
+*/
 class RudderPublicKeyParsing(keyNormalizer:PrintedKeyNormalizer) extends FusionReportParsingExtension {
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "CFKEY" }
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {
@@ -171,8 +163,8 @@ class RudderPublicKeyParsing(keyNormalizer:PrintedKeyNormalizer) extends FusionR
 }
 
 /**
- * <USER>
- */
+* <USER>
+*/
 object RudderRootUserParsing extends FusionReportParsingExtension {
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "USER" }
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {
@@ -185,15 +177,15 @@ object RudderRootUserParsing extends FusionReportParsingExtension {
 
 
 /**
- * <AGENTSNAME>
- */
+* <AGENTSNAME>
+*/
 object RudderAgentNameParsing extends FusionReportParsingExtension with Loggable {
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "AGENTSNAME" }
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {
     x._2.copy( node = x._2.node.copy( agentNames = x._2.node.agentNames ++ processAgentName(x._1) ) )
-  }  
+  }
   def processAgentName(xml:NodeSeq) : Seq[AgentType] = {
-    (xml \ "AGENTNAME").flatMap(e => optText(e).flatMap( a => 
+    (xml \ "AGENTNAME").flatMap(e => optText(e).flatMap( a =>
       AgentType.fromValue(a) match {
         case Full(x) => Full(x)
         case e:EmptyBox =>
@@ -206,21 +198,8 @@ object RudderAgentNameParsing extends FusionReportParsingExtension with Loggable
 
 
 /**
- * <TECHNIQUES>
- */
-object RudderTechniquesParsing extends FusionReportParsingExtension {
-  override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "TECHNIQUES" }
-  override def apply(x:(Node,InventoryReport)) : InventoryReport = {
-    x._2.copy( node = x._2.node.copy( techniques = x._2.node.techniques ++ processTechniques(x._1) ) )
-  }
-  def processTechniques(xml:NodeSeq) : Seq[String] = {
-    (xml \ "TECHNIQUE").flatMap(e => optText(e))
-  }
-}
-
-/**
- * <HOSTNAME>
- */
+* <HOSTNAME>
+*/
 object RudderHostnameParsing extends FusionReportParsingExtension {
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "HOSTNAME" }
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {
@@ -230,9 +209,6 @@ object RudderHostnameParsing extends FusionReportParsingExtension {
     }
   }
 }
-
-
-
 
 
 

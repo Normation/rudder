@@ -104,6 +104,7 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] {
       /*
        * commit change - no rollback !
        */
+
       commitedChange <- try {
           commitChange(postPreCommitReport)
         } catch {
@@ -116,7 +117,7 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] {
         try {
           postCommit(postPreCommitReport, currentChanges) ?~! "Error in postCommit pipeline with processor '%s'. The commit was done, we may be in a inconsistent state.".format(postCommit.name)
         } catch {
-          case ex:Exception => Failure("Exception in postCommit pipeline with processor '%s'. The commit was done, we may be in a inconsistent state.".format(postCommit.name), Full(ex), Empty)
+          case ex:Exception => Failure("Exception in postCommit pipeline with processor '%s'. The commit was done, we may be in a inconsistent state,".format(postCommit.name), Full(ex), Empty)
         }
       } 
     } yield {
