@@ -136,7 +136,7 @@ class CheckDIT(
       case Full(_) => //ok
     }
     
-    logger.info("All require DIT entries present in the LDAP directory")
+    logger.info("All the required DIT entries are present in the LDAP directory")
   }
 
 }
