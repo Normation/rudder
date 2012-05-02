@@ -35,10 +35,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
  For example: <authentication hash="sha">
 
  To hash passwords for this format, run these commands:
- "md5"                    read mypass; echo $mypass | md5sum
- "sha" or "sha1"          read mypass; echo $mypass | shasum
- "sha256" or "sha-256"    read mypass; echo $mypass | sha256sum
- "sha512" or "sha-512"    read mypass; echo $mypass | sha512sum
+ "md5"                    read mypass; echo -n $mypass | md5sum
+ "sha" or "sha1"          read mypass; echo -n $mypass | shasum
+ "sha256" or "sha-256"    read mypass; echo -n $mypass | sha256sum
+ "sha512" or "sha-512"    read mypass; echo -n $mypass | sha512sum
 
   After changing this file, the rudder webapp must be restarted to take changes
   into account: /etc/init.d/jetty restart
