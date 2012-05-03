@@ -68,7 +68,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
       <id>rudder-project</id>
       <url>http://www.rudder-project.org/maven-repo/</url>
       <layout>default</layout>
-      <snapshots><enabled>false</enabled></snapshots>
     </repository>
   </repositories>
 
