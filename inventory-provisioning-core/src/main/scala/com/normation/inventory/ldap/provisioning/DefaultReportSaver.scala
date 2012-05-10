@@ -130,8 +130,12 @@ class DefaultReportSaver(
     } else { //ok, so at least one non error. Log errors, merge non error, and post-process it
       
       val changes : Seq[LDIFChangeRecord] = (Seq[LDIFChangeRecord]() /: results){ (records,r) => r match {
-        case Failure(m,_,_) => 
+        case f@Failure(m,_,_) => 
           logger.error("Report processing will be incomplete, found error: {}", m)
+          val cause = f.rootExceptionCause
+          cause.foreach(ex => 
+            logger.error("Associated exeption: %s: %s".format(ex.getClass, ex.getMessage))
+          )
           records
         case Empty => records //can't log anything relevant ? 
         case Full(seq) => records ++ seq
