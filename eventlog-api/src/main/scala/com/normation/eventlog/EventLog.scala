@@ -162,5 +162,6 @@ final case class EventLogDetails(
  , val creationDate : DateTime = DateTime.now()
  , val cause : Option[Int] = None
  , val severity : Int = 100
+ , val reason  : Option[String]
  , val details : NodeSeq
 ) extends HashcodeCaching

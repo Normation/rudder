@@ -46,12 +46,12 @@ class EventLogTest {
   @Test
   def createEventLog() {
     val dummyEventLog = new EventLogWithValues(
-        EventLogDetails(None, EventActor("foo"),DateTime.now(), None, 0, NodeSeq.Empty )
+        EventLogDetails(None, EventActor("foo"),DateTime.now(), None, 0, None, NodeSeq.Empty )
       , "12"
       , "13")
       
     val eventLog = new EventLogWithValues(
-        EventLogDetails(Some(13), EventActor("foo"),DateTime.now(), None, 0, NodeSeq.Empty ) 
+        EventLogDetails(Some(13), EventActor("foo"),DateTime.now(), None, 0, None, NodeSeq.Empty ) 
       , "bar"
       , "baz")
     
