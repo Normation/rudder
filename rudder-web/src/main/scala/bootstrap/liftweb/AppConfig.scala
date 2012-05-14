@@ -95,6 +95,7 @@ import com.normation.rudder.migration.MigrationEventLogRepository
 import com.normation.rudder.migration.EventLogMigration_10_2
 import com.normation.rudder.migration.LogMigrationEventLog_10_2
 import com.normation.rudder.migration.XmlMigration_10_2
+import com.normation.rudder.web.services.UserPropertyService
 
 /**
  * Spring configuration for services
@@ -208,6 +209,15 @@ class AppConfig extends Loggable {
   @Value("${rudder.autoDeployOnModification}")
   var autoDeployOnModification : Boolean = true
   
+  @Value("${rudder.ui.changeMessage.enabled}")
+  var reasonFieldEnabled = false
+  
+  @Value("${rudder.ui.changeMessage.mandatory}")
+  var reasonFieldMandatory = false
+  
+  @Value("${rudder.ui.changeMessage.explanation}")
+  var reasonFieldExplanation = "Please enter a message explaining the reason for this change."
+  
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
 
@@ -219,6 +229,13 @@ class AppConfig extends Loggable {
   val groupLibraryDirectoryName = "groups"
   
   val rulesDirectoryName = "rules"
+    
+  @Bean
+  def userPropertyService = {
+    val opt = new ReasonsMessageInfo(reasonFieldEnabled, reasonFieldMandatory, 
+        reasonFieldExplanation)
+    new UserPropertyServiceImpl(opt)
+  }
     
   // metadata.xml parser
   @Bean
