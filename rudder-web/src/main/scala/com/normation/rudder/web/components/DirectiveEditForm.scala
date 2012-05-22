@@ -58,7 +58,7 @@ import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.domain.log._
 import com.normation.eventlog.EventActor
-
+import com.normation.rudder.web.services.UserPropertyService
 
 object DirectiveEditForm {
 
@@ -121,6 +121,7 @@ class DirectiveEditForm(
   private[this] val dependencyService = inject[DependencyAndDeletionService]
   private[this] val directiveEditorService = inject[DirectiveEditorService]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]  
+  private[this] val userPropertyService = inject[UserPropertyService]
 
   private[this] val htmlId_save = htmlId_policyConf + "Save"
   private[this] val parameterEditor = directiveEditorService.get(
@@ -191,6 +192,10 @@ class DirectiveEditForm(
       "#shortDescriptionField" #> piShortDescription.toForm_! &
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
+      ".reasonsFieldset" #> { crReasons.map { f =>
+        "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+        "#reasonsField" #> f.toForm_!
+      } } &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> htmlId_save) } &
       "#notification *" #> updateAndDisplayNotifications() &
@@ -351,6 +356,28 @@ to avoid that last case.<br/>
 
   }
 
+  private[this] val crReasons = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true))
+      case Optionnal => Some(buildReasonField(false))
+    }
+  }
+  
+  def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", if(mandatory) "" else "Directive updated by user from UI") {
+    override def setFilter = notNull _ :: trim _ :: Nil
+    override def inputField = super.inputField  % 
+      ("style" -> "width:60em;height:15em;margin-top:3px;border: solid 2px #ABABAB;")
+    override def validations() = {
+      if(mandatory){
+        valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
+      } else {
+        Nil
+      }
+    }
+  }
+  
   private[this] val formTracker = new FormTracker(piName, piShortDescription, piLongDescription)
 
   private[this] var notifications = List.empty[NodeSeq]
@@ -396,7 +423,7 @@ to avoid that last case.<br/>
           longDescription = piLongDescription.is)
       }
       
-      saveAndDeployDirective(newPi, Some("Directive saved by user"))
+      saveAndDeployDirective(newPi, crReasons.map(_.is))
     }
   }
 
