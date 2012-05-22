@@ -356,11 +356,6 @@ class RuleEditForm(
     override def inputField = super.inputField  % ("style" -> "width:50em;height:15em")
   }
 
-//  private[this] val crReasonsDefaultValue = {
-//    if(userPropertyService.reasonsFieldMandatory()) "" 
-//    else "Rule updated by user from UI"
-//  }
-  
   private[this] val crReasons = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
