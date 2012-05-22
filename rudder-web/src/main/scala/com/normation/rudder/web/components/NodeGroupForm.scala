@@ -63,6 +63,7 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.nodes.NodeInfoService
 import NodeGroupForm._
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.UserPropertyService
 
 
 
@@ -126,6 +127,7 @@ class NodeGroupForm(
   private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] val dependencyService = inject[DependencyAndDeletionService]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
+  private[this] val userPropertyService = inject[UserPropertyService]
   
   val categories = groupCategoryRepository.getAllNonSystemCategories
 
@@ -199,8 +201,9 @@ class NodeGroupForm(
        <div id="SearchNodes">
        <directive:showGroup />
       </div>
-     <div class="margins" align="right"><directive:save/> <directive:delete/></div>
      </fieldset>
+     <directive:reason />
+     <div class="margins" align="right"><directive:save/> <directive:delete/></div>
      </fieldset>)
 
      bind("directive", html,
@@ -209,6 +212,16 @@ class NodeGroupForm(
       "container" -> piContainer.toForm_!,
       "static" -> piStatic.toForm_!,
       "showGroup" -> searchNodeComponent.is.open_!.buildQuery,
+      "explanation" -> crReasons.map {
+        f => <div>{userPropertyService.reasonsFieldExplanation}</div>
+      },          
+      "reason" -> crReasons.map {f =>           
+        <fieldset class="reasonNode"><legend>Reason</legend>
+          <div style="margin-bottom:5px">
+            {userPropertyService.reasonsFieldExplanation}
+          </div>
+          {f.toForm_!}
+        </fieldset>},
       "save" ->   {_nodeGroup match {
             case Some(x) => SHtml.ajaxSubmit("Update", onSubmit _)  %  ("id", saveButtonId)
             case None => SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)
@@ -324,6 +337,28 @@ class NodeGroupForm(
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
   
+  private[this] val crReasons = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true))
+      case Optionnal => Some(buildReasonField(false))
+    }
+  }
+  
+  def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", if(mandatory) "" else "Group updated by user from UI") {
+    override def setFilter = notNull _ :: trim _ :: Nil
+    override def inputField = super.inputField  % 
+      ("style" -> "width:542px;height:15em;margin-top:3px;border: solid 2px #ABABAB;")
+    override def validations() = {
+      if(mandatory){
+        valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
+      } else {
+        Nil
+      }
+    }
+  }
+  
   private[this] val piDescription = new WBTextAreaField("Group description: ", _nodeGroup.map( x => x.description).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:10em")
@@ -363,8 +398,10 @@ class NodeGroupForm(
       parentCategoryId) {
   }
   
-  
-  private[this] val formTracker = new FormTracker(piName,piDescription,piContainer, piStatic)
+  private[this] val formTracker = {
+    val fields = List(piName, piDescription, piContainer, piStatic) ++ crReasons.toList
+    new FormTracker(piName,piDescription,piContainer, piStatic)
+  }
   
   private[this] var notifications = List.empty[NodeSeq]
   
@@ -477,7 +514,7 @@ class NodeGroupForm(
   private def updateGroup(originalNodeGroup : NodeGroup, name : String, description : String, query : Query, isDynamic : Boolean, nodeList : List[NodeId], isEnabled : Boolean = true ) : JsCmd = {
     val newNodeGroup = new NodeGroup(originalNodeGroup.id, name, description, Some(query), isDynamic, nodeList.toSet, isEnabled, originalNodeGroup.isSystem)
     (for {
-      saved <- nodeGroupRepository.update(newNodeGroup, CurrentUser.getActor, Some("Group update by user")) ?~! "Error when updating the group %s".format(originalNodeGroup.id)
+      saved <- nodeGroupRepository.update(newNodeGroup, CurrentUser.getActor, crReasons.map(_.is)) ?~! "Error when updating the group %s".format(originalNodeGroup.id)
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
         Full("Deployment request sent")

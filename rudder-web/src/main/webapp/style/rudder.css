@@ -750,6 +750,13 @@ fieldset.searchNodes {
   clear: both;
 }
 
+.reasonNode {
+  padding:8px;
+  margin:5px;
+  width: 550px;
+  clear: both;
+}
+
 fieldset.searchNodesAction {
   padding:5px;
   margin:5px;
