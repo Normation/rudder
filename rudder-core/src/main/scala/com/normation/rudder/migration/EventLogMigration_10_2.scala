@@ -305,15 +305,26 @@ class EventLogsMigration_10_2(
    * retrieve all event log to migrate. 
    */
   def findAllEventLogs : Box[Seq[MigrationEventLog]] = {
-    val SELECT_SQL = 
+    
+    //check if the event must be migrated
+    def needMigration(xml:NodeSeq) : Boolean = (
+         (xml \ "addPending" ).size > 0 
+      || (try {
+           (xml \\ "@fileFormat" exists { _.text.toFloat == 1 })
+         } catch {
+           case e:NumberFormatException => false
+         })
+    )
+    
+    val SELECT_SQL_ALL_EVENTLOGS = 
       """
-      |SELECT id, eventType, data 
-      |FROM EventLog 
-      |WHERE xmlexists('/entry/*[@fileFormat=1]'PASSING BY REF data)
-      |   OR xmlexists('/entry/addPending'PASSING BY REF data)
+      |SELECT id, eventType, data FROM eventlog
       |""".stripMargin
       
-    tryo { jdbcTemplate.query(SELECT_SQL,MigrationEventLogMapper).asScala }
+    tryo(
+        jdbcTemplate.query(SELECT_SQL_ALL_EVENTLOGS, MigrationEventLogMapper).asScala
+       .filter(log => needMigration(log.data))
+    )
   }
   
   private[this] def saveEventLogs(logs:Seq[MigrationEventLog]) : Box[Seq[MigrationEventLog]] = {
@@ -369,7 +380,7 @@ class EventLogsMigration_10_2(
   ) : Seq[MigrationEventLog] = {
     logs.flatMap { log =>
       eventLogMigration.migrate(log) match {
-        case eb:EmptyBox => errorLogger(eb ?~! "Error when trying to save event log with id '%s'".format(log.id)); None
+        case eb:EmptyBox => errorLogger(eb ?~! "Error when trying to migrate event log with id '%s'".format(log.id)); None
         case Full(m)     => Some(m)
       }
     }
@@ -453,7 +464,6 @@ class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
     def create(xmlFn:Elem => Box[Elem], name:String) = {
       xmlFn(data).map { xml => MigrationEventLog(id, name, xml) }
     }
-      
     
     eventType.toLowerCase match {
       case "acceptnode" => create(xmlMigration.node, "AcceptNode")
@@ -485,10 +495,7 @@ class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
         val msg = "Not migrating eventLog with [id: %s] [type: %s]: no handler for that type.".format(eventLog.id, eventLog.eventType)
         Failure(msg)
     }
-    
   }
-  
-  
 }
 
 /**
