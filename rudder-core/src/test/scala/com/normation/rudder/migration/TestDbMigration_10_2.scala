@@ -102,6 +102,15 @@ CREATE TEMP TABLE EventLog (
         (k,log.copy( id = Some(id) ))
       }).toMap
     }
+    
+    //also add some bad event log that should not be migrated (bad/more recent file format)
+    withConnection[Unit] { c =>
+      NoMigrationEventLogs.e1.insertSql(c)
+      NoMigrationEventLogs.e2.insertSql(c)
+      NoMigrationEventLogs.e3.insertSql(c)
+      
+      {}
+    }
 
     logs2WithId = (Migration_10_2_DATA_EventLogs.data_2.map { case (k,log) =>
       log.copy( id = Some(logs10WithId(k).id.get ) ) //actually get so that an exception is throw if there is no ID set
@@ -129,7 +138,14 @@ CREATE TEMP TABLE EventLog (
       
       migration.processEventLogs
       
-      val logs = jdbcTemplate.query("select * from eventlog", testLogRowMapper).asScala
+      val logs = jdbcTemplate.query("select * from eventlog", testLogRowMapper).asScala.filter(log => 
+                   //only actually migrated file format
+                   try {
+                     log.data \\ "@fileFormat" exists { _.text.toInt == 2 }
+                   } catch {
+                     case e:NumberFormatException => false
+                   }
+                 )
       
       logs.size must beEqualTo(logs2WithId.size) and
       forallWhen(logs) {
@@ -148,6 +164,37 @@ CREATE TEMP TABLE EventLog (
     }
     
   }
+}
+
+
+object NoMigrationEventLogs {
   
+  val e1 = MigrationTestLog(
+               eventType = "AcceptNode"
+             , data      = <entry><node action="accept" fileFormat="3.42">
+                             <id>xxxc8e3d-1bf6-4bc1-9398-f8890b015a50</id>
+                             <inventoryVersion>2011-10-13T11:43:52.907+02:00</inventoryVersion>
+                             <hostname>centos-5-32</hostname>
+                             <fullOsName>Centos</fullOsName>
+                             <actorIp>127.0.0.1</actorIp>
+                           </node></entry>
+  )
+
+  val e2 = MigrationTestLog(
+               eventType = "AcceptNode"
+             , data      = <entry><node action="accept" fileFormat="**BAD**">
+                             <id>xxxx8e3d-1bf6-4bc1-9398-f8890b015a50</id>
+                             <inventoryVersion>2011-10-13T11:43:52.907+02:00</inventoryVersion>
+                             <hostname>centos-5-32</hostname>
+                             <fullOsName>Centos</fullOsName>
+                             <actorIp>127.0.0.1</actorIp>
+                           </node></entry>
+  )
+
+  val e3 = MigrationTestLog(
+               eventType = "StartDeployement"
+             , data      = <entry><addPendingDeployement alreadyPending="false" fileFormat="2.21"></addPendingDeployement></entry>
+  )
+
   
 }
