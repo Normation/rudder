@@ -41,6 +41,33 @@ import net.liftweb.common.{Box,Full,Empty,EmptyBox,Failure}
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryMapper
 
+
+/**
+ * Check OS Type. 
+ * We can not handle "UnknownOsType", we just don't know what
+ * to do with them
+ */
+object CheckOsType extends PreCommit {
+  
+  
+  override val name = "pre_commit_inventory:check_os_type_is_known"
+    
+  override def apply(report:InventoryReport) : Box[InventoryReport] = {
+    
+    report.node.main.osDetails.os match {
+      case UnknownOSType =>
+        val xml = report.sourceReport\\"OPERATINGSYSTEM"
+        Failure("Os Type is not suported (OS Type: %s; OS Name: %s)".format(
+          (xml\\"KERNEL_NAME").text
+        , (xml\\"NAME").text
+      ))
+      case _ => Full(report)
+    }
+    
+  }
+}
+
+
 /**
  * Normalize machine Name.
  * They are mandatory, but not always provided

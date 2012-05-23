@@ -239,6 +239,7 @@ class AppConfig {
   )
 
    lazy val preCommitPipeline : Seq[PreCommit] = (
+    CheckOsType ::
     automaticMerger ::
     CheckMachineName ::
     new LastInventoryDate() ::
