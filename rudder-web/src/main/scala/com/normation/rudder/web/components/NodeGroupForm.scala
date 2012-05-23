@@ -457,9 +457,9 @@ class NodeGroupForm(
           //  we are updating a nodeGroup
           srvList match {
             case Full(list) =>
-              updateGroup(nodeGroup, name, description, query.get, isDynamic, list.map(x => x.id).toList)
+              updateGroup(nodeGroup, name, description, query.get, isDynamic, list.map(x => x.id).toList, container)
             case Empty =>
-              updateGroup(nodeGroup, name, description, query.get, isDynamic, Nil)
+              updateGroup(nodeGroup, name, description, query.get, isDynamic, Nil, container)
             case Failure(m, _, _) =>
               logger.error("Could not retrieve the server list from the search component : %s".format(m))
               formTracker.addFormError(error("An error occurred while trying to fetch the server list of the group: " + m))
@@ -511,9 +511,10 @@ class NodeGroupForm(
    * @param container
    * @return
    */
-  private def updateGroup(originalNodeGroup : NodeGroup, name : String, description : String, query : Query, isDynamic : Boolean, nodeList : List[NodeId], isEnabled : Boolean = true ) : JsCmd = {
+  private def updateGroup(originalNodeGroup : NodeGroup, name : String, description : String, query : Query, isDynamic : Boolean, nodeList : List[NodeId], container:String, isEnabled : Boolean = true ) : JsCmd = {
     val newNodeGroup = new NodeGroup(originalNodeGroup.id, name, description, Some(query), isDynamic, nodeList.toSet, isEnabled, originalNodeGroup.isSystem)
     (for {
+      moved <- nodeGroupRepository.move(originalNodeGroup, NodeGroupCategoryId(container), CurrentUser.getActor, crReasons.map(_.is)) ?~! "Error when moving NodeGroup %s ('%s') to '%s'".format(originalNodeGroup.id, originalNodeGroup.name, container)
       saved <- nodeGroupRepository.update(newNodeGroup, CurrentUser.getActor, crReasons.map(_.is)) ?~! "Error when updating the group %s".format(originalNodeGroup.id)
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
