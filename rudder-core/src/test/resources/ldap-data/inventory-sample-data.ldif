@@ -259,12 +259,10 @@ nodeHostname: node7.normation.com
 ###################################################################################################
 
 dn: mountPoint=/,nodeId=node3,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-nodeId: node3
 mountPoint: /
 objectClass: fileSystemLogicalElement
 objectClass: logicalElement
 objectClass: top
-node: nodeId=node3,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 cn: ext3
 fileSystemFreeSpace: 6718226432
 fileSystemTotalSpace: 8038383616
@@ -273,8 +271,6 @@ dn: mountPoint=/,nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn
 objectClass: top
 objectClass: logicalElement
 objectClass: fileSystemLogicalElement
-nodeId: node7
-node: nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 mountPoint: /
 cn: ext3
 fileSystemFreeSpace: 10
@@ -316,8 +312,6 @@ cn: has physicalElements
 ###################################################################################################
 
 dn: biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-machine: machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-machineId: machine2
 biosName: bios1
 objectClass: biosPhysicalElement
 objectClass: physicalElement
