@@ -56,6 +56,17 @@ object Control {
     } }
     Full(buf)
   }
+
+  def sequenceEmptyable[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
+    val buf = scala.collection.mutable.Buffer[T]()
+    seq.foreach { u => f(u) match {
+      case f:Failure => return f
+      case Empty => // nothing to do
+      case Full(x) => buf += x
+    } }
+    Full(buf)
+  }
+
   
   /**
    * A version of sequence that will try to reach the end and accumulate
