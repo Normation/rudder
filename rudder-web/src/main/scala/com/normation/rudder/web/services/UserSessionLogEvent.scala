@@ -69,6 +69,7 @@ class UserSessionLogEvent(
                     EventLogDetails( 
                         principal = EventActor(u.getUsername)
                       , details = EventLog.emptyDetails
+                      , reason = None
                     )
                 )
             )
@@ -82,8 +83,9 @@ class UserSessionLogEvent(
             repository.saveEventLog(
                 BadCredentialsEventLog(
                     EventLogDetails( 
-                      principal = EventActor(u)
+                        principal = EventActor(u)
                       , details = EventLog.emptyDetails
+                      , reason = None
                     )
                 )
             )

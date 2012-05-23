@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2012 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,32 +32,9 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.policies
 
-import com.normation.utils.HashcodeCaching
+-- Migration script to add a "reason" column in table EventLog in Rudder 2.4
 
+ALTER TABLE EventLog ADD COLUMN reason text;
 
-/**
- * That file define "diff" object between rules.
- */
-
-sealed trait RuleDiff
-
-final case class AddRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching
-
-final case class DeleteRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching
-
-final case class ModifyRuleDiff(
-    id                  :RuleId
-  , name                : String //keep the name around to be able to display it as it was at that time
-  , modName             : Option[SimpleDiff[String]] = None
-  , modSerial           : Option[SimpleDiff[Int]] = None
-  , modTarget           : Option[SimpleDiff[Option[RuleTarget]]] = None
-  , modDirectiveIds     : Option[SimpleDiff[Set[DirectiveId]]] = None
-  , modShortDescription : Option[SimpleDiff[String]] = None
-  , modLongDescription  : Option[SimpleDiff[String]] = None
-  , modreasons  : Option[SimpleDiff[String]] = None
-  , modIsActivatedStatus: Option[SimpleDiff[Boolean]] = None
-  , modIsSystem         : Option[SimpleDiff[Boolean]] = None
-) extends RuleDiff with HashcodeCaching
-
+ 

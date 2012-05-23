@@ -106,14 +106,14 @@ class CheckInitUserTemplateLibrary(
             Full(newUserPTCat)
           } else {
             for {
-              updatedParentCat <- userCategoryService.addActiveTechniqueCategory(newUserPTCat, toParentCat, RudderEventActor) ?~! 
+              updatedParentCat <- userCategoryService.addActiveTechniqueCategory(newUserPTCat, toParentCat, RudderEventActor, reason = Some("Initialize active templates library")) ?~! 
                 "Error when adding category '%s' to user library parent category '%s'".format(newUserPTCat.id.value, toParentCat.id.value)
                 //now, add items and subcategories, in a "try to do the max you can" way
                 fullRes <- boxSequence(
                   //Techniques
                   bestEffort(fromCat.packageIds.groupBy(id => id.name).toSeq) { case (name, ids) =>
                     for {
-                      activeTechnique <- userTempalteService.addTechniqueInUserLibrary(newUserPTCat.id, name, ids.map( _.version).toSeq, RudderEventActor) ?~!
+                      activeTechnique <- userTempalteService.addTechniqueInUserLibrary(newUserPTCat.id, name, ids.map( _.version).toSeq, RudderEventActor, reason = Some("Initialize active templates library")) ?~!
                         "Error when adding Technique '%s' into user library category '%s'".format(name.value, newUserPTCat.id.value)
                     } yield {
                       activeTechnique

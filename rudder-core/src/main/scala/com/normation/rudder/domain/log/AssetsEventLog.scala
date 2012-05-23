@@ -104,13 +104,14 @@ object AcceptNodeEventLog extends EventLogFilter {
     , principal       : EventActor
     , inventoryDetails: InventoryLogDetails
     , creationDate    : DateTime = DateTime.now()
-    , severity        : Int = 100         
+    , severity        : Int = 100
+    , description     : Option[String] = None
   ) : AcceptNodeEventLog = {
     val details = EventLog.withContent(InventoryEventLog.toXml(
       inventoryDetails, "accept"
     ) )
     
-    AcceptNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, details)) 
+    AcceptNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, description, details)) 
   }
 }
 
@@ -134,12 +135,13 @@ object RefuseNodeEventLog extends EventLogFilter {
     , inventoryDetails: InventoryLogDetails
     , creationDate    : DateTime = DateTime.now()
     , severity        : Int = 100         
+    , description     : Option[String] = None
   ) : RefuseNodeEventLog = {
     val details = EventLog.withContent(InventoryEventLog.toXml(
       inventoryDetails, "refuse"
     ) )
     
-    RefuseNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, details)) 
+    RefuseNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, description, details)) 
   }
 }
 
@@ -204,13 +206,14 @@ object DeleteNodeEventLog extends EventLogFilter {
     , principal       : EventActor
     , node            : NodeInfo
     , creationDate    : DateTime = DateTime.now()
-    , severity        : Int = 100         
+    , severity        : Int = 100
+    , description     : Option[String] = None
   ) : DeleteNodeEventLog = {
     val details = EventLog.withContent(NodeEventLog.toXml(
       node, "delete"
     ) )
     
-    DeleteNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, details)) 
+    DeleteNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, description, details)) 
   }
 }
 

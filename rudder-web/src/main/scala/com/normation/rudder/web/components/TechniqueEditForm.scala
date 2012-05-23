@@ -200,7 +200,7 @@ class TechniqueEditForm(
       JsRaw("$.modal.close();") & 
       { 
         (for {
-          deleted <- dependencyService.cascadeDeleteTechnique(id, CurrentUser.getActor)
+          deleted <- dependencyService.cascadeDeleteTechnique(id, CurrentUser.getActor, Some("Technique deleted by user"))
           deploy <- {
             asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
             Full("Deployment request sent")
@@ -249,9 +249,9 @@ class TechniqueEditForm(
 
   private[this] def dialogDisableWarning(activeTechnique:ActiveTechnique) : NodeSeq = {
     if(activeTechnique.isEnabled) {
-      <h2>Disabling this Technique will also disable the following Directives and Rules which depend on it.</h2>
+      <h2>Disabling this Technique will also affect the following Directives and Rules.</h2>
     } else {
-      <h2>Enabling this Technique will also enable the following Directives and Rules which depend on it.</h2>
+      <h2>Enabling this Technique will also affect the following Directives and Rules.</h2>
     }
   }
 
@@ -297,7 +297,13 @@ class TechniqueEditForm(
                  */
                 def onClickAddTechniqueToCategory() : JsCmd = {
                   //back-end action
-                  activeTechniqueRepository.addTechniqueInUserLibrary(category.id, technique.id.name, techniqueRepository.getTechniqueVersions(technique.id.name).toSeq, CurrentUser.getActor) 
+                  activeTechniqueRepository.addTechniqueInUserLibrary(
+                      category.id
+                    , technique.id.name
+                    , techniqueRepository.getTechniqueVersions(technique.id.name).toSeq
+                    , CurrentUser.getActor
+                    , Some("User added a technique from UI")
+                  ) 
                   
                   //update UI
                   Replace(htmlId_addToActiveTechniques, showTechniqueUserCategory() ) &
@@ -432,7 +438,7 @@ class TechniqueEditForm(
   
   private[this] def statusAndDeployTechnique(uactiveTechniqueId:ActiveTechniqueId, status:Boolean) : JsCmd = {
       (for {
-        save <- activeTechniqueRepository.changeStatus(uactiveTechniqueId, status, CurrentUser.getActor)
+        save <- activeTechniqueRepository.changeStatus(uactiveTechniqueId, status, CurrentUser.getActor, Some("User changed status from UI"))
         deploy <- {
           asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
           Full("Deployment request sent")

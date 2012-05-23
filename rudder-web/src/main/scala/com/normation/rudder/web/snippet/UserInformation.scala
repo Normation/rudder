@@ -85,6 +85,7 @@ class UserInformation extends DispatchSnippet with Loggable {
                         EventLogDetails(
                             principal = EventActor(u.getUsername)
                           , details = EventLog.emptyDetails
+                          , reason = None
                         )
                     )
                 )

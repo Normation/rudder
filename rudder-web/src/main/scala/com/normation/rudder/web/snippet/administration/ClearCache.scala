@@ -81,7 +81,7 @@ class ClearCache extends DispatchSnippet with Loggable {
           val e = empty ?~! "Error when clearing caches"
           S.error(e.messageChain)
         case Full(set) => 
-          eventLogService.saveEventLog(ClearCacheEventLog(EventLogDetails(principal = CurrentUser.getActor, details = EventLog.emptyDetails))) match {
+          eventLogService.saveEventLog(ClearCacheEventLog(EventLogDetails(principal = CurrentUser.getActor, details = EventLog.emptyDetails, reason = None))) match {
             case eb:EmptyBox => 
               val e = eb ?~! "Error when logging the cache event"
               logger.error(e.messageChain)
@@ -90,7 +90,7 @@ class ClearCache extends DispatchSnippet with Loggable {
           }
           logger.debug("Delete node configurations on user clear cache demand: " + set.mkString(", ") )
           asyncDeploymentAgent ! AutomaticStartDeployment(CurrentUser.getActor)
-          S.notice("Caches were correctly cleaned")
+          S.notice("clearCacheNotice","Caches were correctly cleaned")
       }
       
       Replace("clearCacheForm", outerXml.applyAgain) 

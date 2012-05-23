@@ -332,7 +332,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         case (sourceactiveTechniqueId, destCatId) :: Nil =>
           (for {
             activeTechnique <- activeTechniqueRepository.getActiveTechnique(TechniqueName(sourceactiveTechniqueId)) ?~! "Error while trying to find Active Technique with requested id %s".format(sourceactiveTechniqueId)
-            result <- activeTechniqueRepository.move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId), CurrentUser.getActor)?~! "Error while trying to move Active Technique with requested id '%s' to category id '%s'".format(sourceactiveTechniqueId,destCatId)
+            result <- activeTechniqueRepository.move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId), CurrentUser.getActor, Some("User moved active technique from UI"))?~! "Error while trying to move Active Technique with requested id '%s' to category id '%s'".format(sourceactiveTechniqueId,destCatId)
           } yield {
             result
           }) match {
@@ -360,7 +360,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
        }) match {
         case (sourceCatId, destCatId) :: Nil =>
           (for {
-            result <- activeTechniqueCategoryRepository.move(ActiveTechniqueCategoryId(sourceCatId), ActiveTechniqueCategoryId(destCatId), CurrentUser.getActor) ?~! "Error while trying to move category with requested id %s into new parent: %s".format(sourceCatId,destCatId)
+            result <- activeTechniqueCategoryRepository.move(ActiveTechniqueCategoryId(sourceCatId), ActiveTechniqueCategoryId(destCatId), CurrentUser.getActor, Some("User moved Active Technique Category from UI")) ?~! "Error while trying to move category with requested id %s into new parent: %s".format(sourceCatId,destCatId)
           } yield {
             result
           }) match {
@@ -390,7 +390,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         case (sourceactiveTechniqueId, destCatId) :: Nil =>
           val ptName = TechniqueName(sourceactiveTechniqueId)
           (for {
-            result <- activeTechniqueRepository.addTechniqueInUserLibrary(ActiveTechniqueCategoryId(destCatId), ptName, techniqueRepository.getTechniqueVersions(ptName).toSeq, CurrentUser.getActor) ?~! "Error while trying to add Rudder internal Technique with requested id '%s' in user library category '%s'".format(sourceactiveTechniqueId,destCatId)
+            result <- (activeTechniqueRepository.addTechniqueInUserLibrary(ActiveTechniqueCategoryId(destCatId), ptName, techniqueRepository.getTechniqueVersions(ptName).toSeq, CurrentUser.getActor, Some("Active Technique added by user from UI")) 
+                       ?~! "Error while trying to add Rudder internal Technique with requested id '%s' in user library category '%s'".format(sourceactiveTechniqueId,destCatId)
+                      )
           } yield {
             result
           }) match {
@@ -598,13 +600,13 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   
   private[this] def reloadTechniqueLibrary : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
       def process = {
-        updatePTLibService.update(CurrentUser.getActor) match {
+        updatePTLibService.update(CurrentUser.getActor, Some("Technique library reloaded by user")) match {
           case Full(x) => 
-            S.notice("updateOk", "The Technique library was successfully reloaded")
+            S.notice("updateLib", "The Technique library was successfully reloaded")
           case e:EmptyBox =>
             val error = e ?~! "An error occured when updating the Technique library from file system"
             logger.debug(error.messageChain, e)
-            S.error("updateKO", error.msg)
+            S.error("updateLib", error.msg)
         }
         Replace("reloadTechniqueLibForm",outerXml.applyAgain) & refreshTree
       }

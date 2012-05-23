@@ -92,6 +92,7 @@ trait ActiveTechniqueCategoryRepository {
       that : ActiveTechniqueCategory
     , into : ActiveTechniqueCategory //parent category
     , actor: EventActor
+    , reason: Option[String]
   ) : Box[ActiveTechniqueCategory] 
   
   /**
@@ -99,7 +100,7 @@ trait ActiveTechniqueCategoryRepository {
    * Fail if the parent already contains a category of the
    * same name (name must be unique for a given level)
    */
-  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, actor: EventActor) : Box[ActiveTechniqueCategory]  
+  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategory]  
   
   /**
    * Get the direct parent of the given category.
@@ -129,7 +130,7 @@ trait ActiveTechniqueCategoryRepository {
    *  - Full(category id) for a success
    *  - Failure(with error message) iif an error happened. 
    */
-  def delete(id:ActiveTechniqueCategoryId, actor: EventActor, checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId]
+  def delete(id:ActiveTechniqueCategoryId, actor: EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId]
   
   /**
    * Move an existing category into a new one.
@@ -138,7 +139,7 @@ trait ActiveTechniqueCategoryRepository {
    * Fail if the parent already contains a category of the
    * same name (name must be unique for a given level)
    */
-  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, actor: EventActor) : Box[ActiveTechniqueCategoryId]
+  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategoryId]
   
   /**
    * Return true if at least one directive exists in this category (or a sub category 

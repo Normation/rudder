@@ -81,16 +81,16 @@ class DummyActiveTechniqueRepository extends ActiveTechniqueRepository {
   def addTechniqueInUserLibrary(
     categoryId:ActiveTechniqueCategoryId, 
     techniqueName:TechniqueName,
-    versions:Seq[TechniqueVersion], actor: EventActor
+    versions:Seq[TechniqueVersion], actor: EventActor, reason:Option[String]
   ) = Failure("Can't call this")
   
-  def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, actor: EventActor) = Failure("Can't call this") 
+  def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, actor: EventActor, reason:Option[String]) = Failure("Can't call this") 
   
-  def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, actor: EventActor) : Box[ActiveTechniqueId] = Failure("Can't call this") 
+  def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, actor: EventActor, reason:Option[String]) : Box[ActiveTechniqueId] = Failure("Can't call this") 
   
-  def setAcceptationDatetimes(uactiveTechniqueId:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], actor: EventActor) = Failure("Can't call this")
+  def setAcceptationDatetimes(uactiveTechniqueId:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], actor: EventActor, reason:Option[String]) = Failure("Can't call this")
   
-  def delete(uactiveTechniqueId:ActiveTechniqueId, actor: EventActor) = Failure("Can't call this")
+  def delete(uactiveTechniqueId:ActiveTechniqueId, actor: EventActor, reason:Option[String]) = Failure("Can't call this")
   
   def activeTechniqueBreadCrump(id:ActiveTechniqueId) = Failure("Can't call this")
   

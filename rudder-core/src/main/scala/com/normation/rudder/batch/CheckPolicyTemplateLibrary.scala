@@ -40,6 +40,7 @@ import net.liftweb.actor.{LiftActor, LAPinger}
 import net.liftweb.common.Loggable
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.log.RudderEventActor
+import org.joda.time.DateTime
 
 case class StartLibUpdate(actor: EventActor)
 
@@ -91,9 +92,9 @@ class CheckTechniqueLibrary(
       //
       case StartLibUpdate(actor) => 
         //schedule next update, in minutes
-        LAPinger.schedule(this, StartLibUpdate, realUpdateInterval*1000)      
+        LAPinger.schedule(this, StartLibUpdate, realUpdateInterval*1000L)      
         logger.trace("***** Start a new update")
-        policyPackageUpdater.update(actor)
+        policyPackageUpdater.update(actor, Some("Automatic batch update at " + DateTime.now))
       case _ => 
         logger.error("Ignoring start update dynamic group request because one other update still processing".format())
     }

@@ -134,7 +134,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
           currentNetworks <- psService.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID) ?~! "Error when getting the list of current authorized networks"
           changeNetwork   <- psService.setAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID, goodNets, CurrentUser.getActor) ?~! "Error when saving new allowed networks"
           modifications   =  UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(currentNetworks, goodNets)) 
-          eventSaved      <- eventLogService.saveEventLog(UpdatePolicyServer(EventLogDetails(principal = CurrentUser.getActor, details = modifications))) ?~! "Unable to save the user event log for modification on authorized networks"
+          eventSaved      <- eventLogService.saveEventLog(UpdatePolicyServer(EventLogDetails(principal = CurrentUser.getActor, details = modifications, reason = None))) ?~! "Unable to save the user event log for modification on authorized networks"
         } yield {
         }) match {
           case Full(_) => 

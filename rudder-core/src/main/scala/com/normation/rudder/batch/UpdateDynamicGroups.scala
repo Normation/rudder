@@ -206,7 +206,7 @@ class UpdateDynamicGroups(
             val results = for {
               dynGroupId <- dynGroupIds
             } yield {
-              (dynGroupId, dynGroupUpdaterService.update(dynGroupId,RudderEventActor))
+              (dynGroupId, dynGroupUpdaterService.update(dynGroupId,RudderEventActor, Some("Update group due to batch update of dynamic groups")))
             }
             updateManager ! UpdateResult(processId, startTime, DateTime.now, results.toMap)
           } catch {

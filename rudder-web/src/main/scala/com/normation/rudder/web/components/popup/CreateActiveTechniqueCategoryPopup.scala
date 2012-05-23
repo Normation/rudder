@@ -163,7 +163,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
                  children = Nil,
                  items = Nil
                ),
-               parent, CurrentUser.getActor
+               parent, CurrentUser.getActor, Some("user created a new category")
              ) match {
                case Failure(m,_,_) =>
                   logger.error("An error occurred while saving the category:" + m)

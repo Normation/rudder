@@ -194,15 +194,35 @@ class RuleGrid(
         trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]],
         target:Box[Option[RuleTargetInfo]]
     ) extends Line with HashcodeCaching 
+       
+    sealed trait ApplicationStatus
+    sealed trait NotAppliedStatus extends ApplicationStatus
+    sealed trait AppliedStatus extends ApplicationStatus
     
-    //is a rule applied for real ?
+    final case object NotAppliedNoPI extends NotAppliedStatus
+    final case object NotAppliedNoTarget extends NotAppliedStatus
+    final case object NotAppliedCrDisabled extends NotAppliedStatus
+    
+    final case object FullyApplied extends AppliedStatus
+    final case class PartiallyApplied(disabled: Seq[(Directive, ActiveTechnique, Technique)]) extends AppliedStatus
+    
+    
+    //is a cr applied for real ?
     def isApplied(
-        rule:Rule,
-        trackerVariables: Seq[(Directive,ActiveTechnique,Technique)],
+        cr:Rule,
+        trackerVariables: Seq[(Directive, ActiveTechnique, Technique)],
         target:Option[RuleTargetInfo]
-    ) : Boolean = {
-      rule.isEnabled && target.isDefined && target.get.isEnabled && trackerVariables.size > 0 && 
-      trackerVariables.forall { case (directive,activeTechnique,technique) => directive.isEnabled && activeTechnique.isEnabled }        
+    ) : ApplicationStatus = {
+      if(cr.isEnabled) {
+        if(target.isDefined && target.get.isEnabled) {
+          val disabled = trackerVariables.filterNot { case (pi,upt, pt) => pi.isEnabled && upt.isEnabled }
+          if(disabled.size == 0) FullyApplied
+          else if(trackerVariables.size - disabled.size > 0) PartiallyApplied(disabled)
+          else NotAppliedNoPI
+        } else {
+          NotAppliedNoTarget
+        }
+      } else NotAppliedCrDisabled
     }
     
     /*
@@ -333,11 +353,15 @@ class RuleGrid(
       
       (trackerVariables,targetInfo) match {
         case (Full(seq), Full(target)) => 
-          val compliance = if(isApplied(rule, seq, target)) computeCompliance(rule) else None
+          val compliance = isApplied(rule, seq, target) match {
+            case _:NotAppliedStatus => None
+            case _ =>  computeCompliance(rule)
+          }
+          
           OKLine(rule, compliance, seq, target)
         case (x,y) =>
           //the Rule has some error, try to disactivate it
-          ruleRepository.update(rule.copy(isEnabledStatus=false),RudderEventActor) 
+          ruleRepository.update(rule.copy(isEnabledStatus=false),RudderEventActor, Some("Rule automatically disabled because it contains error (bad target or bad directives)")) 
 
           ErrorLine(rule,x,y)
       }
@@ -361,15 +385,22 @@ class RuleGrid(
             if (line.rule.isEnabledStatus) "Enabled" else "Disabled"
           }</td>
           <td><b>{ // EFFECTIVE STATUS
-            if(isApplied(line.rule, line.trackerVariables, line.target)) Text("In application")
-            else {
+            isApplied(line.rule, line.trackerVariables, line.target) match {
+              case FullyApplied => Text("In application")
+              case PartiallyApplied(seq) => 
+                  val tooltipId = Helpers.nextFuncName
+                  val why = seq.map { case (pi, upt, pt) => "Policy " + pi.name + " disabled" }.mkString(", ")
+
+                 <span class="tooltip tooltipable" tooltipid={tooltipId}>Partially applied</span>
+                 <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
+              case x:NotAppliedStatus =>
                 val conditions = Seq(
-                    (line.rule.isEnabled, "Rule disabled" ), 
-                    ( line.trackerVariables.size > 0, "No Directive defined"),
+                    ( line.rule.isEnabled, "Configuration rule disabled" ), 
+                    ( line.trackerVariables.size > 0, "No policy defined"),
                     ( line.target.isDefined && line.target.get.isEnabled, "Group disabled")
-                 ) ++ line.trackerVariables.flatMap { case (directive, activeTechnique,technique) => Seq(
-                    ( directive.isEnabled , "Directive " + directive.name + " disabled") , 
-                    ( activeTechnique.isEnabled, "Technique for '" + directive.name + "' disabled") 
+                 ) ++ line.trackerVariables.flatMap { case (pi, upt,pt) => Seq(
+                    ( pi.isEnabled, "Policy " + pi.name + " disabled") , 
+                    ( upt.isEnabled, "Policy template for '" + pi.name + "' disabled") 
                  )}
                
                 val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ") 

@@ -61,6 +61,7 @@ import com.normation.rudder.domain.log.{
   ModifyRule
 }
 import com.normation.rudder.web.services.JsTreeUtilService
+import com.normation.rudder.web.services.UserPropertyService
 
 
 object RuleEditForm {
@@ -141,6 +142,7 @@ class RuleEditForm(
 
   private[this] val rootCategoryId = groupCategoryRepository.getRootCategory.id
   private[this] val treeUtilService = inject[JsTreeUtilService]
+  private[this] val userPropertyService = inject[UserPropertyService]
 
   //////////////////////////// public methods ////////////////////////////
   val extendsAt = SnippetExtensionKey(classOf[RuleEditForm].getSimpleName)
@@ -156,6 +158,7 @@ class RuleEditForm(
         
     
   }
+  
   private[this] def showCrForm() : NodeSeq = {    
     (
       "#editForm *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
@@ -169,6 +172,10 @@ class RuleEditForm(
       "#nameField" #> crName.toForm_! &
       "#shortDescriptionField" #> crShortDescription.toForm_! &
       "#longDescriptionField" #> crLongDescription.toForm_! &
+      ".reasonsFieldset" #> { crReasons.map { f =>
+        "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+        "#reasonsField" #> f.toForm_!
+      } } &
       "#selectPiField" #> {<div id={htmlId_activeTechniquesTree}>
             <ul>{activeTechniqueCategoryToJsTreeNode(activeTechniqueCategoryRepository.getActiveTechniqueLibrary).toXml}</ul>
            </div> } &
@@ -261,7 +268,7 @@ class RuleEditForm(
       JsRaw("$.modal.close();") & 
       { 
         (for {
-          save <- ruleRepository.delete(rule.id, CurrentUser.getActor)
+          save <- ruleRepository.delete(rule.id, CurrentUser.getActor, Some("Rule deleted by user"))
           deploy <- {
             asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
             Full("Deployment request sent")
@@ -349,11 +356,35 @@ class RuleEditForm(
     override def inputField = super.inputField  % ("style" -> "width:50em;height:15em")
   }
 
+  private[this] val crReasons = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true))
+      case Optionnal => Some(buildReasonField(false))
+    }
+  }
+  
+  def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", if(mandatory) "" else "Rule updated by user from UI") {
+    override def setFilter = notNull _ :: trim _ :: Nil
+    override def inputField = super.inputField  % ("style" -> "width:48em;height:15em")
+    override def validations() = {
+      if(mandatory){
+        valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
+      } else {
+        Nil
+      }
+    }
+  }
+
   private[this] def setCurrentNodeGroup(group : NodeGroup) = {
     selectedTarget = Some(GroupTarget(group.id))
   }
 
-  private[this] val formTracker = new FormTracker(crName,crShortDescription,crLongDescription)
+  private[this] val formTracker = {
+    val fields = List(crName, crShortDescription, crLongDescription) ++ crReasons.toList
+    new FormTracker(fields) 
+  }
   
   private[this] var notifications = List.empty[NodeSeq]
   
@@ -381,14 +412,13 @@ class RuleEditForm(
         directiveIds = selectedPis,
         isEnabledStatus = crCurrentStatusIsActivated
       )
-      
       saveAndDeployRule(newCr)
     }
   }
   
   private[this] def saveAndDeployRule(rule:Rule) : JsCmd = {
       (for {
-        save <- ruleRepository.update(rule, CurrentUser.getActor)
+        save <- ruleRepository.update(rule, CurrentUser.getActor, crReasons.map( _.is) )
         deploy <- {
           asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
           Full("Deployment request sent")

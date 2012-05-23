@@ -96,13 +96,13 @@ trait ItemArchiveManager {
    * Save all items handled by that archive manager 
    * and return an ID for the archive on success. 
    */
-  def exportAll(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportAll(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
   
-  def exportRules(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportRules(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
   
-  def exportTechniqueLibrary(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportTechniqueLibrary(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
   
-  def exportGroupLibrary(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportGroupLibrary(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
   
   /**
    * Import the archive with the given ID in Rudder. 
@@ -112,25 +112,25 @@ trait ItemArchiveManager {
    * was required. 
    * 
    */
-  def importAll(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importAll(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
 
-  def importRules(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importRules(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importTechniqueLibrary(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importTechniqueLibrary(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importGroupLibrary(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importGroupLibrary(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
   
 
   /**
    * Import the item archive from HEAD (corresponding to last commit)
    */
-  def importHeadAll(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadAll(actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importHeadRules(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadRules(actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importHeadTechniqueLibrary(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadTechniqueLibrary(actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
   
-  def importHeadGroupLibrary(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadGroupLibrary(actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
   
   
   /**
@@ -157,8 +157,9 @@ trait GitRuleArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    * 
+   * reason is an optional commit message to add to the standard one. 
    */
-  def archiveRule(rule:Rule, gitCommitCr:Option[PersonIdent]) : Box[GitPath]
+  def archiveRule(rule:Rule, gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
   
   /**
    * Commit modification done in the Git repository for any
@@ -166,8 +167,10 @@ trait GitRuleArchiver {
    * Also add a tag with the given return GitPath. 
    * The returned commit hash is the one for the tag. 
    * Return the git commit id. 
+   * 
+   * reason is an optional commit message to add to the standard one. 
    */
-  def commitRules(commiter:PersonIdent) : Box[GitArchiveId]
+  def commitRules(commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
   
   def getTags() : Box[Map[DateTime,GitArchiveId]]
   
@@ -175,8 +178,10 @@ trait GitRuleArchiver {
    * Delete an archived configuration rule. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
+   * 
+   * reason is an optional commit message to add to the standard one. 
    */
-  def deleteRule(ruleId:RuleId, gitCommitCr:Option[PersonIdent]) : Box[GitPath]
+  def deleteRule(ruleId:RuleId, gitCommitCr:Option[(PersonIdent,Option[String])]) : Box[GitPath]
   
   /**
    * Get the root directory where configuration rules are saved
@@ -198,20 +203,20 @@ trait GitActiveTechniqueCategoryArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def archiveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
     
   /**
    * Delete an archived user policy template category. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteActiveTechniqueCategory(uptcId:ActiveTechniqueCategoryId, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def deleteActiveTechniqueCategory(uptcId:ActiveTechniqueCategoryId, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
   
   /**
    * Move an archived policy template category from a 
    * parent category to an other. 
    */
-  def moveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def moveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
 
   /**
    * Get the root directory where user policy template categories are saved.
@@ -224,7 +229,7 @@ trait GitActiveTechniqueCategoryArchiver {
    * user policy library.
    * Return the git commit id. 
    */
-  def commitActiveTechniqueLibrary(commiter:PersonIdent) : Box[GitArchiveId]
+  def commitActiveTechniqueLibrary(commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
   
   def getTags() : Box[Map[DateTime,GitArchiveId]]
 }
@@ -240,20 +245,20 @@ trait GitActiveTechniqueArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveActiveTechnique(activeTechnique:ActiveTechnique, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def archiveActiveTechnique(activeTechnique:ActiveTechnique, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
     
   /**
    * Delete an archived user policy template. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteActiveTechnique(ptName:TechniqueName, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def deleteActiveTechnique(ptName:TechniqueName, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
   
   /**
    * Move an archived policy template from a 
    * parent category to an other. 
    */
-  def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
 
   /**
    * Get the root directory where user policy template categories are saved.
@@ -276,7 +281,7 @@ trait GitDirectiveArchiver {
     , ptName             : TechniqueName
     , catIds             : List[ActiveTechniqueCategoryId]
     , variableRootSection: SectionSpec
-    , gitCommit          : Option[PersonIdent]
+    , gitCommit          : Option[(PersonIdent,Option[String])]
   ) : Box[GitPath]
     
   /**
@@ -288,7 +293,7 @@ trait GitDirectiveArchiver {
       directiveId     : DirectiveId
     , ptName   : TechniqueName
     , catIds   : List[ActiveTechniqueCategoryId]
-    , gitCommit: Option[PersonIdent]
+    , gitCommit: Option[(PersonIdent,Option[String])]
   ) : Box[GitPath]
   
   /**
@@ -314,20 +319,20 @@ trait GitNodeGroupCategoryArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveNodeGroupCategory(groupCat:NodeGroupCategory, getParents:List[NodeGroupCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def archiveNodeGroupCategory(groupCat:NodeGroupCategory, getParents:List[NodeGroupCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
     
   /**
    * Delete an archived node group category. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteNodeGroupCategory(groupCatId:NodeGroupCategoryId, getParents:List[NodeGroupCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def deleteNodeGroupCategory(groupCatId:NodeGroupCategoryId, getParents:List[NodeGroupCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
   
   /**
    * Move an archived node group category from a 
    * parent category to an other. 
    */
-  def moveNodeGroupCategory(groupCat:NodeGroupCategory, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def moveNodeGroupCategory(groupCat:NodeGroupCategory, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
 
   /**
    * Get the root directory where node group categories are saved.
@@ -339,7 +344,7 @@ trait GitNodeGroupCategoryArchiver {
    * category and groups. 
    * Return the git commit id. 
    */
-  def commitGroupLibrary(commiter:PersonIdent) : Box[GitArchiveId]
+  def commitGroupLibrary(commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
   
   def getTags() : Box[Map[DateTime,GitArchiveId]]
 }
@@ -355,20 +360,20 @@ trait GitNodeGroupArchiver {
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def archiveNodeGroup(nodeGroup:NodeGroup, parents:List[NodeGroupCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def archiveNodeGroup(nodeGroup:NodeGroup, parents:List[NodeGroupCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
     
   /**
    * Delete an archived user policy template. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
-  def deleteNodeGroup(nodeGroup:NodeGroupId, parents:List[NodeGroupCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def deleteNodeGroup(nodeGroup:NodeGroupId, parents:List[NodeGroupCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
   
   /**
    * Move an archived policy template from a 
    * parent category to an other. 
    */
-  def moveNodeGroup(nodeGroup:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[PersonIdent]) : Box[GitPath]
+  def moveNodeGroup(nodeGroup:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
 
   /**
    * Get the root directory where user policy template categories are saved.

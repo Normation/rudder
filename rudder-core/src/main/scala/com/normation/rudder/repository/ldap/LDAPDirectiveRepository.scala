@@ -91,7 +91,7 @@ class LDAPDirectiveRepository(
    * Full((parent,directive)) : found the policy instance (directive.id == directiveId) in given parent
    * Failure => an error happened.
    */
-  def getDirective(id:DirectiveId) : Box[Directive] = {
+  override def getDirective(id:DirectiveId) : Box[Directive] = {
     for {
       locked  <- userLibMutex.readLock
       con     <- ldap 
@@ -102,7 +102,7 @@ class LDAPDirectiveRepository(
     }
   }
   
-  def getAll(includeSystem:Boolean = false) : Box[Seq[Directive]] = {
+  override def getAll(includeSystem:Boolean = false) : Box[Seq[Directive]] = {
     for {
       locked <- userLibMutex.readLock
       con    <- ldap
@@ -123,7 +123,7 @@ class LDAPDirectiveRepository(
    * Return empty if no such policy instance is known, 
    * fails if no User policy template match the policy instance.
    */
-  def getActiveTechnique(id:DirectiveId) : Box[ActiveTechnique] = {
+  override def getActiveTechnique(id:DirectiveId) : Box[ActiveTechnique] = {
     for {
       locked  <- userLibMutex.readLock
       con     <- ldap 
@@ -162,7 +162,7 @@ class LDAPDirectiveRepository(
    * 
    * Returned the saved WBUserDirective
    */
-  def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor) : Box[Option[DirectiveSaveDiff]] = {
+  override def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]] = {
     for {
       con         <- ldap
       uptEntry    <- ldapActiveTechniqueRepository.getUPTEntry(con, inActiveTechniqueId, "1.1") ?~! "Can not find the User Policy Entry with id %s to add Policy Instance %s".format(inActiveTechniqueId, directive.id)
@@ -187,16 +187,16 @@ class LDAPDirectiveRepository(
                        case None => Full("OK")
                        case Some(diff:AddDirectiveDiff) => 
                          actionLogger.saveAddDirective(
-                             principal = actor, addDiff = diff, varsRootSectionSpec = technique.rootSection
+                             principal = actor, addDiff = diff, varsRootSectionSpec = technique.rootSection, reason = reason
                          )
                        case Some(diff:ModifyDirectiveDiff) => 
-                         actionLogger.saveModifyDirective(principal = actor, modifyDiff = diff)
+                         actionLogger.saveModifyDirective(principal = actor, modifyDiff = diff, reason = reason)
                      }
       autoArchive <- if(autoExportOnModify && optDiff.isDefined) {
                        for {
                          parents  <- ldapActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)
                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                         archived <- gitPiArchiver.archiveDirective(directive, technique.id.name, parents.map( _.id), technique.rootSection, Some(commiter))
+                         archived <- gitPiArchiver.archiveDirective(directive, technique.id.name, parents.map( _.id), technique.rootSection, Some(commiter, reason))
                        } yield archived
                      } else Full("ok")
     } yield {
@@ -211,7 +211,7 @@ class LDAPDirectiveRepository(
    * delete dependent rule (or other items) by
    * hand if you want.
    */
-  def delete(id:DirectiveId, actor:EventActor) : Box[DeleteDirectiveDiff] = {
+  override def delete(id:DirectiveId, actor:EventActor, reason:Option[String]) : Box[DeleteDirectiveDiff] = {
     for {
       con          <- ldap
       entry        <- getDirectiveEntry(con, id)
@@ -223,13 +223,13 @@ class LDAPDirectiveRepository(
       deleted      <- userLibMutex.writeLock { con.delete(entry.dn) }
       diff         =  DeleteDirectiveDiff(technique.id.name, directive)
       loggedAction <- actionLogger.saveDeleteDirective(
-                          principal = actor, deleteDiff = diff, varsRootSectionSpec = technique.rootSection
+                          principal = actor, deleteDiff = diff, varsRootSectionSpec = technique.rootSection, reason = reason
                       )
       autoArchive  <- if(autoExportOnModify && deleted.size > 0) {
                         for {
                           parents  <- ldapActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some(commiter))
+                          archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some(commiter, reason))
                         } yield archived
                       } else Full("ok")
     } yield {

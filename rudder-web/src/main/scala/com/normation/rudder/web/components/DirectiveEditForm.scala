@@ -58,7 +58,7 @@ import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.domain.log._
 import com.normation.eventlog.EventActor
-
+import com.normation.rudder.web.services.UserPropertyService
 
 object DirectiveEditForm {
 
@@ -121,6 +121,7 @@ class DirectiveEditForm(
   private[this] val dependencyService = inject[DependencyAndDeletionService]
   private[this] val directiveEditorService = inject[DirectiveEditorService]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]  
+  private[this] val userPropertyService = inject[UserPropertyService]
 
   private[this] val htmlId_save = htmlId_policyConf + "Save"
   private[this] val parameterEditor = directiveEditorService.get(
@@ -191,6 +192,10 @@ class DirectiveEditForm(
       "#shortDescriptionField" #> piShortDescription.toForm_! &
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
+      ".reasonsFieldset" #> { crReasons.map { f =>
+        "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+        "#reasonsField" #> f.toForm_!
+      } } &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> htmlId_save) } &
       "#notification *" #> updateAndDisplayNotifications() &
@@ -239,7 +244,7 @@ class DirectiveEditForm(
                 successPopup
             } else {
               (for {
-                deleted <- dependencyService.cascadeDeleteDirective(directive.id, CurrentUser.getActor)
+                deleted <- dependencyService.cascadeDeleteDirective(directive.id, CurrentUser.getActor, Some("Directive deletion require by user")) //TODO why
                 deploy <- {
                   asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
                   Full("Deployment request sent")
@@ -277,7 +282,7 @@ class DirectiveEditForm(
           if (piCreation == true) {
             onSuccess
           } else {
-            saveAndDeployDirective(directive.copy(isEnabled = status))
+            saveAndDeployDirective(directive.copy(isEnabled = status), Some("Directive disabled by user"))
           }
         }
 
@@ -292,9 +297,9 @@ class DirectiveEditForm(
 
   private[this] def dialogDisableWarning: String = {
     if (piCurrentStatusIsActivated) {
-      "Disabling this Directive will also disable the following Rules which depend on it."
+      "Disabling this policy will affect the following Rules."
     } else {
-      "Enabling this Directive will also enable the following Rules which depend on it."
+      "Enabling this policy will affect the following Rules"
     }
   }
 
@@ -351,6 +356,28 @@ to avoid that last case.<br/>
 
   }
 
+  private[this] val crReasons = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true))
+      case Optionnal => Some(buildReasonField(false))
+    }
+  }
+  
+  def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", if(mandatory) "" else "Directive updated by user from UI") {
+    override def setFilter = notNull _ :: trim _ :: Nil
+    override def inputField = super.inputField  % 
+      ("style" -> "width:60em;height:15em;margin-top:3px;border: solid 2px #ABABAB;")
+    override def validations() = {
+      if(mandatory){
+        valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
+      } else {
+        Nil
+      }
+    }
+  }
+  
   private[this] val formTracker = new FormTracker(piName, piShortDescription, piLongDescription)
 
   private[this] var notifications = List.empty[NodeSeq]
@@ -379,32 +406,30 @@ to avoid that last case.<br/>
       onFailure
     } else {
       //try to save the PI
-      if (piCreation) {
-        val newPi = directive.copy(
+      val newPi = if (piCreation) {
+        directive.copy(
           parameters = parameterEditor.mapValueSeq,
           name = piName.is,
           shortDescription = piShortDescription.is,
           priority = piPriority.is,
           longDescription = piLongDescription.is,
           isEnabled = piCurrentStatusIsActivated)
-
-        saveAndDeployDirective(newPi)
       } else {
-        val newPi = directive.copy(
+        directive.copy(
           parameters = parameterEditor.mapValueSeq,
           name = piName.is,
           shortDescription = piShortDescription.is,
           priority = piPriority.is,
           longDescription = piLongDescription.is)
-
-        saveAndDeployDirective(newPi)
       }
+      
+      saveAndDeployDirective(newPi, crReasons.map(_.is))
     }
   }
 
-  private[this] def saveAndDeployDirective(directive: Directive): JsCmd = {
+  private[this] def saveAndDeployDirective(directive: Directive, why:Option[String]): JsCmd = {
     (for {
-      saved <- directiveRepository.saveDirective(activeTechnique.id, directive, CurrentUser.getActor)
+      saved <- directiveRepository.saveDirective(activeTechnique.id, directive, CurrentUser.getActor,why)
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
         Full("Deployment request sent")
