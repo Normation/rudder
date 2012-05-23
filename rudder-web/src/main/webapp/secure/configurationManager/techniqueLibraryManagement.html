@@ -2,6 +2,29 @@
 
 <head>
 <title>Rudder - Technique Library Management</title>
+<script type="text/javascript">
+//<![CDATA[
+var modifiedSearch = false ;
+var openAllNodes = function(treeId)  { $(treeId).jstree('open_all' ); return false; }
+var closeAllNodes = function(treeId) { $(treeId).jstree('close_all'); return false; }
+var searchTree = function(inputId, treeId) {
+  if (modifiedSearch==true){
+    if($(inputId).val() && $(inputId).val().length >= 3) { 
+        $(treeId).jstree('search', $(inputId).val());
+    } else {
+        $(treeId).jstree('clear_search');
+     }
+  }
+  return false;
+}
+var focusSearchFieldTree = function(inputId) { if( $(inputId).val() == 'Search') { $(inputId).val('') ; modifiedSearch = true}; return false; } 
+var clearSearchFieldTree = function(inputId, treeId) { 
+  $(inputId).val('Search');
+  $(treeId).jstree('clear_search');
+  return false;
+}
+// ]]>
+</script>
 </head>
 
 <lift:configuration.TechniqueLibraryManagement.head />
@@ -23,7 +46,7 @@
           <form class="lift:form.ajax">
             <span>Reload the last available version of the Technique library</span>
             <input type="submit" value="Reload"/>
-            <lift:Msgs showAll="true">[messages]</lift:Msgs>
+            <lift:Msg id="updateLib">[messages]</lift:Msg>
           </form>
         </div>
       </div>
@@ -34,6 +57,13 @@
       <div class="portlet">
         <div class="portlet-header">Reference Technique library</div>
         <div class="portlet-content">
+          <div id="TechniquesLibraryTree_actions_zone" style="margin:10px;">
+            <span onclick="openAllNodes('#techniqueLibraryTree');"><img src="/images/open-plus.png" alt="Open all categories" title="Open all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
+            <span onclick="closeAllNodes('#techniqueLibraryTree');"><img src="/images/close-minus.png" alt="Close all categories" title="Close all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
+            <span><input id="treeSearch2" type="text" value="Search" onkeyup="searchTree('#treeSearch2', '#techniqueLibraryTree');" onfocus="focusSearchFieldTree('#treeSearch2');" class="tooltipable" tooltipid="treeSearchTooltip"/></span>
+            <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
+            <span onclick="clearSearchFieldTree('#treeSearch2', '#techniqueLibraryTree')"><img src="/images/close-cross.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
+          </div>
           <lift:configuration.TechniqueLibraryManagement.systemLibrary />
         </div>
       </div>
@@ -42,6 +72,13 @@
       <div class="portlet">
         <div class="portlet-header">Active Techniques library</div>
         <div class="portlet-content">
+          <div id="TechniquesLibraryTree_actions_zone" style="margin:10px;">
+            <span onclick="openAllNodes('#activeTechniquesTree');"><img src="/images/open-plus.png" alt="Open all categories" title="Open all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
+            <span onclick="closeAllNodes('#activeTechniquesTree');"><img src="/images/close-minus.png" alt="Close all categories" title="Close all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
+            <span><input id="treeSearch" type="text" value="Search" onkeyup="searchTree('#treeSearch', '#activeTechniquesTree');" onfocus="focusSearchFieldTree('#treeSearch');" class="tooltipable" tooltipid="treeSearchTooltip"/></span>
+            <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
+            <span onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree')"><img src="/images/close-cross.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
+          </div>
           <lift:configuration.TechniqueLibraryManagement.userLibraryAction />
           <lift:configuration.TechniqueLibraryManagement.userLibrary />
         </div>

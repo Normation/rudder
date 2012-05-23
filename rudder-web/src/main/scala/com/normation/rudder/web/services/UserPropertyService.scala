@@ -31,33 +31,45 @@
 *
 *************************************************************************************
 */
+package com.normation.rudder.web.services
 
-package com.normation.rudder.domain.policies
-
-import com.normation.utils.HashcodeCaching
-
+object ReasonBehavior extends Enumeration {
+  type ReasonBehavior = Value
+  val Disabled, Mandatory, Optionnal = Value
+}
+import ReasonBehavior._
 
 /**
- * That file define "diff" object between rules.
+ * Expose application configuration choices from users
  */
+trait UserPropertyService {
 
-sealed trait RuleDiff
+  /**
+   * Strategy to manage reasons message field; for example in Rule.
+   * @return the strategy
+   */
+  // def reasonsFieldEnabled() : Boolean
+  def reasonsFieldBehavior : ReasonBehavior
+  def reasonsFieldExplanation : String
 
-final case class AddRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching
+}
 
-final case class DeleteRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching
+class UserPropertyServiceImpl( val opt : ReasonsMessageInfo ) extends UserPropertyService {
 
-final case class ModifyRuleDiff(
-    id                  :RuleId
-  , name                : String //keep the name around to be able to display it as it was at that time
-  , modName             : Option[SimpleDiff[String]] = None
-  , modSerial           : Option[SimpleDiff[Int]] = None
-  , modTarget           : Option[SimpleDiff[Option[RuleTarget]]] = None
-  , modDirectiveIds     : Option[SimpleDiff[Set[DirectiveId]]] = None
-  , modShortDescription : Option[SimpleDiff[String]] = None
-  , modLongDescription  : Option[SimpleDiff[String]] = None
-  , modreasons  : Option[SimpleDiff[String]] = None
-  , modIsActivatedStatus: Option[SimpleDiff[Boolean]] = None
-  , modIsSystem         : Option[SimpleDiff[Boolean]] = None
-) extends RuleDiff with HashcodeCaching
+  override val reasonsFieldBehavior = ( opt.enabled, opt.mandatory ) match {
+    case ( true, true )  => Mandatory
+    case ( true, false ) => Optionnal
+    case ( false, _ )    => Disabled
+  }
 
+  //  def reasonsFieldEnabled() : Boolean = opt.enabled
+
+  //  def reasonsFieldMandatory() : Boolean = opt.mandatory
+
+  override val reasonsFieldExplanation : String = opt.explanation
+}
+
+class ReasonsMessageInfo(
+  val enabled : Boolean,
+  val mandatory : Boolean,
+  val explanation : String ) 

@@ -44,6 +44,7 @@ trait EventLogFactory {
     , addDiff     : AddRuleDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : AddRule
 
   
@@ -53,6 +54,7 @@ trait EventLogFactory {
     , deleteDiff  : DeleteRuleDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : DeleteRule
   
   def getModifyRuleFromDiff(
@@ -61,6 +63,7 @@ trait EventLogFactory {
     , modifyDiff  : ModifyRuleDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : ModifyRule
   
   def getAddDirectiveFromDiff(
@@ -70,6 +73,7 @@ trait EventLogFactory {
     , varsRootSectionSpec: SectionSpec
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
+    , reason             : Option[String]
   ) : AddDirective
   
   def getDeleteDirectiveFromDiff(
@@ -79,6 +83,7 @@ trait EventLogFactory {
     , varsRootSectionSpec: SectionSpec
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
+    , reason             : Option[String]
   ) : DeleteDirective
   
   def getModifyDirectiveFromDiff(
@@ -87,6 +92,7 @@ trait EventLogFactory {
     , modifyDiff  : ModifyDirectiveDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : ModifyDirective
   
   def getAddNodeGroupFromDiff(
@@ -95,6 +101,7 @@ trait EventLogFactory {
     , addDiff     : AddNodeGroupDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : AddNodeGroup
 
   def getDeleteNodeGroupFromDiff(
@@ -103,6 +110,7 @@ trait EventLogFactory {
     , deleteDiff  : DeleteNodeGroupDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : DeleteNodeGroup
 
   def getModifyNodeGroupFromDiff(
@@ -111,6 +119,7 @@ trait EventLogFactory {
     , modifyDiff  : ModifyNodeGroupDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : ModifyNodeGroup
   
 }
@@ -125,12 +134,13 @@ class EventLogFactoryImpl(
   ///// Configuration Rules /////
   /////
   
-  def getAddRuleFromDiff(
+  override def getAddRuleFromDiff(
       id          : Option[Int] = None
     , principal   : EventActor
     , addDiff     : AddRuleDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : AddRule= {
     val details = EventLog.withContent(crToXml.serialise(addDiff.rule) % ("changeType" -> "add"))
     AddRule(EventLogDetails(
@@ -138,16 +148,18 @@ class EventLogFactoryImpl(
       , principal = principal
       , details = details
       , creationDate = creationDate
+      , reason = reason
       , severity = severity))
   }
 
   
-  def getDeleteRuleFromDiff(    
+  override def getDeleteRuleFromDiff(    
       id          : Option[Int] = None
     , principal   : EventActor
     , deleteDiff  : DeleteRuleDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : DeleteRule= {
     val details = EventLog.withContent(crToXml.serialise(deleteDiff.rule) % ("changeType" -> "delete"))
     DeleteRule(EventLogDetails(
@@ -155,15 +167,17 @@ class EventLogFactoryImpl(
       , principal = principal
       , details = details
       , creationDate = creationDate
+      , reason = reason
       , severity = severity))
   }
   
-  def getModifyRuleFromDiff(    
+  override def getModifyRuleFromDiff(    
       id          : Option[Int] = None
     , principal   : EventActor
     , modifyDiff  : ModifyRuleDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : ModifyRule = {
     val details = EventLog.withContent{
       scala.xml.Utility.trim(
@@ -194,6 +208,7 @@ class EventLogFactoryImpl(
       , principal = principal
       , details = details
       , creationDate = creationDate
+      , reason = reason
       , severity = severity))
   }
   
@@ -201,13 +216,14 @@ class EventLogFactoryImpl(
   ///// Policy Instance /////
   /////
   
-  def getAddDirectiveFromDiff(
+  override def getAddDirectiveFromDiff(
       id                 : Option[Int] = None
     , principal          : EventActor
     , addDiff            : AddDirectiveDiff
     , varsRootSectionSpec: SectionSpec
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
+    , reason             : Option[String]
   ) = {
     val details = EventLog.withContent(piToXml.serialise(addDiff.techniqueName, varsRootSectionSpec, addDiff.directive) % ("changeType" -> "add"))
     AddDirective(EventLogDetails(
@@ -215,16 +231,18 @@ class EventLogFactoryImpl(
       , principal = principal
       , details = details
       , creationDate = creationDate
+      , reason = reason
       , severity = severity))
   }
   
-  def getDeleteDirectiveFromDiff(
+  override def getDeleteDirectiveFromDiff(
       id                 : Option[Int] = None
     , principal          : EventActor
     , deleteDiff         : DeleteDirectiveDiff
     , varsRootSectionSpec: SectionSpec
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
+    , reason             : Option[String]
   ) = {
     val details = EventLog.withContent(piToXml.serialise(deleteDiff.techniqueName, varsRootSectionSpec, deleteDiff.directive) % ("changeType" -> "delete"))
     DeleteDirective(EventLogDetails(
@@ -232,15 +250,17 @@ class EventLogFactoryImpl(
       , principal = principal
       , details = details
       , creationDate = creationDate
+      , reason = reason
       , severity = severity))    
   }
   
-  def getModifyDirectiveFromDiff(
+  override def getModifyDirectiveFromDiff(
       id          : Option[Int] = None
     , principal   : EventActor
     , modifyDiff  : ModifyDirectiveDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) = {
     val details = EventLog.withContent{
       scala.xml.Utility.trim(
@@ -269,16 +289,18 @@ class EventLogFactoryImpl(
       , principal = principal
       , details = details
       , creationDate = creationDate
+      , reason = reason
       , severity = severity))  
   }
 
 
-  def getAddNodeGroupFromDiff(
+  override def getAddNodeGroupFromDiff(
       id          : Option[Int] = None
     , principal   : EventActor
     , addDiff     : AddNodeGroupDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : AddNodeGroup = {
     val details = EventLog.withContent(groutToXml.serialise(addDiff.group) % ("changeType" -> "add"))
     AddNodeGroup(EventLogDetails(
@@ -286,15 +308,17 @@ class EventLogFactoryImpl(
       , principal = principal
       , details = details
       , creationDate = creationDate
+      , reason = reason
       , severity = severity))
   }
 
-  def getDeleteNodeGroupFromDiff(
+  override def getDeleteNodeGroupFromDiff(
       id          : Option[Int] = None
     , principal   : EventActor
     , deleteDiff  : DeleteNodeGroupDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : DeleteNodeGroup = {
     val details = EventLog.withContent(groutToXml.serialise(deleteDiff.group) % ("changeType" -> "delete"))
     DeleteNodeGroup(EventLogDetails(
@@ -302,15 +326,17 @@ class EventLogFactoryImpl(
       , principal = principal
       , details = details
       , creationDate = creationDate
+      , reason = reason
       , severity = severity))
   }
 
-  def getModifyNodeGroupFromDiff(
+  override def getModifyNodeGroupFromDiff(
       id          : Option[Int] = None
     , principal   : EventActor
     , modifyDiff  : ModifyNodeGroupDiff
     , creationDate: DateTime = DateTime.now()
     , severity    : Int = 100
+    , reason      : Option[String]
   ) : ModifyNodeGroup = {
     val details = EventLog.withContent{
       scala.xml.Utility.trim(<nodeGroup changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_2.toString}>
@@ -338,6 +364,7 @@ class EventLogFactoryImpl(
       , principal = principal
       , details = details
       , creationDate = creationDate
+      , reason = reason
       , severity = severity))
   }
 }

@@ -129,5 +129,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     level for that logger to (at least) "info"
    -->
   <logger name="net.liftweb.util.TimeHelpers" level="warn" />
+  
+  <!-- Uncomment to have precise log about LDAP queries done by the node search engine -->
+<!--   <logger name="com.normation.rudder.services.queries.InternalLDAPQueryProcessor" level="debug" /> -->
  
 </configuration>

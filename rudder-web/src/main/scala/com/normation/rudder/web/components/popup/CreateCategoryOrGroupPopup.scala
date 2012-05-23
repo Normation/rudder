@@ -199,14 +199,16 @@ class CreateCategoryOrGroupPopup(
       // get the type of query :
       if (createContainer) {
         groupCategoryRepository.addGroupCategorytoCategory(
-          new NodeGroupCategory(
-            NodeGroupCategoryId(uuidGen.newUuid),
-            piName.is,
-            piDescription.is,
-            Nil,
-            Nil
-          ),
-          NodeGroupCategoryId(piContainer.is), CurrentUser.getActor
+            new NodeGroupCategory(
+              NodeGroupCategoryId(uuidGen.newUuid),
+              piName.is,
+              piDescription.is,
+              Nil,
+              Nil
+            )
+          , NodeGroupCategoryId(piContainer.is)
+          , CurrentUser.getActor
+          , Some("Node Group Category created by user from UI")
         ) match {
           case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
           case Empty =>
@@ -228,7 +230,8 @@ class CreateCategoryOrGroupPopup(
           groupGenerator.map(_.serverList).getOrElse(Set[NodeId]()),
           NodeGroupCategoryId(piContainer.is),
           true,
-          CurrentUser.getActor
+          CurrentUser.getActor,
+          Some("Group created by user")
         ) match {
           case Full(x) =>closePopup() & onSuccessCallback(x.group.id.value) & onSuccessGroup(x.group)
           case Empty =>

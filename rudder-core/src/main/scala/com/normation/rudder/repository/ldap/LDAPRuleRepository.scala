@@ -91,18 +91,18 @@ class LDAPRuleRepository(
   }
 
 
-  def delete(id:RuleId, actor:EventActor) : Box[DeleteRuleDiff] = {
+  def delete(id:RuleId, actor:EventActor, reason:Option[String]) : Box[DeleteRuleDiff] = {
     for {
       con          <- ldap
       entry        <- con.get(rudderDit.RULES.configRuleDN(id.value)) ?~! "Configuration rule with ID '%s' is not present".format(id.value)
       oldCr        <- mapper.entry2Rule(entry) ?~! "Error when transforming LDAP entry into a Configuration Rule for id %s. Entry: %s".format(id, entry)
       deleted      <- con.delete(rudderDit.RULES.configRuleDN(id.value)) ?~! "Error when deleting configuration rule with ID %s".format(id)
       diff         =  DeleteRuleDiff(oldCr)
-      loggedAction <- actionLogger.saveDeleteRule(principal = actor, deleteDiff = diff)
+      loggedAction <- actionLogger.saveDeleteRule(principal = actor, deleteDiff = diff, reason = reason)
       autoArchive  <- if(autoExportOnModify && deleted.size > 0) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archive  <- gitCrArchiver.deleteRule(id, Some(commiter))
+                          archive  <- gitCrArchiver.deleteRule(id, Some(commiter, reason))
                         } yield {
                           archive
                         }
@@ -126,7 +126,7 @@ class LDAPRuleRepository(
   }
   
   
-  def create(rule:Rule, actor:EventActor) : Box[AddRuleDiff] = {
+  def create(rule:Rule, actor:EventActor, reason:Option[String]) : Box[AddRuleDiff] = {
     repo.synchronized { for {
       con             <- ldap
       idDoesntExist   <- if(con.exists(rudderDit.RULES.configRuleDN(rule.id.value))) {
@@ -142,11 +142,11 @@ class LDAPRuleRepository(
                            con.save(crEntry) ?~! "Error when saving Configuration Rule entry in repository: %s".format(crEntry)
                          }
       diff            <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn,result)
-      loggedAction    <- actionLogger.saveAddRule(principal = actor, addDiff = diff)
+      loggedAction    <- actionLogger.saveAddRule(principal = actor, addDiff = diff, reason = reason)
       autoArchive     <- if(autoExportOnModify) {
                            for {
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive  <- gitCrArchiver.archiveRule(rule, Some(commiter))
+                             archive  <- gitCrArchiver.archiveRule(rule, Some(commiter, reason))
                            } yield {
                              archive
                            }
@@ -157,7 +157,7 @@ class LDAPRuleRepository(
   }
 
   
-  def update(rule:Rule, actor:EventActor) : Box[Option[ModifyRuleDiff]] = {
+  def update(rule:Rule, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]] = {
     repo.synchronized { for {
       con           <- ldap
       existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)) ?~! "Cannot update configuration rule with id %s : there is no configuration rule with that id".format(rule.id.value)
@@ -166,12 +166,12 @@ class LDAPRuleRepository(
       optDiff       <- diffMapper.modChangeRecords2RuleDiff(existingEntry,result) ?~! "Error when mapping Configuration Rule '%s' update to an diff: %s".format(rule.id.value, result)
       loggedAction  <- optDiff match {
                          case None => Full("OK")
-                         case Some(diff) => actionLogger.saveModifyRule(principal = actor, modifyDiff = diff)
+                         case Some(diff) => actionLogger.saveModifyRule(principal = actor, modifyDiff = diff, reason = reason)
                        }
       autoArchive   <- if(autoExportOnModify && optDiff.isDefined) {
                          for {
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archive  <- gitCrArchiver.archiveRule(rule, Some(commiter))
+                           archive  <- gitCrArchiver.archiveRule(rule, Some(commiter, reason))
                          } yield {
                            archive
                          }

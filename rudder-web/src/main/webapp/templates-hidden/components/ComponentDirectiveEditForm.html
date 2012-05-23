@@ -29,6 +29,18 @@
       font-size:0.9em;
     }
     
+    .reasonsFieldset {
+   		margin-top: 5px; 
+    }
+    
+    #explanationMessage {
+      margin-bottom:5px;
+    }
+    
+    .cpiefsave {
+      margin-top:5px;
+    }
+    
   </style>
 </head>
 </component:staticInit>
@@ -108,7 +120,7 @@
           <div>
             <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
             <h2 id="dialogDisactivateWarning">
-              Disabling this Directive will also disable the following Rules which depend on it.
+              Disabling this Directive will affect the following Rules.
             </h2>
           </div>
           <hr class="spacer" />
@@ -175,6 +187,18 @@
       <fieldset><legend>Parameters</legend>
         <span id="parameters">Here goes the list of parameters</span>
       </fieldset>
+    
+    <fieldset class="reasonsFieldset">
+    <legend>Change Message</legend>
+    
+    <div id="explanationMessage">
+      Here comes the explanation to reasons field
+    </div>
+    
+    <div id="reasonsField">
+      Here comes the reasons field
+    </div>
+    </fieldset>
 
       <div class="cpiefsave">
         <button id="save">Save</button>

@@ -209,3 +209,11 @@ rudder.autoDeployOnModification=true
 rudder.rest.allowNonAuthenticatedUser=true
 
 
+#
+# Allow to choose a way to display the feild reasons in UI
+# Expect an int (how to display the field reasons in UI)
+# If O is given, the field is absent
+# If 1 is given, the field is present and the field's content can be empty
+# If 2 is given, the field is present and the field's content is mandatory
+#
+rudder.field.reasons.message=1

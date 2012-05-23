@@ -83,7 +83,7 @@ trait DirectiveRepository {
    * 
    * Returned the saved UserDirective
    */
-  def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor) : Box[Option[DirectiveSaveDiff]]
+  def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]]
  
   /**
    * Get all directives defined in that repository
@@ -99,6 +99,6 @@ trait DirectiveRepository {
    * If the given directiveId does not exists, it leads to a
    * failure.
    */
-  def delete(id:DirectiveId, actor:EventActor) : Box[DeleteDirectiveDiff]
+  def delete(id:DirectiveId, actor:EventActor, reason:Option[String]) : Box[DeleteDirectiveDiff]
 
 }
