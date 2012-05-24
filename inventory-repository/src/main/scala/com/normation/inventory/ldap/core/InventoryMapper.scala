@@ -584,6 +584,7 @@ class InventoryMapper(
           case Windows2000  => win += (A_OS_NAME, A_OS_WIN_2000)
           case Windows2003  => win += (A_OS_NAME, A_OS_WIN_2003)
           case Windows2008  => win += (A_OS_NAME, A_OS_WIN_2008)
+          case UnknownWindowsType => win += (A_OS_NAME, "Undetected windows version")
           case _ => //nothing more
         }
         win.setOpt(userDomain, A_WIN_USER_DOMAIN, { x: String => x })
