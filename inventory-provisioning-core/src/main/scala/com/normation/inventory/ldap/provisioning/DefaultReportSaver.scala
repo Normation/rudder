@@ -44,14 +44,7 @@ import net.liftweb.common.{Box,Full,Empty,EmptyBox,Failure}
 import scala.collection.mutable.Buffer
 import org.slf4j.LoggerFactory
 import com.normation.ldap.sdk.BuildFilter
-import DefaultReportSaver._
-
-
-object DefaultReportSaver {
-  val logger = LoggerFactory.getLogger(classOf[LoggerFactory])
-}
-
-
+import net.liftweb.common.Loggable
 
 /**
  * Post-commit convention:
@@ -68,7 +61,7 @@ class DefaultReportSaver(
   mapper:InventoryMapper, 
   override val preCommitPipeline:Seq[PreCommit],
   override val postCommitPipeline:Seq[PostCommit[Seq[LDIFChangeRecord]]]
-) extends PipelinedReportSaver[Seq[LDIFChangeRecord]] {
+) extends PipelinedReportSaver[Seq[LDIFChangeRecord]] with Loggable {
 
   def commitChange(report:InventoryReport) : Box[Seq[LDIFChangeRecord]] = {
     
@@ -130,12 +123,11 @@ class DefaultReportSaver(
     } else { //ok, so at least one non error. Log errors, merge non error, and post-process it
       
       val changes : Seq[LDIFChangeRecord] = (Seq[LDIFChangeRecord]() /: results){ (records,r) => r match {
-        case f@Failure(m,_,_) => 
-          logger.error("Report processing will be incomplete, found error: {}", m)
-          val cause = f.rootExceptionCause
-          cause.foreach(ex => 
-            logger.error("Associated exeption: %s: %s".format(ex.getClass, ex.getMessage))
-          )
+        case f:Failure => 
+          logger.error("Report processing will be incomplete, found error: %s".format(f.messageChain))
+          f.rootExceptionCause.foreach { ex => 
+            logger.error("Error was caused by exception: %s".format(ex.getMessage))
+          }
           records
         case Empty => records //can't log anything relevant ? 
         case Full(seq) => records ++ seq
