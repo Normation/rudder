@@ -337,7 +337,18 @@ class FusionReportUnmarshaller(
 
       //find os type, and name
       val detectedOs : OsType = (osType, osName) match {
-        case ("mswin32", x ) =>        UnknownWindowsType
+        case ("mswin32", _ ) => 
+          val x = fullName.toLowerCase
+          //in windows, relevant information are in the fullName string
+          if     (x contains  "xp"     )   WindowsXP
+          else if(x contains  "vista"  )   WindowsVista
+          else if(x contains  "seven"  )   WindowsSeven
+          else if(x contains  "2000"   )   Windows2000
+          else if(x contains  "2003"   )   Windows2003
+          else if(x contains  "2008 r2")   Windows2008R2 //must be before 2008 for obvious reason
+          else if(x contains  "2008"   )   Windows2008
+          else                             UnknownWindowsType
+
         case ("linux"  , x ) => 
           if     (x contains "debian") Debian
           else if(x contains "ubuntu") Ubuntu
@@ -345,15 +356,14 @@ class FusionReportUnmarshaller(
           else if(x contains "centos") Centos
           else if(x contains "fedora") Fedora
           else if(x contains "suse"  ) Suse
-          else                         UnknownOSType
+          else                         UnknownLinuxType
+        //be sure to handle the validity of that case further down the processing pipeline, 
+        //for example in PostUnMarshallCheckConsistency
         case _  => UnknownOSType
       }
     
       detectedOs match {
         case w:WindowsType =>
-          //windows need some more parsing
-          val harwareXml = contentNode \ "HARWARE"
-          
           
           Windows(
               os = w

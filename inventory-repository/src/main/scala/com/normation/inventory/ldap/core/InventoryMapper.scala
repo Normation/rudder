@@ -570,7 +570,7 @@ class InventoryMapper(
           case Centos => linux += (A_OS_NAME, A_OS_CENTOS)
           case Fedora => linux += (A_OS_NAME, A_OS_FEDORA)
           case Suse   => linux += (A_OS_NAME, A_OS_SUZE)
-          case _ => //nothing more
+          case _      => linux += (A_OS_NAME, A_OS_UNKNOWN_LINUX)
         }
         linux
         
@@ -583,7 +583,8 @@ class InventoryMapper(
           case Windows2000  => win += (A_OS_NAME, A_OS_WIN_2000)
           case Windows2003  => win += (A_OS_NAME, A_OS_WIN_2003)
           case Windows2008  => win += (A_OS_NAME, A_OS_WIN_2008)
-          case _ => //nothing more
+          case Windows2008R2 => win += (A_OS_NAME, A_OS_WIN_2008_R2)
+          case _             => win += (A_OS_NAME, A_OS_UNKNOWN_WINDOWS)
         }
         win.setOpt(userDomain, A_WIN_USER_DOMAIN, { x: String => x })
         win.setOpt(registrationCompany, A_WIN_COMPANY, { x: String => x })
@@ -706,6 +707,7 @@ class InventoryMapper(
             case A_OS_WIN_2000  => Windows2000
             case A_OS_WIN_2003  => Windows2003
             case A_OS_WIN_2008  => Windows2008
+            case A_OS_WIN_2008_R2  => Windows2008R2
             case _ => UnknownWindowsType
           }
           val userDomain = entry(A_WIN_USER_DOMAIN)
@@ -722,7 +724,7 @@ class InventoryMapper(
             case A_OS_CENTOS => Centos
             case A_OS_FEDORA => Fedora
             case A_OS_SUZE   => Suse
-            case e => UnknownLinuxType
+            case _ => UnknownLinuxType
           }
           Full(Linux(os,osFullName,osVersion,osServicePack,kernelVersion))
           
