@@ -297,9 +297,9 @@ class DirectiveEditForm(
 
   private[this] def dialogDisableWarning: String = {
     if (piCurrentStatusIsActivated) {
-      "Disabling this Directive will also disable the following Rules which depend on it."
+      "Disabling this policy will affect the following Rules."
     } else {
-      "Enabling this Directive will also enable the following Rules which depend on it."
+      "Enabling this policy will affect the following Rules"
     }
   }
 
