@@ -249,9 +249,9 @@ class TechniqueEditForm(
 
   private[this] def dialogDisableWarning(activeTechnique:ActiveTechnique) : NodeSeq = {
     if(activeTechnique.isEnabled) {
-      <h2>Disabling this Technique will also disable the following Directives and Rules which depend on it.</h2>
+      <h2>Disabling this Technique will also affect the following Directives and Rules.</h2>
     } else {
-      <h2>Enabling this Technique will also enable the following Directives and Rules which depend on it.</h2>
+      <h2>Enabling this Technique will also affect the following Directives and Rules.</h2>
     }
   }
 
