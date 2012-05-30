@@ -285,6 +285,7 @@ limitations under the License.
     <commons-io-version>2.3</commons-io-version>
     <specs2-version>1.10</specs2-version>
     <spring-version>3.1.1.RELEASE</spring-version>
+    <squeryl-version>0.9.5</squeryl-version>
   </properties>
   
   <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
