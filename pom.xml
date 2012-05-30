@@ -280,7 +280,7 @@ limitations under the License.
     <logback-version>1.0.3</logback-version>
     <junit-version>4.8.2</junit-version>
     <jodatime-version>2.0</jodatime-version>
-    <commons-io-version>2.1</commons-io-version>
+    <commons-io-version>2.3</commons-io-version>
     <specs2-version>1.10</specs2-version>
     <scala-ldap-version>0.12-SNAPSHOT</scala-ldap-version>
     <spring-version>3.0.6.RELEASE</spring-version>
