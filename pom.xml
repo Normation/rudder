@@ -273,7 +273,7 @@ limitations under the License.
 
     <rudder-version>2.5.0-SNAPSHOT</rudder-version>
     
-    <scala-version>2.9.1</scala-version>
+    <scala-version>2.9.2</scala-version>
     <scala-lift-version>2.9.1</scala-lift-version>
     <lift-version>2.4</lift-version>
     <slf4j-version>1.6.4</slf4j-version>
