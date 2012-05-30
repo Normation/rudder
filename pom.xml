@@ -283,7 +283,7 @@ limitations under the License.
     <commons-io-version>2.3</commons-io-version>
     <specs2-version>1.10</specs2-version>
     <scala-ldap-version>0.12-SNAPSHOT</scala-ldap-version>
-    <spring-version>3.0.6.RELEASE</spring-version>
+    <spring-version>3.1.1.RELEASE</spring-version>
     <spring-run-dep-version>2.5.0-SNAPSHOT</spring-run-dep-version>
   </properties>
   
