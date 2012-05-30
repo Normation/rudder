@@ -88,6 +88,27 @@ object DirectiveEditForm {
     } yield {
       chooseTemplate("component", "itemDependencies", xml)
     }) openOr Nil
+    
+  private def popupRemoveForm = 
+    (for {
+      xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
+    } yield {
+      chooseTemplate("component", "popupRemoveForm", xml)
+    }) openOr Nil
+    
+  private def popupDisactivateForm = 
+    (for {
+      xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
+    } yield {
+      chooseTemplate("component", "popupDisactivateForm", xml)
+    }) openOr Nil
+    
+  private def crForm = 
+    (for {
+      xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
+    } yield {
+      chooseTemplate("component", "form", xml)
+    }) openOr Nil
 }
 
 /**
@@ -140,8 +161,97 @@ class DirectiveEditForm(
   def dispatch = {
     case "showForm" => { _ => showForm }
   }
-
+  
   def showForm(): NodeSeq = {
+    ( 
+      "#editForm" #> showCrForm() &
+      "#removeActionDialog" #> showRemovePopupForm() &
+      "#disactivateActionDialog" #> showDisactivatePopupForm()
+    )(body)
+  }
+  
+  def showRemovePopupForm() : NodeSeq = {
+    //pop-up: their content should be retrieve lazily
+    val removePopupGridXml = if (piCreation) {
+      val cmp = new RuleGrid("remove_popup_grid", Seq(), None, false)
+      cmp.rulesGrid(linkCompliancePopup = false)
+    } else {
+      dependencyService.directiveDependencies(directive.id).map(_.rules) match {
+        case e: EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
+        case Full(rules) => {
+          val cmp = new RuleGrid("remove_popup_grid", rules, None, false)
+          cmp.rulesGrid(linkCompliancePopup = false)
+        }
+      }
+    }
+
+    //if directive current inherited status is "activated", the two pop-up (disable and remove) show
+    //the same content. Else, we have to build two different pop-up
+    val switchStatusFilter = if (directive.isEnabled) OnlyDisableable else OnlyEnableable
+    val disablePopupGridXml = dependencyService.directiveDependencies(directive.id, switchStatusFilter).map(_.rules) match {
+      case e: EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
+      case Full(rules) => {
+        val cmp = new RuleGrid("disable_popup_grid", rules, None, false)
+        cmp.rulesGrid(linkCompliancePopup = false)
+      }
+    }
+    
+    (
+       "#removeActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
+       "#dialogRemoveButton" #> { removeButton % ("id", "removeButton") } &
+      "#removeItemDependencies" #> {
+        (ClearClearable & "#itemDependenciesGrid" #> removePopupGridXml)(itemDependencies)
+      } &
+       ".reasonsFieldsetPopup" #> { crReasonsRemovePopup.map { f =>
+         "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+         "#reasonsField" #> f.toForm_!
+       } } &
+       "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerRemovePopup) }
+    )(popupRemoveForm) 
+  }
+  
+  def showDisactivatePopupForm() : NodeSeq = {
+    //pop-up: their content should be retrieve lazily
+    val removePopupGridXml = if (piCreation) {
+      val cmp = new RuleGrid("remove_popup_grid", Seq(), None, false)
+      cmp.rulesGrid(linkCompliancePopup = false)
+    } else {
+      dependencyService.directiveDependencies(directive.id).map(_.rules) match {
+        case e: EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
+        case Full(rules) => {
+          val cmp = new RuleGrid("remove_popup_grid", rules, None, false)
+          cmp.rulesGrid(linkCompliancePopup = false)
+        }
+      }
+    }
+
+    //if directive current inherited status is "activated", the two pop-up (disable and remove) show
+    //the same content. Else, we have to build two different pop-up
+    val switchStatusFilter = if (directive.isEnabled) OnlyDisableable else OnlyEnableable
+    val disablePopupGridXml = dependencyService.directiveDependencies(directive.id, switchStatusFilter).map(_.rules) match {
+      case e: EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
+      case Full(rules) => {
+        val cmp = new RuleGrid("disable_popup_grid", rules, None, false)
+        cmp.rulesGrid(linkCompliancePopup = false)
+      }
+    }
+    
+    (
+      "#desactivateActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
+      "#dialogDisactivateButton" #> { disableButton % ("id", "disactivateButton") } &
+      "#dialogDisactivateWarning *" #> dialogDisableWarning &
+      "#disableItemDependencies" #> {
+        (ClearClearable & "#itemDependenciesGrid" #> disablePopupGridXml)(itemDependencies)
+      } &
+      ".reasonsFieldsetPopup" #> { crReasonsDisactivatePopup.map { f =>
+         "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+         "#reasonsField" #> f.toForm_!
+      } } &
+       "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerDisactivatePopup) }
+    )(popupDisactivateForm) 
+  }
+
+  def showCrForm(): NodeSeq = {
 
     //pop-up: their content should be retrieve lazily
     val removePopupGridXml = if (piCreation) {
@@ -173,18 +283,7 @@ class DirectiveEditForm(
       ClearClearable &
       //activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if (piCurrentStatusIsActivated) "Disable" else "Enable" } &
-      "#dialogDisactivateButton" #> { disableButton % ("id", "disactivateButton") } &
       "#dialogDisactivateLabel" #> { if (piCurrentStatusIsActivated) "disable" else "enable" } &
-      "#dialogDisactivateWarning *" #> dialogDisableWarning &
-      //remove
-      "#dialogRemoveButton" #> { removeButton % ("id", "removeButton") } &
-      //dependency grid
-      "#removeItemDependencies" #> {
-        (ClearClearable & "#itemDependenciesGrid" #> removePopupGridXml)(itemDependencies)
-      } &
-      "#disableItemDependencies" #> {
-        (ClearClearable & "#itemDependenciesGrid" #> disablePopupGridXml)(itemDependencies)
-      } &
       //form and form fields
       "#techniqueName" #> <a href={ "/secure/configurationManager/techniqueLibraryManagement/" + technique.id.name.value }>{ technique.name }</a> &
       "#techniqueDescription" #> technique.description &
@@ -198,9 +297,9 @@ class DirectiveEditForm(
       } } &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> htmlId_save) } &
-      "#notification *" #> updateAndDisplayNotifications() &
+      "#notification *" #> updateAndDisplayNotifications(formTracker) &
       "#isSingle *" #> showIsSingle &
-      "#editForm [id]" #> htmlId_policyConf)(body) ++ Script(OnLoad(
+      "#editForm [id]" #> htmlId_policyConf)(crForm) ++ Script(OnLoad(
         JsRaw("""activateButtonOnFormChange("%s", "%s");  """.format(htmlId_policyConf, htmlId_save)) &
           JsRaw("""
         correctButtons();
@@ -230,12 +329,47 @@ class DirectiveEditForm(
     formTracker.addFormError(error("The form contains some errors, please correct them"))
     onFailureCallback() & updateFormClientSide() & JsRaw("""scrollToElement("errorNotification");""")
   }
-
+  
+  private[this] def onFailureRemovePopup() : JsCmd = {
+    val elemError = error("The form contains some errors, please correct them")
+    formTrackerRemovePopup.addFormError(elemError)
+    updateRemoveFormClientSide() & 
+    onFailureCallback()
+  }
+  
+  private[this] def onFailureDisablePopup() : JsCmd = {
+    val elemError = error("The form contains some errors, please correct them")
+    formTrackerDisactivatePopup.addFormError(elemError)
+    onFailureCallback() & 
+    updateDisableFormClientSide()
+  }
+  
+  private[this] def updateRemoveFormClientSide() : JsCmd = {
+    val jsDisplayRemoveDiv = JsRaw("""$("#removeActionDialog").removeClass('nodisplay')""")
+    Replace("removeActionDialog", this.showRemovePopupForm()) & 
+    jsDisplayRemoveDiv &
+    initJs
+  }
+  
+  private[this] def updateDisableFormClientSide() : JsCmd = {
+    val jsDisplayDisableDiv = JsRaw("""$("#desactivateActionDialog").removeClass('nodisplay')""")
+    Replace("desactivateActionDialog", this.showDisactivatePopupForm()) & 
+    jsDisplayDisableDiv &
+    initJs
+  }
+  
+  def initJs : JsCmd = {
+    JsRaw("correctButtons();")
+  }
+  
   ///////////// Remove /////////////
 
   private[this] def removeButton: Elem = {
       def removeCr(): JsCmd = {
-        JsRaw("$.modal.close();") &
+        if(formTrackerRemovePopup.hasErrors) {
+          onFailureRemovePopup
+        } else {
+          JsRaw("$.modal.close();") &
           {
             if (piCreation) {
               onSuccessCallback() &
@@ -268,30 +402,34 @@ class DirectiveEditForm(
               }
             }
           }
+        }
       }
 
-    SHtml.ajaxButton(<span class="red">Delete</span>, removeCr _)
+    SHtml.ajaxSubmit("Delete", removeCr _)
   }
 
   ///////////// Enable / disable /////////////
 
   private[this] def disableButton: Elem = {
-      def switchActivation(status: Boolean)(): JsCmd = {
-        piCurrentStatusIsActivated = status
-        JsRaw("$.modal.close();") & {
-          if (piCreation == true) {
-            onSuccess
-          } else {
-            saveAndDeployDirective(directive.copy(isEnabled = status), Some("Directive disabled by user"))
+      def switchActivation(status: Boolean)(): JsCmd = {      
+        if(formTrackerDisactivatePopup.hasErrors) {
+          onFailureDisablePopup
+        } else {
+          piCurrentStatusIsActivated = status
+          JsRaw("$.modal.close();") & {
+            if (piCreation == true) {
+              onSuccess
+            } else {
+              saveAndDeployDirective(directive.copy(isEnabled = status), Some("Directive disabled by user"))
+            }
           }
         }
-
       }
 
     if (piCurrentStatusIsActivated) {
-      SHtml.ajaxButton(<span class="red">Disable</span>, switchActivation(false) _)
+      SHtml.ajaxSubmit("Disable", switchActivation(false) _)
     } else {
-      SHtml.ajaxButton(<span class="red">Enable</span>, switchActivation(true) _)
+      SHtml.ajaxSubmit("Enable", switchActivation(true) _)
     }
   }
 
@@ -365,6 +503,24 @@ to avoid that last case.<br/>
     }
   }
   
+  private[this] val crReasonsRemovePopup = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true))
+      case Optionnal => Some(buildReasonField(false))
+    }
+  }
+  
+  private[this] val crReasonsDisactivatePopup = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true))
+      case Optionnal => Some(buildReasonField(false))
+    }
+  }
+  
   def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", if(mandatory) "" else "Directive updated by user from UI") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % 
@@ -378,12 +534,19 @@ to avoid that last case.<br/>
     }
   }
   
-  private[this] val formTracker = new FormTracker(piName, piShortDescription, piLongDescription)
-
-  private[this] var notifications = List.empty[NodeSeq]
-
+  private[this] val formTracker = {
+    val l = List(piName, piShortDescription, piLongDescription) ++ crReasons
+    new FormTracker(l)
+  }
+  
+  private[this] val formTrackerRemovePopup = 
+    new FormTracker(crReasonsRemovePopup.toList) 
+  
+  private[this] val formTrackerDisactivatePopup = 
+    new FormTracker(crReasonsDisactivatePopup.toList) 
+  
   private[this] def updateFormClientSide(): JsCmd = {
-    SetHtml(htmlId_policyConf, showForm)
+    SetHtml(htmlId_policyConf, showCrForm)
   }
 
   private[this] def error(msg: String) = <span class="error">{ msg }</span>
@@ -446,18 +609,22 @@ to avoid that last case.<br/>
         onFailure
     }
   }
-
-  private[this] def updateAndDisplayNotifications(): NodeSeq = {
-    notifications :::= formTracker.formErrors
+  
+  private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
+    
+    val notifications = formTracker.formErrors
     formTracker.cleanErrors
-
-    if (notifications.isEmpty) NodeSeq.Empty
+   
+    if(notifications.isEmpty) {
+      NodeSeq.Empty
+    }
     else {
-      val html = <div id="errorNotification" class="notify"><ul>{ notifications.map(n => <li>{ n }</li>) }</ul></div>
-      notifications = Nil
+      val html = <div id="errorNotification" class="notify">
+        <ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
       html
     }
   }
+  
 
   ///////////// success pop-up ///////////////
     private[this] def successPopup : JsCmd = {
