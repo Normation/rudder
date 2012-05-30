@@ -271,7 +271,9 @@ limitations under the License.
 
     <!-- Libraries version that MUST be used in all children project -->
 
-    <rudder-version>2.5.0-SNAPSHOT</rudder-version>
+    <rudder-version>2.5.0-SNAPSHOT</rudder-version>    
+    <spring-run-dep-version>2.5.0-SNAPSHOT</spring-run-dep-version>
+    <scala-ldap-version>0.12-SNAPSHOT</scala-ldap-version>
     
     <scala-version>2.9.2</scala-version>
     <scala-lift-version>2.9.1</scala-lift-version>
@@ -282,9 +284,7 @@ limitations under the License.
     <jodatime-version>2.1</jodatime-version>
     <commons-io-version>2.3</commons-io-version>
     <specs2-version>1.10</specs2-version>
-    <scala-ldap-version>0.12-SNAPSHOT</scala-ldap-version>
     <spring-version>3.1.1.RELEASE</spring-version>
-    <spring-run-dep-version>2.5.0-SNAPSHOT</spring-run-dep-version>
   </properties>
   
   <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
