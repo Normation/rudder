@@ -61,6 +61,9 @@ import com.normation.rudder.web.services.JsTreeUtilService
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import net.liftweb.http.IdMemoizeTransform
+import com.normation.rudder.web.components.popup.GiveReasonPopup
+import com.normation.rudder.web.services.UserPropertyService
+import com.normation.rudder.web.services.ReasonBehavior._
 
 
 /**
@@ -93,6 +96,12 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   //the popup component to create user technique category
   private[this] val creationPopup = new LocalSnippet[CreateActiveTechniqueCategoryPopup]
+  
+  // the popup component to give reason when moving techniques from Reference 
+  // Technique Library to Active Technique Library
+  private[this] val giveReasonPopup = new LocalSnippet[GiveReasonPopup]
+  
+  private[this] val userPropertyService = inject[UserPropertyService]
 
 
   def dispatch = { 
@@ -152,12 +161,32 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
          creationPopup.set(Full(new CreateActiveTechniqueCategoryPopup(
             onSuccessCallback = { () => refreshTree })))
   }
-
+  
+  private[this] def setGiveReasonPopup(s : ActiveTechniqueId, d : ActiveTechniqueCategoryId) : Unit = {
+    giveReasonPopup.set(Full(new GiveReasonPopup(
+        onSuccessCallback = { onSuccessReasonPopup }
+      , onFailureCallback = { onFailureReasonPopup }
+      , sourceActiveTechniqueId = s
+      , destCatId = d)
+    ))
+  }
+  
   /**
    * Create the popup
    */
   private[this] def createPopup : NodeSeq = {
     creationPopup.is match {
+      case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
+      case Empty => <div>The component is not set</div>
+      case Full(popup) => popup.popupContent(NodeSeq.Empty)
+    }
+  }
+  
+  /**
+   * Create the reason popup
+   */
+  private[this] def createReasonPopup : NodeSeq = {
+    giveReasonPopup.is match {
       case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
       case Empty => <div>The component is not set</div>
       case Full(popup) => popup.popupContent(NodeSeq.Empty)
@@ -185,7 +214,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   def userLibraryAction() : NodeSeq = {
     <div>{SHtml.ajaxButton("Create a new category", () => showCreateActiveTechniqueCategoryPopup(), ("class", "autoWidthButton"))}</div>
   }
-
+  
   /**
    *  Display the Technique user library, which is
    * what Technique are configurable as Directive.
@@ -365,7 +394,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             result
           }) match {
             case Full(res) => 
-              refreshTree() & OnLoad(JsRaw("""setTimeout(function() { $("[catid=%s]").effect("highlight", {}, 2000);}, 100)""".format(sourceCatId)))  
+              refreshTree() & 
+              OnLoad(JsRaw("""setTimeout(function() { $("[catid=%s]").effect("highlight", {}, 2000);}, 100)"""
+                  .format(sourceCatId)))  
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move category with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceCatId,destCatId))
           }
@@ -378,7 +409,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   
   private[this] def bindTechnique(arg: String) : JsCmd = {
-    //parse arg, which have to  be json object with sourceactiveTechniqueId, destCatId
+    //parse arg, which have to be json object with sourceactiveTechniqueId, destCatId
     try {
       (for { 
          JObject(child) <- JsonParser.parse(arg)
@@ -388,25 +419,60 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
          (sourceactiveTechniqueId, destCatId)
        }) match {
         case (sourceactiveTechniqueId, destCatId) :: Nil =>
-          val ptName = TechniqueName(sourceactiveTechniqueId)
-          (for {
-            result <- (activeTechniqueRepository.addTechniqueInUserLibrary(ActiveTechniqueCategoryId(destCatId), ptName, techniqueRepository.getTechniqueVersions(ptName).toSeq, CurrentUser.getActor, Some("Active Technique added by user from UI")) 
-                       ?~! "Error while trying to add Rudder internal Technique with requested id '%s' in user library category '%s'".format(sourceactiveTechniqueId,destCatId)
-                      )
-          } yield {
-            result
-          }) match {
-            case Full(res) => 
-              refreshTree() & JsRaw("""setTimeout(function() { $("[activeTechniqueId=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceactiveTechniqueId)) & refreshBottomPanel(res.id) 
-            case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
-            case Empty => Alert("Error while trying to move Active Technique with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceactiveTechniqueId,destCatId))
+          if(userPropertyService.reasonsFieldBehavior != Disabled) {
+            showGiveReasonPopup(ActiveTechniqueId(sourceactiveTechniqueId), 
+                ActiveTechniqueCategoryId(destCatId))
+          } else {
+            val ptName = TechniqueName(sourceactiveTechniqueId)
+            val errorMess= "Error while trying to add Rudder internal " +
+            "Technique with requested id '%s' in user library category '%s'"
+                (for {
+                  result <- (activeTechniqueRepository
+                      .addTechniqueInUserLibrary(
+                          ActiveTechniqueCategoryId(destCatId), 
+                          ptName, 
+                          techniqueRepository.getTechniqueVersions(ptName).toSeq, 
+                          CurrentUser.getActor, 
+                          Some("Active Technique added by user from UI")
+                       ) 
+                      ?~! errorMess.format(sourceactiveTechniqueId,destCatId)
+                   )
+                } yield {
+                  result
+                }) match {
+                case Full(res) => 
+                  val jsString = """setTimeout(function() { $("[activeTechniqueId=%s]")
+                    .effect("highlight", {}, 2000)}, 100)"""
+                refreshTree() & JsRaw(jsString
+                    .format(sourceactiveTechniqueId)) & 
+                    refreshBottomPanel(res.id) 
+                case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
+                case Empty => 
+                  val errorMess = "Error while trying to move Active Technique with " +
+                  "requested id '%s' to category id '%s'\nPlease reload the page."
+                  Alert(errorMess.format(sourceactiveTechniqueId, destCatId))
+            }
           }
-        case _ => Alert("Error while trying to move Active Technique: bad client parameters")
+        case _ => 
+          Alert("Error while trying to move Active Technique: bad client parameters")
       }      
     } catch {
       case e:Exception => Alert("Error while trying to move Active Technique")
     }
   }
+
+  private[this] def onSuccessReasonPopup(id : ActiveTechniqueId) : JsCmd =  {
+    val jsStr = """setTimeout(function() { $("[activeTechniqueId=%s]")
+      .effect("highlight", {}, 2000)}, 100)"""
+    refreshTree() & 
+    JsRaw(jsStr) & refreshBottomPanel(id) 
+  }
+  
+ def onFailureReasonPopup(srcActiveTechId : String, destCatId : String) : JsCmd = {
+   val errorMessage = "Error while trying to move Active Technique with " +
+   		"requested id '%s' to category id '%s'\nPlease reload the page."
+   Alert(errorMessage.format(srcActiveTechId, destCatId))
+ }
 
   private[this] def refreshTree() : JsCmd =  {
     Replace(htmlId_techniqueLibraryTree, systemLibrary) &
@@ -593,9 +659,20 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
     //update UI
     SetHtml("createActiveTechniquesCategoryContainer", createPopup) &
-    JsRaw( """ createPopup("createActiveTechniqueCategoryPopup",300,400)
+    JsRaw( """createPopup("createActiveTechniqueCategoryPopup", 300, 400)
      """)
 
+  }
+  
+  private[this] def showGiveReasonPopup(
+      sourceActiveTechniqueId : ActiveTechniqueId, destCatId : ActiveTechniqueCategoryId) : JsCmd = {
+    
+    setGiveReasonPopup(sourceActiveTechniqueId, destCatId)
+    //update UI
+    
+    SetHtml("createActiveTechniquesContainer", createReasonPopup) &
+    JsRaw( """createPopup("createActiveTechniquePopup", 200, 300)
+     """)
   }
   
   private[this] def reloadTechniqueLibrary : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
