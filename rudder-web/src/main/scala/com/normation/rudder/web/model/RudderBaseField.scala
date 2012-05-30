@@ -96,7 +96,9 @@ class FormTracker(private[this] var _fields : List[RudderBaseField] = Nil) exten
    * A form has error if it has global error or one of the registered
    * fields has error
    */
-  def hasErrors = _formErrors.nonEmpty || _fields.exists( _.hasErrors )
+  def hasErrors = {
+    _formErrors.nonEmpty || _fields.exists( _.hasErrors )
+  }
   
   /**
    * Clean errors on the tracker and each fields

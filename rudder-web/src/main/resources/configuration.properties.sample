@@ -210,10 +210,23 @@ rudder.rest.allowNonAuthenticatedUser=true
 
 
 #
-# Allow to choose a way to display the feild reasons in UI
-# Expect an int (how to display the field reasons in UI)
-# If O is given, the field is absent
-# If 1 is given, the field is present and the field's content can be empty
-# If 2 is given, the field is present and the field's content is mandatory
+# If true, in UI Rudder will prompt the user for a reason of the change. 
+# The message displayed to the user is based on the variable 
+# rudder.ui.changeMessage.explanation
+# Based on the value of rudder.ui.changeMessage.mandatory, the user input
+# can be mandatory or not
 #
-rudder.field.reasons.message=1
+rudder.ui.changeMessage.enabled=true
+
+#
+# Boolean, defaults false
+# If true, the user input will be mandatory (non empty reason message)
+#
+rudder.ui.changeMessage.mandatory=true
+
+# 
+# Text, defaults Please enter a message explaining the reason for this change.
+# This variable defines the content of the message prompted to the user
+# when he does modifications
+# 
+rudder.ui.changeMessage.explanation=Please enter a message explaining the reason for this change.
