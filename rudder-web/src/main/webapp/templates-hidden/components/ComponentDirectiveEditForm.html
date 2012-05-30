@@ -29,18 +29,32 @@
       font-size:0.9em;
     }
     
-    .reasonsFieldset {
-   		margin-top: 5px; 
+    .reasonsFieldsetPopup {
+   		margin-top: 15px; 
+   		margin-bottom: 5px; 
+    }
+    
+    .reasonsField {
+   		margin-bottom: 5px; 
     }
     
     #explanationMessage {
       margin-bottom:5px;
+      margin-top:5px;
     }
     
     .cpiefsave {
       margin-top:5px;
     }
     
+    .warnicon {
+      margin-top:-7px;
+    }
+    
+    .simplemodal-content {
+      margin-top:5px;
+      margin-bottom:0px;
+    }
   </style>
 </head>
 </component:staticInit>
@@ -61,8 +75,15 @@
 </component:itemDependencies>
 
 <component:body>
-  <div id="editForm" class="object-details">
+	<div>
+		<div id="editForm" />
+		<div id="removeActionDialog" />
+		<div id="disactivateActionDialog" />
+	</div>
+</component:body>
 
+<component:form>
+  <div id="editForm" class="object-details">
 
     <fieldset class="topLevelAction">
       <p class="clearable">
@@ -75,78 +96,13 @@
       <div id="removeAction" class="twoColumns">
         <button id="removeButton">Delete</button>
       </div>
-      <div id="removeActionDialog" class="nodisplay">
-        <div class="simplemodal-title">
-          <h1>Delete a Directive</h1>
-          <hr/>
-        </div>
-        <div class="simplemodal-content">
-          <div>
-            <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-            <h2>
-              Deleting this Directive will also remove it as a part of
-              the following Rules which depend on it.
-            </h2>
-          </div>
-          <hr class="spacer" />
-          <div id="removeItemDependencies">
-            Here comes the grid of Rules that will be removed
-          </div>
-          <br />
-          <br />
-          <h3>Are you sure that you want to delete this item?</h3>
-          <br />
-        </div>
-        <div class="simplemodal-bottom">
-          <hr/>
-          <div class="popupButton">
-            <span>
-              <button class="simplemodal-close" onClick="return false;">Cancel</button>
-              <button id="dialogRemoveButton">Delete</button>
-            </span>
-          </div>
-        </div>
-      </div>
-
       <div id="desactivateAction" class="twoColumns twoColumnsRight">
         <button id="disactivateButton"><span id="disactivateButtonLabel">desactivate</span></button>
-      </div>
-      <div id="desactivateActionDialog" class="nodisplay">
-        <div class="simplemodal-title">
-          <h1>Disable a Directive</h1>
-          <hr/>
-        </div>
-        <div class="simplemodal-content">
-          <div>
-            <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-            <h2 id="dialogDisactivateWarning">
-              Disabling this Directive will affect the following Rules.
-            </h2>
-          </div>
-          <hr class="spacer" />
-          <div id="disableItemDependencies">
-            Here comes the grid of Rules that will be removed
-          </div>
-          <br />
-          <br />
-          <h3>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this Directive?</h3>
-          <br />
-        </div>
-        <div class="simplemodal-bottom">
-          <hr/>
-           <div class="popupButton">
-             <span>
-              <button class="simplemodal-close" onClick="return false;">Cancel</button>
-              <button id="dialogDisactivateButton">Deactivate</button>
-            </span>
-          </div>
-        </div>
       </div>
       <div class="disableNotice">
         Note: A Directive's status may be Enabled, but it will be effectively disabled
         if the Technique it's based on is disabled.
        </div>
-      
     </fieldset>
 
     <fieldset class="editZone">
@@ -206,5 +162,90 @@
     </fieldset>
   </div>
 
-</component:body>
+</component:form>
+
+<component:popupRemoveForm>
+   <div id="removeActionDialog" class="nodisplay">
+     <div class="simplemodal-title">
+       <h1>Delete a Directive</h1>
+       <hr/>
+     </div>
+     <div class="simplemodal-content">
+       <div>
+         <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+       <h2>Are you sure that you want to delete this item?</h2>
+       </div>
+       <br />
+         <div>
+           Deleting this Directive will also remove it as a part of
+           the following Rules which depend on it.
+         </div>
+       <div id="removeItemDependencies">
+         Here comes the grid of Rules that will be removed
+       </div>
+       <br />
+       	<div class="reasonsFieldsetPopup">
+		    <div id="explanationMessage">
+		      Here comes the explanation to reasons field
+		    </div>
+		    <div id="reasonsField">
+		      Here comes the reasons field
+		    </div>
+	    </div>
+       <br />
+       <hr class="spacer" />
+     </div>
+     <div class="simplemodal-bottom">
+       <hr/>
+       <div class="popupButton">
+         <span>
+           <button class="simplemodal-close" onClick="return false;">Cancel</button>
+           <button id="dialogRemoveButton">Delete</button>
+         </span>
+       </div>
+     </div>
+   </div>
+</component:popupRemoveForm>
+
+<component:popupDisactivateForm>
+   <div id="desactivateActionDialog" class="nodisplay">
+     <div class="simplemodal-title">
+       <h1>Disable a Directive</h1>
+       <hr/>
+     </div>
+     <div class="simplemodal-content">
+       <div>
+         <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+       <h2>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this Directive?</h2>
+       <br />
+         <div>
+           Disabling this Directive will affect the following Rules.
+         </div>
+       </div>
+       <div id="disableItemDependencies">
+         Here comes the grid of Rules that will be removed
+       </div>
+       <br />
+       	<div class="reasonsFieldsetPopup">
+		    <div id="explanationMessage">
+		      Here comes the explanation to reasons field
+		    </div>
+		    <div id="reasonsField">
+		      Here comes the reasons field
+		    </div>
+	    </div>
+       <hr class="spacer" />
+     </div>
+     <div class="simplemodal-bottom">
+       <hr/>
+        <div class="popupButton">
+          <span>
+           <button class="simplemodal-close" onClick="return false;">Cancel</button>
+           <button id="dialogDisactivateButton">Deactivate</button>
+         </span>
+       </div>
+     </div>
+   </div>
+</component:popupDisactivateForm>
+
 </xml:group>

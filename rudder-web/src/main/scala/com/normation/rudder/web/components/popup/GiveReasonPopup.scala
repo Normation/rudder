@@ -97,7 +97,7 @@ class GiveReasonPopup(
   def popupContent(html : NodeSeq) : NodeSeq = {
     SHtml.ajaxForm(bind("item", popupTemplate,
        "reason" -> crReasons.map {f =>           
-         <div id="div-en-question">
+         <div>
           <div style="margin-bottom:5px">
             {userPropertyService.reasonsFieldExplanation}
           </div>

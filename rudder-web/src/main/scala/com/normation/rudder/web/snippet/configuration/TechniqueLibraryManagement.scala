@@ -130,7 +130,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         htmlId_bottomPanel,
         technique,
         currentTechniqueCategoryDetails.is.map( _.getCategory ),
-        { () => Replace(htmlId_activeTechniquesTree, userLibrary) } 
+        { () => Replace(htmlId_activeTechniquesTree, userLibrary) },
+        { () => onUpdateTechniqueFailureCallBack }
     )))
   }
   
@@ -336,8 +337,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
   }  
 
-  
-
   def showUserCategoryDetails() : NodeSeq = {
     currentTechniqueCategoryDetails.is  match {
       case e:EmptyBox => <div id={htmlId_bottomPanel}><p>Click on a category from the user library to display its details and edit its properties</p></div>
@@ -490,9 +489,10 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     Replace(htmlId_bottomPanel, showTechniqueDetails() )
   }
 
-
-  
-
+ def onUpdateTechniqueFailureCallBack() : JsCmd = {
+   val errorMessage = "Error while trying to delete Active Technique."
+   Alert(errorMessage)
+ }
   
   //////////////// display trees ////////////////////////  
 
