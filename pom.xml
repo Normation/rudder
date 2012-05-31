@@ -117,8 +117,8 @@ limitations under the License.
         </configuration>  
       </plugin>
       <plugin>
-        <groupId>org.scala-tools</groupId>
-        <artifactId>maven-scala-plugin</artifactId>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
         <version>${scala-maven-plugin-version}</version> 
       </plugin>
     </plugins>
@@ -139,8 +139,8 @@ limitations under the License.
           <version>2.1.1</version>
        </plugin>
        <plugin>
-        <groupId>org.scala-tools</groupId>
-        <artifactId>maven-scala-plugin</artifactId>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
         <version>${scala-maven-plugin-version}</version>
         <executions>
           <execution>
@@ -162,7 +162,6 @@ limitations under the License.
         <configuration>
           <args>
             <arg>-target:jvm-1.5</arg>
-            <arg>-make:transitive</arg>
             <arg>-dependencyfile</arg>
             <arg>${basedir}/.scala_dependencies</arg>
           </args>
@@ -267,7 +266,7 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Maven plugin version -->
-    <scala-maven-plugin-version>2.15.0</scala-maven-plugin-version>
+    <scala-maven-plugin-version>3.0.2</scala-maven-plugin-version>
 
     <!-- Libraries version that MUST be used in all children project -->
 
