@@ -48,6 +48,7 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 import scala.collection.JavaConversions._
 import net.liftweb.common._
+import net.liftweb.common.Box._
 import java.sql.Types
 
 class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsRepository with Loggable {
@@ -214,7 +215,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     jdbcTemplate.query(baseQuery + " order by executionTimeStamp asc limit 1",
           ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => seq.headOption
+      case seq => seq.headOption ?~! "No report where found in database (and so, we can not get the oldest one)"
       
     } 
   }
@@ -223,7 +224,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     jdbcTemplate.query(baseArchivedQuery + " order by executionTimeStamp asc limit 1",
           ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => seq.headOption
+      case seq => seq.headOption ?~! "No archived report where found in database (and so, we can not get the oldest one)"
       
     } 
   }
@@ -232,7 +233,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     jdbcTemplate.query(baseQuery + " order by executionTimeStamp desc limit 1",
           ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => seq.headOption
+      case seq => seq.headOption ?~! "No report where found in database (and so, we can not get the newest one)"
       
     } 
   }
@@ -241,7 +242,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     jdbcTemplate.query(baseArchivedQuery + " order by executionTimeStamp desc limit 1",
           ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => seq.headOption
+      case seq => seq.headOption ?~! "No archived report where found in database (and so, we can not get the newest one)"
       
     } 
   }
@@ -256,7 +257,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
         """
         , DatabaseSizeMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq  => seq.headOption
+      case seq  => seq.headOption ?~! "The query used to find database size did not return any tuple"
       
     } 
   }
