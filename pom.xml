@@ -237,8 +237,8 @@ limitations under the License.
               </pluginExecution>
               <pluginExecution>
                 <pluginExecutionFilter>
-                  <groupId>org.scala-tools</groupId>
-                  <artifactId>maven-scala-plugin</artifactId>
+                  <groupId>net.alchim31.maven</groupId>
+                  <artifactId>scala-maven-plugin</artifactId>
                   <versionRange>[0.1,)</versionRange>
                   <goals>
                     <goal>add-source</goal>
