@@ -50,7 +50,7 @@ import scala.collection.JavaConversions._
 import net.liftweb.common._
 import java.sql.Types
 
-class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsRepository {
+class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsRepository with Loggable {
 
   val baseQuery = "select executiondate, nodeid, ruleid, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents where 1=1 ";
   val baseArchivedQuery = "select executiondate, nodeid, ruleid, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from archivedruddersysevents where 1=1 ";
@@ -269,7 +269,12 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
         where executionTimeStamp < '%s')
         """.format(date.toString("yyyy-MM-dd") )     
     )
-    println("insert into ArchivedRudderSysEvents (id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)    (select id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from RudderSysEvents     where executionTimeStamp < '%s')    ".format(date.toString("yyyy-MM-dd")))
+    
+    logger.debug("""Archiving report with SQL query: [[
+                   | insert into ArchivedRudderSysEvents (id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)    
+                   | (select id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from RudderSysEvents 
+                   | where executionTimeStamp < '%s')
+                   |]]""".stripMargin.format(date.toString("yyyy-MM-dd")))
         
     val delete = jdbcTemplate.update("""
         delete from RudderSysEvents  where executionTimeStamp < '%s'
