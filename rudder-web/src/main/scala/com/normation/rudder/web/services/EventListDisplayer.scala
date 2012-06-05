@@ -187,7 +187,7 @@ class EventListDisplayer(
             <th>Date</th>
             <th>Actor</th>
             <th>Event Type</th>
-            <th>Cause</th>
+            <th>Reason</th>
             <th>Description</th>
           </tr>
         </thead>
