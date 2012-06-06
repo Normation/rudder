@@ -61,6 +61,7 @@ import com.normation.rudder.domain.policies.ActiveTechniqueId
 class GiveReasonPopup(
     onSuccessCallback : (ActiveTechniqueId) => JsCmd = { (ActiveTechniqueId) => Noop }
   , onFailureCallback : (String, String) => JsCmd = { (String1, String2) => Noop }
+  , refreshActiveTreeLibrary : () => JsCmd = { () => Noop }
   , sourceActiveTechniqueId : ActiveTechniqueId
   , destCatId : ActiveTechniqueCategoryId
 ) extends DispatchSnippet with Loggable {
@@ -104,7 +105,7 @@ class GiveReasonPopup(
             {f.toForm_!}
          </div>
         },
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % 
+      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() & refreshActiveTreeLibrary() }) % 
         ("tabindex","4"),
       "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % 
         ("id","createATCSaveButton") % ("tabindex","3")
