@@ -127,7 +127,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   //create a new Technique edit form and update currentTechniqueDetails
   private[this] def updateCurrentTechniqueDetails(technique:Technique) = {
     currentTechniqueDetails.set(Full(new TechniqueEditForm(
-        htmlId_bottomPanel,
+        htmlId_editForm,
         technique,
         currentTechniqueCategoryDetails.is.map( _.getCategory ),
         { () => Replace(htmlId_activeTechniquesTree, userLibrary) },
@@ -316,9 +316,10 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         updateCurrentTechniqueDetails(technique)
         showTechniqueDetails()
       case _ => 
-        <div id={htmlId_bottomPanel} class="centertext">
+        <div id={htmlId_bottomPanel}>
+          <div  class="centertext">
           Click on a Technique or a category from user library to
-          display its details.
+          display its details.</div>
         </div>
     }
   }
@@ -491,7 +492,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     } { //TODO : check errors
       updateCurrentTechniqueDetails(technique)
     }        
-    Replace(htmlId_bottomPanel, showTechniqueDetails() )
+    SetHtml(htmlId_bottomPanel, showTechniqueDetails() )
   }
 
  def onUpdateTechniqueFailureCallBack() : JsCmd = {
@@ -528,7 +529,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     updateCurrentTechniqueDetails(technique)
       
     //update UI
-    Replace(htmlId_bottomPanel, showTechniqueDetails() )
+    SetHtml(htmlId_bottomPanel, showTechniqueDetails() )
   }
 
   
@@ -623,11 +624,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             updateCurrentTechniqueDetails(form.technique)
             
             //update UI
-            Replace(htmlId_bottomPanel, showTechniqueDetails() )   
+            SetHtml(htmlId_bottomPanel, showTechniqueDetails() )   
           case _ => Noop
         }
       ) &
-      Replace(htmlId_bottomPanel, showUserCategoryDetails() )
+      SetHtml(htmlId_bottomPanel, showUserCategoryDetails() )
     }
     
     //the actual mapping activeTechnique category to jsTree nodes:
@@ -713,4 +714,5 @@ object TechniqueLibraryManagement {
   val htmlId_addPopup = "addPopup"
   val htmlId_addToActiveTechniques = "addToActiveTechniques"
   val htmlId_bottomPanel = "bottomPanel"
+  val htmlId_editForm = "editForm"
 }
