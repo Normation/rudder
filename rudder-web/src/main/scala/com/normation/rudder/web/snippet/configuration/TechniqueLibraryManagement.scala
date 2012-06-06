@@ -167,6 +167,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     giveReasonPopup.set(Full(new GiveReasonPopup(
         onSuccessCallback = { onSuccessReasonPopup }
       , onFailureCallback = { onFailureReasonPopup }
+      , refreshActiveTreeLibrary = { refreshActiveTreeLibrary }
       , sourceActiveTechniqueId = s
       , destCatId = d)
     ))
@@ -477,6 +478,10 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     Replace(htmlId_techniqueLibraryTree, systemLibrary) &
     Replace(htmlId_activeTechniquesTree, userLibrary) &
     OnLoad(After(TimeSpan(100), JsRaw("""createTooltip();""")))
+  }
+  
+  private[this] def refreshActiveTreeLibrary() : JsCmd =  {
+    Replace(htmlId_activeTechniquesTree, userLibrary)
   }
   
   private[this] def refreshBottomPanel(id:ActiveTechniqueId) : JsCmd = {
