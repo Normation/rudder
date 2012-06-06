@@ -346,7 +346,7 @@ class NodeGroupForm(
     }
   }
   
-  def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", if(mandatory) "" else "Group updated by user from UI") {
+  def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % 
       ("style" -> "width:542px;height:15em;margin-top:3px;border: solid 2px #ABABAB;")
