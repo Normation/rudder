@@ -71,7 +71,7 @@ import scala.collection.JavaConversions._
 private[xml] object GET {
   def apply(reason:Option[String]) = reason match {
     case None => ""
-    case Some(m) => ", reason: " + m
+    case Some(m) => "\n\nReason provided by user:\n" + m
   }
 }
 
