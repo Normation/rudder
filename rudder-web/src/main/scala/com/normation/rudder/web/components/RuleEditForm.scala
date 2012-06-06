@@ -322,7 +322,7 @@ class RuleEditForm(
         JsRaw("$.modal.close();") & 
         { 
           (for {
-            save <- ruleRepository.delete(rule.id, CurrentUser.getActor, Some("Rule deleted by user"))
+            save <- ruleRepository.delete(rule.id, CurrentUser.getActor, crReasonsPopup.map( _.is))
             deploy <- {
               asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
               Full("Deployment request sent")
