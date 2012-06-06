@@ -121,17 +121,17 @@ class GiveReasonPopup(
     }
   }
   
-  def buildReasonField(mandatory:Boolean) = 
-    new WBTextAreaField("Message: ", 
-        if(mandatory) "" else "Group updated by user from UI") {
-    override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % 
-      ("style" -> "width:400px;height:12em;margin-top:3px;border: solid 2px #ABABAB;")
-    override def validations() = {
-      if(mandatory){
-        valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
-      } else {
-        Nil
+  def buildReasonField(mandatory:Boolean) = {
+    new WBTextAreaField("Message: ", "") {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % 
+        ("style" -> "width:400px;height:12em;margin-top:3px;border: solid 2px #ABABAB;")
+      override def validations() = {
+        if(mandatory){
+          valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
+        } else {
+          Nil
+        }
       }
     }
   }

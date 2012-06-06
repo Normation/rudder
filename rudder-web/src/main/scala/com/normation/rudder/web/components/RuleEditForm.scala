@@ -434,8 +434,7 @@ class RuleEditForm(
   }
   
   def buildReasonField(mandatory:Boolean, width : Int = 48, height : Int = 15) = {
-    val defaultMessageInTextArea = ""
-    new WBTextAreaField("Message: ", defaultMessageInTextArea) {
+    new WBTextAreaField("Message: ", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  % 
       ("style" -> "width:%sem;height:%sem".format(width, height))

@@ -268,16 +268,17 @@ class TechniqueEditForm(
     }
   }
     
-  def buildReasonField(mandatory:Boolean, width : Int = 48, height : Int = 15) = 
-    new WBTextAreaField("Message: ", if(mandatory) "" else "Rule updated by user from UI") {
-    override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % 
-    ("style" -> "width:%sem;height:%sem".format(width, height))
-    override def validations() = {
-      if(mandatory){
-        valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
-      } else {
-        Nil
+  def buildReasonField(mandatory:Boolean, width : Int = 48, height : Int = 15) =  {
+    new WBTextAreaField("Message: ", "") {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % 
+      ("style" -> "width:%sem;height:%sem".format(width, height))
+      override def validations() = {
+        if(mandatory){
+          valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
+        } else {
+          Nil
+        }
       }
     }
   }

@@ -521,7 +521,7 @@ to avoid that last case.<br/>
     }
   }
   
-  def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", if(mandatory) "" else "Directive updated by user from UI") {
+  def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % 
       ("style" -> "width:60em;height:15em;margin-top:3px;border: solid 2px #ABABAB;")
