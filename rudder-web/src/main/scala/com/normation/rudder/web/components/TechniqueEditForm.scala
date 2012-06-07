@@ -168,7 +168,9 @@ class TechniqueEditForm(
   }
   
   def showRemovePopupForm() : NodeSeq = {    
-        val activeTechnique = currentActiveTechnique.get
+        currentActiveTechnique match {
+          case e:EmptyBox => NodeSeq.Empty
+          case Full(activeTechnique) => 
     (
           "#deleteActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
           "#dialogDeleteButton" #> { deleteButton(activeTechnique.id) % ("id", "deleteButton") } &
@@ -179,10 +181,13 @@ class TechniqueEditForm(
           } } &
           "#errorDisplay" #> { updateAndDisplayNotifications(formTrackerRemovePopup) }
       )(popupRemoveForm)
+        }
   }
   
   def showDisactivatePopupForm() : NodeSeq = {    
-        val activeTechnique = currentActiveTechnique.get
+        currentActiveTechnique match {
+          case e:EmptyBox => NodeSeq.Empty
+          case Full(activeTechnique) => 
     (
           "#disableActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
           "#dialogDisableButton" #> { disableButton(activeTechnique) % ("id", "disableButton") } &
@@ -196,6 +201,7 @@ class TechniqueEditForm(
           "#time" #> <div>{ DateTime.now } </div>&
           "#errorDisplay" #> { updateAndDisplayNotifications(formTrackerDisactivatePopup) }
       )(popupDisactivateForm)  
+  }
   }
     
   def showCrForm() : NodeSeq = {    
