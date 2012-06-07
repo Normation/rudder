@@ -89,14 +89,26 @@ nodeId: root
 description: the policy server
 isSystem: TRUE
 isBroken: FALSE
-nodeHostname: %%POLICY_SERVER_HOSTNAME%%
-publicKey: Currently not used
-ipHostNumber: 127.0.0.1
-#agentsName: Nova
-agentName: Community
-inventoryDate: 20100818225137+0200
+
+dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: node
+objectClass: unixNode
+objectClass: linuxNode
+nodeId: root
+osKernelVersion: 1.0-dummy-version
+osName: Linux
+osVersion: Linux
+localAccountName: root
+cn: root
 localAdministratorAccountName: root
-policyServerId: root
+nodeHostname: %%POLICY_SERVER_HOSTNAME%%
+PolicyServerId: root
+inventoryDate: 19700101000000+0200
+ipHostNumber: 127.0.0.1
+agentName: Community
+#agentsName: Nova
+publicKey: Currently not used
 
 
 #######################################################################################################################

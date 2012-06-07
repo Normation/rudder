@@ -205,7 +205,7 @@ class SrvGrid {
     <table id={tableId} cellspacing="0">{
     bind("servergrid",tableTemplate,
       "header" -> (columns flatMap { c => <th>{c._1}<span/></th> }),
-      "lines" -> ( servers.flatMap { case s@NodeInfo(id,name,description, hostname, operatingSystem, ips, inventoryDate,pkey, agentsName, policyServerId, admin, creationDate, isBroken, isSystem) =>
+      "lines" -> ( servers.flatMap { case s@NodeInfo(id,name,description, hostname, operatingSystem, ips, inventoryDate,pkey, agentsName, policyServerId, admin, creationDate, isBroken, isSystem, isPolicyServer) =>
         //build all table lines
         bind("line",chooseTemplate("servergrid","lines",tableTemplate),
           "name" -> <span class="hostnamecurs" jsuuid={id.value.replaceAll("-","")} serverid={id.value.toString}>{(if(isEmpty(name)) "(Missing name) " + id.value else hostname)}</span>,

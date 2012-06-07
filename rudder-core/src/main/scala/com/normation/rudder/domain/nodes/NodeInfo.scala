@@ -60,28 +60,5 @@ case class NodeInfo(
   , creationDate  : DateTime
   , isBroken      : Boolean
   , isSystem      : Boolean
+  , isPolicyServer: Boolean
 ) extends HashcodeCaching 
-
-/**
- * A PolicyServerNodeInfo is basically the same as a NodeInfo, except that
- * it refers to a PolicyServer, which has no inventory, and must be self sufficient
- * in the Node branch  
- * @author Nicolas CHARLES
- *
- */
-case class PolicyServerNodeInfo(
-    override val id            : NodeId
-  , override val name          : String
-  , override val description   : String
-  , override val hostname      : String
-  , override val ips           : List[String]
-  , override val inventoryDate : DateTime
-  , override val publicKey     : String
-  , override val agentsName    : Seq[AgentType]
-  , override val policyServerId: NodeId
-  , override val localAdministratorAccountName : String
-  , override val creationDate  : DateTime
-  , override val isBroken      : Boolean
-  , override val isSystem      : Boolean
-) extends NodeInfo(id, name, description,hostname,os = "", ips, inventoryDate, publicKey, 
-    agentsName, policyServerId, localAdministratorAccountName, creationDate, isBroken, isSystem) with HashcodeCaching 

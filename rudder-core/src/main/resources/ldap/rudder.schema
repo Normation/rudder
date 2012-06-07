@@ -305,10 +305,7 @@ objectclass ( RudderObjectClasses:2
   NAME 'rudderPolicyServer' 
   DESC 'The Node representation of a policy server'
   SUP rudderNode
-  STRUCTURAL
-  MUST ( nodeHostname $ publicKey $ ipHostNumber $ inventoryDate $
-         localAdministratorAccountName $ agentName $ policyServerId 
-       ) )
+  STRUCTURAL )
 
 ### groups ###
 

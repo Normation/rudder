@@ -160,10 +160,9 @@ class NodeConfigurationServiceImpl(
     //create a new node configuration based on "target" datas
     def createNodeConfiguration() : NodeConfiguration = {
       //we need to decide if it's a root node config or a simple one
-      target.nodeInfo match {
-        case info: PolicyServerNodeInfo =>
+      if(target.nodeInfo.isPolicyServer) {
           new RootNodeConfiguration(
-            info.id.value,
+            target.nodeInfo.id.value,
             Seq(),
             Seq(),
             false,
@@ -172,20 +171,19 @@ class NodeConfigurationServiceImpl(
                 "", "", Seq(), "", ""
             ),
             targetMinimalNodeConfig = new MinimalNodeConfig(
-                info.name ,
-                info.hostname,
-                info.agentsName,
-                info.policyServerId.value,
-                info.localAdministratorAccountName                   
+                target.nodeInfo.name ,
+                target.nodeInfo.hostname,
+                target.nodeInfo.agentsName,
+                target.nodeInfo.policyServerId.value,
+                target.nodeInfo.localAdministratorAccountName                   
             ),
             None,
             Map(),
             target.nodeContext
           )
-          
-        case info: NodeInfo =>
+      } else {
           new SimpleNodeConfiguration(
-            info.id.value,
+            target.nodeInfo.id.value,
             Seq(),
             Seq(),
             false,
@@ -194,11 +192,11 @@ class NodeConfigurationServiceImpl(
                 "", "", Seq(), "", ""
             ),
             targetMinimalNodeConfig = new MinimalNodeConfig(
-                info.name ,
-                info.hostname,
-                info.agentsName,
-                info.policyServerId.value,
-                info.localAdministratorAccountName                   
+                target.nodeInfo.name ,
+                target.nodeInfo.hostname,
+                target.nodeInfo.agentsName,
+                target.nodeInfo.policyServerId.value,
+                target.nodeInfo.localAdministratorAccountName                   
             ),
             None,
             Map(),
@@ -306,48 +304,42 @@ class NodeConfigurationServiceImpl(
         return ParamFailure[Seq[RuleWithCf3PolicyDraft]]("Cannot create a server without policies", Full(new TechniqueException("Cannot create a server without any policies")), Empty, target.identifiableCFCPIs)
       }
       
-      val isPolicyServer = target.nodeInfo match {
-        case t: PolicyServerNodeInfo => true
-        case t : NodeInfo => false
+      val node = if(target.nodeInfo.isPolicyServer) {
+          new RootNodeConfiguration(
+            target.nodeInfo.id.value,
+            Seq(),
+            Seq(),
+            isPolicyServer = true,
+            new MinimalNodeConfig("", "", Seq(), "", ""),
+            new MinimalNodeConfig(
+                target.nodeInfo.name,
+                target.nodeInfo.hostname,
+                target.nodeInfo.agentsName,
+                target.nodeInfo.policyServerId.value,
+                target.nodeInfo.localAdministratorAccountName
+                ),
+            None,
+            Map(),
+            target.nodeContext)
+      } else {
+          new SimpleNodeConfiguration(
+            target.nodeInfo.id.value,
+            Seq(),
+            Seq(),
+            isPolicyServer = false,
+            new MinimalNodeConfig("", "", Seq(), "", ""),
+            new MinimalNodeConfig(
+                target.nodeInfo.name,
+                target.nodeInfo.hostname,
+                target.nodeInfo.agentsName,
+                target.nodeInfo.policyServerId.value,
+                target.nodeInfo.localAdministratorAccountName
+                ),
+            None,
+            Map(),
+            target.nodeContext)
       }
-      
-      val node = target.nodeInfo match {
-        case t: PolicyServerNodeInfo => 
-            new RootNodeConfiguration(
-              target.nodeInfo.id.value,
-              Seq(),
-              Seq(),
-              isPolicyServer = true,
-              new MinimalNodeConfig("", "", Seq(), "", ""),
-              new MinimalNodeConfig(
-                  target.nodeInfo.name,
-                  target.nodeInfo.hostname,
-                  target.nodeInfo.agentsName,
-                  target.nodeInfo.policyServerId.value,
-                  target.nodeInfo.localAdministratorAccountName
-                  ),
-              None,
-              Map(),
-              target.nodeContext)
-        case t : NodeInfo =>
-            new SimpleNodeConfiguration(
-              target.nodeInfo.id.value,
-              Seq(),
-              Seq(),
-              isPolicyServer = false,
-              new MinimalNodeConfig("", "", Seq(), "", ""),
-              new MinimalNodeConfig(
-                  target.nodeInfo.name,
-                  target.nodeInfo.hostname,
-                  target.nodeInfo.agentsName,
-                  target.nodeInfo.policyServerId.value,
-                  target.nodeInfo.localAdministratorAccountName
-                  ),
-              None,
-              Map(),
-              target.nodeContext)
-      }
-        
+
         
       
       deduplicateUniqueDirectives(target.identifiableCFCPIs) match {

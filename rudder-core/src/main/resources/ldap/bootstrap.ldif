@@ -213,7 +213,7 @@ dn: ruleId=inventory-all,ou=Rules,ou=Rudder,cn=rudder-configuration
 objectClass: rule
 objectClass: top
 ruleId: inventory-all
-ruleTarget: special:all_exceptPolicyServers
+ruleTarget: special:all
 directiveId: inventory-all
 cn: Rudder system policy: daily inventory
 description: Inventory

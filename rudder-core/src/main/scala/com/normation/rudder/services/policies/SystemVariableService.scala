@@ -40,7 +40,6 @@ import com.normation.rudder.repository.LicenseRepository
 import com.normation.cfclerk.domain._
 import com.normation.rudder.domain.nodes.NodeInfo
 import net.liftweb.common.Box
-import com.normation.rudder.domain.nodes.PolicyServerNodeInfo
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain._
@@ -83,13 +82,12 @@ class SystemVariableServiceImpl(
     
     // Set the roles of the nodes
     val nodeConfigurationRoles = mutable.Set[String]()
-    nodeInfo match {
-      case policyServer: PolicyServerNodeInfo =>
-        nodeConfigurationRoles.add("policy_server")
-        if (policyServer.id == policyServer.policyServerId)
+    
+    if(nodeInfo.isPolicyServer) {
+      nodeConfigurationRoles.add("policy_server")
+      if (nodeInfo.id == nodeInfo.policyServerId) {
           nodeConfigurationRoles.add("root_server")
-      case _ =>
-
+      }
     }
 
     val varNodeRole = new SystemVariable(systemVariableSpecService.get("NODEROLE"))
@@ -125,21 +123,18 @@ class SystemVariableServiceImpl(
 
     // If we are facing a policy server, we have to allow each children to connect, plus the policy parent,
     // else it's only the policy server
-    nodeInfo match {
-      case policyServer: PolicyServerNodeInfo =>
-        val allowedNodeVar = new SystemVariable(SystemVariableSpec(name = "${hasPolicyServer-" + policyServer.id.value + ".target.hostname}", description = "", multivalued = true))
-        allowedNodeVar.values = Seq("${hasPolicyServer-" + policyServer.id.value + ".target.hostname}")
+    if(nodeInfo.isPolicyServer) {
+      val allowedNodeVar = new SystemVariable(SystemVariableSpec(name = "${hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true))
+      allowedNodeVar.values = Seq("${hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}")
 
-        parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNodeVar)) match {
-          case Full(variable) =>
-            allowConnect ++= variable.flatMap(x => x.values)
-            clientList ++= variable.flatMap(x => x.values)
-            varClientList.saveValues(clientList.toSeq)
-          case Empty => logger.warn("No variable parametrized found for ${hasPolicyServer-" + policyServer.id.value + ".target.hostname}")
-          case f: Failure => logger.error("Failure when fetching the policy children : %s ".format(f.msg))
-        }
-
-      case _ => // nothing special
+      parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNodeVar)) match {
+        case Full(variable) =>
+          allowConnect ++= variable.flatMap(x => x.values)
+          clientList ++= variable.flatMap(x => x.values)
+          varClientList.saveValues(clientList.toSeq)
+        case Empty => logger.warn("No variable parametrized found for ${hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}")
+        case f: Failure => logger.error("Failure when fetching the policy children : %s ".format(f.msg))
+      }
     }
 
     nodeInfoService.getNodeInfo(nodeInfo.policyServerId) match {
