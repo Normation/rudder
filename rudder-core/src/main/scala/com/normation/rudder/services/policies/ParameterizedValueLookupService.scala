@@ -35,7 +35,6 @@
 package com.normation.rudder.services.policies
 
 import com.normation.rudder.repository.RuleRepository
-import com.normation.rudder.domain.nodes.PolicyServerNodeInfo
 import com.normation.rudder.services.nodes.NodeInfoService
 import net.liftweb.common._
 import com.normation.rudder.domain.policies.RuleId
@@ -241,7 +240,7 @@ trait ParameterizedValueLookupService_lookupNodeParameterization extends Paramet
 
   def nodeInfoService : NodeInfoService
   
-  private[this] def lookupNodeVariable(nodeInfo : NodeInfo, policyServerInfo: => Box[PolicyServerNodeInfo], value:String) : Box[String] = {
+  private[this] def lookupNodeVariable(nodeInfo : NodeInfo, policyServerInfo: => Box[NodeInfo], value:String) : Box[String] = {
     value match {
       case NodeParametrization(ParamNodeId) => Full(nodeInfo.id.value)
       case NodeParametrization(ParamNodeHostname) => Full(nodeInfo.hostname)
@@ -261,7 +260,7 @@ trait ParameterizedValueLookupService_lookupNodeParameterization extends Paramet
       variables <- sequence(variables) { v =>
         for {
           values <- sequence(v.values) { value =>
-            lookupNodeVariable(nodeInfo, nodeInfoService.getPolicyServerNodeInfo(nodeInfo.policyServerId), value)
+            lookupNodeVariable(nodeInfo, nodeInfoService.getNodeInfo(nodeInfo.policyServerId), value)
           }
         } yield Variable.matchCopy(v, values)
       }

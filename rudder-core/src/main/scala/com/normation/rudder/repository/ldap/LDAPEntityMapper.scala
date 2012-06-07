@@ -82,30 +82,19 @@ class LDAPEntityMapper(
   
   
   def nodeToEntry(node:Node) : LDAPEntry = {
-    val entry = nodeDit.NODES.NODE.nodeModel(node.id)
+    val entry = 
+      if(node.isPolicyServer) {
+        nodeDit.NODES.NODE.policyServerNodeModel(node.id)
+      } else {
+        nodeDit.NODES.NODE.nodeModel(node.id)
+      }
     entry +=! (A_NAME, node.name)
     entry +=! (A_DESCRIPTION, node.description)
     entry +=! (A_IS_BROKEN, node.isBroken.toLDAPString)
     entry +=! (A_IS_SYSTEM, node.isSystem.toLDAPString)
     entry
   }
-   
-  def policyServerNodeToEntry(node : PolicyServerNodeInfo) : LDAPEntry = {
-    val entry = nodeDit.NODES.NODE.policyServerNodeModel(node.id)
-    entry +=! (A_NAME, node.name)
-    entry +=! (A_DESCRIPTION, node.description)
-    entry +=! (A_HOSTNAME, node.hostname)
-    entry +=! (A_PKEYS, node.publicKey)
-    entry +=! (A_LIST_OF_IP, node.ips:_*)
-    entry +=! (A_INVENTORY_DATE, GeneralizedTime(node.inventoryDate).toString)
-    entry +=! (A_ROOT_USER, node.localAdministratorAccountName)
-    entry +=! (A_AGENTS_NAME, node.agentsName.map(x => x.toString):_*)
-    entry +=! (A_NODE_POLICY_SERVER, node.policyServerId.value)
-    entry +=! (A_IS_BROKEN, node.isBroken.toLDAPString)
-    entry +=! (A_IS_SYSTEM, node.isSystem.toLDAPString)
-    
-    entry
-  }
+
   
     //////////////////////////////    NodeInfo    //////////////////////////////
 
@@ -162,48 +151,13 @@ class LDAPEntityMapper(
           inventoryEntry(A_ROOT_USER).getOrElse(""),
           date.dateTime,
           nodeEntry.getAsBoolean(A_IS_BROKEN).getOrElse(false),
-          nodeEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+          nodeEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false),
+          nodeEntry.isA(OC_POLICY_SERVER_NODE)
       )
     }
   }
   
   
-  def convertEntryToPolicyServerNodeInfo(policyServerNodeEntry:LDAPEntry) : Box[PolicyServerNodeInfo] = {
-    
-    for {
-      checkIsAPolicyServer <- if(policyServerNodeEntry.isA(OC_POLICY_SERVER_NODE)) Full("OK")
-        else Failure("Bad object class, need %s and found %s".format(OC_POLICY_SERVER_NODE,policyServerNodeEntry.valuesFor(A_OC)))
-      id <- nodeDit.NODES.NODE.idFromDn(policyServerNodeEntry.dn) ?~! "Bad DN found for a Node: %s".format(policyServerNodeEntry.dn)
-      psId <- policyServerNodeEntry(A_NODE_POLICY_SERVER) ?~! "No policy server found for policy server %s".format(policyServerNodeEntry.dn)
-      agentsName <- sequence(policyServerNodeEntry.valuesFor(A_AGENTS_NAME).toSeq) { x =>
-                        AgentType.fromValue(x) ?~! "Unknow value for agent type: '%s'. Authorized values are: %s".format(x, AgentType.allValues.mkString(", "))
-                     }
-      date <- policyServerNodeEntry.getAsGTime(A_OBJECT_CREATION_DATE) ?~! "Can not find mandatory attribute '%s' in entry".format(A_OBJECT_CREATION_DATE)
-    } yield {
-      // fetch the datetime for the inventory
-      val dateTime = policyServerNodeEntry.getAsGTime(A_INVENTORY_DATE) match {
-        case None => DateTime.now() 
-        case Some(date) =>date.dateTime 
-      }
-    
-      PolicyServerNodeInfo(
-          id,
-          policyServerNodeEntry(A_NAME).getOrElse(""),
-          policyServerNodeEntry(A_DESCRIPTION).getOrElse(""),
-          policyServerNodeEntry(A_HOSTNAME).getOrElse(""),
-          policyServerNodeEntry.valuesFor(A_LIST_OF_IP).toList, 
-          dateTime,
-          policyServerNodeEntry(A_PKEYS).getOrElse(""),
-          scala.collection.mutable.Seq() ++ agentsName,
-          NodeId(psId),
-          policyServerNodeEntry(A_ROOT_USER).getOrElse(""),
-          date.dateTime,
-          policyServerNodeEntry.getAsBoolean(A_IS_BROKEN).getOrElse(false),
-          policyServerNodeEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-      )
-    }
-  }
-
   /**
    * Build the ActiveTechniqueCategoryId from the given DN
    */

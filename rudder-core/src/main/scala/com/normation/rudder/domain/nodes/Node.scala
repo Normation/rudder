@@ -43,6 +43,4 @@ import com.normation.utils.HashcodeCaching
  * @author Nicolas CHARLES
  *
  */
-case class Node(id:NodeId, name:String, description:String, isBroken : Boolean, isSystem : Boolean) extends HashcodeCaching {
-
-}
+case class Node(id:NodeId, name:String, description:String, isBroken : Boolean, isSystem : Boolean, isPolicyServer: Boolean) extends HashcodeCaching

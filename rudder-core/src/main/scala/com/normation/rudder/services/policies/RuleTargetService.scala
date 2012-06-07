@@ -162,7 +162,7 @@ trait TargetInfoService extends  RuleTargetService {
       }
       case PolicyServerTarget(nodeId) => 
         for {
-          node <- nodeInfoService.getPolicyServerNodeInfo(nodeId) ?~! "Error when fetching for node %s".format(nodeId)
+          node <- nodeInfoService.getNodeInfo(nodeId) ?~! "Error when fetching for node %s".format(nodeId)
           targetInfo <- ldapGetTargetInfo
         } yield {
           targetInfo

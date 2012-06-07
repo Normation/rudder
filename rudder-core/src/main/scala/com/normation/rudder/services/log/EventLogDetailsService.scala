@@ -509,6 +509,7 @@ class EventLogDetailsServiceImpl(
       creationDate   <- (details \ "creationDate").headOption.map( _.text ) ?~! ("Missing attribute 'creationDate' in entry type node : " + entry)
       isBroken       <- (details \ "isBroken").headOption.map(_.text.toBoolean ) 
       isSystem       <- (details \ "isSystem").headOption.map(_.text.toBoolean ) 
+      isPolicyServer <- (details \ "isPolicyServer").headOption.map(_.text.toBoolean )
       
     } yield {
       val agentsNames =  com.normation.utils.Control.boxSequence[AgentType](boxedAgentsName)
@@ -528,6 +529,7 @@ class EventLogDetailsServiceImpl(
         , creationDate  = ISODateTimeFormat.dateTimeParser.parseDateTime(creationDate)
         , isBroken      = isBroken
         , isSystem      =isSystem
+        , isPolicyServer=isPolicyServer
       ))
     }
   }

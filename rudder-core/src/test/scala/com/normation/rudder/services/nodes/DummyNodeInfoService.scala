@@ -35,7 +35,6 @@
 package com.normation.rudder.services.nodes
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.nodes.PolicyServerNodeInfo
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.inventory.domain._
 import org.joda.time.DateTime
@@ -45,11 +44,11 @@ import net.liftweb.common._
 class DummyNodeInfoService extends NodeInfoService {
 
   val allNodes = Seq[NodeInfo](
-    new PolicyServerNodeInfo(NodeId("root"), "root", "root", "root", "1.2.3.4"::"2.3.4.5"::Nil, DateTime.now(), "publicKey", Seq[AgentType](COMMUNITY_AGENT), NodeId("root"), "root", DateTime.now(), false, false  ), // root server
-      new NodeInfo(NodeId("one"), "one", "one", "one", "linux", "1.1.1.1" :: Nil, DateTime.now(), "key", Seq[AgentType](COMMUNITY_AGENT), NodeId("root"), "root", DateTime.now(), false, false), // first child
-      new NodeInfo(NodeId("two"), "two", "two", "two", "linux", "1.1.1.2" :: Nil, DateTime.now(), "key", Seq[AgentType](COMMUNITY_AGENT), NodeId("root"), "root", DateTime.now(), false, false), // second child
-      new PolicyServerNodeInfo(NodeId("relay"), "relay", "relay", "relay", "1.2.3.5"::"2.3.4.15"::Nil, DateTime.now(), "publicKeyrelay", Seq[AgentType](COMMUNITY_AGENT), NodeId("root"), "root", DateTime.now(), false, false  ), // relay server
-        new NodeInfo(NodeId("subone"), "subone", "subone", "subone", "linux", "1.1.1.1" :: Nil, DateTime.now(), "keysubone", Seq[AgentType](COMMUNITY_AGENT), NodeId("relay"), "root", DateTime.now(), false, false) // grandchild
+    new NodeInfo(NodeId("root"), "root", "root", "root", "linux", "1.2.3.4"::"2.3.4.5"::Nil, DateTime.now(), "publicKey", Seq[AgentType](COMMUNITY_AGENT), NodeId("root"), "root", DateTime.now(), false, false, true), // root server
+    new NodeInfo(NodeId("one"), "one", "one", "one", "linux", "1.1.1.1" :: Nil, DateTime.now(), "key", Seq[AgentType](COMMUNITY_AGENT), NodeId("root"), "root", DateTime.now(), false, false, false), // first child
+    new NodeInfo(NodeId("two"), "two", "two", "two", "linux", "1.1.1.2" :: Nil, DateTime.now(), "key", Seq[AgentType](COMMUNITY_AGENT), NodeId("root"), "root", DateTime.now(), false, false, false), // second child
+    new NodeInfo(NodeId("relay"), "relay", "relay", "relay", "linux", "1.2.3.5"::"2.3.4.15"::Nil, DateTime.now(), "publicKeyrelay", Seq[AgentType](COMMUNITY_AGENT), NodeId("root"), "root", DateTime.now(), false, false, true), // relay server
+    new NodeInfo(NodeId("subone"), "subone", "subone", "subone", "linux", "1.1.1.1" :: Nil, DateTime.now(), "keysubone", Seq[AgentType](COMMUNITY_AGENT), NodeId("relay"), "root", DateTime.now(), false, false, false) // grandchild
   )
 
 
@@ -68,32 +67,15 @@ class DummyNodeInfoService extends NodeInfoService {
     }
   }
 
-  def getPolicyServerNodeInfo(policyServerNodeId : NodeId) : Box[PolicyServerNodeInfo] = {
-    allNodes.filter(x => x.id == policyServerNodeId).filter(x => x.isInstanceOf[PolicyServerNodeInfo]) match {
-      case s: Seq[_] if s.size==1 => s.headOption match {
-        case Some(h:PolicyServerNodeInfo) => Full(h)
-        case _ => Failure("Unconsistant type for policy server node info")
-      }
-      case s: Seq[_] if s.size==0 => Empty
-      case _ => Failure("Not found")
-    }
-  }
-
-  def findPolicyServerNodeInfos(nodeIds: Seq[NodeId]) : Box[Seq[PolicyServerNodeInfo]] = {
-    sequence(nodeIds) { nodeId =>
-      getPolicyServerNodeInfo(nodeId)
-    }
-  }
-
-  def getAllIds() : Box[Seq[NodeId]] = {
+ def getAllIds() : Box[Seq[NodeId]] = {
     Full(allNodes.map(_.id))
   }
 
   def getAllUserNodeIds() : Box[Seq[NodeId]] = {
-    Full(allNodes.filter(!_.isInstanceOf[PolicyServerNodeInfo]).map(_.id))
+    Full(allNodes.filter(!_.isPolicyServer).map(_.id))
   }
 
   def getAllSystemNodeIds() : Box[Seq[NodeId]] = {
-    Full(allNodes.filter(_.isInstanceOf[PolicyServerNodeInfo]).map(_.id))
+    Full(allNodes.filter(_.isPolicyServer).map(_.id))
   }
 }

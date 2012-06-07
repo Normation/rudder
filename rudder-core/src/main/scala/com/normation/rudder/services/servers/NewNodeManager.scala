@@ -447,7 +447,12 @@ class AcceptFullInventoryInNodeOu(
   def acceptOne(sm:FullInventory, actor:EventActor) : Box[FullInventory] = {
     val name = sm.node.name.getOrElse(sm.node.main.id.value)
     val description = sm.node.description.getOrElse("")
-    val node = Node(sm.node.main.id, name, description, false, false)
+    
+    //naive test to find is the node is the master policy server.
+    //TODO: that can not handle relay server
+    val isPolicyServer = sm.node.main.id == sm.node.main.policyServerId
+    
+    val node = Node(sm.node.main.id, name, description, false, false, isPolicyServer)
     val entry = ldapEntityMapper.nodeToEntry(node)
     for {
       con <- ldap
