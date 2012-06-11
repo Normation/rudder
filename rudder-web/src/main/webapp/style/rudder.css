@@ -1315,7 +1315,9 @@ p img {
 
 .portlet ul {
    padding: 20px 0 0 0;
+   margin-left: 20px;
 }
+
 *html .portlet ul {
    padding: 20px 0 15px 0;
 }
@@ -1903,7 +1905,7 @@ div.tabInform {
   padding:5px;
 }
 .evloglmargin{
-  margin-left:3px;  
+  margin: 3px;  
 }
 .reportsList {
   margin : 10px;
