@@ -67,7 +67,7 @@ trait HistorizationService {
 
   /**
    * Update the policy details, based on what is on the ldap and what is on the file system.
-   * A policy instance changed when it is deleted, renamed, changed version, changed priority,
+   * A directive changed when it is deleted, renamed, changed version, changed priority,
    * it's underlying PT changed name, description 
    */
   def updatePINames() : Box[Unit]
@@ -147,7 +147,7 @@ class HistorizationServiceImpl(
     // sorry for this piece of nightmare
     // I don't want it to fail on PT deleted
     // Fetch a triplet policyinstance, userPT, policypackage from the ldap/filesystem
-    // starting by the policy instances, then search for the userPT (which can fails)
+    // starting by the directives, then search for the userPT (which can fails)
     // then look on the file system for the matching policypackagename/policyversion
     // againt, it should not fail (but report an error nonetheless)
       val directives = directiveRepository.getAll().openOr(Seq()).map(x => 

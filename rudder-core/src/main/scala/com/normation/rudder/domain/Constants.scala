@@ -44,7 +44,7 @@ import org.joda.time.Duration
 
 object Constants {    
 
-  //non random Policy Instance Id
+  //non random Directive Id
   def buildHasPolicyServerGroupId(policyServerId:NodeId) = 
     NodeGroupId("hasPolicyServer-" + policyServerId.value )
  
@@ -58,7 +58,7 @@ object Constants {
   def buildCommonDirectiveId(policyServerId:NodeId) = 
     DirectiveId("common-" + policyServerId.value)
   
-  /////////// Policy Node: DistributePolicy policy instance variable //////////
+  /////////// Policy Node: DistributePolicy directive variable //////////
   val V_ALLOWED_NETWORK = "ALLOWEDNETWORK"
     
   /**

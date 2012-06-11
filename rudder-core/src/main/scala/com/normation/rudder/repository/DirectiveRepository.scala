@@ -43,8 +43,8 @@ import com.normation.eventlog.EventActor
 /**
  * The directive repository. 
  * 
- * Policy instance are instance of policy template
- * (a policy template + values for its parameters)
+ * directive are instance of technique
+ * (a technique + values for its parameters)
  *
  */
 trait DirectiveRepository {
@@ -59,25 +59,24 @@ trait DirectiveRepository {
 
   
   /**
-   * Find the user policy template for which the given policy
-   * instance is an instance. 
+   * Find the active technique for which the given directive is an instance. 
    * 
    * Return empty if no such directive is known, 
-   * fails if no User policy template match the directive.
+   * fails if no active technique match the directive.
    */
   def getActiveTechnique(id:DirectiveId) : Box[ActiveTechnique]  
   
   /**
-   * Get directives for given policy template.
-   * A not known policy template id is a failure.
+   * Get directives for given technique.
+   * A not known technique id is a failure.
    */
   def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : Box[Seq[Directive]]
   
   /**
-   * Save the given directive into given user policy template
+   * Save the given directive into given active technique
    * If the directive is already present in the system but not
    * in the given category, raise an error.
-   * If the directive is already in the given policy template,
+   * If the directive is already in the given technique,
    * update the directive.
    * If the directive is not in the system, add it.
    * 

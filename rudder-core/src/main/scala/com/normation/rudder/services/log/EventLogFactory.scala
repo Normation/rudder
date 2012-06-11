@@ -213,7 +213,7 @@ class EventLogFactoryImpl(
   }
   
   ///// 
-  ///// Policy Instance /////
+  ///// directive /////
   /////
   
   override def getAddDirectiveFromDiff(

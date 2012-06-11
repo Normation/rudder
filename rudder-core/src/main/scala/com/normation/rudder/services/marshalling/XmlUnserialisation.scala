@@ -143,7 +143,7 @@ trait RuleUnserialisation {
 
 /**
  * That trait allow to unserialise 
- * user policy template category from an XML file. 
+ * active technique category from an XML file. 
  * 
  * BE CAREFUL: items and children categories will 
  * always be empty here, as they are not serialized. 
@@ -164,7 +164,7 @@ trait ActiveTechniqueCategoryUnserialisation {
 
 /**
  * That trait allow to unserialise 
- * user policy template from an XML file. 
+ * active technique from an XML file. 
  * 
  * BE CAREFUL: directive will be empty as they are not serialized. 
  */
@@ -188,7 +188,7 @@ trait ActiveTechniqueUnserialisation {
 
 /**
  * That trait allow to unserialise 
- * policy instance from an XML file. 
+ * directive from an XML file. 
  */
 trait DirectiveUnserialisation {
   /**

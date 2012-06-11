@@ -210,14 +210,14 @@ class LDAPEntityMapper(
   def dn2ActiveTechniqueCategoryId(dn:DN) : ActiveTechniqueCategoryId = {
     rudderDit.ACTIVE_TECHNIQUES_LIB.getCategoryIdValue(dn) match {
       case Full(value) => ActiveTechniqueCategoryId(value)
-      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid User Policy Template Category ID. Error was: %s".format(dn,e.toString))
+      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Active Technique Category ID. Error was: %s".format(dn,e.toString))
     }
   }
   
   def dn2ActiveTechniqueId(dn:DN) : ActiveTechniqueId = {
     rudderDit.ACTIVE_TECHNIQUES_LIB.getActiveTechniqueId(dn) match {
       case Full(value) => ActiveTechniqueId(value)
-      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid User Policy Template ID. Error was: %s".format(dn,e.toString))
+      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Active Technique ID. Error was: %s".format(dn,e.toString))
     }
   }
   
@@ -320,7 +320,7 @@ class LDAPEntityMapper(
   
   /**
    * Build a ActiveTechnique from and LDAPEntry.
-   * children policy instances are left empty
+   * children directives are left empty
    */
   def entry2ActiveTechnique(e:LDAPEntry) : Box[ActiveTechnique] = {
     if(e.isA(OC_ACTIVE_TECHNIQUE)) {
@@ -489,7 +489,7 @@ class LDAPEntityMapper(
   def entry2OptTarget(optValue:Option[String]) : Box[Option[RuleTarget]] = {
     (for {
       targetValue <- Box(optValue)
-      target <- RuleTarget.unser(targetValue) ?~! "Bad parameter for a rule target: %s".format(targetValue)
+      target <- RuleTarget.unser(targetValue) ?~! "Bad parameter for a configuration rule target: %s".format(targetValue)
     } yield {
       target
     }) match {

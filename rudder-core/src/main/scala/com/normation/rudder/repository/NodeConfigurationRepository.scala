@@ -108,25 +108,25 @@ trait NodeConfigurationRepository {
 
 
   /**
-   * Look for all server which have the given policy instance ID in 
-   * their CURRENT policy instances.
+   * Look for all server which have the given directive ID in 
+   * their CURRENT directives.
    */
   def findNodeConfigurationByCurrentRuleId(uuid:RuleId) : Box[Seq[NodeConfiguration]] 
   
   /**
    * Look for all server which have the given policy name (however 
-   * TARGET policy instances of that policy they have, as long 
+   * TARGET directives of that policy they have, as long 
    * as they have at least one)
    */
   def findNodeConfigurationByTargetPolicyName(policyName:TechniqueId) : Box[Seq[NodeConfiguration]] 
   
   /**
    * Return all the server that need to be commited
-   * Meaning, all servers that have a difference between the current and target policy instance
+   * Meaning, all servers that have a difference between the current and target directive
    * 
    * TODO: perhaps it should be a method of BridgeToCfclerkService, 
    * and then NodeConfigurationService will be able to find all servers with
-   * theses policy instances
+   * theses directives
    */
   def findUncommitedNodeConfigurations() : Box[Seq[NodeConfiguration]]
   

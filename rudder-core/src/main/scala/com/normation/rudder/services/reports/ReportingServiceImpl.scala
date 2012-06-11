@@ -159,7 +159,7 @@ class ReportingServiceImpl(
   
   
   /**
-   * Returns the reports for a node (for all policy instance/CR) (and hides result from other servers)
+   * Returns the reports for a node (for all directive/CR) (and hides result from other servers)
    */
   def findReportsByNode(nodeId : NodeId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch] = {
     val result = mutable.Buffer[ExecutionBatch]()

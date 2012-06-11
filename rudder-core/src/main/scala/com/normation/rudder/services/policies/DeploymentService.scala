@@ -143,7 +143,7 @@ trait DeploymentService extends Loggable {
   
   /**
    * Find all modified configuration rules.
-   * For them, find all policy instances with variables
+   * For them, find all directives with variables
    * referencing these configuration rules. 
    * Add them to the set of configuration rules to return, and
    * recurse.
@@ -300,7 +300,7 @@ trait DeploymentService_buildRuleVals extends DeploymentService {
    }
    
    /**
-    * For each configuraiton rule, find its policy instance and policy package, and
+    * For each configuraiton rule, find its directive and policy package, and
     * store all variables / values
     * @param rules
     * @return

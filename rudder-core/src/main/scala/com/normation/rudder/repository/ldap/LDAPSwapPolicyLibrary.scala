@@ -129,7 +129,7 @@ class ImportTechniqueLibraryImpl(
                                  uptSaved <- con.save(uptEntry) ?~! "Error when persisting User Policy entry with DN '%s' in LDAP".format(uptEntry.dn)
                                  pisSaved <- sequence(directives.toSeq) { directive => 
                                                val piEntry = mapper.userDirective2Entry(directive, uptEntry.dn)
-                                               con.save(piEntry,true) ?~! "Error when persisting Policy Instance entry with DN '%s' in LDAP".format(piEntry.dn)
+                                               con.save(piEntry,true) ?~! "Error when persisting directive entry with DN '%s' in LDAP".format(piEntry.dn)
                                              }
                                } yield {
                                  "OK"
@@ -155,7 +155,7 @@ class ImportTechniqueLibraryImpl(
         con      <- ldap
         gitId    <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, OC_ACTIVE_TECHNIQUE_LIB_VERSION).map { entry => 
                       entry(OC_ACTIVE_TECHNIQUE_LIB_VERSION)
-                    } ?~! "Error when looking for the root entry of the User Policy Template Library when trying to check for an existing revision number"
+                    } ?~! "Error when looking for the root entry of the Active Technique Library when trying to check for an existing revision number"
         ok       <- moveToArchive(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN)
         finished <- {
                       (for {
@@ -169,7 +169,7 @@ class ImportTechniqueLibraryImpl(
                            case eb:EmptyBox => 
                              logger.error("Error when trying to load archived User Policy Library. Rollbaching to previous one.")
                              restoreArchive(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN) match {
-                               case eb2: EmptyBox => eb ?~! "Error when trying to restore archive with ID '%s' for the user policy template library".format(archiveId.value)
+                               case eb2: EmptyBox => eb ?~! "Error when trying to restore archive with ID '%s' for the active technique library".format(archiveId.value)
                                case Full(_) => eb ?~! "Error when trying to load archived User Policy Library. A rollback to previous state was executed"
                              }
                              
@@ -199,11 +199,11 @@ class ImportTechniqueLibraryImpl(
         val activeTechnique = uptContent.activeTechnique
         if(activeTechnique.isSystem && includeSystem == false) None
         else if(uactiveTechniqueIds.contains(activeTechnique.id)) {
-          logger.error("Ignoring User Policy Template because is ID was already processed: " + activeTechnique)
+          logger.error("Ignoring Active Technique because is ID was already processed: " + activeTechnique)
           None
         } else ptNames.get(activeTechnique.techniqueName) match {
           case Some(id) =>
-            logger.error("Ignoring User Policy Template with ID '%s' because it references policy template with name '%s' already referenced by user policy template with ID '%s'".format(
+            logger.error("Ignoring Active Technique with ID '%s' because it references technique with name '%s' already referenced by active technique with ID '%s'".format(
                 activeTechnique.id.value, activeTechnique.techniqueName.value, id.value
             ))
             None
@@ -230,14 +230,14 @@ class ImportTechniqueLibraryImpl(
         val cat = content.category
         if( !isRoot && content.category.isSystem && includeSystem == false) None
         else if(categoryIds.contains(cat.id)) {
-          logger.error("Ignoring User Policy Template Category because its ID was already processed: " + cat)
+          logger.error("Ignoring Active Technique Category because its ID was already processed: " + cat)
           None
         } else if(cat.name == null || cat.name.size < 1) {
-          logger.error("Ignoring User Policy Template Category because its name is empty: " + cat)
+          logger.error("Ignoring Active Technique Category because its name is empty: " + cat)
           None
         } else categoryNames.get(cat.name) match { //name is mandatory
           case Some(id) =>
-            logger.error("Ignoring User Policy Template Categor with ID '%s' because its name is '%s' already referenced by category with ID '%s'".format(
+            logger.error("Ignoring Active Technique Categor with ID '%s' because its name is '%s' already referenced by category with ID '%s'".format(
                 cat.id.value, cat.name, id.value
             ))
             None

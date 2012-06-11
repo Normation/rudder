@@ -64,8 +64,8 @@ case class ActiveTechniqueContent(
 case class ActiveTechniqueLibraryArchiveId(value:String)
 
 /**
- * That trait allows to manage the import of user policy template library 
- * (categories, templates, policy instances) from the File System into
+ * That trait allows to manage the import of active techniques library
+ * (categories, templates, directives) from the File System into
  * the LDAP. 
  */
 

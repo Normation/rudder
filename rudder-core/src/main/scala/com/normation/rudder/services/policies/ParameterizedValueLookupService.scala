@@ -48,10 +48,10 @@ import com.normation.utils.HashcodeCaching
 
 /**
  * A service that handle parameterized value of
- * policy instance variables. 
+ * directive variables. 
  * 
  * The parameterization is to be taken in the context of
- * a configuration rule (i.e, a policy instance applied to
+ * a configuration rule (i.e, a directive applied to
  * a target), and in the scope of one node of the target
  * (as if you were processing one node at a time).
  * 
@@ -85,8 +85,8 @@ import com.normation.utils.HashcodeCaching
  * --------------------------------
  * Accessor for configuration rule are of two forms:
  * - ${CONFIG_RULE_ID.VAR_NAME}
- *   where VAR_NAME is the name of a variable of the policy template implemented
- *   by the policy instance referenced by the given configuration rule ;
+ *   where VAR_NAME is the name of a variable of the technique implemented
+ *   by the directive referenced by the given configuration rule ;
  *   The following constraint are applied on a VAR_NAME accessor:
  *   - if the variable is monovalued, the targeted variable must have only one value 
  *     (the target variable may be multivalued with exaclty one value) ;

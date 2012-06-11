@@ -76,8 +76,8 @@ class LDAPRuleRepository(
   
   /**
    * Try to find the configuration rule with the given ID.
-   * Empty: no policy instance with such ID
-   * Full((parent,directive)) : found the policy instance (directive.id == directiveId) in given parent
+   * Empty: no directive with such ID
+   * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
    * Failure => an error happened.
    */
   def get(id:RuleId) : Box[Rule]  = {
@@ -203,8 +203,8 @@ class LDAPRuleRepository(
    * A configuration rule is activated if 
    * - its attribute "isEnabled" is set to true ;
    * - its referenced group is defined and Activated, or it reference a special target
-   * - its referenced policy instance is defined and activated (what means that the 
-   *   referenced user policy template is activated)
+   * - its referenced directive is defined and activated (what means that the 
+   *   referenced active technique is activated)
    * @return
    */
   def getAllEnabled() : Box[Seq[Rule]] = {
