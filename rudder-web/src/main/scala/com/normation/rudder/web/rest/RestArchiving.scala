@@ -112,7 +112,7 @@ class RestArchiving(
       archive(req, itemArchiveManager.exportTechniqueLibrary _, "technique library")
 
     case Get("api" :: "archives" :: "archive" :: "rules" :: Nil, req) => 
-      archive(req, itemArchiveManager.exportRules _, "configuration rules")
+      archive(req, itemArchiveManager.exportRules _, "rules")
 
     case Get("api" :: "archives" :: "archive" :: "full" :: Nil, req) => 
       archive(req, itemArchiveManager.exportAll _, "full archive")

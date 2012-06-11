@@ -102,11 +102,11 @@ class GitRuleArchiverImpl(
       archive <- writeXml(
                      crFile
                    , ruleSerialisation.serialise(rule)
-                   , "Archived Configuration rule: " + crFile.getPath
+                   , "Archived rule: " + crFile.getPath
                  )
       commit  <- doCommit match {
                    case Some((commiter, reason)) => 
-                     val msg = "Archive configuration rule with ID '%s'%s".format(rule.id.value, GET(reason))
+                     val msg = "Archive rule with ID '%s'%s".format(rule.id.value, GET(reason))
                      commitAddFile(commiter, gitPath, msg)
                    case None => Full("ok")
                  }
@@ -118,7 +118,7 @@ class GitRuleArchiverImpl(
   def commitRules(commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId] = {
     this.commitFullGitPathContentAndTag(
         commiter
-      , CONFIGURATION_RULES_ARCHIVE_TAG + " Commit all modification done on configuration rules (git path: '%s')%s".format(ruleRootDir, GET(reason))
+      , CONFIGURATION_RULES_ARCHIVE_TAG + " Commit all modification done on rules (git path: '%s')%s".format(ruleRootDir, GET(reason))
     )
   }
   
@@ -129,10 +129,10 @@ class GitRuleArchiverImpl(
       for {
         deleted  <- tryo { 
                       FileUtils.forceDelete(crFile) 
-                      logger.debug("Deleted archive of configuration rule: " + crFile.getPath)
+                      logger.debug("Deleted archive of rule: " + crFile.getPath)
                     }
         commited <- doCommit match {
-                      case Some((commiter, reason)) => commitRmFile(commiter, gitPath, "Delete archive of configuration rule with ID '%s'%s".format(ruleId.value, GET(reason)))
+                      case Some((commiter, reason)) => commitRmFile(commiter, gitPath, "Delete archive of rule with ID '%s'%s".format(ruleId.value, GET(reason)))
                       case None => Full("OK")
                     }
       } yield {

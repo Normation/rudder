@@ -48,7 +48,7 @@ import com.normation.rudder.repository.jdbc.SerializedNodes
 import com.normation.rudder.domain.nodes.NodeInfo
 
 /**
- * Repository to retrieve information about Nodes, Groups, directives, Configuration Rules
+ * Repository to retrieve information about Nodes, Groups, directives, rules
  * An item is said to be opened when it doesn't have an endTime, meaning it
  * is the current version of the item (as reflected in the ldap)
  */

@@ -92,7 +92,7 @@ trait DirectiveRepository {
   /**
    * Delete a directive.
    * No dependency check are done, and so you will have to
-   * delete dependent configuration rule (or other items) by
+   * delete dependent rule (or other items) by
    * hand if you want.
    * 
    * If the given directiveId does not exists, it leads to a

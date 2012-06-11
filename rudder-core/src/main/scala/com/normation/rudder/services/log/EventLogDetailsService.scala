@@ -80,7 +80,7 @@ trait EventLogDetailsService {
    */
   def getEntryContent(xml:NodeSeq) : Box[Elem]
 
-  ///// configuration Rule /////
+  ///// rule /////
   
   def getRuleAddDetails(xml:NodeSeq) : Box[AddRuleDiff]
   
@@ -275,7 +275,7 @@ class EventLogDetailsServiceImpl(
   }
   
   /**
-   * Map XML into a configuration rule
+   * Map XML into a rule
    */
   private[this] def getRuleFromXML(xml:NodeSeq, changeType:String) : Box[Rule] = {  
     for {

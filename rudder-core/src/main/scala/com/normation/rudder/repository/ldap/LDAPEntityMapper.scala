@@ -489,7 +489,7 @@ class LDAPEntityMapper(
   def entry2OptTarget(optValue:Option[String]) : Box[Option[RuleTarget]] = {
     (for {
       targetValue <- Box(optValue)
-      target <- RuleTarget.unser(targetValue) ?~! "Bad parameter for a configuration rule target: %s".format(targetValue)
+      target <- RuleTarget.unser(targetValue) ?~! "Bad parameter for a rule target: %s".format(targetValue)
     } yield {
       target
     }) match {

@@ -446,9 +446,9 @@ class DirectiveEditForm(
     <span>
       {
         if (technique.isMultiInstance) {
-          { <b>Multi instance</b> } ++ Text(": several Directives derived from that template can be deployed on a given server")
+          { <b>Multi instance</b> } ++ Text(": several Directives derived from that template can be deployed on a given node")
         } else {
-          { <b>Unique</b> } ++ Text(": an unique Directive derived from that template can be deployed on a given server")
+          { <b>Unique</b> } ++ Text(": an unique Directive derived from that template can be deployed on a given node")
         }
       }
     </span>

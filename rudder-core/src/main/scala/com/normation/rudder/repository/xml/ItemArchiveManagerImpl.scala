@@ -86,7 +86,7 @@ class ItemArchiveManagerImpl(
       saveUserLib <- exportTechniqueLibraryAndDeploy(commiter, actor, reason, includeSystem, false)
       saveGroups  <- exportGroupLibraryAndDeploy(commiter, actor, reason, includeSystem, false)
       val msg     =  (  FULL_ARCHIVE_TAG 
-                      + " Archive and tag groups, technique library and configuration rules" 
+                      + " Archive and tag groups, technique library and rules" 
                       + (reason match {
                           case None => ""
                           case Some(m) => ", reason: " + m
@@ -207,7 +207,7 @@ class ItemArchiveManagerImpl(
     importRulesAndDeploy(archiveId, actor, reason, includeSystem)
         
   private[this] def importRulesAndDeploy(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true) : Box[GitCommitId] = {
-    logger.info("Importing configuration rules archive with id '%s'".format(archiveId.value))
+    logger.info("Importing rules archive with id '%s'".format(archiveId.value))
     for {
       parsed      <- parseRules.getArchive(archiveId)
       imported    <- ruleRepository.swapRules(parsed)
@@ -263,7 +263,7 @@ class ItemArchiveManagerImpl(
   }
   
   override def importHeadRules(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
-    logger.info("Importing configuration rules archive from HEAD")
+    logger.info("Importing rules archive from HEAD")
     this.importRules(lastGitCommitId, actor, reason: Option[String], includeSystem)
   }
   
@@ -279,7 +279,7 @@ class ItemArchiveManagerImpl(
   
   override def getFullArchiveTags : Box[Map[DateTime,GitArchiveId]] = this.getTags()
   
-  // groups, technique library and configuration rules may use
+  // groups, technique library and rules may use
   // their own tag or a global one. 
   
   override def getGroupLibraryTags : Box[Map[DateTime,GitArchiveId]] = {

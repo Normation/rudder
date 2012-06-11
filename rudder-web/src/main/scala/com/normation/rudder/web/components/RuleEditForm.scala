@@ -581,7 +581,7 @@ class RuleEditForm(
   }
 
 
-  //fetch server group category id and transform it to a tree node
+  //fetch node group category id and transform it to a tree node
   private def nodeGroupCategoryIdToJsTreeNode(id:NodeGroupCategoryId) : Box[JsTreeNode] = {
     groupCategoryRepository.getGroupCategory(id) match {
       //remove sytem category
@@ -596,7 +596,7 @@ class RuleEditForm(
     }
   }
 
-  //fetch server group id and transform it to a tree node
+  //fetch node group id and transform it to a tree node
   private def policyTargetInfoToJsTreeNode(targetInfo:RuleTargetInfo) : JsTreeNode = {
     targetInfo.target match {
       case GroupTarget(id) =>
