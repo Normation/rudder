@@ -3770,7 +3770,7 @@
       </policyInstanceIds>
       <longDescription>
         <from></from>
-        <to>Test application of two (single) policy instances, with two multivalued section.</to>
+        <to>Test application of two (single) directives, with two multivalued section.</to>
       </longDescription>
     </configurationRule>
     <configurationRule fileFormat="1.0" changeType="add">
@@ -4170,7 +4170,7 @@
         <id>119823cc-c8a9-4b0f-89c3-e8e73be5d36f</id>
       </policyInstanceIds>
       <shortDescription></shortDescription>
-      <longDescription>Test application of two (single) policy instances, with two multivalued section.</longDescription>
+      <longDescription>Test application of two (single) directives, with two multivalued section.</longDescription>
       <isActivated>true</isActivated>
       <isSystem>false</isSystem>
     </configurationRule>

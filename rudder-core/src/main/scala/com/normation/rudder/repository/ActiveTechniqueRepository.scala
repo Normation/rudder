@@ -82,7 +82,7 @@ trait ActiveTechniqueRepository {
   
   /**
    * Find back an active technique thanks to the id of its referenced
-   * Policy Template. 
+   * Technique.
    * Return Empty if the active technique is not found, 
    * Fails on error.
    */
@@ -142,7 +142,7 @@ trait ActiveTechniqueRepository {
    * Retrieve the list of parents for the given active technique, 
    * till the root of policy library.
    * Return empty if the path can not be build
-   * (missing policy template, missing category, etc)
+   * (missing technique, missing category, etc)
    */
   def activeTechniqueBreadCrump(id:ActiveTechniqueId) : Box[List[ActiveTechniqueCategory]]
   

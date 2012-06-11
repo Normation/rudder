@@ -58,12 +58,12 @@ attributetype ( RudderAttributes:101
 
 attributetype ( RudderAttributes:102
   NAME 'directiveId'
-  DESC 'Unique identifier for a policy instance'
+  DESC 'Unique identifier for a directive'
   SUP uuid )
   
 attributetype ( RudderAttributes:103
   NAME 'targetDirectiveId'
-  DESC 'Unique identifier for a policy instance'
+  DESC 'Unique identifier for a directive'
   SUP uuid )
 
 attributetype ( RudderAttributes:104
@@ -78,12 +78,12 @@ attributetype ( RudderAttributes:105
   
 attributetype ( RudderAttributes:106
   NAME 'techniqueId'
-  DESC 'Unique identifier for a policy template from reference library'
+  DESC 'Unique identifier for a technique from Reference technique library'
   SUP uuid )
 
 attributetype ( RudderAttributes:107
   NAME 'activeTechniqueId'
-  DESC 'Unique identifier for an policy template in user library'
+  DESC 'Unique identifier for a technique in Active technique library'
   SUP uuid )
 
 attributetype ( RudderAttributes:108
@@ -284,7 +284,7 @@ attributetype ( RudderAttributes:225
 # * nodes and policy server
 # * node group categories 
 # * node groups 
-# * user library of policy template categories
+# * library of active technique categories
 # * activeTechnique
 # * directive
 # * rules
@@ -435,7 +435,7 @@ objectclass ( RudderObjectClasses:104
 
 objectclass ( RudderObjectClasses:105
   NAME 'targetDirectiveNodeConfiguration'
-  DESC 'An instance of a target state for a policy instance'
+  DESC 'An instance of a target state for a directive'
   SUP abstractDirectiveNodeConfiguration
   STRUCTURAL
   MUST ( targetdirectiveId ) )

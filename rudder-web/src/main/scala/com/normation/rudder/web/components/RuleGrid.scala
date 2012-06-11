@@ -400,7 +400,7 @@ class RuleGrid(
                     ( line.target.isDefined && line.target.get.isEnabled, "Group disabled")
                  ) ++ line.trackerVariables.flatMap { case (pi, upt,pt) => Seq(
                     ( pi.isEnabled, "Policy " + pi.name + " disabled") , 
-                    ( upt.isEnabled, "Policy template for '" + pi.name + "' disabled") 
+                    ( upt.isEnabled, "Technique for '" + pi.name + "' disabled") 
                  )}
                
                 val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ") 

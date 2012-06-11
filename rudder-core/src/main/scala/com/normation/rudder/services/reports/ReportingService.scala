@@ -75,7 +75,7 @@ trait ReportingService {
   def findReportsByRule(ruleId : RuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch]
   
   /**
-   * Returns the reports for a server (for all policy instance)
+   * Returns the reports for a server (for all directive)
    */
   def findReportsByNode(nodeId : NodeId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch]
   

@@ -105,7 +105,7 @@ class GitParseGroupLibrary(
         groups       <- sequence(groupFiles.toSeq) { groupPath =>
                           for {
                             groupXml <- GitFindUtils.getFileContent(repo.db, revTreeId, groupPath){ inputStream =>
-                              XmlUtils.parseXml(inputStream, Some(groupPath)) ?~! "Error when parsing file '%s' as a policy instance".format(groupPath)
+                              XmlUtils.parseXml(inputStream, Some(groupPath)) ?~! "Error when parsing file '%s' as a directive".format(groupPath)
                             }
                             group    <-  groupUnserialiser.unserialise(groupXml) ?~! "Error when unserializing group for file '%s'".format(groupPath)
                           } yield {

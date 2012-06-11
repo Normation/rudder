@@ -132,7 +132,7 @@ class NodeConfigurationTest {
     // Now add a policy
     newNode.addDirective(simplePolicy) match {
       case f: EmptyBox => 
-        val e = f ?~! "Error when adding policy instance %s on node %s".format(simplePolicy.ruleId, newNode.id)
+        val e = f ?~! "Error when adding directive %s on node %s".format(simplePolicy.ruleId, newNode.id)
         throw new RuntimeException(e.messageChain)
       case Full(node) => 
     

@@ -9,13 +9,13 @@ Des Package de politiques aux promesses CFEngines
 En rapide
 ---------
 
-- Au départ: Policy Package (contient un Policy Template + des méta données + d'autres assets) 
+- Au départ: Policy Package (contient une Technique + des méta données + d'autres assets) 
 
 - Suite de liens: 
-Policy Template 
-    => User Policy Template (un policy template défini comme faisant partie de la 
+Technique 
+    => Active Technique (une technique définie comme faisant partie de la 
                              bibiothèque de l'utilisateur)
-        => Policy Instance (variables du Policy Template liées) 
+        => directive (variables de la Techniques liées) 
             => Configuration Rules (on sait sur quoi seront déployé les promesses)
                 => Magic [cf "Transformation de configuration rules en données d'entrée CFClerk"]
                     => Promises CFE + assets
@@ -41,7 +41,7 @@ cfengine, fichier de configuration) et méta-données qui définissent une polit
 Cette politique devra être instanciée avant de pouvoir être
 
 
-### Policy Template
+### Technique
 
 Représente la déscription abstraite de la politique:
 - son nom, son rôle, son idéntifiant ;
@@ -49,9 +49,9 @@ Représente la déscription abstraite de la politique:
   avec leur type, leur groupe et leur multiplicité
 
   
-### Policy Instance  
+### directive  
   
-Un policy template + ses variables liées (par le système et/ou l'utilisateur)  
+Une Technique + ses variables liées (par le système et/ou l'utilisateur)  
 
 Quelles variables définir ?
 - les variables systèmes ne peuvent pas l'être
@@ -66,7 +66,7 @@ Quelles variables définir ?
 
 ### Configuration Rule
 
-Une policy instance liée à une "cible" sur lesquelles elle doit être déployée
+Une directive liée à une "cible" sur lesquelles elle doit être déployée
 - cible ? 
   - un ensemble énuméré de serveurs ?
   - un groupe ?
@@ -112,15 +112,15 @@ Remarques
     (mais c'est plutôt aux règles CFEngine de faire ça)
     
 - CFClerk n'a besoin que:
-  - des variables liées (données par la policy instance + gestion des dépendences et variables systèmes);
+  - des variables liées (données par la directive + gestion des dépendences et variables systèmes);
   - des promesses à parser / lier: données par le chemin vers le paquet + convention structure paquet ;
   - les fichiers de configuration à copier: donnés par le chemin vers le paquet + convention structure paquet ;
   - de l'endroit où mettre les promesses compilées: donné par les serveurs de la configuration rule + 
     conventions sur les répertoires à destination des serveurs
 
-- est-ce qu'il n'y a qu'un seul policy template par policy package ? (oui ?)
+- est-ce qu'il n'y a qu'une seule technique par policy package ? (oui ?)
 
-- point difficile: format des parametres des policy templates ?
+- point difficile: format des parametres des techniques ?
 
 Valeurs de variables paramétrées
 ================================
@@ -128,10 +128,10 @@ Valeurs de variables paramétrées
 => rudder-core: com.normation.rudder.services.policies.ParameterizedValueLookupService
 
 A service that handle parameterized value of
-policy instance variables. 
+directive variables. 
 
 The parameterization is to be taken in the context of
-a configuration rule (i.e, a policy instance applied to
+a configuration rule (i.e, a directive applied to
 a target), and in the scope of one node of the target
 (as if you were processing one node at a time).
 
@@ -165,8 +165,8 @@ Accessors for configuration rule
 --------------------------------
 Accessor for configuration rule are of two forms:
 - ${CONFIG_RULE_ID.VAR_NAME}
-  where VAR_NAME is the name of a variable of the policy template implemented
-  by the policy instance referenced by the given configuration rule ;
+  where VAR_NAME is the name of a variable of the technique implemented
+  by the directive referenced by the given configuration rule ;
   The following constraint are applied on a VAR_NAME accessor:
   - if the variable is monovalued, the targeted variable must have only one value 
     (the target variable may be multivalued with exaclty one value) ;

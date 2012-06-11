@@ -43,27 +43,27 @@ import com.normation.rudder.domain.archives.RuleArchiveId
 
 
 /**
- * The policy instance repository. 
+ * The directive repository. 
  * 
- * Policy instance are instance of policy template
- * (a policy template + values for its parameters)
+ * directive are instance of technique
+ * (a technique + values for its parameters)
  *
  */
 trait RuleRepository {
 
   /**
    * Try to find the configuration rule with the given ID.
-   * Empty: no policy instance with such ID
-   * Full((parent,directive)) : found the policy instance (directive.id == directiveId) in given parent
+   * Empty: no directive with such ID
+   * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
    * Failure => an error happened.
    */
   def get(ruleId:RuleId) : Box[Rule]
 
   /**
-   * Save the given policy instance into given user policy template
-   * If a policy instance with the same ID is already present in the 
+   * Save the given directive into given active technique
+   * If a directive with the same ID is already present in the 
    * system, raise an error.
-   * If the policy instance is not in the system, add it.
+   * If the directive is not in the system, add it.
    * 
    * Returned the saved Rule
    * 
@@ -109,8 +109,8 @@ trait RuleRepository {
    * A configuration rule is activated if 
    * - its attribute "isEnabled" is set to true ;
    * - its referenced group is Activated ;
-   * - its referenced policy instance is activated (what means that the 
-   *   referenced user policy template is activated)
+   * - its referenced directive is activated (what means that the 
+   *   referenced active technique is activated)
    * @return
    */
   def getAllEnabled() : Box[Seq[Rule]] 

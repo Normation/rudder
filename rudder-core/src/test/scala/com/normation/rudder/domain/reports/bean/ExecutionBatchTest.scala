@@ -304,7 +304,7 @@ class ExecutionBatchTest extends Specification {
 
 
   
-  "An execution Batch, with two policy instance, two nodes, one component" should {
+  "An execution Batch, with two directive, two nodes, one component" should {
     val reports = Seq[Reports](
         new ResultSuccessReport(DateTime.now(), "rule", "policy1", "one", 12, "component1", "None",DateTime.now(), "message"),
         new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one", 12, "component2", "None",DateTime.now(), "message")

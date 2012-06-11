@@ -36,14 +36,14 @@ http://www.rudder-project.org/HowToContribute
 
 This is the main project, Rudder, the web console that allows
 to see nodes inventory, manage group of nodes, apply configuration
-rules derived from policy templates. 
+rules derived from techniques.
 
 This project is composed of several modules:
 
 [horizontal]
 rudder-core:: that module contains most of the logic for Rudder (i.e most of the
          business tier). Among other things, you will find:
-  * all the logic to save and bind parameters to policy templates;
+  * all the logic to save and bind parameters to techniques;
   * the pipeline of action that generates CFEngine promises from templates, parameters
     and group of nodes;
   * an LDAP query processor that allows "join" like operations;

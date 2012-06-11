@@ -40,7 +40,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.SectionSpec
 
 /**
- * That file define "diff" objects between policy instances.
+ * That file define "diff" objects between directives.
  */
 
 sealed trait DirectiveDiff

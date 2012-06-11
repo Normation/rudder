@@ -65,7 +65,7 @@ case class DirectiveVal(
 
 case class RuleVal(
   ruleId       : RuleId,
-  target       : RuleTarget,  //list of target for that policy instance (server groups, server ids, etc)
+  target       : RuleTarget,  //list of target for that directive (server groups, server ids, etc)
   directiveVals: Seq[DirectiveVal],
   serial       : Int // the generation serial of the Rule
 ) extends HashcodeCaching {

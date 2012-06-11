@@ -71,14 +71,14 @@ class LDAPDirectiveRepository(
   import scala.xml.Text
   
   /**
-   * Retrieve the policy instance entry for the given ID, with the given connection
+   * Retrieve the directive entry for the given ID, with the given connection
    */
   private[this] def getDirectiveEntry(con:LDAPConnection, id:DirectiveId, attributes:String*) : Box[LDAPEntry] = {
     val piEntries = con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn,  EQ(A_DIRECTIVE_UUID, id.value), attributes:_*)
     piEntries.size match {
       case 0 => Empty
       case 1 => Full(piEntries(0))
-      case _ => Failure("Error, the directory contains multiple occurrence of policy instance with id %s. DN: %s".format(id, piEntries.map( _.dn).mkString("; ")))
+      case _ => Failure("Error, the directory contains multiple occurrence of directive with id %s. DN: %s".format(id, piEntries.map( _.dn).mkString("; ")))
     }
   }
   
@@ -86,17 +86,17 @@ class LDAPDirectiveRepository(
   private[this] def policyFilter(includeSystem:Boolean = false) = if(includeSystem) IS(OC_DIRECTIVE) else AND(IS(OC_DIRECTIVE), EQ(A_IS_SYSTEM,false.toLDAPString))
   
   /**
-   * Try to find the policy instance with the given ID.
-   * Empty: no policy instance with such ID
-   * Full((parent,directive)) : found the policy instance (directive.id == directiveId) in given parent
+   * Try to find the directive with the given ID.
+   * Empty: no directive with such ID
+   * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
    * Failure => an error happened.
    */
   override def getDirective(id:DirectiveId) : Box[Directive] = {
     for {
       locked  <- userLibMutex.readLock
       con     <- ldap 
-      piEntry <- getDirectiveEntry(con, id) ?~! "Can not find Policy Instance with id %s".format(id)
-      directive      <- mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a Policy Instance for id %s. Entry: %s".format(id, piEntry)
+      piEntry <- getDirectiveEntry(con, id) ?~! "Can not find directive with id %s".format(id)
+      directive      <- mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, piEntry)
     } yield {
       directive
     }
@@ -108,7 +108,7 @@ class LDAPDirectiveRepository(
       con    <- ldap
       //for each directive entry, map it. if one fails, all fails
       directives    <- sequence(con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn,  policyFilter(includeSystem))) { piEntry => 
-                  mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a Policy Instance. Entry: %s".format(piEntry)
+                  mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive. Entry: %s".format(piEntry)
                 }
     } yield {
       directives
@@ -117,17 +117,17 @@ class LDAPDirectiveRepository(
 
   
   /**
-   * Find the user policy template for which the given policy
+   * Find the active technique for which the given policy
    * instance is an instance. 
    * 
-   * Return empty if no such policy instance is known, 
-   * fails if no User policy template match the policy instance.
+   * Return empty if no such directive is known, 
+   * fails if no active technique match the directive.
    */
   override def getActiveTechnique(id:DirectiveId) : Box[ActiveTechnique] = {
     for {
       locked  <- userLibMutex.readLock
       con     <- ldap 
-      piEntry <- getDirectiveEntry(con, id, "1.1") ?~! "Can not find Policy Instance with id %s".format(id)
+      piEntry <- getDirectiveEntry(con, id, "1.1") ?~! "Can not find directive with id %s".format(id)
       activeTechnique     <- ldapActiveTechniqueRepository.getActiveTechnique(mapper.dn2ActiveTechniqueId(piEntry.dn.getParent))
     } yield {
       activeTechnique
@@ -136,8 +136,8 @@ class LDAPDirectiveRepository(
   
   
   /**
-   * Get policy instances for given policy template.
-   * A not known policy template id is a failure.
+   * Get directives for given technique.
+   * A not known technique id is a failure.
    */
   override def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : Box[Seq[Directive]] = {
     for {
@@ -145,7 +145,7 @@ class LDAPDirectiveRepository(
       con     <- ldap 
       ptEntry <- ldapActiveTechniqueRepository.getUPTEntry(con, activeTechniqueId, "1.1")
       directives     <- sequence(con.searchOne(ptEntry.dn, policyFilter(includeSystem))) { piEntry => 
-                   mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a Policy Instance. Entry: %s".format(piEntry)
+                   mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive. Entry: %s".format(piEntry)
                  }
     } yield {
       directives
@@ -153,19 +153,19 @@ class LDAPDirectiveRepository(
   }
   
   /**
-   * Save the given policy instance into given user policy template
-   * If the policy instance is already present in the system but not
+   * Save the given directive into given active technique
+   * If the directive is already present in the system but not
    * in the given category, raise an error.
-   * If the policy instance is already in the given policy template,
-   * update the policy instance.
-   * If the policy instance is not in the system, add it.
+   * If the directive is already in the given technique,
+   * update the directive.
+   * If the directive is not in the system, add it.
    * 
    * Returned the saved WBUserDirective
    */
   override def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]] = {
     for {
       con         <- ldap
-      uptEntry    <- ldapActiveTechniqueRepository.getUPTEntry(con, inActiveTechniqueId, "1.1") ?~! "Can not find the User Policy Entry with id %s to add Policy Instance %s".format(inActiveTechniqueId, directive.id)
+      uptEntry    <- ldapActiveTechniqueRepository.getUPTEntry(con, inActiveTechniqueId, "1.1") ?~! "Can not find the User Policy Entry with id %s to add directive %s".format(inActiveTechniqueId, directive.id)
       canAdd      <- { //check if the directive already exists elsewhere
                         getDirectiveEntry(con, directive.id) match {
                           case f:Failure => f
@@ -173,15 +173,15 @@ class LDAPDirectiveRepository(
                           case Full(otherPi) => 
                             if(otherPi.dn.getParent == uptEntry.dn) Full(Some(otherPi))
 
-                            else Failure("An other policy instance with the id %s exists in an other category that the one with id %s : %s".format(directive.id, inActiveTechniqueId, otherPi.dn))
+                            else Failure("An other directive with the id %s exists in an other category that the one with id %s : %s".format(directive.id, inActiveTechniqueId, otherPi.dn))
                         }
                       }
       piEntry     =  mapper.userDirective2Entry(directive, uptEntry.dn)
       result      <- userLibMutex.writeLock { con.save(piEntry, true) }
       //for log event - perhaps put that elsewhere ?
-      activeTechnique         <- ldapActiveTechniqueRepository.getActiveTechnique(inActiveTechniqueId) ?~! "Can not find the User Policy Entry with id %s to add Policy Instance %s".format(inActiveTechniqueId, directive.id)
+      activeTechnique         <- ldapActiveTechniqueRepository.getActiveTechnique(inActiveTechniqueId) ?~! "Can not find the User Policy Entry with id %s to add directive %s".format(inActiveTechniqueId, directive.id)
       val activeTechniqueId    =  TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)
-      technique          <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "Can not find the Policy Template with ID '%s'".format(activeTechniqueId.toString)
+      technique          <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "Can not find the technique with ID '%s'".format(activeTechniqueId.toString)
       optDiff     <- diffMapper.modChangeRecords2DirectiveSaveDiff(technique.id.name, technique.rootSection, piEntry.dn, canAdd, result) ?~! "Error when processing saved modification to log them"
       eventLogged <- optDiff match {
                        case None => Full("OK")
@@ -206,7 +206,7 @@ class LDAPDirectiveRepository(
 
 
   /**
-   * Delete a policy instance.
+   * Delete a directive.
    * No dependency check are done, and so you will have to
    * delete dependent rule (or other items) by
    * hand if you want.
@@ -217,7 +217,7 @@ class LDAPDirectiveRepository(
       entry        <- getDirectiveEntry(con, id)
       //for logging, before deletion
       directive           <- mapper.entry2Directive(entry)
-      activeTechnique          <- this.getActiveTechnique(id) ?~! "Can not find the User Policy Temple Entry for Policy Instance %s".format(id)
+      activeTechnique          <- this.getActiveTechnique(id) ?~! "Can not find the User Policy Temple Entry for directive %s".format(id)
       technique           <- techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion))
       //delete
       deleted      <- userLibMutex.writeLock { con.delete(entry.dn) }

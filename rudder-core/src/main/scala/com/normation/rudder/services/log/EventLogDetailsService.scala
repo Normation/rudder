@@ -88,7 +88,7 @@ trait EventLogDetailsService {
   
   def getRuleModifyDetails(xml:NodeSeq) : Box[ModifyRuleDiff]
   
-  ///// policy Instance /////
+  ///// directive /////
   
   def getDirectiveAddDetails(xml:NodeSeq) : Box[(AddDirectiveDiff, SectionVal)]
   
@@ -292,11 +292,11 @@ class EventLogDetailsServiceImpl(
   }
   
   
-  ///// policy instances /////
+  ///// directives /////
   
   
   /**
-   * Map XML into a policy instance
+   * Map XML into a directive
    */
   private[this] def getDirectiveFromXML(xml:NodeSeq, changeType:String) : Box[(TechniqueName, Directive, SectionVal)] = {  
     for {

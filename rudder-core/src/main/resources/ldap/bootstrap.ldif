@@ -142,7 +142,7 @@ isEnabled: TRUE
 isSystem: TRUE
 
 
-# User policy template library
+# Active technique library
 dn: techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: techniqueCategory
 objectClass: top
@@ -151,7 +151,7 @@ description: This is the root category for active techniques. It contains subcat
 techniqueCategoryId: Active Techniques
 isSystem: TRUE
 
-# System user policy templates
+# System active technique library
 dn: techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: techniqueCategory
 objectClass: top
