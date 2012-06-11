@@ -420,7 +420,8 @@ class DirectiveEditForm(
             if (piCreation == true) {
               onSuccess
             } else {
-              saveAndDeployDirective(directive.copy(isEnabled = status), Some("Directive disabled by user"))
+              saveAndDeployDirective(directive.copy(isEnabled = status), 
+                  crReasonsDisactivatePopup.map( _.is).orElse(Some("Directive %s by user".format(if(status) "enabled" else "disabled" ))) )
             }
           }
         }
