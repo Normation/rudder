@@ -56,6 +56,8 @@ import net.liftweb.http.Templates
 import org.joda.time.DateTime
 import com.normation.rudder.services.servers.RemoveNodeService
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AutomaticStartDeployment
 
 /**
  * A service used to display details about a server 
@@ -73,6 +75,7 @@ object DisplayNode extends Loggable {
   
   private[this] val getSoftwareService = inject[ReadOnlySoftwareDAO]
   private[this] val removeNodeService = inject[RemoveNodeService]
+  private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
   
   private[this] val templatePath = List("templates-hidden", "server_details_tabs")
   private[this] def template() =  Templates(templatePath) match {
@@ -544,6 +547,7 @@ object DisplayNode extends Loggable {
     removeNodeService.removeNode(nodeId, CurrentUser.getActor) match {
       case Full(entry) =>
         logger.info("Successfully removed node %s from Rudder".format(nodeId.value))
+        asyncDeploymentAgent ! AutomaticStartDeployment(CurrentUser.getActor)
         onSuccess
       case eb:EmptyBox => 
         val e = eb ?~! "Could not remove node %s from Rudder".format(nodeId.value)
