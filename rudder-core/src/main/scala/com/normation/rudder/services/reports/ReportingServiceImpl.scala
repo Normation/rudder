@@ -120,7 +120,7 @@ class ReportingServiceImpl(
       ( for {
         policyExpectedReports <- sequence(ruleVal.directiveVals) { policy =>
                                    ( for {
-                                     seq <- getCardinality(policy) ?~! "Can not get cardinality for configuration rule %s".format(ruleVal.ruleId)
+                                     seq <- getCardinality(policy) ?~! "Can not get cardinality for rule %s".format(ruleVal.ruleId)
                                     } yield {
                                       seq.map { case(componentName, componentsValues) =>
                                         DirectiveExpectedReports(policy.directiveId, Seq(ReportComponent(componentName, componentsValues.size, componentsValues)))
@@ -141,7 +141,7 @@ class ReportingServiceImpl(
   
   
   /**
-   * Returns the reports for a configuration rule
+   * Returns the reports for a rule
    */
   def findReportsByRule(ruleId : RuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch] = {
     val result = mutable.Buffer[ExecutionBatch]()
@@ -179,7 +179,7 @@ class ReportingServiceImpl(
 
 
   /**
-   * Find the latest reports for a given configuration rule (for all servers)
+   * Find the latest reports for a given rule (for all servers)
    * Note : if there is an expected report, and that we don't have it, we should say that it is empty
    */
   def findImmediateReportsByRule(ruleId : RuleId) : Option[ExecutionBatch] = {
@@ -201,7 +201,7 @@ class ReportingServiceImpl(
   }
   
   /**
-   *  find the last reports for a given node, for a sequence of configuration rules
+   *  find the last reports for a given node, for a sequence of rules
    *  look for each CR for the current report 
    */
   def findImmediateReportsByNodeAndCrs(nodeId : NodeId, ruleIds : Seq[RuleId]) : Seq[ExecutionBatch] = {
@@ -245,7 +245,7 @@ class ReportingServiceImpl(
   private def createBatchesFromConfigurationReports(expectedConfigurationReports : RuleExpectedReports, beginDate : DateTime, endDate : Option[DateTime]) : Seq[ExecutionBatch] = {
     val batches = mutable.Buffer[ExecutionBatch]()
     
-    // Fetch the reports corresponding to this configuration rule, and filter them by nodes
+    // Fetch the reports corresponding to this rule, and filter them by nodes
     val reports = reportsRepository.findReportsByRule(expectedConfigurationReports.ruleId, Some(expectedConfigurationReports.serial), Some(beginDate), endDate).filter( x => 
             expectedConfigurationReports.nodeIds.contains(x.nodeId)  )  
 
@@ -275,7 +275,7 @@ class ReportingServiceImpl(
   private def createLastBatchFromConfigurationReports(expectedConfigurationReports : RuleExpectedReports,
                 nodeId : Option[NodeId] = None) : ExecutionBatch = {
   
-    // Fetch the reports corresponding to this configuration rule, and filter them by nodes
+    // Fetch the reports corresponding to this rule, and filter them by nodes
     val reports = reportsRepository.findLastReportByRule(
             expectedConfigurationReports.ruleId, 
             expectedConfigurationReports.serial, nodeId) 

@@ -70,7 +70,7 @@ trait ReportingService {
   
     
   /**
-   * Returns the operation reports for a configuration rule (for all servers)
+   * Returns the operation reports for a rule (for all servers)
    */
   def findReportsByRule(ruleId : RuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch]
   
@@ -80,7 +80,7 @@ trait ReportingService {
   def findReportsByNode(nodeId : NodeId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch]
   
   /**
-   * Find the latest reports for a given configuration rule (for all servers)
+   * Find the latest reports for a given rule (for all servers)
    * Note : if there is an expected report, and that we don't have it, we should say that it is empty
    */
   def findImmediateReportsByRule(ruleId : RuleId) : Option[ExecutionBatch]

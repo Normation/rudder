@@ -611,7 +611,7 @@ class RefuseGroups(
 }
   
 /**
- * A unit acceptor in charge to update configuration rules
+ * A unit acceptor in charge to update rules
  */
 class AcceptNodeRule(
     override val name:String,
@@ -682,7 +682,7 @@ class AcceptNodeRule(
   
   //////////// refuse //////////// 
   override def refuseOne(srv:Srv, actor:EventActor) : Box[Srv] = {
-    //remove node configuration rule
+    //remove node rule
     for {
       deleted <- nodeConfigRepo.deleteNodeConfiguration(srv.id.value)
     } yield {

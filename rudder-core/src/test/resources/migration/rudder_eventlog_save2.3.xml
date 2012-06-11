@@ -3502,7 +3502,7 @@
       <ended>2012-02-07T11:58:43.955+01:00</ended>
       <status>failure</status>
       <errorMessage>
-        Failure(Deployment error for process '63' at 2012/02/07 11:58:43,Empty,Full(Failure(Cannot build configuration rule vals,Empty,Full(Failure(Could not find configuration vals,Empty,Empty)))))
+        Failure(Deployment error for process '63' at 2012/02/07 11:58:43,Empty,Full(Failure(Cannot build rule vals,Empty,Full(Failure(Could not find configuration vals,Empty,Empty)))))
       </errorMessage>
     </deploymentStatus>
     <deploymentStatus fileFormat="1.0">

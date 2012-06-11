@@ -119,7 +119,7 @@ trait NodeGroupUnserialisation {
 
 /**
  * That trait allow to unserialise 
- * Configuration Rule from an XML file. 
+ * rule from an XML file. 
  */
 trait RuleUnserialisation {
   /**

@@ -131,7 +131,7 @@ class EventLogFactoryImpl(
 ) extends EventLogFactory {
   
   ///// 
-  ///// Configuration Rules /////
+  ///// rules /////
   /////
   
   override def getAddRuleFromDiff(

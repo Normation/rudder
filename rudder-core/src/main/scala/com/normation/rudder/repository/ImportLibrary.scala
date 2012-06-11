@@ -72,21 +72,21 @@ case class ActiveTechniqueLibraryArchiveId(value:String)
 trait ParseActiveTechniqueLibrary {
 
   /**
-   * That method parse configuration rules from the
+   * That method parse rules from the
    * file system for an archive with the given ID. 
    */
   def getArchive(archiveId:GitCommitId) : Box[ActiveTechniqueCategoryContent]
 }
 
 /**
- * That trait allows to manage the import of configuration rules
+ * That trait allows to manage the import of rules
  * from the File System into the LDAP. 
  * That part read the last CR archive.
  */
 trait ParseRules {
 
   /**
-   * That method parse configuration rules from the
+   * That method parse rules from the
    * file system for an archive with the given ID. 
    */
   def getArchive(archiveId:GitCommitId) : Box[Seq[Rule]]

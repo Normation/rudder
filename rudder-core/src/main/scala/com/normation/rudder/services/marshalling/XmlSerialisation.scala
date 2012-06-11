@@ -49,7 +49,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 
 /**
  * That trait allow to serialise 
- * Configuration Rule to an XML file. 
+ * rule to an XML file. 
  */
 trait RuleSerialisation {
   /**

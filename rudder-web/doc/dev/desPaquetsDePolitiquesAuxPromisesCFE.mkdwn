@@ -16,8 +16,8 @@ Technique
     => Active Technique (une technique définie comme faisant partie de la 
                              bibiothèque de l'utilisateur)
         => directive (variables de la Techniques liées) 
-            => Configuration Rules (on sait sur quoi seront déployé les promesses)
-                => Magic [cf "Transformation de configuration rules en données d'entrée CFClerk"]
+            => rules (on sait sur quoi seront déployé les promesses)
+                => Magic [cf "Transformation de rules en données d'entrée CFClerk"]
                     => Promises CFE + assets
 
 - A l'arrivée: des promesses CFEngine exécutable avec l'ensemble des fichiers nécessaires à leur 
@@ -64,7 +64,7 @@ Quelles variables définir ?
 - les variables facultatives ne le sont pas forcément
 
 
-### Configuration Rule
+### rule
 
 Une directive liée à une "cible" sur lesquelles elle doit être déployée
 - cible ? 
@@ -80,9 +80,9 @@ dont toutes les variables ont été remplacées par des valeurs, et dans les ré
 serveur de destination
 
 
-### Transformation de configuration rules en données d'entrée CFClerk
+### Transformation de rules en données d'entrée CFClerk
 
-Le passage des Configuration Rules aux "promises + assets" n'est pas direct:
+Le passage des rules aux "promises + assets" n'est pas direct:
 
 - Rudder transforme la cible en un ensemble de répertoire de destinations
 - Rudder ajoute les données de la cible à l'environnement (ex: IP, hostname, etc)
@@ -98,7 +98,7 @@ Le passage des Configuration Rules aux "promises + assets" n'est pas direct:
      chemin_de_destination/policy_id/{copie verbatim du répertoire de ressources} )
 - Si l'étape précédente s'achève avec succès pour tous les chemins, CFClerk 
   déplace les répertoires temporaire vers les chemins réel
-  (ce afin d'éviter qu'une configuration rules ne soit appliquée qu'à un sous
+  (ce afin d'éviter qu'une rules ne soit appliquée qu'à un sous
    ensemble des éléments de la cible)
 
 
@@ -115,7 +115,7 @@ Remarques
   - des variables liées (données par la directive + gestion des dépendences et variables systèmes);
   - des promesses à parser / lier: données par le chemin vers le paquet + convention structure paquet ;
   - les fichiers de configuration à copier: donnés par le chemin vers le paquet + convention structure paquet ;
-  - de l'endroit où mettre les promesses compilées: donné par les serveurs de la configuration rule + 
+  - de l'endroit où mettre les promesses compilées: donné par les serveurs de la rule + 
     conventions sur les répertoires à destination des serveurs
 
 - est-ce qu'il n'y a qu'une seule technique par policy package ? (oui ?)
@@ -131,7 +131,7 @@ A service that handle parameterized value of
 directive variables. 
 
 The parameterization is to be taken in the context of
-a configuration rule (i.e, a directive applied to
+a rule (i.e, a directive applied to
 a target), and in the scope of one node of the target
 (as if you were processing one node at a time).
 
@@ -142,8 +142,8 @@ were "..." is the parameter to lookup.
 We handle 2 kinds of parameterizations:
 1/ ${CONFIG_RULE_ID.ACCESSOR}
    where:
-   - CONFIG_RULE_ID is a valid id of a configuration rule in the system
-   - ACCESSOR is an accessor for that configuration rule, explained below.
+   - CONFIG_RULE_ID is a valid id of a rule in the system
+   - ACCESSOR is an accessor for that rule, explained below.
 2/ ${node.ACCESSOR}
    where: 
    - "node" is a keyword ;
@@ -161,12 +161,12 @@ Accessors for node
   ${node.policyserver.ACCESSOR} : information about the policyserver of the node.
                                    ACCESSORs are the same than for ${node}
 
-Accessors for configuration rule
+Accessors for rule
 --------------------------------
-Accessor for configuration rule are of two forms:
+Accessor for rule are of two forms:
 - ${CONFIG_RULE_ID.VAR_NAME}
   where VAR_NAME is the name of a variable of the technique implemented
-  by the directive referenced by the given configuration rule ;
+  by the directive referenced by the given rule ;
   The following constraint are applied on a VAR_NAME accessor:
   - if the variable is monovalued, the targeted variable must have only one value 
     (the target variable may be multivalued with exaclty one value) ;
@@ -178,12 +178,12 @@ Accessor for configuration rule are of two forms:
   
 - ${CONFIG_RULE_ID.target.ACCESSOR}
   - where "target" is an accessor which change the context of following
-    accessors to the target of the configuration rule (group, etc)
+    accessors to the target of the rule (group, etc)
     Target Accessor are the same as node accessors, but are multivalued.
 
 Important notice:
 -----------------
-For a given configuration rule, ALL parameterized value are processed in the 
+For a given rule, ALL parameterized value are processed in the 
 same order, and order is kept.
 
 That means  (for example) that if a parameterized value references two target accessors,

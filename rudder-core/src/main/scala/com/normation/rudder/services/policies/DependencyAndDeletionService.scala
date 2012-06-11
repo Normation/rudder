@@ -71,7 +71,7 @@ case class TargetDependencies(
 
 /**
  * A container for items which depend on technique
- * For now, we don't care of directive <-> configuration rules
+ * For now, we don't care of directive <-> rules
  */
 case class TechniqueDependencies(
   activeTechniqueId:ActiveTechniqueId,
@@ -91,12 +91,12 @@ case object OnlyDisableable extends ModificationStatus
  * cascade deletion of items.
  *
  * Ex: if we want to delete a group, we have to delete
- * all configuration rules which have that group as target.
+ * all rules which have that group as target.
  */
 trait DependencyAndDeletionService {
 
   /**
-   * Find all Configuration rules that depend on that
+   * Find all rules that depend on that
    * directive.
    * onlyForState allows to filter dependencies based on the new status
    * they should have if the parent become of a given status.
@@ -117,7 +117,7 @@ trait DependencyAndDeletionService {
   def cascadeDeleteDirective(id:DirectiveId, actor:EventActor, reason:Option[String]) : Box[DirectiveDependencies]
 
   /**
-   * Find all Configuration rules and policy isntances that depend on that
+   * Find all rules and directives that depend on that
    * technique.
    * onlyForState allows to filter dependencies based on the new status
    * they should have if the parent become of a given status.
@@ -138,7 +138,7 @@ trait DependencyAndDeletionService {
   def cascadeDeleteTechnique(id:ActiveTechniqueId, actor:EventActor, reason:Option[String]) : Box[TechniqueDependencies]
 
   /**
-   * Find all Configuration rules that depend on that
+   * Find all rules that depend on that
    * ptarget.
    * If onlyEnableable is set to true, that method only return
    * dependent item which will switch from disabled to enabled 
@@ -174,8 +174,8 @@ class DependencyAndDeletionServiceImpl(
 ) extends DependencyAndDeletionService with Loggable {
 
   /**
-   * Utility method that find configuration rules which depends upon a directive. 
-   * Some configuration rules may be omited
+   * Utility method that find rules which depends upon a directive. 
+   * Some rules may be omited
    */
   private[this] def searchRules(
       con:ReadOnlyLDAPConnection
@@ -188,10 +188,10 @@ class DependencyAndDeletionServiceImpl(
   
 
   /**
-   * utility method to call if only enableable is set to true, and which filter configuration rule that:
+   * utility method to call if only enableable is set to true, and which filter rule that:
    * 
    * For example, for 
-   * - the configuration rule own status is enable ;
+   * - the rule own status is enable ;
    * - have a target ;
    * - the target is enable ;
    */
@@ -221,10 +221,10 @@ class DependencyAndDeletionServiceImpl(
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
-   * Find all Configuration rules that depend on that
+   * Find all rules that depend on that
    * directive.
    * For now, we don't care about dependencies yielded by parameterized values,
-   * and so we just look for Configuration Rules with directive=directiveId
+   * and so we just look for rules with directive=directiveId
    */
   override def directiveDependencies(id:DirectiveId, onlyForState:ModificationStatus = DontCare) : Box[DirectiveDependencies] = {
     for {
@@ -252,18 +252,18 @@ class DependencyAndDeletionServiceImpl(
                         //check that target is actually "target", and remove it
                         if(rule.directiveIds.exists(i => id == i)) {
                           ruleRepository.update(rule.copy(directiveIds = rule.directiveIds - id), actor, reason) ?~!
-                            "Can not update configuration rule with ID %s. %s".format(rule.id, {
+                            "Can not update rule with ID %s. %s".format(rule.id, {
                                val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
                                if(alreadyUpdated.isEmpty) ""
                                else "Some rules were already updated: %s".format(alreadyUpdated.mkString(", "))
                             })
                         } else {
-                          logger.debug("Do not remove directive with ID '%s' from configuration rule '%s' (already not present?)".format(id.value, rule.id.value))
+                          logger.debug("Do not remove directive with ID '%s' from rule '%s' (already not present?)".format(id.value, rule.id.value))
                           None
                         }
       }
       diff         <- directiveRepository.delete(id,actor, reason) ?~! 
-                      "Error when deleting policy instanc with ID %s. All dependent configuration rules where deleted %s.".format(
+                      "Error when deleting policy instanc with ID %s. All dependent rules where deleted %s.".format(
                           id, configRules.map( _.id.value ).mkString(" (", ", ", ")"))
     } yield {
       DirectiveDependencies(id,configRules)
@@ -275,10 +275,10 @@ class DependencyAndDeletionServiceImpl(
   /////////////////////////////////////////////////////////////////////////////////////////
   
   /**
-   * Find all Configuration rules and policy isntances that depend on that
+   * Find all rules and directives that depend on that
    * technique.
    * If onlyEnableable is set to true, that method only return
-   * dependent configuration rules which will switch from disabled to enabled 
+   * dependent rules which will switch from disabled to enabled 
    * if that technique was switching from disabled to enabled 
    * (independently from the actual status of that technique).
    */
@@ -356,14 +356,14 @@ class DependencyAndDeletionServiceImpl(
   }
 
   /**
-   * Find all Configuration rules that depend on that
+   * Find all rules that depend on that
    * target.
    * For now, we don't care about dependencies yielded by parameterized values,
-   * and so we just look for Configuration Rules with targetname=target
+   * and so we just look for rules with targetname=target
    */
   override def targetDependencies(target:RuleTarget, onlyEnableable:Boolean = false) : Box[TargetDependencies] = {
-    /* utility method to call if only enableable is set to true, and which filter configuration rule that:
-     * - the configuration rule own status is enable ;
+    /* utility method to call if only enableable is set to true, and which filter rule that:
+     * - the rule own status is enable ;
      * - have a directive ;
      * - the directive is enable ;
      */
@@ -410,7 +410,7 @@ class DependencyAndDeletionServiceImpl(
                              rule.target match {
                                case Some(t) if(t == target) => 
                                  ruleRepository.update(rule.copy(target = None), actor, reason) ?~! 
-                                   "Can not remove target '%s' from configuration rule with Dd '%s'. %s".format(
+                                   "Can not remove target '%s' from rule with Dd '%s'. %s".format(
                                        target.target, rule.id.value, {
                                          val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
                                          if(alreadyUpdated.isEmpty) ""
@@ -418,13 +418,13 @@ class DependencyAndDeletionServiceImpl(
                                        }
                                    )
                                case x => 
-                                 logger.debug("Do not cascade modify configuration rule with ID '%s', because its target is '%s' and we are deleting '%s'".
+                                 logger.debug("Do not cascade modify rule with ID '%s', because its target is '%s' and we are deleting '%s'".
                                      format(rule.id.value, rule.target.map( _.target), target.target))
                                  Full(None)
                              }
                            }
           deletedTarget <- groupRepository.delete(groupId, actor, reason) ?~!
-                            "Error when deleting target %s. All dependent configuration rules where updated %s".format(
+                            "Error when deleting target %s. All dependent rules where updated %s".format(
                               target, configRules.map( _.id.value ).mkString("(", ", ", ")" ))
         } yield {
           TargetDependencies(target,configRules)

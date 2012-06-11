@@ -85,7 +85,7 @@ final case class GitCommitId(value: String) extends HashcodeCaching
 final case class GitArchiveId(path: GitPath, commit: GitCommitId, commiter: PersonIdent) extends HashcodeCaching
 
 /**
- * This trait allow to manage archives of technique library, configuration rules
+ * This trait allow to manage archives of technique library, rules
  * and groupes. 
  * 
  * Archive can be done in one shot, partially updated, or read back. 
@@ -148,11 +148,11 @@ trait ItemArchiveManager {
 
 
 /**
- * A specific trait to create archive of configuration rules
+ * A specific trait to create archive of rules
  */
 trait GitRuleArchiver {
   /**
-   * Archive a configuration rule in a file system
+   * Archive a rule in a file system
    * managed by git. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
@@ -163,7 +163,7 @@ trait GitRuleArchiver {
   
   /**
    * Commit modification done in the Git repository for any
-   * configuration rules.
+   * rules.
    * Also add a tag with the given return GitPath. 
    * The returned commit hash is the one for the tag. 
    * Return the git commit id. 
@@ -175,7 +175,7 @@ trait GitRuleArchiver {
   def getTags() : Box[Map[DateTime,GitArchiveId]]
   
   /**
-   * Delete an archived configuration rule. 
+   * Delete an archived rule. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    * 
@@ -184,7 +184,7 @@ trait GitRuleArchiver {
   def deleteRule(ruleId:RuleId, gitCommitCr:Option[(PersonIdent,Option[String])]) : Box[GitPath]
   
   /**
-   * Get the root directory where configuration rules are saved
+   * Get the root directory where rules are saved
    */
   def getRootDirectory : File
 }
