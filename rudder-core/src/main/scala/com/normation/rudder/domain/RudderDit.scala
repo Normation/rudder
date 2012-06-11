@@ -95,7 +95,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   implicit val DIT = dit
   
   /**
-   * Create a new category for the user policy library
+   * Create a new category for the active technique library
    */
   def activeTechniqueCategory(
       uuid       : String
@@ -153,7 +153,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     def getCategoryIdValue(dn:DN) = singleRdnValue(dn,activeTechniques.rdnAttribute._1)
     
     /**
-     * From a DN of a active technique, return the value of the rdn (uuid)
+     * From a DN of an active technique, return the value of the rdn (uuid)
      */
     def getActiveTechniqueId(dn:DN) : Box[String] = singleRdnValue(dn,A_ACTIVE_TECHNIQUE_UUID)
     

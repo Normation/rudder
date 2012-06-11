@@ -272,7 +272,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.12
   STRUCTURAL
   MUST ( ruleTarget $ cn )
   MAY (  description $ isEnabled $ isSystem ) )
-### user policy library ###
+### active technique library ###
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.20
   NAME 'activeTechniqueLibraryVersion'
   DESC 'An object class to contain information about the user library (version, initialisation timestamp)'

@@ -80,10 +80,10 @@ class ImportTechniqueLibraryImpl(
   
   
   /**
-   * That method swap an existing user policy library in LDAP
+   * That method swap an existing active technique library in LDAP
    * to a new one. 
    * 
-   * In case of error, we try to restore the old policy library. 
+   * In case of error, we try to restore the old technique library. 
    */
   def swapActiveTechniqueLibrary(rootCategory:ActiveTechniqueCategoryContent, includeSystem:Boolean = false) : Box[Unit] = {
     /*
@@ -161,16 +161,16 @@ class ImportTechniqueLibraryImpl(
                       (for {
                         saved  <- saveUserLib(con, userLib, gitId)
                         system <-if(includeSystem) Full("OK") 
-                                   else copyBackSystemEntrie(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN) ?~! "Error when copying back system entries in the imported policy library"
+                                   else copyBackSystemEntrie(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN) ?~! "Error when copying back system entries in the imported technique library"
                       } yield {
                         system
                       }) match {
                            case Full(unit)  => Full(unit)
                            case eb:EmptyBox => 
-                             logger.error("Error when trying to load archived User Policy Library. Rollbaching to previous one.")
+                             logger.error("Error when trying to load archived active technique library. Rollbaching to previous one.")
                              restoreArchive(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN) match {
                                case eb2: EmptyBox => eb ?~! "Error when trying to restore archive with ID '%s' for the active technique library".format(archiveId.value)
-                               case Full(_) => eb ?~! "Error when trying to load archived User Policy Library. A rollback to previous state was executed"
+                               case Full(_) => eb ?~! "Error when trying to load archived active technique library. A rollback to previous state was executed"
                              }
                              
                       }

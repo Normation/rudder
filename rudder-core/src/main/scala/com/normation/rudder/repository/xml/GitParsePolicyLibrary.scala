@@ -175,7 +175,7 @@ class GitParseActiveTechniqueLibrary(
         Failure("We found an Active Technique where we were expected the root of active techniques library, and so a category. Path: '%s'; found: '%s'".format(
             root, x.activeTechnique))
       
-      case Empty => Failure("Error when parsing the root directory for policy library '%s'. Perhaps the '%s' file is missing in that directory, or the saved policy library was not correctly exported".format(
+      case Empty => Failure("Error when parsing the root directory for technique library '%s'. Perhaps the '%s' file is missing in that directory, or the saved technique library was not correctly exported".format(
                       root, uptcFileName
                     ) )
                     
