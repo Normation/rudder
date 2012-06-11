@@ -44,7 +44,7 @@ import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.Rule
 
 /**
- * A category of the policy library. 
+ * A category of the technique library. 
  * 
  */
 case class ActiveTechniqueCategoryContent(
@@ -119,10 +119,10 @@ trait ParseGroupLibrary {
 
 trait ImportTechniqueLibrary {  
   /**
-   * That method swap an existing user policy library in LDAP
+   * That method swap an existing active technique library in LDAP
    * to a new one. 
    * 
-   * In case of error, we try to restore the old policy library. 
+   * In case of error, we try to restore the old technique library. 
    */
   def swapActiveTechniqueLibrary(rootCategory: ActiveTechniqueCategoryContent, includeSystem: Boolean = false) : Box[Unit]
 }
@@ -131,10 +131,10 @@ trait ImportTechniqueLibrary {
 
 trait ImportGroupLibrary {  
   /**
-   * That method swap an existing user policy library in LDAP
+   * That method swap an existing active technique library in LDAP
    * to a new one. 
    * 
-   * In case of error, we try to restore the old policy library. 
+   * In case of error, we try to restore the old technique library. 
    */
   def swapGroupLibrary(rootCategory: NodeGroupCategoryContent, includeSystem: Boolean = false) : Box[Unit]
 }

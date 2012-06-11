@@ -85,7 +85,7 @@ final case class GitCommitId(value: String) extends HashcodeCaching
 final case class GitArchiveId(path: GitPath, commit: GitCommitId, commiter: PersonIdent) extends HashcodeCaching
 
 /**
- * This trait allow to manage archives of Policy library, configuration rules
+ * This trait allow to manage archives of technique library, configuration rules
  * and groupes. 
  * 
  * Archive can be done in one shot, partially updated, or read back. 
@@ -226,7 +226,7 @@ trait GitActiveTechniqueCategoryArchiver {
   /**
    * Commit modification done in the Git repository for any
    * category, technique and directive in the
-   * user policy library.
+   * active technique library.
    * Return the git commit id. 
    */
   def commitActiveTechniqueLibrary(commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]

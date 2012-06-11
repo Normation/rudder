@@ -86,7 +86,7 @@ class ItemArchiveManagerImpl(
       saveUserLib <- exportTechniqueLibraryAndDeploy(commiter, actor, reason, includeSystem, false)
       saveGroups  <- exportGroupLibraryAndDeploy(commiter, actor, reason, includeSystem, false)
       val msg     =  (  FULL_ARCHIVE_TAG 
-                      + " Archive and tag groups, policy library and configuration rules" 
+                      + " Archive and tag groups, technique library and configuration rules" 
                       + (reason match {
                           case None => ""
                           case Some(m) => ", reason: " + m
@@ -229,7 +229,7 @@ class ItemArchiveManagerImpl(
     importTechniqueLibraryAndDeploy(archiveId, actor, reason, includeSystem)
   
   private[this] def importTechniqueLibraryAndDeploy(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
-    logger.info("Importing policy library archive with id '%s'".format(archiveId.value))
+    logger.info("Importing technique library archive with id '%s'".format(archiveId.value))
       for {
         parsed      <- ParseActiveTechniqueLibrary.getArchive(archiveId)
         imported    <- importTechniqueLibrary.swapActiveTechniqueLibrary(parsed, includeSystem)
@@ -268,7 +268,7 @@ class ItemArchiveManagerImpl(
   }
   
   override def importHeadTechniqueLibrary(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
-    logger.info("Importing policy library archive from HEAD")
+    logger.info("Importing technique library archive from HEAD")
     this.importTechniqueLibrary(lastGitCommitId, actor, reason: Option[String], includeSystem)
   }
   
@@ -279,7 +279,7 @@ class ItemArchiveManagerImpl(
   
   override def getFullArchiveTags : Box[Map[DateTime,GitArchiveId]] = this.getTags()
   
-  // groups, policy library and configuration rules may use
+  // groups, technique library and configuration rules may use
   // their own tag or a global one. 
   
   override def getGroupLibraryTags : Box[Map[DateTime,GitArchiveId]] = {

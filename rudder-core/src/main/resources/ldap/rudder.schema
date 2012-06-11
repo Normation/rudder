@@ -338,7 +338,7 @@ objectclass ( RudderObjectClasses:12
   MUST ( ruleTarget $ cn )
   MAY (  description $ isEnabled $ isSystem ) )  
 
-### user policy library ###
+### active technique library ###
 
 objectclass ( RudderObjectClasses:20
   NAME 'activeTechniqueLibraryVersion'
