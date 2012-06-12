@@ -284,11 +284,11 @@ input.queryInputValue, select.queryInputValue {
   padding-left: 15px;
 }
 .listopen:before{
-  content:url('/rudder/images/tableau/flecheDroiteGris.png');
+  content:url('../images/tableau/flecheDroiteGris.png');
   padding-right: 3px;
 }
 .listclose:before{
-  content:url('/rudder/images/tableau/flecheBasGris.png');
+  content:url('../images/tableau/flecheBasGris.png');
   padding-right: 3px;
 }
 
