@@ -187,8 +187,8 @@ class EventListDisplayer(
             <th>Date</th>
             <th>Actor</th>
             <th>Event Type</th>
-            <th>Reason</th>
             <th>Description</th>
+            <th>Reason</th>
           </tr>
         </thead>
     
@@ -198,8 +198,8 @@ class EventListDisplayer(
             <td class="logDatetime">[Date and time of event]</td>
             <td class="logActor">[actor of the event]</td>
             <td class="logType">[type of event]</td>
-            <td class="logReason">[message explaining the reason of event]</td>
             <td class="logDescription">[some user readable info]</td>
+            <td class="logReason">[message explaining the reason of event]</td>
           </tr>
         </tbody>
       </table>
