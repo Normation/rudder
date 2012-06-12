@@ -703,6 +703,17 @@ padding:0 20px;
 /*********************************
 * Search servers
 *********************************/
+
+.nodeheader {
+    font-weight: bold;
+    text-align: center;
+}
+
+.nodeheadercontent {
+    color: #F79D10;
+    display: inline-block;
+}
+}
 .paddscala{
   padding: 0px 0px 0px 15px;
 }

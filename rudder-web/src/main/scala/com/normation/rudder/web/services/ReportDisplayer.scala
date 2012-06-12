@@ -221,7 +221,7 @@ class ReportDisplayer(ruleRepository : RuleRepository,
 
   /**
    * Display the detail for reports
-   * @param s : javascript id | policyinstance
+   * @param s : javascript id | directive
    * @return
    */
   //for now, no details on report #783

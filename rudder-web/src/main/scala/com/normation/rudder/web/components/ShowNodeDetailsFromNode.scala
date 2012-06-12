@@ -125,7 +125,7 @@ class ShowNodeDetailsFromNode(
         </div>
       case Full(server) => // currentSelectedNode = Some(server)
         serverAndMachineRepo.get(server.id,AcceptedInventory) match {
-          case Full(sm) => 
+          case Full(sm) =>
             bindNode(server, sm) ++ Script(OnLoad(  
               DisplayNode.jsInit(server.id, sm.node.softwareIds, "", Some("node_tabs")) &
               reportDisplayer.initJs("reportsGrid") &
@@ -146,8 +146,12 @@ class ShowNodeDetailsFromNode(
    * @return
    */
   private def bindNode(node : NodeInfo, inventory: FullInventory) : NodeSeq = {
-    
       bind("server", serverDetailsTemplate,
+             "header" ->
+              <div id="node_header" class="nodeheader">
+                <div class="nodeheadercontent ui-corner-top ui-tabs-nav"> Details from Node {inventory.node.main.hostname},
+                 last update on : { inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")} </div>
+              </div>,
              "jsTree" ->
               <div id={htmlId_crTree}>
                 <ul>{buildTree(node)}</ul>
