@@ -88,7 +88,7 @@ class EventListDisplayer(
         ".logId *" #> event.id.getOrElse(0).toString &
         ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
         ".logActor *" #> event.principal.name &
-        ".logType *" #> event.eventType.serialize &
+        ".logType *" #> S.?("rudder.log.eventType.names." + event.eventType.serialize) &
         ".logReason *" #> event.eventDetails.reason.getOrElse("") &
         ".logDescription *" #> displayDescription(event) 
       })
