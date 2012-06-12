@@ -102,7 +102,10 @@ object DisplayNode extends Loggable {
         Str(x.name.getOrElse("")),
         Str(x.version.map(_.value).getOrElse("")),
         Str(x.description.getOrElse(""))
-      )}:_*) ) & JsRaw("""$('#%s').dataTable({"aaData":%s,"bJQueryUI": false, "bPaginate": true, "bLengthChange": false, "bAutoWidth": false, "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}] });moveFilterAndPaginateArea('#%s');""".format(gridId,gridDataId,gridId))
+      )}:_*) ) & JsRaw("""$('#%s').dataTable({"aaData":%s,"bJQueryUI": false, "bPaginate": true,
+          "asStripClasses": [ 'color1', 'color2' ] ,"bLengthChange": false, "bAutoWidth": false,
+          "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}] });
+           moveFilterAndPaginateArea('#%s');""".format(gridId,gridDataId,gridId))
     ) match {
       case Empty => Alert("No software found for that server")
       case Failure(m,_,_) => Alert("Error when trying to fetch software. Reported message: "+m)
