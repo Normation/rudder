@@ -95,9 +95,9 @@ object DisplayNode extends Loggable {
   private def loadSoftware(jsId:JsNodeId, softIds:Seq[SoftwareUuid])(nodeId:String):JsCmd = {
     //id is not used anymore ?
     (for {
-      seq            <- getSoftwareService.getSoftware(softIds)
-      val gridDataId =  htmlId(jsId,"soft_grid_data_")
-      val gridId     =  htmlId(jsId,"soft_grid_")
+      seq <- getSoftwareService.getSoftware(softIds)
+      val gridDataId = htmlId(jsId,"soft_grid_data_")
+      val gridId = htmlId(jsId,"soft_grid_")
     } yield SetExp(JsVar(gridDataId),JsArray(seq.map { x => JsArray(
         Str(x.name.getOrElse("")),
         Str(x.version.map(_.value).getOrElse("")),
@@ -115,32 +115,38 @@ object DisplayNode extends Loggable {
   
   def head() = chooseTemplate("serverdetails","head",template)
   
-  def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContainer : Option[String] = None):JsCmd = {
-    val jsId           = JsNodeId(nodeId,salt)
-    val detailsId      = htmlId(jsId,"details_")
+def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContainer : Option[String] = None):JsCmd = {
+    val jsId = JsNodeId(nodeId,salt)
+    val detailsId = htmlId(jsId,"details_")
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
-    val softGridId     = htmlId(jsId,"soft_grid_")
-    val softPanelId    = htmlId(jsId,"sd_soft_")
-    val eltIds         = List("fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos").
+    val softGridId = htmlId(jsId,"soft_grid_")
+    val softPanelId = htmlId(jsId,"sd_soft_")
+    var eltIdswidth = List( ("process",List("50","50","50","60","50","50","100","850")),("var",List("200","800"))).map(x => (htmlId(jsId, x._1+ "_grid_"),x._2.map("""{"sWidth": "%spx"}""".format(_))))
+    val eltIds = List( "vm", "fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos").
                            map(x => htmlId(jsId, x+ "_grid_"))
       
-    JsRaw("var "+softGridDataId +"= null") & 
+    JsRaw("var "+softGridDataId +"= null") &
     OnLoad(
-      JsRaw("$('#"+detailsId+"').tabs()") & 
-      { eltIds.map { i => 
-          JsRaw("""$('#%s').dataTable({"bJQueryUI": false,"bFilter": false,"asStripClasses": [ 'color1', 'color2' ],"bPaginate": false, "bInfo":false});
-              | """.stripMargin('|').format(i,i)):JsCmd
+      JsRaw("$('#"+detailsId+"').tabs()") &
+      { eltIds.map { i =>
+          JsRaw("""$('#%s').dataTable({"bJQueryUI": false,"bRetrieve": true,"bFilter": false,"asStripClasses": [ 'color1', 'color2' ],"bPaginate": false, "bAutoWidth": false, "bInfo":false});moveFilterAndPaginateArea('#%s');
+          | """.stripMargin('|').format(i,i)):JsCmd
         }.reduceLeft( (i,acc) => acc & i )
+      } &
+      { eltIdswidth.map { i =>
+          JsRaw("""$('#%s').dataTable({"bJQueryUI": false,"bRetrieve": true,"bFilter": true,"asStripClasses": [ 'color1', 'color2' ],"bPaginate": true,"aoColumns": %s ,"bLengthChange": false, "bAutoWidth": false, "bInfo":true});moveFilterAndPaginateArea('#%s');
+           | """.stripMargin('|').format(i._1,i._2.mkString("[",",","]"),i._1)):JsCmd
+        }
       } &
       JsRaw("roundTabs()") &
       // for the software tab, we check for the panel id, and the firstChild id
       // if the firstChild.id == softGridId, then it hasn't been loaded, otherwise it is softGridId_wrapper
       JsRaw("""
-          | $("#%s").bind( "tabsshow", function(event, ui) {
-          |   if(ui.panel.id== '%s' && ui.panel.firstChild.id == '%s') { %s; }
-          | });
-          """.stripMargin('|').format(tabContainer.getOrElse(detailsId),
-            softPanelId,softGridId, 
+| $("#%s").bind( "tabsshow", function(event, ui) {
+| if(ui.panel.id== '%s' && ui.panel.firstChild.id == '%s') { %s; }
+| });
+""".stripMargin('|').format(tabContainer.getOrElse(detailsId),
+            softPanelId,softGridId,
             SHtml.ajaxCall(JsRaw("'"+nodeId.value+"'"), loadSoftware(jsId, softIds) )._2.toJsCmd)
       )
     )
@@ -160,10 +166,10 @@ object DisplayNode extends Loggable {
   def show(sm:FullInventory, showExtraFields : Boolean = true, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     val mainTabDeclaration : List[NodeSeq] =
-      { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>  else NodeSeq.Empty } ::
+ /*     { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>  else NodeSeq.Empty } ::
       { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>  else NodeSeq.Empty } ::
       { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>  else NodeSeq.Empty } ::
-      // 
+      */ 
       <li><a href={htmlId_#(jsId,"sd_bios_")}>Bios</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_controllers_")}>Controllers</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_memories_")}>Memories</a></li> ::
@@ -198,25 +204,32 @@ object DisplayNode extends Loggable {
   }
 
   /**
-   * show the extra tabs header part
-   */
-  def showExtraHeader(sm:FullInventory, salt:String = "") : NodeSeq = {    
+  * show the extra tabs header part
+  */
+  def showExtraHeader(sm:FullInventory, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     <xml:group>
     <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>
     <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>
     <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>
+    <li><a href={htmlId_#(jsId,"sd_var_")}>Environment Variable</a></li>
+    <li><a href={htmlId_#(jsId,"sd_process_")}>Processes</a></li>
+    <li><a href={htmlId_#(jsId,"sd_vm_")}>VIrtual Machines</a></li>
     </xml:group>
   }
 
   /**
-   * show the extra part
-   */
+  * show the extra part
+  */
   def showExtraContent(sm:FullInventory, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     displayTabFilesystems(jsId, sm) ++
     displayTabNetworks(jsId, sm) ++
+    displayTabVariable(jsId, sm) ++
+    displayTabProcess(jsId, sm) ++
+    displayTabVM(jsId, sm) ++
     displayTabSoftware(jsId)
+    
   }
   
   /**
@@ -279,7 +292,7 @@ object DisplayNode extends Loggable {
             
       <h4 class="tablemargin">Rudder information</h4>
         <div class="tablepadding">
-          <b>Agent name:</b> {sm.node.agentNames.map(_.toString).mkString(";")}<br/>
+          <b>Agent name:</b> {sm.node.agentNames.map(_.fullname()).mkString(";")}<br/>
           <b>Rudder ID:</b> {sm.node.main.id.value}<br/>
           <b>Date inventory last received:</b>  {sm.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
           {creationDate.map { creation =>
@@ -340,14 +353,6 @@ object DisplayNode extends Loggable {
   }
   
   //show a comma separated list with description in tooltip 
-  private def displayPolicies(node:NodeInventory) : NodeSeq = {
-    <b>Applied Directives: </b> ++ {Text{if(node.techniques.isEmpty) {
-        "None"
-      } else {
-        node.techniques.mkString(", ")
-      }}
-    }
-  }
   
   private def displayAccounts(node:NodeInventory) : NodeSeq = {
     Text{if(node.accounts.isEmpty) {
@@ -419,6 +424,39 @@ object DisplayNode extends Loggable {
         ("File count", {x:FileSystem => ?(x.fileCount.map(_.toString))}) :: 
         Nil
     }
+      
+    private def displayTabVariable(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
+    displayTabGrid(jsId)("var", Full(sm.node.environmentVariables)){
+        ("Name", {x:EnvironmentVariable => Text(x.name)}) ::
+        ("Value", {x:EnvironmentVariable => Text(x.value.getOrElse("Unspecified"))}) ::
+        Nil
+    }
+
+    private def displayTabProcess(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
+    displayTabGrid(jsId)("process", Full(sm.node.processes)){
+        ("User", {x:Process => ?(x.user)}) ::
+        ("PID", {x:Process => Text(x.pid.toString())}) ::
+        ("% CPU", {x:Process => ?(x.cpuUsage.map(_.toString()))}) ::
+        ("% Memory", {x:Process => ?(x.memory.map(_.toString()))}) ::
+        ("Virtual Memory", {x:Process => ?(x.virtualMemory.map(_.toString()))}) ::
+        ("TTY", {x:Process => ?(x.tty)}) ::
+        ("Started on", {x:Process => ?(x.started.map(DateFormaterService.getFormatedDate(_)).orElse(Some("Bad format")))}) ::
+        ("Command", { x:Process => ?(x.commandName) }) ::
+        Nil
+    }
+    
+    private def displayTabVM(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
+    displayTabGrid(jsId)("vm", Full(sm.node.vms)){
+        ("Name", {x:VirtualMachine => ?(x.name)}) ::
+        ("Type", {x:VirtualMachine => ?(x.vmtype)}) ::
+        ("SubSystem", {x:VirtualMachine => ?(x.subsystem)}) ::
+        ("UUID", {x:VirtualMachine => Text(x.uuid.value)}) ::
+        ("Status", {x:VirtualMachine => ?(x.status)}) ::
+        ("Owner", {x:VirtualMachine => ?(x.owner)}) ::
+        ("CPUs", {x:VirtualMachine => ?(x.vcpu.map(_.toString()))}) ::
+        ("Memory", { x:VirtualMachine => ?(x.memory) }) ::
+        Nil
+    }
     
   private def displayTabBios(jsId:JsNodeId,sm:FullInventory) : NodeSeq = 
     displayTabGrid(jsId)("bios", sm.machine.map(fm => fm.bios)){
@@ -459,15 +497,20 @@ object DisplayNode extends Loggable {
         Nil
     }
     
-  private def displayTabProcessors(jsId:JsNodeId,sm:FullInventory) : NodeSeq = 
+  private def displayTabProcessors(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("processors", sm.machine.map(fm => fm.processors)){
         ("Name", {x:Processor => Text(x.name)}) ::
-        ("Speed", {x:Processor => ?(x.speed.map(_.toString))}) :: 
-        ("Model", {x:Processor => ?(x.model)}) :: 
-        ("Family", {x:Processor => ?(x.family)}) :: 
-        ("Manufacturer", {x:Processor => ?(x.manufacturer.map(_.name))}) :: 
-        ("Stepping", {x:Processor => ?(x.stepping.map(_.toString))}) :: 
-        ("Quantity", {x:Processor => Text(x.quantity.toString)}) :: 
+        ("Speed", {x:Processor => ?(x.speed.map(_.toString))}) ::
+        ("Model", {x:Processor => ?(x.model.map(_.toString()))}) ::
+        ("Family", {x:Processor => ?(x.family.map(_.toString()))}) ::
+        ("Family Name", {x:Processor => ?(x.familyName)}) ::
+        ("Manufacturer", {x:Processor => ?(x.manufacturer.map(_.name))}) ::
+        ("Thread", {x:Processor => ?(x.thread.map(_.toString()))}) ::
+        ("Core", {x:Processor => ?(x.core.map(_.toString()))}) ::
+        ("CPUID", {x:Processor => ?(x.cpuid)}) ::
+        ("Architecture", {x:Processor => ?(x.arch)}) ::
+        ("Stepping", {x:Processor => ?(x.stepping.map(_.toString))}) ::
+        ("Quantity", {x:Processor => Text(x.quantity.toString)}) ::
         Nil
     }
   
