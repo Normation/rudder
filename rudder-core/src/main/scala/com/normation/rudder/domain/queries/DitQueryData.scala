@@ -42,6 +42,7 @@ import BuildFilter._
 import scala.collection.{SortedMap,SortedSet}
 import com.normation.rudder.services.queries.SpecialFilter
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain.queries.JsonComparator
 
 
 /*
@@ -71,8 +72,8 @@ case object QuerySoftwareDn extends DnType
 
 class DitQueryData(dit:InventoryDit) {      
   private val peObjectCriterion = ObjectCriterion(OC_PE, Seq(
-//    Criterion(A_MACHINE_UUID, StringComparator),
-//    Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that
+// Criterion(A_MACHINE_UUID, StringComparator),
+// Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that
     Criterion(A_DESCRIPTION, StringComparator),
     Criterion(A_MODEL, StringComparator),
     Criterion(A_SERIAL_NUMBER, StringComparator),
@@ -84,9 +85,9 @@ class DitQueryData(dit:InventoryDit) {
   ))
 
   private val leObjectCriterion = ObjectCriterion(OC_LE, Seq(
-//    Criterion(A_NODE_UUID, StringComparator),
-//    Criterion(A_NODE_DN, StringComparator),
-//    Criterion(A_NAME, StringComparator),
+// Criterion(A_NODE_UUID, StringComparator),
+// Criterion(A_NODE_DN, StringComparator),
+// Criterion(A_NAME, StringComparator),
     Criterion(A_DESCRIPTION, StringComparator)
   ))
   
@@ -135,7 +136,10 @@ class DitQueryData(dit:InventoryDit) {
       Criterion(A_PROCESSOR_NAME, StringComparator),
       Criterion(A_PROCESSOR_SPEED, LongComparator),
       Criterion(A_PROCESSOR_STEPPING, StringComparator),
-      Criterion(A_PROCESSOR_FAMILLY, StringComparator)
+      Criterion(A_PROCESSOR_FAMILLY, StringComparator),
+      Criterion(A_PROCESSOR_FAMILY_NAME, StringComparator),
+      Criterion(A_THREAD, StringComparator),
+      Criterion(A_CORE, StringComparator)
     )),
     ObjectCriterion(OC_SLOT, peObjectCriterion.criteria++ Seq(
       Criterion(A_SLOT_NAME, StringComparator)
@@ -152,34 +156,34 @@ class DitQueryData(dit:InventoryDit) {
     ObjectCriterion(OC_NODE, Seq(
       Criterion("OS",OstypeComparator),
       Criterion(A_OS_NAME,OsNameComparator),
-      Criterion(A_OS_VERSION, OrderedStringComparator), 
-      Criterion(A_OS_SERVICE_PACK, OrderedStringComparator), 
-      Criterion(A_OS_KERNEL_VERSION , OrderedStringComparator), 
-      Criterion(A_NODE_UUID, StringComparator), 
+      Criterion(A_OS_VERSION, OrderedStringComparator),
+      Criterion(A_OS_SERVICE_PACK, OrderedStringComparator),
+      Criterion(A_OS_KERNEL_VERSION , OrderedStringComparator),
+      Criterion(A_NODE_UUID, StringComparator),
       Criterion(A_HOSTNAME, StringComparator),
       //Criterion(A_DESCRIPTION, StringComparator),
-      Criterion(A_OS_RAM, MemoryComparator), 
-      Criterion(A_OS_SWAP, MemoryComparator), 
+      Criterion(A_OS_RAM, MemoryComparator),
+      Criterion(A_OS_SWAP, MemoryComparator),
       Criterion(A_AGENTS_NAME, AgentComparator),
       Criterion(A_ACCOUNT, StringComparator),
       Criterion(A_LIST_OF_IP, StringComparator),
       Criterion(A_ROOT_USER, StringComparator),
       Criterion(A_INVENTORY_DATE, DateComparator),
       Criterion(A_POLICY_SERVER_UUID, StringComparator)
-//      Criterion(A_PKEYS, StringComparator)
-//      Criterion(A_SOFTWARE_DN, StringComparator),
-//      Criterion(A_CONTAINER_DN, StringComparator),
-//      Criterion(A_HOSTED_VM_DN, StringComparator)
+// Criterion(A_PKEYS, StringComparator)
+// Criterion(A_SOFTWARE_DN, StringComparator),
+// Criterion(A_CONTAINER_DN, StringComparator),
+// Criterion(A_HOSTED_VM_DN, StringComparator)
     )),
     ObjectCriterion(OC_SOFTWARE, Seq(
       Criterion(A_NAME, StringComparator),
       Criterion(A_DESCRIPTION, StringComparator),
-      Criterion(A_SOFT_VERSION, StringComparator), 
-      Criterion(A_RELEASE_DATE, DateComparator), 
+      Criterion(A_SOFT_VERSION, StringComparator),
+      Criterion(A_RELEASE_DATE, DateComparator),
       Criterion(A_EDITOR, EditorComparator)) ++
       licenseObjectCriterion.criteria
     ),
-    ObjectCriterion(OC_NET_IF,  leObjectCriterion.criteria ++ Seq(
+    ObjectCriterion(OC_NET_IF, leObjectCriterion.criteria ++ Seq(
       Criterion(A_NETWORK_NAME, StringComparator),
       Criterion(A_NETIF_ADDRESS, StringComparator),
       Criterion(A_NETIF_DHCP, StringComparator),
@@ -190,15 +194,39 @@ class DitQueryData(dit:InventoryDit) {
       Criterion(A_NETIF_TYPE, StringComparator),
       Criterion(A_NETIF_TYPE_MIB, StringComparator)
     )),
-    ObjectCriterion(OC_FS,  leObjectCriterion.criteria ++ Seq(
+    ObjectCriterion(OC_FS, leObjectCriterion.criteria ++ Seq(
       Criterion(A_MOUNT_POINT, StringComparator),
       Criterion(A_FILE_COUNT, StringComparator),
       Criterion(A_FREE_SPACE, MemoryComparator),
       Criterion(A_TOTAL_SPACE, MemoryComparator)
+    )),
+    ObjectCriterion(A_PROCESS, Seq(
+      Criterion("commandName", JsonComparator(A_PROCESS)),
+      Criterion("cpuUsage", JsonComparator(A_PROCESS)),
+      Criterion("memoryUsage", JsonComparator(A_PROCESS)),
+      Criterion("processUser", JsonComparator(A_PROCESS))
+      /*Some other criterion
+val A_PID = "processID"
+val A_PROC_START = "start"
+val A_TTY = "tty"
+val A_VIRTUAL_MEMORY = "virtualMemory"*/
+    )),
+    ObjectCriterion(OC_VM_INFO, leObjectCriterion.criteria ++ Seq(
+      Criterion(A_VM_TYPE, StringComparator),
+      Criterion(A_VM_OWNER, StringComparator),
+      Criterion(A_VM_STATUS, StringComparator),
+      Criterion(A_VM_CPU, StringComparator)
+    )),
+    ObjectCriterion(A_EV, Seq(
+      Criterion("name/value", JsonComparator(A_EV) )
     ))/*,
-    ObjectCriterion(OC_GROUP_OF_DNS,Seq(
-      Criterion(A_NAME,GroupOfDnsComparator)
-    ))*/ // Hidding a code difficult to import
+val A_VM_ID = "virtualMachineUuid"
+val A_VM_SUBSYSTEM = "subsystem"
+val A_VM_NAME = "vmName"
+val A_VM_MEMORY = "vmMemory"
+ObjectCriterion(OC_GROUP_OF_DNS,Seq(
+Criterion(A_NAME,GroupOfDnsComparator)
+))*/ // Hidding a code difficult to import
   )
     
   val criteriaMap : SortedMap[String,ObjectCriterion] = SortedMap[String,ObjectCriterion]() ++ (criteriaSet map { crit => (crit.objectType,crit) })
@@ -246,6 +274,9 @@ case class LDAPObjectType(
     "software" -> LDAPObjectType(dit.SOFTWARE.dn, One, ALL, DNJoin),
     "node" -> LDAPObjectType(dit.NODES.dn, One, ALL, DNJoin),
     "networkInterfaceLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, IS(OC_NET_IF), ParentDNJoin),
+     "process" -> LDAPObjectType(dit.NODES.dn, One, ALL, DNJoin),
+    "virtualMachineLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, IS(OC_VM_INFO), ParentDNJoin),
+    "environmentVariable" -> LDAPObjectType(dit.NODES.dn, One, ALL, DNJoin),
     "fileSystemLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, IS(OC_FS), ParentDNJoin),
     "machine" -> LDAPObjectType(dit.MACHINES.dn, One, ALL, DNJoin),
     "processorPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, IS(OC_PROCESSOR), ParentDNJoin),
@@ -266,6 +297,9 @@ case class LDAPObjectType(
     "node" -> QueryNodeDn,
     "networkInterfaceLogicalElement" -> QueryNodeDn,
     "fileSystemLogicalElement" -> QueryNodeDn,
+        "process" -> QueryNodeDn,
+    "virtualMachineLogicalElement" -> QueryNodeDn,
+    "environmentVariable" -> QueryNodeDn,
     "machine" -> QueryMachineDn,
     "processorPhysicalElement" -> QueryMachineDn,
     "memoryPhysicalElement" -> QueryMachineDn,
@@ -288,6 +322,10 @@ case class LDAPObjectType(
     "node" -> DNJoin,
     "networkInterfaceLogicalElement" -> ParentDNJoin,
     "fileSystemLogicalElement" -> ParentDNJoin,
+
+        "process" -> DNJoin,
+    "virtualMachineLogicalElement" -> ParentDNJoin,
+    "environmentVariable" -> DNJoin,
     "machine" -> DNJoin,
     "processorPhysicalElement" -> ParentDNJoin,
     "memoryPhysicalElement" -> ParentDNJoin,

@@ -53,6 +53,7 @@ import net.liftweb.json._
 import JsonDSL._
 import com.normation.exceptions.TechnicalException
 import com.normation.utils.HashcodeCaching
+import com.unboundid.ldap.sdk.Filter
 
 sealed trait CriterionComparator { 
   val id:String 
@@ -276,6 +277,7 @@ case object OstypeComparator extends CriterionType {
     }
   }
   
+
   override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem = 
     SHtml.select(
       (osTypes map (e => (e,e))).toSeq, 
@@ -398,6 +400,29 @@ case object GroupOfDnsComparator extends CriterionType {
   override def toLDAP(value:String) = Full(value)
 }
 */
+case class JsonComparator(key:String) extends TStringComparator {
+  override val comparators = BaseComparators.comparators  
+  
+  def JsonQueryfromkeyvalues (values:List[(String,String)], key:String): Filter =
+  values match {
+    case (attribute,value)::Nil => SUB(key,null,Array("\"%s\":\"%s\"".format(attribute,value)) ,null)
+    case (attribute,value)::tail if !tail.isEmpty => AND(SUB(key,null,Array("\"%s\":\"%s\"".format(attribute,value)) ,null),JsonQueryfromkeyvalues(tail,key))
+    case Nil => HAS(key)
+    }
+
+  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
+     val splittedattribute = attributeName.split("/")
+     val splittedvalue = value.split(":")
+     val keyvalue = (splittedattribute.toList,splittedvalue.toList).zipped map( (attribute,value) => (attribute,value))
+    comparator match {      
+    case Equals    => JsonQueryfromkeyvalues(keyvalue,key)
+    case NotEquals => NOT(JsonQueryfromkeyvalues(keyvalue,key))
+    case NotExists => NOT(HAS(key))
+    case Regex => HAS(key) //"default, non interpreted regex
+    case _ => HAS(key) //default to Exists
+  }
+ }
+}
 
 
 case class Criterion(val name:String, val cType:CriterionType) extends HashcodeCaching {

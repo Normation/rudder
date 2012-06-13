@@ -454,7 +454,10 @@ object SearchNodeComponent {
     
     add(OC_NODE)
     add(OC_NET_IF, " ├─ ")
-    add(OC_FS,     " └─ ")
+    add(OC_FS,     " ├─ ")
+    add(A_PROCESS, " ├─ ")
+    add(OC_VM_INFO," ├─ ")
+    add(A_EV,      " └─ ")
     add(OC_MACHINE)
     add(OC_BIOS,       " ├─ ")
     add(OC_CONTROLLER, " ├─ ")
