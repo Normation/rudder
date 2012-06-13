@@ -121,7 +121,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
     val softGridId = htmlId(jsId,"soft_grid_")
     val softPanelId = htmlId(jsId,"sd_soft_")
-    var eltIdswidth = List( ("process",List("50","50","50","60","50","50","100","850")),("var",List("200","800"))).map(x => (htmlId(jsId, x._1+ "_grid_"),x._2.map("""{"sWidth": "%spx"}""".format(_))))
+    var eltIdswidth = List( ("process",List("50","50","50","60","120","50","100","850"),1),("var",List("200","800"),0)).map(x => (htmlId(jsId, x._1+ "_grid_"),x._2.map("""{"sWidth": "%spx"}""".format(_)),x._3))
     val eltIds = List( "vm", "fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos").
                            map(x => htmlId(jsId, x+ "_grid_"))
       
@@ -134,8 +134,8 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         }.reduceLeft( (i,acc) => acc & i )
       } &
       { eltIdswidth.map { i =>
-          JsRaw("""$('#%s').dataTable({"bJQueryUI": false,"bRetrieve": true,"bFilter": true,"asStripClasses": [ 'color1', 'color2' ],"bPaginate": true,"aoColumns": %s ,"bLengthChange": false, "bAutoWidth": false, "bInfo":true});moveFilterAndPaginateArea('#%s');
-           | """.stripMargin('|').format(i._1,i._2.mkString("[",",","]"),i._1)):JsCmd
+          JsRaw("""$('#%s').dataTable({"bJQueryUI": false,"bRetrieve": true,"bFilter": true,"asStripClasses": [ 'color1', 'color2' ],"bPaginate": true,"aoColumns": %s , "aaSorting": [[ %s, "asc" ]], "bLengthChange": false, "bAutoWidth": false, "bInfo":true});moveFilterAndPaginateArea('#%s');
+           | """.stripMargin('|').format(i._1,i._2.mkString("[",",","]"),i._3,i._1)):JsCmd
         }
       } &
       JsRaw("roundTabs()") &
@@ -438,7 +438,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         ("PID", {x:Process => Text(x.pid.toString())}) ::
         ("% CPU", {x:Process => ?(x.cpuUsage.map(_.toString()))}) ::
         ("% Memory", {x:Process => ?(x.memory.map(_.toString()))}) ::
-        ("Virtual Memory", {x:Process => ?(x.virtualMemory.map(_.toString()))}) ::
+        ("Virtual Memory (kb)", {x:Process => ?(x.virtualMemory.map(_.toString()))}) ::
         ("TTY", {x:Process => ?(x.tty)}) ::
         ("Started on", {x:Process => ?(x.started.map(DateFormaterService.getFormatedDate(_)).orElse(Some("Bad format")))}) ::
         ("Command", { x:Process => ?(x.commandName) }) ::

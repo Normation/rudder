@@ -218,7 +218,7 @@ val A_VIRTUAL_MEMORY = "virtualMemory"*/
       Criterion(A_VM_CPU, StringComparator)
     )),
     ObjectCriterion(A_EV, Seq(
-      Criterion("name/value", JsonComparator(A_EV) )
+      Criterion("name.value", JsonComparator(A_EV,"=") )
     ))/*,
 val A_VM_ID = "virtualMachineUuid"
 val A_VM_SUBSYSTEM = "subsystem"
@@ -274,7 +274,7 @@ case class LDAPObjectType(
     "software" -> LDAPObjectType(dit.SOFTWARE.dn, One, ALL, DNJoin),
     "node" -> LDAPObjectType(dit.NODES.dn, One, ALL, DNJoin),
     "networkInterfaceLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, IS(OC_NET_IF), ParentDNJoin),
-     "process" -> LDAPObjectType(dit.NODES.dn, One, ALL, DNJoin),
+    "process" -> LDAPObjectType(dit.NODES.dn, One, ALL, DNJoin),
     "virtualMachineLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, IS(OC_VM_INFO), ParentDNJoin),
     "environmentVariable" -> LDAPObjectType(dit.NODES.dn, One, ALL, DNJoin),
     "fileSystemLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, IS(OC_FS), ParentDNJoin),
@@ -297,7 +297,7 @@ case class LDAPObjectType(
     "node" -> QueryNodeDn,
     "networkInterfaceLogicalElement" -> QueryNodeDn,
     "fileSystemLogicalElement" -> QueryNodeDn,
-        "process" -> QueryNodeDn,
+    "process" -> QueryNodeDn,
     "virtualMachineLogicalElement" -> QueryNodeDn,
     "environmentVariable" -> QueryNodeDn,
     "machine" -> QueryMachineDn,
@@ -322,8 +322,7 @@ case class LDAPObjectType(
     "node" -> DNJoin,
     "networkInterfaceLogicalElement" -> ParentDNJoin,
     "fileSystemLogicalElement" -> ParentDNJoin,
-
-        "process" -> DNJoin,
+    "process" -> DNJoin,
     "virtualMachineLogicalElement" -> ParentDNJoin,
     "environmentVariable" -> DNJoin,
     "machine" -> DNJoin,
