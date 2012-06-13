@@ -53,7 +53,8 @@ import net.liftweb.json._
 import JsonDSL._
 import com.normation.exceptions.TechnicalException
 import com.normation.utils.HashcodeCaching
-import com.unboundid.ldap.sdk.Filter
+import com.normation.rudder.services.queries.RegexFilter
+import net.liftweb.common.EmptyBox
 
 sealed trait CriterionComparator { 
   val id:String 
@@ -124,6 +125,8 @@ sealed trait CriterionType  extends ComparatorList {
   //transform the given value to its LDAP string value
   def toLDAP(value:String) : Box[String]
   
+  def buildRegex(attribute:String,value:String):RegexFilter = RegexFilter(attribute,value)
+
   //build the ldap filter for given attribute name and comparator
   def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = 
     (toLDAP(value),comparator) match {
@@ -400,25 +403,41 @@ case object GroupOfDnsComparator extends CriterionType {
   override def toLDAP(value:String) = Full(value)
 }
 */
-case class JsonComparator(key:String) extends TStringComparator {
+case class JsonComparator(key:String,splitter:String = "") extends TStringComparator {
   override val comparators = BaseComparators.comparators  
   
-  def JsonQueryfromkeyvalues (values:List[(String,String)], key:String): Filter =
-  values match {
-    case (attribute,value)::Nil => SUB(key,null,Array("\"%s\":\"%s\"".format(attribute,value)) ,null)
-    case (attribute,value)::tail if !tail.isEmpty => AND(SUB(key,null,Array("\"%s\":\"%s\"".format(attribute,value)) ,null),JsonQueryfromkeyvalues(tail,key))
-    case Nil => HAS(key)
+  def splitJson(attribute:String,value:String) = {
+   val (splittedvalue,splittedattribute) =
+     if (splitter!="")
+       (value.split(splitter),attribute.split("."))
+     else
+       (Array(value),Array(attribute))
+  if (splittedvalue.size==splittedattribute.size){
+    val keyvalue = (splittedattribute.toList,splittedvalue.toList).zipped map( (attribute,value) => (attribute,value))
+    Full(keyvalue.map(attval => "\"%s\":\"%s\"".format(attval._1,attval._2)))
     }
+  else {
+    Failure("not enough argument")
+  }
+  }
+
+  override def buildRegex(attribute:String,value:String) : RegexFilter = {
+  val regexp = ".*%s.*".format(splitJson(attribute,value).getOrElse(Nil).mkString(".*"))
+  RegexFilter(key,regexp)
+  }
 
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
-     val splittedattribute = attributeName.split("/")
-     val splittedvalue = value.split(":")
-     val keyvalue = (splittedattribute.toList,splittedvalue.toList).zipped map( (attribute,value) => (attribute,value))
-    comparator match {      
-    case Equals    => JsonQueryfromkeyvalues(keyvalue,key)
-    case NotEquals => NOT(JsonQueryfromkeyvalues(keyvalue,key))
+  def JsonQueryfromkeyvalues (attributeName:String,value:String): Filter = {
+      splitJson(attributeName,value) match {
+      case e:EmptyBox => HAS(key)
+      case x => SUB(key,null,x.get.toArray ,null)
+      }
+    }
+  comparator match {
+    case Equals    => JsonQueryfromkeyvalues(attributeName,value)
+    case NotEquals => NOT(JsonQueryfromkeyvalues(attributeName,value))
     case NotExists => NOT(HAS(key))
-    case Regex => HAS(key) //"default, non interpreted regex
+    case Regex => HAS(key) //default, non interpreted regex
     case _ => HAS(key) //default to Exists
   }
  }
@@ -429,6 +448,8 @@ case class Criterion(val name:String, val cType:CriterionType) extends HashcodeC
   require(name != null && name.length > 0, "Criterion name must be defined")
   require(cType != null, "Criterion Type must be defined")
   
+  def buildRegex(attribute:String,value:String) = cType.buildRegex(attribute,value)
+
   def buildFilter(comp:CriterionComparator,value:String) = cType.buildFilter(name,comp,value)
 }
 

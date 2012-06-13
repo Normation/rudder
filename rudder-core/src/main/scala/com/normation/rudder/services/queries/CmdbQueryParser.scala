@@ -141,7 +141,6 @@ trait DefaultStringQueryParser extends StringQueryParser {
         if(comparator.hasValue) return Failure("Missing required value for comparator '%s' in line '%s'".format(line.comparator, line)) 
         else ""
     }
-    
     Full(CriterionLine(objectType, criterion, comparator, value))
   }
   
@@ -251,20 +250,19 @@ trait JsonQueryLexer extends QueryLexer {
               case Some(x) => return failureBadParam(ATTRIBUTE,line,x)
             }
     
-            // attribute
+            // comparator
             val comparator = line.get(COMPARATOR) match {
               case None => return failureMissing(COMPARATOR,line)
               case Some(x:String) => if(x.length > 0) x else return failureEmpty(COMPARATOR,line)
               case Some(x) => return failureBadParam(COMPARATOR,line,x)
             }
     
-            // attribute
+            // value
             val value = line.get(VALUE) match {
               case None => None
               case Some(x:String) => if(x.length > 0) Some(x) else None
               case Some(x) => return failureBadParam(VALUE,line,x)
             }
-    
             Full(StringCriterionLine(objectType,attribute,comparator,value))
             
           case _ => Failure("Bad query format for criterion line. Expecting an (string,string), found '%s'".format(l.head))

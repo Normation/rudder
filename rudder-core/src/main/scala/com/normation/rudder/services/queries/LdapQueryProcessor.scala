@@ -532,7 +532,7 @@ class InternalLDAPQueryProcessor(
       query.criteria.groupBy(c => c.objectType.objectType) map { case (key,seq) => 
         (key , (seq map { case CriterionLine(ot,a,comp,value) =>  
           (comp match {
-            case Regex => RegexFilter(a.name,value)
+            case Regex => a.buildRegex(a.name,value)
             case _ => LDAPFilter(a.buildFilter(comp,value))
           }) : ExtendedFilter
         }).toSet)

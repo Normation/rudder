@@ -239,7 +239,7 @@ class SearchNodeComponent(
             }}
           )
         }:NodeSeq} ++ { if(criteria.size > 0) { 
-          //ad a <scrip> tag to init all specific Js form renderer, like Jquery datepicker for date
+          //add a <script> tag to init all specific Js form renderer, like Jquery datepicker for date
           var initJs = criteria(0).attribute.cType.initForm("v_0")
           for(i <- 1 until criteria.size) { initJs = initJs & criteria(i).attribute.cType.initForm("v_"+i) }
           Script(OnLoad(initJs))
