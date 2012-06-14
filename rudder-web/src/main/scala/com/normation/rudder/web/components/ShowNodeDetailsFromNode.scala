@@ -149,7 +149,7 @@ class ShowNodeDetailsFromNode(
       bind("server", serverDetailsTemplate,
              "header" ->
               <div id="node_header" class="nodeheader">
-                <div class="nodeheadercontent ui-corner-top ui-tabs-nav"> Details from Node {inventory.node.main.hostname},
+                <div class="nodeheadercontent ui-corner-top"> Details from Node {inventory.node.main.hostname},
                  last update on : { inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")} </div>
               </div>,
              "jsTree" ->
