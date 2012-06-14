@@ -261,7 +261,7 @@ changeType: add
 objectClass: node
 objectClass: top
 objectClass: windowsNode
-osName: windows
+osName: Windows2003
 osVersion: N/A
 osKernelVersion: N/A
 osFullName: Microsoft Windows Server 2003 R2 Enterprise x64 Edition
@@ -428,7 +428,7 @@ changeType: add
 objectClass: node
 objectClass: top
 objectClass: windowsNode
-osName: windows
+osName: Windows2008
 osVersion: N/A
 osKernelVersion: N/A
 osFullName: Microsoft Windows Server 2008
