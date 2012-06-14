@@ -256,7 +256,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           "form" #> { xml => (
               "select" #> ( SHtml.selectObj(
                   options = techniqueRepository.getTechniqueVersions(activeTechnique.techniqueName).toSeq.
-                    filterNot( _ == form.directive.techniqueVersion).map { v => (v,v.toString) }
+                    filterNot( _ == form.directive.techniqueVersion).map { v => (v,v.toString) }.reverse
                 , default = Empty
                 , onSubmit = { (v:TechniqueVersion) =>
                     onSubmitMigration(v,form.directive,activeTechnique)
