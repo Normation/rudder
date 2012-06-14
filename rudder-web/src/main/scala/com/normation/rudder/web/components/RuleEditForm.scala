@@ -428,16 +428,16 @@ class RuleEditForm(
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
-      case Mandatory => Some(buildReasonField(true, 42))
+      case Mandatory => Some(buildReasonField(true))
       case Optionnal => Some(buildReasonField(false))
     }
   }
   
-  def buildReasonField(mandatory:Boolean, width : Int = 48, height : Int = 15) = {
+  def buildReasonField(mandatory:Boolean) = {
     new WBTextAreaField("Message: ", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  % 
-      ("style" -> "width:%sem;height:%sem".format(width, height))
+      ("style" -> "width:99%;height:8em;")
       override def validations() = {
         if(mandatory){
           valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
