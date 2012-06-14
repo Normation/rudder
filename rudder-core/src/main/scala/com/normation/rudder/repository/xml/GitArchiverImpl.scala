@@ -71,7 +71,7 @@ import scala.collection.JavaConversions._
 private[xml] object GET {
   def apply(reason:Option[String]) = reason match {
     case None => ""
-    case Some(m) => ", reason: " + m
+    case Some(m) => "\n\nReason provided by user:\n" + m
   }
 }
 
@@ -102,11 +102,11 @@ class GitRuleArchiverImpl(
       archive <- writeXml(
                      crFile
                    , ruleSerialisation.serialise(rule)
-                   , "Archived Configuration rule: " + crFile.getPath
+                   , "Archived rule: " + crFile.getPath
                  )
       commit  <- doCommit match {
                    case Some((commiter, reason)) => 
-                     val msg = "Archive configuration rule with ID '%s'%s".format(rule.id.value, GET(reason))
+                     val msg = "Archive rule with ID '%s'%s".format(rule.id.value, GET(reason))
                      commitAddFile(commiter, gitPath, msg)
                    case None => Full("ok")
                  }
@@ -118,7 +118,7 @@ class GitRuleArchiverImpl(
   def commitRules(commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId] = {
     this.commitFullGitPathContentAndTag(
         commiter
-      , CONFIGURATION_RULES_ARCHIVE_TAG + " Commit all modification done on configuration rules (git path: '%s')%s".format(ruleRootDir, GET(reason))
+      , CONFIGURATION_RULES_ARCHIVE_TAG + " Commit all modification done on rules (git path: '%s')%s".format(ruleRootDir, GET(reason))
     )
   }
   
@@ -129,10 +129,10 @@ class GitRuleArchiverImpl(
       for {
         deleted  <- tryo { 
                       FileUtils.forceDelete(crFile) 
-                      logger.debug("Deleted archive of configuration rule: " + crFile.getPath)
+                      logger.debug("Deleted archive of rule: " + crFile.getPath)
                     }
         commited <- doCommit match {
-                      case Some((commiter, reason)) => commitRmFile(commiter, gitPath, "Delete archive of configuration rule with ID '%s'%s".format(ruleId.value, GET(reason)))
+                      case Some((commiter, reason)) => commitRmFile(commiter, gitPath, "Delete archive of rule with ID '%s'%s".format(ruleId.value, GET(reason)))
                       case None => Full("OK")
                     }
       } yield {
@@ -159,7 +159,7 @@ trait BuildCategoryPathName[T] {
   def getCategoryName(categoryId:T):String
   
   //list of directories : don't forget the one for the serialized category. 
-  //revert the order to start by the root of policy library. 
+  //revert the order to start by the root of technique library. 
   def newCategoryDirectory(catId:T, parents: List[T]) : File = {
     parents match {
       case Nil => //that's the root
@@ -172,11 +172,11 @@ trait BuildCategoryPathName[T] {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-//////  Archive the User Policy Library (categories, policy templates, policy instances) //////
+//////  Archive the active technique library (categories, techniques, directives) //////
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * A specific trait to create archive of an user policy template category.
+ * A specific trait to create archive of an active technique category.
  * 
  * Basically, we directly map the category tree to file-system directories,
  * with the root category being the file denoted by "techniqueLibraryRootDir"
@@ -220,16 +220,16 @@ class GitActiveTechniqueCategoryArchiverImpl(
       archive     <- writeXml(
                          uptcFile
                        , activeTechniqueCategorySerialisation.serialise(uptc)
-                       , "Archived policy library category: " + uptcFile.getPath
+                       , "Archived technique library category: " + uptcFile.getPath
                      )
       uptcGitPath =  gitPath
       commit      <- gitCommit match {
                        case Some((commiter, reason)) =>
                          oldParents match {
                            case Some(olds) => 
-                             commitMvDirectory(commiter, toGitPath(newActiveTechniquecFile(uptc.id, olds)), uptcGitPath, "Move archive of policy library category with ID '%s'%s".format(uptc.id.value, GET(reason)))
+                             commitMvDirectory(commiter, toGitPath(newActiveTechniquecFile(uptc.id, olds)), uptcGitPath, "Move archive of technique library category with ID '%s'%s".format(uptc.id.value, GET(reason)))
                            case None       => 
-                             commitAddFile(commiter, uptcGitPath, "Archive of policy library category with ID '%s'%s".format(uptc.id.value, GET(reason)))
+                             commitAddFile(commiter, uptcGitPath, "Archive of technique library category with ID '%s'%s".format(uptc.id.value, GET(reason)))
                          }
                        case None => Full("ok")
                     }
@@ -250,10 +250,10 @@ class GitActiveTechniqueCategoryArchiverImpl(
         //don't forget to delete the category *directory*
         deleted  <- tryo { 
                       FileUtils.forceDelete(uptcFile.getParentFile) 
-                      logger.debug("Deleted archived policy library category: " + uptcFile.getPath)
+                      logger.debug("Deleted archived technique library category: " + uptcFile.getPath)
                     }
         commited <- gitCommit match {
-                      case Some((commiter,reason)) => commitRmFile(commiter, gitPath, "Delete archive of policy library category with ID '%s'%s".format(uptcId.value, GET(reason)))
+                      case Some((commiter,reason)) => commitRmFile(commiter, gitPath, "Delete archive of technique library category with ID '%s'%s".format(uptcId.value, GET(reason)))
                       case None => Full("OK")
                     }
       } yield {
@@ -276,14 +276,14 @@ class GitActiveTechniqueCategoryArchiverImpl(
   
   /**
    * Commit modification done in the Git repository for any
-   * category, policy template and policy instance in the
-   * user policy library.
+   * category, technique and directive in the
+   * active technique library.
    * Return the git commit id. 
    */
   override def commitActiveTechniqueLibrary(commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId] = {
     this.commitFullGitPathContentAndTag(
         commiter
-      , POLICY_LIBRARY_ARCHIVE_TAG + " Commit all modification done in the User Policy Library (git path: '%s'%s)".format(techniqueLibraryRootDir, GET(reason))
+      , POLICY_LIBRARY_ARCHIVE_TAG + " Commit all modification done in the active technique library (git path: '%s'%s)".format(techniqueLibraryRootDir, GET(reason))
     )
   }
 }
@@ -346,7 +346,7 @@ class UpdatePiOnActiveTechniqueEvent(
 }
 
 /**
- * A specific trait to create archive of an user policy template.
+ * A specific trait to create archive of an active technique.
  */
 class GitActiveTechniqueArchiverImpl(
     override val gitRepo           : GitRepositoryProvider
@@ -377,11 +377,11 @@ class GitActiveTechniqueArchiverImpl(
       archive   <- writeXml(
                        uptFile
                      , activeTechniqueSerialisation.serialise(activeTechnique)
-                     , "Archived policy library template: " + uptFile.getPath
+                     , "Archived technique library template: " + uptFile.getPath
                    )
       callbacks <- sequence(uptModificationCallback) { _.onArchive(activeTechnique, parents, None) }
       commit    <- gitCommit match {
-                     case Some((commiter, reason)) => commitAddFile(commiter, gitPath, "Archive of policy library template for policy template name '%s'%s".format(activeTechnique.techniqueName.value, GET(reason)))
+                     case Some((commiter, reason)) => commitAddFile(commiter, gitPath, "Archive of technique library template for technique name '%s'%s".format(activeTechnique.techniqueName.value, GET(reason)))
                      case None => Full("ok")
                    }
     } yield {
@@ -396,12 +396,12 @@ class GitActiveTechniqueArchiverImpl(
           //don't forget to delete the category *directory*
           deleted  <- tryo { 
                         if(uptFile.exists) FileUtils.forceDelete(uptFile) 
-                        logger.debug("Deleted archived policy library template: " + uptFile.getPath)
+                        logger.debug("Deleted archived technique library template: " + uptFile.getPath)
                       }
           gitPath   =  toGitPath(uptFile)
           callbacks <- sequence(uptModificationCallback) { _.onDelete(ptName, parents, None) }
           commited <- gitCommit match {
-                        case Some((commiter,reason)) => commitRmFile(commiter, gitPath, "Delete archive of policy library template for policy template name '%s'%s".format(ptName.value, GET(reason)))
+                        case Some((commiter,reason)) => commitRmFile(commiter, gitPath, "Delete archive of technique library template for technique name '%s'%s".format(ptName.value, GET(reason)))
                         case None => Full("OK")
                       }
         } yield {
@@ -412,7 +412,7 @@ class GitActiveTechniqueArchiverImpl(
   }
  
   /*
-   * For that one, we have to move the directory of the User policy templates 
+   * For that one, we have to move the directory of the active techniques 
    * to its new parent location. 
    * If the commit has to be done, we have to add all files under that new repository,
    * and remove from old one.
@@ -441,7 +441,7 @@ class GitActiveTechniqueArchiverImpl(
                                  commiter
                                , toGitPath(oldActiveTechniqueDirectory)
                                , toGitPath(newActiveTechniqueDirectory)
-                               , "Move user policy template for policy template name '%s'%s".format(activeTechnique.techniqueName.value, GET(reason))
+                               , "Move active technique for technique name '%s'%s".format(activeTechnique.techniqueName.value, GET(reason))
                              )
                            case None => Full("OK")
                          }
@@ -453,7 +453,7 @@ class GitActiveTechniqueArchiverImpl(
 
 
 /**
- * A specific trait to create archive of an user policy template.
+ * A specific trait to create archive of an active technique.
  */
 class GitDirectiveArchiverImpl(
     override val gitRepo           : GitRepositoryProvider
@@ -473,7 +473,7 @@ class GitDirectiveArchiverImpl(
     , parents: List[ActiveTechniqueCategoryId]
   ) = {
     parents match {
-      case Nil => Failure("Can not save policy instance '%s' for policy template '%s' because no category (not even the root one) was given as parent for that policy template".format(directiveId.value, ptName.value))
+      case Nil => Failure("Can not save directive '%s' for technique '%s' because no category (not even the root one) was given as parent for that technique".format(directiveId.value, ptName.value))
       case h::tail => 
         Full(new File(new File(newCategoryDirectory(h, tail), ptName.value), directiveId.value+".xml"))
     }
@@ -493,10 +493,10 @@ class GitDirectiveArchiverImpl(
       archive <- writeXml( 
                      piFile
                    , directiveSerialisation.serialise(ptName, variableRootSection, directive)
-                   , "Archived policy instance: " + piFile.getPath
+                   , "Archived directive: " + piFile.getPath
                  )
       commit  <- gitCommit match {
-                   case Some((commiter,reason)) => commitAddFile(commiter, gitPath, "Archive policy instance with ID '%s'%s".format(directive.id.value,GET(reason)))
+                   case Some((commiter,reason)) => commitAddFile(commiter, gitPath, "Archive directive with ID '%s'%s".format(directive.id.value,GET(reason)))
                    case None => Full("ok")
                  }
     } yield {
@@ -505,7 +505,7 @@ class GitDirectiveArchiverImpl(
   }
     
   /**
-   * Delete an archived policy instance. 
+   * Delete an archived directive. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
@@ -520,11 +520,11 @@ class GitDirectiveArchiverImpl(
         for {
           deleted  <- tryo { 
                         FileUtils.forceDelete(piFile) 
-                        logger.debug("Deleted archive of policy instance: " + piFile.getPath)
+                        logger.debug("Deleted archive of directive: " + piFile.getPath)
                       }
           gitPath  =  toGitPath(piFile)
           commited <- gitCommit match {
-                        case Some((commiter,reason)) => commitRmFile(commiter, gitPath, "Delete archive of policy instance with ID '%s'%s".format(directiveId.value,GET(reason)))
+                        case Some((commiter,reason)) => commitRmFile(commiter, gitPath, "Delete archive of directive with ID '%s'%s".format(directiveId.value,GET(reason)))
                         case None => Full("OK")
                       }
         } yield {
@@ -659,8 +659,8 @@ class GitNodeGroupCategoryArchiverImpl(
   
   /**
    * Commit modification done in the Git repository for any
-   * category, policy template and policy instance in the
-   * user policy library.
+   * category, technique and directive in the
+   * active technique library.
    * Return the git commit id. 
    */
   override def commitGroupLibrary(commiter: PersonIdent, reason:Option[String]) : Box[GitArchiveId] = {

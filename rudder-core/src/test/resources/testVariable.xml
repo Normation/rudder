@@ -52,7 +52,7 @@
     <VARIABLE>
       <VARIABLEDEF CATEGORY="policyinstance">
         <NAME>varpolicyinstance</NAME>
-        <DESCRIPTION>Variable policy instance</DESCRIPTION>
+        <DESCRIPTION>Variable directive</DESCRIPTION>
         <TYPE>string</TYPE>
         <SAMESIZEAS>Bounding</SAMESIZEAS>
       </VARIABLEDEF>

@@ -61,6 +61,7 @@ import com.normation.rudder.domain.policies.ActiveTechniqueId
 class GiveReasonPopup(
     onSuccessCallback : (ActiveTechniqueId) => JsCmd = { (ActiveTechniqueId) => Noop }
   , onFailureCallback : (String, String) => JsCmd = { (String1, String2) => Noop }
+  , refreshActiveTreeLibrary : () => JsCmd = { () => Noop }
   , sourceActiveTechniqueId : ActiveTechniqueId
   , destCatId : ActiveTechniqueCategoryId
 ) extends DispatchSnippet with Loggable {
@@ -97,14 +98,14 @@ class GiveReasonPopup(
   def popupContent(html : NodeSeq) : NodeSeq = {
     SHtml.ajaxForm(bind("item", popupTemplate,
        "reason" -> crReasons.map {f =>           
-         <div id="div-en-question">
+         <div>
           <div style="margin-bottom:5px">
             {userPropertyService.reasonsFieldExplanation}
           </div>
             {f.toForm_!}
          </div>
         },
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % 
+      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() & refreshActiveTreeLibrary() }) % 
         ("tabindex","4"),
       "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % 
         ("id","createATCSaveButton") % ("tabindex","3")
@@ -121,17 +122,17 @@ class GiveReasonPopup(
     }
   }
   
-  def buildReasonField(mandatory:Boolean) = 
-    new WBTextAreaField("Message: ", 
-        if(mandatory) "" else "Group updated by user from UI") {
-    override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % 
-      ("style" -> "width:400px;height:12em;margin-top:3px;border: solid 2px #ABABAB;")
-    override def validations() = {
-      if(mandatory){
-        valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
-      } else {
-        Nil
+  def buildReasonField(mandatory:Boolean) = {
+    new WBTextAreaField("Message: ", "") {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % 
+        ("style" -> "width:400px;height:12em;margin-top:3px;border: solid 2px #ABABAB;")
+      override def validations() = {
+        if(mandatory){
+          valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
+        } else {
+          Nil
+        }
       }
     }
   }

@@ -179,7 +179,7 @@ class LDAPNodeGroupCategoryRepository(
     (for {
       con <- ldap
       rootCategoryEntry <- groupLibMutex.readLock { con.get(rudderDit.GROUP.dn) ?~! "The root category of the server group category seems to be missing in LDAP directory. Please check its content" }
-      // look for sub category and policy template
+      // look for sub category and technique
       rootCategory <- mapper.entry2NodeGroupCategory(rootCategoryEntry) ?~! "Error when mapping from an LDAP entry to a Node Group Category: %s".format(rootCategoryEntry)
     } yield {
       addSubEntries(rootCategory,rootCategoryEntry.dn, con)
@@ -338,7 +338,7 @@ class LDAPNodeGroupCategoryRepository(
       con <- ldap
       categoryEntry <- getCategoryEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
       parentCategoryEntry <- con.get(categoryEntry.dn.getParent)
-      parentCategory <- mapper.entry2NodeGroupCategory(parentCategoryEntry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(parentCategoryEntry)
+      parentCategory <- mapper.entry2NodeGroupCategory(parentCategoryEntry) ?~! "Error when transforming LDAP entry %s into an active technqiue category".format(parentCategoryEntry)
     } yield {
       addSubEntries(parentCategory, parentCategoryEntry.dn, con)
     }  }  

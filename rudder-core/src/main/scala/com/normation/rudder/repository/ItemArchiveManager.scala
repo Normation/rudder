@@ -85,7 +85,7 @@ final case class GitCommitId(value: String) extends HashcodeCaching
 final case class GitArchiveId(path: GitPath, commit: GitCommitId, commiter: PersonIdent) extends HashcodeCaching
 
 /**
- * This trait allow to manage archives of Policy library, configuration rules
+ * This trait allow to manage archives of technique library, rules
  * and groupes. 
  * 
  * Archive can be done in one shot, partially updated, or read back. 
@@ -148,11 +148,11 @@ trait ItemArchiveManager {
 
 
 /**
- * A specific trait to create archive of configuration rules
+ * A specific trait to create archive of rules
  */
 trait GitRuleArchiver {
   /**
-   * Archive a configuration rule in a file system
+   * Archive a rule in a file system
    * managed by git. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
@@ -163,7 +163,7 @@ trait GitRuleArchiver {
   
   /**
    * Commit modification done in the Git repository for any
-   * configuration rules.
+   * rules.
    * Also add a tag with the given return GitPath. 
    * The returned commit hash is the one for the tag. 
    * Return the git commit id. 
@@ -175,7 +175,7 @@ trait GitRuleArchiver {
   def getTags() : Box[Map[DateTime,GitArchiveId]]
   
   /**
-   * Delete an archived configuration rule. 
+   * Delete an archived rule. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    * 
@@ -184,21 +184,21 @@ trait GitRuleArchiver {
   def deleteRule(ruleId:RuleId, gitCommitCr:Option[(PersonIdent,Option[String])]) : Box[GitPath]
   
   /**
-   * Get the root directory where configuration rules are saved
+   * Get the root directory where rules are saved
    */
   def getRootDirectory : File
 }
 
 
-/////////////// User Policy Template Library ///////////////
+/////////////// Active Technique Library ///////////////
 
 /**
- * A specific trait to create archive of an user policy template category.
+ * A specific trait to create archive of an active technique category.
  */
 trait GitActiveTechniqueCategoryArchiver {
   
   /**
-   * Archive an user policy template category in a file system
+   * Archive an active technique category in a file system
    * managed by git. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
@@ -206,27 +206,27 @@ trait GitActiveTechniqueCategoryArchiver {
   def archiveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
     
   /**
-   * Delete an archived user policy template category. 
+   * Delete an archived active technique category. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
   def deleteActiveTechniqueCategory(uptcId:ActiveTechniqueCategoryId, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
   
   /**
-   * Move an archived policy template category from a 
+   * Move an archived technique category from a 
    * parent category to an other. 
    */
   def moveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
 
   /**
-   * Get the root directory where user policy template categories are saved.
+   * Get the root directory where active technique categories are saved.
    */
   def getRootDirectory : File  
   
   /**
    * Commit modification done in the Git repository for any
-   * category, policy template and policy instance in the
-   * user policy library.
+   * category, technique and directive in the
+   * active technique library.
    * Return the git commit id. 
    */
   def commitActiveTechniqueLibrary(commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
@@ -235,12 +235,12 @@ trait GitActiveTechniqueCategoryArchiver {
 }
 
 /**
- * A specific trait to create archive of an user policy template category.
+ * A specific trait to create archive of an active technique category.
  */
 trait GitActiveTechniqueArchiver {
   
   /**
-   * Archive an user policy template in a file system
+   * Archive an active technique in a file system
    * managed by git. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
@@ -248,30 +248,30 @@ trait GitActiveTechniqueArchiver {
   def archiveActiveTechnique(activeTechnique:ActiveTechnique, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
     
   /**
-   * Delete an archived user policy template. 
+   * Delete an archived active technique. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
   def deleteActiveTechnique(ptName:TechniqueName, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
   
   /**
-   * Move an archived policy template from a 
+   * Move an archived technique from a 
    * parent category to an other. 
    */
   def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
 
   /**
-   * Get the root directory where user policy template categories are saved.
+   * Get the root directory where active technique categories are saved.
    */
   def getRootDirectory : File  
 }
 
 /**
- * A specific trait to create archive of a policy instance.
+ * A specific trait to create archive of a directive.
  */
 trait GitDirectiveArchiver {
   /**
-   * Archive a policy instance in a file system
+   * Archive a directive in a file system
    * managed by git. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
@@ -285,7 +285,7 @@ trait GitDirectiveArchiver {
   ) : Box[GitPath]
     
   /**
-   * Delete an archived policy instance. 
+   * Delete an archived directive. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
@@ -297,8 +297,8 @@ trait GitDirectiveArchiver {
   ) : Box[GitPath]
   
   /**
-   * Get the root directory where policy instance are saved.
-   * A policy instance won't be directly under that directory, but
+   * Get the root directory where directive are saved.
+   * A directive won't be directly under that directory, but
    * will be on the sub-directories matching the category on which they are.
    */
   def getRootDirectory : File  
@@ -309,7 +309,7 @@ trait GitDirectiveArchiver {
 
 
 /**
- * A specific trait to create archive of an user policy template category.
+ * A specific trait to create archive of an active technique category.
  */
 trait GitNodeGroupCategoryArchiver {
   
@@ -355,7 +355,7 @@ trait GitNodeGroupCategoryArchiver {
 trait GitNodeGroupArchiver {
   
   /**
-   * Archive an user policy template in a file system
+   * Archive an active technique in a file system
    * managed by git. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
@@ -363,20 +363,20 @@ trait GitNodeGroupArchiver {
   def archiveNodeGroup(nodeGroup:NodeGroup, parents:List[NodeGroupCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
     
   /**
-   * Delete an archived user policy template. 
+   * Delete an archived active technique. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
   def deleteNodeGroup(nodeGroup:NodeGroupId, parents:List[NodeGroupCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
   
   /**
-   * Move an archived policy template from a 
+   * Move an archived technique from a 
    * parent category to an other. 
    */
   def moveNodeGroup(nodeGroup:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
 
   /**
-   * Get the root directory where user policy template categories are saved.
+   * Get the root directory where active technique categories are saved.
    */
   def getRootDirectory : File  
 }

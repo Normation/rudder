@@ -95,7 +95,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   implicit val DIT = dit
   
   /**
-   * Create a new category for the user policy library
+   * Create a new category for the active technique library
    */
   def activeTechniqueCategory(
       uuid       : String
@@ -153,7 +153,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     def getCategoryIdValue(dn:DN) = singleRdnValue(dn,activeTechniques.rdnAttribute._1)
     
     /**
-     * From a DN of a user policy template, return the value of the rdn (uuid)
+     * From a DN of an active technique, return the value of the rdn (uuid)
      */
     def getActiveTechniqueId(dn:DN) : Box[String] = singleRdnValue(dn,A_ACTIVE_TECHNIQUE_UUID)
     
@@ -166,7 +166,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     def activeTechniqueCategoryModel(uuid:String, parentDN:DN) : LDAPEntry = activeTechniqueCategory(uuid, parentDN).model
     
     /**
-     * Create a new user policy template entry
+     * Create a new active technique entry
      */
     def activeTechniqueModel(
         uuid:String
@@ -333,8 +333,8 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
      
      
       /**
-       * Policy instances for a server.
-       * There is both current and target policy instances,
+       * Directives for a server.
+       * There is both current and target Directives,
        * they only differ on the objectType
        */
       val CF3POLICYDRAFT = new ENTRY1(A_DIRECTIVE_UUID) {

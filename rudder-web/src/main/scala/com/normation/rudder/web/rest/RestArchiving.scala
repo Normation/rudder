@@ -64,7 +64,7 @@ class RestArchiving(
       listTags(itemArchiveManager.getGroupLibraryTags _, "groups")
 
     case Get("api" :: "archives" :: "list" :: "directives" :: Nil, _) => 
-      listTags(itemArchiveManager.getTechniqueLibraryTags _, "policy library")
+      listTags(itemArchiveManager.getTechniqueLibraryTags _, "technique library")
 
     case Get("api" :: "archives" :: "list" :: "rules" :: Nil, _) => 
       listTags(itemArchiveManager.getRulesTags _, "rules")
@@ -79,7 +79,7 @@ class RestArchiving(
       restoreLatestArchive(req, itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, "groups")
 
     case Get("api" :: "archives" :: "restore" :: "directives" :: "latestArchive" :: Nil, req) =>
-      restoreLatestArchive(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, "policy library")
+      restoreLatestArchive(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, "technique library")
 
     case Get("api" :: "archives" :: "restore" :: "rules" :: "latestArchive" :: Nil, req) => 
       restoreLatestArchive(req, itemArchiveManager.getRulesTags _, itemArchiveManager.importRules, "rules")
@@ -94,7 +94,7 @@ class RestArchiving(
       restoreLatestCommit(req, itemArchiveManager.importHeadGroupLibrary, "groups")
 
     case Get("api" :: "archives" :: "restore" :: "directives" :: "latestCommit" :: Nil, req) =>
-      restoreLatestCommit(req, itemArchiveManager.importHeadTechniqueLibrary, "policy library")
+      restoreLatestCommit(req, itemArchiveManager.importHeadTechniqueLibrary, "technique library")
 
     case Get("api" :: "archives" :: "restore" :: "rules" :: "latestCommit" :: Nil, req) => 
       restoreLatestCommit(req, itemArchiveManager.importHeadRules, "rules")
@@ -109,10 +109,10 @@ class RestArchiving(
       archive(req, itemArchiveManager.exportGroupLibrary _, "groups")
 
     case Get("api" :: "archives" :: "archive" :: "directives" :: Nil, req) =>
-      archive(req, itemArchiveManager.exportTechniqueLibrary _, "policy library")
+      archive(req, itemArchiveManager.exportTechniqueLibrary _, "technique library")
 
     case Get("api" :: "archives" :: "archive" :: "rules" :: Nil, req) => 
-      archive(req, itemArchiveManager.exportRules _, "configuration rules")
+      archive(req, itemArchiveManager.exportRules _, "rules")
 
     case Get("api" :: "archives" :: "archive" :: "full" :: Nil, req) => 
       archive(req, itemArchiveManager.exportAll _, "full archive")
@@ -125,7 +125,7 @@ class RestArchiving(
       restoreByDatetime(req, itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, datetime, "groups")
 
     case Get("api" :: "archives" :: "restore" :: "directives" :: "datetime" :: datetime :: Nil, req) =>
-      restoreByDatetime(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, datetime, "policy library")
+      restoreByDatetime(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, datetime, "technique library")
 
     case Get("api" :: "archives" :: "restore" :: "rules" :: "datetime" :: datetime :: Nil, req) => 
       restoreByDatetime(req, itemArchiveManager.getRulesTags _, itemArchiveManager.importRules, datetime, "rules")

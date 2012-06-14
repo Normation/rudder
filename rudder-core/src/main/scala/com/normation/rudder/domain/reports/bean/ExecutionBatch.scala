@@ -278,7 +278,7 @@ class ConfigurationExecutionBatch(
 	       val nodeFilteredReports = executionReports.filter(x => (x.nodeId==server))
 	       // if there is an error report, then it's an error
 	       if ( (nodeFilteredReports.filter( x => x.isInstanceOf[ResultErrorReport] ).size > 0 ) ||
-	         // or if there is at least a policy instance that is not valid
+	         // or if there is at least a directive that is not valid
 	         (directiveExpectedReports.exists { directive =>
 	           val linearised = linearisePolicyExpectedReports(directive)
 	           val filteredReports = nodeFilteredReports.filter(x => 

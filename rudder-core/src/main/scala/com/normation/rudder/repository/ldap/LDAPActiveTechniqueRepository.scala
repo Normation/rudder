@@ -57,7 +57,7 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog.EventActor
 
 /**
- * Implementation of the repository for User Policy Templates in 
+ * Implementation of the repository for active techniques in 
  * LDAP. 
  *
  */
@@ -74,7 +74,7 @@ class LDAPActiveTechniqueRepository(
 ) extends ActiveTechniqueRepository with Loggable {
 
   /**
-   * Look in the subtree with root=user policy template library
+   * Look in the subtree with root=active technique library
    * for and entry with the given id. 
    * We expect at most one result, more is a Failure
    */
@@ -87,7 +87,7 @@ class LDAPActiveTechniqueRepository(
     uptEntries.size match {
       case 0 => Empty
       case 1 => Full(uptEntries(0))
-      case _ => Failure("Error, the directory contains multiple occurrence of user policy template with ID %s. DNs involved: %s".format(id, uptEntries.map( _.dn).mkString("; ")))
+      case _ => Failure("Error, the directory contains multiple occurrence of active technique with ID %s. DNs involved: %s".format(id, uptEntries.map( _.dn).mkString("; ")))
     }     
   }
   
@@ -101,14 +101,14 @@ class LDAPActiveTechniqueRepository(
     for {
       con <- ldap
       uptEntry <- getUPTEntry(con, id, filter) ?~! "Can not find user policy entry in LDAP based on filter %s".format(filter(id))
-      activeTechnique <- mapper.entry2ActiveTechnique(uptEntry) ?~! "Error when mapping user policy template entry to its entity. Entry: %s".format(uptEntry)
+      activeTechnique <- mapper.entry2ActiveTechnique(uptEntry) ?~! "Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry)
     } yield {
       addDirectives(activeTechnique,uptEntry.dn,con)
     }
   }
   
   /**
-   * Add policy instances ids for the given user policy template which must
+   * Add directives ids for the given active technique which must
    * be mapped to the given dn in LDAP directory accessible by con
    */
   private[this] def addDirectives(activeTechnique:ActiveTechnique, dn:DN, con:LDAPConnection) : ActiveTechnique = {
@@ -156,7 +156,7 @@ class LDAPActiveTechniqueRepository(
       versions:Seq[TechniqueVersion],
       actor: EventActor, reason: Option[String]
   ): Box[ActiveTechnique] = { 
-    //check if the policy template is already in user lib, and if the category exists
+    //check if the technique is already in user lib, and if the category exists
     for {
       con           <- ldap
       noActiveTechnique         <- { //check that there is not already defined activeTechnique with such ref id
@@ -165,7 +165,7 @@ class LDAPActiveTechniqueRepository(
                            { name => EQ(A_TECHNIQUE_UUID, name.value) }, 
                            "1.1") match {
                              case Empty => Full("ok")
-                             case Full(uptEntry) => Failure("Can not add a policy template with id %s in user library. User policy template %s is already defined with such a reference policy template.".format(techniqueName,uptEntry.dn))
+                             case Full(uptEntry) => Failure("Can not add a technique with id %s in user library. active technique %s is already defined with such a reference technique.".format(techniqueName,uptEntry.dn))
                              case f:Failure => f
                          }
                        }
@@ -186,7 +186,7 @@ class LDAPActiveTechniqueRepository(
   }
 
   def activeTechniqueBreadCrump(id: ActiveTechniqueId): Box[List[ActiveTechniqueCategory]] = { 
-    //find the user policy template entry for that id, and from that, build the parent bread crump
+    //find the active technique entry for that id, and from that, build the parent bread crump
     userLibMutex.readLock { for {
       cat  <- userCategoryRepo.getParentsForActiveTechnique(id)
       cats <- userCategoryRepo.getParentsForActiveTechniqueCategory(cat.id)
@@ -197,8 +197,8 @@ class LDAPActiveTechniqueRepository(
 
   
   /**
-   * Move a policy template to a new category.
-   * Failure if the given policy template or category
+   * Move a technique to a new category.
+   * Failure if the given technique or category
    * does not exists. 
    * 
    */
@@ -210,7 +210,7 @@ class LDAPActiveTechniqueRepository(
                      } else Full(Nil)
       activeTechnique         <- getUPTEntry(con, uactiveTechniqueId, "1.1") ?~! "Can not move non existing template in use library with ID %s".format(uactiveTechniqueId)
       newCategory <- userCategoryRepo.getCategoryEntry(con, newCategoryId, "1.1") ?~! "Can not move template with ID %s into non existing category of user library %s".format(uactiveTechniqueId, newCategoryId)
-      moved       <- userLibMutex.writeLock { con.move(activeTechnique.dn, newCategory.dn) ?~! "Error when moving policy template %s to category %s".format(uactiveTechniqueId, newCategoryId) }
+      moved       <- userLibMutex.writeLock { con.move(activeTechnique.dn, newCategory.dn) ?~! "Error when moving technique %s to category %s".format(uactiveTechniqueId, newCategoryId) }
       autoArchive <- (if(autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord]) {
                        for {
                          parents  <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
@@ -220,14 +220,14 @@ class LDAPActiveTechniqueRepository(
                        } yield {
                          moved
                        }
-                     } else Full("ok") ) ?~! "Error when trying to archive automatically the policy template move"
+                     } else Full("ok") ) ?~! "Error when trying to archive automatically the technique move"
     } yield {
       uactiveTechniqueId
     }   
   }
   
   /**
-   * Set the status of the policy template to the new value
+   * Set the status of the technique to the new value
    */
   def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
     for {
@@ -275,7 +275,7 @@ class LDAPActiveTechniqueRepository(
 
   
   /**
-   * Delete the policy template in user library.
+   * Delete the technique in user library.
    * If no such element exists, it is a success.
    */
   def delete(uactiveTechniqueId:ActiveTechniqueId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
@@ -288,7 +288,7 @@ class LDAPActiveTechniqueRepository(
       deleted     <- userLibMutex.writeLock { con.delete(activeTechnique.dn, false) }
       autoArchive <- (if(autoExportOnModify && deleted.size > 0) {
                        for {
-                         ptName   <- Box(activeTechnique(A_TECHNIQUE_UUID)) ?~! "Missing required reference policy template name"
+                         ptName   <- Box(activeTechnique(A_TECHNIQUE_UUID)) ?~! "Missing required reference technique name"
                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                          res      <- gitArchiver.deleteActiveTechnique(TechniqueName(ptName),oldParents.map( _.id), Some(commiter, reason))
                        } yield res

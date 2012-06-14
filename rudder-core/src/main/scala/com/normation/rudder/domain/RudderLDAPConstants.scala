@@ -63,10 +63,10 @@ object RudderLDAPConstants extends Loggable {
   val A_DIRECTIVE_VARIABLES = "directiveVariable"
   val A_WRITTEN_DATE = "writtenTimestamp"
   /*
-   * Last time a User Policy Template was 
-   * accepted in the user library (either the
+   * Last time an active technique was
+   * accepted in the active technique library (either the
    * time it was created (initialization) or the
-   * last time the reference policy template library
+   * last time the reference Technique library
    * was updated and then modification were accepted. 
    */
   val A_ACCEPTATION_DATETIME = "acceptationTimestamp"

@@ -161,10 +161,10 @@ class ImportGroupLibraryImpl(
   
   
   /**
-   * That method swap an existing user policy library in LDAP
+   * That method swap an existing active technique library in LDAP
    * to a new one. 
    * 
-   * In case of error, we try to restore the old policy library. 
+   * In case of error, we try to restore the old technique library. 
    */
   def swapGroupLibrary(rootCategory:NodeGroupCategoryContent, includeSystem:Boolean = false) : Box[Unit] = {
     /*
@@ -240,10 +240,10 @@ class ImportGroupLibraryImpl(
                       }) match {
                            case Full(unit)  => Full(unit)
                            case eb:EmptyBox => 
-                             logger.error("Error when trying to load archived User Policy Library. Rollbaching to previous one.")
+                             logger.error("Error when trying to load archived active technique library. Rollbaching to previous one.")
                              restoreArchive(con, rudderDit.GROUP.dn, targetArchiveDN) match {
-                               case eb2: EmptyBox => eb ?~! "Error when trying to restore archive with ID '%s' for the user policy template library".format(archiveId.value)
-                               case Full(_) => eb ?~! "Error when trying to load archived User Policy Library. A rollback to previous state was executed"
+                               case eb2: EmptyBox => eb ?~! "Error when trying to restore archive with ID '%s' for the active technique library".format(archiveId.value)
+                               case Full(_) => eb ?~! "Error when trying to load archived active technique library. A rollback to previous state was executed"
                              }
                              
                       }
@@ -271,11 +271,11 @@ class ImportGroupLibraryImpl(
 
         if(nodeGroup.isSystem && includeSystem == false) None
         else if(nodeGroupIds.contains(nodeGroup.id)) {
-          logger.error("Ignoring User Policy Template because is ID was already processed: " + nodeGroup)
+          logger.error("Ignoring Active Technique because is ID was already processed: " + nodeGroup)
           None
         } else nodeGroupNames.get(nodeGroup.name) match {
           case Some(id) =>
-            logger.error("Ignoring User Policy Template with ID '%s' because it references policy template with name '%s' already referenced by user policy template with ID '%s'".format(
+            logger.error("Ignoring Active Technique with ID '%s' because it references technique with name '%s' already referenced by active technique with ID '%s'".format(
                 nodeGroup.id.value, nodeGroup.name, id.value
             ))
             None
@@ -288,14 +288,14 @@ class ImportGroupLibraryImpl(
         val cat = content.category
         if( !isRoot && content.category.isSystem && includeSystem == false) None
         else if(categoryIds.contains(cat.id)) {
-          logger.error("Ignoring User Policy Template Category because its ID was already processed: " + cat)
+          logger.error("Ignoring Active Technique Category because its ID was already processed: " + cat)
           None
         } else if(cat.name == null || cat.name.size < 1) {
-          logger.error("Ignoring User Policy Template Category because its name is empty: " + cat)
+          logger.error("Ignoring Active Technique Category because its name is empty: " + cat)
           None
         } else categoryNames.get(cat.name) match { //name is mandatory
           case Some(id) =>
-            logger.error("Ignoring User Policy Template Categor with ID '%s' because its name is '%s' already referenced by category with ID '%s'".format(
+            logger.error("Ignoring Active Technique Categor with ID '%s' because its name is '%s' already referenced by category with ID '%s'".format(
                 cat.id.value, cat.name, id.value
             ))
             None

@@ -295,7 +295,7 @@ object Migration_10_2_DATA_Rule {
       </shortDescription>
       <longDescription>
         <from></from>
-        <to>Test application of two (single) policy instances, with two multivalued section.</to>
+        <to>Test application of two (single) directives, with two multivalued section.</to>
       </longDescription>
       <target>
         <from>
@@ -329,7 +329,7 @@ object Migration_10_2_DATA_Rule {
       </shortDescription>
       <longDescription>
         <from></from>
-        <to>Test application of two (single) policy instances, with two multivalued section.</to>
+        <to>Test application of two (single) directives, with two multivalued section.</to>
       </longDescription>
       <target>
         <from>

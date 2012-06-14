@@ -284,11 +284,11 @@ input.queryInputValue, select.queryInputValue {
   padding-left: 15px;
 }
 .listopen:before{
-  content:url('/rudder/images/tableau/flecheDroiteGris.png');
+  content:url('../images/tableau/flecheDroiteGris.png');
   padding-right: 3px;
 }
 .listclose:before{
-  content:url('/rudder/images/tableau/flecheBasGris.png');
+  content:url('../images/tableau/flecheBasGris.png');
   padding-right: 3px;
 }
 
@@ -703,6 +703,20 @@ padding:0 20px;
 /*********************************
 * Search servers
 *********************************/
+
+.nodeheader {
+    font-weight: bold;
+    font-size: small;
+    text-align: center;
+}
+
+.nodeheadercontent {
+    color: #F79D10;
+    display: inline-block;
+     padding : 3px 10px;
+     background-color: #2E2D2D;
+}
+}
 .paddscala{
   padding: 0px 0px 0px 15px;
 }
@@ -1315,7 +1329,9 @@ p img {
 
 .portlet ul {
    padding: 20px 0 0 0;
+   margin-left: 20px;
 }
+
 *html .portlet ul {
    padding: 20px 0 15px 0;
 }
@@ -1700,7 +1716,7 @@ color: #FF0000 !important;
 }
 .warnicon{
   float:left;
-  margin-right:20px;
+  margin-right:9px;
 }
 .erroricon{
   float:left; 
@@ -1903,7 +1919,7 @@ div.tabInform {
   padding:5px;
 }
 .evloglmargin{
-  margin-left:3px;  
+  margin: 3px;  
 }
 .reportsList {
   margin : 10px;

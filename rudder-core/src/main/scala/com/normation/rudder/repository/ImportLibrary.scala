@@ -44,7 +44,7 @@ import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.Rule
 
 /**
- * A category of the policy library. 
+ * A category of the technique library. 
  * 
  */
 case class ActiveTechniqueCategoryContent(
@@ -64,29 +64,29 @@ case class ActiveTechniqueContent(
 case class ActiveTechniqueLibraryArchiveId(value:String)
 
 /**
- * That trait allows to manage the import of user policy template library 
- * (categories, templates, policy instances) from the File System into
+ * That trait allows to manage the import of active techniques library
+ * (categories, templates, directives) from the File System into
  * the LDAP. 
  */
 
 trait ParseActiveTechniqueLibrary {
 
   /**
-   * That method parse configuration rules from the
+   * That method parse rules from the
    * file system for an archive with the given ID. 
    */
   def getArchive(archiveId:GitCommitId) : Box[ActiveTechniqueCategoryContent]
 }
 
 /**
- * That trait allows to manage the import of configuration rules
+ * That trait allows to manage the import of rules
  * from the File System into the LDAP. 
  * That part read the last CR archive.
  */
 trait ParseRules {
 
   /**
-   * That method parse configuration rules from the
+   * That method parse rules from the
    * file system for an archive with the given ID. 
    */
   def getArchive(archiveId:GitCommitId) : Box[Seq[Rule]]
@@ -119,10 +119,10 @@ trait ParseGroupLibrary {
 
 trait ImportTechniqueLibrary {  
   /**
-   * That method swap an existing user policy library in LDAP
+   * That method swap an existing active technique library in LDAP
    * to a new one. 
    * 
-   * In case of error, we try to restore the old policy library. 
+   * In case of error, we try to restore the old technique library. 
    */
   def swapActiveTechniqueLibrary(rootCategory: ActiveTechniqueCategoryContent, includeSystem: Boolean = false) : Box[Unit]
 }
@@ -131,10 +131,10 @@ trait ImportTechniqueLibrary {
 
 trait ImportGroupLibrary {  
   /**
-   * That method swap an existing user policy library in LDAP
+   * That method swap an existing active technique library in LDAP
    * to a new one. 
    * 
-   * In case of error, we try to restore the old policy library. 
+   * In case of error, we try to restore the old technique library. 
    */
   def swapGroupLibrary(rootCategory: NodeGroupCategoryContent, includeSystem: Boolean = false) : Box[Unit]
 }

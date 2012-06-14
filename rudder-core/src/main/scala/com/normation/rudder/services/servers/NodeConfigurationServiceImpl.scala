@@ -214,8 +214,8 @@ class NodeConfigurationServiceImpl(
 
       deduplicateUniqueDirectives(target.identifiableCFCPIs) match {
         case f : EmptyBox => 
-          LOGGER.debug( (f ?~! "An error happened when finding unique policy instances").messageChain )
-          LOGGER.error("Could not convert policy instance beans")
+          LOGGER.debug( (f ?~! "An error happened when finding unique directives").messageChain )
+          LOGGER.error("Could not convert directive beans")
           f
           
         case Full(directives) =>
@@ -520,14 +520,14 @@ class NodeConfigurationServiceImpl(
   
   /**
    * Return all the server that need to be commited
-   * Meaning, all servers that have a difference between the current and target policy instances */
+   * Meaning, all servers that have a difference between the current and target directives */
   private def uncommitedNodes() : Seq[NodeConfiguration] = {
     repository.findUncommitedNodeConfigurations match {
       case Full(seq) => seq
       case Empty =>
-        throw new TechnicalException("Error when trying to find server with uncommited policy instance. No error message left")
+        throw new TechnicalException("Error when trying to find server with uncommited directive. No error message left")
       case Failure(m,_,_)=>
-        throw new TechnicalException("Error when trying to find server with uncommited policy instance. Error message was: %s".format(m))
+        throw new TechnicalException("Error when trying to find server with uncommited directive. Error message was: %s".format(m))
     }    
   }
   
@@ -549,8 +549,8 @@ class NodeConfigurationServiceImpl(
     for (directive <- directives) {
         // check the legit character of the policy
         if (modifiedNode.getDirective(directive.cf3PolicyDraft.id) != None) {
-          LOGGER.warn("Cannot add a policy instance with the same id than an already existing one {} ", directive.cf3PolicyDraft.id)
-          return ParamFailure[RuleWithCf3PolicyDraft]("Duplicate policy instance", Full(new TechniqueException("Duplicate policy instance " +directive.cf3PolicyDraft.id)), Empty, directive)
+          LOGGER.warn("Cannot add a directive with the same id than an already existing one {} ", directive.cf3PolicyDraft.id)
+          return ParamFailure[RuleWithCf3PolicyDraft]("Duplicate directive", Full(new TechniqueException("Duplicate directive " +directive.cf3PolicyDraft.id)), Empty, directive)
         }
         
 

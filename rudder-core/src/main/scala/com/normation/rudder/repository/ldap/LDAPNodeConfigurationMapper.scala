@@ -87,12 +87,12 @@ class LDAPNodeConfigurationMapper(
       //////////////////////////////    Cf3PolicyDraft    //////////////////////////////
 
     /**
-     * Utility method that maps an LDAP entry to a policy instance
+     * Utility method that maps an LDAP entry to a directive
      * Return a pair Directive,Boolean where the boolean stands
-     * for "is the policy instance a target policy instance ?"
+     * for "is the directive a target directive ?"
      */
     def toRuleWithCf3PolicyDraft(e:LDAPEntry) : Box[(RuleWithCf3PolicyDraft,Boolean)] = {
-      def errorMessage(attr:String) = "Can not map entry to policy instance: missing attribute %s in entry %s".format(attr,e.dn)
+      def errorMessage(attr:String) = "Can not map entry to directive: missing attribute %s in entry %s".format(attr,e.dn)
       for {
         id <- {
           if(e.isA(OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT)) {
@@ -100,8 +100,8 @@ class LDAPNodeConfigurationMapper(
               e(A_DIRECTIVE_UUID) ?~! errorMessage(A_DIRECTIVE_UUID)
             } else if(e.isA(OC_TARGET_RULE_WITH_CF3POLICYDRAFT)){
               e(A_TARGET_DIRECTIVE_UUID) ?~! errorMessage(A_TARGET_DIRECTIVE_UUID)
-            } else Failure("Entry %s is not mappable to policy instance (unknow policy instance type)".format(e.dn))
-         } else Failure("Entry %s is not mappable to policy instance (it misses object class %s)".format(e.dn,OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT))
+            } else Failure("Entry %s is not mappable to directive (unknow directive type)".format(e.dn))
+         } else Failure("Entry %s is not mappable to directive (it misses object class %s)".format(e.dn,OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT))
         }
         techniqueId <- e(A_TECHNIQUE_UUID).map(x => TechniqueName(x)) ?~! errorMessage(A_TECHNIQUE_UUID)
         policyVersion <- for {
@@ -111,7 +111,7 @@ class LDAPNodeConfigurationMapper(
             v
           }
         ruleId <- e(A_RULE_UUID) ?~! errorMessage(A_RULE_UUID)
-        policyPackage <- techniqueRepository.get(TechniqueId(techniqueId,policyVersion)) ?~! "Can not found policy template '%s'".format(TechniqueId(techniqueId,policyVersion).toString)
+        policyPackage <- techniqueRepository.get(TechniqueId(techniqueId,policyVersion)) ?~! "Can not found technique '%s'".format(TechniqueId(techniqueId,policyVersion).toString)
         varSpecs = policyPackage.getAllVariableSpecs
         vared <- variableBuilderService.buildVariables(varSpecs, parsePolicyVariables(e.valuesFor(A_DIRECTIVE_VARIABLES).toSeq)) ?~! "Error when building variables from their specs and values"
         priority <- e.getAsInt(A_PRIORITY) ?~! errorMessage(A_PRIORITY)
@@ -142,9 +142,9 @@ class LDAPNodeConfigurationMapper(
     if(!tree.root.isA(OC_NODE_CONFIGURATION)) {
       Failure("Unknow server type, or bad root for LDAPEntry tree: " + tree.root)
     } else {
-      //ok, we actually have a server, start to find its policy instances (current and target)
+      //ok, we actually have a server, start to find its directives (current and target)
       
-      //For a policy instance in error, log the error, and delete it. It's just a cache, 
+      //For a directive in error, log the error, and delete it. It's just a cache, 
       //it will be regenerated next time (can not be much worse than completly blocking
       //deployment
 
@@ -153,13 +153,13 @@ class LDAPNodeConfigurationMapper(
           toRuleWithCf3PolicyDraft(t.root) match {
             case Full((directive,isTarget)) => Some((directive,isTarget))
             case e:EmptyBox =>
-              logger.warn(e ?~! "Error when mapping node configuration's policy instance with DN: '%s'. We are going to try to delete it".format(t.root.dn), e)
+              logger.warn(e ?~! "Error when mapping node configuration's directive with DN: '%s'. We are going to try to delete it".format(t.root.dn), e)
               try {
                 ldap.map { con =>
                   con.delete(t.root.dn, true)
                 }
               } catch {
-                case e:Exception => logger.error("Can not remove the faulty node configuration's policy instance with DN: '%s': ", e)
+                case e:Exception => logger.error("Can not remove the faulty node configuration's directive with DN: '%s': ", e)
               }
               None
           }          
@@ -249,8 +249,8 @@ class LDAPNodeConfigurationMapper(
   def fromNodeConfiguration(server:NodeConfiguration) : LDAPTree = {
     
     /**
-     * Create policy instance entries in the context of a server entry.
-     * Note that contrary to Roles, policy instances could be 
+     * Create directive entries in the context of a server entry.
+     * Note that contrary to Roles, directives could be 
      * split from a server (it is only used to build the parent dn
      * of these entries)
      */
@@ -279,7 +279,7 @@ class LDAPNodeConfigurationMapper(
     //if server id is null or empty, throw an error here
     val id = NodeId(Utils.??!(server.id).getOrElse(throw new BusinessException("NodeConfiguration UUID can not be null nor emtpy")))
     
-    //Build the server entry and its children (role an policy instances)
+    //Build the server entry and its children (role an directives)
     val serverEntry : LDAPEntry = server match {
       case rootNodeConfiguration:RootNodeConfiguration => rudderDit.NODE_CONFIGS.NODE_CONFIG.rootPolicyServerModel(id)
       case s => rudderDit.NODE_CONFIGS.NODE_CONFIG.nodeConfigurationModel(id)

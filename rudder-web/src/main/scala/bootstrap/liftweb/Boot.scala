@@ -104,8 +104,7 @@ class Boot extends Loggable {
     
     
     // i18n
-    LiftRules.resourceNames = "default" :: "ldapObjectAndAttributes" :: Nil
-    
+    LiftRules.resourceNames = "default" :: "ldapObjectAndAttributes" :: "eventLogTypeNames" :: Nil
     
     // Content type things : use text/html in place of application/xhtml+xml
     LiftRules.useXhtmlMimeType = false
