@@ -88,7 +88,7 @@ class EventListDisplayer(
         ".logId *" #> event.id.getOrElse(0).toString &
         ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
         ".logActor *" #> event.principal.name &
-        ".logType *" #> event.eventType.serialize &
+        ".logType *" #> S.?("rudder.log.eventType.names." + event.eventType.serialize) &
         ".logReason *" #> event.eventDetails.reason.getOrElse("") &
         ".logDescription *" #> displayDescription(event) 
       })
@@ -187,8 +187,8 @@ class EventListDisplayer(
             <th>Date</th>
             <th>Actor</th>
             <th>Event Type</th>
-            <th>Cause</th>
             <th>Description</th>
+            <th>Reason</th>
           </tr>
         </thead>
     
@@ -198,8 +198,8 @@ class EventListDisplayer(
             <td class="logDatetime">[Date and time of event]</td>
             <td class="logActor">[actor of the event]</td>
             <td class="logType">[type of event]</td>
-            <td class="logReason">[message explaining the reason of event]</td>
             <td class="logDescription">[some user readable info]</td>
+            <td class="logReason">[message explaining the reason of event]</td>
           </tr>
         </tbody>
       </table>

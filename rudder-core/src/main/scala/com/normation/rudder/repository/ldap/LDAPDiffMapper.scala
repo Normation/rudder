@@ -159,7 +159,7 @@ class LDAPDiffMapper(
   }
 
   
-  ///// Policy instance diff /////
+  ///// directive diff /////
 
   def modChangeRecords2DirectiveSaveDiff(ptName:TechniqueName, variableRootSection:SectionSpec, piDn:DN, oldPiEntry:Option[LDAPEntry], change:LDIFChangeRecord) : Box[Option[DirectiveSaveDiff]] = {
     if(change.getParsedDN == piDn ) {
@@ -204,10 +204,10 @@ class LDAPDiffMapper(
           
         case (noop:LDIFNoopChangeRecord, _) => Full(None) 
           
-        case _ =>  Failure("Bad change record type for requested action 'save policy instance': %s".format(change))
+        case _ =>  Failure("Bad change record type for requested action 'save directive': %s".format(change))
       }
     } else {
-      Failure("The following change record does not belong to Policy Instance entry '%s': %s".format(piDn,change))
+      Failure("The following change record does not belong to directive entry '%s': %s".format(piDn,change))
     }
   }  
   

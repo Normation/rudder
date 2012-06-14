@@ -395,12 +395,12 @@ class RuleGrid(
                  <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
               case x:NotAppliedStatus =>
                 val conditions = Seq(
-                    ( line.rule.isEnabled, "Configuration rule disabled" ), 
+                    ( line.rule.isEnabled, "rule disabled" ), 
                     ( line.trackerVariables.size > 0, "No policy defined"),
                     ( line.target.isDefined && line.target.get.isEnabled, "Group disabled")
                  ) ++ line.trackerVariables.flatMap { case (pi, upt,pt) => Seq(
                     ( pi.isEnabled, "Policy " + pi.name + " disabled") , 
-                    ( upt.isEnabled, "Policy template for '" + pi.name + "' disabled") 
+                    ( upt.isEnabled, "Technique for '" + pi.name + "' disabled") 
                  )}
                
                 val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ") 

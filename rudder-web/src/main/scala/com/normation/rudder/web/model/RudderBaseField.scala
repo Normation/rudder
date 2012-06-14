@@ -182,7 +182,7 @@ abstract class RudderBaseField extends BaseField {
   protected lazy val id = Helpers.nextFuncName
   override lazy val uniqueFieldId: Box[String] = Full(id)
   override lazy val fieldId : Option[NodeSeq] = Some(Text(id))
-  override def toString = is.toString     
+  override def toString = "[%s:%s]".format(name, is.toString)
   override def validate = {
     _errors = validations.flatMap( v => v(this.is) )
     _errors

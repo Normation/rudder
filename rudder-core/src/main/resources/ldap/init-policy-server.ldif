@@ -137,7 +137,7 @@ isSystem: TRUE
 
 
 #######################################################################################################################
-## Policy instances
+## Directives
 #######################################################################################################################
 
 dn: directiveId=root-distributePolicy,activeTechniqueId=distributePolicy,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration

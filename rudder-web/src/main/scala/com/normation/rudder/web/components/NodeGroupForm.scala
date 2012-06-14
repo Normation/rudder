@@ -64,8 +64,8 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import NodeGroupForm._
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.services.UserPropertyService
-
-
+import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
+import com.normation.utils.HashcodeCaching
 
 object NodeGroupForm {
   
@@ -102,6 +102,15 @@ object NodeGroupForm {
 
   
   private val saveButtonId = "groupSaveButtonId"
+     
+  private sealed trait RightPanel
+  private case object NoPanel extends RightPanel
+  private case class GroupForm(group:NodeGroup) extends RightPanel with HashcodeCaching 
+  private case class CategoryForm(category:NodeGroupCategory) extends RightPanel with HashcodeCaching 
+  
+  val htmlId_groupTree = "groupTree"
+  val htmlId_item = "ajaxItemContainer"
+  val htmlId_updateContainerForm = "updateContainerForm"
 }
 
 
@@ -130,12 +139,16 @@ class NodeGroupForm(
   private[this] val userPropertyService = inject[UserPropertyService]
   
   val categories = groupCategoryRepository.getAllNonSystemCategories
-
-
+  
+  //the current nodeGroupCategoryForm component
+  private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm] 
+  
   var parentCategory = Option.empty[Box[NodeGroupCategory]]
 
   var parentCategoryId = ""
 
+  //the current nodeGroupForm component
+  private[this] val nodeGroupForm = new LocalSnippet[NodeGroupForm] 
   
   // Import the search server component
   val searchNodeComponent = new LocalSnippet[SearchNodeComponent] 
@@ -203,7 +216,8 @@ class NodeGroupForm(
       </div>
      </fieldset>
      <directive:reason />
-     <div class="margins" align="right"><directive:save/> <directive:delete/></div>
+     <div class="margins" align="right">
+     <directive:group/><directive:save/> <directive:delete/></div>
      </fieldset>)
 
      bind("directive", html,
@@ -222,6 +236,7 @@ class NodeGroupForm(
           </div>
           {f.toForm_!}
         </fieldset>},
+      "group" -> cloneButton(),          
       "save" ->   {_nodeGroup match {
             case Some(x) => SHtml.ajaxSubmit("Update", onSubmit _)  %  ("id", saveButtonId)
             case None => SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)
@@ -234,6 +249,14 @@ class NodeGroupForm(
   
   ///////////// fields for category settings ///////////////////
 
+  private[this] def cloneButton() : NodeSeq = {
+    _nodeGroup match {
+      case None => NodeSeq.Empty
+      case Some(x) => SHtml.ajaxButton("Clone", () => showCloneGroupPopup()) % 
+        ("id", "groupCloneButtonId")
+    }
+  }
+  
   private[this] def deleteButton() : NodeSeq = {
     _nodeGroup match {
       case None => NodeSeq.Empty //we are creating a group, no need to show delete
@@ -346,7 +369,7 @@ class NodeGroupForm(
     }
   }
   
-  def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", if(mandatory) "" else "Group updated by user from UI") {
+  def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % 
       ("style" -> "width:542px;height:15em;margin-top:3px;border: solid 2px #ABABAB;")
@@ -467,6 +490,61 @@ class NodeGroupForm(
           }
       }
     }
+  }
+  
+  private[this] def showCloneGroupPopup() : JsCmd = {
+    val popupSnippet = new LocalSnippet[CreateCloneGroupPopup]
+             popupSnippet.set(Full(new CreateCloneGroupPopup(
+            nodeGroup,
+            onSuccessCategory = displayACategory,
+            onSuccessGroup = showGroupSection,
+            onSuccessCallback = { onSuccessCallback })))
+    val nodeSeqPopup = popupSnippet.is match {
+      case Failure(m, _, _) =>  <span class="error">Error: {m}</span>
+      case Empty => <div>The component is not set</div>
+      case Full(popup) => popup.popupContent()
+    }
+    SetHtml("createCloneGroupContainer", nodeSeqPopup) &
+    JsRaw("""createPopup("createCloneGroupPopup", 300, 400)""")
+  }
+   
+  private[this] def htmlTreeNodeId(id:String) = "jsTree-" + id
+    
+  private[this] def displayACategory(category : NodeGroupCategory) : JsCmd = {
+    //update UI
+    refreshRightPanel(CategoryForm(category))
+  }
+  
+  private[this] def refreshRightPanel(panel:RightPanel) : JsCmd = SetHtml(htmlId_item, setAndShowRightPanel(panel))
+  
+  /**
+   *  Manage the state of what should be displayed on the right panel.
+   * It could be nothing, a group edit form, or a category edit form.
+   */
+  private[this] def setAndShowRightPanel(panel:RightPanel) : NodeSeq = {
+    panel match {
+      case NoPanel => NodeSeq.Empty
+      case GroupForm(group) =>
+        val form = new NodeGroupForm(htmlId_item, Some(group), () => refreshTree(htmlTreeNodeId(group.id.value)))
+        nodeGroupForm.set(Full(form))
+        form.showForm()
+
+      case CategoryForm(category) =>
+        val form = new NodeGroupCategoryForm(htmlId_item, category, () => refreshTree(htmlTreeNodeId(category.id.value)))
+        nodeGroupCategoryForm.set(Full(form))
+        form.showForm()
+    }
+  }  
+
+  private[this] def showGroupSection(sg : NodeGroup) : JsCmd = {
+    //update UI
+    refreshRightPanel(GroupForm(sg))&
+    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'groupId':'%s'})""".format(sg.id.value))
+  }  
+  
+  private[this] def refreshTree(selectedNode:String) : JsCmd =  {
+//    Replace(htmlId_groupTree, buildGroupTree(selectedNode:String)) &
+    OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();""")))
   }
   
   /**

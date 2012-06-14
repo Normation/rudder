@@ -89,7 +89,7 @@ final case object DeleteNodeGroupEventType extends EventLogType {
 final case object ModifyNodeGroupEventType extends EventLogType {
   def serialize = "NodeGroupModified"
 }
-// policy instance related
+// directive related
 final case object AddDirectiveEventType extends EventLogType {
   def serialize = "DirectiveAdded"
 }

@@ -122,7 +122,7 @@ trait NodeGroupRepository {
   /**
    * Update the given existing group
    * That method does nothing at the configuration level,
-   * so you will have to manage configuration rule deployment
+   * so you will have to manage rule deployment
    * if needed
    */
   def update(group:NodeGroup, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
@@ -131,7 +131,7 @@ trait NodeGroupRepository {
   /**
    * Move the given existing group to the new container.
    * That method does nothing at the configuration level, 
-   * so you will have to manage configuration rule deployment
+   * so you will have to manage rule deployment
    * if needed
    */
   def move(group:NodeGroup, containerId : NodeGroupCategoryId, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]

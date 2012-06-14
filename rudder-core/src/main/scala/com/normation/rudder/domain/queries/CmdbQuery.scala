@@ -288,7 +288,7 @@ case object OstypeComparator extends CriterionType {
 case object OsNameComparator extends CriterionType { 
   import net.liftweb.http.S
   
-  val osNames = List(Centos, Debian, Fedora, Redhat, Suse, Ubuntu, UnknownWindowsType)
+  val osNames = LinuxType.allKnownTypes ::: WindowsType.allKnownTypes
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
     if(null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
@@ -336,34 +336,6 @@ case object AgentComparator extends CriterionType {
     SHtml.select(
       (agentTypes map (e => (e,e))).toSeq, 
       { if(agentTypes.contains(value)) Full(value) else Empty}, 
-      func,
-      attrs:_*
-    )
-}
-
-case object WindowsComparator extends CriterionType { 
-  import net.liftweb.http.S
-
-  val win = List(WindowsXP,WindowsVista,WindowsSeven,Windows2000,Windows2003,Windows2008)
-  override def comparators = Seq(Equals, NotEquals)
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
-  }
-  override def toLDAP(value:String) = Full(value)
-
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
-    val version = comparator match {
-      //for equals and not equals, check value for jocker
-      case Equals => EQ(A_OS_NAME, value)
-      case _ => NOT(EQ(A_OS_NAME, value))
-    }
-    AND(EQ(A_OC,OC_WINDOWS_NODE),version)
-  }
-  
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem = 
-    SHtml.select(
-      (win map (e => (e.name,S.?("os.windows."+e.name)))).toSeq, 
-      {win.find(x => x.name == value).map( _.name)}, 
       func,
       attrs:_*
     )

@@ -151,9 +151,9 @@ class GitParseActiveTechniqueLibrary(
             directives     <- sequence(piFiles.toSeq) { piFile =>
                          for {
                            piXml      <-  GitFindUtils.getFileContent(repo.db, revTreeId, piFile){ inputStream =>
-                                            XmlUtils.parseXml(inputStream, Some(piFile)) ?~! "Error when parsing file '%s' as a policy instance".format(piFile)
+                                            XmlUtils.parseXml(inputStream, Some(piFile)) ?~! "Error when parsing file '%s' as a directive".format(piFile)
                                           }
-                           (_, directive, _) <-  piUnserialiser.unserialise(piXml) ?~! "Error when unserializing ppolicy instance for file '%s'".format(piFile)
+                           (_, directive, _) <-  piUnserialiser.unserialise(piXml) ?~! "Error when unserializing pdirective for file '%s'".format(piFile)
                          } yield {
                            directive
                          }
@@ -172,10 +172,10 @@ class GitParseActiveTechniqueLibrary(
       case Full(Left(x)) => Full(x)
       
       case Full(Right(x)) => 
-        Failure("We found an User Policy Template where we were expected the root of user policy library, and so a category. Path: '%s'; found: '%s'".format(
+        Failure("We found an Active Technique where we were expected the root of active techniques library, and so a category. Path: '%s'; found: '%s'".format(
             root, x.activeTechnique))
       
-      case Empty => Failure("Error when parsing the root directory for policy library '%s'. Perhaps the '%s' file is missing in that directory, or the saved policy library was not correctly exported".format(
+      case Empty => Failure("Error when parsing the root directory for technique library '%s'. Perhaps the '%s' file is missing in that directory, or the saved technique library was not correctly exported".format(
                       root, uptcFileName
                     ) )
                     

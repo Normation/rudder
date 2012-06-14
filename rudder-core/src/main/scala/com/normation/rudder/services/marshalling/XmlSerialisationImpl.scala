@@ -84,7 +84,7 @@ class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
 
 /**
  * That trait allow to serialise 
- * User policy templates categories to an XML file. 
+ * active techniques categories to an XML file. 
  */
 class ActiveTechniqueCategorySerialisationImpl(xmlVersion:String) extends ActiveTechniqueCategorySerialisation {
 
@@ -102,7 +102,7 @@ class ActiveTechniqueCategorySerialisationImpl(xmlVersion:String) extends Active
 
 /**
  * That trait allows to serialise 
- * User policy templates to an XML file. 
+ * active techniques to an XML file. 
  */
 class ActiveTechniqueSerialisationImpl(xmlVersion:String) extends ActiveTechniqueSerialisation {
 
@@ -123,7 +123,7 @@ class ActiveTechniqueSerialisationImpl(xmlVersion:String) extends ActiveTechniqu
 
 /**
  * That trait allows to serialise 
- * policy instances an XML file. 
+ * directives an XML file. 
  */
 class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisation {
   

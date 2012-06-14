@@ -47,10 +47,10 @@ import com.normation.utils.HashcodeCaching
 
 /**
  * A service that handle parameterized value of
- * policy instance variables. 
+ * directive variables. 
  * 
  * The parameterization is to be taken in the context of
- * a configuration rule (i.e, a policy instance applied to
+ * a rule (i.e, a directive applied to
  * a target), and in the scope of one node of the target
  * (as if you were processing one node at a time).
  * 
@@ -61,8 +61,8 @@ import com.normation.utils.HashcodeCaching
  * We handle 2 kinds of parameterizations:
  * 1/ ${CONFIG_RULE_ID.ACCESSOR}
  *    where:
- *    - CONFIG_RULE_ID is a valid id of a configuration rule in the system
- *    - ACCESSOR is an accessor for that configuration rule, explained below.
+ *    - CONFIG_RULE_ID is a valid id of a rule in the system
+ *    - ACCESSOR is an accessor for that rule, explained below.
  * 2/ ${node.ACCESSOR}
  *    where: 
  *    - "node" is a keyword ;
@@ -80,12 +80,12 @@ import com.normation.utils.HashcodeCaching
  *   ${node.policyserver.ACCESSOR} : information about the policyserver of the node.
  *                                    ACCESSORs are the same than for ${node}
  * 
- * Accessors for configuration rule
+ * Accessors for rule
  * --------------------------------
- * Accessor for configuration rule are of two forms:
+ * Accessor for rule are of two forms:
  * - ${CONFIG_RULE_ID.VAR_NAME}
- *   where VAR_NAME is the name of a variable of the policy template implemented
- *   by the policy instance referenced by the given configuration rule ;
+ *   where VAR_NAME is the name of a variable of the technique implemented
+ *   by the directive referenced by the given rule ;
  *   The following constraint are applied on a VAR_NAME accessor:
  *   - if the variable is monovalued, the targeted variable must have only one value 
  *     (the target variable may be multivalued with exaclty one value) ;
@@ -97,12 +97,12 @@ import com.normation.utils.HashcodeCaching
  *   
  * - ${CONFIG_RULE_ID.target.ACCESSOR}
  *   - where "target" is an accessor which change the context of following
- *     accessors to the target of the configuration rule (group, etc)
+ *     accessors to the target of the rule (group, etc)
  *     Target Accessor are the same as node accessors, but are multivalued.
  * 
  * Important notice:
  * -----------------
- * For a given configuration rule, ALL parameterized value are processed in the 
+ * For a given rule, ALL parameterized value are processed in the 
  * same order, and order is kept.
  * 
  * That means  (for example) that if a parameterized value references two target accessors,
@@ -289,10 +289,10 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
        (sequence(variable.values) { value =>
          value match {
            case CrParametrization(CrTargetParametrization(targetConfiguRuleId, targetAccessorName)) =>
-             logger.debug("Processing configuration rule's parameterized value on target: %s".format(value))
+             logger.debug("Processing rule's parameterized value on target: %s".format(value))
              lookupTargetParameter(variable.spec, RuleId(targetConfiguRuleId), targetAccessorName)
            case CrParametrization(CrVarParametrization(targetConfiguRuleId, varAccessorName)) =>
-             logger.debug("Processing configuration rule's parameterized value on variable: %s".format(value))
+             logger.debug("Processing rule's parameterized value on variable: %s".format(value))
              lookupVariableParameter(variable.spec, RuleId(targetConfiguRuleId), varAccessorName)
            case CrParametrization(BadParametrization(name)) =>
              logger.debug("Ignoring parameterized value (can not handle such parameter): %s".format(value))
@@ -325,8 +325,8 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
     if(isValidAccessorName(targetAccessorName)) {
       for {
         rule <- ruleRepo.get(targetConfiguRuleId)
-        cf = logger.trace("Fetched configuration rule : %s".format(rule))
-        target <- Box(rule.target) ?~! "Missing target for configuration rule with ID %s. Can not lookup parameters for a not fully defined configuration rule". format(targetConfiguRuleId)
+        cf = logger.trace("Fetched rule : %s".format(rule))
+        target <- Box(rule.target) ?~! "Missing target for rule with ID %s. Can not lookup parameters for a not fully defined rule". format(targetConfiguRuleId)
         nodeIds <- directiveTargetService.getNodeIds(target)
         cf1 = logger.trace("Fetched nodes ids : %s".format(nodeIds))
         nodeInfos <- sequence(nodeIds) { nodeId =>
@@ -368,7 +368,7 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
        crv <- ruleValService.findRuleVal(targetConfiguRuleId)
        variables = crv.directiveVals.map(x => x.variables.get(varAccessorName)).filter(x => x != None).flatten
        exists <- {
-         if(variables.size == 0) Failure("Can not lookup variable %s for configuration rule %s.".format(
+         if(variables.size == 0) Failure("Can not lookup variable %s for rule %s.".format(
                                                       varAccessorName, crv.ruleId))
          else Full("OK")   
        }
@@ -379,7 +379,7 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
          else Full("OK")
        }
        okNoParameterizedVariables <- {
-         if(containsParameterizedValue(values)) Failure("A parameterized value for variable %s in configuration rule %s is parameterized and is used as a target of another configuration rule. That is not supported".format(sourceVariableSpec.name, crv.ruleId))
+         if(containsParameterizedValue(values)) Failure("A parameterized value for variable %s in rule %s is parameterized and is used as a target of another rule. That is not supported".format(sourceVariableSpec.name, crv.ruleId))
          else Full("OK") 
        }
      } yield {

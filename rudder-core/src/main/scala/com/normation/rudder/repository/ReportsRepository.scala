@@ -61,7 +61,7 @@ trait ReportsRepository {
   
   
   /**
-   * Return the last (really the last, serial wise, with full execution) reports for a configuration rule
+   * Return the last (really the last, serial wise, with full execution) reports for a rule
    */
   def findLastReportByRule(
       ruleId: RuleId
@@ -72,7 +72,7 @@ trait ReportsRepository {
   
   /**
    * Returns all reports for the node, between the two differents date (optionnal)
-   * for a configuration rule (optionnal) and for a specific serial of this configuration rule (optionnal)
+   * for a rule (optionnal) and for a specific serial of this rule (optionnal)
    * Note : serial is used only if rule is used
    * Note : only the 1000 first entry are returned
    */

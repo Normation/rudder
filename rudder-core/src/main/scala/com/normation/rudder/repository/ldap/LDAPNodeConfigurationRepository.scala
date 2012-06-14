@@ -228,7 +228,7 @@ class LDAPNodeConfigurationRepository(
   }
   
    /**
-   * Look for all server which have the given policy instance ID.
+   * Look for all server which have the given directive ID.
    */
   def findNodeConfigurationByCurrentRuleId(id:RuleId) : Box[Seq[NodeConfiguration]] = {
     ldap.flatMap { con =>
@@ -243,7 +243,7 @@ class LDAPNodeConfigurationRepository(
   }
   
   /**
-   * Look for all server which have the given policy name (however policy instance
+   * Look for all server which have the given policy name (however directive
    * of that policy they, as long as they have at least one)
    */
   def findNodeConfigurationByTargetPolicyName(techniqueId:TechniqueId) : Box[Seq[NodeConfiguration]]  = {
@@ -261,11 +261,11 @@ class LDAPNodeConfigurationRepository(
   
   /**
    * Return all the server that need to be commited
-   * Meaning, all servers that have a difference between the current and target policy instance
+   * Meaning, all servers that have a difference between the current and target directive
    * 
    * TODO: perhaps it should be a method of BridgeToCfclerkService, 
    * and then NodeConfigurationService will be able to find all servers with
-   * theses policy instances
+   * theses directives
    */
   def findUncommitedNodeConfigurations() : Box[Seq[NodeConfiguration]] = {
     ldap.flatMap { con =>

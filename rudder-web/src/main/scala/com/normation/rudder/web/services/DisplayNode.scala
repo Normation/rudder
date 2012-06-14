@@ -56,6 +56,8 @@ import net.liftweb.http.Templates
 import org.joda.time.DateTime
 import com.normation.rudder.services.servers.RemoveNodeService
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AutomaticStartDeployment
 
 /**
  * A service used to display details about a server 
@@ -73,6 +75,7 @@ object DisplayNode extends Loggable {
   
   private[this] val getSoftwareService = inject[ReadOnlySoftwareDAO]
   private[this] val removeNodeService = inject[RemoveNodeService]
+  private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
   
   private[this] val templatePath = List("templates-hidden", "server_details_tabs")
   private[this] def template() =  Templates(templatePath) match {
@@ -99,7 +102,10 @@ object DisplayNode extends Loggable {
         Str(x.name.getOrElse("")),
         Str(x.version.map(_.value).getOrElse("")),
         Str(x.description.getOrElse(""))
-      )}:_*) ) & JsRaw("""$('#%s').dataTable({"aaData":%s,"bJQueryUI": false, "bPaginate": true, "bLengthChange": false, "bAutoWidth": false, "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}] });moveFilterAndPaginateArea('#%s');""".format(gridId,gridDataId,gridId))
+      )}:_*) ) & JsRaw("""$('#%s').dataTable({"aaData":%s,"bJQueryUI": false, "bPaginate": true,
+          "asStripClasses": [ 'color1', 'color2' ] ,"bLengthChange": false, "bAutoWidth": false,
+          "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}] });
+           moveFilterAndPaginateArea('#%s');""".format(gridId,gridDataId,gridId))
     ) match {
       case Empty => Alert("No software found for that server")
       case Failure(m,_,_) => Alert("Error when trying to fetch software. Reported message: "+m)
@@ -544,6 +550,7 @@ object DisplayNode extends Loggable {
     removeNodeService.removeNode(nodeId, CurrentUser.getActor) match {
       case Full(entry) =>
         logger.info("Successfully removed node %s from Rudder".format(nodeId.value))
+        asyncDeploymentAgent ! AutomaticStartDeployment(CurrentUser.getActor)
         onSuccess
       case eb:EmptyBox => 
         val e = eb ?~! "Could not remove node %s from Rudder".format(nodeId.value)
