@@ -706,12 +706,15 @@ padding:0 20px;
 
 .nodeheader {
     font-weight: bold;
+    font-size: small;
     text-align: center;
 }
 
 .nodeheadercontent {
     color: #F79D10;
     display: inline-block;
+     padding : 3px 10px;
+     background-color: #2E2D2D;
 }
 }
 .paddscala{
