@@ -245,7 +245,7 @@ class PolicyInstanceManagement extends DispatchSnippet with Loggable {
           "form" #> { xml => (
               "select" #> ( SHtml.selectObj(
                   options = policyPackageService.getVersions(upt.referencePolicyTemplateName).toSeq.
-                    filterNot( _ == form.pi.policyTemplateVersion).map { v => (v,v.toString) }
+                    filterNot( _ == form.pi.policyTemplateVersion).map { v => (v,v.toString) }.reverse
                 , default = Empty
                 , onSubmit = { (v:PolicyVersion) =>
                     onSubmitMigration(v,form.pi,upt)
