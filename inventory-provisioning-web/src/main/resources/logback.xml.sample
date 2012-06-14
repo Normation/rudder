@@ -43,6 +43,21 @@
 	<logger name="foo.MyClass" level="DEBUG" />
 	-->
 
+
+          <!--
+              Debug LDAP write operations
+              ===========================
+              This logger allow to trace inventory LDAP writes operation and
+              to output them in LDIF file (the output directory path
+              is configured in the main configuration file)
+              The trace is done only if level is set to "trace"
+              WARNING: setting the level to trace may have major
+              performance issue, as A LOT of LDIF files will have
+              to be written.
+              You should activate that log only for debugging purpose.
+          -->
+          <logger name="trace.ldif.in.file" level="off" />
+
   <!--
     An appender that will log ALL LDAP update requests (modify, add, delete) in 
     the file configured by the property "ldapDebugLog".

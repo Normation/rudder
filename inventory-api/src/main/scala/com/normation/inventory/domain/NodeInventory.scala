@@ -102,6 +102,18 @@ object UnknownOSType extends OsType {
 sealed abstract class WindowsType extends OsType {
   override val kernelName = "MSWin"
 }
+object WindowsType {
+  val allKnownTypes = (
+       WindowsXP
+    :: WindowsVista
+    :: WindowsSeven
+    :: Windows2000
+    :: Windows2003
+    :: Windows2008
+    :: Windows2008R2
+    :: Nil
+  )
+}
 
 case object UnknownWindowsType extends WindowsType                { val name = "Windows" }
 case object WindowsXP extends WindowsType with HashcodeCaching    { val name = "WindowsXP" }
@@ -118,6 +130,17 @@ case object Windows2008R2 extends WindowsType with HashcodeCaching  { val name =
  */
 sealed abstract class LinuxType extends OsType {
   override val kernelName = "Linux"
+}
+object LinuxType {
+  val allKnownTypes = (
+       Debian
+    :: Ubuntu
+    :: Redhat
+    :: Centos
+    :: Fedora
+    :: Suse
+    :: Nil
+  )
 }
 
 case object UnknownLinuxType extends LinuxType with HashcodeCaching { val name = "Linux" }
