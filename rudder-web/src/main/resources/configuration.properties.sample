@@ -122,6 +122,8 @@ rudder.dir.dependencies=/var/rudder/tools/
 rudder.dir.sharing=/var/rudder/files/
 rudder.dir.lock=/var/rudder/lock/
 rudder.endpoint.cmdb=http://localhost:8080/endpoint/upload/
+rudder.webdav.user=rudder
+rudder.webdav.password=rudder
 
 ##
 # Shared folder
