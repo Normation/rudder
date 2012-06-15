@@ -88,6 +88,8 @@ trait WriteOnlyFullInventoryRepository[R] {
   def delete(id:NodeId, inventoryStatus : InventoryStatus) : Box[R] 
 //  def copy(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[ServerAndMachine]
   def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[R]
+  
+  def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[R]
 }
 
 trait FullInventoryRepository[R] extends ReadOnlyFullInventoryRepository with WriteOnlyFullInventoryRepository[R]

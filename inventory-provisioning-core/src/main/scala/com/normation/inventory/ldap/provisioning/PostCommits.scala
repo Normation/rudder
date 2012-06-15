@@ -87,6 +87,40 @@ class AcceptPendingMachineIfServerIsAccepted(
 }
 
 /**
+ * Post-commit: Move a node from Deleted Branch to Pending 
+ * if a new inventory arrives from this node
+ */
+class PendingNodeIfNodeWasRemoved(
+    writeOnlyFullInventoryRepository  : WriteOnlyFullInventoryRepository[Seq[LDIFChangeRecord]]
+) extends PostCommit[Seq[LDIFChangeRecord]] with Loggable {
+  
+  override val name = "post_commit_inventory:pending_node_for_deleted_server"
+  
+  override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : Box[Seq[LDIFChangeRecord]] = {
+    (report.node.main.status, report.machine.status ) match {
+      case (RemovedInventory,  RemovedInventory) =>
+        logger.debug("Found node '%s' and machine '%s' in removed DIT but we received an inventory for it, moving them into pending".format(report.node.main.id, report.machine.id))
+        for {
+          res <- writeOnlyFullInventoryRepository.move(report.node.main.id, RemovedInventory, PendingInventory)
+        } yield {
+          logger.debug("Node and machine '%s' moved to pending DIT".format(report.machine.id))
+          records ++ res
+        }
+      case (RemovedInventory,  _) =>
+        logger.debug("Found node '%s' ain removed DIT but we received an inventory for it, moving it into pending and leaving the container alone".format(report.node.main.id))
+        for {
+          res <- writeOnlyFullInventoryRepository.moveNode(report.node.main.id, RemovedInventory, PendingInventory)
+        } yield {
+          logger.debug("Node '%s' moved to pending DIT".format(report.node.main.id))
+          records ++ res
+        }
+      case _ => //nothing to do, just forward to next post commit
+        Full(records)
+    }
+  }
+}
+
+/**
  * A post commit which log the list of
  * modification actually done in the directory
  */
