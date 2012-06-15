@@ -81,7 +81,7 @@ case class Port(
 case class Processor(
   name:String,
   description:Option[String] = None,
-  speed : Option[Float] = None,
+  speed : Option[Int] = None,
   stepping : Option[Int] = None,
   model : Option[String] = None, 
   family : Option[String] = None,
