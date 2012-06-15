@@ -54,15 +54,17 @@ trait SystemVariableService {
 }
 
 class SystemVariableServiceImpl(
-    licenseRepository: LicenseRepository
-  , parameterizedValueLookupService: ParameterizedValueLookupService
-  , systemVariableSpecService: SystemVariableSpecService
-  , nodeInfoService: NodeInfoService
-  , baseFolder: String
-  , toolsFolder: String
-  , cmdbEndPoint: String
-  , communityPort: String
-  , sharedFilesFolder : String
+    licenseRepository				: LicenseRepository
+  , parameterizedValueLookupService	: ParameterizedValueLookupService
+  , systemVariableSpecService		: SystemVariableSpecService
+  , nodeInfoService					: NodeInfoService
+  , baseFolder						: String
+  , toolsFolder						: String
+  , cmdbEndPoint					: String
+  , communityPort					: String
+  , sharedFilesFolder 				: String
+  , webdavUser 						: String
+  , webdavPassword 					: String
 ) extends SystemVariableService with Loggable {
 
   def getSystemVariables(nodeInfo: NodeInfo): Box[Map[String, Variable]] = {
@@ -77,6 +79,12 @@ class SystemVariableServiceImpl(
     val varCmdbEndpoint = SystemVariable(systemVariableSpecService.get("CMDBENDPOINT"))
     varCmdbEndpoint.saveValue(cmdbEndPoint)
 
+    val varWebdavUser = SystemVariable(systemVariableSpecService.get("DAVUSER"))
+    varWebdavUser.saveValue(webdavUser)
+
+    val varWebdavPassword = SystemVariable(systemVariableSpecService.get("DAVPASSWORD"))
+    varWebdavPassword.saveValue(webdavPassword)
+    
     val varSharedFilesFolder = SystemVariable(systemVariableSpecService.get("SHARED_FILES_FOLDER"))
     varSharedFilesFolder.saveValue(sharedFilesFolder)
     
@@ -155,7 +163,9 @@ class SystemVariableServiceImpl(
       (varSharedFilesFolder.spec.name, varSharedFilesFolder),
       (varCommunityPort.spec.name, varCommunityPort),
       (varAllowConnect.spec.name, varAllowConnect),
-      (varClientList.spec.name, varClientList)))
+      (varClientList.spec.name, varClientList),
+      (varWebdavUser.spec.name, varWebdavUser),
+      (varWebdavPassword.spec.name, varWebdavPassword)))
 
   }
 

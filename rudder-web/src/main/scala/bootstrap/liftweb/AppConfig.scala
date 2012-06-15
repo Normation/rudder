@@ -170,6 +170,10 @@ class AppConfig extends Loggable {
   var licensesFolder = ""
   @Value("${rudder.endpoint.cmdb}")
   var cmdbEndpoint = ""
+  @Value("${rudder.webdav.user}")
+  var webdavUser = ""
+  @Value("${rudder.webdav.password}")
+  var webdavPassword = ""
   @Value("${rudder.community.port}")
   var communityPort = ""
 
@@ -414,19 +418,22 @@ class AppConfig extends Loggable {
   }
 
   @Bean
-  def systemVariableService: SystemVariableService = new SystemVariableServiceImpl(licenseRepository,
-    new ParameterizedValueLookupServiceImpl(
-      nodeInfoService,
-      ruleTargetService,
-      ldapRuleRepository,
-      ruleValService),
-    systemVariableSpecService,
-    nodeInfoService,
-    baseFolder,
-    toolsFolder,
-    cmdbEndpoint,
-    communityPort,
-    sharedFilesFolder)
+  def systemVariableService: SystemVariableService = new SystemVariableServiceImpl(
+      licenseRepository
+    , new ParameterizedValueLookupServiceImpl(
+        nodeInfoService
+      , ruleTargetService
+      , ldapRuleRepository
+      , ruleValService)
+    , systemVariableSpecService
+    , nodeInfoService
+    , baseFolder
+    , toolsFolder
+    , cmdbEndpoint
+    , communityPort
+    , sharedFilesFolder
+    , webdavUser
+    , webdavPassword)
 
   @Bean
   def rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(
