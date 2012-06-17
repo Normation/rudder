@@ -144,7 +144,7 @@ object RudderCpuParsing extends FusionReportParsingExtension with Loggable {
         case Some(name) =>
           val cpu = Processor(
               name = name
-            , speed = optText(p\"FREQUENCY").map(_.toFloat)
+            , speed = optText(p\"FREQUENCY").map(_.toFloat.toInt)
             , model = optText(p\"MODEL")
             , family = optText(p\"FAMILY")
             , manufacturer = optText(p\"VENDOR") map { Manufacturer(_) }

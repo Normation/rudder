@@ -40,26 +40,20 @@ import com.normation.inventory.domain._
 import com.normation.inventory.services.core._
 import com.normation.inventory.services.provisioning._
 import com.normation.inventory.provisioning.fusion._
-
-//implementations
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.ldap.provisioning._
-
-//utilities
 import com.normation.ldap.sdk._
 import com.normation.ldap.ldif.DefaultLDIFFileLogger
 import com.unboundid.ldif.LDIFChangeRecord
-
 import org.springframework.context.annotation.{Bean,Configuration,Import}
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.beans.factory.config.PropertiesFactoryBean
 import org.springframework.core.io.{ClassPathResource, FileSystemResource}
 import org.springframework.web.multipart.commons.CommonsMultipartResolver
-
 import com.normation.utils.{StringUuidGenerator,StringUuidGeneratorImpl}
-
 import java.io.File
 import org.slf4j.LoggerFactory
+import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
 
 @Configuration
 @Import(Array(classOf[PropertyPlaceholderConfig]))
@@ -185,7 +179,7 @@ class AppConfig {
     , inventoryMapper
     , ldapConnectionProvider
   )
-  
+    
   @Bean
   def inventoryHistorizationPostCommit = new InventoryHistorizationPostCommit(
       inventoryHistoryLogRepository, fullInventoryRepository, LDAPConstants.A_INVENTORY_DATE
@@ -196,6 +190,11 @@ class AppConfig {
   
   @Bean
   def acceptPendingMachineIfServerIsAccepted = new AcceptPendingMachineIfServerIsAccepted(
+      fullInventoryRepository
+  )
+  
+  @Bean
+  def pendingNodeIfNodeWasRemoved = new PendingNodeIfNodeWasRemoved(
       fullInventoryRepository
   )
   
@@ -249,6 +248,7 @@ class AppConfig {
   )
   
   lazy val postCommitPipeline : Seq[PostCommit[Seq[LDIFChangeRecord]]]= (
+    pendingNodeIfNodeWasRemoved ::
     acceptPendingMachineIfServerIsAccepted ::
     postCommitLogger ::
     inventoryHistorizationPostCommit ::

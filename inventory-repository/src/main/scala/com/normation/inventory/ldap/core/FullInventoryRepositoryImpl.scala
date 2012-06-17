@@ -200,6 +200,18 @@ class FullInventoryRepositoryImpl(
     }
   }
 
+  override def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
+    if(from == into ) Full(Seq())
+    else 
+      for {
+        con <- ldap
+        dnFrom = dn(id, from)
+        dnTo = dn(id, into)
+        moved <- con.move(dnFrom, dnTo.getParent)
+      } yield {
+        Seq(moved)
+      }
+  }
   
   override def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
     def moveMachine(con:LDAPConnection) : Box[Seq[LDIFChangeRecord]] = {
@@ -257,7 +269,7 @@ class FullInventoryRepositoryImpl(
       con <- ldap
       dnFrom = dn(id, from)
       dnTo = dn(id, into)
-      moved <- con.move(dnFrom, dnTo.getParent)     
+      moved <- con.move(dnFrom, dnTo.getParent)
     } yield {
       //try to move the referenced machine too
       moveMachine(con) match {
