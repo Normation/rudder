@@ -83,4 +83,15 @@ object Constants {
   val POLICY_LIBRARY_ARCHIVE_TAG = "#directives-archive"
   val FULL_ARCHIVE_TAG = "#full-archive"
     
+  ///// XML tag names for directive, categories, etc
+  
+  val XML_TAG_RULE = "rule"
+  val XML_TAG_ACTIVE_TECHNIQUE_CATEGORY = "activeTechniqueCategory"
+  val XML_TAG_ACTIVE_TECHNIQUE = "activeTechnique"
+  val XML_TAG_DIRECTIVE = "directive"
+  val XML_TAG_NODE_GROUP_CATEGORY = "nodeGroupCategory"
+  val XML_TAG_NODE_GROUP = "nodeGroup"
+  val XML_TAG_DEPLOYMENT_STATUS = "deploymentStatus"
+
+    
 }
