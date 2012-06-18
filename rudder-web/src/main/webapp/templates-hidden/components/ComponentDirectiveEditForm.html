@@ -47,6 +47,12 @@
       margin-top:5px;
     }
     
+    #clone {
+      margin-top:5px;
+      padding-right: 40px;
+      padding-left: 40px;
+    }
+    
     .warnicon {
       margin-top:-7px;
     }
@@ -159,8 +165,16 @@
       <div class="cpiefsave">
         <button id="save">Save</button>
       </div>
+      
+      <button id="clone">[Clone]</button>
     </fieldset>
   </div>
+
+    <div id="createCloneDirectivePopup" class="nodisplay">
+	    <lift:ignore>
+	    This div gets the content of the createDirective injected within
+	    </lift:ignore>
+	</div>
 
 </component:form>
 
