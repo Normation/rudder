@@ -973,6 +973,7 @@ class AppConfig extends Loggable {
         rudderDit, ldap, techniqueRepository,
         ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository) //new CheckDirectiveBusinessRules()
     , new CheckMigrationEventLog10_2(eventLogsMigration_10_2_Management)
+    , new CheckInitXmlExport(itemArchiveManager, personIdentService)
   )
 
   
