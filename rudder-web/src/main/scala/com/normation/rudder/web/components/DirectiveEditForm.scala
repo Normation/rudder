@@ -45,6 +45,8 @@ import net.liftweb.http._
 import com.normation.rudder.services.policies._
 import com.normation.rudder.batch.{ AsyncDeploymentAgent, AutomaticStartDeployment }
 import com.normation.rudder.domain.log.RudderEventActor
+
+// For implicits
 import JE._
 import net.liftweb.common._
 import scala.xml._
@@ -57,9 +59,6 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.domain.log._
 import com.normation.eventlog.EventActor
 import com.normation.rudder.web.services.UserPropertyService
-import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup
-import com.normation.rudder.web.components.popup.CreateDirectivePopup
-import com.normation.rudder.web.snippet.configuration.DirectiveManagement
 
 object DirectiveEditForm {
 
@@ -138,14 +137,13 @@ class DirectiveEditForm(
   piCreation: Boolean = false // if set to true, it means that we are creating a PI, so the delete and disabled should have another meaning
   ) extends DispatchSnippet with Loggable {
   import DirectiveEditForm._
-  
-  val currentDirectiveSettingForm = new LocalSnippet[DirectiveEditForm]
 
   private[this] val directiveRepository = inject[DirectiveRepository]
   private[this] val dependencyService = inject[DependencyAndDeletionService]
   private[this] val directiveEditorService = inject[DirectiveEditorService]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]  
   private[this] val userPropertyService = inject[UserPropertyService]
+
   private[this] val htmlId_save = htmlId_policyConf + "Save"
   private[this] val parameterEditor = directiveEditorService.get(
     techniqueId = technique.id,
@@ -299,11 +297,6 @@ class DirectiveEditForm(
       } } &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> htmlId_save) } &
-      "#clone" #> SHtml.ajaxButton( 
-            { Text("Clone") },
-            { () =>  clone() },
-            ("class", "autoWidthButton")
-          ) &
       "#notification *" #> updateAndDisplayNotifications(formTracker) &
       "#isSingle *" #> showIsSingle &
       "#editForm [id]" #> htmlId_policyConf)(crForm) ++ Script(OnLoad(
@@ -321,14 +314,7 @@ class DirectiveEditForm(
         });
       """)))
   }
-  
-  private[this] def clone(): JsCmd = {
-    SetHtml(CreateCloneDirectivePopup.htmlId_popup, 
-        newCreationPopup(technique, activeTechnique)) &
-    JsRaw(""" createPopup("%s",300,400) """
-        .format(CreateCloneDirectivePopup.htmlId_popup))
-  }
-  
+
   ////////////// Callbacks //////////////
 
   private[this] def onSuccess(): JsCmd = {
@@ -639,57 +625,15 @@ to avoid that last case.<br/>
       html
     }
   }
-    
-  private[this] def newCreationPopup(
-      technique:Technique, activeTechnique:ActiveTechnique) : NodeSeq = {
-    
-    val callBackSuccess = { (directive : Directive) =>
-          updateCf3PolicyDraftInstanceSettingFormComponent(
-              technique, activeTechnique, directive, true)
-          Replace(htmlId_policyConf, showDirectiveDetails) &
-          JsRaw("""scrollToElement('%s')""".format(htmlId_policyConf))}
-    
-    val popup = new CreateCloneDirectivePopup(
-        technique.name, technique.description, 
-        technique.id.version, directive,
-        onSuccessCallback = { callBackSuccess })
-    
-    popup.popupContent
-  }
   
-  private[this] def updateCf3PolicyDraftInstanceSettingFormComponent(
-      technique:Technique, activeTechnique:ActiveTechnique, directive:Directive, 
-      piCreation : Boolean = false) : Unit = {
-    currentDirectiveSettingForm.set(Full(
-        new DirectiveEditForm(
-            DirectiveManagement.htmlId_policyConf, technique, activeTechnique,
-            directive, onSuccessCallback = onSuccessCallback,
-            piCreation = piCreation
-        )))
-  }
-  
-  private[this] def showDirectiveDetails() : NodeSeq = {
-    currentDirectiveSettingForm.is match {
-      case Failure(m,_,_) => 
-        <div id={DirectiveManagement.htmlId_policyConf} class="error">
-          An error happened when trying to load Directive configuration. Error message was: {m}
-        </div>
-      case Empty => <div id={DirectiveManagement.htmlId_policyConf}></div>
-      //here we CAN NOT USE <lift:DirectiveEditForm.showForm /> because lift seems to cache things
-      //strangely, and if so, after an form save, clicking on tree node does nothing
-      // (or more exactly, the call to "onclicknode" is correct, the currentDirectiveSettingForm
-      // has the good Directive, but the <lift:DirectiveEditForm.showForm /> is called on
-      // an other component (the one which did the submit). Strange. 
-      case Full(formComponent) => formComponent.showForm()
-    }
-  }
 
   ///////////// success pop-up ///////////////
-  
-  private[this] def successPopup : JsCmd = {
+    private[this] def successPopup : JsCmd = {
     JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)     
     """)
   }
 
 }
+  
+  
   
