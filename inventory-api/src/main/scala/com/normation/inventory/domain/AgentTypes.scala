@@ -44,17 +44,17 @@ import com.normation.utils.HashcodeCaching
  */
 sealed abstract class AgentType {
   def toString() : String
-  
+  def fullname() : String = "Cfengine "+this
   def toRulesPath() : String
 }
 
 final case object NOVA_AGENT extends AgentType with HashcodeCaching {
-  override def toString() = "Cfengine "+A_NOVA_AGENT
+  override def toString() = A_NOVA_AGENT
   override def toRulesPath() = "/cfengine-nova"
 }
 
 final case object COMMUNITY_AGENT extends AgentType with HashcodeCaching {
-  override def toString() = "Cfengine "+A_COMMUNITY_AGENT
+  override def toString() = A_COMMUNITY_AGENT
   override def toRulesPath() = "/cfengine-community"
 }
 
