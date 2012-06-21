@@ -321,20 +321,31 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
     * @param cache
     * @return
     */
-  private[this] def lookupTargetParameter(sourceVariableSpec:VariableSpec, targetConfiguRuleId:RuleId, targetAccessorName:String) : Box[Seq[String]] = {
+  private[this] def lookupTargetParameter(
+    sourceVariableSpec:VariableSpec, 
+    targetConfiguRuleId:RuleId, 
+    targetAccessorName:String) : Box[Seq[String]] = {
+    
     if(isValidAccessorName(targetAccessorName)) {
       for {
         rule <- ruleRepo.get(targetConfiguRuleId)
         cf = logger.trace("Fetched rule : %s".format(rule))
-        target <- Box(rule.target) ?~! "Missing target for rule with ID %s. Can not lookup parameters for a not fully defined rule". format(targetConfiguRuleId)
-        nodeIds <- directiveTargetService.getNodeIds(target)
+        targets <- rule.targets match {
+          case list if !list.isEmpty => Full(list)
+          case list if list.isEmpty => Failure(
+              "Missing target for rule with ID %s. Can not lookup parameters for a not fully defined rule"
+                .format(targetConfiguRuleId))
+        }
+        nodeIds <- sequence(targets.toSeq){target => directiveTargetService.getNodeIds(target)}
         cf1 = logger.trace("Fetched nodes ids : %s".format(nodeIds))
-        nodeInfos <- sequence(nodeIds) { nodeId =>
+        nodeInfos <- sequence(nodeIds.flatten.distinct) { nodeId =>
           nodeInfoService.getNodeInfo(nodeId)
         }
         cf2 = logger.trace("Fetched nodes infos : %s".format(nodeInfos))
         cardinalityOk <- { 
-          if(!sourceVariableSpec.multivalued && nodeInfos.size != 1) Failure("The parameterized value returned a list value not compatible with variable spec for %s (monovalued)".format(sourceVariableSpec.name))
+          if(!sourceVariableSpec.multivalued && nodeInfos.size != 1) 
+            Failure("The parameterized value returned a list value not compatible with variable spec for %s (monovalued)"
+                .format(sourceVariableSpec.name))
           else Full("OK")
         }
       } yield {

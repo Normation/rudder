@@ -70,7 +70,9 @@ class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
         <id>{rule.id.value}</id>
         <displayName>{rule.name}</displayName>
         <serial>{rule.serial}</serial>
-        <target>{ rule.target.map( _.target).getOrElse("") }</target>
+        <targets>{
+          rule.targets.map { target => <target>{target.target}</target> } 
+        }</targets>
         <directiveIds>{
           rule.directiveIds.map { id => <id>{id.value}</id> } 
         }</directiveIds>

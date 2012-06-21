@@ -227,20 +227,13 @@ class HistorizationServiceImpl(
     } 
   }
     
-
-  private def isEqual(entry : Rule, rule : Rule) : Boolean = {
-    (entry.name == rule.name &&
-                entry.shortDescription == rule.shortDescription &&
-                entry.longDescription == rule.longDescription &&
-                entry.isEnabledStatus == rule.isEnabledStatus &&
-                (
-                    entry.target == rule.target // TODO : this won't do with multi target
-                ) && 
-                (
-                    entry.directiveIds == rule.directiveIds 
-                )
-                
-    )
-  }
+  private def isEqual(entry : Rule, rule : Rule) : Boolean = (
+       entry.name == rule.name 
+    && entry.shortDescription == rule.shortDescription 
+    && entry.longDescription == rule.longDescription
+    && entry.isEnabledStatus == rule.isEnabledStatus
+    && entry.targets == rule.targets
+    && entry.directiveIds == rule.directiveIds 
+ ) 
    
 }

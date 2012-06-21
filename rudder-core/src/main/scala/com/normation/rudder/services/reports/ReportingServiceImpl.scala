@@ -77,13 +77,18 @@ class ReportingServiceImpl(
    * @param ruleVal
    * @return
    */
-  def updateExpectedReports(ruleVal : Seq[RuleVal], deleteRules : Seq[RuleId]) : Box[Seq[RuleExpectedReports]] = {
+  def updateExpectedReports(ruleVals : Seq[RuleVal], deleteRules : Seq[RuleId]) : Box[Seq[RuleExpectedReports]] = {
     
     // First we need to get the targets of each rule
-    val confAndNodes = ruleVal.map(x => (x -> (directiveTargetService.getNodeIds(x.target)).openOr(Seq())))
+    val confAndNodes = ruleVals.map { ruleVal => 
+      (ruleVal -> ruleVal.targets.flatMap { target =>
+        directiveTargetService.getNodeIds(target).openOr(Seq())
+      }.toSeq)
+    }
    
     // All the rule and serial. Used to know which one are to be removed
-    val currentConfigurationsToRemove =  mutable.Map[RuleId, Int]() ++ confExpectedRepo.findAllCurrentExpectedReportsAndSerial()
+    val currentConfigurationsToRemove =  mutable.Map[RuleId, Int]() ++ 
+      confExpectedRepo.findAllCurrentExpectedReportsAndSerial()
 
     val confToClose = mutable.Set[RuleId]() 
     val confToAdd = mutable.Map[RuleId, (RuleVal,Seq[NodeId])]()
@@ -120,10 +125,12 @@ class ReportingServiceImpl(
       ( for {
         policyExpectedReports <- sequence(ruleVal.directiveVals) { policy =>
                                    ( for {
-                                     seq <- getCardinality(policy) ?~! "Can not get cardinality for rule %s".format(ruleVal.ruleId)
+                                     seq <- getCardinality(policy) ?~! 
+                                     "Can not get cardinality for rule %s".format(ruleVal.ruleId)
                                     } yield {
                                       seq.map { case(componentName, componentsValues) =>
-                                        DirectiveExpectedReports(policy.directiveId, Seq(ReportComponent(componentName, componentsValues.size, componentsValues)))
+                                        DirectiveExpectedReports(policy.directiveId, 
+                                          Seq(ReportComponent(componentName, componentsValues.size, componentsValues)))
                                       }
                                    } )
                                  }

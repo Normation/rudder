@@ -234,35 +234,44 @@ class EventLogDetailsServiceImpl(
   override def getRuleModifyDetails(xml:NodeSeq) : Box[ModifyRuleDiff] = {
     for {
       entry             <- getEntryContent(xml)
-      rule                <- (entry \ "rule").headOption ?~! ("Entry type is not rule : " + entry)
+      rule              <- (entry \ "rule").headOption ?~! ("Entry type is not rule : " + entry)
       changeTypeAddOk   <- {
-                             if(rule.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
-                             else Failure("Rule attribute does not have changeType=modify: " + entry)
+                             if(rule.attribute("changeType").map( _.text ) == Some("modify")) 
+                               Full("OK")
+                             else 
+                               Failure("Rule attribute does not have changeType=modify: " + entry)
                            }
       fileFormatOk      <- TestFileFormat(rule)
-      id                <- (rule \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type rule : " + entry)
-      displayName       <- (rule \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type rule : " + entry)
+      id                <- (rule \ "id").headOption.map( _.text ) ?~! 
+                           ("Missing attribute 'id' in entry type rule : " + entry)
+      displayName       <- (rule \ "displayName").headOption.map( _.text ) ?~! 
+                           ("Missing attribute 'displayName' in entry type rule : " + entry)
       name              <- getFromToString((rule \ "name").headOption)
-      serial            <- getFromTo[Int]((rule \ "serial").headOption, { x => tryo(x.text.toInt) } )
-      target            <- getFromTo[Option[RuleTarget]]((rule \ "target").headOption, {s =>  
-                              //check for <from><none></none></from> or the same with <to>, <none/>, etc
-                              if( (s \ "none").isEmpty) Full(RuleTarget.unser(s.text))
-                              else Full(None)
-                            } )
+      serial            <- getFromTo[Int]((rule \ "serial").headOption, 
+                             { x => tryo(x.text.toInt) } )
+      targets           <- getFromTo[Set[RuleTarget]]((rule \ "targets").headOption, 
+                            { x:NodeSeq => 
+                              Full((x \ "target").toSet.flatMap((y:NodeSeq) => 
+                                RuleTarget.unser(y.text )))
+                           })
       shortDescription  <- getFromToString((rule \ "shortDescription").headOption)
       longDescription   <- getFromToString((rule \ "longDescription").headOption)
-      isEnabled       <- getFromTo[Boolean]((rule \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } ) 
-      isSystem          <- getFromTo[Boolean]((rule \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
-      directiveIds <- getFromTo[Set[DirectiveId]]((rule \ "directiveIds").headOption, { x:NodeSeq => 
-                            Full((x \ "id").toSet.map( (y:NodeSeq) => DirectiveId( y.text ) ))
-                          } )
+      isEnabled         <- getFromTo[Boolean]((rule \ "isEnabled").headOption, 
+                             { s => tryo { s.text.toBoolean } } ) 
+      isSystem          <- getFromTo[Boolean]((rule \ "isSystem").headOption, 
+                             { s => tryo { s.text.toBoolean } } )
+      directiveIds      <- getFromTo[Set[DirectiveId]]((rule \ "directiveIds").headOption, 
+                             { x:NodeSeq => 
+                               Full((x \ "id").toSet.map( (y:NodeSeq) => 
+                                 DirectiveId( y.text )))
+                           } )
     } yield {
       ModifyRuleDiff(
           id = RuleId(id)
         , name = displayName
         , modName = name
         , modSerial = serial
-        , modTarget = target
+        , modTarget = targets
         , modDirectiveIds = directiveIds
         , modShortDescription = shortDescription
         , modLongDescription = longDescription

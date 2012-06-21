@@ -399,28 +399,39 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
   override def buildtargetNodeConfigurations(ruleVals:Seq[RuleVal]) : Box[Seq[targetNodeConfiguration]] = {
     val targetNodeConfigMap = scala.collection.mutable.Map[NodeId, MutabletargetNodeConfiguration]()
     
-    ruleVals.foreach { crv =>
-      targetToNodeService.getNodeIds(crv.target) match {
-        case e:EmptyBox => return e
-        case Full(nodeIds) => nodeIds.foreach { nodeId =>
-          targetNodeConfigMap.get(nodeId) match {
-            case None => //init nodeConfig for that id
-              (for {
-                nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
-                nodeContext <- systemVarService.getSystemVariables(nodeInfo)
-              } yield {
-                val nodeConfig = MutabletargetNodeConfiguration(nodeInfo, nodeContext.toMap)
-                nodeConfig.identifiableCFCPIs ++= crv.toRuleWithCf3PolicyDraft
-                nodeConfig
-              }) match {
-                case e:EmptyBox => logger.debug("Error while building taget conf node " + e);e
-                case Full(nodeConfig) => targetNodeConfigMap(nodeConfig.nodeInfo.id) = nodeConfig
-              }
-            case Some(nodeConfig) => //add DirectiveVal to the list of policies for that node
-                 nodeConfig.identifiableCFCPIs ++= crv.toRuleWithCf3PolicyDraft
-          }
+    ruleVals.foreach { ruleVal => 
+      
+      val nodeIds =
+      ruleVal.targets.flatMap { target =>
+        
+        targetToNodeService.getNodeIds(target) match {
+          
+          case e:EmptyBox => return e
+          
+          case Full(nodeIds) => nodeIds
         }
-      }    
+      }.toSet
+            
+      nodeIds.foreach { nodeId =>
+        targetNodeConfigMap.get(nodeId) match {
+          case None => //init nodeConfig for that id
+            (for {
+              nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+              nodeContext <- systemVarService.getSystemVariables(nodeInfo)
+            } yield {
+              val nodeConfig = MutabletargetNodeConfiguration(nodeInfo, nodeContext.toMap)
+              nodeConfig.identifiableCFCPIs ++= ruleVal.toRuleWithCf3PolicyDraft
+              nodeConfig
+            }) match {
+              case e:EmptyBox => 
+                logger.debug("Error while building target configuration node " + e)
+                e
+              case Full(nodeConfig) => targetNodeConfigMap(nodeConfig.nodeInfo.id) = nodeConfig
+            }
+          case Some(nodeConfig) => //add DirectiveVal to the list of policies for that node
+               nodeConfig.identifiableCFCPIs ++= ruleVal.toRuleWithCf3PolicyDraft
+        }
+      }
     }
     
     //replace variable of the form ${node.XXX} in both context and variable beans

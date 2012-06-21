@@ -215,7 +215,13 @@ var buildDirectiveTree = function(id, initially_select) {
 /*
  * Group tree
  */
-var buildGroupTree = function(id, initially_select) {
+var buildGroupTree = function(id, initially_select, select_multiple_modifier) {
+  if(select_multiple_modifier !== 'undefined') {
+    select_limit = -1;
+  } else {
+    select_multiple_modifier = "";
+    select_limit = 1;
+  }
   $(id).bind("loaded.jstree", function (event, data) {
     data.inst.open_all(-1);
   }).jstree({
@@ -224,8 +230,9 @@ var buildGroupTree = function(id, initially_select) {
       "html_titles" : true
     },
     "ui" : {
-      "initially_select" : [initially_select],
-      "select_limit" : 1
+      "initially_select" : initially_select,
+      "select_limit" : select_limit,
+      "select_multiple_modifier" : select_multiple_modifier
     },
     "types" : {
       // I set both options to -2, as I do not need depth and children count checking
@@ -241,7 +248,8 @@ var buildGroupTree = function(id, initially_select) {
         },
         "category" : {
           "icon" : { "image" : "images/tree/folder_16x16.png" },
-          "valid_children" : [ "category", "group" , "special_target" ]
+          "valid_children" : [ "category", "group" , "special_target" ],
+          "select_node" : false
         },
         "group" : {
           "icon" : { "image" : "images/tree/server_group_16x16.gif" },

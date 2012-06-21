@@ -35,8 +35,6 @@
 package com.normation.rudder.domain.policies
 import com.normation.utils.HashcodeCaching
 
-
-
 case class RuleId(value:String) extends HashcodeCaching 
 
 case class SerialedRuleId(ruleId : RuleId, serial : Int) extends HashcodeCaching 
@@ -52,15 +50,15 @@ case class SerialedRuleId(ruleId : RuleId, serial : Int) extends HashcodeCaching
  * the isEnabledField say. 
  */
 case class Rule(
-  id:RuleId,
-  name:String,
-  serial:Int,
-  target:Option[RuleTarget] = None, //is not mandatory, but if not present, rule is disabled
-  directiveIds:Set[DirectiveId] = Set(), //is not mandatory, but if not present, rule is disabled
-  shortDescription:String = "",
-  longDescription:String = "",
-  isEnabledStatus:Boolean = false,
-  isSystem:Boolean = false
+  id: RuleId,
+  name: String,
+  serial: Int,
+  targets: Set[RuleTarget] = Set(), //is not mandatory, but if not present, rule is disabled
+  directiveIds: Set[DirectiveId] = Set(), //is not mandatory, but if not present, rule is disabled
+  shortDescription: String = "",
+  longDescription: String = "",
+  isEnabledStatus: Boolean = false,
+  isSystem: Boolean = false
 ) extends HashcodeCaching {
-  def isEnabled = isEnabledStatus & target.isDefined & directiveIds.size > 0
+  def isEnabled = isEnabledStatus & !targets.isEmpty & !directiveIds.isEmpty
 }

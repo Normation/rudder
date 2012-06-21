@@ -120,15 +120,12 @@ class LDAPDiffMapper(
                   tryo(diff.copy(modSerial = Some(SimpleDiff(oldCr.serial, mod.getAttribute().getValueAsInteger()))))
                 case A_RULE_TARGET => 
                   mod.getModificationType match {
-                    case ADD | REPLACE if(mod.getAttribute.getValues.size > 0) => //if there is no values, we have to put "none" 
-                      for {
-                        target <- mapper.entry2OptTarget(Some(mod.getAttribute().getValue))
-                      } yield {
-                        diff.copy(modTarget = Some(SimpleDiff(oldCr.target,target)))
+                    case ADD | REPLACE | DELETE => //if there is no values, we have to put "none" 
+                      (sequence(mod.getValues()) { value => 
+                        RuleTarget.unser(value)
+                      }).map { targets =>
+                        diff.copy(modTarget = Some(SimpleDiff(oldCr.targets, targets.toSet)))
                       }
-                    case ADD | REPLACE | DELETE => //case for add/replace without values
-                      Full(diff.copy(modTarget = Some(SimpleDiff(oldCr.target,None))))
-                    case _ => Failure("Bad modification type for modification '%s' in change record: '%s'".format(mod, change))
                   }
                 case A_DIRECTIVE_UUID => 
                   Full(diff.copy(modDirectiveIds = Some(SimpleDiff(oldCr.directiveIds, mod.getValues.map( DirectiveId(_) ).toSet))))

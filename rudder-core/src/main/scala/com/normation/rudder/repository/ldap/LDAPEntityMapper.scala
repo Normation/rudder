@@ -456,13 +456,21 @@ class LDAPEntityMapper(
   def entry2Rule(e:LDAPEntry) : Box[Rule] = {
     
     if(e.isA(OC_RULE)) {
-      //OK, translate
       for {
-        id <- e(A_RULE_UUID) ?~! "Missing required attribute %s in entry %s".format(A_RULE_UUID, e)
-        serial <- e.getAsInt(A_SERIAL) ?~! "Missing required attribute %s in entry %s".format(A_SERIAL, e)
-        target <- entry2OptTarget(e(A_RULE_TARGET))
+        id     <- e(A_RULE_UUID) ?~! 
+                  "Missing required attribute %s in entry %s".format(A_RULE_UUID, e)
+        serial <- e.getAsInt(A_SERIAL) ?~! 
+                  "Missing required attribute %s in entry %s".format(A_SERIAL, e)
       } yield {
-        val piUuids = e.valuesFor(A_DIRECTIVE_UUID).map(x => DirectiveId(x))
+        val targets = for {
+          target <- e.valuesFor(A_RULE_TARGET)
+          optionRuleTarget <- entry2OptTarget(Some(target)) ?~! 
+            "Invalid attribute %s for entry %s.".format(target, A_RULE_TARGET)
+          ruleTarget <- optionRuleTarget
+        } yield {
+          ruleTarget
+        }
+        val directiveIds = e.valuesFor(A_DIRECTIVE_UUID).map(x => DirectiveId(x))
         val name = e(A_NAME).getOrElse(id)
         val shortDescription = e(A_DESCRIPTION).getOrElse("")
         val longDescription = e(A_LONG_DESCRIPTION).getOrElse("")
@@ -470,11 +478,14 @@ class LDAPEntityMapper(
         val isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         
         Rule(
-            RuleId(id), name, serial, target, piUuids,
+            RuleId(id), name, serial, targets, directiveIds,
             shortDescription, longDescription, isEnabled, isSystem
         )
       }
-    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_RULE, e))
+    } else {
+      Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s"
+          .format(OC_RULE, e))
+    }
   }
   
   
@@ -490,7 +501,7 @@ class LDAPEntityMapper(
         rule.isSystem
     )
     
-    rule.target.foreach { t => entry +=! (A_RULE_TARGET, t.target) }
+    entry +=! (A_RULE_TARGET, rule.targets.map( _.target).toSeq :_* )
     entry +=! (A_DIRECTIVE_UUID, rule.directiveIds.map( _.value).toSeq :_* )
     entry +=! (A_DESCRIPTION, rule.shortDescription)
     entry +=! (A_LONG_DESCRIPTION, rule.longDescription.toString)
