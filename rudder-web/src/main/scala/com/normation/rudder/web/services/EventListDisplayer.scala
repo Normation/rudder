@@ -659,12 +659,25 @@ class EventListDisplayer(
     case Some(x) => Text("group(" + x.toString + ")")
     case None => Text("None")
   }
+  
+  private[this] def groupTargetDetails(targets: Set[RuleTarget]): NodeSeq = {
+    targets
+      .map{ target =>
+        target match {
+          case GroupTarget(id@NodeGroupId(g)) => 
+            <span>group(<a href={groupLink(id)}>{g}</a>)</span>
+          case x => 
+            <span>{Text("group_special(" + x.toString + ")")}</span>
+        }
+      }
+      .reduceLeft[NodeSeq]((a,b) => a ++ b)
+  }
       
   
   private[this] def ruleDetails(xml:NodeSeq, rule:Rule) = (
       "#ruleID" #> rule.id.value &
       "#ruleName" #> rule.name &
-      "#target" #> groupTargetDetails(rule.target) &
+      "#target" #> groupTargetDetails(rule.targets) &
       "#policy" #> (xml =>  
         if(rule.directiveIds.size < 1) Text("None") else {
           (".techniqueId *" #> directiveIdDetails(rule.directiveIds.toSeq))(xml)              

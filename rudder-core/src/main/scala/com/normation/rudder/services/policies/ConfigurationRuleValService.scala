@@ -93,14 +93,14 @@ class RuleValServiceImpl (
   
   override def findRuleVal(ruleId:RuleId) : Box[RuleVal] = {
     for {
-      rule <- ruleRepo.get(ruleId)
-      target <- Box(rule.target) ?~! "Can not fetch rule values for rule with id %s. The reference target is not defined and I can not build a ConfigurationRuleVal for a not fully defined rule".format(ruleId)
-      pisId = rule.directiveIds.toSeq
-      containers <- sequenceEmptyable(pisId) { piId => getContainer(piId, ruleId) }
+      rule         <- ruleRepo.get(ruleId)
+      targets      = rule.targets 
+      directiveIds = rule.directiveIds.toSeq
+      containers   <- sequenceEmptyable(directiveIds) { getContainer(_, ruleId) }
     } yield {
       RuleVal(
         rule.id,
-        target,
+        targets,
         containers,
         rule.serial
       )

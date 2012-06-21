@@ -230,7 +230,7 @@ class LDAPRuleRepository(
       activatedPI_ids    <- sequence(activatedPI_DNs) { dn =>
                               rudderDit.ACTIVE_TECHNIQUES_LIB.getLDAPRuleID(dn)
                             }
-     configRules        <- sequence(con.searchSub(rudderDit.RULES.dn, 
+     configRules         <- sequence(con.searchSub(rudderDit.RULES.dn, 
                              //group is activated and directive is activated and config rule is activated !
                              AND(IS(OC_RULE),
                                EQ(A_IS_ENABLED, true.toLDAPString),
@@ -245,17 +245,21 @@ class LDAPRuleRepository(
       configRules
     } ) match {
       case Full(list) =>
-      // a config rule activated point to an activated group, or to a special target
-        Full(list.filter( rule => rule.isEnabled && ( (rule.target, rule.directiveIds) match {
-          case (Some(t), directives) if directives.size > 0 => //should be the case, given the request
-            t match {
-              case GroupTarget(group) =>
-                  logger.debug("Checking activation of group %s for the target of rule %s".format(group.value, rule.id.value))
-                  groupsId.openOr(Seq()).contains(group.value)
-              case _ => true
-            }
-          case _ => false
-        } ) ))
+        // a config rule activated point to an activated group, or to a special target
+        Full(list.filter{ rule => 
+          rule.isEnabled &&
+          ((rule.targets, rule.directiveIds) match {
+            case (targets, directives) if !directives.isEmpty && !targets.isEmpty => //should be the case, given the request
+              targets.exists( _ match {
+                  case GroupTarget(group) =>
+                    logger.debug("Checking activation of group %s for the target of rule %s"
+                        .format(group.value, rule.id.value))
+                    groupsId.openOr(Seq()).contains(group.value)
+                  case _ => true
+                }
+              )
+            case _ => false
+          } ) })
       case f : EmptyBox => f
     }
   }

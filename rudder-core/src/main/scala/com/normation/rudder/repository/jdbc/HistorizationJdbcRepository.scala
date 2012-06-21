@@ -271,8 +271,9 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
         
         rule.directiveIds.map( directive => Rules.directives.insert(new SerializedRuleDirectives(serialized.id, directive.value)))
         
-        rule.target.map(group => group match {
-          case GroupTarget(groupId) => Rules.groups.insert(new SerializedRuleGroups(serialized.id, groupId.value))
+        rule.targets.map(target => target match {
+          case GroupTarget(groupId) => 
+            Rules.groups.insert(new SerializedRuleGroups(serialized.id, groupId.value))
           case _ => //
         })
       })
@@ -440,7 +441,7 @@ object SerializedRules {
         RuleId(rule.ruleId),
         rule.name, 
         rule.serial,
-        crgr.headOption.map(x => new GroupTarget(new NodeGroupId(x.groupId))), 
+        crgr.map(x => new GroupTarget(new NodeGroupId(x.groupId))).toSet, 
         crpi.map(x => new DirectiveId(x.directiveId)).toSet,
         rule.shortDescription,
         rule.longDescription,

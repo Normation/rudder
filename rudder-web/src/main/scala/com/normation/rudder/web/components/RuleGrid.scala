@@ -187,13 +187,13 @@ class RuleGrid(
         rule:Rule,
         compliance:Option[ComplianceLevel],
         trackerVariables: Seq[(Directive,ActiveTechnique,Technique)],
-        target:Option[RuleTargetInfo]
+        targets:Set[RuleTargetInfo]
     ) extends Line with HashcodeCaching
     
     case class ErrorLine(
         rule:Rule,
         trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]],
-        target:Box[Option[RuleTargetInfo]]
+        targets:Set[RuleTargetInfo]
     ) extends Line with HashcodeCaching 
        
     sealed trait ApplicationStatus
@@ -212,18 +212,30 @@ class RuleGrid(
     def isApplied(
         cr:Rule,
         trackerVariables: Seq[(Directive, ActiveTechnique, Technique)],
-        target:Option[RuleTargetInfo]
+        target:Set[RuleTargetInfo]
     ) : ApplicationStatus = {
+      
       if(cr.isEnabled) {
-        if(target.isDefined && target.get.isEnabled) {
+        
+        val isAllTargetsEnabled = target.filter(x => !x.isEnabled).isEmpty
+        
+        if(isAllTargetsEnabled) {
           val disabled = trackerVariables.filterNot { case (pi,upt, pt) => pi.isEnabled && upt.isEnabled }
-          if(disabled.size == 0) FullyApplied
-          else if(trackerVariables.size - disabled.size > 0) PartiallyApplied(disabled)
-          else NotAppliedNoPI
+          if(disabled.size == 0) {
+            FullyApplied
+          }
+          else if(trackerVariables.size - disabled.size > 0) {
+            PartiallyApplied(disabled)
+          }
+          else {
+            NotAppliedNoPI
+          }
         } else {
           NotAppliedNoTarget
         }
-      } else NotAppliedCrDisabled
+      } else {
+        NotAppliedCrDisabled
+      }
     }
     
     /*
@@ -312,6 +324,86 @@ class RuleGrid(
              }
           }
     }
+    
+    def displayTargets(targets: Set[RuleTargetInfo]) = {
+      def groupLink(t:RuleTargetInfo) = {
+        val content = {t.name + (if (t.isEnabled) "" else " (disabled)")}
+        t.target match {
+          case GroupTarget(groupId) => 
+            val link = """/secure/nodeManager/groups#{"groupId":"%s"}""".format(groupId.value)
+            <a href={link}>{content}</a>
+          case x => {content}
+        }
+      }
+      
+      if(targets.size < 1) {
+        <i>None</i>
+      }
+      else { 
+        val popupId = Helpers.nextFuncName
+        val tableId_listPI = Helpers.nextFuncName
+        <span class="popcurs" onclick={"openMultiPiPopup('" + popupId + "') ; return false;"}>
+          {targets.head.name + (if (targets.size > 1) ", ..." else "")}
+        </span>
+        <div id={popupId} class="nodisplay">
+          <div class="simplemodal-title">
+            <h1>List of Groups</h1>
+            <hr/>
+          </div>
+          <div class="simplemodal-content">
+            <br/>
+            <h2>Click on a Group name to go to its configuration screen</h2>
+            <hr class="spacer"/>
+            <br/>
+            <br/>
+            <table id={tableId_listPI} cellspacing="0">
+              <thead>
+                <tr class="head">
+                 <th>Group<span/></th>
+                 <th>Description<span/></th>
+                </tr>
+              </thead>
+              <tbody>
+            { 
+              (
+                "span" #> targets.map { target => "#link" #> 
+                <tr><td>{groupLink(target)}</td><td>{target.description}</td></tr> }
+              )(<span id="link"/>
+              )
+            }
+              </tbody>
+            </table>
+            <hr class="spacer" />
+          </div>
+          <div class="simplemodal-bottom">
+             <hr/>
+             <div class="popupButton">
+               <span>
+                 <button class="simplemodal-close" onClick="return false;">
+                   Close
+                 </button>
+               </span>
+           </div>
+         </div>
+        </div> ++
+        Script(OnLoad(JsRaw("""
+          %1$s_tableId = $('#%2$s').dataTable({
+            "asStripClasses": [ 'color1', 'color2' ],
+            "bAutoWidth": false,
+            "bFilter" : false,
+            "bPaginate" : true,
+            "bLengthChange": false,
+
+            "bJQueryUI": false,
+            "aaSorting": [[ 0, "asc" ]],
+            "aoColumns": [
+              { "sWidth": "200px" },
+              { "sWidth": "300px" }
+            ]
+          });dropFilterAndPaginateArea('#%2$s');""".format( tableId_listPI, tableId_listPI))) )
+      }
+    }
+    
     {
       
     }
@@ -337,34 +429,24 @@ class RuleGrid(
               error
           }
         }
-      val targetInfo = rule.target match {
-          case None => Full(None)
-          case Some(target) => targetInfoService.getTargetInfo(target) match {
-            case Full(targetInfo) => Full(Some(targetInfo))
-            case Empty => 
-              val m = "Can not find requested target: '%s', it seems to be a database inconsistency.".format(target.target)
-              logger.debug(m)
-              Failure(m)             
-            case f:Failure => //it's an error if the directive ID is defined and such id is not found
-              val error = f ?~! "Can not find Target information for target %s referenced in Rule with ID %s".format(target.target, rule.id)
-              logger.debug(error.messageChain, error)
-              error
-          }
-        }
+     
+      val targetsInfo = rule.targets
+        .map(target => targetInfoService.getTargetInfo(target))
+        .flatMap(x => x)
       
-      (trackerVariables,targetInfo) match {
-        case (Full(seq), Full(target)) => 
-          val compliance = isApplied(rule, seq, target) match {
+      (trackerVariables, targetsInfo) match {
+        case (Full(seq), targetsInfo) => 
+          val compliance = isApplied(rule, seq, targetsInfo) match {
             case _:NotAppliedStatus => None
             case _ =>  computeCompliance(rule)
           }
           
-          OKLine(rule, compliance, seq, target)
+          OKLine(rule, compliance, seq, targetsInfo)
         case (x,y) =>
           //the Rule has some error, try to disactivate it
-          ruleRepository.update(rule.copy(isEnabledStatus=false),RudderEventActor, Some("Rule automatically disabled because it contains error (bad target or bad directives)")) 
-
-          ErrorLine(rule,x,y)
+          ruleRepository.update(rule.copy(isEnabledStatus=false), RudderEventActor, 
+            Some("Rule automatically disabled because it contains error (bad target or bad directives)")) 
+          ErrorLine(rule, x, y)
       }
     }
     
@@ -386,7 +468,7 @@ class RuleGrid(
             if (line.rule.isEnabledStatus) "Enabled" else "Disabled"
           }</td>
           <td><b>{ // EFFECTIVE STATUS
-            isApplied(line.rule, line.trackerVariables, line.target) match {
+            isApplied(line.rule, line.trackerVariables, line.targets) match {
               case FullyApplied => Text("In application")
               case PartiallyApplied(seq) => 
                   val tooltipId = Helpers.nextFuncName
@@ -395,10 +477,11 @@ class RuleGrid(
                  <span class="tooltip tooltipable" tooltipid={tooltipId}>Partially applied</span>
                  <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
               case x:NotAppliedStatus =>
+                val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
                 val conditions = Seq(
                     ( line.rule.isEnabled, "rule disabled" ), 
                     ( line.trackerVariables.size > 0, "No policy defined"),
-                    ( line.target.isDefined && line.target.get.isEnabled, "Group disabled")
+                    ( isAllTargetsEnabled, "Group disabled")
                  ) ++ line.trackerVariables.flatMap { case (pi, upt,pt) => Seq(
                     ( pi.isEnabled, "Policy " + pi.name + " disabled") , 
                     ( upt.isEnabled, "Technique for '" + pi.name + "' disabled") 
@@ -416,7 +499,7 @@ class RuleGrid(
             displayPis(line.trackerVariables)
            }</td>
           <td>{ //  TARGET NODE GROUP
-            displayTarget(line.target)
+            displayTargets(line.targets)
           }</td>
           { // CHECKBOX 
             if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty 
@@ -444,7 +527,7 @@ class RuleGrid(
             line.trackerVariables.map(displayPis _).getOrElse("ERROR")
            }</td>
           <td>{ //  TARGET NODE GROUP
-            line.target.map(displayTarget(_)).getOrElse("ERROR")
+            // TODO line.targets.map(displayTarget(_)).getOrElse("ERROR")
           }</td>
           { // CHECKBOX 
             if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty 

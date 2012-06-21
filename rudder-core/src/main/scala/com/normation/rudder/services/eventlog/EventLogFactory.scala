@@ -171,26 +171,31 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
     , reason      : Option[String]
   ) : ModifyRule = {
-    val details = EventLog.withContent{
+    val details = EventLog.withContent {
       scala.xml.Utility.trim(
         <rule changeType="modify" fileFormat={Constants.XML_FILE_FORMAT_2.toString}>
           <id>{modifyDiff.id.value}</id>
           <displayName>{modifyDiff.name}</displayName>{
             modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
             modifyDiff.modSerial.map(x => SimpleDiff.intToXml(<serial/>, x ) ) ++
-            modifyDiff.modTarget.map(x => SimpleDiff.toXml[Option[RuleTarget]](<target/>, x){ t =>
-              t match {
-                case None => <none/>
-                case Some(y) => Text(y.target)
+            modifyDiff.modTarget.map(x => 
+              SimpleDiff.toXml[Set[RuleTarget]](<target/>, x){ targets =>
+                targets.toSeq.map { t => <target>{t.target}</target> }
               }
-            } ) ++
-            modifyDiff.modDirectiveIds.map(x => SimpleDiff.toXml[Set[DirectiveId]](<directiveIds/>, x){ ids =>
+            ) ++
+            modifyDiff.modDirectiveIds.map(x => 
+              SimpleDiff.toXml[Set[DirectiveId]](<directiveIds/>, x){ ids =>
                 ids.toSeq.map { id => <id>{id.value}</id> }
-              } ) ++
-            modifyDiff.modShortDescription.map(x => SimpleDiff.stringToXml(<shortDescription/>, x ) ) ++
-            modifyDiff.modLongDescription.map(x => SimpleDiff.stringToXml(<longDescription/>, x ) ) ++
-            modifyDiff.modIsActivatedStatus.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x ) ) ++
-            modifyDiff.modIsSystem.map(x => SimpleDiff.booleanToXml(<isSystem/>, x ) )
+              }
+            ) ++
+            modifyDiff.modShortDescription.map(x => 
+              SimpleDiff.stringToXml(<shortDescription/>, x ) ) ++
+            modifyDiff.modLongDescription.map(x => 
+              SimpleDiff.stringToXml(<longDescription/>, x ) ) ++
+            modifyDiff.modIsActivatedStatus.map(x => 
+              SimpleDiff.booleanToXml(<isEnabled/>, x ) ) ++
+            modifyDiff.modIsSystem.map(x => 
+              SimpleDiff.booleanToXml(<isSystem/>, x ) )
           }
         </rule>
       )

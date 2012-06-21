@@ -549,8 +549,13 @@ class NodeConfigurationServiceImpl(
     for (directive <- directives) {
         // check the legit character of the policy
         if (modifiedNode.getDirective(directive.cf3PolicyDraft.id) != None) {
-          LOGGER.warn("Cannot add a directive with the same id than an already existing one {} ", directive.cf3PolicyDraft.id)
-          return ParamFailure[RuleWithCf3PolicyDraft]("Duplicate directive", Full(new TechniqueException("Duplicate directive " +directive.cf3PolicyDraft.id)), Empty, directive)
+          LOGGER.warn("Cannot add a directive with the same id than an already existing one {} ", 
+              directive.cf3PolicyDraft.id)
+          return ParamFailure[RuleWithCf3PolicyDraft](
+              "Duplicate directive", 
+              Full(new TechniqueException("Duplicate directive " + directive.cf3PolicyDraft.id)), 
+              Empty, 
+              directive)
         }
         
 

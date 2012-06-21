@@ -196,20 +196,22 @@ class DependencyAndDeletionServiceImpl(
    * - the target is enable ;
    */
    private[this] def filterRules(rules:Seq[Rule]) : Box[Seq[Rule]] = {
-        val switchableCr: Seq[(Rule,RuleTarget)] = 
-          //only rule with "own status == true" and completly defined (else their states can't change)
-          rules.collect { case rule if(rule.isEnabled) => (rule, rule.target.get) }
+        val switchableCr: Seq[(Rule, Set[RuleTarget])] = 
+          // only rule with "own status == true" and completly defined 
+          // (else their states can't change)
+          rules.collect { 
+            case rule if(rule.isEnabled) => (rule, rule.targets) 
+          }
 
-        //group by target, and check if target status is enable
-        //if the target is disable, we can't change the rule status anyhow
-        (sequence(switchableCr.groupBy { case (rule,t) => t }.toSeq) { case (target, seq) =>
-          for {
-            targetInfo <- targetService.getTargetInfo(target)
-          } yield {
-            if(targetInfo.isEnabled) {
-              seq.map { case(rule,_) => rule }
-            } else {
-              Seq()
+        // group by target, and check if target status is enable
+        // if the target is disable, we can't change the rule status anyhow
+        (sequence(switchableCr) { case (rule, targets) =>
+          sequence(targets.toSeq) { target =>
+            for {
+              targetInfo <- targetService.getTargetInfo(target)
+              if targetInfo.isEnabled
+            } yield {
+              rule
             }
           }
         }).map( _.flatten )
@@ -407,9 +409,8 @@ class DependencyAndDeletionServiceImpl(
           configRules   <- searchRules(con,target)
           updatedRules  <- sequence(configRules) { rule =>
                              //check that target is actually "target", and remove it
-                             rule.target match {
-                               case Some(t) if(t == target) => 
-                                 ruleRepository.update(rule.copy(target = None), actor, reason) ?~! 
+                             if (rule.targets.contains(target)) {
+                                 ruleRepository.update(rule.copy(targets = rule.targets - target), actor, reason) ?~! 
                                    "Can not remove target '%s' from rule with Dd '%s'. %s".format(
                                        target.target, rule.id.value, {
                                          val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
@@ -417,10 +418,10 @@ class DependencyAndDeletionServiceImpl(
                                          else "Some rules were already updated: %s".format(alreadyUpdated.mkString(", "))
                                        }
                                    )
-                               case x => 
-                                 logger.debug("Do not cascade modify rule with ID '%s', because its target is '%s' and we are deleting '%s'".
-                                     format(rule.id.value, rule.target.map( _.target), target.target))
-                                 Full(None)
+                             } else {
+                                logger.debug("Do not cascade modify rule with ID '%s', because its target is '%s' and we are deleting '%s'".
+                                    format(rule.id.value, rule.targets.map( _.target), target.target))
+                                Full(None)
                              }
                            }
           deletedTarget <- groupRepository.delete(groupId, actor, reason) ?~!
