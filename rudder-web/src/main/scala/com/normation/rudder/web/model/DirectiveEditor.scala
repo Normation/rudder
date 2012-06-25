@@ -151,15 +151,35 @@ trait DirectiveField extends BaseField with SectionChildField {
   override def toFormNodeSeq = {
     toForm match {
       case Failure(m, _, _) =>
-        logger.error("Can not map field %s to an input, error message: %s".format(displayName, m))
+        val errorMess = "Can not map field %s to an input, error message: %s"
+        logger.error(errorMess.format(displayName, m))
         NodeSeq.Empty
       case Empty =>
-        logger.error("Can not map field %s to an input, form representation of the field was empty".format(displayName))
+        val errorMess = "Can not map field %s to an input, " + 
+          "form representation of the field was empty" 
+        logger.error(errorMess.format(displayName))
         NodeSeq.Empty
       case Full(form) if tooltip == "" =>
-        <tr><td class="directiveVarLabel">{ displayName + { if (optional) " (optional)" else "" } }:</td><td class="directiveVarValue">{ form }</td></tr>
+        <tr>
+          <td class="directiveVarLabel">
+            { displayName + { if (optional) " (optional)" else "" } }:
+          </td>
+          <td class="directiveVarValue">{ form }</td>
+        </tr>
       case Full(form) =>
-        <tr><td class="directiveVarLabel"><span class="tooltip" title={ tooltip }>{ displayName + { if (optional) " (optional)" else "" } }:</span></td><td class="directiveVarValue">{ form }</td></tr>
+        <tr>
+          <td class="directiveVarLabel">
+            <span>
+              { displayName + { if (optional) " (optional)" else "" } }:
+            </span>
+          </td>
+          <td class="directiveVarValue">{ form }</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="text-align:center">
+          {tooltip}
+          </td>
+        </tr>
     }
   }
 
@@ -228,9 +248,7 @@ case class SectionFieldImp(
         <fieldset class="sectionFieldset">
         <legend>Section: { name }</legend>
           <table class="directiveSectionDef">
-            <tbody>
               { childrenXml }
-            </tbody>
           </table>
         </fieldset>
       </td></tr>
