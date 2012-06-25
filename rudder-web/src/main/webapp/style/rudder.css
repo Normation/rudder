@@ -706,12 +706,12 @@ padding:0 20px;
 
 .nodeheader {
     font-weight: bold;
-    font-size: small;
+    font-size: medium;
     text-align: center;
 }
 
 .nodeheadercontent {
-    color: #F79D10;
+    color: #FFFFFF;
     display: inline-block;
      padding : 3px 10px;
      background-color: #2E2D2D;

@@ -143,7 +143,7 @@ class CreateRulePopup(
           isEnabledStatus = true)
 
 
-      ruleRepository.create(rule, CurrentUser.getActor, Some("Rule created by user")) match {
+      ruleRepository.create(rule, CurrentUser.getActor, Some("")) match {
           case Full(x) => 
             closePopup() & onSuccessCallback(rule)
           case Empty =>
