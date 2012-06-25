@@ -678,7 +678,7 @@ class FusionReportUnmarshaller(
                 manufacturer    = optText(c\"MANUFACTURER").map(new Manufacturer(_))
                 , arch          = optText(c\"ARCH")
                 , name          = name
-                , speed         = optText(c\"SPEED").map(_.toFloat)
+                , speed         = optText(c\"SPEED").map(_.toFloat.toInt)
                 , externalClock = optText(c\"EXTERNAL_CLOCK").map(_.toFloat)
                 , core          = optText(c\"CORE").map(_.toInt)
                 , thread        = optText(c\"THREAD").map(_.toInt)

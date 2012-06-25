@@ -83,7 +83,7 @@ case class Processor(
   , name          : String
   , arch          : Option[String]
   , description   : Option[String] = None
-  , speed         : Option[Float]
+  , speed         : Option[Int]
   , externalClock : Option[Float]
   , core          : Option[Int]
   , thread        : Option[Int]

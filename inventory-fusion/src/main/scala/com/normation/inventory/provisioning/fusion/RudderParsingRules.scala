@@ -133,7 +133,7 @@ object RudderCpuParsing extends FusionReportParsingExtension with Loggable {
                 manufacturer = optText(p\"MANUFACTURER").map(new Manufacturer(_))
               , arch = optText(p\"ARCH")
               , name = name
-              , speed = optText(p\"SPEED").map(_.toFloat)
+              , speed = optText(p\"FREQUENCY").map(_.toFloat.toInt)
               , externalClock = optText(p\"EXTERNAL_CLOCK").map(_.toFloat)
               , core = optText(p\"CORE").map(_.toInt)
               , thread = optText(p\"THREAD").map(_.toInt)
