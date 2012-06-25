@@ -32,49 +32,34 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.model
+package com.normation.rudder.web.snippet
 
-import org.springframework.security.core.userdetails.UserDetails
-import org.springframework.security.core.context.SecurityContextHolder
-import com.normation.eventlog.EventActor
-import net.liftweb.http.SessionVar
-import bootstrap.liftweb.DemoUserDetail
-import com.normation.rudder.authorization._
-import com.normation.authorization._
+import net.liftweb._
+import http._
+import common._
+import util.Helpers._
+import js._
+import JsCmds._
+import JE._
+import scala.xml.NodeSeq
+import collection.mutable.Buffer
+import bootstrap.liftweb.LiftSpringApplicationContext.inject
+import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.authorization.AuthztoRights
 
-/**
- * An utility class that get the currently logged user
- * (if any)
- *
- */
-object CurrentUser extends SessionVar[Option[DemoUserDetail]]({
-  SecurityContextHolder.getContext.getAuthentication match {
-    case null => None
-    case auth => auth.getPrincipal match {
-      case u:DemoUserDetail => Some(u)
-      case _ => None
-    }
-  }
+
+class Authz extends DispatchSnippet with Loggable {
+
   
-}) {
+  def dispatch = {
+    case "render" => testRight
+  }
 
-  def getRights = this.is match {
-    case Some(u) => u.authz
-    case None => new Rights(NoRights)
-  }
-  def getActor = this.is match {
-    case Some(u) => EventActor(u.getUsername)
-    case None => EventActor("unknown")
-  }
   
-  def checkRights(auth:AuthorizationType) = {
-    val authz = getRights.authorizationTypes
-    if (authz.contains(NoRights)) false
-    else auth match{
-      case AnyRights => true
-      case NoRights => false
-      case _ =>  authz.contains(auth)
-    }
+  def testRight(xml:NodeSeq):NodeSeq = 
+   S.attr("role") match {
     
+    case Full(role) if (CurrentUser.checkRights(AuthztoRights.parseAuthz(role))) => xml 
+    case _ => (NodeSeq.Empty)
   }
 }

@@ -35,8 +35,10 @@ var clearSearchFieldTree = function(inputId, treeId) {
     <div class="intro">
       <div>
         View available Techniques and configure your custom Directive library.
+        <lift:authz role="directive_read">
         <br/>
         Drag'n'drop new Techniques from Reference library to User library categories to be able to create <a href="secure/configurationManager/directiveManagement">new Directives</a>.
+        </lift:authz>
         <br/>
         Drag'n'drop Techniques and categories in user library so that everything is nice and tidy.
         <br/>
@@ -79,7 +81,9 @@ var clearSearchFieldTree = function(inputId, treeId) {
             <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
             <span onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree')"><img src="/images/close-cross.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
           </div>
+          <lift:authz role="technique_write">
           <lift:configuration.TechniqueLibraryManagement.userLibraryAction />
+          </lift:authz>
           <lift:configuration.TechniqueLibraryManagement.userLibrary />
         </div>
       </div>

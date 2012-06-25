@@ -37,7 +37,6 @@ package com.normation.rudder.services.eventlog
 import com.normation.rudder.domain.eventlog._
 import com.normation.eventlog._
 import com.normation.rudder.services.eventlog._
-import java.security.Principal
 import com.normation.rudder.repository._
 import net.liftweb.common._
 import scala.collection._

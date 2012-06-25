@@ -94,7 +94,9 @@ class NodeGroupCategoryForm(
      <hr class="spacer"/>
      <directive:container/>
      <hr class="spacer"/>
+     <lift:authz role="node_write">
      <div class="margins" align="right"><directive:save/> <directive:delete/></div>
+     </lift:authz>
      </fieldset>) ++ Script(JsRaw("correctButtons();"))
 
     if (_nodeGroupCategory.isSystem) {

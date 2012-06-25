@@ -50,7 +50,6 @@ import org.springframework.jdbc.support.GeneratedKeyHolder
 import com.normation.utils.User
 import net.liftweb.common._
 import scala.xml._
-import java.security.Principal
 import scala.collection.JavaConversions._
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.policies.DeleteRuleDiff

@@ -73,6 +73,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
       <artifactId>rudder-core</artifactId>
       <version>${rudder-version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.normation</groupId>
+      <artifactId>authorization-api</artifactId>
+      <version>${rudder-version}</version>
+    </dependency>
     
     <dependency>
       <groupId>net.liftweb</groupId>

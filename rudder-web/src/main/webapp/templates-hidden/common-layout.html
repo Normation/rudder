@@ -102,9 +102,11 @@
   </div>
   <!--Fin Logo-->
   <!--Début Menu principal-->
+  <security:authorize access="isAnonymous()">
   <div id="menu">
    <lift:Menu.builder expand="false" linkToSelf="true" a:class="onMenu" li_item:class="onMenu" li_path:class="onMenu" />
   </div>
+  </security:authorize>
   <!--Fin Menu principal-->
 
 <img alt="" 

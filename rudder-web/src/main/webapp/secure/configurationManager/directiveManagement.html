@@ -34,9 +34,11 @@ var clearSearchFieldTree = function(inputId, treeId) {
   <div class="portlet-header">Directive Management</div>
   <div class="portlet-content">  
     <div class="intro">
+    <lift:authz role="technique_read">
       <div>
         Configure the Directives based on <a href="secure/configurationManager/techniqueLibraryManagement"><em>Active Techniques</em></a>.
       </div>
+      </lift:authz>
     </div>
     <hr class="spacer"/>
     
@@ -93,7 +95,9 @@ var clearSearchFieldTree = function(inputId, treeId) {
               </fieldset>
               
               <br/>
+              <lift:authz role="directive_write">
               <button id="addButton">[Add a new instance]</button>
+              </lift:authz>
             </fieldset>
             </div>
           </lift:configuration.DirectiveManagement.techniqueDetails>       

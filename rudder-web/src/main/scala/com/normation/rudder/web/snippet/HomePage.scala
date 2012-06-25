@@ -114,5 +114,4 @@ class HomePage extends Loggable {
       case Full(x) => <li>There are <a href="secure/configurationManager/ruleManagement">{x} Rules defined</a></li>
     }
   }
-
 }
