@@ -49,6 +49,8 @@ import scala.collection.JavaConversions._
 import net.liftweb.common._
 import java.io.File
 import com.normation.utils.HashcodeCaching
+import com.normation.authorization._
+import com.normation.rudder.authorization._
 
 /**
  * Spring configuration for user authentication.
@@ -92,8 +94,8 @@ class AppConfigAuth extends Loggable {
       case Some(config) =>
         val userDetails = new InMemoryDaoImpl()
         val userMap = new UserMap
-        config.users.foreach { case (login,pass) =>
-          userMap.addUser(DemoUserDetail(login,pass))
+        config.users.foreach { case (login,pass,roles) =>
+          userMap.addUser(DemoUserDetail(login,pass,roles))
         }
         userDetails.setUserMap(userMap)
         val provider = new DaoAuthenticationProvider()
@@ -109,7 +111,7 @@ case object RoleUserAuthority extends GrantedAuthority {
   override val getAuthority = "ROLE_USER"
 }
 
-case class DemoUserDetail(login:String,password:String) extends UserDetails with HashcodeCaching {
+case class DemoUserDetail(login:String,password:String,authz:Rights) extends UserDetails with HashcodeCaching {
   override val getAuthorities:java.util.Collection[GrantedAuthority] = Seq(RoleUserAuthority)
   override val getPassword = password
   override val getUsername = login
@@ -117,11 +119,12 @@ case class DemoUserDetail(login:String,password:String) extends UserDetails with
   override val isAccountNonLocked = true
   override val isCredentialsNonExpired = true
   override val isEnabled = true
+  
 }
 
 case class AuthConfig(
   encoder: PasswordEncoder,
-  users:List[(String,String)]
+  users:List[(String,String,Rights)]
 ) extends HashcodeCaching 
 
 object AppConfigAuth extends Loggable {
@@ -146,14 +149,18 @@ object AppConfigAuth extends Loggable {
         
         //now, get users
         val users = ( (xml \ "user").toList.flatMap { node =>
-         ( node.attribute("name").map(_.toList.map(_.text)) , node.attribute("password").map(_.toList.map(_.text)) ) match {
-           case (Some(name :: Nil) , Some(pwd :: Nil) ) if(name.size > 0 && pwd.size > 0) => (name, pwd) :: Nil
+         ( node.attribute("name").map(_.toList.map(_.text)) , node.attribute("password").map(_.toList.map(_.text)) ,node.attribute("role").map(_.toList.map( role => AuthztoRights.parseRole(role.text.split(",").toSeq))) ) match {
+           case (Some(name :: Nil) , Some(pwd :: Nil), roles ) if(name.size > 0 && pwd.size > 0) => roles match {
+             case Some(roles:: Nil) if (!roles.authorizationTypes.contains(NoRights))=> (name, pwd,roles) :: Nil
+             case _ =>  (name, pwd,new Rights(NoRights)) :: Nil
+           }
+           
            case _ => 
              logger.error("Ignore user line in authentication file '%s', some required attribute is missing: %s".format(resource.getURL.toString, node.toString))
              Nil
          }
         })
-        logger.debug("User with defined credentials: %s".format(users.map( _._1).mkString(", ")))
+        logger.debug("User with defined credentials: %s".format(users.map( user => "%s (role:%s)".format(user._1,user._3.authorizationTypes.map(_.id))).mkString(", ")))
         Some(AuthConfig(hash,users))
       }
     } else {

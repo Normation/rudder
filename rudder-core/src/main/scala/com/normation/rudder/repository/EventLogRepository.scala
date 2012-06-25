@@ -36,7 +36,6 @@ package com.normation.rudder.repository
 
 import net.liftweb.common._
 import com.normation.eventlog._
-import java.security.Principal
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.services.eventlog.EventLogFactory
 import com.normation.cfclerk.domain.SectionSpec

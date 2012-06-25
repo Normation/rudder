@@ -36,7 +36,6 @@ package com.normation.rudder.domain.eventlog
 
 import scala.xml.NodeSeq
 import com.normation.eventlog.{EventLog,EventActor}
-import java.security.Principal
 import org.joda.time.DateTime
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.EventLogDetails

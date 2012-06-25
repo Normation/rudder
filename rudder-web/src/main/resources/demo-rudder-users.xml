@@ -47,8 +47,13 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
 <!-- example with hash -->
 <!-- <authentication hash="sha"> -->
 <authentication>
-  <user name="jon.doe"  password="secret"/>  
-  <user name="alex.bar" password="secret2"/>
+  <user name="jon.doe"  password="secret" role="administrator" />
+  <user name="alex.bar" password="secret2" role="administration_only"/>
+  <user name="han.onymous" password="none"/>
+  <user name="bat.man" password="robin" role="user"/>
+  <user name="super.man" password="lois" role="inventory"/>
+  <user name="spider.man" password="maryjane" role="read_only"/>
+  <user name="lorenzo.vonmatterhorn" password="legendary" role="configuration"/>
   <!--  exemple of bad lines -->
   <!--  <user name="" password="secret2"/>-->
   <!--  <user name="name" password=""/>-->

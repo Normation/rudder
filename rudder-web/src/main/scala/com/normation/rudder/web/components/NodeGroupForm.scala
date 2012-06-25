@@ -215,9 +215,11 @@ class NodeGroupForm(
        <directive:showGroup />
       </div>
      </fieldset>
+     <lift:authz role="node_write">
      <directive:reason />
      <div class="margins" align="right">
-     <directive:group/><directive:save/> <directive:delete/></div>
+     <directive:group/><directive:save/> <directive:delete/></div>)
+     </lift:authz>
      </fieldset>)
 
      bind("directive", html,
@@ -228,7 +230,7 @@ class NodeGroupForm(
       "showGroup" -> searchNodeComponent.is.open_!.buildQuery,
       "explanation" -> crReasons.map {
         f => <div>{userPropertyService.reasonsFieldExplanation}</div>
-      },          
+      },       
       "reason" -> crReasons.map {f =>           
         <fieldset class="reasonNode"><legend>Reason</legend>
           <div style="margin-bottom:5px">
