@@ -65,6 +65,7 @@ import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import scala.xml.Node
+import com.normation.rudder.domain.Constants._
 
 
 class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
@@ -109,8 +110,8 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
   override def unserialise(xml:XNode) : Box[(TechniqueName, Directive, SectionVal)] = {
     for {
       directive                    <- {
-                                 if(xml.label == "directive") Full(xml)
-                                 else Failure("Entry type is not a directive: " + xml)
+                                 if(xml.label == XML_TAG_DIRECTIVE) Full(xml)
+                                 else Failure("Entry type is not a <%s>: %s".format(XML_TAG_DIRECTIVE, xml))
                                }
       fileFormatOk          <- TestFileFormat(directive)
       id                    <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + xml)
@@ -150,8 +151,8 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
   def unserialise(entry:XNode): Box[NodeGroupCategory] = {
     for {
       category        <- {
-                            if(entry.label ==  "groupLibraryCategory") Full(entry)
-                            else Failure("Entry type is not a groupLibraryCategory: " + entry)
+                            if(entry.label ==  XML_TAG_NODE_GROUP_CATEGORY) Full(entry)
+                            else Failure("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP_CATEGORY, entry))
                           }
       fileFormatOk     <- TestFileFormat(category)
       id               <- (category \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type groupLibraryCategory : " + entry)
@@ -178,8 +179,8 @@ class NodeGroupUnserialisationImpl(
   def unserialise(entry:XNode) : Box[NodeGroup] = {
     for {
       group           <- {
-                           if(entry.label == "nodeGroup") Full(entry)
-                           else Failure("Entry type is not a nodeGroup: " + entry)
+                           if(entry.label == XML_TAG_NODE_GROUP) Full(entry)
+                           else Failure("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP, entry))
                          }
       fileFormatOk    <- TestFileFormat(group)
       id              <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry)
@@ -215,8 +216,8 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
   def unserialise(entry:XNode) : Box[Rule] = {
     for {
       rule               <- {
-                            if(entry.label ==  "rule") Full(entry)
-                            else Failure("Entry type is not a rule: " + entry)
+                            if(entry.label ==  XML_TAG_RULE) Full(entry)
+                            else Failure("Entry type is not a <%s>: %s".format(XML_TAG_RULE, entry))
                           }
       fileFormatOk     <- TestFileFormat(rule)
       id               <- (rule \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type rule : " + entry)
@@ -249,8 +250,8 @@ class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategory
   def unserialise(entry:XNode): Box[ActiveTechniqueCategory] = {
     for {
       uptc             <- {
-                            if(entry.label ==  "policyLibraryCategory") Full(entry)
-                            else Failure("Entry type is not a policyLibraryCategory: " + entry)
+                            if(entry.label ==  XML_TAG_ACTIVE_TECHNIQUE_CATEGORY) Full(entry)
+                            else Failure("Entry type is not a <%s>: %s".format(XML_TAG_ACTIVE_TECHNIQUE_CATEGORY, entry))
                           }
       fileFormatOk     <- TestFileFormat(uptc)
       id               <- (uptc \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type policyLibraryCategory : " + entry)
@@ -278,8 +279,8 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
   def unserialise(entry:XNode): Box[ActiveTechnique] = {
     for {
       activeTechnique              <- {
-                            if(entry.label ==  "policyLibraryTemplate") Full(entry)
-                            else Failure("Entry type is not a policyLibraryCategory: " + entry)
+                            if(entry.label ==  XML_TAG_ACTIVE_TECHNIQUE) Full(entry)
+                            else Failure("Entry type is not a <%s>: ".format(XML_TAG_ACTIVE_TECHNIQUE, entry))
                           }
       fileFormatOk     <- TestFileFormat(activeTechnique)
       id               <- (activeTechnique \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type policyLibraryTemplate : " + entry)
@@ -317,8 +318,8 @@ class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisatio
   def unserialise(entry:XNode) : Box[CurrentDeploymentStatus] = {
     for {
       depStatus      <- {
-                  if(entry.label ==  "deploymentStatus") Full(entry)
-                            else Failure("Entry type is not a deploymentStatus: " + entry)
+                  if(entry.label ==  XML_TAG_DEPLOYMENT_STATUS) Full(entry)
+                            else Failure("Entry type is not a <%s>: %s".format(XML_TAG_DEPLOYMENT_STATUS, entry))
                           }
       fileFormatOk     <- TestFileFormat(depStatus)
       id               <- (depStatus \ "id").headOption.flatMap(s => tryo {s.text.toInt } ) ?~! ("Missing attribute 'id' in entry type deploymentStatus : " + entry)
