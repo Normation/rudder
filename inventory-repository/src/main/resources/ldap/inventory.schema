@@ -553,7 +553,6 @@ attributetype ( InventoryAttributes:500.9
   EQUALITY integerMatch
   ORDERING integerOrderingMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
-
   
 attributetype ( InventoryAttributes:500.10
   NAME 'cpuStepping'
