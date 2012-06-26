@@ -48,22 +48,28 @@ import java.net.UnknownHostException
 import InetAddressUtils._
 import com.normation.utils.Control.sequence
 
+
+class DateTimeSerializer extends Serializer[DateTime] {
+  private val IntervalClass = classOf[DateTime]
+
+  def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), DateTime] = {
+  case (TypeInfo(IntervalClass, _), json) => json match {
+    case JObject(JField("datetime", JString(date)) :: Nil) => DateTime.parse(date)
+    case x => throw new MappingException("Can't convert " + x + " to DateTime")
+  } }
+
+  def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+  case date: DateTime => JObject(JField("datetime", JString(date.toString())) :: Nil)
+  }
+}
 class InventoryMapper(
     ditService:InventoryDitService
   , pendingDit:InventoryDit
   , acceptedDit:InventoryDit
   , removedDit:InventoryDit
 ) extends Loggable {
-   val datehints = new ShortTypeHints(List(classOf[DateTime],classOf[Box[_]])) {
-  override def serialize: PartialFunction[Any, JObject] = {
-    case date: DateTime => JObject(JField("date", JString(date.toString())) :: Nil)
-  }
 
-  override def deserialize: PartialFunction[(String, JObject), Any] = {
-    case ("DateTime", JObject(JField("date", JString(date)) :: Nil)) => DateTime.parse(date)
-  }
-}
-   implicit val formats = DefaultFormats.withHints(ShortTypeHints(List(classOf[EnvironmentVariable],classOf[Process]))+datehints)
+  implicit val formats = Serialization.formats(NoTypeHints) + new DateTimeSerializer
 
   ////////////////////////////////////////////////////////////
   ///////////////////////// Software /////////////////////////

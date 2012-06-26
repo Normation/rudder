@@ -44,7 +44,7 @@ import com.normation.utils.HashcodeCaching
  */
 sealed abstract class AgentType {
   def toString() : String
-  def fullname() : String = "Cfengine "+this
+  def fullname() : String = "CFEngine "+this
   def toRulesPath() : String
 }
 
