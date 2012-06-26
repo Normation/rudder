@@ -96,6 +96,7 @@ import com.normation.rudder.migration.EventLogMigration_10_2
 import com.normation.rudder.migration.LogMigrationEventLog_10_2
 import com.normation.rudder.migration.XmlMigration_10_2
 import com.normation.rudder.web.services.UserPropertyService
+import java.lang.IllegalArgumentException
 
 /**
  * Spring configuration for services
@@ -103,7 +104,7 @@ import com.normation.rudder.web.services.UserPropertyService
 @Configuration
 @Import(Array(classOf[PropertyPlaceholderConfig], classOf[AppConfigAuth]))
 class AppConfig extends Loggable {
-
+  
   @Value("${ldap.host}")
   var SERVER = ""
 
@@ -136,29 +137,30 @@ class AppConfig extends Loggable {
   @Value("${bin.emergency.stop}")
   val startStopBinPath = ""
 
-  @Value("${ldif.tracelog.rootdir}")
-  var ldifLogPath = ""
-
   @Value("${history.inventories.rootdir}")
   var INVENTORIES_HISTORY_ROOT_DIR = ""
 
   @Value("${upload.root.directory}")
   var UPLOAD_ROOT_DIRECTORY = ""
 
-  @Value("${policy.copyfile.destination.dir}")
-  var POLICY_COPY_FILE_DEST_DIR = ""
-
   @Value("${base.url}")
   var BASE_URL = ""
 
   @Value("${rudder.dir.policies}")
   var baseFolder = ""
+    
+  @Value("${rudder.dir.nodes-promises}")
+  var servedPromisesFolder = ""    
+    
   @Value("${rudder.dir.backup}")
   var backupFolder = ""
+    
   @Value("${rudder.dir.dependencies}")
   var toolsFolder = ""
-  @Value("${rudder.dir.sharing}")
+    
+  @Value("${rudder.dir.uploaded.file.sharing}")
   var sharesFolder = ""
+    
   @Value("${rudder.dir.lock}")
   var lockFolder = ""
 
@@ -191,10 +193,9 @@ class AppConfig extends Loggable {
   @Value("${rudder.jdbc.password}")
   var jdbcPassword = ""
 
-  @Value("${rudder.dir.config}")
-  var configFolder = ""
   @Value("${rudder.dir.gitRoot}")
   var gitRoot = ""
+    
   @Value("${rudder.dir.techniques}")
   var policyPackages = ""
 
@@ -391,7 +392,7 @@ class AppConfig extends Loggable {
   @Bean
   def pathComputer = new PathComputerImpl(
     ldapNodeConfigurationRepository,
-    baseFolder,
+    baseFolder, servedPromisesFolder,
     backupFolder)
 
   @Bean
@@ -424,7 +425,8 @@ class AppConfig extends Loggable {
         nodeInfoService
       , ruleTargetService
       , ldapRuleRepository
-      , ruleValService)
+      , ruleValService
+      )
     , systemVariableSpecService
     , nodeInfoService
     , baseFolder
@@ -445,8 +447,6 @@ class AppConfig extends Loggable {
     reportingService,
     systemVariableSpecService,
     systemVariableService,
-    baseFolder,
-    backupFolder,
     toolsFolder,
     sharesFolder,
     cmdbEndpoint,

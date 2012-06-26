@@ -57,16 +57,6 @@ trait PathComputer {
   def computeBaseNodePath(searchedNode : NodeConfiguration) :  (String, String)
 
   /**
-   * compute the relative path from one server to another
-   * typically, something like '/served/serverB/served/serverC'
-   * @param fromNode e.g serverA
-   * @param toNode e.g serverC
-   * @return
-   */
-  def computeRelativePath(fromNode : NodeConfiguration, toNode : NodeConfiguration) : String
-
-
-  /**
    * Return the path of the promises for the root (we directly write its promises in its path)
    * @param agent
    * @return
