@@ -1648,7 +1648,8 @@ popin Alert
  * Underlined, dotted grey: that text has a tooltip
  */
 .tooltip {
-  border-bottom:1px dotted grey;
+    color: DimGray;
+    padding-top: 0px;
 }
 
 
