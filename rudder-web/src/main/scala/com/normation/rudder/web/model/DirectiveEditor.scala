@@ -169,13 +169,11 @@ trait DirectiveField extends BaseField with SectionChildField {
       case Full(form) =>
         <tr>
           <td class="directiveVarLabel">
-            <span>
               { displayName + { if (optional) " (optional)" else "" } }:
-            </span>
           </td>
           <td class="directiveVarValue">{ form }</td>
         </tr>
-        <tr>
+        <tr class="tooltip">
           <td colspan="2" style="text-align:center">
           {tooltip}
           </td>
@@ -186,13 +184,22 @@ trait DirectiveField extends BaseField with SectionChildField {
   def toHtmlNodeSeq = {
     if (tooltip == "") {
       <tr>
-        <td class="directiveVarLabel">{ displayName + { if (optional) " (optional)" else "" } }</td>
+        <td class="directiveVarLabel">
+          { displayName + { if (optional) " (optional)" else "" } }
+        </td>
         <td class="directiveVarValue">{ displayValue }</td>
       </tr>
     } else {
       <tr>
-        <td class="directiveVarLabel"><span class="tooltip" title={ tooltip }>{ displayName + { if (optional) " (optional)" else "" } }</span></td>
+        <td class="directiveVarLabel">
+          { displayName + { if (optional) " (optional)" else "" } }
+        </td>
         <td class="directiveVarValue">{ displayValue }</td>
+      </tr>
+      <tr class="tooltip">
+        <td colspan="2" style="text-align:center">
+          {tooltip}
+        </td>
       </tr>
     }
   }
