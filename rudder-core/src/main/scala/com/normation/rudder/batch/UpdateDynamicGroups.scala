@@ -146,7 +146,7 @@ class UpdateDynamicGroups(
       //
       case StartUpdate => 
         //schedule next update, in minutes
-        LAPinger.schedule(this, StartUpdate, realUpdateInterval*1000*60)
+        LAPinger.schedule(this, StartUpdate, realUpdateInterval*1000L*60)
         processUpdate
       
       case ManualStartUpdate => 

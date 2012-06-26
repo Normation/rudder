@@ -55,7 +55,7 @@ case class StartLibUpdate(actor: EventActor)
 class CheckTechniqueLibrary(
     policyPackageUpdater: UpdateTechniqueLibrary
   , asyncDeploymentAgent: AsyncDeploymentAgent
-  , updateInterval      : Int // in secondes
+  , updateInterval      : Int // in minutes
 ) extends Loggable {
   
   private val propertyName = "rudder.batch.techniqueLibrary.updateInterval"
@@ -92,7 +92,7 @@ class CheckTechniqueLibrary(
       //
       case StartLibUpdate(actor) => 
         //schedule next update, in minutes
-        LAPinger.schedule(this, StartLibUpdate, realUpdateInterval*1000L)      
+        LAPinger.schedule(this, StartLibUpdate, realUpdateInterval*1000L*60)      
         logger.trace("***** Start a new update")
         policyPackageUpdater.update(actor, Some("Automatic batch update at " + DateTime.now))
       case _ => 

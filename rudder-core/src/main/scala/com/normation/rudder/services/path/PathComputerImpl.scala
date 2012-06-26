@@ -55,14 +55,13 @@ import com.normation.exceptions.BusinessException
  *
  */
 class PathComputerImpl(
-            nodeConfigurationRepository : NodeConfigurationRepository,
-            baseFolder : String, 
-            backupFolder : String) extends PathComputer with Loggable {
+            nodeConfigurationRepository : NodeConfigurationRepository
+         ,  baseFolder          : String // /var/rudder/
+         ,  relativeShareFolder : String // share
+         ,  backupFolder        : String // /var/rudder/backup/
+) extends PathComputer with Loggable {
 
   
-  
-  val servedPrefix = "share/"
-    
   val promisesPrefix = "rules/"
   
     
@@ -84,30 +83,7 @@ class PathComputerImpl(
         throw new BusinessException(msg)
     }
     val path = recurseComputePath(root, searchedNode, "/"  + searchedNode.id)
-    return (FilenameUtils.normalize(baseFolder + servedPrefix + path) , FilenameUtils.normalize(backupFolder + path))
-  }
-  /**
-   * compute the relative path from one machine to another
-   * typically, something like '/share/uuid-B/share/uuid-C'
-   * @param fromNode e.g machineA
-   * @param toNode e.g machineC
-   * @return
-   */
-  def computeRelativePath(fromNode : NodeConfiguration, toNode : NodeConfiguration) : String = {
-    if (fromNode == toNode)
-      return "/"
-    
-    var machineDest = toNode
-    var path = ""
-    while (machineDest != fromNode) {
-      path ="/" + servedPrefix + machineDest.id ;
-      nodeConfigurationRepository.findNodeConfiguration(NodeId(machineDest.targetMinimalNodeConfig.policyServerId)) match {
-        case Full(node) => machineDest = node
-        case _ => throw new HierarchicalException("Wrong hierarchy for node : " + toNode)
-      }
-    }
-    
-    return FilenameUtils.normalize(path)
+    return (FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path) , FilenameUtils.normalize(backupFolder + path))
   }
   
   /**
@@ -143,7 +119,7 @@ class PathComputerImpl(
       case Full(root : RootNodeConfiguration) => 
           recurseComputePath(fromNode, root, path)
       case Full(policyParent) =>
-          recurseComputePath(fromNode, policyParent, policyParent.id + "/" + servedPrefix + path)
+          recurseComputePath(fromNode, policyParent, policyParent.id + "/" + relativeShareFolder + "/" + path)
       case _ =>throw new HierarchicalException("Wrong hierarchy for node :" + toNode)
     }
   }
