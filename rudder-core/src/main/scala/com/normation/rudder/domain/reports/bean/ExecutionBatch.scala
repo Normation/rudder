@@ -145,7 +145,154 @@ class ConfigurationExecutionBatch(
   // A cache of the already computed values
   val cache = scala.collection.mutable.Map[String, Seq[NodeId]]()
    
+  val nodeStatus = scala.collection.mutable.Map[String, Seq[NodeStatusReport]]()
   
+  /**
+   * This is the main entry point to get the detailed reporting
+   * It returns a Sequence of NodeStatusReport which gives, for
+   * each node, the status and all the directives associated
+   *
+   */
+  def getNodeStatus() : Seq[NodeStatusReport] = {
+    nodeStatus.getOrElseUpdate("nodeStatus", 
+      (for {
+        nodeId <- expectedNodeIds
+        val nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
+       
+        val directiveStatusReports  = for {
+          expectedDirective <- directiveExpectedReports
+          val directiveFilteredReports = nodeFilteredReports.filter(x => x.directiveId == expectedDirective.directiveId)
+          
+          // look for each component
+          val componentsStatus = for {
+            expectedComponent <- expectedDirective.components
+            val componentFilteredReports = directiveFilteredReports.filter(x => x.component == expectedComponent.componentName)
+            
+            val componentStatusReport = checkExpectedComponentWithReports(
+                    expectedComponent
+                  , componentFilteredReports
+                  , nodeId
+            )
+          } yield {
+            componentStatusReport
+          }
+          
+          val directiveStatusReport = DirectiveStatusReport(
+              componentsStatus
+            , ReportType.getWorseType(componentsStatus.map(x => x.componentReportType))
+            , Seq()
+          )
+          
+        } yield {
+          directiveStatusReport
+        }
+        
+        val nodeStatusReport = NodeStatusReport(
+            nodeId
+          ,  directiveStatusReports
+          , ReportType.getWorseType(directiveStatusReports.map(x => x.directiveReportType))
+          , Seq()
+        )
+      } yield {
+        nodeStatusReport
+      })
+    )
+  }
+  
+  protected[bean] def checkExpectedComponentWithReports(
+      expectedComponent : ReportComponent
+    , filteredReports   : Seq[Reports]
+    , nodeId            : NodeId
+  ) : ComponentStatusReport = {
+    
+    // easy case : No Reports mean no answer
+    filteredReports.size match {
+      case 0 => 
+        val components = for {
+          component <- expectedComponent.componentsValues
+        } yield {
+          ComponentValueStatusReport(
+              component
+            , getNoAnswerOrPending()
+            , nodeId
+          ) 
+        }
+        ComponentStatusReport(
+            components
+          , getNoAnswerOrPending()
+          , Seq()
+        )
+      case _ => 
+        // First, filter out all the not interesting reports
+        val purgedReports = filteredReports.filter(x => x.isInstanceOf[ResultErrorReport] 
+                               || x.isInstanceOf[ResultRepairedReport]  
+                               || x.isInstanceOf[ResultSuccessReport]
+                               || x.isInstanceOf[UnknownReport])
+      
+                               
+        val components = for {
+            componentValue <- expectedComponent.componentsValues
+            val status = checkExpectedComponentStatus(
+                              expectedComponent
+                            , componentValue
+                            , purgedReports)
+        } yield {
+          ComponentValueStatusReport(
+                componentValue
+              , status
+              , nodeId)
+        }
+        
+        // must fetch extra entries
+        val unexpectedReports = getUnexpectedReports(
+            expectedComponent.componentsValues.toList
+          , purgedReports
+        )
+        println(unexpectedReports.size)
+        println(components.map(x => x.cptValueReportType))
+        
+        unexpectedReports.size match {
+          case 0 => 
+            ComponentStatusReport(
+                components
+              , ReportType.getWorseType(components.map(x => x.cptValueReportType))
+              , Seq() 
+            )
+                
+          case _ => // some bad report
+             ComponentStatusReport(
+                components
+              , UnknownReportType
+              , Seq() // TODO : handle unexpected
+            )
+        }
+      
+    }
+  }
+  
+
+  private[this] def returnWorseStatus(
+      reports : Seq[Reports]
+  ) : ReportType = {
+    if (reports.exists(x => x.isInstanceOf[ResultErrorReport])) {
+      ErrorReportType
+    } else {
+      if (reports.exists(x => x.isInstanceOf[UnknownReport])) {
+        UnknownReportType
+      } else {
+        if (reports.exists(x => x.isInstanceOf[ResultRepairedReport])) {
+          RepairedReportType
+        } else {
+          if (reports.exists(x => x.isInstanceOf[ResultSuccessReport])) {
+            SuccessReportType
+          } else {
+            getNoAnswerOrPending()
+          }
+        }
+      }
+    }
+    
+  }
   /*
    * An utility method that check for the size of result compared to
    * expected one. 
@@ -191,6 +338,99 @@ class ConfigurationExecutionBatch(
           ).size)
       }
     )
+  }
+  
+  
+  /*
+   * An utility method that fetch the proper status
+   * of a component key. 
+   * Parameters :
+   * expectedComponent : the expected component (obviously)
+   * currentValue : the current keyValue processes
+   * filteredReports : the report for that component (but including all keys)
+   */
+  protected def checkExpectedComponentStatus(
+      expectedComponent      : ReportComponent
+    , currentValue           : String
+    , filteredReports        : Seq[Reports]
+  ) : ReportType = {
+    currentValue match {
+      case "None" =>
+        filteredReports.filter( x => x.keyValue == currentValue)
+               .filter( x => x.isInstanceOf[ResultErrorReport]).size match {
+          case i if i > 0 => ErrorReportType
+          case _ => {
+            filteredReports.size match {
+              case 0 => getNoAnswerOrPending()
+              case x if x == expectedComponent.cardinality => 
+                returnWorseStatus(filteredReports)
+              case _ => UnknownReportType
+            }
+          }
+        }
+            
+      case matchCFEngineVars(_) => 
+        // convert the entry to regexp, and match what can be matched
+         val matchableExpected = currentValue.replaceAll(replaceCFEngineVars, ".*")
+         val matchedReports = filteredReports.filter( x => x.keyValue.matches(matchableExpected))
+         
+         matchedReports.filter( x => x.isInstanceOf[ResultErrorReport]).size match {
+           case i if i > 0 => ErrorReportType
+           case _ => {
+            matchedReports.size match {
+              case 0 => getNoAnswerOrPending()
+              case x if x == expectedComponent.componentsValues.filter( x => x.matches(matchableExpected)).size => 
+                returnWorseStatus(filteredReports)
+                // all similar cfengine variable are undistinguable
+              case _ => UnknownReportType
+            }
+          }
+         }
+         
+      case _: String => 
+          // for a given component, if the key is not "None", then we are 
+          // checking that what is have is what we wish
+          // we can have more reports that what we expected, because of
+          // name collision, but it would be resolved by the total number
+        val keyReports =  filteredReports.filter( x => x.keyValue == currentValue)
+        keyReports.filter( x => x.isInstanceOf[ResultErrorReport]).size match {
+          case i if i > 0 => ErrorReportType
+          case _ => {
+            keyReports.size match {
+              case 0 => getNoAnswerOrPending()
+              case x if x == expectedComponent.componentsValues.filter( x => x == currentValue).size => 
+                returnWorseStatus(keyReports)
+              case _ => UnknownReportType
+            }
+          }
+        }
+    }
+    
+  }
+  
+  /**
+   * Retrieve all the reports that should not be there (due to
+   * keyValue not present)
+   */
+  private[this] def getUnexpectedReports(
+      keyValues      : List[String]
+    , reports        : Seq[Reports]
+    ) : Seq[Reports] = {
+    keyValues match {
+      case Nil => reports
+      case head :: tail =>
+        head match {
+          case matchCFEngineVars(_) =>
+            val matchableExpected = head.replaceAll(replaceCFEngineVars, ".*")
+            getUnexpectedReports(
+                tail
+              , reports.filterNot(x => x.keyValue.matches(matchableExpected)) )
+          case s: String =>
+            getUnexpectedReports(
+                tail
+              , reports.filterNot(x => x.keyValue == s ) )
+        }
+    }
   }
   
   /**
@@ -365,6 +605,14 @@ class ConfigurationExecutionBatch(
     }
     result
   }
+  
+  private[this] def getNoAnswerOrPending() : ReportType = {
+    if (beginDate.plus(Constants.pendingDuration).isAfter(DateTime.now())) {
+      PendingReportType
+    } else {
+      NoAnswerReportType
+    }
+  }
 }
 
 case class LinearisedExpectedReport(
@@ -373,3 +621,37 @@ case class LinearisedExpectedReport(
   , cardinality     : Int
   , componentValue  : String
 ) extends HashcodeCaching 
+
+
+/**
+ * For a component value, store the report status
+ */
+case class ComponentValueStatusReport(
+    componentValue 		: String
+  , cptValueReportType: ReportType
+  , nodeId				    : NodeId
+)
+
+/**
+ * For a component, store the report status, as the worse status of the component
+ * Or error if there is an unexpected component value
+ */
+case class ComponentStatusReport(
+    componentValues		  : Seq[ComponentValueStatusReport]
+  , componentReportType : ReportType
+  , unexpectedCptValues : Seq[ComponentValueStatusReport]
+)
+
+
+case class DirectiveStatusReport(
+    components			     : Seq[ComponentStatusReport]
+  , directiveReportType  : ReportType
+  , unexpectedComponents : Seq[ComponentStatusReport]
+)
+
+case class NodeStatusReport(
+    nodeId               : NodeId
+  , directives			     : Seq[DirectiveStatusReport]
+  , nodeReportType		   : ReportType
+  , unexpectedDirectives : Seq[DirectiveStatusReport]
+)
