@@ -140,14 +140,13 @@ rudder.dir.licensesFolder=/opt/rudder/etc/licenses
 
 #
 # Directories used to write nodes promises. 
-# - 'policies' is the base rudder directory path, used to defined the BASE_FOLDER
-#   system variable in directives and other relative folder
-# - 'nodes-promises' is the sub-directory of 'policies' where goes node configuration shared with nodes
-#   (the actual CFEngine promises) relative to base folder
-# - 'backup' is the directory path where previous configuration of each node are stored
+# - promises generated for a node with id UUID go in ***/var/rudder/share/UUID***
+#   For now, that property can not be modified, because there is no simple
+#   way of doing that and letting node knowing where to go look for there promises. 
+# - promises generated for CFEngine community server go into ***/var/rudder/cfengine-community/inputs***
+# - promises generated for CFEngine Nova server go into ***/var/cfengine/inputs***
+# - 'rudder.dir.backup' is the directory path where previous configuration of each node are stored
 #
-rudder.dir.policies=/var/rudder/
-rudder.dir.nodes-promises=share
 rudder.dir.backup=/var/rudder/backup/
 
 #
