@@ -1327,9 +1327,8 @@ p img {
    margin: 0px !important;
 }
 
-.portlet ul {
-   padding: 20px 0 0 0;
-   margin-left: 20px;
+.evlogviewpad {
+   margin-left: 15px;
 }
 
 *html .portlet ul {
@@ -1911,7 +1910,10 @@ div.tabInform {
   font-weight:bold;
 }
 
-
+#parameters {
+  margin-top: 3px;
+  margin-left: 5px;
+}
 
 /***********************************
  *Reports display
@@ -1920,7 +1922,7 @@ div.tabInform {
   padding:5px;
 }
 .evloglmargin{
-  margin: 3px;  
+  margin: 7px;  
 }
 .reportsList {
   margin : 10px;
