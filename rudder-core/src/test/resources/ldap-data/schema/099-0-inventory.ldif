@@ -662,7 +662,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.1.2.14
   MAY ( description $ cn $ publicKey $ agentName $ hostedVm $ container $
   software $  localAccountName $ osServicePack $
   nodeTechniques $ ram $ swap $ confirmed $
-  inventoryDate $ redeiveDate $ ipHostNumber $ osFullName $
+  inventoryDate $ receiveDate $ ipHostNumber $ osFullName $
   osArchitectureType $ lastLoggedUser $ lastLoggedUserTime ) )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.15
   NAME 'windowsNode'
