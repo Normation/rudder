@@ -95,7 +95,7 @@ class AppConfigAuth extends Loggable {
         val userDetails = new InMemoryDaoImpl()
         val userMap = new UserMap
         config.users.foreach { case (login,pass,roles) =>
-          userMap.addUser(DemoUserDetail(login,pass,roles))
+          userMap.addUser(RudderUserDetail(login,pass,roles))
         }
         userDetails.setUserMap(userMap)
         val provider = new DaoAuthenticationProvider()
@@ -107,11 +107,25 @@ class AppConfigAuth extends Loggable {
   }
 }
 
+/**
+ * For now, we don't use at all Spring Authority to implements
+ * our authorizations. 
+ * That because we want something more typed than String for
+ * authority, and as a bonus, that allows to be able to switch 
+ * from Spring more easily
+ * 
+ * So we have only one Authority type known by Spring Security: ROLE_USER
+ */
 case object RoleUserAuthority extends GrantedAuthority {
   override val getAuthority = "ROLE_USER"
 }
 
-case class DemoUserDetail(login:String,password:String,authz:Rights) extends UserDetails with HashcodeCaching {
+/**
+ * Our simple model for for user authentication and authorizations.
+ * Note that authorizations are not managed by spring, but by the
+ * 'authz' token of RudderUserDetail.
+ */
+case class RudderUserDetail(login:String,password:String,authz:Rights) extends UserDetails with HashcodeCaching {
   override val getAuthorities:java.util.Collection[GrantedAuthority] = Seq(RoleUserAuthority)
   override val getPassword = password
   override val getUsername = login
@@ -149,10 +163,14 @@ object AppConfigAuth extends Loggable {
         
         //now, get users
         val users = ( (xml \ "user").toList.flatMap { node =>
-         ( node.attribute("name").map(_.toList.map(_.text)) , node.attribute("password").map(_.toList.map(_.text)) ,node.attribute("role").map(_.toList.map( role => AuthztoRights.parseRole(role.text.split(",").toSeq))) ) match {
+         //for each node, check attribute name (mandatory), password  (mandatory) and role (optional)
+         (   node.attribute("name").map(_.toList.map(_.text)) 
+           , node.attribute("password").map(_.toList.map(_.text)) 
+           , node.attribute("role").map(_.toList.map( role => AuthzToRights.parseRole(role.text.split(",").toSeq))) 
+         ) match {
            case (Some(name :: Nil) , Some(pwd :: Nil), roles ) if(name.size > 0 && pwd.size > 0) => roles match {
-             case Some(roles:: Nil) if (!roles.authorizationTypes.contains(NoRights))=> (name, pwd,roles) :: Nil
-             case _ =>  (name, pwd,new Rights(NoRights)) :: Nil
+             case Some(roles:: Nil) if (!roles.authorizationTypes.contains(NoRights))=> (name, pwd, roles) :: Nil
+             case _ =>  (name, pwd, new Rights(NoRights)) :: Nil
            }
            
            case _ => 
@@ -160,8 +178,11 @@ object AppConfigAuth extends Loggable {
              Nil
          }
         })
+        
+        //and now, return the list of users
         logger.debug("User with defined credentials: %s".format(users.map( user => "%s (role:%s)".format(user._1,user._3.authorizationTypes.map(_.id))).mkString(", ")))
-        Some(AuthConfig(hash,users))
+        
+        Some(AuthConfig(hash, users))
       }
     } else {
       logger.error("The resource '%s' does not exist or is not readable".format(resource.getURL.toString))
