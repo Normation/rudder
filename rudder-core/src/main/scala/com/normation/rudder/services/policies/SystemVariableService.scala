@@ -54,24 +54,20 @@ trait SystemVariableService {
 }
 
 class SystemVariableServiceImpl(
-    licenseRepository				: LicenseRepository
+    licenseRepository               : LicenseRepository
   , parameterizedValueLookupService	: ParameterizedValueLookupService
-  , systemVariableSpecService		: SystemVariableSpecService
-  , nodeInfoService					: NodeInfoService
-  , baseFolder						: String
-  , toolsFolder						: String
-  , cmdbEndPoint					: String
-  , communityPort					: String
-  , sharedFilesFolder 				: String
-  , webdavUser 						: String
-  , webdavPassword 					: String
+  , systemVariableSpecService       : SystemVariableSpecService
+  , nodeInfoService	                : NodeInfoService
+  , toolsFolder                     : String
+  , cmdbEndPoint                    : String
+  , communityPort	                  : String
+  , sharedFilesFolder               : String
+  , webdavUser                      : String
+  , webdavPassword                  : String
 ) extends SystemVariableService with Loggable {
 
   def getSystemVariables(nodeInfo: NodeInfo): Box[Map[String, Variable]] = {
     logger.debug("Preparing the system variables for server %s".format(nodeInfo.id.value))
-
-    val varBaseFolder = SystemVariable(systemVariableSpecService.get("BASE_FOLDER"))
-    varBaseFolder.saveValue(baseFolder)
 
     val varToolsFolder = SystemVariable(systemVariableSpecService.get("TOOLS_FOLDER"))
     varToolsFolder.saveValue(toolsFolder);
@@ -157,7 +153,6 @@ class SystemVariableServiceImpl(
     Full(Map(
       (varNodeRole.spec.name, varNodeRole),
       (varLicensesPaid.spec.name, varLicensesPaid),
-      (varBaseFolder.spec.name, varBaseFolder),
       (varToolsFolder.spec.name, varToolsFolder),
       (varCmdbEndpoint.spec.name, varCmdbEndpoint),
       (varSharedFilesFolder.spec.name, varSharedFilesFolder),
