@@ -115,6 +115,11 @@ object RudderMachineIdParsing extends FusionReportParsingExtension {
   }
 }
 
+
+/**
+ * <PROCESSORS>
+ *
+ */
 object RudderCpuParsing extends FusionReportParsingExtension with Loggable {
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "PROCESSORS" }
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {

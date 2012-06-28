@@ -120,7 +120,7 @@ class LogReportPreCommit(
   
 }
 
-/*
+
 /**
  * Update last inventory date for Server and machine
  */
@@ -133,11 +133,11 @@ class LastInventoryDate() extends PreCommit {
     val now = DateTime.now()
     
     Full(report.copy (
-      node = report.node.copy( inventoryDate = Some(now) ),
-      machine = report.machine.copy( inventoryDate = Some(now) )
+      node = report.node.copy( receiveDate = Some(now) ),
+      machine = report.machine.copy( receiveDate = Some(now) )
     ) )
   }
-}*/
+}
 
 
 /**

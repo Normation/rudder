@@ -245,12 +245,13 @@ case class NodeInventory(
   , ram                  : Option[MemorySize] = None
   , swap                 : Option[MemorySize] = None
   , inventoryDate        : Option[DateTime]   = None
+  , receiveDate          : Option[DateTime]   = None
   , archDescription      : Option[String]     = None
   , lastLoggedUser       : Option[String]     = None
   , lastLoggedUserTime   : Option[DateTime]   = None
   , agentNames           : Seq[AgentType] = Seq()
   , publicKeys           : Seq[PublicKey] = Seq()
-  , serverIps            : Seq[String] = Seq()
+  , serverIps            : Seq[String]    = Seq()
   , machineId            : Option[(MachineUuid,InventoryStatus)] = None //if we want several ids, we would have to ass an "alternate machine" field
   , softwareIds          : Seq[SoftwareUuid]        = Seq()
   , accounts             : Seq[String]              = Seq()

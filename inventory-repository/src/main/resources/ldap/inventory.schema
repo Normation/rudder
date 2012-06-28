@@ -288,20 +288,27 @@ attributetype ( InventoryAttributes:300.11
   ORDERING generalizedTimeOrderingMatch )
 
 attributetype ( InventoryAttributes:300.12
+  NAME 'receiveDate'
+  DESC 'Last time an inventory was received for that element'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch
+  ORDERING generalizedTimeOrderingMatch )
+
+attributetype ( InventoryAttributes:300.13
   NAME 'agentName'
   DESC 'List of name of the agent (Nova, Community, ...)'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
-attributetype ( InventoryAttributes:300.13
+attributetype ( InventoryAttributes:300.14
   NAME 'environmentVariable'
   DESC 'List of environnement variable'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
-attributetype ( InventoryAttributes:300.14
+attributetype ( InventoryAttributes:300.15
   NAME 'process'
   DESC 'List of processes'
   EQUALITY caseIgnoreMatch
@@ -781,7 +788,7 @@ objectclass ( InventoryObjectClasses:1
   DESC 'A container for servers, ie a physical machine or a virtual machine'
   SUP device
   MUST ( machineId )
-  MAY ( cn $ description $ motherBoardUuid $ confirmed $ inventoryDate ) )
+  MAY ( cn $ description $ motherBoardUuid $ confirmed $ inventoryDate $ receiveDate ) )
 
 objectclass ( InventoryObjectClasses:2
   NAME 'physicalMachine'
@@ -912,7 +919,7 @@ objectclass ( InventoryObjectClasses:14
   MAY ( description $ cn $ publicKey $ agentName $ hostedVm $ container $ 
         software $  localAccountName $ osServicePack $
         nodeTechniques $ ram $ swap $ confirmed $
-        inventoryDate $ ipHostNumber $ osFullName $
+        inventoryDate $ receiveDate $ ipHostNumber $ osFullName $
         osArchitectureType $ lastLoggedUser $ lastLoggedUserTime $
         environmentVariable $ process ) )
 

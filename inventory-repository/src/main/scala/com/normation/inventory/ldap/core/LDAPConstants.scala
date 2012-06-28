@@ -72,6 +72,7 @@ object LDAPConstants {
   val A_OS_SWAP = "swap"
   val A_ACCOUNT = "localAccountName"
   val A_INVENTORY_DATE = "inventoryDate"
+  val A_RECEIVE_DATE = "receiveDate"
   val A_EV = "environmentVariable"
   val A_PROCESS = "process"
     

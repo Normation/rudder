@@ -410,6 +410,7 @@ class InventoryMapper(
     root.setOpt(machine.mbUuid, A_MB_UUID, {x:MotherBoardUuid => x.value})
     root += (A_OC, machineType2ObjectClass(machine.machineType).name)
     root.setOpt(machine.inventoryDate,A_INVENTORY_DATE,{x:DateTime => GeneralizedTime(x).toString})
+    root.setOpt(machine.receiveDate,A_RECEIVE_DATE,{x:DateTime => GeneralizedTime(x).toString})
     root.setOpt(machine.name,A_NAME,{x:String => x})
 
     val tree = LDAPTree(root)
@@ -496,9 +497,10 @@ class InventoryMapper(
       name = tree.root()(A_NAME)
       mbUuid = tree.root()(A_MB_UUID) map { x => MotherBoardUuid(x) }
       inventoryDate = tree.root.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
+      receiveDate = tree.root.getAsGTime(A_RECEIVE_DATE).map { _.dateTime }
       //now, get all subentries
     } yield {
-      val m = MachineInventory(id,inventoryStatus,machineType,name,mbUuid,inventoryDate )
+      val m = MachineInventory(id,inventoryStatus,machineType,name,mbUuid,inventoryDate, receiveDate )
       //map subentries and return result
       (m /: tree.children()) { case (m,(rdn,t)) => mapAndAddMachineElement(t.root(),m) }
     }
@@ -673,6 +675,7 @@ class InventoryMapper(
     root.setOpt(server.lastLoggedUser, A_LAST_LOGGED_USER, { x: String => x })
     root.setOpt(server.lastLoggedUserTime, A_LAST_LOGGED_USER_TIME, { x: DateTime => GeneralizedTime(x).toString })
     root.setOpt(server.inventoryDate, A_INVENTORY_DATE, { x: DateTime => GeneralizedTime(x).toString })
+    root.setOpt(server.receiveDate, A_RECEIVE_DATE, { x: DateTime => GeneralizedTime(x).toString })
     root +=! (A_AGENTS_NAME, server.agentNames.map(x => x.toString):_*)
     root +=! (A_PKEYS, server.publicKeys.map(x => x.key):_*)
     root +=! (A_SOFTWARE_DN, server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString):_*)
@@ -822,6 +825,7 @@ class InventoryMapper(
           Some(m1)
       }
       inventoryDate = entry.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
+      receiveDate = entry.getAsGTime(A_RECEIVE_DATE).map { _.dateTime }
       accounts = entry.valuesFor(A_ACCOUNT).toSeq
       serverIps = entry.valuesFor(A_LIST_OF_IP).toSeq
       main = NodeSummary(id,inventoryStatus,rootUser,hostname, osDetails, NodeId(policyServerId))
@@ -833,6 +837,7 @@ class InventoryMapper(
          , ram
          , swap
          , inventoryDate
+         , receiveDate
          , arch
          , lastLoggedUser
          , lastLoggedUserTime

@@ -239,7 +239,7 @@ class AppConfig {
     CheckOsType ::
     automaticMerger ::
     CheckMachineName ::
-//    new LastInventoryDate() ::
+    new LastInventoryDate() ::
     AddIpValues ::
     preCommitLogReport ::
     Nil

@@ -163,6 +163,7 @@ case class MachineInventory(
   , name          : Option[String] = None
   , mbUuid        : Option[MotherBoardUuid] = None
   , inventoryDate : Option[DateTime] = None
+  , receiveDate   : Option[DateTime] = None
   , bios          : Seq[Bios] = Nil
   , controllers   : Seq[Controller] = Nil
   , memories      : Seq[MemorySlot] = Nil
