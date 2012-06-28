@@ -454,7 +454,7 @@ class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
   def migrate(eventLog:MigrationEventLog) : Box[MigrationEventLog] = {
     /*
      * We don't use values from 
-     * com.normation.rudder.domain.log.*EventType
+     * com.normation.rudder.domain.eventlog.*EventType
      * so that if they change in the future, the migration
      * from 2.3 to 2.4 is still OK. 
      */

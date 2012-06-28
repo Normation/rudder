@@ -40,7 +40,7 @@ import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLogService
-import com.normation.rudder.domain.log.ReloadTechniqueLibrary
+import com.normation.rudder.domain.eventlog.ReloadTechniqueLibrary
 import com.normation.eventlog.EventLogDetails
 import net.liftweb.common._
 

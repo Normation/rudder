@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.log
+package com.normation.rudder.services.eventlog
 
 import net.liftweb.common._
 import com.normation.rudder.domain.nodes.NodeGroup

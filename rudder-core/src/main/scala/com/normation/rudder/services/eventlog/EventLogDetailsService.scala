@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.log
+package com.normation.rudder.services.eventlog
 
 import scala.xml.{Node => XNode, _}
 import net.liftweb.common._
@@ -46,7 +46,6 @@ import com.normation.rudder.domain.nodes._
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.log.InventoryLogDetails
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.services.marshalling.RuleUnserialisation
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisation
@@ -56,9 +55,8 @@ import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.domain.servers.NodeConfiguration
 import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisation
 import com.normation.rudder.batch.CurrentDeploymentStatus
-import com.normation.rudder.domain.log.NodeLogDetails
 import com.normation.inventory.domain.AgentType
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.repository.GitPath
 import com.normation.rudder.repository.GitCommitId

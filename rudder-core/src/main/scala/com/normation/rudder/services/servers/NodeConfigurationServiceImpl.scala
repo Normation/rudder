@@ -67,8 +67,8 @@ import com.normation.cfclerk.services._
 import net.liftweb.common._
 import com.normation.cfclerk.domain._
 import com.normation.rudder.domain.transporter._
-import com.normation.rudder.domain.log._
-import com.normation.rudder.services.log._
+import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.services.eventlog._
 import com.normation.eventlog._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft

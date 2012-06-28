@@ -44,7 +44,7 @@ import net.liftweb.util.Helpers._
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import net.liftweb.common.Loggable
 import com.normation.utils.NetUtils.isValidNetwork
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.policies._
 import com.normation.eventlog.EventActor
 

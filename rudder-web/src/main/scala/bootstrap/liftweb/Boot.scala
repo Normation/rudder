@@ -47,7 +47,7 @@ import javax.servlet.UnavailableException
 import LiftSpringApplicationContext.inject
 import com.normation.plugins.RudderPluginDef
 import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.domain.log.ApplicationStarted
+import com.normation.rudder.domain.eventlog.ApplicationStarted
 import com.normation.rudder.web.rest._
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
@@ -211,7 +211,7 @@ class Boot extends Loggable {
     inject[EventLogRepository].saveEventLog(
         ApplicationStarted(
             EventLogDetails(
-                principal = com.normation.rudder.domain.log.RudderEventActor
+                principal = com.normation.rudder.domain.eventlog.RudderEventActor
               , details = EventLog.emptyDetails
               , reason = None
             )

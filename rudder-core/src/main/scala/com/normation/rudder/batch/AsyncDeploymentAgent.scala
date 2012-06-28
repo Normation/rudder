@@ -43,12 +43,10 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.DeploymentService
 import net.liftweb.http.ListenerManager
 import com.normation.eventlog.{EventActor,EventLogService,EventLog}
-import com.normation.rudder.domain.log.{RudderEventActor,ManualStartDeployement,AutomaticStartDeployement}
+import com.normation.rudder.domain.eventlog._
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
-import com.normation.rudder.domain.log.FailedDeployment
-import com.normation.rudder.domain.log.SuccessfulDeployment
-import com.normation.rudder.services.log.EventLogDeploymentService
+import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import net.liftweb.common._
 import com.normation.eventlog.EventLogDetails
 import scala.xml.NodeSeq

@@ -52,7 +52,7 @@ import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.log.DirectiveEventLog
+import com.normation.rudder.domain.eventlog.DirectiveEventLog
 import com.normation.rudder.services.queries._
 import org.joda.time.Duration
 import org.joda.time.DateTime

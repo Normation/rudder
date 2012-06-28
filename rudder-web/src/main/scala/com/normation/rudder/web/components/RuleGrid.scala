@@ -56,7 +56,7 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.exceptions.TechnicalException
 import com.normation.utils.Control.sequence
 import com.normation.utils.HashcodeCaching
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.services.TechniqueRepository
 

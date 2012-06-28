@@ -51,7 +51,7 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.services.servers.NodeConfigurationService
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import com.normation.eventlog.EventLogService
-import com.normation.rudder.domain.log.ClearCacheEventLog
+import com.normation.rudder.domain.eventlog.ClearCacheEventLog
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
 

@@ -32,12 +32,37 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain
+package com.normation.rudder.services.eventlog
 
-import com.normation.eventlog.EventActor
 
-package object log {
+import com.normation.rudder.domain.eventlog.InventoryEventLog
+import com.normation.rudder.repository.EventLogRepository
+import net.liftweb.common._
 
-  val RudderEventActor = EventActor("rudder")
+class InventoryEventLogServiceImpl(
+    repository : EventLogRepository
+) extends InventoryEventLogService {
+  
+  
+  /**
+   * Returns all the inventory related event log
+   * @return
+   */
+  def getInventoryEventLogs() : Box[Seq[InventoryEventLog]] = {
+    repository.getEventLogByCriteria(Some(" eventType in ('AcceptNode', 'RefuseNode')")) match {
+      case Full(seq) => 
+        val result = scala.collection.mutable.Buffer[InventoryEventLog]()
+        for (log <- seq) {
+          log match {
+            case inventoryLog : InventoryEventLog =>result += inventoryLog
+            case _ => return Failure("Wrong event log type, not an inventory")
+          }
+        }
+        Full(result)
+      case Empty => Empty
+      case _ => Failure("Could not retrieve eventLogs")
+    }
+  }
 
 }
+

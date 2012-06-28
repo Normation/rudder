@@ -46,7 +46,7 @@ import com.normation.rudder.domain.policies._
 import com.normation.utils.Control._
 import org.joda.time.DateTime
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
 
 /**
  * That class add all the available reference template in 

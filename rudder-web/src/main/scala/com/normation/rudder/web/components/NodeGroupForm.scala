@@ -42,7 +42,7 @@ import com.normation.rudder.domain.queries.Query
 import net.liftweb.http.LocalSnippet
 import com.normation.rudder.services.policies.DependencyAndDeletionService
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
 
 import net.liftweb.http.js._
 import JsCmds._ // For implicits

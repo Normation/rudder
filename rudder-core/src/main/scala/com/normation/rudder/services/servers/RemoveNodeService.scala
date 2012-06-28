@@ -15,7 +15,7 @@ import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.{AcceptedInventory,RemovedInventory}
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import com.normation.utils.ScalaReadWriteLock
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.inventory.services.core.MachineRepository

@@ -32,10 +32,10 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.log
+package com.normation.rudder.services.eventlog
 
 import net.liftweb.common.Box
-import com.normation.rudder.domain.log.InventoryEventLog
+import com.normation.rudder.domain.eventlog.InventoryEventLog
 
 trait InventoryEventLogService {
   
