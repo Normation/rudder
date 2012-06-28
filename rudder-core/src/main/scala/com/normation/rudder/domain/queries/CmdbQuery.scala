@@ -403,7 +403,7 @@ case object GroupOfDnsComparator extends CriterionType {
   override def toLDAP(value:String) = Full(value)
 }
 */
-case class JsonComparator(key:String,splitter:String = "") extends TStringComparator {
+case class JsonComparator(key:String,splitter:String = "",numericvalue:Boolean = false) extends TStringComparator {
   override val comparators = BaseComparators.comparators  
   
   def splitJson(attribute:String,value:String) = {
@@ -414,7 +414,8 @@ case class JsonComparator(key:String,splitter:String = "") extends TStringCompar
        (Array(value),Array(attribute))
   if (splittedvalue.size==splittedattribute.size){
     val keyvalue = (splittedattribute.toList,splittedvalue.toList).zipped map( (attribute,value) => (attribute,value))
-    Full(keyvalue.map(attval => "\"%s\":\"%s\"".format(attval._1,attval._2)))
+    Full(keyvalue.map(attval => if (numericvalue) "\"%s\":%s".format(attval._1,attval._2) else
+      "\"%s\":\"%s\"".format(attval._1,attval._2)))
     }
   else {
     Failure("not enough argument")
