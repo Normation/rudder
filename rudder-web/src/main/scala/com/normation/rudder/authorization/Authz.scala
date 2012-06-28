@@ -32,34 +32,36 @@
 *************************************************************************************
 */
 package com.normation.rudder.authorization
+
 import com.normation.authorization._
 
 /**
- * 
+ * That file describe the UI available roles and bounded authorization. 
+ * For now, they are kind of ad-hoc, but some of the logic 
+ * could be generalized to build a full 
  */
+
+// list of know rights
+
+//
+case object NoRights extends AuthorizationType { val id = "NO_RIGHTS" }
 case object NodeRead extends AuthorizationType { val id = "NODE_READ" }
-
-case class Read(name:String) extends AuthorizationType { val id = "%s_READ".format(name.toUpperCase()) }
-
+case object NodeWrite extends AuthorizationType { val id = "NODE_WRITE" }
 case object Administration extends AuthorizationType { val id = "ADMINISTRATION" }
 
+case class Read(name:String) extends AuthorizationType { val id = "%s_READ".format(name.toUpperCase()) }
 case class Edit(name:String) extends AuthorizationType { val id = "%s_EDIT".format(name.toUpperCase()) }
-
 case class Write(name:String) extends AuthorizationType { val id = "%s_WRITE".format(name.toUpperCase()) }
 
-case object NodeWrite extends AuthorizationType { val id = "NODE_WRITE" }
 
-case object NoRights extends AuthorizationType { val id = "NO_RIGHTS" }
-
-case object AnyRights extends AuthorizationType { val id = "ANY_RIGHTS" }
-
-object AuthztoRights {
+object AuthzToRights {
   
-  val configurationkind = List("configuration","rule","directive","technique")
-  val authKind = List("group","inventory"):::configurationkind
+  val configurationKind = List("configuration","rule","directive","technique")
+  val authKind = List("group","inventory"):::configurationKind
   val allWrite = authKind.map(Write(_))
   val allRead  = authKind.map(Read(_))
   val allEdit  = authKind.map(Edit(_))
+  
   def parseRole(roles:Seq[String]):Rights = {
     new Rights(roles.flatMap(_ match {
       case "administrator" => List(Administration,NodeRead,NodeWrite) ::: allWrite ::: allRead ::: allEdit
@@ -67,25 +69,24 @@ object AuthztoRights {
       case "read_only" => List(Administration,NodeRead) ::: allRead 
       case "user" => List(NodeRead,NodeWrite) ::: allWrite ::: allRead ::: allEdit
       case "inventory" =>  List(NodeRead)
-      case "configuration" => configurationkind.flatMap(kind => List(Read(kind),Write(kind),Edit(kind)))
+      case "configuration" => configurationKind.flatMap(kind => List(Read(kind),Write(kind),Edit(kind)))
       case "rule_only" => List(Read("configuration"),Read("rule"))
       case role => List(parseAuthz(role))
     }): _*)
   }
     
   def parseAuthz(role : String) : AuthorizationType = {
-	  val read = """(.*)_read""".r
-	  val write = """(.*)_write""".r
-	  val edit = """(.*)_edit""".r
-     role.toLowerCase() match {
-	     case "any" => AnyRights
-       case "node_read" => NodeRead
-       case "node_write" => NodeWrite
-       case read(kind)  if (authKind.contains(kind)) => Read(kind) 
-       case write(kind) if (authKind.contains(kind)) => Write(kind) 
-       case edit(kind)  if (authKind.contains(kind)) => Edit(kind)
-       case "administration" => Administration
-       case _ =>  NoRights
-     }
+    val read = """(.*)_read""".r
+    val write = """(.*)_write""".r
+    val edit = """(.*)_edit""".r
+    role.toLowerCase() match {
+      case "node_read" => NodeRead
+      case "node_write" => NodeWrite
+      case "administration" => Administration
+      case read(kind)  if (authKind.contains(kind)) => Read(kind) 
+      case write(kind) if (authKind.contains(kind)) => Write(kind) 
+      case edit(kind)  if (authKind.contains(kind)) => Edit(kind)
+      case _ =>  NoRights
+    }
   }
 }

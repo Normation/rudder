@@ -38,7 +38,7 @@ import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.context.SecurityContextHolder
 import com.normation.eventlog.EventActor
 import net.liftweb.http.SessionVar
-import bootstrap.liftweb.DemoUserDetail
+import bootstrap.liftweb.RudderUserDetail
 import com.normation.rudder.authorization._
 import com.normation.authorization._
 
@@ -47,31 +47,31 @@ import com.normation.authorization._
  * (if any)
  *
  */
-object CurrentUser extends SessionVar[Option[DemoUserDetail]]({
+object CurrentUser extends SessionVar[Option[RudderUserDetail]]({
   SecurityContextHolder.getContext.getAuthentication match {
     case null => None
     case auth => auth.getPrincipal match {
-      case u:DemoUserDetail => Some(u)
+      case u:RudderUserDetail => Some(u)
       case _ => None
     }
   }
   
 }) {
 
-  def getRights = this.is match {
+  def getRights : Rights = this.is match {
     case Some(u) => u.authz
     case None => new Rights(NoRights)
   }
-  def getActor = this.is match {
+  
+  def getActor : EventActor = this.is match {
     case Some(u) => EventActor(u.getUsername)
     case None => EventActor("unknown")
   }
   
-  def checkRights(auth:AuthorizationType) = {
+  def checkRights(auth:AuthorizationType) : Boolean = {
     val authz = getRights.authorizationTypes
     if (authz.contains(NoRights)) false
     else auth match{
-      case AnyRights => true
       case NoRights => false
       case _ =>  authz.contains(auth)
     }

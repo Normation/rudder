@@ -52,9 +52,9 @@ import com.normation.rudder.web.rest._
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.authorization._
 import com.normation.rudder.authorization._
-import com.normation.rudder.authorization.Read
+import com.normation.authorization.AuthorizationType
+
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -91,11 +91,6 @@ class Boot extends Loggable {
   
     // URL rewrites
     LiftRules.statefulRewrite.append {
-      //if no Directive server if configured, force to configure one
-//      case RewriteRequest(path,_,_) if(RudderContext.rootNodeNotDefined && (path match { 
-//        case ParsePath("secure"::"nodeManager"::"policyServers"::Nil, _, _, _) => false 
-//        case _ => true
-//      })) => RewriteResponse("secure"::"nodeManager"::"policyServers"::Nil)
       case RewriteRequest(ParsePath("secure" :: "configurationManager" :: "techniqueLibraryManagement" :: activeTechniqueId :: Nil, _, _, _), GetRequest, _) =>
         RewriteResponse("secure" :: "configurationManager" :: "techniqueLibraryManagement" :: Nil, Map("techniqueId" -> activeTechniqueId))
       case RewriteRequest(ParsePath("secure"::"nodeManager"::"searchNodes"::nodeId::Nil, _, _, _), GetRequest, _) =>
@@ -147,75 +142,46 @@ class Boot extends Loggable {
       
     val nodeManagerMenu = 
       Menu("NodeManagerHome", <span>Node Management</span>)  / "secure" / "nodeManager" / "index"  >>
-      TestAccess( () =>
-        if(CurrentUser.checkRights(NodeRead))
-          Empty
-        else
-          Full(RedirectWithState("/secure/index", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) )
-       ) submenus (
+      TestAccess( () => userIsAllowed(NodeRead) ) submenus (
           
-          Menu("SearchNodes", <span>Search nodes</span>)       / "secure" / "nodeManager" / "searchNodes" >> LocGroup("nodeGroup") 
+            Menu("SearchNodes", <span>Search nodes</span>)       / "secure" / "nodeManager" / "searchNodes" >> LocGroup("nodeGroup") 
         
-        , Menu("ManageNewNode", <span>Accept new nodes</span>) / "secure" / "nodeManager" / "manageNewNode" >>  LocGroup("nodeGroup")
+        ,   Menu("ManageNewNode", <span>Accept new nodes</span>) / "secure" / "nodeManager" / "manageNewNode" >>  LocGroup("nodeGroup")
           
-        , Menu("Groups", <span>Groups</span>)                  / "secure" / "nodeManager" / "groups" >> LocGroup("groupGroup")
-        >> TestAccess( () =>
-          if(CurrentUser.getRights.authorizationTypes.contains(Read("group")))
-            Empty
-          else
-            Full(RedirectWithState("/secure/index", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) )
-            ) ) 
-        
+        , ( 
+            Menu("Groups", <span>Groups</span>)                  / "secure" / "nodeManager" / "groups" 
+              >> LocGroup("groupGroup") 
+              >> TestAccess( () => userIsAllowed(Read("group")) ) 
+          )
+          
         //Menu(Loc("PolicyServers", List("secure", "nodeManager","policyServers"), <span>Rudder server</span>,  LocGroup("nodeGroup"))) ::
         //Menu(Loc("UploadedFiles", List("secure", "nodeManager","uploadedFiles"), <span>Manage uploaded files</span>, LocGroup("filesGroup"))) ::
-      
+      )
 
     def buildManagerMenu(name:String) =
       Menu(name+"ManagerHome", <span>{name.capitalize} Management</span>) / "secure" / (name+"Manager") / "index" >>
-      TestAccess ( () =>
-        if(CurrentUser.checkRights(Read("configuration")))
-          Empty
-        else
-            Full(RedirectWithState("/secure/index", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) )
-        ) submenus (
+      TestAccess ( () => userIsAllowed(Read("configuration")) ) submenus (
           
           Menu(name+"RuleManagement", <span>Rules</span>) / 
-            "secure" / (name+"Manager") / "ruleManagement" >> LocGroup(name+"Group") 
-            >> TestAccess( () =>
-              if(CurrentUser.checkRights(Read("rule")))
-                Empty
-              else
-                Full(RedirectWithState("/secure/index", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) )
-            )
+            "secure" / (name+"Manager") / "ruleManagement" >> 
+            LocGroup(name+"Group") >> 
+            TestAccess( () => userIsAllowed(Read("rule")) ) 
             
         , Menu(name+"DirectiveManagement", <span>Directives</span>) / 
-            "secure" / (name+"Manager") / "directiveManagement" >> LocGroup(name+"Group")
-            >> TestAccess( () =>
-              if(CurrentUser.checkRights(Read("directive")))
-                Empty
-              else
-                Full(RedirectWithState("/secure/index", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) )
-            )
+            "secure" / (name+"Manager") / "directiveManagement" >> 
+            LocGroup(name+"Group") >> 
+            TestAccess( () => userIsAllowed(Read("directive")) )
             
         , Menu("TechniqueLibraryManagement", <span>Techniques</span>) /
-            "secure" / (name+"Manager") / "techniqueLibraryManagement" >>  LocGroup(name+"Group")
-            >> TestAccess( () =>
-              if(CurrentUser.checkRights(Read("technique")))
-                Empty
-              else
-                Full(RedirectWithState("/secure/index", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) )
-            )
+            "secure" / (name+"Manager") / "techniqueLibraryManagement" >>  
+            LocGroup(name+"Group") >> 
+            TestAccess( () => userIsAllowed(Read("technique")) )
       )
       
       
     def administrationMenu = 
       Menu("AdministrationHome", <span>Administration</span>) / "secure" / "administration" /"index" >>
-      TestAccess ( () =>
-        if(CurrentUser.checkRights(Administration))
-          Empty
-          else
-            Full(RedirectWithState("/secure/index", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) )
-      ) submenus (
+        TestAccess ( () => userIsAllowed(Administration) ) submenus (
           
           Menu("archivesManagement", <span>Archives</span>) / 
             "secure" / "administration" / "archiveManagement" >> LocGroup("administrationGroup")
@@ -261,7 +227,10 @@ class Boot extends Loggable {
               , reason = None
             )
         )
-     )
+    ) match {
+      case eb:EmptyBox => logger.error("Error when trying to save the EventLog for application start")
+      case _ => //nothing to do
+    }
   }
   
   private[this] def initPlugins(menus:List[Menu]) : List[Menu] = {
@@ -287,4 +256,11 @@ class Boot extends Loggable {
     LiftRules.addToPackages(plugin.basePackage)
   }
   
+  private[this] def userIsAllowed(requiredAuthz:AuthorizationType) : Box[LiftResponse] =  {
+    if(CurrentUser.checkRights(requiredAuthz)) {
+      Empty
+    } else {
+      Full(RedirectWithState("/secure/index", RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error ) ) )
+    }
+  }
 }
