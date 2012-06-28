@@ -144,13 +144,7 @@ class AppConfig extends Loggable {
   var UPLOAD_ROOT_DIRECTORY = ""
 
   @Value("${base.url}")
-  var BASE_URL = ""
-
-  @Value("${rudder.dir.policies}")
-  var baseFolder = ""
-    
-  @Value("${rudder.dir.nodes-promises}")
-  var servedPromisesFolder = ""    
+  var BASE_URL = "" 
     
   @Value("${rudder.dir.backup}")
   var backupFolder = ""
@@ -167,7 +161,6 @@ class AppConfig extends Loggable {
   @Value("${rudder.dir.shared.files.folder}")
   var sharedFilesFolder = ""
 
-    
   @Value("${rudder.dir.licensesFolder}")
   var licensesFolder = ""
   @Value("${rudder.endpoint.cmdb}")
@@ -392,7 +385,6 @@ class AppConfig extends Loggable {
   @Bean
   def pathComputer = new PathComputerImpl(
     ldapNodeConfigurationRepository,
-    baseFolder, servedPromisesFolder,
     backupFolder)
 
   @Bean
@@ -429,7 +421,6 @@ class AppConfig extends Loggable {
       )
     , systemVariableSpecService
     , nodeInfoService
-    , baseFolder
     , toolsFolder
     , cmdbEndpoint
     , communityPort

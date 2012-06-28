@@ -61,6 +61,24 @@ object Constants {
   /////////// Policy Node: DistributePolicy directive variable //////////
   val V_ALLOWED_NETWORK = "ALLOWEDNETWORK"
     
+  /////////// PATH for generated promises ///////////////
+  
+  /**
+   * We don't have any simple way to tell a node to not look for
+   * its promises elsewhere than where it was configured initially
+   * (in its initial promises)
+   * So that path must be hardcoded until we have a mean to say to a
+   * node "if you don't find you specific promises, go look here
+   * for a shared failsafe that will help you". 
+   */
+  val NODE_PROMISES_PARENT_DIR_BASE = "/var/rudder"
+  val NODE_PROMISES_PARENT_DIR = "share"
+    
+  val CFENGINE_COMMUNITY_PROMISES_PATH = "/var/rudder/cfengine-community/inputs"
+  val CFENGINE_NOVA_PROMISES_PATH = "/var/cfengine/inputs"
+    
+  /////////////////////////////////////////////////
+    
   /**
    * The lapse of time when we consider that the CR is still pending
    * Let's say 10 minutes 

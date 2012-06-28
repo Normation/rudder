@@ -56,15 +56,15 @@ import com.normation.exceptions.BusinessException
  */
 class PathComputerImpl(
             nodeConfigurationRepository : NodeConfigurationRepository
-         ,  baseFolder          : String // /var/rudder/
-         ,  relativeShareFolder : String // share
          ,  backupFolder        : String // /var/rudder/backup/
 ) extends PathComputer with Loggable {
 
   
-  val promisesPrefix = "rules/"
-  
+  private[this] val promisesPrefix = "rules/"
     
+  private[this] val baseFolder = Constants.NODE_PROMISES_PARENT_DIR_BASE
+  private[this] val relativeShareFolder = Constants.NODE_PROMISES_PARENT_DIR
+  
   /**
    * Compute the base path for a machine, i.e. the full path on the root server to the data
    * the searched machine will fetch, and the backup folder
@@ -93,8 +93,8 @@ class PathComputerImpl(
    */
   def getRootPath(agentType : AgentType) : String = {
     agentType match {
-        case NOVA_AGENT => "/var/cfengine/inputs"
-        case COMMUNITY_AGENT =>  "/var/rudder/cfengine-community/inputs"
+        case NOVA_AGENT => Constants.CFENGINE_NOVA_PROMISES_PATH 
+        case COMMUNITY_AGENT => Constants.CFENGINE_COMMUNITY_PROMISES_PATH
         case x => throw new BusinessException("Unrecognized agent type: %s".format(x))
     }
   }
