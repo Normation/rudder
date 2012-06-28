@@ -201,29 +201,28 @@ class DitQueryData(dit:InventoryDit) {
       Criterion(A_TOTAL_SPACE, MemoryComparator)
     )),
     ObjectCriterion(A_PROCESS, Seq(
+      Criterion("pid", JsonComparator(A_PROCESS,"",true)),
       Criterion("commandName", JsonComparator(A_PROCESS)),
-      Criterion("cpuUsage", JsonComparator(A_PROCESS)),
-      Criterion("memoryUsage", JsonComparator(A_PROCESS)),
-      Criterion("processUser", JsonComparator(A_PROCESS))
-      /*Some other criterion
-val A_PID = "processID"
-val A_PROC_START = "start"
-val A_TTY = "tty"
-val A_VIRTUAL_MEMORY = "virtualMemory"*/
+      Criterion("cpuUsage", JsonComparator(A_PROCESS,"",true)),
+      Criterion("memory", JsonComparator(A_PROCESS,"",true)),
+      Criterion("tty", JsonComparator(A_PROCESS)),
+      Criterion("virtualMemory", JsonComparator(A_PROCESS,"",true)),
+      Criterion("datetime", JsonComparator(A_PROCESS)),
+      Criterion("user", JsonComparator(A_PROCESS))
     )),
     ObjectCriterion(OC_VM_INFO, leObjectCriterion.criteria ++ Seq(
       Criterion(A_VM_TYPE, StringComparator),
       Criterion(A_VM_OWNER, StringComparator),
       Criterion(A_VM_STATUS, StringComparator),
-      Criterion(A_VM_CPU, StringComparator)
+      Criterion(A_VM_CPU, LongComparator),
+      Criterion(A_VM_MEMORY, LongComparator),
+      Criterion(A_VM_ID, StringComparator),
+      Criterion(A_VM_SUBSYSTEM, StringComparator),
+      Criterion(A_VM_NAME, StringComparator)
     )),
     ObjectCriterion(A_EV, Seq(
       Criterion("name.value", JsonComparator(A_EV,"=") )
     ))/*,
-val A_VM_ID = "virtualMachineUuid"
-val A_VM_SUBSYSTEM = "subsystem"
-val A_VM_NAME = "vmName"
-val A_VM_MEMORY = "vmMemory"
 ObjectCriterion(OC_GROUP_OF_DNS,Seq(
 Criterion(A_NAME,GroupOfDnsComparator)
 ))*/ // Hidding a code difficult to import

@@ -105,6 +105,7 @@ localAdministratorAccountName: root
 nodeHostname: %%POLICY_SERVER_HOSTNAME%%
 PolicyServerId: root
 inventoryDate: 19700101000000+0200
+receiveDate: 19700101000000+0200
 ipHostNumber: 127.0.0.1
 agentName: Community
 #agentsName: Nova
