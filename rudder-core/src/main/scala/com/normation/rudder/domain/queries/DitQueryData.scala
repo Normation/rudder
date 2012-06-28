@@ -42,7 +42,6 @@ import BuildFilter._
 import scala.collection.{SortedMap,SortedSet}
 import com.normation.rudder.services.queries.SpecialFilter
 import com.normation.utils.HashcodeCaching
-import com.normation.rudder.domain.queries.JsonComparator
 
 
 /*
