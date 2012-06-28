@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
+package com.normation.rudder.domain.eventlog
 
 
 import com.normation.eventlog._
@@ -40,56 +40,39 @@ import scala.xml._
 import com.normation.rudder.domain.policies._
 import org.joda.time.DateTime
 import net.liftweb.common._
+import com.normation.cfclerk.domain._
 import com.normation.utils.HashcodeCaching
+import com.normation.eventlog.EventLogDetails
+import com.normation.rudder.domain.Constants
 
+sealed trait TechniqueEventLog extends EventLog { override final val eventLogCategory = TechniqueLogCategory }
 
-sealed trait RuleEventLog extends EventLog { override final val eventLogCategory = RuleLogCategory }
-
-final case class AddRule(
+final case class ReloadTechniqueLibrary(
     override val eventDetails : EventLogDetails
-) extends RuleEventLog with HashcodeCaching {
-  override val eventType = AddRule.eventType
+) extends TechniqueEventLog with HashcodeCaching {
+  override val cause = None
+  override val eventType = ReloadTechniqueLibrary.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object AddRule extends EventLogFilter {
-  override val eventType = AddRuleEventType
+object ReloadTechniqueLibrary extends EventLogFilter {
+  override val eventType = ReloadTechniqueLibraryType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : AddRule = AddRule(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2) 
+
+  def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent { 
+    <reloadTechniqueLibrary fileFormat={Constants.XML_FILE_FORMAT_2.toString}>{ TechniqueIds.map { case TechniqueId(name, version) =>
+      <modifiedTechnique>
+        <name>{name.value}</name>
+        <version>{version.toString}</version>
+      </modifiedTechnique>
+    } }</reloadTechniqueLibrary>
+  }
+
 }
 
-
-final case class DeleteRule(
-    override val eventDetails : EventLogDetails
-) extends RuleEventLog with HashcodeCaching {
-  override val eventType = DeleteRule.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-}
-
-object DeleteRule extends EventLogFilter {
-  override val eventType = DeleteRuleEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : DeleteRule = DeleteRule(x._2) 
-}
-
-
-final case class ModifyRule(
-    override val eventDetails : EventLogDetails
-) extends RuleEventLog with HashcodeCaching {
-  override val eventType = ModifyRule.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-}
-
-object ModifyRule extends EventLogFilter {
-  override val eventType = ModifyRuleEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyRule = ModifyRule(x._2) 
-}
-
-object RuleEventLogsFilter {
+object TechniqueEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      AddRule 
-    , DeleteRule 
-    , ModifyRule
+      ReloadTechniqueLibrary 
     )
 }

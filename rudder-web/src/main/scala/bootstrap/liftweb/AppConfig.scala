@@ -70,7 +70,7 @@ import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.rudder.repository.ldap._
 import java.io.File
 import org.joda.time.DateTime
-import com.normation.rudder.services.log._
+import com.normation.rudder.services.eventlog._
 import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.services.impl._
 import scala.collection.JavaConversions._
@@ -81,14 +81,14 @@ import com.normation.rudder.repository._
 import net.liftweb.common.Loggable
 import com.normation.rudder.services.servers.NodeConfigurationChangeDetectServiceImpl
 import org.apache.commons.dbcp.BasicDataSource
-import com.normation.rudder.services.log.HistorizationServiceImpl
+import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.policies.DeployOnTechniqueCallback
 import scala.xml.PrettyPrinter
 import com.normation.rudder.services.marshalling._
 import com.normation.utils.ScalaLock
 import com.normation.rudder.web.rest._
 import com.normation.rudder.services.user.TrivialPersonIdentService
-import com.normation.rudder.services.log.EventLogFactoryImpl
+import com.normation.rudder.services.eventlog.EventLogFactoryImpl
 import com.normation.rudder.migration.ControlEventLogsMigration_10_2
 import com.normation.rudder.migration.EventLogsMigration_10_2
 import com.normation.rudder.migration.MigrationEventLogRepository

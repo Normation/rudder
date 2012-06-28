@@ -35,13 +35,13 @@ package com.normation.rudder.web.services
 
 import scala.xml._
 import com.normation.eventlog.EventLog
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import net.liftweb.common._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.services.log.EventLogDetailsService
+import com.normation.rudder.services.eventlog.EventLogDetailsService
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.web.model.JsInitContextLinkUtil._

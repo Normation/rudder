@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
+package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
 import scala.xml._

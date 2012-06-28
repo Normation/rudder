@@ -45,7 +45,7 @@ import RudderLDAPConstants._
 import net.liftweb.common._
 import com.normation.utils.Control.sequence
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.log.{
+import com.normation.rudder.domain.eventlog.{
   DeleteDirective,AddDirective,ModifyDirective
 }
 import com.normation.cfclerk.services.TechniqueRepository

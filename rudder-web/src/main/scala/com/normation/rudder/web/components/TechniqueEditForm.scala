@@ -59,7 +59,7 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.rudder.services.policies._
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
 
 object TechniqueEditForm {

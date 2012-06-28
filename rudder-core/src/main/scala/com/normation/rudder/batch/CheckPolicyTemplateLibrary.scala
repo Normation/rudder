@@ -39,7 +39,7 @@ import com.normation.rudder.domain.Constants.TECHLIB_MINIMUM_UPDATE_INTERVAL
 import net.liftweb.actor.{LiftActor, LAPinger}
 import net.liftweb.common.Loggable
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
 
 case class StartLibUpdate(actor: EventActor)

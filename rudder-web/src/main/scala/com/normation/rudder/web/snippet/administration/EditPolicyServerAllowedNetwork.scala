@@ -51,10 +51,10 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.eventlog.EventLogService
 import com.normation.rudder.batch.AsyncDeploymentAgent
-import com.normation.rudder.domain.log.UpdatePolicyServer
+import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.eventlog.EventLogDetails
 import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.domain.log.AuthorizedNetworkModification
+import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification
 
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       

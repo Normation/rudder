@@ -47,7 +47,7 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import com.normation.rudder.repository.EventLogRepository
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import com.normation.rudder.domain.log.LogoutEventLog
+import com.normation.rudder.domain.eventlog.LogoutEventLog
 import com.normation.eventlog.EventActor
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.eventlog.EventLogDetails

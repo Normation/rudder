@@ -51,7 +51,7 @@ import net.liftweb.common._
 import com.normation.utils.Control.sequence
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.log.{
+import com.normation.rudder.domain.eventlog.{
   DeleteRule, AddRule, ModifyRule
 }
 import org.joda.time.format.ISODateTimeFormat

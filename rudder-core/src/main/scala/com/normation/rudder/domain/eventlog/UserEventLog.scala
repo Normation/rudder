@@ -32,47 +32,71 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
+package com.normation.rudder.domain.eventlog
 
-
-import com.normation.eventlog._
-import scala.xml._
-import com.normation.rudder.domain.policies._
+import scala.xml.NodeSeq
+import com.normation.eventlog.{EventLog,EventActor}
+import java.security.Principal
 import org.joda.time.DateTime
-import net.liftweb.common._
-import com.normation.cfclerk.domain._
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.EventLogDetails
-import com.normation.rudder.domain.Constants
+import com.normation.eventlog.EventLogFilter
+import com.normation.eventlog.EventLogType
 
-sealed trait TechniqueEventLog extends EventLog { override final val eventLogCategory = TechniqueLogCategory }
+sealed trait UserEventLog extends EventLog {
+  override final val details = EventLog.emptyDetails
+  override final val eventLogCategory = UserLogCategory
+}
 
-final case class ReloadTechniqueLibrary(
+
+final case class LoginEventLog(
     override val eventDetails : EventLogDetails
-) extends TechniqueEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = ReloadTechniqueLibrary.eventType
+) extends UserEventLog with HashcodeCaching {
+  
+  override val eventType = LoginEventLog.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object ReloadTechniqueLibrary extends EventLogFilter {
-  override val eventType = ReloadTechniqueLibraryType
+object LoginEventLog extends EventLogFilter {
+  override val eventType = LoginEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2) 
-
-  def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent { 
-    <reloadTechniqueLibrary fileFormat={Constants.XML_FILE_FORMAT_2.toString}>{ TechniqueIds.map { case TechniqueId(name, version) =>
-      <modifiedTechnique>
-        <name>{name.value}</name>
-        <version>{version.toString}</version>
-      </modifiedTechnique>
-    } }</reloadTechniqueLibrary>
-  }
-
+  override def apply(x : (EventLogType, EventLogDetails)) : LoginEventLog = LoginEventLog(x._2) 
 }
 
-object TechniqueEventLogsFilter {
+final case class BadCredentialsEventLog(
+    override val eventDetails : EventLogDetails
+) extends UserEventLog with HashcodeCaching {
+
+  override val eventType = BadCredentialsEventLog.eventType
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+}
+
+object BadCredentialsEventLog extends EventLogFilter {
+  override val eventType = BadCredentialsEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : BadCredentialsEventLog = BadCredentialsEventLog(x._2) 
+}
+
+
+final case class LogoutEventLog(
+    override val eventDetails : EventLogDetails
+) extends UserEventLog with HashcodeCaching {
+  
+  override val eventType = LogoutEventLog.eventType
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+}
+
+object LogoutEventLog extends EventLogFilter {
+  override val eventType = LogoutEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : LogoutEventLog = LogoutEventLog(x._2) 
+}
+
+
+object UserEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      ReloadTechniqueLibrary 
+      LoginEventLog
+    , LogoutEventLog
+    , BadCredentialsEventLog
     )
 }

@@ -39,7 +39,7 @@ import com.normation.rudder.domain.nodes.{NodeGroup,NodeGroupId}
 import net.liftweb.common._
 import net.liftweb.actor._
 import org.joda.time._
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.Constants.DYNGROUP_MINIMUM_UPDATE_INTERVAL
 import com.normation.utils.HashcodeCaching
 

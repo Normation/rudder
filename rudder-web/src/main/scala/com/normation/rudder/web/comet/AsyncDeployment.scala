@@ -48,11 +48,11 @@ import org.joda.time.Duration
 import org.joda.time.format.PeriodFormatterBuilder
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.services.log.EventLogDeploymentService
+import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.eventlog.EventLog
-import com.normation.rudder.domain.log.ModificationWatchList
+import com.normation.rudder.domain.eventlog.ModificationWatchList
 import com.normation.eventlog.UnspecializedEventLog
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.web.services.EventListDisplayer

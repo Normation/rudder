@@ -32,65 +32,72 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
-
+package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
-import scala.xml._
-import com.normation.rudder.domain.policies._
+import scala.xml.NodeSeq
 import org.joda.time.DateTime
-import net.liftweb.common._
-import com.normation.cfclerk.domain._
 import com.normation.utils.HashcodeCaching
 
-sealed trait DirectiveEventLog extends EventLog { override final val eventLogCategory = DirectiveLogCategory }
+sealed trait PromiseEventLog extends EventLog { override final val eventLogCategory = DeploymentLogCategory }
 
-final case class AddDirective(
+final case class AutomaticStartDeployement(
     override val eventDetails : EventLogDetails
-) extends DirectiveEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = AddDirective.eventType
+) extends PromiseEventLog with HashcodeCaching {
+  override val eventType = AutomaticStartDeployement.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object AddDirective extends EventLogFilter {
-  override val eventType = AddDirectiveEventType
+object AutomaticStartDeployement extends EventLogFilter {
+  override val eventType = AutomaticStartDeployementEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : AddDirective = AddDirective(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : AutomaticStartDeployement = AutomaticStartDeployement(x._2) 
 }
 
-final case class DeleteDirective(
+final case class ManualStartDeployement(
     override val eventDetails : EventLogDetails
-) extends DirectiveEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = DeleteDirective.eventType
+) extends PromiseEventLog with HashcodeCaching {
+  override val eventType = ManualStartDeployement.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object DeleteDirective extends EventLogFilter {
-  override val eventType = DeleteDirectiveEventType
+object ManualStartDeployement extends EventLogFilter {
+  override val eventType = ManualStartDeployementEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : DeleteDirective = DeleteDirective(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ManualStartDeployement = ManualStartDeployement(x._2) 
 }
 
-final case class ModifyDirective(
+final case class SuccessfulDeployment (
     override val eventDetails : EventLogDetails
-) extends DirectiveEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = ModifyDirective.eventType
+) extends PromiseEventLog with HashcodeCaching {
+  override val eventType = SuccessfulDeployment.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object ModifyDirective extends EventLogFilter {
-  override val eventType = ModifyDirectiveEventType
+object SuccessfulDeployment extends EventLogFilter {
+  override val eventType = SuccessfulDeploymentEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyDirective = ModifyDirective(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : SuccessfulDeployment = SuccessfulDeployment(x._2) 
 }
 
-object DirectiveEventLogsFilter {
+final case class FailedDeployment (
+    override val eventDetails : EventLogDetails
+) extends PromiseEventLog with HashcodeCaching {
+  override val eventType = FailedDeployment.eventType
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+}
+
+object FailedDeployment extends EventLogFilter {
+  override val eventType = FailedDeploymentEventType
+ 
+  override def apply(x : (EventLogType, EventLogDetails)) : FailedDeployment = FailedDeployment(x._2) 
+}
+
+object PromisesEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      AddDirective 
-    , DeleteDirective 
-    , ModifyDirective
+      AutomaticStartDeployement
+    , ManualStartDeployement
+    , SuccessfulDeployment
+    , FailedDeployment
     )
 }

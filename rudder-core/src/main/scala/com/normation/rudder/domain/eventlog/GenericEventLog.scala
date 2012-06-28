@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
+package com.normation.rudder.domain.eventlog
 
 import org.joda.time.DateTime
 import com.normation.eventlog.EventActor

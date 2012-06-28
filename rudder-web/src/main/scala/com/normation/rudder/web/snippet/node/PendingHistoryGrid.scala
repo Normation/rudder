@@ -36,16 +36,16 @@ package com.normation.rudder.web.snippet.node
 
 
 import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
-import com.normation.rudder.services.log.{
+import com.normation.rudder.services.eventlog.{
   InventoryEventLogService, EventLogDetailsService
 }
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
 import com.normation.rudder.domain.servers.Srv
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import com.normation.eventlog._
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.model.JsNodeId

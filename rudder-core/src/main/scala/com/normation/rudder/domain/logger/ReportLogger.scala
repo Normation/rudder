@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.logger
+package com.normation.rudder.domain.eventlogger
 
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger

@@ -38,7 +38,7 @@ import net.liftweb.common._
 import com.normation.eventlog._
 import java.security.Principal
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.services.log.EventLogFactory
+import com.normation.rudder.services.eventlog.EventLogFactory
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff

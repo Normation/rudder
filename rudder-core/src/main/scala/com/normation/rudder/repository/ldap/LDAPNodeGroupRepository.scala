@@ -50,7 +50,7 @@ import RudderLDAPConstants._
 import com.normation.utils.Control.sequence
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import scala.collection.SortedMap
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.utils.ScalaReadWriteLock

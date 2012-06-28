@@ -21,7 +21,7 @@ import com.normation.rudder.web.model.{
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import CreateRulePopup._
-import com.normation.rudder.domain.log.AddRule
+import com.normation.rudder.domain.eventlog.AddRule
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.repository._
 import com.normation.rudder.services.nodes.NodeInfoService

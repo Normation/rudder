@@ -61,7 +61,7 @@ import org.antlr.stringtemplate._
 import org.antlr.stringtemplate.language._
 import com.normation.stringtemplate.language._
 import com.normation.rudder.domain.transporter._
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.services.reports._
 import com.normation.cfclerk.domain._
 import Process._

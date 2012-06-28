@@ -38,7 +38,7 @@ import com.normation.rudder.repository.EventLogRepository
 import org.joda.time.DateTime
 import org.slf4j.{Logger,LoggerFactory}
 import com.normation.eventlog._
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import com.normation.cfclerk.domain.Cf3PolicyDraftId
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core._
@@ -56,8 +56,8 @@ import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.policies.DeleteRuleDiff
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.services.log.EventLogFactory
-import com.normation.rudder.domain.log._
+import com.normation.rudder.services.eventlog.EventLogFactory
+import com.normation.rudder.domain.eventlog._
 
 /**
  * The EventLog repository

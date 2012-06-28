@@ -44,7 +44,7 @@ import Helpers._
 import net.liftweb.http._
 import com.normation.rudder.services.policies._
 import com.normation.rudder.batch.{ AsyncDeploymentAgent, AutomaticStartDeployment }
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import JE._
 import net.liftweb.common._
 import scala.xml._
@@ -54,7 +54,7 @@ import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import com.normation.eventlog.EventActor
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup

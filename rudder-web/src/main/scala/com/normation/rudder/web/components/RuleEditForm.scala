@@ -53,10 +53,10 @@ import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
 import net.liftweb.json._
-import com.normation.rudder.domain.log.{
+import com.normation.rudder.domain.eventlog.{
   DeleteRule,
   ModifyRule
 }

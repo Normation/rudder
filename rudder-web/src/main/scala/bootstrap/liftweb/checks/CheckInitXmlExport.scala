@@ -37,7 +37,7 @@ package checks
 
 import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import net.liftweb.common._
 
 

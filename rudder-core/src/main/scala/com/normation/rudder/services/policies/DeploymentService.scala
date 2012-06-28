@@ -56,7 +56,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.repository.jdbc.HistorizationJdbcRepository
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.services.log.HistorizationService
+import com.normation.rudder.services.eventlog.HistorizationService
 import com.normation.utils.HashcodeCaching
 
 /**
