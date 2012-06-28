@@ -61,6 +61,30 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
       <Pattern>%-30(%d{HH:mm:ss.SSS} [%thread]) %-5level %logger - %msg%n%xEx{30}</Pattern>
     </encoder>
   </appender>
+  
+  <!-- 
+    That property defines the directory into which log using OPSLOG 
+    appender will be write. 
+    It can be overwritten when the application is launched with the
+    Java system property syntax: java -DOPSLOG_DIR="/some/other/directory/"
+  -->
+  <property name="OPSLOG_DIR" value="/var/log/rudder/webapp-opslog" />
+  
+  <!-- 
+    A file log appender for exploitation logs about reports, outputing in a file
+    The message format will be looking like syslog message:
+    Jun 27 13:02:53 orchestrateur-3 rudder[report]: [warn] here come the message
+    
+    'report' is expected to be the ops logger name.
+   -->
+  <appender name="OPSLOG" class="ch.qos.logback.core.FileAppender">
+    <file>${OPSLOG_DIR}/rudder-webapp.log</file>
+    <append>true</append>
+    <encoder>
+      <pattern>%d{MMM dd HH:mm:ss} ${HOSTNAME} rudder[%logger]: [%level] %msg%n</pattern>
+    </encoder>
+  </appender>
+   
 
   <!-- 
     Manage the global log level of the application.
@@ -132,4 +156,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   <!-- Uncomment to have precise log about LDAP queries done by the node search engine -->
 <!--   <logger name="com.normation.rudder.services.queries.InternalLDAPQueryProcessor" level="debug" /> -->
  
+  <!-- Here come ops logger -->
+   
+   <logger name="report" level="info" additivity="false">
+     <appender-ref ref="OPSLOG" />
+     <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
+     <appender-ref ref="STDOUT" />
+   </logger>
+   
 </configuration>
