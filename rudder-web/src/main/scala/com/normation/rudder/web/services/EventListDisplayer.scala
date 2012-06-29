@@ -321,9 +321,6 @@ class EventListDisplayer(
       case mod:ModifyRule =>
         "*" #> (logDetailsService.getRuleModifyDetails(mod.details) match {
           case Full(modDiff) =>            
-            val titleOverview = "Rule's change overview"
-            val titleID = "Rule ID"
-            val id = modDiff.id.value
             <div class="evloglmargin">
               <h4>Rule overview :</h4>
               <ul class="evlogviewpad">
@@ -448,11 +445,13 @@ class EventListDisplayer(
                 "#nodes" #> (
                    modDiff.modNodeList.map { diff =>
                    val mapList = (set:Set[NodeId]) =>
-                     if(set.size == 0) Text("None")
-                     else <ul class="evlogviewpad">{ set.toSeq.sortWith( _.value < _.value ).map { id =>
-                       <li><a href={nodeLink(id)}>{id.value}</a></li>
-                     } }</ul>
-                     
+                   if(set.size == 0) 
+                     Text("None")
+                   else { 
+                     set.toSeq.sortWith( _.value < _.value )
+                       .map(id => <a href={nodeLink(id)}>{id.value}</a>)
+                       .reduceLeft[NodeSeq]((a,b) => a ++ <span>,&nbsp;</span> ++ b)
+                     }
                    ".diffOldValue" #> mapList(diff.oldValue) &
                    ".diffNewValue" #> mapList(diff.newValue)
                    }
@@ -487,27 +486,30 @@ class EventListDisplayer(
       case x:AcceptNodeEventLog =>   
         "*" #> (logDetailsService.getAcceptNodeLogDetails(x.details) match {
           case Full(details) =>
-            <div class="evloglmargin"><p>Node <b>"{details.hostname}"</b> (ID:{details.nodeId.value}) accepted:</p>{
-              nodeDetails(details)
-            }</div>
+            <div class="evloglmargin">
+              <h4>Node accepted overview:</h4>
+              { nodeDetails(details) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
       case x:RefuseNodeEventLog =>   
         "*" #> (logDetailsService.getRefuseNodeLogDetails(x.details) match {
           case Full(details) =>
-            <div class="evloglmargin"><p>Node <b>"{details.hostname}"</b> (ID:{details.nodeId.value}) refused:</p>{
-              nodeDetails(details)
-            }</div>
+            <div class="evloglmargin">
+              <h4>Node refused overview:</h4>
+              {nodeDetails(details)}
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
       case x:DeleteNodeEventLog =>   
         "*" #> (logDetailsService.getDeleteNodeLogDetails(x.details) match {
           case Full(details) =>
-            <div class="evloglmargin"><p>Node <b>"{details.node.hostname}"</b> (ID:{details.node.id.value}) deleted:</p>{
-              nodeDetails(details)
-            }</div>
+            <div class="evloglmargin">
+              <h4>Node deleted overview:</h4>
+              {nodeDetails(details)}
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -551,7 +553,7 @@ class EventListDisplayer(
           case Full(details) => 
             
             def networksToXML(nets:Seq[String]) = {
-              <ul>{ nets.map { n => <li>{n}</li> } }</ul>
+              <ul>{ nets.map { n => <li class="eventLogUpdatePolicy">{n}</li> } }</ul>
             }
             
             <div class="evloglmargin">{
@@ -568,11 +570,11 @@ class EventListDisplayer(
       case x:ReloadTechniqueLibrary =>
         "*" #> (logDetailsService.getTechniqueLibraryReloadDetails(x.details) match {
           case Full(details) => 
-              <div>
-                The Technique library was reloaded and following Techniques were updated:
-                <table>{ details.map {technique => 
-                  <tr><td>{ "%s (version %s)".format(technique.name.value, technique.version.toString)}</td></tr>
-                } }</table>
+              <div class="evloglmargin">
+                <b>The Technique library was reloaded and following Techniques were updated:</b>
+                <ul>{ details.map {technique => 
+                  <li class="eventLogUpdatePolicy">{ "%s (version %s)".format(technique.name.value, technique.version.toString)}</li>
+                } }</ul>
               </div>
             
           case e:EmptyBox => errorMessage(e)
@@ -599,22 +601,22 @@ class EventListDisplayer(
   }
   
   private[this] def displayExportArchiveDetails(gitArchiveId: GitArchiveId) = 
-    <div>
-      Details of the new archive:
-      <table>
-        <tr><td>Git path of the archive:</td><td>{gitArchiveId.path.value}</td></tr>
-        <tr><td>Commit ID (hash):</td><td>{gitArchiveId.commit.value}</td></tr>
-        <tr><td>Commiter name:</td><td>{gitArchiveId.commiter.getName}</td></tr>
-        <tr><td>Commiter email:</td><td>{gitArchiveId.commiter.getEmailAddress}</td></tr>
-      </table>
+    <div class="evloglmargin">
+      <h4>Details of the new archive:</h4>
+      <ul class="evlogviewpad">
+        <li><b>Git path of the archive: </b>{gitArchiveId.path.value}</li>
+        <li><b>Commit ID (hash): </b>{gitArchiveId.commit.value}</li>
+        <li><b>Commiter name: </b>{gitArchiveId.commiter.getName}</li>
+        <li><b>Commiter email: </b>{gitArchiveId.commiter.getEmailAddress}</li>
+      </ul>
     </div>
         
   private[this] def displayImportArchiveDetails(gitCommitId: GitCommitId) = 
-    <div>
-      Details of the restored archive:
-      <table>
-        <tr><td>Commit ID (hash):</td><td>{gitCommitId.value}</td></tr>
-      </table>
+    <div class="evloglmargin">
+      <h4>Details of the restored archive:</h4>
+      <ul class="evlogviewpad">
+        <li><b>Commit ID (hash): </b>{gitCommitId.value}</li>
+      </ul>
     </div>
 
   private[this] def displayDiff(tag:String)(xml:NodeSeq) = 
@@ -699,12 +701,16 @@ class EventListDisplayer(
   }  
   
   private[this] def nodeDetails(details:InventoryLogDetails) = (
+     "#nodeID" #> details.nodeId.value &
+     "#nodeName" #> details.hostname &
      "#os" #> details.fullOsName &
      "#version" #> DateFormaterService.getFormatedDate(details.inventoryVersion)
   )( 
     <ul class="evlogviewpad">
-      <li><b>Operating System:</b>'<value id="os"/>'</li>
-      <li><b>Inventory Version:</b>'<value id="version"/>'</li>
+      <li><b>Node ID: </b><value id="nodeID"/></li>
+      <li><b>name: </b><value id="nodeName"/></li>
+      <li><b>Operating System: </b><value id="os"/></li>
+      <li><b>Inventory Version: </b><value id="version"/></li>
     </ul>
   )
   
@@ -774,26 +780,23 @@ class EventListDisplayer(
     </div>
   
   private[this] val nodeDetailsXML = 
-    <table>
-     <tr>
-      <td>
+    <div>
+      <h4>Node overview:</h4>
       <ul class="evlogviewpad">
-        <li><b>Rudder ID:</b><value id="id"/></li>
-          <li><b>Name:</b><value id="name"/></li>
-          <li><b>Hostname:</b><value id="hostname"/></li>
-          <li><b>Description:</b><value id="description"/></li>
-          <li><b>Operating System:</b><value id="os"/></li>
-          <li><b>IPs addresses:</b><value id="ips"/></li>
-          <li><b>Date inventory last received:</b><value id="inventoryDate"/></li>
-          <li><b>Agent name:</b><value id="agentsName"/></li>
-          <li><b>Administrator account:</b><value id="localAdministratorAccountName"/></li>
-          <li><b>Date first accepted in Rudder:</b><value id="creationDate"/></li>
-          <li><b>Broken:</b><value id="isBroken"/></li>
-          <li><b>System:</b><value id="isSystem"/></li>
+        <li><b>Rudder ID: </b><value id="id"/></li>
+        <li><b>Name: </b><value id="name"/></li>
+        <li><b>Hostname: </b><value id="hostname"/></li>
+        <li><b>Description: </b><value id="description"/></li>
+        <li><b>Operating System: </b><value id="os"/></li>
+        <li><b>IPs addresses: </b><value id="ips"/></li>
+        <li><b>Date inventory last received: </b><value id="inventoryDate"/></li>
+        <li><b>Agent name: </b><value id="agentsName"/></li>
+        <li><b>Administrator account :</b><value id="localAdministratorAccountName"/></li>
+        <li><b>Date first accepted in Rudder :</b><value id="creationDate"/></li>
+        <li><b>Broken: </b><value id="isBroken"/></li>
+        <li><b>System: </b><value id="isSystem"/></li>
       </ul>
-      </td>
-     </tr>
-    </table>
+    </div>
     
     
   private[this] def liModDetailsXML(id:String, name:String) = (
@@ -843,8 +846,8 @@ class EventListDisplayer(
       
   private[this] def authorizedNetworksXML() = (
     <div>
-      Networks authorized on policy server were updated:
-      <table>
+      <b>Networks authorized on policy server were updated:</b>
+      <table class="eventLogUpdatePolicy">
         <thead><tr><th>from:</th><th>to:</th></tr></thead>
         <tbody>
           <tr>
