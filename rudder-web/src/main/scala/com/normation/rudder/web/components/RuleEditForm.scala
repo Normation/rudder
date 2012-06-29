@@ -167,7 +167,7 @@ class RuleEditForm(
   )
 
   private[this] def showForm() : NodeSeq = {
-    if (CurrentUser.checkRights(Edit("Rule"))) { (
+    if (CurrentUser.checkRights(Edit("rule"))) { (
       "#editForm" #> showCrForm() &
       "#removeActionDialog" #> showRemovePopupForm() &
       "#disactivateActionDialog" #> showDisactivatePopupForm()
