@@ -89,7 +89,6 @@ class EventListDisplayer(
         ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
         ".logActor *" #> event.principal.name &
         ".logType *" #> S.?("rudder.log.eventType.names." + event.eventType.serialize) &
-        ".logReason *" #> event.eventDetails.reason.getOrElse("") &
         ".logDescription *" #> displayDescription(event) 
       })
      )(dataTableXml(gridName)) 
@@ -120,7 +119,6 @@ class EventListDisplayer(
               , { "sWidth": "110px" }
               , { "sWidth": "110px" }
               , { "sWidth": "100px" }
-              , { "sWidth": "150px" }
             ]
           });moveFilterAndFullPaginateArea('#%s');""".format(gridName,gridName).replaceAll("#table_var#",jsGridName)
         )  &
@@ -188,7 +186,6 @@ class EventListDisplayer(
             <th>Actor</th>
             <th>Event Type</th>
             <th>Description</th>
-            <th>Reason</th>
           </tr>
         </thead>
     
@@ -199,7 +196,6 @@ class EventListDisplayer(
             <td class="logActor">[actor of the event]</td>
             <td class="logType">[type of event]</td>
             <td class="logDescription">[some user readable info]</td>
-            <td class="logReason">[message explaining the reason of event]</td>
           </tr>
         </tbody>
       </table>
@@ -294,10 +290,21 @@ class EventListDisplayer(
   def displayDetails(event:EventLog) = {
     def errorMessage(e:EmptyBox) = {
       logger.debug(e ?~! "Error when parsing details.", e)
-      <xml:group>Details for that node were not in a recognized format. Raw data are displayed next:
-                        <pre>{event.details.map { n => xmlPretty.format(n) + "\n"} }</pre></xml:group>
+      <xml:group>
+        <div class="evloglmargin">
+          <h4>Details for that node were not in a recognized format. 
+            Raw data are displayed next:</h4>
+          <pre>{event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
+        </div>
+      </xml:group>
     }
     
+    val r = event.eventDetails.reason.getOrElse("")  
+    var reasonHtml = {
+      if(r == "") NodeSeq.Empty 
+      else <div style="margin-top:2px;"><b>Reason: </b>{r}</div>
+    }
+                
     (event match {
     
       case add:AddRule =>
@@ -305,6 +312,7 @@ class EventListDisplayer(
           case Full(addDiff) => 
             <div class="evloglmargin">
               { ruleDetails(crDetailsXML, addDiff.rule)}
+              { reasonHtml }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -314,6 +322,7 @@ class EventListDisplayer(
           case Full(delDiff) =>
             <div class="evloglmargin">
               { ruleDetails(crDetailsXML, delDiff.rule) }
+              { reasonHtml }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -355,6 +364,7 @@ class EventListDisplayer(
                    }
                 )
               )(crModDetailsXML)}
+              { reasonHtml }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -387,6 +397,7 @@ class EventListDisplayer(
                   }
                 ) 
               )(piModDetailsXML)}
+              { reasonHtml }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -398,6 +409,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               { directiveDetails(piDetailsXML, diff.techniqueName, 
                   diff.directive, sectionVal) }
+              { reasonHtml }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -409,6 +421,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               { directiveDetails(piDetailsXML, diff.techniqueName, 
                   diff.directive, sectionVal) }
+              { reasonHtml }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -456,8 +469,9 @@ class EventListDisplayer(
                    ".diffNewValue" #> mapList(diff.newValue)
                    }
                 ) 
-              )(groupModDetailsXML)
-            }</div>
+              )(groupModDetailsXML)}
+              { reasonHtml }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -465,9 +479,10 @@ class EventListDisplayer(
       case x:AddNodeGroup =>   
         "*" #> (logDetailsService.getNodeGroupAddDetails(x.details) match {
           case Full(diff) =>
-            <div class="evloglmargin">{
-              groupDetails(groupDetailsXML, diff.group)
-            }</div>
+            <div class="evloglmargin">
+              { groupDetails(groupDetailsXML, diff.group) }
+              { reasonHtml }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -475,9 +490,10 @@ class EventListDisplayer(
       case x:DeleteNodeGroup =>   
         "*" #> (logDetailsService.getNodeGroupDeleteDetails(x.details) match {
           case Full(diff) =>
-            <div class="evloglmargin">{
-              groupDetails(groupDetailsXML, diff.group)
-            }</div>
+            <div class="evloglmargin">
+            { groupDetails(groupDetailsXML, diff.group) }
+            { reasonHtml }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -489,6 +505,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               <h4>Node accepted overview:</h4>
               { nodeDetails(details) }
+              { reasonHtml }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -498,7 +515,8 @@ class EventListDisplayer(
           case Full(details) =>
             <div class="evloglmargin">
               <h4>Node refused overview:</h4>
-              {nodeDetails(details)}
+              { nodeDetails(details) }
+              { reasonHtml }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -508,13 +526,13 @@ class EventListDisplayer(
           case Full(details) =>
             <div class="evloglmargin">
               <h4>Node deleted overview:</h4>
-              {nodeDetails(details)}
+              { nodeDetails(details) }
+              { reasonHtml }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
         
       ////////// deployment //////////
-        
       case x:SuccessfulDeployment => 
         "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
           case Full(SuccessStatus(id,started,ended,_)) =>
@@ -525,6 +543,7 @@ class EventListDisplayer(
                 <li><b>Start time:</b>&nbsp;{DateFormaterService.getFormatedDate(started)}</li>
                 <li><b>End Time:</b>&nbsp;{DateFormaterService.getFormatedDate(ended)}</li>
               </ul>
+              { reasonHtml }
             </div>
           case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
           case e:EmptyBox => errorMessage(e)
@@ -541,6 +560,7 @@ class EventListDisplayer(
                 <li><b>End Time:</b>&nbsp;{DateFormaterService.getFormatedDate(ended)}</li>
                 <li><b>Error stack trace:</b>&nbsp;{failure.messageChain}</li>
               </ul>
+             { reasonHtml }
             </div>
           case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
           case e:EmptyBox => errorMessage(e)
@@ -561,7 +581,9 @@ class EventListDisplayer(
                   ".diffOldValue" #> networksToXML(details.oldNetworks) &
                   ".diffNewValue" #> networksToXML(details.newNetworks)
               )(authorizedNetworksXML)
-            }</div>
+            }
+            { reasonHtml }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
       
@@ -575,6 +597,7 @@ class EventListDisplayer(
                 <ul>{ details.map {technique => 
                   <li class="eventLogUpdatePolicy">{ "%s (version %s)".format(technique.name.value, technique.version.toString)}</li>
                 } }</ul>
+                { reasonHtml }
               </div>
             
           case e:EmptyBox => errorMessage(e)
