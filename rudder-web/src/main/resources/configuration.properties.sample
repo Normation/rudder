@@ -282,6 +282,25 @@ rudder.batch.dyngroup.updateInterval=5
 #
 rudder.rest.allowNonAuthenticatedUser=true
 
+####################
+# Inventory history ##################################################################
+####################
+
+#
+# Inventory historization root directory
+#
+# The directory used as root directory to store LDIF dump
+# of historized inventories. 
+# It must be synchronise with the property of the same name in 
+# the "inventory endpoint" web application (inventory-web.properties), 
+# which is the application actually writing the files. 
+#
+# This historized inventories are used in the node acceptation
+# screen, to keep information about the state of the node
+# when it was accepted
+#
+history.inventories.rootdir=/var/rudder/inventories/historical
+
 
 #########################
 # DEPRECATED properties #############################################################
@@ -314,16 +333,4 @@ rudder.dir.uploaded.file.sharing=/var/rudder/files/
 #
 bin.emergency.stop=/opt/rudder/bin/cfe-red-button.sh
 
-#
-# Inventory historization root directory
-#
-# The directory used as root directory to store LDIF dump
-# of historized inventories. 
-# It must be synchronise with the property of the same name in 
-# the "inventory endpoint" web application (inventory-web.properties), 
-# which is the application actually writing the files. 
-# DEPRECATED: this configuration property is not used for now to configure
-# a feature accessible in the UI. 
-#
-history.inventories.rootdir=/var/rudder/inventories/historical
 
