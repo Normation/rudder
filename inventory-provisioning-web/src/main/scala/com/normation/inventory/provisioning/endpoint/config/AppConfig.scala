@@ -74,6 +74,9 @@ class AppConfig {
 
   @Value("${ldif.tracelog.rootdir}")
   var LDIF_TRACELOG_ROOT_DIR = ""
+    
+  @Value("${history.inventories.enable}")
+  var INVENTORIES_HISTORY_ENABLED = false
   
   @Value("${history.inventories.rootdir}")
   var INVENTORIES_HISTORY_ROOT_DIR = ""
@@ -246,11 +249,20 @@ class AppConfig {
   )
   
   lazy val postCommitPipeline : Seq[PostCommit[Seq[LDIFChangeRecord]]]= (
-    pendingNodeIfNodeWasRemoved ::
-    acceptPendingMachineIfServerIsAccepted ::
-    postCommitLogger ::
-    inventoryHistorizationPostCommit ::
-    Nil
+    (
+      pendingNodeIfNodeWasRemoved ::
+      acceptPendingMachineIfServerIsAccepted ::
+      postCommitLogger ::
+      Nil
+    ) ::: (
+      if(INVENTORIES_HISTORY_ENABLED) {
+        logger.info("Inventory historization in '%s' enabled".format(INVENTORIES_HISTORY_ROOT_DIR))
+        inventoryHistorizationPostCommit :: Nil
+      } else {
+        logger.info("Inventory historization in '%s' disabled".format(INVENTORIES_HISTORY_ROOT_DIR))
+        Nil
+      }
+    )
   )
   
   @Bean
