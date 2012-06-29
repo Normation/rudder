@@ -616,6 +616,14 @@ class AppConfig extends Loggable {
     ldapNodeGroupRepository,
     dynGroupService,
     PendingInventory)
+  
+  @Bean
+  def historizeNodeStateOnChoice: UnitAcceptInventory with UnitRefuseInventory = new HistorizeNodeStateOnChoice(
+      "accept_or_refuse_new_node:historize_inventory"
+    , ldapFullInventoryRepository
+    , diffRepos
+    , PendingInventory
+  )
 
   @Bean
   def ruleValService: RuleValService = new RuleValServiceImpl(
@@ -671,17 +679,20 @@ class AppConfig extends Loggable {
       serverSummaryService,
       ldapFullInventoryRepository,
       //the sequence of unit process to accept a new inventory
+      historizeNodeStateOnChoice ::
       addNodeToDynGroup ::
-        acceptNodeAndMachineInNodeOu ::
-        acceptInventory ::
-        acceptNodeRule ::
-        Nil,
+      acceptNodeAndMachineInNodeOu ::
+      acceptInventory ::
+      acceptNodeRule ::
+      Nil,
       //the sequence of unit process to refuse a new inventory
+      historizeNodeStateOnChoice ::
       unitRefuseGroup ::
-        acceptNodeAndMachineInNodeOu ::
-        acceptInventory ::
-        acceptNodeRule ::
-        Nil)
+      acceptNodeAndMachineInNodeOu ::
+      acceptInventory ::
+      acceptNodeRule ::
+      Nil
+  )
 
   @Bean
   def nodeConfigurationChangeDetectService = new NodeConfigurationChangeDetectServiceImpl(ldapActiveTechniqueRepository)
