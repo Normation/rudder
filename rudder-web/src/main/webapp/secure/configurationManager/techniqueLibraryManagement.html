@@ -43,6 +43,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
         Drag'n'drop Techniques and categories in user library so that everything is nice and tidy.
         <br/>
       </div>
+      <lift:authz role="technique_edit">
       <div>
         <div class="lift:configuration.TechniqueLibraryManagement.reloadTechniqueLibrary" id="reloadTechniqueLibForm">
           <form class="lift:form.ajax">
@@ -52,6 +53,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
           </form>
         </div>
       </div>
+      </lift:authz>
     </div>
     <hr class="spacer"/>
     
