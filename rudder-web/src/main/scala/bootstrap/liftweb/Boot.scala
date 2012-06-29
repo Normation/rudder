@@ -54,7 +54,6 @@ import com.normation.eventlog.EventLog
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization._
 import com.normation.authorization.AuthorizationType
-
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -142,7 +141,7 @@ class Boot extends Loggable {
       
     val nodeManagerMenu = 
       Menu("NodeManagerHome", <span>Node Management</span>)  / "secure" / "nodeManager" / "index"  >>
-      TestAccess( () => userIsAllowed(NodeRead) ) submenus (
+      TestAccess( () => userIsAllowed(Read("node")) ) submenus (
           
             Menu("SearchNodes", <span>Search nodes</span>)       / "secure" / "nodeManager" / "searchNodes" >> LocGroup("nodeGroup") 
         
@@ -181,22 +180,36 @@ class Boot extends Loggable {
       
     def administrationMenu = 
       Menu("AdministrationHome", <span>Administration</span>) / "secure" / "administration" /"index" >>
-        TestAccess ( () => userIsAllowed(Administration) ) submenus (
-          
+        TestAccess ( () => userIsAllowed(Read("administration")) ) submenus (
           Menu("archivesManagement", <span>Archives</span>) / 
-            "secure" / "administration" / "archiveManagement" >> LocGroup("administrationGroup")
-            
+            "secure" / "administration" / "archiveManagement" >> LocGroup("administrationGroup") >> TestAccess ( () =>
+        if(CurrentUser.checkRights(Write("administration"))||CurrentUser.checkRights(Edit("administration")))
+          Empty
+          else
+            Full(RedirectWithState("/secure/administration/eventLogs", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) ) )
         , Menu("eventLogViewer", <span>Event Logs</span>) / 
             "secure" / "administration" / "eventLogs" >> LocGroup("administrationGroup")
-            
+
         , Menu("policyServerManagement", <span>Policy Server</span>) / 
-            "secure" / "administration" / "policyServerManagement" >> LocGroup("administrationGroup")
-            
+            "secure" / "administration" / "policyServerManagement" >> LocGroup("administrationGroup") >> TestAccess ( () =>
+            if(CurrentUser.checkRights(Write("administration"))||CurrentUser.checkRights(Edit("administration")))
+              Empty
+            else
+              Full(RedirectWithState("/secure/administration/eventLogs", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) ) )
+
         , Menu("pluginManagement", <span>Plugins</span>) / 
-            "secure" / "administration" / "pluginManagement" >> LocGroup("administrationGroup")
-            
+            "secure" / "administration" / "pluginManagement" >> LocGroup("administrationGroup") >> TestAccess ( () =>
+            if(CurrentUser.checkRights(Write("administration"))||CurrentUser.checkRights(Edit("administration")))
+              Empty
+            else
+              Full(RedirectWithState("/secure/administration/eventLogs", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) ) )
+
         , Menu("databaseManagement", <span>Database Management</span>) / 
-            "secure" / "administration" / "databaseManagement" >> LocGroup("administrationGroup") 
+            "secure" / "administration" / "databaseManagement" >> LocGroup("administrationGroup") >> TestAccess ( () =>
+            if(CurrentUser.checkRights(Write("administration"))||CurrentUser.checkRights(Edit("administration")))
+              Empty
+            else
+              Full(RedirectWithState("/secure/administration/eventLogs", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) ) )
             
       )
   

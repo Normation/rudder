@@ -180,8 +180,9 @@ object AppConfigAuth extends Loggable {
         })
         
         //and now, return the list of users
-        logger.debug("User with defined credentials: %s".format(users.map( user => "%s (role:%s)".format(user._1,user._3.authorizationTypes.map(_.id))).mkString(", ")))
-        
+        users.foreach( user =>
+        logger.debug("User %s with defined authorizations: %s".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
+        )
         Some(AuthConfig(hash, users))
       }
     } else {

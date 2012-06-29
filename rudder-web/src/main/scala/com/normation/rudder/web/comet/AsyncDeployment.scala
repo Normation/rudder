@@ -168,10 +168,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             case Full(seq) if seq.size > 1 =>  SHtml.a(Text("There are " + seq.size + " modifications pending"))(showPendingPopup) ++ createInnerPopup(seq)
             }
         } </div>
-        } } ++ SHtml.ajaxButton("Regenerate now", { () => 
+        } } ++
+          <lift:authz role="deployment_write"> {
+          SHtml.ajaxButton("Regenerate now", { () =>
             asyncDeploymentAgent ! ManualStartDeployment(CurrentUser.getActor, "User requested a manual regeneration") //TODO: let the user fill the cause
             Noop
-          }, ( "class" , "deploymentButton"))
+          }, ( "class" , "deploymentButton")) }
+        </lift:authz>
       case Processing(id, start) =>
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />

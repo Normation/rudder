@@ -43,50 +43,59 @@ import com.normation.authorization._
 
 // list of know rights
 
-//
 case object NoRights extends AuthorizationType { val id = "NO_RIGHTS" }
-case object NodeRead extends AuthorizationType { val id = "NODE_READ" }
-case object NodeWrite extends AuthorizationType { val id = "NODE_WRITE" }
-case object Administration extends AuthorizationType { val id = "ADMINISTRATION" }
-
 case class Read(name:String) extends AuthorizationType { val id = "%s_READ".format(name.toUpperCase()) }
 case class Edit(name:String) extends AuthorizationType { val id = "%s_EDIT".format(name.toUpperCase()) }
 case class Write(name:String) extends AuthorizationType { val id = "%s_WRITE".format(name.toUpperCase()) }
-
+case object AnyRights extends AuthorizationType { val id = "ANY_RIGHTS" }
 
 object AuthzToRights {
-  
-  val configurationKind = List("configuration","rule","directive","technique")
-  val authKind = List("group","inventory"):::configurationKind
-  val allWrite = authKind.map(Write(_))
-  val allRead  = authKind.map(Read(_))
-  val allEdit  = authKind.map(Edit(_))
-  
+
+  /*
+   * Authorization kind
+   */
+  val configurationkind = List("configuration","rule","directive","technique")
+  val nodeKind = List("node","inventory","group")
+  val allKind = "deployment"::"administration"::configurationkind ::: nodeKind
+
+  /*
+   * Authorization mapping
+   */
+  def toAuthz(auth:List[String], kind:String) =
+    kind match {
+    case "write" => auth.map(Write(_))
+    case "read" =>  auth.map(Read(_))
+    case "edit" =>  auth.map(Edit(_))
+    case "all"  =>  auth.flatMap(kind => List(Read(kind),Write(kind),Edit(kind)))
+    case _ => List(NoRights)
+  }
+  val toWriteAuthz = toAuthz(_:List[String],"write")
+  val toReadAuthz = toAuthz(_:List[String],"read")
+  val toEditAuthz = toAuthz(_:List[String],"edit")
+  val toAllAuthz = toAuthz(_:List[String],"all")
+
+  /*
+   * Authorization parser
+   */
   def parseRole(roles:Seq[String]):Rights = {
     new Rights(roles.flatMap(_ match {
-      case "administrator" => List(Administration,NodeRead,NodeWrite) ::: allWrite ::: allRead ::: allEdit
-      case "administration_only" => List(Administration)
-      case "read_only" => List(Administration,NodeRead) ::: allRead 
-      case "user" => List(NodeRead,NodeWrite) ::: allWrite ::: allRead ::: allEdit
-      case "inventory" =>  List(NodeRead)
-      case "configuration" => configurationKind.flatMap(kind => List(Read(kind),Write(kind),Edit(kind)))
-      case "rule_only" => List(Read("configuration"),Read("rule"))
+      case "administrator"       => toAllAuthz (allKind)
+      case "user"                => toAllAuthz (nodeKind ::: configurationkind)
+      case "administration_only" => toAllAuthz (List("administration"))
+      case "configuration"       => toAllAuthz (configurationkind)
+      case "read_only"           => toReadAuthz (allKind)
+      case "inventory"           => toReadAuthz (List("node","inventory"))
+      case "rule_only"           => toReadAuthz (List("configuration","rule"))
       case role => List(parseAuthz(role))
     }): _*)
   }
     
   def parseAuthz(role : String) : AuthorizationType = {
-    val read = """(.*)_read""".r
-    val write = """(.*)_write""".r
-    val edit = """(.*)_edit""".r
-    role.toLowerCase() match {
-      case "node_read" => NodeRead
-      case "node_write" => NodeWrite
-      case "administration" => Administration
-      case read(kind)  if (authKind.contains(kind)) => Read(kind) 
-      case write(kind) if (authKind.contains(kind)) => Write(kind) 
-      case edit(kind)  if (authKind.contains(kind)) => Edit(kind)
-      case _ =>  NoRights
-    }
+	  val authz = """(.*)_(.*)""".r
+     role.toLowerCase() match {
+	     case "any" => AnyRights
+       case authz(authType,kind)  if (allKind.contains(authType)) => toAuthz(List(authType),kind).firstOption.getOrElse(NoRights)
+       case _ =>  NoRights
+     }
   }
 }

@@ -97,7 +97,9 @@
   
   <!--Début Logo-->
   <div id="logo"> 
+    <lift:authz role="deployment_read">
     <lift:comet type="AsyncDeployment" name="deploymentStatus" />
+    </lift:authz>
     <h1><a href="/secure/"><img src="/images/logoRudder.jpg" alt="Rudder" /></a></h1>
   </div>
   <!--Fin Logo-->
