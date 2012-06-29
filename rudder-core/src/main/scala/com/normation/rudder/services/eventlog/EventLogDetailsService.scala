@@ -562,8 +562,8 @@ class EventLogDetailsServiceImpl(
       entry        <- getEntryContent(xml)
       details      <- (entry \ "changeAuthorizedNetworks").headOption ?~! ("Entry type is not a changeAuthorizedNetworks: " + entry)
       fileFormatOk <- TestFileFormat(details)
-      oldsXml      <- (entry \ "oldAuthorizedNetworks").headOption ?~! ("Missing attribute 'oldAuthorizedNetworks' in entry: " + entry)
-      newsXml      <- (entry \ "newAuthorizedNetworks").headOption ?~! ("Missing attribute 'newAuthorizedNetworks' in entry: " + entry)
+      oldsXml      <- (entry \\ "oldAuthorizedNetworks").headOption ?~! ("Missing attribute 'oldAuthorizedNetworks' in entry: " + entry)
+      newsXml      <- (entry \\ "newAuthorizedNetworks").headOption ?~! ("Missing attribute 'newAuthorizedNetworks' in entry: " + entry)
     } yield {
       AuthorizedNetworkModification(
           oldNetworks = (oldsXml \ "net").map( _.text )
