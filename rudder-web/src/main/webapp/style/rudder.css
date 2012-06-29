@@ -1977,6 +1977,16 @@ tr.Noanswer {
   background-color:#BBAAAA;
 }
 
+li.eventLogUpdatePolicy {
+  list-style-position: inside;	
+  list-style-type: none;	
+}
+
+table.eventLogUpdatePolicy {
+  width: 50%;
+  margin-top: 0px;
+  margin-left: 0px;
+}
 
 /***********************************
  * Quicksearch
