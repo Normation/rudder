@@ -61,6 +61,7 @@ import com.normation.cfclerk.domain.{Cf3PolicyDraftId,TechniqueId}
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import com.normation.eventlog.EventActor
+import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 
 
 /**
@@ -696,6 +697,48 @@ class AcceptNodeRule(
   }   
 }
 
+/**
+ * A unit acceptor in charge to historize the 
+ * state of the Inventory so that we can keep it
+ * forever. 
+ * That acceptor should be call before node
+ * is actually deleted or accepted
+ */
+class HistorizeNodeStateOnChoice(
+    override val name: String
+  , repos            : ReadOnlyFullInventoryRepository
+  , historyRepos     : InventoryHistoryLogRepository
+  , inventoryStatus  : InventoryStatus //expected inventory status of nodes for that processor
+) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
+  
+  override def preAccept(sms:Seq[FullInventory], actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
+  override def postAccept(sms:Seq[FullInventory], actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
-
+  override val fromInventoryStatus = inventoryStatus
+  
+  override val toInventoryStatus = inventoryStatus
+  
+  /**
+   * Add a node entry in ou=Nodes
+   */
+  def acceptOne(sm:FullInventory, actor:EventActor) : Box[FullInventory] = {
+    historyRepos.save(sm.node.main.id, sm).map( _ => sm)
+  }
+  
+  /**
+   * Does nothing - we don't have the "id" of the historized
+   * inventory to remove
+   */
+  def rollback(sms:Seq[FullInventory], actor:EventActor) : Unit = {}
+  
+  
+  //////////// refuse //////////// 
+  override def refuseOne(srv:Srv, actor:EventActor) : Box[Srv] = {
+    //refuse ou=nodes: delete it
+    for {
+      full <- repos.get(srv.id, inventoryStatus)
+      _    <- historyRepos.save(srv.id, full)
+    } yield srv
+  }
+}

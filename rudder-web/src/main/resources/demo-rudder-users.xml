@@ -55,6 +55,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   <user name="spider.man" password="maryjane" role="read_only"/>
   <user name="lorenzo.vonmatterhorn" password="legendary" role="configuration"/>
   <user name="zaphod.beeblebrox" password="42" role="rule_only"/>
+  <user name="custom" password="custom" role="node_read,node_write,deployment_read,group_read,configuration_read,technique_read,rule_read,rule_write"/>
   <!--  exemple of bad lines -->
   <!--  <user name="" password="secret2"/>-->
   <!--  <user name="name" password=""/>-->
