@@ -43,6 +43,7 @@ import net.liftweb.http.LocalSnippet
 import com.normation.rudder.services.policies.DependencyAndDeletionService
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.authorization._
 
 import net.liftweb.http.js._
 import JsCmds._ // For implicits
@@ -76,7 +77,7 @@ object NodeGroupForm {
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "NodeGroupForm" :: Nil)
     } yield {
-      chooseTemplate("component", "staticInit", xml) 
+      chooseTemplate("component", "staticInit", xml)
     }) openOr Nil
 
  /**
@@ -86,7 +87,7 @@ object NodeGroupForm {
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "NodeGroupForm" :: Nil)
     } yield {
-      chooseTemplate("component", "staticBody", xml) 
+      chooseTemplate("component", "staticBody", xml)
     }) openOr Nil
 
     
@@ -105,8 +106,8 @@ object NodeGroupForm {
      
   private sealed trait RightPanel
   private case object NoPanel extends RightPanel
-  private case class GroupForm(group:NodeGroup) extends RightPanel with HashcodeCaching 
-  private case class CategoryForm(category:NodeGroupCategory) extends RightPanel with HashcodeCaching 
+  private case class GroupForm(group:NodeGroup) extends RightPanel with HashcodeCaching
+  private case class CategoryForm(category:NodeGroupCategory) extends RightPanel with HashcodeCaching
   
   val htmlId_groupTree = "groupTree"
   val htmlId_item = "ajaxItemContainer"
@@ -215,11 +216,14 @@ class NodeGroupForm(
        <directive:showGroup />
       </div>
      </fieldset>
-     <lift:authz role="node_write">
+     <lift:authz role="group_edit">
      <directive:reason />
-     <div class="margins" align="right">
-     <directive:group/><directive:save/> <directive:delete/></div>)
      </lift:authz>
+     <div class="margins" align="right">
+       <lift:authz role="group_write"><directive:group/></lift:authz>
+       <directive:save/>
+       <lift:authz role="group_write"><directive:delete/></lift:authz>
+     </div>
      </fieldset>)
 
      bind("directive", html,
@@ -231,17 +235,17 @@ class NodeGroupForm(
       "explanation" -> crReasons.map {
         f => <div>{userPropertyService.reasonsFieldExplanation}</div>
       },       
-      "reason" -> crReasons.map {f =>           
+      "reason" -> crReasons.map {f =>
         <fieldset class="reasonNode"><legend>Reason</legend>
           <div style="margin-bottom:5px">
             {userPropertyService.reasonsFieldExplanation}
           </div>
           {f.toForm_!}
         </fieldset>},
-      "group" -> cloneButton(),          
+      "group" -> cloneButton() ,
       "save" ->   {_nodeGroup match {
-            case Some(x) => SHtml.ajaxSubmit("Update", onSubmit _)  %  ("id", saveButtonId)
-            case None => SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)
+            case Some(x) => if (CurrentUser.checkRights(Edit("group"))) SHtml.ajaxSubmit("Update", onSubmit _)  %  ("id", saveButtonId) else NodeSeq.Empty
+            case None =>   if (CurrentUser.checkRights(Write("group")))  SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)  else NodeSeq.Empty
           }},
       "delete" -> deleteButton(),          
       "notifications" -> updateAndDisplayNotifications()

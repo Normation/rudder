@@ -265,9 +265,11 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
             <div id={deleteNodePopupHtmlId}  class="nodisplay" />
             <div id={errorPopupHtmlId}  class="nodisplay" />
             <div id={successPopupHtmlId}  class="nodisplay" />
+            <lift:authz role="node_write">
             <fieldset class="nodeIndernal"><legend>Action</legend>
-              {SHtml.ajaxButton("Delete this node", { () => {showPopup(sm.node.main.id); } })}    
-            </fieldset> ++ {Script(OnLoad(JsRaw("""correctButtons();""")))}
+              {SHtml.ajaxButton("Delete this node", { () => {showPopup(sm.node.main.id); } } ) }
+            </fieldset>
+              </lift:authz> ++ {Script(OnLoad(JsRaw("""correctButtons();""") ) ) }
           case _ => NodeSeq.Empty
         }
     } ++
