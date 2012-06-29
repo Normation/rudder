@@ -63,6 +63,7 @@ import com.normation.rudder.domain.eventlog.{
 import com.normation.rudder.web.services.JsTreeUtilService
 import com.normation.rudder.web.services.UserPropertyService
 import org.joda.time.DateTime
+import com.normation.rudder.authorization._
 
 
 object RuleEditForm {
@@ -166,11 +167,14 @@ class RuleEditForm(
   )
 
   private[this] def showForm() : NodeSeq = {
-    (
+    if (CurrentUser.checkRights(Edit("Rule"))) { (
       "#editForm" #> showCrForm() &
       "#removeActionDialog" #> showRemovePopupForm() &
       "#disactivateActionDialog" #> showDisactivatePopupForm()
-    )(body)
+      )(body)
+    }
+    else
+         <div> You have no rights to see rules details, please contact your administrator </div>
   }
   
   private[this] def showRemovePopupForm() : NodeSeq = {    
