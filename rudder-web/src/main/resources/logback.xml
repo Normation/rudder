@@ -78,7 +78,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     are doing.
   -->
   
-  <root level="debug">
+  <root level="info">
     <appender-ref ref="STDOUT" />
   </root>
   
