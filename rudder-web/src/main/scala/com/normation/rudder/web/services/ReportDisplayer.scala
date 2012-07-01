@@ -181,7 +181,6 @@ class ReportDisplayer(
   }
   
   def showComponentValueReport(values : Seq[ComponentValueStatusReport]) : NodeSeq = {
-    values.map (value => println(value.componentValue))
     values.flatMap { value =>
            (
               "#componentValue *" #> <span>{value.componentValue}</span> &
