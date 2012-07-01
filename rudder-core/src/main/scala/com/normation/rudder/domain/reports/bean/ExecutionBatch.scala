@@ -65,6 +65,8 @@ trait ExecutionBatch {
   
   val expectedNodeIds : Seq[NodeId]
   
+  def getNodeStatus() : Seq[NodeStatusReport]
+  
   def getSuccessReports() : Seq[Reports] = {
     executionReports.filter(x => x.isInstanceOf[ResultSuccessReport])
   }
@@ -178,7 +180,8 @@ class ConfigurationExecutionBatch(
           }
           
           val directiveStatusReport = DirectiveStatusReport(
-              componentsStatus
+              expectedDirective.directiveId
+            , componentsStatus
             , ReportType.getWorseType(componentsStatus.map(x => x.componentReportType))
             , Seq()
           )
@@ -189,7 +192,8 @@ class ConfigurationExecutionBatch(
         
         val nodeStatusReport = NodeStatusReport(
             nodeId
-          ,  directiveStatusReports
+          , ruleId
+          , directiveStatusReports
           , ReportType.getWorseType(directiveStatusReports.map(x => x.directiveReportType))
           , Seq()
         )
@@ -218,7 +222,8 @@ class ConfigurationExecutionBatch(
           ) 
         }
         ComponentStatusReport(
-            components
+            expectedComponent.componentName
+          , components
           , getNoAnswerOrPending()
           , Seq()
         )
@@ -248,20 +253,20 @@ class ConfigurationExecutionBatch(
             expectedComponent.componentsValues.toList
           , purgedReports
         )
-        println(unexpectedReports.size)
-        println(components.map(x => x.cptValueReportType))
-        
+
         unexpectedReports.size match {
           case 0 => 
             ComponentStatusReport(
-                components
+                expectedComponent.componentName
+              , components
               , ReportType.getWorseType(components.map(x => x.cptValueReportType))
               , Seq() 
             )
                 
           case _ => // some bad report
              ComponentStatusReport(
-                components
+                expectedComponent.componentName
+              , components
               , UnknownReportType
               , Seq() // TODO : handle unexpected
             )
@@ -637,20 +642,23 @@ case class ComponentValueStatusReport(
  * Or error if there is an unexpected component value
  */
 case class ComponentStatusReport(
-    componentValues		  : Seq[ComponentValueStatusReport]
+    component           : String
+  , componentValues		  : Seq[ComponentValueStatusReport]
   , componentReportType : ReportType
   , unexpectedCptValues : Seq[ComponentValueStatusReport]
 )
 
 
 case class DirectiveStatusReport(
-    components			     : Seq[ComponentStatusReport]
+    directiveId          : DirectiveId
+  , components			     : Seq[ComponentStatusReport]
   , directiveReportType  : ReportType
   , unexpectedComponents : Seq[ComponentStatusReport]
 )
 
 case class NodeStatusReport(
     nodeId               : NodeId
+  , ruleId               : RuleId
   , directives			     : Seq[DirectiveStatusReport]
   , nodeReportType		   : ReportType
   , unexpectedDirectives : Seq[DirectiveStatusReport]
