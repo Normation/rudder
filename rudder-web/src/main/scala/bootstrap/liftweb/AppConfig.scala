@@ -1065,7 +1065,10 @@ class AppConfig extends Loggable {
     new DirectiveEditorServiceImpl(techniqueRepository, section2FieldService)
 
   @Bean
-  def reportDisplayer = new ReportDisplayer(ldapRuleRepository, reportingService)
+  def reportDisplayer = new ReportDisplayer(
+      ldapRuleRepository
+    , ldapDirectiveRepository
+    , reportingService)
 
   ////////////////////// Snippet plugins & extension register //////////////////////
   import com.normation.plugins.{ SnippetExtensionRegister, SnippetExtensionRegisterImpl }

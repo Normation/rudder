@@ -41,25 +41,23 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleVal
 import com.normation.rudder.services.servers.NodeSummaryService
 import com.normation.rudder.web.components.DateFormaterService
-
 import com.normation.rudder.web.model._
 import com.normation.rudder.domain.reports.bean._
 import com.normation.rudder.domain.reports.bean.{Reports => TWReports}
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.exceptions.TechnicalException
-
-//lift std import
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import net.liftweb.http.Templates
+import com.normation.rudder.repository.DirectiveRepository
 
 /**
  * Display the last reports of a server
@@ -69,8 +67,10 @@ import net.liftweb.http.Templates
  * @author Nicolas CHARLES
  *
  */
-class ReportDisplayer(ruleRepository : RuleRepository,
-    reportingService : ReportingService) {
+class ReportDisplayer(
+    ruleRepository      : RuleRepository
+  , directiveRepository : DirectiveRepository 
+  , reportingService    : ReportingService) {
   
   
   
@@ -96,45 +96,112 @@ class ReportDisplayer(ruleRepository : RuleRepository,
     
     staticReportsSeq = reportsSeq.filter( x => ruleRepository.get(x.ruleId).isDefined  )
     bind("lastReportGrid",reportByNodeTemplate,
-           "intro" ->  (staticReportsSeq.filter(x => ( (x.getErrorNodeIds.size>0) || 
-                                                //(x.getWarnNode.size>0) ||
-                                                (x.getRepairedNodeIds.size>0) ||
-                                                (x.getNoReportNodeIds.size>0))).toList match {
+           "intro" ->  (staticReportsSeq.filter(x => ( 
+                               (x.getNodeStatus().exists(x => x.nodeReportType == ErrorReportType)) ||
+                               (x.getNodeStatus().exists(x => x.nodeReportType == RepairedReportType)) ||
+                               (x.getNodeStatus().exists(x => x.nodeReportType == NoAnswerReportType)) 
+                        )
+                                ).toList match {
              case x if (x.size > 0) => <div>There are {x.size} out of {staticReportsSeq.size} reports that require our attention</div>
-             case _ => if (staticReportsSeq.filter(x => (x.getPendingNodeIds().size>0)).size>0) {
+             case _ => if (staticReportsSeq.filter(x => (x.getNodeStatus().exists(x => x.nodeReportType == PendingReportType))).size>0) {
                      <div>Deployment in progress</div>
                    } else {
                      <div>All the last execution reports for this server are ok</div>
                    }
            } ),
-           "lines" -> 
-               (((staticReportsSeq.map { x => x match { 
-                 case ex:ExecutionBatch if (ex.getErrorNodeIds.size > 0) => ("Error", ex)
-                 //case ex:ExecutionBatch if (ex.getWarnNode.size > 0) => ("Warning", ex)
-                 case ex:ExecutionBatch if (ex.getNoReportNodeIds.size > 0) => ("No answer", ex)
-                 case ex:ExecutionBatch if (ex.getPendingNodeIds.size > 0) => ("Applying", ex)
-                 case ex:ExecutionBatch if (ex.getRepairedNodeIds.size > 0) => ("Repaired", ex)
-                 case ex:ExecutionBatch if (ex.getSuccessNodeIds.size > 0) => ("Success", ex)
-                 case ex:ExecutionBatch => ("Unknown", ex)
-               }
-               }):Seq[(String, ExecutionBatch)]).flatMap {       
-                   case s@(severity:String, executionBatch:ExecutionBatch) =>
-                   ruleRepository.get(executionBatch.ruleId) match {
-                       case Full(rule) =>                    
-                        <tr class={severity.replaceAll(" ", "")}>
-                        {bind("line",chooseTemplate("lastReportGrid","lines",reportByNodeTemplate),
-                         "rule" -> <span jsuuid={executionBatch.ruleId.value.replaceAll("-","")} ruleId={executionBatch.ruleId.value}>{rule.name}</span> ,
-                         "severity" -> severity )}
-                        </tr>
-                       case _ => NodeSeq.Empty 
-                     }
-                     case _ => NodeSeq.Empty
+           "grid" -> showReportDetail(staticReportsSeq)
 
-                   }
-            )
            )
   }
 
+  def showReportDetail(executionsBatches : Seq[ExecutionBatch]) : NodeSeq = {
+    (
+     "#reportLine" #> executionsBatches.flatMap(x => x.getNodeStatus()).map { reportStatus =>
+         ruleRepository.get(reportStatus.ruleId) match {
+           case Full(rule) =>
+             val tooltipid = Helpers.nextFuncName
+             (
+                 "#rule [class+]" #> "listopen" &
+                 "#rule *" #> <span jsuuid={reportStatus.ruleId.value.replaceAll("-","")} ruleId={reportStatus.ruleId.value}>{rule.name}</span> &
+                 "#severity *" #> getSeverityFromStatus(reportStatus.nodeReportType) &
+                 ".unfoldable [class+]" #> getSeverityFromStatus(reportStatus.nodeReportType).replaceAll(" ", "") &
+                 ".unfoldable [toggler]" #> tooltipid &
+                 "#jsid [id]" #> tooltipid &
+                 "#details" #> showDirectivesReport(reportStatus.directives)
+             )(reportsLineXml)
+           case _ => <div>Could not find rule {reportStatus.ruleId} </div>
+         }
+     }
+    )(reportsGridXml) 
+    
+  }
+  
+  def showDirectivesReport(directives : Seq[DirectiveStatusReport]) : NodeSeq = {
+    directives.flatMap { directive =>
+      directiveRepository.getDirective(directive.directiveId) match {
+        case Full(dir) =>
+          val tooltipid = Helpers.nextFuncName
+           (
+              "#directive [class+]" #> "listopen" &
+              "#directive *" #> <span>{dir.name}</span> &
+              "#severity *" #> getSeverityFromStatus(directive.directiveReportType) &
+              ".unfoldable [class+]" #> getSeverityFromStatus(directive.directiveReportType).replaceAll(" ", "") &
+              ".unfoldable [toggler]" #> tooltipid &
+              "#jsid [id]" #> tooltipid &
+              "#details" #> showComponentsReports(directive.components) 
+           )(directiveLineXml)
+        case _ => <div>Could not fetch directive {directive.directiveId} </div>
+      }
+    }
+  }
+  
+  def showComponentsReports(components : Seq[ComponentStatusReport]) : NodeSeq = {
+    components.flatMap { component =>
+      component.componentValues.forall( x => x.componentValue =="None") match {
+        case true => // only None, we won't show the details
+          (
+              "#component *" #> <span>{component.component}</span> &
+              ".unfoldable [class]" #> getSeverityFromStatus(component.componentReportType).replaceAll(" ", "") &
+              "#jsid *" #> NodeSeq.Empty &
+              "#severity *" #> getSeverityFromStatus(component.componentReportType)
+           )(componentDetails)
+        case false => // standard  display that can be expanded
+          val tooltipid = Helpers.nextFuncName
+           (
+              "#component [class+]" #> "listopen" &
+              "#component *" #> <span>{component.component}</span> &
+              ".unfoldable [toggler]" #> tooltipid &
+              "#jsid [id]" #> tooltipid &
+              ".unfoldable [class+]" #> getSeverityFromStatus(component.componentReportType).replaceAll(" ", "") &
+              "#severity *" #> getSeverityFromStatus(component.componentReportType) &
+              "#details" #> showComponentValueReport(component.componentValues)
+           )(componentDetails)
+      }
+    }    
+  }
+  
+  def showComponentValueReport(values : Seq[ComponentValueStatusReport]) : NodeSeq = {
+    values.map (value => println(value.componentValue))
+    values.flatMap { value =>
+           (
+              "#componentValue *" #> <span>{value.componentValue}</span> &
+              "#severity *" #> getSeverityFromStatus(value.cptValueReportType) &
+              "#severityClass [class]" #> getSeverityFromStatus(value.cptValueReportType).replaceAll(" ", "") 
+           )(componentValueDetails)
+    } 
+  }
+  
+  def getSeverityFromStatus(status : ReportType) : String = {
+    status match {
+      case SuccessReportType => "Success"
+      case RepairedReportType => "Repaired"
+      case ErrorReportType => "Error"
+      case NoAnswerReportType => "No answer"
+      case PendingReportType => "Applying"
+      case _ => "Unknown"
+    }
+  }
+  
   def displayReports(node : NodeInfo) : NodeSeq = {
     display(reportingService.findImmediateReportsByNode(node.id), "reportsGrid")
   }
@@ -156,16 +223,38 @@ class ReportDisplayer(ruleRepository : RuleRepository,
    * Init Javascript for the table with ID
    * 'tableId'
    */
-  def initJs(tableId:String) : JsCmd = {     
+  def initJs(tableId:String) : JsCmd = {
     JsRaw("""
-        var #table_var#;
+        $(".unfoldable").click(function() {
+          var togglerId = $(this).attr("toggler");
+          $('#'+togglerId).toggle();
+          if ($(this).find("td.listclose").length > 0) {
+            $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
+          } else {
+            $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
+          }
+        });
+      """);
+    
+    /*JsRaw("""
+        $('#severityClass').click(function() {
+          val togglerId = this.attr("toggler");
+          $('#'+togglerId).toggle();
+        });
+      """);  */
+    /*JsRaw("""
+        $('#severityClass').click(function() {
+          val togglerId = this.attr("toggler");
+          $('#'+togglerId).toggle();
+        });
+        /* var #table_var#;*/
         /* Formating function for row details */
         function fnFormatDetails ( id ) {
           var sOut = '<div id="'+id+'" class="reportDetailsGroup"/>';
           return sOut;
         }
       """.replaceAll("#table_var#",jsVarNameForId(tableId))
-    ) & OnLoad(    
+    ) /*& OnLoad(    
         JsRaw("""
           /* Event handler function */
           #table_var# = $('#%s').dataTable({
@@ -179,7 +268,7 @@ class ReportDisplayer(ruleRepository : RuleRepository,
             ]
           });moveFilterAndPaginateArea('#%s');""".format(tableId, tableId).replaceAll("#table_var#",jsVarNameForId(tableId))
         )  // &  initJsCallBack(tableId)  //for now, no details on report #783
-    )
+    )*/*/
   }
   
   
@@ -219,33 +308,7 @@ class ReportDisplayer(ruleRepository : RuleRepository,
 //  }  
 
 
-  /**
-   * Display the detail for reports
-   * @param s : javascript id | directive
-   * @return
-   */
-  //for now, no details on report #783
-//  private def details(s:String) : JsCmd = {
-//    Alert("""error("TODO")""")
-//  }
   
-  
-  /**
-   * Look in the service for the given Directive uuid and returns some basic data
-   */
-//  private def showPolicyDetail(instance : RuleVal) : NodeSeq = {
-//      <div class="reportsList"> 
-//        <div class="reportsTitle">{instance.TechniqueId.value} : {}</div>
-//        <span>
-//        </span>
-//          { /* if (instance.executionPlanning != None) {
-//            TemporalVariableEditor.apply(instance.executionPlanning.get).toHtml
-//          } */ }
-//        <div>List of the variables defined: 
-//          {instance.variables.map(x => Text(x._1 +":" +x._2.mkString(";") ) ++ <BR/>   )  }
-//       </div>
-//     </div>
-//  }
   
   private def showBatchDetail(batch:ExecutionBatch) : NodeSeq = {
     batch match {
@@ -275,11 +338,75 @@ class ReportDisplayer(ruleRepository : RuleRepository,
   }
   
   
+
+  def reportsGridXml : NodeSeq = {
+    <table id="reportsGrid" cellspacing="0">
+      <thead>
+        <tr class="head">
+          <th>Rule<span/></th>
+          <th class="severityWidth">Severity<span/></th>
+        </tr>
+      </thead>
+      <tbody>   
+        <div id="reportLine"/>
+      </tbody>
+    </table>
+  }
   
-  /**
-   * Look in the service for the given Directive uuid and returns some basic data
-   */
-//  private def showPolicyDetail(uuid : String) : NodeSeq = {
-//    <div class="error">TODO: correct the Rule display with id {uuid}</div>
-//  }
+  def reportsLineXml : NodeSeq = {
+    <tr class="unfoldable">
+      <td id="rule"></td>
+      <td name="severity" class="severityWidth"><div id="severity"/></td>
+    </tr> ++ detailsLine
+    
+  }
+  
+  def directiveLineXml : NodeSeq = {
+    <thead>
+      <tr class="head">
+        <th>Directive<span/></th>
+        <th class="severityWidth">Severity<span/></th>
+      </tr>
+    </thead>
+    <tr class="unfoldable">
+      <td id="directive"></td>
+      <td name="severity" class="severityWidth"><div id="severity"/></td>
+    </tr> ++ detailsLine
+  }
+  
+  def componentDetails : NodeSeq = {
+    <thead>
+      <tr class="head">
+        <th>Component name<span/></th>
+        <th class="severityWidth">Severity<span/></th>
+      </tr>
+    </thead>
+    <tr class="unfoldable">
+      <td id="component"></td>
+      <td name="severity" class="severityWidth"><div id="severity"/></td>
+    </tr> ++ detailsLine    
+  }
+  
+  def componentValueDetails : NodeSeq = {
+    <thead>
+      <tr class="head">
+        <th>Component Value<span/></th>
+        <th class="severityWidth">Severity<span/></th>
+      </tr>
+    </thead>
+    <tr id="severityClass">
+      <td id="componentValue"></td>
+      <td name="severity" class="severityWidth"><div id="severity"/></td>
+    </tr>
+  }  
+  
+  def detailsLine : NodeSeq = {
+    <tr id="jsid" class="detailedReportLine severity" style="display:none">
+      <td class="detailedReportLine" colspan="2">
+        <table class="detailedReport" cellspacing="0">
+          <div id="details"/>
+        </table>
+      </td>
+    </tr>
+  }
 }
