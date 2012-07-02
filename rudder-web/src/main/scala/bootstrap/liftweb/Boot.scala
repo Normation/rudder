@@ -140,77 +140,77 @@ class Boot extends Loggable {
     
       
     val nodeManagerMenu = 
-      Menu("NodeManagerHome", <span>Node Management</span>)  / "secure" / "nodeManager" / "index"  >>
-      TestAccess( () => userIsAllowed(Read("node")) ) submenus (
-          
-            Menu("SearchNodes", <span>Search nodes</span>)       / "secure" / "nodeManager" / "searchNodes" >> LocGroup("nodeGroup") 
-        
-        ,   Menu("ManageNewNode", <span>Accept new nodes</span>) / "secure" / "nodeManager" / "manageNewNode" >>  LocGroup("nodeGroup")
-          
-        , ( 
-            Menu("Groups", <span>Groups</span>)                  / "secure" / "nodeManager" / "groups" 
-              >> LocGroup("groupGroup") 
-              >> TestAccess( () => userIsAllowed(Read("group")) ) 
-          )
-          
+      Menu("NodeManagerHome", <span>Node Management</span>) /
+        "secure" / "nodeManager" / "index"  >> TestAccess( ()
+            => userIsAllowed(Read("node")) ) submenus (
+
+          Menu("SearchNodes", <span>Search nodes</span>) /
+            "secure" / "nodeManager" / "searchNodes"
+            >> LocGroup("nodeGroup")
+
+        , Menu("ManageNewNode", <span>Accept new nodes</span>) /
+            "secure" / "nodeManager" / "manageNewNode"
+            >>  LocGroup("nodeGroup")
+
+        , Menu("Groups", <span>Groups</span>) /
+            "secure" / "nodeManager" / "groups"
+            >> LocGroup("groupGroup")
+            >> TestAccess( () => userIsAllowed(Read("group") ) )
+
         //Menu(Loc("PolicyServers", List("secure", "nodeManager","policyServers"), <span>Rudder server</span>,  LocGroup("nodeGroup"))) ::
         //Menu(Loc("UploadedFiles", List("secure", "nodeManager","uploadedFiles"), <span>Manage uploaded files</span>, LocGroup("filesGroup"))) ::
       )
 
     def buildManagerMenu(name:String) =
-      Menu(name+"ManagerHome", <span>{name.capitalize} Management</span>) / "secure" / (name+"Manager") / "index" >>
-      TestAccess ( () => userIsAllowed(Read("configuration")) ) submenus (
-          
-          Menu(name+"RuleManagement", <span>Rules</span>) / 
-            "secure" / (name+"Manager") / "ruleManagement" >> 
-            LocGroup(name+"Group") >> 
-            TestAccess( () => userIsAllowed(Read("rule")) ) 
-            
-        , Menu(name+"DirectiveManagement", <span>Directives</span>) / 
-            "secure" / (name+"Manager") / "directiveManagement" >> 
-            LocGroup(name+"Group") >> 
-            TestAccess( () => userIsAllowed(Read("directive")) )
-            
+      Menu(name+"ManagerHome", <span>{name.capitalize} Management</span>) /
+        "secure" / (name+"Manager") / "index" >> TestAccess ( ()
+            => userIsAllowed(Read("configuration")) ) submenus (
+
+          Menu(name+"RuleManagement", <span>Rules</span>) /
+            "secure" / (name+"Manager") / "ruleManagement"
+            >> LocGroup(name+"Group")
+            >> TestAccess( () => userIsAllowed(Read("rule") ) )
+
+        , Menu(name+"DirectiveManagement", <span>Directives</span>) /
+            "secure" / (name+"Manager") / "directiveManagement"
+            >> LocGroup(name+"Group")
+            >> TestAccess( () => userIsAllowed(Read("directive") ) )
+
         , Menu("TechniqueLibraryManagement", <span>Techniques</span>) /
-            "secure" / (name+"Manager") / "techniqueLibraryManagement" >>  
-            LocGroup(name+"Group") >> 
-            TestAccess( () => userIsAllowed(Read("technique")) )
+            "secure" / (name+"Manager") / "techniqueLibraryManagement"
+            >> LocGroup(name+"Group")
+            >> TestAccess( () => userIsAllowed(Read("technique") ) )
       )
       
       
     def administrationMenu = 
-      Menu("AdministrationHome", <span>Administration</span>) / "secure" / "administration" /"index" >>
-        TestAccess ( () => userIsAllowed(Read("administration")) ) submenus (
-          Menu("archivesManagement", <span>Archives</span>) / 
-            "secure" / "administration" / "archiveManagement" >> LocGroup("administrationGroup") >> TestAccess ( () =>
-        if(CurrentUser.checkRights(Write("administration"))||CurrentUser.checkRights(Edit("administration")))
-          Empty
-          else
-            Full(RedirectWithState("/secure/administration/eventLogs", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) ) )
-        , Menu("eventLogViewer", <span>Event Logs</span>) / 
-            "secure" / "administration" / "eventLogs" >> LocGroup("administrationGroup")
+      Menu("AdministrationHome", <span>Administration</span>) /
+        "secure" / "administration" / "index" >> TestAccess ( ()
+            => userIsAllowed(Read("administration")) ) submenus (
+
+          Menu("archivesManagement", <span>Archives</span>) /
+            "secure" / "administration" / "archiveManagement"
+            >> LocGroup("administrationGroup")
+            >> TestAccess ( () => userIsAllowed(Write("administration"),"/secure/administration/eventLogs") )
+
+        , Menu("eventLogViewer", <span>Event Logs</span>) /
+            "secure" / "administration" / "eventLogs"
+            >> LocGroup("administrationGroup")
 
         , Menu("policyServerManagement", <span>Policy Server</span>) / 
-            "secure" / "administration" / "policyServerManagement" >> LocGroup("administrationGroup") >> TestAccess ( () =>
-            if(CurrentUser.checkRights(Write("administration"))||CurrentUser.checkRights(Edit("administration")))
-              Empty
-            else
-              Full(RedirectWithState("/secure/administration/eventLogs", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) ) )
+            "secure" / "administration" / "policyServerManagement"
+            >> LocGroup("administrationGroup")
+            >> TestAccess ( () => userIsAllowed(Write("administration"),"/secure/administration/eventLogs") )
 
-        , Menu("pluginManagement", <span>Plugins</span>) / 
-            "secure" / "administration" / "pluginManagement" >> LocGroup("administrationGroup") >> TestAccess ( () =>
-            if(CurrentUser.checkRights(Write("administration"))||CurrentUser.checkRights(Edit("administration")))
-              Empty
-            else
-              Full(RedirectWithState("/secure/administration/eventLogs", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) ) )
+        , Menu("pluginManagement", <span>Plugins</span>) /
+            "secure" / "administration" / "pluginManagement"
+            >> LocGroup("administrationGroup")
+            >> TestAccess ( () => userIsAllowed(Write("administration"),"/secure/administration/eventLogs") )
 
         , Menu("databaseManagement", <span>Database Management</span>) / 
-            "secure" / "administration" / "databaseManagement" >> LocGroup("administrationGroup") >> TestAccess ( () =>
-            if(CurrentUser.checkRights(Write("administration"))||CurrentUser.checkRights(Edit("administration")))
-              Empty
-            else
-              Full(RedirectWithState("/secure/administration/eventLogs", RedirectState(() => (), "you are not authorized, please contact your administrator" -> NoticeType.Error ) ) ) )
-            
+            "secure" / "administration" / "databaseManagement"
+            >> LocGroup("administrationGroup")
+            >> TestAccess ( () => userIsAllowed(Write("administration"),"/secure/administration/eventLogs") )
       )
   
     
@@ -269,11 +269,11 @@ class Boot extends Loggable {
     LiftRules.addToPackages(plugin.basePackage)
   }
   
-  private[this] def userIsAllowed(requiredAuthz:AuthorizationType) : Box[LiftResponse] =  {
+  private[this] def userIsAllowed(requiredAuthz:AuthorizationType, redirection:String = "/secure/index") : Box[LiftResponse] =  {
     if(CurrentUser.checkRights(requiredAuthz)) {
       Empty
     } else {
-      Full(RedirectWithState("/secure/index", RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error ) ) )
+      Full(RedirectWithState(redirection, RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error ) ) )
     }
   }
 }
