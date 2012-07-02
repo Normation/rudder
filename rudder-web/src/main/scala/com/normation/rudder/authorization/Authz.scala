@@ -55,7 +55,7 @@ object AuthzToRights {
    * Authorization kind
    */
   val configurationkind = List("configuration","rule","directive","technique")
-  val nodeKind = List("node","inventory","group")
+  val nodeKind = List("node","group")
   val allKind = "deployment"::"administration"::configurationkind ::: nodeKind
 
   /*
