@@ -71,7 +71,7 @@ object Constants {
    * node "if you don't find you specific promises, go look here
    * for a shared failsafe that will help you". 
    */
-  val NODE_PROMISES_PARENT_DIR_BASE = "/var/rudder"
+  val NODE_PROMISES_PARENT_DIR_BASE = "/var/rudder/"
   val NODE_PROMISES_PARENT_DIR = "share"
     
   val CFENGINE_COMMUNITY_PROMISES_PATH = "/var/rudder/cfengine-community/inputs"
