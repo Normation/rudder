@@ -154,7 +154,7 @@ class RuleGrid(
         "sPaginationType": "full_numbers",
         "bJQueryUI": false,
         "oLanguage": {
-          "sZeroRecords": "No item involved"
+          "sZeroRecords": "No matching rules!"
         },
         "aaSorting": [[ 0, "asc" ]],
         "aoColumns": [ 
