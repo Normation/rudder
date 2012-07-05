@@ -72,4 +72,15 @@ object ReportType {
       }
     } 
   }
+
+  def getSeverityFromStatus(status : ReportType) : String = {
+    status match {
+      case SuccessReportType => "Success"
+      case RepairedReportType => "Repaired"
+      case ErrorReportType => "Error"
+      case NoAnswerReportType => "No answer"
+      case PendingReportType => "Applying"
+      case _ => "Unknown"
+    }
+  }
 }

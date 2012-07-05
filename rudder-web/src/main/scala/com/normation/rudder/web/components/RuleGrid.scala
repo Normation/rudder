@@ -59,6 +59,7 @@ import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.rudder.domain.reports.bean._
 
 
 object RuleGrid {
@@ -457,8 +458,8 @@ class RuleGrid(
     reportingService.findImmediateReportsByRule(rule.id) match {
       case None => Some(Applying) // when we have a rule but nothing in the database, it means that it is currentluy being deployed
       case Some(x) if (x.expectedNodeIds.size==0) => None
-      case Some(x) if (x.getPendingNodeIds.size>0) => Some(Applying)
-      case Some(x) =>  Some(new Compliance((100 * x.getSuccessNodeIds.size) / x.expectedNodeIds.size))
+      case Some(x) if x.getNodeStatus().exists(x => x.nodeReportType == PendingReportType ) => Some(Applying)
+      case Some(x) =>  Some(new Compliance((100 * x.getNodeStatus().filter(x => x.nodeReportType == SuccessReportType).size) / x.expectedNodeIds.size))
     }
   }
 
@@ -498,27 +499,20 @@ class RuleGrid(
           batch match {
             case None => Text("No Reports")
             case Some(reports) =>
-            ((reports.getSuccessNodeIds().map ( x =>  ("Success" , x)) ++
-               reports.getRepairedNodeIds().map ( x => ("Repaired" , x)) ++
-               //reports.getWarnNode().map ( x => ("Warn" , x)) ++
-               reports.getErrorNodeIds().map ( x =>  ("Error" , x)) ++
-               reports.getPendingNodeIds().map ( x =>  ("Applying" , x)) ++
-               reports.getNoReportNodeIds().map ( x => ("No answer" , x)) ) ++
-               reports.getUnknownNodeIds().map ( x =>  ("Unknown" , x)) :Seq[(String, NodeId)]).flatMap {
-                 case s@(severity:String, uuid:NodeId) if (uuid != null) =>
-                   nodeInfoService.getNodeInfo(uuid) match {
+              reports.getNodeStatus().map { nodeStatus => 
+
+                   nodeInfoService.getNodeInfo(nodeStatus.nodeId) match {
                      case Full(nodeInfo)  => {
-                        <tr class={severity.replaceAll(" ", "")}>
+                        <tr class={ReportType.getSeverityFromStatus(nodeStatus.nodeReportType).replaceAll(" ", "")}>
                         {bind("line",chooseTemplate("lastReportGrid","lines",reportTemplate),
-                         "hostname" -> <a href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(uuid.value)}><span class="curspoint" jsuuid={uuid.value.replaceAll("-","")} serverid={uuid.value}>{nodeInfo.hostname}</span></a>,
-                         "severity" -> severity )}
+                         "hostname" -> <a href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.nodeId.value)}><span class="curspoint" jsuuid={nodeStatus.nodeId.value.replaceAll("-","")} serverid={nodeStatus.nodeId.value}>{nodeInfo.hostname}</span></a>,
+                         "severity" -> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType) )}
                         </tr>
                      }
                      case x:EmptyBox => 
-                       logger.error( (x?~! "An error occured when trying to load node %s".format(uuid.value)),x)
-                       <div class="error">Node with ID "{uuid.value}" is invalid</div>
+                       logger.error( (x?~! "An error occured when trying to load node %s".format(nodeStatus.nodeId.value)),x)
+                       <div class="error">Node with ID "{nodeStatus.nodeId.value}" is invalid</div>
                    }
-
                }
             }
          )
