@@ -271,6 +271,7 @@ case class LDAPObjectType(
   def objectTypes = Map(
     "software" -> LDAPObjectType(dit.SOFTWARE.dn, One, ALL, DNJoin),
     "node" -> LDAPObjectType(dit.NODES.dn, One, ALL, DNJoin),
+    "nodeAndPolicyServer" -> LDAPObjectType(dit.NODES.dn, One, ALL, DNJoin),
     "networkInterfaceLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, IS(OC_NET_IF), ParentDNJoin),
     "process" -> LDAPObjectType(dit.NODES.dn, One, ALL, DNJoin),
     "virtualMachineLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, IS(OC_VM_INFO), ParentDNJoin),
@@ -293,6 +294,7 @@ case class LDAPObjectType(
   val objectDnTypes = Map(
     "software" -> QuerySoftwareDn,
     "node" -> QueryNodeDn,
+    "nodeAndPolicyServer" -> QueryNodeDn,
     "networkInterfaceLogicalElement" -> QueryNodeDn,
     "fileSystemLogicalElement" -> QueryNodeDn,
     "process" -> QueryNodeDn,
@@ -318,6 +320,7 @@ case class LDAPObjectType(
   val joinAttributes = Map(
     "software" -> DNJoin,
     "node" -> DNJoin,
+    "nodeAndPolicyServer" -> DNJoin,
     "networkInterfaceLogicalElement" -> ParentDNJoin,
     "fileSystemLogicalElement" -> ParentDNJoin,
     "process" -> DNJoin,

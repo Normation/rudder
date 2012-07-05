@@ -71,6 +71,7 @@ final case class LDAPFilter(f:Filter) extends ExtendedFilter with HashcodeCachin
 sealed trait SpecialFilter extends ExtendedFilter
 final case class RegexFilter(attributeName:String, regex:String) extends SpecialFilter with HashcodeCaching 
 
+
 /*
  * An NodeQuery differ a little from a Query because it's component are sorted in two way :
  * - the server is apart with it's possible filter from criteria;
@@ -129,7 +130,6 @@ class AccepetedNodesLDAPQueryProcessor(
       select:Seq[String] = Seq(), 
       serverUuids:Option[Seq[NodeId]] = None
   ) : Box[Seq[QueryResult]] = {
-  
     for {
       inventoryEntries <- processor.internalQueryProcessor(query,select,serverUuids)
     } yield {
@@ -138,6 +138,7 @@ class AccepetedNodesLDAPQueryProcessor(
         rdn <- inventoryEntry(A_NODE_UUID)
         con <- processor.ldap
         nodeEntry <- con.get(nodeDit.NODES.NODE.dn(rdn), Seq(SearchRequest.ALL_USER_ATTRIBUTES, A_OBJECT_CREATION_DATE):_*)
+        if ((query.returnType == NodeReturnType && !nodeEntry.isA(OC_POLICY_SERVER_NODE)) || (query.returnType == NodeAndPolicyServerReturnType)) 
       } yield {
         QueryResult(nodeEntry,inventoryEntry)
       }
@@ -362,7 +363,7 @@ class InternalLDAPQueryProcessor(
 
       
     //final query, add "match only server id" filter if needed
-    val rt = objectTypes(query.returnType).copy(
+    val rt = objectTypes(query.returnType.value).copy(
       filter = {
         serverUuids match {
           case None => finalLdapFilter
@@ -518,7 +519,7 @@ class InternalLDAPQueryProcessor(
   private def normalize(query:Query) : Box[LDAPNodeQuery] = {
         
     //validate that we knows the requested object type
-    if(!objectTypes.isDefinedAt(query.returnType)) 
+    if(!objectTypes.isDefinedAt(query.returnType.value)) 
       return Failure("The requested type '%s' is not know".format(query.returnType))
     
     //validate that for each object type in criteria, we know it
@@ -538,10 +539,10 @@ class InternalLDAPQueryProcessor(
         }).toSet)
       }
         
-    val requestedTypeSetFilter = groupedSetFilter.get(query.returnType) match {
+    val requestedTypeSetFilter = groupedSetFilter.get(query.returnType.value) match {
       case None => None
       case s@Some(setFilter) => //remove it from further processing
-        groupedSetFilter -= query.returnType
+        groupedSetFilter -= query.returnType.value
         s
     }
 
