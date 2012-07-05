@@ -54,7 +54,7 @@ import com.normation.utils.HashcodeCaching
 
 //only string version of the query - no domain here
 case class StringCriterionLine(objectType:String, attribute:String, comparator:String, value:Option[String]=None) extends HashcodeCaching 
-case class StringQuery(returnType:String,composition:Option[String],criteria:Seq[StringCriterionLine]) extends HashcodeCaching 
+case class StringQuery(returnType:QueryReturnType,composition:Option[String],criteria:Seq[StringCriterionLine]) extends HashcodeCaching 
 
 object CmdbQueryParser {
   //query attribute
@@ -113,8 +113,7 @@ trait DefaultStringQueryParser extends StringQueryParser {
         return Failure("Parsing criteria yields an empty result, abort")
       case Full(l) => l.toSeq.reverse
     }
-    
-    Full(Query(query.returnType , comp , lines))
+    Full(Query(query.returnType, comp , lines))
   }
   
   def parseLine(line:StringCriterionLine) : Box[CriterionLine] = {
@@ -189,7 +188,8 @@ trait JsonQueryLexer extends QueryLexer {
         //target returned object
         val target = q.values.get(TARGET) match {
           case None => return failureMissing(TARGET)
-          case Some(x:String) => if(x.length > 0) x else return failureEmpty(TARGET)
+          case Some(NodeReturnType.value) => NodeReturnType
+          case Some(NodeAndPolicyServerReturnType.value) => NodeAndPolicyServerReturnType
           case Some(x) => return failureBadFormat(TARGET,x)
         }
       

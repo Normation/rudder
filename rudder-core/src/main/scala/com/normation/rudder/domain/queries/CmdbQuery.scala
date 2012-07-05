@@ -238,12 +238,12 @@ case object LongComparator extends CriterionType {
   override protected def validateSubCase(v:String,comparator:CriterionComparator) =  try {
     Full((v.toLong).toString)
   } catch {
-    case e:Exception => Failure("Invalide long : '%s'".format(v))
+    case e:Exception => Failure("Invalid long : '%s'".format(v))
   }
   override def toLDAP(v:String) = try {
     Full((v.toLong).toString)
   } catch {
-    case e:Exception => Failure("Invalide long : '%s'".format(v))
+    case e:Exception => Failure("Invalid long : '%s'".format(v))
   }
 }
 
@@ -490,8 +490,18 @@ object CriterionComposition {
   }
 }
 
+sealed trait QueryReturnType {
+  def value : String
+}
+case object NodeReturnType extends QueryReturnType{
+  override val value = "node"
+}
+case object NodeAndPolicyServerReturnType extends QueryReturnType{
+  override val value = "nodeAndPolicyServer"
+}
+
 case class Query(
-    val returnType:String,  //only "server" for now
+    val returnType:QueryReturnType,  //only "node" for now
     val composition:CriterionComposition,
     val criteria:Seq[CriterionLine] //list of all criteria to be matched by returned values
 ) {    
@@ -505,7 +515,7 @@ case class Query(
        *    ]}
        */
      lazy val toJSON = 
-              ("select" -> returnType) ~ 
+              ("select" -> returnType.value) ~ 
               ("composition" -> composition.toString) ~
               ("where" -> criteria.map( c =>
                 ("objectType" -> c.objectType.objectType) ~

@@ -139,7 +139,7 @@ class SearchNodeComponent(
   
   
   def buildQuery() : NodeSeq = {
-    if(None == query) query = Some(Query(OC_NODE,And,Seq(defaultLine))) 
+    if(None == query) query = Some(Query(NodeReturnType,And,Seq(defaultLine))) 
     val lines = ArrayBuffer[CriterionLine]()
     var composition = query.get.composition 
     var rType = query.get.returnType //for now, don't move
@@ -204,6 +204,12 @@ class SearchNodeComponent(
     def displayQuery(html: NodeSeq ) : NodeSeq = {
       val Query(otName,comp, criteria) = query.get
       SHtml.ajaxForm(bind("query", html,
+          "typeQuery" ->  SHtml.checkbox(rType==NodeAndPolicyServerReturnType, { value:Boolean =>
+                if (value) 
+                  rType = NodeAndPolicyServerReturnType 
+                else 
+                  rType = NodeReturnType}
+              , ("class" , "checkbox")),
           "composition" -> SHtml.radio(Seq("And", "Or"), Full(if(comp == Or) "Or" else "And"), {value:String => 
           composition = CriterionComposition.parse(value).getOrElse(And) //default to AND on unknow composition string
         }, ("class", "radio")).flatMap(e => <span class="compositionRadio">{e.xhtml} {e.key.toString}</span>),
