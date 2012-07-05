@@ -347,7 +347,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] def updateCf3PolicyDraftInstanceSettingFormComponent(technique:Technique,activeTechnique:ActiveTechnique,directive:Directive, piCreation : Boolean = false) : Unit = {
     currentDirectiveSettingForm.set(Full(
         new DirectiveEditForm(htmlId_policyConf,technique, activeTechnique,directive,
-            onSuccessCallback = { () => Replace(htmlId_activeTechniquesTree, userLibrary()) },
+            onSuccessCallback = { () => Replace(htmlId_activeTechniquesTree, userLibrary()) & Replace(htmlId_policyConf, showDirectiveDetails)   },
             piCreation = piCreation
         )))
   }

@@ -157,24 +157,12 @@ class DirectiveEditForm(
     }
 
   private[this] var piCurrentStatusIsActivated = directive.isEnabled
-
-  def dispatch = {
-    case "showForm" => { _ => showForm }
-  }
+  private[this] var directiveCurrentStatusCreationStatus = piCreation
   
-  def showForm(): NodeSeq = {
-    ( 
-      "#editForm" #> showCrForm() &
-      "#removeActionDialog" #> showRemovePopupForm() &
-      "#disactivateActionDialog" #> showDisactivatePopupForm()
-    )(body)
-  }
-  
-  def showRemovePopupForm() : NodeSeq = {
-    //pop-up: their content should be retrieve lazily
-    val removePopupGridXml = if (piCreation) {
-      val cmp = new RuleGrid("remove_popup_grid", Seq(), None, false)
-      cmp.rulesGrid(linkCompliancePopup = false)
+  //pop-up: their content should be retrieve lazily
+  lazy val removePopupGridXml = 
+    if (directiveCurrentStatusCreationStatus) {
+      NodeSeq.Empty
     } else {
       dependencyService.directiveDependencies(directive.id).map(_.rules) match {
         case e: EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
@@ -184,22 +172,40 @@ class DirectiveEditForm(
         }
       }
     }
-
-    //if directive current inherited status is "activated", the two pop-up (disable and remove) show
-    //the same content. Else, we have to build two different pop-up
-    val switchStatusFilter = if (directive.isEnabled) OnlyDisableable else OnlyEnableable
-    val disablePopupGridXml = dependencyService.directiveDependencies(directive.id, switchStatusFilter).map(_.rules) match {
-      case e: EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
-      case Full(rules) => {
-        val cmp = new RuleGrid("disable_popup_grid", rules, None, false)
-        cmp.rulesGrid(linkCompliancePopup = false)
+  
+   //if directive current inherited status is "activated", the two pop-up (disable and remove) show
+   //the same content. Else, we have to build two different pop-up
+   val switchStatusFilter = if (directive.isEnabled) OnlyDisableable else OnlyEnableable
+   lazy val disablePopupGridXml = 
+     if (directiveCurrentStatusCreationStatus) {
+      NodeSeq.Empty
+    } else {
+       dependencyService.directiveDependencies(directive.id, switchStatusFilter).map(_.rules) match {
+        case e: EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
+        case Full(rules) => {
+          val cmp = new RuleGrid("disable_popup_grid", rules, None, false)
+          cmp.rulesGrid(linkCompliancePopup = false)
+        }
       }
     }
-    
+  
+  def dispatch = {
+    case "showForm" => { _ => showForm }
+  }
+  
+  def showForm(): NodeSeq = {
+    ( 
+      "#editForm" #> showDirectiveForm() &
+      "#removeActionDialog" #> showRemovePopupForm() &
+      "#disactivateActionDialog" #> showDisactivatePopupForm()
+    )(body)
+  }
+  
+  def showRemovePopupForm() : NodeSeq = {
     (
        "#removeActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
        "#dialogRemoveButton" #> { removeButton % ("id", "removeButton") } &
-      "#removeItemDependencies" #> {
+       "#removeItemDependencies" #> {
         (ClearClearable & "#itemDependenciesGrid" #> removePopupGridXml)(itemDependencies)
       } &
        ".reasonsFieldsetPopup" #> { crReasonsRemovePopup.map { f =>
@@ -210,32 +216,7 @@ class DirectiveEditForm(
     )(popupRemoveForm) 
   }
   
-  def showDisactivatePopupForm() : NodeSeq = {
-    //pop-up: their content should be retrieve lazily
-    val removePopupGridXml = if (piCreation) {
-      val cmp = new RuleGrid("remove_popup_grid", Seq(), None, false)
-      cmp.rulesGrid(linkCompliancePopup = false)
-    } else {
-      dependencyService.directiveDependencies(directive.id).map(_.rules) match {
-        case e: EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
-        case Full(rules) => {
-          val cmp = new RuleGrid("remove_popup_grid", rules, None, false)
-          cmp.rulesGrid(linkCompliancePopup = false)
-        }
-      }
-    }
-
-    //if directive current inherited status is "activated", the two pop-up (disable and remove) show
-    //the same content. Else, we have to build two different pop-up
-    val switchStatusFilter = if (directive.isEnabled) OnlyDisableable else OnlyEnableable
-    val disablePopupGridXml = dependencyService.directiveDependencies(directive.id, switchStatusFilter).map(_.rules) match {
-      case e: EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
-      case Full(rules) => {
-        val cmp = new RuleGrid("disable_popup_grid", rules, None, false)
-        cmp.rulesGrid(linkCompliancePopup = false)
-      }
-    }
-    
+  def showDisactivatePopupForm() : NodeSeq = {    
     (
       "#desactivateActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
       "#dialogDisactivateButton" #> { disableButton % ("id", "disactivateButton") } &
@@ -251,35 +232,11 @@ class DirectiveEditForm(
     )(popupDisactivateForm) 
   }
 
-  def showCrForm(): NodeSeq = {
-
-    //pop-up: their content should be retrieve lazily
-    val removePopupGridXml = if (piCreation) {
-      val cmp = new RuleGrid("remove_popup_grid", Seq(), None, false)
-      cmp.rulesGrid(linkCompliancePopup = false)
-    } else {
-      dependencyService.directiveDependencies(directive.id).map(_.rules) match {
-        case e: EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
-        case Full(rules) => {
-          val cmp = new RuleGrid("remove_popup_grid", rules, None, false)
-          cmp.rulesGrid(linkCompliancePopup = false)
-        }
-      }
-    }
-
-    //if directive current inherited status is "activated", the two pop-up (disable and remove) show
-    //the same content. Else, we have to build two different pop-up
-    val switchStatusFilter = if (directive.isEnabled) OnlyDisableable else OnlyEnableable
-    val disablePopupGridXml = dependencyService.directiveDependencies(directive.id, switchStatusFilter).map(_.rules) match {
-      case e: EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
-      case Full(rules) => {
-        val cmp = new RuleGrid("disable_popup_grid", rules, None, false)
-        cmp.rulesGrid(linkCompliancePopup = false)
-      }
-    }
-
+  def showDirectiveForm(): NodeSeq = {
     (
       "#editForm *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
+      // don't show the action button when we are creating a popup
+      ".topLevelAction" #> (xml =>  if (directiveCurrentStatusCreationStatus) NodeSeq.Empty else xml ) andThen
       ClearClearable &
       //activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if (piCurrentStatusIsActivated) "Disable" else "Enable" } &
@@ -318,6 +275,8 @@ class DirectiveEditForm(
   ////////////// Callbacks //////////////
 
   private[this] def onSuccess(): JsCmd = {
+    // If we have a success, it means that the directive is now created
+    directiveCurrentStatusCreationStatus = false
     //MUST BE IN WAY, because the parent may change some reference to JsNode
     //and so, our AJAX could be broken
     onSuccessCallback() & updateFormClientSide() &
@@ -371,7 +330,7 @@ class DirectiveEditForm(
         } else {
           JsRaw("$.modal.close();") &
           {
-            if (piCreation) {
+            if (directiveCurrentStatusCreationStatus) {
               onSuccessCallback() &
                 SetHtml(htmlId_policyConf, <div id={ htmlId_policyConf }>Directive successfully deleted</div>) &
                 //show success popup
@@ -417,7 +376,7 @@ class DirectiveEditForm(
         } else {
           piCurrentStatusIsActivated = status
           JsRaw("$.modal.close();") & {
-            if (piCreation == true) {
+            if (directiveCurrentStatusCreationStatus == true) {
               onSuccess
             } else {
               saveAndDeployDirective(directive.copy(isEnabled = status), 
@@ -547,7 +506,7 @@ to avoid that last case.<br/>
     new FormTracker(crReasonsDisactivatePopup.toList) 
   
   private[this] def updateFormClientSide(): JsCmd = {
-    SetHtml(htmlId_policyConf, showCrForm)
+    SetHtml(htmlId_policyConf, showDirectiveForm)
   }
 
   private[this] def error(msg: String) = <span class="error">{ msg }</span>
@@ -570,7 +529,7 @@ to avoid that last case.<br/>
       onFailure
     } else {
       //try to save the PI
-      val newPi = if (piCreation) {
+      val newPi = if (directiveCurrentStatusCreationStatus) {
         directive.copy(
           parameters = parameterEditor.mapValueSeq,
           name = piName.is,
