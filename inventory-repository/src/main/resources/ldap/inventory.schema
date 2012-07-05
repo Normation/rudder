@@ -304,8 +304,8 @@ attributetype ( InventoryAttributes:300.13
 attributetype ( InventoryAttributes:300.14
   NAME 'environmentVariable'
   DESC 'List of environnement variable'
-  EQUALITY caseIgnoreMatch
-  SUBSTR caseIgnoreSubstringsMatch
+  EQUALITY caseExactMatch
+  SUBSTR caseExactSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 
 attributetype ( InventoryAttributes:300.15
