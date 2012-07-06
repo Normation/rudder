@@ -101,6 +101,11 @@ td.nodeIndernal {
   vertical-align: top;
 }
 
+.showParameters {
+  margin-top:5px;
+  margin-bottom:3px;
+}
+
 /**********************************
  *          formulaire            *
  **********************************/
@@ -2007,6 +2012,11 @@ td.severityWidth, th.severityWidth {
 tr.unfoldable {
   cursor:pointer;
 }
+
+.diffOldValue {
+    text-decoration:line-through;
+}
+
 /***********************************
  * Quicksearch
 ************************************/
