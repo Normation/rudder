@@ -125,30 +125,35 @@ class EventListDisplayer(
         JsRaw("""
         /* Formating function for row details */          
           function fnFormatDetails(id) {
-          var sOut = '<span id="'+id+'" class="sgridbph"/>';
-          return sOut;
-        };
+            var sOut = '<span id="'+id+'" class="sgridbph"/>';
+            return sOut;
+          };
           
           $('td', #table_var#.fnGetNodes() ).each( function () {
-          $(this).click( function () {
-        var nTr = this.parentNode;
-            var jTr = jQuery(nTr);
-        if (jTr.hasClass('curspoint')) {
-              var opened = jTr.prop("open");
-              if (opened && opened.match("opened")) {
-                jTr.prop("open", "closed");
-                jQuery(nTr).find("td.listclose").removeClass("listclose").addClass("listopen");
-                #table_var#.fnClose(nTr);
-              } else {
-                jTr.prop("open", "opened");
-                jQuery(nTr).find("td.listopen").removeClass("listopen").addClass("listclose");
-            var jsid = jTr.attr("jsuuid");
-                #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
-                %s;
+            $(this).click( function () {
+              var nTr = this.parentNode;
+              var jTr = jQuery(nTr);
+              if (jTr.hasClass('curspoint')) {
+                var opened = jTr.prop("open");
+                if (opened && opened.match("opened")) {
+                  jTr.prop("open", "closed");
+                  jQuery(nTr).find("td.listclose").removeClass("listclose").addClass("listopen");
+                  #table_var#.fnClose(nTr);
+                } else {
+                  jTr.prop("open", "opened");
+                  jQuery(nTr).find("td.listopen").removeClass("listopen").addClass("listclose");
+                  var jsid = jTr.attr("jsuuid");
+                  #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
+                  %s;
+                }
               }
-        }
-          } );
-        })
+            } );
+          })
+            
+          function showParameters(){
+            document.getElementById("show_parameters_info").style.display = "block";
+          }
+            
       """.format(
           SHtml.ajaxCall(JsVar("jsid"), details _)._2.toJsCmd).replaceAll("#table_var#",
              jsGridName)
@@ -288,21 +293,30 @@ class EventListDisplayer(
   }
 
   def displayDetails(event:EventLog) = {
+    
+    def xmlParameters(eventId: String) = {
+        <h4 id={"showParameters%s".format(eventId)}
+        class="curspoint showParameters" 
+        onclick={"showParameters(%s)".format(eventId)} >Show Parameters</h4>
+        <pre id={"showParametersInfo%s".format(eventId)} 
+        style="display:none">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
+    }
+    
+    val reasonHtml = {
+      val r = event.eventDetails.reason.getOrElse("")  
+      if(r == "") NodeSeq.Empty 
+      else <div style="margin-top:2px;"><b>Reason: </b>{r}</div>
+    }
+    
     def errorMessage(e:EmptyBox) = {
       logger.debug(e ?~! "Error when parsing details.", e)
       <xml:group>
         <div class="evloglmargin">
           <h4>Details for that node were not in a recognized format. 
             Raw data are displayed next:</h4>
-          <pre>{event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
+          <pre>{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
         </div>
       </xml:group>
-    }
-    
-    val r = event.eventDetails.reason.getOrElse("")  
-    var reasonHtml = {
-      if(r == "") NodeSeq.Empty 
-      else <div style="margin-top:2px;"><b>Reason: </b>{r}</div>
     }
                 
     (event match {
@@ -313,7 +327,9 @@ class EventListDisplayer(
             <div class="evloglmargin">
               { ruleDetails(crDetailsXML, addDiff.rule)}
               { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
+          case Failure(m,_,_) => <p>{m}</p>
           case e:EmptyBox => errorMessage(e)
         })
       
@@ -323,6 +339,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               { ruleDetails(crDetailsXML, delDiff.rule) }
               { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -331,10 +348,12 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getRuleModifyDetails(mod.details) match {
           case Full(modDiff) =>            
             <div class="evloglmargin">
-              <h4>Rule overview :</h4>
+              <h4>Rule overview:</h4>
               <ul class="evlogviewpad">
                 <li><b>Rule ID:</b> { modDiff.id.value }</li>
-                <li><b>Name:</b> { modDiff.name }</li>
+                <li><b>Name:</b> { 
+                  modDiff.modName.map(diff => diff.newValue).getOrElse(modDiff.name)
+               }</li>
               </ul>
               {(
                 "#name" #>  mapSimpleDiff(modDiff.modName) &
@@ -344,8 +363,8 @@ class EventListDisplayer(
                 "#longDescription *" #> mapSimpleDiff(modDiff.modLongDescription) &
                 "#target" #> (
                   modDiff.modTarget.map { diff =>
-                   ".diffOldValue" #> groupTargetDetails(diff.oldValue) &
-                   ".diffNewValue" #> groupTargetDetails(diff.newValue)
+                   ".diffOldValue *" #> groupTargetDetails(diff.oldValue) &
+                   ".diffNewValue *" #> groupTargetDetails(diff.newValue)
                   }
                 ) &
                 "#policies" #> (
@@ -359,12 +378,22 @@ class EventListDisplayer(
                            }
                          }
                    }
-                   ".diffOldValue" #> mapList(diff.oldValue) &
-                   ".diffNewValue" #> mapList(diff.newValue)
+                   ".diffOldValue *" #> mapList(diff.oldValue) &
+                   ".diffNewValue *" #> mapList(diff.newValue)
                    }
                 )
-              )(crModDetailsXML)}
+              )(crModDetailsXML) ++
+               Script(JsRaw("""
+                 function showParameters(s){
+                   if(document.getElementById("showParametersInfo" + s).style.display == "none")
+                     document.getElementById("showParametersInfo" + s).style.display = "block";
+                   else
+                     document.getElementById("showParametersInfo" + s).style.display = "none";
+                 }
+              """))
+              }
               { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -375,10 +404,12 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getDirectiveModifyDetails(x.details) match {
           case Full(modDiff) =>
             <div class="evloglmargin">
-              <h4>Directive overview :</h4>
+              <h4>Directive overview:</h4>
               <ul class="evlogviewpad">
                 <li><b>Directive ID:</b> { modDiff.id.value }</li>
-                <li><b>Name:</b> { modDiff.name }</li>
+                <li><b>Name:</b> {
+                  modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)
+                }</li>
               </ul>
               {(
                 "#name" #> mapSimpleDiff(modDiff.modName, modDiff.id) &
@@ -390,15 +421,17 @@ class EventListDisplayer(
                 "#ptVersion *" #> mapSimpleDiff(modDiff.modTechniqueVersion) &
                 "#parameters" #> (
                   modDiff.modParameters.map { diff =>
-                    ".diffOldValue" #> 
+                    ".diffOldValue *" #> 
                       <pre>{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre> &
-                    ".diffNewValue" #> 
+                    ".diffNewValue *" #> 
                       <pre>{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
                   }
                 ) 
               )(piModDetailsXML)}
               { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
+          case Failure(m, _, _) => <p>{m}</p>
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -410,6 +443,7 @@ class EventListDisplayer(
               { directiveDetails(piDetailsXML, diff.techniqueName, 
                   diff.directive, sectionVal) }
               { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -422,6 +456,7 @@ class EventListDisplayer(
               { directiveDetails(piDetailsXML, diff.techniqueName, 
                   diff.directive, sectionVal) }
               { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -432,10 +467,12 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getNodeGroupModifyDetails(x.details) match {
           case Full(modDiff) => 
             <div class="evloglmargin">
-              <h4>Node overview :</h4>
+              <h4>Node overview:</h4>
               <ul class="evlogviewpad">
                 <li><b>Node ID:</b> { modDiff.id.value }</li>
-                <li><b>Name:</b> { modDiff.name }</li>
+                <li><b>Name:</b> {
+                  modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)
+                }</li>
               </ul>
               {(
                 "#name" #> mapSimpleDiff(modDiff.modName) &
@@ -451,8 +488,8 @@ class EventListDisplayer(
                         case Some(q) => Text(q.toJSONString)
                       }
                       
-                     ".diffOldValue" #> mapOptionQuery(diff.oldValue) &
-                     ".diffNewValue" #> mapOptionQuery(diff.newValue)
+                     ".diffOldValue *" #> mapOptionQuery(diff.oldValue) &
+                     ".diffNewValue *" #> mapOptionQuery(diff.newValue)
                     }
                 ) &
                 "#nodes" #> (
@@ -465,12 +502,13 @@ class EventListDisplayer(
                        .map(id => <a href={nodeLink(id)}>{id.value}</a>)
                        .reduceLeft[NodeSeq]((a,b) => a ++ <span>,&nbsp;</span> ++ b)
                      }
-                   ".diffOldValue" #> mapList(diff.oldValue) &
-                   ".diffNewValue" #> mapList(diff.newValue)
+                   ".diffOldValue *" #> mapList(diff.oldValue) &
+                   ".diffNewValue *" #> mapList(diff.newValue)
                    }
                 ) 
               )(groupModDetailsXML)}
               { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -482,6 +520,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               { groupDetails(groupDetailsXML, diff.group) }
               { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -493,6 +532,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
             { groupDetails(groupDetailsXML, diff.group) }
             { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -506,6 +546,7 @@ class EventListDisplayer(
               <h4>Node accepted overview:</h4>
               { nodeDetails(details) }
               { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -517,6 +558,7 @@ class EventListDisplayer(
               <h4>Node refused overview:</h4>
               { nodeDetails(details) }
               { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -528,6 +570,7 @@ class EventListDisplayer(
               <h4>Node deleted overview:</h4>
               { nodeDetails(details) }
               { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -544,6 +587,7 @@ class EventListDisplayer(
                 <li><b>End Time:</b>&nbsp;{DateFormaterService.getFormatedDate(ended)}</li>
               </ul>
               { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
           case e:EmptyBox => errorMessage(e)
@@ -561,6 +605,7 @@ class EventListDisplayer(
                 <li><b>Error stack trace:</b>&nbsp;{failure.messageChain}</li>
               </ul>
              { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
           case e:EmptyBox => errorMessage(e)
@@ -578,11 +623,12 @@ class EventListDisplayer(
             
             <div class="evloglmargin">{
               (
-                  ".diffOldValue" #> networksToXML(details.oldNetworks) &
-                  ".diffNewValue" #> networksToXML(details.newNetworks)
+                  ".diffOldValue *" #> networksToXML(details.oldNetworks) &
+                  ".diffNewValue *" #> networksToXML(details.newNetworks)
               )(authorizedNetworksXML)
             }
             { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -598,6 +644,7 @@ class EventListDisplayer(
                   <li class="eventLogUpdatePolicy">{ "%s (version %s)".format(technique.name.value, technique.version.toString)}</li>
                 } }</ul>
                 { reasonHtml }
+              { xmlParameters(event.id.getOrElse(0).toString) }
               </div>
             
           case e:EmptyBox => errorMessage(e)
@@ -661,7 +708,8 @@ class EventListDisplayer(
   }
   
   private[this] def groupTargetDetails(targets: Set[RuleTarget]): NodeSeq = {
-    targets
+    (targets
+      .toSeq
       .map{ target =>
         target match {
           case GroupTarget(id@NodeGroupId(g)) => 
@@ -669,8 +717,7 @@ class EventListDisplayer(
           case x => 
             <span>{Text("group_special(" + x.toString + ")")}</span>
         }
-      }
-      .reduceLeft[NodeSeq]((a,b) => a ++ b)
+      })
   }
       
   
@@ -726,13 +773,13 @@ class EventListDisplayer(
   )(xml)
   
  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]]) = opt.map { diff =>
-   ".diffOldValue" #> diff.oldValue.toString &
-   ".diffNewValue" #> diff.newValue.toString
+   ".diffOldValue *" #> diff.oldValue.toString &
+   ".diffNewValue *" #> diff.newValue.toString
   }  
   
  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]], id: DirectiveId) = opt.map { diff =>
-   ".diffOldValue" #> diff.oldValue.toString &
-   ".diffNewValue" #> diff.newValue.toString &
+   ".diffOldValue *" #> diff.oldValue.toString &
+   ".diffNewValue *" #> diff.newValue.toString &
    "#directiveID" #> id.value
   }  
   

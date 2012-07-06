@@ -61,7 +61,7 @@ object ReloadTechniqueLibrary extends EventLogFilter {
   override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2) 
 
   def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent { 
-    <reloadTechniqueLibrary fileFormat={Constants.XML_FILE_FORMAT_2.toString}>{ TechniqueIds.map { case TechniqueId(name, version) =>
+    <reloadTechniqueLibrary fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>{ TechniqueIds.map { case TechniqueId(name, version) =>
       <modifiedTechnique>
         <name>{name.value}</name>
         <version>{version.toString}</version>
