@@ -52,6 +52,7 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.utils.ScalaReadWriteLock
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.cfclerk.domain.Technique
 
 class LDAPDirectiveRepository(
     rudderDit                     : RudderDit
@@ -101,6 +102,18 @@ class LDAPDirectiveRepository(
       directive
     }
   }
+  
+  override def getDirectiveWithContext(directiveId:DirectiveId) : Box[(Technique, ActiveTechnique, Directive)] = {
+    for {
+      directive         <- this.getDirective(directiveId) ?~! "No user Directive with ID=%s.".format(directiveId)
+      activeTechnique   <- this.getActiveTechnique(directiveId) ?~! "Can not find the Active Technique for Directive %s".format(directiveId)
+      activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
+      technique         <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "No Technique with ID=%s found in reference library.".format(activeTechniqueId)
+    } yield {
+      (technique, activeTechnique, directive)
+    }
+  }
+
   
   override def getAll(includeSystem:Boolean = false) : Box[Seq[Directive]] = {
     for {

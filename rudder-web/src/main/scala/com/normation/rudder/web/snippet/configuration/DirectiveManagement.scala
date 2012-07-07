@@ -319,17 +319,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    
   private[this] def displayDirectiveDetails(directiveId: DirectiveId): JsCmd = {
     //Set current Directive edition component to the given value
-    (for {
-      directive <- directiveRepository.getDirective(directiveId) ?~! 
-            "No user Directive with ID=%s.".format(directiveId)
-      activeTechnique <- directiveRepository.getActiveTechnique(directiveId) ?~! 
-                            "Can not find the Active Technique for Directive %s".format(directiveId)
-      activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
-      technique <- techniqueRepository.get(activeTechniqueId) ?~!
-                        "No Technique with ID=%s found in reference library.".format(activeTechniqueId)
-    } yield {
-      (technique, activeTechnique,directive)
-    }) match {
+    directiveRepository.getDirectiveWithContext(directiveId) match {
       case Full((technique,activeTechnique,directive)) => 
         currentTechnique = Some((technique,activeTechnique))
         updateCf3PolicyDraftInstanceSettingFormComponent(technique,activeTechnique,directive)
@@ -347,7 +337,22 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] def updateCf3PolicyDraftInstanceSettingFormComponent(technique:Technique,activeTechnique:ActiveTechnique,directive:Directive, piCreation : Boolean = false) : Unit = {
     currentDirectiveSettingForm.set(Full(
         new DirectiveEditForm(htmlId_policyConf,technique, activeTechnique,directive,
-            onSuccessCallback = { () => Replace(htmlId_activeTechniquesTree, userLibrary()) & Replace(htmlId_policyConf, showDirectiveDetails)   },
+            onSuccessCallback = ( () => {
+              //start by reseting the directive edit form component, so that we 
+              //use what data are *actually* in the database
+              directiveRepository.getDirectiveWithContext(directive.id) match {
+                case Full((technique,activeTechnique,directive)) =>
+                  updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, directive)
+                  Replace(htmlId_activeTechniquesTree, userLibrary()) & Replace(htmlId_policyConf, showDirectiveDetails)   
+                case eb:EmptyBox => 
+                  val e = eb ?~! "Error when trying to get directive'%s' [%s] info with its technique context for displaying in Directive Management edit form.".format(directive.name, directive.id)
+                  logger.error(e.messageChain)
+                  e.rootExceptionCause.foreach { ex => 
+                    logger.error("Root exception was: ", ex)
+                  }
+                  Alert("Error when trying to get display the page. Please, try again")
+              }
+            } ),
             piCreation = piCreation
         )))
   }
