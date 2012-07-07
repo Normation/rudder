@@ -277,16 +277,16 @@ class DirectiveEditForm(
   private[this] def onSuccess(): JsCmd = {
     // If we have a success, it means that the directive is now created
     directiveCurrentStatusCreationStatus = false
-    //MUST BE IN WAY, because the parent may change some reference to JsNode
-    //and so, our AJAX could be broken
-    onSuccessCallback() & updateFormClientSide() &
+    //we don't "showForm" ourselve, because we want to let the possibility to the caller to do something else,
+    //like not showing the form 
+    onSuccessCallback() & 
       //show success popup
       successPopup
   }
 
   private[this] def onFailure(): JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
-    onFailureCallback() & updateFormClientSide() & JsRaw("""scrollToElement("errorNotification");""")
+    onFailureCallback() & SetHtml(htmlId_policyConf, showDirectiveForm) & JsRaw("""scrollToElement("errorNotification");""")
   }
   
   private[this] def onFailureRemovePopup() : JsCmd = {
@@ -504,10 +504,6 @@ to avoid that last case.<br/>
   
   private[this] val formTrackerDisactivatePopup = 
     new FormTracker(crReasonsDisactivatePopup.toList) 
-  
-  private[this] def updateFormClientSide(): JsCmd = {
-    SetHtml(htmlId_policyConf, showDirectiveForm)
-  }
 
   private[this] def error(msg: String) = <span class="error">{ msg }</span>
 

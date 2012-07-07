@@ -37,6 +37,7 @@ package com.normation.rudder.repository
 import com.normation.rudder.domain.policies._
 import net.liftweb.common._
 import com.normation.eventlog.EventActor
+import com.normation.cfclerk.domain.Technique
 
 
 
@@ -56,6 +57,12 @@ trait DirectiveRepository {
    * Failure => an error happened.
    */
   def getDirective(directiveId:DirectiveId) : Box[Directive]
+  
+  /**
+   * retrieve a Directive with its parent Technique and the 
+   * binding Active Technique
+   */
+  def getDirectiveWithContext(directiveId:DirectiveId) : Box[(Technique, ActiveTechnique, Directive)]
 
   
   /**
