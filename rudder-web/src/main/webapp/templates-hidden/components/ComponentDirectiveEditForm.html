@@ -78,7 +78,7 @@
 	<div>
 		<div id="editForm" />
 		<div id="removeActionDialog" />
-		<div id="disactivateActionDialog" />
+		<div id="disableActionDialog" />
 	</div>
 </component:body>
 
@@ -208,17 +208,17 @@
 </component:popupRemoveForm>
 
 <component:popupDisactivateForm>
-   <div id="desactivateActionDialog" class="nodisplay">
+   <div id="disableActionDialog" class="nodisplay">
      <div class="simplemodal-title">
-       <h1>Disable a Directive</h1>
+       <h1><span id="dialogDisableTitle">Disable</span> a Directive</h1>
        <hr/>
      </div>
      <div class="simplemodal-content">
        <div>
          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-       <h2>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this Directive?</h2>
+       <h2>Are you sure that you want to <span id="dialogDisableLabel">disable</span> this Directive?</h2>
        <br />
-         <div>
+         <div id="dialogDisableWarning">
            Disabling this Directive will affect the following Rules.
          </div>
        </div>
@@ -241,7 +241,7 @@
         <div class="popupButton">
           <span>
            <button class="simplemodal-close" onClick="return false;">Cancel</button>
-           <button id="dialogDisactivateButton">Deactivate</button>
+           <button id="dialogDisableButton">Disable</button>
          </span>
        </div>
      </div>
