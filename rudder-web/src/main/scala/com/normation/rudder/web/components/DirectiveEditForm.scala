@@ -197,7 +197,7 @@ class DirectiveEditForm(
     ( 
       "#editForm" #> showDirectiveForm() &
       "#removeActionDialog" #> showRemovePopupForm() &
-      "#disactivateActionDialog" #> showDisactivatePopupForm()
+      "#disableActionDialog" #> showDisactivatePopupForm()
     )(body)
   }
   
@@ -218,9 +218,11 @@ class DirectiveEditForm(
   
   def showDisactivatePopupForm() : NodeSeq = {    
     (
-      "#desactivateActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
-      "#dialogDisactivateButton" #> { disableButton % ("id", "disactivateButton") } &
-      "#dialogDisactivateWarning *" #> dialogDisableWarning &
+      "#disableActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
+      "#dialogDisableTitle" #> { dialogDisableTitle } &
+      "#dialogDisableLabel" #> { dialogDisableTitle.toLowerCase } &
+      "#dialogDisableButton" #> { disableButton % ("id", "disactivateButton") } &
+      "#dialogDisableWarning *" #> dialogDisableWarning &
       "#disableItemDependencies" #> {
         (ClearClearable & "#itemDependenciesGrid" #> disablePopupGridXml)(itemDependencies)
       } &
@@ -240,7 +242,6 @@ class DirectiveEditForm(
       ClearClearable &
       //activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if (piCurrentStatusIsActivated) "Disable" else "Enable" } &
-      "#dialogDisactivateLabel" #> { if (piCurrentStatusIsActivated) "disable" else "enable" } &
       //form and form fields
       "#techniqueName" #> <a href={ "/secure/configurationManager/techniqueLibraryManagement/" + technique.id.name.value }>{ technique.name }</a> &
       "#techniqueDescription" #> technique.description &
@@ -266,7 +267,7 @@ class DirectiveEditForm(
         });
 
         $('#disactivateButton').click(function() {
-          createPopup("desactivateActionDialog",100,850);
+          createPopup("disableActionDialog",100,850);
           return false;
         });
       """)))
@@ -311,8 +312,8 @@ class DirectiveEditForm(
   }
   
   private[this] def updateDisableFormClientSide() : JsCmd = {
-    val jsDisplayDisableDiv = JsRaw("""$("#desactivateActionDialog").removeClass('nodisplay')""")
-    Replace("desactivateActionDialog", this.showDisactivatePopupForm()) & 
+    val jsDisplayDisableDiv = JsRaw("""$("#disableActionDialog").removeClass('nodisplay')""")
+    Replace("disableActionDialog", this.showDisactivatePopupForm()) & 
     jsDisplayDisableDiv &
     initJs
   }
@@ -392,12 +393,20 @@ class DirectiveEditForm(
       SHtml.ajaxSubmit("Enable", switchActivation(true) _)
     }
   }
+  
+  private[this] def dialogDisableTitle : String = {
+    if (piCurrentStatusIsActivated) {
+      "Disable"
+    } else {
+      "Enable"
+    }
+  }
 
   private[this] def dialogDisableWarning: String = {
     if (piCurrentStatusIsActivated) {
-      "Disabling this policy will affect the following Rules."
+      "Disabling this directive will affect the following Rules."
     } else {
-      "Enabling this policy will affect the following Rules"
+      "Enabling this directive will affect the following Rules"
     }
   }
 
