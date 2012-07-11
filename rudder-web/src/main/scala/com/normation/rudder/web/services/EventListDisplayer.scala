@@ -382,15 +382,7 @@ class EventListDisplayer(
                    ".diffNewValue *" #> mapList(diff.newValue)
                    }
                 )
-              )(crModDetailsXML) ++
-               Script(JsRaw("""
-                 function showParameters(s){
-                   if(document.getElementById("showParametersInfo" + s).style.display == "none")
-                     document.getElementById("showParametersInfo" + s).style.display = "block";
-                   else
-                     document.getElementById("showParametersInfo" + s).style.display = "none";
-                 }
-              """))
+              )(crModDetailsXML)
               }
               { reasonHtml }
               { xmlParameters(event.id.getOrElse(0).toString) }
@@ -741,7 +733,6 @@ class EventListDisplayer(
   )(xml)
   
   private[this] def directiveDetails(xml:NodeSeq, ptName: TechniqueName, directive:Directive, sectionVal:SectionVal) = (
-      "#parameters" #> <pre>{xmlPretty.format(SectionVal.toXml(sectionVal))}</pre> &
       "#directiveID" #> directive.id.value &
       "#directiveName" #> directive.name &
       "#ptVersion" #> directive.techniqueVersion.toString &
@@ -848,8 +839,6 @@ class EventListDisplayer(
         <li><b>System:&nbsp;</b><value id="isSystem"/></li>
         <li><b>Details:&nbsp;</b><value id="longDescription"/></li>
       </ul>
-      <h4>Directive parameters:&nbsp;</h4>
-      <value id="parameters"/>
     </div>
     
   private[this] val groupDetailsXML = 
