@@ -570,55 +570,144 @@ class RuleGrid(
   Popup for the reports
  ************************************************/
   private[this] def createPopup(rule: Rule) : NodeSeq = {
-    val batch = reportingService.findImmediateReportsByRule(rule.id)
 
-    <div class="simplemodal-title">
-      <h1>List of nodes having the {Text(rule.name)} Rule</h1>
-      <hr/>
-    </div>
-    <div class="simplemodal-content"> { bind("lastReportGrid",reportTemplate,
-        "crName" -> Text(rule.name),
-        "lines" -> (
-          batch match {
+    def showReportDetail(batch : Option[ExecutionBatch]) : NodeSeq = {
+    ( "#reportLine" #> {batch match {
             case None => Text("No Reports")
             case Some(reports) =>
-              reports.getNodeStatus().map { nodeStatus => 
-
+              reports.getNodeStatus().map {
+                nodeStatus =>
+                  logger.warn(nodeStatus)
                    nodeInfoService.getNodeInfo(nodeStatus.nodeId) match {
                      case Full(nodeInfo)  => {
-                        <tr class={ReportType.getSeverityFromStatus(nodeStatus.nodeReportType).replaceAll(" ", "")}>
-                        {bind("line",chooseTemplate("lastReportGrid","lines",reportTemplate),
-                         "hostname" -> <a href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.nodeId.value)}><span class="curspoint" jsuuid={nodeStatus.nodeId.value.replaceAll("-","")} serverid={nodeStatus.nodeId.value}>{nodeInfo.hostname}</span></a>,
-                         "severity" -> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType) )}
-                        </tr>
+                      val tooltipid = Helpers.nextFuncName
+                      val xml:NodeSeq = ( "#node [class+]" #> "listopen" &
+                              "#node *" #>
+                                <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.nodeId.value)}>
+                                  <span class="curspoint">
+                                    {nodeInfo.hostname}
+                                  </span>
+                                </a> &
+                              "#severity *" #> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType) &
+                              ".unfoldable [class+]" #> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType).replaceAll(" ", "") &
+                              ".unfoldable [toggler]" #> tooltipid &
+                              "#jsid [id]" #> tooltipid &
+                              "#details" #> showDirectivesReport(nodeStatus.directives)
+                       )(nodeLineXml)
+                       xml
                      }
                      case x:EmptyBox => 
-                       logger.error( (x?~! "An error occured when trying to load node %s".format(nodeStatus.nodeId.value)),x)
-                       <div class="error">Node with ID "{nodeStatus.nodeId.value}" is invalid</div>
+                     logger.error( (x?~! "An error occured when trying to load node %s".format(nodeStatus.nodeId.value)),x)
+                     <div class="error">Node with ID "{nodeStatus.nodeId.value}" is invalid</div>
                    }
-               }
-            }
-         )
-      )
-    }<hr class="spacer" />
-    </div>
-    <div class="simplemodal-bottom">
-      <hr/>
-      <div class="popupButton">
-        <span>
-          <button class="simplemodal-close" onClick="return false;">
-          Close
-          </button>
-        </span>
-      </div>
-    </div>
+              }
+    }}
+    )(reportsGridXml)
+    }
 
+    def showDirectivesReport(directives : Seq[DirectiveStatusReport]) : NodeSeq = {
+    directives.flatMap { directive =>
+      directiveRepository.getDirective(directive.directiveId) match {
+        case Full(dir) =>
+          val tooltipid = Helpers.nextFuncName
+           (
+              "#directive *" #> <span>{dir.name}</span> &
+              "#severity *" #> ReportType.getSeverityFromStatus(directive.directiveReportType) &
+              "#severityClass [class]" #> ReportType.getSeverityFromStatus(directive.directiveReportType).replaceAll(" ", "")
+           )(directiveLineXml)
+        case _ => <div>Could not fetch directive {directive.directiveId} </div>
+      }
+    }
+    }
+
+    def reportsGridXml : NodeSeq = {
+    <table id="reportsGrid" cellspacing="0">
+      <thead>
+        <tr class="head">
+          <th>Node<span/></th>
+          <th class="severityWidth">Severity<span/></th>
+          <th id="detailsHead" style="display:none">
+            <div>Directives
+            <span style="float:right">Severity</span></div></th>
+        </tr>
+      </thead>
+      <tbody>
+        <div id="reportLine"/>
+      </tbody>
+    </table>
   }
-  
+
+    def detailsLine : NodeSeq = {
+    <td id="jsid" class="severity" style="display:none">
+      <table style="margin:0" cellspacing="0">
+        <div id="details"/>
+      </table>
+    </td>
+  }
+
+    def nodeLineXml : NodeSeq = {
+    <tr class="unfoldable">
+      <td id="node"></td>
+      <td name="severity" class="severityWidth"><div id="severity"/></td>
+      {detailsLine}
+    </tr>
+  }
+
+    def directiveLineXml : NodeSeq = {
+    <tr id="severityClass" >
+      <td id="directive" style="border-top:0"></td>
+      <td name="severity" class="severityWidth" style="border-top:0; text-align:right"><div id="severity"/></td>
+    </tr>
+  }
+
+  val batch = reportingService.findImmediateReportsByRule(rule.id)
+
+  <div class="simplemodal-title">
+    <h1>List of nodes having the {Text(rule.name)} Rule</h1>
+    <hr/>
+  </div>
+  <div class="simplemodal-content"> { bind("lastReportGrid",reportTemplate,
+        "crName" -> Text(rule.name),
+        "lines" -> showReportDetail(batch)
+         )
+    }
+  <hr class="spacer" />
+  </div>
+  <div class="simplemodal-bottom">
+    <hr/>
+    <div class="popupButton">
+      <span>
+        <button class="simplemodal-close" onClick="return false;">
+          Close
+        </button>
+      </span>
+    </div>
+  </div>
+  }
+
   private[this] def showPopup(rule: Rule) : JsCmd = {
     val popupHtml = createPopup(rule)
     SetHtml(htmlId_reportsPopup, popupHtml) &
-    JsRaw("""
+      JsRaw("""
+          var opencpt=0;
+        $(".unfoldable").click(function(event) {
+          event.stopPropagation();
+          if(!($(this).is("a"))){
+            var togglerId = $(this).attr("toggler");
+            $('#'+togglerId).toggle();
+            if ($(this).find("td.listclose").length > 0) {
+            $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
+            opencpt--;
+            if(opencpt==0){
+              $("#detailsHead").css("display","none");
+            }
+          } else {
+            $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
+             $("#detailsHead").css("display",'');
+            opencpt++;
+          }
+          }
+        });
         var #table_var#;
         /* Formating function for row details */
         function fnFormatDetails ( id ) {
@@ -639,19 +728,17 @@ class RuleGrid(
             "aaSorting": [[ 3, "asc" ]],
             "aoColumns": [
               { "sWidth": "200px" },
-              { "sWidth": "300px" }
+              { "sWidth": "50px" },
+              { "sWidth": "250px" }
             ]
           });moveFilterAndFullPaginateArea('#%1$s');""".format( tableId_reportsPopup).replaceAll("#table_var#",jsVarNameForId(tableId_reportsPopup))
         ) //&  initJsCallBack(tableId)
     ) &
     JsRaw( """ createPopup("%s",300,500)
      """.format(htmlId_modalReportsPopup))
-
   }
 
 }
-
-
 
 trait ComplianceLevel 
 
