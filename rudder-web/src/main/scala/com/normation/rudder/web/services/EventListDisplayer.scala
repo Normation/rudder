@@ -297,7 +297,7 @@ class EventListDisplayer(
     def xmlParameters(eventId: String) = {
         <h4 id={"showParameters%s".format(eventId)}
         class="curspoint showParameters" 
-        onclick={"showParameters(%s)".format(eventId)} >Show Parameters</h4>
+        onclick={"showParameters(%s)".format(eventId)} >Raw Technical Details</h4>
         <pre id={"showParametersInfo%s".format(eventId)} 
         style="display:none">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
     }
@@ -654,13 +654,16 @@ class EventListDisplayer(
         
       case x:ExportEventLog => 
         "*" #> (logDetailsService.getNewArchiveDetails(x.details, x) match {
-          case Full(gitArchiveId) => displayExportArchiveDetails(gitArchiveId)
+          case Full(gitArchiveId) => 
+              { displayExportArchiveDetails(gitArchiveId, xmlParameters(event.id.getOrElse(0).toString)) }
+            
           case e:EmptyBox => errorMessage(e)
         })
         
       case x:ImportEventLog => 
         "*" #> (logDetailsService.getRestoreArchiveDetails(x.details, x) match {
-          case Full(gitArchiveId) => displayImportArchiveDetails(gitArchiveId)
+          case Full(gitArchiveId) => 
+              { displayImportArchiveDetails(gitArchiveId, xmlParameters(event.id.getOrElse(0).toString)) }
           case e:EmptyBox => errorMessage(e)
         })
 
@@ -670,7 +673,7 @@ class EventListDisplayer(
     })(event.details)
   }
   
-  private[this] def displayExportArchiveDetails(gitArchiveId: GitArchiveId) = 
+  private[this] def displayExportArchiveDetails(gitArchiveId: GitArchiveId, rawData: NodeSeq) = 
     <div class="evloglmargin">
       <h4>Details of the new archive:</h4>
       <ul class="evlogviewpad">
@@ -679,14 +682,16 @@ class EventListDisplayer(
         <li><b>Commiter name: </b>{gitArchiveId.commiter.getName}</li>
         <li><b>Commiter email: </b>{gitArchiveId.commiter.getEmailAddress}</li>
       </ul>
+      {rawData}
     </div>
         
-  private[this] def displayImportArchiveDetails(gitCommitId: GitCommitId) = 
+  private[this] def displayImportArchiveDetails(gitCommitId: GitCommitId, rawData: NodeSeq) = 
     <div class="evloglmargin">
       <h4>Details of the restored archive:</h4>
       <ul class="evlogviewpad">
         <li><b>Commit ID (hash): </b>{gitCommitId.value}</li>
       </ul>
+      {rawData}
     </div>
 
   private[this] def displayDiff(tag:String)(xml:NodeSeq) = 
