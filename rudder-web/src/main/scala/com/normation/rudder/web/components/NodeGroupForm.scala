@@ -429,7 +429,7 @@ class NodeGroupForm(
   
   private[this] val formTracker = {
     val fields = List(piName, piDescription, piContainer, piStatic) ++ crReasons.toList
-    new FormTracker(piName,piDescription,piContainer, piStatic)
+    new FormTracker(fields)
   }
   
   private[this] var notifications = List.empty[NodeSeq]
