@@ -244,11 +244,17 @@ class NodeGroupForm(
         </fieldset>},
       "group" -> cloneButton() ,
       "save" ->   {_nodeGroup match {
-            case Some(x) => if (CurrentUser.checkRights(Edit("group"))) SHtml.ajaxSubmit("Update", onSubmit _)  %  ("id", saveButtonId) else NodeSeq.Empty
-            case None =>   if (CurrentUser.checkRights(Write("group")))  SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)  else NodeSeq.Empty
+            case Some(x) => 
+              if (CurrentUser.checkRights(Edit("group"))) 
+                SHtml.ajaxSubmit("Update", onSubmit _)  %  ("id", saveButtonId) 
+              else NodeSeq.Empty
+            case None =>   
+              if (CurrentUser.checkRights(Write("group")))  
+                SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)  
+              else NodeSeq.Empty
           }},
-      "delete" -> deleteButton(),          
-      "notifications" -> updateAndDisplayNotifications()
+      "delete" -> deleteButton()
+//      "notifications" -> updateAndDisplayNotifications()
     ) 
    }
   
@@ -359,70 +365,59 @@ class NodeGroupForm(
   }  
   
   ///////////// fields for category settings ///////////////////
-  private[this] val piName = new WBTextField("Group name: ", _nodeGroup.map( x => x.name).getOrElse("")) {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
-    override def setFilter = notNull _ :: trim _ :: Nil
-    override def validations = 
-      valMinLen(3, "The name must have at least 3 characters") _ :: Nil
+  private[this] val piName = {
+    new WBTextField("Group name", _nodeGroup.map( x => x.name).getOrElse("")) {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def className = "twoCol"
+      override def validations = 
+        valMinLen(3, "The name must have at least 3 characters") _ :: Nil
+    }
   }
   
   private[this] val crReasons = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
-      case Mandatory => Some(buildReasonField(true))
-      case Optionnal => Some(buildReasonField(false))
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
   
-  def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", "") {
-    override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % 
-      ("style" -> "width:542px;height:15em;margin-top:3px;border: solid 2px #ABABAB;")
-    override def validations() = {
-      if(mandatory){
-        valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
-      } else {
-        Nil
+  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    new WBTextAreaField("Message", "") {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % 
+        ("style" -> "height:8em;")
+      override def subContainerClassName = containerClass
+      override def validations() = {
+        if(mandatory){
+          valMinLen(5, "The reasons must have at least 5 characters.") _ :: Nil
+        } else {
+          Nil
+        }
       }
     }
   }
   
-  private[this] val piDescription = new WBTextAreaField("Group description: ", _nodeGroup.map( x => x.description).getOrElse("")) {
-    override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:10em")
-    
-    override def validations =  Nil
-    
-    override def toForm_! = bind("field", 
-    <div class="wbBaseField">
-      <field:errors />
-      <label for={id} class="wbBaseFieldLabel threeCol textright"><field:label /></label>
-      <field:input />
-      <field:infos />
-      
-    </div>,
-    "label" -> displayHtml,
-    "input" -> inputField % ( "id" -> id) % ("class" -> "largeCol"),
-    "infos" -> (helpAsHtml openOr NodeSeq.Empty),
-    "errors" -> {
-      errors match {
-        case Nil => NodeSeq.Empty
-        case l => 
-          <span><ul class="field_errors paddscala">{
-            l.map(e => <li class="field_error lopaddscala">{e.msg}</li>)
-          }</ul></span><hr class="spacer"/>
-      }
+  private[this] val piDescription = {
+    new WBTextAreaField("Group description", _nodeGroup.map( x => x.description).getOrElse("")) {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % ("style" -> "height:10em")
+      override def validations =  Nil
+      override def errorClassName = "field_errors paddscala"
     }
-    )
   }
   
-  private[this] val piStatic = new WBRadioField("Group type: ", Seq("static", "dynamic"), ((_nodeGroup.map( x => x.isDynamic).getOrElse(false)) ? "dynamic" | "static")) {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
-    override def setFilter = notNull _ :: trim _ :: Nil
+  private[this] val piStatic = {
+    new WBRadioField(
+        "Group type", 
+        Seq("static", "dynamic"), 
+        ((_nodeGroup.map( x => x.isDynamic).getOrElse(false)) ? "dynamic" | "static")) {
+      override def setFilter = notNull _ :: trim _ :: Nil
+    }
   }
   
-  private[this] val piContainer = new WBSelectField("Group container: ", 
+  private[this] val piContainer = new WBSelectField("Group container", 
       (categories.open_!.map(x => (x.id.value -> x.name))),
       parentCategoryId) {
   }
@@ -631,7 +626,10 @@ class NodeGroupForm(
    
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="errorNotification" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = 
+        <div id="errorNotification" class="notify">
+          <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
+        </div>
       notifications = Nil
       html
     }

@@ -21,22 +21,21 @@
   <div class="groupDisplay">
     <lift:node.Groups.groupHierarchy>
     <fieldset class="hierarchy">
-       <legend>Group hierarchy</legend>
-       <div>
-       <p class="green">Drag'n'drop items to change the hierarchy</p>
-       </div>
-       <lift:Authz role="group_write">
-         <div id="newItem">
-          Here comes the New item Button
-         </div>
-       </lift:Authz>
-     <fieldset>
+      <legend>Group hierarchy</legend>
+      <div>
+      <lift:Authz role="group_write">
+        <div id="newItem">
+         Here comes the New item Button
+        </div>
+      </lift:Authz>
+      <p class="green">Drag'n'drop items to change the hierarchy</p>
+      </div>
+      <fieldset>
         <div id="groupTree">
             Here comes the Groups Tree        
         </div>
-       
       </fieldset>
-     </fieldset>
+   </fieldset>
     
     </lift:node.Groups.groupHierarchy>
     

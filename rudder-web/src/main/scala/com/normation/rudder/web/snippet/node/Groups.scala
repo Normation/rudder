@@ -133,8 +133,11 @@ class Groups extends StatefulSnippet with Loggable {
   }
 
   def groupNewItem() : NodeSeq = {
-    SHtml.ajaxButton("Create a new item", () => showPopup())
+    <div id="createANewItem">
+      { SHtml.ajaxButton("Create a new item", () => showPopup()) }
+    </div>
   }
+  
   /**
    * Does the init part (showing the right component and highlighting
    * the tree if necessary)

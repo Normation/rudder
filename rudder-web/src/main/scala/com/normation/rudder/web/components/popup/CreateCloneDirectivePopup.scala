@@ -115,10 +115,8 @@ class CreateCloneDirectivePopup(
   }
 
   ///////////// fields for category settings ///////////////////
-  private[this] val directiveName = new WBTextField("Name: ", "Copy of <%s>".format(directive.name)) {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
+  private[this] val directiveName = new WBTextField("Name", "Copy of <%s>".format(directive.name)) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def className = "twoCol"
     override def errorClassName = ""
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")
     override def validations =
@@ -126,10 +124,9 @@ class CreateCloneDirectivePopup(
   }
 
   private[this] val directiveShortDescription = 
-    new WBTextAreaField("Short description: ", directive.shortDescription) {
+    new WBTextAreaField("Short description", directive.shortDescription) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
-    override def className = "twoCol"
     override def errorClassName = ""
     override def validations = Nil
   }
