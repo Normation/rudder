@@ -117,19 +117,20 @@ class GiveReasonPopup(
   private[this] val crReasons = {
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
-      case Mandatory => Some(buildReasonField(true))
-      case Optionnal => Some(buildReasonField(false))
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
   
-  def buildReasonField(mandatory:Boolean) = {
-    new WBTextAreaField("Message: ", "") {
+  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  % 
-        ("style" -> "width:400px;height:12em;margin-top:3px;border: solid 2px #ABABAB;")
+        ("style" -> "height:8em;")
+      override def subContainerClassName = containerClass
       override def validations() = {
         if(mandatory){
-          valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
+          valMinLen(5, "The reasons must have at least 5 characters.") _ :: Nil
         } else {
           Nil
         }

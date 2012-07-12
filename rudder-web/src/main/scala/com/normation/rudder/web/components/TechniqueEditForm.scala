@@ -251,8 +251,8 @@ class TechniqueEditForm(
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
-      case Mandatory => Some(buildReasonField(true))
-      case Optionnal => Some(buildReasonField(false))
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
   
@@ -260,8 +260,8 @@ class TechniqueEditForm(
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
-      case Mandatory => Some(buildReasonField(true, 42))
-      case Optionnal => Some(buildReasonField(false))
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
   
@@ -269,19 +269,21 @@ class TechniqueEditForm(
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
-      case Mandatory => Some(buildReasonField(true, 42))
+      case Mandatory => Some(buildReasonField(true))
       case Optionnal => Some(buildReasonField(false))
     }
   }
     
-  def buildReasonField(mandatory:Boolean, width : Int = 48, height : Int = 15) =  {
-    new WBTextAreaField("Message: ", "") {
+  
+  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  % 
-      ("style" -> "width:%sem;height:%sem".format(width, height))
+        ("style" -> "height:8em;")
+      override def subContainerClassName = containerClass
       override def validations() = {
         if(mandatory){
-          valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
+          valMinLen(5, "The reasons must have at least 5 characters.") _ :: Nil
         } else {
           Nil
         }
@@ -635,7 +637,7 @@ class TechniqueEditForm(
     }
     else {
       val html = <div id="errorNotification" class="notify">
-        <ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+        <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul></div>
       html
     }
   }

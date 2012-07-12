@@ -231,7 +231,7 @@ class RuleEditForm(
           </ul>
         </div> } &
       "#save" #> saveButton &
-      "#notification *" #>  updateAndDisplayNotifications(formTracker) &
+//      "#notification *" #>  updateAndDisplayNotifications(formTracker) &
       "#editForm [id]" #> htmlId_rule
     )(crForm) ++ 
     Script(OnLoad(JsRaw("""
@@ -442,16 +442,16 @@ class RuleEditForm(
 
   ///////////// fields for Rule settings ///////////////////
   
-  private[this] val crName = new WBTextField("Name: ", rule.name) {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
+  private[this] val crName = new WBTextField("Name", rule.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
+    override def className = "twoCol"
     override def validations = 
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
   
   private[this] val crShortDescription = {
-    new WBTextField("Short description: ", rule.shortDescription) {
-      override def displayNameHtml = Some(<b>{displayName}</b>)
+    new WBTextField("Short description", rule.shortDescription) {
+      override def className = "twoCol"
       override def setFilter = notNull _ :: trim _ :: Nil
       override val maxLen = 255
       override def validations =  Nil
@@ -459,10 +459,10 @@ class RuleEditForm(
   }
   
   private[this] val crLongDescription = {
-    new WBTextAreaField("Description: ", rule.longDescription.toString) {
+    new WBTextAreaField("Description", rule.longDescription.toString) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  % 
-        ("style" -> "width:50em;height:15em")
+        ("style" -> "height:10em")
     }
   }
 
@@ -470,8 +470,8 @@ class RuleEditForm(
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
-      case Mandatory => Some(buildReasonField(true))
-      case Optionnal => Some(buildReasonField(false))
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
   
@@ -479,19 +479,20 @@ class RuleEditForm(
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
-      case Mandatory => Some(buildReasonField(true))
-      case Optionnal => Some(buildReasonField(false))
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
   
-  def buildReasonField(mandatory:Boolean) = {
-    new WBTextAreaField("Message: ", "") {
+  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  % 
-      ("style" -> "width:99%;height:8em;")
+        ("style" -> "height:8em;")
+      override def subContainerClassName = containerClass
       override def validations() = {
         if(mandatory){
-          valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
+          valMinLen(5, "The reasons must have at least 5 characters.") _ :: Nil
         } else {
           Nil
         }
@@ -595,7 +596,7 @@ class RuleEditForm(
     else {
       val html = 
         <div id="errorNotification" class="notify">
-          <ul>{notifications.map( n => <li>{n}</li>) }</ul>
+          <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
         </div>
       html
     }

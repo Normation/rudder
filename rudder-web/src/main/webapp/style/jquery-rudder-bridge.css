@@ -126,7 +126,6 @@
 /******************** button.css  ******************/
 
 .ui-button-text-only .ui-button-text {
-   padding: 5px;
    text-decoration: none;
 }
 
@@ -300,7 +299,7 @@ div#progressbar {
 /*  width: 130px;*/
 }
 
-.ui-state-default, .ui-widget-content .ui-button, .ui-widget input, .ui-widget select  {
+.ui-state-default, .ui-widget-content .ui-button, .ui-widget select  {
    border: 1px solid #B4B3A8;
    background-color: #eee;
 }

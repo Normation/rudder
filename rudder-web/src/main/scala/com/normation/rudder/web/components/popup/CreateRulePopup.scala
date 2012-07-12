@@ -93,20 +93,17 @@ class CreateRulePopup(
   }
 
   ///////////// fields for category settings ///////////////////
-  private[this] val ruleName = new WBTextField("Name: ", "") {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
+  private[this] val ruleName = new WBTextField("Name", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def className = "twoCol"
     override def errorClassName = ""
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createCRSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val ruleShortDescription = new WBTextAreaField("Short description: ", "") {
+  private[this] val ruleShortDescription = new WBTextAreaField("Short description", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
-    override def className = "twoCol"
     override def errorClassName = ""
     override def validations = Nil
 

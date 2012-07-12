@@ -677,7 +677,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     //update UI
     
     SetHtml("createActiveTechniquesContainer", createReasonPopup) &
-    JsRaw( """createPopup("createActiveTechniquePopup", 200, 300)
+    JsRaw( """createPopup("createActiveTechniquePopup", 200, 350)
      """)
   }
   

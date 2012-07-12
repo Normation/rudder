@@ -213,8 +213,8 @@ class DirectiveEditForm(
        ".reasonsFieldsetPopup" #> { crReasonsRemovePopup.map { f =>
          "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
          "#reasonsField" #> f.toForm_!
-       } } &
-       "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerRemovePopup) }
+       } } 
+//       "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerRemovePopup) }
     )(popupRemoveForm) 
   }
   
@@ -231,8 +231,8 @@ class DirectiveEditForm(
       ".reasonsFieldsetPopup" #> { crReasonsDisactivatePopup.map { f =>
          "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
          "#reasonsField" #> f.toForm_!
-      } } &
-       "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerDisactivatePopup) }
+      } }
+//       "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerDisactivatePopup) }
     )(popupDisactivateForm) 
   }
 
@@ -262,7 +262,7 @@ class DirectiveEditForm(
             { () =>  clone() },
             ("class", "autoWidthButton")
           ) &
-      "#notification *" #> updateAndDisplayNotifications(formTracker) &
+//      "#notification *" #> updateAndDisplayNotifications(formTracker) &
       "#isSingle *" #> showIsSingle &
       "#editForm [id]" #> htmlId_policyConf)(crForm) ++ Script(OnLoad(
         JsRaw("""activateButtonOnFormChange("%s", "%s");  """.format(htmlId_policyConf, htmlId_save)) &
@@ -442,38 +442,44 @@ class DirectiveEditForm(
 
   ///////////// fields for Directive settings ///////////////////
 
-  private[this] val piName = new WBTextField("Name: ", directive.name) {
-    override def displayNameHtml = Some(<b>{ displayName }</b>)
+  private[this] val piName = new WBTextField("Name", directive.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
+    override def className = "twoCol"
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val piShortDescription = new WBTextField("Short description: ", directive.shortDescription) {
-    override def displayNameHtml = Some(<b>{ displayName }</b>)
+  private[this] val piShortDescription = new WBTextField("Short description", directive.shortDescription) {
+    override def className = "twoCol"
     override def setFilter = notNull _ :: trim _ :: Nil
     override val maxLen = 255
     override def validations = Nil
   }
 
-  private[this] val piLongDescription = new WBTextAreaField("Description: ", directive.longDescription.toString) {
+  private[this] val piLongDescription = new WBTextAreaField("Description", directive.longDescription.toString) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField % ("style" -> "width:50em;height:15em")
+    override def inputField = super.inputField % ("style" -> "height:15em")
   }
 
   private[this] val piPriority = new WBSelectObjField("Priority:",
     (0 to 10).map(i => (i, i.toString)),
     defaultValue = directive.priority) {
-    override val displayHtml = <span class="tooltipable greytooltip" tooltipid="priorityId">Priority:<div class="tooltipContent" id="priorityId">
-                                                                                                                                  If a node is configured with several Directive derived from that template, 
-the one with the higher priority will be applied first. If several Directives have
-the same priority, the application order between these two will be random. 
-If the template is unique, only one Directive derived from it may be used at a given time on
-one given node. The one with the highest priority is chosen. If several Directives have
-the same priority, one of them will be applied at random. You should always try
-to avoid that last case.<br/>
-                                                                                                                                  The highest priority is 0
-                                                                                                                                </div></span>
+    override val displayHtml = 
+      <span class="tooltipable greytooltip" tooltipid="priorityId">
+        <b>Priority:</b>
+        <div class="tooltipContent" id="priorityId">
+          If a node is configured with several Directive derived from that template, 
+          the one with the higher priority will be applied first. If several Directives have
+          the same priority, the application order between these two will be random. 
+          If the template is unique, only one Directive derived from it may be used at a given time on
+          one given node. The one with the highest priority is chosen. If several Directives have
+          the same priority, one of them will be applied at random. You should always try
+          to avoid that last case.<br/>
+          The highest priority is 0
+        </div>
+      </span>
+      
+    override def className = "twoCol"
 
   }
 
@@ -481,8 +487,8 @@ to avoid that last case.<br/>
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
-      case Mandatory => Some(buildReasonField(true))
-      case Optionnal => Some(buildReasonField(false))
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
   
@@ -490,8 +496,8 @@ to avoid that last case.<br/>
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
-      case Mandatory => Some(buildReasonField(true))
-      case Optionnal => Some(buildReasonField(false))
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
   
@@ -499,20 +505,23 @@ to avoid that last case.<br/>
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
-      case Mandatory => Some(buildReasonField(true))
-      case Optionnal => Some(buildReasonField(false))
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
   
-  def buildReasonField(mandatory:Boolean) = new WBTextAreaField("Message: ", "") {
-    override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % 
-      ("style" -> "width:60em;height:15em;margin-top:3px;border: solid 2px #ABABAB;")
-    override def validations() = {
-      if(mandatory){
-        valMinLen(5, "The reasons must have at least 5 characters") _ :: Nil
-      } else {
-        Nil
+  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    new WBTextAreaField("Message", "") {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % 
+        ("style" -> "height:8em;")
+      override def subContainerClassName = containerClass
+      override def validations() = {
+        if(mandatory){
+          valMinLen(5, "The reasons must have at least 5 characters.") _ :: Nil
+        } else {
+          Nil
+        }
       }
     }
   }
@@ -599,7 +608,7 @@ to avoid that last case.<br/>
     }
     else {
       val html = <div id="errorNotification" class="notify">
-        <ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+        <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul></div>
       html
     }
   }

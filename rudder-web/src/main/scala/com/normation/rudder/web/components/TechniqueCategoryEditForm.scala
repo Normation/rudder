@@ -145,14 +145,13 @@ class TechniqueCategoryEditForm(
   
   /////////////////////  Category Details Form  /////////////////////
 
-  val categoryName = new WBTextField("Category name: ", currentCategory.name) {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
+  val categoryName = new WBTextField("Category name", currentCategory.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def validations = 
       valMinLen(3, "The category name must have at least 3 characters") _ :: Nil
   }
   
-  val categoryDescription = new WBTextAreaField("Category description: ", currentCategory.description.toString) {
+  val categoryDescription = new WBTextAreaField("Category description", currentCategory.description.toString) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:10em")
 
@@ -259,7 +258,7 @@ class TechniqueCategoryEditForm(
          
          if(categoryNotifications.isEmpty) NodeSeq.Empty
          else {
-           val notifications = <div class="notify"><ul>{categoryNotifications.map( n => <li>{n}</li>) }</ul></div>
+           val notifications = <div class="notify"><ul class="field_errors">{categoryNotifications.map( n => <li>{n}</li>) }</ul></div>
            categoryNotifications = Nil
            notifications
          }

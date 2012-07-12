@@ -188,14 +188,13 @@ class NodeGroupCategoryForm(
   
   
   ///////////// fields for category settings ///////////////////
-  private[this] val piName = new WBTextField("Category name: ", _nodeGroupCategory.name) {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
+  private[this] val piName = new WBTextField("Category name", _nodeGroupCategory.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def validations = 
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
   
-  private[this] val piDescription = new WBTextAreaField("Category description: ", _nodeGroupCategory.description.toString) {
+  private[this] val piDescription = new WBTextAreaField("Category description", _nodeGroupCategory.description.toString) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:10em")
 
@@ -301,7 +300,7 @@ class NodeGroupCategoryForm(
    
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div  id="errorNotification" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div  id="errorNotification" class="notify"><ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }

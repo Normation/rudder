@@ -150,11 +150,9 @@ class CreateCloneGroupPopup(
   ///////////// fields for category settings ///////////////////
   
   private[this] val piName = {
-      new WBTextField("Name: ", 
+      new WBTextField("Name", 
         nodeGroup.map(x => "Copy of <%s>".format(x.name)).getOrElse("")) {
-      override def displayNameHtml = Some(<b>{displayName}</b>)
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def className = "twoCol"
       override def errorClassName = ""
       override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","1")
       override def validations =
@@ -162,7 +160,7 @@ class CreateCloneGroupPopup(
     }
   }
 
-  private[this] val piDescription = new WBTextAreaField("Description: ", 
+  private[this] val piDescription = new WBTextAreaField("Description", 
       nodeGroup.map(x => x.description).getOrElse("") ) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:10em") % ("tabindex","3")
