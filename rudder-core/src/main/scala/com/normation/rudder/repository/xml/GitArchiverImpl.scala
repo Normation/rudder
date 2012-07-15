@@ -67,6 +67,7 @@ import scala.xml.Elem
 import scala.xml.PrettyPrinter
 import scala.collection.mutable.Buffer
 import scala.collection.JavaConversions._
+import com.normation.cfclerk.domain.TechniqueId
 
 private[xml] object GET {
   def apply(reason:Option[String]) = reason match {
@@ -322,23 +323,22 @@ class UpdatePiOnActiveTechniqueEvent(
     
     logger.debug("Executing archivage of PIs for UPT '%s'".format(activeTechnique))
     
-    if(activeTechnique.directives.isEmpty) Full("OK")
+    (if(activeTechnique.directives.isEmpty) Full("OK")
     else {
       for {
-        technique  <- Box(techniqeRepository.getLastTechniqueByName(activeTechnique.techniqueName))
         directives <- sequence(activeTechnique.directives) { directiveId =>
-                 for {
-                   directive  <- directiveRepository.getDirective(directiveId)
-                   archivedPi <- gitDirectiveArchiver.archiveDirective(directive, technique.id.name, parents, technique.rootSection, None)
-                 } yield {
-                   archivedPi
-                 }
-               }
+                        for {
+                          directive  <- directiveRepository.getDirective(directiveId)
+                          technique  <- Box(techniqeRepository.get(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)))
+                          archivedPi <- gitDirectiveArchiver.archiveDirective(directive, technique.id.name, parents, technique.rootSection, None)
+                        } yield {
+                          archivedPi
+                        }
+                      }
       } yield {
         directives
-        ()
       }
-    }
+    }).map( _  => () ) //we want to return an unit
   }
   
   override def onDelete(ptName:TechniqueName, getParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent, Option[String])]) = Full({})
