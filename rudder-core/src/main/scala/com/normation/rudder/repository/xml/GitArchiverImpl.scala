@@ -480,7 +480,7 @@ class GitDirectiveArchiverImpl(
   }
   
   override def archiveDirective(
-      directive                 : Directive
+      directive          : Directive
     , ptName             : TechniqueName
     , catIds             : List[ActiveTechniqueCategoryId]
     , variableRootSection: SectionSpec
