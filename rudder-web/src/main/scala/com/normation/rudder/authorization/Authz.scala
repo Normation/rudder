@@ -86,16 +86,16 @@ object AuthzToRights {
       case "read_only"           => toReadAuthz (allKind)
       case "inventory"           => toReadAuthz (List("node","inventory"))
       case "rule_only"           => toReadAuthz (List("configuration","rule"))
-      case role => List(parseAuthz(role))
+      case role => parseAuthz(role)
     }): _*)
   }
     
-  def parseAuthz(role : String) : AuthorizationType = {
+  def parseAuthz(role : String) : List[AuthorizationType] = {
 	  val authz = """(.*)_(.*)""".r
      role.toLowerCase() match {
-	     case "any" => AnyRights
-       case authz(authType,kind)  if (allKind.contains(authType)) => toAuthz(List(authType),kind).firstOption.getOrElse(NoRights)
-       case _ =>  NoRights
+	     case "any" => List(AnyRights)
+       case authz(authType,kind)  if (allKind.contains(authType)) => toAuthz(List(authType),kind)
+       case _ =>  List(NoRights)
      }
   }
 }
