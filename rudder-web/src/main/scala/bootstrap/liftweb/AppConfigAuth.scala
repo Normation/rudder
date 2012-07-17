@@ -166,10 +166,10 @@ object AppConfigAuth extends Loggable {
          //for each node, check attribute name (mandatory), password  (mandatory) and role (optional)
          (   node.attribute("name").map(_.toList.map(_.text)) 
            , node.attribute("password").map(_.toList.map(_.text)) 
-           , node.attribute("role").map(_.toList.map( role => AuthzToRights.parseRole(role.text.split(",").toSeq))) 
+           , node.attribute("role").map(_.toList.map( role => AuthzToRights.parseRole(role.text.split(",").toSeq.map(_.trim)))) 
          ) match {
            case (Some(name :: Nil) , Some(pwd :: Nil), roles ) if(name.size > 0 && pwd.size > 0) => roles match {
-             case Some(roles:: Nil) if (!roles.authorizationTypes.contains(NoRights))=> (name, pwd, roles) :: Nil
+             case Some(roles:: Nil) => (name, pwd, roles) :: Nil
              case _ =>  (name, pwd, new Rights(NoRights)) :: Nil
            }
            
@@ -180,9 +180,11 @@ object AppConfigAuth extends Loggable {
         })
         
         //and now, return the list of users
-        users.foreach( user =>
-        logger.info("User %s with defined authorizations: %s".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
-        )
+        users map { user =>
+        if (user._3.authorizationTypes.contains(NoRights))
+          logger.warn("User %s authorisation are not defined correctly, please fix it (defined authorizations: %s)".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
+        logger.debug("User %s with defined authorizations: %s".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
+        }
         Some(AuthConfig(hash, users))
       }
     } else {
