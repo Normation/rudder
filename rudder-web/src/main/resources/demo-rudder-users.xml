@@ -48,15 +48,22 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
 <!-- <authentication hash="sha"> -->
 <authentication>
   <user name="jon.doe"  password="secret" role="administrator" />
-  <user name="alex.bar" password="secret2" role="administration_only"/>
-  <user name="han.onymous" password="none"/>
-  <user name="bat.man" password="robin" role="user"/>
-  <user name="super.man" password="lois" role="inventory"/>
-  <user name="spider.man" password="maryjane" role="read_only"/>
-  <user name="lorenzo.vonmatterhorn" password="legendary" role="configuration"/>
-  <user name="zaphod.beeblebrox" password="42" role="rule_only"/>
-  <user name="custom" password="custom" role="node_read,node_write,deployment_read,group_read,configuration_read,technique_read,rule_all"/>
+  <user name="alex.bar" password="secret2" role="read_only"/>
+  <!-- Authorizations
+  You must define a role attribute to every user you add
+  there's 7 predefined roles:
+      administrator (all rights)
+    , administration_only (all administration)
+    , user (all node, configuration))
+    , configuration(all configuration)
+    , read_only (read all)
+    , compliance(read rule)
+    , inventory (read node)
+  You can also have custom roles, format is role="(type_level,)*type_level"
+    types are : node, group, deployement, administration, configuration, rule, technique, directive.
+    levels are: read, write, edit, all(read, write, edit)
+   -->
   <!--  exemple of bad lines -->
-  <!--  <user name="" password="secret2"/>-->
-  <!--  <user name="name" password=""/>-->
+  <!--  <user name="" password="secret2" role="administrator"/>-->
+  <!--  <user name="name" password="" role="administrator"/>-->
 </authentication>
