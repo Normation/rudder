@@ -84,7 +84,7 @@ object AuthzToRights {
       case "administration_only" => toAllAuthz (List("administration"))
       case "configuration"       => toAllAuthz (configurationkind)
       case "read_only"           => toReadAuthz (allKind)
-      case "inventory"           => toReadAuthz (List("node","inventory"))
+      case "inventory"           => toReadAuthz (List("node"))
       case "rule_only"           => toReadAuthz (List("configuration","rule"))
       case role => parseAuthz(role)
     }): _*)
