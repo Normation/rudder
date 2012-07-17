@@ -65,7 +65,7 @@
               <li>Build your own <a href="secure/configurationManager/techniqueLibraryManagement">Technique library</a> <lift:authz role="directive_read"> and <a href="secure/configurationManager/directiveManagement">create and configure Directives instances</a></lift:authz></li>
             </lift:authz>
             <lift:authz role="rule_read">
-              <li>List, register and manage <a href="secure/configurationManager/ruleManagement">Rules</a> on your nodes from available <a href="secure/configurationManager/directiveManagement">Directives</a></li>
+              <li>List, register and manage <a href="secure/configurationManager/ruleManagement">Rules</a> on your nodes <lift:authz role="directive_read"> <span>from available <a href="secure/configurationManager/directiveManagement">Directives</a> </span> </lift:authz></li>
               <li>Manage and supervise states from these Rules</li>
               </lift:authz>
             </ul>
@@ -77,8 +77,10 @@
           <div class="portlet-header">Rudder Administration</div>
           <div class="portlet-content"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
             <ul>
-              <li>Track all events that have occured: <a href="secure/administration/eventLogs">Event logs</a></li>
+              <li>Track all events that have occured: <a href="secure/administration/eventLogs">Event logs</a> </li> 
+              <lift:authz role="administration_edit">
               <li><a href="secure/administration/policyServerManagement">Configure the Rudder server</a></li>
+              </lift:authz>
             </ul>
           </div>
         </div>

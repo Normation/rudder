@@ -46,6 +46,7 @@ import collection.mutable.Buffer
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization.AuthzToRights
+import com.normation.rudder.authorization.NoRights
 
 
 class Authz extends DispatchSnippet with Loggable {
@@ -59,7 +60,7 @@ class Authz extends DispatchSnippet with Loggable {
   def testRight(xml:NodeSeq):NodeSeq = 
    S.attr("role") match {
     
-    case Full(role) if (CurrentUser.checkRights(AuthzToRights.parseAuthz(role))) => xml 
+    case Full(role) if (CurrentUser.checkRights(AuthzToRights.parseAuthz(role).firstOption.getOrElse(NoRights))) => xml 
     case _ => (NodeSeq.Empty)
   }
 }
