@@ -161,6 +161,9 @@ class LDAPRuleRepository(
     repo.synchronized { for {
       con           <- ldap
       existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)) ?~! "Cannot update rule with id %s : there is no rule with that id".format(rule.id.value)
+      nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id)) 
+                           Failure("Cannot update rule with name \"%s\" : this name is already in use.".format(rule.name))
+                         else Full(Unit)
       crEntry       =  mapper.rule2Entry(rule)
       result        <- con.save(crEntry, true, Seq(A_SERIAL)) ?~! "Error when saving rule entry in repository: %s".format(crEntry)
       optDiff       <- diffMapper.modChangeRecords2RuleDiff(existingEntry,result) ?~! "Error when mapping rule '%s' update to an diff: %s".format(rule.id.value, result)
@@ -179,6 +182,14 @@ class LDAPRuleRepository(
     } yield {
       optDiff
     } }
+  }
+  
+  private[this] def ruleExists(con:LDAPConnection, name : String, id: RuleId) : Boolean = {
+    con.searchSub(rudderDit.GROUP.dn, AND(NOT(EQ(A_NODE_GROUP_UUID, id.value)), AND(EQ(A_OC, OC_RUDDER_NODE_GROUP), EQ(A_NAME, name))), A_NODE_GROUP_UUID).size match {
+      case 0 => false
+      case 1 => true
+      case _ => logger.error("More than one nodeGroup has %s name".format(name)); true
+    } 
   }
         
   
