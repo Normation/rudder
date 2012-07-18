@@ -573,8 +573,7 @@ class RuleEditForm(
           formTracker.addFormError(error("An error occurred while saving the Rule"))
           onFailure
         case f:Failure =>
-          formTracker.addFormError(error("An error occurred while saving the Rule: " + 
-              f.messageChain))
+          formTracker.addFormError(error(f.messageChain))
           onFailure
       }      
   }
