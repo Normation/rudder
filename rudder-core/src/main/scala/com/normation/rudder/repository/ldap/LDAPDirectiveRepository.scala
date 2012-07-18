@@ -36,7 +36,7 @@ package com.normation.rudder.repository
 package ldap
 
 import com.normation.rudder.domain.policies._
-import com.normation.inventory.ldap.core.LDAPConstants.A_OC
+import com.normation.inventory.ldap.core.LDAPConstants.{A_OC, A_NAME}
 import com.unboundid.ldap.sdk.{DN,Filter}
 import com.normation.ldap.sdk._
 import BuildFilter._
@@ -66,7 +66,7 @@ class LDAPDirectiveRepository(
   , personIdentService            : PersonIdentService
   , autoExportOnModify            : Boolean
   , userLibMutex                  : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
-) extends DirectiveRepository {
+) extends DirectiveRepository with Loggable {
     
   import scala.collection.mutable.{Map => MutMap}
   import scala.xml.Text
@@ -189,6 +189,9 @@ class LDAPDirectiveRepository(
                             else Failure("An other directive with the id %s exists in an other category that the one with id %s : %s".format(directive.id, inActiveTechniqueId, otherPi.dn))
                         }
                       }
+      nameIsAvailable <- if (directiveNameExists(con, directive.name, directive.id)) 
+                           Failure("Cannot set directive with name \"%s\" : this name is already in use.".format(directive.name))
+                         else Full(Unit)
       piEntry     =  mapper.userDirective2Entry(directive, uptEntry.dn)
       result      <- userLibMutex.writeLock { con.save(piEntry, true) }
       //for log event - perhaps put that elsewhere ?
@@ -214,6 +217,15 @@ class LDAPDirectiveRepository(
                      } else Full("ok")
     } yield {
       optDiff
+    }
+  }
+  
+  private[this] def directiveNameExists(con:LDAPConnection, name : String, id:DirectiveId) : Boolean = {
+    val filter = AND(AND(IS(OC_DIRECTIVE), EQ(A_NAME,name), NOT(EQ(A_DIRECTIVE_UUID, id.value))))
+    con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter).size match {
+      case 0 => false
+      case 1 => true
+      case _ => logger.error("More than one directive has %s name".format(name)); true
     }
   }
 

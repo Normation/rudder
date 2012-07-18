@@ -231,7 +231,7 @@ class RuleEditForm(
           </ul>
         </div> } &
       "#save" #> saveButton &
-      "#notification *" #>  updateAndDisplayNotifications(formTracker) &
+      "#notifications *" #>  updateAndDisplayNotifications(formTracker) &
       "#editForm [id]" #> htmlId_rule
     )(crForm) ++ 
     Script(OnLoad(JsRaw("""
@@ -329,7 +329,7 @@ class RuleEditForm(
   private[this] def onFailure() : JsCmd = {
     onFailureCallback() & 
     updateFormClientSide() & 
-    JsRaw("""scrollToElement("errorNotification");""")
+    JsRaw("""scrollToElement("notifications");""")
   }
   
   private[this] def onFailureRemovePopup() : JsCmd = {
@@ -588,7 +588,7 @@ class RuleEditForm(
     }
     else {
       val html = 
-        <div id="errorNotification" class="notify">
+        <div id="notifications" class="notify">
           <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
         </div>
       html
