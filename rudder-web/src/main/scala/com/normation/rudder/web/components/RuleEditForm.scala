@@ -231,7 +231,7 @@ class RuleEditForm(
           </ul>
         </div> } &
       "#save" #> saveButton &
-//      "#notification *" #>  updateAndDisplayNotifications(formTracker) &
+      "#notification *" #>  updateAndDisplayNotifications(formTracker) &
       "#editForm [id]" #> htmlId_rule
     )(crForm) ++ 
     Script(OnLoad(JsRaw("""
@@ -327,23 +327,17 @@ class RuleEditForm(
   }
   
   private[this] def onFailure() : JsCmd = {
-    val elemError = error("The form contains some errors, please correct them")
-    formTracker.addFormError(elemError)
     onFailureCallback() & 
     updateFormClientSide() & 
     JsRaw("""scrollToElement("notifications");""")
   }
   
   private[this] def onFailureRemovePopup() : JsCmd = {
-    val elemError = error("The form contains some errors, please correct them")
-    formTrackerRemovePopup.addFormError(elemError)
     updateRemoveFormClientSide() & 
     onFailureCallback()
   }
   
   private[this] def onFailureDisablePopup() : JsCmd = {
-    val elemError = error("The form contains some errors, please correct them")
-    formTrackerDisactivatePopup.addFormError(elemError)
     onFailureCallback() & 
     updateDisableFormClientSide()
   }
