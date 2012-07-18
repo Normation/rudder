@@ -363,8 +363,8 @@ class EventListDisplayer(
                 "#longDescription *" #> mapSimpleDiff(modDiff.modLongDescription) &
                 "#target" #> (
                   modDiff.modTarget.map { diff =>
-                   ".diffOldValue *" #> groupTargetDetails(diff.oldValue) &
-                   ".diffNewValue *" #> groupTargetDetails(diff.newValue)
+                    ".diffOldValue *" #> groupTargetDetails(diff.oldValue) &
+                    ".diffNewValue *" #> groupTargetDetails(diff.newValue)
                   }
                 ) &
                 "#policies" #> (
@@ -705,18 +705,23 @@ class EventListDisplayer(
   }
   
   private[this] def groupTargetDetails(targets: Set[RuleTarget]): NodeSeq = {
-    (targets
-      .toSeq
-      .map{ target =>
-        target match {
-          case GroupTarget(id@NodeGroupId(g)) => 
-            <span>group(<a href={groupLink(id)}>{g}</a>)</span>
-          case x => 
-            <span>{Text("group_special(" + x.toString + ")")}</span>
+    val res = {
+      targets
+        .toSeq
+        .map{ target =>
+          target match {
+            case GroupTarget(id@NodeGroupId(g)) => 
+              <span>group(<a href={groupLink(id)}>{g}</a>)</span>
+            case x => 
+              <span>{Text("group_special(" + x.toString + ")")}</span>
+          }
         }
-      })
+        .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
+    }
+    (
+      ".groupSeparator" #> ", "
+    )(res)
   }
-      
   
   private[this] def ruleDetails(xml:NodeSeq, rule:Rule) = (
       "#ruleID" #> rule.id.value &
