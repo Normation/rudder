@@ -141,7 +141,7 @@ class CreateCloneGroupPopup(
       NodeSeq.Empty
     }
     else {
-      val html = <div id="errorNotification" class="notify">
+      val html = <div id="notifications" class="notify">
         <ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
       html
     }

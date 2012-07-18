@@ -262,7 +262,7 @@ class DirectiveEditForm(
             { () =>  clone() },
             ("class", "autoWidthButton")
           ) &
-//      "#notification *" #> updateAndDisplayNotifications(formTracker) &
+      "#notifications *" #> updateAndDisplayNotifications(formTracker) &
       "#isSingle *" #> showIsSingle &
       "#editForm [id]" #> htmlId_policyConf)(crForm) ++ Script(OnLoad(
         JsRaw("""activateButtonOnFormChange("%s", "%s");  """.format(htmlId_policyConf, htmlId_save)) &
@@ -300,8 +300,8 @@ class DirectiveEditForm(
   }
 
   private[this] def onFailure(): JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
-    onFailureCallback() & SetHtml(htmlId_policyConf, showDirectiveForm) & JsRaw("""scrollToElement("errorNotification");""")
+    onFailureCallback() & SetHtml(htmlId_policyConf, showDirectiveForm) & 
+      JsRaw("""scrollToElement("notifications");""")
   }
   
   private[this] def onFailureRemovePopup() : JsCmd = {
@@ -593,7 +593,7 @@ class DirectiveEditForm(
         formTracker.addFormError(error("An error occurred while saving the Directive"))
         onFailure
       case Failure(m, _, _) =>
-        formTracker.addFormError(error("An error occurred while saving the Directive: " + m))
+        formTracker.addFormError(error(m))
         onFailure
     }
   }
@@ -607,7 +607,7 @@ class DirectiveEditForm(
       NodeSeq.Empty
     }
     else {
-      val html = <div id="errorNotification" class="notify">
+      val html = <div id="notifications" class="notify">
         <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul></div>
       html
     }

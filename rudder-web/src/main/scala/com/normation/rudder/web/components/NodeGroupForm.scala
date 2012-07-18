@@ -446,7 +446,7 @@ class NodeGroupForm(
   }
   
   private[this] def onFailure : JsCmd = {
-    updateFormClientSide() & JsRaw("""scrollToElement("errorNotification");""")
+    updateFormClientSide() & JsRaw("""scrollToElement("notifications");""")
   }
   
   private[this] def onSubmit() : JsCmd = {
@@ -627,7 +627,7 @@ class NodeGroupForm(
     if(notifications.isEmpty) NodeSeq.Empty
     else {
       val html = 
-        <div id="errorNotification" class="notify">
+        <div id="notifications" class="notify">
           <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
         </div>
       notifications = Nil
