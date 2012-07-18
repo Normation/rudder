@@ -128,7 +128,7 @@ class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisati
   def serialise(
       ptName             : TechniqueName
     , variableRootSection: SectionSpec
-    , directive                 : Directive
+    , directive          : Directive
   ) = {
     createTrimedElem(XML_TAG_DIRECTIVE, xmlVersion) (
           <id>{directive.id.value}</id>
