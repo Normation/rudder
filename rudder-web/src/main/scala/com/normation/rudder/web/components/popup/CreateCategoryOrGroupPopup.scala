@@ -132,6 +132,7 @@ class CreateCategoryOrGroupPopup(
       "itemName" -> piName.toForm_!,
       "itemContainer" -> piContainer.toForm_!,
       "itemDescription" -> piDescription.toForm_!,
+      "notifications" -> updateAndDisplayNotifications(),
       "groupType" -> piStatic.toForm_!,
       "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","6"),
       "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCOGSaveButton") % ("tabindex","5")
@@ -246,7 +247,7 @@ class CreateCategoryOrGroupPopup(
             onFailure & onFailureCallback()
           case Failure(m,_,_) =>
             logger.error("An error occurred while saving the category:" + m)
-            formTracker.addFormError(error("An error occurred while saving the category: " + m))
+            formTracker.addFormError(error(m))
             onFailure & onFailureCallback()
         }
       } else {
@@ -271,7 +272,7 @@ class CreateCategoryOrGroupPopup(
             onFailure & onFailureCallback()
           case Failure(m,_,_) =>
             logger.error("An error occurred while saving the group: " + m)
-            formTracker.addFormError(error("An error occurred while saving the group: " + m))
+            formTracker.addFormError(error(m))
             onFailure & onFailureCallback()
         }
       }
@@ -288,7 +289,6 @@ class CreateCategoryOrGroupPopup(
   }
 
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
     updateFormClientSide()
   }
 

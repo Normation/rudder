@@ -149,7 +149,7 @@ class CreateRulePopup(
             onFailure & onFailureCallback()
           case Failure(m,_,_) =>
             logger.error("An error occurred while saving the Rule:" + m)
-            formTracker.addFormError(error("An error occurred while saving the Rule: " + m))
+            formTracker.addFormError(error(m))
             onFailure & onFailureCallback()
       }
     }
@@ -165,7 +165,6 @@ class CreateRulePopup(
   }
 */
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
     updateFormClientSide() 
   }
 
