@@ -253,8 +253,8 @@ class NodeGroupForm(
                 SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)  
               else NodeSeq.Empty
           }},
-      "delete" -> deleteButton()
-//      "notifications" -> updateAndDisplayNotifications()
+      "delete" -> deleteButton(),
+      "notifications" -> updateAndDisplayNotifications()
     ) 
    }
   
@@ -355,7 +355,7 @@ class NodeGroupForm(
           case f@Failure(m,_,_) =>
             val msg = "An error occurred while saving the group: "
             logger.debug( f ?~! "An error occurred while saving the group: " , f)
-            formTracker.addFormError(error(msg + m))
+            formTracker.addFormError(error(m))
             onFailure
         }
       }
@@ -446,7 +446,7 @@ class NodeGroupForm(
   }
   
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
+    formTracker.addFormError(error("The form contains some errors, please correct them."))
     updateFormClientSide() & JsRaw("""scrollToElement("errorNotification");""")
   }
   
