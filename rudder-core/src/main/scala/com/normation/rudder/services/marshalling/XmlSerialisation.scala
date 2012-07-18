@@ -144,7 +144,8 @@ trait DirectiveSerialisation {
   def serialise(
       ptName             : TechniqueName
     , variableRootSection: SectionSpec
-    , directive                 : Directive):  Elem
+    , directive          : Directive
+  ) : Elem
 }
 
 
