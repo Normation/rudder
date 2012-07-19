@@ -459,7 +459,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getNodeGroupModifyDetails(x.details) match {
           case Full(modDiff) => 
             <div class="evloglmargin">
-              <h4>Node overview:</h4>
+              <h4>Group overview:</h4>
               <ul class="evlogviewpad">
                 <li><b>Node ID:</b> { modDiff.id.value }</li>
                 <li><b>Name:</b> {

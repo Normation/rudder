@@ -74,9 +74,20 @@ class CreateCloneGroupPopup(
     JsRaw(""" $.modal.close();""")
   }
   
+  private[this] def onFailure() : JsCmd = {
+    onFailureCallback() & 
+    updateFormClientSide()
+  }
+//    private[this] def onFailure : JsCmd = {
+//    formTracker.addFormError(error("The form contains some errors, please correct them"))
+//    updateFormClientSide()
+//  }
+  
+  private[this] def error(msg:String) = <span class="error">{msg}</span>
+  
   private[this] def onSubmit() : JsCmd = {
     if(formTracker.hasErrors) {
-      onFailureCallback()
+      onFailure()
     } else {
       // get the type of query :
       if (createContainer) {
@@ -96,11 +107,11 @@ class CreateCloneGroupPopup(
           case Empty =>
             logger.error("An error occurred while saving the category")
             formTracker.addFormError(error("An error occurred while saving the category"))
-            onFailure & onFailureCallback()
+            onFailure
           case Failure(m,_,_) =>
             logger.error("An error occurred while saving the category:" + m)
-            formTracker.addFormError(error("An error occurred while saving the category: " + m))
-            onFailure & onFailureCallback()
+            formTracker.addFormError(error(m))
+            onFailure
         }
       } else {
         // we are creating a group
@@ -122,11 +133,11 @@ class CreateCloneGroupPopup(
           case Empty =>
             logger.error("An error occurred while saving the group")
             formTracker.addFormError(error("An error occurred while saving the group"))
-            onFailure & onFailureCallback()
+            onFailure
           case Failure(m,_,_) =>
             logger.error("An error occurred while saving the group:" + m)
-            formTracker.addFormError(error("An error occurred while saving the group: " + m))
-            onFailure & onFailureCallback()
+            formTracker.addFormError(error(m))
+            onFailure 
         }
       }
     }
@@ -141,8 +152,10 @@ class CreateCloneGroupPopup(
       NodeSeq.Empty
     }
     else {
-      val html = <div id="notifications" class="notify">
-        <ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = 
+        <div id="notifications" class="notify">
+          <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
+        </div>
       html
     }
   }
@@ -164,28 +177,29 @@ class CreateCloneGroupPopup(
       nodeGroup.map(x => x.description).getOrElse("") ) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:10em") % ("tabindex","3")
-    override def className = "twoCol"
     override def errorClassName = ""
     override def validations =  Nil
   }
 
   private[this] val piStatic = 
-    new WBRadioField("Group type: ", Seq("static", "dynamic"),  
+    new WBRadioField("Group type", Seq("static", "dynamic"),  
         ((nodeGroup.map(x => x.isDynamic).getOrElse(false)) ? "dynamic" | "static"), {
-    case "static" => <span class="tooltip" title="The list of member nodes is defined at creation and will not change automatically.">Static</span>
-    case "dynamic" => <span class="tooltip" title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
+    case "static" => 
+      <span title="The list of member nodes is defined at creation and will not change automatically.">Static</span>
+    case "dynamic" => 
+      <span title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
   }, Some(4)) {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
+    override def className = "rudderBaseFieldSelectClassName"
+    override def errorClassName = "threeColErrors"
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def className = "twoCol"
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')")
   }
 
-  private[this] val piContainer = new WBSelectField("Parent category: ",
+  private[this] val piContainer = new WBSelectField("Parent category",
       (categories.open_!.map(x => (x.id.value -> x.name))),
       "") {
-    override def className = "twoCol"
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
+    override def className = "rudderBaseFieldSelectClassName"
   }
   
   private[this] def initJs : JsCmd = {
@@ -201,15 +215,11 @@ class CreateCloneGroupPopup(
   }
   
   private[this] val formTracker = {
-    new FormTracker(piName,piDescription,piContainer, piStatic)
+    new FormTracker(piName, piDescription, piContainer, piStatic)
   }
     
-  private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
-    updateFormClientSide()
-  }
   
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml("createGroupContainer", popupContent())
+    SetHtml("createCloneGroupContainer", popupContent())
   }
 }

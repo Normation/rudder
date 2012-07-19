@@ -300,6 +300,7 @@ class DirectiveEditForm(
   }
 
   private[this] def onFailure(): JsCmd = {
+    formTracker.addFormError(error("The form contains some errors, please correct them."))
     onFailureCallback() & SetHtml(htmlId_policyConf, showDirectiveForm) & 
       JsRaw("""scrollToElement("notifications");""")
   }

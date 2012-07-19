@@ -327,6 +327,7 @@ class RuleEditForm(
   }
   
   private[this] def onFailure() : JsCmd = {
+    formTracker.addFormError(error("The form contains some errors, please correct them."))
     onFailureCallback() & 
     updateFormClientSide() & 
     JsRaw("""scrollToElement("notifications");""")

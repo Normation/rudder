@@ -317,7 +317,7 @@ class WBRadioField(
     <div>
       {choiceHolder.flatMap { c => 
        <span>
-         <label>{c.xhtml}<span class="radioTextLabel">{displayChoiceLabel(c.key)}</span></label><br/> 
+         <label>{c.xhtml}<span class="radioTextLabel">{displayChoiceLabel(c.key)}</span></label>
        </span>
       }}
     </div>
