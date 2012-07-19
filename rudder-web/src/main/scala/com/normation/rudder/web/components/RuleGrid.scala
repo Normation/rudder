@@ -581,7 +581,7 @@ class RuleGrid(
                    nodeInfoService.getNodeInfo(nodeStatus.nodeId) match {
                      case Full(nodeInfo)  => {
                       val tooltipid = Helpers.nextFuncName
-                      val xml:NodeSeq = ( "#node [class+]" #> "listopen" &
+                      val xml:NodeSeq = (
                               "#node *" #>
                                 <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.nodeId.value)}>
                                   <span class="curspoint">
@@ -589,10 +589,7 @@ class RuleGrid(
                                   </span>
                                 </a> &
                               "#severity *" #> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType) &
-                              ".unfoldable [class+]" #> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType).replaceAll(" ", "") &
-                              ".unfoldable [toggler]" #> tooltipid &
-                              "#jsid [id]" #> tooltipid &
-                              "#details" #> showDirectivesReport(nodeStatus.directives)
+                              ".unfoldable [class+]" #> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType).replaceAll(" ", "")
                        )(nodeLineXml)
                        xml
                      }
@@ -605,20 +602,6 @@ class RuleGrid(
     )(reportsGridXml)
     }
 
-    def showDirectivesReport(directives : Seq[DirectiveStatusReport]) : NodeSeq = {
-    directives.flatMap { directive =>
-      directiveRepository.getDirective(directive.directiveId) match {
-        case Full(dir) =>
-          val tooltipid = Helpers.nextFuncName
-           (
-              "#directive *" #> <span>{dir.name}</span> &
-              "#severity *" #> ReportType.getSeverityFromStatus(directive.directiveReportType) &
-              "#severityClass [class]" #> ReportType.getSeverityFromStatus(directive.directiveReportType).replaceAll(" ", "")
-           )(directiveLineXml)
-        case _ => <div>Could not fetch directive {directive.directiveId} </div>
-      }
-    }
-    }
 
     def reportsGridXml : NodeSeq = {
     <table id="reportsGrid" cellspacing="0">
@@ -626,9 +609,6 @@ class RuleGrid(
         <tr class="head">
           <th>Node<span/></th>
           <th class="severityWidth">Severity<span/></th>
-          <th id="detailsHead" style="display:none">
-            <div>Directives
-            <span style="float:right">Severity</span></div></th>
         </tr>
       </thead>
       <tbody>
@@ -637,28 +617,14 @@ class RuleGrid(
     </table>
   }
 
-    def detailsLine : NodeSeq = {
-    <td id="jsid" class="severity" style="display:none">
-      <table style="margin:0" cellspacing="0">
-        <div id="details"/>
-      </table>
-    </td>
-  }
 
     def nodeLineXml : NodeSeq = {
     <tr class="unfoldable">
       <td id="node"></td>
       <td name="severity" class="severityWidth"><div id="severity"/></td>
-      {detailsLine}
     </tr>
   }
 
-    def directiveLineXml : NodeSeq = {
-    <tr id="severityClass" >
-      <td id="directive" style="border-top:0"></td>
-      <td name="severity" class="severityWidth" style="border-top:0; text-align:right"><div id="severity"/></td>
-    </tr>
-  }
 
   val batch = reportingService.findImmediateReportsByRule(rule.id)
 
@@ -689,25 +655,6 @@ class RuleGrid(
     val popupHtml = createPopup(rule)
     SetHtml(htmlId_reportsPopup, popupHtml) &
       JsRaw("""
-          var opencpt=0;
-        $(".unfoldable").click(function(event) {
-          event.stopPropagation();
-          if(!($(this).is("a"))){
-            var togglerId = $(this).attr("toggler");
-            $('#'+togglerId).toggle();
-            if ($(this).find("td.listclose").length > 0) {
-            $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
-            opencpt--;
-            if(opencpt==0){
-              $("#detailsHead").css("display","none");
-            }
-          } else {
-            $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
-             $("#detailsHead").css("display",'');
-            opencpt++;
-          }
-          }
-        });
         var #table_var#;
         /* Formating function for row details */
         function fnFormatDetails ( id ) {
@@ -728,8 +675,7 @@ class RuleGrid(
             "aaSorting": [[ 3, "asc" ]],
             "aoColumns": [
               { "sWidth": "200px" },
-              { "sWidth": "50px" },
-              { "sWidth": "250px" }
+              { "sWidth": "300px" },
             ]
           });moveFilterAndFullPaginateArea('#%1$s');""".format( tableId_reportsPopup).replaceAll("#table_var#",jsVarNameForId(tableId_reportsPopup))
         ) //&  initJsCallBack(tableId)

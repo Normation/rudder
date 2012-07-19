@@ -64,7 +64,9 @@ import com.normation.rudder.web.services.JsTreeUtilService
 import com.normation.rudder.web.services.UserPropertyService
 import org.joda.time.DateTime
 import com.normation.rudder.authorization._
-
+import com.normation.rudder.domain.reports.bean._
+import com.normation.rudder.services.reports.ReportingService
+import com.normation.rudder.services.nodes.NodeInfoService
 
 object RuleEditForm {
   
@@ -95,13 +97,20 @@ object RuleEditForm {
       chooseTemplate("component", "form", xml)
     }) openOr Nil
     
+  private def details =
+    (for {
+      xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
+    } yield {
+      chooseTemplate("component", "details", xml)
+    }) openOr Nil
+
   private def popupRemoveForm = 
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "popupRemoveForm", xml)
     }) openOr Nil
-    
+
   private def popupDisactivateForm = 
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
@@ -147,7 +156,8 @@ class RuleEditForm(
   private[this] val techniqueRepository = inject[TechniqueRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
-  
+    private[this] val reportingService = inject[ReportingService]
+  private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] var crCurrentStatusIsActivated = rule.isEnabledStatus
 
   private[this] var selectedTargets = rule.targets
@@ -169,6 +179,7 @@ class RuleEditForm(
 
   private[this] def showForm() : NodeSeq = {
     if (CurrentUser.checkRights(Edit("rule"))) { (
+        "#details" #> showRuleDetails() &
       "#editForm" #> showCrForm() &
       "#removeActionDialog" #> showRemovePopupForm() &
       "#disactivateActionDialog" #> showDisactivatePopupForm()
@@ -203,7 +214,159 @@ class RuleEditForm(
       "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerDisactivatePopup) }
    )(popupDisactivateForm) 
   }
+
+  private[this] def  showRuleDetails() : NodeSeq = {
+    (
+      "#details *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
+      "#nameField" #>    (".twoCol [disabled]" #> true )(crName.toForm_!) &
+      "#shortDescriptionField" #> (".twoCol [disabled]" #> true )(crShortDescription.toForm_!) &
+      "#longDescriptionField" #> (".rudderBaseFieldClassName [disabled]" #> true )(crLongDescription.toForm_!) &
+      "#compliancedetails" #> createPopup(rule)
+    )(details) ++
+    Script(JsRaw("""
+        $(".unfoldable").click(function() {
+          var togglerId = $(this).attr("toggler");
+          $('#'+togglerId).toggle();
+          if ($(this).find("td.listclose").length > 0) {
+            $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
+          } else {
+            $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
+          }
+        });
+      """));
+  }
+   private[this] def createPopup(rule: Rule) : NodeSeq = {
+
+    def showReportDetail(batch : Option[ExecutionBatch]) : NodeSeq = {
+    ( "#reportsGrid [class+]" #> "fixedlayout" &
+      "#reportLine" #> {batch match {
+            case None => Text("No Reports")
+            case Some(reports) =>
+              reports.getNodeStatus().flatMap {
+                reportStatus =>
+                  reportStatus.directives.flatMap { directiveStatus =>
+                    directiveRepository.getDirective(directiveStatus.directiveId) match {
+                    case Full(directive)  => {
+                      val tech = directiveRepository.getActiveTechnique(directive.id).map(act => techniqueRepository.getLastTechniqueByName(act.techniqueName).map(_.name).getOrElse("Unknown technique")).getOrElse("Unknown technique")
+                      val techversion = directive.techniqueVersion;
+                      val tooltipid = Helpers.nextFuncName
+                      val xml:NodeSeq = ( "#directive [class+]" #> "listopen" &
+                              "#directive *" #>
+                                <span>{directive.name}</span> &
+                              "#technique *" #> <span>{"%s (%s)".format(tech,techversion)}</span> &
+                              "#severity *" #> ReportType.getSeverityFromStatus(directiveStatus.directiveReportType) &
+                              ".unfoldable [class+]" #> ReportType.getSeverityFromStatus(directiveStatus.directiveReportType).replaceAll(" ", "") &
+                              ".unfoldable [toggler]" #> tooltipid &
+                              "#jsid [id]" #> tooltipid &
+                              "#details *+" #> showComponentsReports(directiveStatus.components)&
+                               ".detailedReport [class+]" #> "fixedlayout"
+                       )(reportsLineXml)
+                       xml
+                     }
+                     case x:EmptyBox =>
+                     logger.error( (x?~! "An error occured when trying to load node %s".format(reportStatus.nodeId.value)),x)
+                     <div class="error">Node with ID "{reportStatus.nodeId.value}" is invalid</div>
+                   }
+              } }
+    }}
+    )(reportsGridXml)
+    }
+
+  def showComponentsReports(components : Seq[ComponentStatusReport]) : NodeSeq = {
+    components.flatMap { component =>
+      component.componentValues.forall( x => x.componentValue =="None") match {
+        case true => // only None, we won't show the details
+          (
+              "#component *" #> <span>{component.component}</span> &
+              ".unfoldable [class]" #> ReportType.getSeverityFromStatus(component.componentReportType).replaceAll(" ", "") &
+              "#jsid *" #> NodeSeq.Empty &
+              "#severity *" #> ReportType.getSeverityFromStatus(component.componentReportType) &
+                        ".detailedReport [class+]" #> "fixedlayout"
+           )(componentDetails)
+        case false => // standard  display that can be expanded
+          val tooltipid = Helpers.nextFuncName
+           (
+              "#component [class+]" #> "listopen" &
+              "#component *" #> <span>{component.component}</span> &
+              ".unfoldable [toggler]" #> tooltipid &
+              "#jsid [id]" #> tooltipid &
+              ".unfoldable [class+]" #> ReportType.getSeverityFromStatus(component.componentReportType).replaceAll(" ", "") &
+              "#severity *" #> ReportType.getSeverityFromStatus(component.componentReportType) &
+              "#details *+" #> showComponentValueReport(component.componentValues) &
+              ".detailedReport [class+]" #> "fixedlayout"
+           )(componentDetails)
+      }
+    }
+  }
   
+  def showComponentValueReport(values : Seq[ComponentValueStatusReport]) : NodeSeq = {
+    values.flatMap { value =>
+           (            ".detailedReport [class+]" #> "fixedlayout" &
+              "#componentValue *" #> <span>{value.componentValue}</span> &
+              "#severity *" #> ReportType.getSeverityFromStatus(value.cptValueReportType) &
+              "#severityClass [class]" #> ReportType.getSeverityFromStatus(value.cptValueReportType).replaceAll(" ", "")
+           )(componentValueDetails)
+    }
+  }
+
+  def reportsGridXml : NodeSeq = {
+    <table id="reportsGrid" cellspacing="0">
+      <thead>
+        <tr class="head">
+          <th class="tablewidth"><span>Directive</span>
+            <span class="detailedReportTitle" style="left:120px">Component</span>
+            <span class="detailedReportTitle" style="left:220px">Component value</span><span/></th>
+          <th class="severityWidth">Technique</th>
+          <th class="severityWidth">Severity<span/></th>
+        </tr>
+      </thead>
+      <tbody>
+        <div id="reportLine"/>
+      </tbody>
+    </table>
+  }
+
+  def reportsLineXml : NodeSeq = {
+    <tr class="unfoldable">
+      <td id="directive"></td>
+      <td name="technique" class="severityWidth"><div id="technique"/></td>
+      <td name="severity" class="severityWidth"><div id="severity"/></td>
+    </tr> ++ detailsLine
+  }
+
+  def componentDetails : NodeSeq = {
+    <tr class="unfoldable">
+      <td id="component" class="tablewidth"></td>
+      <td name="severity" class="severityWidth"><div id="severity"/></td>
+    </tr> ++ detailsLine
+  }
+
+  def componentValueDetails : NodeSeq = {
+    <tr id="severityClass">
+      <td id="componentValue" class="tablewidth"></td>
+      <td name="severity" class="severityWidth"><div id="severity"/></td>
+    </tr>
+  }
+
+  def detailsLine : NodeSeq = {
+    <tr id="jsid" class="detailedReportLine severity" style="display:none">
+      <td class="detailedReportLine" colspan="10">
+        <table class="detailedReport" cellspacing="0">
+          <div id="details">
+           </div>
+        </table>
+      </td>
+    </tr>
+  }
+
+  val batch = reportingService.findImmediateReportsByRule(rule.id)
+
+  <div>
+  <hr class="spacer" />
+        {showReportDetail(batch)}
+  </div>
+  }
+
   private[this] def showCrForm() : NodeSeq = {    
     (
       "#editForm *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen

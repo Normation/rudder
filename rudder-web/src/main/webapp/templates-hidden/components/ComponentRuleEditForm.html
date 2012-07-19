@@ -65,9 +65,12 @@
 <component:body>
 	<div id="editRuleZone">
 		<ul id="ruleDetailsTabMenu">
-		  <li><a href="#ruleDetailsEditTab">Edit Rule parameters</a></li>
+			<li><a href="#ruleComplianceTab">Compliance detail</a></li>
+			<li><a href="#ruleDetailsEditTab">Edit parameters</a></li>
 		</ul>
-		
+		<div id="ruleComplianceTab">
+		  <div id="details"></div>
+		</div>
 		<div id="ruleDetailsEditTab">
 		  <div id="editForm"></div>
 		  <div id="removeActionDialog"></div>
@@ -75,6 +78,24 @@
 		</div>
 	</div>
 </component:body>
+
+<component:details>
+	<div class="groupedEditZone">
+		<div id="nameField">
+		Here comes the name field
+		</div>
+		<div id="shortDescriptionField">
+		Here comes the shortDescription field
+		</div>
+		<div id="longDescriptionField">
+		Here comes the longDescription field
+		</div>
+	</div>
+	<div id="compliancedetails">
+    </div>
+</component:details>
+
+
 
 <component:form>
 <div id="editForm" class="object-details">

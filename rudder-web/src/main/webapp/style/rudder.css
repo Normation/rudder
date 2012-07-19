@@ -2040,6 +2040,7 @@ div.tabInform {
    border-left:1px dotted;
    border-right:1px dotted;
 }
+
 tr.Success {
   background-color:#CCFFCC;
 }
@@ -2072,11 +2073,22 @@ table.eventLogUpdatePolicy {
   margin-left: 0px;
 }
 
+
+
 table.detailedReport {
   margin : 0;
-  padding: 0 0 0 20px;
+  padding: 0 0 0 100px;
   width: 100%
 }
+
+span.detailedReportTitle {
+	position:absolute;
+}
+
+table.fixedlayout{
+	table-layout:fixed;
+	word-wrap:break-word
+	}
 
 tr.detailedReportLine, td.detailedReportLine {
   padding: 0;
