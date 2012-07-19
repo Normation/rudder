@@ -338,25 +338,13 @@ Tableau
   margin-top:5px;
 }
 table {
+   margin: 10px;
    width: 98%;
+   
 }
-
-#eventLogsGrid {
-  margin:10px;	
-}
-
-#grid_rules_grid_zone {
-  margin: 10px;	
-}
-
-#acceptNodeGrid_wrapper {
-  margin: 10px;	
-}
-
 caption {
    display: none;
 }
-
 th, tr, td {
    padding: 4px 3px;
    text-align: left;
@@ -557,7 +545,7 @@ div#Detail {
 
 .wbBaseField {
   vertical-align: middle;
-  margin-top:7px;
+  margin-top:5px;
 }
 
 .policyDisplay {
@@ -767,6 +755,7 @@ padding:0 20px;
 }
 .notify{
   text-align:center;
+  margin: 10px;
 }
 .nserverrmargin{
   margin-right:5px;
@@ -1832,10 +1821,12 @@ hr.spacer {
 
 .rudderBaseFieldClassName {
     width:99%;
+    margin-top:4px;
 }
 
 .rudderBaseFieldSelectClassName {
     width:101%;
+    margin-top:4px;
 }
 
 .twoColParentCategory {
@@ -1991,8 +1982,8 @@ div.tabInform {
 }
 
 #parameters {
-/*   margin-top: 3px; */
-/*   margin-left: 5px; */
+  margin-top: 3px;
+  margin-left: 5px;
 }
 
 /***********************************
