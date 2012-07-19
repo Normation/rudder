@@ -253,7 +253,7 @@ class NodeGroupCategoryForm(
   }
   
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
+    formTracker.addFormError(error("The form contains some errors, please correct them."))
     updateFormClientSide & JsRaw("""scrollToElement("notifications");""")
   }
   
@@ -295,13 +295,18 @@ class NodeGroupCategoryForm(
   }
   
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
-    notifications :::= formTracker.formErrors
+    
+    val notifications = formTracker.formErrors
     formTracker.cleanErrors
    
-    if(notifications.isEmpty) NodeSeq.Empty
+    if(notifications.isEmpty) {
+      NodeSeq.Empty
+    }
     else {
-      val html = <div  id="notifications" class="notify"><ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul></div>
-      notifications = Nil
+      val html = 
+        <div id="notifications" class="notify">
+          <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
+        </div>
       html
     }
   }

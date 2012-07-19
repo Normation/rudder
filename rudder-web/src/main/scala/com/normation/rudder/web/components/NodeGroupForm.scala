@@ -446,6 +446,7 @@ class NodeGroupForm(
   }
   
   private[this] def onFailure : JsCmd = {
+    formTracker.addFormError(error("The form contains some errors, please correct them."))
     updateFormClientSide() & JsRaw("""scrollToElement("notifications");""")
   }
   

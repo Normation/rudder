@@ -156,7 +156,7 @@ class CreateCategoryOrGroupPopup(
 
   }
 
-  private[this] val piStatic = new WBRadioField("Group type: ", Seq("static", "dynamic"), "static", {
+  private[this] val piStatic = new WBRadioField("Group type", Seq("static", "dynamic"), "static", {
     //how to display label ? Capitalize, and with a tooltip
     case "static" => 
       <span title="The list of member nodes is defined at creation and will not change automatically.">
@@ -165,7 +165,6 @@ class CreateCategoryOrGroupPopup(
     case "dynamic" => 
       <span title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
   },Some(4)) {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "align-radio-generate-input"
     override def errorClassName = "threeColErrors"
@@ -174,7 +173,7 @@ class CreateCategoryOrGroupPopup(
   
   private[this] val piItemType = {
     new WBRadioField(
-      "Item to create: ", 
+      "Item to create", 
       Seq("Group", "Category"), 
       "Group", 
       {case "Group" => 
@@ -183,7 +182,6 @@ class CreateCategoryOrGroupPopup(
          <span id="textCategoryRadio">Category</span>
         
       }) {
-      override def displayNameHtml = Some(<b>{displayName}</b>)
       override def setFilter = notNull _ :: trim _ :: Nil
       override def className = "align-radio-generate-input"
       override def errorClassName = "threeColErrors"
@@ -191,11 +189,10 @@ class CreateCategoryOrGroupPopup(
     }
   }
 
-  private[this] val piContainer = new WBSelectField("Parent category: ",
+  private[this] val piContainer = new WBSelectField("Parent category",
       (categories.open_!.map(x => (x.id.value -> x.name))),
       "") {
     override def errorClassName = "threeColErrors"
-    override def displayNameHtml = Some(<b>{displayName}</b>)
     override def className = "rudderBaseFieldSelectClassName"
     override def inputField = 
       super.inputField % ("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % 
