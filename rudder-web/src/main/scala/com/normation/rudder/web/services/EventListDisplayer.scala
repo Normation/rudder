@@ -294,12 +294,16 @@ class EventListDisplayer(
 
   def displayDetails(event:EventLog) = {
     
-    def xmlParameters(eventId: String) = {
-        <h4 id={"showParameters%s".format(eventId)}
-        class="curspoint showParameters" 
-        onclick={"showParameters(%s)".format(eventId)} >Raw Technical Details</h4>
-        <pre id={"showParametersInfo%s".format(eventId)} 
-        style="display:none">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
+    def xmlParameters(eventId: Option[Int]) = {
+      eventId match {
+        case None => NodeSeq.Empty
+        case Some(id) =>
+          <h4 id={"showParameters%s".format(id)}
+          class="curspoint showParameters" 
+          onclick={"showParameters(%s)".format(id)}>Raw Technical Details</h4>
+          <pre id={"showParametersInfo%s".format(id)} 
+          style="display:none">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
+      }
     }
     
     val reasonHtml = {
@@ -327,7 +331,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               { ruleDetails(crDetailsXML, addDiff.rule)}
               { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case Failure(m,_,_) => <p>{m}</p>
           case e:EmptyBox => errorMessage(e)
@@ -339,7 +343,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               { ruleDetails(crDetailsXML, delDiff.rule) }
               { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -385,7 +389,7 @@ class EventListDisplayer(
               )(crModDetailsXML)
               }
               { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -421,7 +425,7 @@ class EventListDisplayer(
                 ) 
               )(piModDetailsXML)}
               { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case Failure(m, _, _) => <p>{m}</p>
           case e:EmptyBox => errorMessage(e)
@@ -435,7 +439,7 @@ class EventListDisplayer(
               { directiveDetails(piDetailsXML, diff.techniqueName, 
                   diff.directive, sectionVal) }
               { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -448,7 +452,7 @@ class EventListDisplayer(
               { directiveDetails(piDetailsXML, diff.techniqueName, 
                   diff.directive, sectionVal) }
               { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -500,7 +504,7 @@ class EventListDisplayer(
                 ) 
               )(groupModDetailsXML)}
               { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -512,7 +516,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               { groupDetails(groupDetailsXML, diff.group) }
               { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -524,7 +528,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
             { groupDetails(groupDetailsXML, diff.group) }
             { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -538,7 +542,7 @@ class EventListDisplayer(
               <h4>Node accepted overview:</h4>
               { nodeDetails(details) }
               { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -550,7 +554,7 @@ class EventListDisplayer(
               <h4>Node refused overview:</h4>
               { nodeDetails(details) }
               { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -562,7 +566,7 @@ class EventListDisplayer(
               <h4>Node deleted overview:</h4>
               { nodeDetails(details) }
               { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -579,7 +583,7 @@ class EventListDisplayer(
                 <li><b>End Time:</b>&nbsp;{DateFormaterService.getFormatedDate(ended)}</li>
               </ul>
               { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
           case e:EmptyBox => errorMessage(e)
@@ -597,11 +601,17 @@ class EventListDisplayer(
                 <li><b>Error stack trace:</b>&nbsp;{failure.messageChain}</li>
               </ul>
              { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
           case e:EmptyBox => errorMessage(e)
         })
+        
+      case x:AutomaticStartDeployement => 
+        "*" #> 
+            <div class="evloglmargin">
+              { xmlParameters(event.id) }
+            </div>
         
       ////////// change authorized networks //////////
       
@@ -620,7 +630,7 @@ class EventListDisplayer(
               )(authorizedNetworksXML)
             }
             { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
         })
@@ -636,7 +646,7 @@ class EventListDisplayer(
                   <li class="eventLogUpdatePolicy">{ "%s (version %s)".format(technique.name.value, technique.version.toString)}</li>
                 } }</ul>
                 { reasonHtml }
-              { xmlParameters(event.id.getOrElse(0).toString) }
+              { xmlParameters(event.id) }
               </div>
             
           case e:EmptyBox => errorMessage(e)
@@ -647,7 +657,7 @@ class EventListDisplayer(
       case x:ExportEventLog => 
         "*" #> (logDetailsService.getNewArchiveDetails(x.details, x) match {
           case Full(gitArchiveId) => 
-              { displayExportArchiveDetails(gitArchiveId, xmlParameters(event.id.getOrElse(0).toString)) }
+              { displayExportArchiveDetails(gitArchiveId, xmlParameters(event.id)) }
             
           case e:EmptyBox => errorMessage(e)
         })
@@ -655,7 +665,7 @@ class EventListDisplayer(
       case x:ImportEventLog => 
         "*" #> (logDetailsService.getRestoreArchiveDetails(x.details, x) match {
           case Full(gitArchiveId) => 
-              { displayImportArchiveDetails(gitArchiveId, xmlParameters(event.id.getOrElse(0).toString)) }
+              { displayImportArchiveDetails(gitArchiveId, xmlParameters(event.id)) }
           case e:EmptyBox => errorMessage(e)
         })
 
