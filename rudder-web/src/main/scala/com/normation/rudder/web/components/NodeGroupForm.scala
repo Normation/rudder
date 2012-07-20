@@ -220,9 +220,13 @@ class NodeGroupForm(
      <directive:reason />
      </lift:authz>
      <div class="margins" align="right">
-       <lift:authz role="group_write"><directive:group/></lift:authz>
-       <directive:save/>
-       <lift:authz role="group_write"><directive:delete/></lift:authz>
+       <div style="float:left" align="left">
+         <lift:authz role="group_write"><directive:group/></lift:authz>
+         <lift:authz role="group_write"><directive:delete/></lift:authz>
+       </div>
+       <div style="float:right" align="right">
+         <directive:save/>
+       </div>
      </div>
      </fieldset>)
 
@@ -246,7 +250,7 @@ class NodeGroupForm(
       "save" ->   {_nodeGroup match {
             case Some(x) => 
               if (CurrentUser.checkRights(Edit("group"))) 
-                SHtml.ajaxSubmit("Update", onSubmit _)  %  ("id", saveButtonId) 
+                SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId) 
               else NodeSeq.Empty
             case None =>   
               if (CurrentUser.checkRights(Write("group")))  
