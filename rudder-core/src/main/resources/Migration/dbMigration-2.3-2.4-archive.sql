@@ -50,4 +50,4 @@ policy text,
 msg text
 );
 
-create index executionTimeStamp_idx on ArchivedRudderSysEvents (executionTimeStamp);
+create index executionTimeStamp_archived_idx on ArchivedRudderSysEvents (executionTimeStamp);
