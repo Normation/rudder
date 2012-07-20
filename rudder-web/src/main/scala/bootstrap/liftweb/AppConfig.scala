@@ -89,12 +89,12 @@ import com.normation.utils.ScalaLock
 import com.normation.rudder.web.rest._
 import com.normation.rudder.services.user.TrivialPersonIdentService
 import com.normation.rudder.services.eventlog.EventLogFactoryImpl
-import com.normation.rudder.migration.ControlEventLogsMigration_10_2
-import com.normation.rudder.migration.EventLogsMigration_10_2
+import com.normation.rudder.migration.ControlEventLogsMigration_2_3
+import com.normation.rudder.migration.EventLogsMigration_2_3
 import com.normation.rudder.migration.MigrationEventLogRepository
-import com.normation.rudder.migration.EventLogMigration_10_2
-import com.normation.rudder.migration.LogMigrationEventLog_10_2
-import com.normation.rudder.migration.XmlMigration_10_2
+import com.normation.rudder.migration.EventLogMigration_2_3
+import com.normation.rudder.migration.LogMigrationEventLog_2_3
+import com.normation.rudder.migration.XmlMigration_2_3
 import com.normation.rudder.web.services.UserPropertyService
 import java.lang.IllegalArgumentException
 
@@ -954,18 +954,18 @@ class AppConfig extends Loggable {
    * Event log migration
    */
   @Bean
-  def eventLogsMigration_10_2 = new EventLogsMigration_10_2(
+  def eventLogsMigration_2_3 = new EventLogsMigration_2_3(
       jdbcTemplate      = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_10_2(new XmlMigration_10_2())
-    , errorLogger       = LogMigrationEventLog_10_2.defaultErrorLogger
-    , successLogger     = LogMigrationEventLog_10_2.defaultSuccessLogger
+    , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
+    , errorLogger       = LogMigrationEventLog_2_3.defaultErrorLogger
+    , successLogger     = LogMigrationEventLog_2_3.defaultSuccessLogger
     , batchSize         = 1000      
    )
   
   @Bean
-  def eventLogsMigration_10_2_Management = new ControlEventLogsMigration_10_2(
+  def eventLogsMigration_2_3_Management = new ControlEventLogsMigration_2_3(
           migrationEventLogRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
-        , eventLogsMigration_10_2
+        , eventLogsMigration_2_3
       )
 
   /**
@@ -981,7 +981,7 @@ class AppConfig extends Loggable {
     , new CheckInitUserTemplateLibrary(
         rudderDit, ldap, techniqueRepository,
         ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository) //new CheckDirectiveBusinessRules()
-    , new CheckMigrationEventLog10_2(eventLogsMigration_10_2_Management)
+    , new CheckMigrationEventLog2_3(eventLogsMigration_2_3_Management)
     , new CheckInitXmlExport(itemArchiveManager, personIdentService)
   )
 

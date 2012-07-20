@@ -36,7 +36,7 @@ package bootstrap.liftweb
 package checks
 
 import net.liftweb.common.Loggable
-import com.normation.rudder.migration.ControlEventLogsMigration_10_2
+import com.normation.rudder.migration._
 
 /**
  * That class add all the available reference template in 
@@ -45,6 +45,15 @@ import com.normation.rudder.migration.ControlEventLogsMigration_10_2
  */
 class CheckMigrationEventLog10_2(
   manageEventLogsMigration: ControlEventLogsMigration_10_2
+) extends BootstrapChecks with Loggable {
+
+  override def checks() : Unit = {
+    manageEventLogsMigration.migrate()
+  }
+}
+
+class CheckMigrationEventLog2_3(
+  manageEventLogsMigration: ControlEventLogsMigration_2_3
 ) extends BootstrapChecks with Loggable {
 
   override def checks() : Unit = {
