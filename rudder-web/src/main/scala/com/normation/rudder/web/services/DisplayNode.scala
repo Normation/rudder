@@ -212,9 +212,9 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>
     <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>
     <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>
-    <li><a href={htmlId_#(jsId,"sd_var_")}>Environment Variable</a></li>
+    <li><a href={htmlId_#(jsId,"sd_var_")}>Environment variables</a></li>
     <li><a href={htmlId_#(jsId,"sd_process_")}>Processes</a></li>
-    <li><a href={htmlId_#(jsId,"sd_vm_")}>VIrtual Machines</a></li>
+    <li><a href={htmlId_#(jsId,"sd_vm_")}>Virtual machines</a></li>
     </xml:group>
   }
 
