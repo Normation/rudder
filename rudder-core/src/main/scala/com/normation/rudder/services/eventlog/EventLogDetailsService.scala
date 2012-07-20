@@ -249,7 +249,7 @@ class EventLogDetailsServiceImpl(
       name              <- getFromToString((rule \ "name").headOption)
       serial            <- getFromTo[Int]((rule \ "serial").headOption, 
                              { x => tryo(x.text.toInt) } )
-      targets           <- getFromTo[Set[RuleTarget]]((rule \ "target").headOption, 
+      targets           <- getFromTo[Set[RuleTarget]]((rule \ "targets").headOption, 
                             { x:NodeSeq => 
                                 Full((x \ "target").toSet.flatMap{ y: NodeSeq  => 
                                   RuleTarget.unser(y.text )})
