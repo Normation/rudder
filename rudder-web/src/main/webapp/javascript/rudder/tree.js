@@ -244,7 +244,8 @@ var buildGroupTree = function(id, initially_select, select_multiple_modifier) {
         "root-category" : {
           "icon" : { "image" : "images/tree/folder_16x16.png" },
           "valid_children" : [ "category", "group" , "special_target" ],
-          "start_drag" : false
+          "start_drag" : false,
+          "select_node" : false
         },
         "category" : {
           "icon" : { "image" : "images/tree/folder_16x16.png" },
