@@ -757,7 +757,7 @@ padding:0 20px;
   margin-left: 5px;
 }
 .margins{
-  margin:10px;
+  margin:8px;
 }
 .spacerscala{
   float:right;
@@ -817,7 +817,7 @@ fieldset.groupCategoryUpdateComponent {
   
 }
 fieldset.groupUpdateComponent {
-  padding:5px;
+  padding:8px;
   margin:5px;
   width: 580px; 
 }
