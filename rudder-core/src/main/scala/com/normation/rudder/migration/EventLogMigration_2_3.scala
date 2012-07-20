@@ -420,10 +420,27 @@ class XmlMigration_2_3 extends XmlMigration {
       isEntryChild <- TestIsEntry(xml)
       labelOK      <- TestLabel(isEntryChild, "rule")
       fileFormatOK <- TestFileFormat(isEntryChild, Constants.XML_FILE_FORMAT_2.toString())
-      migrated     <- isElem((
+      migrated     <-
+      
+                    if (isEntryChild.attribute("changeType").map(_.text) == Some("modify"))
+                    isElem(
+                        (
+                        "rule [fileFormat]" #> Constants.XML_FILE_FORMAT_3  &
+                        "target " #>  ChangeLabel("targets") andThen
+                        "targets *" #> ("none " #>  NodeSeq.Empty andThen
+                        "to"  #> EncapsulateChild("target") andThen
+                        "from" #> EncapsulateChild("target"))
+                      
+                      )(xml)) 
+                      else
+                            isElem(
+                        (
                         "rule [fileFormat]" #> Constants.XML_FILE_FORMAT_3  &
                      
-                        "target " #> Encapsulate("targets")
+                        "target " #> ChangeLabel("targets") andThen
+                                "none " #>  NodeSeq.Empty andThen
+                        "targets" #> EncapsulateChild("target")
+                        
                       
                       )(xml)) 
     } yield {
