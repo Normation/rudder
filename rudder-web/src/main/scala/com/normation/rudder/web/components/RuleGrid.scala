@@ -123,8 +123,8 @@ class RuleGrid(
                 <th>Status<span/></th>
                 <th>Deployment status<span/></th>
                 <th>Compliance<span/></th>
-                <th>Directive<span/></th>
-                <th>Target node group<span/></th>
+                <th>Directives<span/></th>
+                <th>Target node groups<span/></th>
                 { if(showCheckboxColumn) <th></th> else NodeSeq.Empty }
               </tr>
             </thead>
