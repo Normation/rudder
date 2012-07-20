@@ -164,12 +164,13 @@ object Migration_3_DATA_Rule {
         <to>Test application of two (single) directives, with two multivalued section.</to>
       </longDescription>
       <targets>
-        <target>
           <from>
-            <none></none>
           </from>
-            <to>group:383d521c-e5a7-4dc2-b402-21d425eefd30</to>
-        </target>
+          <to>
+            <target>
+                   group:383d521c-e5a7-4dc2-b402-21d425eefd30
+            </target>
+          </to>
       </targets>
       <directiveIds>
         <from></from>

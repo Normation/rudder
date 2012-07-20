@@ -266,7 +266,8 @@ object Migration_10_2_DATA_Rule {
     </configurationRule></entry>
   
   val rule_add_2 =
-    <entry><rule fileFormat="2" changeType="add">
+  <entry>
+    <rule fileFormat="2" changeType="add">
       <id>e7c21276-d2b5-4fff-9924-96b67db9bd1c</id>
       <displayName>configuration</displayName>
       <serial>0</serial>
@@ -279,7 +280,8 @@ object Migration_10_2_DATA_Rule {
       <longDescription></longDescription>
       <isEnabled>true</isEnabled>
       <isSystem>false</isSystem>
-    </rule></entry>
+    </rule>
+  </entry>
 
   val rule_modify_10 =
     <entry><configurationRule fileFormat="1.0" changeType="modify">

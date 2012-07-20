@@ -443,15 +443,29 @@ case class ChangeLabel(label:String) extends Function1[NodeSeq, Option[Elem]] {
       None
   }
 }
-
 /**
  * Change labels of a list of Elem
  */
-case class Encapsulate(label:String) extends Function1[NodeSeq, Option[Elem]] {
+case class EncapsulateChild(label:String) extends Function1[NodeSeq, Option[NodeSeq]] {
+  import LogMigrationEventLog_10_2.logger
+
+  override def apply(nodes:NodeSeq) = nodes match {
+    case e:Elem => Some(e.copy(child = Encapsulate(label).apply(e.child).getOrElse(NodeSeq.Empty)))
+    case x => //ignore other type of nodes
+      logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
+      None
+  }
+}
+/**
+ * Change labels of a list of Elem
+ */
+case class Encapsulate(label:String) extends Function1[NodeSeq, Option[NodeSeq]] {
   import LogMigrationEventLog_10_2.logger
 
   override def apply(nodes:NodeSeq) = nodes match {
     case e:Elem => Some(e.copy(label=label,child=e))
+    case nodeseq:NodeSeq if (nodeseq.size == 1) => Some(<test>{nodeseq.head}</test>.copy(label = label) )
+    case nodeseq:NodeSeq if (nodeseq == NodeSeq.Empty) => Some(nodeseq)
     case x => //ignore other type of nodes
       logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
       None
