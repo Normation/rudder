@@ -179,7 +179,7 @@ class EventLogFactoryImpl(
             modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
             modifyDiff.modSerial.map(x => SimpleDiff.intToXml(<serial/>, x ) ) ++
             modifyDiff.modTarget.map(x => 
-              SimpleDiff.toXml[Set[RuleTarget]](<target/>, x){ targets =>
+              SimpleDiff.toXml[Set[RuleTarget]](<targets/>, x){ targets =>
                 targets.toSeq.map { t => <target>{t.target}</target> }
               }
             ) ++

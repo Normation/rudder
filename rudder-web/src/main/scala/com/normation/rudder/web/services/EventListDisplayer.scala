@@ -497,7 +497,7 @@ class EventListDisplayer(
                      set.toSeq.sortWith( _.value < _.value )
                        .map(id => <a href={nodeLink(id)}>{id.value}</a>)
                        .reduceLeft[NodeSeq]((a,b) => a ++ <span>,&nbsp;</span> ++ b)
-                     }
+                   }
                    ".diffOldValue *" #> mapList(diff.oldValue) &
                    ".diffNewValue *" #> mapList(diff.newValue)
                    }
@@ -715,10 +715,12 @@ class EventListDisplayer(
   }
   
   private[this] def groupTargetDetails(targets: Set[RuleTarget]): NodeSeq = {
-    val res = {
-      targets
+    val res = targets.toSeq match {
+      case Nil => NodeSeq.Empty
+      case _ =>
+        targets
         .toSeq
-        .map{ target =>
+        .map { target =>
           target match {
             case GroupTarget(id@NodeGroupId(g)) => 
               <span>group(<a href={groupLink(id)}>{g}</a>)</span>
@@ -771,13 +773,16 @@ class EventListDisplayer(
         case Some(q) => Text(q.toJSONString)
       } ) &
       "#isDynamic" #> group.isDynamic &
-      "#nodes" #>( if(group.serverList.size < 1) Text("None")
-                   else 
-                     {
-                       group.serverList
-                         .map(id => <a href={nodeLink(id)}>{id.value}</a>)
-                         .reduceLeft[NodeSeq]((a,b) => a ++ <span>,&nbsp;</span> ++ b)
+      "#nodes" #>( 
+                   {
+                     val l = group.serverList.toSeq
+                       l match {
+                         case Nil => Text("None")
+                         case _ => l
+                           .map(id => <a href={nodeLink(id)}>{id.value}</a>)
+                           .reduceLeft[NodeSeq]((a,b) => a ++ <span>,&nbsp;</span> ++ b)
                        }
+                     }
                   ) &
       "#isEnabled" #> group.isEnabled &
       "#isSystem" #> group.isSystem
