@@ -445,10 +445,24 @@ case class ChangeLabel(label:String) extends Function1[NodeSeq, Option[Elem]] {
 }
 
 /**
+ * Change labels of a list of Elem
+ */
+case class Encapsulate(label:String) extends Function1[NodeSeq, Option[Elem]] {
+  import LogMigrationEventLog_10_2.logger
+
+  override def apply(nodes:NodeSeq) = nodes match {
+    case e:Elem => Some(e.copy(label=label,child=e))
+    case x => //ignore other type of nodes
+      logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
+      None
+  }
+}
+
+/**
  * Migrate an event log from fileFormat 1.0 to 2
  * Also take care of categories, etc. 
  */
-class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
+class EventLogMigration_10_2(xmlMigration:XmlMigration) {
   import LogMigrationEventLog_10_2.logger
   
   def migrate(eventLog:MigrationEventLog) : Box[MigrationEventLog] = {
@@ -498,11 +512,26 @@ class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
   }
 }
 
+trait XmlMigration {
+   def rule(xml:Elem) : Box[Elem] 
+  
+  def directive(xml:Elem) : Box[Elem] 
+  
+  def nodeGroup(xml:Elem) : Box[Elem]
+  
+
+  def addPendingDeployment(xml:Elem) : Box[Elem]
+  
+
+  def node(xml:Elem) : Box[Elem]
+  
+  
+}
 /**
  * That class handle migration of XML eventLog file
  * from a 1.0 format to a 2 one. 
  */
-class XmlMigration_10_2 {
+class XmlMigration_10_2 extends XmlMigration{
   
   private[this] def failBadElemType(xml:NodeSeq) = { 
     Failure("Not expected type of NodeSeq (wish it was an Elem): " + xml)
