@@ -38,6 +38,8 @@ import org.springframework.web.context.WebApplicationContext
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext
+import org.springframework.beans.factory.BeanDefinitionStoreException
+import org.springframework.beans.factory.NoSuchBeanDefinitionException
 
 
 /**
@@ -51,14 +53,26 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 trait ScalaApplicationContext[C <: ApplicationContext]{
   
   def springContext:C
- 
+
+  /**
+   * A cache for the bean name, for Spring doesn't seem able to access them properly
+   */
+  val cache = scala.collection.mutable.Map[String, String]()
   /**
    * Inject the service only based on its type.
    * It is the default operation, but only work for services for which 
    * only one concrete implementation exists in the Spring bean registry.
    */
-  def inject[T](implicit m: Manifest[T]) : T = springContext.getBean(m.erasure.asInstanceOf[Class[T]])
-    
+  def inject[T](implicit m: Manifest[T]) : T = {
+    val beanId = cache.getOrElseUpdate(m.erasure.getSimpleName(),
+      springContext.getBeanNamesForType(m.erasure.asInstanceOf[Class[T]]) match {
+        case list if list.size == 1 => list(0)
+        case list if list.size > 1 => throw new BeanDefinitionStoreException("Multiple beans match this type %s".format(m.erasure.asInstanceOf[Class[T]]))
+        case list if list.size == 0 => throw new NoSuchBeanDefinitionException("No beans match this type %s".format(m.erasure.asInstanceOf[Class[T]]))
+      })
+    springContext.getBean(beanId, m.erasure.asInstanceOf[Class[T]])
+  }
+
   /**
    * Inject the service based on its type and id.
    * Should be avoided when possible, as strings are
