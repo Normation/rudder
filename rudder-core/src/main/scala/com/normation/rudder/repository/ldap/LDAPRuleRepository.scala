@@ -184,15 +184,6 @@ class LDAPRuleRepository(
     } }
   }
   
-  private[this] def ruleExists(con:LDAPConnection, name : String, id: RuleId) : Boolean = {
-    con.searchSub(rudderDit.GROUP.dn, AND(NOT(EQ(A_NODE_GROUP_UUID, id.value)), AND(EQ(A_OC, OC_RUDDER_NODE_GROUP), EQ(A_NAME, name))), A_NODE_GROUP_UUID).size match {
-      case 0 => false
-      case 1 => true
-      case _ => logger.error("More than one nodeGroup has %s name".format(name)); true
-    } 
-  }
-        
-  
   def incrementSerial(id:RuleId) : Box[Int] = {
     repo.synchronized { 
       for {
