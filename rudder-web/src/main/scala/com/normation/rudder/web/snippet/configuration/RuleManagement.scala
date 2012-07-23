@@ -87,7 +87,7 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
   
   override def mainDispatch = Map(
       "head" -> { _:NodeSeq => head }
-    , "editRule" -> { _:NodeSeq => editRule }
+    , "editRule" -> { _:NodeSeq => editRule() }
     , "viewRules" -> { _:NodeSeq => viewRules }
   )
 
@@ -164,13 +164,13 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
   }
   
-  def editRule() : NodeSeq = {
+  def editRule(dispatch:String="showForm") : NodeSeq = {
     def errorDiv(f:Failure) = <div id={htmlId_editRuleDiv} class="error">Error in the form: {f.messageChain}</div>
 
     currentRuleForm.is match {
       case f:Failure => errorDiv(f)
       case Empty => <div id={htmlId_editRuleDiv} class="info">Add a new Rule or click on an existing one in the grid to edit its parameters</div>
-      case Full(form) => form.dispatch("showForm")(NodeSeq.Empty)
+      case Full(form) => form.dispatch(dispatch)(NodeSeq.Empty)
     }
   }
 
@@ -179,7 +179,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
     //update UI
     Replace(htmlId_viewAll,  viewRules()) &
-    Replace(htmlId_editRuleDiv, editRule()) 
+    Replace(htmlId_editRuleDiv, editRule("showEditForm")) 
   }
    
   /**
