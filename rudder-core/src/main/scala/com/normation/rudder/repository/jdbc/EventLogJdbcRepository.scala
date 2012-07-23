@@ -87,6 +87,7 @@ class EventLogJdbcRepository(
   def saveEventLog(eventLog : EventLog) : Box[EventLog] = {
      val keyHolder = new GeneratedKeyHolder()
 
+     try {
          jdbcTemplate.update(
          new PreparedStatementCreator() {
            def createPreparedStatement(connection : Connection) : PreparedStatement = {
@@ -124,8 +125,11 @@ class EventLogJdbcRepository(
          },
          keyHolder)
      
-     getEventLog(keyHolder.getKey().intValue)
-     
+         getEventLog(keyHolder.getKey().intValue)
+     } catch {
+       case e:Throwable => logger.error(e.getMessage)
+       Failure("Exception caught while trying to save an eventlog : %s".format(e.getMessage),Full(e), Empty)
+     }
   }
   
   
