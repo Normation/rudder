@@ -716,7 +716,7 @@ class EventListDisplayer(
   
   private[this] def groupTargetDetails(targets: Set[RuleTarget]): NodeSeq = {
     val res = targets.toSeq match {
-      case Nil => NodeSeq.Empty
+      case Seq() => NodeSeq.Empty
       case _ =>
         targets
         .toSeq
@@ -777,7 +777,7 @@ class EventListDisplayer(
                    {
                      val l = group.serverList.toSeq
                        l match {
-                         case Nil => Text("None")
+                         case Seq() => Text("None")
                          case _ => l
                            .map(id => <a href={nodeLink(id)}>{id.value}</a>)
                            .reduceLeft[NodeSeq]((a,b) => a ++ <span>,&nbsp;</span> ++ b)
