@@ -82,12 +82,13 @@ object RuleEditForm {
       chooseTemplate("component", "staticInit", xml)
     }) openOr Nil
     
-  private def body = 
+  private def body(implicit tab :Int = 0) =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "body", xml) ++ 
-      Script(OnLoad(JsRaw("""$( "#editRuleZone" ).tabs()""") ))
+      Script(OnLoad(JsRaw("""$( "#editRuleZone" ).tabs();
+          $( "#editRuleZone" ).tabs('select', %s);""".format(tab)) ))
     }) openOr Nil
 
   private def crForm = 
@@ -173,17 +174,24 @@ class RuleEditForm(
   //////////////////////////// public methods ////////////////////////////
   val extendsAt = SnippetExtensionKey(classOf[RuleEditForm].getSimpleName)
   
-  def mainDispatch = Map( 
-    "showForm" -> { _:NodeSeq => showForm }
+  def mainDispatch = Map(
+    "showForm" -> { _:NodeSeq => showForm },
+    "showEditForm" -> { _:NodeSeq => showForm(1) }
   )
 
-  private[this] def showForm() : NodeSeq = {
+  private[this] def showForm(implicit tab :Int = 0) : NodeSeq = {
+    if (CurrentUser.checkRights(Read("rule"))) {
+    ("#details" #> showRuleDetails())(
     if (CurrentUser.checkRights(Edit("rule"))) { (
-        "#details" #> showRuleDetails() &
+
       "#editForm" #> showCrForm() &
       "#removeActionDialog" #> showRemovePopupForm() &
       "#disactivateActionDialog" #> showDisactivatePopupForm()
-      )(body)
+      )(body (tab))
+    }
+    else (
+      "#editForm" #>  <div>You have no rights to see rules details, please contact your administrator</div>
+      ) (body))
     }
     else
       <div>You have no rights to see rules details, please contact your administrator</div>
@@ -526,6 +534,9 @@ class RuleEditForm(
           }) match {
             case Full(x) => 
               onSuccessCallback() & 
+              SetHtml("details",
+                <div id={"details"}>Rule successfully deleted</div>
+              ) &
               SetHtml(htmlId_rule, 
                 <div id={htmlId_rule}>Rule successfully deleted</div>
               ) & 
@@ -534,11 +545,11 @@ class RuleEditForm(
             case Empty => //arg. 
               formTrackerRemovePopup.addFormError(
                   error("An error occurred while deleting the Rule"))
-              onFailure
+              onFailure()
             case Failure(m,_,_) =>
               formTrackerRemovePopup.addFormError(
                   error("An error occurred while saving the Rule: " + m))
-              onFailure
+              onFailure()
           }
         }
       }
@@ -680,7 +691,7 @@ class RuleEditForm(
   }
   
   private[this] def updateFormClientSide() : JsCmd = {
-    Replace(htmlId_rule, this.showCrForm )
+    Replace("editRuleZone", this.showForm(1) )
   }
   
   private[this] def updateRemoveFormClientSide() : JsCmd = {
