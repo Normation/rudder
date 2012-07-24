@@ -1353,7 +1353,7 @@ Home portlet
 }
 .portlet img {
    float: left;
-   margin: 5px 20px 20px 10px;
+   margin: 0px 20px 20px 10px;
 }
 
 p img {
@@ -2141,7 +2141,11 @@ li.disableTreeNode > a {
     background: none repeat scroll 0 0 #FFFFFF !important;
 }
 
+.homePageBlock {
+  margin: 10px;	
+}
 
-
-
-
+.homePageBlock li {
+  list-style-type: disc;
+  list-style-position:inside;
+}
