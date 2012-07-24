@@ -70,7 +70,7 @@ trait ScalaApplicationContext[C <: ApplicationContext]{
         case list if list.size > 1 => throw new BeanDefinitionStoreException("Multiple beans match this type %s".format(m.erasure.asInstanceOf[Class[T]]))
         case list if list.size == 0 => throw new NoSuchBeanDefinitionException("No beans match this type %s".format(m.erasure.asInstanceOf[Class[T]]))
       })
-    springContext.getBean(beanId, m.erasure.asInstanceOf[Class[T]])
+    inject(beanId)(m)
   }
 
   /**
