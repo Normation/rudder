@@ -12,7 +12,7 @@
   
   <div class="portlet">
     <div class="portlet-header">Description</div>
-    <div class="portlet-content"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
+    <div class="portlet-content homePageBlock"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
       Manage your IT infrastructure by making inventories of your nodes, and applying Rules to them.<br/>
       A Rule is the application of a configured Technique to a node group.
 
@@ -34,7 +34,7 @@
         <lift:authz role="node_read">
         <div class="portlet">
           <div class="portlet-header">Rudder Node Manager</div>
-          <div class="portlet-content"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
+          <div class="portlet-content homePageBlock"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
             <ul>
               <li><a href="secure/nodeManager/manageNewNode">Accept or refuse</a> new nodes in Rudder</li>
               <li><a href="secure/nodeManager/searchNodes">List or search</a> your nodes' inventories in Rudder</li>
@@ -47,7 +47,7 @@
         </lift:authz>
         <div class="portlet">
           <div class="portlet-header">Rudder Support Desk</div>
-          <div class="portlet-content"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
+          <div class="portlet-content homePageBlock"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
             <ul>
               <li><a href="http://www.rudder-project.org/" target="_blank">Report and follow bugs, join the Rudder community!</a></li>
               <li><a href="http://www.normation.com" target="_blank">Professional Services and plugins for your organization</a></li>
@@ -59,7 +59,7 @@
         <lift:authz role="configuration_read">
         <div class="portlet">
           <div class="portlet-header">Rudder Configuration Manager</div>
-          <div class="portlet-content"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
+          <div class="portlet-content homePageBlock"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
             <ul>
             <lift:authz role="technique_read">
               <li>Build your own <a href="secure/configurationManager/techniqueLibraryManagement">Technique library</a> <lift:authz role="directive_read"> and <a href="secure/configurationManager/directiveManagement">create and configure Directives instances</a></lift:authz></li>
@@ -75,7 +75,7 @@
         <lift:authz role="administration_read">
         <div class="portlet">
           <div class="portlet-header">Rudder Administration</div>
-          <div class="portlet-content"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
+          <div class="portlet-content homePageBlock"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
             <ul>
               <li>Track all events that have occured: <a href="secure/administration/eventLogs">Event logs</a> </li> 
               <lift:authz role="administration_edit">
