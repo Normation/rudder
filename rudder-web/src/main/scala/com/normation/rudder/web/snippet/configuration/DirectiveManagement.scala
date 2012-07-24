@@ -330,22 +330,33 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
     setRightPanelHeader(true) &
     Replace(htmlId_policyConf, showDirectiveDetails) &
-    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})""".format(directiveId.value)) &
+    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})"""
+        .format(directiveId.value)) &
     JsRaw("""scrollToElement('%s')""".format(htmlId_policyConf))
   }
   
-  private[this] def updateCf3PolicyDraftInstanceSettingFormComponent(technique:Technique,activeTechnique:ActiveTechnique,directive:Directive, piCreation : Boolean = false) : Unit = {
+  private[this] def updateCf3PolicyDraftInstanceSettingFormComponent(
+      technique:Technique,
+      activeTechnique:ActiveTechnique,
+      directive:Directive, 
+      piCreation : Boolean = false) : Unit = {
+    
     currentDirectiveSettingForm.set(Full(
         new DirectiveEditForm(htmlId_policyConf,technique, activeTechnique,directive,
-            onSuccessCallback = ( () => {
+            onSuccessCallback = ( (dir: Directive) => {
               //start by reseting the directive edit form component, so that we 
               //use what data are *actually* in the database
-              directiveRepository.getDirectiveWithContext(directive.id) match {
-                case Full((technique,activeTechnique,directive)) =>
-                  updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, directive)
-                  Replace(htmlId_activeTechniquesTree, userLibrary()) & Replace(htmlId_policyConf, showDirectiveDetails)   
+              directiveRepository.getDirectiveWithContext(dir.id) match {
+                case Full((technique, activeTechnique, directive)) =>
+                  updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, dir)
+                  Replace(htmlId_activeTechniquesTree, userLibrary()) & 
+                  Replace(htmlId_policyConf, showDirectiveDetails) &
+                  JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})"""
+                    .format(dir.id.value))
                 case eb:EmptyBox => 
-                  val e = eb ?~! "Error when trying to get directive'%s' [%s] info with its technique context for displaying in Directive Management edit form.".format(directive.name, directive.id)
+                  val errMsg = "Error when trying to get directive'%s' [%s] info with its " +
+                  		"technique context for displaying in Directive Management edit form."
+                  val e = eb ?~! errMsg.format(directive.name, dir.id)
                   logger.error(e.messageChain)
                   e.rootExceptionCause.foreach { ex => 
                     logger.error("Root exception was: ", ex)
