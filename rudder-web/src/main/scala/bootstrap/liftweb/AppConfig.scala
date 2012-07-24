@@ -97,6 +97,7 @@ import com.normation.rudder.migration.LogMigrationEventLog_2_3
 import com.normation.rudder.migration.XmlMigration_2_3
 import com.normation.rudder.web.services.UserPropertyService
 import java.lang.IllegalArgumentException
+import com.normation.rudder.domain.logger.ApplicationLogger
 
 /**
  * Spring configuration for services
@@ -398,6 +399,7 @@ class AppConfig extends Loggable {
     //find the relative path from gitRepo to the ptlib root
     val gitSlash = new File(gitRoot).getPath + "/"
     if(!policyPackages.startsWith(gitSlash)) {
+      ApplicationLogger.error("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(gitRoot, policyPackages))
       throw new RuntimeException("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(gitRoot, policyPackages))
     }
     val relativePath = policyPackages.substring(gitSlash.size, policyPackages.size)
@@ -501,7 +503,7 @@ class AppConfig extends Loggable {
   @Bean
   def startStopOrchestrator: StartStopOrchestrator = {
     if (!(new File(startStopBinPath)).exists)
-      logger.error("The 'red button' program is not present at: '%s'. You will experience error when trying to use that functionnality".format(startStopBinPath))
+      ApplicationLogger.error("The 'red button' program is not present at: '%s'. You will experience error when trying to use that functionnality".format(startStopBinPath))
     new SystemStartStopOrchestrator(startStopBinPath)
   }
 

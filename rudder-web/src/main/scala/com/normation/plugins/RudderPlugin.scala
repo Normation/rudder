@@ -38,6 +38,7 @@ import scala.xml.NodeSeq
 import net.liftweb.sitemap.Menu
 import com.normation.utils.Utils.nonEmpty
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain.logger.ApplicationLogger
 
 case class PluginVersion(
     major : Int
@@ -52,6 +53,7 @@ case class PluginVersion(
 
 case class PluginName(value:String) extends HashcodeCaching {
   if(null == value || value.length == 0) {
+    ApplicationLogger.error("A plugin name can not be null nor empty")
     throw new IllegalArgumentException("A plugin name can not be null nor empty")
   }
 }

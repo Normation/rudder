@@ -37,9 +37,9 @@ package bootstrap.liftweb
 import org.springframework.context.annotation.{Bean,Configuration}
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
 import org.springframework.core.io.{ClassPathResource, FileSystemResource}
-
 import java.io.File
 import org.slf4j.LoggerFactory
+import com.normation.rudder.domain.logger.ApplicationLogger
 
 /**
  * Configuration for the property file HAS TO
@@ -59,15 +59,15 @@ class PropertyPlaceholderConfig {
     configurer.setIgnoreUnresolvablePlaceholders(true)
     System.getProperty(JVM_CONFIG_FILE_KEY) match {
       case null | "" => //use default location in classpath
-        logger.info("JVM property -D{} is not defined, use configuration file in classpath",JVM_CONFIG_FILE_KEY)
+        ApplicationLogger.info("JVM property -D%s is not defined, use configuration file in classpath".format(JVM_CONFIG_FILE_KEY))
         configurer.setLocation(new ClassPathResource(DEFAULT_CONFIG_FILE_NAME))
       case x => //so, it should be a full path, check it
         val config = new FileSystemResource(new File(x))
         if(config.exists && config.isReadable) {
-          logger.info("Use configuration file defined by JVM property -D{} : {}",JVM_CONFIG_FILE_KEY, config.getPath)
+          ApplicationLogger.info("Use configuration file defined by JVM property -D%s : %s".format(JVM_CONFIG_FILE_KEY, config.getPath))
           configurer.setLocation(config)
         } else {
-          logger.error("Can not find configuration file specified by JVM property {}: {} ; abort", JVM_CONFIG_FILE_KEY, config.getPath)
+          ApplicationLogger.error("Can not find configuration file specified by JVM property %s: %s ; abort".format(JVM_CONFIG_FILE_KEY, config.getPath))
           throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
         }
     }

@@ -54,6 +54,7 @@ import com.normation.eventlog.EventLog
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization._
 import com.normation.authorization.AuthorizationType
+import com.normation.rudder.domain.logger.ApplicationLogger
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -241,8 +242,8 @@ class Boot extends Loggable {
             )
         )
     ) match {
-      case eb:EmptyBox => logger.error("Error when trying to save the EventLog for application start")
-      case _ => //nothing to do
+      case eb:EmptyBox => ApplicationLogger.error("Error when trying to save the EventLog for application start")
+      case _ => ApplicationLogger.info("Application Rudder started")
     }
   }
   
@@ -262,8 +263,8 @@ class Boot extends Loggable {
   
   private[this] def initPlugin[T <: RudderPluginDef](plugin:T) : Unit = {
     
-    logger.debug("TODO: manage one time initialization for plugin: " + plugin.id)
-    logger.info("Initializing plugin '%s' [%s]".format(plugin.name.value, plugin.id))
+    ApplicationLogger.debug("TODO: manage one time initialization for plugin: " + plugin.id)
+    ApplicationLogger.info("Initializing plugin '%s' [%s]".format(plugin.name.value, plugin.id))
     plugin.init
     //add the plugin packages to Lift package to look for packages
     LiftRules.addToPackages(plugin.basePackage)
