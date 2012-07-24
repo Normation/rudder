@@ -39,6 +39,7 @@ package checks
 import com.normation.rudder.repository.ldap.LDAPNodeConfigurationRepository
 import net.liftweb.common._
 import javax.servlet.UnavailableException
+import com.normation.rudder.domain.logger.ApplicationLogger
 
 /**
  * Check that an unique root server exists. 
@@ -48,7 +49,7 @@ import javax.servlet.UnavailableException
  */
 class CheckRootNodeUnicity(
   ldapNodeRepository:LDAPNodeConfigurationRepository  
-) extends BootstrapChecks with Loggable {
+) extends BootstrapChecks {
   
   @throws(classOf[ UnavailableException ])
   override def checks() : Unit = {
@@ -56,18 +57,18 @@ class CheckRootNodeUnicity(
     ldapNodeRepository.getRootNodeIds match {
       case Failure(m,_,_) =>  
         val msg = "Fatal error when trying to retrieve Root server in LDAP repository. Error message was: " + m
-        logger.error(msg)
+        ApplicationLogger.error(msg)
         throw new UnavailableException(msg)
       case Empty => 
         val msg = "Fatal error when trying to retrieve Root server in LDAP repository. No message was left"
-        logger.error(msg)
+        ApplicationLogger.error(msg)
         throw new UnavailableException(msg)
       case Full(seq) => 
         if(seq.size == 0) { //set-up flag to redirect all request to init wizard
           RudderContext.rootNodeNotDefined = true
         } else if(seq.size > 1) { //that's an error, ask the user what to do
           val msg = "More than one Root Policy Server were found in the LDAP repository, and that is not supported. Please correct LDAP content before restarting"
-          logger.error(msg)
+          ApplicationLogger.error(msg)
           throw new UnavailableException(msg)
         } else { //OK, remove the redirection flag if set
           RudderContext.rootNodeNotDefined = false

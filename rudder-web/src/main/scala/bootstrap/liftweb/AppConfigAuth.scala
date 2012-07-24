@@ -51,6 +51,7 @@ import java.io.File
 import com.normation.utils.HashcodeCaching
 import com.normation.authorization._
 import com.normation.rudder.authorization._
+import com.normation.rudder.domain.logger.ApplicationLogger
 
 /**
  * Spring configuration for user authentication.
@@ -76,15 +77,15 @@ class AppConfigAuth extends Loggable {
     
     val resource = System.getProperty(JVM_AUTH_FILE_KEY) match {
       case null | "" => //use default location in classpath
-        logger.info("JVM property -D%s is not defined, use configuration file '%s' in classpath".format(JVM_AUTH_FILE_KEY, DEFAULT_AUTH_FILE_NAME))
+        ApplicationLogger.info("JVM property -D%s is not defined, use configuration file '%s' in classpath".format(JVM_AUTH_FILE_KEY, DEFAULT_AUTH_FILE_NAME))
         new ClassPathResource(DEFAULT_AUTH_FILE_NAME)
       case x => //so, it should be a full path, check it
         val config = new FileSystemResource(new File(x))
         if(config.exists && config.isReadable) {
-          logger.info("Use configuration file defined by JVM property -D%s : %s".format(JVM_AUTH_FILE_KEY, config.getPath))
+          ApplicationLogger.info("Use configuration file defined by JVM property -D%s : %s".format(JVM_AUTH_FILE_KEY, config.getPath))
           config
         } else {
-          logger.error("Can not find configuration file specified by JVM property %s: %s ; abort".format(JVM_AUTH_FILE_KEY, config.getPath))
+          ApplicationLogger.error("Can not find configuration file specified by JVM property %s: %s ; abort".format(JVM_AUTH_FILE_KEY, config.getPath))
           throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
         }
     }
@@ -102,7 +103,9 @@ class AppConfigAuth extends Loggable {
         provider.setUserDetailsService(userDetails)
         provider.setPasswordEncoder(config.encoder)
         provider
-      case None => throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
+      case None => 
+        ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
+        throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
     }
   }
 }
@@ -150,7 +153,7 @@ object AppConfigAuth extends Loggable {
       val root = (xml \\ "authentication")
       if(root.size != 1) {
         val msg = "Authentication file is malformed, the root tag '<authentication>' was not found"
-        logger.error(msg)
+        ApplicationLogger.error(msg)
         None
       } else {
         val hash = (root(0) \ "@hash").text.toLowerCase match {
@@ -174,7 +177,7 @@ object AppConfigAuth extends Loggable {
            }
            
            case _ => 
-             logger.error("Ignore user line in authentication file '%s', some required attribute is missing: %s".format(resource.getURL.toString, node.toString))
+             ApplicationLogger.error("Ignore user line in authentication file '%s', some required attribute is missing: %s".format(resource.getURL.toString, node.toString))
              Nil
          }
         })
@@ -182,13 +185,13 @@ object AppConfigAuth extends Loggable {
         //and now, return the list of users
         users map { user =>
         if (user._3.authorizationTypes.contains(NoRights))
-          logger.warn("User %s authorisation are not defined correctly, please fix it (defined authorizations: %s)".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
-        logger.debug("User %s with defined authorizations: %s".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
+          ApplicationLogger.warn("User %s authorisation are not defined correctly, please fix it (defined authorizations: %s)".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
+        ApplicationLogger.debug("User %s with defined authorizations: %s".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
         }
         Some(AuthConfig(hash, users))
       }
     } else {
-      logger.error("The resource '%s' does not exist or is not readable".format(resource.getURL.toString))
+      ApplicationLogger.error("The resource '%s' does not exist or is not readable".format(resource.getURL.toString))
       None
     }
   }
