@@ -133,7 +133,7 @@ class DirectiveEditForm(
   val directive: Directive,
   //JS to execute on form success (update UI parts)
   //there are call by name to have the context matching their execution when called
-  onSuccessCallback: () => JsCmd = { () => Noop },
+  onSuccessCallback: (Directive) => JsCmd = { (Directive) => Noop },
   onFailureCallback: () => JsCmd = { () => Noop },
   piCreation: Boolean = false // if set to true, it means that we are creating a PI, so the delete and disabled should have another meaning
   ) extends DispatchSnippet with Loggable {
@@ -289,12 +289,12 @@ class DirectiveEditForm(
   
   ////////////// Callbacks //////////////
 
-  private[this] def onSuccess(): JsCmd = {
+  private[this] def onSuccess(directive: Directive): JsCmd = {
     // If we have a success, it means that the directive is now created
     directiveCurrentStatusCreationStatus = false
     //we don't "showForm" ourselve, because we want to let the possibility to the caller to do something else,
     //like not showing the form 
-    onSuccessCallback() & 
+    onSuccessCallback(directive) & 
       //show success popup
       successPopup
   }
@@ -347,7 +347,7 @@ class DirectiveEditForm(
           JsRaw("$.modal.close();") &
           {
             if (directiveCurrentStatusCreationStatus) {
-              onSuccessCallback() &
+              onSuccessCallback(directive) &
                 SetHtml(htmlId_policyConf, <div id={ htmlId_policyConf }>Directive successfully deleted</div>) &
                 //show success popup
                 successPopup
@@ -362,7 +362,7 @@ class DirectiveEditForm(
                 deploy
               }) match {
                 case Full(x) =>
-                  onSuccessCallback() &
+                  onSuccessCallback(directive) &
                     SetHtml(htmlId_policyConf, <div id={ htmlId_policyConf }>Directive successfully deleted</div>) &
                     //show success popup
                     successPopup
@@ -393,7 +393,7 @@ class DirectiveEditForm(
           piCurrentStatusIsActivated = status
           JsRaw("$.modal.close();") & {
             if (directiveCurrentStatusCreationStatus == true) {
-              onSuccess
+              onSuccess(directive)
             } else {
               saveAndDeployDirective(directive.copy(isEnabled = status), 
                   crReasonsDisactivatePopup.map( _.is).orElse(Some("Directive %s by user".format(if(status) "enabled" else "disabled" ))) )
@@ -589,7 +589,7 @@ class DirectiveEditForm(
     } yield {
       deploy
     }) match {
-      case Full(x) => onSuccess
+      case Full(x) => onSuccess(directive)
       case Empty => //arg.
         formTracker.addFormError(error("An error occurred while saving the Directive"))
         onFailure
