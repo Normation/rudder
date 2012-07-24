@@ -47,6 +47,7 @@ import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.utils.HashcodeCaching
 import scala.collection.mutable.Buffer
 import ConfigurationExecutionBatch._
+import com.normation.rudder.domain.logger.ReportLogger
 
 /**
  * An execution batch contains the node reports for a given Rule / Directive at a given date
@@ -255,15 +256,25 @@ class ConfigurationExecutionBatch(
         )
 
         unexpectedReports.size match {
-          case 0 => 
+          case 0 =>
             ComponentStatusReport(
                 expectedComponent.componentName
               , components
               , ReportType.getWorseType(components.map(x => x.cptValueReportType))
               , Seq() 
             )
-                
+
           case _ => // some bad report
+            unexpectedReports.foreach{ invalidReport =>
+              ReportLogger.warn("Unexpected report for Directive %s, Rule %s generated on %s on node %s, Component is %s, keyValue is %s. The associated message is : %s".format(
+                  invalidReport.directiveId
+                , invalidReport.ruleId
+                , invalidReport.executionTimestamp
+                , invalidReport.nodeId
+                , invalidReport.component
+                , invalidReport.keyValue
+                , invalidReport.message))
+            }
              ComponentStatusReport(
                 expectedComponent.componentName
               , components
