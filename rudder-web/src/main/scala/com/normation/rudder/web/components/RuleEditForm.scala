@@ -226,9 +226,9 @@ class RuleEditForm(
   private[this] def  showRuleDetails() : NodeSeq = {
     (
       "#details *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
-      "#nameField" #>    (".twoCol [disabled]" #> true )(crName.toForm_!) &
-      "#shortDescriptionField" #> (".twoCol [disabled]" #> true )(crShortDescription.toForm_!) &
-      "#longDescriptionField" #> (".rudderBaseFieldClassName [disabled]" #> true )(crLongDescription.toForm_!) &
+     "#nameField" #>    <div>{crName.displayNameHtml.get} {crName.defaultValue}</div> &
+      "#shortDescriptionField" #>  <div>{crShortDescription.displayNameHtml.get} {crShortDescription.defaultValue}</div> &
+      "#longDescriptionField" #>  <div>{crLongDescription.displayNameHtml.get} {crLongDescription.defaultValue}</div> &
       "#compliancedetails" #> createPopup(rule)
     )(details) ++
     Script(JsRaw("""
