@@ -577,7 +577,6 @@ class RuleGrid(
             case Some(reports) =>
               reports.getNodeStatus().map {
                 nodeStatus =>
-                  logger.warn(nodeStatus)
                    nodeInfoService.getNodeInfo(nodeStatus.nodeId) match {
                      case Full(nodeInfo)  => {
                       val tooltipid = Helpers.nextFuncName
