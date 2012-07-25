@@ -84,7 +84,7 @@ object RuleEditForm {
       chooseTemplate("component", "staticInit", xml)
     }) openOr Nil
     
-  private def body(implicit tab :Int = 0) =
+  private def body(tab :Int = 0) =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
     } yield {
@@ -177,11 +177,11 @@ class RuleEditForm(
   val extendsAt = SnippetExtensionKey(classOf[RuleEditForm].getSimpleName)
   
   def mainDispatch = Map(
-    "showForm" -> { _:NodeSeq => showForm },
+    "showForm" -> { _:NodeSeq => showForm() },
     "showEditForm" -> { _:NodeSeq => showForm(1) }
   )
 
-  private[this] def showForm(implicit tab :Int = 0) : NodeSeq = {
+  private[this] def showForm(tab :Int = 0) : NodeSeq = {
     if (CurrentUser.checkRights(Read("rule"))) {
     ("#details" #> showRuleDetails())(
     if (CurrentUser.checkRights(Edit("rule"))) { (
@@ -193,7 +193,7 @@ class RuleEditForm(
     }
     else (
       "#editForm" #>  <div>You have no rights to see rules details, please contact your administrator</div>
-      ) (body))
+      ) (body()))
     }
     else
       <div>You have no rights to see rules details, please contact your administrator</div>
