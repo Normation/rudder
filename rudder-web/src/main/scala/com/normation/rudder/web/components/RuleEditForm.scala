@@ -69,6 +69,7 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.inventory.domain.NodeId
 import com.normation.exceptions.TechnicalException
+import net.liftweb.http.SHtml.BasicElemAttr
 
 object RuleEditForm {
   
@@ -235,15 +236,21 @@ class RuleEditForm(
       "#compliancedetails" #> showCompliance(updatedrule.get)
     )(details) ++
     Script(JsRaw("""
-        $(".unfoldable").click(function() {
+        $(".unfoldable").click(function(event) {
+          event.stopPropagation();
+          if(!($(this).is("a"))){
           var togglerId = $(this).attr("toggler");
-          $('#'+togglerId).toggle();
-          if ($(this).find("td.listclose").length > 0) {
-            $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
+            $('#'+togglerId).toggle();
+            if ($(this).find("td.listclose").length > 0) {
+           $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
+             $("#detailsHead").css("display","none");
+            }
           } else {
             $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
+             $("#detailsHead").css("display",'');
           }
-        });
+          }
+        );
       """));
   }
  
@@ -1098,7 +1105,8 @@ class RuleEditForm(
     computeCompliance(rulestatusreport.nodesreport) match {
       case Compliance(percent) =>  {
         val text = Text(percent.toString + "%")
-        SHtml.a({() => showPopup(rulestatusreport)}, text)
+        val attr = BasicElemAttr("class","unfoldable")
+        SHtml.a({() => showPopup(rulestatusreport)}, text,attr)
       }
     }
   }
