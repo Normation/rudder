@@ -55,16 +55,18 @@ import net.liftweb.http.S
 import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.repository._
+import bootstrap.liftweb.LiftSpringApplicationContext.inject
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment), 
  * or in the administration EventLogsViewer
  */
 class EventListDisplayer(
-      logDetailsService: EventLogDetailsService
-    , repos            : EventLogRepository
+      logDetailsService   : EventLogDetailsService
+    , repos               : EventLogRepository
+    , nodeGroupRepository : NodeGroupRepository
 ) extends Loggable {
-
+  
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
  // private[this] val gridName = "eventLogsGrid"
  // private[this] val jsGridName = "oTable" + gridName
@@ -706,12 +708,20 @@ class EventListDisplayer(
     (<b>ID:</b><a href={directiveLink(id)}>{id.value}</a>):NodeSeq
   }
   
-  private[this] def groupTargetDetails(target:Option[RuleTarget]):NodeSeq = target match {
-    case Some(GroupTarget(id@NodeGroupId(g))) => (
-      <span>group(<a href={groupLink(id)}>{g}</a>)</span>
-    )
-    case Some(x) => Text("group(" + x.toString + ")")
-    case None => Text("None")
+  private [this]def getNameFromGroupId(groupId:String): String = {
+    nodeGroupRepository.getNodeGroup(new NodeGroupId(groupId)) match {
+      case t: EmptyBox => groupId
+      case Full(nodeGroup) => nodeGroup.name
+    }
+  }
+  
+  private[this] def groupNodeSeqLink(id: NodeGroupId): NodeSeq = {
+    nodeGroupRepository.getNodeGroup(id) match {
+      case t: EmptyBox => 
+        <span>group({id.value})</span>
+      case Full(nodeGroup) => nodeGroup.name
+        <span>group(<a href={groupLink(id)}>{nodeGroup.name}</a>)</span>
+    }
   }
   
   private[this] def groupTargetDetails(targets: Set[RuleTarget]): NodeSeq = {
@@ -723,7 +733,7 @@ class EventListDisplayer(
         .map { target =>
           target match {
             case GroupTarget(id@NodeGroupId(g)) => 
-              <span>group(<a href={groupLink(id)}>{g}</a>)</span>
+              groupNodeSeqLink(id)
             case x => 
               <span>{Text("group_special(" + x.toString + ")")}</span>
           }
