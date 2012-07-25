@@ -32,7 +32,7 @@ class CreateCloneGroupPopup(
   groupGenerator : Option[NodeGroup] = None,
   onSuccessCategory : (NodeGroupCategory) => JsCmd,
   onSuccessGroup : (NodeGroup) => JsCmd,
-  onSuccessCallback : () => JsCmd = { () => Noop },
+  onSuccessCallback : (String) => JsCmd = { (String) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop } ) 
   extends DispatchSnippet with Loggable {
   
@@ -103,7 +103,7 @@ class CreateCloneGroupPopup(
           , CurrentUser.getActor
           , Some("Node Group Category created by user from UI")
         ) match {
-          case Full(x) => closePopup() & onSuccessCallback() & onSuccessCategory(x)
+          case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
           case Empty =>
             logger.error("An error occurred while saving the category")
             formTracker.addFormError(error("An error occurred while saving the category"))
@@ -128,7 +128,7 @@ class CreateCloneGroupPopup(
         ) match {
           case Full(x) => 
             closePopup() & 
-            onSuccessCallback() & 
+            onSuccessCallback(x.group.id.value) & 
             onSuccessGroup(x.group)
           case Empty =>
             logger.error("An error occurred while saving the group")

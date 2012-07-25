@@ -124,7 +124,7 @@ object NodeGroupForm {
 class NodeGroupForm(
   htmlIdCategory : String,
   nodeGroup : Option[NodeGroup],
-  onSuccessCallback : () => JsCmd = { () => Noop },
+  onSuccessCallback : (String) => JsCmd = { (String) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
@@ -348,7 +348,7 @@ class NodeGroupForm(
           deploy
         }) match {
           case Full(x) =>
-            onSuccessCallback() &
+            onSuccessCallback(x) &
             SetHtml(htmlIdCategory, NodeSeq.Empty ) &
             //show success popup
             successPopup &
@@ -529,7 +529,7 @@ class NodeGroupForm(
     panel match {
       case NoPanel => NodeSeq.Empty
       case GroupForm(group) =>
-        val form = new NodeGroupForm(htmlId_item, Some(group), () => refreshTree(htmlTreeNodeId(group.id.value)))
+        val form = new NodeGroupForm(htmlId_item, Some(group), (id) => refreshTree(htmlTreeNodeId(id)))
         nodeGroupForm.set(Full(form))
         form.showForm()
 
@@ -568,7 +568,7 @@ class NodeGroupForm(
           _nodeGroup = Some(x.group)
           
           setNodeGroupCategoryForm
-          onCreateSuccess  & onSuccessCallback()
+          onCreateSuccess  & onSuccessCallback(x.group.id.value)
         case Empty =>
           setNodeGroupCategoryForm
           logger.error("An error occurred while saving the Group")
@@ -611,7 +611,7 @@ class NodeGroupForm(
           _nodeGroup = Some(newNodeGroup)
 
           setNodeGroupCategoryForm
-          onUpdateSuccess  & onSuccessCallback()& successPopup
+          onUpdateSuccess & onSuccessCallback(originalNodeGroup.id.value) & successPopup
         case Empty =>
           setNodeGroupCategoryForm
           logger.error("An error occurred while updating the group")
