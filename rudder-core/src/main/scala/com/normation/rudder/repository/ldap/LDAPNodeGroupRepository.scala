@@ -96,8 +96,8 @@ class LDAPNodeGroupRepository(
 
   private[this] def getNodeGroup[ID](id: ID, filter: ID => Filter): Box[NodeGroup] = { 
     for {
-      con <- ldap
-      sgEntry <- getSGEntry(con, id, filter)
+      con <- ldap 
+      sgEntry <- getSGEntry(con, id, filter) ?~! "getSGEntry problème"
       sg <- mapper.entry2NodeGroup(sgEntry) ?~! "Error when mapping server group entry to its entity. Entry: %s".format(sgEntry)
     } yield {
       sg

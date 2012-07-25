@@ -98,6 +98,7 @@ import com.normation.rudder.migration.XmlMigration_2_3
 import com.normation.rudder.web.services.UserPropertyService
 import java.lang.IllegalArgumentException
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.repository.ldap.LDAPNodeGroupRepository
 
 /**
  * Spring configuration for services
@@ -704,7 +705,7 @@ class AppConfig extends Loggable {
   def srvGrid = new SrvGrid
 
   @Bean
-  def eventListDisplayer = new EventListDisplayer(eventLogDetailsService, logRepository)
+  def eventListDisplayer = new EventListDisplayer(eventLogDetailsService, logRepository, ldapNodeGroupRepository)
   
   @Bean
   def fileManager = new FileManager(UPLOAD_ROOT_DIRECTORY)
