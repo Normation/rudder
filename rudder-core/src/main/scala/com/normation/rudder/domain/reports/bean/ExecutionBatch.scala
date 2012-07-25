@@ -48,6 +48,9 @@ import com.normation.utils.HashcodeCaching
 import scala.collection.mutable.Buffer
 import ConfigurationExecutionBatch._
 import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.reports.ReportComponent
+import com.normation.inventory.domain.NodeId
 
 /**
  * An execution batch contains the node reports for a given Rule / Directive at a given date
@@ -67,6 +70,8 @@ trait ExecutionBatch {
   val expectedNodeIds : Seq[NodeId]
   
   def getNodeStatus() : Seq[NodeStatusReport]
+  
+  def getRuleStatus() : Seq[DirectiveRuleStatusReport]
   
   def getSuccessReports() : Seq[Reports] = {
     executionReports.filter(x => x.isInstanceOf[ResultSuccessReport])
@@ -371,11 +376,71 @@ class ConfigurationExecutionBatch(
   /**
    * Utility method to determine if we are in the pending time, or if the node hasn't answered for a long time
    */
-  private[this] def getNoAnswerOrPending() : ReportType = {
+  def getUnknownNodeIds() : Seq[NodeId] = {
+    expectedNodeIds.filter(node => 
+                           !(getSuccessNodeIds().contains(node))
+                        && !(getRepairedNodeIds().contains(node))
+                        && !(getErrorNodeIds().contains(node))
+                        && !(getPendingNodeIds().contains(node))
+                        && !(getNoReportNodeIds().contains(node))
+                      )
+    
+  }
+  
+  private[this] def linearisePolicyExpectedReports(directive : DirectiveExpectedReports) : Buffer[LinearisedExpectedReport] = {
+    val result = Buffer[LinearisedExpectedReport]()
+    
+    for (component <- directive.components) {
+      for (value <- component.componentsValues) {
+        result += LinearisedExpectedReport(
+              directive.directiveId
+            , component.componentName
+            , component.cardinality
+            , value
+        )
+      }
+          result
+  }
+  }
+   private[this] def getNoAnswerOrPending() : ReportType = {
     if (beginDate.plus(Constants.pendingDuration).isAfter(DateTime.now())) {
       PendingReportType
     } else {
       NoAnswerReportType
+    }
+    }
+ def getRuleStatus() : Seq[DirectiveRuleStatusReport]={
+     directiveExpectedReports.map{directive =>
+      val id = directive.directiveId
+      val directivesStatus = getNodeStatus().flatMap{nodestatus => nodestatus.directives.filter(_.directiveId == id)
+      }
+      val reportType = ReportType.getWorseType(directivesStatus.map(_.directiveReportType))
+      val components = getComponentRuleStatus(id,directive.components,directivesStatus)
+      DirectiveRuleStatusReport(id,components,reportType)
+    }
+  }
+ 
+  def getComponentRuleStatus(directiveid:DirectiveId, components:Seq[ReportComponent], directives:Seq[DirectiveStatusReport]) : Seq[ComponentRuleStatusReport]={
+    components.map{component =>
+      val id = component.componentName
+      val datas = getNodeStatus().map{nodestatus =>  
+        val components = directives.flatMap(_.components.filter(_.component==id))
+          (nodestatus.nodeId,ReportType.getWorseType(components.map(_.componentReportType)),components)}
+      val nodes = datas.map(data => (data._1,data._2))
+      val reports = ReportType.getWorseType(nodes.map(_._2))
+      val directivesstatus = datas.flatMap(_._3)
+      val componentvalues = getComponentValuesRuleStatus(directiveid,id,component.componentsValues,directivesstatus)
+     ComponentRuleStatusReport(directiveid,id,componentvalues,reports)
+    }
+  }
+ 
+ def getComponentValuesRuleStatus(directiveid:DirectiveId, component:String, values:Seq[String], components:Seq[ComponentStatusReport]) : Seq[ComponentValueRuleStatusReport]={
+    values.map{value =>
+      val nodes = getNodeStatus().map{nodestatus => 
+        val componentvalues = components.flatMap(_.componentValues.filter(_.componentValue==value))
+          (nodestatus.nodeId,ReportType.getWorseType(componentvalues.map(_.cptValueReportType)))}
+      val reports = ReportType.getWorseType(nodes.map(_._2))
+     ComponentValueRuleStatusReport(directiveid,component,value,reports,nodes)
     }
   }
 }
@@ -415,3 +480,29 @@ case class NodeStatusReport(
   , nodeReportType		   : ReportType
   , unexpectedDirectives : Seq[DirectiveStatusReport]
 )
+
+
+
+case class RuleStatusReport(
+  nodesreport  : Seq[(NodeId,ReportType)] 
+)
+case class ComponentValueRuleStatusReport(
+    directiveid         : DirectiveId
+  , component           : String
+  , componentValue    : String
+  , cptValueReportType: ReportType
+  , reports  : Seq[(NodeId,ReportType)] 
+) extends RuleStatusReport(reports)
+
+case class ComponentRuleStatusReport (
+    directiveid         : DirectiveId
+  , component           : String
+  , componentValues     : Seq[ComponentValueRuleStatusReport]
+  , componentReportType : ReportType
+) extends RuleStatusReport(componentValues.flatMap(_.nodesreport))
+
+case class DirectiveRuleStatusReport(
+    directiveId          : DirectiveId
+  , components           : Seq[ComponentRuleStatusReport]
+  , directiveReportType  : ReportType
+) extends RuleStatusReport(components.flatMap(_.nodesreport))

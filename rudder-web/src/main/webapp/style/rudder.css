@@ -324,12 +324,26 @@ Tableau
   padding:0;
   height:200px;
 }
+
 .titleId{
   padding-left: 15px;
 }
+
 .tablewidth{
   width:100%;
 }
+
+.reportTableTitleWidth{
+  width:auto;
+}
+
+.reportTitleWidth{
+  width:92px;
+}
+.autotablewidth{
+  width:auto;
+}
+width:92px
 .tablepadding{
   padding-left:15px;
   padding-top:5px;
