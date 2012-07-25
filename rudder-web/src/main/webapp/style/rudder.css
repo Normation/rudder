@@ -664,12 +664,14 @@ fieldset.techniqueDetailsFieldset {
 
 div.directiveDeleteGroup {
   float:right;
-  margin: -20px 0 0 0;
+  margin-right: 5px;
+  margin-top: 3px;
 }
 
 div.directiveAddGroup {
   float:right;
-  margin: -20px 0 0 0;
+  margin-right: 5px;
+  margin-top: 3px;
 }
 
 
