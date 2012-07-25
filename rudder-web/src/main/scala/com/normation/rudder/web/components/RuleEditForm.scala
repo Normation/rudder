@@ -1087,18 +1087,18 @@ class RuleEditForm(
   }
 
   
-  def computeCompliance(directivebynode: DirectiveStatusbyNode ) : ComplianceLevel = {
-  Compliance((directivebynode.nodesreport.map(report => report._2 match {
+  def computeCompliance(nodesreport:  Seq[(NodeId,ReportType)]) : ComplianceLevel = {
+  Compliance((nodesreport.map(report => report._2 match {
       case RepairedReportType => 1
       case SuccessReportType => 1
       case _ => 0      
-    }):\ 0)((res:Int,value:Int) => res+value)* 100 / directivebynode.nodesreport.size)
+    }):\ 0)((res:Int,value:Int) => res+value)* 100 / nodesreport.size)
   }
- def buildComplianceChart(directivebynode:RuleStatusReport) : NodeSeq = {
-    computeCompliance(directivebynode.nodesreport) match {
+ def buildComplianceChart(rulestatusreport:RuleStatusReport) : NodeSeq = {
+    computeCompliance(rulestatusreport.nodesreport) match {
       case Compliance(percent) =>  {
         val text = Text(percent.toString + "%")
-        SHtml.a({() => showPopup(directivebynode)}, text)
+        SHtml.a({() => showPopup(rulestatusreport)}, text)
       }
     }
   }

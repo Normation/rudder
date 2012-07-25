@@ -376,32 +376,6 @@ class ConfigurationExecutionBatch(
   /**
    * Utility method to determine if we are in the pending time, or if the node hasn't answered for a long time
    */
-  def getUnknownNodeIds() : Seq[NodeId] = {
-    expectedNodeIds.filter(node => 
-                           !(getSuccessNodeIds().contains(node))
-                        && !(getRepairedNodeIds().contains(node))
-                        && !(getErrorNodeIds().contains(node))
-                        && !(getPendingNodeIds().contains(node))
-                        && !(getNoReportNodeIds().contains(node))
-                      )
-    
-  }
-  
-  private[this] def linearisePolicyExpectedReports(directive : DirectiveExpectedReports) : Buffer[LinearisedExpectedReport] = {
-    val result = Buffer[LinearisedExpectedReport]()
-    
-    for (component <- directive.components) {
-      for (value <- component.componentsValues) {
-        result += LinearisedExpectedReport(
-              directive.directiveId
-            , component.componentName
-            , component.cardinality
-            , value
-        )
-      }
-          result
-  }
-  }
    private[this] def getNoAnswerOrPending() : ReportType = {
     if (beginDate.plus(Constants.pendingDuration).isAfter(DateTime.now())) {
       PendingReportType
