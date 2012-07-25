@@ -775,9 +775,9 @@ class EventListDisplayer(
       "#isDynamic" #> group.isDynamic &
       "#nodes" #>( 
                    {
-                     val l = group.serverList.toSeq
+                     val l = group.serverList.toList
                        l match {
-                         case Seq() => Text("None")
+                         case Nil => Text("None")
                          case _ => l
                            .map(id => <a href={nodeLink(id)}>{id.value}</a>)
                            .reduceLeft[NodeSeq]((a,b) => a ++ <span>,&nbsp;</span> ++ b)
