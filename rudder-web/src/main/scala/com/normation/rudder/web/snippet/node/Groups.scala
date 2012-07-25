@@ -191,7 +191,7 @@ class Groups extends StatefulSnippet with Loggable {
     panel match {
       case NoPanel => NodeSeq.Empty
       case GroupForm(group) =>
-        val form = new NodeGroupForm(htmlId_item, Some(group), () => refreshTree(htmlTreeNodeId(group.id.value)))
+        val form = new NodeGroupForm(htmlId_item, Some(group), (id) => refreshTree(htmlTreeNodeId(id)))
         nodeGroupForm.set(Full(form))
         form.showForm()
 
