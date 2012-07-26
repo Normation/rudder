@@ -757,5 +757,47 @@ class ExecutionBatchTest extends Specification {
     "have no detailed no pending node when we create it with  one extra success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == PendingReportType).size == 0)
     }
+    
   }
+  
+   "A detailed execution Batch, with one component, cardinality one, two nodes, including one not responding" should {
+
+    val uniqueExecutionBatch = new ConfigurationExecutionBatch(
+       "rule",
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                   "policy",
+                   Seq(new ReportComponent("component", 1, Seq("value")  )))),
+       12,
+       DateTime.now(),
+       Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
+       Seq[NodeId]("one", "two"),
+       DateTime.now(), None)
+
+    "have two detailed reports when we create it" in {
+      uniqueExecutionBatch.getNodeStatus.size == 2
+    }
+
+    "have one success node" in {
+      uniqueExecutionBatch.getNodeStatus.exists(x => x.nodeReportType == SuccessReportType)
+    }
+    "have one pending node" in {
+      uniqueExecutionBatch.getNodeStatus.exists(x => x.nodeReportType == PendingReportType)
+    }
+    "have one component per node" in {
+      uniqueExecutionBatch.getNodeStatus.
+            filter(x => x.nodeReportType == SuccessReportType).head.
+            directives.head.components.head.componentValues.size == 1
+    }
+
+    "have one detailed rule report" in {
+      uniqueExecutionBatch.getRuleStatus.size == 1
+    }
+    "have one pending directive" in {
+      uniqueExecutionBatch.getRuleStatus.exists(x => x.directiveReportType == PendingReportType)
+    }
+    "have one success, and one pending node, in the component detail of the rule" in {
+      (uniqueExecutionBatch.getRuleStatus.head.components.head.componentValues.head.reports.size == 2) &&
+      (uniqueExecutionBatch.getRuleStatus.head.components.head.componentValues.head.reports.exists(x => x._1 == NodeId("one") && x._2 == SuccessReportType))
+    }
+  } 
 }

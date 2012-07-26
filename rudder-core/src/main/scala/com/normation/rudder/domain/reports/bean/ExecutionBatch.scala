@@ -383,40 +383,56 @@ class ConfigurationExecutionBatch(
       NoAnswerReportType
     }
     }
- def getRuleStatus() : Seq[DirectiveRuleStatusReport]={
-     directiveExpectedReports.map{directive =>
-      val id = directive.directiveId
-      val directivesStatus = getNodeStatus().flatMap{nodestatus => nodestatus.directives.filter(_.directiveId == id)
-      }
-      val reportType = ReportType.getWorseType(directivesStatus.map(_.directiveReportType))
-      val components = getComponentRuleStatus(id,directive.components,directivesStatus)
-      DirectiveRuleStatusReport(id,components,reportType)
+
+  def getRuleStatus() : Seq[DirectiveRuleStatusReport]={
+     directiveExpectedReports.map{
+       directive =>
+       val directiveId = directive.directiveId
+       val componentReports = getNodeStatus().flatMap{
+         nodestatus =>
+         val directivesStatus = nodestatus.directives.filter(_.directiveId == directiveId)
+         getComponentRuleStatus(directiveId,directive.components,directivesStatus)
+       }.groupBy(_.component).mapValues {
+         ComponentReport =>
+         val componentName = ComponentReport.map(_.component).head
+         val componentValueReports   = ComponentReport.flatMap(_.componentValues).groupBy(_.componentValue).mapValues{
+           componentValueReport =>
+           val value = componentValueReport.map(_.componentValue).head
+           val cptValueReportType = ReportType.getWorseType(componentValueReport.map(_.cptValueReportType))
+           val reports = componentValueReport.flatMap(_.reports)
+           ComponentValueRuleStatusReport(directiveId,componentName,value,cptValueReportType,reports)
+         }.toSeq.map(_._2)
+         val componentReportType = ReportType.getWorseType(ComponentReport.map(_.componentReportType))
+         ComponentRuleStatusReport(directiveId,componentName,componentValueReports,componentReportType)
+       }.toSeq.map(_._2)
+       val reportType = ReportType.getWorseType(componentReports.map(_.componentReportType))
+       DirectiveRuleStatusReport(directiveId,componentReports,reportType)
     }
   }
- 
-  def getComponentRuleStatus(directiveid:DirectiveId, components:Seq[ReportComponent], directives:Seq[DirectiveStatusReport]) : Seq[ComponentRuleStatusReport]={
-    components.map{component =>
-      val id = component.componentName
-      val datas = getNodeStatus().map{nodestatus =>  
-        val components = directives.flatMap(_.components.filter(_.component==id))
-          (nodestatus.nodeId,ReportType.getWorseType(components.map(_.componentReportType)),components)}
-      val nodes = datas.map(data => (data._1,data._2))
-      val reports = ReportType.getWorseType(nodes.map(_._2))
-      val directivesstatus = datas.flatMap(_._3)
-      val componentvalues = getComponentValuesRuleStatus(directiveid,id,component.componentsValues,directivesstatus)
-     ComponentRuleStatusReport(directiveid,id,componentvalues,reports)
-    }
-  }
- 
+
+  def getComponentRuleStatus(directiveid:DirectiveId, components:Seq[ReportComponent], directive:Seq[DirectiveStatusReport]) : Seq[ComponentRuleStatusReport]={
+     components.map{
+       component =>
+       val id = component.componentName
+       val componentvalues = directive.flatMap{nodestatus =>
+       val components = nodestatus.components.filter(_.component==id)
+       getComponentValuesRuleStatus(directiveid,id,component.componentsValues,components)
+       }
+       val reportType = ReportType.getWorseType(componentvalues.map(_.cptValueReportType))
+       ComponentRuleStatusReport(directiveid,id,componentvalues,reportType)
+     }
+ }
+
  def getComponentValuesRuleStatus(directiveid:DirectiveId, component:String, values:Seq[String], components:Seq[ComponentStatusReport]) : Seq[ComponentValueRuleStatusReport]={
-    values.map{value =>
-      val nodes = getNodeStatus().map{nodestatus => 
-        val componentvalues = components.flatMap(_.componentValues.filter(_.componentValue==value))
-          (nodestatus.nodeId,ReportType.getWorseType(componentvalues.map(_.cptValueReportType)))}
-      val reports = ReportType.getWorseType(nodes.map(_._2))
-     ComponentValueRuleStatusReport(directiveid,component,value,reports,nodes)
-    }
-  }
+     values.map{
+       value =>
+       val componentvalues = components.flatMap(_.componentValues.filter(_.componentValue==value))
+       val nodes =componentvalues.map(value => (value.nodeId,value.cptValueReportType))
+       val reports = ReportType.getWorseType(nodes.map(_._2))
+       ComponentValueRuleStatusReport(directiveid,component,value,reports,nodes)
+     }
+ }
+
 }
 
 /**
