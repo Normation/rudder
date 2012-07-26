@@ -77,7 +77,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   
   def dispatch = { 
     case "head" => { _ => head }
-    case "userLibrary" => { _ => userLibrary }
+    case "userLibrary" => { _ => userLibrary("") }
     case "showDirectiveDetails" => { _ => initDirectiveDetails }
     case "techniqueDetails" => { xml =>
       techniqueDetails = initTechniqueDetails
@@ -139,7 +139,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * Almost same as Technique/activeTechniquesTree
    * TODO : factor out that part
    */
-  def userLibrary() : NodeSeq = {
+  def userLibrary(selectedNode: String) : NodeSeq = {
     (
       <div id={htmlId_activeTechniquesTree}>
         <ul> {
@@ -148,17 +148,13 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         }
         </ul>
      </div>
-    ) ++ Script(OnLoad(buildJsTree))
+    ) ++ Script(OnLoad(buildJsTree(selectedNode: String)))
   }
   
 
-  private[this] def buildJsTree() : JsCmd = {
-    JsRaw("""buildDirectiveTree('#%s', '%s')""".format(htmlId_activeTechniquesTree, {
-      directiveId match {
-        case Full(id) => "jsTree-" + id
-        case _ => ""
-      }
-    })) & OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();
+  private[this] def buildJsTree(selectedNode: String) : JsCmd = {
+    JsRaw("""buildDirectiveTree('#%s', '%s')""".format(htmlId_activeTechniquesTree, selectedNode)) & 
+    OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();
         searchTree('#treeSearch', '#activeTechniquesTree');""")))
   }
   
@@ -400,7 +396,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     directiveRepository.getDirectiveWithContext(dir.id) match {
       case Full((technique, activeTechnique, directive)) => {
         updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, dir)
-        Replace(htmlId_activeTechniquesTree, userLibrary()) & 
+        Replace(htmlId_activeTechniquesTree, userLibrary("jsTree-" + directive.id.value)) & 
         Replace(htmlId_policyConf, showDirectiveDetails) &
         JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})"""
           .format(dir.id.value))
