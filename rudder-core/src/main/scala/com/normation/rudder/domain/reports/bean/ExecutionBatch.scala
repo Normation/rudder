@@ -344,7 +344,6 @@ class ConfigurationExecutionBatch(
           }
         }
     }
-    
   }
   
   /**
@@ -372,37 +371,33 @@ class ConfigurationExecutionBatch(
     }
   }
   
-  
   /**
    * Utility method to determine if we are in the pending time, or if the node hasn't answered for a long time
    */
-   private[this] def getNoAnswerOrPending() : ReportType = {
+  private[this] def getNoAnswerOrPending() : ReportType = {
     if (beginDate.plus(Constants.pendingDuration).isAfter(DateTime.now())) {
       PendingReportType
     } else {
       NoAnswerReportType
     }
-    }
+  }
 
   def getRuleStatus() : Seq[DirectiveRuleStatusReport]={
-     directiveExpectedReports.map{
-       directive =>
+     directiveExpectedReports.map{ directive =>
        val directiveId = directive.directiveId
-       val componentReports = getNodeStatus().flatMap{
-         nodestatus =>
+       val componentReports = getNodeStatus().flatMap{ nodestatus =>
          val directivesStatus = nodestatus.directives.filter(_.directiveId == directiveId)
          getComponentRuleStatus(directiveId,directive.components,directivesStatus)
-       }.groupBy(_.component).mapValues {
-         ComponentReport =>
-         val componentName = ComponentReport.map(_.component).head
-         val componentValueReports   = ComponentReport.flatMap(_.componentValues).groupBy(_.componentValue).mapValues{
-           componentValueReport =>
-           val value = componentValueReport.map(_.componentValue).head
-           val cptValueReportType = ReportType.getWorseType(componentValueReport.map(_.cptValueReportType))
-           val reports = componentValueReport.flatMap(_.reports)
-           ComponentValueRuleStatusReport(directiveId,componentName,value,cptValueReportType,reports)
+       }.groupBy(_.component).mapValues { componentReport =>
+         val componentName = componentReport.map(_.component).head
+         val componentValueReports = componentReport.flatMap(_.componentValues).
+           groupBy(_.componentValue).mapValues{ componentValueReport =>
+             val value = componentValueReport.map(_.componentValue).head
+             val cptValueReportType = ReportType.getWorseType(componentValueReport.map(_.cptValueReportType))
+             val reports = componentValueReport.flatMap(_.reports)
+             ComponentValueRuleStatusReport(directiveId,componentName,value,cptValueReportType,reports)
          }.toSeq.map(_._2)
-         val componentReportType = ReportType.getWorseType(ComponentReport.map(_.componentReportType))
+         val componentReportType = ReportType.getWorseType(componentReport.map(_.componentReportType))
          ComponentRuleStatusReport(directiveId,componentName,componentValueReports,componentReportType)
        }.toSeq.map(_._2)
        val reportType = ReportType.getWorseType(componentReports.map(_.componentReportType))
@@ -411,12 +406,11 @@ class ConfigurationExecutionBatch(
   }
 
   def getComponentRuleStatus(directiveid:DirectiveId, components:Seq[ReportComponent], directive:Seq[DirectiveStatusReport]) : Seq[ComponentRuleStatusReport]={
-     components.map{
-       component =>
+     components.map{ component =>
        val id = component.componentName
-       val componentvalues = directive.flatMap{nodestatus =>
-       val components = nodestatus.components.filter(_.component==id)
-       getComponentValuesRuleStatus(directiveid,id,component.componentsValues,components)
+       val componentvalues = directive.flatMap{ nodestatus =>
+         val components = nodestatus.components.filter(_.component==id)
+         getComponentValuesRuleStatus(directiveid,id,component.componentsValues,components)
        }
        val reportType = ReportType.getWorseType(componentvalues.map(_.cptValueReportType))
        ComponentRuleStatusReport(directiveid,id,componentvalues,reportType)
@@ -426,10 +420,10 @@ class ConfigurationExecutionBatch(
  def getComponentValuesRuleStatus(directiveid:DirectiveId, component:String, values:Seq[String], components:Seq[ComponentStatusReport]) : Seq[ComponentValueRuleStatusReport]={
      values.map{
        value =>
-       val componentvalues = components.flatMap(_.componentValues.filter(_.componentValue==value))
-       val nodes =componentvalues.map(value => (value.nodeId,value.cptValueReportType))
-       val reports = ReportType.getWorseType(nodes.map(_._2))
-       ComponentValueRuleStatusReport(directiveid,component,value,reports,nodes)
+         val componentValues = components.flatMap(_.componentValues.filter(_.componentValue==value))
+         val nodes = componentValues.map(value => (value.nodeId,value.cptValueReportType))
+         val reports = ReportType.getWorseType(nodes.map(_._2))
+         ComponentValueRuleStatusReport(directiveid,component,value,reports,nodes)
      }
  }
 
@@ -481,7 +475,7 @@ case class RuleStatusReport(
       Some((nodesreport.map(report => report._2 match {
       case SuccessReportType => 1
       case _ => 0
-    }):\ 0)((res:Int,value:Int) => res+value)* 100 / nodesreport.size)
+    }):\ 0)((res:Int,value:Int) => res+value) * 100 / nodesreport.size)
     else
       None
   }
@@ -490,8 +484,8 @@ case class RuleStatusReport(
 case class ComponentValueRuleStatusReport(
     directiveid         : DirectiveId
   , component           : String
-  , componentValue    : String
-  , cptValueReportType: ReportType
+  , componentValue      : String
+  , cptValueReportType  : ReportType
   , reports  : Seq[(NodeId,ReportType)] 
 ) extends RuleStatusReport(reports)
 
