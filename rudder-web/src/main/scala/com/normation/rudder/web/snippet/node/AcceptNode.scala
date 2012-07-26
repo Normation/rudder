@@ -351,7 +351,7 @@ class AcceptNode {
       ),
       "accept" -> {if (seq.size > 0 ) { SHtml.ajaxButton("Accept into Rudder", {
         () =>  showConfirmPopup(acceptTemplate, "confirmPopup")
-      }) % ("style", "width:140px")} else NodeSeq.Empty},
+      }) % ("style", "width:170px")} else NodeSeq.Empty},
       "refuse" -> {if (seq.size > 0 ) { SHtml.ajaxButton("Refuse", {
         () => showConfirmPopup(refuseTemplate, "refusePopup")
       }) } else NodeSeq.Empty},
