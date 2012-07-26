@@ -668,6 +668,35 @@ class ExecutionBatchTest extends Specification {
     "have no detailed no pending node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == PendingReportType).size == 0)
     }
+
+    "have one detailed rule reports when we create it with one report" in {
+      uniqueExecutionBatch.getRuleStatus.size ==1
+    }
+
+    "have one detailed rule success directive when we create it with one success report" in {
+      uniqueExecutionBatch.getRuleStatus.head.directiveId == DirectiveId("policy") &&
+      uniqueExecutionBatch.getRuleStatus.head.directiveReportType == SuccessReportType
+    }
+
+    "have no detailed rule repaired directive when we create it with one success report" in {
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == RepairedReportType).size == 0)
+    }
+
+    "have no detailed rule error directive when we create it with one success report" in {
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == ErrorReportType).size == 0)
+    }
+
+    "have no detailed rule unknown directive when we create it with one success report" in {
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == UnknownReportType).size == 0)
+    }
+
+    "have no detailed rule no answer directive when we create it with one success report" in {
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == NoAnswerReportType).size == 0)
+    }
+
+    "have no detailed rule no pending directive when we create it with one success report" in {
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size == 0)
+    }
   }
   
   "A detailed execution Batch, with one component, cardinality one, wrong node" should {
@@ -737,31 +766,33 @@ class ExecutionBatchTest extends Specification {
       uniqueExecutionBatch.getNodeStatus.head.nodeId == NodeId("one") &&
       uniqueExecutionBatch.getNodeStatus.head.nodeReportType == UnknownReportType
     }
-   
+
     "have no detailed repaired node when we create it with one extra success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
     }
-    
+
     "have no detailed error node when we create it with  one extra success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
     }
-    
+
     "have no detailed success node when we create it with  one extra success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == SuccessReportType).size == 0)
     }
-    
+
     "have no detailed no answer node when we create it with  one extra success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == NoAnswerReportType).size == 0)
     }
-    
+
     "have no detailed no pending node when we create it with  one extra success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == PendingReportType).size == 0)
     }
-    
+
+    "have one rule detailed reports when we create it" in {
+      uniqueExecutionBatch.getRuleStatus.size ==1
+    }
   }
   
    "A detailed execution Batch, with one component, cardinality one, two nodes, including one not responding" should {
-
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
@@ -799,5 +830,75 @@ class ExecutionBatchTest extends Specification {
       (uniqueExecutionBatch.getRuleStatus.head.components.head.componentValues.head.reports.size == 2) &&
       (uniqueExecutionBatch.getRuleStatus.head.components.head.componentValues.head.reports.exists(x => x._1 == NodeId("one") && x._2 == SuccessReportType))
     }
-  } 
+  }
+   
+  "A detailed execution Batch, with one component, cardinality one, three nodes, including one not responding" should {
+    val uniqueExecutionBatch = new ConfigurationExecutionBatch(
+       "rule",
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                   "policy",
+                   Seq(new ReportComponent("component", 1, Seq("value")  )))),
+       12,
+       DateTime.now(),
+       Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
+                    new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message")),
+       Seq[NodeId]("one", "two", "three"),
+       DateTime.now(), None)
+
+    "have one detailed rule report" in {
+      uniqueExecutionBatch.getRuleStatus.size == 1
+    }
+    "have one pending directive" in {
+      uniqueExecutionBatch.getRuleStatus.exists(x => x.directiveReportType == PendingReportType)
+    }
+    "have one detailed rule report with a 66% compliance" in {
+      uniqueExecutionBatch.getRuleStatus.head.computeCompliance must beSome(66)
+    }
+    "have one detailed rule report with a component of 66% compliance" in {
+      uniqueExecutionBatch.getRuleStatus.head.components.head.computeCompliance must beSome(66)
+    }
+  }
+  
+  "A detailed execution Batch, with two directive, two component, cardinality one, three nodes, including one partly responding and one not responding" should {
+    val uniqueExecutionBatch = new ConfigurationExecutionBatch(
+       "rule",
+       Seq[DirectiveExpectedReports](
+           new DirectiveExpectedReports("policy",
+                   Seq(new ReportComponent("component", 1, Seq("value")),
+                       new ReportComponent("component2", 1, Seq("value"))
+                   )
+            ),
+            new DirectiveExpectedReports("policy2",
+                   Seq(new ReportComponent("component", 1, Seq("value")),
+                       new ReportComponent("component2", 1, Seq("value"))
+                   )
+            )
+       ),
+       12,
+       DateTime.now(),
+       Seq[Reports](
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component2", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one", 12, "component", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one", 12, "component2", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component2", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy2", "two", 12, "component", "value",DateTime.now(), "message")
+       ),
+       Seq[NodeId]("one", "two", "three"),
+       DateTime.now(), None)
+    
+    "have two detailed rule report" in {
+      uniqueExecutionBatch.getRuleStatus.size must beEqualTo(2)
+    }
+    "have two pending directives" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size must beEqualTo(2)
+    }
+    "have detailed rule report for policy of 66%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.computeCompliance must beSome(66)
+    }
+    /*"have detailed rule report for policy2 of 33%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy2")).head.computeCompliance must beSome(33)
+    }*/
+  }
 }
