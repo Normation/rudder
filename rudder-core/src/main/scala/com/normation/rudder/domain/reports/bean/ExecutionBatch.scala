@@ -459,7 +459,18 @@ case class NodeStatusReport(
 
 case class RuleStatusReport(
   nodesreport  : Seq[(NodeId,ReportType)] 
-)
+) {
+  def computeCompliance : Option[Int] = {
+    if (nodesreport.size>0)
+      Some((nodesreport.map(report => report._2 match {
+      case SuccessReportType => 1
+      case _ => 0
+    }):\ 0)((res:Int,value:Int) => res+value)* 100 / nodesreport.size)
+    else
+      None
+  }
+}
+
 case class ComponentValueRuleStatusReport(
     directiveid         : DirectiveId
   , component           : String
@@ -473,10 +484,26 @@ case class ComponentRuleStatusReport (
   , component           : String
   , componentValues     : Seq[ComponentValueRuleStatusReport]
   , componentReportType : ReportType
-) extends RuleStatusReport(componentValues.flatMap(_.nodesreport))
+) extends RuleStatusReport(componentValues.flatMap(_.nodesreport)) {
+  override def computeCompliance =
+   if (componentValues.size>0){
+     Some((componentValues.map(_.computeCompliance.getOrElse(0))
+         :\ 0)((res:Int,value:Int) => res+value) / componentValues.size)
+}
+    else
+      None
+}
 
 case class DirectiveRuleStatusReport(
     directiveId          : DirectiveId
   , components           : Seq[ComponentRuleStatusReport]
   , directiveReportType  : ReportType
-) extends RuleStatusReport(components.flatMap(_.nodesreport))
+) extends RuleStatusReport(components.flatMap(_.nodesreport)) {
+    override def computeCompliance =
+   if (components.size>0){
+     Some((components.map(_.computeCompliance.getOrElse(0))
+         :\ 0)((res:Int,value:Int) => res+value)/ components.size)
+}
+    else
+      None
+}

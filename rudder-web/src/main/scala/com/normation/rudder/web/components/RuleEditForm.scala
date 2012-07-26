@@ -1094,20 +1094,14 @@ class RuleEditForm(
   }
 
   
-  def computeCompliance(nodesreport:  Seq[(NodeId,ReportType)]) : ComplianceLevel = {
-  Compliance((nodesreport.map(report => report._2 match {
-      case RepairedReportType => 1
-      case SuccessReportType => 1
-      case _ => 0      
-    }):\ 0)((res:Int,value:Int) => res+value)* 100 / nodesreport.size)
-  }
  def buildComplianceChart(rulestatusreport:RuleStatusReport) : NodeSeq = {
-    computeCompliance(rulestatusreport.nodesreport) match {
-      case Compliance(percent) =>  {
+    rulestatusreport.computeCompliance match {
+      case Some(percent) =>  {
         val text = Text(percent.toString + "%")
         val attr = BasicElemAttr("class","unfoldable")
         SHtml.a({() => showPopup(rulestatusreport)}, text,attr)
       }
+      case None => Text("Not Applied")
     }
   }
 
