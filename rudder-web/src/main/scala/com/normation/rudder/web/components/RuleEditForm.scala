@@ -1047,7 +1047,7 @@ class RuleEditForm(
           <th class="tablewidth">
       <table class="reportTableTitleWidth">
         <th class="reportTitleWidth">Directive</th>
-            <th class="reportTitleWidth">Component</th>
+            <th class="reportbiggerWidth">Component</th>
             <th class="reportTitleWidth">Value</th>
       </table></th>
           <th class="severityWidth">Technique</th>
