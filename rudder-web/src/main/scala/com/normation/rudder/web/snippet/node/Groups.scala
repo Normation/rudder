@@ -191,12 +191,12 @@ class Groups extends StatefulSnippet with Loggable {
     panel match {
       case NoPanel => NodeSeq.Empty
       case GroupForm(group) =>
-        val form = new NodeGroupForm(htmlId_item, Some(group), (id) => refreshTree(htmlTreeNodeId(id)))
+        val form = new NodeGroupForm(htmlId_item, Some(group), onSuccessCallback())
         nodeGroupForm.set(Full(form))
         form.showForm()
 
       case CategoryForm(category) =>
-        val form = new NodeGroupCategoryForm(htmlId_item, category, () => refreshTree(htmlTreeNodeId(category.id.value)))
+        val form = new NodeGroupCategoryForm(htmlId_item, category, onSuccessCallback())
         nodeGroupCategoryForm.set(Full(form))
         form.showForm()
     }
@@ -207,11 +207,16 @@ class Groups extends StatefulSnippet with Loggable {
   
   
   private[this] def setCreationPopup : Unit = {
-         creationPopup.set(Full(new CreateCategoryOrGroupPopup(
-            onSuccessCategory = displayACategory,
-            onSuccessGroup = showGroupSection,
-            onSuccessCallback = { (id) => refreshTree(htmlTreeNodeId(id)) })))
+    creationPopup.set(Full(new CreateCategoryOrGroupPopup(
+      onSuccessCategory = displayACategory,
+      onSuccessGroup = showGroupSection,
+      onSuccessCallback = onSuccessCallback())))
   }
+  
+  private[this] def onSuccessCallback() = {
+    (id: String) => refreshTree(htmlTreeNodeId(id))
+  }
+  
 
   /**
    * build the tree of categories and group and init its JS

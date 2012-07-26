@@ -59,7 +59,7 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 class NodeGroupCategoryForm(
   htmlIdCategory : String,
   nodeGroupCategory : NodeGroupCategory,
-  onSuccessCallback : () => JsCmd = { () => Noop },
+  onSuccessCallback : (String) => JsCmd = { (String) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
@@ -177,7 +177,7 @@ class NodeGroupCategoryForm(
       case Full(id) => 
         JsRaw("""$.modal.close();""") &
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
-        onSuccessCallback() &
+        onSuccessCallback(nodeGroupCategory.id.value) &
         successPopup
       case e:EmptyBox =>    
         val m = (e ?~! "Error when trying to delete the category").messageChain
@@ -280,7 +280,7 @@ class NodeGroupCategoryForm(
       ) match {
         case Full(x) =>
           _nodeGroupCategory = x
-          onSuccess & onSuccessCallback() & successPopup
+          onSuccess & onSuccessCallback(nodeGroupCategory.id.value) & successPopup
         case Empty =>
           logger.error("An error occurred while saving the GroupCategory")
            formTracker.addFormError(error("An error occurred while saving the GroupCategory"))

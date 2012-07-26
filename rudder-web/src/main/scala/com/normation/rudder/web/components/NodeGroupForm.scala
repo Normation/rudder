@@ -529,12 +529,12 @@ class NodeGroupForm(
     panel match {
       case NoPanel => NodeSeq.Empty
       case GroupForm(group) =>
-        val form = new NodeGroupForm(htmlId_item, Some(group), (id) => refreshTree(htmlTreeNodeId(id)))
+        val form = new NodeGroupForm(htmlId_item, Some(group), onSuccessCallback)
         nodeGroupForm.set(Full(form))
         form.showForm()
 
       case CategoryForm(category) =>
-        val form = new NodeGroupCategoryForm(htmlId_item, category, () => refreshTree(htmlTreeNodeId(category.id.value)))
+        val form = new NodeGroupCategoryForm(htmlId_item, category, onSuccessCallback)
         nodeGroupCategoryForm.set(Full(form))
         form.showForm()
     }
@@ -545,11 +545,6 @@ class NodeGroupForm(
     refreshRightPanel(GroupForm(sg))&
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'groupId':'%s'})""".format(sg.id.value))
   }  
-  
-  private[this] def refreshTree(selectedNode:String) : JsCmd =  {
-//    Replace(htmlId_groupTree, buildGroupTree(selectedNode:String)) &
-    OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();""")))
-  }
   
   /**
    * Create a group from the given parameter
