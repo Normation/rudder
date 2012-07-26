@@ -143,14 +143,14 @@ class CreateCategoryOrGroupPopup(
   private[this] val piName = new WBTextField("Name", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = "threeColErrors"
-    override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","1")
+    override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters.") _ :: Nil
   }
 
   private[this] val piDescription = new WBTextAreaField("Description", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:10em") % ("tabindex","3")
+    override def inputField = super.inputField  % ("style" -> "height:10em") % ("tabindex","4")
     override def errorClassName = "threeColErrors"
     override def validations =  Nil
 
@@ -164,7 +164,7 @@ class CreateCategoryOrGroupPopup(
       </span>
     case "dynamic" => 
       <span title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
-  },Some(4)) {
+  },Some(5)) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "align-radio-generate-input"
     override def errorClassName = "threeColErrors"
@@ -180,8 +180,7 @@ class CreateCategoryOrGroupPopup(
          <span id="textGroupRadio">Group</span>
        case "Category" => 
          <span id="textCategoryRadio">Category</span>
-        
-      }) {
+      }, Some(1)) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def className = "align-radio-generate-input"
       override def errorClassName = "threeColErrors"
@@ -196,7 +195,7 @@ class CreateCategoryOrGroupPopup(
     override def className = "rudderBaseFieldSelectClassName"
     override def inputField = 
       super.inputField % ("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % 
-      ("tabindex","2")
+      ("tabindex","3")
   }
 
   private[this] val formTracker = new FormTracker(piName, piDescription, piContainer, piStatic)
