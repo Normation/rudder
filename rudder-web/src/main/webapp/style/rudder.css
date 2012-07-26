@@ -337,13 +337,15 @@ Tableau
   width:auto;
 }
 
+.reportbiggerWidth{
+	width:110px;
+}
 .reportTitleWidth{
   width:92px;
 }
 .autotablewidth{
   width:auto;
 }
-width:92px
 .tablepadding{
   padding-left:15px;
   padding-top:5px;
