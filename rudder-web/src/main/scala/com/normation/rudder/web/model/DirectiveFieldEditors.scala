@@ -192,7 +192,7 @@ class SelectOneField(val id: String, valueslabels: Seq[ValueLabel]) extends Dire
     Full(<div>{
       choiceHolder.flatMap {
         c =>
-          (<span>{ c.xhtml }&nbsp;{ valueslabels.find(x => x.value == c.key).map(_.label).getOrElse("error") }</span>)
+          (<span>{ c.xhtml }&nbsp;{ valueslabels.find(x => x.value == c.key).map(_.label).getOrElse("error") }<br/></span>)
       }
     }</div>)
 
