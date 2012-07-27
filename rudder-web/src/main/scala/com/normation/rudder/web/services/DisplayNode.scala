@@ -451,7 +451,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         ("PID", {x:Process => Text(x.pid.toString())}) ::
         ("% CPU", {x:Process => ?(x.cpuUsage.map(_.toString()))}) ::
         ("% Memory", {x:Process => ?(x.memory.map(_.toString()))}) ::
-        ("Virtual Memory (kb)", {x:Process => ?(x.virtualMemory.map(_.toString()))}) ::
+        ("Virtual memory", {x:Process => ?(x.virtualMemory.map(memory => MemorySize(memory.toLong).toStringMo()))}) ::
         ("TTY", {x:Process => ?(x.tty)}) ::
         ("Started on", {x:Process => ?(x.started.map(DateFormaterService.getFormatedDate(_)).orElse(Some("Bad format")))}) ::
         ("Command", { x:Process => ?(x.commandName) }) ::
@@ -464,10 +464,10 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         ("Name", {x:VirtualMachine => ?(x.name)}) ::
         ("Type", {x:VirtualMachine => ?(x.vmtype)}) ::
         ("SubSystem", {x:VirtualMachine => ?(x.subsystem)}) ::
-        ("UUID", {x:VirtualMachine => Text(x.uuid.value)}) ::
+        ("Uuid", {x:VirtualMachine => Text(x.uuid.value)}) ::
         ("Status", {x:VirtualMachine => ?(x.status)}) ::
         ("Owner", {x:VirtualMachine => ?(x.owner)}) ::
-        ("CPUs", {x:VirtualMachine => ?(x.vcpu.map(_.toString()))}) ::
+        ("# Cpu", {x:VirtualMachine => ?(x.vcpu.map(_.toString()))}) ::
         ("Memory", { x:VirtualMachine => ?(x.memory) }) ::
         Nil
     }
