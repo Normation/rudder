@@ -499,7 +499,7 @@ class NodeGroupForm(
   private[this] def showCloneGroupPopup() : JsCmd = {
     val popupSnippet = new LocalSnippet[CreateCloneGroupPopup]
              popupSnippet.set(Full(new CreateCloneGroupPopup(
-            nodeGroup,
+            _nodeGroup,
             onSuccessCategory = displayACategory,
             onSuccessGroup = showGroupSection,
             onSuccessCallback = { onSuccessCallback })))
