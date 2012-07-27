@@ -366,7 +366,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     }
   }
 
-  private def displayTabGrid[T](jsId:JsNodeId)(eltName:String, optSeq:Box[Seq[T]])(columns:List[(String, T => NodeSeq)]) = {
+  private def displayTabGrid[T](jsId:JsNodeId)(eltName:String, optSeq:Box[Seq[T]],title:Option[String]=None)(columns:List[(String, T => NodeSeq)]) = {
 
     <div id={htmlId(jsId,"sd_"+eltName +"_")} class="sInventory">{
       optSeq match {
@@ -375,7 +375,14 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         case Full(seq) if (seq.isEmpty && eltName != "soft") => <span>No matching components detected on this node</span>
         case Full(seq) => 
           <table cellspacing="0" id={htmlId(jsId,eltName + "_grid_")} class="tablewidth">
+          { title match {
+            case None => NodeSeq.Empty
+            case Some(title) => <div style="text-align:center"><b>{title}</b></div>
+            }
+          }
           <thead>
+          <tr class="head">
+          </tr>
             <tr class="head">{
               columns.map {h => <th>{h._1}</th> }.toSeq
             }</tr>
@@ -428,15 +435,18 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         Nil
     }
       
-    private def displayTabVariable(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
-    displayTabGrid(jsId)("var", Full(sm.node.environmentVariables)){
+    private def displayTabVariable(jsId:JsNodeId,sm:FullInventory) : NodeSeq = {
+    val title = sm.node.inventoryDate.map(date => "Environment variable status on %s".format(DateFormaterService.getFormatedDate(date)))
+    displayTabGrid(jsId)("var", Full(sm.node.environmentVariables),title){
         ("Name", {x:EnvironmentVariable => Text(x.name)}) ::
         ("Value", {x:EnvironmentVariable => Text(x.value.getOrElse("Unspecified"))}) ::
         Nil
     }
+    }
 
-    private def displayTabProcess(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
-    displayTabGrid(jsId)("process", Full(sm.node.processes)){
+    private def displayTabProcess(jsId:JsNodeId,sm:FullInventory) : NodeSeq = {
+    val title = sm.node.inventoryDate.map(date => "Process status on %s".format(DateFormaterService.getFormatedDate(date)))
+    displayTabGrid(jsId)("process", Full(sm.node.processes),title){
         ("User", {x:Process => ?(x.user)}) ::
         ("PID", {x:Process => Text(x.pid.toString())}) ::
         ("% CPU", {x:Process => ?(x.cpuUsage.map(_.toString()))}) ::
@@ -446,6 +456,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         ("Started on", {x:Process => ?(x.started.map(DateFormaterService.getFormatedDate(_)).orElse(Some("Bad format")))}) ::
         ("Command", { x:Process => ?(x.commandName) }) ::
         Nil
+    }
     }
     
     private def displayTabVM(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
