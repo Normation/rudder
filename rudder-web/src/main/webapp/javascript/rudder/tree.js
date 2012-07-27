@@ -27,8 +27,10 @@ var buildReferenceTechniqueTree = function(id,  initially_select) {
               "image" : "images/tree/folder_16x16.png" 
             },
             "valid_children" : [ "category", "template" ],
-            "hover_node" : false,
-            "select_node" : false,
+            "select_node" : function(e) {
+        	  this.toggle_node(e);
+        	  return false;
+            },
             "start_drag" : false
           },
           "template" : {
@@ -89,13 +91,21 @@ var buildActiveTechniqueTree = function(id, foreignTreeId) {
             "image" : "images/tree/folder_16x16.png" 
           },
           "valid_children" : [ "category", "template" ],
-          "start_drag" : false
+          "start_drag" : false,
+          "select_node" : function(e) {
+        	  this.toggle_node(e);
+        	  return true;
+            },
         },
         "category" : {
           "icon" : { 
             "image" : "images/tree/folder_16x16.png" 
           },
-          "valid_children" : [ "category", "template" ]
+          "valid_children" : [ "category", "template" ],
+          "select_node" : function(e) {
+        	  this.toggle_node(e);
+        	  return true;
+            },
         },
         "template" : {
           "icon" : { 
