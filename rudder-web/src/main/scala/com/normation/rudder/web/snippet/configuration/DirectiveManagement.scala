@@ -77,7 +77,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   
   def dispatch = { 
     case "head" => { _ => head }
-    case "userLibrary" => { _ => userLibrary("") }
+    case "userLibrary" => { _ => userLibrary }
     case "showDirectiveDetails" => { _ => initDirectiveDetails }
     case "techniqueDetails" => { xml =>
       techniqueDetails = initTechniqueDetails
@@ -126,7 +126,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         try {
           directiveId = JSON.parse(window.location.hash.substring(1)).directiveId ;
         } catch(e) {
-          directiveId = null
+          directiveId = null;
         }
         if( directiveId != null && directiveId.length > 0) { 
           %s;
@@ -139,25 +139,44 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * Almost same as Technique/activeTechniquesTree
    * TODO : factor out that part
    */
-  def userLibrary(selectedNode: String) : NodeSeq = {
+  def userLibrary(): NodeSeq = {
     (
-      <div id={htmlId_activeTechniquesTree}>
+      <div id={htmlId_activeTechniquesTree} class="nodisplay">
         <ul> {
           val activeTechLib = activeTechniqueCategoryRepository.getActiveTechniqueLibrary
           jsTreeNodeOf_uptCategory(activeTechLib, "jstn_0").toXml
         }
         </ul>
      </div>
-    ) ++ Script(OnLoad(buildJsTree(selectedNode: String)))
+    ) ++ Script(OnLoad(buildJsTree()))
   }
   
 
-  private[this] def buildJsTree(selectedNode: String) : JsCmd = {
-    JsRaw("""buildDirectiveTree('#%s', '%s')""".format(htmlId_activeTechniquesTree, selectedNode)) & 
-    OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();
-        searchTree('#treeSearch', '#activeTechniquesTree');""")))
+  private[this] def buildJsTree() : JsCmd = {
+    
+    def isDirectiveIdValid(directiveId: String): JsCmd = {
+      directiveRepository.getDirectiveWithContext(DirectiveId(directiveId)) match {
+        case Full((technique, activeTechnique, directive)) => 
+          JsRaw(""" buildDirectiveTree('#%s', '%s') """
+            .format(htmlId_activeTechniquesTree, "jsTree-" + directive.id.value))
+        case e:EmptyBox => 
+          JsRaw(""" buildDirectiveTree('#%s', '') """.format(htmlId_activeTechniquesTree))
+      }
+    }
+    
+    JsRaw("""
+        var directiveId = null;
+        try {
+          directiveId = JSON.parse(window.location.hash.substring(1)).directiveId ;
+        } catch(e) { 
+          directiveId = null; 
+        }
+        
+        %s;
+        
+    """.format(SHtml.ajaxCall(JsVar("directiveId"), isDirectiveIdValid _ )._2.toJsCmd, 
+         htmlId_activeTechniquesTree))
   }
-  
   
   def initDirectiveDetails(): NodeSeq = directiveId match {
     case Full(id) => <div id={ htmlId_policyConf } /> ++ 
@@ -363,6 +382,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     //Set current Directive edition component to the given value
     directiveRepository.getDirectiveWithContext(directiveId) match {
       case Full((technique,activeTechnique,directive)) => 
+        Replace(htmlId_activeTechniquesTree, userLibrary)
         currentTechnique = Some((technique,activeTechnique))
         updateCf3PolicyDraftInstanceSettingFormComponent(technique,activeTechnique,directive)
       case e:EmptyBox => currentDirectiveSettingForm.set(e)
@@ -396,7 +416,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     directiveRepository.getDirectiveWithContext(dir.id) match {
       case Full((technique, activeTechnique, directive)) => {
         updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, dir)
-        Replace(htmlId_activeTechniquesTree, userLibrary("jsTree-" + directive.id.value)) & 
         Replace(htmlId_policyConf, showDirectiveDetails) &
         JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})"""
           .format(dir.id.value))
