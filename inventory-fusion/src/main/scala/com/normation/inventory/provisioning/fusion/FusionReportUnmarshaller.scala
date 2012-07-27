@@ -156,9 +156,9 @@ class FusionReportUnmarshaller(
         case "VERSIONCLIENT" => //TODO: fusion inventory agent version
         case x => 
           contentParsingExtensions.find {
-            pf => pf.isDefinedAt(e,report)
+            pf => pf.isDefinedAt(elt,report)
           }.foreach { pf =>
-            report = pf(e,report)
+            report = pf(elt,report)
           }
       } }
       case x => 
