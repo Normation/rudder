@@ -804,7 +804,7 @@ class RuleEditForm(
               new JsTreeNode {
                 override def body = {
                   val tooltipid = Helpers.nextFuncName
-                  <a>
+                  <a href="#">
                     <span class="treeDirective tooltipable" tooltipid={tooltipid} 
                       title={directive.shortDescription}>
                       {directive.name}
