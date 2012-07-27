@@ -409,7 +409,7 @@ case class JsonComparator(key:String,splitter:String = "",numericvalue:Boolean =
   def splitJson(attribute:String,value:String) = {
    val (splittedvalue,splittedattribute) =
      if (splitter!="")
-       (value.split(splitter),attribute.split("."))
+       (value.split(splitter),attribute.split('.'))
      else
        (Array(value),Array(attribute))
   if (splittedvalue.size==splittedattribute.size){
