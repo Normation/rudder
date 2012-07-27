@@ -58,6 +58,7 @@ import net.liftweb.http.SHtml._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import net.liftweb.http.Templates
 import com.normation.rudder.repository.DirectiveRepository
+import com.normation.cfclerk.services.TechniqueRepository
 
 /**
  * Display the last reports of a server
@@ -70,7 +71,8 @@ import com.normation.rudder.repository.DirectiveRepository
 class ReportDisplayer(
     ruleRepository      : RuleRepository
   , directiveRepository : DirectiveRepository 
-  , reportingService    : ReportingService) {
+  , reportingService    : ReportingService
+  , techniqueRepository : TechniqueRepository) {
   
   
   
@@ -115,7 +117,7 @@ class ReportDisplayer(
   }
 
   def showReportDetail(executionsBatches : Seq[ExecutionBatch]) : NodeSeq = {
-    (
+    ("#reportsGrid [class+]" #> "fixedlayout" &
      "#reportLine" #> executionsBatches.flatMap(x => x.getNodeStatus()).map { reportStatus =>
          ruleRepository.get(reportStatus.ruleId) match {
            case Full(rule) =>
@@ -127,7 +129,8 @@ class ReportDisplayer(
                  ".unfoldable [class+]" #> getSeverityFromStatus(reportStatus.nodeReportType).replaceAll(" ", "") &
                  ".unfoldable [toggler]" #> tooltipid &
                  "#jsid [id]" #> tooltipid &
-                 "#details" #> showDirectivesReport(reportStatus.directives)
+                 "#details" #> showDirectivesReport(reportStatus.directives) &
+                 ".detailedReport [class+]" #> "fixedlayout"
              )(reportsLineXml)
            case _ => <div>Could not find rule {reportStatus.ruleId} </div>
          }
@@ -140,10 +143,13 @@ class ReportDisplayer(
     directives.flatMap { directive =>
       directiveRepository.getDirective(directive.directiveId) match {
         case Full(dir) =>
+          val tech = directiveRepository.getActiveTechnique(dir.id).map(act => techniqueRepository.getLastTechniqueByName(act.techniqueName).map(_.name).getOrElse("Unknown technique")).getOrElse("Unknown technique")
+          val techversion = dir.techniqueVersion;
           val tooltipid = Helpers.nextFuncName
            (
               "#directive [class+]" #> "listopen" &
               "#directive *" #> <span>{dir.name}</span> &
+              "#technique *" #> <span>{"%s (%s)".format(tech,techversion)}</span> &
               "#severity *" #> getSeverityFromStatus(directive.directiveReportType) &
               ".unfoldable [class+]" #> getSeverityFromStatus(directive.directiveReportType).replaceAll(" ", "") &
               ".unfoldable [toggler]" #> tooltipid &
@@ -163,7 +169,8 @@ class ReportDisplayer(
               "#component *" #> <span>{component.component}</span> &
               ".unfoldable [class]" #> getSeverityFromStatus(component.componentReportType).replaceAll(" ", "") &
               "#jsid *" #> NodeSeq.Empty &
-              "#severity *" #> getSeverityFromStatus(component.componentReportType)
+              "#severity *" #> getSeverityFromStatus(component.componentReportType)&
+              ".detailedReport [class+]" #> "fixedlayout"
            )(componentDetails)
         case false => // standard  display that can be expanded
           val tooltipid = Helpers.nextFuncName
@@ -174,7 +181,8 @@ class ReportDisplayer(
               "#jsid [id]" #> tooltipid &
               ".unfoldable [class+]" #> getSeverityFromStatus(component.componentReportType).replaceAll(" ", "") &
               "#severity *" #> getSeverityFromStatus(component.componentReportType) &
-              "#details" #> showComponentValueReport(component.componentValues)
+              "#details" #> showComponentValueReport(component.componentValues)&
+              ".detailedReport [class+]" #> "fixedlayout"
            )(componentDetails)
       }
     }    
@@ -185,7 +193,8 @@ class ReportDisplayer(
            (
               "#componentValue *" #> <span>{value.componentValue}</span> &
               "#severity *" #> getSeverityFromStatus(value.cptValueReportType) &
-              "#severityClass [class]" #> getSeverityFromStatus(value.cptValueReportType).replaceAll(" ", "") 
+              "#severityClass [class]" #> getSeverityFromStatus(value.cptValueReportType).replaceAll(" ", "") &
+              ".detailedReport [class+]" #> "fixedlayout"
            )(componentValueDetails)
     } 
   }
@@ -342,7 +351,14 @@ class ReportDisplayer(
     <table id="reportsGrid" cellspacing="0">
       <thead>
         <tr class="head">
-          <th>Rule<span/></th>
+          <th class="tablewidth">
+      <table class="reportTableTitleWidth">
+        <th class="reportTitleWidth">Rule</th>
+        <th class="reportTitleWidth">Directive</th>
+            <th class="reportbiggerWidth">Component</th>
+            <th class="reportTitleWidth">Value</th>
+      </table></th>
+          <th class="severityWidth">Technique<span/></th>
           <th class="severityWidth">Severity<span/></th>
         </tr>
       </thead>
@@ -355,31 +371,21 @@ class ReportDisplayer(
   def reportsLineXml : NodeSeq = {
     <tr class="unfoldable">
       <td id="rule"></td>
+      <td name="technique" class="severityWidth"/>
       <td name="severity" class="severityWidth"><div id="severity"/></td>
     </tr> ++ detailsLine
     
   }
   
   def directiveLineXml : NodeSeq = {
-    <thead>
-      <tr class="head">
-        <th>Directive<span/></th>
-        <th class="severityWidth">Severity<span/></th>
-      </tr>
-    </thead>
     <tr class="unfoldable">
-      <td id="directive"></td>
+      <td id="directive" class="tablewidth"></td>
+         <td name="technique" class="severityWidth"><div id="technique"/></td>
       <td name="severity" class="severityWidth"><div id="severity"/></td>
     </tr> ++ detailsLine
   }
   
   def componentDetails : NodeSeq = {
-    <thead>
-      <tr class="head">
-        <th>Component name<span/></th>
-        <th class="severityWidth">Severity<span/></th>
-      </tr>
-    </thead>
     <tr class="unfoldable">
       <td id="component"></td>
       <td name="severity" class="severityWidth"><div id="severity"/></td>
@@ -387,12 +393,6 @@ class ReportDisplayer(
   }
   
   def componentValueDetails : NodeSeq = {
-    <thead>
-      <tr class="head">
-        <th>Component Value<span/></th>
-        <th class="severityWidth">Severity<span/></th>
-      </tr>
-    </thead>
     <tr id="severityClass">
       <td id="componentValue"></td>
       <td name="severity" class="severityWidth"><div id="severity"/></td>
@@ -401,7 +401,7 @@ class ReportDisplayer(
   
   def detailsLine : NodeSeq = {
     <tr id="jsid" class="detailedReportLine severity" style="display:none">
-      <td class="detailedReportLine" colspan="2">
+      <td class="detailedReportLine" colspan="10">
         <table class="detailedReport" cellspacing="0">
           <div id="details"/>
         </table>

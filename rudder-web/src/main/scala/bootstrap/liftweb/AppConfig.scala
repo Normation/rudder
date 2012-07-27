@@ -1071,7 +1071,8 @@ class AppConfig extends Loggable {
   def reportDisplayer = new ReportDisplayer(
       ldapRuleRepository
     , ldapDirectiveRepository
-    , reportingService)
+    , reportingService
+    , techniqueRepository)
 
   ////////////////////// Snippet plugins & extension register //////////////////////
   import com.normation.plugins.{ SnippetExtensionRegister, SnippetExtensionRegisterImpl }
