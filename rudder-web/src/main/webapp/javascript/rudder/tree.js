@@ -254,12 +254,18 @@ var buildGroupTree = function(id, initially_select, select_multiple_modifier) {
           "icon" : { "image" : "images/tree/folder_16x16.png" },
           "valid_children" : [ "category", "group" , "special_target" ],
           "start_drag" : false,
-          "select_node" : false
+          "select_node" : function(e) {
+        	  this.toggle_node(e);
+        	  return false;
+          }
         },
         "category" : {
           "icon" : { "image" : "images/tree/folder_16x16.png" },
           "valid_children" : [ "category", "group" , "special_target" ],
-          "select_node" : false
+          "select_node" : function(e) {
+        	  this.toggle_node(e);
+        	  return false;
+          }
         },
         "group" : {
           "icon" : { "image" : "images/tree/server_group_16x16.gif" },
@@ -388,14 +394,20 @@ var buildRulePIdepTree = function(id, initially_select) {
               "image" : "images/tree/folder_16x16.png" 
             },
             "valid_children" : [ "category", "template" ],
-            "select_node" : false
+	        "select_node" : function(e) {
+         	  this.toggle_node(e);
+	          return false;
+	        }
           },
           "template" : {
             "icon" : { 
               "image" : "images/tree/technique_16x16.png" 
             },
             "valid_children" : [ "directive" ],
-            "select_node" : false
+            "select_node" : function(e) {
+        	  this.toggle_node(e);
+        	  return false;
+            }
           },
           "directive" : {
             "icon" : { 
