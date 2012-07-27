@@ -89,9 +89,7 @@ object RuleEditForm {
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
     } yield {
-      chooseTemplate("component", "body", xml) ++ 
-      Script(OnLoad(JsRaw("""$( "#editRuleZone" ).tabs();
-          $( "#editRuleZone" ).tabs('select', %s);""".format(tab)) ))
+      chooseTemplate("component", "body", xml)
     }) openOr Nil
 
   private def crForm = 
@@ -183,7 +181,7 @@ class RuleEditForm(
   )
 
   private[this] def showForm(tab :Int = 0) : NodeSeq = {
-    if (CurrentUser.checkRights(Read("rule"))) {
+    val form = if (CurrentUser.checkRights(Read("rule"))) {
     ("#details" #> showRuleDetails())(
     if (CurrentUser.checkRights(Edit("rule"))) { (
 
@@ -196,8 +194,19 @@ class RuleEditForm(
       "#editForm" #>  <div>You have no rights to see rules details, please contact your administrator</div>
       ) (body()))
     }
-    else
+    else{
       <div>You have no rights to see rules details, please contact your administrator</div>
+    } 
+    form ++  Script(OnLoad(JsRaw("""$( "#editRuleZone" ).tabs();
+          $( "#editRuleZone" ).tabs('select', %s);""".format(tab)) )&
+          JsRaw("""
+              | $("#%s").bind( "tabsshow", function(event, ui) {
+              | if(ui.panel.id== '%s') { %s; }
+              | });
+              """.stripMargin('|').format("editRuleZone",
+            "ruleComplianceTab",
+            SHtml.ajaxCall(JsRaw("'"+rule.id.value+"'"),(v:String) => Replace("details",showRuleDetails()))._2.toJsCmd
+      )))
   }
   
   private[this] def showRemovePopupForm() : NodeSeq = {    
@@ -251,7 +260,22 @@ class RuleEditForm(
           }
           }
         );
-      """));
+      """)/*& OnLoad(
+          JsRaw("""
+              | $("#%s").bind( "tabsshow", function(event, ui) {
+              | if(ui.panel.id== '%s') { %s; }
+              | });
+              """.stripMargin('|').format("#editRuleZone",
+            "ruleComplianceTab",
+            SHtml.ajaxCall(JsRaw("'"+rule.id.value+"'"),(v:String) => Replace("details",showRuleDetails()))._2.toJsCmd
+      )
+          
+      )
+          
+      
+      )*/
+      
+    );
   }
  
 
