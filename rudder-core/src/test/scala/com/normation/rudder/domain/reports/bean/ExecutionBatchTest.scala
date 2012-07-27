@@ -851,11 +851,11 @@ class ExecutionBatchTest extends Specification {
     "have one pending directive" in {
       uniqueExecutionBatch.getRuleStatus.exists(x => x.directiveReportType == PendingReportType)
     }
-    "have one detailed rule report with a 66% compliance" in {
-      uniqueExecutionBatch.getRuleStatus.head.computeCompliance must beSome(66)
+    "have one detailed rule report with a 67% compliance" in {
+      uniqueExecutionBatch.getRuleStatus.head.computeCompliance must beSome(67)
     }
-    "have one detailed rule report with a component of 66% compliance" in {
-      uniqueExecutionBatch.getRuleStatus.head.components.head.computeCompliance must beSome(66)
+    "have one detailed rule report with a component of 67% compliance" in {
+      uniqueExecutionBatch.getRuleStatus.head.components.head.computeCompliance must beSome(67)
     }
   }
   
@@ -894,11 +894,109 @@ class ExecutionBatchTest extends Specification {
     "have two pending directives" in {
       uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size must beEqualTo(2)
     }
-    "have detailed rule report for policy of 66%" in {
-      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.computeCompliance must beSome(66)
+    "have detailed rule report for policy of 67%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.computeCompliance must beSome(67)
     }
-    /*"have detailed rule report for policy2 of 33%" in {
+    "have detailed rule report for policy2 of 33%" in {
       uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy2")).head.computeCompliance must beSome(33)
-    }*/
+    }
+  }
+
+  "A detailed execution Batch, with two directive, two component, cardinality three, three nodes, including two not responding" should {
+    val uniqueExecutionBatch = new ConfigurationExecutionBatch(
+       "rule",
+       Seq[DirectiveExpectedReports](
+           new DirectiveExpectedReports("policy",
+                   Seq(new ReportComponent("component", 1, Seq("value")),
+                       new ReportComponent("component2", 1, Seq("value"))
+                   )
+            ),
+            new DirectiveExpectedReports("policy2",
+                   Seq(new ReportComponent("component", 1, Seq("value")),
+                       new ReportComponent("component2", 1, Seq("value"))
+                   )
+            )
+       ),
+       12,
+       DateTime.now(),
+       Seq[Reports](
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component2", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one", 12, "component", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one", 12, "component2", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component2", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy2", "two", 12, "component", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value",DateTime.now(), "message")
+       ),
+       Seq[NodeId]("one", "two", "three"),
+       DateTime.now(), None)
+
+    "have two detailed rule report" in {
+      uniqueExecutionBatch.getRuleStatus.size must beEqualTo(2)
+    }
+    "have two pending directives" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size must beEqualTo(2)
+    }
+    "have detailed rule report for policy of 67%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.computeCompliance must beSome(67)
+    }
+    "have detailed rule report for policy2 of 33%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy2")).head.computeCompliance must beSome(33)
+    }
+    "have detailed rule report for policy-component of 100%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.components.filter(x => x.component == "component").head.computeCompliance must beSome(100)
+    }
+    "have detailed rule report for policy-component2 of 67%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.components.filter(x => x.component == "component2").head.computeCompliance must beSome(67)
+    }
+    "have detailed rule report for policy2-component2 of 33%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy2")).head.components.filter(x => x.component == "component2").head.computeCompliance must beSome(33)
+    }
+  }
+
+  "A detailed execution Batch, with two directive, two component, cardinality three, three nodes, including two not responding" should {
+    val uniqueExecutionBatch = new ConfigurationExecutionBatch(
+       "rule",
+       Seq[DirectiveExpectedReports](
+           new DirectiveExpectedReports("policy",
+                   Seq(new ReportComponent("component", 1, Seq("value","value2","value3"))
+                   )
+            )
+       ),
+       12,
+       DateTime.now(),
+       Seq[Reports](
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value2",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value3",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value2",DateTime.now(), "message"),
+           new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value",DateTime.now(), "message")
+       ),
+       Seq[NodeId]("one", "two", "three"),
+       DateTime.now(), None)
+
+    "have one detailed rule report" in {
+      uniqueExecutionBatch.getRuleStatus.size must beEqualTo(1)
+    }
+    "have one pending directives" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size must beEqualTo(1)
+    }
+    "have detailed rule report for policy of 33%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.computeCompliance must beSome(33)
+    }
+    "have detailed rule report for policy-component of 33%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.components.filter(x => x.component == "component").head.computeCompliance must beSome(33)
+    }
+    "have detailed rule report for policy-component-value of 100%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.components.filter(x => x.component == "component").head.componentValues.filter(_.componentValue == "value").head.computeCompliance must beSome(100)
+    }
+    "have detailed rule report for policy-component-value2 of 67%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.components.filter(x => x.component == "component").head.componentValues.filter(_.componentValue == "value2").head.computeCompliance must beSome(67)
+    }
+    "have detailed rule report for policy-component-value of 33%" in {
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.components.filter(x => x.component == "component").head.componentValues.filter(_.componentValue == "value3").head.computeCompliance must beSome(33)
+    }
   }
 }
