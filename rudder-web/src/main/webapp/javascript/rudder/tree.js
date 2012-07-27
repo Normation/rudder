@@ -209,6 +209,8 @@ var buildDirectiveTree = function(id, initially_select) {
       },
       "plugins" : [ "themes", "html_data", "ui", "types", "search" ]      
   })
+  
+  $(id).removeClass('nodisplay');
 }
 
 
