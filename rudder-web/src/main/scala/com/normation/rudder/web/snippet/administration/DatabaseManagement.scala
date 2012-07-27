@@ -69,7 +69,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     (  
       "#oldestEntry" #> displayDate(reportsInterval.map( x => x._1 )) &
       "#newestEntry" #> displayDate(reportsInterval.map( x => x._2 )) &
-      "#databaseSize" #> databaseManager.getDatabaseSize().map(x => Text(MemorySize(x).toStringMo())).openOr(Text("could not fetch")) &
+      "#databaseSize" #> databaseManager.getDatabaseSize().map(x => Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database")) &
       "#oldestArchivedEntry" #> displayDate(archivedReportsInterval.map( x => x._1 )) &
       "#newestArchivedEntry" #> displayDate(archivedReportsInterval.map( x => x._2 )) &
       "#archiveReports" #> SHtml.ajaxSubmit("Archive Report", process _) &
@@ -107,6 +107,6 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
   private[this] def displayDate( entry : Box[DateTime]) : NodeSeq= {
     entry.
       map ( x => <span>{DateFormaterService.getFormatedDate(x)}</span> ).
-      openOr( <span>Could not fetch the value</span>)
+      openOr( <span>There's been an error with the database, could not fetch the value</span>)
   }
 }

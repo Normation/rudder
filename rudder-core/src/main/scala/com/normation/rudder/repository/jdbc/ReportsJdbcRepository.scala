@@ -226,7 +226,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
       case seq => seq.headOption ?~! "No archived report where found in database (and so, we can not get the oldest one)"
       
-    } 
+    }
   }
   
     def getNewestReports() : Box[Reports] = {
