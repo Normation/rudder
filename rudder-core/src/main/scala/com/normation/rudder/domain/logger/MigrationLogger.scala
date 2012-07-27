@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2012 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -37,9 +37,27 @@ package com.normation.rudder.domain.logger
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 import net.liftweb.common.Failure
+import com.normation.rudder.migration.MigrationEventLog
+import com.normation.rudder.domain.Constants.XML_CURRENT_FILE_FORMAT
 
-object ReportLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("report")
+
+case class MigrationLogger(
+   goal : Int = XML_CURRENT_FILE_FORMAT
+    ) extends Logger {
+  override protected def _logger = LoggerFactory.getLogger("migration")
+
+  val defaultErrorLogger : Failure => Unit = { f =>
+    _logger.error(f.messageChain)
+    f.rootExceptionCause.foreach { ex =>
+      _logger.error("Root exception was:", ex)
+    }
+  }
+  val defaultSuccessLogger : Seq[MigrationEventLog] => Unit = { seq =>
+    if(_logger.isDebugEnabled) {
+      seq.foreach { log =>
+        _logger.debug("Migrating eventlog to format %s, id: ".format(goal) + log.id)
+      }
+    }
+    _logger.info("Successfully migrated %s eventlog to format %s".format(seq.size,goal))
+  }
 }
-
-

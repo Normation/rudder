@@ -50,20 +50,20 @@ import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.KeyedEntity
 import org.squeryl.Schema
 
+import com.normation.rudder.domain.logger._
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
 import com.normation.rudder.services.marshalling.TestFileFormat
 import com.normation.utils.Control._
 import com.normation.utils.XmlUtils
 
-import LogMigrationEventLog_10_2.logger
 import net.liftweb.common._
 import net.liftweb.util.Helpers.strToCssBindPromoter
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.IterableFunc.itNodeSeq
 import net.liftweb.util.StringPromotable.intToStrPromo
 
-
+/*
 /**
  * ////////////////////////////////////////
  * The logger to use for tracking that
@@ -88,7 +88,7 @@ object LogMigrationEventLog_2_3 {
     logger.info("Successfully migrated %s eventlog to format 3".format(seq.size))
   }
 }
-
+*/
 /**
  * This class manage the hight level migration process: read if a
  * migration is required in the MigrationEventLog datatable, launch
@@ -100,7 +100,7 @@ class ControlEventLogsMigration_2_3(
   , eventLogsMigration_2_3    : EventLogsMigration_2_3
 
 ) {
-  import LogMigrationEventLog_2_3.logger
+ def logger = MigrationLogger(3)
   
   val parent = new ControlEventLogsMigration_10_2(migrationEventLogRepository,eventLogsMigration_2_3.parent)
   def migrate() : Box[MigrationStatus] = {
@@ -232,10 +232,10 @@ class EventLogsMigration_2_3(
   , successLogger              : Seq[MigrationEventLog] => Unit
   , batchSize                  : Int = 1000
 ) {
-  import LogMigrationEventLog_2_3.logger
+  def logger = MigrationLogger(3)
   
- val parent = new EventLogsMigration_10_2(jdbcTemplate,new EventLogMigration_10_2(new XmlMigration_10_2()),LogMigrationEventLog_10_2.defaultErrorLogger
-    ,LogMigrationEventLog_10_2.defaultSuccessLogger,batchSize)
+ val parent = new EventLogsMigration_10_2(jdbcTemplate,new EventLogMigration_10_2(new XmlMigration_10_2()),MigrationLogger(2).defaultErrorLogger
+    ,MigrationLogger(2).defaultSuccessLogger,batchSize)
   /**
    * retrieve all event log to migrate. 
    */
@@ -344,7 +344,7 @@ class EventLogsMigration_2_3(
  * Also take care of categories, etc. 
  */
 class EventLogMigration_2_3(xmlMigration:XmlMigration_2_3) {
-  import LogMigrationEventLog_10_2.logger
+  def logger = MigrationLogger(3)
   
   def migrate(eventLog:MigrationEventLog) : Box[MigrationEventLog] = {
     /*
