@@ -955,7 +955,7 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
-  "A detailed execution Batch, with two directive, two component, cardinality three, three nodes, including two not responding" should {
+  "A detailed execution Batch, with two directive, two component, cardinality three, three nodes, including two not completely responding" should {
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
        Seq[DirectiveExpectedReports](
