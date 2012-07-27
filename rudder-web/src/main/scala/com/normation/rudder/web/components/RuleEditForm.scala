@@ -140,7 +140,7 @@ object RuleEditForm {
  */
 class RuleEditForm(
   htmlId_rule:String, //HTML id for the div around the form
-  val rule:Rule, //the Rule to edit
+  var rule:Rule, //the Rule to edit
   //JS to execute on form success (update UI parts)
   //there are call by name to have the context matching their execution when called
   onSuccessCallback : () => JsCmd = { () => Noop },
@@ -646,6 +646,7 @@ class RuleEditForm(
         save 
       }) match {
         case Full(x) => 
+          this.rule = rule;
           onSuccess
         case Empty => //arg. 
           formTracker.addFormError(error("An error occurred while saving the Rule"))
