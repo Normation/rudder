@@ -471,11 +471,15 @@ case class RuleStatusReport(
   nodesreport  : Seq[(NodeId,ReportType)] 
 ) {
   def computeCompliance : Option[Int] = {
-    if (nodesreport.size>0)
+    if (nodesreport.size>0){
+      val reportsSize = nodesreport.size.toDouble
       Some((nodesreport.map(report => report._2 match {
       case SuccessReportType => 1
       case _ => 0
-    }):\ 0)((res:Int,value:Int) => res+value) * 100 / nodesreport.size)
+    }):\ 0)((res:Int,value:Int) => res+value) * 100 / reportsSize).map{ res =>
+      BigDecimal(res).setScale(0,BigDecimal.RoundingMode.HALF_UP).toInt
+      }
+    }
     else
       None
   }
@@ -498,7 +502,7 @@ case class ComponentRuleStatusReport (
   override def computeCompliance =
    if (componentValues.size>0){
      Some((componentValues.map(_.computeCompliance.getOrElse(0))
-         :\ 0)((res:Int,value:Int) => res+value) / componentValues.size)
+         :\ 100)((res:Int,value:Int) => if(value>res)res else value))
 }
     else
       None
@@ -512,7 +516,7 @@ case class DirectiveRuleStatusReport(
     override def computeCompliance =
    if (components.size>0){
      Some((components.map(_.computeCompliance.getOrElse(0))
-         :\ 0)((res:Int,value:Int) => res+value)/ components.size)
+         :\ 100)((res:Int,value:Int) => if(value>res)res else value))
 }
     else
       None

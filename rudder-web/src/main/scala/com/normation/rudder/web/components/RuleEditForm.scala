@@ -1127,35 +1127,35 @@ class RuleEditForm(
     
     
     
-   def showdetail(nodestats : Seq[(NodeId,ReportType)]) : NodeSeq= {
-     val nodes = nodestats.map(_._1).distinct
-     val nodestatus = nodes.map(node => (node,ReportType.getWorseType(nodestats.filter(_._1==node).map(stat => stat._2))))
-     nodestatus.toList match {
+   def showNodeReports(nodeReports : Seq[(NodeId,ReportType)]) : NodeSeq= {
+     val nodes = nodeReports.map(_._1).distinct
+     val nodeStatuses = nodes.map(node => (node,ReportType.getWorseType(nodeReports.filter(_._1==node).map(stat => stat._2))))
+     nodeStatuses.toList match {
      case Nil =>  NodeSeq.Empty
-     case nodestat :: rest =>
-     val test = nodeInfoService.getNodeInfo(nodestat._1) match {
+     case nodeStatus :: rest =>
+     val nodeReport = nodeInfoService.getNodeInfo(nodeStatus._1) match {
      case Full(nodeInfo)  => {
        val tooltipid = Helpers.nextFuncName
                ("#node *" #>
-               <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodestat._1.value)}>
+               <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus._1.value)}>
                <span class="curspoint">
                {nodeInfo.hostname}
                </span>
                </a> &
-               "#severity *" #> ReportType.getSeverityFromStatus(nodestat._2) &
-               ".unfoldable [class+]" #> ReportType.getSeverityFromStatus(nodestat._2).replaceAll(" ", "")
+               "#severity *" #> ReportType.getSeverityFromStatus(nodeStatus._2) &
+               ".unfoldable [class+]" #> ReportType.getSeverityFromStatus(nodeStatus._2).replaceAll(" ", "")
                )(nodeLineXml)
        }
      case x:EmptyBox =>
-       logger.error( (x?~! "An error occured when trying to load node %s".format(nodestat._1.value)),x)
-       <div class="error">Node with ID "{nodestat._1.value}" is invalid</div>
+       logger.error( (x?~! "An error occured when trying to load node %s".format(nodeStatus._1.value)),x)
+       <div class="error">Node with ID "{nodeStatus._1.value}" is invalid</div>
      }
-     test ++ showdetail(rest)
+     nodeReport ++ showNodeReports(rest)
      }
     }
-    def showReportDetail(nodestats : Seq[(NodeId,ReportType)]) : NodeSeq = {
+    def showReportDetail(nodeReports : Seq[(NodeId,ReportType)]) : NodeSeq = {
      ( "#reportLine" #>
-     {showdetail(nodestats)}
+     {showNodeReports(nodeReports)}
      )(reportsGridXml)
     }
 
