@@ -526,7 +526,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     new JsTreeNode {
       override def body = { 
         val tooltipid = Helpers.nextFuncName
-        ( <a>
+        ( <a href="#">
             <span class="treeActiveTechniqueCategoryName tooltipable" tooltipid={tooltipid}>
               {Text(category.name)}
             </span>

@@ -180,13 +180,20 @@ var buildDirectiveTree = function(id, initially_select) {
                 "image" : "images/tree/folder_16x16.png" 
               },
               "valid_children" : [ "category", "template" ],
-              "select_node" : false
+              "select_node" : function(e) {
+            	  this.toggle_node(e);
+            	  return false;
+              }
             },
             "template" : {
               "icon" : { 
                 "image" : "images/tree/technique_16x16.png" 
               },
-              "valid_children" : [ "directive" ]
+              "valid_children" : [ "directive" ],
+              "select_node" : function(e) {
+            	  this.toggle_node(e);
+            	  return true;
+              }
             },
             "directive" : {
               "icon" : { 
