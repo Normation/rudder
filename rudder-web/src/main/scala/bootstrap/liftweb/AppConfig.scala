@@ -93,12 +93,12 @@ import com.normation.rudder.migration.ControlEventLogsMigration_2_3
 import com.normation.rudder.migration.EventLogsMigration_2_3
 import com.normation.rudder.migration.MigrationEventLogRepository
 import com.normation.rudder.migration.EventLogMigration_2_3
-import com.normation.rudder.migration.LogMigrationEventLog_2_3
 import com.normation.rudder.migration.XmlMigration_2_3
 import com.normation.rudder.web.services.UserPropertyService
 import java.lang.IllegalArgumentException
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.repository.ldap.LDAPNodeGroupRepository
+import logger.MigrationLogger
 
 /**
  * Spring configuration for services
@@ -960,8 +960,8 @@ class AppConfig extends Loggable {
   def eventLogsMigration_2_3 = new EventLogsMigration_2_3(
       jdbcTemplate      = jdbcTemplate
     , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
-    , errorLogger       = LogMigrationEventLog_2_3.defaultErrorLogger
-    , successLogger     = LogMigrationEventLog_2_3.defaultSuccessLogger
+    , errorLogger       = MigrationLogger(3).defaultErrorLogger
+    , successLogger     = MigrationLogger(3).defaultSuccessLogger
     , batchSize         = 1000      
    )
   

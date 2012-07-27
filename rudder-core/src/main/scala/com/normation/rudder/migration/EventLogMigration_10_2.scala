@@ -55,14 +55,15 @@ import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
 import com.normation.rudder.services.marshalling.TestFileFormat
 import com.normation.utils.Control._
 import com.normation.utils.XmlUtils
+import com.normation.rudder.domain.logger._
 
-import LogMigrationEventLog_10_2.logger
 import net.liftweb.common._
 import net.liftweb.util.Helpers.strToCssBindPromoter
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.IterableFunc.itNodeSeq
 import net.liftweb.util.StringPromotable.intToStrPromo
 
+/*
 /**
  * ////////////////////////////////////////
  * The logger to use for tracking that
@@ -87,7 +88,7 @@ object LogMigrationEventLog_10_2 {
     logger.info("Successfully migrated %s eventlog to format 2".format(seq.size))
   }
 }
-
+*/
 /**
  * ////////////////////////////////////////
  * DataBase
@@ -210,7 +211,7 @@ class ControlEventLogsMigration_10_2(
   , eventLogsMigration_10_2    : EventLogsMigration_10_2
 
 ) {
-  import LogMigrationEventLog_10_2.logger
+ def logger = MigrationLogger(2)
   
   def migrate() : Box[MigrationStatus] = {
     /*
@@ -298,7 +299,7 @@ class EventLogsMigration_10_2(
   , successLogger              : Seq[MigrationEventLog] => Unit
   , batchSize                  : Int = 1000
 ) {
-  import LogMigrationEventLog_10_2.logger
+ def logger = MigrationLogger(2)
   
  
   /**
@@ -434,7 +435,7 @@ object TestIsEntry {
  * Change labels of a list of Elem
  */
 case class ChangeLabel(label:String) extends Function1[NodeSeq, Option[Elem]] {
-  import LogMigrationEventLog_10_2.logger
+   def logger = MigrationLogger(2)
 
   override def apply(nodes:NodeSeq) = nodes match {
     case e:Elem => Some(e.copy(label = label))
@@ -447,7 +448,7 @@ case class ChangeLabel(label:String) extends Function1[NodeSeq, Option[Elem]] {
  * Change labels of a list of Elem
  */
 case class EncapsulateChild(label:String) extends Function1[NodeSeq, Option[NodeSeq]] {
-  import LogMigrationEventLog_10_2.logger
+ def logger = MigrationLogger(2)
 
   override def apply(nodes:NodeSeq) = nodes match {
     case e:Elem => Some(e.copy(child = Encapsulate(label).apply(e.child).getOrElse(NodeSeq.Empty)))
@@ -460,7 +461,7 @@ case class EncapsulateChild(label:String) extends Function1[NodeSeq, Option[Node
  * Change labels of a list of Elem
  */
 case class Encapsulate(label:String) extends Function1[NodeSeq, Option[NodeSeq]] {
-  import LogMigrationEventLog_10_2.logger
+   def logger = MigrationLogger(2)
 
   override def apply(nodes:NodeSeq) = nodes match {
     case e:Elem => Some(e.copy(label=label,child=e))
@@ -477,7 +478,7 @@ case class Encapsulate(label:String) extends Function1[NodeSeq, Option[NodeSeq]]
  * Also take care of categories, etc. 
  */
 class EventLogMigration_10_2(xmlMigration:XmlMigration) {
-  import LogMigrationEventLog_10_2.logger
+ def logger = MigrationLogger(2)
   
   def migrate(eventLog:MigrationEventLog) : Box[MigrationEventLog] = {
     /*
