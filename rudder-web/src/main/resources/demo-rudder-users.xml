@@ -49,20 +49,34 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
 <authentication>
   <user name="jon.doe"  password="secret" role="administrator" />
   <user name="alex.bar" password="secret2" role="read_only"/>
-  <!-- Authorizations
-  You must define a role attribute to every user you add
-  there's 7 predefined roles:
-      administrator (all rights)
-    , administration_only (all administration)
-    , user (all node, configuration))
-    , configuration(all configuration)
-    , read_only (read all)
-    , compliance(read rule)
-    , inventory (read node)
-  You can also have custom roles, format is role="(type_level,)*type_level"
-    types are : node, group, deployement, administration, configuration, rule, technique, directive.
-    levels are: read, write, edit, all(read, write, edit)
-   -->
+  <!-- 
+  Authorizations
+  	You must define a role attribute to every user you add.
+  A role is defined by a list of authorizations separated by commas.
+  There's two kind of authorizations : 
+  
+  Predefined authorizations
+  
+  	there's 7 predefined authorization:
+      - administrator (all rights)
+      - administration_only (all administration)
+      - user (all node, configuration)
+      - configuration(all configuration)
+      - read_only (read all)
+      - compliance(read rule)
+      - inventory (read node)
+      
+  Custom authorizations
+
+	Custom authorisations are composed of two elements: 
+	- A type of authorization, which define what is concerned
+	 	there's is 8 types, which are : node, group, deployement,
+	 	 administration, configuration, rule, technique, directive.
+    - A level of authorization, 
+    	levels are: read, write, edit, all(read, write, edit)
+    	They are not inclusive (write and edit don't include read,)
+    a custom authorisation has a format like that "type_level" like "node_all", "group_read"
+    -->
   <!--  exemple of bad lines -->
   <!--  <user name="" password="secret2" role="administrator"/>-->
   <!--  <user name="name" password="" role="administrator"/>-->
