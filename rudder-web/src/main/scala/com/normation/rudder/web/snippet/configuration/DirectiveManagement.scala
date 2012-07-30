@@ -418,7 +418,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, dir)
         Replace(htmlId_policyConf, showDirectiveDetails) &
         JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})"""
-          .format(dir.id.value))
+          .format(dir.id.value)) &
+        Replace(htmlId_activeTechniquesTree, userLibrary)
       }
       case eb:EmptyBox => {
         val errMsg = "Error when trying to get directive'%s' [%s] info with its " +
