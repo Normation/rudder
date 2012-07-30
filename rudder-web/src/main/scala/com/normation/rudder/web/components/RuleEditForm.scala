@@ -213,7 +213,7 @@ class RuleEditForm(
    (
        "#removeActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
        "#dialogRemoveButton" #> { removeButton % ("id", "removeButton") } &
-       ".reasonsFieldsetPopup" #> { crReasonsPopup.map { f =>
+       ".reasonsFieldsetPopup" #> { crReasonsRemovePopup.map { f =>
          "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
          "#reasonsField" #> f.toForm_!
        } } &
@@ -227,7 +227,7 @@ class RuleEditForm(
       "#dialogDisactivateButton" #> { disactivateButton % ("id", "disactivateButton") } &
       "#dialogDeactivateTitle" #> { if(crCurrentStatusIsActivated) "Disable" else "Enable" } &
       "#dialogDisactivateLabel" #> { if(crCurrentStatusIsActivated) "disable" else "enable" } &
-      ".reasonsFieldsetPopup" #> { crReasonsPopup.map { f =>
+      ".reasonsFieldsetPopup" #> { crReasonsDisactivatePopup.map { f =>
          "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
          "#reasonsField" #> f.toForm_!
       } } &
@@ -428,7 +428,7 @@ class RuleEditForm(
         { 
           (for {
             save   <- ruleRepository.delete(rule.id, CurrentUser.getActor, 
-                        crReasonsPopup.map( _.is))
+                        crReasonsRemovePopup.map( _.is))
             deploy <- {
               asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
               Full("Deployment request sent")
@@ -473,7 +473,7 @@ class RuleEditForm(
       } else {
         crCurrentStatusIsActivated = status
         JsRaw("$.modal.close();") & 
-        saveAndDeployRule(rule.copy(isEnabledStatus = status))
+        saveAndDeployRule(rule.copy(isEnabledStatus = status), crReasonsDisactivatePopup.map(_.is))
       }
     }
     
@@ -547,7 +547,16 @@ class RuleEditForm(
     }
   }
   
-  private[this] val crReasonsPopup = {
+  private[this] val crReasonsDisactivatePopup = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+  
+  private[this] val crReasonsRemovePopup = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
@@ -583,11 +592,11 @@ class RuleEditForm(
   }
   
   private[this] val formTrackerRemovePopup = {
-    new FormTracker(crReasonsPopup.toList) 
+    new FormTracker(crReasonsRemovePopup.toList) 
   }
   
   private[this] val formTrackerDisactivatePopup = {
-    new FormTracker(crReasonsPopup.toList) 
+    new FormTracker(crReasonsDisactivatePopup.toList) 
   }
   
   private[this] def activateButtonOnChange() : JsCmd = {
@@ -631,13 +640,13 @@ class RuleEditForm(
         directiveIds = selectedDirectiveIds,
         isEnabledStatus = crCurrentStatusIsActivated
       )
-      saveAndDeployRule(newCr)
+      saveAndDeployRule(newCr, crReasons.map(_.is))
     }
   }
   
-  private[this] def saveAndDeployRule(rule:Rule) : JsCmd = {
+  private[this] def saveAndDeployRule(rule:Rule, reason: Option[String]) : JsCmd = {
       (for {
-        save <- ruleRepository.update(rule, CurrentUser.getActor, crReasons.map( _.is) )
+        save <- ruleRepository.update(rule, CurrentUser.getActor, reason)
         deploy <- {
           asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
           Full("Deployment request sent")
