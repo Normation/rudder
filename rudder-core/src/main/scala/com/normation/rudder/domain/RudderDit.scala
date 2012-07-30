@@ -134,7 +134,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   val ACTIVE_TECHNIQUES_LIB = new CATEGORY(
       uuid = "Active Techniques",
       parentDN = BASE_DN,
-      name = "Root of active techniques's library",
+      name = "Root of active techniques' library",
       description = "This is the root category for active techniques. It contains subcategories, actives techniques and directives",
       isSystem = true,
       objectClass = OC_TECHNIQUE_CATEGORY,
