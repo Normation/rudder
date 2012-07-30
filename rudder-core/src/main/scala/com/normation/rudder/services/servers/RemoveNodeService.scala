@@ -62,10 +62,16 @@ class RemoveNodeServiceImpl(
    */
   def removeNode(nodeId : NodeId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
     logger.debug("Trying to remove node %s from the LDAP".format(nodeId.value))
-    for {
-      moved    <- groupLibMutex.writeLock { atomicDelete(nodeId, actor) } ?~! "Error when archiving a node"
-    } yield {
-      moved
+    nodeId.value match {
+      case "root" => Failure("The root node cannot be deleted from the nodes list.")
+      case _ => {
+        for {
+          moved <- groupLibMutex.writeLock { atomicDelete(nodeId, actor) } ?~! 
+                   "Error when archiving a node"
+        } yield {
+          moved
+        }
+      }
     }
   }
   

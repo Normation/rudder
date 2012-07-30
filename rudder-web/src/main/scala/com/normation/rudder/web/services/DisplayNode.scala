@@ -266,9 +266,14 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
             <div id={errorPopupHtmlId}  class="nodisplay" />
             <div id={successPopupHtmlId}  class="nodisplay" />
             <lift:authz role="node_write">
-            <fieldset class="nodeIndernal"><legend>Action</legend>
-              {SHtml.ajaxButton("Delete this node", { () => {showPopup(sm.node.main.id); } } ) }
-            </fieldset>
+              {
+                if(!isRootNode(sm.node.main.id)) {
+                  <fieldset class="nodeIndernal"><legend>Action</legend>
+                    SHtml.ajaxButton("Delete this node", 
+                      { () => {showPopup(sm.node.main.id); } }) 
+                  </fieldset>
+                }
+              }
               </lift:authz> ++ {Script(OnLoad(JsRaw("""correctButtons();""") ) ) }
           case _ => NodeSeq.Empty
         }
@@ -672,5 +677,9 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     JsRaw( """$.modal.close();""") &
     SetHtml(successPopupHtmlId, popupHtml) &
     JsRaw( """ callPopupWithTimeout(200,"%s",300,400) """.format(successPopupHtmlId))
+  }
+  
+  private [this] def isRootNode(n: NodeId): Boolean = {
+    return n.value.equals("root"); 
   }
 }
