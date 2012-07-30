@@ -65,6 +65,7 @@ class EventListDisplayer(
       logDetailsService   : EventLogDetailsService
     , repos               : EventLogRepository
     , nodeGroupRepository : NodeGroupRepository
+    , directiveRepository : DirectiveRepository
 ) extends Loggable {
   
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
@@ -375,17 +376,8 @@ class EventListDisplayer(
                 ) &
                 "#policies" #> (
                    modDiff.modDirectiveIds.map { diff =>
-                   val mapList = (set:Set[DirectiveId]) => {
-                     if(set.size < 1) Text("None")
-                     else 
-                         { 
-                           set.toSeq.sortWith( _.value < _.value ).map { id =>
-                             <span>policy(<a href={directiveLink(id)}>{id.value}</a>)&nbsp;</span>
-                           }
-                         }
-                   }
-                   ".diffOldValue *" #> mapList(diff.oldValue) &
-                   ".diffNewValue *" #> mapList(diff.newValue)
+                     ".diffOldValue *" #> directiveTargetDetails(diff.oldValue) &
+                     ".diffNewValue *" #> directiveTargetDetails(diff.newValue)
                    }
                 )
               )(crModDetailsXML)
@@ -719,7 +711,7 @@ class EventListDisplayer(
     nodeGroupRepository.getNodeGroup(id) match {
       case t: EmptyBox => 
         <span>group({id.value})</span>
-      case Full(nodeGroup) => nodeGroup.name
+      case Full(nodeGroup) => 
         <span>group(<a href={groupLink(id)}>{nodeGroup.name}</a>)</span>
     }
   }
@@ -727,7 +719,7 @@ class EventListDisplayer(
   private[this] def groupTargetDetails(targets: Set[RuleTarget]): NodeSeq = {
     val res = targets.toSeq match {
       case Seq() => NodeSeq.Empty
-      case _ =>
+      case t =>
         targets
         .toSeq
         .map { target =>
@@ -743,6 +735,34 @@ class EventListDisplayer(
     (
       ".groupSeparator" #> ", "
     )(res)
+  }
+  
+  private[this] def directiveTargetDetails(set: Set[DirectiveId]): NodeSeq = {
+    if(set.size < 1) 
+      Text("None")
+    else { 
+      set match {
+        case Seq() => NodeSeq.Empty
+        case _ =>
+          val res = {
+            set
+              .toSeq
+              .sortWith( _.value < _.value )
+              .map { id =>
+                directiveRepository.getDirective(id) match {
+                  case t: EmptyBox => 
+                    <span>directive({id.value})</span>
+                  case Full(directive) => 
+                    <span>directive(<a href={directiveLink(id)}>{directive.name}</a>)</span>
+                }
+              }
+              .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
+          }
+          (
+            ".groupSeparator" #> ", "
+          )(res)
+      }
+    }
   }
   
   private[this] def ruleDetails(xml:NodeSeq, rule:Rule) = (
@@ -933,7 +953,7 @@ class EventListDisplayer(
       {liModDetailsXML("shortDescription", "Description")}
       {liModDetailsXML("longDescription", "Details")}
       {liModDetailsXML("target", "Target")}
-      {liModDetailsXML("policies", "Policies")}
+      {liModDetailsXML("policies", "Directives")}
       {liModDetailsXML("isEnabled", "Activation status")}
       {liModDetailsXML("isSystem", "System")}
     </xml:group>
