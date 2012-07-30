@@ -951,7 +951,7 @@ class RuleEditForm(
     new JsTreeNode {
       override def body = {
         val tooltipid = Helpers.nextFuncName
-        <a>
+        <a href="#">
           <span class="treeActiveTechniqueCategoryName tooltipable" 
               tooltipid={tooltipid} title={category.description}>
             {Text(category.name)}
