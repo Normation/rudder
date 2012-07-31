@@ -269,8 +269,9 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
               {
                 if(!isRootNode(sm.node.main.id)) {
                   <fieldset class="nodeIndernal"><legend>Action</legend>
-                    SHtml.ajaxButton("Delete this node", 
+                    {SHtml.ajaxButton("Delete this node", 
                       { () => {showPopup(sm.node.main.id); } }) 
+                    }
                   </fieldset>
                 }
               }
