@@ -1,5 +1,6 @@
 package com.normation.rudder.services.eventlog
 import com.normation.rudder.domain.policies.ModifyRuleDiff
+import com.normation.rudder.domain.policies.ModifyTechniqueDiff
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.policies.AddRuleDiff
 import com.normation.eventlog.EventActor
@@ -27,6 +28,7 @@ import com.normation.rudder.services.marshalling.NodeGroupSerialisation
 import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
 import com.normation.eventlog.EventLogDetails
+import scala.xml._
 
 trait EventLogFactory {
   
@@ -113,6 +115,15 @@ trait EventLogFactory {
     , severity    : Int = 100
     , reason      : Option[String]
   ) : ModifyNodeGroup
+ 
+  def getModifyTechniqueFromDiff(
+      id          : Option[Int] = None
+    , principal   : EventActor
+    , modifyDiff  : ModifyTechniqueDiff
+    , creationDate: DateTime = DateTime.now()
+    , severity    : Int = 100
+    , reason      : Option[String]
+  ) : ModifyTechnique
   
 }
 
@@ -357,6 +368,31 @@ class EventLogFactoryImpl(
       </nodeGroup>)
     }
     ModifyNodeGroup(EventLogDetails(
+        id = id
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity))
+  }
+  
+  override def getModifyTechniqueFromDiff(
+      id          : Option[Int] = None
+    , principal   : EventActor
+    , modifyDiff  : ModifyTechniqueDiff
+    , creationDate: DateTime = DateTime.now()
+    , severity    : Int = 100
+    , reason      : Option[String]
+  ) : ModifyTechnique = {
+    val details = EventLog.withContent{
+      scala.xml.Utility.trim(<technique changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+        <id>{modifyDiff.id.value}</id>
+        <displayName>{modifyDiff.name}</displayName>{
+          modifyDiff.modIsEnabled.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x ) ).toSeq
+        }
+      </technique>)
+    }
+    ModifyTechnique(EventLogDetails(
         id = id
       , principal = principal
       , details = details

@@ -496,8 +496,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   }
 
  def onUpdateTechniqueFailureCallBack() : JsCmd = {
-   val errorMessage = "Error while trying to delete Active Technique."
-   Alert(errorMessage)
+//   val errorMessage = "Error while trying to delete Active Technique."
+//   Alert(errorMessage)
  }
   
   //////////////// display trees ////////////////////////  

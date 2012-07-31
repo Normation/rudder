@@ -118,6 +118,8 @@ trait EventLogDetailsService {
 
   def getTechniqueLibraryReloadDetails(xml:NodeSeq) : Box[Seq[TechniqueId]]
   
+  def getTechniqueModifyDetails(xml: NodeSeq): Box[ModifyTechniqueDiff]
+  
   ///// archiving & restoration /////
   
   def getNewArchiveDetails[T <: ExportEventLog](xml:NodeSeq, archive:T) : Box[GitArchiveId]
@@ -613,6 +615,28 @@ class EventLogDetailsServiceImpl(
       activeTechniqueIds
     }
   }
+  
+  def getTechniqueModifyDetails(xml: NodeSeq): Box[ModifyTechniqueDiff] = {
+    for {
+      entry              <- getEntryContent(xml)
+      technique            <- (entry \ "technique").headOption ?~! 
+                            ("Entry type is not a technique: " + entry)
+      id                <- (technique \ "id").headOption.map( _.text ) ?~! 
+                           ("Missing attribute 'id' in entry type technique : " + entry)
+      displayName       <- (technique \ "displayName").headOption.map( _.text ) ?~! 
+                           ("Missing attribute 'displayName' in entry type rule : " + entry)
+      isEnabled         <- getFromTo[Boolean]((technique \ "isEnabled").headOption, 
+                             { s => tryo { s.text.toBoolean } } ) 
+      fileFormatOk       <- TestFileFormat(technique)
+    } yield {
+      ModifyTechniqueDiff(
+          id = ActiveTechniqueId(id)
+        , name = TechniqueName(displayName)
+        , modIsEnabled = isEnabled
+      )
+    }
+  }
+  
   
   
   

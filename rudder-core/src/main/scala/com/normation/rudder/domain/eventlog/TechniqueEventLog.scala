@@ -73,6 +73,19 @@ object ReloadTechniqueLibrary extends EventLogFilter {
 
 object TechniqueEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      ReloadTechniqueLibrary 
+      ReloadTechniqueLibrary, ModifyTechnique
     )
+}
+
+final case class ModifyTechnique(
+    override val eventDetails : EventLogDetails
+) extends TechniqueEventLog with HashcodeCaching {
+  override val cause = None
+  override val eventType = ModifyTechnique.eventType
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+}
+
+object ModifyTechnique extends EventLogFilter {
+  override val eventType = ModifyTechniqueEventType
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyTechnique = ModifyTechnique(x._2) 
 }

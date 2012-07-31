@@ -65,8 +65,10 @@ class LDAPActiveTechniqueRepository(
     rudderDit         : RudderDit
   , ldap              : LDAPConnectionProvider
   , mapper            : LDAPEntityMapper
+  , diffMapper        : LDAPDiffMapper
   , uuidGen           : StringUuidGenerator
   , userCategoryRepo  : LDAPActiveTechniqueCategoryRepository
+  , actionLogger      : EventLogRepository
   , gitArchiver       : GitActiveTechniqueArchiver
   , personIdentService: PersonIdentService
   , autoExportOnModify: Boolean
@@ -232,11 +234,19 @@ class LDAPActiveTechniqueRepository(
   def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
     for {
       con         <- ldap
-      activeTechnique         <- getUPTEntry(con, uactiveTechniqueId, A_IS_ENABLED)
+      oldTechnique         <- getUPTEntry(con, uactiveTechniqueId)
+      activeTechnique      <- getUPTEntry(con, uactiveTechniqueId)
       saved       <- {
                        activeTechnique +=! (A_IS_ENABLED, status.toLDAPString)
                        userLibMutex.writeLock { con.save(activeTechnique) }
                      }
+      optDiff       <- diffMapper.modChangeRecords2TechniqueDiff(oldTechnique, saved) ?~! 
+                       "Error when mapping technique '%s' update to an diff: %s"
+                         .format(uactiveTechniqueId.value, saved)
+      loggedAction  <- optDiff match {
+                         case None => Full("OK")
+                         case Some(diff) => actionLogger.saveModifyTechnique(principal = actor, modifyDiff = diff, reason = reason)
+                       }
       autoArchive <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord]) {
                          for {
                            parents  <- this.activeTechniqueBreadCrump(uactiveTechniqueId)

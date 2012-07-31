@@ -753,8 +753,10 @@ class AppConfig extends Loggable {
   @Bean
   def ldapActiveTechniqueRepository = new LDAPActiveTechniqueRepository(
       rudderDit, ldap, ldapEntityMapper
+    , ldapDiffMapper
     , uuidGen
     , ldapActiveTechniqueCategoryRepository
+    , logRepository
     , gitActiveTechniqueArchiver
     , personIdentService
     , autoArchiveItems

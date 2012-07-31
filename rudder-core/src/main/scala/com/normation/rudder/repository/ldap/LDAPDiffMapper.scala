@@ -156,6 +156,34 @@ class LDAPDiffMapper(
   }
 
   
+  ///// Technique diff /////
+  
+  def modChangeRecords2TechniqueDiff(beforeChangeEntry: LDAPEntry, change: LDIFChangeRecord): Box[Option[ModifyTechniqueDiff]] = {
+    if(change.getParsedDN == beforeChangeEntry.dn ) {
+      change match {
+        case modify:LDIFModifyChangeRecord => 
+          for {
+            oldTechnique <- mapper.entry2ActiveTechnique(beforeChangeEntry)
+            diff <- pipeline(modify.getModifications(), ModifyTechniqueDiff(oldTechnique.id, oldTechnique.techniqueName)) { (mod, diff) =>
+              mod.getAttributeName() match {
+                case A_IS_ENABLED =>
+                  tryo(diff.copy(modIsEnabled = Some(SimpleDiff(oldTechnique.isEnabled, mod.getAttribute().getValueAsBoolean))))
+                case x => Failure("Unknown diff attribute: " + x)
+              }
+            } 
+          } yield {
+            Some(diff)
+          }
+        
+        case noop:LDIFNoopChangeRecord => Full(None)
+          
+        case _ => Failure("Bad change record type for requested action 'update technique': %s".format(change))
+      }
+    } else {
+      Failure("The following change record does not belong to Technique entry '%s': %s".format(beforeChangeEntry.dn,change))
+    }
+  }
+    
   ///// directive diff /////
 
   def modChangeRecords2DirectiveSaveDiff(ptName:TechniqueName, variableRootSection:SectionSpec, piDn:DN, oldPiEntry:Option[LDAPEntry], change:LDIFChangeRecord) : Box[Option[DirectiveSaveDiff]] = {
