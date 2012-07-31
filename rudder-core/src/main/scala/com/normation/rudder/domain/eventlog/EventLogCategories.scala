@@ -115,6 +115,10 @@ final case object ReloadTechniqueLibraryType extends EventLogType {
   def serialize = "ReloadTechniqueLibrary"
 }
 
+final case object ModifyTechniqueEventType extends EventLogType {
+  def serialize = "TechniqueModified"
+}
+
 // rule related event type
 final case object AddRuleEventType extends EventLogType {
   def serialize = "RuleAdded"
@@ -222,6 +226,7 @@ object EventTypeFactory {
     , ActivateRedButtonEventType
     , ReleaseRedButtonEventType
     , ReloadTechniqueLibraryType 
+    , ModifyTechniqueEventType
       
     , AddRuleEventType
     , DeleteRuleEventType

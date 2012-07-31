@@ -128,6 +128,15 @@ trait EventLogRepository {
     ))
   } 
   
+  def saveModifyTechnique(principal: EventActor, modifyDiff: ModifyTechniqueDiff, reason:Option[String]) = {
+    saveEventLog(eventLogFactory.getModifyTechniqueFromDiff(
+        principal = principal
+      , modifyDiff = modifyDiff
+      , reason = reason
+    ))
+  }
+
+  
   /**
    * Get an EventLog by its entry
    */

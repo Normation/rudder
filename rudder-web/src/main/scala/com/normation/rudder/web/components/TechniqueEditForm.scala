@@ -322,7 +322,7 @@ class TechniqueEditForm(
   
   private[this] def onFailure() : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
-    updateFormClientSide() & onFailureCallback()
+    updateFormClientSide()
   }
   
   private[this] def onFailureRemovePopup() : JsCmd = {
@@ -611,20 +611,21 @@ class TechniqueEditForm(
   
   private[this] def statusAndDeployTechnique(uactiveTechniqueId:ActiveTechniqueId, status:Boolean) : JsCmd = {
       (for {
-        save <- activeTechniqueRepository.changeStatus(uactiveTechniqueId, status, CurrentUser.getActor, Some("User changed status from UI"))
+        save <- activeTechniqueRepository.changeStatus(uactiveTechniqueId, status, 
+                  CurrentUser.getActor, crReasonsDisablePopup.map(_.is))
         deploy <- {
           asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
           Full("Deployment request sent")
         }
       } yield {
-        deploy 
+        save 
       }) match {
         case Full(x) => onSuccess
-        case Empty => //arg. 
-          formTracker.addFormError(error("An error occurred while saving the Rule"))
+        case Empty => 
+          formTracker.addFormError(error("An error occurred while saving the Technique"))
           onFailure
         case f:Failure =>
-          formTracker.addFormError(error("An error occurred while saving the Rule: " + f.messageChain))
+          formTracker.addFormError(error("An error occurred while saving the Technique: " + f.messageChain))
           onFailure
       }      
   }

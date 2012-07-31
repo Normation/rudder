@@ -280,6 +280,7 @@ class EventListDisplayer(
       case x:ClearCacheEventLog => Text("Clear caches of all nodes")
       case x:UpdatePolicyServer => Text("Change Policy Server authorized network")
       case x:ReloadTechniqueLibrary => Text("Technique library reloaded")
+      case x:ModifyTechnique => Text("Technique modified")
       case x:SuccessfulDeployment => Text("Successful deployment")
       case x:FailedDeployment => Text("Failed deployment")
       case x:ExportGroupsArchive => Text("New groups archive")
@@ -643,6 +644,26 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
               </div>
             
+          case e:EmptyBox => errorMessage(e)
+        })
+        
+      // Technique modified
+      case x:ModifyTechnique =>
+        "*" #> (logDetailsService.getTechniqueModifyDetails(x.details) match {
+          case Full(modDiff) =>            
+            <div class="evloglmargin">
+              <h4>Technique overview:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Technique ID:</b> { modDiff.id.value }</li>
+                <li><b>Name:</b> { modDiff.name }</li>
+              </ul>
+              {(
+                "#isEnabled *" #> mapSimpleDiff(modDiff.modIsEnabled)
+              )(liModDetailsXML("isEnabled", "Activation status"))
+              }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
