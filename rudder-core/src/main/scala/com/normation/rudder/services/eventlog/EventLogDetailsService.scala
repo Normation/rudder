@@ -47,9 +47,7 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
 import org.joda.time.format.ISODateTimeFormat
-import com.normation.rudder.services.marshalling.RuleUnserialisation
-import com.normation.rudder.services.marshalling.NodeGroupUnserialisation
-import com.normation.rudder.services.marshalling.DirectiveUnserialisation
+import com.normation.rudder.services.marshalling._
 import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.domain.servers.NodeConfiguration
@@ -120,6 +118,8 @@ trait EventLogDetailsService {
   
   def getTechniqueModifyDetails(xml: NodeSeq): Box[ModifyTechniqueDiff]
   
+  def getTechniqueDeleteDetails(xml:NodeSeq) : Box[DeleteTechniqueDiff] 
+  
   ///// archiving & restoration /////
   
   def getNewArchiveDetails[T <: ExportEventLog](xml:NodeSeq, archive:T) : Box[GitArchiveId]
@@ -131,10 +131,11 @@ trait EventLogDetailsService {
  * Details should always be in the format: <entry>{more details here}</entry>
  */
 class EventLogDetailsServiceImpl(
-    cmdbQueryParser  : CmdbQueryParser
-  , piUnserialiser   : DirectiveUnserialisation
-  , groupUnserialiser: NodeGroupUnserialisation
-  , crUnserialiser   : RuleUnserialisation
+    cmdbQueryParser                 : CmdbQueryParser
+  , piUnserialiser                  : DirectiveUnserialisation
+  , groupUnserialiser               : NodeGroupUnserialisation
+  , crUnserialiser                  : RuleUnserialisation
+  , techniqueUnserialiser           : ActiveTechniqueUnserialisation
   , deploymentStatusUnserialisation : DeploymentStatusUnserialisation
 ) extends EventLogDetailsService {
 
@@ -619,11 +620,11 @@ class EventLogDetailsServiceImpl(
   def getTechniqueModifyDetails(xml: NodeSeq): Box[ModifyTechniqueDiff] = {
     for {
       entry              <- getEntryContent(xml)
-      technique            <- (entry \ "technique").headOption ?~! 
+      technique            <- (entry \ "activeTechnique").headOption ?~! 
                             ("Entry type is not a technique: " + entry)
       id                <- (technique \ "id").headOption.map( _.text ) ?~! 
                            ("Missing attribute 'id' in entry type technique : " + entry)
-      displayName       <- (technique \ "displayName").headOption.map( _.text ) ?~! 
+      displayName       <- (technique \ "techniqueName").headOption.map( _.text ) ?~! 
                            ("Missing attribute 'displayName' in entry type rule : " + entry)
       isEnabled         <- getFromTo[Boolean]((technique \ "isEnabled").headOption, 
                              { s => tryo { s.text.toBoolean } } ) 
@@ -637,8 +638,28 @@ class EventLogDetailsServiceImpl(
     }
   }
   
+  override def getTechniqueDeleteDetails(xml:NodeSeq) : Box[DeleteTechniqueDiff] = {
+    getTechniqueFromXML(xml, "delete").map { technique =>
+      DeleteTechniqueDiff(technique)
+    }
+  }
   
-  
+  /**
+   * Map XML into a technique
+   */
+  private[this] def getTechniqueFromXML(xml:NodeSeq, changeType:String) : Box[ActiveTechnique] = {  
+    for {
+      entry           <- getEntryContent(xml)
+      techniqueXml    <- (entry \ "activeTechnique").headOption ?~! ("Entry type is not a technique: " + entry)
+      changeTypeAddOk <- if(techniqueXml.attribute("changeType").map( _.text ) == Some(changeType)) 
+                           Full("OK")
+                         else 
+                           Failure("Technique attribute does not have changeType=%s: ".format(changeType) + entry)
+      technique       <- techniqueUnserialiser.unserialise(techniqueXml)
+    } yield {
+      technique
+    }
+  }
   
   def getNewArchiveDetails[T <: ExportEventLog](xml:NodeSeq, archive:T) : Box[GitArchiveId] = {
     def getCommitInfo(xml:NodeSeq, tagName:String) = {

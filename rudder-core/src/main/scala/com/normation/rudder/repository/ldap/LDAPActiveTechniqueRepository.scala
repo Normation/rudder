@@ -295,7 +295,11 @@ class LDAPActiveTechniqueRepository(
                        this.activeTechniqueBreadCrump(uactiveTechniqueId)
                      } else Full(Nil)
       activeTechnique         <- getUPTEntry(con, uactiveTechniqueId, A_TECHNIQUE_UUID)
+      ldapEntryTechnique <- getUPTEntry(con, uactiveTechniqueId)
+      oldTechnique <- mapper.entry2ActiveTechnique(ldapEntryTechnique)
       deleted     <- userLibMutex.writeLock { con.delete(activeTechnique.dn, false) }
+      diff            = DeleteTechniqueDiff(oldTechnique)
+      loggedAction <- actionLogger.saveDeleteTechnique(principal = actor, deleteDiff = diff, reason = reason)
       autoArchive <- (if(autoExportOnModify && deleted.size > 0) {
                        for {
                          ptName   <- Box(activeTechnique(A_TECHNIQUE_UUID)) ?~! "Missing required reference technique name"

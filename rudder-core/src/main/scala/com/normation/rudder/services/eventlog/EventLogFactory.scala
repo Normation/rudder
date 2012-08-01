@@ -1,6 +1,7 @@
 package com.normation.rudder.services.eventlog
 import com.normation.rudder.domain.policies.ModifyRuleDiff
 import com.normation.rudder.domain.policies.ModifyTechniqueDiff
+import com.normation.rudder.domain.policies.DeleteTechniqueDiff
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.policies.AddRuleDiff
 import com.normation.eventlog.EventActor
@@ -25,6 +26,7 @@ import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.services.marshalling.NodeGroupSerialisation
+import com.normation.rudder.services.marshalling.ActiveTechniqueSerialisation
 import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
 import com.normation.eventlog.EventLogDetails
@@ -125,12 +127,22 @@ trait EventLogFactory {
     , reason      : Option[String]
   ) : ModifyTechnique
   
+  def getDeleteTechniqueFromDiff(
+      id                 : Option[Int] = None
+    , principal          : EventActor
+    , deleteDiff         : DeleteTechniqueDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : DeleteTechnique
+  
 }
 
 class EventLogFactoryImpl(
     crToXml   : RuleSerialisation
   , piToXml   : DirectiveSerialisation
   , groutToXml: NodeGroupSerialisation
+  , techniqueToXml: ActiveTechniqueSerialisation
 ) extends EventLogFactory {
   
   ///// 
@@ -385,14 +397,32 @@ class EventLogFactoryImpl(
     , reason      : Option[String]
   ) : ModifyTechnique = {
     val details = EventLog.withContent{
-      scala.xml.Utility.trim(<technique changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+      scala.xml.Utility.trim(<activeTechnique changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{modifyDiff.id.value}</id>
-        <displayName>{modifyDiff.name}</displayName>{
-          modifyDiff.modIsEnabled.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x ) ).toSeq
+        <techniqueName>{modifyDiff.name}</techniqueName>{
+          modifyDiff.modIsEnabled.map(x => SimpleDiff.booleanToXml(<isEnabled/>, x )).toSeq
         }
-      </technique>)
+      </activeTechnique>)
     }
     ModifyTechnique(EventLogDetails(
+        id = id
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity))
+  }
+    
+  override def getDeleteTechniqueFromDiff(    
+      id          : Option[Int] = None
+    , principal   : EventActor
+    , deleteDiff  : DeleteTechniqueDiff
+    , creationDate: DateTime = DateTime.now()
+    , severity    : Int = 100
+    , reason      : Option[String]
+  ) : DeleteTechnique = {
+    val details = EventLog.withContent(techniqueToXml.serialise(deleteDiff.technique) % ("changeType" -> "delete"))
+    DeleteTechnique(EventLogDetails(
         id = id
       , principal = principal
       , details = details

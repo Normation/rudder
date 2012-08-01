@@ -366,7 +366,7 @@ class TechniqueEditForm(
         JsRaw("$.modal.close();") & 
         { 
           (for {
-            deleted <- dependencyService.cascadeDeleteTechnique(id, CurrentUser.getActor, crReasons.map (_.is))
+            deleted <- dependencyService.cascadeDeleteTechnique(id, CurrentUser.getActor, crReasonsRemovePopup.map (_.is))
             deploy <- {
               asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
               Full("Deployment request sent")
@@ -377,14 +377,19 @@ class TechniqueEditForm(
             case Full(x) => 
               formTrackerRemovePopup.clean
               onSuccessCallback() & 
-              SetHtml(htmlId_technique, <div id={htmlId_technique}>Rule successfully deleted</div> ) & 
+              SetHtml(htmlId_technique, <div id={htmlId_technique}>Technique successfully deleted</div> ) & 
               //show success popup
               successPopup 
             case Empty => //arg. 
+              println("******\n empty\n******")
               formTrackerRemovePopup.addFormError(error("An error occurred while deleting the Technique."))
               onFailure
             case Failure(m,_,_) =>
+              println("******\n failure\n******")
               formTrackerRemovePopup.addFormError(error("An error occurred while deleting the Technique: " + m))
+              println("************");
+              println(m);
+              println("************");
               onFailure
           }
         }
