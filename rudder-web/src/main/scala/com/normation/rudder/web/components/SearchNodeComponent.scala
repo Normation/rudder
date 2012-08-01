@@ -238,7 +238,13 @@ class SearchNodeComponent(
             "inputValue" -> {
               var form = a.cType.toForm(v, (x => lines(i) = lines(i).copy(value=x)), ("id","v_"+i), ("class", "queryInputValue"))
               if(!c.hasValue) form = form % Attribute("disabled",Seq(Text("disabled")),Null)
-              form },
+              form ++ {
+                if (activateSubmitButton)
+                  SHtml.ajaxSubmit("Search", processForm,("style" -> "display:none"))
+                else
+                  SHtml.ajaxSubmit("Search", () => Focus("v_"+i), ("style" -> "display:none"))
+              }
+            } ,
             "error" -> { errors(i) match { 
               case Full(m) => <tr><td class="error" colspan="6">{m}</td></tr>
               case _ => NodeSeq.Empty 
@@ -251,12 +257,13 @@ class SearchNodeComponent(
           Script(OnLoad(initJs))
         } else NodeSeq.Empty}
       },
-      "submit" -> {if (activateSubmitButton) 
-        SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton")) 
-              else  
-        SHtml.ajaxSubmit("Search", processForm, ("disabled" -> "true"), ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
+      "submit" -> {
+        if (activateSubmitButton)
+          SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
+        else
+          SHtml.ajaxSubmit("Search", processForm, ("disabled" -> "true"), ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
         }
-      )) 
+      ))
     }
     
     /**
