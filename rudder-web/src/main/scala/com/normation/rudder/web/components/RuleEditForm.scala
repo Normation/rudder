@@ -194,7 +194,7 @@ class RuleEditForm(
       "#editForm" #>  <div>You have no rights to see rules details, please contact your administrator</div>
       ) (body()))
     }
-    else{
+    else {
       <div>You have no rights to see rules details, please contact your administrator</div>
     } 
     form ++  Script(OnLoad(JsRaw("""$( "#editRuleZone" ).tabs();
