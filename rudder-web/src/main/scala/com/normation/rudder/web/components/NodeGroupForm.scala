@@ -90,8 +90,12 @@ object NodeGroupForm {
       chooseTemplate("component", "staticBody", xml)
     }) openOr Nil
 
-    
-    
+  private def popupRemoveForm = 
+    (for {
+      xml <- Templates("templates-hidden" :: "components" :: "NodeGroupForm" :: Nil)
+    } yield {
+      chooseTemplate("component", "popupRemoveForm", xml)
+    }) openOr Nil
     
     
   private def body =
@@ -228,7 +232,8 @@ class NodeGroupForm(
          <directive:save/>
        </div>
      </div>
-     </fieldset>)
+     </fieldset>
+     <directive:removeForm/>)
 
      bind("directive", html,
       "name" -> piName.toForm_!,
@@ -257,7 +262,8 @@ class NodeGroupForm(
                 SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)  
               else NodeSeq.Empty
           }},
-      "delete" -> deleteButton(),
+      "delete" -> <button id="removeButton">Delete</button>,
+      "removeForm" -> showRemovePopupForm,
       "notifications" -> updateAndDisplayNotifications()
     ) 
    }
@@ -273,7 +279,7 @@ class NodeGroupForm(
     }
   }
   
-  private[this] def deleteButton() : NodeSeq = {
+  private[this] def showRemovePopupForm() : NodeSeq = {
     _nodeGroup match {
       case None => NodeSeq.Empty //we are creating a group, no need to show delete
       case Some(group) => 
@@ -286,43 +292,16 @@ class NodeGroupForm(
             cmp.rulesGrid(linkCompliancePopup=false)
           }
         }
-        
-        ( 
-          <button id="removeButton">Delete</button> 
-          <div id="removeActionDialog" class="nodisplay">
-            <div class="simplemodal-title">
-              <h1>Delete a group</h1>
-              <hr/>
-            </div>
-            <div class="simplemodal-content">
-              <div>
-                <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-                <h2>
-                  Deleting this group will also remove it as a target for
-                  the following Rules which depend on it.
-                </h2>
-              </div>
-              <hr class="spacer" />
-              <div id="removeItemDependencies">
-                {removePopupGridXml}
-              </div>
-              <br />
-              <br />
-              <h3>Are you sure that you want to delete this item?</h3>
-              <br />
-              <hr class="spacer" />
-            </div>
-            <div class="simplemodal-bottom">
-              <hr/>
-              <div class="popupButton">
-                 <span>
-                  <button class="simplemodal-close" onClick="return false;">Cancel</button>
-                  {removeButton(target)}
-                </span>
-              </div>
-            </div>
-          </div>        
-        ) ++ {
+        (
+          "#removeActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
+          ".reasonsFieldsetPopup" #> { crReasonsRemovePopup.map { f =>
+            "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+            "#reasonsField" #> f.toForm_!
+          } } &
+          "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerRemovePopup) } &
+          "#removeItemDependencies" #> {removePopupGridXml} &
+          "#removeButton" #> { removeButton(target) }
+        )(popupRemoveForm) ++ {
           Script(JsRaw("""
             correctButtons();
             $('#removeButton').click(function() {
@@ -335,37 +314,41 @@ class NodeGroupForm(
   }
   
   private[this] def removeButton(target:GroupTarget) : Elem = {
-    def removeCr() : JsCmd = {
-      JsRaw("$.modal.close();") &
-      {
-        (for {
-          deleted <- dependencyService.cascadeDeleteTarget(target, CurrentUser.getActor, Some("Group removed by user"))
-          deploy <- {
-            asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
-            Full("Deployment request sent")
+    def removeCr() : JsCmd = {      
+      if(formTrackerRemovePopup.hasErrors) {
+        onFailureRemovePopup
+      } else {
+        JsRaw("$.modal.close();") &
+        {
+          (for {
+            deleted <- dependencyService.cascadeDeleteTarget(target, CurrentUser.getActor, crReasonsRemovePopup.map(_.is))
+            deploy <- {
+              asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
+              Full("Deployment request sent")
+            }
+          } yield {
+            deploy
+          }) match {
+            case Full(x) =>
+              onSuccessCallback(x) &
+              SetHtml(htmlIdCategory, NodeSeq.Empty ) &
+              //show success popup
+              successPopup &
+              initJs
+            case Empty => //arg.
+              formTrackerRemovePopup.addFormError(error("An error occurred while deleting the group (no more information)"))
+              onFailure
+            case f@Failure(m,_,_) =>
+              val msg = "An error occurred while saving the group: "
+              logger.debug( f ?~! "An error occurred while saving the group: " , f)
+              formTrackerRemovePopup.addFormError(error(m))
+              onFailure
           }
-        } yield {
-          deploy
-        }) match {
-          case Full(x) =>
-            onSuccessCallback(x) &
-            SetHtml(htmlIdCategory, NodeSeq.Empty ) &
-            //show success popup
-            successPopup &
-            initJs
-          case Empty => //arg.
-            formTracker.addFormError(error("An error occurred while deleting the group (no more information)"))
-            onFailure
-          case f@Failure(m,_,_) =>
-            val msg = "An error occurred while saving the group: "
-            logger.debug( f ?~! "An error occurred while saving the group: " , f)
-            formTracker.addFormError(error(m))
-            onFailure
         }
       }
     }
 
-    SHtml.ajaxButton(<span class="red">Remove</span>, removeCr _ )
+    SHtml.ajaxSubmit("Remove", removeCr _ )
   }  
   
   ///////////// fields for category settings ///////////////////
@@ -379,6 +362,15 @@ class NodeGroupForm(
   }
   
   private[this] val crReasons = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+  
+  private[this] val crReasonsRemovePopup = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
@@ -431,10 +423,20 @@ class NodeGroupForm(
     new FormTracker(fields)
   }
   
+  private[this] val formTrackerRemovePopup = {
+    new FormTracker(crReasonsRemovePopup.toList)
+  }
+  
   private[this] var notifications = List.empty[NodeSeq]
   
   private[this] def updateFormClientSide() : JsCmd = {
     SetHtml(htmlIdCategory, showForm()) & initJs
+  }
+  
+  private[this] def updateRemoveFormClientSide() : JsCmd = {
+    Replace("removeActionDialog", showRemovePopupForm) & 
+    JsRaw("""$("#removeActionDialog").removeClass('nodisplay')""") &
+    initJs
   }
   
   private[this] def error(msg:String) = <span class="error">{msg}</span>
@@ -452,6 +454,12 @@ class NodeGroupForm(
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them."))
     updateFormClientSide() & JsRaw("""scrollToElement("errorNotification");""")
+  }
+  
+  private[this] def onFailureRemovePopup : JsCmd = {
+    formTracker.addFormError(error("The form contains some errors, please correct them."))
+    updateRemoveFormClientSide() &
+    onFailureCallback()
   }
   
   private[this] def onSubmit() : JsCmd = {
@@ -652,6 +660,23 @@ class NodeGroupForm(
     private[this] def successPopup : JsCmd = {
     JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)     
     """)
+  }
+    
+  private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
+    
+    val notifications = formTracker.formErrors
+    formTracker.cleanErrors
+   
+    if(notifications.isEmpty) {
+      NodeSeq.Empty
+    }
+    else {
+      val html = 
+        <div id="notifications" class="notify">
+          <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
+        </div>
+      html
+    }
   }
 }
 
