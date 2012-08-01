@@ -381,15 +381,10 @@ class TechniqueEditForm(
               //show success popup
               successPopup 
             case Empty => //arg. 
-              println("******\n empty\n******")
               formTrackerRemovePopup.addFormError(error("An error occurred while deleting the Technique."))
               onFailure
             case Failure(m,_,_) =>
-              println("******\n failure\n******")
               formTrackerRemovePopup.addFormError(error("An error occurred while deleting the Technique: " + m))
-              println("************");
-              println(m);
-              println("************");
               onFailure
           }
         }
