@@ -370,7 +370,11 @@ class AppConfig extends Loggable {
   ///// end /////
   
   @Bean
-  def eventLogFactory = new EventLogFactoryImpl(ruleSerialisation,directiveSerialisation, nodeGroupSerialisation)
+  def eventLogFactory = new EventLogFactoryImpl(
+    ruleSerialisation,
+    directiveSerialisation, 
+    nodeGroupSerialisation, 
+    activeTechniqueSerialisation)
   
   @Bean
   def logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
@@ -884,6 +888,7 @@ class AppConfig extends Loggable {
     , new DirectiveUnserialisationImpl
     , new NodeGroupUnserialisationImpl(queryParser)
     , new RuleUnserialisationImpl
+    , new ActiveTechniqueUnserialisationImpl
     , new DeploymentStatusUnserialisationImpl
   )
   

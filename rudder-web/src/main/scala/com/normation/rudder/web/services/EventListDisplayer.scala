@@ -256,6 +256,11 @@ class EventListDisplayer(
         }
     }
     
+    def techniqueDesc(x:EventLog, actionName: NodeSeq) = {
+        val name = (x.details \ "activeTechnique" \ "techniqueName").text
+        Text("Technique %s".format(name)) ++ actionName
+    }
+    
     event match {
       case x:ActivateRedButton => Text("Stop Rudder agents on all nodes")
       case x:ReleaseRedButton => Text("Start again Rudder agents on all nodes")
@@ -280,7 +285,8 @@ class EventListDisplayer(
       case x:ClearCacheEventLog => Text("Clear caches of all nodes")
       case x:UpdatePolicyServer => Text("Change Policy Server authorized network")
       case x:ReloadTechniqueLibrary => Text("Technique library reloaded")
-      case x:ModifyTechnique => Text("Technique modified")
+      case x:ModifyTechnique => techniqueDesc(x, Text(" modified"))
+      case x:DeleteTechnique => techniqueDesc(x, Text(" deleted"))
       case x:SuccessfulDeployment => Text("Successful deployment")
       case x:FailedDeployment => Text("Failed deployment")
       case x:ExportGroupsArchive => Text("New groups archive")
@@ -667,6 +673,18 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         })
         
+      // Technique modified
+      case x:DeleteTechnique =>
+        "*" #> (logDetailsService.getTechniqueDeleteDetails(x.details) match {
+          case Full(techDiff) =>
+            <div class="evloglmargin">
+              { techniqueDetails(techniqueDetailsXML, techDiff.technique) }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => errorMessage(e)
+        })
+        
       // archiving & restoring 
         
       case x:ExportEventLog => 
@@ -839,6 +857,13 @@ class EventListDisplayer(
       "#isSystem" #> group.isSystem
   )(xml)
   
+  private[this] def techniqueDetails(xml: NodeSeq, technique: ActiveTechnique) = (
+      "#techniqueID" #> technique.id.value &
+      "#techniqueName" #> technique.techniqueName.value &
+      "#isEnabled" #> technique.isEnabled &
+      "#isSystem" #> technique.isSystem
+  )(xml)
+  
  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]]) = opt.map { diff =>
    ".diffOldValue *" #> diff.oldValue.toString &
    ".diffNewValue *" #> diff.newValue.toString
@@ -945,6 +970,18 @@ class EventListDisplayer(
         <li><b>System: </b><value id="isSystem"/></li>
       </ul>
     </div>
+    
+  private[this] val techniqueDetailsXML = 
+    <div>
+      <h4>Technique overview:</h4>
+      <ul class="evlogviewpad">
+        <li><b>ID:&nbsp;</b><value id="techniqueID"/></li>
+        <li><b>Name:&nbsp;</b><value id="techniqueName"/></li>
+        <li><b>Enabled:&nbsp;</b><value id="isEnabled"/></li>
+        <li><b>System:&nbsp;</b><value id="isSystem"/></li>
+      </ul>
+    </div>
+      
     
     
   private[this] def liModDetailsXML(id:String, name:String) = (

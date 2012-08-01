@@ -136,6 +136,13 @@ trait EventLogRepository {
     ))
   }
 
+  def saveDeleteTechnique(principal: EventActor, deleteDiff: DeleteTechniqueDiff, reason:Option[String]) = {
+    saveEventLog(eventLogFactory.getDeleteTechniqueFromDiff(
+        principal  = principal
+      , deleteDiff = deleteDiff
+      , reason = reason
+    ))
+  }
   
   /**
    * Get an EventLog by its entry

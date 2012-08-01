@@ -119,6 +119,10 @@ final case object ModifyTechniqueEventType extends EventLogType {
   def serialize = "TechniqueModified"
 }
 
+final case object DeleteTechniqueEventType extends EventLogType {
+  def serialize = "TechniqueDeleted"
+}
+
 // rule related event type
 final case object AddRuleEventType extends EventLogType {
   def serialize = "RuleAdded"
@@ -194,6 +198,8 @@ object ModificationWatchList {
     , ClearCacheEventType
     , UpdatePolicyServerEventType
     , ReloadTechniqueLibraryType
+    , ModifyTechniqueEventType
+    , DeleteTechniqueEventType
     , ImportGroupsEventType
     , ImportTechniqueLibraryEventType
     , ImportRulesEventType
@@ -227,6 +233,7 @@ object EventTypeFactory {
     , ReleaseRedButtonEventType
     , ReloadTechniqueLibraryType 
     , ModifyTechniqueEventType
+    , DeleteTechniqueEventType
       
     , AddRuleEventType
     , DeleteRuleEventType
