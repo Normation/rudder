@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2012 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,12 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain
 
-import com.normation.eventlog.EventActor
+-- if an old EventLog entry has been detected, add a flag with the format 1 and the current date to tell Rudder about it
 
-package object log {
-
-  val RudderEventActor = EventActor("rudder")
-
-}
+INSERT INTO migrationeventlog(detectiontime, detectedfileformat) VALUES (NOW(), 2);

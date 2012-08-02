@@ -43,6 +43,9 @@ import net.liftweb.http.SHtml
 import net.liftweb.http.SHtml._
 import net.liftweb.http.SHtml.ElemAttr._
 import net.liftweb.util.Helpers._
+import net.liftweb.http.js._
+import JsCmds._
+
 
 
 //ignore for now
@@ -96,7 +99,9 @@ class FormTracker(private[this] var _fields : List[RudderBaseField] = Nil) exten
    * A form has error if it has global error or one of the registered
    * fields has error
    */
-  def hasErrors = _formErrors.nonEmpty || _fields.exists( _.hasErrors )
+  def hasErrors = {
+    _formErrors.nonEmpty || _fields.exists( _.hasErrors )
+  }
   
   /**
    * Clean errors on the tracker and each fields
@@ -161,15 +166,21 @@ abstract class RudderBaseField extends BaseField {
   def inputField : Elem
 
   // Class used for the elements
-  def className : String = "threeCol"
+  def subContainerClassName : String = "twoCol"
+  def className : String = "rudderBaseFieldClassName"
   def labelClassName : String = "threeCol"
-  def errorClassName : String = "threeCol"
+  def errorClassName : String = "threeColErrors"
   ///////// method to optionnaly override //////////
   
   // add some HTLM to help the user to fill that field
   override def helpAsHtml: Box[NodeSeq] = Empty
   // override the field name look
-  override def displayNameHtml: Box[NodeSeq] = Empty
+  override def displayNameHtml: Box[NodeSeq] = {
+    validations match {
+      case Nil => Some(<b>{displayName}:</b>) 
+      case _ => Some(<b>{displayName}: *</b>) 
+    }
+  }
   //optionnaly override validate to add validation functions
   override def validations = List.empty[ValueType => List[FieldError]]
   // override to add setFilter
@@ -180,7 +191,7 @@ abstract class RudderBaseField extends BaseField {
   protected lazy val id = Helpers.nextFuncName
   override lazy val uniqueFieldId: Box[String] = Full(id)
   override lazy val fieldId : Option[NodeSeq] = Some(Text(id))
-  override def toString = is.toString     
+  override def toString = "[%s:%s]".format(name, is.toString)
   override def validate = {
     _errors = validations.flatMap( v => v(this.is) )
     _errors
@@ -192,12 +203,21 @@ abstract class RudderBaseField extends BaseField {
   def toForm_! = bind("field", 
     <div class="wbBaseField">
       <label for={id} class={labelClassName + " wbBaseFieldLabel textright"}><field:label /></label>
-      <field:input />
-      <field:infos />
-      <field:errors />
+      <div class={subContainerClassName}>
+        <field:input />
+        <field:infos />
+        <field:errors />
+      </div>
     </div>,
     "label" -> displayHtml,
-    "input" -> inputField % ( "id" -> id) % ("class" -> className),
+    "input" -> { 
+      errors match {
+        case Nil => inputField % ( "id" -> id) % ("class" -> className)
+        case l => 
+          val c = className + " errorInput" 
+          inputField % ( "id" -> id) % ("class" -> c) 
+      }
+    },
     "infos" -> (helpAsHtml openOr NodeSeq.Empty),
     "errors" -> {
       errors match {
@@ -281,19 +301,26 @@ class WBRadioField(
   type ValueType = String
 
   def defaultVal : Box[String] = {
-    if (opts.filter(x => (x == defaultValue)).size>0)
+    if (opts.filter(x => (x == defaultValue)).size > 0)
       Full(defaultValue)
     else
       Empty
   }
+  val parameters = ("class", "radio") :: { tabindex match {
+    case Some(i) => ("tabindex" , i.toString) :: Nil
+    case None    => Nil
+  } }
+  
+  def choiceHolder: ChoiceHolder[String] = SHtml.radio(opts, Full(value),  set _ , parameters:_*)
   
   def inputField : Elem = {
-    val parameters = ("class", "radio") :: { tabindex match {
-      case Some(i) => ("tabindex" , i.toString) :: Nil
-      case None    => Nil
-    } }
-    val choiceHolder : ChoiceHolder[String] = SHtml.radio(opts, Full(value),  set _ , parameters:_*)
-    <div>{choiceHolder.flatMap { c => (<span>{c.xhtml}&nbsp;{displayChoiceLabel(c.key)}<br/> </span>)} }</div>
+    <div>
+      {choiceHolder.flatMap { c => 
+       <span>
+         <label>{c.xhtml}<span class="radioTextLabel">{displayChoiceLabel(c.key)}</span></label>
+       </span>
+      }}
+    </div>
   }
   
   protected def valueTypeToBoxString(in: ValueType): Box[String] = Full(in)
@@ -301,4 +328,3 @@ class WBRadioField(
 
   def maxLen: Int= 50
 }
-

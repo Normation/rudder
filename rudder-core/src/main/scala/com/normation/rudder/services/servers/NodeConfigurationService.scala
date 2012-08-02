@@ -69,7 +69,7 @@ trait NodeConfigurationService {
   
   /**
    * Update a node configuration using a targetNodeConfiguration :
-   * update the policy instances and the node context, as well as the agentsName 
+   * update the directives and the node context, as well as the agentsName 
    * (well, every fields actually)
    * @param target
    * @return

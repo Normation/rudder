@@ -67,8 +67,8 @@ import com.normation.cfclerk.services._
 import net.liftweb.common._
 import com.normation.cfclerk.domain._
 import com.normation.rudder.domain.transporter._
-import com.normation.rudder.domain.log._
-import com.normation.rudder.services.log._
+import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.services.eventlog._
 import com.normation.eventlog._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
@@ -160,10 +160,9 @@ class NodeConfigurationServiceImpl(
     //create a new node configuration based on "target" datas
     def createNodeConfiguration() : NodeConfiguration = {
       //we need to decide if it's a root node config or a simple one
-      target.nodeInfo match {
-        case info: PolicyServerNodeInfo =>
+      if(target.nodeInfo.isPolicyServer) {
           new RootNodeConfiguration(
-            info.id.value,
+            target.nodeInfo.id.value,
             Seq(),
             Seq(),
             false,
@@ -172,20 +171,19 @@ class NodeConfigurationServiceImpl(
                 "", "", Seq(), "", ""
             ),
             targetMinimalNodeConfig = new MinimalNodeConfig(
-                info.name ,
-                info.hostname,
-                info.agentsName,
-                info.policyServerId.value,
-                info.localAdministratorAccountName                   
+                target.nodeInfo.name ,
+                target.nodeInfo.hostname,
+                target.nodeInfo.agentsName,
+                target.nodeInfo.policyServerId.value,
+                target.nodeInfo.localAdministratorAccountName                   
             ),
             None,
             Map(),
             target.nodeContext
           )
-          
-        case info: NodeInfo =>
+      } else {
           new SimpleNodeConfiguration(
-            info.id.value,
+            target.nodeInfo.id.value,
             Seq(),
             Seq(),
             false,
@@ -194,11 +192,11 @@ class NodeConfigurationServiceImpl(
                 "", "", Seq(), "", ""
             ),
             targetMinimalNodeConfig = new MinimalNodeConfig(
-                info.name ,
-                info.hostname,
-                info.agentsName,
-                info.policyServerId.value,
-                info.localAdministratorAccountName                   
+                target.nodeInfo.name ,
+                target.nodeInfo.hostname,
+                target.nodeInfo.agentsName,
+                target.nodeInfo.policyServerId.value,
+                target.nodeInfo.localAdministratorAccountName                   
             ),
             None,
             Map(),
@@ -216,8 +214,8 @@ class NodeConfigurationServiceImpl(
 
       deduplicateUniqueDirectives(target.identifiableCFCPIs) match {
         case f : EmptyBox => 
-          LOGGER.debug( (f ?~! "An error happened when finding unique policy instances").messageChain )
-          LOGGER.error("Could not convert policy instance beans")
+          LOGGER.debug( (f ?~! "An error happened when finding unique directives").messageChain )
+          LOGGER.error("Could not convert directive beans")
           f
           
         case Full(directives) =>
@@ -306,48 +304,42 @@ class NodeConfigurationServiceImpl(
         return ParamFailure[Seq[RuleWithCf3PolicyDraft]]("Cannot create a server without policies", Full(new TechniqueException("Cannot create a server without any policies")), Empty, target.identifiableCFCPIs)
       }
       
-      val isPolicyServer = target.nodeInfo match {
-        case t: PolicyServerNodeInfo => true
-        case t : NodeInfo => false
+      val node = if(target.nodeInfo.isPolicyServer) {
+          new RootNodeConfiguration(
+            target.nodeInfo.id.value,
+            Seq(),
+            Seq(),
+            isPolicyServer = true,
+            new MinimalNodeConfig("", "", Seq(), "", ""),
+            new MinimalNodeConfig(
+                target.nodeInfo.name,
+                target.nodeInfo.hostname,
+                target.nodeInfo.agentsName,
+                target.nodeInfo.policyServerId.value,
+                target.nodeInfo.localAdministratorAccountName
+                ),
+            None,
+            Map(),
+            target.nodeContext)
+      } else {
+          new SimpleNodeConfiguration(
+            target.nodeInfo.id.value,
+            Seq(),
+            Seq(),
+            isPolicyServer = false,
+            new MinimalNodeConfig("", "", Seq(), "", ""),
+            new MinimalNodeConfig(
+                target.nodeInfo.name,
+                target.nodeInfo.hostname,
+                target.nodeInfo.agentsName,
+                target.nodeInfo.policyServerId.value,
+                target.nodeInfo.localAdministratorAccountName
+                ),
+            None,
+            Map(),
+            target.nodeContext)
       }
-      
-      val node = target.nodeInfo match {
-        case t: PolicyServerNodeInfo => 
-            new RootNodeConfiguration(
-              target.nodeInfo.id.value,
-              Seq(),
-              Seq(),
-              isPolicyServer = true,
-              new MinimalNodeConfig("", "", Seq(), "", ""),
-              new MinimalNodeConfig(
-                  target.nodeInfo.name,
-                  target.nodeInfo.hostname,
-                  target.nodeInfo.agentsName,
-                  target.nodeInfo.policyServerId.value,
-                  target.nodeInfo.localAdministratorAccountName
-                  ),
-              None,
-              Map(),
-              target.nodeContext)
-        case t : NodeInfo =>
-            new SimpleNodeConfiguration(
-              target.nodeInfo.id.value,
-              Seq(),
-              Seq(),
-              isPolicyServer = false,
-              new MinimalNodeConfig("", "", Seq(), "", ""),
-              new MinimalNodeConfig(
-                  target.nodeInfo.name,
-                  target.nodeInfo.hostname,
-                  target.nodeInfo.agentsName,
-                  target.nodeInfo.policyServerId.value,
-                  target.nodeInfo.localAdministratorAccountName
-                  ),
-              None,
-              Map(),
-              target.nodeContext)
-      }
-        
+
         
       
       deduplicateUniqueDirectives(target.identifiableCFCPIs) match {
@@ -528,14 +520,14 @@ class NodeConfigurationServiceImpl(
   
   /**
    * Return all the server that need to be commited
-   * Meaning, all servers that have a difference between the current and target policy instances */
+   * Meaning, all servers that have a difference between the current and target directives */
   private def uncommitedNodes() : Seq[NodeConfiguration] = {
     repository.findUncommitedNodeConfigurations match {
       case Full(seq) => seq
       case Empty =>
-        throw new TechnicalException("Error when trying to find server with uncommited policy instance. No error message left")
+        throw new TechnicalException("Error when trying to find server with uncommited directive. No error message left")
       case Failure(m,_,_)=>
-        throw new TechnicalException("Error when trying to find server with uncommited policy instance. Error message was: %s".format(m))
+        throw new TechnicalException("Error when trying to find server with uncommited directive. Error message was: %s".format(m))
     }    
   }
   
@@ -557,8 +549,13 @@ class NodeConfigurationServiceImpl(
     for (directive <- directives) {
         // check the legit character of the policy
         if (modifiedNode.getDirective(directive.cf3PolicyDraft.id) != None) {
-          LOGGER.warn("Cannot add a policy instance with the same id than an already existing one {} ", directive.cf3PolicyDraft.id)
-          return ParamFailure[RuleWithCf3PolicyDraft]("Duplicate policy instance", Full(new TechniqueException("Duplicate policy instance " +directive.cf3PolicyDraft.id)), Empty, directive)
+          LOGGER.warn("Cannot add a directive with the same id than an already existing one {} ", 
+              directive.cf3PolicyDraft.id)
+          return ParamFailure[RuleWithCf3PolicyDraft](
+              "Duplicate directive", 
+              Full(new TechniqueException("Duplicate directive " + directive.cf3PolicyDraft.id)), 
+              Empty, 
+              directive)
         }
         
 

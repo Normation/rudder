@@ -133,8 +133,11 @@ class Groups extends StatefulSnippet with Loggable {
   }
 
   def groupNewItem() : NodeSeq = {
-    SHtml.ajaxButton("Create a new item", () => showPopup())
+    <div id="createANewItem">
+      { SHtml.ajaxButton("Create a new item", () => showPopup()) }
+    </div>
   }
+  
   /**
    * Does the init part (showing the right component and highlighting
    * the tree if necessary)
@@ -188,12 +191,12 @@ class Groups extends StatefulSnippet with Loggable {
     panel match {
       case NoPanel => NodeSeq.Empty
       case GroupForm(group) =>
-        val form = new NodeGroupForm(htmlId_item, Some(group), () => refreshTree(htmlTreeNodeId(group.id.value)))
+        val form = new NodeGroupForm(htmlId_item, Some(group), onSuccessCallback())
         nodeGroupForm.set(Full(form))
         form.showForm()
 
       case CategoryForm(category) =>
-        val form = new NodeGroupCategoryForm(htmlId_item, category, () => refreshTree(htmlTreeNodeId(category.id.value)))
+        val form = new NodeGroupCategoryForm(htmlId_item, category, onSuccessCallback())
         nodeGroupCategoryForm.set(Full(form))
         form.showForm()
     }
@@ -204,11 +207,16 @@ class Groups extends StatefulSnippet with Loggable {
   
   
   private[this] def setCreationPopup : Unit = {
-         creationPopup.set(Full(new CreateCategoryOrGroupPopup(
-            onSuccessCategory = displayACategory,
-            onSuccessGroup = showGroupSection,
-            onSuccessCallback = { (id) => refreshTree(htmlTreeNodeId(id)) })))
+    creationPopup.set(Full(new CreateCategoryOrGroupPopup(
+      onSuccessCategory = displayACategory,
+      onSuccessGroup = showGroupSection,
+      onSuccessCallback = onSuccessCallback())))
   }
+  
+  private[this] def onSuccessCallback() = {
+    (id: String) => refreshTree(htmlTreeNodeId(id))
+  }
+  
 
   /**
    * build the tree of categories and group and init its JS
@@ -222,7 +230,7 @@ class Groups extends StatefulSnippet with Loggable {
       //build jstree and
       //init bind callback to move
       JsRaw("""
-        buildGroupTree('#%1$s', '%4$s');
+        buildGroupTree('#%1$s', '%4$s', 'off');
         $('#%1$s').bind("move_node.jstree", function (e,data) {
           var sourceCatId = $(data.rslt.o).attr("catId");
           var sourceGroupId = $(data.rslt.o).attr("groupId");
@@ -287,7 +295,7 @@ class Groups extends StatefulSnippet with Loggable {
         case (sourceGroupId, destCatId) :: Nil =>
           (for {
             group <- nodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId)) ?~! "Error while trying to find group with requested id %s".format(sourceGroupId)
-            result <- nodeGroupRepository.move(group, NodeGroupCategoryId(destCatId), CurrentUser.getActor)?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
+            result <- nodeGroupRepository.move(group, NodeGroupCategoryId(destCatId), CurrentUser.getActor, Some("Group moved by user"))?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
             newGroup <- nodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId))
           } yield {
             newGroup
@@ -317,7 +325,7 @@ class Groups extends StatefulSnippet with Loggable {
         case (sourceCatId, destCatId) :: Nil =>
           (for {
             group <- groupCategoryRepository.getGroupCategory(NodeGroupCategoryId(sourceCatId)) ?~! "Error while trying to find category with requested id %s".format(sourceCatId)
-            result <- groupCategoryRepository.saveGroupCategory(group, NodeGroupCategoryId(destCatId), CurrentUser.getActor)?~! "Error while trying to move category with requested id '%s' to category id '%s'".format(sourceCatId,destCatId)
+            result <- groupCategoryRepository.saveGroupCategory(group, NodeGroupCategoryId(destCatId), CurrentUser.getActor, reason = None)?~! "Error while trying to move category with requested id '%s' to category id '%s'".format(sourceCatId,destCatId)
           } yield {
             (group,result)
           }) match {

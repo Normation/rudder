@@ -54,7 +54,7 @@ import com.normation.utils.HashcodeCaching
 
 //only string version of the query - no domain here
 case class StringCriterionLine(objectType:String, attribute:String, comparator:String, value:Option[String]=None) extends HashcodeCaching 
-case class StringQuery(returnType:String,composition:Option[String],criteria:Seq[StringCriterionLine]) extends HashcodeCaching 
+case class StringQuery(returnType:QueryReturnType,composition:Option[String],criteria:Seq[StringCriterionLine]) extends HashcodeCaching 
 
 object CmdbQueryParser {
   //query attribute
@@ -113,8 +113,7 @@ trait DefaultStringQueryParser extends StringQueryParser {
         return Failure("Parsing criteria yields an empty result, abort")
       case Full(l) => l.toSeq.reverse
     }
-    
-    Full(Query(query.returnType , comp , lines))
+    Full(Query(query.returnType, comp , lines))
   }
   
   def parseLine(line:StringCriterionLine) : Box[CriterionLine] = {
@@ -141,7 +140,6 @@ trait DefaultStringQueryParser extends StringQueryParser {
         if(comparator.hasValue) return Failure("Missing required value for comparator '%s' in line '%s'".format(line.comparator, line)) 
         else ""
     }
-    
     Full(CriterionLine(objectType, criterion, comparator, value))
   }
   
@@ -190,7 +188,8 @@ trait JsonQueryLexer extends QueryLexer {
         //target returned object
         val target = q.values.get(TARGET) match {
           case None => return failureMissing(TARGET)
-          case Some(x:String) => if(x.length > 0) x else return failureEmpty(TARGET)
+          case Some(NodeReturnType.value) => NodeReturnType
+          case Some(NodeAndPolicyServerReturnType.value) => NodeAndPolicyServerReturnType
           case Some(x) => return failureBadFormat(TARGET,x)
         }
       
@@ -251,20 +250,19 @@ trait JsonQueryLexer extends QueryLexer {
               case Some(x) => return failureBadParam(ATTRIBUTE,line,x)
             }
     
-            // attribute
+            // comparator
             val comparator = line.get(COMPARATOR) match {
               case None => return failureMissing(COMPARATOR,line)
               case Some(x:String) => if(x.length > 0) x else return failureEmpty(COMPARATOR,line)
               case Some(x) => return failureBadParam(COMPARATOR,line,x)
             }
     
-            // attribute
+            // value
             val value = line.get(VALUE) match {
               case None => None
               case Some(x:String) => if(x.length > 0) Some(x) else None
               case Some(x) => return failureBadParam(VALUE,line,x)
             }
-    
             Full(StringCriterionLine(objectType,attribute,comparator,value))
             
           case _ => Failure("Bad query format for criterion line. Expecting an (string,string), found '%s'".format(l.head))

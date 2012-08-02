@@ -39,7 +39,7 @@ import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder._
 import com.normation.rudder.domain._
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import com.normation.cfclerk.domain.{TechniqueId, Cf3PolicyDraftId, Cf3PolicyDraft, Cf3PolicyDraftContainer}
 import com.normation.inventory.domain.AgentType
 import com.normation.eventlog.EventLogNode

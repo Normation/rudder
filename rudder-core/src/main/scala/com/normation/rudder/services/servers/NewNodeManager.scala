@@ -61,6 +61,7 @@ import com.normation.cfclerk.domain.{Cf3PolicyDraftId,TechniqueId}
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import com.normation.eventlog.EventActor
+import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 
 
 /**
@@ -447,7 +448,12 @@ class AcceptFullInventoryInNodeOu(
   def acceptOne(sm:FullInventory, actor:EventActor) : Box[FullInventory] = {
     val name = sm.node.name.getOrElse(sm.node.main.id.value)
     val description = sm.node.description.getOrElse("")
-    val node = Node(sm.node.main.id, name, description, false, false)
+    
+    //naive test to find is the node is the master policy server.
+    //TODO: that can not handle relay server
+    val isPolicyServer = sm.node.main.id == sm.node.main.policyServerId
+    
+    val node = Node(sm.node.main.id, name, description, false, false, isPolicyServer)
     val entry = ldapEntityMapper.nodeToEntry(node)
     for {
       con <- ldap
@@ -536,7 +542,8 @@ class AddNodeToDynGroup(
         for {
           group <- groupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
           updatedGroup = group.copy( serverList = group.serverList + sm.node.main.id )
-          saved <- groupRepo.update(updatedGroup, actor) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
+          msg = Some("Automatic update of system group due to acceptation of node "+ sm.node.main.id.value)
+          saved <- groupRepo.update(updatedGroup, actor, msg) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
         } yield {
           saved 
         }
@@ -558,7 +565,8 @@ class AddNodeToDynGroup(
           for {
             group <- groupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
             updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
-            saved <- groupRepo.update(updatedGroup, actor) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
+            msg = Some("Automatic update of system group due to rollback of acceptation of node "+ sm.node.main.id.value)
+            saved <- groupRepo.update(updatedGroup, actor, msg) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
           } yield {
             saved 
           }
@@ -596,7 +604,8 @@ class RefuseGroups(
         for {
           group <- groupRepo.getNodeGroup(groupId)
           modGroup = group.copy( serverList = group.serverList - srv.id)
-          saved <- groupRepo.update(modGroup, actor)
+          msg = Some("Automatic update of groups due to refusal of node "+ srv.id.value)
+          saved <- groupRepo.update(modGroup, actor, msg)
         } yield {
           saved
         }
@@ -608,7 +617,7 @@ class RefuseGroups(
 }
   
 /**
- * A unit acceptor in charge to update configuration rules
+ * A unit acceptor in charge to update rules
  */
 class AcceptNodeRule(
     override val name:String,
@@ -643,7 +652,8 @@ class AcceptNodeRule(
     for {
       group <- groupRepo.getNodeGroup(hasPolicyServerNodeGroup) ?~! "Technical group with ID '%s' was not found".format(hasPolicyServerNodeGroup)
       updatedGroup = group.copy( serverList = group.serverList + nodeId )
-      saved<- groupRepo.update(updatedGroup,actor) ?~! "Could not update the technical group with ID '%s'".format(updatedGroup.id )
+      msg = Some("Automatic update of system group due to acceptation of node "+ sm.node.main.id.value)
+      saved<- groupRepo.update(updatedGroup,actor, msg) ?~! "Could not update the technical group with ID '%s'".format(updatedGroup.id )
     } yield {
       nodeId
     } 
@@ -658,7 +668,8 @@ class AcceptNodeRule(
       (for {
         group <- groupRepo.getNodeGroup(buildHasPolicyServerGroupId(sm.node.main.policyServerId)) ?~! "Can not find group with id: %s".format(sm.node.main.policyServerId)
         updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
-        saved<- groupRepo.update(updatedGroup, actor)?~! "Error when trying to update dynamic group %s with member %s".format(updatedGroup.id,sm.node.main.id.value)
+        msg = Some("Automatic update of system group due to rollback of acceptation of node "+ sm.node.main.id.value)
+        saved<- groupRepo.update(updatedGroup, actor, msg)?~! "Error when trying to update dynamic group %s with member %s".format(updatedGroup.id,sm.node.main.id.value)
       } yield {
         sm
       }) match {
@@ -677,7 +688,7 @@ class AcceptNodeRule(
   
   //////////// refuse //////////// 
   override def refuseOne(srv:Srv, actor:EventActor) : Box[Srv] = {
-    //remove node configuration rule
+    //remove node rule
     for {
       deleted <- nodeConfigRepo.deleteNodeConfiguration(srv.id.value)
     } yield {
@@ -686,6 +697,48 @@ class AcceptNodeRule(
   }   
 }
 
+/**
+ * A unit acceptor in charge to historize the 
+ * state of the Inventory so that we can keep it
+ * forever. 
+ * That acceptor should be call before node
+ * is actually deleted or accepted
+ */
+class HistorizeNodeStateOnChoice(
+    override val name: String
+  , repos            : ReadOnlyFullInventoryRepository
+  , historyRepos     : InventoryHistoryLogRepository
+  , inventoryStatus  : InventoryStatus //expected inventory status of nodes for that processor
+) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
+  
+  override def preAccept(sms:Seq[FullInventory], actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
+  override def postAccept(sms:Seq[FullInventory], actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
-
+  override val fromInventoryStatus = inventoryStatus
+  
+  override val toInventoryStatus = inventoryStatus
+  
+  /**
+   * Add a node entry in ou=Nodes
+   */
+  def acceptOne(sm:FullInventory, actor:EventActor) : Box[FullInventory] = {
+    historyRepos.save(sm.node.main.id, sm).map( _ => sm)
+  }
+  
+  /**
+   * Does nothing - we don't have the "id" of the historized
+   * inventory to remove
+   */
+  def rollback(sms:Seq[FullInventory], actor:EventActor) : Unit = {}
+  
+  
+  //////////// refuse //////////// 
+  override def refuseOne(srv:Srv, actor:EventActor) : Box[Srv] = {
+    //refuse ou=nodes: delete it
+    for {
+      full <- repos.get(srv.id, inventoryStatus)
+      _    <- historyRepos.save(srv.id, full)
+    } yield srv
+  }
+}

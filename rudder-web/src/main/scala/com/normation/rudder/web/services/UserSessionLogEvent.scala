@@ -41,7 +41,7 @@ import org.springframework.security.core.session.SessionDestroyedEvent
 import org.springframework.security.core.session.SessionCreationEvent
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent
 import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import net.liftweb.common.Loggable
 import org.springframework.security.core.userdetails.UserDetails
 import com.normation.eventlog.EventActor
@@ -69,6 +69,7 @@ class UserSessionLogEvent(
                     EventLogDetails( 
                         principal = EventActor(u.getUsername)
                       , details = EventLog.emptyDetails
+                      , reason = None
                     )
                 )
             )
@@ -82,8 +83,9 @@ class UserSessionLogEvent(
             repository.saveEventLog(
                 BadCredentialsEventLog(
                     EventLogDetails( 
-                      principal = EventActor(u)
+                        principal = EventActor(u)
                       , details = EventLog.emptyDetails
+                      , reason = None
                     )
                 )
             )

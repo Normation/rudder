@@ -42,7 +42,8 @@ import com.normation.rudder.domain.queries.Query
 import net.liftweb.http.LocalSnippet
 import com.normation.rudder.services.policies.DependencyAndDeletionService
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.authorization._
 
 import net.liftweb.http.js._
 import JsCmds._ // For implicits
@@ -63,8 +64,9 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.nodes.NodeInfoService
 import NodeGroupForm._
 import com.normation.rudder.web.model.CurrentUser
-
-
+import com.normation.rudder.web.services.UserPropertyService
+import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
+import com.normation.utils.HashcodeCaching
 
 object NodeGroupForm {
   
@@ -75,7 +77,7 @@ object NodeGroupForm {
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "NodeGroupForm" :: Nil)
     } yield {
-      chooseTemplate("component", "staticInit", xml) 
+      chooseTemplate("component", "staticInit", xml)
     }) openOr Nil
 
  /**
@@ -85,11 +87,15 @@ object NodeGroupForm {
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "NodeGroupForm" :: Nil)
     } yield {
-      chooseTemplate("component", "staticBody", xml) 
+      chooseTemplate("component", "staticBody", xml)
     }) openOr Nil
 
-    
-    
+  private def popupRemoveForm = 
+    (for {
+      xml <- Templates("templates-hidden" :: "components" :: "NodeGroupForm" :: Nil)
+    } yield {
+      chooseTemplate("component", "popupRemoveForm", xml)
+    }) openOr Nil
     
     
   private def body =
@@ -101,6 +107,15 @@ object NodeGroupForm {
 
   
   private val saveButtonId = "groupSaveButtonId"
+     
+  private sealed trait RightPanel
+  private case object NoPanel extends RightPanel
+  private case class GroupForm(group:NodeGroup) extends RightPanel with HashcodeCaching
+  private case class CategoryForm(category:NodeGroupCategory) extends RightPanel with HashcodeCaching
+  
+  val htmlId_groupTree = "groupTree"
+  val htmlId_item = "ajaxItemContainer"
+  val htmlId_updateContainerForm = "updateContainerForm"
 }
 
 
@@ -113,7 +128,7 @@ object NodeGroupForm {
 class NodeGroupForm(
   htmlIdCategory : String,
   nodeGroup : Option[NodeGroup],
-  onSuccessCallback : () => JsCmd = { () => Noop },
+  onSuccessCallback : (String) => JsCmd = { (String) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
@@ -126,14 +141,19 @@ class NodeGroupForm(
   private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] val dependencyService = inject[DependencyAndDeletionService]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
+  private[this] val userPropertyService = inject[UserPropertyService]
   
   val categories = groupCategoryRepository.getAllNonSystemCategories
-
-
+  
+  //the current nodeGroupCategoryForm component
+  private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm] 
+  
   var parentCategory = Option.empty[Box[NodeGroupCategory]]
 
   var parentCategoryId = ""
 
+  //the current nodeGroupForm component
+  private[this] val nodeGroupForm = new LocalSnippet[NodeGroupForm] 
   
   // Import the search server component
   val searchNodeComponent = new LocalSnippet[SearchNodeComponent] 
@@ -199,9 +219,21 @@ class NodeGroupForm(
        <div id="SearchNodes">
        <directive:showGroup />
       </div>
-     <div class="margins" align="right"><directive:save/> <directive:delete/></div>
      </fieldset>
-     </fieldset>)
+     <lift:authz role="group_edit">
+     <directive:reason />
+     </lift:authz>
+     <div class="margins" align="right">
+       <div style="float:left" align="left">
+         <lift:authz role="group_write"><directive:group/></lift:authz>
+         <lift:authz role="group_write"><directive:delete/></lift:authz>
+       </div>
+       <div style="float:right" align="right">
+         <directive:save/>
+       </div>
+     </div>
+     </fieldset>
+     <directive:removeForm/>)
 
      bind("directive", html,
       "name" -> piName.toForm_!,
@@ -209,11 +241,29 @@ class NodeGroupForm(
       "container" -> piContainer.toForm_!,
       "static" -> piStatic.toForm_!,
       "showGroup" -> searchNodeComponent.is.open_!.buildQuery,
+      "explanation" -> crReasons.map {
+        f => <div>{userPropertyService.reasonsFieldExplanation}</div>
+      },       
+      "reason" -> crReasons.map {f =>
+        <fieldset class="reasonNode"><legend>Reason</legend>
+          <div style="margin-bottom:5px">
+            {userPropertyService.reasonsFieldExplanation}
+          </div>
+          {f.toForm_!}
+        </fieldset>},
+      "group" -> cloneButton() ,
       "save" ->   {_nodeGroup match {
-            case Some(x) => SHtml.ajaxSubmit("Update", onSubmit _)  %  ("id", saveButtonId)
-            case None => SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)
+            case Some(x) => 
+              if (CurrentUser.checkRights(Edit("group"))) 
+                SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId) 
+              else NodeSeq.Empty
+            case None =>   
+              if (CurrentUser.checkRights(Write("group")))  
+                SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)  
+              else NodeSeq.Empty
           }},
-      "delete" -> deleteButton(),          
+      "delete" -> <button id="removeButton">Delete</button>,
+      "removeForm" -> showRemovePopupForm,
       "notifications" -> updateAndDisplayNotifications()
     ) 
    }
@@ -221,7 +271,15 @@ class NodeGroupForm(
   
   ///////////// fields for category settings ///////////////////
 
-  private[this] def deleteButton() : NodeSeq = {
+  private[this] def cloneButton() : NodeSeq = {
+    _nodeGroup match {
+      case None => NodeSeq.Empty
+      case Some(x) => SHtml.ajaxButton("Clone", () => showCloneGroupPopup()) % 
+        ("id", "groupCloneButtonId")
+    }
+  }
+  
+  private[this] def showRemovePopupForm() : NodeSeq = {
     _nodeGroup match {
       case None => NodeSeq.Empty //we are creating a group, no need to show delete
       case Some(group) => 
@@ -234,43 +292,16 @@ class NodeGroupForm(
             cmp.rulesGrid(linkCompliancePopup=false)
           }
         }
-        
-        ( 
-          <button id="removeButton">Delete</button> 
-          <div id="removeActionDialog" class="nodisplay">
-            <div class="simplemodal-title">
-              <h1>Delete a group</h1>
-              <hr/>
-            </div>
-            <div class="simplemodal-content">
-              <div>
-                <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-                <h2>
-                  Deleting this group will also remove it as a target for
-                  the following Rules which depend on it.
-                </h2>
-              </div>
-              <hr class="spacer" />
-              <div id="removeItemDependencies">
-                {removePopupGridXml}
-              </div>
-              <br />
-              <br />
-              <h3>Are you sure that you want to delete this item?</h3>
-              <br />
-              <hr class="spacer" />
-            </div>
-            <div class="simplemodal-bottom">
-              <hr/>
-              <div class="popupButton">
-                 <span>
-                  <button class="simplemodal-close" onClick="return false;">Cancel</button>
-                  {removeButton(target)}
-                </span>
-              </div>
-            </div>
-          </div>        
-        ) ++ {
+        (
+          "#removeActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
+          ".reasonsFieldsetPopup" #> { crReasonsRemovePopup.map { f =>
+            "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+            "#reasonsField" #> f.toForm_!
+          } } &
+          "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerRemovePopup) } &
+          "#removeItemDependencies" #> {removePopupGridXml} &
+          "#removeButton" #> { removeButton(target) }
+        )(popupRemoveForm) ++ {
           Script(JsRaw("""
             correctButtons();
             $('#removeButton').click(function() {
@@ -283,93 +314,129 @@ class NodeGroupForm(
   }
   
   private[this] def removeButton(target:GroupTarget) : Elem = {
-    def removeCr() : JsCmd = {
-      JsRaw("$.modal.close();") &
-      {
-        (for {
-          deleted <- dependencyService.cascadeDeleteTarget(target, CurrentUser.getActor)
-          deploy <- {
-            asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
-            Full("Deployment request sent")
+    def removeCr() : JsCmd = {      
+      if(formTrackerRemovePopup.hasErrors) {
+        onFailureRemovePopup
+      } else {
+        JsRaw("$.modal.close();") &
+        {
+          (for {
+            deleted <- dependencyService.cascadeDeleteTarget(target, CurrentUser.getActor, crReasonsRemovePopup.map(_.is))
+            deploy <- {
+              asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
+              Full("Deployment request sent")
+            }
+          } yield {
+            deploy
+          }) match {
+            case Full(x) =>
+              onSuccessCallback(x) &
+              SetHtml(htmlIdCategory, NodeSeq.Empty ) &
+              //show success popup
+              successPopup &
+              initJs
+            case Empty => //arg.
+              formTrackerRemovePopup.addFormError(error("An error occurred while deleting the group (no more information)"))
+              onFailure
+            case f@Failure(m,_,_) =>
+              val msg = "An error occurred while saving the group: "
+              logger.debug( f ?~! "An error occurred while saving the group: " , f)
+              formTrackerRemovePopup.addFormError(error(m))
+              onFailure
           }
-        } yield {
-          deploy
-        }) match {
-          case Full(x) =>
-            onSuccessCallback() &
-            SetHtml(htmlIdCategory, NodeSeq.Empty ) &
-            //show success popup
-            successPopup &
-            initJs
-          case Empty => //arg.
-            formTracker.addFormError(error("An error occurred while deleting the group (no more information)"))
-            onFailure
-          case f@Failure(m,_,_) =>
-            val msg = "An error occurred while saving the group: "
-            logger.debug( f ?~! "An error occurred while saving the group: " , f)
-            formTracker.addFormError(error(msg + m))
-            onFailure
         }
       }
     }
 
-    SHtml.ajaxButton(<span class="red">Remove</span>, removeCr _ )
+    SHtml.ajaxSubmit("Remove", removeCr _ )
   }  
   
   ///////////// fields for category settings ///////////////////
-  private[this] val piName = new WBTextField("Group name: ", _nodeGroup.map( x => x.name).getOrElse("")) {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
-    override def setFilter = notNull _ :: trim _ :: Nil
-    override def validations = 
-      valMinLen(3, "The name must have at least 3 characters") _ :: Nil
+  private[this] val piName = {
+    new WBTextField("Group name", _nodeGroup.map( x => x.name).getOrElse("")) {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def className = "twoCol"
+      override def validations = 
+        valMinLen(3, "The name must have at least 3 characters") _ :: Nil
+    }
   }
   
-  private[this] val piDescription = new WBTextAreaField("Group description: ", _nodeGroup.map( x => x.description).getOrElse("")) {
-    override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:10em")
-    
-    override def validations =  Nil
-    
-    override def toForm_! = bind("field", 
-    <div class="wbBaseField">
-      <field:errors />
-      <label for={id} class="wbBaseFieldLabel threeCol textright"><field:label /></label>
-      <field:input />
-      <field:infos />
-      
-    </div>,
-    "label" -> displayHtml,
-    "input" -> inputField % ( "id" -> id) % ("class" -> "largeCol"),
-    "infos" -> (helpAsHtml openOr NodeSeq.Empty),
-    "errors" -> {
-      errors match {
-        case Nil => NodeSeq.Empty
-        case l => 
-          <span><ul class="field_errors paddscala">{
-            l.map(e => <li class="field_error lopaddscala">{e.msg}</li>)
-          }</ul></span><hr class="spacer"/>
+  private[this] val crReasons = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+  
+  private[this] val crReasonsRemovePopup = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+  
+  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    new WBTextAreaField("Message", "") {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % 
+        ("style" -> "height:8em;")
+      override def subContainerClassName = containerClass
+      override def validations() = {
+        if(mandatory){
+          valMinLen(5, "The reasons must have at least 5 characters.") _ :: Nil
+        } else {
+          Nil
+        }
       }
     }
-    )
   }
   
-  private[this] val piStatic = new WBRadioField("Group type: ", Seq("static", "dynamic"), ((_nodeGroup.map( x => x.isDynamic).getOrElse(false)) ? "dynamic" | "static")) {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
-    override def setFilter = notNull _ :: trim _ :: Nil
+  private[this] val piDescription = {
+    new WBTextAreaField("Group description", _nodeGroup.map( x => x.description).getOrElse("")) {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % ("style" -> "height:10em")
+      override def validations =  Nil
+      override def errorClassName = "field_errors paddscala"
+    }
   }
   
-  private[this] val piContainer = new WBSelectField("Group container: ", 
+  private[this] val piStatic = {
+    new WBRadioField(
+        "Group type", 
+        Seq("static", "dynamic"), 
+        ((_nodeGroup.map( x => x.isDynamic).getOrElse(false)) ? "dynamic" | "static")) {
+      override def setFilter = notNull _ :: trim _ :: Nil
+    }
+  }
+  
+  private[this] val piContainer = new WBSelectField("Group container", 
       (categories.open_!.map(x => (x.id.value -> x.name))),
       parentCategoryId) {
   }
   
+  private[this] val formTracker = {
+    val fields = List(piName, piDescription, piContainer, piStatic) ++ crReasons.toList
+    new FormTracker(fields)
+  }
   
-  private[this] val formTracker = new FormTracker(piName,piDescription,piContainer, piStatic)
+  private[this] val formTrackerRemovePopup = {
+    new FormTracker(crReasonsRemovePopup.toList)
+  }
   
   private[this] var notifications = List.empty[NodeSeq]
   
   private[this] def updateFormClientSide() : JsCmd = {
     SetHtml(htmlIdCategory, showForm()) & initJs
+  }
+  
+  private[this] def updateRemoveFormClientSide() : JsCmd = {
+    Replace("removeActionDialog", showRemovePopupForm) & 
+    JsRaw("""$("#removeActionDialog").removeClass('nodisplay')""") &
+    initJs
   }
   
   private[this] def error(msg:String) = <span class="error">{msg}</span>
@@ -385,9 +452,14 @@ class NodeGroupForm(
   }
   
   private[this] def onFailure : JsCmd = {
-    
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
+    formTracker.addFormError(error("The form contains some errors, please correct them."))
     updateFormClientSide() & JsRaw("""scrollToElement("errorNotification");""")
+  }
+  
+  private[this] def onFailureRemovePopup : JsCmd = {
+    formTracker.addFormError(error("The form contains some errors, please correct them."))
+    updateRemoveFormClientSide() &
+    onFailureCallback()
   }
   
   private[this] def onSubmit() : JsCmd = {
@@ -420,9 +492,9 @@ class NodeGroupForm(
           //  we are updating a nodeGroup
           srvList match {
             case Full(list) =>
-              updateGroup(nodeGroup, name, description, query.get, isDynamic, list.map(x => x.id).toList)
+              updateGroup(nodeGroup, name, description, query.get, isDynamic, list.map(x => x.id).toList, container)
             case Empty =>
-              updateGroup(nodeGroup, name, description, query.get, isDynamic, Nil)
+              updateGroup(nodeGroup, name, description, query.get, isDynamic, Nil, container)
             case Failure(m, _, _) =>
               logger.error("Could not retrieve the server list from the search component : %s".format(m))
               formTracker.addFormError(error("An error occurred while trying to fetch the server list of the group: " + m))
@@ -431,6 +503,56 @@ class NodeGroupForm(
       }
     }
   }
+  
+  private[this] def showCloneGroupPopup() : JsCmd = {
+    val popupSnippet = new LocalSnippet[CreateCloneGroupPopup]
+             popupSnippet.set(Full(new CreateCloneGroupPopup(
+            _nodeGroup,
+            onSuccessCategory = displayACategory,
+            onSuccessGroup = showGroupSection,
+            onSuccessCallback = { onSuccessCallback })))
+    val nodeSeqPopup = popupSnippet.is match {
+      case Failure(m, _, _) =>  <span class="error">Error: {m}</span>
+      case Empty => <div>The component is not set</div>
+      case Full(popup) => popup.popupContent()
+    }
+    SetHtml("createCloneGroupContainer", nodeSeqPopup) &
+    JsRaw("""createPopup("createCloneGroupPopup", 300, 400)""")
+  }
+   
+  private[this] def htmlTreeNodeId(id:String) = "jsTree-" + id
+    
+  private[this] def displayACategory(category : NodeGroupCategory) : JsCmd = {
+    //update UI
+    refreshRightPanel(CategoryForm(category))
+  }
+  
+  private[this] def refreshRightPanel(panel:RightPanel) : JsCmd = SetHtml(htmlId_item, setAndShowRightPanel(panel))
+  
+  /**
+   *  Manage the state of what should be displayed on the right panel.
+   * It could be nothing, a group edit form, or a category edit form.
+   */
+  private[this] def setAndShowRightPanel(panel:RightPanel) : NodeSeq = {
+    panel match {
+      case NoPanel => NodeSeq.Empty
+      case GroupForm(group) =>
+        val form = new NodeGroupForm(htmlId_item, Some(group), onSuccessCallback)
+        nodeGroupForm.set(Full(form))
+        form.showForm()
+
+      case CategoryForm(category) =>
+        val form = new NodeGroupCategoryForm(htmlId_item, category, onSuccessCallback)
+        nodeGroupCategoryForm.set(Full(form))
+        form.showForm()
+    }
+  }  
+
+  private[this] def showGroupSection(sg : NodeGroup) : JsCmd = {
+    //update UI
+    refreshRightPanel(GroupForm(sg))&
+    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'groupId':'%s'})""".format(sg.id.value))
+  }  
   
   /**
    * Create a group from the given parameter
@@ -444,12 +566,12 @@ class NodeGroupForm(
    * @return
    */
   private def createGroup(name : String, description : String, query : Query, isDynamic : Boolean, nodeList : List[NodeId], container: String ) : JsCmd = {
-    nodeGroupRepository.createNodeGroup(name, description, Some(query), isDynamic, nodeList.toSet, new NodeGroupCategoryId(container), true, CurrentUser.getActor) match {
+    nodeGroupRepository.createNodeGroup(name, description, Some(query), isDynamic, nodeList.toSet, new NodeGroupCategoryId(container), true, CurrentUser.getActor, Some("Group created by user")) match {
         case Full(x) => 
           _nodeGroup = Some(x.group)
           
           setNodeGroupCategoryForm
-          onCreateSuccess  & onSuccessCallback()
+          onCreateSuccess  & onSuccessCallback(x.group.id.value)
         case Empty =>
           setNodeGroupCategoryForm
           logger.error("An error occurred while saving the Group")
@@ -474,10 +596,13 @@ class NodeGroupForm(
    * @param container
    * @return
    */
-  private def updateGroup(originalNodeGroup : NodeGroup, name : String, description : String, query : Query, isDynamic : Boolean, nodeList : List[NodeId], isEnabled : Boolean = true ) : JsCmd = {
+  private def updateGroup(originalNodeGroup : NodeGroup, name : String, description : String, query : Query, isDynamic : Boolean, nodeList : List[NodeId], container:String, isEnabled : Boolean = true ) : JsCmd = {
     val newNodeGroup = new NodeGroup(originalNodeGroup.id, name, description, Some(query), isDynamic, nodeList.toSet, isEnabled, originalNodeGroup.isSystem)
     (for {
-      saved <- nodeGroupRepository.update(newNodeGroup, CurrentUser.getActor) ?~! "Error when updating the group %s".format(originalNodeGroup.id)
+      moved <- nodeGroupRepository.move(originalNodeGroup, NodeGroupCategoryId(container), CurrentUser.getActor, crReasons.map(_.is)) ?~! 
+               "Error when moving NodeGroup %s ('%s') to '%s'".format(originalNodeGroup.id, originalNodeGroup.name, container)
+      saved <- nodeGroupRepository.update(newNodeGroup, CurrentUser.getActor, crReasons.map(_.is)) ?~! 
+               "Error when updating the group %s".format(originalNodeGroup.id)
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
         Full("Deployment request sent")
@@ -489,7 +614,7 @@ class NodeGroupForm(
           _nodeGroup = Some(newNodeGroup)
 
           setNodeGroupCategoryForm
-          onUpdateSuccess  & onSuccessCallback()& successPopup
+          onUpdateSuccess & onSuccessCallback(originalNodeGroup.id.value) & successPopup
         case Empty =>
           setNodeGroupCategoryForm
           logger.error("An error occurred while updating the group")
@@ -509,7 +634,10 @@ class NodeGroupForm(
    
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="errorNotification" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = 
+        <div id="notifications" class="notify">
+          <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
+        </div>
       notifications = Nil
       html
     }
@@ -532,6 +660,23 @@ class NodeGroupForm(
     private[this] def successPopup : JsCmd = {
     JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)     
     """)
+  }
+    
+  private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
+    
+    val notifications = formTracker.formErrors
+    formTracker.cleanErrors
+   
+    if(notifications.isEmpty) {
+      NodeSeq.Empty
+    }
+    else {
+      val html = 
+        <div id="notifications" class="notify">
+          <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
+        </div>
+      html
+    }
   }
 }
 

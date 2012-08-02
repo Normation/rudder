@@ -49,5 +49,3 @@ eventType varchar(64),
 policy text,
 msg text
 );
-
-create index executionTimeStamp_idx on ArchivedRudderSysEvents (executionTimeStamp);

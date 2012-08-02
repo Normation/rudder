@@ -87,7 +87,7 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
   
   override def mainDispatch = Map(
       "head" -> { _:NodeSeq => head }
-    , "editRule" -> { _:NodeSeq => editRule }
+    , "editRule" -> { _:NodeSeq => editRule() }
     , "viewRules" -> { _:NodeSeq => viewRules }
   )
 
@@ -154,21 +154,23 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     )
 
             <div id={htmlId_viewAll}>
+            <lift:authz role="rule_write">
               <div id="actions_zone">
                 {SHtml.ajaxButton("Add a new rule", () => showPopup(), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))}
               </div> 
-             {ruleGrid.rulesGrid() }
+            </lift:authz>
+             {ruleGrid.rulesGrid() }             
            </div>
 
   }
   
-  def editRule() : NodeSeq = {
+  def editRule(dispatch:String="showForm") : NodeSeq = {
     def errorDiv(f:Failure) = <div id={htmlId_editRuleDiv} class="error">Error in the form: {f.messageChain}</div>
 
     currentRuleForm.is match {
       case f:Failure => errorDiv(f)
       case Empty => <div id={htmlId_editRuleDiv} class="info">Add a new Rule or click on an existing one in the grid to edit its parameters</div>
-      case Full(form) => form.dispatch("showForm")(NodeSeq.Empty)
+      case Full(form) => form.dispatch(dispatch)(NodeSeq.Empty)
     }
   }
 
@@ -177,7 +179,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
     //update UI
     Replace(htmlId_viewAll,  viewRules()) &
-    Replace(htmlId_editRuleDiv, editRule()) 
+    Replace(htmlId_editRuleDiv, editRule("showEditForm")) 
   }
    
   /**

@@ -39,10 +39,10 @@ import org.junit._
 import org.junit.Assert._
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-
 import net.liftweb.common._
 import com.normation.rudder.domain._
 import com.normation.rudder.services.queries._
+import com.normation.rudder.domain.queries.NodeReturnType
 
 
 /*
@@ -172,19 +172,19 @@ class TestJsonQueryLexing {
         StringCriterionLine("node", "ram", "exists")
       )
       
-    val query = StringQuery("node",Some("or"), where)
+    val query = StringQuery(NodeReturnType,Some("or"), where)
       
     assertEquals(Full(query), lexer.lex(valid1_0))
     assertEquals(Full(query), lexer.lex(valid1_1))
     
-    assertEquals(Full(StringQuery("node",Some("or"), Seq())), lexer.lex(valid2_0) )
-    assertEquals(Full(StringQuery("node",Some("or"), Seq())), lexer.lex(valid2_1) )
+    assertEquals(Full(StringQuery(NodeReturnType,Some("or"), Seq())), lexer.lex(valid2_0) )
+    assertEquals(Full(StringQuery(NodeReturnType,Some("or"), Seq())), lexer.lex(valid2_1) )
     
-    assertEquals(Full(StringQuery("node",None, where)), lexer.lex(valid3_0) )
-    assertEquals(Full(StringQuery("node",None, where)), lexer.lex(valid3_1) )
+    assertEquals(Full(StringQuery(NodeReturnType,None, where)), lexer.lex(valid3_0) )
+    assertEquals(Full(StringQuery(NodeReturnType,None, where)), lexer.lex(valid3_1) )
     
-    assertEquals(Full(StringQuery("node",None, Seq())), lexer.lex(valid4_0) )
-    assertEquals(Full(StringQuery("node",None, Seq())), lexer.lex(valid4_1) )
+    assertEquals(Full(StringQuery(NodeReturnType,None, Seq())), lexer.lex(valid4_0) )
+    assertEquals(Full(StringQuery(NodeReturnType,None, Seq())), lexer.lex(valid4_1) )
     
     assertFalse(lexer.lex(errorMissing1).isDefined)
     assertFalse(lexer.lex(errorMissing2_0).isDefined)

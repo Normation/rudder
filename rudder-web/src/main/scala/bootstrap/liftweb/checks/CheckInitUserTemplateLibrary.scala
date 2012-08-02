@@ -46,7 +46,8 @@ import com.normation.rudder.domain.policies._
 import com.normation.utils.Control._
 import org.joda.time.DateTime
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.domain.logger.ApplicationLogger
 
 /**
  * That class add all the available reference template in 
@@ -66,17 +67,17 @@ class CheckInitUserTemplateLibrary(
     ldap.foreach { con =>
     
         con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_INIT_DATETIME, A_OC) match {
-          case e:EmptyBox => logger.error("The root entry of the user template library was not found")
+          case e:EmptyBox => ApplicationLogger.error("The root entry of the user template library was not found")
           case Full(root) => root.getAsGTime(A_INIT_DATETIME) match {
-            case Some(date) => logger.debug("The root user template library was initialized on %s".format(date.dateTime.toString("YYYY/MM/dd HH:mm")))
+            case Some(date) => ApplicationLogger.debug("The root user template library was initialized on %s".format(date.dateTime.toString("YYYY/MM/dd HH:mm")))
             case None => 
-              logger.info("The Active Technique library is not marked as being initialized: adding all policies from reference library...")
+              ApplicationLogger.info("The Active Technique library is not marked as being initialized: adding all policies from reference library...")
               copyReferenceLib(con) match {
-                case Full(x) => logger.info("...done")
+                case Full(x) => ApplicationLogger.info("...done")
                 case eb:EmptyBox =>
                   val e = eb ?~! "Some error where encountered during the initialization of the user library"
                   val msg = e.messageChain.split("<-").mkString("\n ->")
-                  logger.warn(msg)
+                  ApplicationLogger.warn(msg)
                   logger.debug(e.exceptionChain)
               }
               root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
@@ -106,14 +107,14 @@ class CheckInitUserTemplateLibrary(
             Full(newUserPTCat)
           } else {
             for {
-              updatedParentCat <- userCategoryService.addActiveTechniqueCategory(newUserPTCat, toParentCat, RudderEventActor) ?~! 
+              updatedParentCat <- userCategoryService.addActiveTechniqueCategory(newUserPTCat, toParentCat, RudderEventActor, reason = Some("Initialize active templates library")) ?~! 
                 "Error when adding category '%s' to user library parent category '%s'".format(newUserPTCat.id.value, toParentCat.id.value)
                 //now, add items and subcategories, in a "try to do the max you can" way
                 fullRes <- boxSequence(
                   //Techniques
                   bestEffort(fromCat.packageIds.groupBy(id => id.name).toSeq) { case (name, ids) =>
                     for {
-                      activeTechnique <- userTempalteService.addTechniqueInUserLibrary(newUserPTCat.id, name, ids.map( _.version).toSeq, RudderEventActor) ?~!
+                      activeTechnique <- userTempalteService.addTechniqueInUserLibrary(newUserPTCat.id, name, ids.map( _.version).toSeq, RudderEventActor, reason = Some("Initialize active templates library")) ?~!
                         "Error when adding Technique '%s' into user library category '%s'".format(name.value, newUserPTCat.id.value)
                     } yield {
                       activeTechnique

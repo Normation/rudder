@@ -74,28 +74,28 @@ class TestStringQueryParser {
   }
   
   
-  val valid1_0 = StringQuery("foo", Some("and"), Seq(
+  val valid1_0 = StringQuery(NodeReturnType, Some("and"), Seq(
       StringCriterionLine("node","name","exists"),
       StringCriterionLine("machine","name","gt",Some("plop")),
       StringCriterionLine("node","id","eq",Some("foo"))
   ))
   
-  val valid1_1 = StringQuery("foo", Some("and"), Seq())
-  val valid1_2 = StringQuery("foo", Some("or"), Seq())
-  val valid1_3 = StringQuery("foo", None, Seq()) //default to and
+  val valid1_1 = StringQuery(NodeReturnType, Some("and"), Seq())
+  val valid1_2 = StringQuery(NodeReturnType, Some("or"), Seq())
+  val valid1_3 = StringQuery(NodeReturnType, None, Seq()) //default to and
   
 
-  val unvalidComp = StringQuery("foo", Some("foo"), Seq())
-  val unknowObjectType = StringQuery("foo", None, Seq(
+  val unvalidComp = StringQuery(NodeReturnType, Some("foo"), Seq())
+  val unknowObjectType = StringQuery(NodeReturnType, None, Seq(
       StringCriterionLine("unknown","name","exists")
   ))
-  val unknowAttribute = StringQuery("foo", None, Seq(
+  val unknowAttribute = StringQuery(NodeReturnType, None, Seq(
       StringCriterionLine("node","unknown","exists")
   ))
-  val unknowComparator = StringQuery("foo", None, Seq(
+  val unknowComparator = StringQuery(NodeReturnType, None, Seq(
       StringCriterionLine("node","name","unknown")
   ))
-  val missingRequiredValue = StringQuery("foo", None, Seq(
+  val missingRequiredValue = StringQuery(NodeReturnType, None, Seq(
       StringCriterionLine("node","name","eq")
   ))
   
@@ -104,7 +104,7 @@ class TestStringQueryParser {
   def basicParsing() {
     
     assertEquals(
-      Full(Query("foo", And, Seq(
+      Full(Query(NodeReturnType, And, Seq(
           CriterionLine(oc1,c1,Exists),
           CriterionLine(oc2,c3,Greater,"plop"),
           CriterionLine(oc1,c2,Equals,"foo")
@@ -113,15 +113,15 @@ class TestStringQueryParser {
     )
   
     assertEquals(
-      Full(Query("foo", And, Seq())),
+      Full(Query(NodeReturnType, And, Seq())),
       parser.parse(valid1_1)
     )
     assertEquals(
-      Full(Query("foo", Or, Seq())),
+      Full(Query(NodeReturnType, Or, Seq())),
       parser.parse(valid1_2)
     )
     assertEquals(
-      Full(Query("foo", And, Seq())),
+      Full(Query(NodeReturnType, And, Seq())),
       parser.parse(valid1_3)
     )
     

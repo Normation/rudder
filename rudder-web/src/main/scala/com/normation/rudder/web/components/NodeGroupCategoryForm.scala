@@ -59,7 +59,7 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 class NodeGroupCategoryForm(
   htmlIdCategory : String,
   nodeGroupCategory : NodeGroupCategory,
-  onSuccessCallback : () => JsCmd = { () => Noop },
+  onSuccessCallback : (String) => JsCmd = { (String) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
@@ -94,7 +94,9 @@ class NodeGroupCategoryForm(
      <hr class="spacer"/>
      <directive:container/>
      <hr class="spacer"/>
+     <lift:authz role="node_write">
      <div class="margins" align="right"><directive:save/> <directive:delete/></div>
+     </lift:authz>
      </fieldset>) ++ Script(JsRaw("correctButtons();"))
 
     if (_nodeGroupCategory.isSystem) {
@@ -171,11 +173,11 @@ class NodeGroupCategoryForm(
   }
   
   private[this] def onDelete() : JsCmd = {
-    groupCategoryRepository.delete(_nodeGroupCategory.id, CurrentUser.getActor) match {
+    groupCategoryRepository.delete(_nodeGroupCategory.id, CurrentUser.getActor, Some("Node Group category deleted by user from UI")) match {
       case Full(id) => 
         JsRaw("""$.modal.close();""") &
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
-        onSuccessCallback() &
+        onSuccessCallback(nodeGroupCategory.id.value) &
         successPopup
       case e:EmptyBox =>    
         val m = (e ?~! "Error when trying to delete the category").messageChain
@@ -186,14 +188,13 @@ class NodeGroupCategoryForm(
   
   
   ///////////// fields for category settings ///////////////////
-  private[this] val piName = new WBTextField("Category name: ", _nodeGroupCategory.name) {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
+  private[this] val piName = new WBTextField("Category name", _nodeGroupCategory.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def validations = 
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
   
-  private[this] val piDescription = new WBTextAreaField("Category description: ", _nodeGroupCategory.description.toString) {
+  private[this] val piDescription = new WBTextAreaField("Category description", _nodeGroupCategory.description.toString) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:10em")
 
@@ -252,8 +253,8 @@ class NodeGroupCategoryForm(
   }
   
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
-    updateFormClientSide & JsRaw("""scrollToElement("errorNotification");""")
+    formTracker.addFormError(error("The form contains some errors, please correct them."))
+    updateFormClientSide & JsRaw("""scrollToElement("notifications");""")
   }
   
   private[this] def onSubmit() : JsCmd = {
@@ -271,11 +272,15 @@ class NodeGroupCategoryForm(
         _nodeGroupCategory.isSystem
       )
 
-      groupCategoryRepository.saveGroupCategory(newNodeGroup,
-            NodeGroupCategoryId(piContainer.is), CurrentUser.getActor) match {
+      groupCategoryRepository.saveGroupCategory(
+          newNodeGroup
+        , NodeGroupCategoryId(piContainer.is)
+        , CurrentUser.getActor
+        , Some("Node Group category saved by user from UI")
+      ) match {
         case Full(x) =>
           _nodeGroupCategory = x
-          onSuccess & onSuccessCallback() & successPopup
+          onSuccess & onSuccessCallback(nodeGroupCategory.id.value) & successPopup
         case Empty =>
           logger.error("An error occurred while saving the GroupCategory")
            formTracker.addFormError(error("An error occurred while saving the GroupCategory"))
@@ -290,13 +295,18 @@ class NodeGroupCategoryForm(
   }
   
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
-    notifications :::= formTracker.formErrors
+    
+    val notifications = formTracker.formErrors
     formTracker.cleanErrors
    
-    if(notifications.isEmpty) NodeSeq.Empty
+    if(notifications.isEmpty) {
+      NodeSeq.Empty
+    }
     else {
-      val html = <div  id="errorNotification" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
-      notifications = Nil
+      val html = 
+        <div id="notifications" class="notify">
+          <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
+        </div>
       html
     }
   }

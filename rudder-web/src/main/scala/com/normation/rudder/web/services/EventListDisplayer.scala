@@ -35,13 +35,13 @@ package com.normation.rudder.web.services
 
 import scala.xml._
 import com.normation.eventlog.EventLog
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import net.liftweb.common._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.services.log.EventLogDetailsService
+import com.normation.rudder.services.eventlog.EventLogDetailsService
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.web.model.JsInitContextLinkUtil._
@@ -55,16 +55,19 @@ import net.liftweb.http.S
 import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.repository._
+import bootstrap.liftweb.LiftSpringApplicationContext.inject
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment), 
  * or in the administration EventLogsViewer
  */
 class EventListDisplayer(
-      logDetailsService: EventLogDetailsService
-    , repos            : EventLogRepository
+      logDetailsService   : EventLogDetailsService
+    , repos               : EventLogRepository
+    , nodeGroupRepository : NodeGroupRepository
+    , directiveRepository : DirectiveRepository
 ) extends Loggable {
-
+  
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
  // private[this] val gridName = "eventLogsGrid"
  // private[this] val jsGridName = "oTable" + gridName
@@ -88,8 +91,7 @@ class EventListDisplayer(
         ".logId *" #> event.id.getOrElse(0).toString &
         ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
         ".logActor *" #> event.principal.name &
-        ".logType *" #> event.eventType.serialize &
-        ".logCategory *" #> S.?("event.log.category."+event.eventLogCategory.getClass().getSimpleName()) &
+        ".logType *" #> S.?("rudder.log.eventType.names." + event.eventType.serialize) &
         ".logDescription *" #> displayDescription(event) 
       })
      )(dataTableXml(gridName)) 
@@ -120,37 +122,41 @@ class EventListDisplayer(
               , { "sWidth": "110px" }
               , { "sWidth": "110px" }
               , { "sWidth": "100px" }
-              , { "sWidth": "150px" }
             ]
           });moveFilterAndFullPaginateArea('#%s');""".format(gridName,gridName).replaceAll("#table_var#",jsGridName)
         )  &
         JsRaw("""
         /* Formating function for row details */          
           function fnFormatDetails(id) {
-          var sOut = '<span id="'+id+'" class="sgridbph"/>';
-          return sOut;
-        };
+            var sOut = '<span id="'+id+'" class="sgridbph"/>';
+            return sOut;
+          };
           
           $('td', #table_var#.fnGetNodes() ).each( function () {
-          $(this).click( function () {
-        var nTr = this.parentNode;
-            var jTr = jQuery(nTr);
-        if (jTr.hasClass('curspoint')) {
-              var opened = jTr.prop("open");
-              if (opened && opened.match("opened")) {
-                jTr.prop("open", "closed");
-                jQuery(nTr).find("td.listclose").removeClass("listclose").addClass("listopen");
-                #table_var#.fnClose(nTr);
-              } else {
-                jTr.prop("open", "opened");
-                jQuery(nTr).find("td.listopen").removeClass("listopen").addClass("listclose");
-            var jsid = jTr.attr("jsuuid");
-                #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
-                %s;
+            $(this).click( function () {
+              var nTr = this.parentNode;
+              var jTr = jQuery(nTr);
+              if (jTr.hasClass('curspoint')) {
+                var opened = jTr.prop("open");
+                if (opened && opened.match("opened")) {
+                  jTr.prop("open", "closed");
+                  jQuery(nTr).find("td.listclose").removeClass("listclose").addClass("listopen");
+                  #table_var#.fnClose(nTr);
+                } else {
+                  jTr.prop("open", "opened");
+                  jQuery(nTr).find("td.listopen").removeClass("listopen").addClass("listclose");
+                  var jsid = jTr.attr("jsuuid");
+                  #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
+                  %s;
+                }
               }
-        }
-          } );
-        })
+            } );
+          })
+            
+          function showParameters(){
+            document.getElementById("show_parameters_info").style.display = "block";
+          }
+            
       """.format(
           SHtml.ajaxCall(JsVar("jsid"), details _)._2.toJsCmd).replaceAll("#table_var#",
              jsGridName)
@@ -187,7 +193,6 @@ class EventListDisplayer(
             <th>Date</th>
             <th>Actor</th>
             <th>Event Type</th>
-            <th>Event Category</th>
             <th>Description</th>
           </tr>
         </thead>
@@ -198,7 +203,6 @@ class EventListDisplayer(
             <td class="logDatetime">[Date and time of event]</td>
             <td class="logActor">[actor of the event]</td>
             <td class="logType">[type of event]</td>
-            <td class="logCategory">[category of event]</td>
             <td class="logDescription">[some user readable info]</td>
           </tr>
         </tbody>
@@ -252,6 +256,11 @@ class EventListDisplayer(
         }
     }
     
+    def techniqueDesc(x:EventLog, actionName: NodeSeq) = {
+        val name = (x.details \ "activeTechnique" \ "techniqueName").text
+        Text("Technique %s".format(name)) ++ actionName
+    }
+    
     event match {
       case x:ActivateRedButton => Text("Stop Rudder agents on all nodes")
       case x:ReleaseRedButton => Text("Start again Rudder agents on all nodes")
@@ -276,6 +285,8 @@ class EventListDisplayer(
       case x:ClearCacheEventLog => Text("Clear caches of all nodes")
       case x:UpdatePolicyServer => Text("Change Policy Server authorized network")
       case x:ReloadTechniqueLibrary => Text("Technique library reloaded")
+      case x:ModifyTechnique => techniqueDesc(x, Text(" modified"))
+      case x:DeleteTechnique => techniqueDesc(x, Text(" deleted"))
       case x:SuccessfulDeployment => Text("Successful deployment")
       case x:FailedDeployment => Text("Failed deployment")
       case x:ExportGroupsArchive => Text("New groups archive")
@@ -292,63 +303,95 @@ class EventListDisplayer(
   }
 
   def displayDetails(event:EventLog) = {
-    def errorMessage(e:EmptyBox) = {
-      logger.debug(e ?~! "Error when parsing details.", e)
-      <xml:group>Details for that node were not in a recognized format. Raw data are displayed next:
-                        <pre>{event.details.map { n => xmlPretty.format(n) + "\n"} }</pre></xml:group>
+    
+    def xmlParameters(eventId: Option[Int]) = {
+      eventId match {
+        case None => NodeSeq.Empty
+        case Some(id) =>
+          <h4 id={"showParameters%s".format(id)}
+          class="curspoint showParameters" 
+          onclick={"showParameters(%s)".format(id)}>Raw Technical Details</h4>
+          <pre id={"showParametersInfo%s".format(id) } 
+          style="display:none;width:200px;">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
+      }
     }
     
+    val reasonHtml = {
+      val r = event.eventDetails.reason.getOrElse("")  
+      if(r == "") NodeSeq.Empty 
+      else <div style="margin-top:2px;"><b>Reason: </b>{r}</div>
+    }
+    
+    def errorMessage(e:EmptyBox) = {
+      logger.debug(e ?~! "Error when parsing details.", e)
+      <xml:group>
+        <div class="evloglmargin">
+          <h4>Details for that node were not in a recognized format. 
+            Raw data are displayed next:</h4>
+          <pre style="display:none;width:200px;">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
+        </div>
+      </xml:group>
+    }
+                
     (event match {
     
       case add:AddRule =>
         "*" #> (logDetailsService.getRuleAddDetails(add.details) match {
           case Full(addDiff) => 
-            <div class="evloglmargin"><p>Rule <b>"{addDiff.rule.name}"</b> (ID:{addDiff.rule.id.value}) added with parameters:</p>{
-              ruleDetails(crDetailsXML,addDiff.rule)
-            }</div>
+            <div class="evloglmargin">
+              { ruleDetails(crDetailsXML, addDiff.rule)}
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case Failure(m,_,_) => <p>{m}</p>
           case e:EmptyBox => errorMessage(e)
         })
       
       case del:DeleteRule =>
         "*" #> (logDetailsService.getRuleDeleteDetails(del.details) match {
           case Full(delDiff) =>
-            <div class="evloglmargin"><p>Rule <b>"{delDiff.rule.name}"</b> (ID:{delDiff.rule.id.value}) deleted with parameters:</p>{
-              ruleDetails(crDetailsXML,delDiff.rule)
-            }</div>
+            <div class="evloglmargin">
+              { ruleDetails(crDetailsXML, delDiff.rule) }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
       case mod:ModifyRule =>
         "*" #> (logDetailsService.getRuleModifyDetails(mod.details) match {
           case Full(modDiff) =>            
-            <div class="evloglmargin"><p>Rule <b>"{modDiff.name}"</b>(ID:{modDiff.id.value}) was modified:</p>{
-              (
-                "#name" #> mapSimpleDiff(modDiff.modName) &
+            <div class="evloglmargin">
+              <h4>Rule overview:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Rule ID:</b> { modDiff.id.value }</li>
+                <li><b>Name:</b> { 
+                  modDiff.modName.map(diff => diff.newValue).getOrElse(modDiff.name)
+               }</li>
+              </ul>
+              {(
+                "#name" #>  mapSimpleDiff(modDiff.modName) &
                 "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivatedStatus) &
                 "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
                 "#shortDescription *" #> mapSimpleDiff(modDiff.modShortDescription) &
                 "#longDescription *" #> mapSimpleDiff(modDiff.modLongDescription) &
                 "#target" #> (
                   modDiff.modTarget.map { diff =>
-                   ".diffOldValue" #> groupTargetDetails(diff.oldValue) &
-                   ".diffNewValue" #> groupTargetDetails(diff.newValue)               
+                    ".diffOldValue *" #> groupTargetDetails(diff.oldValue) &
+                    ".diffNewValue *" #> groupTargetDetails(diff.newValue)
                   }
                 ) &
                 "#policies" #> (
                    modDiff.modDirectiveIds.map { diff =>
-                   val mapList = (set:Set[DirectiveId]) => {
-                     if(set.size < 1) Text("None")
-                     else <ul class="evlogviewpad">{ set.toSeq.sortWith( _.value < _.value ).map { id =>
-                            <li><a href={directiveLink(id)}>{id.value}</a></li>
-                          } }</ul>
-                   }
-                   
-                   ".diffOldValue" #> mapList(diff.oldValue) &
-                   ".diffNewValue" #> mapList(diff.newValue)
+                     ".diffOldValue *" #> directiveTargetDetails(diff.oldValue) &
+                     ".diffNewValue *" #> directiveTargetDetails(diff.newValue)
                    }
                 )
               )(crModDetailsXML)
-            }</div>
+              }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
 
@@ -357,9 +400,16 @@ class EventListDisplayer(
       case x:ModifyDirective =>   
         "*" #> (logDetailsService.getDirectiveModifyDetails(x.details) match {
           case Full(modDiff) =>
-            <div class="evloglmargin"><p>Directive <b>"{modDiff.name}"</b>(ID:{modDiff.id.value}) was modified:</p>{
-              (
-                "#name" #> mapSimpleDiff(modDiff.modName) &
+            <div class="evloglmargin">
+              <h4>Directive overview:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Directive ID:</b> { modDiff.id.value }</li>
+                <li><b>Name:</b> {
+                  modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)
+                }</li>
+              </ul>
+              {(
+                "#name" #> mapSimpleDiff(modDiff.modName, modDiff.id) &
                 "#priority *" #> mapSimpleDiff(modDiff.modPriority) &
                 "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivated) &
                 "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
@@ -368,12 +418,17 @@ class EventListDisplayer(
                 "#ptVersion *" #> mapSimpleDiff(modDiff.modTechniqueVersion) &
                 "#parameters" #> (
                   modDiff.modParameters.map { diff =>
-                   ".diffOldValue" #> <pre>{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre> &
-                   ".diffNewValue" #> <pre>{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
-                   }
+                    ".diffOldValue *" #> 
+                      <pre style="width:200px;">{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre> &
+                    ".diffNewValue *" #> 
+                      <pre style="width:200px;">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
+                  }
                 ) 
-              )(piModDetailsXML)
-            }</div>
+              )(piModDetailsXML)}
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case Failure(m, _, _) => <p>{m}</p>
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -381,9 +436,12 @@ class EventListDisplayer(
       case x:AddDirective =>   
         "*" #> (logDetailsService.getDirectiveAddDetails(x.details) match {
           case Full((diff,sectionVal)) =>
-            <div class="evloglmargin"><p>Directive <b>"{diff.directive.name}"</b> (ID:{diff.directive.id.value}) added. Parameters were:</p>{
-              directiveDetails(piDetailsXML,diff.techniqueName, diff.directive,sectionVal)
-            }</div>
+            <div class="evloglmargin">
+              { directiveDetails(piDetailsXML, diff.techniqueName, 
+                  diff.directive, sectionVal) }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -391,9 +449,12 @@ class EventListDisplayer(
       case x:DeleteDirective =>   
         "*" #> (logDetailsService.getDirectiveDeleteDetails(x.details) match {
           case Full((diff,sectionVal)) =>
-            <div class="evloglmargin"><p>Directive <b>"{diff.directive.name}"</b> (ID:{diff.directive.id.value}) deleted. Parameters were:</p>{
-              directiveDetails(piDetailsXML,diff.techniqueName, diff.directive,sectionVal)
-            }</div>
+            <div class="evloglmargin">
+              { directiveDetails(piDetailsXML, diff.techniqueName, 
+                  diff.directive, sectionVal) }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -402,8 +463,15 @@ class EventListDisplayer(
       case x:ModifyNodeGroup =>   
         "*" #> (logDetailsService.getNodeGroupModifyDetails(x.details) match {
           case Full(modDiff) => 
-            <div class="evloglmargin"><p>Node group <b>"{modDiff.name}"</b> (ID:{modDiff.id.value}) modified with parameters:</p>{
-              (
+            <div class="evloglmargin">
+              <h4>Group overview:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Node ID:</b> { modDiff.id.value }</li>
+                <li><b>Name:</b> {
+                  modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)
+                }</li>
+              </ul>
+              {(
                 "#name" #> mapSimpleDiff(modDiff.modName) &
                 "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivated) &
                 "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
@@ -417,24 +485,28 @@ class EventListDisplayer(
                         case Some(q) => Text(q.toJSONString)
                       }
                       
-                     ".diffOldValue" #> mapOptionQuery(diff.oldValue) &
-                     ".diffNewValue" #> mapOptionQuery(diff.newValue)
+                     ".diffOldValue *" #> mapOptionQuery(diff.oldValue) &
+                     ".diffNewValue *" #> mapOptionQuery(diff.newValue)
                     }
                 ) &
                 "#nodes" #> (
                    modDiff.modNodeList.map { diff =>
                    val mapList = (set:Set[NodeId]) =>
-                     if(set.size == 0) Text("None")
-                     else <ul class="evlogviewpad">{ set.toSeq.sortWith( _.value < _.value ).map { id =>
-                       <li><a href={nodeLink(id)}>{id.value}</a></li>
-                     } }</ul>
-                     
-                   ".diffOldValue" #> mapList(diff.oldValue) &
-                   ".diffNewValue" #> mapList(diff.newValue)
+                   if(set.size == 0) 
+                     Text("None")
+                   else { 
+                     set.toSeq.sortWith( _.value < _.value )
+                       .map(id => <a href={nodeLink(id)}>{id.value}</a>)
+                       .reduceLeft[NodeSeq]((a,b) => a ++ <span>,&nbsp;</span> ++ b)
+                   }
+                   ".diffOldValue *" #> mapList(diff.oldValue) &
+                   ".diffNewValue *" #> mapList(diff.newValue)
                    }
                 ) 
-              )(groupModDetailsXML)
-            }</div>
+              )(groupModDetailsXML)}
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -442,9 +514,11 @@ class EventListDisplayer(
       case x:AddNodeGroup =>   
         "*" #> (logDetailsService.getNodeGroupAddDetails(x.details) match {
           case Full(diff) =>
-            <div class="evloglmargin"><p>Node group <b>"{diff.group.name}"</b> (ID:{diff.group.id.value}) added with parameters:</p>{
-              groupDetails(groupDetailsXML,diff.group)
-            }</div>
+            <div class="evloglmargin">
+              { groupDetails(groupDetailsXML, diff.group) }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -452,9 +526,11 @@ class EventListDisplayer(
       case x:DeleteNodeGroup =>   
         "*" #> (logDetailsService.getNodeGroupDeleteDetails(x.details) match {
           case Full(diff) =>
-            <div class="evloglmargin"><p>Node group <b>"{diff.group.name}"</b> (ID:{diff.group.id.value}) deleted with parameters:</p>{
-              groupDetails(groupDetailsXML,diff.group)
-            }</div>
+            <div class="evloglmargin">
+            { groupDetails(groupDetailsXML, diff.group) }
+            { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -463,41 +539,52 @@ class EventListDisplayer(
       case x:AcceptNodeEventLog =>   
         "*" #> (logDetailsService.getAcceptNodeLogDetails(x.details) match {
           case Full(details) =>
-            <div class="evloglmargin"><p>Node <b>"{details.hostname}"</b> (ID:{details.nodeId.value}) accepted:</p>{
-              nodeDetails(details)
-            }</div>
+            <div class="evloglmargin">
+              <h4>Node accepted overview:</h4>
+              { nodeDetails(details) }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
       case x:RefuseNodeEventLog =>   
         "*" #> (logDetailsService.getRefuseNodeLogDetails(x.details) match {
           case Full(details) =>
-            <div class="evloglmargin"><p>Node <b>"{details.hostname}"</b> (ID:{details.nodeId.value}) refused:</p>{
-              nodeDetails(details)
-            }</div>
+            <div class="evloglmargin">
+              <h4>Node refused overview:</h4>
+              { nodeDetails(details) }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
       case x:DeleteNodeEventLog =>   
         "*" #> (logDetailsService.getDeleteNodeLogDetails(x.details) match {
           case Full(details) =>
-            <div class="evloglmargin"><p>Node <b>"{details.node.hostname}"</b> (ID:{details.node.id.value}) deleted:</p>{
-              nodeDetails(details)
-            }</div>
+            <div class="evloglmargin">
+              <h4>Node deleted overview:</h4>
+              { nodeDetails(details) }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
       ////////// deployment //////////
-        
       case x:SuccessfulDeployment => 
         "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
           case Full(SuccessStatus(id,started,ended,_)) =>
             <div class="evloglmargin">
-              <p>Successful deployment (id {id})</p>
-              <table>
-                <tr><td>Start time:</td><td>{DateFormaterService.getFormatedDate(started)}</td></tr>
-                <tr><td>End time:</td><td>{DateFormaterService.getFormatedDate(ended)}</td></tr>
-              </table>
+              <h4>Successful deployment:</h4>
+              <ul class="evlogviewpad">
+                <li><b>ID:</b>&nbsp;{id}</li>
+                <li><b>Start time:</b>&nbsp;{DateFormaterService.getFormatedDate(started)}</li>
+                <li><b>End Time:</b>&nbsp;{DateFormaterService.getFormatedDate(ended)}</li>
+              </ul>
+              { reasonHtml }
+              { xmlParameters(event.id) }
             </div>
           case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
           case e:EmptyBox => errorMessage(e)
@@ -507,18 +594,25 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
           case Full(ErrorStatus(id,started,ended,failure)) =>
             <div class="evloglmargin">
-              <p>Failed deployment (id {id})</p>
-              <table>
-                <tr><td>Start time:</td><td>{DateFormaterService.getFormatedDate(started)}</td></tr>
-                <tr><td>End time:</td><td>{DateFormaterService.getFormatedDate(ended)}</td></tr>
-                <tr><td>Error stack trace:</td><td>
-                  <ul>{failure.messageChain.map { msg => <li>cause: {msg}</li>}}</ul>
-                </td></tr>
-              </table>
+              <h4>Failed deployment:</h4>
+              <ul class="evlogviewpad">
+                <li><b>ID:</b>&nbsp;{id}</li>
+                <li><b>Start time:</b>&nbsp;{DateFormaterService.getFormatedDate(started)}</li>
+                <li><b>End Time:</b>&nbsp;{DateFormaterService.getFormatedDate(ended)}</li>
+                <li><b>Error stack trace:</b>&nbsp;{failure.messageChain}</li>
+              </ul>
+             { reasonHtml }
+              { xmlParameters(event.id) }
             </div>
           case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
           case e:EmptyBox => errorMessage(e)
         })
+        
+      case x:AutomaticStartDeployement => 
+        "*" #> 
+            <div class="evloglmargin">
+              { xmlParameters(event.id) }
+            </div>
         
       ////////// change authorized networks //////////
       
@@ -527,15 +621,18 @@ class EventListDisplayer(
           case Full(details) => 
             
             def networksToXML(nets:Seq[String]) = {
-              <ul>{ nets.map { n => <li>{n}</li> } }</ul>
+              <ul>{ nets.map { n => <li class="eventLogUpdatePolicy">{n}</li> } }</ul>
             }
             
             <div class="evloglmargin">{
               (
-                  ".diffOldValue" #> networksToXML(details.oldNetworks) &
-                  ".diffNewValue" #> networksToXML(details.newNetworks)
+                  ".diffOldValue *" #> networksToXML(details.oldNetworks) &
+                  ".diffNewValue *" #> networksToXML(details.newNetworks)
               )(authorizedNetworksXML)
-            }</div>
+            }
+            { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
       
@@ -544,13 +641,47 @@ class EventListDisplayer(
       case x:ReloadTechniqueLibrary =>
         "*" #> (logDetailsService.getTechniqueLibraryReloadDetails(x.details) match {
           case Full(details) => 
-              <div>
-                The Technique library was reloaded and following Techniques were updated:
-                <table>{ details.map {technique => 
-                  <tr><td>{ "%s (version %s)".format(technique.name.value, technique.version.toString)}</td></tr>
-                } }</table>
+              <div class="evloglmargin">
+                <b>The Technique library was reloaded and following Techniques were updated:</b>
+                <ul>{ details.map {technique => 
+                  <li class="eventLogUpdatePolicy">{ "%s (version %s)".format(technique.name.value, technique.version.toString)}</li>
+                } }</ul>
+                { reasonHtml }
+              { xmlParameters(event.id) }
               </div>
             
+          case e:EmptyBox => errorMessage(e)
+        })
+        
+      // Technique modified
+      case x:ModifyTechnique =>
+        "*" #> (logDetailsService.getTechniqueModifyDetails(x.details) match {
+          case Full(modDiff) =>            
+            <div class="evloglmargin">
+              <h4>Technique overview:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Technique ID:</b> { modDiff.id.value }</li>
+                <li><b>Name:</b> { modDiff.name }</li>
+              </ul>
+              {(
+                "#isEnabled *" #> mapSimpleDiff(modDiff.modIsEnabled)
+              )(liModDetailsXML("isEnabled", "Activation status"))
+              }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => errorMessage(e)
+        })
+        
+      // Technique modified
+      case x:DeleteTechnique =>
+        "*" #> (logDetailsService.getTechniqueDeleteDetails(x.details) match {
+          case Full(techDiff) =>
+            <div class="evloglmargin">
+              { techniqueDetails(techniqueDetailsXML, techDiff.technique) }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
           case e:EmptyBox => errorMessage(e)
         })
         
@@ -558,13 +689,16 @@ class EventListDisplayer(
         
       case x:ExportEventLog => 
         "*" #> (logDetailsService.getNewArchiveDetails(x.details, x) match {
-          case Full(gitArchiveId) => displayExportArchiveDetails(gitArchiveId)
+          case Full(gitArchiveId) => 
+              { displayExportArchiveDetails(gitArchiveId, xmlParameters(event.id)) }
+            
           case e:EmptyBox => errorMessage(e)
         })
         
       case x:ImportEventLog => 
         "*" #> (logDetailsService.getRestoreArchiveDetails(x.details, x) match {
-          case Full(gitArchiveId) => displayImportArchiveDetails(gitArchiveId)
+          case Full(gitArchiveId) => 
+              { displayImportArchiveDetails(gitArchiveId, xmlParameters(event.id)) }
           case e:EmptyBox => errorMessage(e)
         })
 
@@ -574,23 +708,25 @@ class EventListDisplayer(
     })(event.details)
   }
   
-  private[this] def displayExportArchiveDetails(gitArchiveId: GitArchiveId) = 
-    <div>
-      Details of the new archive:
-      <table>
-        <tr><td>Git path of the archive:</td><td>{gitArchiveId.path.value}</td></tr>
-        <tr><td>Commit ID (hash):</td><td>{gitArchiveId.commit.value}</td></tr>
-        <tr><td>Commiter name:</td><td>{gitArchiveId.commiter.getName}</td></tr>
-        <tr><td>Commiter email:</td><td>{gitArchiveId.commiter.getEmailAddress}</td></tr>
-      </table>
+  private[this] def displayExportArchiveDetails(gitArchiveId: GitArchiveId, rawData: NodeSeq) = 
+    <div class="evloglmargin">
+      <h4>Details of the new archive:</h4>
+      <ul class="evlogviewpad">
+        <li><b>Git path of the archive: </b>{gitArchiveId.path.value}</li>
+        <li><b>Commit ID (hash): </b>{gitArchiveId.commit.value}</li>
+        <li><b>Commiter name: </b>{gitArchiveId.commiter.getName}</li>
+        <li><b>Commiter email: </b>{gitArchiveId.commiter.getEmailAddress}</li>
+      </ul>
+      {rawData}
     </div>
         
-  private[this] def displayImportArchiveDetails(gitCommitId: GitCommitId) = 
-    <div>
-      Details of the restored archive:
-      <table>
-        <tr><td>Commit ID (hash):</td><td>{gitCommitId.value}</td></tr>
-      </table>
+  private[this] def displayImportArchiveDetails(gitCommitId: GitCommitId, rawData: NodeSeq) = 
+    <div class="evloglmargin">
+      <h4>Details of the restored archive:</h4>
+      <ul class="evlogviewpad">
+        <li><b>Commit ID (hash): </b>{gitCommitId.value}</li>
+      </ul>
+      {rawData}
     </div>
 
   private[this] def displayDiff(tag:String)(xml:NodeSeq) = 
@@ -603,19 +739,75 @@ class EventListDisplayer(
     (<b>ID:</b><a href={directiveLink(id)}>{id.value}</a>):NodeSeq
   }
   
-  private[this] def groupTargetDetails(target:Option[RuleTarget]):NodeSeq = target match {
-    case Some(GroupTarget(id@NodeGroupId(g))) => (
-      <b>Group:</b><a href={groupLink(id)}>{g}</a>  
-    )
-    case Some(x) => Text("Special group: " + x.toString)
-    case None => Text("None")
+  private [this]def getNameFromGroupId(groupId:String): String = {
+    nodeGroupRepository.getNodeGroup(new NodeGroupId(groupId)) match {
+      case t: EmptyBox => groupId
+      case Full(nodeGroup) => nodeGroup.name
+    }
   }
-      
+  
+  private[this] def groupNodeSeqLink(id: NodeGroupId): NodeSeq = {
+    nodeGroupRepository.getNodeGroup(id) match {
+      case t: EmptyBox => 
+        <span>group({id.value})</span>
+      case Full(nodeGroup) => 
+        <span>group(<a href={groupLink(id)}>{nodeGroup.name}</a>)</span>
+    }
+  }
+  
+  private[this] def groupTargetDetails(targets: Set[RuleTarget]): NodeSeq = {
+    val res = targets.toSeq match {
+      case Seq() => NodeSeq.Empty
+      case t =>
+        targets
+        .toSeq
+        .map { target =>
+          target match {
+            case GroupTarget(id@NodeGroupId(g)) => 
+              groupNodeSeqLink(id)
+            case x => 
+              <span>{Text("group_special(" + x.toString + ")")}</span>
+          }
+        }
+        .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
+    }
+    (
+      ".groupSeparator" #> ", "
+    )(res)
+  }
+  
+  private[this] def directiveTargetDetails(set: Set[DirectiveId]): NodeSeq = {
+    if(set.size < 1) 
+      Text("None")
+    else { 
+      set match {
+        case Seq() => NodeSeq.Empty
+        case _ =>
+          val res = {
+            set
+              .toSeq
+              .sortWith( _.value < _.value )
+              .map { id =>
+                directiveRepository.getDirective(id) match {
+                  case t: EmptyBox => 
+                    <span>directive({id.value})</span>
+                  case Full(directive) => 
+                    <span>directive(<a href={directiveLink(id)}>{directive.name}</a>)</span>
+                }
+              }
+              .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
+          }
+          (
+            ".groupSeparator" #> ", "
+          )(res)
+      }
+    }
+  }
   
   private[this] def ruleDetails(xml:NodeSeq, rule:Rule) = (
-      "#id" #> rule.id.value &
-      "#name" #> rule.name &
-      "#target" #> groupTargetDetails(rule.target) &
+      "#ruleID" #> rule.id.value &
+      "#ruleName" #> rule.name &
+      "#target" #> groupTargetDetails(rule.targets) &
       "#policy" #> (xml =>  
         if(rule.directiveIds.size < 1) Text("None") else {
           (".techniqueId *" #> directiveIdDetails(rule.directiveIds.toSeq))(xml)              
@@ -627,7 +819,10 @@ class EventListDisplayer(
   )(xml)
   
   private[this] def directiveDetails(xml:NodeSeq, ptName: TechniqueName, directive:Directive, sectionVal:SectionVal) = (
-      "#parameters" #> <pre>{xmlPretty.format(SectionVal.toXml(sectionVal))}</pre> &
+      "#directiveID" #> directive.id.value &
+      "#directiveName" #> directive.name &
+      "#ptVersion" #> directive.techniqueVersion.toString &
+      "#ptName" #> ptName.value &
       "#ptVersion" #> directive.techniqueVersion.toString &
       "#ptName" #> ptName.value &
       "#priority" #> directive.priority &
@@ -638,32 +833,59 @@ class EventListDisplayer(
   )(xml)
   
   private[this] def groupDetails(xml:NodeSeq, group: NodeGroup) = (
+      "#groupID" #> group.id.value &
+      "#groupName" #> group.name &
+      "#shortDescription" #> group.description &
       "#shortDescription" #> group.description &
       "#query" #> (group.query match {
         case None => Text("None")
         case Some(q) => Text(q.toJSONString)
       } ) &
       "#isDynamic" #> group.isDynamic &
-      "#nodes" #>( if(group.serverList.size < 1) Text("None")
-                   else <ul class="evlogviewpad">{group.serverList.map { id => 
-                         <li><a href={nodeLink(id)}>{id.value}</a></li>
-                        } }</ul>) &
+      "#nodes" #>( 
+                   {
+                     val l = group.serverList.toList
+                       l match {
+                         case Nil => Text("None")
+                         case _ => l
+                           .map(id => <a href={nodeLink(id)}>{id.value}</a>)
+                           .reduceLeft[NodeSeq]((a,b) => a ++ <span>,&nbsp;</span> ++ b)
+                       }
+                     }
+                  ) &
       "#isEnabled" #> group.isEnabled &
       "#isSystem" #> group.isSystem
   )(xml)
   
+  private[this] def techniqueDetails(xml: NodeSeq, technique: ActiveTechnique) = (
+      "#techniqueID" #> technique.id.value &
+      "#techniqueName" #> technique.techniqueName.value &
+      "#isEnabled" #> technique.isEnabled &
+      "#isSystem" #> technique.isSystem
+  )(xml)
+  
  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]]) = opt.map { diff =>
-   ".diffOldValue" #> diff.oldValue.toString &
-   ".diffNewValue" #> diff.newValue.toString
+   ".diffOldValue *" #> diff.oldValue.toString &
+   ".diffNewValue *" #> diff.newValue.toString
+  }  
+  
+ private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]], id: DirectiveId) = opt.map { diff =>
+   ".diffOldValue *" #> diff.oldValue.toString &
+   ".diffNewValue *" #> diff.newValue.toString &
+   "#directiveID" #> id.value
   }  
   
   private[this] def nodeDetails(details:InventoryLogDetails) = (
+     "#nodeID" #> details.nodeId.value &
+     "#nodeName" #> details.hostname &
      "#os" #> details.fullOsName &
      "#version" #> DateFormaterService.getFormatedDate(details.inventoryVersion)
   )( 
     <ul class="evlogviewpad">
-      <li><b>Operating System:</b>'<value id="os"/>'</li>
-      <li><b>Inventory Version:</b>'<value id="version"/>'</li>
+      <li><b>Node ID: </b><value id="nodeID"/></li>
+      <li><b>name: </b><value id="nodeName"/></li>
+      <li><b>Operating System: </b><value id="os"/></li>
+      <li><b>Inventory Version: </b><value id="version"/></li>
     </ul>
   )
   
@@ -685,72 +907,90 @@ class EventListDisplayer(
   )(nodeDetailsXML)
   
   private[this] val crDetailsXML = 
-    <ul class="evlogviewpad">
-      <li><b>target:</b>'<value id="target"/>'</li>
-      <li><b>Directives:</b>'<value id="policy"/>'</li>
-      <li><b>enabled:</b>'<value id="isEnabled"/>'</li>
-      <li><b>system:</b>'<value id="isSystem"/>'</li>
-      <li><b>description:</b>'<value id="shortDescription"/>'</li>
-      <li><b>details:</b>'<value id="longDescription"/>'</li>
-    </ul>
+    <div>
+      <h4>Rule overview:</h4>
+      <ul class="evlogviewpad">
+        <li><b>ID:&nbsp;</b><value id="ruleID"/></li>
+        <li><b>Name:&nbsp;</b><value id="ruleName"/></li>
+        <li><b>Description:&nbsp;</b><value id="shortDescription"/></li>
+        <li><b>Target:&nbsp;</b><value id="target"/></li>
+        <li><b>Directives:&nbsp;</b><value id="policy"/></li>
+        <li><b>Enabled:&nbsp;</b><value id="isEnabled"/></li>
+        <li><b>System:&nbsp;</b><value id="isSystem"/></li>
+        <li><b>Details:&nbsp;</b><value id="longDescription"/></li>
+      </ul>
+    </div>
       
   private[this] val piDetailsXML = 
-    <ul class="evlogviewpad">
-      <li><b>Technique name:</b><value id="ptName"/></li>
-      <li><b>Technique version:</b><value id="ptVersion"/></li>
-      <li><b>priority:</b>'<value id="priority"/>'</li>
-      <li><b>enabled:</b>'<value id="isEnabled"/>'</li>
-      <li><b>system:</b>'<value id="isSystem"/>'</li>
-      <li><b>description:</b>'<value id="shortDescription"/>'</li>
-      <li><b>details:</b>'<value id="longDescription"/>'</li>
-      <li><b>Directive parameters:</b><value id="parameters"/></li>
-    </ul>
+    <div>
+      <h4>Directive overview:</h4>
+      <ul class="evlogviewpad">
+        <li><b>ID:&nbsp;</b><value id="directiveID"/></li>
+        <li><b>Name:&nbsp;</b><value id="directiveName"/></li>
+        <li><b>Description:&nbsp;</b><value id="shortDescription"/></li>
+        <li><b>Technique name:&nbsp;</b><value id="ptName"/></li>
+        <li><b>Technique version:&nbsp;</b><value id="ptVersion"/></li>
+        <li><b>Priority:&nbsp;</b><value id="priority"/></li>
+        <li><b>Enabled:&nbsp;</b><value id="isEnabled"/></li>
+        <li><b>System:&nbsp;</b><value id="isSystem"/></li>
+        <li><b>Details:&nbsp;</b><value id="longDescription"/></li>
+      </ul>
+    </div>
     
   private[this] val groupDetailsXML = 
-    <ul class="evlogviewpad">
-      <li><b>description:</b>'<value id="shortDescription"/>'</li>
-      <li><b>enabled:</b>'<value id="isEnabled"/>'</li>
-      <li><b>dynamic:</b>'<value id="isDynamic"/>'</li>
-      <li><b>system:</b>'<value id="isSystem"/>'</li>
-      <li><b>query:</b><value id="query"/></li>
-      <li><b>node list:</b><value id="nodes"/></li>
-    </ul>
+    <div>
+      <h4>Group overview:</h4>
+      <ul class="evlogviewpad">
+        <li><b>ID: </b><value id="groupID"/></li>
+        <li><b>Name: </b><value id="groupName"/></li>
+        <li><b>Description: </b><value id="shortDescription"/></li>
+        <li><b>Enabled: </b><value id="isEnabled"/></li>
+        <li><b>Dynamic: </b><value id="isDynamic"/></li>
+        <li><b>System: </b><value id="isSystem"/></li>
+        <li><b>Query: </b><value id="query"/></li>
+        <li><b>Node list: </b><value id="nodes"/></li>
+      </ul>
+    </div>
   
   private[this] val nodeDetailsXML = 
-    <table>
-     <tr>
-      <td>
+    <div>
+      <h4>Node overview:</h4>
       <ul class="evlogviewpad">
-        <li><b>Rudder ID:</b><value id="id"/></li>
-          <li><b>Name:</b><value id="name"/></li>
-          <li><b>Hostname:</b><value id="hostname"/></li>
-          <li><b>Description:</b><value id="description"/></li>
-          <li><b>Operating System:</b><value id="os"/></li>
-          <li><b>IPs addresses:</b><value id="ips"/></li>
-          <li><b>Date inventory last received:</b><value id="inventoryDate"/></li>
-          <li><b>Agent name:</b><value id="agentsName"/></li>
-          <li><b>Administrator account:</b><value id="localAdministratorAccountName"/></li>
-          <li><b>Date first accepted in Rudder:</b><value id="creationDate"/></li>
-          <li><b>Broken:</b><value id="isBroken"/></li>
-          <li><b>System:</b><value id="isSystem"/></li>
+        <li><b>Rudder ID: </b><value id="id"/></li>
+        <li><b>Name: </b><value id="name"/></li>
+        <li><b>Hostname: </b><value id="hostname"/></li>
+        <li><b>Description: </b><value id="description"/></li>
+        <li><b>Operating System: </b><value id="os"/></li>
+        <li><b>IPs addresses: </b><value id="ips"/></li>
+        <li><b>Date inventory last received: </b><value id="inventoryDate"/></li>
+        <li><b>Agent name: </b><value id="agentsName"/></li>
+        <li><b>Administrator account :</b><value id="localAdministratorAccountName"/></li>
+        <li><b>Date first accepted in Rudder :</b><value id="creationDate"/></li>
+        <li><b>Broken: </b><value id="isBroken"/></li>
+        <li><b>System: </b><value id="isSystem"/></li>
       </ul>
-      </td>
-     </tr>
-    </table>
+    </div>
+    
+  private[this] val techniqueDetailsXML = 
+    <div>
+      <h4>Technique overview:</h4>
+      <ul class="evlogviewpad">
+        <li><b>ID:&nbsp;</b><value id="techniqueID"/></li>
+        <li><b>Name:&nbsp;</b><value id="techniqueName"/></li>
+        <li><b>Enabled:&nbsp;</b><value id="isEnabled"/></li>
+        <li><b>System:&nbsp;</b><value id="isSystem"/></li>
+      </ul>
+    </div>
+      
     
     
   private[this] def liModDetailsXML(id:String, name:String) = (
       <div id={id}>
-        <b>{name}</b> changed
-        <table>
-          <thead><tr><th>from:</th><th>to:</th></tr></thead>
-          <tbody>
-            <tr>
-              <td><span class="diffOldValue">old value</span></td>
-              <td><span class="diffNewValue">new value</span></td>
-            </tr>
-          </tbody>
-        </table>
+        <b>{name} changed:</b>
+        <ul class="evlogviewpad">
+          <li><b>Old value:&nbsp;</b><span class="diffOldValue">old value</span></li>
+          <li><b>New value:&nbsp;</b><span class="diffNewValue">new value</span></li>
+        </ul>
       </div>
   )
   
@@ -771,7 +1011,7 @@ class EventListDisplayer(
       {liModDetailsXML("shortDescription", "Description")}
       {liModDetailsXML("longDescription", "Details")}
       {liModDetailsXML("target", "Target")}
-      {liModDetailsXML("policies", "Policies")}
+      {liModDetailsXML("policies", "Directives")}
       {liModDetailsXML("isEnabled", "Activation status")}
       {liModDetailsXML("isSystem", "System")}
     </xml:group>
@@ -791,8 +1031,8 @@ class EventListDisplayer(
       
   private[this] def authorizedNetworksXML() = (
     <div>
-      Networks authorized on policy server were updated:
-      <table>
+      <b>Networks authorized on policy server were updated:</b>
+      <table class="eventLogUpdatePolicy">
         <thead><tr><th>from:</th><th>to:</th></tr></thead>
         <tbody>
           <tr>

@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
+package com.normation.rudder.domain.eventlog
 
 
 import com.normation.eventlog._
@@ -61,7 +61,7 @@ object ReloadTechniqueLibrary extends EventLogFilter {
   override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2) 
 
   def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent { 
-    <reloadTechniqueLibrary fileFormat={Constants.XML_FILE_FORMAT_2.toString}>{ TechniqueIds.map { case TechniqueId(name, version) =>
+    <reloadTechniqueLibrary fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>{ TechniqueIds.map { case TechniqueId(name, version) =>
       <modifiedTechnique>
         <name>{name.value}</name>
         <version>{version.toString}</version>
@@ -73,6 +73,32 @@ object ReloadTechniqueLibrary extends EventLogFilter {
 
 object TechniqueEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      ReloadTechniqueLibrary 
+      ReloadTechniqueLibrary, ModifyTechnique, DeleteTechnique
     )
+}
+
+final case class ModifyTechnique(
+    override val eventDetails : EventLogDetails
+) extends TechniqueEventLog with HashcodeCaching {
+  override val cause = None
+  override val eventType = ModifyTechnique.eventType
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+}
+
+object ModifyTechnique extends EventLogFilter {
+  override val eventType = ModifyTechniqueEventType
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyTechnique = ModifyTechnique(x._2) 
+}
+
+final case class DeleteTechnique(
+    override val eventDetails : EventLogDetails
+) extends TechniqueEventLog with HashcodeCaching {
+  override val cause = None
+  override val eventType = DeleteTechnique.eventType
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+}
+
+object DeleteTechnique extends EventLogFilter {
+  override val eventType = DeleteTechniqueEventType
+  override def apply(x : (EventLogType, EventLogDetails)) : DeleteTechnique = DeleteTechnique(x._2) 
 }

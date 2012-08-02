@@ -39,10 +39,12 @@
         
         <div id="acceptNodeGrid_paginate_area" class="nodisplay"/>
         
+        <lift:authz role="node_write">
         <p class="bottomButton rmargin">
           <span><pending:accept/></span>
           <span class="nserverrmargin"><pending:refuse/></span>
         </p>
+        </lift:authz>
         <pending:errors/>
       
       </lift:node.AcceptNode.list>

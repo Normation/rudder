@@ -131,7 +131,7 @@ object GitFindUtils extends Loggable {
   def findRevTreeFromRevString(db:Repository, revString:String) : Box[ObjectId] = {
     val tree = db.resolve(revString)
     if (null == tree) {
-      Failure("The reference branch '%s' is not found in the Policy Templates User Library's git repository".format(revString))
+      Failure("The reference branch '%s' is not found in the Active Techniques Library's git repository".format(revString))
     } else {
       val rw = new RevWalk(db)
       val id = rw.parseTree(tree).getId

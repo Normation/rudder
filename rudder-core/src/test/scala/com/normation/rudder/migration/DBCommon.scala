@@ -153,18 +153,7 @@ trait DBCommon extends Specification with Loggable with Tags {
   
   lazy val jdbcTemplate = new JdbcTemplate(dataSource)
   
-  lazy val migration = new EventLogsMigration_10_2(
-      jdbcTemplate = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_10_2(new XmlMigration_10_2())
-    , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
-    , successLogger = successLogger
-    , batchSize = 2
-  )
-  
-  lazy val migrationManagement = new ControlEventLogsMigration_10_2(
-          migrationEventLogRepository = new MigrationEventLogRepository(squerylConnectionProvider)
-        , migration
-      )
+
 
   lazy val migrationEventLogRepository = new MigrationEventLogRepository(squerylConnectionProvider)
 

@@ -8,7 +8,10 @@
 
   <update:query>
     <div id="queryParameters">
-      <div class="composition">Match the criteria below with this operand: <span><query:composition/></span></div>
+      <div class="composition">Match the criteria below with this operand: 
+        <span style="margin-left:5px;"><query:composition/></span><br/>
+        <span><query:typeQuery/></span>
+      </div><br />
   
       <table class="searchNodes" id="query_lines" cellspacing="0">
       
@@ -66,6 +69,7 @@
 <lift:ignore>This part is the detail of a node</lift:ignore>
 <detail:server>
 <div id="node_tabs" class="tabs">
+	<server:header/>
     <ul>
       <li><a href="#node_summary">Node summary</a></li>
       <li><a href="#node_inventory">Hardware</a></li>

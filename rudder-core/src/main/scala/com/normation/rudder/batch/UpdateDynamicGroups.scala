@@ -39,7 +39,7 @@ import com.normation.rudder.domain.nodes.{NodeGroup,NodeGroupId}
 import net.liftweb.common._
 import net.liftweb.actor._
 import org.joda.time._
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.Constants.DYNGROUP_MINIMUM_UPDATE_INTERVAL
 import com.normation.utils.HashcodeCaching
 
@@ -146,7 +146,7 @@ class UpdateDynamicGroups(
       //
       case StartUpdate => 
         //schedule next update, in minutes
-        LAPinger.schedule(this, StartUpdate, realUpdateInterval*1000*60)
+        LAPinger.schedule(this, StartUpdate, realUpdateInterval*1000L*60)
         processUpdate
       
       case ManualStartUpdate => 
@@ -206,7 +206,7 @@ class UpdateDynamicGroups(
             val results = for {
               dynGroupId <- dynGroupIds
             } yield {
-              (dynGroupId, dynGroupUpdaterService.update(dynGroupId,RudderEventActor))
+              (dynGroupId, dynGroupUpdaterService.update(dynGroupId,RudderEventActor, Some("Update group due to batch update of dynamic groups")))
             }
             updateManager ! UpdateResult(processId, startTime, DateTime.now, results.toMap)
           } catch {

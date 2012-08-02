@@ -49,7 +49,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 
 /**
  * That trait allow to serialise 
- * Configuration Rule to an XML file. 
+ * rule to an XML file. 
  */
 trait RuleSerialisation {
   /**
@@ -73,7 +73,7 @@ trait RuleSerialisation {
 
 /**
  * That trait allows to serialise 
- * User policy templates categories to an XML file. 
+ * active techniques categories to an XML file. 
  */
 trait ActiveTechniqueCategorySerialisation {
   /**
@@ -90,7 +90,7 @@ trait ActiveTechniqueCategorySerialisation {
 
 /**
  * That trait allows to serialise 
- * User policy templates to an XML file. 
+ * active techniques to an XML file. 
  */
 trait ActiveTechniqueSerialisation {
   /**
@@ -112,7 +112,7 @@ trait ActiveTechniqueSerialisation {
 
 /**
  * That trait allows to serialise 
- * User policy templates to an XML file. 
+ * active techniques to an XML file. 
  */
 trait DirectiveSerialisation {
   /**
@@ -120,7 +120,7 @@ trait DirectiveSerialisation {
      <directive fileFormat="2">
       <id>{directive.id.value}</id>
       <displayName>{directive.name}</displayName>
-      <techniqueName>{policy template name on with depend that directive}</techniqueName>
+      <techniqueName>{technique name on with depend that directive}</techniqueName>
       <techniqueVersion>{directive.techniqueVersion.toString}</techniqueVersion>
       <shortDescription>{directive.shortDescription}</shortDescription>
       <longDescription>{directive.longDescription}</longDescription>
@@ -144,7 +144,8 @@ trait DirectiveSerialisation {
   def serialise(
       ptName             : TechniqueName
     , variableRootSection: SectionSpec
-    , directive                 : Directive):  Elem
+    , directive          : Directive
+  ) : Elem
 }
 
 

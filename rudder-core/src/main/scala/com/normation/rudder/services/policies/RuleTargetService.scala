@@ -149,7 +149,7 @@ trait TargetInfoService extends  RuleTargetService {
       for {
         con <- ldap 
         entry <- con.get(rudderDit.GROUP.SYSTEM.targetDN(target)) ?~! "Error when fetching for target info entry with DN: %s".format(rudderDit.GROUP.SYSTEM.targetDN(target))
-        targetInfo <- mapper.entry2RuleTargetInfo(entry) ?~! "Error when mapping entry with DN '%s' into a policy instance target info".format(entry.dn)
+        targetInfo <- mapper.entry2RuleTargetInfo(entry) ?~! "Error when mapping entry with DN '%s' into a directive target info".format(entry.dn)
         checkSameTarget <- if(target == targetInfo.target) Full("OK") else Failure("The retrieved target info does not match parameter target. Parameter target: '%s' ; retrieved target: '%s'".format(target, targetInfo.target))
       } yield {
         targetInfo
@@ -162,7 +162,7 @@ trait TargetInfoService extends  RuleTargetService {
       }
       case PolicyServerTarget(nodeId) => 
         for {
-          node <- nodeInfoService.getPolicyServerNodeInfo(nodeId) ?~! "Error when fetching for node %s".format(nodeId)
+          node <- nodeInfoService.getNodeInfo(nodeId) ?~! "Error when fetching for node %s".format(nodeId)
           targetInfo <- ldapGetTargetInfo
         } yield {
           targetInfo
@@ -180,7 +180,7 @@ trait TargetInfoService extends  RuleTargetService {
       con <- ldap
       //for each directive entry, map it. if one fails, all fails
       targetInfos <- sequence(con.searchSub(rudderDit.GROUP.dn,  filter, A_OC, A_NODE_GROUP_UUID, A_NAME, A_RULE_TARGET, A_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM)) { entry => 
-        mapper.entry2RuleTargetInfo(entry) ?~! "Error when transforming LDAP entry into a Policy Instance Target Info. Entry: %s".format(entry)
+        mapper.entry2RuleTargetInfo(entry) ?~! "Error when transforming LDAP entry into a directive Target Info. Entry: %s".format(entry)
       }
     } yield {
       targetInfos

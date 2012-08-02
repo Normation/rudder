@@ -50,7 +50,7 @@ class RestDeploy(
   
   serve {
     case Get("api" :: "deploy" :: "reload" :: Nil, req) =>
-      asyncDeploymentAgent ! ManualStartDeployment(RestUtils.getActor(req))
+      asyncDeploymentAgent ! ManualStartDeployment(RestUtils.getActor(req), "Regeneration asked by REST request")
       PlainTextResponse("OK")
   }
   

@@ -64,7 +64,7 @@ class RestArchiving(
       listTags(itemArchiveManager.getGroupLibraryTags _, "groups")
 
     case Get("api" :: "archives" :: "list" :: "directives" :: Nil, _) => 
-      listTags(itemArchiveManager.getTechniqueLibraryTags _, "policy library")
+      listTags(itemArchiveManager.getTechniqueLibraryTags _, "technique library")
 
     case Get("api" :: "archives" :: "list" :: "rules" :: Nil, _) => 
       listTags(itemArchiveManager.getRulesTags _, "rules")
@@ -79,7 +79,7 @@ class RestArchiving(
       restoreLatestArchive(req, itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, "groups")
 
     case Get("api" :: "archives" :: "restore" :: "directives" :: "latestArchive" :: Nil, req) =>
-      restoreLatestArchive(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, "policy library")
+      restoreLatestArchive(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, "technique library")
 
     case Get("api" :: "archives" :: "restore" :: "rules" :: "latestArchive" :: Nil, req) => 
       restoreLatestArchive(req, itemArchiveManager.getRulesTags _, itemArchiveManager.importRules, "rules")
@@ -94,7 +94,7 @@ class RestArchiving(
       restoreLatestCommit(req, itemArchiveManager.importHeadGroupLibrary, "groups")
 
     case Get("api" :: "archives" :: "restore" :: "directives" :: "latestCommit" :: Nil, req) =>
-      restoreLatestCommit(req, itemArchiveManager.importHeadTechniqueLibrary, "policy library")
+      restoreLatestCommit(req, itemArchiveManager.importHeadTechniqueLibrary, "technique library")
 
     case Get("api" :: "archives" :: "restore" :: "rules" :: "latestCommit" :: Nil, req) => 
       restoreLatestCommit(req, itemArchiveManager.importHeadRules, "rules")
@@ -109,10 +109,10 @@ class RestArchiving(
       archive(req, itemArchiveManager.exportGroupLibrary _, "groups")
 
     case Get("api" :: "archives" :: "archive" :: "directives" :: Nil, req) =>
-      archive(req, itemArchiveManager.exportTechniqueLibrary _, "policy library")
+      archive(req, itemArchiveManager.exportTechniqueLibrary _, "technique library")
 
     case Get("api" :: "archives" :: "archive" :: "rules" :: Nil, req) => 
-      archive(req, itemArchiveManager.exportRules _, "configuration rules")
+      archive(req, itemArchiveManager.exportRules _, "rules")
 
     case Get("api" :: "archives" :: "archive" :: "full" :: Nil, req) => 
       archive(req, itemArchiveManager.exportAll _, "full archive")
@@ -125,7 +125,7 @@ class RestArchiving(
       restoreByDatetime(req, itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, datetime, "groups")
 
     case Get("api" :: "archives" :: "restore" :: "directives" :: "datetime" :: datetime :: Nil, req) =>
-      restoreByDatetime(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, datetime, "policy library")
+      restoreByDatetime(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, datetime, "technique library")
 
     case Get("api" :: "archives" :: "restore" :: "rules" :: "datetime" :: datetime :: Nil, req) => 
       restoreByDatetime(req, itemArchiveManager.getRulesTags _, itemArchiveManager.importRules, datetime, "rules")
@@ -173,11 +173,11 @@ class RestArchiving(
   }
 
   
-  private[this] def restoreLatestArchive(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,EventActor,Boolean) => Box[GitCommitId], archiveType:String) = {
+  private[this] def restoreLatestArchive(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
     (for {
       archives   <- list()
       (date,tag) <- Box(archives.toList.sortWith { case ( (d1,_), (d2,_) ) => d1.isAfter(d2) }.headOption) ?~! "No archive is available"
-      restored   <- restore(tag.commit,RestUtils.getActor(req),false)
+      restored   <- restore(tag.commit,RestUtils.getActor(req),Some("estore latest archive required from REST API"),false)
     } yield {
       restored
     }) match {
@@ -189,9 +189,9 @@ class RestArchiving(
     }
   }
   
-  private[this] def restoreLatestCommit(req:Req, restore: (EventActor,Boolean) => Box[GitCommitId], archiveType:String) = {
+  private[this] def restoreLatestCommit(req:Req, restore: (EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
     (for {
-      restored   <- restore(RestUtils.getActor(req),false)
+      restored   <- restore(RestUtils.getActor(req),Some("Restore archive from latest commit on HEAD required from REST API"), false)
     } yield {
       restored
     }) match {
@@ -203,12 +203,12 @@ class RestArchiving(
     }
   }
   
-  private[this] def restoreByDatetime(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,EventActor,Boolean) => Box[GitCommitId], datetime:String, archiveType:String) = {
+  private[this] def restoreByDatetime(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,EventActor,Option[String],Boolean) => Box[GitCommitId], datetime:String, archiveType:String) = {
     (for {
       valideDate <- tryo { GitTagDateTimeFormatter.parseDateTime(datetime) } ?~! "The given archive id is not a valid archive tag: %s".format(datetime)
       archives   <- list()
       tag        <- Box(archives.get(valideDate)) ?~! "The archive with tag '%s' is not available. Available archives: %s".format(datetime,archives.keySet.map( _.toString(GitTagDateTimeFormatter)).mkString(", "))
-      restored   <- restore(tag.commit,RestUtils.getActor(req),false)
+      restored   <- restore(tag.commit,RestUtils.getActor(req),Some("Restore archive for date time %s requested from REST API".format(datetime)),false)
     } yield {
       restored
     }) match {
@@ -220,10 +220,10 @@ class RestArchiving(
     }
   }
 
-  private[this] def archive(req:Req, archive:(PersonIdent,EventActor,Boolean) => Box[GitArchiveId], archiveType:String) = {
+  private[this] def archive(req:Req, archive:(PersonIdent,EventActor,Option[String],Boolean) => Box[GitArchiveId], archiveType:String) = {
     (for {
       commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
-      archiveId <- archive(commiter,RestUtils.getActor(req),false)
+      archiveId <- archive(commiter,RestUtils.getActor(req),Some("Create new archive requested from REST API"),false)
     } yield {
       archiveId
     }) match {

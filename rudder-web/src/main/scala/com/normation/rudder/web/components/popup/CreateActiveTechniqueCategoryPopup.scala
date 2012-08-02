@@ -96,20 +96,17 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
   }
 
 ///////////// fields for category settings ///////////////////
-  private[this] val categoryName = new WBTextField("Name: ", "") {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
+  private[this] val categoryName = new WBTextField("Name", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def className = "twoCol"
     override def errorClassName = ""
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createATCSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val categoryDescription = new WBTextAreaField("Description: ", "") {
+  private[this] val categoryDescription = new WBTextAreaField("Description", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:10em") % ("tabindex","2")
-    override def className = "twoCol"
     override def errorClassName = ""
     override def validations = Nil
 
@@ -163,7 +160,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
                  children = Nil,
                  items = Nil
                ),
-               parent, CurrentUser.getActor
+               parent, CurrentUser.getActor, Some("user created a new category")
              ) match {
                case Failure(m,_,_) =>
                   logger.error("An error occurred while saving the category:" + m)
@@ -195,7 +192,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
 
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="errorNotification" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="notifications" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }

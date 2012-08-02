@@ -1,4 +1,38 @@
-package com.normation.rudder.domain.log
+/*
+*************************************************************************************
+* Copyright 2011 Normation SAS
+*************************************************************************************
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Affero General Public License as
+* published by the Free Software Foundation, either version 3 of the
+* License, or (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU Affero GPL v3, the copyright holders add the following
+* Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+* licence, when you create a Related Module, this Related Module is
+* not considered as a part of the work and may be distributed under the
+* license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU Affero General Public License for more details.
+*
+* You should have received a copy of the GNU Affero General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+*
+*************************************************************************************
+*/
+
+package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
 import scala.xml._
@@ -25,7 +59,7 @@ object ImportExportEventLog {
     EventLog.withContent(new Elem(
         prefix = null
       , label = tagName
-      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_FILE_FORMAT_2.toString)), Null)
+      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_CURRENT_FILE_FORMAT.toString)), Null)
       , scope = TopScope
       , child = (  
           <path>{gitArchiveId.path.value}</path>
@@ -39,7 +73,7 @@ object ImportExportEventLog {
     EventLog.withContent(new Elem(
         prefix = null
       , label = tagName
-      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_FILE_FORMAT_2.toString)), Null)
+      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_CURRENT_FILE_FORMAT.toString)), Null)
       , scope = TopScope
       , child = (  
           <commit>{gitCommitId.value}</commit>
@@ -55,8 +89,9 @@ final case class ExportGroupsArchive(
   override val eventType = ExportGroupsArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
+  def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ExportGroupsArchive.buildDetails(gitArchiveId)
   ))
 }
@@ -78,8 +113,9 @@ final case class ImportGroupsArchive(
   override val eventType = ImportGroupsArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
+  def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ImportGroupsArchive.buildDetails(gitCommitId)
   ))
 }
@@ -101,8 +137,9 @@ final case class ExportTechniqueLibraryArchive(
   override val eventType = ExportTechniqueLibraryArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
+  def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ExportTechniqueLibraryArchive.buildDetails(gitArchiveId)
   ))
 }
@@ -124,8 +161,9 @@ final case class ImportTechniqueLibraryArchive(
   override val eventType = ImportTechniqueLibraryArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
+  def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ImportTechniqueLibraryArchive.buildDetails(gitCommitId)
   ))
 }
@@ -148,8 +186,9 @@ final case class ExportRulesArchive(
   override val eventType = ExportRulesArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
+  def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ExportRulesArchive.buildDetails(gitArchiveId)
   ))
 }
@@ -171,8 +210,9 @@ final case class ImportRulesArchive(
   override val eventType = ImportRulesArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
+  def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ImportRulesArchive.buildDetails(gitCommitId)
   ))
 }
@@ -194,8 +234,9 @@ final case class ExportFullArchive(
   override val eventType = ExportFullArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitArchiveId:GitArchiveId) = this(EventLogDetails(
+  def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ExportFullArchive.buildDetails(gitArchiveId)
   ))
 }
@@ -217,8 +258,9 @@ final case class ImportFullArchive(
   override val eventType = ImportFullArchive.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
-  def this(actor:EventActor, gitCommitId:GitCommitId) = this(EventLogDetails(
+  def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
       principal = actor
+    , reason = reason
     , details = ImportFullArchive.buildDetails(gitCommitId)
   ))
 }

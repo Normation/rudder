@@ -53,6 +53,8 @@ import net.liftweb.json._
 import JsonDSL._
 import com.normation.exceptions.TechnicalException
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.services.queries.RegexFilter
+import net.liftweb.common.EmptyBox
 
 sealed trait CriterionComparator { 
   val id:String 
@@ -123,6 +125,8 @@ sealed trait CriterionType  extends ComparatorList {
   //transform the given value to its LDAP string value
   def toLDAP(value:String) : Box[String]
   
+  def buildRegex(attribute:String,value:String):RegexFilter = RegexFilter(attribute,value)
+
   //build the ldap filter for given attribute name and comparator
   def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = 
     (toLDAP(value),comparator) match {
@@ -234,12 +238,12 @@ case object LongComparator extends CriterionType {
   override protected def validateSubCase(v:String,comparator:CriterionComparator) =  try {
     Full((v.toLong).toString)
   } catch {
-    case e:Exception => Failure("Invalide long : '%s'".format(v))
+    case e:Exception => Failure("Invalid long : '%s'".format(v))
   }
   override def toLDAP(v:String) = try {
     Full((v.toLong).toString)
   } catch {
-    case e:Exception => Failure("Invalide long : '%s'".format(v))
+    case e:Exception => Failure("Invalid long : '%s'".format(v))
   }
 }
 
@@ -276,6 +280,7 @@ case object OstypeComparator extends CriterionType {
     }
   }
   
+
   override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem = 
     SHtml.select(
       (osTypes map (e => (e,e))).toSeq, 
@@ -288,7 +293,7 @@ case object OstypeComparator extends CriterionType {
 case object OsNameComparator extends CriterionType { 
   import net.liftweb.http.S
   
-  val osNames = List(Centos, Debian, Fedora, Redhat, Suse, Ubuntu, UnknownWindowsType)
+  val osNames = LinuxType.allKnownTypes ::: WindowsType.allKnownTypes
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
     if(null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
@@ -336,34 +341,6 @@ case object AgentComparator extends CriterionType {
     SHtml.select(
       (agentTypes map (e => (e,e))).toSeq, 
       { if(agentTypes.contains(value)) Full(value) else Empty}, 
-      func,
-      attrs:_*
-    )
-}
-
-case object WindowsComparator extends CriterionType { 
-  import net.liftweb.http.S
-
-  val win = List(WindowsXP,WindowsVista,WindowsSeven,Windows2000,Windows2003,Windows2008)
-  override def comparators = Seq(Equals, NotEquals)
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
-  }
-  override def toLDAP(value:String) = Full(value)
-
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
-    val version = comparator match {
-      //for equals and not equals, check value for jocker
-      case Equals => EQ(A_OS_NAME, value)
-      case _ => NOT(EQ(A_OS_NAME, value))
-    }
-    AND(EQ(A_OC,OC_WINDOWS_NODE),version)
-  }
-  
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem = 
-    SHtml.select(
-      (win map (e => (e.name,S.?("os.windows."+e.name)))).toSeq, 
-      {win.find(x => x.name == value).map( _.name)}, 
       func,
       attrs:_*
     )
@@ -426,12 +403,54 @@ case object GroupOfDnsComparator extends CriterionType {
   override def toLDAP(value:String) = Full(value)
 }
 */
+case class JsonComparator(key:String,splitter:String = "",numericvalue:Boolean = false) extends TStringComparator {
+  override val comparators = BaseComparators.comparators  
+  
+  def splitJson(attribute:String,value:String) = {
+   val (splittedvalue,splittedattribute) =
+     if (splitter!="")
+       (value.split(splitter),attribute.split('.'))
+     else
+       (Array(value),Array(attribute))
+  if (splittedvalue.size==splittedattribute.size){
+    val keyvalue = (splittedattribute.toList,splittedvalue.toList).zipped map( (attribute,value) => (attribute,value))
+    Full(keyvalue.map(attval => if (numericvalue) "\"%s\":%s".format(attval._1,attval._2) else
+      "\"%s\":\"%s\"".format(attval._1,attval._2)))
+    }
+  else {
+    Failure("not enough argument")
+  }
+  }
+
+  override def buildRegex(attribute:String,value:String) : RegexFilter = {
+  val regexp = ".*%s.*".format(splitJson(attribute,value).getOrElse(Nil).mkString(".*"))
+  RegexFilter(key,regexp)
+  }
+
+  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
+  def JsonQueryfromkeyvalues (attributeName:String,value:String): Filter = {
+      splitJson(attributeName,value) match {
+      case e:EmptyBox => HAS(key)
+      case x => SUB(key,null,x.get.toArray ,null)
+      }
+    }
+  comparator match {
+    case Equals    => JsonQueryfromkeyvalues(attributeName,value)
+    case NotEquals => NOT(JsonQueryfromkeyvalues(attributeName,value))
+    case NotExists => NOT(HAS(key))
+    case Regex => HAS(key) //default, non interpreted regex
+    case _ => HAS(key) //default to Exists
+  }
+ }
+}
 
 
 case class Criterion(val name:String, val cType:CriterionType) extends HashcodeCaching {
   require(name != null && name.length > 0, "Criterion name must be defined")
   require(cType != null, "Criterion Type must be defined")
   
+  def buildRegex(attribute:String,value:String) = cType.buildRegex(attribute,value)
+
   def buildFilter(comp:CriterionComparator,value:String) = cType.buildFilter(name,comp,value)
 }
 
@@ -471,8 +490,18 @@ object CriterionComposition {
   }
 }
 
+sealed trait QueryReturnType {
+  def value : String
+}
+case object NodeReturnType extends QueryReturnType{
+  override val value = "node"
+}
+case object NodeAndPolicyServerReturnType extends QueryReturnType{
+  override val value = "nodeAndPolicyServer"
+}
+
 case class Query(
-    val returnType:String,  //only "server" for now
+    val returnType:QueryReturnType,  //only "node" for now
     val composition:CriterionComposition,
     val criteria:Seq[CriterionLine] //list of all criteria to be matched by returned values
 ) {    
@@ -486,7 +515,7 @@ case class Query(
        *    ]}
        */
      lazy val toJSON = 
-              ("select" -> returnType) ~ 
+              ("select" -> returnType.value) ~ 
               ("composition" -> composition.toString) ~
               ("where" -> criteria.map( c =>
                 ("objectType" -> c.objectType.objectType) ~

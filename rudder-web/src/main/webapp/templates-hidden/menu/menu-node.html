@@ -2,17 +2,21 @@
 <!--Début contenu + nav-->
 <div id="contenuInfos">
    <!--Début navigation latérale-->
+  <lift:authz role="node_read">
     <div id="navigation">
       <div id="slickbox">
        <h2>Nodes</h2>
         <lift:Menu.builder group="nodeGroup" li:class="niv1" li_item:class="menuOff"/>
+        <lift:authz role="group_read">
        <h2>Groups</h2>
         <lift:Menu.builder group="groupGroup" li:class="niv1" li_item:class="menuOff"/>
+        </lift:authz>
         <!--<h2>Files</h2>
         <lift:Menu.builder group="filesGroup" li:class="niv1" li_item:class="menuOff"/>-->
 <!--        <h2>Policy Servers</h2>-->
       </div>
     </div>
+    </lift:authz>
     <!--Fin navigation latérale-->
 
   

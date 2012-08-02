@@ -47,11 +47,14 @@ import javax.servlet.UnavailableException
 import LiftSpringApplicationContext.inject
 import com.normation.plugins.RudderPluginDef
 import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.domain.log.ApplicationStarted
+import com.normation.rudder.domain.eventlog.ApplicationStarted
 import com.normation.rudder.web.rest._
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
-
+import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.authorization._
+import com.normation.authorization.AuthorizationType
+import com.normation.rudder.domain.logger.ApplicationLogger
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -88,11 +91,6 @@ class Boot extends Loggable {
   
     // URL rewrites
     LiftRules.statefulRewrite.append {
-      //if no Directive server if configured, force to configure one
-//      case RewriteRequest(path,_,_) if(RudderContext.rootNodeNotDefined && (path match { 
-//        case ParsePath("secure"::"nodeManager"::"policyServers"::Nil, _, _, _) => false 
-//        case _ => true
-//      })) => RewriteResponse("secure"::"nodeManager"::"policyServers"::Nil)
       case RewriteRequest(ParsePath("secure" :: "configurationManager" :: "techniqueLibraryManagement" :: activeTechniqueId :: Nil, _, _, _), GetRequest, _) =>
         RewriteResponse("secure" :: "configurationManager" :: "techniqueLibraryManagement" :: Nil, Map("techniqueId" -> activeTechniqueId))
       case RewriteRequest(ParsePath("secure"::"nodeManager"::"searchNodes"::nodeId::Nil, _, _, _), GetRequest, _) =>
@@ -104,8 +102,7 @@ class Boot extends Loggable {
     
     
     // i18n
-    LiftRules.resourceNames = "default" :: "ldapObjectAndAttributes" :: Nil
-    
+    LiftRules.resourceNames = "default" :: "ldapObjectAndAttributes" :: "eventLogTypeNames" :: Nil
     
     // Content type things : use text/html in place of application/xhtml+xml
     LiftRules.useXhtmlMimeType = false
@@ -144,50 +141,77 @@ class Boot extends Loggable {
     
       
     val nodeManagerMenu = 
-      Menu("NodeManagerHome", <span>Node Management</span>)  / "secure" / "nodeManager" / "index" submenus(
-          
-          Menu("SearchNodes", <span>Search nodes</span>)       / "secure" / "nodeManager" / "searchNodes" >> LocGroup("nodeGroup")
-        
-        , Menu("ManageNewNode", <span>Accept new nodes</span>) / "secure" / "nodeManager" / "manageNewNode" >>  LocGroup("nodeGroup")
-          
-        , Menu("Groups", <span>Groups</span>)                  / "secure" / "nodeManager" / "groups" >> LocGroup("groupGroup")
-        
+      Menu("NodeManagerHome", <span>Node Management</span>) /
+        "secure" / "nodeManager" / "index"  >> TestAccess( ()
+            => userIsAllowed(Read("node")) ) submenus (
+
+          Menu("SearchNodes", <span>Search nodes</span>) /
+            "secure" / "nodeManager" / "searchNodes"
+            >> LocGroup("nodeGroup")
+
+        , Menu("ManageNewNode", <span>Accept new nodes</span>) /
+            "secure" / "nodeManager" / "manageNewNode"
+            >>  LocGroup("nodeGroup")
+
+        , Menu("Groups", <span>Groups</span>) /
+            "secure" / "nodeManager" / "groups"
+            >> LocGroup("groupGroup")
+            >> TestAccess( () => userIsAllowed(Read("group") ) )
+
         //Menu(Loc("PolicyServers", List("secure", "nodeManager","policyServers"), <span>Rudder server</span>,  LocGroup("nodeGroup"))) ::
         //Menu(Loc("UploadedFiles", List("secure", "nodeManager","uploadedFiles"), <span>Manage uploaded files</span>, LocGroup("filesGroup"))) ::
       )
 
-    def buildManagerMenu(name:String) = 
-      Menu(name+"ManagerHome", <span>{name.capitalize} Management</span>) / "secure" / (name+"Manager") / "index" submenus(
-          
-          Menu(name+"RuleManagement", <span>Rules</span>) / 
-            "secure" / (name+"Manager") / "ruleManagement" >> LocGroup(name+"Group")
-            
-        , Menu(name+"DirectiveManagement", <span>Directives</span>) / 
-            "secure" / (name+"Manager") / "directiveManagement" >> LocGroup(name+"Group")
-            
+    def buildManagerMenu(name:String) =
+      Menu(name+"ManagerHome", <span>{name.capitalize} Management</span>) /
+        "secure" / (name+"Manager") / "index" >> TestAccess ( ()
+            => userIsAllowed(Read("configuration")) ) submenus (
+
+          Menu(name+"RuleManagement", <span>Rules</span>) /
+            "secure" / (name+"Manager") / "ruleManagement"
+            >> LocGroup(name+"Group")
+            >> TestAccess( () => userIsAllowed(Read("rule") ) )
+
+        , Menu(name+"DirectiveManagement", <span>Directives</span>) /
+            "secure" / (name+"Manager") / "directiveManagement"
+            >> LocGroup(name+"Group")
+            >> TestAccess( () => userIsAllowed(Read("directive") ) )
+
         , Menu("TechniqueLibraryManagement", <span>Techniques</span>) /
-            "secure" / (name+"Manager") / "techniqueLibraryManagement" >>  LocGroup(name+"Group")
+            "secure" / (name+"Manager") / "techniqueLibraryManagement"
+            >> LocGroup(name+"Group")
+            >> TestAccess( () => userIsAllowed(Read("technique") ) )
       )
       
       
     def administrationMenu = 
-      Menu("AdministrationHome", <span>Administration</span>) / "secure" / "administration" /"index" submenus(
-          
-          Menu("archivesManagement", <span>Archives</span>) / 
-            "secure" / "administration" / "archiveManagement" >> LocGroup("administrationGroup")
-            
-        , Menu("eventLogViewer", <span>Event Logs</span>) / 
-            "secure" / "administration" / "eventLogs" >> LocGroup("administrationGroup")
-            
+      Menu("AdministrationHome", <span>Administration</span>) /
+        "secure" / "administration" / "index" >> TestAccess ( ()
+            => userIsAllowed(Read("administration")) ) submenus (
+
+          Menu("archivesManagement", <span>Archives</span>) /
+            "secure" / "administration" / "archiveManagement"
+            >> LocGroup("administrationGroup")
+            >> TestAccess ( () => userIsAllowed(Write("administration"),"/secure/administration/eventLogs") )
+
+        , Menu("eventLogViewer", <span>Event Logs</span>) /
+            "secure" / "administration" / "eventLogs"
+            >> LocGroup("administrationGroup")
+
         , Menu("policyServerManagement", <span>Policy Server</span>) / 
-            "secure" / "administration" / "policyServerManagement" >> LocGroup("administrationGroup")
-            
-        , Menu("pluginManagement", <span>Plugins</span>) / 
-            "secure" / "administration" / "pluginManagement" >> LocGroup("administrationGroup")
-            
+            "secure" / "administration" / "policyServerManagement"
+            >> LocGroup("administrationGroup")
+            >> TestAccess ( () => userIsAllowed(Write("administration"),"/secure/administration/eventLogs") )
+
+        , Menu("pluginManagement", <span>Plugins</span>) /
+            "secure" / "administration" / "pluginManagement"
+            >> LocGroup("administrationGroup")
+            >> TestAccess ( () => userIsAllowed(Write("administration"),"/secure/administration/eventLogs") )
+
         , Menu("databaseManagement", <span>Database Management</span>) / 
-            "secure" / "administration" / "databaseManagement" >> LocGroup("administrationGroup") 
-            
+            "secure" / "administration" / "databaseManagement"
+            >> LocGroup("administrationGroup")
+            >> TestAccess ( () => userIsAllowed(Write("administration"),"/secure/administration/eventLogs") )
       )
   
     
@@ -205,17 +229,22 @@ class Boot extends Loggable {
     
     
     //not sur why we are using that ?
-    SiteMap.enforceUniqueLinks = false
+    //SiteMap.enforceUniqueLinks = false
 
     LiftRules.setSiteMapFunc(() => SiteMap(newSiteMap:_*))
 
     inject[EventLogRepository].saveEventLog(
         ApplicationStarted(
             EventLogDetails(
-                principal = com.normation.rudder.domain.log.RudderEventActor
-              , details = EventLog.emptyDetails)
+                principal = com.normation.rudder.domain.eventlog.RudderEventActor
+              , details = EventLog.emptyDetails
+              , reason = None
+            )
         )
-     )
+    ) match {
+      case eb:EmptyBox => ApplicationLogger.error("Error when trying to save the EventLog for application start")
+      case _ => ApplicationLogger.info("Application Rudder started")
+    }
   }
   
   private[this] def initPlugins(menus:List[Menu]) : List[Menu] = {
@@ -234,11 +263,18 @@ class Boot extends Loggable {
   
   private[this] def initPlugin[T <: RudderPluginDef](plugin:T) : Unit = {
     
-    logger.debug("TODO: manage one time initialization for plugin: " + plugin.id)
-    logger.info("Initializing plugin '%s' [%s]".format(plugin.name.value, plugin.id))
+    ApplicationLogger.debug("TODO: manage one time initialization for plugin: " + plugin.id)
+    ApplicationLogger.info("Initializing plugin '%s' [%s]".format(plugin.name.value, plugin.id))
     plugin.init
     //add the plugin packages to Lift package to look for packages
     LiftRules.addToPackages(plugin.basePackage)
   }
   
+  private[this] def userIsAllowed(requiredAuthz:AuthorizationType, redirection:String = "/secure/index") : Box[LiftResponse] =  {
+    if(CurrentUser.checkRights(requiredAuthz)) {
+      Empty
+    } else {
+      Full(RedirectWithState(redirection, RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error ) ) )
+    }
+  }
 }

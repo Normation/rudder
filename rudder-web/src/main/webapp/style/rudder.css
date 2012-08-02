@@ -101,6 +101,11 @@ td.nodeIndernal {
   vertical-align: top;
 }
 
+.showParameters {
+  margin-top:5px;
+  margin-bottom:3px;
+}
+
 /**********************************
  *          formulaire            *
  **********************************/
@@ -162,6 +167,7 @@ form hr {
 }
 form select {
    width: 130px;
+   padding: 2px;
    background-color: #f8f8f8;
    border: 1px solid #b4b3a8;
 }
@@ -173,13 +179,14 @@ form label.champ {
 }
 form input {
    width: 130px;
-   padding: 0.2em;
+   padding: 2px;
    background-color: #f8f8f8;
    border: 1px solid #b4b3a8;
 }
 
 form textarea {
-  padding: 0.2em;
+  padding: 2px;
+  border: 1px solid #b4b3a8;
 }
 
 form input.radio {
@@ -284,11 +291,11 @@ input.queryInputValue, select.queryInputValue {
   padding-left: 15px;
 }
 .listopen:before{
-  content:url('/rudder/images/tableau/flecheDroiteGris.png');
+  content:url('../images/tableau/flecheDroiteGris.png');
   padding-right: 3px;
 }
 .listclose:before{
-  content:url('/rudder/images/tableau/flecheBasGris.png');
+  content:url('../images/tableau/flecheBasGris.png');
   padding-right: 3px;
 }
 
@@ -317,11 +324,27 @@ Tableau
   padding:0;
   height:200px;
 }
+
 .titleId{
   padding-left: 15px;
 }
+
 .tablewidth{
   width:100%;
+}
+
+.reportTableTitleWidth{
+  width:auto;
+}
+
+.reportbiggerWidth{
+	width:110px;
+}
+.reportTitleWidth{
+  width:92px;
+}
+.autotablewidth{
+  width:auto;
 }
 .tablepadding{
   padding-left:15px;
@@ -331,13 +354,25 @@ Tableau
   margin-top:5px;
 }
 table {
-   margin: 10px;
    width: 98%;
-   
 }
+
+#eventLogsGrid {
+  margin:10px;	
+}
+
+#grid_rules_grid_zone {
+  margin: 10px;	
+}
+
+#acceptNodeGrid_wrapper {
+  margin: 10px;	
+}
+
 caption {
    display: none;
 }
+
 th, tr, td {
    padding: 4px 3px;
    text-align: left;
@@ -417,6 +452,14 @@ div#Detail {
 
 .field_errors, .error, .errors {
   color: red;  
+}
+
+.field_errors {
+  margin-top:4px;	
+}
+
+.field_errors li {
+  list-style-position:inside;	
 }
 
 
@@ -528,6 +571,11 @@ div#Detail {
   vertical-align: middle;
 }
 
+.wbBaseField {
+  vertical-align: middle;
+  margin-top:7px;
+}
+
 .policyDisplay {
   font-size: 12px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
@@ -632,12 +680,14 @@ fieldset.techniqueDetailsFieldset {
 
 div.directiveDeleteGroup {
   float:right;
-  margin: -20px 0 0 0;
+  margin-right: 5px;
+  margin-top: 3px;
 }
 
 div.directiveAddGroup {
   float:right;
-  margin: -20px 0 0 0;
+  margin-right: 5px;
+  margin-top: 3px;
 }
 
 
@@ -703,6 +753,20 @@ padding:0 20px;
 /*********************************
 * Search servers
 *********************************/
+
+.nodeheader {
+    font-weight: bold;
+    font-size: medium;
+    text-align: center;
+}
+
+.nodeheadercontent {
+    color: #FFFFFF;
+    display: inline-block;
+     padding : 3px 10px;
+     background-color: #2E2D2D;
+}
+}
 .paddscala{
   padding: 0px 0px 0px 15px;
 }
@@ -711,7 +775,7 @@ padding:0 20px;
   margin-left: 5px;
 }
 .margins{
-  margin:10px;
+  margin:8px;
 }
 .spacerscala{
   float:right;
@@ -721,7 +785,6 @@ padding:0 20px;
 }
 .notify{
   text-align:center;
-  margin: 10px;
 }
 .nserverrmargin{
   margin-right:5px;
@@ -750,6 +813,13 @@ fieldset.searchNodes {
   clear: both;
 }
 
+.reasonNode {
+  padding:8px;
+  margin:5px;
+  width: 550px;
+  clear: both;
+}
+
 fieldset.searchNodesAction {
   padding:5px;
   margin:5px;
@@ -765,7 +835,7 @@ fieldset.groupCategoryUpdateComponent {
   
 }
 fieldset.groupUpdateComponent {
-  padding:5px;
+  padding:8px;
   margin:5px;
   width: 580px; 
 }
@@ -947,6 +1017,9 @@ a:focus {
 /**************************************
 structure
 **************************************/
+.subContainerReasonField {
+    width: 100%;	
+}
 
 div#prelude {
    display: none;
@@ -1298,7 +1371,7 @@ Home portlet
 }
 .portlet img {
    float: left;
-   margin: 5px 20px 20px 10px;
+   margin: 0px 20px 20px 10px;
 }
 
 p img {
@@ -1306,14 +1379,15 @@ p img {
    margin: 0px !important;
 }
 
-.portlet ul {
-   padding: 20px 0 0 0;
+.evlogviewpad {
+   margin-left: 15px;
 }
+
 *html .portlet ul {
    padding: 20px 0 15px 0;
 }
 .portlet li {
-   list-style-type: disc;
+   list-style-type: none;
 }
 .portlet-header {
    padding: 5px 0 5px 25px;
@@ -1518,7 +1592,7 @@ popin Alert
  width:100%;
 }
 #simplemodal-container .simplemodal-title h1 {
- margin: 2px 0 2px 5px;
+ margin: 4px 0 2px 10px;
 }
 #simplemodal-container .simplemodal-bottom {
   align: right;
@@ -1540,7 +1614,7 @@ popin Alert
 }
 
 #simplemodal-container .simplemodal-content {
-  padding:6px;
+  padding:10px;
   font-size: 1.1em;
 }
 #simplemodal-container .simplemodal-content-no-zoom {
@@ -1625,7 +1699,8 @@ popin Alert
  * Underlined, dotted grey: that text has a tooltip
  */
 .tooltip {
-  border-bottom:1px dotted grey;
+    color: DimGray;
+    padding-top: 0px;
 }
 
 
@@ -1654,7 +1729,7 @@ color: #FF0000 !important;
 }
 
 .smallButton {
-  width: 35px !important;
+  width: 50px !important;
 }
 
 .autoWidthButton {
@@ -1687,13 +1762,13 @@ color: #FF0000 !important;
 }
 .green{
   color:green;
-  margin:3px; 
+  margin:5px; 
   font-style:italic; 
   font-size: 0.9em;
 }
 .warnicon{
   float:left;
-  margin-right:20px;
+  margin-right:9px;
 }
 .erroricon{
   float:left; 
@@ -1770,13 +1845,31 @@ hr.spacer {
 
 .twoCol {
     float:left;
-    width:49%;
+    width:67%;
+}
+
+.rudderBaseFieldClassName {
+    width:99%;
+}
+
+.rudderBaseFieldSelectClassName {
+    width:101%;
+}
+
+.twoColParentCategory {
+    float:left;
+    width:62%;
     margin-right: 2px;
 }
 
 .threeCol {
     float:left;
     width:30%; 
+    margin-right: 2px;
+}
+
+.threeColErrors {
+    float:left;
     margin-right: 2px;
 }
 
@@ -1793,11 +1886,35 @@ hr.spacer {
 
 .align-radio span {
   display:inline-block;
+  margin-right:5px;
+}
+
+.align-radio-generate-input span {
+  display:inline-block;
+}
+
+.radioTextLabel {
+  margin-right:6px;
+  margin-left:3px;
 }
 
 .groupDiv {
    margin-top: 5px;
    margin-bottom: 10px;  
+}
+
+legend {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#createANewItem {
+  margin-top:7px;
+  text-align:right;
+}
+
+#createANewItemContentForm div {
+/*   margin-top:3px; */
 }
 
 /************************************
@@ -1858,6 +1975,10 @@ div.tabInform {
   padding:5px;
 }
 
+.errorInput {
+  border-color: red; 	
+}
+
 
 /***********************************
  *Directive display
@@ -1887,16 +2008,23 @@ div.tabInform {
   font-weight:bold;
 }
 
-
+#parameters {
+/*   margin-top: 3px; */
+/*   margin-left: 5px; */
+}
 
 /***********************************
  *Reports display
 ************************************/
-.evlogviewpad{
+.evlogviewpad {
   padding:5px;
 }
+
+.evlogviewpad li{
+  list-style-type: disc;
+}
 .evloglmargin{
-  margin-left:3px;  
+  margin: 7px;  
 }
 .reportsList {
   margin : 10px;
@@ -1930,6 +2058,7 @@ div.tabInform {
    border-left:1px dotted;
    border-right:1px dotted;
 }
+
 tr.Success {
   background-color:#CCFFCC;
 }
@@ -1951,6 +2080,51 @@ tr.Noanswer {
   background-color:#BBAAAA;
 }
 
+li.eventLogUpdatePolicy {
+  list-style-position: inside;	
+  list-style-type: none;	
+}
+
+table.eventLogUpdatePolicy {
+  width: 50%;
+  margin-top: 0px;
+  margin-left: 0px;
+}
+
+
+
+table.detailedReport {
+  margin : 0;
+  padding: 0 0 0 100px;
+  width: 100%
+}
+
+span.detailedReportTitle {
+	position:absolute;
+}
+
+table.fixedlayout{
+	table-layout:fixed;
+	word-wrap:break-word
+	}
+
+tr.detailedReportLine, td.detailedReportLine {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+td.severityWidth, th.severityWidth {
+  width: 200px;
+}
+
+tr.unfoldable {
+  cursor:pointer;
+}
+
+.diffOldValue {
+    text-decoration:line-through;
+}
 
 /***********************************
  * Quicksearch
@@ -1985,7 +2159,11 @@ li.disableTreeNode > a {
     background: none repeat scroll 0 0 #FFFFFF !important;
 }
 
+.homePageBlock {
+  margin: 10px;	
+}
 
-
-
-
+.homePageBlock li {
+  list-style-type: disc;
+  list-style-position:inside;
+}

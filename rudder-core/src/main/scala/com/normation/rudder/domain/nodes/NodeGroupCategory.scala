@@ -45,7 +45,7 @@ case class NodeGroupCategoryId(value:String) extends HashcodeCaching
 
 
 /**
- * A server group category is quite similar to a policy template category :
+ * A server group category is quite similar to a Technique category :
  * an id
  * a name
  * a description

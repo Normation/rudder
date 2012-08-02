@@ -54,7 +54,7 @@ class LDAPGitRevisionProvider(
   ldap: LDAPConnectionProvider, rudderDit: RudderDit, gitRepo: GitRepositoryProvider, refPath: String) extends GitRevisionProvider with Loggable {
 
   if (!refPath.startsWith("refs/")) {
-    logger.warn("The configured reference path for the Git repository of Policy Template User Library does " +
+    logger.warn("The configured reference path for the Git repository of Active Technique Library does " +
       "not start with 'refs/'. Are you sure you don't mistype something ?")
   }
 
@@ -69,13 +69,13 @@ class LDAPGitRevisionProvider(
     }) match {
       case Full(id) => ObjectId.fromString(id)
       case Empty =>
-        logger.info("No persisted version of the current policy template reference library revision " +
+        logger.info("No persisted version of the current technique reference library revision " +
           "to use where found, init to last available from Git repository")
         val id = getAvailableRevTreeId
         setCurrentRevTreeId(id)
         id
       case f: Failure =>
-        logger.error("Error when trying to read persisted version of the current policy template " +
+        logger.error("Error when trying to read persisted version of the current technique " +
           "reference library revision to use. Use the last available from Git.", f)
         val id = getAvailableRevTreeId
         setCurrentRevTreeId(id)

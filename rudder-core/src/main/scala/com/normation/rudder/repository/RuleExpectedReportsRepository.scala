@@ -113,8 +113,8 @@ trait RuleExpectedReportsRepository {
   /**
    * Save an expected reports.
    * I'm not really happy with this API
-   * @param ruleId : the id of the configuration rule (the main id)
-   * @param directiveId : the id of the policy instance (secondary id, used to check for the changes)
+   * @param ruleId : the id of the rule (the main id)
+   * @param directiveId : the id of the directive (secondary id, used to check for the changes)
    * @param nodes : the nodes that are expected to be the target of this rule 
    * @param cardinality : the cardinality of the expected reports
    * @return

@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
+package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
 import scala.xml.NodeSeq
@@ -73,7 +73,7 @@ object InventoryEventLog {
     , action    : String
   ) = {
     scala.xml.Utility.trim(
-      <node action={action} fileFormat={Constants.XML_FILE_FORMAT_2.toString}>
+      <node action={action} fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{logDetails.nodeId.value}</id>
         <inventoryVersion>{logDetails.inventoryVersion}</inventoryVersion>
         <hostname>{logDetails.hostname}</hostname>
@@ -104,13 +104,14 @@ object AcceptNodeEventLog extends EventLogFilter {
     , principal       : EventActor
     , inventoryDetails: InventoryLogDetails
     , creationDate    : DateTime = DateTime.now()
-    , severity        : Int = 100         
+    , severity        : Int = 100
+    , description     : Option[String] = None
   ) : AcceptNodeEventLog = {
     val details = EventLog.withContent(InventoryEventLog.toXml(
       inventoryDetails, "accept"
     ) )
     
-    AcceptNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, details)) 
+    AcceptNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, description, details)) 
   }
 }
 
@@ -134,12 +135,13 @@ object RefuseNodeEventLog extends EventLogFilter {
     , inventoryDetails: InventoryLogDetails
     , creationDate    : DateTime = DateTime.now()
     , severity        : Int = 100         
+    , description     : Option[String] = None
   ) : RefuseNodeEventLog = {
     val details = EventLog.withContent(InventoryEventLog.toXml(
       inventoryDetails, "refuse"
     ) )
     
-    RefuseNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, details)) 
+    RefuseNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, description, details)) 
   }
 }
 
@@ -163,7 +165,7 @@ object NodeEventLog {
     , action: String
   ) = {
     scala.xml.Utility.trim(
-      <node action={action} fileFormat={Constants.XML_FILE_FORMAT_2.toString}>
+      <node action={action} fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{node.id.value}</id>
         <name>{node.name}</name>
         <hostname>{node.hostname}</hostname>
@@ -204,13 +206,14 @@ object DeleteNodeEventLog extends EventLogFilter {
     , principal       : EventActor
     , node            : NodeInfo
     , creationDate    : DateTime = DateTime.now()
-    , severity        : Int = 100         
+    , severity        : Int = 100
+    , description     : Option[String] = None
   ) : DeleteNodeEventLog = {
     val details = EventLog.withContent(NodeEventLog.toXml(
       node, "delete"
     ) )
     
-    DeleteNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, details)) 
+    DeleteNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, description, details)) 
   }
 }
 

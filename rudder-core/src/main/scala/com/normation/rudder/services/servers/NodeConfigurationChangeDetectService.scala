@@ -94,7 +94,7 @@ class NodeConfigurationChangeDetectServiceImpl(
   
   
   /**
-   * Fetch the acceptation date of a Policy Template
+   * Fetch the acceptation date of a Technique
    */
   private def getAcceptationDate(TechniqueId : TechniqueId) : Box[DateTime] = {
     activeTechniqueRepository.getActiveTechnique(TechniqueId.name).map(x => 
@@ -123,7 +123,7 @@ class NodeConfigurationChangeDetectServiceImpl(
     val currents = node.getCurrentDirectives
     val targets  = node.getDirectives
     // Other case :
-    // Added or modified policy instance
+    // Added or modified directive
     for (target <- targets) {
       currents.get(target._1) match {
         case None =>  mySet += target._2.ruleId

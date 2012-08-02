@@ -34,7 +34,6 @@
 
 package com.normation.rudder.services.nodes
 
-import com.normation.rudder.domain.nodes.PolicyServerNodeInfo
 import com.normation.inventory.domain._
 import org.joda.time.DateTime
 import com.normation.ldap.sdk.LDAPConnectionProvider
@@ -73,22 +72,6 @@ trait NodeInfoService {
   
   
   /**
-   * Return a PolicyServerNodeInfo from its id
-   * @param policyServerNodeId
-   * @return
-   */
-  def getPolicyServerNodeInfo(policyServerNodeId : NodeId) : Box[PolicyServerNodeInfo]
-  
-  
-  /**
-   * Return a seq of PolicyServerNodeInfo from a seq of NodeId. 
-   * If any of them fails, then we return Failure
-   * @param nodeId
-   * @return
-   */
-  def findPolicyServerNodeInfos(nodeIds: Seq[NodeId]) : Box[Seq[PolicyServerNodeInfo]] 
-  
-  /**
    * Get all node ids
    */
   def getAllIds() : Box[Seq[NodeId]]
@@ -125,17 +108,12 @@ class NodeInfoServiceImpl(
     for {
       con <- ldap
       node <- con.get(nodeDit.NODES.NODE.dn(nodeId.value), nodeInfoAttributes:_*) ?~! "Node with ID '%s' was not found".format(nodeId.value)
-      nodeInfo <- {
-        if (node.isA(OC_POLICY_SERVER_NODE)) ldapMapper.convertEntryToPolicyServerNodeInfo(node)
-        else {
-          for {
-            server <- con.get(inventoryDit.NODES.NODE.dn(nodeId.value), nodeInfoAttributes:_*)  ?~! "Node info with ID '%s' was not found".format(nodeId.value)
-            nodeInfo <- ldapMapper.convertEntriesToNodeInfos(node, server)
-          } yield {
-            nodeInfo
-          }
-        }
-      }
+      nodeInfo <- for {
+                    server <- con.get(inventoryDit.NODES.NODE.dn(nodeId.value), nodeInfoAttributes:_*)  ?~! "Node info with ID '%s' was not found".format(nodeId.value)
+                    nodeInfo <- ldapMapper.convertEntriesToNodeInfos(node, server)
+                  } yield {
+                    nodeInfo
+                  }
     } yield {
       nodeInfo
     }
@@ -147,27 +125,6 @@ class NodeInfoServiceImpl(
       getNodeInfo(nodeId)
     }
   }
-  
-  def getPolicyServerNodeInfo(policyServerNodeId : NodeId) : Box[PolicyServerNodeInfo] = {
-    (for {
-      con <- ldap
-      node <- con.get(nodeDit.NODES.NODE.dn(policyServerNodeId.value), nodeInfoAttributes:_*)
-      nodeInfo <- ldapMapper.convertEntryToPolicyServerNodeInfo(node)
-    } yield {
-      nodeInfo
-    })
-  }
-  
-  def findPolicyServerNodeInfos(nodeIds: Seq[NodeId]) : Box[Seq[PolicyServerNodeInfo]] = {
-    (for {
-      con <- ldap
-      nodes <- boxSequence(nodeIds.map(policyServerNodeId => con.get(nodeDit.NODES.NODE.dn(policyServerNodeId.value), nodeInfoAttributes:_*)))
-      nodesInfo <- sequence(nodes) { node => ldapMapper.convertEntryToPolicyServerNodeInfo(node) }
-    } yield {
-      nodesInfo
-    })
-  }
-  
   
   /**
    * Get all node ids

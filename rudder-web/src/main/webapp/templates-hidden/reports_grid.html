@@ -1,19 +1,9 @@
   <reports:report>
   <p class="reportsHeader">Status reported for this Rule on last execution (if in the last 15 minutes): <lastReportGrid:crName/></p>
-  <table id="reportsGrid" cellspacing="0">
-    <thead>
-      <tr class="head">
-        <th>Node name<span/></th>
-        <th>Severity<span/></th>
-      </tr>
-    </thead>
-    <tbody>   
+  <lastReportGrid:detail/>
       <lastReportGrid:lines>
-          <td  name="serverName"><line:hostname /></td>
-          <td><line:severity /></td>
       </lastReportGrid:lines>
-    </tbody>
-    </table>
+      <hr class="spacer"/>
     <div class="reportsGrid_pagination" class="paginatescala">
      <div id="reportsGrid_paginate_area"/>
     </div>

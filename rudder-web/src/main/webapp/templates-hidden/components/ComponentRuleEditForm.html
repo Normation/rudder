@@ -40,24 +40,69 @@
     
     label.wbBaseFieldLabel {
       margin-right:10px;
+      margin-bottom: 3px;
     }
+    
+    .reasonsFieldset {
+      width:96%;
+      margin-top: 15px;
+      margin-right: 5px;
+      display: inline-block;
+    }
+    
+    .warnicon {
+      margin-top:-7px;
+    }
+    
+    .simplemodal-content {
+      margin-top:5px;
+    }
+    
   </style>
 </head>
 </component:staticInit>
 
 <component:body>
-
-
-<div id="editRuleZone">
-<ul id="ruleDetailsTabMenu">
-  <li><a href="#ruleDetailsEditTab">Edit Rule parameters</a></li>
-</ul>
-
-<div id="ruleDetailsEditTab">
-  <div id="editForm"></div>
-</div>
-</div>
+	<div id="editRuleZone">
+		<ul id="ruleDetailsTabMenu">
+			<li><a href="#ruleComplianceTab">Compliance detail</a></li>
+			<li><a href="#ruleDetailsEditTab">Edit parameters</a></li>
+		</ul>
+		<div id="ruleComplianceTab">
+		  <div id="details"></div>
+		</div>
+		<div id="ruleDetailsEditTab">
+		  <div id="editForm"></div>
+		  <div id="removeActionDialog"></div>
+		  <div id="disactivateActionDialog"></div>
+		</div>
+	</div>
 </component:body>
+
+<component:details>
+<div id="details" class="object-details">
+	<div class="groupedEditZone">
+	  <fieldset>
+    <legend>Rule informations</legend>
+		<div id="nameField">
+		Here comes the name field
+		</div>
+		   <br />
+		<div id="shortDescriptionField">
+		Here comes the shortDescription field
+		</div>
+		   <br/>
+		<div id="longDescriptionField">
+		Here comes the longDescription field
+		</div>
+		</fieldset>
+	</div>
+	<div id="compliancedetails">
+    </div>
+    </div>
+</component:details>
+
+
 
 <component:form>
 <div id="editForm" class="object-details">
@@ -74,56 +119,10 @@
 <!--      <label for="removeButton" id="removeButtonLabel">Remove from user library</label>-->
       <button id="removeButton">Delete</button>
     </div>
-    <div id="removeActionDialog" class="nodisplay">
-      <div class="simplemodal-title">
-        <h1>Delete a Rule</h1>
-        <hr/>
-      </div>
-      <div class="simplemodal-content">    
-        <div>
-          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-          <h2>Deleting this Rule will also delete its history and compliance reports.</h2>
-        </div>
-        <hr class="spacer" />
-        <br />
-        <br />
-        <h2>Are you sure that you want to completely delete this item?</h2>
-        <hr class="spacer" />
-      </div>
-      <div class="simplemodal-bottom">
-        <hr/>
-         <div class="popupButton">
-           <span>
-             <button class="simplemodal-close" onClick="return false;">Cancel</button>
-             <button id="dialogRemoveButton">Delete</button>
-           </span>
-         </div>
-      </div>
-    </div>
+
     
     <div id="desactivateAction" class="twoColumns twoColumnsRight">
       <button id="disactivateButton"><span id="disactivateButtonLabel">desactivate</span></button>
-    </div>
-    
-    <div id="desactivateActionDialog" class="nodisplay">
-      <div class="simplemodal-title">
-        <h1><span id="dialogDeactivateTitle">Disable</span> a Rule</h1>
-        <hr/>
-      </div>
-      <div class="simplemodal-content">
-        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-        <h2>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this Rule?</h2>
-         <hr class="spacer" />
-      </div>
-      <div class="simplemodal-bottom">
-        <hr/>
-         <div class="popupButton">
-           <span>
-             <button class="simplemodal-close" onClick="return false;">Cancel</button>  
-             <button id="dialogDisactivateButton">Disactivate</button>
-           </span>
-          </div>
-       </div>
     </div>
     
     <div class="disableNotice">
@@ -136,10 +135,10 @@
   <fieldset class="editZone">
     <legend>Modify Rule parameters</legend>
 
-    <div id="notification">
-      <ul>
-        <li>Here comes notifications</li>
-      </ul>
+    <div id="notifications">
+<!--       <ul> -->
+<!--         <li>Here comes notifications</li> -->
+<!--       </ul> -->
     </div>
     <hr class="spacer" />
     <div class="groupedEditZone">
@@ -153,13 +152,17 @@
       <hr class="spacer" />
     </div>
     
+    <div id="longDescriptionField">
+      Here comes the longDescription field
+    </div>
+    
     <div class="groupedEditZone">
-       <fieldset class="crEditHierarchy"><legend>Directive <a href= "secure/configurationManager/directiveManagement">(Create a new Directive)</a></legend>
+       <fieldset class="crEditHierarchy"><legend>Directive <lift:authz role="directive_write"><a href= "secure/configurationManager/directiveManagement">(Create a new Directive)</a></lift:authz></legend>
           <div id="selectPiField">
             Here comes the Directive selection field
           </div>
         </fieldset>
-        <fieldset class="crEditHierarchy"><legend>Group hierarchy <a href= "secure/nodeManager/groups">(Create a new Group)</a></legend>
+        <fieldset class="crEditHierarchy"><legend>Group hierarchy  <lift:authz role="group_write"><a href= "secure/nodeManager/groups">(Create a new Group)</a></lift:authz></legend>
           <div id="selectGroupField">
             Here comes the group selection field
           </div>
@@ -167,10 +170,18 @@
       <div class="hierarchySpacer"></div>
     </div>
     
-    <div id="longDescriptionField">
-      Here comes the longDescription field
+    <fieldset class="reasonsFieldset">
+    <legend>Change Message</legend>
+    
+    <div id="explanationMessage">
+      Here comes the explanation to reasons field
     </div>
-
+    
+    <div id="reasonsField">
+      Here comes the reasons field
+    </div>
+    </fieldset>
+	
     <hr class="spacer" />
 
     <div class="cpiefsave">
@@ -178,6 +189,86 @@
     </div>
   </fieldset>
 </div>
+
 </component:form>
+
+<component:popupRemoveForm>
+    <div id="removeActionDialog" class="nodisplay">
+      <div class="simplemodal-title">
+        <h1>Delete a Rule</h1>
+        <hr/>
+      </div>
+      <div class="simplemodal-content">    
+        <div>
+          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+	        <h2>Are you sure that you want to completely delete this item?</h2>
+        </div>
+        <br />
+<!--         <div id="errorDisplay"> -->
+<!--         	[Replace this div with potential errors] -->
+<!--         </div> -->
+        <div>Deleting this Rule will also delete its history and compliance reports.</div>
+        <hr class="spacer" />
+       	<div class="reasonsFieldsetPopup">
+		    <div id="explanationMessage">
+		      Here comes the explanation to reasons field
+		    </div>
+		    <div id="reasonsField">
+		      Here comes the reasons field
+		    </div>
+	    </div>
+	    
+        <br />
+        <hr class="spacer" />
+      </div>
+      <div class="simplemodal-bottom">
+        <hr/>
+         <div class="popupButton">
+           <span>
+             <button class="simplemodal-close" onClick="return false;">Cancel</button>
+             <button id="dialogRemoveButton">Delete</button>
+           </span>
+         </div>
+      </div>
+    </div>   
+</component:popupRemoveForm>
+
+<component:popupDisactivateForm>
+    <div id="desactivateActionDialog" class="nodisplay">
+      <div class="simplemodal-title">
+        <h1><span id="dialogDeactivateTitle">Disable</span> a Rule</h1>
+        <hr/>
+      </div>
+      <div class="simplemodal-content">
+        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+        <h2>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this Rule?</h2>
+         
+     	<br /> 
+        <hr class="spacer" />
+<!--         <div id="errorDisplay"> -->
+<!--         	[Replace this div with potential errors] -->
+<!--         </div> -->
+        
+       	<div class="reasonsFieldsetPopup">
+		    <div id="explanationMessage">
+		      Here comes the explanation to reasons field
+		    </div>
+		    <div id="reasonsField">
+		      Here comes the reasons field
+		    </div>
+	    </div>
+        <hr class="spacer" />
+      </div>
+      <div class="simplemodal-bottom">
+        <hr/>
+         <div class="popupButton">
+           <span>
+             <button class="simplemodal-close" onClick="return false;">Cancel</button>  
+             <button id="dialogDisactivateButton">Disable</button>
+           </span>
+          </div>
+       </div>
+    </div>
+</component:popupDisactivateForm>
 
 </xml:group>

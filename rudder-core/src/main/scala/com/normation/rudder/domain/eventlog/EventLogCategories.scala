@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
+package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog.EventLogCategory
 import com.normation.eventlog.EventLogType
@@ -89,7 +89,7 @@ final case object DeleteNodeGroupEventType extends EventLogType {
 final case object ModifyNodeGroupEventType extends EventLogType {
   def serialize = "NodeGroupModified"
 }
-// policy instance related
+// directive related
 final case object AddDirectiveEventType extends EventLogType {
   def serialize = "DirectiveAdded"
 }
@@ -113,6 +113,14 @@ final case object ReleaseRedButtonEventType extends EventLogType {
 
 final case object ReloadTechniqueLibraryType extends EventLogType {
   def serialize = "ReloadTechniqueLibrary"
+}
+
+final case object ModifyTechniqueEventType extends EventLogType {
+  def serialize = "TechniqueModified"
+}
+
+final case object DeleteTechniqueEventType extends EventLogType {
+  def serialize = "TechniqueDeleted"
 }
 
 // rule related event type
@@ -190,6 +198,8 @@ object ModificationWatchList {
     , ClearCacheEventType
     , UpdatePolicyServerEventType
     , ReloadTechniqueLibraryType
+    , ModifyTechniqueEventType
+    , DeleteTechniqueEventType
     , ImportGroupsEventType
     , ImportTechniqueLibraryEventType
     , ImportRulesEventType
@@ -222,6 +232,8 @@ object EventTypeFactory {
     , ActivateRedButtonEventType
     , ReleaseRedButtonEventType
     , ReloadTechniqueLibraryType 
+    , ModifyTechniqueEventType
+    , DeleteTechniqueEventType
       
     , AddRuleEventType
     , DeleteRuleEventType

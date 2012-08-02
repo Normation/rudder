@@ -1,4 +1,4 @@
-package com.normation.rudder.domain.log
+package com.normation.rudder.domain.eventlog
 
 
 import org.joda.time.DateTime
@@ -40,7 +40,7 @@ object UpdatePolicyServer extends EventLogFilter {
   
   def buildDetails(modification: AuthorizedNetworkModification) : NodeSeq = {
     EventLog.withContent {
-      <changeAuthorizedNetworks fileFormat={Constants.XML_FILE_FORMAT_2.toString}>
+      <changeAuthorizedNetworks fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <oldAuthorizedNetworks>{
           modification.oldNetworks.map { net => <net>{net}</net>}
         }</oldAuthorizedNetworks>

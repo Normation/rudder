@@ -5,36 +5,49 @@
 </head>
 
  <h1>Welcome to Rudder</h1>
-
+	
+  <lift:msgs>
+  <lift:error_class>error</lift:error_class>
+  </lift:msgs>
+  
   <div class="portlet">
     <div class="portlet-header">Description</div>
-    <div class="portlet-content"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
+    <div class="portlet-content homePageBlock"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
       Manage your IT infrastructure by making inventories of your nodes, and applying Rules to them.<br/>
       A Rule is the application of a configured Technique to a node group.
+
       <ul>
+        <lift:authz role="node_read">
         <lift:HomePage.pendingNodes/>
         <lift:HomePage.acceptedNodes/>
+        </lift:authz>
+        <lift:authz role="rule_read">
         <lift:HomePage.rules/>
+        </lift:authz>
       </ul>
-
+	
     </div>
    <br/>
    </div>
 
         <div class="column">
+        <lift:authz role="node_read">
         <div class="portlet">
           <div class="portlet-header">Rudder Node Manager</div>
-          <div class="portlet-content"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
+          <div class="portlet-content homePageBlock"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
             <ul>
               <li><a href="secure/nodeManager/manageNewNode">Accept or refuse</a> new nodes in Rudder</li>
               <li><a href="secure/nodeManager/searchNodes">List or search</a> your nodes' inventories in Rudder</li>
+              <lift:authz role="group_read">
               <li><a href="secure/nodeManager/groups">Define node groups</a> from search results</li>
+              </lift:authz>
             </ul>
           </div>
         </div>
+        </lift:authz>
         <div class="portlet">
           <div class="portlet-header">Rudder Support Desk</div>
-          <div class="portlet-content"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
+          <div class="portlet-content homePageBlock"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
             <ul>
               <li><a href="http://www.rudder-project.org/" target="_blank">Report and follow bugs, join the Rudder community!</a></li>
               <li><a href="http://www.normation.com" target="_blank">Professional Services and plugins for your organization</a></li>
@@ -43,25 +56,35 @@
         </div>
       </div>
       <div class="column">
+        <lift:authz role="configuration_read">
         <div class="portlet">
           <div class="portlet-header">Rudder Configuration Manager</div>
-          <div class="portlet-content"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
+          <div class="portlet-content homePageBlock"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
             <ul>
-              <li>Build your own <a href="secure/configurationManager/techniqueLibraryManagement">Technique library</a> and <a href="secure/configurationManager/directiveManagement">create and configure Directives instances</a></li>
-              <li>List, register and manage <a href="secure/configurationManager/ruleManagement">Rules</a> on your nodes from available <a href="secure/configurationManager/directiveManagement">Directives</a></li>
+            <lift:authz role="technique_read">
+              <li>Build your own <a href="secure/configurationManager/techniqueLibraryManagement">Technique library</a> <lift:authz role="directive_read"> and <a href="secure/configurationManager/directiveManagement">create and configure Directives instances</a></lift:authz></li>
+            </lift:authz>
+            <lift:authz role="rule_read">
+              <li>List, register and manage <a href="secure/configurationManager/ruleManagement">Rules</a> on your nodes <lift:authz role="directive_read"> <span>from available <a href="secure/configurationManager/directiveManagement">Directives</a> </span> </lift:authz></li>
               <li>Manage and supervise states from these Rules</li>
+              </lift:authz>
             </ul>
           </div>
         </div>
+        </lift:authz>
+        <lift:authz role="administration_read">
         <div class="portlet">
           <div class="portlet-header">Rudder Administration</div>
-          <div class="portlet-content"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
+          <div class="portlet-content homePageBlock"><img src="images/imgPortlet.jpg" alt=" " width="94" height="82" />
             <ul>
-              <li>Track all events that have occured: <a href="secure/administration/eventLogs">Event logs</a></li>
+              <li>Track all events that have occured: <a href="secure/administration/eventLogs">Event logs</a> </li> 
+              <lift:authz role="administration_edit">
               <li><a href="secure/administration/policyServerManagement">Configure the Rudder server</a></li>
+              </lift:authz>
             </ul>
           </div>
         </div>
+        </lift:authz>
       </div>
 </lift:surround>
 

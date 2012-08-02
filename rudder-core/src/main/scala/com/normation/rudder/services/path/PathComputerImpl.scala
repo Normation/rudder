@@ -55,17 +55,16 @@ import com.normation.exceptions.BusinessException
  *
  */
 class PathComputerImpl(
-            nodeConfigurationRepository : NodeConfigurationRepository,
-            baseFolder : String, 
-            backupFolder : String) extends PathComputer with Loggable {
+            nodeConfigurationRepository : NodeConfigurationRepository
+         ,  backupFolder        : String // /var/rudder/backup/
+) extends PathComputer with Loggable {
 
   
-  
-  val servedPrefix = "share/"
+  private[this] val promisesPrefix = "rules/"
     
-  val promisesPrefix = "rules/"
+  private[this] val baseFolder = Constants.NODE_PROMISES_PARENT_DIR_BASE
+  private[this] val relativeShareFolder = Constants.NODE_PROMISES_PARENT_DIR
   
-    
   /**
    * Compute the base path for a machine, i.e. the full path on the root server to the data
    * the searched machine will fetch, and the backup folder
@@ -84,30 +83,7 @@ class PathComputerImpl(
         throw new BusinessException(msg)
     }
     val path = recurseComputePath(root, searchedNode, "/"  + searchedNode.id)
-    return (FilenameUtils.normalize(baseFolder + servedPrefix + path) , FilenameUtils.normalize(backupFolder + path))
-  }
-  /**
-   * compute the relative path from one machine to another
-   * typically, something like '/share/uuid-B/share/uuid-C'
-   * @param fromNode e.g machineA
-   * @param toNode e.g machineC
-   * @return
-   */
-  def computeRelativePath(fromNode : NodeConfiguration, toNode : NodeConfiguration) : String = {
-    if (fromNode == toNode)
-      return "/"
-    
-    var machineDest = toNode
-    var path = ""
-    while (machineDest != fromNode) {
-      path ="/" + servedPrefix + machineDest.id ;
-      nodeConfigurationRepository.findNodeConfiguration(NodeId(machineDest.targetMinimalNodeConfig.policyServerId)) match {
-        case Full(node) => machineDest = node
-        case _ => throw new HierarchicalException("Wrong hierarchy for node : " + toNode)
-      }
-    }
-    
-    return FilenameUtils.normalize(path)
+    return (FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path) , FilenameUtils.normalize(backupFolder + path))
   }
   
   /**
@@ -117,8 +93,8 @@ class PathComputerImpl(
    */
   def getRootPath(agentType : AgentType) : String = {
     agentType match {
-        case NOVA_AGENT => "/var/cfengine/inputs"
-        case COMMUNITY_AGENT =>  "/var/rudder/cfengine-community/inputs"
+        case NOVA_AGENT => Constants.CFENGINE_NOVA_PROMISES_PATH 
+        case COMMUNITY_AGENT => Constants.CFENGINE_COMMUNITY_PROMISES_PATH
         case x => throw new BusinessException("Unrecognized agent type: %s".format(x))
     }
   }
@@ -143,7 +119,7 @@ class PathComputerImpl(
       case Full(root : RootNodeConfiguration) => 
           recurseComputePath(fromNode, root, path)
       case Full(policyParent) =>
-          recurseComputePath(fromNode, policyParent, policyParent.id + "/" + servedPrefix + path)
+          recurseComputePath(fromNode, policyParent, policyParent.id + "/" + relativeShareFolder + "/" + path)
       case _ =>throw new HierarchicalException("Wrong hierarchy for node :" + toNode)
     }
   }
