@@ -278,7 +278,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
         })
       })
       
-    }
+    } ; () //unit is expected    
   }
   
 }

@@ -60,6 +60,7 @@ class UpdateBatch {
   
   def addNodeConfiguration(server : NodeConfiguration) : Unit = {
     updatedNodeConfigurations += (server.id -> server)
+    () //unit is expected
   }
   
 }
