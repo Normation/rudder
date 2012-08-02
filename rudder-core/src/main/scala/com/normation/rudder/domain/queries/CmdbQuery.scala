@@ -157,13 +157,8 @@ trait TStringComparator extends CriterionType {
   }
   override def toLDAP(value:String) = Full(value)
   
-  //build an EQ filter or a an AND(SUB) if value contains *
-  protected def eqOrSub(attributeName:String,value:String) : Filter = {
-    //remove duplicate **
-    var x = value
-    var xx = ""
-    do { xx = x ; x = x.replaceAll("""\*\*""","""\*""") } while( xx.length != x.length)
-    BuildFilter(attributeName + "=" + x)
+  protected def escapedFilter(attributeName:String,value:String) : Filter = {
+    BuildFilter(attributeName + "=" + Filter.encodeValue(value))
   }
 }
 
@@ -172,8 +167,8 @@ case object StringComparator extends TStringComparator {
 
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
     //for equals and not equals, check value for jocker
-    case Equals => eqOrSub(attributeName,value)
-    case NotEquals => NOT(eqOrSub(attributeName,value))
+    case Equals => escapedFilter(attributeName,value)
+    case NotEquals => NOT(escapedFilter(attributeName,value))
     case NotExists => NOT(HAS(attributeName))
     case Regex => HAS(attributeName) //"default, non interpreted regex
     case _ => HAS(attributeName) //default to Exists
@@ -185,8 +180,8 @@ case object OrderedStringComparator extends TStringComparator {
   
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = comparator match {
     //for equals and not equals, check value for jocker
-    case Equals => eqOrSub(attributeName,value)
-    case NotEquals => NOT(eqOrSub(attributeName,value))
+    case Equals => escapedFilter(attributeName,value)
+    case NotEquals => NOT(escapedFilter(attributeName,value))
     case NotExists => NOT(HAS(attributeName))
     case Greater => AND(HAS(attributeName),NOT(LTEQ(attributeName,value)))
     case Lesser => AND(HAS(attributeName),NOT(GTEQ(attributeName,value)))
