@@ -241,7 +241,7 @@ class TechniqueEditForm(
       });
 
       $('#disableButton').click(function() {
-        createPopup("disableActionDialog",140,400);
+        createPopup("disableActionDialog",140,500);
         return false;
       });
     """)))
@@ -269,8 +269,8 @@ class TechniqueEditForm(
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
-      case Mandatory => Some(buildReasonField(true))
-      case Optionnal => Some(buildReasonField(false))
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
     
