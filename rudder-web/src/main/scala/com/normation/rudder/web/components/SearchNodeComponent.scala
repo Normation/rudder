@@ -180,13 +180,13 @@ class SearchNodeComponent(
         srvList = queryProcessor.process(newQuery)
         activateSubmitButton = false
         initUpdate = true
+        ajaxGridRefresh
       } else {
         // ********* ERRORS FOUND ***********"
         srvList = Empty
         activateSubmitButton = true
+        ajaxCriteriaRefresh & ajaxGridRefresh
       }
-      
-      ajaxGridRefresh
     }
     
     /**
