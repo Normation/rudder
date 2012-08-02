@@ -124,6 +124,7 @@ class DirectiveEditForm(
   activeTechnique: ActiveTechnique,
   val directive: Directive,
   onSuccessCallback: (Directive) => JsCmd = { (Directive) => Noop },
+  onRemoveSuccessCallback: () => JsCmd = { () => Noop },
   onFailureCallback: () => JsCmd = { () => Noop },
   isADirectiveCreation: Boolean = false 
 ) extends DispatchSnippet with Loggable {
@@ -357,7 +358,7 @@ class DirectiveEditForm(
         {
           if (directiveCurrentStatusCreationStatus) {
             val nSeq = <div id={ htmlId_policyConf }>Directive successfully deleted</div>
-            onSuccessCallback(directive) & SetHtml(htmlId_policyConf, nSeq) &
+            onRemoveSuccessCallback() & SetHtml(htmlId_policyConf, nSeq) &
             successPopup
           } else {
             (for {
@@ -372,7 +373,7 @@ class DirectiveEditForm(
             }) match {
               case Full(x) =>
                 val nSeq = <div id={ htmlId_policyConf }>Directive successfully deleted</div>
-                onSuccessCallback(directive) & SetHtml(htmlId_policyConf, nSeq) & successPopup
+                onRemoveSuccessCallback() & SetHtml(htmlId_policyConf, nSeq) & successPopup
               case Empty => //arg.
                 val errMsg = "An error occurred while deleting the Directive (no more information)"
                 formTracker.addFormError(error(errMsg))
@@ -656,6 +657,7 @@ class DirectiveEditForm(
     val dirEditForm = new DirectiveEditForm(
       DirectiveManagement.htmlId_policyConf, technique, activeTechnique,
       directive, onSuccessCallback = onSuccessCallback, 
+      onRemoveSuccessCallback = onRemoveSuccessCallback,
       isADirectiveCreation = isADirectiveCreation
     )
     

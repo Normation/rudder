@@ -406,6 +406,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     val dirEditForm = new DirectiveEditForm(
       htmlId_policyConf, technique, activeTechnique, directive,
       onSuccessCallback = directiveEditFormSuccessCallBack,
+      onRemoveSuccessCallback = onRemoveSuccessCallBack,
       isADirectiveCreation = isADirectiveCreation
     )
     
@@ -432,6 +433,11 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         Alert("Error when trying to get display the page. Please, try again")
       }
     }
+  }
+  
+  private[this] def onRemoveSuccessCallBack(): JsCmd = {
+    Replace(htmlId_policyConf, showDirectiveDetails) &
+    Replace(htmlId_activeTechniquesTree, userLibrary)
   }
    
   //////////////// display trees ////////////////////////    
