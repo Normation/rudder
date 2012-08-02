@@ -311,8 +311,8 @@ class EventListDisplayer(
           <h4 id={"showParameters%s".format(id)}
           class="curspoint showParameters" 
           onclick={"showParameters(%s)".format(id)}>Raw Technical Details</h4>
-          <pre id={"showParametersInfo%s".format(id)} 
-          style="display:none">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
+          <pre id={"showParametersInfo%s".format(id) } 
+          style="display:none;width:200px;">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
       }
     }
     
@@ -328,7 +328,7 @@ class EventListDisplayer(
         <div class="evloglmargin">
           <h4>Details for that node were not in a recognized format. 
             Raw data are displayed next:</h4>
-          <pre>{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
+          <pre style="display:none;width:200px;">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
         </div>
       </xml:group>
     }
@@ -419,9 +419,9 @@ class EventListDisplayer(
                 "#parameters" #> (
                   modDiff.modParameters.map { diff =>
                     ".diffOldValue *" #> 
-                      <pre>{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre> &
+                      <pre style="width:200px;">{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre> &
                     ".diffNewValue *" #> 
-                      <pre>{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
+                      <pre style="width:200px;">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
                   }
                 ) 
               )(piModDetailsXML)}
