@@ -591,6 +591,7 @@ trait DeploymentService_historization extends DeploymentService {
     historizationService.updateGroups()
     historizationService.updatePINames()
     historizationService.updatesRuleNames()
+    () // unit is expected
   }
   
   

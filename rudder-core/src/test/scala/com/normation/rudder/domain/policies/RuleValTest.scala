@@ -58,7 +58,7 @@ import com.normation.cfclerk.domain.InputVariable
 class RuleValTest {
 
   @Test
-  def testCRwithNoPI() {
+  def testCRwithNoPI() = {
     new RuleVal(
       new RuleId("id"),
       Set(new GroupTarget(new NodeGroupId("target"))),
@@ -67,7 +67,7 @@ class RuleValTest {
   }
 
   @Test
-  def testBasicRuleVal() {
+  def testBasicRuleVal() = {
     val container = new DirectiveVal(
       new TechniqueId(TechniqueName("id"), TechniqueVersion("1.0")),
       new ActiveTechniqueId("id"),

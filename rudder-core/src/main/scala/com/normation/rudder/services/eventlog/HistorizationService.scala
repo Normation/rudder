@@ -108,7 +108,7 @@ class HistorizationServiceImpl(
       val closable = registered.keySet.filter(x => !(nodeInfos.map(node => node.id.value)).contains(x)) 
      
       historizationRepository.updateNodes(changed, closable.toSeq)
-      Full(Unit)
+      Full(())
     } catch {
       case e:Exception => logger.error("Could not update the nodes. Reason : "+e.getMessage())
                           Failure("Could not update the nodes. Reason : "+e.getMessage())
@@ -135,7 +135,7 @@ class HistorizationServiceImpl(
       val closable = registered.keySet.filter(x => !(nodeGroups.map(group => group.id.value)).contains(x)) 
      
       historizationRepository.updateGroups(changed, closable.toSeq)
-      Full(Unit)
+      Full(())
     } catch {
       case e:Exception => logger.error("Could not update the groups. Reason : "+e.getMessage())
                           Failure("Could not update the groups. Reason : "+e.getMessage())
@@ -193,7 +193,7 @@ class HistorizationServiceImpl(
      val closable = registered.keySet.filter(x => !(directives.map(directive => directive._1.id.value)).contains(x))
   
      historizationRepository.updateDirectives(changed, closable.toSeq)
-     Full(Unit)
+     Full(())
     } catch {
       case e:Exception => logger.error("Could not update the directives. Reason : "+e.getMessage())
                           Failure("Could not update the directives. Reason : "+e.getMessage())
@@ -220,7 +220,7 @@ class HistorizationServiceImpl(
                     map(x => x.value)
   
       historizationRepository.updateRules(changed, closable.toSeq)
-      Full(Unit)
+      Full(())
     } catch {
       case e:Exception => logger.error("Could not update the rules. Reason : "+e.getMessage())
                           Failure("Could not update the rules. Reason : "+e.getMessage())

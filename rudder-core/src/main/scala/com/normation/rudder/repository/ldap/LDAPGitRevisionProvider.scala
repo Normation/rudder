@@ -104,6 +104,7 @@ class LDAPGitRevisionProvider(
           root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
           root +=! (A_TECHNIQUE_LIB_VERSION, id.getName)
           con.save(root)
+          () // unit is expected
       }
     }
     currentId = id

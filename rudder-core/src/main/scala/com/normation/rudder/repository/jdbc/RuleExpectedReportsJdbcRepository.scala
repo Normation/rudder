@@ -108,6 +108,7 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
         jdbcTemplate.update("update "+ TABLE_NAME +"  set enddate = ? where nodejoinkey = ? and ruleId = ?",
           new Timestamp(DateTime.now().getMillis), new java.lang.Integer(entry.nodeJoinKey), entry.ruleId.value
         )
+        () // unit is expected
     }
   }
 

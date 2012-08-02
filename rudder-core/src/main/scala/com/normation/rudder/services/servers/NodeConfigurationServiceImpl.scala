@@ -366,7 +366,7 @@ class NodeConfigurationServiceImpl(
       val node = repository.findNodeConfiguration(NodeId(nodeId))
       if (node == None) {
         LOGGER.debug("Could not delete not found node {}", nodeId)
-        return Full(Unit)
+        return Full(())
       }
 
       //TODO: nothing is done with update batch ?
@@ -374,7 +374,7 @@ class NodeConfigurationServiceImpl(
       updateBatch.addNodeConfiguration(node.get)
       
       repository.deleteNodeConfiguration(nodeId)
-      Full(Unit)
+      Full(())
     }
   }
   
@@ -463,7 +463,7 @@ class NodeConfigurationServiceImpl(
       
       repository.saveMultipleNodeConfigurations(updateBatch.updatedNodeConfigurations.valuesIterator.toSeq)
       // save this rootCause
-      Full(Unit)
+      Full(())
     }
   }
   

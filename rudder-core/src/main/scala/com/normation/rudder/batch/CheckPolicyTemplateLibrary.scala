@@ -95,6 +95,7 @@ class CheckTechniqueLibrary(
         LAPinger.schedule(this, StartLibUpdate, realUpdateInterval*1000L*60)      
         logger.trace("***** Start a new update")
         policyPackageUpdater.update(actor, Some("Automatic batch update at " + DateTime.now))
+        () //unit is expected   
       case _ => 
         logger.error("Ignoring start update dynamic group request because one other update still processing".format())
     }
