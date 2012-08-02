@@ -202,7 +202,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   }
   
   /**
-   * If a query is passed as argument, try to dejoniffy-it, in a best effort
+   * If a query is passed as argument, try to dejsoniffy-it, in a best effort
    * way - just don't take of errors. 
    * 
    * We want to look for #{ "ruleId":"XXXXXXXXXXXX" }
@@ -270,7 +270,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   
   
   /**
-   * This method tale the valies from the JS call (variable in the td), and display the servver details from it
+   * This method tale the values from the JS call (variable in the td), and display the node details from it
    * @param s
    * @return
    */

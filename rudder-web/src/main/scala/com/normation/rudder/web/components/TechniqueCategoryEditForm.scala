@@ -121,7 +121,7 @@ class TechniqueCategoryEditForm(
   }
   
   private[this] def deleteCategory() : JsCmd = {
-    activeTechniqueCategoryRepository.delete(currentCategory.id, CurrentUser.getActor) match {
+    activeTechniqueCategoryRepository.delete(currentCategory.id, CurrentUser.getActor, Some("User deleted technique category from UI")) match {
       case Full(id) =>
         //update UI
         JsRaw("$.modal.close();") & 
@@ -145,14 +145,13 @@ class TechniqueCategoryEditForm(
   
   /////////////////////  Category Details Form  /////////////////////
 
-  val categoryName = new WBTextField("Category name: ", currentCategory.name) {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
+  val categoryName = new WBTextField("Category name", currentCategory.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def validations = 
       valMinLen(3, "The category name must have at least 3 characters") _ :: Nil
   }
   
-  val categoryDescription = new WBTextAreaField("Category description: ", currentCategory.description.toString) {
+  val categoryDescription = new WBTextAreaField("Category description", currentCategory.description.toString) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:10em")
 
@@ -216,7 +215,7 @@ class TechniqueCategoryEditForm(
                  name = categoryName.is,
                  description = categoryDescription.is
              )
-             activeTechniqueCategoryRepository.saveActiveTechniqueCategory(updatedCategory, CurrentUser.getActor) match {
+             activeTechniqueCategoryRepository.saveActiveTechniqueCategory(updatedCategory, CurrentUser.getActor, Some("User updated category from UI")) match {
                case Failure(m,_,_) => 
                  categorFormTracker.addFormError(  error("An error occured: " + m) )
                case Empty => 
@@ -259,7 +258,7 @@ class TechniqueCategoryEditForm(
          
          if(categoryNotifications.isEmpty) NodeSeq.Empty
          else {
-           val notifications = <div class="notify"><ul>{categoryNotifications.map( n => <li>{n}</li>) }</ul></div>
+           val notifications = <div class="notify"><ul class="field_errors">{categoryNotifications.map( n => <li>{n}</li>) }</ul></div>
            categoryNotifications = Nil
            notifications
          }

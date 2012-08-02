@@ -34,13 +34,13 @@
 
 package com.normation.rudder.repository.jdbc
 
-
 import org.joda.time.DateTime
 import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.Schema
 import org.squeryl.annotations.Column
 import net.liftweb.common._
 import org.squeryl.KeyedEntity
+import org.squeryl.dsl.ast._
 import java.sql.Timestamp
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.repository.HistorizationRepository
@@ -80,7 +80,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 	      where(after.map(date => {
 	        node.startTime > toTimeStamp(date) or
 	        (node.endTime.isNotNull and node.endTime.>(Some(toTimeStamp(date))))or
-          (fetchUnclosed and node.endTime.isNull)
+          ( (fetchUnclosed === true) and node.endTime.isNull)
 	      }).getOrElse(1===1))
 	      select(node)
 	    )
@@ -120,7 +120,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 	      where(after.map(date => {
 	        group.startTime > toTimeStamp(date) or
 	        (group.endTime.isNotNull and group.endTime.>(Some(toTimeStamp(date)))) or
-          (fetchUnclosed and group.endTime.isNull)
+          (fetchUnclosed === true and group.endTime.isNull)
 	      }).getOrElse(1===1))
 	      select(group)
 	    )
@@ -163,7 +163,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
         where(after.map(date => {
           directive.startTime > toTimeStamp(date) or
           (directive.endTime.isNotNull and directive.endTime > toTimeStamp(date)) or
-          (fetchUnclosed and directive.endTime.isNull)
+          ( fetchUnclosed=== true and directive.endTime.isNull)
         }).getOrElse(1===1))
         select(directive)
       )
@@ -225,7 +225,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
          where(after.map(date => {
           rule.startTime > toTimeStamp(date) or
           (rule.endTime.isNotNull and rule.endTime > toTimeStamp(date)) or
-          (fetchUnclosed and rule.endTime.isNull)
+          (fetchUnclosed === true and rule.endTime.isNull)
         }).getOrElse(1===1))
         select(rule)
       )
@@ -271,8 +271,9 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
         
         rule.directiveIds.map( directive => Rules.directives.insert(new SerializedRuleDirectives(serialized.id, directive.value)))
         
-        rule.target.map(group => group match {
-          case GroupTarget(groupId) => Rules.groups.insert(new SerializedRuleGroups(serialized.id, groupId.value))
+        rule.targets.map(target => target match {
+          case GroupTarget(groupId) => 
+            Rules.groups.insert(new SerializedRuleGroups(serialized.id, groupId.value))
           case _ => //
         })
       })
@@ -440,7 +441,7 @@ object SerializedRules {
         RuleId(rule.ruleId),
         rule.name, 
         rule.serial,
-        crgr.headOption.map(x => new GroupTarget(new NodeGroupId(x.groupId))), 
+        crgr.map(x => new GroupTarget(new NodeGroupId(x.groupId))).toSet, 
         crpi.map(x => new DirectiveId(x.directiveId)).toSet,
         rule.shortDescription,
         rule.longDescription,

@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2012 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,17 +32,8 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.log
+-- Migration script of the databases from Rudder 2.3 to 2.4
+-- Add an index for table that stores the archived reports
+-- Created to upgrade from version before rudder 2.4 beta 3
 
-import net.liftweb.common.Box
-import com.normation.rudder.domain.log.InventoryEventLog
-
-trait InventoryEventLogService {
-  
-  /**
-   * Returns all the inventory related event log
-   * @return
-   */
-  def getInventoryEventLogs() : Box[Seq[InventoryEventLog]]
-  
-}
+create index executionTimeStamp_archived_idx on ArchivedRudderSysEvents (executionTimeStamp);

@@ -444,3 +444,9 @@ if ((version >= 5.5) && (document.body.filters))
    }
 }
 
+function showParameters(s){
+  if(document.getElementById("showParametersInfo" + s).style.display == "none")
+    document.getElementById("showParametersInfo" + s).style.display = "block";
+  else
+    document.getElementById("showParametersInfo" + s).style.display = "none";
+}

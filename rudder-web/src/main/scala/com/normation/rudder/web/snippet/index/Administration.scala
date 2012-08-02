@@ -42,10 +42,11 @@ import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
-
+import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.authorization._
 
 /**
  * Manage redirection for administration
@@ -54,6 +55,9 @@ import net.liftweb.http.SHtml._
 class Administration {
 
   def index(xhtml:NodeSeq) : NodeSeq = {
-    S.redirectTo("archiveManagement")
+    if ( CurrentUser.checkRights(Edit("administration")) || CurrentUser.checkRights(Write("administration")))
+      S.redirectTo("archiveManagement")
+    else
+      S.redirectTo("eventLogs")
   }
 }

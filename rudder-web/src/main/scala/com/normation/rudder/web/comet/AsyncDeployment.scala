@@ -48,11 +48,11 @@ import org.joda.time.Duration
 import org.joda.time.format.PeriodFormatterBuilder
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.services.log.EventLogDeploymentService
+import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.eventlog.EventLog
-import com.normation.rudder.domain.log.ModificationWatchList
+import com.normation.rudder.domain.eventlog.ModificationWatchList
 import com.normation.eventlog.UnspecializedEventLog
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.web.services.EventListDisplayer
@@ -118,6 +118,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                           , creationDate = DateTime.now
                           , cause = None
                           , severity = 0
+                          , reason = None
                           , details = <entry/>) )
                     )
               case Full(event) =>
@@ -167,10 +168,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             case Full(seq) if seq.size > 1 =>  SHtml.a(Text("There are " + seq.size + " modifications pending"))(showPendingPopup) ++ createInnerPopup(seq)
             }
         } </div>
-        } } ++ SHtml.ajaxButton("Regenerate now", { () => 
-            asyncDeploymentAgent ! ManualStartDeployment(CurrentUser.getActor)
+        } } ++
+          <lift:authz role="deployment_write"> {
+          SHtml.ajaxButton("Regenerate now", { () =>
+            asyncDeploymentAgent ! ManualStartDeployment(CurrentUser.getActor, "User requested a manual regeneration") //TODO: let the user fill the cause
             Noop
-          }, ( "class" , "deploymentButton"))
+          }, ( "class" , "deploymentButton")) }
+        </lift:authz>
       case Processing(id, start) =>
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
@@ -181,7 +185,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
           Generating Rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
         </span>
-      case ProcessingAndPendingManual(asked, Processing(id, start), actor, logId) => 
+      case ProcessingAndPendingManual(asked, Processing(id, start), actor, logId, cause) => 
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
           Generating Rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}

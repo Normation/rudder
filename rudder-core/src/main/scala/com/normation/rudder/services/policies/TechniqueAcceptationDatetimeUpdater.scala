@@ -47,7 +47,7 @@ class TechniqueAcceptationDatetimeUpdater(
   , activeTechniqueRepo : ActiveTechniqueRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
   
-    def updatedTechniques(TechniqueIds:Seq[TechniqueId], actor:EventActor) : Unit = {
+    override def updatedTechniques(TechniqueIds:Seq[TechniqueId], actor:EventActor, reason: Option[String]) : Unit = {
       val byNames = TechniqueIds.groupBy( _.name ).map { case (name,ids) => 
                       (name, ids.map( _.version )) 
                     }.toMap
@@ -64,7 +64,7 @@ class TechniqueAcceptationDatetimeUpdater(
           case Full(activeTechnique) => 
             logger.debug("Update acceptation datetime for: " + activeTechnique.techniqueName)
             val versionsMap = versions.map( v => (v,acceptationDatetime)).toMap
-            activeTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap,  actor) match {
+            activeTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap,  actor, reason) match {
               case e:EmptyBox =>
                 logger.error("Error when saving Active Technique " + activeTechnique.id, (e ?~! "Error was:"))
               case _ => //ok

@@ -116,25 +116,25 @@ trait NodeGroupRepository {
    */
   def createNodeGroup( name:String, description : String, q: Option[Query],
         isDynamic : Boolean, srvList : Set[NodeId], into: NodeGroupCategoryId,
-                       isEnabled : Boolean, actor:EventActor): Box[AddNodeGroupDiff]
+                       isEnabled : Boolean, actor:EventActor, why: Option[String]): Box[AddNodeGroupDiff]
   
   
   /**
    * Update the given existing group
    * That method does nothing at the configuration level,
-   * so you will have to manage configuration rule deployment
+   * so you will have to manage rule deployment
    * if needed
    */
-  def update(group:NodeGroup, actor:EventActor) : Box[Option[ModifyNodeGroupDiff]]
+  def update(group:NodeGroup, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
 
 
   /**
    * Move the given existing group to the new container.
    * That method does nothing at the configuration level, 
-   * so you will have to manage configuration rule deployment
+   * so you will have to manage rule deployment
    * if needed
    */
-  def move(group:NodeGroup, containerId : NodeGroupCategoryId, actor:EventActor) : Box[Option[ModifyNodeGroupDiff]]
+  def move(group:NodeGroup, containerId : NodeGroupCategoryId, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
   
   /**
    * Delete the given nodeGroup. 
@@ -142,6 +142,6 @@ trait NodeGroupRepository {
    * @param id
    * @return
    */
-  def delete(id:NodeGroupId, actor:EventActor) : Box[DeleteNodeGroupDiff]
+  def delete(id:NodeGroupId, actor:EventActor, whyDescription:Option[String]) : Box[DeleteNodeGroupDiff]
 
 }

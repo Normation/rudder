@@ -139,7 +139,7 @@ class SearchNodeComponent(
   
   
   def buildQuery() : NodeSeq = {
-    if(None == query) query = Some(Query(OC_NODE,And,Seq(defaultLine))) 
+    if(None == query) query = Some(Query(NodeReturnType,And,Seq(defaultLine))) 
     val lines = ArrayBuffer[CriterionLine]()
     var composition = query.get.composition 
     var rType = query.get.returnType //for now, don't move
@@ -204,9 +204,15 @@ class SearchNodeComponent(
     def displayQuery(html: NodeSeq ) : NodeSeq = {
       val Query(otName,comp, criteria) = query.get
       SHtml.ajaxForm(bind("query", html,
+          "typeQuery" ->  <label>Include policy servers: {SHtml.checkbox(rType==NodeAndPolicyServerReturnType, { value:Boolean =>
+                if (value) 
+                  rType = NodeAndPolicyServerReturnType 
+                else 
+                  rType = NodeReturnType}
+              )}</label>,
           "composition" -> SHtml.radio(Seq("And", "Or"), Full(if(comp == Or) "Or" else "And"), {value:String => 
           composition = CriterionComposition.parse(value).getOrElse(And) //default to AND on unknow composition string
-        }, ("class", "radio")).flatMap(e => <span class="compositionRadio">{e.xhtml} {e.key.toString}</span>),
+        }, ("class", "radio")).flatMap(e => <label>{e.xhtml} <span class="radioTextLabel">{e.key.toString}</span></label>),
         "lines" -> {(ns: NodeSeq) => 
           /*
            * General remark :
@@ -232,25 +238,32 @@ class SearchNodeComponent(
             "inputValue" -> {
               var form = a.cType.toForm(v, (x => lines(i) = lines(i).copy(value=x)), ("id","v_"+i), ("class", "queryInputValue"))
               if(!c.hasValue) form = form % Attribute("disabled",Seq(Text("disabled")),Null)
-              form },
+              form ++ {
+                if (activateSubmitButton)
+                  SHtml.ajaxSubmit("Search", processForm,("style" -> "display:none"))
+                else
+                  SHtml.ajaxSubmit("Search", () => Focus("v_"+i), ("style" -> "display:none"))
+              }
+            } ,
             "error" -> { errors(i) match { 
               case Full(m) => <tr><td class="error" colspan="6">{m}</td></tr>
               case _ => NodeSeq.Empty 
             }}
           )
         }:NodeSeq} ++ { if(criteria.size > 0) { 
-          //ad a <scrip> tag to init all specific Js form renderer, like Jquery datepicker for date
+          //add a <script> tag to init all specific Js form renderer, like Jquery datepicker for date
           var initJs = criteria(0).attribute.cType.initForm("v_0")
           for(i <- 1 until criteria.size) { initJs = initJs & criteria(i).attribute.cType.initForm("v_"+i) }
           Script(OnLoad(initJs))
         } else NodeSeq.Empty}
       },
-      "submit" -> {if (activateSubmitButton) 
-        SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton")) 
-              else  
-        SHtml.ajaxSubmit("Search", processForm, ("disabled" -> "true"), ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
+      "submit" -> {
+        if (activateSubmitButton)
+          SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
+        else
+          SHtml.ajaxSubmit("Search", processForm, ("disabled" -> "true"), ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
         }
-      )) 
+      ))
     }
     
     /**
@@ -454,7 +467,10 @@ object SearchNodeComponent {
     
     add(OC_NODE)
     add(OC_NET_IF, " ├─ ")
-    add(OC_FS,     " └─ ")
+    add(OC_FS,     " ├─ ")
+    add(A_PROCESS, " ├─ ")
+    add(OC_VM_INFO," ├─ ")
+    add(A_EV,      " └─ ")
     add(OC_MACHINE)
     add(OC_BIOS,       " ├─ ")
     add(OC_CONTROLLER, " ├─ ")

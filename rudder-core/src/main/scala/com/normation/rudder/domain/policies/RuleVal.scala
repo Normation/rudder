@@ -43,7 +43,6 @@ import org.joda.time.{LocalDate,LocalTime,Duration,DateTime}
 import com.normation.rudder.domain._
 import com.normation.utils.HashcodeCaching
 
-
 /*
  * Immutable bridge between cfclerk and rudder 
  */
@@ -61,11 +60,9 @@ case class DirectiveVal(
   , variables        : Map[String, Variable]
 ) extends HashcodeCaching 
 
-
-
 case class RuleVal(
   ruleId       : RuleId,
-  target       : RuleTarget,  //list of target for that policy instance (server groups, server ids, etc)
+  targets      : Set[RuleTarget],  //list of target for that directive (server groups, server ids, etc)
   directiveVals: Seq[DirectiveVal],
   serial       : Int // the generation serial of the Rule
 ) extends HashcodeCaching {

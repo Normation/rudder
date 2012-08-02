@@ -59,17 +59,20 @@ import org.joda.time.format.ISODateTimeFormat
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.batch.{CurrentDeploymentStatus,SuccessStatus,ErrorStatus}
 import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
 import com.normation.utils.XmlUtils
+import com.normation.rudder.domain.Constants._
 
 
 class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
   def serialise(rule:Rule):  Elem = {
-    XmlUtils.trim {
-      <rule fileFormat={xmlVersion}>
+    createTrimedElem(XML_TAG_RULE, xmlVersion) {
         <id>{rule.id.value}</id>
         <displayName>{rule.name}</displayName>
         <serial>{rule.serial}</serial>
-        <target>{ rule.target.map( _.target).getOrElse("") }</target>
+        <targets>{
+          rule.targets.map { target => <target>{target.target}</target> } 
+        }</targets>
         <directiveIds>{
           rule.directiveIds.map { id => <id>{id.value}</id> } 
         }</directiveIds>
@@ -77,38 +80,34 @@ class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
         <longDescription>{rule.longDescription}</longDescription>
         <isEnabled>{rule.isEnabledStatus}</isEnabled>
         <isSystem>{rule.isSystem}</isSystem>
-      </rule>
     }
   }
 }
 
 /**
  * That trait allow to serialise 
- * User policy templates categories to an XML file. 
+ * active techniques categories to an XML file. 
  */
 class ActiveTechniqueCategorySerialisationImpl(xmlVersion:String) extends ActiveTechniqueCategorySerialisation {
 
   def serialise(uptc:ActiveTechniqueCategory):  Elem = {
-    XmlUtils.trim {
-      <activeTechniqueCategory fileFormat={xmlVersion}>
+    createTrimedElem(XML_TAG_ACTIVE_TECHNIQUE_CATEGORY, xmlVersion) (
         <id>{uptc.id.value}</id>
         <displayName>{uptc.name}</displayName>
         <description>{uptc.description}</description>
         <isSystem>{uptc.isSystem}</isSystem>
-      </activeTechniqueCategory>
-    }
+    )
   }
 }
 
 /**
  * That trait allows to serialise 
- * User policy templates to an XML file. 
+ * active techniques to an XML file. 
  */
 class ActiveTechniqueSerialisationImpl(xmlVersion:String) extends ActiveTechniqueSerialisation {
 
   def serialise(activeTechnique:ActiveTechnique):  Elem = {
-    XmlUtils.trim {
-      <activeTechnique fileFormat={xmlVersion}>
+    createTrimedElem(XML_TAG_ACTIVE_TECHNIQUE, xmlVersion) (
         <id>{activeTechnique.id.value}</id>
         <techniqueName>{activeTechnique.techniqueName}</techniqueName>
         <isEnabled>{activeTechnique.isEnabled}</isEnabled>
@@ -116,36 +115,34 @@ class ActiveTechniqueSerialisationImpl(xmlVersion:String) extends ActiveTechniqu
         <versions>{ activeTechnique.acceptationDatetimes.map { case(version,date) =>
           <version name={version.toString}>{date.toString(ISODateTimeFormat.dateTime)}</version>
         } }</versions>
-      </activeTechnique>
-    }
+    )
   }
 }
 
 /**
  * That trait allows to serialise 
- * policy instances an XML file. 
+ * directives an XML file. 
  */
 class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisation {
   
   def serialise(
       ptName             : TechniqueName
     , variableRootSection: SectionSpec
-    , directive                 : Directive
+    , directive          : Directive
   ) = {
-    XmlUtils.trim {
-      <directive fileFormat={xmlVersion}>
-        <id>{directive.id.value}</id>
-        <displayName>{directive.name}</displayName>
-        <techniqueName>{ptName.value}</techniqueName>
-        <techniqueVersion>{directive.techniqueVersion}</techniqueVersion>
-        {SectionVal.toXml(SectionVal.directiveValToSectionVal(variableRootSection, directive.parameters))}
-        <shortDescription>{directive.shortDescription}</shortDescription>
-        <longDescription>{directive.longDescription}</longDescription>
-        <priority>{directive.priority}</priority>
-        <isEnabled>{directive.isEnabled}</isEnabled>
-        <isSystem>{directive.isSystem}</isSystem>
-      </directive>
-    }
+    createTrimedElem(XML_TAG_DIRECTIVE, xmlVersion) (
+          <id>{directive.id.value}</id>
+      ::  <displayName>{directive.name}</displayName>
+      ::  <techniqueName>{ptName.value}</techniqueName>
+      ::  <techniqueVersion>{directive.techniqueVersion}</techniqueVersion>
+      ::  {SectionVal.toXml(SectionVal.directiveValToSectionVal(variableRootSection, directive.parameters))}
+      ::  <shortDescription>{directive.shortDescription}</shortDescription>
+      ::  <longDescription>{directive.longDescription}</longDescription>
+      ::  <priority>{directive.priority}</priority>
+      ::  <isEnabled>{directive.isEnabled}</isEnabled>
+      ::  <isSystem>{directive.isSystem}</isSystem>
+      ::  Nil
+    )
   }
 }
 
@@ -156,21 +153,18 @@ class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisati
 class NodeGroupCategorySerialisationImpl(xmlVersion:String) extends NodeGroupCategorySerialisation {
 
   def serialise(ngc:NodeGroupCategory):  Elem = {
-    XmlUtils.trim {
-      <nodeGroupCategory fileFormat={xmlVersion}>
+    createTrimedElem(XML_TAG_NODE_GROUP_CATEGORY, xmlVersion) (
         <id>{ngc.id.value}</id>
         <displayName>{ngc.name}</displayName>
         <description>{ngc.description}</description>
         <isSystem>{ngc.isSystem}</isSystem>
-      </nodeGroupCategory>
-    }
+    )
   }
 }
 
 class NodeGroupSerialisationImpl(xmlVersion:String) extends NodeGroupSerialisation {
   def serialise(group:NodeGroup):  Elem = {
-    XmlUtils.trim {
-      <nodeGroup fileFormat={xmlVersion}>
+    createTrimedElem(XML_TAG_NODE_GROUP, xmlVersion) (
         <id>{group.id.value}</id>
         <displayName>{group.name}</displayName>
         <description>{group.description}</description>
@@ -181,8 +175,7 @@ class NodeGroupSerialisationImpl(xmlVersion:String) extends NodeGroupSerialisati
         }</nodeIds>
         <isEnabled>{group.isEnabled}</isEnabled>
         <isSystem>{group.isSystem}</isSystem>
-      </nodeGroup>    
-    }
+    )
   }
 }
 
@@ -192,21 +185,21 @@ class NodeGroupSerialisationImpl(xmlVersion:String) extends NodeGroupSerialisati
 class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentStatusSerialisation {
   def serialise(
       deploymentStatus : CurrentDeploymentStatus) : Elem = {
-  XmlUtils.trim { deploymentStatus match {
-      case d : SuccessStatus => <deploymentStatus fileFormat={xmlVersion}>
+      createTrimedElem(XML_TAG_DEPLOYMENT_STATUS, xmlVersion) ( deploymentStatus match {
+      case d : SuccessStatus => (
           <id>{d.id}</id>
           <started>{d.started}</started>
           <ended>{d.ended}</ended>
           <status>success</status>
-          </deploymentStatus>
-      case d : ErrorStatus => <deploymentStatus fileFormat={xmlVersion}>
+          )
+      case d : ErrorStatus => (
           <id>{d.id}</id>
           <started>{d.started}</started>
           <ended>{d.ended}</ended>
           <status>failure</status>
           <errorMessage>{d.failure}</errorMessage>
-          </deploymentStatus>
+          )
       case _ => throw new TechnicalException("Bad CurrentDeploymentStatus type, expected a success or an error")
-    } 
-  } }
+    }
+  ) }
 }

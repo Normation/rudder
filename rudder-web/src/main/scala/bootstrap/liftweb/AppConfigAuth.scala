@@ -49,6 +49,9 @@ import scala.collection.JavaConversions._
 import net.liftweb.common._
 import java.io.File
 import com.normation.utils.HashcodeCaching
+import com.normation.authorization._
+import com.normation.rudder.authorization._
+import com.normation.rudder.domain.logger.ApplicationLogger
 
 /**
  * Spring configuration for user authentication.
@@ -74,15 +77,15 @@ class AppConfigAuth extends Loggable {
     
     val resource = System.getProperty(JVM_AUTH_FILE_KEY) match {
       case null | "" => //use default location in classpath
-        logger.info("JVM property -D%s is not defined, use configuration file '%s' in classpath".format(JVM_AUTH_FILE_KEY, DEFAULT_AUTH_FILE_NAME))
+        ApplicationLogger.info("JVM property -D%s is not defined, use configuration file '%s' in classpath".format(JVM_AUTH_FILE_KEY, DEFAULT_AUTH_FILE_NAME))
         new ClassPathResource(DEFAULT_AUTH_FILE_NAME)
       case x => //so, it should be a full path, check it
         val config = new FileSystemResource(new File(x))
         if(config.exists && config.isReadable) {
-          logger.info("Use configuration file defined by JVM property -D%s : %s".format(JVM_AUTH_FILE_KEY, config.getPath))
+          ApplicationLogger.info("Use configuration file defined by JVM property -D%s : %s".format(JVM_AUTH_FILE_KEY, config.getPath))
           config
         } else {
-          logger.error("Can not find configuration file specified by JVM property %s: %s ; abort".format(JVM_AUTH_FILE_KEY, config.getPath))
+          ApplicationLogger.error("Can not find configuration file specified by JVM property %s: %s ; abort".format(JVM_AUTH_FILE_KEY, config.getPath))
           throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
         }
     }
@@ -92,24 +95,40 @@ class AppConfigAuth extends Loggable {
       case Some(config) =>
         val userDetails = new InMemoryDaoImpl()
         val userMap = new UserMap
-        config.users.foreach { case (login,pass) =>
-          userMap.addUser(DemoUserDetail(login,pass))
+        config.users.foreach { case (login,pass,roles) =>
+          userMap.addUser(RudderUserDetail(login,pass,roles))
         }
         userDetails.setUserMap(userMap)
         val provider = new DaoAuthenticationProvider()
         provider.setUserDetailsService(userDetails)
         provider.setPasswordEncoder(config.encoder)
         provider
-      case None => throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
+      case None => 
+        ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
+        throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
     }
   }
 }
 
+/**
+ * For now, we don't use at all Spring Authority to implements
+ * our authorizations. 
+ * That because we want something more typed than String for
+ * authority, and as a bonus, that allows to be able to switch 
+ * from Spring more easily
+ * 
+ * So we have only one Authority type known by Spring Security: ROLE_USER
+ */
 case object RoleUserAuthority extends GrantedAuthority {
   override val getAuthority = "ROLE_USER"
 }
 
-case class DemoUserDetail(login:String,password:String) extends UserDetails with HashcodeCaching {
+/**
+ * Our simple model for for user authentication and authorizations.
+ * Note that authorizations are not managed by spring, but by the
+ * 'authz' token of RudderUserDetail.
+ */
+case class RudderUserDetail(login:String,password:String,authz:Rights) extends UserDetails with HashcodeCaching {
   override val getAuthorities:java.util.Collection[GrantedAuthority] = Seq(RoleUserAuthority)
   override val getPassword = password
   override val getUsername = login
@@ -117,11 +136,12 @@ case class DemoUserDetail(login:String,password:String) extends UserDetails with
   override val isAccountNonLocked = true
   override val isCredentialsNonExpired = true
   override val isEnabled = true
+  
 }
 
 case class AuthConfig(
   encoder: PasswordEncoder,
-  users:List[(String,String)]
+  users:List[(String,String,Rights)]
 ) extends HashcodeCaching 
 
 object AppConfigAuth extends Loggable {
@@ -133,7 +153,7 @@ object AppConfigAuth extends Loggable {
       val root = (xml \\ "authentication")
       if(root.size != 1) {
         val msg = "Authentication file is malformed, the root tag '<authentication>' was not found"
-        logger.error(msg)
+        ApplicationLogger.error(msg)
         None
       } else {
         val hash = (root(0) \ "@hash").text.toLowerCase match {
@@ -146,18 +166,32 @@ object AppConfigAuth extends Loggable {
         
         //now, get users
         val users = ( (xml \ "user").toList.flatMap { node =>
-         ( node.attribute("name").map(_.toList.map(_.text)) , node.attribute("password").map(_.toList.map(_.text)) ) match {
-           case (Some(name :: Nil) , Some(pwd :: Nil) ) if(name.size > 0 && pwd.size > 0) => (name, pwd) :: Nil
+         //for each node, check attribute name (mandatory), password  (mandatory) and role (optional)
+         (   node.attribute("name").map(_.toList.map(_.text)) 
+           , node.attribute("password").map(_.toList.map(_.text)) 
+           , node.attribute("role").map(_.toList.map( role => AuthzToRights.parseRole(role.text.split(",").toSeq.map(_.trim)))) 
+         ) match {
+           case (Some(name :: Nil) , Some(pwd :: Nil), roles ) if(name.size > 0 && pwd.size > 0) => roles match {
+             case Some(roles:: Nil) => (name, pwd, roles) :: Nil
+             case _ =>  (name, pwd, new Rights(NoRights)) :: Nil
+           }
+           
            case _ => 
-             logger.error("Ignore user line in authentication file '%s', some required attribute is missing: %s".format(resource.getURL.toString, node.toString))
+             ApplicationLogger.error("Ignore user line in authentication file '%s', some required attribute is missing: %s".format(resource.getURL.toString, node.toString))
              Nil
          }
         })
-        logger.debug("User with defined credentials: %s".format(users.map( _._1).mkString(", ")))
-        Some(AuthConfig(hash,users))
+        
+        //and now, return the list of users
+        users map { user =>
+        if (user._3.authorizationTypes.contains(NoRights))
+          ApplicationLogger.warn("User %s authorisation are not defined correctly, please fix it (defined authorizations: %s)".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
+        ApplicationLogger.debug("User %s with defined authorizations: %s".format(user._1,user._3.authorizationTypes.map(_.id.toLowerCase()).mkString(", ")))
+        }
+        Some(AuthConfig(hash, users))
       }
     } else {
-      logger.error("The resource '%s' does not exist or is not readable".format(resource.getURL.toString))
+      ApplicationLogger.error("The resource '%s' does not exist or is not readable".format(resource.getURL.toString))
       None
     }
   }

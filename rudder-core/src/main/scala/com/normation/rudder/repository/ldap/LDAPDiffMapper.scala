@@ -52,7 +52,7 @@ import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.log.DirectiveEventLog
+import com.normation.rudder.domain.eventlog.DirectiveEventLog
 import com.normation.rudder.services.queries._
 import org.joda.time.Duration
 import org.joda.time.DateTime
@@ -120,15 +120,12 @@ class LDAPDiffMapper(
                   tryo(diff.copy(modSerial = Some(SimpleDiff(oldCr.serial, mod.getAttribute().getValueAsInteger()))))
                 case A_RULE_TARGET => 
                   mod.getModificationType match {
-                    case ADD | REPLACE if(mod.getAttribute.getValues.size > 0) => //if there is no values, we have to put "none" 
-                      for {
-                        target <- mapper.entry2OptTarget(Some(mod.getAttribute().getValue))
-                      } yield {
-                        diff.copy(modTarget = Some(SimpleDiff(oldCr.target,target)))
+                    case ADD | REPLACE | DELETE => //if there is no values, we have to put "none" 
+                      (sequence(mod.getValues()) { value => 
+                        RuleTarget.unser(value)
+                      }).map { targets =>
+                        diff.copy(modTarget = Some(SimpleDiff(oldCr.targets, targets.toSet)))
                       }
-                    case ADD | REPLACE | DELETE => //case for add/replace without values
-                      Full(diff.copy(modTarget = Some(SimpleDiff(oldCr.target,None))))
-                    case _ => Failure("Bad modification type for modification '%s' in change record: '%s'".format(mod, change))
                   }
                 case A_DIRECTIVE_UUID => 
                   Full(diff.copy(modDirectiveIds = Some(SimpleDiff(oldCr.directiveIds, mod.getValues.map( DirectiveId(_) ).toSet))))
@@ -159,7 +156,35 @@ class LDAPDiffMapper(
   }
 
   
-  ///// Policy instance diff /////
+  ///// Technique diff /////
+  
+  def modChangeRecords2TechniqueDiff(beforeChangeEntry: LDAPEntry, change: LDIFChangeRecord): Box[Option[ModifyTechniqueDiff]] = {
+    if(change.getParsedDN == beforeChangeEntry.dn ) {
+      change match {
+        case modify:LDIFModifyChangeRecord => 
+          for {
+            oldTechnique <- mapper.entry2ActiveTechnique(beforeChangeEntry)
+            diff <- pipeline(modify.getModifications(), ModifyTechniqueDiff(oldTechnique.id, oldTechnique.techniqueName)) { (mod, diff) =>
+              mod.getAttributeName() match {
+                case A_IS_ENABLED =>
+                  tryo(diff.copy(modIsEnabled = Some(SimpleDiff(oldTechnique.isEnabled, mod.getAttribute().getValueAsBoolean))))
+                case x => Failure("Unknown diff attribute: " + x)
+              }
+            } 
+          } yield {
+            Some(diff)
+          }
+        
+        case noop:LDIFNoopChangeRecord => Full(None)
+          
+        case _ => Failure("Bad change record type for requested action 'update technique': %s".format(change))
+      }
+    } else {
+      Failure("The following change record does not belong to Technique entry '%s': %s".format(beforeChangeEntry.dn,change))
+    }
+  }
+    
+  ///// directive diff /////
 
   def modChangeRecords2DirectiveSaveDiff(ptName:TechniqueName, variableRootSection:SectionSpec, piDn:DN, oldPiEntry:Option[LDAPEntry], change:LDIFChangeRecord) : Box[Option[DirectiveSaveDiff]] = {
     if(change.getParsedDN == piDn ) {
@@ -204,10 +229,10 @@ class LDAPDiffMapper(
           
         case (noop:LDIFNoopChangeRecord, _) => Full(None) 
           
-        case _ =>  Failure("Bad change record type for requested action 'save policy instance': %s".format(change))
+        case _ =>  Failure("Bad change record type for requested action 'save directive': %s".format(change))
       }
     } else {
-      Failure("The following change record does not belong to Policy Instance entry '%s': %s".format(piDn,change))
+      Failure("The following change record does not belong to directive entry '%s': %s".format(piDn,change))
     }
   }  
   

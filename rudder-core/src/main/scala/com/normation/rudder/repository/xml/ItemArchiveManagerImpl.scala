@@ -47,28 +47,28 @@ import org.eclipse.jgit.lib.PersonIdent
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.eventlog.EventLogService
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
 
 class ItemArchiveManagerImpl(
-    ruleRepository          : RuleRepository
-  , uptRepository                        : ActiveTechniqueRepository
-  , groupRepository                      : NodeGroupRepository
-  , override val gitRepo                 : GitRepositoryProvider
-  , revisionProvider                     : GitRevisionProvider
-  , gitRuleArchiver         : GitRuleArchiver
+    ruleRepository                    : RuleRepository
+  , uptRepository                     : ActiveTechniqueRepository
+  , groupRepository                   : NodeGroupRepository
+  , override val gitRepo              : GitRepositoryProvider
+  , revisionProvider                  : GitRevisionProvider
+  , gitRuleArchiver                   : GitRuleArchiver
   , gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver
   , gitActiveTechniqueArchiver        : GitActiveTechniqueArchiver
-  , gitNodeGroupCategoryArchiver         : GitNodeGroupCategoryArchiver
-  , gitNodeGroupArchiver                 : GitNodeGroupArchiver
-  , parseRules              : ParseRules
-  , ParseActiveTechniqueLibrary                   : ParseActiveTechniqueLibrary
-  , importTechniqueLibrary                  : ImportTechniqueLibrary
-  , parseGroupLibrary                    : ParseGroupLibrary
-  , importGroupLibrary                   : ImportGroupLibrary
-  , eventLogger                          : EventLogService
-  , asyncDeploymentAgent                 : AsyncDeploymentAgent
+  , gitNodeGroupCategoryArchiver      : GitNodeGroupCategoryArchiver
+  , gitNodeGroupArchiver              : GitNodeGroupArchiver
+  , parseRules                        : ParseRules
+  , ParseActiveTechniqueLibrary       : ParseActiveTechniqueLibrary
+  , importTechniqueLibrary            : ImportTechniqueLibrary
+  , parseGroupLibrary                 : ParseGroupLibrary
+  , importGroupLibrary                : ImportGroupLibrary
+  , eventLogger                       : EventLogService
+  , asyncDeploymentAgent              : AsyncDeploymentAgent
 ) extends 
   ItemArchiveManager with 
   Loggable with 
@@ -80,16 +80,20 @@ class ItemArchiveManagerImpl(
   
   ///// implementation /////
   
-  def exportAll(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false): Box[GitArchiveId] = { 
+  override def exportAll(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[GitArchiveId] = { 
     for {
-      saveCrs     <- exportRulesAndDeploy(commiter, actor, includeSystem, false)
-      saveUserLib <- exportTechniqueLibraryAndDeploy(commiter, actor, includeSystem, false)
-      saveGroups  <- exportGroupLibraryAndDeploy(commiter, actor, includeSystem, false)
-      archiveAll  <- this.commitFullGitPathContentAndTag(
-                         commiter
-                       , FULL_ARCHIVE_TAG + " Archive and tag groups, policy library and configuration rules"
+      saveCrs     <- exportRulesAndDeploy(commiter, actor, reason, includeSystem, false)
+      saveUserLib <- exportTechniqueLibraryAndDeploy(commiter, actor, reason, includeSystem, false)
+      saveGroups  <- exportGroupLibraryAndDeploy(commiter, actor, reason, includeSystem, false)
+      val msg     =  (  FULL_ARCHIVE_TAG 
+                      + " Archive and tag groups, technique library and rules" 
+                      + (reason match {
+                          case None => ""
+                          case Some(m) => ", reason: " + m
+                        })
                      )
-      eventLogged <- eventLogger.saveEventLog(new ExportFullArchive(actor,archiveAll))
+      archiveAll  <- this.commitFullGitPathContentAndTag(commiter, msg)
+      eventLogged <- eventLogger.saveEventLog(new ExportFullArchive(actor, archiveAll, reason))
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(actor)
       archiveAll
@@ -97,28 +101,28 @@ class ItemArchiveManagerImpl(
   }
 
   
-  def exportRules(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false): Box[GitArchiveId] =
-    exportRulesAndDeploy(commiter, actor, includeSystem)
+  override def exportRules(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[GitArchiveId] =
+    exportRulesAndDeploy(commiter, actor, reason, includeSystem)
     
-  private[this] def exportRulesAndDeploy(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = { 
+  private[this] def exportRulesAndDeploy(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = { 
     for {
-      rules         <- ruleRepository.getAll(false)
+      rules       <- ruleRepository.getAll(false)
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitRuleArchiver.getRootDirectory) }
       saved       <- sequence(rules) { rule => 
-                       gitRuleArchiver.archiveRule(rule,None)
+                       gitRuleArchiver.archiveRule(rule, None)
                      }
-      commitId    <- gitRuleArchiver.commitRules(commiter)
-      eventLogged <- eventLogger.saveEventLog(new ExportRulesArchive(actor,commitId))
+      commitId    <- gitRuleArchiver.commitRules(commiter, reason)
+      eventLogged <- eventLogger.saveEventLog(new ExportRulesArchive(actor,commitId, reason))
     } yield {
       if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(actor) }
       commitId
     }
   }
   
-  def exportTechniqueLibrary(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false): Box[GitArchiveId] =
-    exportTechniqueLibraryAndDeploy(commiter, actor, includeSystem) 
+  override def exportTechniqueLibrary(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[GitArchiveId] =
+    exportTechniqueLibraryAndDeploy(commiter, actor, reason, includeSystem) 
     
-  private[this] def exportTechniqueLibraryAndDeploy(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = { 
+  private[this] def exportTechniqueLibraryAndDeploy(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = { 
     for { 
       catWithUPT   <- uptRepository.getActiveTechniqueByCategory(includeSystem = true)
       //remove systems things if asked (both system categories and system upts in non-system categories)
@@ -140,18 +144,18 @@ class ItemArchiveManagerImpl(
                          "OK"
                        }
                      }
-      commitId    <- gitActiveTechniqueCategoryArchiver.commitActiveTechniqueLibrary(commiter)
-      eventLogged <- eventLogger.saveEventLog(new ExportTechniqueLibraryArchive(actor,commitId))
+      commitId    <- gitActiveTechniqueCategoryArchiver.commitActiveTechniqueLibrary(commiter, reason)
+      eventLogged <- eventLogger.saveEventLog(new ExportTechniqueLibraryArchive(actor,commitId, reason))
     } yield {
       if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(actor) }
       commitId
     }
   }
   
-  def exportGroupLibrary(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false): Box[GitArchiveId] = 
-    exportGroupLibraryAndDeploy(commiter, actor, includeSystem) 
+  override def exportGroupLibrary(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[GitArchiveId] = 
+    exportGroupLibraryAndDeploy(commiter, actor, reason, includeSystem) 
     
-  private[this] def exportGroupLibraryAndDeploy(commiter:PersonIdent, actor:EventActor, includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = { 
+  private[this] def exportGroupLibraryAndDeploy(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = { 
     for { 
       catWithGroups   <- groupRepository.getGroupsByCategory(includeSystem = true)
       //remove systems things if asked (both system categories and system groups in non-system categories)
@@ -173,8 +177,8 @@ class ItemArchiveManagerImpl(
                              "OK"
                            }
                          }
-      commitId        <- gitNodeGroupCategoryArchiver.commitGroupLibrary(commiter)
-      eventLogged <- eventLogger.saveEventLog(new ExportGroupsArchive(actor,commitId))
+      commitId        <- gitNodeGroupCategoryArchiver.commitGroupLibrary(commiter, reason)
+      eventLogged     <- eventLogger.saveEventLog(new ExportGroupsArchive(actor,commitId, reason))
     } yield {
       if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(actor) }
       commitId
@@ -186,28 +190,28 @@ class ItemArchiveManagerImpl(
   
   
   
-  def importAll(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId] = {
+  override def importAll(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing full archive with id '%s'".format(archiveId.value))
     for {
-      rules <- importRulesAndDeploy(archiveId, actor, includeSystem, false)
-      userLib            <- importTechniqueLibraryAndDeploy(archiveId, actor, includeSystem, false)
-      groupLIb           <- importGroupLibraryAndDeploy(archiveId, actor, includeSystem, false)
-      eventLogged        <- eventLogger.saveEventLog(new ImportFullArchive(actor,archiveId))
+      rules <- importRulesAndDeploy(archiveId, actor, reason, includeSystem, false)
+      userLib            <- importTechniqueLibraryAndDeploy(archiveId, actor, reason, includeSystem, false)
+      groupLIb           <- importGroupLibraryAndDeploy(archiveId, actor, reason, includeSystem, false)
+      eventLogged        <- eventLogger.saveEventLog(new ImportFullArchive(actor,archiveId, reason))
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(actor)
       archiveId
     }
   }
   
-  def importRules(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false) =
-    importRulesAndDeploy(archiveId, actor, includeSystem)
+  override def importRules(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) =
+    importRulesAndDeploy(archiveId, actor, reason, includeSystem)
         
-  private[this] def importRulesAndDeploy(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean = false, deploy:Boolean = true) : Box[GitCommitId] = {
-    logger.info("Importing configuration rules archive with id '%s'".format(archiveId.value))
+  private[this] def importRulesAndDeploy(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true) : Box[GitCommitId] = {
+    logger.info("Importing rules archive with id '%s'".format(archiveId.value))
     for {
       parsed      <- parseRules.getArchive(archiveId)
       imported    <- ruleRepository.swapRules(parsed)
-      eventLogged <- eventLogger.saveEventLog(new ImportRulesArchive(actor,archiveId))
+      eventLogged <- eventLogger.saveEventLog(new ImportRulesArchive(actor,archiveId, reason))
     } yield {
       //try to clean
       ruleRepository.deleteSavedRuleArchiveId(imported) match {
@@ -221,30 +225,30 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  def importTechniqueLibrary(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean) : Box[GitCommitId] = 
-    importTechniqueLibraryAndDeploy(archiveId, actor, includeSystem)
+  override def importTechniqueLibrary(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean) : Box[GitCommitId] = 
+    importTechniqueLibraryAndDeploy(archiveId, actor, reason, includeSystem)
   
-  private[this] def importTechniqueLibraryAndDeploy(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
-    logger.info("Importing policy library archive with id '%s'".format(archiveId.value))
+  private[this] def importTechniqueLibraryAndDeploy(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
+    logger.info("Importing technique library archive with id '%s'".format(archiveId.value))
       for {
         parsed      <- ParseActiveTechniqueLibrary.getArchive(archiveId)
         imported    <- importTechniqueLibrary.swapActiveTechniqueLibrary(parsed, includeSystem)
-        eventLogged <- eventLogger.saveEventLog(new ImportTechniqueLibraryArchive(actor,archiveId))
+        eventLogged <- eventLogger.saveEventLog(new ImportTechniqueLibraryArchive(actor,archiveId, reason))
       } yield {
         if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(actor) }
         archiveId
       }
   }
   
-  def importGroupLibrary(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean) : Box[GitCommitId] =
-    importGroupLibraryAndDeploy(archiveId, actor, includeSystem)
+  override def importGroupLibrary(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean) : Box[GitCommitId] =
+    importGroupLibraryAndDeploy(archiveId, actor, reason, includeSystem)
 
-  private[this] def importGroupLibraryAndDeploy(archiveId:GitCommitId, actor:EventActor, includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
+  private[this] def importGroupLibraryAndDeploy(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing groups archive with id '%s'".format(archiveId.value))
       for {
         parsed      <- parseGroupLibrary.getArchive(archiveId)
         imported    <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
-        eventLogged <- eventLogger.saveEventLog(new ImportGroupsArchive(actor,archiveId))
+        eventLogged <- eventLogger.saveEventLog(new ImportGroupsArchive(actor,archiveId, reason))
       } yield {
         if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(actor) }
         archiveId
@@ -253,32 +257,32 @@ class ItemArchiveManagerImpl(
 
   private[this] def lastGitCommitId = GitCommitId(revisionProvider.getAvailableRevTreeId.getName)
   
-  def importHeadAll(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId] = {
+  override def importHeadAll(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing full archive from HEAD")
-    this.importAll(lastGitCommitId, actor, includeSystem)
+    this.importAll(lastGitCommitId, actor, reason: Option[String], includeSystem)
   }
   
-  def importHeadRules(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId] = {
-    logger.info("Importing configuration rules archive from HEAD")
-    this.importRules(lastGitCommitId, actor, includeSystem)
+  override def importHeadRules(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+    logger.info("Importing rules archive from HEAD")
+    this.importRules(lastGitCommitId, actor, reason: Option[String], includeSystem)
   }
   
-  def importHeadTechniqueLibrary(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId] = {
-    logger.info("Importing policy library archive from HEAD")
-    this.importTechniqueLibrary(lastGitCommitId, actor, includeSystem)
+  override def importHeadTechniqueLibrary(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+    logger.info("Importing technique library archive from HEAD")
+    this.importTechniqueLibrary(lastGitCommitId, actor, reason: Option[String], includeSystem)
   }
   
-  def importHeadGroupLibrary(actor:EventActor, includeSystem:Boolean = false) : Box[GitCommitId] = {
+  override def importHeadGroupLibrary(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing groups archive from HEAD")
-    this.importGroupLibrary(lastGitCommitId, actor, includeSystem)
+    this.importGroupLibrary(lastGitCommitId, actor, reason: Option[String], includeSystem)
   }
   
-  def getFullArchiveTags : Box[Map[DateTime,GitArchiveId]] = this.getTags()
+  override def getFullArchiveTags : Box[Map[DateTime,GitArchiveId]] = this.getTags()
   
-  // groups, policy library and configuration rules may use
+  // groups, technique library and rules may use
   // their own tag or a global one. 
   
-  def getGroupLibraryTags : Box[Map[DateTime,GitArchiveId]] = {
+  override def getGroupLibraryTags : Box[Map[DateTime,GitArchiveId]] = {
     for {
       globalTags <- this.getTags()
       groupsTags <- gitNodeGroupCategoryArchiver.getTags()
@@ -287,7 +291,7 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  def getTechniqueLibraryTags : Box[Map[DateTime,GitArchiveId]] = {
+  override def getTechniqueLibraryTags : Box[Map[DateTime,GitArchiveId]] = {
     for {
       globalTags    <- this.getTags()
       policyLibTags <- gitActiveTechniqueCategoryArchiver.getTags()
@@ -296,7 +300,7 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  def getRulesTags : Box[Map[DateTime,GitArchiveId]] = {
+  override def getRulesTags : Box[Map[DateTime,GitArchiveId]] = {
     for {
       globalTags <- this.getTags()
       crTags     <- gitRuleArchiver.getTags()

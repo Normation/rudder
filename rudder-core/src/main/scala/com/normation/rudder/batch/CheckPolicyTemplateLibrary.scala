@@ -39,7 +39,8 @@ import com.normation.rudder.domain.Constants.TECHLIB_MINIMUM_UPDATE_INTERVAL
 import net.liftweb.actor.{LiftActor, LAPinger}
 import net.liftweb.common.Loggable
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import org.joda.time.DateTime
 
 case class StartLibUpdate(actor: EventActor)
 
@@ -54,7 +55,7 @@ case class StartLibUpdate(actor: EventActor)
 class CheckTechniqueLibrary(
     policyPackageUpdater: UpdateTechniqueLibrary
   , asyncDeploymentAgent: AsyncDeploymentAgent
-  , updateInterval      : Int // in secondes
+  , updateInterval      : Int // in minutes
 ) extends Loggable {
   
   private val propertyName = "rudder.batch.techniqueLibrary.updateInterval"
@@ -91,9 +92,9 @@ class CheckTechniqueLibrary(
       //
       case StartLibUpdate(actor) => 
         //schedule next update, in minutes
-        LAPinger.schedule(this, StartLibUpdate, realUpdateInterval*1000)      
+        LAPinger.schedule(this, StartLibUpdate, realUpdateInterval*1000L*60)      
         logger.trace("***** Start a new update")
-        policyPackageUpdater.update(actor)
+        policyPackageUpdater.update(actor, Some("Automatic batch update at " + DateTime.now))
       case _ => 
         logger.error("Ignoring start update dynamic group request because one other update still processing".format())
     }

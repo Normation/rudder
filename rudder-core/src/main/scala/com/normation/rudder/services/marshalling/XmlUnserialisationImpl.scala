@@ -65,6 +65,7 @@ import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import scala.xml.Node
+import com.normation.rudder.domain.Constants._
 
 
 class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
@@ -108,19 +109,19 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
   
   override def unserialise(xml:XNode) : Box[(TechniqueName, Directive, SectionVal)] = {
     for {
-      directive                    <- {
-                                 if(xml.label == "directive") Full(xml)
-                                 else Failure("Entry type is not a directive: " + xml)
+      directive             <- {
+                                 if(xml.label == XML_TAG_DIRECTIVE) Full(xml)
+                                 else Failure("Entry type is not a <%s>: %s".format(XML_TAG_DIRECTIVE, xml))
                                }
       fileFormatOk          <- TestFileFormat(directive)
       id                    <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + xml)
       ptName                <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + xml)
       name                  <- (directive \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type directive : " + xml)
-      techniqueVersion <- (directive \ "techniqueVersion").headOption.map( x => TechniqueVersion(x.text) ) ?~! ("Missing attribute 'techniqueVersion' in entry type directive : " + xml)
+      techniqueVersion      <- (directive \ "techniqueVersion").headOption.map( x => TechniqueVersion(x.text) ) ?~! ("Missing attribute 'techniqueVersion' in entry type directive : " + xml)
       sectionVal            <- parseSectionVal(directive)
       shortDescription      <- (directive \ "shortDescription").headOption.map( _.text ) ?~! ("Missing attribute 'shortDescription' in entry type directive : " + xml)
       longDescription       <- (directive \ "longDescription").headOption.map( _.text ) ?~! ("Missing attribute 'longDescription' in entry type directive : " + xml)
-      isEnabled           <- (directive \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type directive : " + xml)
+      isEnabled             <- (directive \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type directive : " + xml)
       priority              <- (directive \ "priority").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! ("Missing or bad attribute 'priority' in entry type directive : " + xml)
       isSystem              <- (directive \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type directive : " + xml)
       directiveIds     =  (directive \ "directiveIds" \ "id" ).map( n => DirectiveId( n.text ) ).toSet
@@ -149,9 +150,9 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
   
   def unserialise(entry:XNode): Box[NodeGroupCategory] = {
     for {
-      category        <- {
-                            if(entry.label ==  "groupLibraryCategory") Full(entry)
-                            else Failure("Entry type is not a groupLibraryCategory: " + entry)
+      category         <- {
+                            if(entry.label ==  XML_TAG_NODE_GROUP_CATEGORY) Full(entry)
+                            else Failure("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP_CATEGORY, entry))
                           }
       fileFormatOk     <- TestFileFormat(category)
       id               <- (category \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type groupLibraryCategory : " + entry)
@@ -178,8 +179,8 @@ class NodeGroupUnserialisationImpl(
   def unserialise(entry:XNode) : Box[NodeGroup] = {
     for {
       group           <- {
-                           if(entry.label == "nodeGroup") Full(entry)
-                           else Failure("Entry type is not a nodeGroup: " + entry)
+                           if(entry.label == XML_TAG_NODE_GROUP) Full(entry)
+                           else Failure("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP, entry))
                          }
       fileFormatOk    <- TestFileFormat(group)
       id              <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry)
@@ -193,7 +194,7 @@ class NodeGroupUnserialisationImpl(
                           }
       isDynamic       <- (group \ "isDynamic").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isDynamic' in entry type nodeGroup : " + entry)
       serverList      =  (group \ "nodeIds" \ "id" ).map( n => NodeId( n.text ) ).toSet
-      isEnabled     <- (group \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type nodeGroup : " + entry)
+      isEnabled       <- (group \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type nodeGroup : " + entry)
       isSystem        <- (group \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
     } yield {
       NodeGroup(
@@ -214,26 +215,34 @@ class NodeGroupUnserialisationImpl(
 class RuleUnserialisationImpl extends RuleUnserialisation {
   def unserialise(entry:XNode) : Box[Rule] = {
     for {
-      rule               <- {
-                            if(entry.label ==  "rule") Full(entry)
-                            else Failure("Entry type is not a rule: " + entry)
+      rule             <- {
+                            if(entry.label ==  XML_TAG_RULE) Full(entry)
+                            else Failure("Entry type is not a <%s>: %s".format(XML_TAG_RULE, entry))
                           }
       fileFormatOk     <- TestFileFormat(rule)
-      id               <- (rule \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type rule : " + entry)
-      name             <- (rule \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type rule : " + entry)
-      serial           <- (rule \ "serial").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! ("Missing or bad attribute 'serial' in entry type rule : " + entry)
-      target           <- (rule \ "target").headOption.map(s =>  RuleTarget.unser(s.text) )  ?~! ("Missing attribute 'target' in entry type rule : " + entry)
-      shortDescription <- (rule \ "shortDescription").headOption.map( _.text ) ?~! ("Missing attribute 'shortDescription' in entry type rule : " + entry)
-      longDescription  <- (rule \ "longDescription").headOption.map( _.text ) ?~! ("Missing attribute 'longDescription' in entry type rule : " + entry)
-      isEnabled      <- (rule \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type rule : " + entry)
-      isSystem         <- (rule \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type rule : " + entry)
-      directiveIds = (rule \ "directiveIds" \ "id" ).map( n => DirectiveId( n.text ) ).toSet
+      id               <- (rule \ "id").headOption.map( _.text ) ?~! 
+                          ("Missing attribute 'id' in entry type rule: " + entry)
+      name             <- (rule \ "displayName").headOption.map( _.text ) ?~! 
+                          ("Missing attribute 'displayName' in entry type rule: " + entry)
+      serial           <- (rule \ "serial").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! 
+                          ("Missing or bad attribute 'serial' in entry type rule: " + entry)
+      shortDescription <- (rule \ "shortDescription").headOption.map( _.text ) ?~! 
+                          ("Missing attribute 'shortDescription' in entry type rule: " + entry)
+      longDescription  <- (rule \ "longDescription").headOption.map( _.text ) ?~! 
+                           ("Missing attribute 'longDescription' in entry type rule: " + entry)
+      isEnabled        <- (rule \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! 
+                          ("Missing attribute 'isEnabled' in entry type rule: " + entry)
+      isSystem         <- (rule \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! 
+                          ("Missing attribute 'isSystem' in entry type rule: " + entry)
+      targets          <- sequence((rule \ "targets" \ "target")) { t => RuleTarget.unser(t.text) } ?~! 
+                          ("Invalid attribute in 'target' entry: " + entry)
+      directiveIds     = (rule \ "directiveIds" \ "id" ).map( n => DirectiveId( n.text ) ).toSet
     } yield {
       Rule(
           id = RuleId(id)
         , name = name
         , serial = serial
-        , target = target
+        , targets = targets.toSet
         , directiveIds = directiveIds
         , shortDescription = shortDescription
         , longDescription = longDescription
@@ -249,8 +258,8 @@ class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategory
   def unserialise(entry:XNode): Box[ActiveTechniqueCategory] = {
     for {
       uptc             <- {
-                            if(entry.label ==  "policyLibraryCategory") Full(entry)
-                            else Failure("Entry type is not a policyLibraryCategory: " + entry)
+                            if(entry.label ==  XML_TAG_ACTIVE_TECHNIQUE_CATEGORY) Full(entry)
+                            else Failure("Entry type is not a <%s>: %s".format(XML_TAG_ACTIVE_TECHNIQUE_CATEGORY, entry))
                           }
       fileFormatOk     <- TestFileFormat(uptc)
       id               <- (uptc \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type policyLibraryCategory : " + entry)
@@ -277,15 +286,15 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
   
   def unserialise(entry:XNode): Box[ActiveTechnique] = {
     for {
-      activeTechnique              <- {
-                            if(entry.label ==  "policyLibraryTemplate") Full(entry)
-                            else Failure("Entry type is not a policyLibraryCategory: " + entry)
+      activeTechnique  <- {
+                            if(entry.label ==  XML_TAG_ACTIVE_TECHNIQUE) Full(entry)
+                            else Failure("Entry type is not a <%s>: ".format(XML_TAG_ACTIVE_TECHNIQUE, entry))
                           }
       fileFormatOk     <- TestFileFormat(activeTechnique)
       id               <- (activeTechnique \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type policyLibraryTemplate : " + entry)
       ptName           <- (activeTechnique \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type policyLibraryTemplate : " + entry)
       isSystem         <- (activeTechnique \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type policyLibraryTemplate : " + entry)
-      isEnabled      <- (activeTechnique \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type policyLibraryTemplate : " + entry)
+      isEnabled        <- (activeTechnique \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type policyLibraryTemplate : " + entry)
       acceptationDates <- sequence(activeTechnique \ "versions" \ "version" ) { version => 
                             for {
                               ptVersionName   <- version.attribute("name").map( _.text) ?~! "Missing attribute 'name' for acceptation date in PT '%s' (%s): '%s'".format(ptName, id, version)
@@ -295,7 +304,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
                               (ptVersion, acceptationDate)
                             }
                           }
-      acceptationMap   <- {
+      acceptationMap  <- {
                             val map = acceptationDates.toMap
                             if(map.size != acceptationDates.size) Failure("There exists a duplicate polity template version in the acceptation date map: " + acceptationDates.mkString("; "))
                             else Full(map)
@@ -316,9 +325,9 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
 class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisation {
   def unserialise(entry:XNode) : Box[CurrentDeploymentStatus] = {
     for {
-      depStatus      <- {
-                  if(entry.label ==  "deploymentStatus") Full(entry)
-                            else Failure("Entry type is not a deploymentStatus: " + entry)
+      depStatus        <- {
+                  if(entry.label ==  XML_TAG_DEPLOYMENT_STATUS) Full(entry)
+                            else Failure("Entry type is not a <%s>: %s".format(XML_TAG_DEPLOYMENT_STATUS, entry))
                           }
       fileFormatOk     <- TestFileFormat(depStatus)
       id               <- (depStatus \ "id").headOption.flatMap(s => tryo {s.text.toInt } ) ?~! ("Missing attribute 'id' in entry type deploymentStatus : " + entry)

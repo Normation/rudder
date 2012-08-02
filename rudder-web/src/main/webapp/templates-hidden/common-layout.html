@@ -97,14 +97,18 @@
   
   <!--Début Logo-->
   <div id="logo"> 
+    <lift:authz role="deployment_read">
     <lift:comet type="AsyncDeployment" name="deploymentStatus" />
+    </lift:authz>
     <h1><a href="/secure/"><img src="/images/logoRudder.jpg" alt="Rudder" /></a></h1>
   </div>
   <!--Fin Logo-->
   <!--Début Menu principal-->
+  <security:authorize access="isAnonymous()">
   <div id="menu">
    <lift:Menu.builder expand="false" linkToSelf="true" a:class="onMenu" li_item:class="onMenu" li_path:class="onMenu" />
   </div>
+  </security:authorize>
   <!--Fin Menu principal-->
 
 <img alt="" 

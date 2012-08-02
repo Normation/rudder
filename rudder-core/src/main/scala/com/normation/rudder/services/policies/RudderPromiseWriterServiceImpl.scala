@@ -61,7 +61,7 @@ import org.antlr.stringtemplate._
 import org.antlr.stringtemplate.language._
 import com.normation.stringtemplate.language._
 import com.normation.rudder.domain.transporter._
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.services.reports._
 import com.normation.cfclerk.domain._
 import Process._
@@ -78,19 +78,19 @@ class RudderCf3PromisesFileWriterServiceImpl(
   reportingService: ReportingService,
   systemVariableSpecService: SystemVariableSpecService,
   systemVariableService: SystemVariableService,
-  baseFolder: String,
-  backupFolder: String,
-  toolsFolder: String,
-  sharesFolder: String,
+  private val toolsFolder: String, 
+  private val sharesFolder: String, 
   cmdbEnpoint: String,
   communityPort: String,
   communityCheckPromises: String,
   novaCheckPromises: String
 ) extends Cf3PromisesFileWriterServiceImpl(
-  techniqueRepository, systemVariableSpecService, baseFolder, backupFolder
+  techniqueRepository, systemVariableSpecService
 ) with TemplateWriter with Loggable {
 
-  logger.debug("baseFolder %s".format(baseFolder))
+
+  val newPostfix = ".new"
+  val backupPostfix = ".bkp"
 
   licenseRepository.loadLicenses()
   logger.debug("Licenses loaded")

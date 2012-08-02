@@ -70,7 +70,7 @@ import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.rudder.repository.ldap._
 import java.io.File
 import org.joda.time.DateTime
-import com.normation.rudder.services.log._
+import com.normation.rudder.services.eventlog._
 import com.normation.cfclerk.xmlparsers._
 import com.normation.cfclerk.services.impl._
 import scala.collection.JavaConversions._
@@ -81,20 +81,24 @@ import com.normation.rudder.repository._
 import net.liftweb.common.Loggable
 import com.normation.rudder.services.servers.NodeConfigurationChangeDetectServiceImpl
 import org.apache.commons.dbcp.BasicDataSource
-import com.normation.rudder.services.log.HistorizationServiceImpl
+import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.policies.DeployOnTechniqueCallback
 import scala.xml.PrettyPrinter
 import com.normation.rudder.services.marshalling._
 import com.normation.utils.ScalaLock
 import com.normation.rudder.web.rest._
 import com.normation.rudder.services.user.TrivialPersonIdentService
-import com.normation.rudder.services.log.EventLogFactoryImpl
-import com.normation.rudder.migration.ControlEventLogsMigration_10_2
-import com.normation.rudder.migration.EventLogsMigration_10_2
+import com.normation.rudder.services.eventlog.EventLogFactoryImpl
+import com.normation.rudder.migration.ControlEventLogsMigration_2_3
+import com.normation.rudder.migration.EventLogsMigration_2_3
 import com.normation.rudder.migration.MigrationEventLogRepository
-import com.normation.rudder.migration.EventLogMigration_10_2
-import com.normation.rudder.migration.LogMigrationEventLog_10_2
-import com.normation.rudder.migration.XmlMigration_10_2
+import com.normation.rudder.migration.EventLogMigration_2_3
+import com.normation.rudder.migration.XmlMigration_2_3
+import com.normation.rudder.web.services.UserPropertyService
+import java.lang.IllegalArgumentException
+import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.repository.ldap.LDAPNodeGroupRepository
+import logger.MigrationLogger
 
 /**
  * Spring configuration for services
@@ -102,7 +106,7 @@ import com.normation.rudder.migration.XmlMigration_10_2
 @Configuration
 @Import(Array(classOf[PropertyPlaceholderConfig], classOf[AppConfigAuth]))
 class AppConfig extends Loggable {
-
+  
   @Value("${ldap.host}")
   var SERVER = ""
 
@@ -135,40 +139,38 @@ class AppConfig extends Loggable {
   @Value("${bin.emergency.stop}")
   val startStopBinPath = ""
 
-  @Value("${ldif.tracelog.rootdir}")
-  var ldifLogPath = ""
-
   @Value("${history.inventories.rootdir}")
   var INVENTORIES_HISTORY_ROOT_DIR = ""
 
   @Value("${upload.root.directory}")
   var UPLOAD_ROOT_DIRECTORY = ""
 
-  @Value("${policy.copyfile.destination.dir}")
-  var POLICY_COPY_FILE_DEST_DIR = ""
-
   @Value("${base.url}")
-  var BASE_URL = ""
-
-  @Value("${rudder.dir.policies}")
-  var baseFolder = ""
+  var BASE_URL = "" 
+    
   @Value("${rudder.dir.backup}")
   var backupFolder = ""
+    
   @Value("${rudder.dir.dependencies}")
   var toolsFolder = ""
-  @Value("${rudder.dir.sharing}")
+    
+  @Value("${rudder.dir.uploaded.file.sharing}")
   var sharesFolder = ""
+    
   @Value("${rudder.dir.lock}")
   var lockFolder = ""
 
   @Value("${rudder.dir.shared.files.folder}")
   var sharedFilesFolder = ""
 
-    
   @Value("${rudder.dir.licensesFolder}")
   var licensesFolder = ""
   @Value("${rudder.endpoint.cmdb}")
   var cmdbEndpoint = ""
+  @Value("${rudder.webdav.user}")
+  var webdavUser = ""
+  @Value("${rudder.webdav.password}")
+  var webdavPassword = ""
   @Value("${rudder.community.port}")
   var communityPort = ""
 
@@ -186,10 +188,9 @@ class AppConfig extends Loggable {
   @Value("${rudder.jdbc.password}")
   var jdbcPassword = ""
 
-  @Value("${rudder.dir.config}")
-  var configFolder = ""
   @Value("${rudder.dir.gitRoot}")
   var gitRoot = ""
+    
   @Value("${rudder.dir.techniques}")
   var policyPackages = ""
 
@@ -208,6 +209,15 @@ class AppConfig extends Loggable {
   @Value("${rudder.autoDeployOnModification}")
   var autoDeployOnModification : Boolean = true
   
+  @Value("${rudder.ui.changeMessage.enabled}")
+  var reasonFieldEnabled = false
+  
+  @Value("${rudder.ui.changeMessage.mandatory}")
+  var reasonFieldMandatory = false
+  
+  @Value("${rudder.ui.changeMessage.explanation}")
+  var reasonFieldExplanation = "Please enter a message explaining the reason for this change."
+  
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
 
@@ -219,6 +229,13 @@ class AppConfig extends Loggable {
   val groupLibraryDirectoryName = "groups"
   
   val rulesDirectoryName = "rules"
+    
+  @Bean
+  def userPropertyService = {
+    val opt = new ReasonsMessageInfo(reasonFieldEnabled, reasonFieldMandatory, 
+        reasonFieldExplanation)
+    new UserPropertyServiceImpl(opt)
+  }
     
   // metadata.xml parser
   @Bean
@@ -353,7 +370,11 @@ class AppConfig extends Loggable {
   ///// end /////
   
   @Bean
-  def eventLogFactory = new EventLogFactoryImpl(ruleSerialisation,directiveSerialisation, nodeGroupSerialisation)
+  def eventLogFactory = new EventLogFactoryImpl(
+    ruleSerialisation,
+    directiveSerialisation, 
+    nodeGroupSerialisation, 
+    activeTechniqueSerialisation)
   
   @Bean
   def logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
@@ -370,7 +391,6 @@ class AppConfig extends Loggable {
   @Bean
   def pathComputer = new PathComputerImpl(
     ldapNodeConfigurationRepository,
-    baseFolder,
     backupFolder)
 
   @Bean
@@ -384,6 +404,7 @@ class AppConfig extends Loggable {
     //find the relative path from gitRepo to the ptlib root
     val gitSlash = new File(gitRoot).getPath + "/"
     if(!policyPackages.startsWith(gitSlash)) {
+      ApplicationLogger.error("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(gitRoot, policyPackages))
       throw new RuntimeException("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(gitRoot, policyPackages))
     }
     val relativePath = policyPackages.substring(gitSlash.size, policyPackages.size)
@@ -397,19 +418,22 @@ class AppConfig extends Loggable {
   }
 
   @Bean
-  def systemVariableService: SystemVariableService = new SystemVariableServiceImpl(licenseRepository,
-    new ParameterizedValueLookupServiceImpl(
-      nodeInfoService,
-      ruleTargetService,
-      ldapRuleRepository,
-      ruleValService),
-    systemVariableSpecService,
-    nodeInfoService,
-    baseFolder,
-    toolsFolder,
-    cmdbEndpoint,
-    communityPort,
-    sharedFilesFolder)
+  def systemVariableService: SystemVariableService = new SystemVariableServiceImpl(
+      licenseRepository
+    , new ParameterizedValueLookupServiceImpl(
+        nodeInfoService
+      , ruleTargetService
+      , ldapRuleRepository
+      , ruleValService
+      )
+    , systemVariableSpecService
+    , nodeInfoService
+    , toolsFolder
+    , cmdbEndpoint
+    , communityPort
+    , sharedFilesFolder
+    , webdavUser
+    , webdavPassword)
 
   @Bean
   def rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(
@@ -421,8 +445,6 @@ class AppConfig extends Loggable {
     reportingService,
     systemVariableSpecService,
     systemVariableService,
-    baseFolder,
-    backupFolder,
     toolsFolder,
     sharesFolder,
     cmdbEndpoint,
@@ -486,7 +508,7 @@ class AppConfig extends Loggable {
   @Bean
   def startStopOrchestrator: StartStopOrchestrator = {
     if (!(new File(startStopBinPath)).exists)
-      logger.error("The 'red button' program is not present at: '%s'. You will experience error when trying to use that functionnality".format(startStopBinPath))
+      ApplicationLogger.error("The 'red button' program is not present at: '%s'. You will experience error when trying to use that functionnality".format(startStopBinPath))
     new SystemStartStopOrchestrator(startStopBinPath)
   }
 
@@ -599,6 +621,14 @@ class AppConfig extends Loggable {
     ldapNodeGroupRepository,
     dynGroupService,
     PendingInventory)
+  
+  @Bean
+  def historizeNodeStateOnChoice: UnitAcceptInventory with UnitRefuseInventory = new HistorizeNodeStateOnChoice(
+      "accept_or_refuse_new_node:historize_inventory"
+    , ldapFullInventoryRepository
+    , diffRepos
+    , PendingInventory
+  )
 
   @Bean
   def ruleValService: RuleValService = new RuleValServiceImpl(
@@ -654,17 +684,20 @@ class AppConfig extends Loggable {
       serverSummaryService,
       ldapFullInventoryRepository,
       //the sequence of unit process to accept a new inventory
+      historizeNodeStateOnChoice ::
       addNodeToDynGroup ::
-        acceptNodeAndMachineInNodeOu ::
-        acceptInventory ::
-        acceptNodeRule ::
-        Nil,
+      acceptNodeAndMachineInNodeOu ::
+      acceptInventory ::
+      acceptNodeRule ::
+      Nil,
       //the sequence of unit process to refuse a new inventory
+      historizeNodeStateOnChoice ::
       unitRefuseGroup ::
-        acceptNodeAndMachineInNodeOu ::
-        acceptInventory ::
-        acceptNodeRule ::
-        Nil)
+      acceptNodeAndMachineInNodeOu ::
+      acceptInventory ::
+      acceptNodeRule ::
+      Nil
+  )
 
   @Bean
   def nodeConfigurationChangeDetectService = new NodeConfigurationChangeDetectServiceImpl(ldapActiveTechniqueRepository)
@@ -676,7 +709,7 @@ class AppConfig extends Loggable {
   def srvGrid = new SrvGrid
 
   @Bean
-  def eventListDisplayer = new EventListDisplayer(eventLogDetailsService, logRepository)
+  def eventListDisplayer = new EventListDisplayer(eventLogDetailsService, logRepository, ldapNodeGroupRepository, ldapDirectiveRepository)
   
   @Bean
   def fileManager = new FileManager(UPLOAD_ROOT_DIRECTORY)
@@ -724,8 +757,10 @@ class AppConfig extends Loggable {
   @Bean
   def ldapActiveTechniqueRepository = new LDAPActiveTechniqueRepository(
       rudderDit, ldap, ldapEntityMapper
+    , ldapDiffMapper
     , uuidGen
     , ldapActiveTechniqueCategoryRepository
+    , logRepository
     , gitActiveTechniqueArchiver
     , personIdentService
     , autoArchiveItems
@@ -853,6 +888,7 @@ class AppConfig extends Loggable {
     , new DirectiveUnserialisationImpl
     , new NodeGroupUnserialisationImpl(queryParser)
     , new RuleUnserialisationImpl
+    , new ActiveTechniqueUnserialisationImpl
     , new DeploymentStatusUnserialisationImpl
   )
   
@@ -919,6 +955,7 @@ class AppConfig extends Loggable {
       , ldap
       , ldapEntityMapper
       , ldapNodeGroupRepository
+      , nodeConfigurationService
       , ldapFullInventoryRepository
       , logRepository
       , nodeReadWriteMutex)
@@ -927,18 +964,18 @@ class AppConfig extends Loggable {
    * Event log migration
    */
   @Bean
-  def eventLogsMigration_10_2 = new EventLogsMigration_10_2(
+  def eventLogsMigration_2_3 = new EventLogsMigration_2_3(
       jdbcTemplate      = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_10_2(new XmlMigration_10_2())
-    , errorLogger       = LogMigrationEventLog_10_2.defaultErrorLogger
-    , successLogger     = LogMigrationEventLog_10_2.defaultSuccessLogger
+    , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
+    , errorLogger       = MigrationLogger(3).defaultErrorLogger
+    , successLogger     = MigrationLogger(3).defaultSuccessLogger
     , batchSize         = 1000      
    )
   
   @Bean
-  def eventLogsMigration_10_2_Management = new ControlEventLogsMigration_10_2(
+  def eventLogsMigration_2_3_Management = new ControlEventLogsMigration_2_3(
           migrationEventLogRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
-        , eventLogsMigration_10_2
+        , eventLogsMigration_2_3
       )
 
   /**
@@ -954,7 +991,8 @@ class AppConfig extends Loggable {
     , new CheckInitUserTemplateLibrary(
         rudderDit, ldap, techniqueRepository,
         ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository) //new CheckDirectiveBusinessRules()
-    , new CheckMigrationEventLog10_2(eventLogsMigration_10_2_Management)
+    , new CheckMigrationEventLog2_3(eventLogsMigration_2_3_Management)
+    , new CheckInitXmlExport(itemArchiveManager, personIdentService)
   )
 
   
@@ -1037,7 +1075,11 @@ class AppConfig extends Loggable {
     new DirectiveEditorServiceImpl(techniqueRepository, section2FieldService)
 
   @Bean
-  def reportDisplayer = new ReportDisplayer(ldapRuleRepository, reportingService)
+  def reportDisplayer = new ReportDisplayer(
+      ldapRuleRepository
+    , ldapDirectiveRepository
+    , reportingService
+    , techniqueRepository)
 
   ////////////////////// Snippet plugins & extension register //////////////////////
   import com.normation.plugins.{ SnippetExtensionRegister, SnippetExtensionRegisterImpl }

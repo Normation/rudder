@@ -82,7 +82,7 @@ trait ActiveTechniqueRepository {
   
   /**
    * Find back an active technique thanks to the id of its referenced
-   * Policy Template. 
+   * Technique.
    * Return Empty if the active technique is not found, 
    * Fails on error.
    */
@@ -90,7 +90,7 @@ trait ActiveTechniqueRepository {
   
   
   /**
-   * Create a active technique from the parameter WBTechnique
+   * Create an active technique from the parameter WBTechnique
    * and add it in the given ActiveTechniqueCategory
    * 
    * Returned the freshly created ActiveTechnique
@@ -105,7 +105,7 @@ trait ActiveTechniqueRepository {
       categoryId   : ActiveTechniqueCategoryId
     , techniqueName: TechniqueName
     , versions     : Seq[TechniqueVersion]
-    , actor        : EventActor
+    , actor        : EventActor, reason: Option[String]
   ) : Box[ActiveTechnique] 
 
   
@@ -115,12 +115,12 @@ trait ActiveTechniqueRepository {
    * does not exists. 
    * 
    */
-  def move(id:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, actor: EventActor) : Box[ActiveTechniqueId] 
+  def move(id:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] 
   
   /**
    * Set the status of the active technique to the new value
    */
-  def changeStatus(id:ActiveTechniqueId, status:Boolean, actor: EventActor) : Box[ActiveTechniqueId] 
+  def changeStatus(id:ActiveTechniqueId, status:Boolean, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] 
   
   /**
    * Add new (version,acceptation datetime) to existing 
@@ -130,19 +130,19 @@ trait ActiveTechniqueRepository {
    * Failure if an error happened, 
    * Full(id) when success
    */
-  def setAcceptationDatetimes(id:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], actor: EventActor) : Box[ActiveTechniqueId]
+  def setAcceptationDatetimes(id:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId]
   
   /**
    * Delete the active technique in the active tehcnique library.
    * If no such element exists, it is a success.
    */
-  def delete(id:ActiveTechniqueId, actor: EventActor) : Box[ActiveTechniqueId] 
+  def delete(id:ActiveTechniqueId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] 
   
   /**
    * Retrieve the list of parents for the given active technique, 
-   * till the root of policy library.
+   * till the root of technique library.
    * Return empty if the path can not be build
-   * (missing policy template, missing category, etc)
+   * (missing technique, missing category, etc)
    */
   def activeTechniqueBreadCrump(id:ActiveTechniqueId) : Box[List[ActiveTechniqueCategory]]
   

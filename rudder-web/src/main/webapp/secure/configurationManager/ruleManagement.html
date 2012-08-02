@@ -11,9 +11,11 @@
   <div class="portlet-header">Rule Management</div>
   <div class="portlet-content">
     <div class="intro">
+    <lift:authz role="directive_read">
       <div>
         Define <em>Rules</em>, based on previously defined <a href="secure/configurationManager/directiveManagement"><em>Directives</em></a>. 
       </div>
+      </lift:authz>
     </div>
     <hr class="spacer"/>
     <div>
@@ -24,7 +26,6 @@
         </div>
       </div>
     </div>
-    
     <hr class="spacer"/>
     <div>
       <div class="portlet">
@@ -34,7 +35,6 @@
         </div>
       </div>
     </div>
-    
   </div>
 
   <div id="createRulePopup" class="nodisplay">

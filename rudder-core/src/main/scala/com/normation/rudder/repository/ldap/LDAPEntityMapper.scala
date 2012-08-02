@@ -82,30 +82,19 @@ class LDAPEntityMapper(
   
   
   def nodeToEntry(node:Node) : LDAPEntry = {
-    val entry = nodeDit.NODES.NODE.nodeModel(node.id)
+    val entry = 
+      if(node.isPolicyServer) {
+        nodeDit.NODES.NODE.policyServerNodeModel(node.id)
+      } else {
+        nodeDit.NODES.NODE.nodeModel(node.id)
+      }
     entry +=! (A_NAME, node.name)
     entry +=! (A_DESCRIPTION, node.description)
     entry +=! (A_IS_BROKEN, node.isBroken.toLDAPString)
     entry +=! (A_IS_SYSTEM, node.isSystem.toLDAPString)
     entry
   }
-   
-  def policyServerNodeToEntry(node : PolicyServerNodeInfo) : LDAPEntry = {
-    val entry = nodeDit.NODES.NODE.policyServerNodeModel(node.id)
-    entry +=! (A_NAME, node.name)
-    entry +=! (A_DESCRIPTION, node.description)
-    entry +=! (A_HOSTNAME, node.hostname)
-    entry +=! (A_PKEYS, node.publicKey)
-    entry +=! (A_LIST_OF_IP, node.ips:_*)
-    entry +=! (A_INVENTORY_DATE, GeneralizedTime(node.inventoryDate).toString)
-    entry +=! (A_ROOT_USER, node.localAdministratorAccountName)
-    entry +=! (A_AGENTS_NAME, node.agentsName.map(x => x.toString):_*)
-    entry +=! (A_NODE_POLICY_SERVER, node.policyServerId.value)
-    entry +=! (A_IS_BROKEN, node.isBroken.toLDAPString)
-    entry +=! (A_IS_SYSTEM, node.isSystem.toLDAPString)
-    
-    entry
-  }
+
   
     //////////////////////////////    NodeInfo    //////////////////////////////
 
@@ -162,62 +151,27 @@ class LDAPEntityMapper(
           inventoryEntry(A_ROOT_USER).getOrElse(""),
           date.dateTime,
           nodeEntry.getAsBoolean(A_IS_BROKEN).getOrElse(false),
-          nodeEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+          nodeEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false),
+          nodeEntry.isA(OC_POLICY_SERVER_NODE)
       )
     }
   }
   
   
-  def convertEntryToPolicyServerNodeInfo(policyServerNodeEntry:LDAPEntry) : Box[PolicyServerNodeInfo] = {
-    
-    for {
-      checkIsAPolicyServer <- if(policyServerNodeEntry.isA(OC_POLICY_SERVER_NODE)) Full("OK")
-        else Failure("Bad object class, need %s and found %s".format(OC_POLICY_SERVER_NODE,policyServerNodeEntry.valuesFor(A_OC)))
-      id <- nodeDit.NODES.NODE.idFromDn(policyServerNodeEntry.dn) ?~! "Bad DN found for a Node: %s".format(policyServerNodeEntry.dn)
-      psId <- policyServerNodeEntry(A_NODE_POLICY_SERVER) ?~! "No policy server found for policy server %s".format(policyServerNodeEntry.dn)
-      agentsName <- sequence(policyServerNodeEntry.valuesFor(A_AGENTS_NAME).toSeq) { x =>
-                        AgentType.fromValue(x) ?~! "Unknow value for agent type: '%s'. Authorized values are: %s".format(x, AgentType.allValues.mkString(", "))
-                     }
-      date <- policyServerNodeEntry.getAsGTime(A_OBJECT_CREATION_DATE) ?~! "Can not find mandatory attribute '%s' in entry".format(A_OBJECT_CREATION_DATE)
-    } yield {
-      // fetch the datetime for the inventory
-      val dateTime = policyServerNodeEntry.getAsGTime(A_INVENTORY_DATE) match {
-        case None => DateTime.now() 
-        case Some(date) =>date.dateTime 
-      }
-    
-      PolicyServerNodeInfo(
-          id,
-          policyServerNodeEntry(A_NAME).getOrElse(""),
-          policyServerNodeEntry(A_DESCRIPTION).getOrElse(""),
-          policyServerNodeEntry(A_HOSTNAME).getOrElse(""),
-          policyServerNodeEntry.valuesFor(A_LIST_OF_IP).toList, 
-          dateTime,
-          policyServerNodeEntry(A_PKEYS).getOrElse(""),
-          scala.collection.mutable.Seq() ++ agentsName,
-          NodeId(psId),
-          policyServerNodeEntry(A_ROOT_USER).getOrElse(""),
-          date.dateTime,
-          policyServerNodeEntry.getAsBoolean(A_IS_BROKEN).getOrElse(false),
-          policyServerNodeEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-      )
-    }
-  }
-
   /**
    * Build the ActiveTechniqueCategoryId from the given DN
    */
   def dn2ActiveTechniqueCategoryId(dn:DN) : ActiveTechniqueCategoryId = {
     rudderDit.ACTIVE_TECHNIQUES_LIB.getCategoryIdValue(dn) match {
       case Full(value) => ActiveTechniqueCategoryId(value)
-      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid User Policy Template Category ID. Error was: %s".format(dn,e.toString))
+      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Active Technique Category ID. Error was: %s".format(dn,e.toString))
     }
   }
   
   def dn2ActiveTechniqueId(dn:DN) : ActiveTechniqueId = {
     rudderDit.ACTIVE_TECHNIQUES_LIB.getActiveTechniqueId(dn) match {
       case Full(value) => ActiveTechniqueId(value)
-      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid User Policy Template ID. Error was: %s".format(dn,e.toString))
+      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Active Technique ID. Error was: %s".format(dn,e.toString))
     }
   }
   
@@ -320,7 +274,7 @@ class LDAPEntityMapper(
   
   /**
    * Build a ActiveTechnique from and LDAPEntry.
-   * children policy instances are left empty
+   * children directives are left empty
    */
   def entry2ActiveTechnique(e:LDAPEntry) : Box[ActiveTechnique] = {
     if(e.isA(OC_ACTIVE_TECHNIQUE)) {
@@ -502,13 +456,21 @@ class LDAPEntityMapper(
   def entry2Rule(e:LDAPEntry) : Box[Rule] = {
     
     if(e.isA(OC_RULE)) {
-      //OK, translate
       for {
-        id <- e(A_RULE_UUID) ?~! "Missing required attribute %s in entry %s".format(A_RULE_UUID, e)
-        serial <- e.getAsInt(A_SERIAL) ?~! "Missing required attribute %s in entry %s".format(A_SERIAL, e)
-        target <- entry2OptTarget(e(A_RULE_TARGET))
+        id     <- e(A_RULE_UUID) ?~! 
+                  "Missing required attribute %s in entry %s".format(A_RULE_UUID, e)
+        serial <- e.getAsInt(A_SERIAL) ?~! 
+                  "Missing required attribute %s in entry %s".format(A_SERIAL, e)
       } yield {
-        val piUuids = e.valuesFor(A_DIRECTIVE_UUID).map(x => DirectiveId(x))
+        val targets = for {
+          target <- e.valuesFor(A_RULE_TARGET)
+          optionRuleTarget <- entry2OptTarget(Some(target)) ?~! 
+            "Invalid attribute %s for entry %s.".format(target, A_RULE_TARGET)
+          ruleTarget <- optionRuleTarget
+        } yield {
+          ruleTarget
+        }
+        val directiveIds = e.valuesFor(A_DIRECTIVE_UUID).map(x => DirectiveId(x))
         val name = e(A_NAME).getOrElse(id)
         val shortDescription = e(A_DESCRIPTION).getOrElse("")
         val longDescription = e(A_LONG_DESCRIPTION).getOrElse("")
@@ -516,11 +478,14 @@ class LDAPEntityMapper(
         val isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         
         Rule(
-            RuleId(id), name, serial, target, piUuids,
+            RuleId(id), name, serial, targets, directiveIds,
             shortDescription, longDescription, isEnabled, isSystem
         )
       }
-    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_RULE, e))
+    } else {
+      Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s"
+          .format(OC_RULE, e))
+    }
   }
   
   
@@ -536,7 +501,7 @@ class LDAPEntityMapper(
         rule.isSystem
     )
     
-    rule.target.foreach { t => entry +=! (A_RULE_TARGET, t.target) }
+    entry +=! (A_RULE_TARGET, rule.targets.map( _.target).toSeq :_* )
     entry +=! (A_DIRECTIVE_UUID, rule.directiveIds.map( _.value).toSeq :_* )
     entry +=! (A_DESCRIPTION, rule.shortDescription)
     entry +=! (A_LONG_DESCRIPTION, rule.longDescription.toString)

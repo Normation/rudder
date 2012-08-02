@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2012 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,37 +32,55 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.log
+
+package com.normation.rudder.domain.reports.bean
+
+/**
+ * List of all type of report we are expecting, as a result
+ * So far :
+ * Success
+ * Repaired
+ * Error
+ * Unknown
+ * No Answer
+ */
 
 
-import com.normation.rudder.domain.log.InventoryEventLog
-import com.normation.rudder.repository.EventLogRepository
-import net.liftweb.common._
+trait ReportType {}
 
-class InventoryEventLogServiceImpl(
-    repository : EventLogRepository
-) extends InventoryEventLogService {
+case object SuccessReportType extends ReportType
+case object RepairedReportType extends ReportType
+case object ErrorReportType extends ReportType
+case object UnknownReportType extends ReportType
+case object NoAnswerReportType extends ReportType
+case object PendingReportType extends ReportType
+
+object ReportType {
   
-  
-  /**
-   * Returns all the inventory related event log
-   * @return
-   */
-  def getInventoryEventLogs() : Box[Seq[InventoryEventLog]] = {
-    repository.getEventLogByCriteria(Some(" eventType in ('AcceptNode', 'RefuseNode')")) match {
-      case Full(seq) => 
-        val result = scala.collection.mutable.Buffer[InventoryEventLog]()
-        for (log <- seq) {
-          log match {
-            case inventoryLog : InventoryEventLog =>result += inventoryLog
-            case _ => return Failure("Wrong event log type, not an inventory")
-          }
-        }
-        Full(result)
-      case Empty => Empty
-      case _ => Failure("Could not retrieve eventLogs")
-    }
+  def getWorseType(reportTypes : Seq[ReportType]) : ReportType = {
+    if (reportTypes.isEmpty) {
+      NoAnswerReportType
+    } else {
+      ( reportTypes :\ (SuccessReportType : ReportType) ) { 
+        case (_, PendingReportType) | (PendingReportType, _) => PendingReportType  
+        case (_, NoAnswerReportType) | (NoAnswerReportType, _) => NoAnswerReportType
+        case (_, ErrorReportType) | (ErrorReportType, _) => ErrorReportType
+        case (_, UnknownReportType) | (UnknownReportType, _) => UnknownReportType
+        case (_, RepairedReportType) | (RepairedReportType, _) => RepairedReportType
+        case (_, SuccessReportType) | (SuccessReportType, _) => SuccessReportType
+        case _ => UnknownReportType
+      }
+    } 
   }
 
+  def getSeverityFromStatus(status : ReportType) : String = {
+    status match {
+      case SuccessReportType => "Success"
+      case RepairedReportType => "Repaired"
+      case ErrorReportType => "Error"
+      case NoAnswerReportType => "No answer"
+      case PendingReportType => "Applying"
+      case _ => "Unknown"
+    }
+  }
 }
-

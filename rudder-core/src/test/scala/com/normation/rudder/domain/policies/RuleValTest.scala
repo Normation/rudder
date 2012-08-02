@@ -61,7 +61,7 @@ class RuleValTest {
   def testCRwithNoPI() {
     new RuleVal(
       new RuleId("id"),
-      new GroupTarget(new NodeGroupId("target")),
+      Set(new GroupTarget(new NodeGroupId("target"))),
       Seq(),
       0)
   }
@@ -78,7 +78,7 @@ class RuleValTest {
 
     new RuleVal(
       new RuleId("id"),
-      new GroupTarget(new NodeGroupId("target")),
+      Set(new GroupTarget(new NodeGroupId("target"))),
       Seq(container),
       0)
   }
@@ -95,7 +95,7 @@ class RuleValTest {
 
     val crVal = new RuleVal(
       new RuleId("ruleId"),
-      new GroupTarget(new NodeGroupId("target")),
+      Set(new GroupTarget(new NodeGroupId("target"))),
       Seq(container),
       1)
 
@@ -122,7 +122,7 @@ class RuleValTest {
 
     val crVal = new RuleVal(
       new RuleId("ruleId"),
-      new GroupTarget(new NodeGroupId("target")),
+      Set(new GroupTarget(new NodeGroupId("target"))),
       Seq(container),
       1)
 

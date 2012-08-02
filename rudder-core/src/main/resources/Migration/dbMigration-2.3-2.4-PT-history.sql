@@ -35,7 +35,7 @@
 -- Migration script of the databases from Rudder 2.3 to 2.4
 -- Add column PolicyTemplateHumanName in policyinstances to store the
 -- human readable name, then initializes the PolicyTemplateHumanName
--- column to the policy template name by default.
+-- column to the technique name by default.
 
 ALTER TABLE PolicyInstances
 ADD COLUMN PolicyTemplateHumanName text;

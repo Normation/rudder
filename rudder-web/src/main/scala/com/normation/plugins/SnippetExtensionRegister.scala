@@ -36,6 +36,7 @@ package com.normation.plugins
 
 import scala.xml.NodeSeq
 import net.liftweb.common.Loggable
+import com.normation.rudder.domain.logger.ApplicationLogger
 
 /**
  * 
@@ -79,7 +80,7 @@ class SnippetExtensionRegisterImpl extends SnippetExtensionRegister with Loggabl
    * the head of the sequence of extensions)
    */
   def register[T <: ExtendableSnippet[_]](extension: SnippetExtensionPoint[T]) : Unit = {
-    logger.debug("Resgistering: " + extension.extendsAt)
+    ApplicationLogger.debug("Registering the extension: " + extension.extendsAt)
     extendsAfter.get(extension.extendsAt) match {
       case None => extendsAfter += (extension.extendsAt -> Seq(extension))
       case Some(exts) => extendsAfter += (extension.extendsAt ->  (extension +: exts) )
@@ -94,7 +95,7 @@ class SnippetExtensionRegisterImpl extends SnippetExtensionRegister with Loggabl
    * the head of the sequence of extensions)
    */
   def registerBefore(extension: SnippetExtensionPoint[ExtendableSnippet[_]]) : Unit = {
-    logger.debug("Resgistering: " + extension.extendsAt)
+    ApplicationLogger.debug("Registering the extension: " + extension.extendsAt)
     extendsBefore.get(extension.extendsAt) match {
       case None => extendsBefore += (extension.extendsAt -> Seq(extension))
       case Some(exts) => extendsBefore += (extension.extendsAt ->  (extension +: exts) )

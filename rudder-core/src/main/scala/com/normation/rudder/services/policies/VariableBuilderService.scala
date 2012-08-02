@@ -108,7 +108,7 @@ class VariableBuilderServiceImpl extends VariableBuilderService with Loggable {
 //      //check if parameters has more variables than expected by the policy
 //      val overflowVariables = (parameters.keySet -- allVariables.map(_.name).toSet)
 //      if(overflowVariables.nonEmpty) {
-//         return ParamFailure[Map[String,Seq[String]]]("Found configured variable(s) in policy instance that are not expected", Empty, Empty, overflowVariables.map(n => (n -> parameters(n))).toMap)
+//         return ParamFailure[Map[String,Seq[String]]]("Found configured variable(s) in directive that are not expected", Empty, Empty, overflowVariables.map(n => (n -> parameters(n))).toMap)
 //      }
 //          
 //      for (variableSpec <- allVariables) {

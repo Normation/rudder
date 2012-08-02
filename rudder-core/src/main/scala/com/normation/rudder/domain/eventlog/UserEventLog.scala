@@ -32,64 +32,70 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.log
+package com.normation.rudder.domain.eventlog
 
-
-import com.normation.eventlog._
-import scala.xml._
-import com.normation.rudder.domain.policies._
+import scala.xml.NodeSeq
+import com.normation.eventlog.{EventLog,EventActor}
 import org.joda.time.DateTime
-import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
+import com.normation.eventlog.EventLogDetails
+import com.normation.eventlog.EventLogFilter
+import com.normation.eventlog.EventLogType
+
+sealed trait UserEventLog extends EventLog {
+  override final val details = EventLog.emptyDetails
+  override final val eventLogCategory = UserLogCategory
+}
 
 
-sealed trait RuleEventLog extends EventLog { override final val eventLogCategory = RuleLogCategory }
-
-final case class AddRule(
+final case class LoginEventLog(
     override val eventDetails : EventLogDetails
-) extends RuleEventLog with HashcodeCaching {
-  override val eventType = AddRule.eventType
+) extends UserEventLog with HashcodeCaching {
+  
+  override val eventType = LoginEventLog.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object AddRule extends EventLogFilter {
-  override val eventType = AddRuleEventType
+object LoginEventLog extends EventLogFilter {
+  override val eventType = LoginEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : AddRule = AddRule(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : LoginEventLog = LoginEventLog(x._2) 
 }
 
-
-final case class DeleteRule(
+final case class BadCredentialsEventLog(
     override val eventDetails : EventLogDetails
-) extends RuleEventLog with HashcodeCaching {
-  override val eventType = DeleteRule.eventType
+) extends UserEventLog with HashcodeCaching {
+
+  override val eventType = BadCredentialsEventLog.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object DeleteRule extends EventLogFilter {
-  override val eventType = DeleteRuleEventType
+object BadCredentialsEventLog extends EventLogFilter {
+  override val eventType = BadCredentialsEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : DeleteRule = DeleteRule(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : BadCredentialsEventLog = BadCredentialsEventLog(x._2) 
 }
 
 
-final case class ModifyRule(
+final case class LogoutEventLog(
     override val eventDetails : EventLogDetails
-) extends RuleEventLog with HashcodeCaching {
-  override val eventType = ModifyRule.eventType
+) extends UserEventLog with HashcodeCaching {
+  
+  override val eventType = LogoutEventLog.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
-object ModifyRule extends EventLogFilter {
-  override val eventType = ModifyRuleEventType
+object LogoutEventLog extends EventLogFilter {
+  override val eventType = LogoutEventType
  
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyRule = ModifyRule(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : LogoutEventLog = LogoutEventLog(x._2) 
 }
 
-object RuleEventLogsFilter {
+
+object UserEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      AddRule 
-    , DeleteRule 
-    , ModifyRule
+      LoginEventLog
+    , LogoutEventLog
+    , BadCredentialsEventLog
     )
 }

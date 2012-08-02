@@ -32,21 +32,17 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.log
+package com.normation.rudder.services.eventlog
 
-import com.normation.rudder.domain.log.InventoryEventLog
+import com.normation.rudder.domain.eventlog._
 import com.normation.eventlog._
-import com.normation.rudder.services.log._
-import java.security.Principal
+import com.normation.rudder.services.eventlog._
 import com.normation.rudder.repository._
 import net.liftweb.common._
 import scala.collection._
 import com.normation.utils.Control.sequence
 import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisation
 import com.normation.rudder.batch.CurrentDeploymentStatus
-import com.normation.rudder.domain.log.ModificationWatchList
-import com.normation.rudder.domain.log.SuccessfulDeploymentEventType
-import com.normation.rudder.domain.log.FailedDeploymentEventType
 
 
 trait EventLogDeploymentService {

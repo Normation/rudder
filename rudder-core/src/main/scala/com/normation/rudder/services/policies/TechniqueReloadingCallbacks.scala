@@ -40,7 +40,7 @@ import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLogService
-import com.normation.rudder.domain.log.ReloadTechniqueLibrary
+import com.normation.rudder.domain.eventlog.ReloadTechniqueLibrary
 import com.normation.eventlog.EventLogDetails
 import net.liftweb.common._
 
@@ -49,7 +49,8 @@ class DeployOnTechniqueCallback(
   , asyncDeploymentAgent: AsyncDeploymentAgent
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(TechniqueIds:Seq[TechniqueId], actor:EventActor) : Unit = {
+  override def updatedTechniques(TechniqueIds:Seq[TechniqueId], actor:EventActor, reason: Option[String]) : Unit = {
+    reason.foreach( msg => logger.info(msg) )
     logger.debug("Ask for a deployment since technique library was reloaded")
     asyncDeploymentAgent ! AutomaticStartDeployment(actor)
   }
@@ -60,10 +61,11 @@ class LogEventOnTechniqueReloadCallback(
   , eventLogService  : EventLogService
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(TechniqueIds:Seq[TechniqueId], actor:EventActor) : Unit = {
+  override def updatedTechniques(TechniqueIds:Seq[TechniqueId], actor:EventActor, reason: Option[String]) : Unit = {
     eventLogService.saveEventLog(ReloadTechniqueLibrary(EventLogDetails(
-        principal = actor
-      , details = ReloadTechniqueLibrary.buildDetails(TechniqueIds)
+        principal   = actor
+      , details     = ReloadTechniqueLibrary.buildDetails(TechniqueIds)
+      , reason = reason
     ))) match {
       case eb:EmptyBox => 
         val error = eb ?~! "Error when saving log related to technique reloading event"

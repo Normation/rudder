@@ -27,8 +27,10 @@ var buildReferenceTechniqueTree = function(id,  initially_select) {
               "image" : "images/tree/folder_16x16.png" 
             },
             "valid_children" : [ "category", "template" ],
-            "hover_node" : false,
-            "select_node" : false,
+            "select_node" : function(e) {
+        	  this.toggle_node(e);
+        	  return false;
+            },
             "start_drag" : false
           },
           "template" : {
@@ -89,13 +91,21 @@ var buildActiveTechniqueTree = function(id, foreignTreeId) {
             "image" : "images/tree/folder_16x16.png" 
           },
           "valid_children" : [ "category", "template" ],
-          "start_drag" : false
+          "start_drag" : false,
+          "select_node" : function(e) {
+        	  this.toggle_node(e);
+        	  return true;
+            },
         },
         "category" : {
           "icon" : { 
             "image" : "images/tree/folder_16x16.png" 
           },
-          "valid_children" : [ "category", "template" ]
+          "valid_children" : [ "category", "template" ],
+          "select_node" : function(e) {
+        	  this.toggle_node(e);
+        	  return true;
+            },
         },
         "template" : {
           "icon" : { 
@@ -113,16 +123,28 @@ var buildActiveTechniqueTree = function(id, foreignTreeId) {
         "always_copy" : "multitree",
         "check_move" : function (m) { 
           //only accept to move a node from the reference tree if it does not exists in that tree
-          var checkNotAlreadyBound = true;
-          if(foreignTreeId == m.ot.get_container().prop("id")) {
-            //look if there is an li with attr activeTechniqueId == moved object activeTechniqueId
-            checkNotAlreadyBound =  $(id + " [activeTechniqueId=" + m.o.prop("activeTechniqueId") + "]").size() < 1 ;
-          }
+           var checkNotAlreadyBound = function() {
+	          var res = true;
+	          var originTree = m.ot.get_container().prop("id");
+	          var activetechniqueid = "";
+	          for(i = 0 ; i < m.o[0].attributes.length; i++) {
+	        	  if(m.o[0].attributes[i].name == "activetechniqueid") {
+	        		  activetechniqueid = m.o[0].attributes[i].nodeValue;
+	        		  break;
+	        	  }
+	          }
+	          var list = $(id + " [activeTechniqueid=" + activetechniqueid + "]");
+	          if(foreignTreeId == originTree) {
+	            //look if there is an li with attr activeTechniqueId == moved object activeTechniqueId
+	            res =  list.size() < 1 ;
+	          }
+	          return res;
+          };
           //only accept "inside" node move (yes, comparing m.p == "inside" does not work)
           //and into a new parent node. 
           var checkInside = (m.p != "before" && m.p != "after" && this._get_parent(m.o)[0] !== m.np[0]);
           
-          return checkNotAlreadyBound && checkInside;
+          return checkNotAlreadyBound() && checkInside;
         }
       }
     },
@@ -168,13 +190,20 @@ var buildDirectiveTree = function(id, initially_select) {
                 "image" : "images/tree/folder_16x16.png" 
               },
               "valid_children" : [ "category", "template" ],
-              "select_node" : false
+              "select_node" : function(e) {
+            	  this.toggle_node(e);
+            	  return false;
+              }
             },
             "template" : {
               "icon" : { 
                 "image" : "images/tree/technique_16x16.png" 
               },
-              "valid_children" : [ "directive" ]
+              "valid_children" : [ "directive" ],
+              "select_node" : function(e) {
+            	  this.toggle_node(e);
+            	  return true;
+              }
             },
             "directive" : {
               "icon" : { 
@@ -197,13 +226,21 @@ var buildDirectiveTree = function(id, initially_select) {
       },
       "plugins" : [ "themes", "html_data", "ui", "types", "search" ]      
   })
+  
+  $(id).removeClass('nodisplay');
 }
 
 
 /*
  * Group tree
  */
-var buildGroupTree = function(id, initially_select) {
+var buildGroupTree = function(id, initially_select, select_multiple_modifier) {
+  if(select_multiple_modifier !== 'undefined') {
+    select_limit = -1;
+  } else {
+    select_multiple_modifier = "";
+    select_limit = 1;
+  }
   $(id).bind("loaded.jstree", function (event, data) {
     data.inst.open_all(-1);
   }).jstree({
@@ -212,8 +249,9 @@ var buildGroupTree = function(id, initially_select) {
       "html_titles" : true
     },
     "ui" : {
-      "initially_select" : [initially_select],
-      "select_limit" : 1
+      "initially_select" : initially_select,
+      "select_limit" : select_limit,
+      "select_multiple_modifier" : select_multiple_modifier
     },
     "types" : {
       // I set both options to -2, as I do not need depth and children count checking
@@ -225,11 +263,19 @@ var buildGroupTree = function(id, initially_select) {
         "root-category" : {
           "icon" : { "image" : "images/tree/folder_16x16.png" },
           "valid_children" : [ "category", "group" , "special_target" ],
-          "start_drag" : false
+          "start_drag" : false,
+          "select_node" : function(e) {
+        	  this.toggle_node(e);
+        	  return false;
+          }
         },
         "category" : {
           "icon" : { "image" : "images/tree/folder_16x16.png" },
-          "valid_children" : [ "category", "group" , "special_target" ]
+          "valid_children" : [ "category", "group" , "special_target" ],
+          "select_node" : function(e) {
+        	  this.toggle_node(e);
+        	  return false;
+          }
         },
         "group" : {
           "icon" : { "image" : "images/tree/server_group_16x16.gif" },
@@ -358,14 +404,20 @@ var buildRulePIdepTree = function(id, initially_select) {
               "image" : "images/tree/folder_16x16.png" 
             },
             "valid_children" : [ "category", "template" ],
-            "select_node" : false
+	        "select_node" : function(e) {
+         	  this.toggle_node(e);
+	          return false;
+	        }
           },
           "template" : {
             "icon" : { 
               "image" : "images/tree/technique_16x16.png" 
             },
             "valid_children" : [ "directive" ],
-            "select_node" : false
+            "select_node" : function(e) {
+        	  this.toggle_node(e);
+        	  return false;
+            }
           },
           "directive" : {
             "icon" : { 

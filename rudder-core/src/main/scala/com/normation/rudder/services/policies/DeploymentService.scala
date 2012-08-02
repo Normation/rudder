@@ -56,7 +56,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.repository.jdbc.HistorizationJdbcRepository
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.services.log.HistorizationService
+import com.normation.rudder.services.eventlog.HistorizationService
 import com.normation.utils.HashcodeCaching
 
 /**
@@ -74,14 +74,14 @@ case class targetNodeConfiguration(
 
 
 /**
- * The main service which deploy modified Configuration Rules and
+ * The main service which deploy modified rules and
  * their dependencies.
  */
 trait DeploymentService extends Loggable {
 
   
   /**
-   * All mighy method that take all modified configuration rules, find their
+   * All mighy method that take all modified rules, find their
    * dependencies, proccess ${vars}, build the list of node to update, 
    * update nodes. 
    * 
@@ -91,8 +91,8 @@ trait DeploymentService extends Loggable {
   def deploy() : Box[Seq[NodeConfiguration]] = {
     val initialTime = DateTime.now().getMillis
     val result = for {
-      rules <- findDependantRules ?~! "Could not find dependant configuration rules"
-      val log1 = logger.debug("Configuration rules dependency solved in %d millisec, start to build RuleVals".format((DateTime.now().getMillis - initialTime)))
+      rules <- findDependantRules ?~! "Could not find dependant rules"
+      val log1 = logger.debug("rules dependency solved in %d millisec, start to build RuleVals".format((DateTime.now().getMillis - initialTime)))
       
       val historizeTime = DateTime.now().getMillis
       
@@ -129,7 +129,7 @@ trait DeploymentService extends Loggable {
       val writeTime = DateTime.now().getMillis
       
       writtenNodeConfigs <- writeNodeConfigurations(serialedNodes.map(config => NodeId( config.id ) )) ?~! "Cannot write  configuration node"
-      val log9 = logger.debug("Configuration rules deployed in %d millisec, process report information".format((DateTime.now().getMillis - writeTime)))
+      val log9 = logger.debug("rules deployed in %d millisec, process report information".format((DateTime.now().getMillis - writeTime)))
       
       val reportTime = DateTime.now().getMillis
       expectedReports <- setExpectedReports(updatedRuleVals, deletedCrs)  ?~! "Cannot build expected reports"
@@ -142,10 +142,10 @@ trait DeploymentService extends Loggable {
   
   
   /**
-   * Find all modified configuration rules.
-   * For them, find all policy instances with variables
-   * referencing these configuration rules. 
-   * Add them to the set of configuration rules to return, and
+   * Find all modified rules.
+   * For them, find all directives with variables
+   * referencing these rules. 
+   * Add them to the set of rules to return, and
    * recurse.
    * Stop when convergence is reached
    * 
@@ -159,8 +159,8 @@ trait DeploymentService extends Loggable {
   
   /**
    * Build the list of "CFclerkRuleVal" from a list of
-   * configuration rules. 
-   * These objects are a cache of all configuration rules, with for
+   * rules. 
+   * These objects are a cache of all rules, with for
    * each of them the ${confRule.varName} replaced
    */
    def buildRuleVals(rules:Seq[Rule]) : Box[Seq[RuleVal]]
@@ -206,13 +206,13 @@ trait DeploymentService extends Loggable {
   
   
   /**
-   * Update the serials in the configuration rule vals based on the updated rule
+   * Update the serials in the rule vals based on the updated rule
    * Goal : actually set the right serial in them, to have an easy setExpectedReports
    */
   def updateRuleVal(ruleVal : Seq[RuleVal], rules : Seq[(RuleId,Int)]) : Box[Seq[RuleVal]]
   
   /**
-   * Set the exepcted reports for the configuration rule
+   * Set the exepcted reports for the rule
    * Caution : we can't handle deletion with this
    * @param ruleVal
    * @return
@@ -264,7 +264,7 @@ class DeploymentServiceImpl (
 
 /**
  * So. There is a lot of "hidden" dependencies, 
- * so for now, we just return *ALL* configuration rule.
+ * so for now, we just return *ALL* rule.
  * 
  * It might not scale very well. 
  *
@@ -288,8 +288,8 @@ trait DeploymentService_buildRuleVals extends DeploymentService {
   
   /**
    * Build the list of "CFclerkRuleVal" from a list of
-   * configuration rules. 
-   * These objects are a cache of all configuration rules, with for
+   * rules. 
+   * These objects are a cache of all rules, with for
    * each of them the ${confRule.varName} replaced
    */
    override def buildRuleVals(rules:Seq[Rule]) : Box[Seq[RuleVal]] = {
@@ -300,7 +300,7 @@ trait DeploymentService_buildRuleVals extends DeploymentService {
    }
    
    /**
-    * For each configuraiton rule, find its policy instance and policy package, and
+    * For each configuraiton rule, find its directive and policy package, and
     * store all variables / values
     * @param rules
     * @return
@@ -331,7 +331,7 @@ trait DeploymentService_buildRuleVals extends DeploymentService {
            policy => 
              for {
                replacedVariables <- parameterizedValueLookupService.lookupRuleParameterization(policy.variables.values.toSeq) ?~! 
-                   "Error when processing configuration rule (%s/%s:%s/%s) with variables: %s".format(
+                   "Error when processing rule (%s/%s:%s/%s) with variables: %s".format(
                        crv.ruleId.value, 
                        policy.techniqueId.name.value, 
                        policy.techniqueId.version.toString, 
@@ -352,7 +352,7 @@ trait DeploymentService_buildRuleVals extends DeploymentService {
    
 
    /**
-   * Update the serials in the configuration rule vals based on the updated rule (which may be empty if nothing is updated)
+   * Update the serials in the rule vals based on the updated rule (which may be empty if nothing is updated)
    * Goal : actually set the right serial in them, to have an easy setExpectedReports
    */
   def updateRuleVal(ruleVal : Seq[RuleVal], rules : Seq[(RuleId,Int)]) : Box[Seq[RuleVal]] = {
@@ -399,28 +399,39 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
   override def buildtargetNodeConfigurations(ruleVals:Seq[RuleVal]) : Box[Seq[targetNodeConfiguration]] = {
     val targetNodeConfigMap = scala.collection.mutable.Map[NodeId, MutabletargetNodeConfiguration]()
     
-    ruleVals.foreach { crv =>
-      targetToNodeService.getNodeIds(crv.target) match {
-        case e:EmptyBox => return e
-        case Full(nodeIds) => nodeIds.foreach { nodeId =>
-          targetNodeConfigMap.get(nodeId) match {
-            case None => //init nodeConfig for that id
-              (for {
-                nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
-                nodeContext <- systemVarService.getSystemVariables(nodeInfo)
-              } yield {
-                val nodeConfig = MutabletargetNodeConfiguration(nodeInfo, nodeContext.toMap)
-                nodeConfig.identifiableCFCPIs ++= crv.toRuleWithCf3PolicyDraft
-                nodeConfig
-              }) match {
-                case e:EmptyBox => logger.debug("Error while building taget conf node " + e);e
-                case Full(nodeConfig) => targetNodeConfigMap(nodeConfig.nodeInfo.id) = nodeConfig
-              }
-            case Some(nodeConfig) => //add DirectiveVal to the list of policies for that node
-                 nodeConfig.identifiableCFCPIs ++= crv.toRuleWithCf3PolicyDraft
-          }
+    ruleVals.foreach { ruleVal => 
+      
+      val nodeIds =
+      ruleVal.targets.flatMap { target =>
+        
+        targetToNodeService.getNodeIds(target) match {
+          
+          case e:EmptyBox => return e
+          
+          case Full(nodeIds) => nodeIds
         }
-      }    
+      }.toSet
+            
+      nodeIds.foreach { nodeId =>
+        targetNodeConfigMap.get(nodeId) match {
+          case None => //init nodeConfig for that id
+            (for {
+              nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+              nodeContext <- systemVarService.getSystemVariables(nodeInfo)
+            } yield {
+              val nodeConfig = MutabletargetNodeConfiguration(nodeInfo, nodeContext.toMap)
+              nodeConfig.identifiableCFCPIs ++= ruleVal.toRuleWithCf3PolicyDraft
+              nodeConfig
+            }) match {
+              case e:EmptyBox => 
+                logger.debug("Error while building target configuration node " + e)
+                e
+              case Full(nodeConfig) => targetNodeConfigMap(nodeConfig.nodeInfo.id) = nodeConfig
+            }
+          case Some(nodeConfig) => //add DirectiveVal to the list of policies for that node
+               nodeConfig.identifiableCFCPIs ++= ruleVal.toRuleWithCf3PolicyDraft
+        }
+      }
     }
     
     //replace variable of the form ${node.XXX} in both context and variable beans

@@ -35,7 +35,7 @@
 
 package com.normation.rudder.services.system
 
-import net.liftweb.common.Box
+import net.liftweb.common._
 import org.joda.time.DateTime
 import org.springframework.jdbc.core.JdbcTemplate
 import net.liftweb.common.Loggable
@@ -69,24 +69,44 @@ class DatabaseManagerImpl(
   )  extends DatabaseManager with  Loggable {
   
   def getReportsInterval() : Box[(DateTime, DateTime)] = {
-    for {
-      oldest   <- reportsRepository.getOldestReports()
-      youngest <- reportsRepository.getNewestReports()
-    } yield {
-      (oldest.executionTimestamp, youngest.executionTimestamp)
+    try {
+      for {
+        oldest   <- reportsRepository.getOldestReports()
+        youngest <- reportsRepository.getNewestReports()
+      } yield {
+        (oldest.executionTimestamp, youngest.executionTimestamp)
+      }
+    } catch {
+      case e: Exception =>
+        logger.error("Could not fetch the reports interval from the database. Reason is : %s".format(e.getMessage()))
+        Failure(e.getMessage())
     }
   }
   
   def getArchivedReportsInterval() : Box[(DateTime, DateTime)] = {
-    for {
-      oldest   <- reportsRepository.getOldestArchivedReports()
-      youngest <- reportsRepository.getNewestArchivedReports()
-    } yield {
-      (oldest.executionTimestamp, youngest.executionTimestamp)
+    try {
+      for {
+        oldest   <- reportsRepository.getOldestArchivedReports()
+        youngest <- reportsRepository.getNewestArchivedReports()
+      } yield {
+        (oldest.executionTimestamp, youngest.executionTimestamp)
+      }
+    } catch {
+      case e: Exception =>
+        logger.error("Could not fetch the archived reports interval from the database. Reason is : %s".format(e.getMessage()))
+        Failure(e.getMessage())
     }
   }
   
-   def getDatabaseSize() : Box[Long] = reportsRepository.getDatabaseSize()
+   def getDatabaseSize() : Box[Long] = {
+     try {
+       reportsRepository.getDatabaseSize()
+     } catch {
+       case e: Exception =>
+         logger.error("Could not compute the size of the database, cause is " + e.getMessage())
+         Failure(e.getMessage())
+     }
+   }
    
    def archiveEntries(date : DateTime) = reportsRepository.archiveEntries(date)
 }

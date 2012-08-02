@@ -3,7 +3,16 @@
 
 
 <component:staticInit>
-  <head></head>
+  <head>
+  <style type="text/css">
+    .warnicon {
+      margin-top:-7px;
+    }
+    #actions_zone , .dataTables_length , .dataTables_filter { 
+      display: inline-block; 
+    }
+  </style>
+  </head>
 </component:staticInit>
 
 <component:staticBody>
@@ -26,8 +35,58 @@
       </div>
     </div>
   </div>
+  <div id="createCloneGroupPopup" class="nodisplay">
+    <div id="createCloneGroupContainer" />
+  </div>
 </component:staticBody>
 
+<component:popupRemoveForm>
+  <div id="removeActionDialog" class="nodisplay">
+    <div class="simplemodal-title">
+      <h1>Delete a group</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+      <div>
+        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+        <h2>Are you sure that you want to delete this item?</h2>
+        
+      </div>
+      <br />
+      <div>
+        Deleting this group will also remove it as a target for
+        the following Rules which depend on it.
+      </div>
+      <hr class="spacer" />
+      <div id="removeItemDependencies">
+        Here comes the grid.
+      </div>
+      <br />
+
+      <hr class="spacer" />
+      <div class="reasonsFieldsetPopup">
+        <div id="explanationMessage">
+          Here comes the explanation to reasons field
+        </div>
+        <div id="reasonsField">
+          Here comes the reasons field
+        </div>
+      </div>
+
+      <br />
+      <hr class="spacer" />
+    </div>
+    <div class="simplemodal-bottom">
+      <hr/>
+      <div class="popupButton">
+         <span>
+          <button class="simplemodal-close" onClick="return false;">Cancel</button>
+          <div id="removeButton" />
+        </span>
+      </div>
+    </div>
+  </div>   
+</component:popupRemoveForm>
 
 <component:body>
 <!--  TODO!  -->

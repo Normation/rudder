@@ -55,14 +55,15 @@ import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
 import com.normation.rudder.services.marshalling.TestFileFormat
 import com.normation.utils.Control._
 import com.normation.utils.XmlUtils
+import com.normation.rudder.domain.logger._
 
-import LogMigrationEventLog_10_2.logger
 import net.liftweb.common._
 import net.liftweb.util.Helpers.strToCssBindPromoter
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.IterableFunc.itNodeSeq
 import net.liftweb.util.StringPromotable.intToStrPromo
 
+/*
 /**
  * ////////////////////////////////////////
  * The logger to use for tracking that
@@ -87,7 +88,7 @@ object LogMigrationEventLog_10_2 {
     logger.info("Successfully migrated %s eventlog to format 2".format(seq.size))
   }
 }
-
+*/
 /**
  * ////////////////////////////////////////
  * DataBase
@@ -210,7 +211,7 @@ class ControlEventLogsMigration_10_2(
   , eventLogsMigration_10_2    : EventLogsMigration_10_2
 
 ) {
-  import LogMigrationEventLog_10_2.logger
+ def logger = MigrationLogger(2)
   
   def migrate() : Box[MigrationStatus] = {
     /*
@@ -298,22 +299,33 @@ class EventLogsMigration_10_2(
   , successLogger              : Seq[MigrationEventLog] => Unit
   , batchSize                  : Int = 1000
 ) {
-  import LogMigrationEventLog_10_2.logger
+ def logger = MigrationLogger(2)
   
  
   /**
    * retrieve all event log to migrate. 
    */
   def findAllEventLogs : Box[Seq[MigrationEventLog]] = {
-    val SELECT_SQL = 
+    
+    //check if the event must be migrated
+    def needMigration(xml:NodeSeq) : Boolean = (
+         (xml \ "addPending" ).size > 0 
+      || (try {
+           (xml \\ "@fileFormat" exists { _.text.toFloat == 1 })
+         } catch {
+           case e:NumberFormatException => false
+         })
+    )
+    
+    val SELECT_SQL_ALL_EVENTLOGS = 
       """
-      |SELECT id, eventType, data 
-      |FROM EventLog 
-      |WHERE xmlexists('/entry/*[@fileFormat=1]'PASSING BY REF data)
-      |   OR xmlexists('/entry/addPending'PASSING BY REF data)
+      |SELECT id, eventType, data FROM eventlog
       |""".stripMargin
       
-    tryo { jdbcTemplate.query(SELECT_SQL,MigrationEventLogMapper).asScala }
+    tryo(
+        jdbcTemplate.query(SELECT_SQL_ALL_EVENTLOGS, MigrationEventLogMapper).asScala
+       .filter(log => needMigration(log.data))
+    )
   }
   
   private[this] def saveEventLogs(logs:Seq[MigrationEventLog]) : Box[Seq[MigrationEventLog]] = {
@@ -369,7 +381,7 @@ class EventLogsMigration_10_2(
   ) : Seq[MigrationEventLog] = {
     logs.flatMap { log =>
       eventLogMigration.migrate(log) match {
-        case eb:EmptyBox => errorLogger(eb ?~! "Error when trying to save event log with id '%s'".format(log.id)); None
+        case eb:EmptyBox => errorLogger(eb ?~! "Error when trying to migrate event log with id '%s'".format(log.id)); None
         case Full(m)     => Some(m)
       }
     }
@@ -423,10 +435,38 @@ object TestIsEntry {
  * Change labels of a list of Elem
  */
 case class ChangeLabel(label:String) extends Function1[NodeSeq, Option[Elem]] {
-  import LogMigrationEventLog_10_2.logger
+   def logger = MigrationLogger(2)
 
   override def apply(nodes:NodeSeq) = nodes match {
     case e:Elem => Some(e.copy(label = label))
+    case x => //ignore other type of nodes
+      logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
+      None
+  }
+}
+/**
+ * Change labels of a list of Elem
+ */
+case class EncapsulateChild(label:String) extends Function1[NodeSeq, Option[NodeSeq]] {
+ def logger = MigrationLogger(2)
+
+  override def apply(nodes:NodeSeq) = nodes match {
+    case e:Elem => Some(e.copy(child = Encapsulate(label).apply(e.child).getOrElse(NodeSeq.Empty)))
+    case x => //ignore other type of nodes
+      logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
+      None
+  }
+}
+/**
+ * Change labels of a list of Elem
+ */
+case class Encapsulate(label:String) extends Function1[NodeSeq, Option[NodeSeq]] {
+   def logger = MigrationLogger(2)
+
+  override def apply(nodes:NodeSeq) = nodes match {
+    case e:Elem => Some(e.copy(label=label,child=e))
+    case nodeseq:NodeSeq if (nodeseq.size == 1) => Some(<test>{nodeseq.head}</test>.copy(label = label) )
+    case nodeseq:NodeSeq if (nodeseq == NodeSeq.Empty) => Some(nodeseq)
     case x => //ignore other type of nodes
       logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
       None
@@ -437,13 +477,13 @@ case class ChangeLabel(label:String) extends Function1[NodeSeq, Option[Elem]] {
  * Migrate an event log from fileFormat 1.0 to 2
  * Also take care of categories, etc. 
  */
-class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
-  import LogMigrationEventLog_10_2.logger
+class EventLogMigration_10_2(xmlMigration:XmlMigration) {
+ def logger = MigrationLogger(2)
   
   def migrate(eventLog:MigrationEventLog) : Box[MigrationEventLog] = {
     /*
      * We don't use values from 
-     * com.normation.rudder.domain.log.*EventType
+     * com.normation.rudder.domain.eventlog.*EventType
      * so that if they change in the future, the migration
      * from 2.3 to 2.4 is still OK. 
      */
@@ -453,7 +493,6 @@ class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
     def create(xmlFn:Elem => Box[Elem], name:String) = {
       xmlFn(data).map { xml => MigrationEventLog(id, name, xml) }
     }
-      
     
     eventType.toLowerCase match {
       case "acceptnode" => create(xmlMigration.node, "AcceptNode")
@@ -485,17 +524,29 @@ class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
         val msg = "Not migrating eventLog with [id: %s] [type: %s]: no handler for that type.".format(eventLog.id, eventLog.eventType)
         Failure(msg)
     }
-    
   }
+}
+
+trait XmlMigration {
+   def rule(xml:Elem) : Box[Elem] 
+  
+  def directive(xml:Elem) : Box[Elem] 
+  
+  def nodeGroup(xml:Elem) : Box[Elem]
+  
+
+  def addPendingDeployment(xml:Elem) : Box[Elem]
+  
+
+  def node(xml:Elem) : Box[Elem]
   
   
 }
-
 /**
  * That class handle migration of XML eventLog file
  * from a 1.0 format to a 2 one. 
  */
-class XmlMigration_10_2 {
+class XmlMigration_10_2 extends XmlMigration{
   
   private[this] def failBadElemType(xml:NodeSeq) = { 
     Failure("Not expected type of NodeSeq (wish it was an Elem): " + xml)

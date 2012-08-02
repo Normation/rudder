@@ -35,11 +35,12 @@
 package com.normation.rudder.web.components
 
 import com.normation.rudder.domain.policies._
+import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.repository._
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies._
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -58,7 +59,8 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.rudder.services.policies._
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
-import com.normation.rudder.domain.log.RudderEventActor
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import org.joda.time.DateTime
 
 object TechniqueEditForm {
   
@@ -79,6 +81,27 @@ object TechniqueEditForm {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "body", xml)
+    }) openOr Nil
+    
+  private def popupRemoveForm = 
+    (for {
+      xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
+    } yield {
+      chooseTemplate("component", "popupRemoveForm", xml)
+    }) openOr Nil
+    
+  private def popupDisactivateForm = 
+    (for {
+      xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
+    } yield {
+      chooseTemplate("component", "popupDisactivateForm", xml)
+    }) openOr Nil
+    
+  private def crForm = 
+    (for {
+      xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
+    } yield {
+      chooseTemplate("component", "form", xml)
     }) openOr Nil
   
   val htmlId_techniqueConf = "techniqueConfiguration"
@@ -115,6 +138,7 @@ class TechniqueEditForm(
   private[this] val directiveEditorService = inject[DirectiveEditorService]
   private[this] val dependencyService = inject[DependencyAndDeletionService]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
+  private[this] val userPropertyService = inject[UserPropertyService]
 
 
   
@@ -134,8 +158,53 @@ class TechniqueEditForm(
   def dispatch = { 
     case "showForm" => { _:NodeSeq => showForm }
   }
-
-  def showForm() : NodeSeq = {    
+  
+  def showForm() : NodeSeq = {
+    (
+      "#editForm" #> showCrForm() &
+      "#removeActionDialog" #> showRemovePopupForm() &
+      "#disactivateActionDialog" #> showDisactivatePopupForm()
+    )(body)
+  }
+  
+  def showRemovePopupForm() : NodeSeq = {    
+        currentActiveTechnique match {
+          case e:EmptyBox => NodeSeq.Empty
+          case Full(activeTechnique) => 
+    (
+          "#deleteActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
+          "#dialogDeleteButton" #> { deleteButton(activeTechnique.id) % ("id", "deleteButton") } &
+          "#deleteItemDependencies *" #> dialogDeleteTree("deleteItemDependencies", activeTechnique)&
+          ".reasonsFieldset" #> { crReasonsRemovePopup.map { f =>
+            "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+            "#reasonsField" #> f.toForm_!
+          } } &
+          "#errorDisplay" #> { updateAndDisplayNotifications(formTrackerRemovePopup) }
+      )(popupRemoveForm)
+        }
+  }
+  
+  def showDisactivatePopupForm() : NodeSeq = {    
+        currentActiveTechnique match {
+          case e:EmptyBox => NodeSeq.Empty
+          case Full(activeTechnique) => 
+    (
+          "#disableActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
+          "#dialogDisableButton" #> { disableButton(activeTechnique) % ("id", "disableButton") } &
+          "#dialogDisableTitle" #> { if(activeTechnique.isEnabled) "Disable" else "Enable" } &
+          "#dialogDisableLabel" #> { if(activeTechnique.isEnabled) "disable" else "enable" } &
+          "#disableItemDependencies *" #> dialogDisableTree("disableItemDependencies", activeTechnique) & 
+          ".reasonsFieldset" #> { crReasonsDisablePopup.map { f =>
+            "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+            "#reasonsField" #> f.toForm_!
+          } } &
+          "#time" #> <div>{ DateTime.now } </div>&
+          "#errorDisplay" #> { updateAndDisplayNotifications(formTrackerDisactivatePopup) }
+      )(popupDisactivateForm)  
+  }
+  }
+    
+  def showCrForm() : NodeSeq = {    
     (
       ClearClearable &
       //all the top level action are displayed only if the template is on the user library
@@ -145,13 +214,12 @@ class TechniqueEditForm(
           ClearClearable &
           //activation button: show disactivate if activated
           "#disableButtonLabel" #> { if(activeTechnique.isEnabled) "Disable" else "Enable" } &
-          "#dialogDisableButton" #> { disableButton(activeTechnique) % ("id", "disableButton") } &
           "#dialogDisableTitle" #> { if(activeTechnique.isEnabled) "Disable" else "Enable" } &
-          "#dialogDisableLabel" #> { if(activeTechnique.isEnabled) "disable" else "enable" } &
           "#dialogdisableWarning" #> dialogDisableWarning(activeTechnique) &
-          "#disableItemDependencies *" #> dialogDisableTree("disableItemDependencies", activeTechnique) & 
-          "#dialogDeleteButton" #> { deleteButton(activeTechnique.id) % ("id", "deleteButton") } &
-          "#deleteItemDependencies *" #> dialogDeleteTree("deleteItemDependencies", activeTechnique)
+          ".reasonsFieldset" #> { crReasons.map { f =>
+            "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+            "#reasonsField" #> f.toForm_!
+          } } 
         )(xml)
       } } &
       "#techniqueName" #> technique.name &
@@ -163,67 +231,167 @@ class TechniqueEditForm(
       "#templateParameters" #> showParameters() &
       "#isSingle *" #> showIsSingle &
       "#editForm [id]" #> htmlId_technique
-    )(body) ++ 
+    )(crForm) ++ 
     Script(OnLoad(JsRaw("""
       correctButtons();
       
       $('#deleteButton').click(function() {
-        createPopup("deleteActionDialog",140,850);
+        createPopup("deleteActionDialog",140,400);
         return false;
       });
 
       $('#disableButton').click(function() {
-        createPopup("disableActionDialog",100,850);
+        createPopup("disableActionDialog",140,500);
         return false;
       });
     """)))
   }
-
+  
+  private[this] val crReasons = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+  
+  private[this] val crReasonsRemovePopup = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+  
+  private[this] val crReasonsDisablePopup = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+    
+  
+  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    new WBTextAreaField("Message", "") {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % 
+        ("style" -> "height:8em;")
+      override def subContainerClassName = containerClass
+      override def validations() = {
+        if(mandatory){
+          valMinLen(5, "The reasons must have at least 5 characters.") _ :: Nil
+        } else {
+          Nil
+        }
+      }
+    }
+  }
+    
+  private[this] val formTracker = {
+    new FormTracker(crReasons.toList) 
+  }
+  
+  private[this] val formTrackerRemovePopup = {
+    new FormTracker(crReasonsRemovePopup.toList) 
+  }
+  
+  private[this] val formTrackerDisactivatePopup = {
+    new FormTracker(crReasonsDisablePopup.toList) 
+  }
+  
   ////////////// Callbacks //////////////
   
   private[this] def onSuccess() : JsCmd = {
     //MUST BE THIS WAY, because the parent may change some reference to JsNode
     //and so, our AJAX could be broken
+    cleanTrackers
     onSuccessCallback() & updateFormClientSide() & 
     //show success popup
     successPopup
   }
   
+  private[this] def cleanTrackers() {
+    formTracker.clean
+    formTrackerRemovePopup.clean
+    formTrackerDisactivatePopup.clean
+  }
+  
   private[this] def onFailure() : JsCmd = {
-    onFailureCallback() & updateFormClientSide()
+    formTracker.addFormError(error("The form contains some errors, please correct them"))
+    updateFormClientSide()
+  }
+  
+  private[this] def onFailureRemovePopup() : JsCmd = {
+    val elemError = error("The form contains some errors, please correct them")
+    formTrackerRemovePopup.addFormError(elemError)
+    updateRemoveFormClientSide()
+  }
+  
+  private[this] def onFailureDisablePopup() : JsCmd = {
+    val elemError = error("The form contains some errors, please correct them")
+    formTrackerDisactivatePopup.addFormError(elemError)
+    updateDisableFormClientSide()
+  }
+  
+  private[this] def updateRemoveFormClientSide() : JsCmd = {
+    val jsDisplayRemoveDiv = JsRaw("""$("#deleteActionDialog").removeClass('nodisplay')""")
+    Replace("deleteActionDialog", this.showRemovePopupForm()) & 
+    jsDisplayRemoveDiv &
+    initJs
+  }
+  
+  private[this] def updateDisableFormClientSide() : JsCmd = {
+    val jsDisplayDisableDiv = JsRaw("""$("#disableActionDialog").removeClass('nodisplay')""")
+    Replace("disableActionDialog", this.showDisactivatePopupForm()) & 
+    jsDisplayDisableDiv &
+    initJs
+  }
+  
+  def initJs : JsCmd = {
+    JsRaw("correctButtons();")
   }
   
   ///////////// Delete ///////////// 
     
   private[this] def deleteButton(id:ActiveTechniqueId) : Elem = {
+    
     def deleteActiveTechnique() : JsCmd = {
-      JsRaw("$.modal.close();") & 
-      { 
-        (for {
-          deleted <- dependencyService.cascadeDeleteTechnique(id, CurrentUser.getActor)
-          deploy <- {
-            asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
-            Full("Deployment request sent")
+      if(formTrackerRemovePopup.hasErrors) {
+        onFailureRemovePopup
+      } else {
+        JsRaw("$.modal.close();") & 
+        { 
+          (for {
+            deleted <- dependencyService.cascadeDeleteTechnique(id, CurrentUser.getActor, crReasonsRemovePopup.map (_.is))
+            deploy <- {
+              asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
+              Full("Deployment request sent")
+            }
+          } yield {
+            deploy 
+          }) match {
+            case Full(x) => 
+              formTrackerRemovePopup.clean
+              onSuccessCallback() & 
+              SetHtml(htmlId_technique, <div id={htmlId_technique}>Technique successfully deleted</div> ) & 
+              //show success popup
+              successPopup 
+            case Empty => //arg. 
+              formTrackerRemovePopup.addFormError(error("An error occurred while deleting the Technique."))
+              onFailure
+            case Failure(m,_,_) =>
+              formTrackerRemovePopup.addFormError(error("An error occurred while deleting the Technique: " + m))
+              onFailure
           }
-        } yield {
-          deploy 
-        }) match {
-          case Full(x) => 
-            onSuccessCallback() & 
-            SetHtml(htmlId_technique, <div id={htmlId_technique}>Rule successfully deleted</div> ) & 
-            //show success popup
-            successPopup 
-          case Empty => //arg. 
-            //formTracker.addFormError(error("An error occurred while saving the Rule"))
-            onFailure
-          case Failure(m,_,_) =>
-            //formTracker.addFormError(error("An error occurred while saving the Rule: " + m))
-            onFailure
         }
       }
     }
     
-    SHtml.ajaxButton(<span class="red">Delete</span>, deleteActiveTechnique _ )
+    SHtml.ajaxSubmit("Delete", deleteActiveTechnique _ )
   }
   
   private[this] def dialogDeleteTree(htmlId:String,activeTechnique:ActiveTechnique) : NodeSeq = {
@@ -234,24 +402,29 @@ class TechniqueEditForm(
 
   private[this] def disableButton(activeTechnique:ActiveTechnique) : Elem = {
     def switchActivation(status:Boolean)() : JsCmd = {
-      currentActiveTechnique = currentActiveTechnique.map( activeTechnique => activeTechnique.copy(isEnabled = status))
-      JsRaw("$.modal.close();") & 
-      statusAndDeployTechnique(activeTechnique.id, status)
+      if(formTrackerDisactivatePopup.hasErrors) {
+        onFailureDisablePopup
+      } else {
+        currentActiveTechnique = currentActiveTechnique.map( 
+            activeTechnique => activeTechnique.copy(isEnabled = status))
+        JsRaw("$.modal.close();") & 
+        statusAndDeployTechnique(activeTechnique.id, status)
+      }
     }
     
     if(activeTechnique.isEnabled) {
-      SHtml.ajaxButton(<span class="red">Disable</span>, switchActivation(false) _ )
+      SHtml.ajaxSubmit("Disable", switchActivation(false) _ )
     } else {
-      SHtml.ajaxButton(<span class="red">Enable</span>, switchActivation(true) _ )
+      SHtml.ajaxSubmit("Enable", switchActivation(true) _ )
     }
   }
  
 
   private[this] def dialogDisableWarning(activeTechnique:ActiveTechnique) : NodeSeq = {
     if(activeTechnique.isEnabled) {
-      <h2>Disabling this Technique will also disable the following Directives and Rules which depend on it.</h2>
+      <h2>Disabling this Technique will also affect the following Directives and Rules.</h2>
     } else {
-      <h2>Enabling this Technique will also enable the following Directives and Rules which depend on it.</h2>
+      <h2>Enabling this Technique will also affect the following Directives and Rules.</h2>
     }
   }
 
@@ -297,7 +470,13 @@ class TechniqueEditForm(
                  */
                 def onClickAddTechniqueToCategory() : JsCmd = {
                   //back-end action
-                  activeTechniqueRepository.addTechniqueInUserLibrary(category.id, technique.id.name, techniqueRepository.getTechniqueVersions(technique.id.name).toSeq, CurrentUser.getActor) 
+                  activeTechniqueRepository.addTechniqueInUserLibrary(
+                      category.id
+                    , technique.id.name
+                    , techniqueRepository.getTechniqueVersions(technique.id.name).toSeq
+                    , CurrentUser.getActor
+                    , Some("User added a technique from UI")
+                  ) 
                   
                   //update UI
                   Replace(htmlId_addToActiveTechniques, showTechniqueUserCategory() ) &
@@ -328,9 +507,9 @@ class TechniqueEditForm(
     <span>
       {
         if(technique.isMultiInstance) {
-          {<b>Multi instance</b>} ++ Text(": several Directives derived from that template can be deployed on a given server")
+          {<b>Multi instance</b>} ++ Text(": several Directives derived from that template can be deployed on a given node")
         } else {
-          {<b>Unique</b>} ++ Text(": an unique Directive derived from that template can be deployed on a given server")
+          {<b>Unique</b>} ++ Text(": an unique Directive derived from that template can be deployed on a given node")
         }
       }
     </span>
@@ -424,7 +603,7 @@ class TechniqueEditForm(
 
 
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml(htmlId_technique, this.showForm )
+    SetHtml(htmlId_technique, this.showCrForm )
   }
   
   private[this] def error(msg:String) = <span class="error">{msg}</span>
@@ -432,22 +611,36 @@ class TechniqueEditForm(
   
   private[this] def statusAndDeployTechnique(uactiveTechniqueId:ActiveTechniqueId, status:Boolean) : JsCmd = {
       (for {
-        save <- activeTechniqueRepository.changeStatus(uactiveTechniqueId, status, CurrentUser.getActor)
+        save <- activeTechniqueRepository.changeStatus(uactiveTechniqueId, status, 
+                  CurrentUser.getActor, crReasonsDisablePopup.map(_.is))
         deploy <- {
           asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
           Full("Deployment request sent")
         }
       } yield {
-        deploy 
+        save 
       }) match {
         case Full(x) => onSuccess
-        case Empty => //arg. 
-         // formTracker.addFormError(error("An error occurred while saving the Rule"))
+        case Empty => 
+          formTracker.addFormError(error("An error occurred while saving the Technique"))
           onFailure
         case f:Failure =>
-         // formTracker.addFormError(error("An error occurred while saving the Rule: " + f.messageChain))
+          formTracker.addFormError(error("An error occurred while saving the Technique: " + f.messageChain))
           onFailure
       }      
+  }
+  
+  private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
+    val notifications = formTracker.formErrors
+    formTracker.cleanErrors
+    if(notifications.isEmpty) {
+      NodeSeq.Empty
+    }
+    else {
+      val html = <div id="notifications" class="notify">
+        <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul></div>
+      html
+    }
   }
  
   

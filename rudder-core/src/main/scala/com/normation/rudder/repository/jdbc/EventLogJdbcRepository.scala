@@ -38,7 +38,7 @@ import com.normation.rudder.repository.EventLogRepository
 import org.joda.time.DateTime
 import org.slf4j.{Logger,LoggerFactory}
 import com.normation.eventlog._
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import com.normation.cfclerk.domain.Cf3PolicyDraftId
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core._
@@ -50,14 +50,13 @@ import org.springframework.jdbc.support.GeneratedKeyHolder
 import com.normation.utils.User
 import net.liftweb.common._
 import scala.xml._
-import java.security.Principal
 import scala.collection.JavaConversions._
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.policies.DeleteRuleDiff
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.services.log.EventLogFactory
-import com.normation.rudder.domain.log._
+import com.normation.rudder.services.eventlog.EventLogFactory
+import com.normation.rudder.domain.eventlog._
 
 /**
  * The EventLog repository
@@ -74,10 +73,11 @@ class EventLogJdbcRepository(
 
    val logger = LoggerFactory.getLogger(classOf[EventLogRepository])
   
-   val INSERT_SQL = "insert into EventLog (creationDate, principal, eventType, severity, data) values (?, ?, ?, ?, ?)"
-   val INSERT_SQL_CAUSEID = "insert into EventLog (creationDate, principal, eventType, severity, data, causeId) values (?, ?, ?, ?, ?, ?)"
+   //reason: column 6
+   //causeId: column 7
+   val INSERT_SQL = "insert into EventLog (creationDate, principal, eventType, severity, data %s %s) values (?, ?, ?, ?, ? %s %s)"
  
-   val SELECT_SQL = "SELECT id, creationDate, principal, eventType, severity, data, causeId FROM EventLog where 1=1 "
+   val SELECT_SQL = "SELECT id, creationDate, principal, eventType, severity, data, reason, causeId FROM EventLog where 1=1 "
    
   /**
    * Save an eventLog
@@ -86,71 +86,50 @@ class EventLogJdbcRepository(
    */
   def saveEventLog(eventLog : EventLog) : Box[EventLog] = {
      val keyHolder = new GeneratedKeyHolder()
-     eventLog.cause match {
-       case None => jdbcTemplate.update(
-         new PreparedStatementCreator() {
-           def createPreparedStatement(connection : Connection) : PreparedStatement = {
-             val sqlXml = connection.createSQLXML()
-             sqlXml.setString(eventLog.details.toString)
-             val ps = connection.prepareStatement(INSERT_SQL, Seq[String]("id").toArray[String]);
-             ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
-             ps.setString(2, eventLog.principal.name)
-             ps.setString(3, eventLog.eventType.serialize)
-             ps.setInt(4, eventLog.severity)
-             ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
-             ps
-           }
-         },
-         keyHolder)
-       case Some(causeId) =>
+
+     try {
          jdbcTemplate.update(
          new PreparedStatementCreator() {
            def createPreparedStatement(connection : Connection) : PreparedStatement = {
              val sqlXml = connection.createSQLXML()
              sqlXml.setString(eventLog.details.toString)
-             val ps = connection.prepareStatement(INSERT_SQL_CAUSEID, Seq[String]("id").toArray[String]);
+             
+             var i = 5
+             val (reasonCol, reasonVal) = eventLog.eventDetails.reason match {
+               case None => ("", "")
+               case Some(r) => 
+                 i = i + 1
+                 (", reason", ", ?") //#6
+             }
+             
+             val (causeCol, causeVal) = eventLog.cause match {
+               case None => ("","")
+               case Some(id) => 
+                 i = i + 1
+                 (", causeId", ", ?") //#7
+             }
+             
+             val ps = connection.prepareStatement(INSERT_SQL.format(reasonCol, causeCol, reasonVal, causeVal), Seq[String]("id").toArray[String]);
+             
              ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
              ps.setString(2, eventLog.principal.name)
              ps.setString(3, eventLog.eventType.serialize)
              ps.setInt(4, eventLog.severity)
              ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
-             ps.setInt(6, causeId) 
+             
+             eventLog.eventDetails.reason.foreach( x => ps.setString(6, x) )
+             eventLog.cause foreach( x => ps.setInt(i, x)  )
+
              ps
            }
          },
          keyHolder)
+     
+         getEventLog(keyHolder.getKey().intValue)
+     } catch {
+       case e:Throwable => logger.error(e.getMessage)
+       Failure("Exception caught while trying to save an eventlog : %s".format(e.getMessage),Full(e), Empty)
      }
-     
-     
-     getEventLog(keyHolder.getKey().intValue)
-     
-  }
-  
-  /**
-   * Save an eventLog with its cause id (because it cannot be held in the VO)
-   * Return the event log with its serialization number
-   * TODO : it seems unused, to be checked
-   */
-  def saveEventLog(eventLog : EventLog, causeId : Int) : Box[EventLog] = {
-     val keyHolder = new GeneratedKeyHolder()
-     jdbcTemplate.update(
-         new PreparedStatementCreator() {
-           def createPreparedStatement(connection : Connection) : PreparedStatement = {
-             val sqlXml = connection.createSQLXML()
-             sqlXml.setString(eventLog.details.toString)
-             val ps = connection.prepareStatement(INSERT_SQL_CAUSEID, Seq[String]("id").toArray[String]);
-             ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
-             ps.setString(2, eventLog.principal.name)
-             ps.setString(3, eventLog.eventType.serialize)
-             ps.setInt(4, eventLog.severity)
-             ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
-             ps.setInt(6, causeId) 
-             ps
-           }
-         },
-     keyHolder)
-     
-    getEventLog(keyHolder.getKey().intValue)
   }
   
   
@@ -193,6 +172,12 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
                         } else None
                       }
       , severity    = rs.getInt("severity")
+      , reason      = {
+                        val desc = rs.getString("reason")
+                        if(desc != null && desc.size > 0) {
+                          Some(desc)
+                        } else None
+                      }
       , details     = XML.load(rs.getSQLXML("data").getBinaryStream() )
     )
     

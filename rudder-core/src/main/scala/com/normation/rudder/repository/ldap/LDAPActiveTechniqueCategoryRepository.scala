@@ -87,7 +87,7 @@ class LDAPActiveTechniqueCategoryRepository(
 ) extends ActiveTechniqueCategoryRepository {
  
   /**
-   * Find sub entries (children categories and user policy templates for 
+   * Find sub entries (children categories and active techniques for 
    * the given category which MUST be mapped to an entry with the given
    * DN in the LDAP backend, accessible with the given connection. 
    */
@@ -137,9 +137,9 @@ class LDAPActiveTechniqueCategoryRepository(
     (for {
       con               <- ldap
       locked            <- userLibMutex.readLock
-      rootCategoryEntry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn) ?~! "The root category of the user library of policy templates seems to be missing in LDAP directory. Please check its content"
-      // look for sub category and policy template
-      rootCategory      <- mapper.entry2ActiveTechniqueCategory(rootCategoryEntry) ?~! "Error when mapping from an LDAP entry to a User Policy Template Category: %s".format(rootCategoryEntry)
+      rootCategoryEntry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn) ?~! "The root category of the user library of techniques seems to be missing in LDAP directory. Please check its content"
+      // look for sub category and technique
+      rootCategory      <- mapper.entry2ActiveTechniqueCategory(rootCategoryEntry) ?~! "Error when mapping from an LDAP entry to an active technique Category: %s".format(rootCategoryEntry)
     } yield {
       addSubEntries(rootCategory,rootCategoryEntry.dn, con)
     }) match {
@@ -157,24 +157,24 @@ class LDAPActiveTechniqueCategoryRepository(
     (for {
       con               <- ldap
       locked            <- userLibMutex.readLock
-      rootCategoryEntry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn) ?~! "The root category of the user library of policy templates seems to be missing in LDAP directory. Please check its content"
+      rootCategoryEntry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn) ?~! "The root category of the user library of techniques seems to be missing in LDAP directory. Please check its content"
       filter            =  if(includeSystem) IS(OC_TECHNIQUE_CATEGORY) else AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)),IS(OC_TECHNIQUE_CATEGORY))
       entries           =  con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter) //double negation is mandatory, as false may not be present
       allEntries        =  entries :+ rootCategoryEntry
-      categories        <- boxSequence(allEntries.map(entry => mapper.entry2ActiveTechniqueCategory(entry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(entry) ))
+      categories        <- boxSequence(allEntries.map(entry => mapper.entry2ActiveTechniqueCategory(entry) ?~! "Error when transforming LDAP entry %s into an active technique category".format(entry) ))
     } yield {
       categories
     })
   }
   /**
-   * Get an user policy template by its ID
+   * Get an active technique by its ID
    */
   def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[ActiveTechniqueCategory] = {
     for {
       con           <- ldap
       locked        <- userLibMutex.readLock
       categoryEntry <- getCategoryEntry(con, id) ?~! "Entry with ID '%s' was not found".format(id)
-      category      <- mapper.entry2ActiveTechniqueCategory(categoryEntry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(categoryEntry)
+      category      <- mapper.entry2ActiveTechniqueCategory(categoryEntry) ?~! "Error when transforming LDAP entry %s into an active technique category".format(categoryEntry)
     } yield {
       addSubEntries(category,categoryEntry.dn, con)
     }
@@ -201,9 +201,10 @@ class LDAPActiveTechniqueCategoryRepository(
    * return the modified parent category. 
    */
   def addActiveTechniqueCategory(
-      that:ActiveTechniqueCategory,
-      into:ActiveTechniqueCategory //parent category
+      that:ActiveTechniqueCategory
+    , into:ActiveTechniqueCategory //parent category
     , actor: EventActor
+    , reason: Option[String]
   ) : Box[ActiveTechniqueCategory] = {
     for {
       con                 <- ldap 
@@ -219,7 +220,7 @@ class LDAPActiveTechniqueCategoryRepository(
                                for {
                                  parents  <- this.getParentsForActiveTechniqueCategory(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitArchiver.archiveActiveTechniqueCategory(that,parents.map( _.id), Some(commiter))
+                                 archive  <- gitArchiver.archiveActiveTechniqueCategory(that,parents.map( _.id), Some(commiter, reason))
                                } yield archive
                              } else Full("ok")
     } yield {
@@ -228,10 +229,10 @@ class LDAPActiveTechniqueCategoryRepository(
   }
   
   /**
-   * Update an existing policy template category
+   * Update an existing technique category
    * Return the updated policy category
    */
-  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, actor: EventActor) : Box[ActiveTechniqueCategory] = {
+  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategory] = {
     for {
       con              <- ldap 
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
@@ -247,7 +248,7 @@ class LDAPActiveTechniqueCategoryRepository(
                             for {
                               parents  <- this.getParentsForActiveTechniqueCategory(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                              archive  <- gitArchiver.archiveActiveTechniqueCategory(updated,parents.map( _.id), Some(commiter))
+                              archive  <- gitArchiver.archiveActiveTechniqueCategory(updated,parents.map( _.id), Some(commiter, reason))
                             } yield archive
                           } else Full("ok")
     } yield {
@@ -266,7 +267,7 @@ class LDAPActiveTechniqueCategoryRepository(
       locked              <- userLibMutex.readLock
       categoryEntry       <- getCategoryEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
       parentCategoryEntry <- con.get(categoryEntry.dn.getParent)
-      parentCategory      <- mapper.entry2ActiveTechniqueCategory(parentCategoryEntry) ?~! "Error when transforming LDAP entry %s into a user policy template category".format(parentCategoryEntry)
+      parentCategory      <- mapper.entry2ActiveTechniqueCategory(parentCategoryEntry) ?~! "Error when transforming LDAP entry %s into an active technique category".format(parentCategoryEntry)
     } yield {
       addSubEntries(parentCategory, parentCategoryEntry.dn, con)
     }
@@ -294,9 +295,9 @@ class LDAPActiveTechniqueCategoryRepository(
       con <- ldap
       uptEntries = con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, EQ(A_ACTIVE_TECHNIQUE_UUID, id.value))
       uptEntry <- uptEntries.size match {
-        case 0 => Failure("Can not find user policy template with id '%s'".format(id))
+        case 0 => Failure("Can not find active technique with id '%s'".format(id))
         case 1 => Full(uptEntries(0))
-        case _ => Failure("Found more than one user policy template with id '%s' : %s".format(id, uptEntries.map(_.dn).mkString("; ")))
+        case _ => Failure("Found more than one active technique with id '%s' : %s".format(id, uptEntries.map(_.dn).mkString("; ")))
       }
       category <- getActiveTechniqueCategory(mapper.dn2ActiveTechniqueCategoryId(uptEntry.dn.getParent))
     } yield {
@@ -304,7 +305,7 @@ class LDAPActiveTechniqueCategoryRepository(
     } }
   } 
   
-  def delete(id:ActiveTechniqueCategoryId, actor:EventActor, checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId] = {
+  def delete(id:ActiveTechniqueCategoryId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId] = {
     for {
       con <-ldap
       deleted <- {
@@ -323,7 +324,7 @@ class LDAPActiveTechniqueCategoryRepository(
               autoArchive <- (if(autoExportOnModify && ok.size > 0) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitArchiver.deleteActiveTechniqueCategory(id,parents.map( _.id), Some(commiter))
+                                 archive  <- gitArchiver.deleteActiveTechniqueCategory(id,parents.map( _.id), Some(commiter, reason))
                                } yield {
                                  archive
                                }
@@ -345,7 +346,7 @@ class LDAPActiveTechniqueCategoryRepository(
    * Both category to move and destination have to exists, else it is a failure.
    * The destination category can not be a child of the category to move. 
    */
-  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, actor: EventActor) : Box[ActiveTechniqueCategoryId] = {
+  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategoryId] = {
       for {
         con            <- ldap
         oldParents     <- if(autoExportOnModify) {
@@ -371,7 +372,7 @@ class LDAPActiveTechniqueCategoryRepository(
                               newCat   <- getActiveTechniqueCategory(categoryId)
                               parents  <- this.getParentsForActiveTechniqueCategory(categoryId)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                              moved    <- gitArchiver.moveActiveTechniqueCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some(commiter))
+                              moved    <- gitArchiver.moveActiveTechniqueCategory(newCat, oldParents.map( _.id), parents.map( _.id), Some(commiter, reason))
                             } yield {
                               moved
                             }

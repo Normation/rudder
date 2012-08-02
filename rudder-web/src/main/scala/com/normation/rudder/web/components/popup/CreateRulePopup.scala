@@ -52,7 +52,7 @@ import com.normation.rudder.web.model.{
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import CreateRulePopup._
-import com.normation.rudder.domain.log.AddRule
+import com.normation.rudder.domain.eventlog.AddRule
 import com.normation.rudder.web.model.CurrentUser
 
 class CreateRulePopup(
@@ -93,20 +93,17 @@ class CreateRulePopup(
   }
 
   ///////////// fields for category settings ///////////////////
-  private[this] val ruleName = new WBTextField("Name: ", "") {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
+  private[this] val ruleName = new WBTextField("Name", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def className = "twoCol"
     override def errorClassName = ""
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createCRSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val ruleShortDescription = new WBTextAreaField("Short description: ", "") {
+  private[this] val ruleShortDescription = new WBTextAreaField("Short description", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
-    override def className = "twoCol"
     override def errorClassName = ""
     override def validations = Nil
 
@@ -143,7 +140,7 @@ class CreateRulePopup(
           isEnabledStatus = true)
 
 
-      ruleRepository.create(rule, CurrentUser.getActor) match {
+      ruleRepository.create(rule, CurrentUser.getActor, Some("")) match {
           case Full(x) => 
             closePopup() & onSuccessCallback(rule)
           case Empty =>
@@ -152,7 +149,7 @@ class CreateRulePopup(
             onFailure & onFailureCallback()
           case Failure(m,_,_) =>
             logger.error("An error occurred while saving the Rule:" + m)
-            formTracker.addFormError(error("An error occurred while saving the Rule: " + m))
+            formTracker.addFormError(error(m))
             onFailure & onFailureCallback()
       }
     }
@@ -168,7 +165,6 @@ class CreateRulePopup(
   }
 */
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
     updateFormClientSide() 
   }
 
@@ -179,7 +175,7 @@ class CreateRulePopup(
 
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="errorNotification" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="notifications" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }

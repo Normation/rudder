@@ -65,7 +65,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.web.services.NodeGrid
 import com.normation.eventlog.EventLogService
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import com.normation.utils.User
 import com.normation.rudder.web.components.popup.ExpectedPolicyPopup
 import com.normation.exceptions.TechnicalException
@@ -74,7 +74,7 @@ import org.springframework.security.core.userdetails.UserDetails
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.eventlog.EventActor
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.domain.log.{
+import com.normation.rudder.domain.eventlog.{
   AcceptNodeEventLog, RefuseNodeEventLog
 }
 
@@ -351,7 +351,7 @@ class AcceptNode {
       ),
       "accept" -> {if (seq.size > 0 ) { SHtml.ajaxButton("Accept into Rudder", {
         () =>  showConfirmPopup(acceptTemplate, "confirmPopup")
-      }) } else NodeSeq.Empty},
+      }) % ("style", "width:170px")} else NodeSeq.Empty},
       "refuse" -> {if (seq.size > 0 ) { SHtml.ajaxButton("Refuse", {
         () => showConfirmPopup(refuseTemplate, "refusePopup")
       }) } else NodeSeq.Empty},

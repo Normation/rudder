@@ -39,120 +39,226 @@
 ##
 
 
-##
-# Application information
-##
+###########################
+# Application information ###########################################################
+###########################
+
+#
 #define that property if you are behind a proxy
 #or anything that make the URL served by the
 #servlet container be different than the public one
 #note: if defined, must not end with /
 #let blank to use default value
+#
 base.url=
 
-##
-#  LDAP properties
-##
+#
+# Directory used to store locks about
+# some Rudder actions or batch processing
+#
+rudder.dir.lock=/var/rudder/lock/
 
-#  LDAP directory connection information
+#
+# URL where Inventory Reports are sent to be processed and stored.
+# This is the local URL of the "inventory endpoint" web application,
+#
+rudder.endpoint.cmdb=http://localhost:8080/endpoint/upload/
+
+
+###################
+# LDAP properties ###################################################################
+###################
+
+#
+# LDAP directory connection information
+#
 ldap.host=localhost
 ldap.port=389
 ldap.authdn=cn=manager,cn=rudder-configuration
 ldap.authpw=secret
 
-#inventories information
+
+#
+# LDAP DIT configuration
+#
+# You should not have to modify the following properties, used to 
+# configure the inernal structure of the LDAP Directory. 
+#
+ldap.node.base=cn=rudder-configuration
+ldap.rudder.base=ou=Rudder, cn=rudder-configuration
 ldap.inventories.software.basedn=ou=Inventories, cn=rudder-configuration
 ldap.inventories.accepted.basedn=ou=Accepted Inventories, ou=Inventories, cn=rudder-configuration
 ldap.inventories.pending.basedn=ou=Pending Inventories, ou=Inventories, cn=rudder-configuration
 ldap.inventories.removed.basedn=ou=Removed Inventories, ou=Inventories, cn=rudder-configuration
 
-#Base DN for Rudder Data
-ldap.rudder.base=ou=Rudder, cn=rudder-configuration
 
-#Base DN (the ou=Node is already given by the DIT)
-ldap.node.base=cn=rudder-configuration
-
-#  directory where LDIF trace of LDAP modify request are
-#  stored when loglevel is 'trace'
-ldif.tracelog.rootdir=/var/rudder/inventories/debug
-
-
-##
-# Other Rudder Configuration properties
-## 
+###########################
+# SQL database properties ###########################################################
+###########################
 
 #
-# directory used as root directory to store LDIF dump
-# of historised inventories
-history.inventories.rootdir=/var/rudder/inventories/historical
-
-
-##
-#  Upload directory
-##
-#  directory where new uploaded files are stored
-upload.root.directory=/var/rudder/files/
-
-##
-#  Emergency stop
-##
-#  path to the script/binary that allows emergency orchestrator stop
-bin.emergency.stop=/opt/rudder/bin/cfe-red-button.sh
-
-
-##
-#  Promise writer directory configuration 
-##
-rudder.dir.config=/opt/rudder/etc/
+# For now, only PostGRES is supported, and so the expected
+# JDBC driver is "org.postgresql.Driver"
 #
-# The full path to the directory on witch
-# git repository (containing share folder, 
-# Technique library, etc)
-#
-rudder.dir.gitRoot=/var/rudder/configuration-repository
-#
-# The path of the root directory of the Technique library. 
-# It MUST be the same directory of ${rudder.dir.gitRoot} 
-# or one of its sub-directories
-#
-rudder.dir.techniques=/var/rudder/configuration-repository/techniques
-rudder.dir.licensesFolder=/opt/rudder/etc/licenses
-rudder.dir.policies=/var/rudder/
-rudder.dir.backup=/var/rudder/backup/
-rudder.dir.dependencies=/var/rudder/tools/
-rudder.dir.sharing=/var/rudder/files/
-rudder.dir.lock=/var/rudder/lock/
-rudder.endpoint.cmdb=http://localhost:8080/endpoint/upload/
-
-##
-# Shared folder
-#
-# Directory of the extra files the rudder root server will serve to the managed nodes
-# If left empty, no extra files will be served
-rudder.dir.shared.files.folder=/var/rudder/configuration-repository/shared-files
-
-
-# Port used by the community edition
-rudder.community.port=5309
-
-
 rudder.jdbc.driver=org.postgresql.Driver
 rudder.jdbc.url=jdbc:postgresql://localhost:5432/rudder
 rudder.jdbc.username=rudder
 rudder.jdbc.password=Normation
 
 
-#
-# Destination directory for files distributed
-# with the copyFile policy
-#
-policy.copyfile.destination.dir=/some/default/destination/directory/
+#####################
+# Webdav properties #################################################################
+#####################
 
 #
-# Command line to check the promises generated
+# Authentication information for the webdav server used to
+# receive Inventory Reports from nodes
+#
+rudder.webdav.user=rudder
+rudder.webdav.password=rudder
+
+####################################
+# CFEngine and promises properties ##################################################
+####################################
+
+#
+# Port used by the community edition of CFEngine agent to 
+# contact the server (that's the server port).
+#
+rudder.community.port=5309
+
+#
+# Command line tools used to check the validity of generated promises
 #
 rudder.community.checkpromises.command=/var/rudder/cfengine-community/bin/cf-promises
 rudder.nova.checkpromises.command=/bin/true
 
+#
+# Path to where CFEngine Enterprise (ex Nova) licenses are stored. 
+#
+rudder.dir.licensesFolder=/opt/rudder/etc/licenses
+
+#
+# Directories used to write nodes promises. 
+# - promises generated for a node with id UUID go in ***/var/rudder/share/UUID***
+#   For now, that property can not be modified, because there is no simple
+#   way of doing that and letting node knowing where to go look for there promises. 
+# - promises generated for CFEngine community server go into ***/var/rudder/cfengine-community/inputs***
+# - promises generated for CFEngine Nova server go into ***/var/cfengine/inputs***
+# - 'rudder.dir.backup' is the directory path where previous configuration of each node are stored
+#
+rudder.dir.backup=/var/rudder/backup/
+
+#
+# Shared folder
+#
+# Directory of the extra files the rudder root server will serve to the managed nodes
+# If left empty, no extra files will be served
+#
+rudder.dir.shared.files.folder=/var/rudder/configuration-repository/shared-files
+
+############################################
+# Technique library and its Git properties ##########################################
+############################################
+
+#
+# The path of the root directory of the Technique library. 
+# It MUST be the same directory of ${rudder.dir.gitRoot} 
+# or one of its sub-directories
+#
+rudder.dir.techniques=/var/rudder/configuration-repository/techniques
+
+
+#
+# The directory containing tools used by Rudder or nodes. 
+# You should configure the path of that directory to be
+# the "tools" subdirectory of "rudder-technique" local
+# clone of git repository 
+# (see property rudder.git.rudder-technique)
+#
+rudder.dir.dependencies=/var/rudder/tools
+
+#
+# Interval of time (in minutes) between two checks
+# for a Technique library update.
+#
+# If O is given, the periodic update of Technique
+# library features will be disabled
+#
+rudder.batch.techniqueLibrary.updateInterval=5
+
+#
+# Configure the refs path to use for the git repository for
+# the Technique Reference Library. 
+# The default is to use "refs/heads/master" (the local master
+# branch). 
+# You have to use the full ref path. 
+#
+rudder.techniqueLibrary.git.refs.path=refs/heads/master
+
+
+##########################################################
+# Configuration repository, its update and Git properties ###########################
+##########################################################
+
+#
+# Configuration repository is the place where all Group/Directive/Rules
+# configured by the user are historized. 
+#
+
+#
+# The full path to the directory containing the 
+# .git,  directives, groups and rules directories.
+#
+rudder.dir.gitRoot=/var/rudder/configuration-repository
+
+#
+# If true, an archive of Rules, groups, 
+# Directives and Active Techniques are recorded
+# to the rudder.dir.gitRoot directory specified above
+# and a git commit is performed when any of these items is modified.
+# Boolean, defaults to true.
+# 
+rudder.autoArchiveItems=true
+
+#
+# Automatically generate promise on policies modification.
+#
+# If true, when a Directive, Rule,
+# group, node ... is modified, promises will be automatically
+# regenerated. If false, only a manual request for deployment
+# will trigger a deployment.
+# Boolean, defaults to true.
+# 
+rudder.autoDeployOnModification=true
+
+#
+# If true, in UI Rudder will prompt the user for a reason of the change. 
+# The message displayed to the user is based on the variable 
+# rudder.ui.changeMessage.explanation
+# Based on the value of rudder.ui.changeMessage.mandatory, the user input
+# can be mandatory or not
+#
+rudder.ui.changeMessage.enabled=true
+
+#
+# Boolean, defaults false
+# If true, the user input will be mandatory (non empty reason message)
+#
+rudder.ui.changeMessage.mandatory=false
+
+# 
+# Text, defaults Please enter a message explaining the reason for this change.
+# This variable defines the content of the message prompted to the user
+# when he does modifications
+# 
+rudder.ui.changeMessage.explanation=Please enter a message explaining the reason for this change.
+
+
+
+###############################
+# Dynamic group configuration #######################################################
+###############################
 
 #
 # Interval of time between two dynamic group update batch
@@ -160,43 +266,11 @@ rudder.nova.checkpromises.command=/bin/true
 # If O is given, the dynamic group features will be disabled
 #
 rudder.batch.dyngroup.updateInterval=5
-#
-# Interval of time (in seconds) between two checks
-# for a Technique library update.
-# 300s = 5minutes
-# A minimum of 60 seconds is mandatory.
-# If O is given, the periodic update of Technique
-# library features will be disabled
-#
-rudder.batch.techniqueLibrary.updateInterval=300
 
 
-#
-# Configure the refs path to use for the git repository for
-# the Technique Reference Library. 
-# The default is to use "refs/heads/master" (the local master
-# branche). 
-# You have to use the full ref path. 
-rudder.techniqueLibrary.git.refs.path=refs/heads/master
-
-#
-# Boolean, defaults to true.
-# If true, an archive of Rules, groups, 
-# Directives and Active Techniques are recorded
-# to the rudder.dir.gitRoot directory specified above
-# and a git commit is performed when any of these items is modified.
-# 
-rudder.autoArchiveItems=true
-
-#
-# Boolean, defaults to true.
-# If true, when a Directive, Rule,
-# group, node ... is modified, promises will be automatically
-# regenerated. If false, only a manual request for deployment
-# will trigger a deployment.
-# 
-rudder.autoDeployOnModification=true
-
+##########################
+# REST API configuration ############################################################
+##########################
 
 #
 # Boolean, defaults to true
@@ -207,5 +281,56 @@ rudder.autoDeployOnModification=true
 # will be done by a third party software, like Apache
 #
 rudder.rest.allowNonAuthenticatedUser=true
+
+####################
+# Inventory history ##################################################################
+####################
+
+#
+# Inventory historization root directory
+#
+# The directory used as root directory to store LDIF dump
+# of historized inventories. 
+# It must be synchronise with the property of the same name in 
+# the "inventory endpoint" web application (inventory-web.properties), 
+# which is the application actually writing the files. 
+#
+# This historized inventories are used in the node acceptation
+# screen, to keep information about the state of the node
+# when it was accepted
+#
+history.inventories.rootdir=/var/rudder/inventories/historical
+
+
+#########################
+# DEPRECATED properties #############################################################
+#########################
+
+#
+# A list of properties actually used in Rudder, but for features disable in the UI. 
+#
+
+#
+#  Upload directory
+#  The directory where new uploaded files are stored
+#  DEPRECATED: not used any more in Rudder UI. 
+#
+upload.root.directory=/var/rudder/files/
+
+#
+# The directory used to put uploaded files shared between
+# several nodes. 
+# A symlink from the file to the relevant node promise directory
+# will be created on each node needing the file in place
+# of copying it.
+# DEPRECATED: not used anymore in Rudder UI
+rudder.dir.uploaded.file.sharing=/var/rudder/files/
+
+#
+#  Emergency stop
+#  path to the script/binary that allows emergency orchestrator stop
+#  DEPRECATED: feature no more available in Rudder UI. 
+#
+bin.emergency.stop=/opt/rudder/bin/cfe-red-button.sh
 
 

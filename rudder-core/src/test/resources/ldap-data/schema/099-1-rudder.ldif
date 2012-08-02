@@ -39,11 +39,11 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.101
   SUP uuid )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.102
   NAME 'directiveId'
-  DESC 'Unique identifier for a policy instance'
+  DESC 'Unique identifier for a directive'
   SUP uuid )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.103
   NAME 'targetDirectiveId'
-  DESC 'Unique identifier for a policy instance'
+  DESC 'Unique identifier for a directive'
   SUP uuid )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.104
   NAME 'groupCategoryId'
@@ -55,11 +55,11 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.105
   SUP uuid )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.106
   NAME 'techniqueId'
-  DESC 'Unique identifier for a policy template from reference library'
+  DESC 'Unique identifier for a technique from reference library'
   SUP uuid )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.107
   NAME 'activeTechniqueId'
-  DESC 'Unique identifier for an policy template in user library'
+  DESC 'Unique identifier for a technique in active library'
   SUP uuid )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.108
   NAME 'nodeGroupId'
@@ -96,7 +96,7 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.204
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.205
   NAME 'ruleTarget'
-  DESC 'Target of the policy instance. It is something of the form targetType:targetUuid'
+  DESC 'Target of the directive. It is something of the form targetType:targetUuid'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
@@ -227,7 +227,7 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.225
 # * nodes and policy server
 # * node group categories 
 # * node groups 
-# * user library of policy template categories
+# * library of actives techniques categories
 # * activeTechnique
 # * directive
 # * rules
@@ -244,10 +244,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.2
   NAME 'rudderPolicyServer'
   DESC 'The Node representation of a policy server'
   SUP rudderNode
-  STRUCTURAL
-  MUST ( nodeHostname $ publicKey $ ipHostNumber $ inventoryDate $
-  localAdministratorAccountName $ agentName $ policyServerId
-  ) )
+  STRUCTURAL )
 ### groups ###
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.10
   NAME 'groupCategory'
@@ -272,7 +269,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.12
   STRUCTURAL
   MUST ( ruleTarget $ cn )
   MAY (  description $ isEnabled $ isSystem ) )
-### user policy library ###
+### active technique library ###
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.20
   NAME 'activeTechniqueLibraryVersion'
   DESC 'An object class to contain information about the user library (version, initialisation timestamp)'
@@ -295,7 +292,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.22
   MAY ( isEnabled $ isSystem ) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.23
   NAME 'directive'
-  DESC 'The Rudder policy instance (real)'
+  DESC 'Rudder Directive (real)'
   SUP top
   STRUCTURAL
   MUST ( directiveId $ techniqueVersion )
@@ -335,10 +332,10 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.102
   NAME 'rootPolicyServerNodeConfiguration'
   SUP  nodeConfiguration
   DESC 'The ROOT policy server of an Rudder Domain' )
-#cn is the policy name for the instance
+#cn is the policy name for the directive
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.103
   NAME 'abstractDirectiveNodeConfiguration'
-  DESC 'An abstract instance of a policy instance'
+  DESC 'An abstract instance of a Directive'
   SUP top
   ABSTRACT
   MUST ( techniqueId )
@@ -355,7 +352,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.104
   MUST ( directiveId ) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.105
   NAME 'targetDirectiveNodeConfiguration'
-  DESC 'An instance of a target state for a policy instance'
+  DESC 'An instance of a target state for a directive'
   SUP abstractDirectiveNodeConfiguration
   STRUCTURAL
   MUST ( targetdirectiveId ) )

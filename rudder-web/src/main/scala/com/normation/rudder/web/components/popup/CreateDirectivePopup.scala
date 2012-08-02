@@ -114,20 +114,17 @@ class CreateDirectivePopup(
   }
 
   ///////////// fields for category settings ///////////////////
-  private[this] val directiveName = new WBTextField("Name: ", "") {
-    override def displayNameHtml = Some(<b>{displayName}</b>)
+  private[this] val directiveName = new WBTextField("Name", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def className = "twoCol"
     override def errorClassName = ""
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val directiveShortDescription = new WBTextAreaField("Short description: ", "") {
+  private[this] val directiveShortDescription = new WBTextAreaField("Short description", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
-    override def className = "twoCol"
     override def errorClassName = ""
     override def validations = Nil
 
@@ -180,7 +177,7 @@ class CreateDirectivePopup(
 
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="errorNotification" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="notifications" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }

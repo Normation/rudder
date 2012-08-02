@@ -34,7 +34,7 @@
 
 package com.normation.rudder.domain.transporter
 
-import com.normation.rudder.domain.log._
+import com.normation.rudder.domain.eventlog._
 import scala.collection._
 import com.normation.rudder.domain.servers._
 
