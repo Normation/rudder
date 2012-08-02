@@ -94,13 +94,16 @@ class ReportingServiceImpl(
     val confToAdd = mutable.Map[RuleId, (RuleVal,Seq[NodeId])]()
     
     // Then we need to compare each of them with the one stored
-    for (conf@(ruleVal, _) <- confAndNodes) {
+    for (conf@(ruleVal, nodes) <- confAndNodes) {
       currentConfigurationsToRemove.get(ruleVal.ruleId) match {
                     // non existant, add it
         case None => confToAdd += (  ruleVal.ruleId -> conf)
         
-        case Some(serial) if (serial == ruleVal.serial) => // no change if same serial
+        case Some(serial) if ((serial == ruleVal.serial)&&(nodes.size > 0)) => // no change if same serial
             currentConfigurationsToRemove.remove(ruleVal.ruleId)
+
+        case Some(serial) if ((serial == ruleVal.serial)&&(nodes.size == 0)) => // no change if same serial
+            // if there is not target, then it need to be closed
             
         case Some(serial) => // not the same serial
             confToAdd += (  ruleVal.ruleId -> conf)
