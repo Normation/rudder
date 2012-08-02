@@ -56,6 +56,7 @@ import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
+import com.normation.rudder.services.nodes.NodeInfoService
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment), 
@@ -66,6 +67,7 @@ class EventListDisplayer(
     , repos               : EventLogRepository
     , nodeGroupRepository : NodeGroupRepository
     , directiveRepository : DirectiveRepository
+    , nodeInfoService     : NodeInfoService
 ) extends Loggable {
   
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
@@ -491,16 +493,8 @@ class EventListDisplayer(
                 ) &
                 "#nodes" #> (
                    modDiff.modNodeList.map { diff =>
-                   val mapList = (set:Set[NodeId]) =>
-                   if(set.size == 0) 
-                     Text("None")
-                   else { 
-                     set.toSeq.sortWith( _.value < _.value )
-                       .map(id => <a href={nodeLink(id)}>{id.value}</a>)
-                       .reduceLeft[NodeSeq]((a,b) => a ++ <span>,&nbsp;</span> ++ b)
-                   }
-                   ".diffOldValue *" #> mapList(diff.oldValue) &
-                   ".diffNewValue *" #> mapList(diff.newValue)
+                     ".diffOldValue *" #> nodeGroupDetails(diff.oldValue) &
+                     ".diffNewValue *" #> nodeGroupDetails(diff.newValue)
                    }
                 ) 
               )(groupModDetailsXML)}
@@ -768,6 +762,30 @@ class EventListDisplayer(
             case x => 
               <span>{Text("group_special(" + x.toString + ")")}</span>
           }
+        }
+        .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
+    }
+    (
+      ".groupSeparator" #> ", "
+    )(res)
+  }
+  
+  private[this] def nodeNodeSeqLink(id: NodeId): NodeSeq = {
+    nodeInfoService.getNodeInfo(id) match {
+      case t: EmptyBox => 
+        <span>node({id.value})</span>
+      case Full(node) => 
+        <span>node(<a href={nodeLink(id)}>{node.name}</a>)</span>
+    }
+  }
+  
+  private[this] def nodeGroupDetails(nodes: Set[NodeId]): NodeSeq = {
+    val res = nodes.toSeq match {
+      case Seq() => NodeSeq.Empty
+      case t =>
+        nodes
+        .toSeq
+        .map { id => nodeNodeSeqLink(id: NodeId)
         }
         .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
     }
