@@ -153,7 +153,7 @@ class NodeGroupCategoryForm(
             <hr/>
             <div class="popupButton">
                <span>
-                <button class="simplemodal-close" onClick="return false;">Cancel</button>
+                <button class="simplemodal-close" onClick="$.modal.close();">Cancel</button>
                 {SHtml.ajaxButton("Delete", onDelete _)}
               </span>
             </div>
