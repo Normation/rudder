@@ -330,7 +330,7 @@ class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisatio
                             else Failure("Entry type is not a <%s>: %s".format(XML_TAG_DEPLOYMENT_STATUS, entry))
                           }
       fileFormatOk     <- TestFileFormat(depStatus)
-      id               <- (depStatus \ "id").headOption.flatMap(s => tryo {s.text.toInt } ) ?~! ("Missing attribute 'id' in entry type deploymentStatus : " + entry)
+      id               <- (depStatus \ "id").headOption.flatMap(s => tryo {s.text.toLong } ) ?~! ("Missing attribute 'id' in entry type deploymentStatus : " + entry)
       status           <- (depStatus \ "status").headOption.map( _.text ) ?~! ("Missing attribute 'status' in entry type deploymentStatus : " + entry)
 
       started          <- (depStatus \ "started").headOption.flatMap(s => tryo { ISODateTimeFormat.dateTimeParser.parseDateTime(s.text) } ) ?~! ("Missing or bad attribute 'started' in entry type deploymentStatus : " + entry)
