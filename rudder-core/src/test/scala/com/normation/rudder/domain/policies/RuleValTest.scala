@@ -105,9 +105,9 @@ class RuleValTest {
     assertEquals(beans.head.ruleId.value, "ruleId")
     assertEquals(beans.head.cf3PolicyDraft.techniqueId.name.value, "ppId")
     assertEquals(beans.head.cf3PolicyDraft.techniqueId.version.toString, "1.0")
-    assertEquals(beans.head.cf3PolicyDraft.getVariables.size, 0)
-    assertEquals(beans.head.cf3PolicyDraft.priority, 2)
-    assertEquals(beans.head.cf3PolicyDraft.serial, 1)
+    assertEquals(beans.head.cf3PolicyDraft.getVariables.size.toLong, 0L)
+    assertEquals(beans.head.cf3PolicyDraft.priority.toLong, 2L)
+    assertEquals(beans.head.cf3PolicyDraft.serial.toLong, 1L)
   }
 
   @Test
@@ -132,9 +132,9 @@ class RuleValTest {
     assertEquals(beans.head.ruleId.value, "ruleId")
     assertEquals(beans.head.cf3PolicyDraft.techniqueId.name.value, "ppId")
     assertEquals(beans.head.cf3PolicyDraft.techniqueId.version.toString, "1.0")
-    assertEquals(beans.head.cf3PolicyDraft.getVariables.size, 1)
-    assertEquals(beans.head.cf3PolicyDraft.priority, 2)
-    assertEquals(beans.head.cf3PolicyDraft.serial, 1)
+    assertEquals(beans.head.cf3PolicyDraft.getVariables.size.toLong, 1L)
+    assertEquals(beans.head.cf3PolicyDraft.priority.toLong, 2L)
+    assertEquals(beans.head.cf3PolicyDraft.serial.toLong, 1L)
     assertEquals(beans.head.cf3PolicyDraft.getVariables,
       Map("foo" -> new InputVariable(InputVariableSpec("foo", "bar"))))
   }
