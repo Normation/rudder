@@ -58,16 +58,19 @@ import com.normation.cfclerk.domain.InputVariable
 class RuleValTest {
 
   @Test
-  def testCRwithNoPI() = {
+  def testCRwithNoPI() {
     new RuleVal(
       new RuleId("id"),
       Set(new GroupTarget(new NodeGroupId("target"))),
       Seq(),
       0)
+    //TODO: what that test actually tests ?
+    //return Unit
+    ()
   }
 
   @Test
-  def testBasicRuleVal() = {
+  def testBasicRuleVal() {
     val container = new DirectiveVal(
       new TechniqueId(TechniqueName("id"), TechniqueVersion("1.0")),
       new ActiveTechniqueId("id"),
@@ -81,6 +84,10 @@ class RuleValTest {
       Set(new GroupTarget(new NodeGroupId("target"))),
       Seq(container),
       0)
+    
+    //TODO: what that test actually tests ?
+    //return Unit
+    ()
   }
 
   @Test
