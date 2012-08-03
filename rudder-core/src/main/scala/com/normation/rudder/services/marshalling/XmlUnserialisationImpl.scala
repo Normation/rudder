@@ -326,7 +326,7 @@ class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisatio
   def unserialise(entry:XNode) : Box[CurrentDeploymentStatus] = {
     for {
       depStatus        <- {
-                  if(entry.label ==  XML_TAG_DEPLOYMENT_STATUS) Full(entry)
+                            if(entry.label ==  XML_TAG_DEPLOYMENT_STATUS) Full(entry)
                             else Failure("Entry type is not a <%s>: %s".format(XML_TAG_DEPLOYMENT_STATUS, entry))
                           }
       fileFormatOk     <- TestFileFormat(depStatus)
@@ -336,7 +336,7 @@ class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisatio
       started          <- (depStatus \ "started").headOption.flatMap(s => tryo { ISODateTimeFormat.dateTimeParser.parseDateTime(s.text) } ) ?~! ("Missing or bad attribute 'started' in entry type deploymentStatus : " + entry)
       ended            <- (depStatus \ "ended").headOption.flatMap(s => tryo { ISODateTimeFormat.dateTimeParser.parseDateTime(s.text) } ) ?~! ("Missing or bad attribute 'ended' in entry type deploymentStatus : " + entry)
       errorMessage     <- (depStatus \ "errorMessage").headOption match {
-                  case None => Full(None)
+                            case None => Full(None)
                             case Some(s) => 
                               if(s.text.size == 0) Full(None)
                               else Full(Some(s.text))
