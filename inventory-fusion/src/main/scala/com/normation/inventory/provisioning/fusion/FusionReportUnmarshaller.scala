@@ -170,9 +170,9 @@ class FusionReportUnmarshaller(
         case "VIRTUALMACHINES" => processVms(elt).foreach { x =>  report = report.copy(node  = report.node.copy( vms = x +: report.node.vms) ) }
      // done previously :    case "VERSIONCLIENT" => report = report.copy( version = processVersion(elt))
         case x => contentParsingExtensions.find {
-            pf => pf.isDefinedAt(e,report)
+            pf => pf.isDefinedAt(elt,report)
           }.foreach { pf =>
-            report = pf(e,report)
+            report = pf(elt,report)
           }
       } }
       case x => rootParsingExtensions.find {
