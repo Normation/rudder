@@ -503,7 +503,7 @@ case class ComponentRuleStatusReport (
    if (componentValues.size>0){
      Some((componentValues.map(_.computeCompliance.getOrElse(0))
          :\ 100)((res:Int,value:Int) => if(value>res)res else value))
-}
+   }
     else
       None
 }
@@ -517,7 +517,7 @@ case class DirectiveRuleStatusReport(
    if (components.size>0){
      Some((components.map(_.computeCompliance.getOrElse(0))
          :\ 100)((res:Int,value:Int) => if(value>res)res else value))
-}
+   }
     else
       None
 }
