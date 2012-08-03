@@ -35,8 +35,10 @@
 package bootstrap.liftweb
 package checks
 
-import net.liftweb.common.Loggable
+import net.liftweb.common._
 import com.normation.rudder.migration._
+import com.normation.rudder.domain.logger.MigrationLogger
+import com.normation.rudder.domain.logger.MigrationLogger
 
 /**
  * That class add all the available reference template in 
@@ -45,18 +47,34 @@ import com.normation.rudder.migration._
  */
 class CheckMigrationEventLog10_2(
   manageEventLogsMigration: ControlEventLogsMigration_10_2
-) extends BootstrapChecks with Loggable {
+) extends BootstrapChecks {
 
   override def checks() : Unit = {
-    manageEventLogsMigration.migrate()
+    manageEventLogsMigration.migrate() match {
+      case Full(_) => //ok, and logging should already be done
+      case eb:EmptyBox =>
+        val e = eb ?~! "Error when migrating EventLogs' datas from format 1 to 2 in database"
+        MigrationLogger(2).error(e.messageChain)
+        e.rootExceptionCause.foreach { ex =>
+          MigrationLogger(2).error("Exception was:", ex)
+        }
+    }
   }
 }
 
 class CheckMigrationEventLog2_3(
   manageEventLogsMigration: ControlEventLogsMigration_2_3
-) extends BootstrapChecks with Loggable {
+) extends BootstrapChecks {
 
   override def checks() : Unit = {
-    manageEventLogsMigration.migrate()
+    manageEventLogsMigration.migrate() match {
+      case Full(_) => //ok, and logging should already be done
+      case eb:EmptyBox =>
+        val e = eb ?~! "Error when migrating EventLogs' datas from format 1 to 2 in database"
+        MigrationLogger(3).error(e.messageChain)
+        e.rootExceptionCause.foreach { ex =>
+          MigrationLogger(3).error("Exception was:", ex)
+        }
+    }
   }
 }
