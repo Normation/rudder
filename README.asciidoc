@@ -1,7 +1,7 @@
 Rudder-commons: API and utilities 
 ---------------------------------
 
-This project is part of Rudder - configuration management for the masses. 
+This project is part of Rudder - configuration management made easy. 
  
 See: http://rudder-project.org for more information. 
 
