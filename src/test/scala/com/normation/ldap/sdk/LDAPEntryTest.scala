@@ -48,6 +48,7 @@ object LDAPEntrySpecMain {
   def main(x: Array[String]) {
     implicit val myargs = args(color = false)
     run(new LDAPEntrySpecTest())
+    () // unit is expected
   }
 }
 

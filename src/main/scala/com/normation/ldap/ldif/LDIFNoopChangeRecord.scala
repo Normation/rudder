@@ -41,5 +41,8 @@ case class LDIFNoopChangeRecord(dn:DN) extends LDIFChangeRecord(dn.toString) wit
   
   override def toLDIFString(buffer:java.lang.StringBuilder, wrapColumn:Int) = {}
   
-  override def toString(buffer:java.lang.StringBuilder) = {buffer.append("NoopChangeRecord:").append(dn.toString)}
+  override def toString(buffer:java.lang.StringBuilder) = {
+    buffer.append("NoopChangeRecord:").append(dn.toString)
+    () // unit is expected
+  }
 }

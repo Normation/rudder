@@ -264,9 +264,12 @@ class LDAPEntry(private val _backed: UnboundidEntry) {
    * 
    * This method is especially used in domain mapping. 
    */
-  def  setOpt[A](a:Option[A], attributeName:String, f:A => String) : Unit = a match {
-    case None => this -= attributeName
-    case Some(x) => this +=! (attributeName, f(x))
+  def  setOpt[A](a:Option[A], attributeName:String, f:A => String) : Unit = {
+    a match {
+      case None => this -= attributeName
+      case Some(x) => this +=! (attributeName, f(x))
+    }
+    () // unit is expected
   }
   
   override def equals(other:Any):Boolean = other match {
