@@ -97,6 +97,9 @@ class TestQuickSearchService extends QuickSearchServiceSpec {
      
      quickSearch.lookup("node0_0", 100) match {
        case Full(res) => res must have size(0)
+       case eb:EmptyBox => 
+         val e = eb ?~"QuichSearch lookup failed"
+         failure(e.messageChain)
      }
      
    }

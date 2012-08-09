@@ -130,8 +130,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         htmlId_editForm,
         technique,
         currentTechniqueCategoryDetails.is.map( _.getCategory ),
-        { () => Replace(htmlId_activeTechniquesTree, userLibrary) },
-        { () => onUpdateTechniqueFailureCallBack }
+        { () => Replace(htmlId_activeTechniquesTree, userLibrary) }
+        //we don't need/want an error callback here - the error is managed in the form. 
     )))
   }
   
@@ -495,10 +495,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     SetHtml(htmlId_bottomPanel, showTechniqueDetails() )
   }
 
- def onUpdateTechniqueFailureCallBack() : JsCmd = {
-//   val errorMessage = "Error while trying to delete Active Technique."
-//   Alert(errorMessage)
- }
   
   //////////////// display trees ////////////////////////  
 

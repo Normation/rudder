@@ -82,10 +82,18 @@ class CheckInitUserTemplateLibrary(
               }
               root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
               root +=! (A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
-              con.save(root)
+              con.save(root) match {
+                case eb:EmptyBox => 
+                  val e = eb ?~! "Error when updating information about the LDAP root entry of technique library."
+                  logger.error(e.messageChain)
+                  e.rootExceptionCause.foreach { ex =>
+                    logger.error("Root exception was: ", ex)
+                  }
+                case _ => // nothing to do
+              }
         }
       }
-    }
+    } ; () //foreach should return Unit, see #2770
   }
 
   /**

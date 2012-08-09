@@ -74,7 +74,7 @@ class FileManager(rootPath:String) {
     while ({len = in.read(buf) ; len} > 0) { out.write(buf, 0, len) } 
     in.close
     out.close
-    fout
+    ()
   }
 
 }

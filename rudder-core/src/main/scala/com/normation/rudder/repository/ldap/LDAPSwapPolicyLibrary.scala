@@ -139,7 +139,7 @@ class ImportTechniqueLibraryImpl(
                                recSaveUserLib(categoryEntry.dn, cat)
                              }
           } yield {
-            "OK"
+            () // unit is expected
           }
         }
         
@@ -279,7 +279,7 @@ class ImportTechniqueLibraryImpl(
           logger.warn("Error when deleting archived library in LDAP with DN '%s'".format(dn))
         case _ => //
       }
-      moved
+      () // unit is expected
     }
     
   }
