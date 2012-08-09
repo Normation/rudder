@@ -467,9 +467,10 @@ case class NodeStatusReport(
 
 
 
-case class RuleStatusReport(
-  nodesreport  : Seq[(NodeId,ReportType)] 
-) {
+sealed trait RuleStatusReport {
+  
+  def nodesreport  : Seq[(NodeId,ReportType)] 
+
   def computeCompliance : Option[Int] = {
     if (nodesreport.size>0){
       val reportsSize = nodesreport.size.toDouble
@@ -490,20 +491,26 @@ case class ComponentValueRuleStatusReport(
   , component           : String
   , componentValue      : String
   , cptValueReportType  : ReportType
-  , reports  : Seq[(NodeId,ReportType)] 
-) extends RuleStatusReport(reports)
+  , reports             : Seq[(NodeId,ReportType)] 
+) extends RuleStatusReport {
+  
+  override val nodesreport = reports  
+}
 
 case class ComponentRuleStatusReport (
     directiveid         : DirectiveId
   , component           : String
   , componentValues     : Seq[ComponentValueRuleStatusReport]
   , componentReportType : ReportType
-) extends RuleStatusReport(componentValues.flatMap(_.nodesreport)) {
+) extends RuleStatusReport {
+  
+  override val nodesreport = componentValues.flatMap(_.nodesreport)
+  
   override def computeCompliance =
    if (componentValues.size>0){
      Some((componentValues.map(_.computeCompliance.getOrElse(0))
          :\ 100)((res:Int,value:Int) => if(value>res)res else value))
-}
+   }
     else
       None
 }
@@ -512,12 +519,15 @@ case class DirectiveRuleStatusReport(
     directiveId          : DirectiveId
   , components           : Seq[ComponentRuleStatusReport]
   , directiveReportType  : ReportType
-) extends RuleStatusReport(components.flatMap(_.nodesreport)) {
-    override def computeCompliance =
+) extends RuleStatusReport {
+  
+  override val nodesreport = components.flatMap(_.nodesreport)
+  
+  override def computeCompliance =
    if (components.size>0){
      Some((components.map(_.computeCompliance.getOrElse(0))
          :\ 100)((res:Int,value:Int) => if(value>res)res else value))
-}
+   }
     else
       None
 }

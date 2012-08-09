@@ -733,13 +733,6 @@ class EventListDisplayer(
     (<b>ID:</b><a href={directiveLink(id)}>{id.value}</a>):NodeSeq
   }
   
-  private [this]def getNameFromGroupId(groupId:String): String = {
-    nodeGroupRepository.getNodeGroup(new NodeGroupId(groupId)) match {
-      case t: EmptyBox => groupId
-      case Full(nodeGroup) => nodeGroup.name
-    }
-  }
-  
   private[this] def groupNodeSeqLink(id: NodeGroupId): NodeSeq = {
     nodeGroupRepository.getNodeGroup(id) match {
       case t: EmptyBox => 

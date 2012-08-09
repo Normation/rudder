@@ -334,9 +334,9 @@ class TestQueryProcessor extends Loggable {
       //(that should not change anything)
       
       assertEquals("[%s]Duplicate entries in result: %s".format(name,found),
-          found.size,found.distinct.size)
+          found.size.toLong,found.distinct.size.toLong)
       assertEquals("[%s]Size differ between awaited and found entry set  (process)\n Found: %s\n Wants: %s".
-          format(name,found,ids),ids.size,found.size)
+          format(name,found,ids),ids.size.toLong,found.size.toLong)
       assertTrue("[%s]Entries differ between awaited and found entry set (process)\n Found: %s\n Wants: %s".
           format(name,found,ids),found.forall { f => ids.exists( f == _) })
           
@@ -344,7 +344,7 @@ class TestQueryProcessor extends Loggable {
         NodeId(entry("nodeId").get)
       }).distinct
       assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected enrties (process)\n Found: %s\n Wants: %s".
-          format(name,foundWithLimit,ids),ids.size,foundWithLimit.size)
+          format(name,foundWithLimit,ids),ids.size.toLong,foundWithLimit.size.toLong)
   }
   
 //  private def testQueryResultChecker(name:String,query:Query, ids:Seq[NodeId]) = {

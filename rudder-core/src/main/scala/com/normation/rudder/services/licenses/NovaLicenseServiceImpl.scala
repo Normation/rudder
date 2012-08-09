@@ -68,6 +68,7 @@ class NovaLicenseServiceImpl(licenseRepository : LicenseRepository, nodeConfigur
         FileUtils.copyFile(sourceFile, new File(destFile))
         val novaLicense = new NovaLicense(uuid, licenseNumber, expirationDate, destFile)
         licenseRepository.addLicense(novaLicense)
+        () // unit is expected
       case e:EmptyBox => 
         val msg = "Error when trying to add a license to server with uuid %s.".format(uuid)
         logger.error(msg,e)

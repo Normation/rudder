@@ -109,7 +109,7 @@ class RemoveNodeServiceImpl(
     for {
       result  <-  nodeConfigurationService.deleteAllNodeConfigurations()
     } yield {
-      result
+      () // unit is expected
     }
   }
   

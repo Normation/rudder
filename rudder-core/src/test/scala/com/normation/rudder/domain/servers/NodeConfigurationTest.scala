@@ -120,14 +120,14 @@ class NodeConfigurationTest {
         Map(),
         Map())
     assertEquals(newNode.isPolicyServer, false)
-    assertEquals(newNode.getCurrentDirectives.size, 0)
-    assertEquals(newNode.getDirectives.size, 0)
+    assertEquals(newNode.getCurrentDirectives.size.toLong, 0L)
+    assertEquals(newNode.getDirectives.size.toLong, 0L)
     
-    assertEquals(newNode.getCurrentSystemVariables.size, 0)
-    assertEquals(newNode.getTargetSystemVariables.size, 0)
+    assertEquals(newNode.getCurrentSystemVariables.size.toLong, 0L)
+    assertEquals(newNode.getTargetSystemVariables.size.toLong, 0L)
     
     assertEquals(newNode.isModified, false)
-    assertEquals(newNode.targetMinimalNodeConfig.agentsName.size, 0)
+    assertEquals(newNode.targetMinimalNodeConfig.agentsName.size.toLong, 0L)
     
     // Now add a policy
     newNode.addDirective(simplePolicy) match {
@@ -139,15 +139,15 @@ class NodeConfigurationTest {
     
         assertEquals(node.isModified, true)
         // Current policy don't change, but target does
-        assertEquals(node.getCurrentDirectives.size, 0)
-        assertEquals(node.getDirectives.size, 1)
+        assertEquals(node.getCurrentDirectives.size.toLong, 0)
+        assertEquals(node.getDirectives.size.toLong, 1L)
         
-        assertEquals(node.findDirectiveByTechnique(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size, 1)
-        assertEquals(node.findDirectiveByTechnique(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size, 0)
+        assertEquals(node.findDirectiveByTechnique(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size.toLong, 1L)
+        assertEquals(node.findDirectiveByTechnique(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size.toLong, 0L)
     
-        assertEquals(node.findCurrentDirectiveByTechnique(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size, 0)
+        assertEquals(node.findCurrentDirectiveByTechnique(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size.toLong, 0L)
     
-        assertEquals(node.getAllPoliciesNames().size, 1)
+        assertEquals(node.getAllPoliciesNames().size.toLong, 1L)
         assertEquals(node.getAllPoliciesNames().contains(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))), true)
     }
   }
@@ -164,19 +164,19 @@ class NodeConfigurationTest {
         Map())
       
     assertEquals(newNode.isPolicyServer, false)
-    assertEquals(newNode.getCurrentDirectives.size, 1)
-    assertEquals(newNode.getDirectives.size, 1)
+    assertEquals(newNode.getCurrentDirectives.size.toLong, 1L)
+    assertEquals(newNode.getDirectives.size.toLong, 1L)
     
-    assertEquals(newNode.getCurrentSystemVariables.size, 0)
-    assertEquals(newNode.getTargetSystemVariables.size, 0)
+    assertEquals(newNode.getCurrentSystemVariables.size.toLong, 0L)
+    assertEquals(newNode.getTargetSystemVariables.size.toLong, 0L)
     
     assertEquals(newNode.isModified, false)
-    assertEquals(newNode.targetMinimalNodeConfig.agentsName.size, 0)
+    assertEquals(newNode.targetMinimalNodeConfig.agentsName.size.toLong, 0L)
     
-    assertEquals(newNode.findDirectiveByTechnique(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size, 1)
-    assertEquals(newNode.findDirectiveByTechnique(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size, 0)
+    assertEquals(newNode.findDirectiveByTechnique(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size.toLong, 1L)
+    assertEquals(newNode.findDirectiveByTechnique(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))).size.toLong, 0L)
 
-    assertEquals(newNode.findCurrentDirectiveByTechnique(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size, 1)
+    assertEquals(newNode.findCurrentDirectiveByTechnique(new TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0"))).size.toLong, 1L)
       
     
     val modified = newNode.copy(targetSystemVariables = Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one"))))

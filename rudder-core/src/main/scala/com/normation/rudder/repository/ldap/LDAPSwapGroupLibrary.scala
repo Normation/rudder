@@ -146,7 +146,7 @@ trait LDAPImportLibraryUtil extends Loggable {
                    } else Full("ok")
       movedBack <- con.move(targetArchiveDN, sourceLibraryDN.getParent, Some(sourceLibraryDN.getRDN))
     } yield {
-      movedBack
+      () // unit is expected
     }
   }
 
@@ -216,7 +216,7 @@ class ImportGroupLibraryImpl(
                                recSaveUserLib(categoryEntry.dn, cat)
                              }
           } yield {
-            "OK"
+            () // unit is expected
           }
         }
         
@@ -345,7 +345,7 @@ class ImportGroupLibraryImpl(
           logger.warn("Error when deleting archived library in LDAP with DN '%s'".format(dn))
         case _ => //
       }
-      moved
+      () // unit is expected
     }
     
   }
