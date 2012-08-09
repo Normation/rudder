@@ -375,7 +375,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
 
   private def displayTabGrid[T](jsId:JsNodeId)(eltName:String, optSeq:Box[Seq[T]],title:Option[String]=None)(columns:List[(String, T => NodeSeq)]) = {
 
-    <div id={htmlId(jsId,"sd_"+eltName +"_")} class="sInventory">{
+    <div id={htmlId(jsId,"sd_"+eltName +"_")} class="sInventory, overflow_auto">{
       optSeq match {
         case Empty => <span>No matching components detected on this node</span>
         case Failure(m,_,_) => <span class="error">Error when trying to fetch file systems. Reported message: {m}</span>
