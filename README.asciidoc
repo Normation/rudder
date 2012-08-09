@@ -1,0 +1,99 @@
+LDAP inventory: store Fusion Inventory report into LDAP directory
+-----------------------------------------------------------------
+
+This project is part of Rudder - configuration management made easy. 
+ 
+See: http://rudder-project.org for more information. 
+
+[horizontal]
+Bug report:: http://www.rudder-project.org/redmine/projects/ldap-inventory/issues
+Mailing list, irc:: http://www.rudder-project.org/foswiki/Community/
+
+=== Authors
+
+Normation http://normation.com
+
+- Francois "fanf" Armand francois.armand@normation.com
+- Nicolas "ncharles" Charles nicolas.charles@normation.com
+- Jonathan "jooooooon" Clarke jonathan.clarke@normation.com
+
+=== License
+
+This project is licensed under AGPLv3 license, 
+see the provided "LICENSE" file or 
+http://www.gnu.org/licenses/agpl-3.0.txt
+
+=== Contributing
+
+Thank you for your interest in our project!
+The contribution process is detailed here: 
+http://www.rudder-project.org/HowToContribute
+
+=== Synopsis
+
+The main goal of this project is to get Fusion Inventory 
+(http://fusioninventory.org) inventory report, parse
+them, transform them in Node/Machine object, and store them in some
+backend, allowing smart merging rules (detecting existing nodes, etc). 
+
+This project is composed of several modules:
+
+[horizontal]
+inventory-api:: that module define all domain objects and service interfaces
+         (storing object, parsing report, merging strategy, etc) 
+         It is not tied to any backend, nor any inventory report format.
+inventory-fusion:: that module define parsing logic for Fusion Inventory XML report.
+         It allows to add plugable parsing rules for extension in the report, like
+         elements used in Rudder. 
+inventory-repository:: that module contains implementation logic for storage
+         backends. For now, only an LDAP backend is implemented. 
+inventory-provisioning-core:: that module contains implementation for the 
+         provisionning logic: from a parsed report, how to save it, perhaps
+         merge with existing information, etc. 
+inventory-provisioning-web:: that last module is a web application that expose a
+         REST service on which inventory can be post. The implementation is rather
+         short, as most of the code is just here to weave services and implementations. 
+
+
+=== Usage
+
+The easiest way to test and use LDAP-inventory web application is to install it with Rudder 
+from the provided Linux packages, see: http://www.rudder-project.org/foswiki/Main/Installation
+
+.For a more 'developer oriented' usage.
+
+This project is managed thanks to Maven software project management (http://maven.apache.org/). 
+You will have to have a working Maven (version 2.2.x or 3.0.x) installation.
+
+.Clean, build and install on your local repository:
+----
+% mvn clean install
+----
+
+Modules inventory-api, inventory-fusion, inventory-repository and inventory-provisioning-core
+are simple libraries, so nothing more have to be done with them. 
+
+inventory-provisioning-web produce a Java Web-application Archive (war) that can be used in 
+any servlet application server (jetty, tomcat,...). 
+
+There is two files that have to be configured:
+
+[horizontal]
+src/main/resources/configuration.properties.sample:: configure general properties, like LDAP server
+         connection information and where to store login information. 
+src/main/resources/logback.xml.sample:: configure technical log (level, etc). 
+
+Each of these file may be used in two ways:
+
+- by removing ".sample" from their name and putting them in web application classpath. You may for 
+  example copy them in src/main/resources/ and invoke +mvn install+ or directly put them in 
+  the war file (you will have to unwar it, add files, etc - not the easiest way)
+- by specifying a parameter to the JVM used for the web-application:
+[horizontal]
+    `-Dlogback.configurationFile=/path/to/logback.xml`:: for your log file;
+    `-Dinventoryweb.configFile=/path/to/configuration.properties`:: for application configuration file. 
+
+
+
+
+
