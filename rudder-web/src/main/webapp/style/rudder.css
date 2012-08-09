@@ -63,7 +63,9 @@
   padding: 0px;
 }
 
-
+.overflow_auto {
+  overflow: auto;
+}
 
 /**********************************
  * Node details

@@ -139,9 +139,9 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
             "bJQueryUI": false,
             "aaSorting": [[ 0, "asc" ]],
             "aoColumns": [ 
-              { "sWidth": "180px" },
-              { "sWidth": "200px" },
-              { "sWidth": "100px" } %s
+              { "sWidth": "20%%" },
+              { "sWidth": "25%%" },
+              { "sWidth": "15%%" } %s
             ]
           });moveFilterAndPaginateArea('#%s');""".format(tableId,searchable,paginate,aoColumns,tableId).replaceAll("#table_var#",jsVarNameForId(tableId))
         ) &
@@ -199,7 +199,7 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
   
   def display(servers:Seq[Srv], tableId:String, columns:Seq[(Node,Srv => NodeSeq)]=Seq(), aoColumns:String ="") : NodeSeq = {
     //bind the table
-    <table id={tableId} cellspacing="0">{
+    <table id={tableId} class="fixedlayout" cellspacing="0">{
     bind("servergrid",tableTemplate,
       "header" -> (columns flatMap { c => <th>{c._1}<span/></th> }),
       "lines" -> ( servers.flatMap { case s@Srv(id,status, hostname,ostype,osname,osFullName,ips,creationDate) =>
@@ -208,7 +208,7 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
         (".hostname *" #> {(if(isEmpty(hostname)) "(Missing host name) " + id.value else hostname)} &
          ".fullos *" #> osFullName &
          ".ips *" #> (ips.flatMap{ ip => <div class="ip">{ip}</div> }) & // TODO : enhance this
-         ".other" #> (columns flatMap { c => <td>{c._2(s)}</td> }) &
+         ".other" #> (columns flatMap { c => <td style="overflow:hidden">{c._2(s)}</td> }) &
          ".nodetr [jsuuid]" #> {id.value.replaceAll("-","")} &
          ".nodetr [nodeid]" #> {id.value} &
          ".nodetr [nodestatus]" #> {status.name}

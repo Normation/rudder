@@ -346,7 +346,7 @@ class AcceptNode {
                 })
               
         ),         
-        """,{ "sWidth": "60px" },{ "sWidth": "35px", "bSortable":false },{ "sWidth": "15px", "bSortable":false }"""
+        """,{ "sWidth": "8%" },{ "sWidth": "8%", "bSortable":false },{ "sWidth": "2%", "bSortable":false }"""
         ,false
       ),
       "accept" -> {if (seq.size > 0 ) { SHtml.ajaxButton("Accept into Rudder", {
