@@ -125,13 +125,13 @@ object PendingHistoryGrid extends Loggable {
          case  x : RefuseNodeEventLog =>  
            logDetailsService.getRefuseNodeLogDetails(x.details) match {
              case Full(details) =>
-               <tr>
+               <tr class= "curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} 
+                     inventory={details.inventoryVersion.toString()}>
                  <td>{DateFormaterService.getFormatedDate(x.creationDate)}</td>
                  <td name="serverName">
-                   <span class="curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} 
-                     inventory={details.inventoryVersion.toString()}>{
+                   {
                        details.hostname
-                     }</span>
+                     }
                  </td>
                  <td>{details.fullOsName}</td>
                  <td>Refused</td>
@@ -145,13 +145,13 @@ object PendingHistoryGrid extends Loggable {
          case x : AcceptNodeEventLog =>  
            logDetailsService.getAcceptNodeLogDetails(x.details) match {
              case Full(details) =>
-               <tr class="curspoint">
+               <tr class="curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} 
+                     inventory={details.inventoryVersion.toString()}>
                  <td><span class="listopen"></span>{DateFormaterService.getFormatedDate(x.creationDate)}</td>
                  <td name="serverName">
-                   <span jsuuid={jsuuid} serveruuid={details.nodeId.value} 
-                     inventory={details.inventoryVersion.toString()}>{
+                   {
                        details.hostname
-                     }</span>
+                     }
                  </td>
                  <td>{details.fullOsName}</td>
                  <td>Accepted</td>
@@ -175,34 +175,28 @@ object PendingHistoryGrid extends Loggable {
    * initialization.
    */
   def initJsCallBack() : JsCmd = {
-      JsRaw("""$('td[name="serverName"]', #table_var#.fnGetNodes() ).each( function () {
-          $(this).click( function () {
-            var nTr = this.parentNode;
-            var aPos = #table_var#.fnGetPosition( this );
-            
-            var aData = jQuery(#table_var#.fnGetData( aPos[0] ));
-            var node = jQuery(aData[aPos[1]]);
-            var id = node.attr("serveruuid");
-            var inventory = node.attr("inventory");
-            
-            var jsuuid = node.attr("jsuuid");
-            var opened = jQuery(nTr).prop("open");
+      JsRaw("""
+          $(#table_var#.fnGetNodes()).each( function () {
+                 $(this).click( function () {
+                    var id = $(this).attr("serveruuid");
+                    var inventory = $(this).attr("inventory");
+                    var jsuuid = $(this).attr("jsuuid");
+                    var opened = $(this).prop("open");
 
-            if (opened && opened.match("opened")) {
-              #table_var#.fnClose(nTr);
-              jQuery(nTr).prop("open", "closed");
-              jQuery(nTr).find("span.listclose").removeClass("listclose").addClass("listopen");
-            } else {
-             jQuery(nTr).prop("open", "opened");
-             jQuery(nTr).find("span.listopen").removeClass("listopen").addClass("listclose");
-          
-          var ajaxParam = jsuuid +  "|" + id + "|" + inventory;
-          #table_var#.fnOpen( nTr, fnFormatDetails(jsuuid), 'displayPastInventory' );
-          %s;
-        }
-          } );
-        })
-      """.format(
+                    if (opened && opened.match("opened")) {
+                      #table_var#.fnClose(this);
+                      $(this).prop("open", "closed");
+                      $(this).find("span.listclose").removeClass("listclose").addClass("listopen");
+                    } else {
+                      $(this).prop("open", "opened");
+                      $(this).find("span.listopen").removeClass("listopen").addClass("listclose");
+                      var ajaxParam = jsuuid + "|" + id + "|" + inventory;
+                      #table_var#.fnOpen( this, fnFormatDetails(jsuuid), 'displayPastInventory' );
+                      %s;
+                    }
+                  } );
+                })
+          """.format(
           SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory _)._2.toJsCmd).replaceAll("#table_var#",
               jsVarNameForId))
   }
