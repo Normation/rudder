@@ -157,7 +157,7 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
    * initialization.
    */
   def initJsCallBack(tableId:String) : JsCmd = {
-      JsRaw("""$('td.curspoint', #table_var#.fnGetNodes() ).each( function () {
+      JsRaw("""$('tr.curspoint', #table_var#.fnGetNodes() ).each( function () {
           $(this).click( function () {
             var nTr = this.parentNode;
             var opened = jQuery(nTr).prop("open");
@@ -217,7 +217,7 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
     )}</table>  
   }
   private[this] val datatableXml = {
-    <tr class="nodetr" jsuuid="id" nodeid="nodeid" nodestatus="status">
+    <tr class="nodetr curspoint" jsuuid="id" nodeid="nodeid" nodestatus="status">
       <td class="curspoint"><span class="hostname listopen"></span></td>
       <td class="fullos curspoint"></td>
       <td class="ips curspoint"></td>
