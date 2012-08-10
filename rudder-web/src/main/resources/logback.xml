@@ -68,7 +68,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     It can be overwritten when the application is launched with the
     Java system property syntax: java -DOPSLOG_DIR="/some/other/directory/"
   -->
-  <property name="OPSLOG_DIR" value="/var/log/rudder/webapp-opslog" />
+  <property name="OPSLOG_DIR" value="/var/log/rudder/core" />
   
   <!-- 
     A file log appender for exploitation logs about reports, outputing in a file
