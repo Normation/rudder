@@ -134,21 +134,20 @@ class EventListDisplayer(
             return sOut;
           };
           
-          $('td', #table_var#.fnGetNodes() ).each( function () {
+          $(#table_var#.fnGetNodes() ).each( function () {
             $(this).click( function () {
-              var nTr = this.parentNode;
-              var jTr = jQuery(nTr);
+              var jTr = $(this);
               if (jTr.hasClass('curspoint')) {
                 var opened = jTr.prop("open");
                 if (opened && opened.match("opened")) {
                   jTr.prop("open", "closed");
-                  jQuery(nTr).find("td.listclose").removeClass("listclose").addClass("listopen");
-                  #table_var#.fnClose(nTr);
+                  $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
+                  #table_var#.fnClose(this);
                 } else {
                   jTr.prop("open", "opened");
-                  jQuery(nTr).find("td.listopen").removeClass("listopen").addClass("listclose");
+                  $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
                   var jsid = jTr.attr("jsuuid");
-                  #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
+                  #table_var#.fnOpen( this, fnFormatDetails(jsid), 'details' );
                   %s;
                 }
               }
