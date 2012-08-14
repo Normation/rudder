@@ -65,9 +65,11 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
   
   def addChild(child:LDAPTree) : Unit = {
     child.root.rdn match {
-      case Some(r) => _children += ((r,child))
+      case Some(r) => 
+        _children += ((r,child))
+        () // unit is expected
       case None => {
-        new TechnicalException("Try to add a child Tree but the RDN of the root of this child is not defined. Parent: %s , child root: %s".
+        throw new TechnicalException("Try to add a child Tree but the RDN of the root of this child is not defined. Parent: %s , child root: %s".
             format(root.dn, child.root))
       }
     }
