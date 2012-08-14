@@ -64,6 +64,7 @@ import net.liftweb.http.IdMemoizeTransform
 import com.normation.rudder.web.components.popup.GiveReasonPopup
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.services.ReasonBehavior._
+import com.normation.rudder.authorization.Write
 
 
 /**
@@ -514,7 +515,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Javascript to initialize the user library tree
    */
   private[this] def buildUserLibraryJsTree : JsExp = JsRaw(
-    """buildActiveTechniqueTree('#%s', '%s')""".format(htmlId_activeTechniquesTree, htmlId_techniqueLibraryTree)
+    """buildActiveTechniqueTree('#%s', '%s', %s )""".format(htmlId_activeTechniquesTree, htmlId_techniqueLibraryTree, CurrentUser.checkRights(Write("technique")))
   )
 
     
