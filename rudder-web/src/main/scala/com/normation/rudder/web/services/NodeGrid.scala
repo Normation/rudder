@@ -157,21 +157,20 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
    * initialization.
    */
   def initJsCallBack(tableId:String) : JsCmd = {
-      JsRaw("""$('tr.curspoint', #table_var#.fnGetNodes() ).each( function () {
+      JsRaw("""$( #table_var#.fnGetNodes() ).each( function () {
           $(this).click( function () {
-            var nTr = this.parentNode;
-            var opened = jQuery(nTr).prop("open");
+            var opened = $(this).prop("open");
             if (opened && opened.match("opened")) {
-              jQuery(nTr).prop("open", "closed");
-              jQuery(nTr).find("span.listclose").removeClass("listclose").addClass("listopen");
-              #table_var#.fnClose(nTr);
+              $(this).prop("open", "closed");
+              $(this).find("span.listclose").removeClass("listclose").addClass("listopen");
+              #table_var#.fnClose(this);
             } else {
-              jQuery(nTr).prop("open", "opened");
-              jQuery(nTr).find("span.listopen").removeClass("listopen").addClass("listclose");
-              var jsid = jQuery(nTr).attr("jsuuid");
-              var node = jQuery(nTr).attr("nodeid");
-              var ajaxParam = JSON.stringify({"jsid":jsid , "id":jQuery(nTr).attr("nodeid") , "status":jQuery(nTr).attr("nodeStatus")});
-              #table_var#.fnOpen( nTr, fnFormatDetails(jsid), 'details' );
+              $(this).prop("open", "opened");
+              $(this).find("span.listopen").removeClass("listopen").addClass("listclose");
+              var jsid = $(this).attr("jsuuid");
+              var node = $(this).attr("nodeid");
+              var ajaxParam = JSON.stringify({"jsid":jsid , "id":$(this).attr("nodeid") , "status":$(this).attr("nodeStatus")});
+              #table_var#.fnOpen( this, fnFormatDetails(jsid), 'details' );
               %s;
             }
           } );
