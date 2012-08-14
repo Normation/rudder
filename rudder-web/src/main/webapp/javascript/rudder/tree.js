@@ -68,7 +68,7 @@ var buildReferenceTechniqueTree = function(id,  initially_select) {
 /*
  * Active Techniques library tree
  */
-var buildActiveTechniqueTree = function(id, foreignTreeId) {
+var buildActiveTechniqueTree = function(id, foreignTreeId, authorized) {
   $(id).bind("loaded.jstree", function (event, data) {
 	  data.inst.open_all(-1);
   }).jstree({ 
@@ -143,9 +143,11 @@ var buildActiveTechniqueTree = function(id, foreignTreeId) {
           //only accept "inside" node move (yes, comparing m.p == "inside" does not work)
           //and into a new parent node. 
           var checkInside = (m.p != "before" && m.p != "after" && this._get_parent(m.o)[0] !== m.np[0]);
-          
+          if (authorized){
           return checkNotAlreadyBound() && checkInside;
-        }
+          }
+          return authorized
+       }
       }
     },
     "search" : {
