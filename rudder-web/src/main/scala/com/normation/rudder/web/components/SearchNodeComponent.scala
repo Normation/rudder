@@ -230,20 +230,21 @@ class SearchNodeComponent(
             errors.append(Empty)
           }
           bind("line",ns,
-            "removeLine" -> {if(criteria.size <= 1) NodeSeq.Empty else SHtml.ajaxSubmit("-", () => removeLine(i), ("class", "removeLineButton"))},
-            "addline" -> SHtml.ajaxSubmit("+", () => addLine(i), ("class", "removeLineButton")),
+            "removeLine" -> {
+              if(criteria.size <= 1)
+                NodeSeq.Empty
+              else
+                SHtml.ajaxButton("-", () => removeLine(i), ("class", "removeLineButton"),("type","button"))
+            },
+            "addline" ->
+               SHtml.ajaxButton("+", () => addLine(i), ("class", "removeLineButton"),("type","button")),
             "objectType" -> objectTypeSelect(ot,lines,i),
             "attributeName" -> attributeNameSelect(ot,a,lines,i),
             "comparator" -> comparatorSelect(ot,a,c,lines,i),
             "inputValue" -> {
               var form = a.cType.toForm(v, (x => lines(i) = lines(i).copy(value=x)), ("id","v_"+i), ("class", "queryInputValue"))
               if(!c.hasValue) form = form % Attribute("disabled",Seq(Text("disabled")),Null)
-              form ++ {
-                if (activateSubmitButton)
-                  SHtml.ajaxSubmit("Search", processForm,("style" -> "display:none"))
-                else
-                  SHtml.ajaxSubmit("Search", () => Focus("v_"+i), ("style" -> "display:none"))
-              }
+              form
             } ,
             "error" -> { errors(i) match { 
               case Full(m) => <tr><td class="error" colspan="6">{m}</td></tr>

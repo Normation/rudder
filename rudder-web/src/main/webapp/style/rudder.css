@@ -309,11 +309,14 @@ button.ui-datepicker-trigger {
   width: 25px !important;
 }
 
-form input.removeLineButton {
+form button.removeLineButton {
    padding: 0em 0.3em;
    width:18px !important;
 }
 
+form button.removeLineButton *{
+   padding: 0 !important;
+}
 #lift__noticesContainer___notice ul {
   padding: 10px 20px;
 }
