@@ -169,10 +169,11 @@ class SrvGrid {
    */
   def initJsCallBack(tableId:String, callback : (String) => JsCmd) : JsCmd = {
       JsRaw("""$('td[name="serverName"]', #table_var#.fnGetNodes() ).each( function () {
-          $(this).click( function () {
-              var aPos = #table_var#.fnGetPosition( this );
-              var aData = jQuery(#table_var#.fnGetData( aPos[0] ));
-              var node = jQuery(aData[aPos[1]]);
+              var td = this;
+          $(this.parentNode).click( function () {
+              var aPos = #table_var#.fnGetPosition( td );
+              var aData = $(#table_var#.fnGetData( aPos[0] ));
+              var node = $(aData[aPos[1]]);
               var id = node.attr("serverid");
               var jsid = node.attr("jsuuid");
               var ajaxParam = jsid + "|" + id;
@@ -208,7 +209,7 @@ class SrvGrid {
       "lines" -> ( servers.flatMap { case s@NodeInfo(id,name,description, hostname, operatingSystem, ips, inventoryDate,pkey, agentsName, policyServerId, admin, creationDate, isBroken, isSystem, isPolicyServer) =>
         //build all table lines
         bind("line",chooseTemplate("servergrid","lines",tableTemplate),
-          "name" -> <span class="hostnamecurs" jsuuid={id.value.replaceAll("-","")} serverid={id.value.toString}>{(if(isEmpty(name)) "(Missing name) " + id.value else hostname)}</span>,
+          "name" -> <span class="hostnamecurs" jsuuid={id.value.replaceAll("-","")} serverid={id.value.toString} >{(if(isEmpty(name)) "(Missing name) " + id.value else hostname)}</span>,
           "fullos" -> operatingSystem,
           "other" -> (columns flatMap { c => <td>{c._2(s)}</td> })
         )
