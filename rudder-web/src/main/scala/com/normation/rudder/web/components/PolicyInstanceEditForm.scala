@@ -176,7 +176,7 @@ class PolicyInstanceEditForm(
        } &
        "#desactivateAction *" #> {
          val status = piCurrentStatusIsActivated ? "Disable" | "Enable"
-         SHtml.ajaxButton(   status, () => createPopup("disableActionDialog",100,850),("type", "button"))
+         SHtml.ajaxButton(   status, () => createPopup("desactivateActionDialog",100,850),("type", "button"))
        } &
       "#disactivateButtonLabel" #> { if (piCurrentStatusIsActivated) "Disable" else "Enable" } &
       "#dialogDisactivateButton" #> { disableButton % ("id", "disactivateButton") } &
@@ -230,7 +230,6 @@ class PolicyInstanceEditForm(
           maxWidth: %s
         });
         $('#simplemodal-container').css('height', 'auto');
-        return false;
       });""".format(name,height,width,width))
   }
 
