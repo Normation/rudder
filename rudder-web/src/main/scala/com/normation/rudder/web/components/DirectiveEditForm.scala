@@ -251,7 +251,14 @@ class DirectiveEditForm(
       "#disactivateButtonLabel" #> { 
         if (piCurrentStatusIsActivated) "Disable" else "Enable" 
        } &
-      //form and form fields
+       "#removeAction *" #> {
+         SHtml.ajaxButton("Delete", () => createPopup("removeActionDialog",140,850),("type", "button"))
+       } &
+       "#desactivateAction *" #> {
+         val status = piCurrentStatusIsActivated ? "Disable" | "Enable"
+         SHtml.ajaxButton(   status, () => createPopup("disableActionDialog",100,850),("type", "button"))
+       } &
+       //form and form fields
       "#techniqueName" #> 
         <a href={ "/secure/configurationManager/techniqueLibraryManagement/" + 
           technique.id.name.value }>
@@ -271,7 +278,7 @@ class DirectiveEditForm(
       "#clone" #> SHtml.ajaxButton( 
             { Text("Clone") },
             { () =>  clone() },
-            ("class", "autoWidthButton")
+            ("class", "autoWidthButton"),("type", "button")
           ) &
       "#notifications *" #> updateAndDisplayNotifications(formTracker) &
       "#isSingle *" #> showIsSingle &
@@ -282,15 +289,6 @@ class DirectiveEditForm(
         .format(htmlId_policyConf, htmlId_save)) &
       JsRaw("""
         correctButtons();
-        $('#removeButton').click(function() {
-          createPopup("removeActionDialog",140,850);
-          return false;
-        });
-
-        $('#disactivateButton').click(function() {
-          createPopup("disableActionDialog",100,850);
-          return false;
-        });
       """))
     )
   }
@@ -343,6 +341,10 @@ class DirectiveEditForm(
     initJs
   }
   
+  def createPopup(name:String,height:Int,width:Int) :JsCmd = {
+    JsRaw("""createPopup("%s",%s,%s);""".format(name,height,width))
+  }
+  
   def initJs : JsCmd = {
     JsRaw("correctButtons();")
   }
@@ -389,7 +391,7 @@ class DirectiveEditForm(
       }
     }
 
-    SHtml.ajaxSubmit("Delete", removeCr _)
+    SHtml.ajaxButton("Delete", removeCr _,("type", "button"))
   }
 
   ///////////// Enable / disable /////////////
@@ -414,9 +416,9 @@ class DirectiveEditForm(
     }
 
     if (piCurrentStatusIsActivated) {
-      SHtml.ajaxSubmit("Disable", switchActivation(false) _)
+      SHtml.ajaxButton("Disable", switchActivation(false) _,("type", "button"))
     } else {
-      SHtml.ajaxSubmit("Enable", switchActivation(true) _)
+      SHtml.ajaxButton("Enable", switchActivation(true) _,("type", "button"))
     }
   }
   
