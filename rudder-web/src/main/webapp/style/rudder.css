@@ -317,6 +317,10 @@ form button.removeLineButton {
 form button.removeLineButton *{
    padding: 0 !important;
 }
+
+button.deleteNetwork * {
+	   padding: 0 !important;
+}
 #lift__noticesContainer___notice ul {
   padding: 10px 20px;
 }
