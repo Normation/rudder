@@ -376,11 +376,11 @@ case class MultivaluedSectionField(
 
   private def showAddAnother(): NodeSeq = {
     <div class="policyInstanceAddGroup">{
-      SHtml.ajaxSubmit("Add another", { () =>
+      SHtml.ajaxButton("Add another", { () =>
         add()
         //refresh UI - all item of that group
         SetHtml(htmlId, this.content) & JsRaw("""correctButtons(); """)
-      })
+      }, ("type","button"))
     }</div>
   }
 
@@ -392,12 +392,12 @@ case class MultivaluedSectionField(
     </table>
     <div style="text-align:right" class="policyInstanceDeleteGroup">{
       val attr = if (size > 1) ("" -> "") else ("disabled" -> "true")
-      SHtml.ajaxSubmit("Delete", { () =>
+      SHtml.ajaxButton("Delete", { () =>
         logError(delete(i))
         //refresh UI - all item of that group
         SetHtml(htmlId, this.content) & JsRaw(""" correctButtons(); """)
       },
-        attr)
+        attr, ("type","button"))
     }</div>
   }
 

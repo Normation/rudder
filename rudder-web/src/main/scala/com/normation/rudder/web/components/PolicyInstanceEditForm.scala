@@ -171,6 +171,13 @@ class PolicyInstanceEditForm(
       "#editForm *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       ClearClearable &
       //activation button: show disactivate if activated
+       "#removeAction *" #> {
+         SHtml.ajaxButton("Delete", () => createPopup("removeActionDialog",140,850),("type", "button"))
+       } &
+       "#desactivateAction *" #> {
+         val status = piCurrentStatusIsActivated ? "Disable" | "Enable"
+         SHtml.ajaxButton(   status, () => createPopup("disableActionDialog",100,850),("type", "button"))
+       } &
       "#disactivateButtonLabel" #> { if (piCurrentStatusIsActivated) "Disable" else "Enable" } &
       "#dialogDisactivateButton" #> { disableButton % ("id", "disactivateButton") } &
       "#dialogDisactivateLabel" #> { if (piCurrentStatusIsActivated) "disable" else "enable" } &
@@ -199,25 +206,6 @@ class PolicyInstanceEditForm(
         JsRaw("""activateButtonOnFormChange("%s", "%s");  """.format(htmlId_policyConf, htmlId_save)) &
           JsRaw("""
         correctButtons();
-        $('#removeButton').click(function() {
-          $('#removeActionDialog').modal({
-            minHeight:140,
-            minWidth: 850,
-      			maxWidth: 850
-          });
-          $('#simplemodal-container').css('height', 'auto');
-          return false;
-        });
-
-        $('#disactivateButton').click(function() {
-          $('#desactivateActionDialog').modal({
-            minHeight:100,
-            minWidth: 850,
-      			maxWidth: 850
-          });
-          $('#simplemodal-container').css('height', 'auto');
-          return false;
-        });
       """)))
   }
 
@@ -234,6 +222,16 @@ class PolicyInstanceEditForm(
   private[this] def onFailure(): JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
     onFailureCallback() & updateFormClientSide() & JsRaw("""scrollToElement("errorNotification");""")
+  }
+    def createPopup(name:String,height:Int,width:Int) :JsCmd = {
+    JsRaw("""$('#%s').modal({
+          minHeight: %s,
+          minWidth: %s,
+          maxWidth: %s
+        });
+        $('#simplemodal-container').css('height', 'auto');
+        return false;
+      });""".format(name,height,width,width))
   }
 
   ///////////// Remove /////////////
@@ -275,7 +273,7 @@ class PolicyInstanceEditForm(
           }
       }
 
-    SHtml.ajaxButton(<span class="red">Delete</span>, removeCr _)
+    SHtml.ajaxButton(<span class="red">Delete</span>, removeCr _,("type","button"))
   }
 
   ///////////// Enable / disable /////////////
@@ -294,9 +292,9 @@ class PolicyInstanceEditForm(
       }
 
     if (piCurrentStatusIsActivated) {
-      SHtml.ajaxButton(<span class="red">Disable</span>, switchActivation(false) _)
+      SHtml.ajaxButton(<span class="red">Disable</span>, switchActivation(false) _,("type","button"))
     } else {
-      SHtml.ajaxButton(<span class="red">Enable</span>, switchActivation(true) _)
+      SHtml.ajaxButton(<span class="red">Enable</span>, switchActivation(true) _,("type","button"))
     }
   }
 
