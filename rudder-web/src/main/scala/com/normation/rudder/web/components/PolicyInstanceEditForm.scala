@@ -206,7 +206,11 @@ class PolicyInstanceEditForm(
         JsRaw("""activateButtonOnFormChange("%s", "%s");  """.format(htmlId_policyConf, htmlId_save)) &
           JsRaw("""
         correctButtons();
-      """)))
+        $('input').keypress(function(e){
+          if(e.which == 13){
+            $('#%s').click();
+          }
+        });""".format(htmlId_save))))
   }
 
   ////////////// Callbacks //////////////
@@ -230,7 +234,8 @@ class PolicyInstanceEditForm(
           maxWidth: %s
         });
         $('#simplemodal-container').css('height', 'auto');
-      });""".format(name,height,width,width))
+        correctButtons();
+      """.format(name,height,width,width))
   }
 
   ///////////// Remove /////////////
