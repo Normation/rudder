@@ -161,6 +161,13 @@ class ConfigurationRuleEditForm(
       "#editForm *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
       ClearClearable &
       //activation button: show disactivate if activated
+      "#removeAction *" #> {
+         SHtml.ajaxButton("Delete", () => createPopup("removeActionDialog",140,850),("type", "button"))
+       } &
+       "#desactivateAction *" #> {
+         val status = crCurrentStatusIsActivated ? "Disable" | "Enable"
+         SHtml.ajaxButton(   status, () => createPopup("desactivateActionDialog",100,850),("type", "button"))
+       } &
       "#disactivateButtonLabel" #> { if(crCurrentStatusIsActivated) "Disable" else "Enable" } &
       "#dialogDisactivateButton" #> { disactivateButton % ("id", "disactivateButton") } &
       "#dialogDeactivateTitle" #> { if(crCurrentStatusIsActivated) "Disable" else "Enable" } &
@@ -181,26 +188,11 @@ class ConfigurationRuleEditForm(
     )(crForm) ++ 
     Script(OnLoad(JsRaw("""
     	correctButtons();
-      $('#removeButton').click(function() {
-        $('#removeActionDialog').modal({
-          minHeight:140,
-          minWidth: 850,
-      		maxWidth: 850
-        });
-        $('#simplemodal-container').css('height', 'auto');
-        return false;
-      });
-
-      $('#disactivateButton').click(function() {
-        $('#desactivateActionDialog').modal({
-          minHeight:140,
-          minWidth: 850,
-      		maxWidth: 850
-        });
-        $('#simplemodal-container').css('height', 'auto');
-        return false;
-      });
-    """)))++ Script(
+      $('input').keypress(function(e){
+        if(e.which == 13){
+          $('#%s').click();
+       }
+      });""".format(htmlId_save))))++ Script(
         //a function to update the list of currently selected PI in the tree
         //and put the json string of ids in the hidden field. 
         JsCrVar("updateSelectedPis", AnonFunc(JsRaw("""
@@ -227,7 +219,16 @@ class ConfigurationRuleEditForm(
     )
   }
 
-  
+ def createPopup(name:String,height:Int,width:Int) :JsCmd = {
+    JsRaw("""$('#%s').modal({
+          minHeight: %s,
+          minWidth: %s,
+          maxWidth: %s
+        });
+        $('#simplemodal-container').css('height', 'auto');
+        correctButtons();
+      """.format(name,height,width,width))
+  }
   
   /*
    * from a list of PI ids, get a string.
