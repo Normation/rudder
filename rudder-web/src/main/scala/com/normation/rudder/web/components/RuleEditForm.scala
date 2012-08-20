@@ -285,6 +285,13 @@ class RuleEditForm(
       ClearClearable &
       //activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if(crCurrentStatusIsActivated) "Disable" else "Enable" } &
+      "#removeAction *" #> {
+         SHtml.ajaxButton("Delete", () => createPopup("removeActionDialog",140,450),("type", "button"))
+       } &
+       "#desactivateAction *" #> {
+         val status = crCurrentStatusIsActivated ? "Disable" | "Enable"
+         SHtml.ajaxButton(   status, () => createPopup("desactivateActionDialog",100,450),("type", "button"))
+       } &
       "#nameField" #> crName.toForm_! &
       "#shortDescriptionField" #> crShortDescription.toForm_! &
       "#longDescriptionField" #> crLongDescription.toForm_! &
@@ -311,15 +318,6 @@ class RuleEditForm(
     )(crForm) ++ 
     Script(OnLoad(JsRaw("""
       correctButtons();
-      $('#removeButton').click(function() {
-        createPopup("removeActionDialog",140,450);
-        return false;
-      });
-
-      $('#disactivateButton').click(function() {
-        createPopup("desactivateActionDialog",140,450);
-        return false;
-      });
     """)))++ Script(
         //a function to update the list of currently selected PI in the tree
         //and put the json string of ids in the hidden field. 
@@ -389,7 +387,12 @@ class RuleEditForm(
       GroupTarget(NodeGroupId(x.replace("jsTree-","")))
     }
   }
-    
+ 
+  
+  def createPopup(name:String,height:Int,width:Int) :JsCmd = {
+    JsRaw("""createPopup("%s",%s,%s);""".format(name,height,width))
+  }
+  
   ////////////// Callbacks //////////////
   
   
