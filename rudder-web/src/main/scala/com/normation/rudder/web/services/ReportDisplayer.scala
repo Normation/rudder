@@ -117,7 +117,7 @@ class ReportDisplayer(
   }
 
   def showReportDetail(executionsBatches : Seq[ExecutionBatch]) : NodeSeq = {
-    ("#reportsGrid [class+]" #> "fixedlayout" &
+    ("#reportsGrid [class+]" #> "fixedlayout tablewidth" &
      "#reportLine" #> executionsBatches.flatMap(x => x.getNodeStatus()).map { reportStatus =>
          ruleRepository.get(reportStatus.ruleId) match {
            case Full(rule) =>
@@ -128,10 +128,8 @@ class ReportDisplayer(
                  "#severity *" #> getSeverityFromStatus(reportStatus.nodeReportType) &
                  ".unfoldable [class+]" #> getSeverityFromStatus(reportStatus.nodeReportType).replaceAll(" ", "") &
                  ".unfoldable [toggler]" #> tooltipid &
-                 "#jsid [id]" #> tooltipid &
-                 "#details" #> showDirectivesReport(reportStatus.directives) &
-                 ".detailedReport [class+]" #> "fixedlayout"
-             )(reportsLineXml)
+                 "#jsid [id]" #> tooltipid
+             )(reportsLineXml) ++ showDirectivesReport(reportStatus.directives,tooltipid)
            case _ => <div>Could not find rule {reportStatus.ruleId} </div>
          }
      }
@@ -139,64 +137,57 @@ class ReportDisplayer(
     
   }
   
-  def showDirectivesReport(directives : Seq[DirectiveStatusReport]) : NodeSeq = {
+  def showDirectivesReport(directives : Seq[DirectiveStatusReport], id :String) : NodeSeq = {
     directives.flatMap { directive =>
       directiveRepository.getDirective(directive.directiveId) match {
         case Full(dir) =>
           val tech = directiveRepository.getActiveTechnique(dir.id).map(act => techniqueRepository.getLastTechniqueByName(act.techniqueName).map(_.name).getOrElse("Unknown technique")).getOrElse("Unknown technique")
           val techversion = dir.techniqueVersion;
           val tooltipid = Helpers.nextFuncName
-           (
+          val severity = getSeverityFromStatus(directive.directiveReportType)
+           (  "#directiveLine [class+]" #> severity.replaceAll(" ", "")  &
+              "#directiveLine [id]" #> id &
               "#directive [class+]" #> "listopen" &
               "#directive *" #> <span>{dir.name}</span> &
               "#technique *" #> <span>{"%s (%s)".format(tech,techversion)}</span> &
-              "#severity *" #> getSeverityFromStatus(directive.directiveReportType) &
-              ".unfoldable [class+]" #> getSeverityFromStatus(directive.directiveReportType).replaceAll(" ", "") &
-              ".unfoldable [toggler]" #> tooltipid &
-              "#jsid [id]" #> tooltipid &
-              "#details" #> showComponentsReports(directive.components) 
-           )(directiveLineXml)
+              "#severity *" #> severity &
+              "td [class+]" #> "detailReport" &
+              ".unfoldable [toggler]" #> tooltipid
+           )(directiveLineXml) ++ showComponentsReports(directive.components,tooltipid)
         case _ => <div>Could not fetch directive {directive.directiveId} </div>
       }
     }
   }
   
-  def showComponentsReports(components : Seq[ComponentStatusReport]) : NodeSeq = {
+  def showComponentsReports(components : Seq[ComponentStatusReport], id:String) : NodeSeq = {
     components.flatMap { component =>
+      val severity = getSeverityFromStatus(component.componentReportType)
+      ("#componentLine [class+]" #> severity.replaceAll(" ", "")  &
+       "#componentLine [id]" #> id &
+       "td [class+]" #> "detailReport" &
+       "#component *" #> <span>{component.component}</span> &
+       "#severity *" #>  severity ) (
       component.componentValues.forall( x => x.componentValue =="None") match {
         case true => // only None, we won't show the details
-          (
-              "#component *" #> <span>{component.component}</span> &
-              ".unfoldable [class]" #> getSeverityFromStatus(component.componentReportType).replaceAll(" ", "") &
-              "#jsid *" #> NodeSeq.Empty &
-              "#severity *" #> getSeverityFromStatus(component.componentReportType)&
-              ".detailedReport [class+]" #> "fixedlayout"
-           )(componentDetails)
+         componentDetails
         case false => // standard  display that can be expanded
           val tooltipid = Helpers.nextFuncName
-           (
-              "#component [class+]" #> "listopen" &
-              "#component *" #> <span>{component.component}</span> &
-              ".unfoldable [toggler]" #> tooltipid &
-              "#jsid [id]" #> tooltipid &
-              ".unfoldable [class+]" #> getSeverityFromStatus(component.componentReportType).replaceAll(" ", "") &
-              "#severity *" #> getSeverityFromStatus(component.componentReportType) &
-              "#details" #> showComponentValueReport(component.componentValues)&
-              ".detailedReport [class+]" #> "fixedlayout"
-           )(componentDetails)
-      }
-    }    
+           (  "#component [class+]" #> "listopen" &
+              ".unfoldable [toggler]" #> tooltipid
+           )(componentDetails) ++ showComponentValueReport(component.componentValues,tooltipid)
+      })
+    }
   }
   
-  def showComponentValueReport(values : Seq[ComponentValueStatusReport]) : NodeSeq = {
-    values.flatMap { value =>
-           (
+  def showComponentValueReport(values : Seq[ComponentValueStatusReport],id:String) : NodeSeq = {
+    values.flatMap { value => val severity = getSeverityFromStatus(value.cptValueReportType)
+           (  "#valueLine [class+]" #> severity.replaceAll(" ", "") &
+              "#valueLine [id]" #> id &
+              "td [class+]" #> "detailReport" &
               "#componentValue *" #> <span>{value.componentValue}</span> &
-              "#severity *" #> getSeverityFromStatus(value.cptValueReportType) &
-              "#severityClass [class]" #> getSeverityFromStatus(value.cptValueReportType).replaceAll(" ", "") &
-              ".detailedReport [class+]" #> "fixedlayout"
+              "#severity *" #> severity
            )(componentValueDetails)
-    } 
+    }
   }
   
   def getSeverityFromStatus(status : ReportType) : String = {
@@ -235,48 +226,20 @@ class ReportDisplayer(
     JsRaw("""
         $(".unfoldable").click(function() {
           var togglerId = $(this).attr("toggler");
-          $('#'+togglerId).toggle();
-          if ($(this).find("td.listclose").length > 0) {
+          var totoggle = $(this).siblings('#'+togglerId)
+          var td = $(this).find("td.listclose")
+          if (td.length > 0){
+            totoggle.each( function() {
+              if( $(this).find("td.listclose").length != 0)
+                $(this).click();
+            } )
             $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
           } else {
             $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
           }
-        });
+          totoggle.each( function() { $(this).toggle() } );
+        } );
       """);
-    
-    /*JsRaw("""
-        $('#severityClass').click(function() {
-          val togglerId = this.attr("toggler");
-          $('#'+togglerId).toggle();
-        });
-      """);  */
-    /*JsRaw("""
-        $('#severityClass').click(function() {
-          val togglerId = this.attr("toggler");
-          $('#'+togglerId).toggle();
-        });
-        /* var #table_var#;*/
-        /* Formating function for row details */
-        function fnFormatDetails ( id ) {
-          var sOut = '<div id="'+id+'" class="reportDetailsGroup"/>';
-          return sOut;
-        }
-      """.replaceAll("#table_var#",jsVarNameForId(tableId))
-    ) /*& OnLoad(    
-        JsRaw("""
-          /* Event handler function */
-          #table_var# = $('#%s').dataTable({
-            "bAutoWidth": false,
-            "bLengthChange": false,
-            "bJQueryUI": false,
-            "aaSorting": [[ 1, "asc" ]],
-            "aoColumns": [ 
-              { "sWidth": "300px" },
-              { "sWidth": "200px" }
-            ]
-          });moveFilterAndPaginateArea('#%s');""".format(tableId, tableId).replaceAll("#table_var#",jsVarNameForId(tableId))
-        )  // &  initJsCallBack(tableId)  //for now, no details on report #783
-    )*/*/
   }
   
   
@@ -341,71 +304,58 @@ class ReportDisplayer(
    */
   def reportToXML(report : TWReports) : NodeSeq = {
     <div>
-      <span>{report.severity}, on the {DateFormaterService.getFormatedDate(report.executionDate)}, with the message : {report.message}</span>
+      <span>{report.severity}, oqn the {DateFormaterService.getFormatedDate(report.executionDate)}, with the message : {report.message}</span>
     </div>
   }
-  
-  
 
   def reportsGridXml : NodeSeq = {
     <table id="reportsGrid" cellspacing="0">
       <thead>
-        <tr class="head">
-          <th class="tablewidth">
-      <table class="reportTableTitleWidth">
-        <th class="reportTitleWidth">Rule</th>
-        <th class="reportTitleWidth">Directive</th>
-            <th class="reportbiggerWidth">Component</th>
-            <th class="reportTitleWidth">Value</th>
-      </table></th>
-          <th class="severityWidth">Technique<span/></th>
-          <th class="severityWidth">Severity<span/></th>
+        <tr class="head tablewidth">
+          <th width="10%">Rule</th>
+          <th width="12%">Directive</th>
+          <th width="16%">Component</th>
+          <th width="32%">Value</th>
+          <th width="27%">Technique</th>
+          <th width="13%">Compliance<span/></th>
         </tr>
       </thead>
-      <tbody>   
+      <tbody>
         <div id="reportLine"/>
       </tbody>
     </table>
   }
-  
+
   def reportsLineXml : NodeSeq = {
     <tr class="unfoldable">
-      <td id="rule"></td>
-      <td name="technique" class="severityWidth"/>
-      <td name="severity" class="severityWidth"><div id="severity"/></td>
-    </tr> ++ detailsLine
-    
+      <td id="rule" colspan="5"></td>
+      <td name="severity"><div id="severity"/></td>
+    </tr>
   }
-  
+
   def directiveLineXml : NodeSeq = {
-    <tr class="unfoldable">
-      <td id="directive" class="tablewidth"></td>
-         <td name="technique" class="severityWidth"><div id="technique"/></td>
-      <td name="severity" class="severityWidth"><div id="severity"/></td>
-    </tr> ++ detailsLine
+    <tr id="directiveLine" class="detailedReportLine unfoldable severity" style="display:none">
+      <td class="emptyTd"/>
+      <td id="directive" colspan="3" ></td>
+      <td name="technique"><div id="technique"/></td>
+      <td name="severity" ><div id="severity"/></td>
+    </tr>
   }
   
   def componentDetails : NodeSeq = {
-    <tr class="unfoldable">
-      <td id="component"></td>
-      <td name="severity" class="severityWidth"><div id="severity"/></td>
-    </tr> ++ detailsLine    
+   <tr id="componentLine" class="detailedReportLine unfoldable severity" style="display:none">
+      <td class="emptyTd" colspan="2"/>
+      <td id="component" colspan="3"></td>
+      <td name="severity"><div id="severity"/></td>
+   </tr>
+
   }
-  
+
   def componentValueDetails : NodeSeq = {
-    <tr id="severityClass">
-      <td id="componentValue"></td>
-      <td name="severity" class="severityWidth"><div id="severity"/></td>
-    </tr>
-  }  
-  
-  def detailsLine : NodeSeq = {
-    <tr id="jsid" class="detailedReportLine severity" style="display:none">
-      <td class="detailedReportLine" colspan="10">
-        <table class="detailedReport" cellspacing="0">
-          <div id="details"/>
-        </table>
-      </td>
-    </tr>
+  <tr id="valueLine"  class="detailedReportLine severityClass severity " style="display:none">
+      <td class="emptyTd" colspan="3"/>
+      <td id="componentValue" colspan="2">></td>
+      <td name="severity"><div id="severity"/></td>
+  </tr>
   }
 }
