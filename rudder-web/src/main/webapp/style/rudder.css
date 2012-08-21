@@ -2029,6 +2029,14 @@ div.tabInform {
   padding:5px;
 }
 
+.emptyTd {
+	border: 0pt none;
+	background : #FFFFFF;
+}
+
+.detailReport {
+	border: 0pt none;
+}
 .evlogviewpad li{
   list-style-type: disc;
 }
