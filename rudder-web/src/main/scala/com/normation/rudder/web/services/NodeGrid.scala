@@ -158,23 +158,27 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
    */
   def initJsCallBack(tableId:String) : JsCmd = {
       JsRaw("""$( #table_var#.fnGetNodes() ).each( function () {
-          $(this).click( function () {
-            var opened = $(this).prop("open");
-            if (opened && opened.match("opened")) {
-              $(this).prop("open", "closed");
-              $(this).find("span.listclose").removeClass("listclose").addClass("listopen");
-              #table_var#.fnClose(this);
-            } else {
-              $(this).prop("open", "opened");
-              $(this).find("span.listopen").removeClass("listopen").addClass("listclose");
-              var jsid = $(this).attr("jsuuid");
-              var node = $(this).attr("nodeid");
-              var ajaxParam = JSON.stringify({"jsid":jsid , "id":$(this).attr("nodeid") , "status":$(this).attr("nodeStatus")});
-              #table_var#.fnOpen( this, fnFormatDetails(jsid), 'details' );
-              %s;
+          $(this).click( function (event) {
+            var source = event.target || event.srcElement;
+            event.stopPropagation();
+            if(!( $(source).is("button") || $(source).is("input") )){
+              var opened = $(this).prop("open");
+              if (opened && opened.match("opened")) {
+                $(this).prop("open", "closed");
+                $(this).find("span.listclose").removeClass("listclose").addClass("listopen");
+                #table_var#.fnClose(this);
+              } else {
+                $(this).prop("open", "opened");
+                $(this).find("span.listopen").removeClass("listopen").addClass("listclose");
+                var jsid = $(this).attr("jsuuid");
+                var node = $(this).attr("nodeid");
+                var ajaxParam = JSON.stringify({"jsid":jsid , "id":$(this).attr("nodeid") , "status":$(this).attr("nodeStatus")});
+                #table_var#.fnOpen( this, fnFormatDetails(jsid), 'details' );
+                %s;
+              }
             }
           } );
-        })
+        } )
       """.format(
           SHtml.ajaxCall(JsVar("ajaxParam"), details _)._2.toJsCmd).replaceAll("#table_var#",
               jsVarNameForId(tableId))
