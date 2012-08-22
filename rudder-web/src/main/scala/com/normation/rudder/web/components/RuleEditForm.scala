@@ -1049,7 +1049,7 @@ class RuleEditForm(
               "#valueLine [id]" #> id &
               "td [class+]" #> "detailReport" &
               "#componentValue *" #> <span>{value.componentValue}</span> &
-              "#severity *" #> buildComplianceChart(value)
+              "#keySeverity *" #> buildComplianceChart(value)
            )(componentValueDetails)
     }
   }
@@ -1092,7 +1092,7 @@ class RuleEditForm(
   <tr id="valueLine"  class="detailedReportLine severityClass severity " style="display:none">
       <td class="emptyTd" colspan="2"/>
       <td id="componentValue" colspan="2">></td>
-      <td name="severity"><div id="severity"/></td>
+      <td name="keySeverity"><div id="keySeverity"/></td>
   </tr>
   }
 

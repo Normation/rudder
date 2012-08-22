@@ -185,7 +185,7 @@ class ReportDisplayer(
               "#valueLine [id]" #> id &
               "td [class+]" #> "detailReport" &
               "#componentValue *" #> <span>{value.componentValue}</span> &
-              "#severity *" #> severity
+              "#keySeverity *" #> severity
            )(componentValueDetails)
     }
   }
@@ -355,7 +355,7 @@ class ReportDisplayer(
   <tr id="valueLine"  class="detailedReportLine severityClass severity " style="display:none">
       <td class="emptyTd" colspan="3"/>
       <td id="componentValue" colspan="2">></td>
-      <td name="severity"><div id="severity"/></td>
+      <td name="keySeverity"><div id="keySeverity"/></td>
   </tr>
   }
 }
