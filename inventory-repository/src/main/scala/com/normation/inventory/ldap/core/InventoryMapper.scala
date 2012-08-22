@@ -681,6 +681,7 @@ class InventoryMapper(
     root +=! (A_SOFTWARE_DN, server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString):_*)
     root +=! (A_EV, server.environmentVariables.map(x => Serialization.write(x)):_*)
     root +=! (A_PROCESS, server.processes.map(x => Serialization.write(x)):_*)
+    root +=! (A_LIST_OF_IP, server.serverIps:_*)
     //we don't know their dit...
     root +=! (A_CONTAINER_DN, server.machineId.map { case (id, status) =>
       ditService.getDit(status).MACHINES.MACHINE.dn(id).toString
