@@ -117,7 +117,7 @@ class ReportDisplayer(
   }
 
   def showReportDetail(executionsBatches : Seq[ExecutionBatch]) : NodeSeq = {
-    ("#reportsGrid [class+]" #> "fixedlayout tablewidth" &
+    ("#reportsGrid [class+]" #> "fixedlayout tablewidth reportTable" &
      "#reportLine" #> executionsBatches.flatMap(x => x.getNodeStatus()).map { reportStatus =>
          ruleRepository.get(reportStatus.ruleId) match {
            case Full(rule) =>
@@ -147,7 +147,7 @@ class ReportDisplayer(
           val severity = getSeverityFromStatus(directive.directiveReportType)
            (  "#directiveLine [class+]" #> severity.replaceAll(" ", "")  &
               "#directiveLine [id]" #> id &
-              "#directive [class+]" #> "listopen" &
+              "#directive [class+]" #> "listopen firstTd" &
               "#directive *" #> <span>{dir.name}</span> &
               "#technique *" #> <span>{"%s (%s)".format(tech,techversion)}</span> &
               "#severity *" #> severity &
@@ -161,30 +161,48 @@ class ReportDisplayer(
   
   def showComponentsReports(components : Seq[ComponentStatusReport], id:String) : NodeSeq = {
     components.flatMap { component =>
+      val cpValues =(component.componentValues++component.unexpectedCptValues)
       val severity = getSeverityFromStatus(component.componentReportType)
       ("#componentLine [class+]" #> severity.replaceAll(" ", "")  &
        "#componentLine [id]" #> id &
        "td [class+]" #> "detailReport" &
-       "#component *" #> <span>{component.component}</span> &
        "#severity *" #>  severity ) (
-      component.componentValues.forall( x => x.componentValue =="None") match {
+      cpValues.forall( x => x.componentValue =="None") match {
         case true => // only None, we won't show the details
-         componentDetails
+          val tooltipid = Helpers.nextFuncName
+          ( "#component *" #>
+            <span class="tooltipable" tooltipid={tooltipid}>{"%s".format(component.component)}</span>
+            <div class="tooltipContent" id={tooltipid}>
+              <h3>{component.component}</h3>
+              <div>{component.message.map("%s\n".format(_))}</div>
+            </div> &
+            "#component [class+]" #> "firstTd"
+          ) (componentDetails)
         case false => // standard  display that can be expanded
           val tooltipid = Helpers.nextFuncName
-           (  "#component [class+]" #> "listopen" &
+           (  "#component [class+]" #> "listopen firstTd" &
+              "#component *" #> <span>{"%s".format(component.component)}</span> &
               ".unfoldable [toggler]" #> tooltipid
-           )(componentDetails) ++ showComponentValueReport(component.componentValues,tooltipid)
+           )(componentDetails) ++ showComponentValueReport(cpValues,tooltipid)
       })
     }
   }
   
   def showComponentValueReport(values : Seq[ComponentValueStatusReport],id:String) : NodeSeq = {
     values.flatMap { value => val severity = getSeverityFromStatus(value.cptValueReportType)
+             val tooltipid = Helpers.nextFuncName
            (  "#valueLine [class+]" #> severity.replaceAll(" ", "") &
               "#valueLine [id]" #> id &
               "td [class+]" #> "detailReport" &
-              "#componentValue *" #> <span>{value.componentValue}</span> &
+              "#componentValue [class+]" #> "firstTd" &
+              "#componentValue *" #>
+                <span class="tooltipable" tooltipid={tooltipid}>{"%s".format(value.componentValue)}</span>
+                <div class="tooltipContent" id={tooltipid}>
+                  <h3>{value.componentValue.name}</h3>
+                  <ul>{
+                    value.message.map(msg => <li>{msg}</li>)
+                  }</ul>
+                </div>&
               "#keySeverity *" #> severity
            )(componentValueDetails)
     }
@@ -251,7 +269,7 @@ class ReportDisplayer(
           }
           totoggle.each( function() { $(this).toggle() } );
         } );
-      """);
+      """)& OnLoad(After(TimeSpan(100), JsRaw("""createTooltip();""")))
   }
   
   
@@ -366,7 +384,7 @@ class ReportDisplayer(
   def componentValueDetails : NodeSeq = {
   <tr id="valueLine"  class="detailedReportLine severityClass severity " style="display:none">
       <td class="emptyTd" colspan="3"/>
-      <td id="componentValue" colspan="2">></td>
+      <td id="componentValue" colspan="2"></td>
       <td name="keySeverity"><div id="keySeverity"/></td>
   </tr>
   }
