@@ -62,11 +62,11 @@ object ReportType {
       NoAnswerReportType
     } else {
       ( reportTypes :\ (SuccessReportType : ReportType) ) { 
-        case (_, PendingReportType) | (PendingReportType, _) => PendingReportType  
-        case (_, NoAnswerReportType) | (NoAnswerReportType, _) => NoAnswerReportType
-        case (_, ErrorReportType) | (ErrorReportType, _) => ErrorReportType
         case (_, UnknownReportType) | (UnknownReportType, _) => UnknownReportType
+        case (_, ErrorReportType) | (ErrorReportType, _) => ErrorReportType
         case (_, RepairedReportType) | (RepairedReportType, _) => RepairedReportType
+        case (_, NoAnswerReportType) | (NoAnswerReportType, _) => NoAnswerReportType
+        case (_, PendingReportType) | (PendingReportType, _) => PendingReportType
         case (_, SuccessReportType) | (SuccessReportType, _) => SuccessReportType
         case _ => UnknownReportType
       }

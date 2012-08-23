@@ -66,6 +66,7 @@
 .overflow_auto {
   overflow: auto;
 }
+div.innerDetails { display: none }
 
 /**********************************
  * Node details
@@ -444,6 +445,11 @@ td {
 .warning {
    color: #c00;
 }
+
+a.warning {
+   color: #c00;
+   padding-left: 30px;
+}
 #contenu table td img, #contenu table th img {
    float: none;
    margin: 0;
@@ -566,6 +572,26 @@ div#Detail {
 
 .dataTables_wrapper {
   margin: 10px 10px 0px 5px;
+}
+
+#componentGrid_wrapper {
+  margin: 0;
+}
+#componentGrid {
+  border-left : 0 ;
+    border-right : 0 ;
+}
+
+#valueGrid_wrapper {
+  margin: 0;
+}
+
+#valueGrid {
+  border-left : 0 ;
+    border-right : 0 ;
+}
+#reportsGrid_wrapper {
+  margin: 0;
 }
 
 .dataTables_wrapper_top {
@@ -854,6 +880,7 @@ padding:0 20px;
 }
 .paginatescala{
   float:left;
+  margin-top: 4px;
 }
 .notify{
   text-align:center;
@@ -2071,7 +2098,18 @@ div.tabInform {
   border-color: red;    
 }
 
+.reportLine {
+    background: url("../images/tableau/fdTaboHead.jpg") repeat-x scroll left top transparent;
+    color: #FFFFFF;
+    float: left;
+    margin-top: 4px;
+    padding: 5px;
+}
 
+.filter {
+	float : right;
+	margin-right : 14px;
+}
 /***********************************
  *Directive display
 ************************************/
@@ -2113,12 +2151,24 @@ div.tabInform {
 }
 
 .emptyTd {
-    border: 0pt none;
-    background : #FFFFFF;
+	border: 0pt none !important;
+	background : #DEDEDE !important;
+}
+
+.reportTable {
+border-bottom : 2pt ridge;
 }
 
 .detailReport {
     border: 0pt none;
+}
+.firstTd {
+
+	border-left: 1px ridge #ABABAB !important;
+}
+
+td.nestedImg{
+	padding: 0px 3px !important;
 }
 .evlogviewpad li{
   list-style-type: disc;
@@ -2171,13 +2221,42 @@ tr.Repaired {
 tr.Warn {
   background-color:#FF9922;
 }
-
+tr.Unknown {
+    background-color: #FFBB66;
+}
 tr.Error {
-  background-color:#FF4411;
+  background-color:#FF6655;
 }
 
 tr.Noanswer {
   background-color:#BBAAAA;
+}
+
+td.Success {
+  background-color:#CCFFCC;
+}
+td.Applying {
+  background-color:#CCCCCC;
+}
+td.Repaired {
+  background-color:#CCFA10;
+}
+td.Warn {
+  background-color:#FF9922;
+}
+td.Unknown {
+    background-color: #FFBB66;
+}
+td.Error {
+  background-color:#FF6655;
+}
+
+td.Noanswer {
+  background-color:#BBAAAA;
+}
+
+td.details{
+	border:none;
 }
 
 li.eventLogUpdatePolicy {
@@ -2318,8 +2397,10 @@ table thead th {
 }
 
 table thead tr .ui-state-default {
-  background: url(../images/tableau/fdTaboHead.jpg) top left repeat-x !important;
+  background: url(../images/tableau/fdTaboHead.jpg) top left repeat-x;
 }
+
+
 
 #serverGrid_wrapper .dataTables_wrapper_top {
   border-top-left-radius: 0px !important;
@@ -2330,8 +2411,4 @@ table thead tr .ui-state-default {
 }
 #SearchNodes {
   margin: 0px 0px 0px 10px;
-}
-
-.dataTables_paginate .last {
-  border-right: 1px solid #B4B3A8 !important;
 }
