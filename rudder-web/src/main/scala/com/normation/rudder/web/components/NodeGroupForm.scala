@@ -356,6 +356,7 @@ class NodeGroupForm(
     new WBTextField("Group name", _nodeGroup.map( x => x.name).getOrElse("")) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def className = "twoCol"
+      override def inputField = super.inputField %("onkeydown" , "return processKey(event , '%s')".format(saveButtonId))
       override def validations = 
         valMinLen(3, "The name must have at least 3 characters") _ :: Nil
     }
