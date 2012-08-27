@@ -251,15 +251,18 @@ class NodeGroupForm(
           </div>
           {f.toForm_!}
         </fieldset>},
-      "group" -> cloneButton() ,
-      "save" ->   {_nodeGroup match {
-            case Some(x) => 
-              if (CurrentUser.checkRights(Edit("group"))) 
-                SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId) 
+      "group" -> { if (CurrentUser.checkRights(Write("group")))
+                cloneButton()
               else NodeSeq.Empty
-            case None =>   
-              if (CurrentUser.checkRights(Write("group")))  
-                SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)  
+        },
+      "save" ->   {_nodeGroup match {
+            case Some(x) =>
+              if (CurrentUser.checkRights(Edit("group")))
+                SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId)
+              else NodeSeq.Empty
+            case None =>
+              if (CurrentUser.checkRights(Write("group")))
+                SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)
               else NodeSeq.Empty
           }},
       "delete" -> <button id="removeButton">Delete</button>,

@@ -43,7 +43,7 @@ import scala.xml._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.nodes.{NodeGroupCategory,NodeGroupCategoryId}
-
+import com.normation.rudder.authorization._
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField,WBSelectField, CurrentUser
 }
@@ -118,8 +118,14 @@ class NodeGroupCategoryForm(
         "name" -> piName.toForm_!,
         "description" -> piDescription.toForm_!,
         "container" -> piContainer.toForm_!,
-        "save" -> SHtml.ajaxSubmit("Update", onSubmit _) ,
-        "delete" -> deleteButton,
+        "save" -> { if (CurrentUser.checkRights(Edit("group")))
+                 SHtml.ajaxSubmit("Update", onSubmit _)
+              else NodeSeq.Empty
+        },
+        "delete" -> { if (CurrentUser.checkRights(Write("group")))
+                  deleteButton
+              else NodeSeq.Empty
+        },
         "notifications" -> updateAndDisplayNotifications()
       )
     }
