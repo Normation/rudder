@@ -61,6 +61,7 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.inventory.ldap.core.LDAPConstants
 import LDAPConstants._
 import com.normation.rudder.domain.queries.OstypeComparator
+import net.liftweb.util.ToJsCmd
 
 /**
  * The Search Nodes component
@@ -234,10 +235,10 @@ class SearchNodeComponent(
               if(criteria.size <= 1)
                 NodeSeq.Empty
               else
-                SHtml.ajaxButton("-", () => removeLine(i), ("class", "removeLineButton"),("type","button"))
+                SHtml.ajaxSubmit("-", () => removeLine(i), ("class", "removeLineButton"))
             },
             "addline" ->
-               SHtml.ajaxButton("+", () => addLine(i), ("class", "removeLineButton"),("type","button")),
+               SHtml.ajaxSubmit("+", () => addLine(i), ("class", "removeLineButton")),
             "objectType" -> objectTypeSelect(ot,lines,i),
             "attributeName" -> attributeNameSelect(ot,a,lines,i),
             "comparator" -> comparatorSelect(ot,a,c,lines,i),
@@ -264,9 +265,14 @@ class SearchNodeComponent(
         else
           SHtml.ajaxSubmit("Search", processForm, ("disabled" -> "true"), ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
         }
-      ))
+      )) ++  Script(OnLoad(JsVar("""
+          $(".queryInputValue").keydown( function(event) {
+            processKey(event , 'SubmitSearch')
+          } );
+          """)))
     }
     
+
     /**
      * Show the search engine and the grid
      */
@@ -405,7 +411,12 @@ object SearchNodeComponent {
     }
     JsRaw("jQuery('#%s').replaceWith('%s')".format(v_eltid,comp.toForm(v_old,func,("id"->v_eltid), ("class" -> "queryInputValue")))) & comp.initForm(v_eltid) &
     JsCmds.ReplaceOptions(c_eltid,comparators,Full(selectedComp)) &
-    setIsEnableFor(selectedComp,v_eltid)
+    setIsEnableFor(selectedComp,v_eltid) &
+    OnLoad(JsVar("""
+        $(".queryInputValue").keydown( function(event) {
+          processKey(event , 'SubmitSearch')
+        } );
+        """))
   }
   
   def replaceAttributes(func: String => Any)(ajaxParam:String):JsCmd = {

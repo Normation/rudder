@@ -281,6 +281,7 @@ function processKey(e , buttonId){
     if (null == e)
         e = window.event ;
     if (e.keyCode == 13)  {
+        e.preventDefault();
         document.getElementById(buttonId).click();
         return false;
     }
