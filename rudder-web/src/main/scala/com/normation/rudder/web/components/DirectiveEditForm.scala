@@ -252,11 +252,11 @@ class DirectiveEditForm(
         if (piCurrentStatusIsActivated) "Disable" else "Enable" 
        } &
        "#removeAction *" #> {
-         SHtml.ajaxButton("Delete", () => createPopup("removeActionDialog",140,850),("type", "button"))
+         SHtml.ajaxSubmit("Delete", () => createPopup("removeActionDialog",140,850))
        } &
        "#desactivateAction *" #> {
          val status = piCurrentStatusIsActivated ? "Disable" | "Enable"
-         SHtml.ajaxButton(   status, () => createPopup("disableActionDialog",100,850),("type", "button"))
+         SHtml.ajaxSubmit(   status, () => createPopup("disableActionDialog",100,850))
        } &
        //form and form fields
       "#techniqueName" #> 
@@ -289,7 +289,13 @@ class DirectiveEditForm(
         .format(htmlId_policyConf, htmlId_save)) &
       JsRaw("""
         correctButtons();
-      """))
+      """) &
+      JsVar("""
+          $("input").keydown( function(event) {
+          console.log("trololo");
+            processKey(event , '%s')
+          } );
+          """.format(htmlId_save)))
     )
   }
   
@@ -391,7 +397,7 @@ class DirectiveEditForm(
       }
     }
 
-    SHtml.ajaxButton("Delete", removeCr _,("type", "button"))
+    SHtml.ajaxSubmit("Delete", removeCr _)
   }
 
   ///////////// Enable / disable /////////////
@@ -416,9 +422,9 @@ class DirectiveEditForm(
     }
 
     if (piCurrentStatusIsActivated) {
-      SHtml.ajaxButton("Disable", switchActivation(false) _,("type", "button"))
+      SHtml.ajaxSubmit("Disable", switchActivation(false) _)
     } else {
-      SHtml.ajaxButton("Enable", switchActivation(true) _,("type", "button"))
+      SHtml.ajaxSubmit("Enable", switchActivation(true) _)
     }
   }
   

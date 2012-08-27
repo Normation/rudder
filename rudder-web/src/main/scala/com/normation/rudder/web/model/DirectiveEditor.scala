@@ -394,16 +394,21 @@ case class MultivaluedSectionField(
             </fieldset>
         })
       }</div>
-    </td>
+    </td> ++  Script(OnLoad(JsVar("""
+          $("input").keydown( function(event) {
+          console.log("trololo");
+            processKey(event , 'policyConfigurationSave')
+          } );
+          """)))
   }
 
   private def showAddAnother(): NodeSeq = {
     <div class="directiveAddGroup">{
-      SHtml.ajaxButton("Add another", { () =>
+      SHtml.ajaxSubmit("Add another", { () =>
         add()
         //refresh UI - all item of that group
         SetHtml(htmlId, this.content) & JsRaw("""correctButtons(); """)
-      }, ("type","button"))
+      })
     }</div>
   }
 
@@ -415,12 +420,12 @@ case class MultivaluedSectionField(
     </table>
     <div class="textright directiveDeleteGroup">{
       val attr = if (size > 1) ("" -> "") else ("disabled" -> "true")
-      SHtml.ajaxButton("Delete", { () =>
+      SHtml.ajaxSubmit("Delete", { () =>
         logError(delete(i))
         //refresh UI - all item of that group
         SetHtml(htmlId, this.content) & JsRaw(""" correctButtons(); """)
       },
-        attr, ("type","button"))
+        attr)
     }</div>
   }
 
