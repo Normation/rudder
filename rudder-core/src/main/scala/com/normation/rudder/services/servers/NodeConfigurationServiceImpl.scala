@@ -165,7 +165,7 @@ class NodeConfigurationServiceImpl(
             target.nodeInfo.id.value,
             Seq(),
             Seq(),
-            false,
+            true,
             // when creating a nodeconfiguration, there is no current
             currentMinimalNodeConfig = new MinimalNodeConfig( 
                 "", "", Seq(), "", ""
