@@ -314,7 +314,7 @@ form input.removeLineButton {
    width:18px !important;
 }
 
-button.deleteNetwork * {
+input.deleteNetwork * {
 	   padding: 0 !important;
 }
 #lift__noticesContainer___notice ul {
