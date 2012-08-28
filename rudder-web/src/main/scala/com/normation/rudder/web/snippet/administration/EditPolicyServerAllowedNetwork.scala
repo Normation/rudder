@@ -164,7 +164,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         val id = "network_"+ i
         
         (
-          ".deleteNetwork" #> SHtml.ajaxButton("-", () => delete(i),("type","button")) &
+          ".deleteNetwork" #> SHtml.ajaxSubmit("-", () => delete(i)) &
           "errorClass=error [id]" #> ("error" + id) &
           ".networkField [name]" #> id andThen
           ".networkField" #> SHtml.text(net,  {x => 
@@ -173,9 +173,16 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         )(xml)
       }
     } & 
-    "#addNetworkButton" #> SHtml.ajaxButton("Add a network", add _,("type","button")) &
+    "#addNetworkButton" #> SHtml.ajaxSubmit("Add a network", add _) &
     "#submitAllowedNetwork" #> { 
-      SHtml.ajaxSubmit("Submit", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
+      SHtml.ajaxSubmit("Submit", process _,("id","submitAllowedNetwork")) ++ Script(
+          OnLoad (
+              JsRaw(""" correctButtons(); """) &
+              JsRaw("""$(".networkField").keydown( function(event) {
+            processKey(event , 'submitAllowedNetwork')
+          } );
+          """) 
+          ) )
     }
   }
   
