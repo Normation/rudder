@@ -322,11 +322,7 @@ final class AsyncDeploymentAgent(
           }
           deploymentManager ! DeploymentResult(id, startTime,DateTime.now, result, actor, eventId)
         } catch {
-          case e:Throwable => e match {
-            case x:ThreadDeath => throw x
-            case x:InterruptedException => throw x
-            case _ => deploymentManager ! DeploymentResult(id,startTime,DateTime.now,Failure("Exception caught during deployment process: %s".format(e.getMessage),Full(e), Empty), actor, eventId)
-          }
+          case e:Exception => deploymentManager ! DeploymentResult(id,startTime,DateTime.now,Failure("Exception caught during deployment process: %s".format(e.getMessage),Full(e), Empty), actor, eventId)
         }
           
       //

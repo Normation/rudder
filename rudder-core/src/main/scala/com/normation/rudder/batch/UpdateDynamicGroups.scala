@@ -210,12 +210,8 @@ class UpdateDynamicGroups(
             }
             updateManager ! UpdateResult(processId, startTime, DateTime.now, results.toMap)
           } catch {
-            case e:Throwable => e match {
-              case x:ThreadDeath => throw x
-              case x:InterruptedException => throw x
-              case _ => updateManager ! UpdateResult(processId,startTime,DateTime.now,
+            case e:Exception => updateManager ! UpdateResult(processId,startTime,DateTime.now,
                   dynGroupIds.map(id => (id,Failure("Exception caught during update process.",Full(e), Empty))).toMap)
-            }
           }
         }
      
