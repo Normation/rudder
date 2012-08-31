@@ -419,13 +419,10 @@ class EventListDisplayer(
                 "#ptVersion *" #> mapSimpleDiff(modDiff.modTechniqueVersion) &
                 "#parameters" #> (
                   modDiff.modParameters.map { diff =>
-                    ".diffOldValue *" #> 
-                      <pre style="width:200px;">{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre> &
-                    ".diffNewValue *" #> 
-                      <pre style="width:200px;">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
+                    "#diff" #> displaydirectiveInnerFormDiff(diff, event.id) 
                   }
                 ) 
-              )(piModDetailsXML)}
+              )(piModDirectiveDetailsXML)}
               { reasonHtml }
               { xmlParameters(event.id) }
             </div>
@@ -701,6 +698,60 @@ class EventListDisplayer(
     })(event.details)
   }
   
+  
+  private[this] def displaydirectiveInnerFormDiff(diff: SimpleDiff[SectionVal], eventId: Option[Int]): NodeSeq = {
+      eventId match {
+        case None => NodeSeq.Empty
+        case Some(id) =>
+        (
+          <pre style="width:200px;" id={"before" + id} 
+            class="nodisplay">{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre>
+          <pre style="width:200px;" id={"after" + id} 
+            class="nodisplay">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
+          <pre id="result"></pre>
+        ) ++ Script(OnLoad(JsRaw("""
+        	  
+            var eventId = '%s';
+            var a = document.getElementById('before' + eventId);
+            var b = document.getElementById('after' + eventId);
+            var result = document.getElementById('result');
+            
+            function changed() {
+              var diff = JsDiff.diffLines(a.textContent, b.textContent);
+              var fragment = document.createDocumentFragment();
+              for (var i=0; i < diff.length; i++) {
+            
+                if (diff[i].added && diff[i + 1] && diff[i + 1].removed) {
+                  var swap = diff[i];
+                  diff[i] = diff[i + 1];
+                  diff[i + 1] = swap;
+                }
+            
+                var node;
+                if (diff[i].removed) {
+                  node = document.createElement('del');
+                  node.appendChild(document.createTextNode(diff[i].value));
+                } else if (diff[i].added) {
+                  node = document.createElement('ins');
+                  node.appendChild(document.createTextNode(diff[i].value));
+                } else {
+                  node = document.createTextNode(diff[i].value);
+                }
+                fragment.appendChild(node);
+              }
+            
+              result.textContent = '';
+              result.appendChild(fragment);
+            }
+            
+            changed();
+        		
+        		""" 
+        		.format(id)		
+        		)))
+      }
+  }
+    
   private[this] def displayExportArchiveDetails(gitArchiveId: GitArchiveId, rawData: NodeSeq) = 
     <div class="evloglmargin">
       <h4>Details of the new archive:</h4>
@@ -1004,6 +1055,15 @@ class EventListDisplayer(
       </div>
   )
   
+  private[this] def liModDirectiveDetailsXML(id:String, name:String) = (
+    <div id={id}>
+      <b>{name} changed:</b>
+      <ul class="evlogviewpad">
+        <li><b>Differences: </b><div id="diff" /></li>
+      </ul>
+    </div>
+  )
+  
   private[this] val groupModDetailsXML = 
     <xml:group>
       {liModDetailsXML("name", "Name")}
@@ -1037,7 +1097,18 @@ class EventListDisplayer(
       {liModDetailsXML("isEnabled", "Activation status")}
       {liModDetailsXML("isSystem", "System")}
     </xml:group>
-      
+    
+  private[this] val piModDirectiveDetailsXML = 
+    <xml:group>
+      {liModDetailsXML("name", "Name")}
+      {liModDetailsXML("shortDescription", "Description")}
+      {liModDetailsXML("longDescription", "Details")}
+      {liModDetailsXML("ptVersion", "Target")}
+      {liModDirectiveDetailsXML("parameters", "Policy parameters")}
+      {liModDetailsXML("priority", "Priority")}
+      {liModDetailsXML("isEnabled", "Activation status")}
+      {liModDetailsXML("isSystem", "System")}
+    </xml:group>
       
   private[this] def authorizedNetworksXML() = (
     <div>
