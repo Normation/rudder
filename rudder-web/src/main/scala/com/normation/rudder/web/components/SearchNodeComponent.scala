@@ -101,7 +101,6 @@ class SearchNodeComponent(
   
   private[this] def searchNodes = chooseTemplate("query","SearchNodes",serverPortletTemplateFile)
   private[this] def content = chooseTemplate("content","query",searchNodes)
-  private[this] def queryUpdate = chooseTemplate("update","query",content)
 
   
   
@@ -194,7 +193,7 @@ class SearchNodeComponent(
      * Refresh the query parameter part
      */
     def ajaxCriteriaRefresh : JsCmd = {
-          Replace("queryParameters", displayQuery(queryUpdate))& activateButtonOnChange & JsRaw("correctButtons();")
+          SetHtml("SearchForm", displayQuery(content))& activateButtonOnChange & JsRaw("correctButtons();")
     }
     
     /**
@@ -205,15 +204,15 @@ class SearchNodeComponent(
     def displayQuery(html: NodeSeq ) : NodeSeq = {
       val Query(otName,comp, criteria) = query.get
       SHtml.ajaxForm(bind("query", html,
-          "typeQuery" ->  <label>Include policy servers: {SHtml.checkbox(rType==NodeAndPolicyServerReturnType, { value:Boolean =>
+        "typeQuery" ->  <label>Include policy servers: {SHtml.checkbox(rType==NodeAndPolicyServerReturnType, { value:Boolean =>
                 if (value) 
                   rType = NodeAndPolicyServerReturnType 
                 else 
                   rType = NodeReturnType}
               )}</label>,
-          "composition" -> SHtml.radio(Seq("And", "Or"), Full(if(comp == Or) "Or" else "And"), {value:String => 
+        "composition" -> SHtml.radio(Seq("And", "Or"), Full(if(comp == Or) "Or" else "And"), {value:String => 
           composition = CriterionComposition.parse(value).getOrElse(And) //default to AND on unknow composition string
-        }, ("class", "radio")).flatMap(e => <label>{e.xhtml} <span class="radioTextLabel">{e.key.toString}</span></label>),
+          }, ("class", "radio")).flatMap(e => <label>{e.xhtml} <span class="radioTextLabel">{e.key.toString}</span></label>),
         "lines" -> {(ns: NodeSeq) => 
           /*
            * General remark :
