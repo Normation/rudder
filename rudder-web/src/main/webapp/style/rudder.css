@@ -2180,3 +2180,13 @@ li.disableTreeNode > a {
   list-style-type: disc;
   list-style-position:inside;
 }
+
+del {
+  text-decoration: none;
+  color: #B30000;
+}
+
+ins {
+  color: #006600;
+  text-decoration: none;
+}
