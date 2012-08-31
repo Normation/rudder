@@ -127,7 +127,7 @@ class EventLogJdbcRepository(
      
          getEventLog(keyHolder.getKey().intValue)
      } catch {
-       case e:Throwable => logger.error(e.getMessage)
+       case e:Exception => logger.error(e.getMessage)
        Failure("Exception caught while trying to save an eventlog : %s".format(e.getMessage),Full(e), Empty)
      }
   }

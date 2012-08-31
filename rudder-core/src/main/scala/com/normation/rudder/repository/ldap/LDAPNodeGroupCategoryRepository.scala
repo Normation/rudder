@@ -396,7 +396,7 @@ class LDAPNodeGroupCategoryRepository(
                                groupLibMutex.writeLock { con.delete(entry.dn, recurse = !checkEmpty) ?~! "Error when trying to delete category with ID '%s'".format(id) }
                              } catch {
                                case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
-                               case e => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
+                               case e:Exception => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
                              }
               autoArchive <- (if(autoExportOnModify && ok.size > 0) {
                                for {
