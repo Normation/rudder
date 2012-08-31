@@ -2,11 +2,11 @@
 
 <lift:ignore>This part contains the search parts, with lines, and with the grid that get included behind</lift:ignore>
 <query:SearchNodes>
+	<div id="SearchForm">
 <content:query>
 
       <div id="serverGrid_info_area"></div>
 
-  <update:query>
     <div id="queryParameters">
       <div class="composition">Match the criteria below with this operand: 
         <span style="margin-left:5px;"><query:composition/></span><br/>
@@ -30,8 +30,8 @@
       </table>
       <div class="nodeGroupSubmitSearch" align="center"><query:submit/></div>
       </div>
-  </update:query >
 </content:query>
+</div>
   <div id="gridResult">
       <content:gridResult/>
   </div>
