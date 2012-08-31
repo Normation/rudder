@@ -63,22 +63,9 @@ limitations under the License.
       <url>http://www.rudder-project.org/maven-repo/</url>
       <layout>default</layout>
     </repository>
-    <repository>
-      <id>scala-tools.org</id>
-      <name>Scala-tools Maven2 Repository</name>
-      <url>http://scala-tools.org/repo-releases</url>
-      <releases><enabled>true</enabled></releases>
-      <snapshots><enabled>false</enabled></snapshots>
-    </repository>
   </repositories>
 
   <pluginRepositories>
-    <pluginRepository>
-      <id>scala-tools.org</id>
-      <name>Scala-tools Maven2 Repository</name>
-      <url>http://scala-tools.org/repo-releases</url>
-      <snapshots><enabled>false</enabled></snapshots>
-    </pluginRepository>
     <pluginRepository>
       <id>zt-repo</id>
       <name>Zero turnaround repo</name>
