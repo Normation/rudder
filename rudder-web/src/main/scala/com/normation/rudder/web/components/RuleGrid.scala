@@ -302,6 +302,7 @@ class RuleGrid(
             "bFilter" : false,
             "bPaginate" : true,
             "bLengthChange": false,
+            "sPaginationType": "full_numbers",
 
             "bJQueryUI": false,
             "aaSorting": [[ 0, "asc" ]],
@@ -393,6 +394,7 @@ class RuleGrid(
             "bFilter" : false,
             "bPaginate" : true,
             "bLengthChange": false,
+            "sPaginationType": "full_numbers",
 
             "bJQueryUI": false,
             "aaSorting": [[ 0, "asc" ]],
