@@ -47,6 +47,7 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.repository.RuleRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.repository.jdbc.SerializedGroups
+import com.normation.rudder.domain.logger.HistorizationLogger
 
 /**
  * At each deployment, we compare the content of the groups/PI/CR in the ldap with the content
@@ -83,16 +84,16 @@ class HistorizationServiceImpl(
     nodeGroupRepository : NodeGroupRepository,
     directiveRepository : DirectiveRepository,
     techniqueRepository : TechniqueRepository,
-    ruleRepository : RuleRepository) extends HistorizationService with  Loggable {
+    ruleRepository : RuleRepository) extends HistorizationService {
   
   
   def updateNodes() : Box[Unit] = {
     try {
     // Fetch all nodeinfo from the ldap 
-      val ids = nodeInfoService.getAllUserNodeIds().openOr({logger.error("Could not fetch nodeids"); Seq()})
+      val ids = nodeInfoService.getAllUserNodeIds().openOr({HistorizationLogger.error("Could not fetch all node ids"); Seq()})
             
       val nodeInfos = nodeInfoService.find(ids).openOr(
-          {logger.error("Could not fetch groups "); Seq()} )
+          {HistorizationLogger.error("Could not fetch node details "); Seq()} )
       
       // fetch all the current nodes in the jdbc
       val registered = historizationRepository.getAllOpenedNodes().map(x => x.nodeId -> x).toMap
@@ -110,7 +111,7 @@ class HistorizationServiceImpl(
       historizationRepository.updateNodes(changed, closable.toSeq)
       Full(())
     } catch {
-      case e:Exception => logger.error("Could not update the nodes. Reason : "+e.getMessage())
+      case e:Exception => HistorizationLogger.error("Could not update the nodes. Reason : "+e.getMessage())
                           Failure("Could not update the nodes. Reason : "+e.getMessage())
     }
   }
@@ -119,7 +120,7 @@ class HistorizationServiceImpl(
     try {
     // Fetch all groups from the ldap 
       val nodeGroups = nodeGroupRepository.getAll().openOr(
-          {logger.error("Could not fetch groups "); Seq()} )
+          {HistorizationLogger.error("Could not fetch all groups"); Seq()} )
       
       // fetch all the current group in the ldap
       val registered = historizationRepository.getAllOpenedGroups().map(x => x.groupId -> x).toMap
@@ -137,7 +138,7 @@ class HistorizationServiceImpl(
       historizationRepository.updateGroups(changed, closable.toSeq)
       Full(())
     } catch {
-      case e:Exception => logger.error("Could not update the groups. Reason : "+e.getMessage())
+      case e:Exception => HistorizationLogger.error("Could not update the groups. Reason : "+e.getMessage())
                           Failure("Could not update the groups. Reason : "+e.getMessage())
     }
   }
@@ -155,7 +156,7 @@ class HistorizationServiceImpl(
               .filter { case (directive, userPt) => 
                           userPt match {
                               case Full(userPT) => true
-                              case _ => logger.error("Could not find matching PT for PI %s".format(directive.id.value))
+                              case _ => HistorizationLogger.error("Could not find matching Technique for Directive %s".format(directive.id.value))
                                     false
                           }
               }.
@@ -165,7 +166,7 @@ class HistorizationServiceImpl(
               }.filter { case (directive, userPt, policyPackage) => 
                           policyPackage match {
                               case Some(pp) => true
-                              case _ => logger.error("Could not find matching Technique for PI %s".format(directive.id.value))
+                              case _ => HistorizationLogger.error("Could not find matching Technique for Directive %s".format(directive.id.value))
                                     false
                           }
               }.map(x =>( x._1 , x._2 , x._3.get))
@@ -195,7 +196,7 @@ class HistorizationServiceImpl(
      historizationRepository.updateDirectives(changed, closable.toSeq)
      Full(())
     } catch {
-      case e:Exception => logger.error("Could not update the directives. Reason : "+e.getMessage())
+      case e:Exception => HistorizationLogger.error("Could not update the directives. Reason : "+e.getMessage())
                           Failure("Could not update the directives. Reason : "+e.getMessage())
     }
   }
@@ -203,7 +204,7 @@ class HistorizationServiceImpl(
   def updatesRuleNames() : Box[Unit] = {
     try {
       val rules = ruleRepository.getAll().openOr({
-          logger.error("Could not fetch all CRs");
+          HistorizationLogger.error("Could not fetch all Rules");
           Seq()})
           
       val registered = historizationRepository.getAllOpenedRules().map(x => x.id -> x).toMap
@@ -222,7 +223,7 @@ class HistorizationServiceImpl(
       historizationRepository.updateRules(changed, closable.toSeq)
       Full(())
     } catch {
-      case e:Exception => logger.error("Could not update the rules. Reason : "+e.getMessage())
+      case e:Exception => HistorizationLogger.error("Could not update the rules. Reason : "+e.getMessage())
                           Failure("Could not update the rules. Reason : "+e.getMessage())
     } 
   }
