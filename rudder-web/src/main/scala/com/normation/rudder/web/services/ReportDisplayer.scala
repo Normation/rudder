@@ -76,8 +76,8 @@ class ReportDisplayer(
   
   
   
-  def templateByNodePath = List("templates-hidden", "reports_server")
-  def templateByNode() =  Templates(templateByNodePath) match {
+  private[this] lazy val templateByNodePath = List("templates-hidden", "reports_server")
+  private def templateByNode() =  Templates(templateByNodePath) match {
     case Empty | Failure(_,_,_) => 
       throw new TechnicalException("Template for execution batch history not found. I was looking for %s.html".format(templateByNodePath.mkString("/")))
     case Full(n) => n
@@ -199,6 +199,18 @@ class ReportDisplayer(
       case PendingReportType => "Applying"
       case _ => "Unknown"
     }
+  }
+  
+  def asyncDisplay(node : NodeInfo) : NodeSeq = { 
+      Script(OnLoad(JsRaw("""
+              | $("#%s").bind( "tabsshow", function(event, ui) {
+              | if(ui.panel.id== '%s') { %s; }
+              | });
+              """.stripMargin('|').format("node_tabs",
+            "node_reports",
+            SHtml.ajaxCall(JsRaw(""),(v:String) => SetHtml("reportsDetails",displayReports(node)) & initJs("reportsGrid") )._2.toJsCmd
+       )))
+      )
   }
   
   def displayReports(node : NodeInfo) : NodeSeq = {

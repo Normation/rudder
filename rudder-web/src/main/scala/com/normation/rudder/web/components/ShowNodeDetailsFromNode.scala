@@ -96,17 +96,17 @@ class ShowNodeDetailsFromNode(
 ) extends DispatchSnippet with Loggable {
   import ShowNodeDetailsFromNode._
   
-  private[this] val nodeInfoService = inject[NodeInfoService]
-  private[this] val serverAndMachineRepo = inject[LDAPFullInventoryRepository]
-  private[this] val acceptedInventoryDit = inject[InventoryDit]("acceptedNodesDit")
-  private[this] val reportDisplayer = inject[ReportDisplayer]
-  private[this] val logDisplayer = inject[LogDisplayer]
+  private[this] lazy val nodeInfoService = inject[NodeInfoService]
+  private[this] lazy val serverAndMachineRepo = inject[LDAPFullInventoryRepository]
+  private[this] lazy val acceptedInventoryDit = inject[InventoryDit]("acceptedNodesDit")
+  private[this] lazy val reportDisplayer = inject[ReportDisplayer]
+  private[this] lazy val logDisplayer = inject[LogDisplayer]
 
   // to create the JsTree with the Group/CR
-  private[this] val nodeGroupRepository = inject[NodeGroupRepository]
-  private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
-  private[this] val targetService = inject[RuleTargetService]
-  private[this] val dependencyService = inject[DependencyAndDeletionService]  
+  private[this] lazy val nodeGroupRepository = inject[NodeGroupRepository]
+  private[this] lazy val groupCategoryRepository = inject[NodeGroupCategoryRepository]
+  private[this] lazy val targetService = inject[RuleTargetService]
+  private[this] lazy val dependencyService = inject[DependencyAndDeletionService]  
   
   def dispatch = {
     case "display" => { _ => display(false) }
@@ -126,10 +126,9 @@ class ShowNodeDetailsFromNode(
       case Full(server) => // currentSelectedNode = Some(server)
         serverAndMachineRepo.get(server.id,AcceptedInventory) match {
           case Full(sm) =>
-            bindNode(server, sm) ++ Script(OnLoad(  
+            bindNode(server, sm, withinPopup) ++ Script(OnLoad(  
               DisplayNode.jsInit(server.id, sm.node.softwareIds, "", Some("node_tabs")) &
-              reportDisplayer.initJs("reportsGrid") &
-              logDisplayer.initJs(withinPopup) &
+              //reportDisplayer.initJs("reportsGrid") &
               OnLoad(buildJsTree(htmlId_crTree))             
             ))
           case e:EmptyBox =>
@@ -145,7 +144,7 @@ class ShowNodeDetailsFromNode(
    * @param server
    * @return
    */
-  private def bindNode(node : NodeInfo, inventory: FullInventory) : NodeSeq = {
+  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean = false) : NodeSeq = {
       bind("server", serverDetailsTemplate,
              "header" ->
               <div id="node_header" class="nodeheader">
@@ -160,8 +159,9 @@ class ShowNodeDetailsFromNode(
               "inventory" -> DisplayNode.show(inventory, false),
               "extraHeader" -> DisplayNode.showExtraHeader(inventory),
               "extraContent" -> DisplayNode.showExtraContent(inventory),
-              "reports" -> reportDisplayer.displayReports(node),
-              "logs" -> logDisplayer.display(node.id))
+              "reports" -> reportDisplayer.asyncDisplay(node),
+              "logs" -> logDisplayer.asyncDisplay(node.id, withinPopup)
+            )
   }
     
   private def findTargets(node : NodeInfo): Box[Seq[RuleTarget]] = {
