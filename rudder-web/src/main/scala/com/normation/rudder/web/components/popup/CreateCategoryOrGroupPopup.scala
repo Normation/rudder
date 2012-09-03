@@ -40,6 +40,7 @@ import com.normation.inventory.domain.NodeId
 import org.slf4j.LoggerFactory
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.NodeReturnType
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.Templates
 import net.liftweb.http.js._
@@ -254,7 +255,7 @@ class CreateCategoryOrGroupPopup(
             , comparator = ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0)
             , value      = "Linux"
             )
-        val query = Some(groupGenerator.flatMap(_.query).getOrElse(Query(OC_NODE,And,Seq(defaultLine))))
+        val query = Some(groupGenerator.flatMap(_.query).getOrElse(Query(NodeReturnType,And,Seq(defaultLine))))
 
         nodeGroupRepository.createNodeGroup(
           piName.is,
