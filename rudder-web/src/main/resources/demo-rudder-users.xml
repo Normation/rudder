@@ -81,3 +81,4 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   <!--  <user name="" password="secret2" role="administrator"/>-->
   <!--  <user name="name" password="" role="administrator"/>-->
 </authentication>
+<!-- This file was originally made from Rudder 2.4 or later -->
