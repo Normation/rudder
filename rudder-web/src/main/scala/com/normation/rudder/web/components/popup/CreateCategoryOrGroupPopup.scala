@@ -41,21 +41,16 @@ import org.slf4j.LoggerFactory
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries.Query
 import net.liftweb.http.LocalSnippet
-
 import net.liftweb.http.Templates
-
 import net.liftweb.http.js._
 import JsCmds._
 import com.normation.utils.StringUuidGenerator
-
-// For implicits
 import JE._
 import net.liftweb.common._
 import net.liftweb.http.{SHtml,S,DispatchSnippet,Templates}
 import scala.xml._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField, WBSelectField, WBRadioField
 }
@@ -63,6 +58,10 @@ import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.domain.queries.DitQueryData
+import com.normation.rudder.domain.queries.And
+import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.rudder.domain.queries.CriterionLine
 
 /**
  * Create a group or a category
@@ -248,10 +247,19 @@ class CreateCategoryOrGroupPopup(
         }
       } else {
         // we are creating a group
+        lazy val ditQueryData = inject[DitQueryData]("ditQueryData")
+        val defaultLine =     CriterionLine(
+              objectType = ditQueryData.criteriaMap(OC_NODE)
+            , attribute  = ditQueryData.criteriaMap(OC_NODE).criteria(0)
+            , comparator = ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0)
+            , value      = "Linux"
+            )
+        val query = Some(groupGenerator.flatMap(_.query).getOrElse(Query(OC_NODE,And,Seq(defaultLine))))
+
         nodeGroupRepository.createNodeGroup(
           piName.is,
           piDescription.is,
-          groupGenerator.flatMap(_.query),
+          query,
           {piStatic.is match { case "dynamic" => true ; case _ => false } },
           groupGenerator.map(_.serverList).getOrElse(Set[NodeId]()),
           NodeGroupCategoryId(piContainer.is),
