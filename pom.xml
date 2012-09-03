@@ -42,13 +42,13 @@ limitations under the License.
 
   <distributionManagement>
     <snapshotRepository>
-      <id>nexus.normation.com</id>
+      <id>snapshots.nexus.normation.com</id>
       <name>Normation internal nexus repository for snapshots</name>
       <url>http://nexus.normation.com/nexus/content/repositories/snapshots</url>
     </snapshotRepository>
     <repository>
-      <id>nexus.normation.com</id>
-      <name>Normation internal nexus repository for releases</name>
+      <id>releases.nexus.normation.com</id>
+      <name>Normation internal nexus repository for release</name>
       <url>http://nexus.normation.com/nexus/content/repositories/releases</url>
     </repository>
   </distributionManagement>

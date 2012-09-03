@@ -87,7 +87,7 @@ object ZipUtils {
       }
       Full()
     } catch {
-      case e => Failure("Error when trying to zip file", Full(e), Empty)
+      case e:Exception => Failure("Error when trying to zip file", Full(e), Empty)
     } finally {
       if(null != zout) zout.close
     }
