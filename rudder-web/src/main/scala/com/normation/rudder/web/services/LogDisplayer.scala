@@ -71,7 +71,7 @@ class LogDisplayer(
 ) {
 
 
-  private val templatePath = List("templates-hidden", "node_logs_tabs")
+  private lazy val templatePath = List("templates-hidden", "node_logs_tabs")
   private def template() =  Templates(templatePath) match {
     case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for server details not found. I was looking for %s.html".format(templatePath.mkString("/")))
@@ -85,6 +85,17 @@ class LogDisplayer(
   private val gridName = "logsGrid"
 
 
+  def asyncDisplay(nodeId : NodeId, withinPopup : Boolean) : NodeSeq = { 
+      Script(OnLoad(JsRaw("""
+              | $("#%s").bind( "tabsshow", function(event, ui) {
+              | if(ui.panel.id== '%s') { %s; }
+              | });
+              """.stripMargin('|').format("node_tabs",
+            "node_logs",
+            SHtml.ajaxCall(JsRaw(""),(v:String) => SetHtml("logsDetails",display(nodeId))& initJs(withinPopup) )._2.toJsCmd
+       )))
+      )
+  }
     
   def display(nodeId : NodeId) : NodeSeq = {
     val PIMap = mutable.Map[DirectiveId, String]()
