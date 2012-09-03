@@ -63,22 +63,9 @@ limitations under the License.
       <url>http://www.rudder-project.org/maven-repo/</url>
       <layout>default</layout>
     </repository>
-    <repository>
-      <id>scala-tools.org</id>
-      <name>Scala-tools Maven2 Repository</name>
-      <url>http://scala-tools.org/repo-releases</url>
-      <releases><enabled>true</enabled></releases>
-      <snapshots><enabled>false</enabled></snapshots>
-    </repository>
   </repositories>
 
   <pluginRepositories>
-    <pluginRepository>
-      <id>scala-tools.org</id>
-      <name>Scala-tools Maven2 Repository</name>
-      <url>http://scala-tools.org/repo-releases</url>
-      <snapshots><enabled>false</enabled></snapshots>
-    </pluginRepository>
     <pluginRepository>
       <id>zt-repo</id>
       <name>Zero turnaround repo</name>
@@ -93,13 +80,13 @@ limitations under the License.
 
   <distributionManagement>
     <snapshotRepository>
-      <id>nexus.normation.com</id>
+      <id>snapshots.nexus.normation.com</id>
       <name>Normation internal nexus repository for snapshots</name>
       <url>http://nexus.normation.com/nexus/content/repositories/snapshots</url>
     </snapshotRepository>
     <repository>
-      <id>nexus.normation.com</id>
-      <name>Normation internal nexus repository for releases</name>
+      <id>releases.nexus.normation.com</id>
+      <name>Normation internal nexus repository for release</name>
       <url>http://nexus.normation.com/nexus/content/repositories/releases</url>
     </repository>
   </distributionManagement>
