@@ -126,7 +126,7 @@ class FusionReportEndpoint(
               new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
           }
         } catch {
-          case e => 
+          case e:Exception => 
             val msg = "Exception when processing report '%s'".format(reportFile.getOriginalFilename)
             logger.error(msg)
             logger.error("Reported exception is: ", e)
@@ -192,7 +192,7 @@ class FusionReportEndpoint(
       }
       logger.info("Report %s processed in %s".format(report.name, printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
     } catch {
-      case e => 
+      case e:Exception => 
         logger.error("Exception when processing report %s".format(report.name))
         logger.error("Reported exception is: ", e)
     } 
