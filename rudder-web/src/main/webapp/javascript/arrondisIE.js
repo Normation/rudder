@@ -80,7 +80,7 @@ function moveFilterAndFullPaginateArea(tableId) {
 
 }
 
-function dropFilterAndPaginateArea(tableId) {
+function dropFilterArea(tableId) {
 	$(tableId+"_paginate").remove();
 	$(tableId+"_info").remove();
 	$(tableId+"_filter").remove();
