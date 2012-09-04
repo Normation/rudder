@@ -315,7 +315,7 @@ form input.removeLineButton {
 }
 
 input.deleteNetwork * {
-	   padding: 0 !important;
+       padding: 0 !important;
 }
 #lift__noticesContainer___notice ul {
   padding: 10px 20px;
@@ -343,7 +343,7 @@ Tableau
 }
 
 .reportbiggerWidth{
-	width:110px;
+    width:110px;
 }
 .reportTitleWidth{
   width:92px;
@@ -363,15 +363,15 @@ table {
 }
 
 #eventLogsGrid {
-  margin:10px;	
+  margin:10px;  
 }
 
 #grid_rules_grid_zone {
-  margin: 10px;	
+  margin: 10px; 
 }
 
 #acceptNodeGrid_wrapper {
-  margin: 10px;	
+  margin: 10px; 
 }
 
 caption {
@@ -460,11 +460,11 @@ div#Detail {
 }
 
 .field_errors {
-  margin-top:4px;	
+  margin-top:4px;   
 }
 
 .field_errors li {
-  list-style-position:inside;	
+  list-style-position:inside;   
 }
 
 
@@ -1023,7 +1023,7 @@ a:focus {
 structure
 **************************************/
 .subContainerReasonField {
-    width: 100%;	
+    width: 100%;    
 }
 
 div#prelude {
@@ -1477,7 +1477,7 @@ div#refusePopup {
   float: none;
 }
 #succesConfirmationDialog{
-	z-index : 9995;
+    z-index : 9995;
 }
 /**************************************
 popin Login
@@ -1830,7 +1830,7 @@ div#footer {
 }
 
 #footer p {
-	padding-top: 2px
+    padding-top: 2px
 }
 /**************************************
 classes annexes
@@ -1981,7 +1981,7 @@ div.tabInform {
 }
 
 .errorInput {
-  border-color: red; 	
+  border-color: red;    
 }
 
 
@@ -2026,12 +2026,12 @@ div.tabInform {
 }
 
 .emptyTd {
-	border: 0pt none;
-	background : #FFFFFF;
+    border: 0pt none;
+    background : #FFFFFF;
 }
 
 .detailReport {
-	border: 0pt none;
+    border: 0pt none;
 }
 .evlogviewpad li{
   list-style-type: disc;
@@ -2094,8 +2094,8 @@ tr.Noanswer {
 }
 
 li.eventLogUpdatePolicy {
-  list-style-position: inside;	
-  list-style-type: none;	
+  list-style-position: inside;  
+  list-style-type: none;    
 }
 
 table.eventLogUpdatePolicy {
@@ -2113,13 +2113,13 @@ table.detailedReport {
 }
 
 span.detailedReportTitle {
-	position:absolute;
+    position:absolute;
 }
 
 table.fixedlayout{
-	table-layout:fixed;
-	word-wrap:break-word
-	}
+    table-layout:fixed;
+    word-wrap:break-word
+    }
 
 tr.detailedReportLine, td.detailedReportLine {
   padding: 0;
@@ -2173,7 +2173,7 @@ li.disableTreeNode > a {
 }
 
 .homePageBlock {
-  margin: 10px;	
+  margin: 10px; 
 }
 
 .homePageBlock li {
@@ -2183,10 +2183,10 @@ li.disableTreeNode > a {
 
 del {
   text-decoration: none;
-  color: #B30000;
+  background: #FFD6D6;
 }
 
 ins {
-  color: #006600;
   text-decoration: none;
+  background: #D6FFD6;
 }

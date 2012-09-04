@@ -710,7 +710,7 @@ class EventListDisplayer(
             class="nodisplay">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
           <pre id="result"></pre>
         ) ++ Script(OnLoad(JsRaw("""
-        	  
+            
             var eventId = '%s';
             var a = document.getElementById('before' + eventId);
             var b = document.getElementById('after' + eventId);
@@ -730,12 +730,12 @@ class EventListDisplayer(
                 var node;
                 if (diff[i].removed) {
                   node = document.createElement('del');
-                  node.appendChild(document.createTextNode(diff[i].value));
+                  node.appendChild(document.createTextNode(appendLines('-', diff[i].value)));
                 } else if (diff[i].added) {
                   node = document.createElement('ins');
-                  node.appendChild(document.createTextNode(diff[i].value));
+                  node.appendChild(document.createTextNode(appendLines('+', diff[i].value)));
                 } else {
-                  node = document.createTextNode(diff[i].value);
+                  node = document.createTextNode(" " + diff[i].value);
                 }
                 fragment.appendChild(node);
               }
@@ -744,11 +744,19 @@ class EventListDisplayer(
               result.appendChild(fragment);
             }
             
+            function appendLines(c, s) {
+              var res = s.replace("\n ", "\n" + c);
+              res = c + res.substring(1, res.length);
+              if(res.charAt(res.length -1) == c)
+                res = res.substring(0, res.length - 1);
+              return res;
+            }
+            
             changed();
-        		
-        		""" 
-        		.format(id)		
-        		)))
+            
+            """ 
+            .format(id)   
+            )))
       }
   }
     
