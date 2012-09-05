@@ -51,7 +51,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   <user name="alex.bar" password="secret2" role="read_only"/>
   <!-- 
   Authorizations
-  	You must define a role attribute to every user you add.
+    You must define a role attribute to every user you add.
   A role is defined by a list of authorizations separated by commas.
   There's two kind of authorizations : 
   
@@ -68,14 +68,27 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
       
   Custom authorizations
 
-	Custom authorisations are composed of two elements: 
-	- A type of authorization, which define what is concerned
-	 	there's is 8 types, which are : node, group, deployement,
-	 	 administration, configuration, rule, technique, directive.
+    Custom authorisations are composed of two elements:
+    - A type of authorization, which define what is concerned
+        there's is 8 types, which are : node, group, deployement,
+        administration, configuration, rule, technique, directive.
     - A level of authorization, 
-    	levels are: read, write, edit, all(read, write, edit)
-    	They are not inclusive (write and edit don't include read,)
+        levels are: read, write, edit, all(read, write, edit)
+        They are not inclusive (write and edit don't include read,)
     a custom authorisation has a format like that "type_level" like "node_all", "group_read"
+
+  Examples
+
+    Some predefined users :
+      <user name="jon.doe"  password="secret" role="administrator" />
+      <user name="alex.bar" password="secret2" role="read_only"/>
+
+    A custom user :
+      - can read everything but administration,groups and deployement
+      - can do everything about node
+
+      <user name="custom" password="custom" role="node_all,configuration_read,rule_read,rule_edit,directive_read,technique_read">
+
     -->
   <!--  exemple of bad lines -->
   <!--  <user name="" password="secret2" role="administrator"/>-->
