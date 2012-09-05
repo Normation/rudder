@@ -163,7 +163,7 @@ class RuleGrid(
           { "sWidth": "95px"  },
           { "sWidth": "60px" },
           { "sWidth": "115px" },
-          { "sWidth": "60px" },
+          { "sWidth": "60px", "sType": "html" },
           { "sWidth": "100px"  },
           { "sWidth": "100px" } %2$s
         ]
