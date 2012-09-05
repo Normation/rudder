@@ -310,7 +310,7 @@ class RuleGrid(
               { "sWidth": "200px" },
               { "sWidth": "300px" }
             ]
-          });dropFilterAndPaginateArea('#%2$s');""".format( tableId_listPI, tableId_listPI))) )
+          });dropFilterArea('#%2$s');""".format( tableId_listPI, tableId_listPI))) )
       }
     }
     
@@ -402,7 +402,7 @@ class RuleGrid(
               { "sWidth": "200px" },
               { "sWidth": "300px" }
             ]
-          });dropFilterAndPaginateArea('#%2$s');""".format( tableId_listPI, tableId_listPI))) )
+          });dropFilterArea('#%2$s');""".format( tableId_listPI, tableId_listPI))) )
       }
     }
     

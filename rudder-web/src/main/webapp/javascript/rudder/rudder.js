@@ -336,7 +336,7 @@ function moveFilterAndFullPaginateArea(tableId) {
 }
 
 
-function dropFilterAndPaginateArea(tableId) {
+function dropFilterArea(tableId) {
 	$(tableId+"_info").remove();
 	$(tableId+"_filter").remove();
 	$(tableId+"_length");
