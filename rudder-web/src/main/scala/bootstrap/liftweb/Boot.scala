@@ -163,7 +163,7 @@ class Boot extends Loggable {
       )
 
     def buildManagerMenu(name:String) =
-      Menu(name+"ManagerHome", <span>{name.capitalize} Management</span>) /
+      Menu(name+"ManagerHome", <span>{name.capitalize} Policy</span>) /
         "secure" / (name+"Manager") / "index" >> TestAccess ( ()
             => userIsAllowed(Read("configuration")) ) submenus (
 
