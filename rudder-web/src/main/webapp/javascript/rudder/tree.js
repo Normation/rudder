@@ -230,6 +230,7 @@ var buildDirectiveTree = function(id, initially_select) {
   })
   
   $(id).removeClass('nodisplay');
+
 }
 
 
@@ -441,3 +442,25 @@ var buildRulePIdepTree = function(id, initially_select) {
 }
 
 
+/**
+ * Shows the sibling of the searched items in the tree.
+ * This function must be called after each search call
+ */
+var enableSubtree = function(elem) {
+  elem.siblings("ul:first").show();
+  elem.siblings("ul:first").find("li").show();
+  return correctNode(elem.siblings("ul:first"));
+};
+
+var correctNode = function(elem) {
+  var child, children, last, _j, _len1, _results;
+  last = elem.children("li").eq(-1);
+  last.addClass("jstree-last");
+  children = elem.children("li");
+  _results = [];
+  for (_j = 0, _len1 = children.length; _j < _len1; _j++) {
+    child = children[_j];
+    _results.push(correctNode($(child).children("ul:first")));
+  }
+  return _results;
+};

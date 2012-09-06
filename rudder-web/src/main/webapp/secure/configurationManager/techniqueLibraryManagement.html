@@ -15,6 +15,7 @@ var searchTree = function(inputId, treeId) {
         $(treeId).jstree('clear_search');
      }
   }
+  enableSubtree($(treeId+" .jstree-search"));
   return false;
 }
 var focusSearchFieldTree = function(inputId) { if( $(inputId).val() == 'Search') { $(inputId).val('') ; modifiedSearch = true}; return false; } 
