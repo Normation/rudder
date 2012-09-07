@@ -76,7 +76,7 @@ class RuleGrid(
     htmlId_rulesGridZone : String,
     rules : Seq[Rule],
     //JS callback to call when clicking on a line 
-    detailsCallbackLink : Option[Rule => JsCmd],
+    detailsCallbackLink : Option[(Rule,String) => JsCmd],
     showCheckboxColumn:Boolean = true
 ) extends DispatchSnippet with Loggable {
   
@@ -118,13 +118,14 @@ class RuleGrid(
           <table id={htmlId_rulesGridId} cellspacing="0">
             <thead>
               <tr class="head">
-                <th>Name<span/></th>
-                <th>Description<span/></th>
-                <th>Status<span/></th>
-                <th>Deployment status<span/></th>
-                <th>Compliance<span/></th>
-                <th>Directives<span/></th>
-                <th>Target node groups<span/></th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Deployment status</th>
+                <th>Directives</th>
+                <th>Target node groups</th>
+                <th>Compliance</th>
+                <th>Details</th>
+                <th>Parameters</th>
                 { if(showCheckboxColumn) <th></th> else NodeSeq.Empty }
               </tr>
             </thead>
@@ -160,12 +161,13 @@ class RuleGrid(
         "aaSorting": [[ 0, "asc" ]],
         "aoColumns": [ 
           { "sWidth": "95px" },
-          { "sWidth": "95px"  },
-          { "sWidth": "60px" },
+          { "sWidth": "60px"  },
           { "sWidth": "115px" },
-          { "sWidth": "60px", "sType": "html" },
-          { "sWidth": "100px"  },
-          { "sWidth": "100px" } %2$s
+          { "sWidth": "100px" },
+          { "sWidth": "100px", "sType": "html" },
+          { "sWidth": "60px"  },
+          { "sWidth": "20px" },
+          { "sWidth": "20px" } %2$s
         ]
       });moveFilterAndFullPaginateArea('#%1$s'); 
       $("#%1$s_filter").insertAfter('#actions_zone');
@@ -463,9 +465,6 @@ class RuleGrid(
           <td>{ // NAME 
             detailsLink(line.rule, line.rule.name)
           }</td>
-          <td>{ // DESCRIPTION
-            detailsLink(line.rule, line.rule.shortDescription)
-          }</td>
           <td>{ // OWN STATUS
             if (line.rule.isEnabledStatus) "Enabled" else "Disabled"
           }</td>
@@ -494,15 +493,34 @@ class RuleGrid(
                  <div class="tooltipContent" id={line.rule.id.value}><h3>Reason(s)</h3><div>{why}</div></div>
             }
           }</b></td>
-          <td>{ //  COMPLIANCE
-            buildComplianceChart(line.compliance, line.rule, linkCompliancePopup)
-          }</td>
           <td>{ //  Directive: <not defined> or PIName [(disabled)]
             displayPis(line.trackerVariables)
            }</td>
           <td>{ //  TARGET NODE GROUP
             displayTargets(line.targets)
           }</td>
+          <td>{ //  COMPLIANCE
+            buildComplianceChart(line.compliance, line.rule, linkCompliancePopup)
+          }</td>
+          <td>{ //  COMPLIANCE
+              detailsCallbackLink match {
+      case None => Text("No details")
+      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { 
+                      () =>  callback(line.rule,"showForm")
+                    }, ("class", "smallButton")) }
+    
+    
+          }</td>
+          <td>{ //  COMPLIANCE
+              detailsCallbackLink match {
+      case None => Text("No parameters")
+      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icTools.jpg"/>, { 
+                      () =>  callback(line.rule,"showEditForm")
+                    }, ("class", "smallButton")) }
+    
+    
+          }</td>
+
           { // CHECKBOX 
             if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty 
           }
@@ -551,7 +569,7 @@ class RuleGrid(
   private[this] def detailsLink(rule:Rule, text:String) : NodeSeq = {
     detailsCallbackLink match {
       case None => Text(text)
-      case Some(callback) => SHtml.a( () => callback(rule), Text(text))
+      case Some(callback) => SHtml.a( () => callback(rule,"showForm"), Text(text))
     }
   }  
   
