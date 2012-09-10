@@ -358,16 +358,20 @@ Tableau
 .tablemargin{
   margin-top:5px;
 }
+
 table {
    width: 98%;
 }
 
 #eventLogsGrid {
-  margin:10px;  
+  width:100%;	
+  border-right: 1px solid #B4B3A8;
 }
 
 #grid_rules_grid_zone {
-  margin: 10px; 
+  width:100%; 
+  border-left: 1px solid #B4B3A8;
+  border-right: 1px solid #B4B3A8;
 }
 
 #acceptNodeGrid_wrapper {
@@ -418,7 +422,8 @@ tr.color2 {
    background-color: #fff;
 }
 td {
-   border-top: 1px solid #ababab;
+   border-bottom: 1px solid #ababab;
+   border-left: 1px solid #ababab;
 }
 .warning {
    color: #c00;
@@ -474,8 +479,23 @@ div#Detail {
 ***********************/
 
 .dataTables_filter {
-  margin: 10px;
   text-align: right;
+  width:50%;
+  float:right;
+}
+
+.dataTables_filter input {
+  border: 1px solid #B4B3A8;
+  padding: 2px;
+}
+
+.dataTables_length select {
+  padding: 1px;
+}
+
+.dataTables_length {
+  widht:40%;
+  float:left;
 }
 
 .paginate {
@@ -520,16 +540,48 @@ div#Detail {
 .dataTables_paginate {
   float: right;
   text-align: right;
-  padding-left: 5px;
 }
 
 .dataTables_info {
-  float: right;
-  height: 19px;
-  padding-top: 3px;
-  padding-right: 5px;
+  float: left;
+  width: 30%;
+  padding: 3px 0px 3px 0px;
 }
 
+.dataTables_wrapper {
+  margin: 10px 10px 0px 5px;
+}
+
+.dataTables_wrapper_top {
+  padding: 6px;
+  overflow: hidden;
+  display: inline-block; 
+  display: block; 
+  border-top: 1px solid #B4B3A8;
+  border-left: 1px solid #B4B3A8;
+  border-right: 1px solid #B4B3A8;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.dataTables_wrapper_bottom {
+  padding: 6px;
+  overflow: hidden;
+  display: inline-block; 
+  display: block;
+  border-bottom: 1px solid #B4B3A8;
+  border-left: 1px solid #B4B3A8;
+  border-right: 1px solid #B4B3A8;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+#grid_rules_grid_zone {
+  border-left: 1px solid #B4B3A8;
+  border-right: 1px solid #B4B3A8;
+  width: 100%;
+}
+ 
 .paginate_disabled_previous, .paginate_enabled_previous, .paginate_disabled_next, .paginate_enabled_next {
   height: 19px;
   width: 19px;
@@ -931,23 +983,28 @@ div.dataTables_scroll {
 
 
 .paginate_button {
-  border: 1px solid #d3d3d3;
   padding: 2px 6px;
   margin: 0;
   cursor: pointer;
+  font-size:12px;
+}
+
+.paginate_button:hover {
+  background-color: #FFF3C9;
+  text-decoration: underline;
 }
 
 .paginate_button_disabled {
-  border: 1px solid #d3d3d3;
   padding: 2px 6px;
   margin: 0;
+  color: dimGray;
 }
 
 .paginate_active {
-  border: 1px solid #d3d3d3;
   padding: 2px 6px;
   margin: 0;
   color: #333333;
+  font-size:13px;
   font-weight: bold;
 }
 
@@ -2190,3 +2247,36 @@ ins {
   text-decoration: none;
   background: #D6FFD6;
 }
+
+table thead th div.DataTables_sort_wrapper {
+  position: relative;
+  padding-right: 20px;
+}
+
+table thead th div.DataTables_sort_wrapper span {
+  position: absolute;
+  top: 50%;
+  margin-top: -8px;
+  right: 0;
+}
+
+table thead th {
+  border-top: none !important; 
+  border-right: none !important; 
+}
+
+.fg-button {
+  border-top: 1px solid #B4B3A8; 
+  border-right: none !important; 
+  font-weight: normal !important;
+}
+
+
+.dataTables_paginate .ui-state-default {
+  text-decoration: none !important;
+}
+
+.dataTables_paginate .last {
+  border-right: 1px solid #B4B3A8 !important;
+}
+
