@@ -38,6 +38,14 @@
  * This CSS contains the difference between the jquery-ui lightness theme and our theme
  */
 
+.first.ui-corner-tl, .first.ui-corner-tr, .first.ui-corner-br, .first.ui-corner-bl {
+	border-radius:0px;
+}
+
+.last.ui-corner-tl, .last.ui-corner-tr, .last.ui-corner-br, .last.ui-corner-bl {
+	border-radius:0px;
+}
+
 /* Corner radius */
 .ui-corner-tl {
    -moz-border-radius-topleft: 6px;
@@ -295,15 +303,24 @@ div#progressbar {
 
 /* Interaction states --*/
 .ui-state-default, .ui-widget-content .ui-state-default {
-   font-weight: bold;/* texte des boutons*/
-   color: #000;   
-   background: none;
-/*  width: 130px;*/
+  background: none;
+  font-weight: bold;/* texte des boutons*/
+}
+
+.ui-button-text {
+/*   font-weight: bold;texte des boutons */
+}
+
+input .ui-button {
+  font-weight: bold;/* texte des boutons*/
 }
 
 .ui-state-default, .ui-widget-content .ui-button, .ui-widget select  {
-   border: 1px solid #B4B3A8;
-   background-color: #eee;
+  background-color: #eee;
+}
+
+.ui-widget select {
+  border: 1px solid #B4B3A8;
 }
 
 .ui-state-default[disabled], .ui-widget-content .ui-state-default[disabled] {
@@ -321,8 +338,8 @@ div#progressbar {
    background: none;
 }
 .ui-button:hover {
-   border: 1px solid #B4B3A8;
-   background-color: #EEEBE7;
+  text-decoration:underline;
+  background-color: #EEEBE7;
 }
 
 .ui-state-hover a, .ui-state-hover a:hover {
