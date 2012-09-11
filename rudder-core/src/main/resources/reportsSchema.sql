@@ -38,6 +38,9 @@
 set client_min_messages='warning';
 
 
+-- Enforce support for standart string (unescaped \)
+ALTER database rudder SET standard_conforming_strings=true;
+
 -- Create the sequences
 Create SEQUENCE ruleSerialId START 1;
 
