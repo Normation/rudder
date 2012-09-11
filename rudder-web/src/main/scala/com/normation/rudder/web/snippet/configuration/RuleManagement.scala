@@ -169,8 +169,8 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
     currentRuleForm.is match {
       case f:Failure => errorDiv(f)
-      case Empty => <div id={htmlId_editRuleDiv} class="info">Add a new Rule or click on an existing one in the grid to see its details</div>
-      case Full(form) => form.dispatch(dispatch)(NodeSeq.Empty)
+      case Empty => <div id={htmlId_editRuleDiv}/>
+      case Full(form) => { form.dispatch(dispatch)(NodeSeq.Empty) }
     }
   }
 
@@ -236,8 +236,9 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
   private[this] def detailsCallbackLink(rule:Rule,id:String="showForm") : JsCmd = {
     updateEditComponent(rule)
     //update UI
-    Replace(htmlId_editRuleDiv, editRule(id)) &
-    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'ruleId':'%s'})""".format(rule.id.value)) 
+    Replace(htmlId_editRuleDiv, editRule()) &
+    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'ruleId':'%s'})""".format(rule.id.value)) &
+    JsRaw("""$("#editRuleZonePortlet").removeClass("nodisplay");""")
   }
   
 }
