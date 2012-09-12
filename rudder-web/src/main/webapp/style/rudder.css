@@ -374,7 +374,7 @@ table {
    width: 98%;
 }
 
-#eventLogsGrid {
+.dataTables_wrapper table {
   width:100%;	
   border-right: 1px solid #B4B3A8;
   border-left: 1px solid #B4B3A8;
@@ -404,7 +404,7 @@ tr.foot {
    background: url(../images/tableau/cCentrebas.jpg) bottom left;
 }
 tr.head {
-   background: url(../images/tableau/fdTaboHead.jpg) top left repeat-x;
+   background: url(../images/tableau/fdTaboHead.jpg) top left repeat-x !important;
 }
 .head th.first {
    padding: 5px 10px;
@@ -2319,4 +2319,8 @@ table thead th {
 
 .dataTables_wrapper table {
 	border-collapse: collapse;
+}
+
+table thead tr .ui-state-default {
+  background: url(../images/tableau/fdTaboHead.jpg) top left repeat-x !important;
 }
