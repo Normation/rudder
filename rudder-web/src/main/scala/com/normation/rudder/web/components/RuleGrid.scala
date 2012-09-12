@@ -115,14 +115,14 @@ class RuleGrid(
           <div id={htmlId_modalReportsPopup} class="nodisplay">
             <div id={htmlId_reportsPopup} ></div>
           </div>
-          <table id={htmlId_rulesGridId} cellspacing="0">
+          <table id={htmlId_rulesGridId} class="display" cellspacing="0">
             <thead>
               <tr class="head">
                 <th>Name</th>
                 <th>Status</th>
-                <th>Deployment status</th>
+                <th>Deployment&nbsp;status</th>
                 <th>Directives</th>
-                <th>Target node groups</th>
+                <th>Target&nbsp;node&nbsp;groups</th>
                 <th>Compliance</th>
                 <th>Details</th>
                 <th>Parameters</th>
@@ -504,7 +504,7 @@ class RuleGrid(
           <td>{ //  COMPLIANCE
             buildComplianceChart(line.compliance, line.rule, linkCompliancePopup)
           }</td>
-          <td>{ //  COMPLIANCE
+          <td class="complianceTd">{ //  COMPLIANCE
               detailsCallbackLink match {
       case None => Text("No details")
       case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { 
@@ -513,7 +513,7 @@ class RuleGrid(
     
     
           }</td>
-          <td>{ //  COMPLIANCE
+          <td class="parametersTd">{ 
               detailsCallbackLink match {
       case None => Text("No parameters")
       case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icTools.jpg"/>, { 
