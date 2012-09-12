@@ -98,7 +98,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       ClearClearable &
       "#deploymentLastStatus *" #> lastStatus &
       "#deploymentProcessing *" #> currentStatus 
-    )(layout) , JsRaw("""$("button.deploymentButton").button();  """))
+    )(layout) , JsRaw("""$("button.deploymentButton").button(); """))
   }
   
   private[this] def computeHistoricOfChange = {
@@ -132,7 +132,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     }
   }
   
-  
+  val deployementErrorMessage = """(.*)!errormessage!(.*)""".r
   
   private[this] def lastStatus : NodeSeq = {
     deploymentStatus.current match {
@@ -150,7 +150,17 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                $('#simplemodal-container').css('height', 'auto');
                return false;"""}>details</span>) 
         </span>} ++ {
-          ("#errorDetailsMessage" #> <span>{failure.messageChain.split("<-").map(x => Text("=> " + x) ++ {<br/>})}</span>)(errorPopup)
+          ("#errorDetailsMessage" #> { failure.messageChain match {
+            case  deployementErrorMessage(chain, error) =>
+              <span>{chain.split("<-").map(x => Text("=> " + x) ++ {<br/>})}</span>
+              <br/>
+              <fieldset><legend onClick="$('#deploymentErrorMsg').toggle();$('#simplemodal-container').css('width', '80%');$('#simplemodal-container').resize();"><b>Show technical details</b></legend>
+                <span id="deploymentErrorMsg" style="display:none;">
+                {error.split("rudder>").map(x => Text(x) ++ {<br/>})}
+                </span>
+              </fieldset>
+            case _ => <span>{failure.messageChain.split("<-").map(x => Text("=> " + x) ++ {<br/>})}</span> 
+          } })(errorPopup)
         }
     }
   }
@@ -226,7 +236,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   
   
   private[this] def pendingPopup = {
-    <div id="pendingModificationDialog" class="nodisplay">
+    <div id="pendingModificationDialog" class="nodisplay" style="overflow: auto; max-height:500px;">
       <div class="simplemodal-title">
         <h1>List of modification since last successful deployment</h1>
         <hr/>
