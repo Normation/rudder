@@ -236,7 +236,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         "#techniqueVersions" #> showVersions(activeTechnique) &
         "#migrate" #> showMigration(technique, activeTechnique) &
         "#addButton" #> SHtml.ajaxButton( 
-          { Text("Create a new Directive based on template ") ++ <b>{technique.name}</b> },
+          { Text("Create a new Directive based on technique ") ++ <b>{technique.name}</b> },
           { () =>  SetHtml(CreateDirectivePopup.htmlId_popup, 
                      newCreationPopup(technique, activeTechnique)) &
                    JsRaw( """ createPopup("%s",300,400) """
