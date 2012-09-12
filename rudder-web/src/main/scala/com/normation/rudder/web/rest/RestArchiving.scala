@@ -109,13 +109,13 @@ class RestArchiving(
       archive(req, itemArchiveManager.exportGroupLibrary _, "groups")
 
     case Get("api" :: "archives" :: "archive" :: "directives" :: Nil, req) =>
-      archive(req, itemArchiveManager.exportTechniqueLibrary _, "technique library")
+      archive(req, ((a,b,c,d) => itemArchiveManager.exportTechniqueLibrary(a,b,c,d).map( _._1)), "technique library")
 
     case Get("api" :: "archives" :: "archive" :: "rules" :: Nil, req) => 
       archive(req, itemArchiveManager.exportRules _, "rules")
 
     case Get("api" :: "archives" :: "archive" :: "full" :: Nil, req) => 
-      archive(req, itemArchiveManager.exportAll _, "full archive")
+      archive(req,  ((a,b,c,d) => itemArchiveManager.exportAll(a,b,c,d).map( _._1)), "full archive")
   }
   
   //restore a given archive

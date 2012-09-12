@@ -64,6 +64,8 @@ class Archives extends DispatchSnippet with Loggable {
   private[this] val personIdentService = inject[PersonIdentService]
   private[this] val gitRevisionProvider = inject[GitRevisionProvider]
   
+  private[this] val noElements = NotArchivedElements(Seq(),Seq(),Seq())
+  
   def dispatch = {
     case "allForm" => allForm 
     case "rulesForm" => rulesForm
@@ -101,7 +103,7 @@ class Archives extends DispatchSnippet with Loggable {
         formName                  = "rulesForm"
       , archiveButtonId           = "exportRulesButton"
       , archiveButtonName         = "Archive Rules"
-      , archiveFunction           = itemArchiver.exportRules
+      , archiveFunction           = (a,b,c,d) => itemArchiver.exportRules(a,b,c,d).map(x=> (x, noElements))
       , archiveErrorMessage       = "Error when exporting Rules."
       , archiveSuccessDebugMessage= s => "Exporting Rules on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importRulesSelect"
@@ -143,7 +145,7 @@ class Archives extends DispatchSnippet with Loggable {
         formName                  = "groupLibraryForm"
       , archiveButtonId           = "exportGroupLibraryButton"
       , archiveButtonName         = "Archive groups"
-      , archiveFunction           = itemArchiver.exportGroupLibrary
+      , archiveFunction           = (a,b,c,d) => itemArchiver.exportGroupLibrary(a,b,c,d).map(x=> (x, noElements))
       , archiveErrorMessage       = "Error when exporting groups."
       , archiveSuccessDebugMessage= s => "Exporting groups on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importGroupLibrarySelect"
@@ -167,7 +169,7 @@ class Archives extends DispatchSnippet with Loggable {
       formName                  : String               //the element name to update on error/succes
     , archiveButtonId           : String               //input button
     , archiveButtonName         : String               //what is displayed on the button to the user
-    , archiveFunction           : (PersonIdent, EventActor, Option[String], Boolean) => Box[GitArchiveId] //the actual logic to execute the action
+    , archiveFunction           : (PersonIdent, EventActor, Option[String], Boolean) => Box[(GitArchiveId, NotArchivedElements)] //the actual logic to execute the action
     , archiveErrorMessage       : String               //error message to display to the user
     , archiveSuccessDebugMessage: String => String     //debug log - the string param is the archive id
     , archiveDateSelectId       : String
@@ -195,8 +197,28 @@ class Archives extends DispatchSnippet with Loggable {
       Replace(formName, outerXml.applyAgain)
     }
     
-    def success[T](msg:String) = {
+    def success[T](msg:String, elements:NotArchivedElements) = {
           logger.debug( msg )
+          
+          if(!elements.isEmpty) {
+            val cats = elements.categories.map { case CategoryNotArchived(catId, f) => "Error when archiving Category with id '%s': %s".format(catId.value, f.messageChain) }
+            val ats = elements.activeTechniques.map { case ActiveTechniqueNotArchived(atId, f) => "Error when rchiving Active Technique with id '%s': %s".format(atId.value, f.messageChain) }
+            val dirs = elements.directives.map { case DirectiveNotArchived(dirId, f) => "Error when archiving Directive with id '%s': %s".format(dirId.value, f.messageChain) }
+            
+            val all = cats ++ ats ++ dirs
+            
+            all.foreach( logger.warn( _ ) )
+            
+            val error = <div>
+                <b>The archive was created but some element have not been archived:</b>
+                <ul>
+                  {all.map(msg => <li>{msg}</li>)}
+                </ul>
+              </div>
+            
+            S.warning(noticeId, error)
+          }
+          
           Replace(formName, outerXml.applyAgain) &
           successPopup
     }
@@ -213,7 +235,7 @@ class Archives extends DispatchSnippet with Loggable {
         archive
       }) match {
         case eb:EmptyBox => error(eb, archiveErrorMessage)
-        case Full(aid)   => success(archiveSuccessDebugMessage(aid.commit.value))
+        case Full((aid, notArchiveElements))   => success(archiveSuccessDebugMessage(aid.commit.value), notArchiveElements)
       }
     }
     
@@ -223,7 +245,7 @@ class Archives extends DispatchSnippet with Loggable {
         case None    => error(Empty, "A valid archive must be chosen")
         case Some(commit) => restoreFunction(commit, CurrentUser.getActor, Some("User requested archive restoration"), false) match {
           case eb:EmptyBox => error(eb, restoreErrorMessage)
-          case Full( _ )   => success(restoreSuccessDebugMessage)
+          case Full( _ )   => success(restoreSuccessDebugMessage, noElements)
         }
       }
     }

@@ -298,7 +298,7 @@ trait ActiveTechniqueModificationCallback {
   /**
    * What to do on activeTechnique save
    */
-  def onArchive(activeTechnique:ActiveTechnique, parents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent, Option[String])]) : Box[Unit]
+  def onArchive(activeTechnique:ActiveTechnique, parents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent, Option[String])]) : Box[Seq[DirectiveNotArchived]]
 
   /**
    * What to do on activeTechnique deletion
@@ -319,26 +319,34 @@ class UpdatePiOnActiveTechniqueEvent(
   override val uptModificationCallbackName = "Update PI on UPT events"
   
   //TODO: why gitCommit is not used here ?
-  override def onArchive(activeTechnique:ActiveTechnique, parents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent, Option[String])]) : Box[Unit] = {
+  override def onArchive(activeTechnique:ActiveTechnique, parents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent, Option[String])]) : Box[Seq[DirectiveNotArchived]] = {
     
     logger.debug("Executing archivage of PIs for UPT '%s'".format(activeTechnique))
     
-    (if(activeTechnique.directives.isEmpty) Full("OK")
+    if(activeTechnique.directives.isEmpty) Full(Seq())
     else {
+      //we are only interested in directive in error
+      val notArchivedDirective = 
       for {
-        directives <- sequence(activeTechnique.directives) { directiveId =>
-                        for {
-                          directive  <- directiveRepository.getDirective(directiveId)
-                          technique  <- Box(techniqeRepository.get(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)))
-                          archivedPi <- gitDirectiveArchiver.archiveDirective(directive, technique.id.name, parents, technique.rootSection, None)
-                        } yield {
-                          archivedPi
-                        }
-                      }
+        directiveId          <- activeTechnique.directives
+        optDirectiveArchived =  (for {
+                                  directive  <- directiveRepository.getDirective(directiveId) ?~! "Can not find directive with id '%s' in repository".format(directiveId.value)
+                                  technique  <- Box(techniqeRepository.get(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion))) ?~! "Can not find Technique '%s:%s'".format(activeTechnique.techniqueName.value, directive.techniqueVersion)
+                                  archivedPi <- gitDirectiveArchiver.archiveDirective(directive, technique.id.name, parents, technique.rootSection, None)
+                                } yield {
+                                  archivedPi
+                                }) match {
+                                  case Full(_)   => None
+                                  case Empty     => Some(DirectiveNotArchived(directiveId, Failure("No error message was left")))
+                                  case f:Failure => Some(DirectiveNotArchived(directiveId, f))
+                                }
       } yield {
-        directives
+        optDirectiveArchived
       }
-    }).map( _  => () ) //we want to return an unit
+      
+      Full(notArchivedDirective.collect { case Some(x) => x } )
+      
+    }
   }
   
   override def onDelete(ptName:TechniqueName, getParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent, Option[String])]) = Full({})
@@ -370,7 +378,7 @@ class GitActiveTechniqueArchiverImpl(
     }
   }
   
-  override def archiveActiveTechnique(activeTechnique:ActiveTechnique, parents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent, Option[String])]) : Box[GitPath] = {     
+  override def archiveActiveTechnique(activeTechnique:ActiveTechnique, parents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent, Option[String])]) : Box[(GitPath, Seq[DirectiveNotArchived])] = {     
     for {
       uptFile   <- newActiveTechniqueFile(activeTechnique.techniqueName, parents)
       gitPath   =  toGitPath(uptFile)
@@ -379,13 +387,16 @@ class GitActiveTechniqueArchiverImpl(
                      , activeTechniqueSerialisation.serialise(activeTechnique)
                      , "Archived technique library template: " + uptFile.getPath
                    )
+      //strategy for callbaack:
+      //if at least one callback is in error, we don't execute the others and the full ActiveTechnique is in error.
+      //if none is in error, we are going to next step             
       callbacks <- sequence(uptModificationCallback) { _.onArchive(activeTechnique, parents, None) }
       commit    <- gitCommit match {
                      case Some((commiter, reason)) => commitAddFile(commiter, gitPath, "Archive of technique library template for technique name '%s'%s".format(activeTechnique.techniqueName.value, GET(reason)))
                      case None => Full("ok")
                    }
     } yield {
-      GitPath(gitPath)
+      (GitPath(gitPath), callbacks.flatten)
     }
   }
   
@@ -420,7 +431,7 @@ class GitActiveTechniqueArchiverImpl(
    * As we can't know at all if all PI currently defined for an UPT were saved, we
    * DO have to always consider a fresh new archive. 
    */
-  override def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent, Option[String])]) : Box[GitPath] = {
+  override def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent, Option[String])]) : Box[(GitPath, Seq[DirectiveNotArchived])] = {
     for {
       oldActiveTechniqueFile      <- newActiveTechniqueFile(activeTechnique.techniqueName, oldParents)
       oldActiveTechniqueDirectory =  oldActiveTechniqueFile.getParentFile
@@ -446,7 +457,7 @@ class GitActiveTechniqueArchiverImpl(
                            case None => Full("OK")
                          }
     } yield {
-      GitPath(toGitPath(newActiveTechniqueDirectory))
+      archived
     }
   }
 }

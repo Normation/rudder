@@ -50,6 +50,8 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.domain.policies.ActiveTechniqueId
 
 class ItemArchiveManagerImpl(
     ruleRepository                    : RuleRepository
@@ -63,7 +65,7 @@ class ItemArchiveManagerImpl(
   , gitNodeGroupCategoryArchiver      : GitNodeGroupCategoryArchiver
   , gitNodeGroupArchiver              : GitNodeGroupArchiver
   , parseRules                        : ParseRules
-  , ParseActiveTechniqueLibrary       : ParseActiveTechniqueLibrary
+  , parseActiveTechniqueLibrary       : ParseActiveTechniqueLibrary
   , importTechniqueLibrary            : ImportTechniqueLibrary
   , parseGroupLibrary                 : ParseGroupLibrary
   , importGroupLibrary                : ImportGroupLibrary
@@ -80,7 +82,7 @@ class ItemArchiveManagerImpl(
   
   ///// implementation /////
   
-  override def exportAll(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[GitArchiveId] = { 
+  override def exportAll(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[(GitArchiveId, NotArchivedElements)] = { 
     for {
       saveCrs     <- exportRulesAndDeploy(commiter, actor, reason, includeSystem, false)
       saveUserLib <- exportTechniqueLibraryAndDeploy(commiter, actor, reason, includeSystem, false)
@@ -96,7 +98,7 @@ class ItemArchiveManagerImpl(
       eventLogged <- eventLogger.saveEventLog(new ExportFullArchive(actor, archiveAll, reason))
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(actor)
-      archiveAll
+      (archiveAll,saveUserLib._2)
     }
   }
 
@@ -119,13 +121,16 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  override def exportTechniqueLibrary(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[GitArchiveId] =
+  override def exportTechniqueLibrary(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[(GitArchiveId, NotArchivedElements)] =
     exportTechniqueLibraryAndDeploy(commiter, actor, reason, includeSystem) 
     
-  private[this] def exportTechniqueLibraryAndDeploy(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = { 
+
+  private[this] def exportTechniqueLibraryAndDeploy(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true): Box[(GitArchiveId, NotArchivedElements)] = { 
+    //case class SavedDirective( saved:Seq[String, ])
+    
     for { 
       catWithUPT   <- uptRepository.getActiveTechniqueByCategory(includeSystem = true)
-      //remove systems things if asked (both system categories and system upts in non-system categories)
+      //remove systems things if asked (both system categories and system active techniques in non-system categories)
       okCatWithUPT =  if(includeSystem) catWithUPT
                       else catWithUPT.collect { 
                           //always include root category, even if it's a system one
@@ -133,22 +138,50 @@ class ItemArchiveManagerImpl(
                             (categories, CategoryWithActiveTechniques(cat, upts.filter( _.isSystem == false )))
                       }
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitActiveTechniqueCategoryArchiver.getRootDirectory) }
-      savedItems  <- sequence(okCatWithUPT.toSeq) { case (categories, CategoryWithActiveTechniques(cat, upts)) => 
-                       for {
-                         //categories.tail is OK, as no category can have an empty path (id)
-                         savedCat  <- gitActiveTechniqueCategoryArchiver.archiveActiveTechniqueCategory(cat,categories.reverse.tail, gitCommit = None)
-                         savedActiveTechniques <- sequence(upts.toSeq) { activeTechnique =>
-                                        gitActiveTechniqueArchiver.archiveActiveTechnique(activeTechnique,categories.reverse, gitCommit = None)
-                                      }
-                       } yield {
-                         "OK"
-                       }
-                     }
+
+      savedItems  = exportElements(okCatWithUPT.toSeq)
+      
       commitId    <- gitActiveTechniqueCategoryArchiver.commitActiveTechniqueLibrary(commiter, reason)
       eventLogged <- eventLogger.saveEventLog(new ExportTechniqueLibraryArchive(actor,commitId, reason))
     } yield {
       if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(actor) }
-      commitId
+      (commitId, savedItems)
+    }
+  }
+  
+  /*
+   * strategy here: 
+   * - if the category archiving fails, we just record that and continue - that's not a big issue
+   * - if an active technique fails, we don't go further to directive, and record that failure
+   * - if a directive fails, we record that failure. 
+   * At the end, we can't have total failure for that part, so we don't have a box
+   */
+  private[this] def exportElements(elements: Seq[(List[ActiveTechniqueCategoryId],CategoryWithActiveTechniques)]) : NotArchivedElements = {
+    val byCategories = for {
+      (categories, CategoryWithActiveTechniques(cat, activeTechniques)) <- elements
+    } yield {
+      //we try to save the category, and else record an error. It's a seq with at most one element
+      val catInError = gitActiveTechniqueCategoryArchiver.archiveActiveTechniqueCategory(cat,categories.reverse.tail, gitCommit = None) match {
+                         case Full(ok) => Seq.empty[CategoryNotArchived]
+                         case Empty    => Seq(CategoryNotArchived(cat.id, Failure("No error message were left")))
+                         case f:Failure=> Seq(CategoryNotArchived(cat.id, f))
+                       }
+      //now, we try to save the active techniques - we only
+      val activeTechniquesInError = activeTechniques.toSeq.map { activeTechnique =>
+                                      gitActiveTechniqueArchiver.archiveActiveTechnique(activeTechnique,categories.reverse, gitCommit = None) match {
+                                        case Full((gitPath, directivesNotArchiveds)) => (Seq.empty[ActiveTechniqueNotArchived], directivesNotArchiveds)
+                                        case Empty => (Seq(ActiveTechniqueNotArchived(activeTechnique.id, Failure("No error message was left"))), Seq.empty[DirectiveNotArchived])
+                                        case f:Failure => (Seq(ActiveTechniqueNotArchived(activeTechnique.id, f)), Seq.empty[DirectiveNotArchived])
+                                      }
+                                    }
+      val (atNotArchived, dirNotArchived) = ( (Seq.empty[ActiveTechniqueNotArchived], Seq.empty[DirectiveNotArchived]) /: activeTechniquesInError) { 
+        case ( (ats,dirs) , (at,dir)  ) => (ats ++ at, dirs ++ dir) 
+      }
+      (catInError, atNotArchived, dirNotArchived)
+    }
+    
+    (NotArchivedElements( Seq(), Seq(), Seq()) /: byCategories) { 
+      case (NotArchivedElements(cats, ats, dirs), (cat,at,dir)) => NotArchivedElements(cats++cat, ats++at, dirs++dir)
     }
   }
   
@@ -231,7 +264,7 @@ class ItemArchiveManagerImpl(
   private[this] def importTechniqueLibraryAndDeploy(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing technique library archive with id '%s'".format(archiveId.value))
       for {
-        parsed      <- ParseActiveTechniqueLibrary.getArchive(archiveId)
+        parsed      <- parseActiveTechniqueLibrary.getArchive(archiveId)
         imported    <- importTechniqueLibrary.swapActiveTechniqueLibrary(parsed, includeSystem)
         eventLogged <- eventLogger.saveEventLog(new ImportTechniqueLibraryArchive(actor,archiveId, reason))
       } yield {
