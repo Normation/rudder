@@ -119,11 +119,11 @@ class EventListDisplayer(
             },
             "aaSorting":[],
             "aoColumns": [
-                { "sWidth": "25px" }
-              , { "sWidth": "110px" }
-              , { "sWidth": "110px" }
-              , { "sWidth": "110px" }
-              , { "sWidth": "100px" }
+                { "sWidth": "35px" }
+              , { "sWidth": "95px" }
+              , { "sWidth": "35px" }
+              , { "sWidth": "195px" }
+              , { "sWidth": "220px" }
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           })
@@ -190,7 +190,7 @@ class EventListDisplayer(
   
   private[this] def dataTableXml(gridName:String) = {
     <div>
-      <table id={gridName} cellspacing="0">
+      <table id={gridName} class="display" cellspacing="0">
         <thead>
           <tr class="head">
             <th class="titleId">ID</th>

@@ -2290,3 +2290,6 @@ table thead th {
   border-right: 1px solid #B4B3A8 !important;
 }
 
+table.display {
+	border-collapse: collapse;
+}
