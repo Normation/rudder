@@ -68,6 +68,7 @@ import Process._
 import com.normation.inventory.domain.AgentType
 import net.liftweb.util.Helpers.tryo
 import com.normation.cfclerk.services.SystemVariableSpecService
+import scala.sys.process.ProcessLogger
 
 class RudderCf3PromisesFileWriterServiceImpl(
   techniqueRepository: TechniqueRepository,
@@ -187,20 +188,24 @@ class RudderCf3PromisesFileWriterServiceImpl(
         case _ => ;
       }
 
+      var out = List[String]()
+      var err = List[String]()
+      val processLogger = ProcessLogger((s) => out ::= s, (s) => err ::= s)
+
       // Check the promises
       val errorCode = agentType match {
         case NOVA_AGENT =>
           val process: scala.sys.process.ProcessBuilder = (novaCheckPromises + " -f " + newNodeRulePath + "/promises.cf")
-          process.!
+          process.!(processLogger)
 
         case _ =>
           val process: scala.sys.process.ProcessBuilder = (communityCheckPromises + " -f " + newNodeRulePath + "/promises.cf")
-          process.!
+          process.!(processLogger)
       }
 
       if (errorCode != 0) {
-        logger.error("The generated promises at %s are invalid".format(newNodeRulePath))
-        return Failure("The generated promises are invalid")
+        logger.error("The generated promises at %s are invalid, cause %s".format(newNodeRulePath, (out.reverse ++ err.reverse).mkString("\n") ))
+        return Failure("The generated promises are invalid, cause is: !errormessage! %s".format( ( err.reverse).mkString("")))
       }
 
       folders += ((node, nodeRulePath, newNodePath, backupNodeRulePath))
