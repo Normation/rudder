@@ -925,7 +925,8 @@ tr.query_line, .query_line td {
 
 .composition {
   text-align:center;
-  padding: 10px 0 0; 
+  padding: 10px 0 0;
+  width: 580px;
 }
 
 .composition span {
@@ -2306,7 +2307,7 @@ table thead th {
   border-top: 1px solid #B4B3A8; 
   border-right: none !important; 
   font-weight: normal !important;
-}
+} 
 
 
 .dataTables_paginate .ui-state-default {
@@ -2323,4 +2324,15 @@ table thead th {
 
 table thead tr .ui-state-default {
   background: url(../images/tableau/fdTaboHead.jpg) top left repeat-x !important;
+}
+
+#serverGrid_wrapper .dataTables_wrapper_top {
+  border-top-left-radius: 0px !important;
+  border-top-right-radius: 0px !important;
+}
+.bottomButton {
+  margin-left:15px;
+}
+#SearchNodes {
+  margin: 0px 0px 0px 10px;
 }
