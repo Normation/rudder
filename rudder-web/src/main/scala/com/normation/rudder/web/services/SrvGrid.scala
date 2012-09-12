@@ -113,7 +113,7 @@ class SrvGrid {
       columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(), 
       aoColumns:String ="", 
       searchable : Boolean = true, 
-      paginate : Boolean = false, 
+      paginate : Boolean = true, 
       callback : String => JsCmd = x => Noop
    ) : NodeSeq = {
     display(servers, tableId, columns, aoColumns) ++
@@ -141,20 +141,23 @@ class SrvGrid {
           #table_var# = $('#%s').dataTable({
             "asStripClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
-            "bFilter" :%s,
+            "bFilter" :true,
             "bPaginate" :%s,
             "bLengthChange": true,
             "sPaginationType": "full_numbers",
             "oLanguage": {
-              "sSearch": "Filter:"
+              "sSearch": ""
             },
-            "bJQueryUI": false,
+            "bJQueryUI": true,
             "aaSorting": [[ 0, "asc" ]],
             "aoColumns": [ 
               { "sWidth": "180px" },
               { "sWidth": "300px" } %s
-            ]
-          });moveFilterAndFullPaginateArea('#%s');""".format(tableId,searchable,paginate,aoColumns,tableId).replaceAll("#table_var#",jsVarNameForId(tableId))
+            ],
+            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
+          });
+          $('.dataTables_filter input').attr("placeholder", "Search");
+          """.format(tableId,paginate,aoColumns).replaceAll("#table_var#",jsVarNameForId(tableId))
         ) &
         
         initJsCallBack(tableId, callback)
