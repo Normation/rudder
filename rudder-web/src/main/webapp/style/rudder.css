@@ -366,12 +366,11 @@ table {
 #eventLogsGrid {
   width:100%;	
   border-right: 1px solid #B4B3A8;
+  border-left: 1px solid #B4B3A8;
 }
 
 #grid_rules_grid_zone {
   width:100%; 
-  border-left: 1px solid #B4B3A8;
-  border-right: 1px solid #B4B3A8;
 }
 
 #acceptNodeGrid_wrapper {
@@ -423,6 +422,11 @@ tr.color2 {
 }
 
 #eventLogsGrid td {
+  border-top: none;
+  border-bottom: 1px solid #ababab;
+}
+
+#rules_grid_zone td {
   border-top: none;
   border-bottom: 1px solid #ababab;
   border-left: 1px solid #ababab;
@@ -584,7 +588,6 @@ div#Detail {
 }
 
 #grid_rules_grid_zone {
-  border-left: 1px solid #B4B3A8;
   border-right: 1px solid #B4B3A8;
   width: 100%;
 }
@@ -1504,7 +1507,7 @@ div#refusePopup {
 * Popup
 ********************/
 #actions_zone{
-  margin:15px;
+  margin:10px 10px 0px 5px;
 }
 .popcurs{
   text-decoration: underline;

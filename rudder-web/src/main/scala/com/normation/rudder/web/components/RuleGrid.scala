@@ -154,9 +154,10 @@ class RuleGrid(
         "bPaginate" : true,
         "bLengthChange": true,
         "sPaginationType": "full_numbers",
-        "bJQueryUI": false,
+        "bJQueryUI": true,
         "oLanguage": {
-          "sZeroRecords": "No matching rules!"
+          "sZeroRecords": "No matching rules!",
+          "sSearch": ""
         },
         "aaSorting": [[ 0, "asc" ]],
         "aoColumns": [ 
@@ -164,14 +165,15 @@ class RuleGrid(
           { "sWidth": "60px"  },
           { "sWidth": "115px" },
           { "sWidth": "100px" },
-          { "sWidth": "100px", "sType": "html" },
+          { "sWidth": "120px", "sType": "html" },
           { "sWidth": "60px"  },
           { "sWidth": "20px" },
           { "sWidth": "20px" } %2$s
-        ]
-      });moveFilterAndFullPaginateArea('#%1$s'); 
-      $("#%1$s_filter").insertAfter('#actions_zone');
-      $("#%1$s_length").insertAfter('#actions_zone');
+        ],
+        "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
+      });
+      $('.dataTables_filter input').attr("placeholder", "Search");
+         
       createTooltip();""".format(
           htmlId_rulesGridId,
           { if(showCheckboxColumn) """, { "sWidth": "30px" }""" else "" }
