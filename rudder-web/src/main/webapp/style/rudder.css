@@ -324,6 +324,12 @@ input.deleteNetwork * {
 /**************************************
 Tableau
 **************************************/
+#pending_server_history {
+  width:100%;
+  border-left: 1px solid #B4B3A8;
+  border-right: 1px solid #B4B3A8;
+}
+
 .sgridbph{
   border:0; 
   padding:0;
@@ -421,7 +427,7 @@ tr.color2 {
    background-color: #fff;
 }
 
-#eventLogsGrid td {
+.dataTables_wrapper td {
   border-top: none;
   border-bottom: 1px solid #ababab;
 }
@@ -2268,7 +2274,7 @@ del {
   text-decoration: none;
   background: #FFD6D6;
 }
-
+ 
 ins {
   text-decoration: none;
   background: #D6FFD6;
@@ -2306,6 +2312,6 @@ table thead th {
   border-right: 1px solid #B4B3A8 !important;
 }
 
-table.display {
+.dataTables_wrapper table {
 	border-collapse: collapse;
 }
