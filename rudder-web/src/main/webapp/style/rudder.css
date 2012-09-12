@@ -324,6 +324,11 @@ input.deleteNetwork * {
 /**************************************
 Tableau
 **************************************/
+#acceptNodeGrid {
+  width:100%;
+  border-left: 1px solid #B4B3A8;
+  border-right: 1px solid #B4B3A8;
+}
 #pending_server_history {
   width:100%;
   border-left: 1px solid #B4B3A8;
@@ -2284,7 +2289,7 @@ table thead th div.DataTables_sort_wrapper {
   position: relative;
   padding-right: 20px;
 }
-
+ 
 table thead th div.DataTables_sort_wrapper span {
   position: absolute;
   top: 50%;
