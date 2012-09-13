@@ -8,10 +8,13 @@
       <div id="serverGrid_info_area"></div>
 
     <div id="queryParameters">
-      <div class="composition">Match the criteria below with this operand: 
-        <span style="margin-left:5px;"><query:composition/></span><br/>
-        <span><query:typeQuery/></span>
-      </div><br />
+      <div class="composition">
+        <span><query:typeQuery/></span><br />
+        <span style="margin:5px 0px 7px 0px">
+        Match the criteria below with this operand: 
+        <span style="margin-left:5px"><query:composition/></span>
+        </span>
+      </div>
   
       <table class="searchNodes" id="query_lines" cellspacing="0">
       
@@ -41,14 +44,12 @@
 <lift:ignore>This part is the node detail portlet</lift:ignore>
 <server:portlet>
 
-<div class="portlet">
-  <div class="portlet-header">View a node</div>
-  <div class="portlet-content">  
+<div class="inner-portlet">
+  <div class="inner-portlet-header">Quick search</div>
    <div class="intro">
-     <div> 
-   Quick node search: start typing a hostname or Rudder ID here:
-    </div>
+     <div>Start typing a hostname or Rudder ID.</div>
    </div>
+  <div class="inner-portlet-content">  
      <lift:form>
        <div class="quicksearch">
          <server:quicksearch />
@@ -61,7 +62,6 @@
      <server:details/>
    </div>  
   </div>
-  <br/>
 </div>
 </server:portlet>
 

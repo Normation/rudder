@@ -59,9 +59,9 @@ var clearSearchFieldTree = function(inputId, treeId) {
     <hr class="spacer"/>
     
     <div class="column">
-      <div class="portlet">
-        <div class="portlet-header">Reference Technique library</div>
-        <div class="portlet-content">
+      <div class="inner-portlet">
+        <div class="inner-portlet-header">Reference Technique library</div>
+        <div class="inner-portlet-content">
           <div id="TechniquesLibraryTree_actions_zone" style="margin:10px;">
             <span onclick="openAllNodes('#techniqueLibraryTree');"><img src="/images/open-plus.png" alt="Open all categories" title="Open all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
             <span onclick="closeAllNodes('#techniqueLibraryTree');"><img src="/images/close-minus.png" alt="Close all categories" title="Close all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
@@ -74,9 +74,9 @@ var clearSearchFieldTree = function(inputId, treeId) {
       </div>
     </div>
     <div class="column">
-      <div class="portlet">
-        <div class="portlet-header">Active Techniques library</div>
-        <div class="portlet-content">
+      <div class="inner-portlet">
+        <div class="inner-portlet-header">Active Techniques library</div>
+        <div class="inner-portlet-content">
           <div id="TechniquesLibraryTree_actions_zone" style="margin:10px;">
             <span onclick="openAllNodes('#activeTechniquesTree');"><img src="/images/open-plus.png" alt="Open all categories" title="Open all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
             <span onclick="closeAllNodes('#activeTechniquesTree');"><img src="/images/close-minus.png" alt="Close all categories" title="Close all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
@@ -95,22 +95,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
     <hr class="spacer"/>
 
     <lift:configuration.TechniqueLibraryManagement.bottomPanel /> 
-        
-<!--    <div class="techniqueDetails">-->
-<!--      <fieldset class="techniqueDetailsFieldset"><legend>Technique details</legend>-->
-<!--        <lift:TechniqueLibraryManagement.showTechniqueDetails />-->
-<!--      </fieldset>-->
-<!--    </div>-->
-<!--    -->
-<!--    <hr class="spacer"/>-->
-<!--    <div>-->
-<!--      <div class="portlet">-->
-<!--        <div class="portlet-header">Category in user library details</div>-->
-<!--        <div class="portlet-content">-->
-<!--          <lift:TechniqueLibraryManagement.showUserCategoryDetails />  -->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </div>    -->
+    
   </div>
   
   
