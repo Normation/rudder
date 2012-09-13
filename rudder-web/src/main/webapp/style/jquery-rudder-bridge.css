@@ -337,7 +337,7 @@ input .ui-button {
    color: #000;
    background: none;
 }
-.ui-button:hover {
+.ui-button:hover, .paginate_button_disabled:hover, .paginate_button:hover, .paginate_active:hover {
   text-decoration:underline;
   background-color: #EEEBE7;
 }

@@ -1019,15 +1019,13 @@ div.dataTables_scroll {
 .paginate_button_disabled {
   padding: 2px 6px;
   margin: 0;
-  color: dimGray;
 }
 
 .paginate_active {
-  padding: 2px 6px;
+  padding: 1px 5px 2px 5px;
   margin: 0;
   color: #333333;
   font-size:13px;
-  font-weight: bold;
 }
 
 
@@ -2307,15 +2305,18 @@ table thead th {
   border-top: 1px solid #B4B3A8; 
   border-right: none !important; 
   font-weight: normal !important;
-} 
+}
 
+.paginate_button_disabled, .paginate_button, .paginate_active {
+  border-top: 1px solid #B4B3A8; 
+  border-bottom: 1px solid #B4B3A8; 
+  border-left: 1px solid #B4B3A8; 
+  border-right: none; 
+  display:inline-block;
+}
 
 .dataTables_paginate .ui-state-default {
   text-decoration: none !important;
-}
-
-.dataTables_paginate .last {
-  border-right: 1px solid #B4B3A8 !important;
 }
 
 .dataTables_wrapper table {
@@ -2335,4 +2336,8 @@ table thead tr .ui-state-default {
 }
 #SearchNodes {
   margin: 0px 0px 0px 10px;
+}
+
+.dataTables_paginate .last {
+  border-right: 1px solid #B4B3A8 !important;
 }
