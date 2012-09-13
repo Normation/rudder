@@ -437,12 +437,6 @@ tr.color2 {
   border-bottom: 1px solid #ababab;
 }
 
-#rules_grid_zone td {
-  border-top: none;
-  border-bottom: 1px solid #ababab;
-  border-left: 1px solid #ababab;
-}
-
 td {
   border-top: 1px solid #ababab;
 }
