@@ -1105,7 +1105,7 @@ class RuleEditForm(
                         <span class="tooltipable" tooltipid={tooltipid}>
                           <img   src="/images/icInfo.png" style="padding-left:4px"/>
                         </span>++{val xml = <img   src="/images/icTools.png" style="padding-left:4px"/>
-                          SHtml.a( {()=> RedirectTo("""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value))},xml,("style","padding-left:4px"))}
+                          SHtml.a( {()=> RedirectTo("""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value))},xml,("style","padding-left:4px"))}++
                         <span/>
                         <div class="tooltipContent" id={tooltipid}>
                           Directive <b>{directive.name}</b> is based on technique
