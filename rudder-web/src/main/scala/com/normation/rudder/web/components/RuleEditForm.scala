@@ -1016,11 +1016,10 @@ class RuleEditForm(
               { "sWidth": "397px" },
               { "sWidth": "60px" },
               { "sWidth": "125px" },
-              { "sWidth": "70px" , "bSortable": false},
-              { "sWidth": "0px" , "bSortable": false}
+              { "sWidth": "0px" , "bSortable": false  , "bVisible":false}
             ]
           });
-          $('td.details', nDetailsRow).attr("colspan",7);
+          $('td.details', nDetailsRow).attr("colspan",6);
           $('div.innerDetails table', nDetailsRow).attr("style","");
           $('div.innerDetails', nDetailsRow).slideDown(300);
           anOpen.push( nTr );
@@ -1059,8 +1058,7 @@ class RuleEditForm(
            { "sWidth": "385px" },
            { "sWidth": "50px" },
            { "sWidth": "120px" },
-           { "sWidth": "50px", "bSortable": false },
-           { "sWidth": "0px", "bSortable": false }
+           { "sWidth": "0px", "bSortable": false  , "bVisible":false }
          ]
        } );
        $('div.innerDetails table:first', nDetailsRow).attr("style","");
@@ -1102,22 +1100,17 @@ class RuleEditForm(
                       "#status *" #> <center>{severity}</center> &
                       "#plus *" #> <center><img src="/images/details_open.png"/></center> &
                       "#details *" #> components &
-                      "#analyse *" #> {
-                        directiveStatus.directiveReportType match {
-                            case NoAnswerReportType | PendingReportType => NodeSeq.Empty
-                            case _ =>
-                              SHtml.a( {() => showPopup(directiveStatus,false)},{<center><img src="/images/icLog.png"> </img></center>})
-                        } } &
-                      "#directive *" #>
+                      "#directive *" #>{
                         <b>{directive.name}</b>
                         <span class="tooltipable" tooltipid={tooltipid}>
                           <img   src="/images/icInfo.png" style="padding-left:4px"/>
-                        </span>
+                        </span>++{val xml = <img   src="/images/icTools.png" style="padding-left:4px"/>
+                          SHtml.a( {()=> RedirectTo("""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value))},xml,("style","padding-left:4px"))}
                         <span/>
                         <div class="tooltipContent" id={tooltipid}>
                           Directive <b>{directive.name}</b> is based on technique
                           <b>{tech}</b> (version {techversion})
-                        </div> &
+                        </div> }&
                       "#severity *" #> buildComplianceChart(directiveStatus)
                     ) (reportsLineXml)
                   }
@@ -1147,8 +1140,7 @@ class RuleEditForm(
                       { "sWidth": "403px" },
                       { "sWidth": "50px" },
                       { "sWidth": "120px" },
-                      { "sWidth": "50px", "bSortable": false },
-                      { "sWidth": "0px", "bSortable": false }
+                      { "sWidth": "0px", "bSortable": false  , "bVisible":false }
                     ]
                   } );
                   $('.dataTables_filter input').attr("placeholder", "Search");
@@ -1170,7 +1162,6 @@ class RuleEditForm(
        <th >Component<span/></th>
        <th >Status<span/></th>
        <th >Compliance<span/></th>
-       <th >Analyze </th>
        <th style="border-left:0;" ></th>
      </tr>
     </thead>
@@ -1179,11 +1170,6 @@ class RuleEditForm(
         val severity = ReportType.getSeverityFromStatus(component.componentReportType).replaceAll(" ", "")
         ( "#status [class+]" #> severity &
           "#status *" #> <center>{severity}</center> &
-          "#analyse *" #> {component.componentReportType match {
-              case NoAnswerReportType | PendingReportType => NodeSeq.Empty
-              case _ =>
-              SHtml.a( {() => showPopup(component,false)},{<center><img src="/images/icLog.png"> </img></center>})
-          } } &
           "#component *" #>  <b>{component.component}</b> &
           "#severity *" #>  buildComplianceChart(component)
           ) ( component.componentValues.forall( x => x.componentValue =="None") match {
@@ -1214,7 +1200,6 @@ class RuleEditForm(
           <th >Value<span/></th>
           <th >Status<span/></th>
           <th >Compliance<span/></th>
-          <th >Analyze </th>
           <th style="border-left:0;" ></th>
         </tr>
       </thead>
@@ -1225,12 +1210,7 @@ class RuleEditForm(
             "#valueStatus *" #> <center>{severity}</center> &
             "#componentValue *" #>  <b>{value.componentValue}</b> &
             "#componentValue [class+]" #>  "firstTd" &
-            "#keySeverity *" #> buildComplianceChart(value)&
-            "#valueAnalyse *" #> {value.cptValueReportType match {
-              case NoAnswerReportType | PendingReportType => NodeSeq.Empty
-              case _ =>
-                SHtml.a( {() => showPopup(value,false)},{<center><img src="/images/icLog.png"> </img></center> } )
-            } }
+            "#keySeverity *" #> buildComplianceChart(value)
          ) (componentValueDetails) } }
       </tbody>
     </table>
@@ -1244,7 +1224,6 @@ class RuleEditForm(
           <th >Directive<span/></th>
           <th >Status<span/></th>
           <th >Compliance<span/></th>
-          <th >Analyze </th>
           <th style="border-left:0;" ></th>
         </tr>
       </thead>
@@ -1260,7 +1239,6 @@ class RuleEditForm(
       <td id="directive" class="nestedImg"></td>
       <td id="status" class="firstTd"></td>
       <td name="severity" class="firstTd"><div id="severity" style="text-align:right;"/></td>
-      <td id="analyse" class="nestedImg"></td>
       <td id="details" ></td>
     </tr>
   }
@@ -1272,7 +1250,6 @@ class RuleEditForm(
       <td id="component" ></td>
       <td id="status" class="firstTd"></td>
       <td name="severity" class="firstTd"><div id="severity" style="text-align:right;"/></td>
-      <td id="analyse" class="nestedImg"></td>
       <td id="details"/>
     </tr>
   }
@@ -1283,7 +1260,6 @@ class RuleEditForm(
       <td id="componentValue" class="firstTd"></td>
       <td id="valueStatus" class="firstTd"></td>
       <td name="keySeverity" class="firstTd"><div id="keySeverity" style="text-align:right;"/></td>
-      <td id="valueAnalyse" class="nestedImg" ></td>
       <td/>
     </tr>
   }
@@ -1309,7 +1285,7 @@ class RuleEditForm(
 
   ///////////////// Compliance detail popup/////////////////////////
 
-  private[this] def createPopup(directivebynode: RuleStatusReport,summaryOnly:Boolean=true) : NodeSeq = {
+  private[this] def createPopup(directivebynode: RuleStatusReport) : NodeSeq = {
 
 
    /*
@@ -1389,6 +1365,152 @@ class RuleEditForm(
       }
     }
 
+   def missingGridXml(id:String = "reports",message:String="") : NodeSeq = {
+
+     <h3>Missing reports</h3>
+      <div>The following reports are what Rudder expected to receive, but did not. This usually indicates a bug in the Technique being used.</div>
+      <table id={id+"Grid"}  cellspacing="0" style="clear:both">
+        <thead>
+          <tr class="head">
+            <th>Technique<span/></th>
+            <th>Component<span/></th>
+            <th>Value<span/></th>
+          </tr>
+        </thead>
+        <tbody>
+          <div id="reportLine"/>
+        </tbody>
+      </table>
+      <br/>
+    }
+
+    def missingLineXml : NodeSeq = {
+      <tr>
+        <td id="technique"></td>
+        <td id="component"></td>
+        <td id="value"></td>
+      </tr>
+    }
+
+    def showMissingReports(reports:Seq[MessageReport],gridId:String, tabid:Int, techniqueName:String,techniqueVersion:String) : NodeSeq = {
+      def showMissingReport(report:(String,String)) : NodeSeq = {
+              ( "#technique *" #>  "%s (%s)".format(techniqueName,techniqueVersion)&
+                "#component *" #>  report._1&
+                "#value *" #>  report._2 
+              ) ( missingLineXml )
+            }
+
+      if (reports.size >0){
+        val components:Seq[String] = reports.map(_.component).distinct
+        val missingreports = components.flatMap(component => reports.filter(_.component==component).map(report => (component,report.value))).distinct
+          ( "#reportLine" #> missingreports.flatMap(showMissingReport(_) )
+          ) (missingGridXml(gridId) ) ++
+            Script( JsRaw("""
+             var oTable%1$s = $('#%2$s').dataTable({
+               "asStripClasses": [ 'color1', 'color2' ],
+               "bAutoWidth": false,
+               "bFilter" : true,
+               "bPaginate" : true,
+               "bLengthChange": true,
+               "sPaginationType": "full_numbers",
+               "bJQueryUI": true,
+               "oLanguage": {
+                 "sSearch": ""
+               },
+               "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+               "aaSorting": [[ 0, "asc" ]],
+               "aoColumns": [
+                 { "sWidth": "150px" },
+                 { "sWidth": "150px" },
+                 { "sWidth": "150px" }
+               ]
+             } );
+         """.format(tabid,gridId+"Grid") ) ) }
+        else
+          NodeSeq.Empty
+        }
+
+   def unexpectedGridXml(id:String = "reports",message:String="") : NodeSeq = {
+
+     <h3>Unexpected reports</h3>
+
+     <div>The following reports were received by Rudder, but did not match the reports declared by the Technique. This usually indicates a bug in the Technique being used.</div>
+
+      <table id={id+"Grid"}  cellspacing="0" style="clear:both">
+        <thead>
+          <tr class="head">
+            <th>Node<span/></th>
+            <th>Technique<span/></th>
+            <th>Component<span/></th>
+            <th>Value<span/></th>
+            <th>Message<span/></th>
+          </tr>
+        </thead>
+        <tbody>
+          <div id="reportLine"/>
+        </tbody>
+      </table>
+      <br/>
+    }
+
+    def unexpectedLineXml : NodeSeq = {
+      <tr>
+        <td id="node"></td>
+        <td id="technique"></td>
+        <td id="component"></td>
+        <td id="value"></td>
+        <td id="message"></td>
+      </tr>
+    }
+
+    def showUnexpectedReports(reports:Seq[MessageReport],gridId:String, tabid:Int, techniqueName:String,techniqueVersion:String) : NodeSeq = {
+       def showUnexpectedReport(report:MessageReport) : NodeSeq = {
+          nodeInfoService.getNodeInfo(report.report.node) match {
+            case Full(nodeInfo)  => {
+              ( "#node *" #>
+                <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(report.report.node)}>
+                  <span class="curspoint">
+                    {nodeInfo.hostname}
+                  </span>
+                </a> &
+                "#technique *" #>  "%s (%s)".format(techniqueName,techniqueVersion)&
+                "#component *" #>  report.component &
+                "#value *" #>  report.value & 
+                "#message *" #>  <ul>{report.report.message.map(msg => <li>{msg}</li>)}</ul>
+              ) ( unexpectedLineXml )
+            }
+          }
+       }
+
+       if (reports.size >0){
+         ( "#reportLine" #> reports.flatMap(showUnexpectedReport(_) )
+         ) (unexpectedGridXml(gridId) ) ++
+            Script( JsRaw("""
+             var oTable%1$s = $('#%2$s').dataTable({
+               "asStripClasses": [ 'color1', 'color2' ],
+               "bAutoWidth": false,
+               "bFilter" : true,
+               "bPaginate" : true,
+               "bLengthChange": true,
+               "sPaginationType": "full_numbers",
+               "bJQueryUI": true,
+               "oLanguage": {
+                 "sSearch": ""
+               },
+               "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+               "aaSorting": [[ 0, "asc" ]],
+               "aoColumns": [
+                 { "sWidth": "100px" },
+                 { "sWidth": "100px" },
+                 { "sWidth": "100px" },
+                 { "sWidth": "200px" }
+               ]
+             } );
+         """.format(tabid,gridId+"Grid") ) ) }
+        else
+          NodeSeq.Empty
+        }
+
     /*
      * Detailled reporting, each line is a report message
      */
@@ -1409,7 +1531,6 @@ class RuleEditForm(
       </table>
       <br/>
     }
-
 
     def reportLineXml : NodeSeq = {
       <tr>
@@ -1437,7 +1558,6 @@ class RuleEditForm(
         <td/>
       </tr>
     }
- 
 
     def ShowReportsByType(report:RuleStatusReport ) : NodeSeq = {
  
@@ -1553,7 +1673,7 @@ class RuleEditForm(
                  { "sWidth": "45px","bSortable": false },
                  { "sWidth": "295px" },
                  { "sWidth": "50px" },
-                 { "sWidth": "0px","bSortable": false }
+                 { "sWidth": "0px","bSortable": false  , "bVisible":false}
                ]
              } );
 
@@ -1587,7 +1707,7 @@ class RuleEditForm(
                     { "sWidth": "0px", "bSortable": false },
                     { "sWidth": "300px" },
                     { "sWidth": "0px" },
-                    { "sWidth": "0px", "bSortable": false  },
+                    { "sWidth": "0px", "bSortable": false  , "bVisible":false },
                   ]
                 } );
                 $('div.innerDetails table:first', nDetailsRow).attr("style","");
@@ -1614,7 +1734,7 @@ class RuleEditForm(
                         { "sWidth": "100px" },
                         { "sWidth": "190px" },
                         { "sWidth": "0px" , "bSortable": false},
-                        { "sWidth": "0px" , "bSortable": false}
+                        { "sWidth": "0px" , "bSortable": false,  "bVisible":false}
                       ]
                     } );
                     $('td.details', nDetailsRow).attr("colspan",7);
@@ -1649,21 +1769,24 @@ class RuleEditForm(
             case value::rest => "%s, %s".format(value,buildDisabled(rest))
         } }
 
-    val reports = report match {
+    val (reports,directiveId) = report match {
       case DirectiveRuleStatusReport(directiveId,components,_) =>
-        components.flatMap(_.componentValues)
+        (components.flatMap(_.componentValues),directiveId)
       case ComponentRuleStatusReport(directiveId,component,values,_) =>
-        values
+        (values,directiveId)
       case value : ComponentValueRuleStatusReport =>
-        Seq(value)
+        (Seq(value),value.directiveid)
     }
+    val tech = directiveRepository.getActiveTechnique(directiveId).map(tech => techniqueRepository.getLastTechniqueByName(tech.techniqueName).map(_.name).getOrElse("Unknown Technique")).getOrElse("Unknown Technique")
+    val techVersion = directiveRepository.getDirective(directiveId).map(_.techniqueVersion.toString).getOrElse("N/A")
     val error = reports.flatMap(report => report.processMessageReport(_.reportType==ErrorReportType))
     val missing = reports.flatMap(report => report.processMessageReport(nreport => nreport.reportType==UnknownReportType&nreport.message.size==0))
     val unexpected = reports.flatMap(report => report.processMessageReport(nreport => nreport.reportType==UnknownReportType&nreport.message.size!=0))
     val repaired = reports.flatMap(report => report.processMessageReport(_.reportType==RepairedReportType))
     val success = reports.flatMap(report => report.processMessageReport(_.reportType==SuccessReportType))
+    val all = reports.flatMap(report => report.processMessageReport(report => true))
 
-    val xml = showReports(error++repaired++success++missing++unexpected,"report",0)++showReports(missing,"missing",1,"Those reports are missing, please check what's wrong")++showReports(unexpected,"unexpected",2,"Those reports were not expected, please check what's wrong")
+    val xml =        showReports(all,"report",0)++showMissingReports(missing,"missing",1,tech,techVersion)++showUnexpectedReports(unexpected,"unexpected",2,tech,techVersion)
 
     xml
     }
@@ -1701,10 +1824,7 @@ class RuleEditForm(
            </ul>
          </div>
        }
-      val tab = if (summaryOnly)
-         ( "#reportLine" #>showSummary(directivebynode.nodesreport)) (nodeGridXml)
-       else
-         ShowReportsByType(directivebynode)
+      val tab =  ShowReportsByType(directivebynode)
          xml++tab
      }
    
@@ -1724,12 +1844,11 @@ class RuleEditForm(
   val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
   
-  private[this] def showPopup(directiveStatus: RuleStatusReport,summaryOnly:Boolean=true) : JsCmd = {
+  private[this] def showPopup(directiveStatus: RuleStatusReport) : JsCmd = {
 
-    val popupHtml = createPopup(directiveStatus,summaryOnly)
+    val popupHtml = createPopup(directiveStatus)
     SetHtml(htmlId_reportsPopup, popupHtml) & OnLoad(
         JsRaw("""
-            $( "#messageDetailsZone" ).tabs();
             $('.dataTables_filter input').attr("placeholder", "Search");
             """
         ) //&  initJsCallBack(tableId)
