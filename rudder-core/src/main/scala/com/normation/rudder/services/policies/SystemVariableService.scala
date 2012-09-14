@@ -55,53 +55,60 @@ trait SystemVariableService {
 
 class SystemVariableServiceImpl(
     licenseRepository               : LicenseRepository
-  , parameterizedValueLookupService	: ParameterizedValueLookupService
+  , parameterizedValueLookupService : ParameterizedValueLookupService
   , systemVariableSpecService       : SystemVariableSpecService
-  , nodeInfoService	                : NodeInfoService
+  , nodeInfoService                 : NodeInfoService
   , toolsFolder                     : String
   , cmdbEndPoint                    : String
-  , communityPort	                  : String
+  , communityPort                   : String
   , sharedFilesFolder               : String
   , webdavUser                      : String
   , webdavPassword                  : String
   , syslogPort                      : Int
 ) extends SystemVariableService with Loggable {
 
+  val varToolsFolder = SystemVariable(systemVariableSpecService.get("TOOLS_FOLDER"))
+  varToolsFolder.saveValue(toolsFolder);
+
+  val varCmdbEndpoint = SystemVariable(systemVariableSpecService.get("CMDBENDPOINT"))
+  varCmdbEndpoint.saveValue(cmdbEndPoint)
+
+  val varWebdavUser = SystemVariable(systemVariableSpecService.get("DAVUSER"))
+  varWebdavUser.saveValue(webdavUser)
+
+  val varWebdavPassword = SystemVariable(systemVariableSpecService.get("DAVPASSWORD"))
+  varWebdavPassword.saveValue(webdavPassword)
+  
+  val varSharedFilesFolder = SystemVariable(systemVariableSpecService.get("SHARED_FILES_FOLDER"))
+  varSharedFilesFolder.saveValue(sharedFilesFolder)
+
+  val varCommunityPort = SystemVariable(systemVariableSpecService.get("COMMUNITYPORT"))
+  varCommunityPort.saveValue(communityPort)
+
+  val syslogPortConfig = SystemVariable(systemVariableSpecService.get("SYSLOGPORT"))
+  syslogPortConfig.saveValue(syslogPort.toString)
+
   def getSystemVariables(nodeInfo: NodeInfo): Box[Map[String, Variable]] = {
     logger.debug("Preparing the system variables for server %s".format(nodeInfo.id.value))
 
-    val varToolsFolder = SystemVariable(systemVariableSpecService.get("TOOLS_FOLDER"))
-    varToolsFolder.saveValue(toolsFolder);
-
-    val varCmdbEndpoint = SystemVariable(systemVariableSpecService.get("CMDBENDPOINT"))
-    varCmdbEndpoint.saveValue(cmdbEndPoint)
-
-    val varWebdavUser = SystemVariable(systemVariableSpecService.get("DAVUSER"))
-    varWebdavUser.saveValue(webdavUser)
-
-    val varWebdavPassword = SystemVariable(systemVariableSpecService.get("DAVPASSWORD"))
-    varWebdavPassword.saveValue(webdavPassword)
-    
-    val varSharedFilesFolder = SystemVariable(systemVariableSpecService.get("SHARED_FILES_FOLDER"))
-    varSharedFilesFolder.saveValue(sharedFilesFolder)
-    
     // Set the roles of the nodes
     val nodeConfigurationRoles = mutable.Set[String]()
     
     if(nodeInfo.isPolicyServer) {
       nodeConfigurationRoles.add("policy_server")
       if (nodeInfo.id == nodeInfo.policyServerId) {
-          nodeConfigurationRoles.add("root_server")
+        nodeConfigurationRoles.add("root_server")
       }
     }
 
     val varNodeRole = new SystemVariable(systemVariableSpecService.get("NODEROLE"))
 
-    if (nodeConfigurationRoles.size > 0)
+    if (nodeConfigurationRoles.size > 0) {
       varNodeRole.saveValue("  classes: \n" + nodeConfigurationRoles.map(x => "    \"" + x + "\" expression => \"any\";").mkString("\n"))
-    else
+    } else {
       varNodeRole.saveValue("# This node doesn't have any specific role")
-
+    }
+    
     // Set the licences for the Nova
     val varLicensesPaid = SystemVariable(systemVariableSpecService.get("LICENSESPAID"))
     if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
@@ -114,9 +121,6 @@ class SystemVariableServiceImpl(
     } else {
       varLicensesPaid.saveValue("1")
     }
-
-    val varCommunityPort = SystemVariable(systemVariableSpecService.get("COMMUNITYPORT"))
-    varCommunityPort.saveValue(communityPort)
 
     val varAllowConnect = SystemVariable(systemVariableSpecService.get("ALLOWCONNECT"))
 
@@ -149,9 +153,6 @@ class SystemVariableServiceImpl(
 
     varAllowConnect.saveValues(allowConnect.toSeq)
     
-    val syslogPortConfig = SystemVariable(systemVariableSpecService.get("SYSLOGPORT"))
-    syslogPortConfig.saveValue(syslogPort.toString)
-
     logger.debug("System variables for server %s done".format(nodeInfo.id.value))
 
     Full(Map(
