@@ -217,6 +217,9 @@ class AppConfig extends Loggable {
   
   @Value("${rudder.ui.changeMessage.explanation}")
   var reasonFieldExplanation = "Please enter a message explaining the reason for this change."
+    
+  @Value("${rudder.syslog.port}")
+  var syslogPort : Int = 514
   
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
@@ -433,7 +436,9 @@ class AppConfig extends Loggable {
     , communityPort
     , sharedFilesFolder
     , webdavUser
-    , webdavPassword)
+    , webdavPassword
+    , syslogPort
+  )
 
   @Bean
   def rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(

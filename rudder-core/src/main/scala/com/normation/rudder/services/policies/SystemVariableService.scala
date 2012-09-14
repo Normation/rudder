@@ -64,6 +64,7 @@ class SystemVariableServiceImpl(
   , sharedFilesFolder               : String
   , webdavUser                      : String
   , webdavPassword                  : String
+  , syslogPort                      : Int
 ) extends SystemVariableService with Loggable {
 
   def getSystemVariables(nodeInfo: NodeInfo): Box[Map[String, Variable]] = {
@@ -147,6 +148,9 @@ class SystemVariableServiceImpl(
     }
 
     varAllowConnect.saveValues(allowConnect.toSeq)
+    
+    val syslogPortConfig = SystemVariable(systemVariableSpecService.get("SYSLOGPORT"))
+    syslogPortConfig.saveValue(syslogPort.toString)
 
     logger.debug("System variables for server %s done".format(nodeInfo.id.value))
 
@@ -160,7 +164,9 @@ class SystemVariableServiceImpl(
       (varAllowConnect.spec.name, varAllowConnect),
       (varClientList.spec.name, varClientList),
       (varWebdavUser.spec.name, varWebdavUser),
-      (varWebdavPassword.spec.name, varWebdavPassword)))
+      (varWebdavPassword.spec.name, varWebdavPassword),
+      (syslogPortConfig.spec.name, syslogPortConfig)
+    ))
 
   }
 
