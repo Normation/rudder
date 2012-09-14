@@ -236,7 +236,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
   private[this] def detailsCallbackLink(rule:Rule,id:String="showForm") : JsCmd = {
     updateEditComponent(rule)
     //update UI
-    Replace(htmlId_editRuleDiv, editRule()) &
+    Replace(htmlId_editRuleDiv, editRule(id)) &
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'ruleId':'%s'})""".format(rule.id.value)) &
     JsRaw("""$("#editRuleZonePortlet").removeClass("nodisplay");""")
   }
