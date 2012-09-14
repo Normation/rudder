@@ -342,7 +342,24 @@ class ConfigurationExecutionBatch(
         // convert the entry to regexp, and match what can be matched
          val matchableExpected = currentValue.replaceAll(replaceCFEngineVars, ".*")
          val matchedReports = purgedReports.filter( x => x.keyValue.matches(matchableExpected))
-          getComponentStatus(matchedReports)
+
+         matchedReports.filter( x => x.isInstanceOf[ResultErrorReport]).size match {
+           case i if i > 0 => (ErrorReportType,matchedReports.map(_.message).toList)
+
+           case _ => {
+
+            matchedReports.size match {
+              case 0 if unexepectedReports.size==0 => (getNoAnswerOrPending(),Nil)
+              case 0 =>  (UnknownReportType,Nil)
+              case x if x == expectedComponent.componentsValues.filter( x => x.matches(matchableExpected)).size =>
+              (returnWorseStatus(matchedReports),matchedReports.map(_.message).toList)
+              case _ => (UnknownReportType,matchedReports.map(_.message).toList)
+            }
+
+          }
+
+         }
+
 
       case _: String => 
           // for a given component, if the key is not "None", then we are 
