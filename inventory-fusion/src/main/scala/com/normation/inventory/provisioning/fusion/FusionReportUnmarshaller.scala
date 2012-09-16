@@ -285,8 +285,12 @@ class FusionReportUnmarshaller(
        * 
        */
 
+    val machineId = optText(xml\\"UUID") match {
+      case None => throw new IllegalArgumentException("The report does not have a non-empty <HARDWARE><UUID> tag, this is not supported")
+      case Some(id) => MachineUuid(id)
+    }
     
-     val machinewithUUID = report.machine.copy(id = (MachineUuid(optText(xml\\"UUID").get)))
+    val machinewithUUID = report.machine.copy(id = machineId)
     //update machine VM type
     val newMachine = optText(xml\\"VMSYSTEM") match {
       case None => machinewithUUID
@@ -309,7 +313,7 @@ class FusionReportUnmarshaller(
       , swap = optText(xml\\"SWAP").map(m=> MemorySize(m + swapUnit))
       , archDescription = optText(xml\\"ARCHNAME")
       , lastLoggedUser = optText(xml\\"LASTLOGGEDUSER")
-      , machineId = Some((MachineUuid(optText(xml\\"UUID").get),PendingInventory))
+      , machineId = Some((machineId,PendingInventory))
       , lastLoggedUserTime = try {
           optText(xml\\"DATELASTLOGGEDUSER").map(date => userLoginDateTimeFormat.parseDateTime(date) )
         } catch {
