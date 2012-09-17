@@ -338,6 +338,15 @@ input .ui-button {
    background: none;
 }
 
+.ui-button{
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 1px 5px rgba(0, 0, 0, 0.25);
+  transition: none 0s ease 0s;
+}
+
+.ui-button:hover{
+  background-color: #EEEBE7;
+}
+
 .dataTables_wrapper .dataTables_paginate .ui-button:hover, .paginate_button_disabled:hover, .paginate_button:hover, .paginate_active:hover {
   text-decoration:underline;
   background-color: #EEEBE7;
