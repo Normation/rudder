@@ -503,19 +503,19 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Javascript to initialize the reference library tree
    */
   private[this] def buildReferenceLibraryJsTree : JsExp = JsRaw(
-    """buildReferenceTechniqueTree('#%s','%s')""".format(htmlId_techniqueLibraryTree,{
+    """buildReferenceTechniqueTree('#%s','%s','%s')""".format(htmlId_techniqueLibraryTree,{
       techniqueId match {
         case Full(activeTechniqueId) => "ref-technique-"+activeTechniqueId
         case _ => ""
       }
-    })
+    }, S.contextPath)
   )
     
   /**
    * Javascript to initialize the user library tree
    */
   private[this] def buildUserLibraryJsTree : JsExp = JsRaw(
-    """buildActiveTechniqueTree('#%s', '%s', %s )""".format(htmlId_activeTechniquesTree, htmlId_techniqueLibraryTree, CurrentUser.checkRights(Write("technique")))
+    """buildActiveTechniqueTree('#%s', '%s', %s ,'%s')""".format(htmlId_activeTechniquesTree, htmlId_techniqueLibraryTree, CurrentUser.checkRights(Write("technique")), S.contextPath)
   )
 
     

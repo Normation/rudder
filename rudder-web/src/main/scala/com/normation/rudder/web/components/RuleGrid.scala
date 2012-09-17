@@ -604,7 +604,7 @@ class RuleGrid(
                       val tooltipid = Helpers.nextFuncName
                       val xml:NodeSeq = (
                               "#node *" #>
-                                <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.nodeId.value)}>
+                                <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.nodeId.value)}>
                                   <span class="curspoint">
                                     {nodeInfo.hostname}
                                   </span>

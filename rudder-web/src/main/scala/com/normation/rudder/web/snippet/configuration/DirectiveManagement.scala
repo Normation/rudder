@@ -157,10 +157,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     def isDirectiveIdValid(directiveId: String): JsCmd = {
       directiveRepository.getDirectiveWithContext(DirectiveId(directiveId)) match {
         case Full((technique, activeTechnique, directive)) => 
-          JsRaw(""" buildDirectiveTree('#%s', '%s') """
-            .format(htmlId_activeTechniquesTree, "jsTree-" + directive.id.value))
+          JsRaw(""" buildDirectiveTree('#%s', '%s', '%s') """
+            .format(htmlId_activeTechniquesTree, "jsTree-" + directive.id.value, S.contextPath))
         case e:EmptyBox => 
-          JsRaw(""" buildDirectiveTree('#%s', '') """.format(htmlId_activeTechniquesTree))
+          JsRaw(""" buildDirectiveTree('#%s', '', '%s') """.format(htmlId_activeTechniquesTree, S.contextPath))
       }
     }
     
@@ -193,7 +193,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case None => "*" #> {
         <div class="deca">
           <p><em>Directives</em> are displayed in the tree of 
-          <a href="secure/configurationManager/techniqueLibraryManagement">
+          <a href="/secure/configurationManager/techniqueLibraryManagement">
             <em>Active Techniques</em>
           </a>, 
           grouped by categories.</p>
@@ -206,7 +206,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             </li>
           </ul>
           <p>Additional <em>Techniques</em> may be available through the 
-            <a href="secure/configurationManager/techniqueLibraryManagement">
+            <a href="/secure/configurationManager/techniqueLibraryManagement">
               Techniques screen
             </a>.
           </p>

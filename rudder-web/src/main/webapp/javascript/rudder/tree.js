@@ -3,7 +3,7 @@
 /*
  * Reference Technique library tree
  */
-var buildReferenceTechniqueTree = function(id,  initially_select) {
+var buildReferenceTechniqueTree = function(id,  initially_select, appContext) {
   $(id).bind("loaded.jstree", function (event, data) {
     data.inst.open_all(-1);
   }).jstree({ 
@@ -24,7 +24,7 @@ var buildReferenceTechniqueTree = function(id,  initially_select) {
         "types" : {
           "category" : {
             "icon" : {
-              "image" : "images/tree/folder_16x16.png" 
+              "image" : appContext+"/images/tree/folder_16x16.png" 
             },
             "valid_children" : [ "category", "template" ],
             "select_node" : function(e) {
@@ -35,7 +35,7 @@ var buildReferenceTechniqueTree = function(id,  initially_select) {
           },
           "template" : {
             "icon" : { 
-              "image" : "images/tree/technique_16x16.png" 
+              "image" : appContext+"/images/tree/technique_16x16.png" 
             },
             "valid_children" : "none"
           },
@@ -59,7 +59,7 @@ var buildReferenceTechniqueTree = function(id,  initially_select) {
       },
       "themes" : { 
     	  "theme" : "rudder",
-    	  "url" : "javascript/jstree/themes/rudder/style.css"
+    	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
       },
       "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search" ]
     })   
@@ -68,7 +68,7 @@ var buildReferenceTechniqueTree = function(id,  initially_select) {
 /*
  * Active Techniques library tree
  */
-var buildActiveTechniqueTree = function(id, foreignTreeId, authorized) {
+var buildActiveTechniqueTree = function(id, foreignTreeId, authorized, appContext) {
   $(id).bind("loaded.jstree", function (event, data) {
 	  data.inst.open_all(-1);
   }).jstree({ 
@@ -88,7 +88,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized) {
       "types" : {
         "root-category" : {
           "icon" : { 
-            "image" : "images/tree/folder_16x16.png" 
+            "image" : appContext+"/images/tree/folder_16x16.png" 
           },
           "valid_children" : [ "category", "template" ],
           "start_drag" : false,
@@ -99,7 +99,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized) {
         },
         "category" : {
           "icon" : { 
-            "image" : "images/tree/folder_16x16.png" 
+            "image" : appContext+"/images/tree/folder_16x16.png" 
           },
           "valid_children" : [ "category", "template" ],
           "select_node" : function(e) {
@@ -109,7 +109,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized) {
         },
         "template" : {
           "icon" : { 
-            "image" : "images/tree/technique_16x16.png" 
+            "image" : appContext+"/images/tree/technique_16x16.png" 
           },
           "valid_children" : "none"
         },
@@ -160,7 +160,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized) {
     },
     "themes" : { 
   	  "theme" : "rudder",
-  	  "url" : "javascript/jstree/themes/rudder/style.css"
+  	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
     },
     "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search" ] 
   })   
@@ -169,7 +169,7 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized) {
 /*
  * Directive management
  */
-var buildDirectiveTree = function(id, initially_select) {
+var buildDirectiveTree = function(id, initially_select , appContext) {
   jQuery(id).jstree({ 
       "core" : { 
       "animation" : 0,
@@ -189,7 +189,7 @@ var buildDirectiveTree = function(id, initially_select) {
           "types" : {
             "category" : {
               "icon" : { 
-                "image" : "images/tree/folder_16x16.png" 
+                "image" : appContext+"/images/tree/folder_16x16.png" 
               },
               "valid_children" : [ "category", "template" ],
               "select_node" : function(e) {
@@ -199,7 +199,7 @@ var buildDirectiveTree = function(id, initially_select) {
             },
             "template" : {
               "icon" : { 
-                "image" : "images/tree/technique_16x16.png" 
+                "image" : appContext+"/images/tree/technique_16x16.png" 
               },
               "valid_children" : [ "directive" ],
               "select_node" : function(e) {
@@ -209,7 +209,7 @@ var buildDirectiveTree = function(id, initially_select) {
             },
             "directive" : {
               "icon" : { 
-                "image" : "images/tree/directive_16x16.gif" 
+                "image" : appContext+"/images/tree/directive_16x16.gif" 
               },
               "valid_children" : "none"
             },
@@ -224,7 +224,7 @@ var buildDirectiveTree = function(id, initially_select) {
       },
       "themes" : { 
     	  "theme" : "rudder",
-    	  "url" : "javascript/jstree/themes/rudder/style.css"
+    	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
       },
       "plugins" : [ "themes", "html_data", "ui", "types", "search" ]      
   })
@@ -237,7 +237,7 @@ var buildDirectiveTree = function(id, initially_select) {
 /*
  * Group tree
  */
-var buildGroupTree = function(id, initially_select, select_multiple_modifier) {
+var buildGroupTree = function(id, appContext, initially_select, select_multiple_modifier) {
   if(select_multiple_modifier !== 'undefined') {
     select_limit = -1;
   } else {
@@ -264,7 +264,7 @@ var buildGroupTree = function(id, initially_select, select_multiple_modifier) {
       "valid_children" : [ "root-category" ],
       "types" : {
         "root-category" : {
-          "icon" : { "image" : "images/tree/folder_16x16.png" },
+          "icon" : { "image" : appContext+"/images/tree/folder_16x16.png" },
           "valid_children" : [ "category", "group" , "special_target" ],
           "start_drag" : false,
           "select_node" : function(e) {
@@ -273,7 +273,7 @@ var buildGroupTree = function(id, initially_select, select_multiple_modifier) {
           }
         },
         "category" : {
-          "icon" : { "image" : "images/tree/folder_16x16.png" },
+          "icon" : { "image" : appContext+"/images/tree/folder_16x16.png" },
           "valid_children" : [ "category", "group" , "special_target" ],
           "select_node" : function(e) {
         	  this.toggle_node(e);
@@ -281,11 +281,11 @@ var buildGroupTree = function(id, initially_select, select_multiple_modifier) {
           }
         },
         "group" : {
-          "icon" : { "image" : "images/tree/server_group_16x16.gif" },
+          "icon" : { "image" : appContext+"/images/tree/server_group_16x16.gif" },
           "valid_children" : "none" 
         },
         "special_target" : {
-          "icon" : { "image" : "images/tree/special_target_16x16.gif" },
+          "icon" : { "image" : appContext+"/images/tree/special_target_16x16.gif" },
           "valid_children" : "none"
         },
         "default" : {
@@ -308,7 +308,7 @@ var buildGroupTree = function(id, initially_select, select_multiple_modifier) {
     },
     "themes" : { 
   	  "theme" : "rudder",
-  	  "url" : "javascript/jstree/themes/rudder/style.css"
+  	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
     },
     "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm" ] 
     });
@@ -321,7 +321,7 @@ var buildGroupTree = function(id, initially_select, select_multiple_modifier) {
  *       we don't want/have to allow node move -
  *       that tree is read only.
  */
-var buildTechniqueDependencyTree = function(id, initially_select) {
+var buildTechniqueDependencyTree = function(id, initially_select, appContext) {
   jQuery(id).
     bind("loaded.jstree", function (event, data) {
       data.inst.open_all(-1);
@@ -343,25 +343,25 @@ var buildTechniqueDependencyTree = function(id, initially_select) {
           "types" : {
             "category" : {
               "icon" : { 
-                "image" : "images/tree/folder_16x16.png" 
+                "image" : appContext+"/images/tree/folder_16x16.png" 
               },
               "valid_children" : [ "category", "template" ]
             },
             "template" : {
               "icon" : { 
-                "image" : "images/tree/technique_16x16.png" 
+                "image" : appContext+"/images/tree/technique_16x16.png" 
               },
               "valid_children" : [ "directive" ]
             },
             "directive" : {
               "icon" : { 
-                "image" : "images/tree/directive_16x16.gif" 
+                "image" : appContext+"/images/tree/directive_16x16.gif" 
               },
               "valid_children" : [ "rule" ]
             },
             "rule" : {
                 "icon" : { 
-                  "image" : "images/tree/configuration_rule_16x16.png" 
+                  "image" : appContext+"/images/tree/configuration_rule_16x16.png" 
                 },
                 "valid_children" : "none"
              },
@@ -372,7 +372,7 @@ var buildTechniqueDependencyTree = function(id, initially_select) {
         },
         "themes" : { 
       	  "theme" : "rudder",
-      	  "url" : "javascript/jstree/themes/rudder/style.css"
+      	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
         },
       "plugins" : [ "themes", "html_data", "ui", "types"] 
     })
@@ -380,7 +380,7 @@ var buildTechniqueDependencyTree = function(id, initially_select) {
 
 
 
-var buildRulePIdepTree = function(id, initially_select) {
+var buildRulePIdepTree = function(id, initially_select, appContext) {
   jQuery(id).
     bind("loaded.jstree", function (event, data) {
       data.inst.open_all(-1);
@@ -404,7 +404,7 @@ var buildRulePIdepTree = function(id, initially_select) {
         "types" : {
           "category" : {
             "icon" : { 
-              "image" : "images/tree/folder_16x16.png" 
+              "image" : appContext+"/images/tree/folder_16x16.png" 
             },
             "valid_children" : [ "category", "template" ],
 	        "select_node" : function(e) {
@@ -414,7 +414,7 @@ var buildRulePIdepTree = function(id, initially_select) {
           },
           "template" : {
             "icon" : { 
-              "image" : "images/tree/technique_16x16.png" 
+              "image" : appContext+"/images/tree/technique_16x16.png" 
             },
             "valid_children" : [ "directive" ],
             "select_node" : function(e) {
@@ -424,7 +424,7 @@ var buildRulePIdepTree = function(id, initially_select) {
           },
           "directive" : {
             "icon" : { 
-              "image" : "images/tree/directive_16x16.gif" 
+              "image" : appContext+"/images/tree/directive_16x16.gif" 
             },
             "valid_children" : "none"
           },
@@ -435,7 +435,7 @@ var buildRulePIdepTree = function(id, initially_select) {
       },
       "themes" : { 
     	  "theme" : "rudder",
-    	  "url" : "javascript/jstree/themes/rudder/style.css"
+    	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
       },
       "plugins" : [ "themes", "html_data", "ui", "types"]
     })
