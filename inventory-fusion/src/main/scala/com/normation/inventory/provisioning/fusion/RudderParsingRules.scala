@@ -40,6 +40,13 @@ import net.liftweb.common._
 import java.security.MessageDigest
 import com.normation.utils.UuidRegex
 
+
+/**
+ * Special handling of some tags. 
+ * Especially, it's here that we set our tags for NodeID/MachineID/PolicyServer
+ * So it's an important file !
+ */
+
 ///////////// <CONTENT> /////////////
 
 /**
@@ -59,6 +66,9 @@ object RudderUserListParsing extends FusionReportParsingExtension {
 
 /**
 * <UUID>
+* 
+* Set the node id from the our special UUID tag. 
+* 
 */
 object RudderNodeIdParsing extends FusionReportParsingExtension {
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "UUID" }
@@ -72,6 +82,8 @@ object RudderNodeIdParsing extends FusionReportParsingExtension {
 
 /**
 * <POLICY_SERVER>
+* 
+* Set the policy server id from our special POLICY_SERVER tag.
 */
 object RudderPolicyServerParsing extends FusionReportParsingExtension {
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "POLICY_SERVER" }
@@ -88,10 +100,12 @@ object RudderPolicyServerParsing extends FusionReportParsingExtension {
 *
 * Must be executed after <UUID> parsing rule.
 *
+* Set the motherBoardId and the MachineId from our special MACHINEID tag. 
+* 
 * If <MACHINEID> is not present or its content is not a valid UUID,
 * define the machine ID based on the md5 of node ID.
 */
-object RudderMachineIdParsing extends FusionReportParsingExtension {
+object RudderMachineIdParsing extends FusionReportParsingExtension with Loggable {
   private[this] def buildMachineId(report:InventoryReport) = {
     val md5 = MessageDigest.getInstance("MD5").digest(report.node.main.id.value.getBytes)
     val id = (md5.map(0xFF & _).map { "%02x".format(_) }.foldLeft(""){_ + _}).toLowerCase
@@ -108,10 +122,16 @@ object RudderMachineIdParsing extends FusionReportParsingExtension {
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "MACHINEID" }
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {
     val machineId = (optText(x._1) match {
-      case None => buildMachineId(x._2)
+      case None => 
+        logger.warn("The <MACHINEID> tag is empty or not a valid UUID, generating an UUID from the Rudder Node UUID")
+        buildMachineId(x._2)
       case Some(id) => if(UuidRegex.isValid(id)) id else buildMachineId(x._2)
     })
-    x._2.copy( machine = x._2.machine.copy( mbUuid = Some(MotherBoardUuid(machineId) ) ) )
+    
+    x._2.copy( machine = x._2.machine.copy( 
+        id     = MachineUuid(machineId)
+      , mbUuid = Some(MotherBoardUuid(machineId) )
+    ) )
   }
 }
 
