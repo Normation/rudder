@@ -304,14 +304,16 @@ class RuleEditForm(
       OnLoad(
         //build jstree and
         //init bind callback to move
-        JsRaw("buildGroupTree('#%1$s', %2$s, 'on');".format(
+        JsRaw("buildGroupTree('#%1$s','%3$s', %2$s, 'on');".format(
             htmlId_groupTree,
-            serializeTargets(selectedTargets.toSeq)
+            serializeTargets(selectedTargets.toSeq),
+            S.contextPath
         )) &
         //function to update list of PIs before submiting form
-        JsRaw("buildRulePIdepTree('#%1$s', %2$s);".format(  
+        JsRaw("buildRulePIdepTree('#%1$s', %2$s,'%3$s');".format(  
             htmlId_activeTechniquesTree,
-            serializedirectiveIds(selectedDirectiveIds.toSeq)
+            serializedirectiveIds(selectedDirectiveIds.toSeq),
+            S.contextPath
         )) &
         After(TimeSpan(50), JsRaw("""createTooltip();"""))
       )
@@ -999,7 +1001,7 @@ class RuleEditForm(
         var nTr = this.parentNode;
         var i = $.inArray( nTr, anOpen );
         if ( i === -1 ) {
-          $('img', this).attr( 'src', "images/details_close.png" );
+          $('img', this).attr( 'src', "%1$s/images/details_close.png" );
           var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
           $('div.innerDetails table', nDetailsRow).dataTable({
             "asStripClasses": [ 'color1', 'color2' ],
@@ -1025,13 +1027,13 @@ class RuleEditForm(
           anOpen.push( nTr );
         }
         else {
-          $('img', this).attr( 'src', "images/details_open.png" );
+          $('img', this).attr( 'src', "%1$s/images/details_open.png" );
           $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
             oTable.fnClose( nTr );
             anOpen.splice( i, 1 );
           } );
         }
-      } );"""
+      } );""".format(S.contextPath)
       /*
        * This is the main Javascript function to have cascaded DataTables
        */
@@ -1040,7 +1042,7 @@ class RuleEditForm(
      var nTr = this.parentNode;
      var i = $.inArray( nTr, anOpen );
      if ( i === -1 ) {
-       $('img', this).attr( 'src', "images/details_close.png" );
+       $('img', this).attr( 'src', "%1$s/images/details_close.png" );
        var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
        var Otable2 =  $('div.innerDetails table:first', nDetailsRow).dataTable({
          "asStripClasses": [ 'color1', 'color2' ],
@@ -1063,17 +1065,17 @@ class RuleEditForm(
        } );
        $('div.innerDetails table:first', nDetailsRow).attr("style","");
        $('div.innerDetails', nDetailsRow).slideDown(300);
-       %s
+       %2$s
        anOpen.push( nTr );
      }
      else {
-       $('img', this).attr( 'src', "images/details_open.png" );
+       $('img', this).attr( 'src', "%1$s/images/details_open.png" );
        $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
          oTable.fnClose( nTr );
          anOpen.splice( i, 1 );
        } );
      }
-   } );""".format(innerClickJSFunction)
+   } );""".format(S.contextPath,innerClickJSFunction)
 
     /*
      * It displays the report Detail of a Rule
@@ -1689,7 +1691,7 @@ class RuleEditForm(
               var nTr = this.parentNode;
               var i = $.inArray( nTr, anOpen%1$s );
               if ( i === -1 ) {
-                $('img', this).attr( 'src', "images/details_close.png" );
+                $('img', this).attr( 'src', "%3$s/images/details_close.png" );
                 var fnData = oTable%1$s.fnGetData( nTr );
                 var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails%1$s(oTable%1$s, nTr), 'details' );
                 var Otable2 = $('div.innerDetails table:first', nDetailsRow).dataTable({
@@ -1717,7 +1719,7 @@ class RuleEditForm(
                   var nTr = this.parentNode;
                   var i = $.inArray( nTr, anOpen%1$s );
                     if ( i === -1 ) {
-                    $('img', this).attr( 'src', "images/details_close.png" );
+                    $('img', this).attr( 'src', "%3$s/images/details_close.png" );
                     var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
                     $('div.innerDetails table', nDetailsRow).dataTable({
                       "asStripClasses": [ 'color1', 'color2' ],
@@ -1743,7 +1745,7 @@ class RuleEditForm(
                     anOpen%1$s.push( nTr );
                     }
                     else {
-                    $('img', this).attr( 'src', "images/details_open.png" );
+                    $('img', this).attr( 'src', "%3$s/images/details_open.png" );
                     $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
                       oTable%1$s.fnClose( nTr );
                       anOpen%1$s.splice( i, 1 );
@@ -1752,13 +1754,13 @@ class RuleEditForm(
                 } )
               }
               else {
-                $('img', this).attr( 'src', "images/details_open.png" );
+                $('img', this).attr( 'src', "%3$s/images/details_open.png" );
                 $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
                   oTable%1$s.fnClose( nTr );
                   anOpen%1$s.splice( i, 1 );
                 } );
               }
-          } );""".format(tabid,gridId+"Grid") ) ) }
+          } );""".format(tabid,gridId+"Grid",S.contextPath) ) ) }
         else
           NodeSeq.Empty
         }
