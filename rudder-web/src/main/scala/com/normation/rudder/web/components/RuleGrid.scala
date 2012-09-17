@@ -167,8 +167,8 @@ class RuleGrid(
           { "sWidth": "100px" },
           { "sWidth": "120px", "sType": "html" },
           { "sWidth": "60px"  },
-          { "sWidth": "20px" },
-          { "sWidth": "20px" } %2$s
+          { "sWidth": "20px", "bSortable" : false },
+          { "sWidth": "20px", "bSortable" : false } %2$s
         ],
         "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
       });
