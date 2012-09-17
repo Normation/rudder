@@ -155,7 +155,7 @@ class ShowNodeDetailsFromNode(
               <div id={htmlId_crTree}>
                 <ul>{buildTree(node)}</ul>
               </div>,
-              "nodeDetails" -> DisplayNode.showNodeDetails(inventory, Some(node.creationDate)),
+              "nodeDetails" -> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), isDisplayingInPopup = withinPopup),
               "inventory" -> DisplayNode.show(inventory, false),
               "extraHeader" -> DisplayNode.showExtraHeader(inventory),
               "extraContent" -> DisplayNode.showExtraContent(inventory),
