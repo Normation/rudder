@@ -999,7 +999,7 @@ class RuleEditForm(
         var nTr = this.parentNode;
         var i = $.inArray( nTr, anOpen );
         if ( i === -1 ) {
-          $('img', this).attr( 'src', "/images/details_close.png" );
+          $('img', this).attr( 'src', "images/details_close.png" );
           var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
           $('div.innerDetails table', nDetailsRow).dataTable({
             "asStripClasses": [ 'color1', 'color2' ],
@@ -1016,7 +1016,7 @@ class RuleEditForm(
               { "sWidth": "397px" },
               { "sWidth": "60px" },
               { "sWidth": "125px" },
-              { "sWidth": "0px" , "bSortable": false  , "bVisible":false}
+              { "sWidth": "10px" , "bSortable": false  , "bVisible":false}
             ]
           });
           $('td.details', nDetailsRow).attr("colspan",6);
@@ -1025,7 +1025,7 @@ class RuleEditForm(
           anOpen.push( nTr );
         }
         else {
-          $('img', this).attr( 'src', "/images/details_open.png" );
+          $('img', this).attr( 'src', "images/details_open.png" );
           $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
             oTable.fnClose( nTr );
             anOpen.splice( i, 1 );
@@ -1040,7 +1040,7 @@ class RuleEditForm(
      var nTr = this.parentNode;
      var i = $.inArray( nTr, anOpen );
      if ( i === -1 ) {
-       $('img', this).attr( 'src', "/images/details_close.png" );
+       $('img', this).attr( 'src', "images/details_close.png" );
        var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
        var Otable2 =  $('div.innerDetails table:first', nDetailsRow).dataTable({
          "asStripClasses": [ 'color1', 'color2' ],
@@ -1053,12 +1053,12 @@ class RuleEditForm(
          "bJQueryUI": true,
          "aaSorting": [[ 2, "asc" ]],
          "aoColumns": [
-           { "sWidth": "0px", "bSortable": false },
-           { "sWidth": "0px", "bSortable": false },
+           { "sWidth": "20px", "bSortable": false },
+           { "sWidth": "20px", "bSortable": false },
            { "sWidth": "385px" },
            { "sWidth": "50px" },
            { "sWidth": "120px" },
-           { "sWidth": "0px", "bSortable": false  , "bVisible":false }
+           { "sWidth": "10px", "bSortable": false  , "bVisible":false }
          ]
        } );
        $('div.innerDetails table:first', nDetailsRow).attr("style","");
@@ -1067,7 +1067,7 @@ class RuleEditForm(
        anOpen.push( nTr );
      }
      else {
-       $('img', this).attr( 'src', "/images/details_open.png" );
+       $('img', this).attr( 'src', "images/details_open.png" );
        $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
          oTable.fnClose( nTr );
          anOpen.splice( i, 1 );
@@ -1140,7 +1140,7 @@ class RuleEditForm(
                       { "sWidth": "403px" },
                       { "sWidth": "50px" },
                       { "sWidth": "120px" },
-                      { "sWidth": "0px", "bSortable": false  , "bVisible":false }
+                      { "sWidth": "10px", "bSortable": false  , "bVisible":false }
                     ]
                   } );
                   $('.dataTables_filter input').attr("placeholder", "Search");
@@ -1615,7 +1615,7 @@ class RuleEditForm(
                 ( "#component *" #> report._1 &
                   "#plus *" #> <center><img src="/images/details_open.png"/></center> &
                   "#status *" #>  <center>{status}</center> &
-                  "#status [class+]" #>  status &
+                  "#status [class+]" #>  status.replaceAll(" ","") &
                   "#details *" #>  showValueReport(report._2)
                 ) ( messageLineXml ) } }
             </tbody>
@@ -1637,7 +1637,7 @@ class RuleEditForm(
                 val status = ReportType.getSeverityFromStatus(report._3)
                 ( "#value *" #> report._1 &
                   "#status *" #> <center>{status}</center> &
-                  "#status [class+]" #>  status &
+                  "#status [class+]" #>  status.replaceAll(" ","") &
                   "#message *" #>  <ul>{report._2.map(msg => <li>{msg}</li>)}</ul>
                 ) ( messageValueLineXml ) } }
             </tbody>
@@ -1673,7 +1673,7 @@ class RuleEditForm(
                  { "sWidth": "45px","bSortable": false },
                  { "sWidth": "295px" },
                  { "sWidth": "50px" },
-                 { "sWidth": "0px","bSortable": false  , "bVisible":false}
+                 { "sWidth": "10px","bSortable": false  , "bVisible":false}
                ]
              } );
 
@@ -1689,7 +1689,7 @@ class RuleEditForm(
               var nTr = this.parentNode;
               var i = $.inArray( nTr, anOpen%1$s );
               if ( i === -1 ) {
-                $('img', this).attr( 'src', "/images/details_close.png" );
+                $('img', this).attr( 'src', "images/details_close.png" );
                 var fnData = oTable%1$s.fnGetData( nTr );
                 var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails%1$s(oTable%1$s, nTr), 'details' );
                 var Otable2 = $('div.innerDetails table:first', nDetailsRow).dataTable({
@@ -1703,11 +1703,11 @@ class RuleEditForm(
                   "bJQueryUI": true,
                   "aaSorting": [[ 1, "asc" ]],
                   "aoColumns": [
-                    { "sWidth": "0px", "bSortable": false },
-                    { "sWidth": "0px", "bSortable": false },
-                    { "sWidth": "300px" },
-                    { "sWidth": "0px" },
-                    { "sWidth": "0px", "bSortable": false  , "bVisible":false },
+                    { "sWidth": "20px", "bSortable": false },
+                    { "sWidth": "20px", "bSortable": false },
+                    { "sWidth": "295px" },
+                    { "sWidth": "50px" },
+                    { "sWidth": "10px", "bSortable": false  , "bVisible":false },
                   ]
                 } );
                 $('div.innerDetails table:first', nDetailsRow).attr("style","");
@@ -1717,7 +1717,7 @@ class RuleEditForm(
                   var nTr = this.parentNode;
                   var i = $.inArray( nTr, anOpen%1$s );
                     if ( i === -1 ) {
-                    $('img', this).attr( 'src', "/images/details_close.png" );
+                    $('img', this).attr( 'src', "images/details_close.png" );
                     var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
                     $('div.innerDetails table', nDetailsRow).dataTable({
                       "asStripClasses": [ 'color1', 'color2' ],
@@ -1732,9 +1732,9 @@ class RuleEditForm(
                       "aoColumns": [
                         { "sWidth": "50px", "bSortable": false },
                         { "sWidth": "100px" },
-                        { "sWidth": "190px" },
-                        { "sWidth": "0px" , "bSortable": false},
-                        { "sWidth": "0px" , "bSortable": false,  "bVisible":false}
+                        { "sWidth": "185px" },
+                        { "sWidth": "50px" , "bSortable": false},
+                        { "sWidth": "10px" , "bSortable": false,  "bVisible":false}
                       ]
                     } );
                     $('td.details', nDetailsRow).attr("colspan",7);
@@ -1743,7 +1743,7 @@ class RuleEditForm(
                     anOpen%1$s.push( nTr );
                     }
                     else {
-                    $('img', this).attr( 'src', "/images/details_open.png" );
+                    $('img', this).attr( 'src', "images/details_open.png" );
                     $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
                       oTable%1$s.fnClose( nTr );
                       anOpen%1$s.splice( i, 1 );
@@ -1752,7 +1752,7 @@ class RuleEditForm(
                 } )
               }
               else {
-                $('img', this).attr( 'src', "/images/details_open.png" );
+                $('img', this).attr( 'src', "images/details_open.png" );
                 $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
                   oTable%1$s.fnClose( nTr );
                   anOpen%1$s.splice( i, 1 );
