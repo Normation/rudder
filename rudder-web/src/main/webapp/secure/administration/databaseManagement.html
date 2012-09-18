@@ -23,7 +23,7 @@
     <div class="portlet-content">
 
       <div class="intro">
-        <div>Simple management of the Rudder database</div>
+        <div>Rudder stores all reports received from nodes in a database. These reports are used to calculate compliance for Rules applied to Nodes. The database can grow quite large, and keeping older reports is usually useless if you don't need to examine compliance data in the past. This page enables you to archive them to save on disk space.</div>
       </div>
       <hr class="spacer" />
 
@@ -35,17 +35,17 @@
           <div class="inner-portlet-content">
             <table class="database-info-table">
               <tr>
-                <td>Oldest report entry date</td>
+                <td>Oldest report:</td>
                 <td><b><span id="oldestEntry">[Here
                       comes the oldest entry]</span></b></td>
               </tr>
               <tr>
-                <td>Newest report entry date</td>
+                <td>Newest report:</td>
                 <td><b><span id="newestEntry">[Here
                       comes the newest entry]</span></b></td>
               </tr>
               <tr>
-                <td>Space used by the reports database</td>
+                <td>Total disk space used by reports:</td>
                 <td><b><span id="databaseSize">[here
                       comes the database size]</span></b></td>
               </tr>
@@ -58,12 +58,12 @@
           <div class="inner-portlet-content">
             <table class="database-info-table">
               <tr>
-                <td>Oldest archived report entry date</td>
+                <td>Oldest archived report:</td>
                 <td><b><span id="oldestArchivedEntry">[Here
                       comes the oldest archived entry]</span></b></td>
               </tr>
               <tr>
-                <td>Newest archived report entry date</td>
+                <td>Newest archived report:</td>
                 <td><b><span id="newestArchivedEntry">[Here
                       comes the newest archived entry]</span></b></td>
               </tr>
@@ -72,14 +72,14 @@
         </div>
 
         <div class="inner-portlet">
-          <div class="inner-portlet-header">Archived reports</div>
+          <div class="inner-portlet-header">Archive reports</div>
           <div class="inner-portlet-content">
             <table class="database-info-table">
               <tr>
                 <td colspan="2">
                   <form class="lift:form.ajax">
                     <div>
-                      Archive all reports older than <input
+                      Archive all reports older than: <input
                         id="reportFromDate" value="" />
                       <button id="archiveReports">Archive
                         reports</button>
