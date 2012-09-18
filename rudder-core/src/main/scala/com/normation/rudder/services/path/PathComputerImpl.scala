@@ -120,7 +120,7 @@ class PathComputerImpl(
           recurseComputePath(fromNode, root, path)
       case Full(policyParent) =>
           recurseComputePath(fromNode, policyParent, policyParent.id + "/" + relativeShareFolder + "/" + path)
-      case _ =>throw new HierarchicalException("Wrong hierarchy for node :" + toNode)
+      case _ =>throw new HierarchicalException("Wrong hierarchy for node:" + toNode)
     }
   }
 }

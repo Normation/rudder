@@ -18,8 +18,7 @@
 
 </head>
 <div class="portlet">
-  <div class="portlet-header">Policy server - Configure allowed
-    networks</div>
+  <div class="portlet-header">Policy server settings</div>
   <div class="portlet-content">
 
     <div class="intro">
@@ -34,12 +33,12 @@
         <div class="intro">
           <div>
             <p>Configure the networks from which nodes are allowed
-              to connect to Rudder policy server to get their updated
-              Rules.</p>
+              to connect to this Rudder policy server to get their updated
+              configuration policy.</p>
             <p>
               You can add as many networks as you want, the expected
               format is: <b>NetworkIP/mask</b>, for example
-              "42.42.0.0/16"
+              "42.42.0.0/16".
             </p>
           </div>
         </div>
@@ -85,9 +84,9 @@
 
         <div class="intro">
           <div>
-            <p>Clear cached datas, like node configuration. This
-              will trigger a full redeployment, with regeneration of
-              all promises files</p>
+            <p>Clear cached data. This
+              will trigger a full redeployment, and regenerate
+              all promise files.</p>
           </div>
         </div>
 
@@ -113,10 +112,10 @@
 
         <div class="intro">
           <div>
-            <p>Reload dynamic groups, so that new nodes and their
-              inventories are taken into account. Normally, dynamic
-              group are automatically reloaded unless this feature is
-              explicitly disabled in Rudder configuration file.</p>
+            <p>Force a new evaluation of dynamic groups, so that new nodes and their
+              inventories are taken into account. By default, dynamic
+              groups are automatically evaluated every 5 minutes unless this feature is
+              changed or disabled in the rudder-web.properties configuration file.</p>
           </div>
         </div>
 
@@ -141,8 +140,7 @@
 
         <div class="intro">
           <div>
-            <p>Reload the last available version of the Technique
-              library</p>
+            <p>Reload the contents of the Technique library.</p>
           </div>
         </div>
 

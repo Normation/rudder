@@ -175,7 +175,7 @@ class UpdateDynamicGroups(
         } {
           boxRes match {
             case e:EmptyBox => 
-              val error = (e ?~! "Error when updating dynamic group %s :".format(id))
+              val error = (e ?~! "Error when updating dynamic group %s:".format(id))
               logger.error(error.messageChain)
             case Full(diff) => 
               logger.debug("Group %s: adding [%s], removing [%s]".format(id,diff.added.map(_.value), diff.removed.map(_.value)))
