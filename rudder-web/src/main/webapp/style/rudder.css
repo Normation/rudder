@@ -117,14 +117,19 @@ td.nodeIndernal {
    float: right;
    cursor: pointer;
 }
+
+.inner-portlet .portlet-content div.intro {
+   margin: 5px 0px 0px 0px !important;
+}
+
 div.intro {
-   margin: 0;
+   margin: 0px 0px 0px 0px;
    padding: 0px;
    width: 100%;
    font-size: 1.1em;
    line-height: 1.5em;
    color: #000;
-   background-color: #fff3c9;
+   background-color: #FFF9E1;
    z-index: 1;
 }
 
@@ -1526,7 +1531,7 @@ p img {
 }
 
 .inner-portlet {
-   margin: 5px 10px 6px 10px;
+   margin: 7px 10px 18px 10px;
    background-color: #fff;
    background:  url(../images/fondPortlet.jpg) repeat-x\9;
 }
