@@ -66,11 +66,11 @@ rudder.endpoint.cmdb=http://localhost:8080/endpoint/upload/
 
 
 #
-# The port used by rsyslog. 
-# Default port number is 514, but some user will want to change that. 
-# For example, on Ubuntu version >= 12.04, the port 514 is forbidden, 
-# and one above 1025 must be chosen 
-# (see:  https://bugs.launchpad.net/ubuntu/+source/rsyslog/+bug/789174)
+# The port used by the rsyslog server on the Rudder root server. 
+# Default port number is 514, but in some cases this may need to be changed.
+# For example, on Ubuntu version >= 12.04 rsyslog runs as a non-root user,
+# so using port 514 is not permitted, thus we must use a port higher than 1024.
+# (see: https://bugs.launchpad.net/ubuntu/+source/rsyslog/+bug/789174)
 #
 rudder.syslog.port=514
 

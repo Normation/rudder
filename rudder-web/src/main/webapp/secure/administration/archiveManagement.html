@@ -12,13 +12,14 @@
     width: 180px;
   }
   
-  .deca {
-    text-align: center;
-  }
-
   .deca select {
     width: 180px;
   }
+  
+  #exportAllButton, #exportGroupLibraryButton, #exportRulesButton, #exportDirectiveLibraryButton {
+    margin-bottom: 10px;
+  }
+  
 -->
 </style>
 
@@ -43,159 +44,151 @@
 </script>
 
 </head>
-
-<div class="column">
 <div class="portlet">
-  <div class="portlet-header">Global archive management</div>
-  <div class="portlet-content"> 
+  <div class="portlet-header">Archive management</div>
+  <div class="portlet-content">
     <div class="intro">
-      <div>
-        Archive or restore Groups, Directives and Rules. 
-        Download the archive.
+      <div>Archive or restore elements in rudder.
+        Download the archive.</div>
+    </div>
+
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Global archive management</div>
+      <div class="portlet-content">
+        <div class="intro">
+          <div>Archive or restore Groups, Directives and Rules.
+            Download the archive.</div>
+        </div>
+
+        <hr class="spacer" />
+
+        <div class="deca">
+          <span
+            class="lift:administration.Archives.allForm archiveAction"
+            id="allForm">
+            <form class="lift:form.ajax">
+              <input id="exportAllButton" type="submit"
+                value="[Export ALL]" />
+              <br/>
+              <select
+                id="importAllSelect">
+                <option>2011-10-08 21:21:21</option>
+                <option>2011-10-09 21:21:21</option>
+                <option>2011-10-10 21:21:21</option>
+                <option>2011-10-11 21:21:21</option>
+              </select> <input id="importAllButton" type="submit"
+                value="[Importt ALL]" /> <input id="downloadAllButton"
+                type="submit" value="[Download ALL]" /> <br />
+              <lift:msg id="allFormNotice" errorClass="error">[error]</lift:msg>
+            </form>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Groups archives management</div>
+      <div class="portlet-content">
+
+        <div class="intro">
+          <div>Archive or restore Groups.</div>
+        </div>
+
+        <hr class="spacer" />
+        <div class="deca">
+          <div
+            class="lift:administration.Archives.groupLibraryForm archiveAction"
+            id="groupLibraryForm">
+            <form class="lift:form.ajax">
+              <input id="exportGroupLibraryButton"
+                type="submit" value="[Export GroupLibrary]" /> 
+                <br/>
+                <select id="importGroupLibrarySelect">
+                <option>2011-10-08 21:21:21</option>
+                <option>2011-10-09 21:21:21</option>
+                <option>2011-10-10 21:21:21</option>
+                <option>2011-10-11 21:21:21</option>
+              </select> <input id="importGroupLibraryButton" type="submit"
+                value="[Import GroupLibrary]" /> <input
+                id="downloadGroupLibraryButton" type="submit"
+                value="[Download GroupLibrary]" /> <br />
+              <lift:msg id="groupLibraryFormNotice" errorClass="error">[error]</lift:msg>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Rules archives management</div>
+      <div class="portlet-content">
+
+        <div class="intro">
+          <div>Archive or restore Rules.</div>
+        </div>
+
+        <hr class="spacer" />
+        <div class="deca">
+
+          <div
+            class="lift:administration.Archives.rulesForm archiveAction"
+            id="rulesForm">
+            <form class="lift:form.ajax">
+             <input id="exportRulesButton" type="submit"
+                value="[Export CR]" /> 
+              <br/>
+              <select
+                id="importRulesSelect">
+                <option>2011-10-08 21:21:21</option>
+                <option>2011-10-09 21:21:21</option>
+                <option>2011-10-10 21:21:21</option>
+                <option>2011-10-11 21:21:21</option>
+              </select> <input id="importRulesButton" type="submit"
+                value="[Import Rules]" /> <input
+                id="downloadRulesButton" type="submit"
+                value="[Download Rules]" /> <br />
+              <lift:msg id="rulesFormNotice" errorClass="error">[error]</lift:msg>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Directive library archives
+        management</div>
+      <div class="portlet-content">
+
+        <div class="intro">
+          <div>Archive or restore Directives.</div>
+        </div>
+
+        <hr class="spacer" />
+        <div class="deca">
+          <div
+            class="lift:administration.Archives.directiveLibraryForm archiveAction"
+            id="directiveLibraryForm">
+            <form class="lift:form.ajax">
+              <input id="exportDirectiveLibraryButton"
+                type="submit" value="[Export DirectiveLibrary]" />
+              <br/>
+              <select id="importDirectiveLibrarySelect">
+                <option>2011-10-08 21:21:21</option>
+                <option>2011-10-09 21:21:21</option>
+                <option>2011-10-10 21:21:21</option>
+                <option>2011-10-11 21:21:21</option>
+              </select> <input id="importDirectiveLibraryButton" type="submit"
+                value="[Import DirectiveLibrary]" /> <input
+                id="downloadDirectiveLibraryButton" type="submit"
+                value="[Download DirectiveLibrary]" /> <br />
+              <lift:msg id="directiveLibraryFormNotice"
+                errorClass="error">[error]</lift:msg>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
     
-    <hr class="spacer"/>
-    
-    <div class="deca">
-      <span class="lift:administration.Archives.allForm archiveAction" id="allForm">
-        <form class="lift:form.ajax">
-          <br/>
-          <input id="exportAllButton" type="submit" value="[Export ALL]"/> 
-          <br/>
-          <br/>
-          <select id="importAllSelect">
-            <option>2011-10-08 21:21:21</option>
-            <option>2011-10-09 21:21:21</option>
-            <option>2011-10-10 21:21:21</option>
-            <option>2011-10-11 21:21:21</option>
-          </select>
-          <input id="importAllButton" type="submit" value="[Importt ALL]"/> 
-          <input id="downloadAllButton" type="submit" value="[Download ALL]"/> 
-          <br/>
-          <lift:msg id="allFormNotice" errorClass="error">[error]</lift:msg>
-          <br/>
-        </form>
-      </span>
-    </div>
-  </div>
-  <br/>
-</div>
-
-
-  <div class="portlet">
-    <div class="portlet-header">Groups archives management</div>
-    <div class="portlet-content"> 
-     
-      <div class="intro">
-        <div>
-          Archive or restore Groups.
-        </div>
-      </div>
-  
-      <hr class="spacer"/>
-      <div class="deca">
-        <div class="lift:administration.Archives.groupLibraryForm archiveAction" id="groupLibraryForm">
-          <form class="lift:form.ajax">
-            <br/>
-            <input id="exportGroupLibraryButton" type="submit" value="[Export GroupLibrary]"/> 
-            <br/>
-            <br/>
-            <select id="importGroupLibrarySelect">
-              <option>2011-10-08 21:21:21</option>
-              <option>2011-10-09 21:21:21</option>
-              <option>2011-10-10 21:21:21</option>
-              <option>2011-10-11 21:21:21</option>
-            </select>
-            <input id="importGroupLibraryButton" type="submit" value="[Import GroupLibrary]"/> 
-            <input id="downloadGroupLibraryButton" type="submit" value="[Download GroupLibrary]"/> 
-            <br/>
-            <lift:msg id="groupLibraryFormNotice" errorClass="error">[error]</lift:msg>
-            <br/>
-          </form>
-        </div>
-      </div>
-    </div>
-    <br/>
-  </div>
-
-
-
-</div>
-
-<div class="column">
-  <div class="portlet">
-    <div class="portlet-header">Rules archives management</div>
-    <div class="portlet-content"> 
-     
-      <div class="intro">
-        <div>
-          Archive or restore Rules.
-        </div>
-      </div>
-  
-      <hr class="spacer"/>
-      <div class="deca">
-      
-        <div class="lift:administration.Archives.rulesForm archiveAction" id="rulesForm">
-          <form class="lift:form.ajax">
-            <br/>
-            <input id="exportRulesButton" type="submit" value="[Export CR]"/> 
-            <br/>
-            <br/>
-            <select id="importRulesSelect">
-              <option>2011-10-08 21:21:21</option>
-              <option>2011-10-09 21:21:21</option>
-              <option>2011-10-10 21:21:21</option>
-              <option>2011-10-11 21:21:21</option>
-            </select>
-            <input id="importRulesButton" type="submit" value="[Import Rules]"/> 
-            <input id="downloadRulesButton" type="submit" value="[Download Rules]"/> 
-            <br/>
-            <lift:msg id="rulesFormNotice" errorClass="error">[error]</lift:msg>
-            <br/>
-          </form>
-        </div>
-      </div>
-    </div>
-    <br/>
-  </div>
-  
-        
-  <div class="portlet">
-    <div class="portlet-header">Directive library archives management</div>
-    <div class="portlet-content"> 
-     
-      <div class="intro">
-        <div>
-          Archive or restore Directives.
-        </div>
-      </div>
-  
-      <hr class="spacer"/>
-      <div class="deca">
-        <div class="lift:administration.Archives.directiveLibraryForm archiveAction" id="directiveLibraryForm">
-          <form class="lift:form.ajax">
-            <br/>
-            <input id="exportDirectiveLibraryButton" type="submit" value="[Export DirectiveLibrary]"/> 
-            <br/>
-            <br/>
-            <select id="importDirectiveLibrarySelect">
-              <option>2011-10-08 21:21:21</option>
-              <option>2011-10-09 21:21:21</option>
-              <option>2011-10-10 21:21:21</option>
-              <option>2011-10-11 21:21:21</option>
-            </select>
-            <input id="importDirectiveLibraryButton" type="submit" value="[Import DirectiveLibrary]"/> 
-            <input id="downloadDirectiveLibraryButton" type="submit" value="[Download DirectiveLibrary]"/> 
-            <br/>
-            <lift:msg id="directiveLibraryFormNotice" errorClass="error">[error]</lift:msg>
-            <br/>
-          </form>
-        </div>
-      </div>
-    </div>
-    <br/>
   </div>
 </div>
 

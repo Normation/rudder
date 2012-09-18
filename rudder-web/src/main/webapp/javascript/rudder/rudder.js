@@ -174,7 +174,6 @@ $(function() {
 		$(".portlet").addClass("ui-widget ui-widget-content ui-helper-clearfix arrondis")
 			.find(".portlet-header")
 				.addClass("ui-widget-header arrondishaut")
-				.prepend('<span class="ui-icon ui-icon-minusthick"></span>')
 				.end()
 			.find(".portlet-content");
 
@@ -295,10 +294,10 @@ function roundTabs() {
 	$(".tabsv > ul > li").removeClass('arrondishaut').addClass('arrondisleft');
 		
 	// test auto-ready logic - call corner before DOM is ready
-    $('.arrondis').corner("10px");
-	$('.arrondishaut').corner("10px top");
-	$('.arrondisbas').corner("10px bottom");
-	$('.arrondisleft').corner("10px left");
+    $('.arrondis').corner("5px");
+	$('.arrondishaut').corner("5px top");
+	$('.arrondisbas').corner("5px bottom");
+	$('.arrondisleft').corner("5px left");
 }
 
 /**

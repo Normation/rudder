@@ -66,6 +66,7 @@
 .overflow_auto {
   overflow: auto;
 }
+div.innerDetails { display: none }
 
 /**********************************
  * Node details
@@ -112,13 +113,6 @@ td.nodeIndernal {
  *          formulaire            *
  **********************************/
 
-.portlet-header {
-   padding: 5px 0 5px 5px;
-   font-size: 1.3em;
-   font-weight: bold;
-   cursor: default;
-   background: none;
-}
 .portlet-header .ui-icon {
    float: right;
    cursor: pointer;
@@ -135,7 +129,7 @@ div.intro {
 }
 
 div.intro div {
-  padding: 5px;
+  padding: 5px 5px 5px 15px;
 }
 
 div.intro div ul {
@@ -194,6 +188,16 @@ form textarea {
 form input.radio {
   width: auto;
   border: 0px;
+}
+
+.compositionCheckbox input {
+  width: 25px !important;
+  vertical-align: middle;
+  margin-bottom: 2px;
+}
+
+.composition input {
+  vertical-align: middle;
 }
 
 form button {
@@ -444,6 +448,11 @@ td {
 .warning {
    color: #c00;
 }
+
+a.warning {
+   color: #c00;
+   padding-left: 30px;
+}
 #contenu table td img, #contenu table th img {
    float: none;
    margin: 0;
@@ -566,6 +575,26 @@ div#Detail {
 
 .dataTables_wrapper {
   margin: 10px 10px 0px 5px;
+}
+
+#componentGrid_wrapper {
+  margin: 0;
+}
+#componentGrid {
+  border-left : 0 ;
+    border-right : 0 ;
+}
+
+#valueGrid_wrapper {
+  margin: 0;
+}
+
+#valueGrid {
+  border-left : 0 ;
+    border-right : 0 ;
+}
+#reportsGrid_wrapper {
+  margin: 0;
 }
 
 .dataTables_wrapper_top {
@@ -854,6 +883,7 @@ padding:0 20px;
 }
 .paginatescala{
   float:left;
+  margin-top: 4px;
 }
 .notify{
   text-align:center;
@@ -918,21 +948,20 @@ tr.query_line, .query_line td {
 }
 
 .composition {
-  text-align:center;
-  padding: 10px 0 0;
+  padding: 10px 0px 0px 5px;
   width: 580px;
+  vertical-align: middle;
+ 
 }
 
 .composition span {
   display: inline-block;
-  vertical-align: middle;
 }
 
 .compositionRadio {
   display: table-row-group !important;
   text-align:left;
 }
-
 
 table#serverGrid {
   width: 545px;
@@ -1430,7 +1459,7 @@ Home portlet
 .portlet {
    margin: 0 1em 1em 0;
    background-color: #fff;
-   background/*\**/:  url(../images/fondPortlet.jpg) repeat-x\9;
+   background:  url(../images/fondPortlet.jpg) repeat-x\9;
 }
 *html .portlet {
    background: url(../images/fondPortlet.jpg) repeat-x;
@@ -1465,14 +1494,43 @@ p img {
 .portlet li {
    list-style-type: none;
 }
+
 .portlet-header {
-   padding: 5px 0 5px 25px;
-   font-size: 1.3em;
+   padding: 5px 0 5px 15px;
+   font-size: 1.4em;
    font-weight: bold;
-   background: url(../images/icCroix.jpg) no-repeat top left;
+   cursor: default;
+   background: none;
 }
+
+.inner-portlet-header {
+  padding: 5px 0 5px 5px;
+  font-size: 1.3em;
+  font-weight: bold;
+  cursor: default;
+  background: none;
+  border-bottom: 1px solid #F79D10;
+  padding: 5px 0 2px 5px;
+}
+
+.inner-portlet-content {
+  padding: 5px 0 2px 5px;
+}
+
+.arrondishaut {
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
 *html .portlet-header {
 }
+
+.inner-portlet {
+   margin: 5px 10px 6px 10px;
+   background-color: #fff;
+   background:  url(../images/fondPortlet.jpg) repeat-x\9;
+}
+
 .portlet-header .ui-icon {
    float: right;
    cursor: pointer;
@@ -1840,6 +1898,7 @@ td.complianceTd, td.parametersTd {
 .deca{
   padding: 10px;
 }
+
 .inline{
   display:inline;
 }
@@ -2071,7 +2130,18 @@ div.tabInform {
   border-color: red;    
 }
 
+.reportLine {
+    background: url("../images/tableau/fdTaboHead.jpg") repeat-x scroll left top transparent;
+    color: #FFFFFF;
+    float: left;
+    margin-top: 4px;
+    padding: 5px;
+}
 
+.filter {
+	float : right;
+	margin-right : 14px;
+}
 /***********************************
  *Directive display
 ************************************/
@@ -2113,12 +2183,24 @@ div.tabInform {
 }
 
 .emptyTd {
-    border: 0pt none;
-    background : #FFFFFF;
+	border: 0pt none !important;
+	background : #DEDEDE !important;
+}
+
+.reportTable {
+border-bottom : 2pt ridge;
 }
 
 .detailReport {
     border: 0pt none;
+}
+.firstTd {
+
+	border-left: 1px ridge #ABABAB !important;
+}
+
+td.nestedImg{
+	padding: 0px 3px !important;
 }
 .evlogviewpad li{
   list-style-type: disc;
@@ -2171,13 +2253,42 @@ tr.Repaired {
 tr.Warn {
   background-color:#FF9922;
 }
-
+tr.Unknown {
+    background-color: #FFBB66;
+}
 tr.Error {
-  background-color:#FF4411;
+  background-color:#FF6655;
 }
 
 tr.Noanswer {
   background-color:#BBAAAA;
+}
+
+td.Success {
+  background-color:#CCFFCC;
+}
+td.Applying {
+  background-color:#CCCCCC;
+}
+td.Repaired {
+  background-color:#CCFA10;
+}
+td.Warn {
+  background-color:#FF9922;
+}
+td.Unknown {
+    background-color: #FFBB66;
+}
+td.Error {
+  background-color:#FF6655;
+}
+
+td.Noanswer {
+  background-color:#BBAAAA;
+}
+
+td.details{
+	border:none;
 }
 
 li.eventLogUpdatePolicy {
@@ -2232,6 +2343,7 @@ tr.unfoldable {
 
 .quicksearch {
   text-align: center;
+  margin-top: 5px;	
 }
 
 /***********************************
@@ -2318,8 +2430,10 @@ table thead th {
 }
 
 table thead tr .ui-state-default {
-  background: url(../images/tableau/fdTaboHead.jpg) top left repeat-x !important;
+  background: url(../images/tableau/fdTaboHead.jpg) top left repeat-x;
 }
+
+
 
 #serverGrid_wrapper .dataTables_wrapper_top {
   border-top-left-radius: 0px !important;
@@ -2334,4 +2448,20 @@ table thead tr .ui-state-default {
 
 .dataTables_paginate .last {
   border-right: 1px solid #B4B3A8 !important;
+}
+
+#allowedNetworksForm {
+  margin-top: -7px;	
+}
+
+.database-info-table {
+  width: auto;
+}
+
+.database-info-table td {
+  border: none !important;	
+}
+
+#reportFromDate, #archiveReports {
+  margin-left: 7px;	
 }

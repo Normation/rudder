@@ -58,6 +58,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.services.eventlog.HistorizationService
 import com.normation.utils.HashcodeCaching
+import com.normation.cfclerk.domain.TechniqueName
 
 /**
  * TODO: ca devrait être un "target node configuration", ie
@@ -434,6 +435,11 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
       }
     }
     
+    checkDuplicateTechniquesVersion(targetNodeConfigMap.toMap) match {
+      case seq : Seq[_] if seq.size == 0 => // Nothing to do
+      case seq : Seq[TechniqueName] if seq.size == 1 => return Failure("There are directives based on techniques with different versions applied to the same node, please correct the version for the following directive : %s".format(seq.mkString(", ")))
+      case seq : Seq[TechniqueName] => return Failure("There are directives based on techniques with different versions applied to the same node, please correct the version for the following directives : %s".format(seq.mkString(", ")))
+    }
     //replace variable of the form ${node.XXX} in both context and variable beans
     val s = sequence(targetNodeConfigMap.values.toSeq) { x => 
       replaceNodeVars(x) 
@@ -441,7 +447,22 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
     s
   }
 
+  /**
+   * Check is there are nodes with directives based on two separate version of technique
+   */
+  private[this] def checkDuplicateTechniquesVersion(nodesConfigs : Map[NodeId, MutabletargetNodeConfiguration]) : Seq[TechniqueName] = {
 
+    nodesConfigs.values.flatMap { config =>
+        // fetch all the techniques name
+      //val techniqueNames = config.identifiableCFCPIs.map(x => x.cf3PolicyDraft.techniqueId.name).toSet
+      // Group the CFCPI of a node by technique name
+      val group = config.identifiableCFCPIs.groupBy(x => x.cf3PolicyDraft.techniqueId.name)
+      // Filter this grouping by technique having two different version
+      group.filter(x => x._2.groupBy(x => x.cf3PolicyDraft.techniqueId.version).size > 1).map(x => x._1)      
+    }.toSet.toSeq
+    
+  }
+  
  
   /**
    * Replace variables in a node
