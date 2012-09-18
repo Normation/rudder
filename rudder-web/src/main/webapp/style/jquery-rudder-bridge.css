@@ -317,6 +317,8 @@ input .ui-button {
 
 .ui-state-default, .ui-widget-content .ui-button, .ui-widget select  {
   background: linear-gradient(#FAFAFA, #EAEAEA) repeat scroll 0 0 transparent;
+  background: -webkit-linear-gradient(#FAFAFA, #EAEAEA) repeat scroll 0 0 transparent;
+  background: -moz-linear-gradient(#FAFAFA, #EAEAEA) repeat scroll 0 0 transparent;
 }
 
 .ui-widget select {
