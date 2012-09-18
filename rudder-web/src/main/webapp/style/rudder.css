@@ -953,10 +953,13 @@ tr.query_line, .query_line td {
 }
 
 .composition {
-  padding: 10px 0px 0px 5px;
-  width: 580px;
+  padding: 5px 0px 0px 5px;
+  margin: 0px 0px 0px 5px;
+  width: 538px;
   vertical-align: middle;
- 
+  border-left: solid 1px #ABABAB;
+  border-top: 1px solid #ABABAB;
+  border-right: 1px solid #ABABAB;
 }
 
 .composition span {
@@ -2445,10 +2448,10 @@ table thead tr .ui-state-default {
   border-top-right-radius: 0px !important;
 }
 .bottomButton {
-  margin-left:15px;
+  margin-left:10px;
 }
 #SearchNodes {
-  margin: 0px 0px 0px 10px;
+  margin: 0px 0px 0px 0px;
 }
 
 .dataTables_paginate .last {
