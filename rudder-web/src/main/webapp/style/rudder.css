@@ -118,7 +118,7 @@ td.nodeIndernal {
    cursor: pointer;
 }
 
-.inner-portlet .portlet-content div.intro {
+.inner-portlet div.intro {
    margin: 5px 0px 0px 0px !important;
 }
 
