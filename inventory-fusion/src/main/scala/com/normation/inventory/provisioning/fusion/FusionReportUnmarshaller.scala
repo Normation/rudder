@@ -112,15 +112,22 @@ class FusionReportUnmarshaller(
       }
   
       //init a node inventory
+      /*
+       * It is not the role of the report parsing to assign UUID to node 
+       * and machine, we have special rules for that:
+       * - node id is handled in RudderNodeIdParsing
+       * - policy server is handled in RudderPolicyServerParsing
+       * - machine id is handled in RudderMachineIdParsing
+       */
       val node = NodeInventory( NodeSummary(
-          NodeId(uuidGen.newUuid),
+          NodeId("dummy-node-id"),
           PendingInventory, "dummy-root", "dummy-hostname",
           UnknownOS(),
           NodeId("dummy-policy-server")
       ) )
       
-      //create a machine used as a template to modify
-      val machine = MachineInventory(MachineUuid(uuidGen.newUuid), PendingInventory, PhysicalMachineType)
+      //create a machine used as a template to modify - used a fake UUID that will be change latter
+      val machine = MachineInventory(MachineUuid("dummy-machine-id"), PendingInventory, PhysicalMachineType)
       
       //idems for VMs and applications
       val vms = List[MachineInventory]()
@@ -252,8 +259,10 @@ class FusionReportUnmarshaller(
        * TYPE : 
        * DESCRIPTION : ???
        *      Ex: x86_64/00-00-00 00:47:51
-       * UUID : mother board UUID (system id)
+       * UUID : mother board UUID (system id) - DO NOT EVER USE THAT ! Not reliable !
        *      Ex: "4454C4C-4D00-104B-8047-C2C04F30354A"
+       *      We don't use that as it is not reliable, and rely on a our MACHINEID extension 
+       *      to get the mother board UUID. See RudderMachineIdParsing class.
        *      
        * *** Windows only ***
        * ==> processed by OsDetails
@@ -286,18 +295,17 @@ class FusionReportUnmarshaller(
        */
 
     
-     val machinewithUUID = report.machine.copy(id = (MachineUuid(optText(xml\\"UUID").get)))
     //update machine VM type
     val newMachine = optText(xml\\"VMSYSTEM") match {
-      case None => machinewithUUID
+      case None => report.machine
       case Some(x) => x.toLowerCase match {
-        case "physical" => machinewithUUID.copy(machineType = PhysicalMachineType)
-        case "xen" => machinewithUUID.copy(machineType = VirtualMachineType(Xen) )
-        case "virtualbox" => machinewithUUID.copy(machineType = VirtualMachineType(VirtualBox) )
-        case "virtual machine" => machinewithUUID.copy(machineType = VirtualMachineType(UnknownVmType) )
-        case "vmware" => machinewithUUID.copy(machineType = VirtualMachineType(VMWare) )
-        case "qemu" => machinewithUUID.copy(machineType = VirtualMachineType(QEmu) )
-        case "solariszone" => machinewithUUID.copy(machineType = VirtualMachineType(SolarisZone) )
+        case "physical" => report.machine.copy(machineType = PhysicalMachineType)
+        case "xen" => report.machine.copy(machineType = VirtualMachineType(Xen) )
+        case "virtualbox" => report.machine.copy(machineType = VirtualMachineType(VirtualBox) )
+        case "virtual machine" => report.machine.copy(machineType = VirtualMachineType(UnknownVmType) )
+        case "vmware" => report.machine.copy(machineType = VirtualMachineType(VMWare) )
+        case "qemu" => report.machine.copy(machineType = VirtualMachineType(QEmu) )
+        case "solariszone" => report.machine.copy(machineType = VirtualMachineType(SolarisZone) )
       }
     }
         
@@ -309,7 +317,6 @@ class FusionReportUnmarshaller(
       , swap = optText(xml\\"SWAP").map(m=> MemorySize(m + swapUnit))
       , archDescription = optText(xml\\"ARCHNAME")
       , lastLoggedUser = optText(xml\\"LASTLOGGEDUSER")
-      , machineId = Some((MachineUuid(optText(xml\\"UUID").get),PendingInventory))
       , lastLoggedUserTime = try {
           optText(xml\\"DATELASTLOGGEDUSER").map(date => userLoginDateTimeFormat.parseDateTime(date) )
         } catch {
