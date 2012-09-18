@@ -204,12 +204,12 @@ class SearchNodeComponent(
     def displayQuery(html: NodeSeq ) : NodeSeq = {
       val Query(otName,comp, criteria) = query.get
       SHtml.ajaxForm(bind("query", html,
-        "typeQuery" ->  <label>Include policy servers: {SHtml.checkbox(rType==NodeAndPolicyServerReturnType, { value:Boolean =>
+        "typeQuery" ->  <label>Include policy servers: <span class="compositionCheckbox">{SHtml.checkbox(rType==NodeAndPolicyServerReturnType, { value:Boolean =>
                 if (value) 
                   rType = NodeAndPolicyServerReturnType 
                 else 
                   rType = NodeReturnType}
-              )}</label>,
+              )}</span></label>,
         "composition" -> SHtml.radio(Seq("And", "Or"), Full(if(comp == Or) "Or" else "And"), {value:String => 
           composition = CriterionComposition.parse(value).getOrElse(And) //default to AND on unknow composition string
           }, ("class", "radio")).flatMap(e => <label>{e.xhtml} <span class="radioTextLabel">{e.key.toString}</span></label>),

@@ -184,7 +184,9 @@ class SearchNodes extends StatefulSnippet with Loggable {
     }
     
     bind("server", serverPortletTemplate,
-        "quicksearch" -> AutoCompleteAutoSubmit("", buildQuery _, { s:String => parse(s) }, ("style" -> "width:400px")),
+        "quicksearch" -> AutoCompleteAutoSubmit("", buildQuery _, { s:String => parse(s) }, 
+            ("style" -> "width:300px"), 
+            ("placeholder" -> "Search")),
         /*"quicksearchSubmit" -> SHtml.ajaxSubmit("OK", { () => 
            nodeId match {
              case Some(id) => SetHtml("serverDetails", (new ShowNodeDetailsFromNode(id).display) )

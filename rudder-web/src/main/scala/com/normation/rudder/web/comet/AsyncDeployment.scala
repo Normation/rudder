@@ -154,10 +154,10 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             case  deployementErrorMessage(chain, error) =>
               <span>{chain.split("<-").map(x => Text("=> " + x) ++ {<br/>})}</span>
               <br/>
-              <fieldset><legend onClick="$('#deploymentErrorMsg').toggle();$('#simplemodal-container').css('width', '80%');$('#simplemodal-container').resize();"><b>Show technical details</b></legend>
-                <span id="deploymentErrorMsg" style="display:none;">
-                {error.split("rudder>").map(x => Text(x) ++ {<br/>})}
-                </span>
+              <div class="curspoint listopen" onClick="$('#deploymentErrorMsg').toggle();$('#simplemodal-container').css('width', '80%');$('#simplemodal-container').resize();$(this).toggleClass('listopen');$(this).toggleClass('listclose');"><b>Show technical details</b></div>
+              <br/>
+              <fieldset id="deploymentErrorMsg" style="display:none;"><legend><b>Technical details</b></legend>
+                <span>{error.split("rudder>").map(x => Text(x) ++ {<br/>})}<br/></span>
               </fieldset>
             case _ => <span>{failure.messageChain.split("<-").map(x => Text("=> " + x) ++ {<br/>})}</span> 
           } })(errorPopup)

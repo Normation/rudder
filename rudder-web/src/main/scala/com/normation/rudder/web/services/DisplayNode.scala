@@ -258,8 +258,8 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
   }
   
   // mimic the content of server_details/ShowNodeDetailsFromNode
-  def showNodeDetails(sm:FullInventory, creationDate:Option[DateTime], salt:String = "") : NodeSeq = {
-  
+  def showNodeDetails(sm:FullInventory, creationDate:Option[DateTime], salt:String = "", isDisplayingInPopup:Boolean = false) : NodeSeq = {
+   
     { sm.node.main.status match {
           case AcceptedInventory => 
             <div id={deleteNodePopupHtmlId}  class="nodisplay" />
@@ -267,7 +267,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
             <div id={successPopupHtmlId}  class="nodisplay" />
             <lift:authz role="node_write">
               {
-                if(!isRootNode(sm.node.main.id)) {
+                if(!isRootNode(sm.node.main.id) && !isDisplayingInPopup) {
                   <fieldset class="nodeIndernal"><legend>Action</legend>
                     {SHtml.ajaxButton("Delete this node", 
                       { () => {showPopup(sm.node.main.id); } }) 

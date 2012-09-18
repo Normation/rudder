@@ -15,131 +15,152 @@
     width: 20px;
   }
 </style>
+
 </head>
-
 <div class="portlet">
-  <div class="portlet-header">Policy server - Configure allowed networks</div>
-  <div class="portlet-content"> 
-   
-    <div class="intro"><div>
-      <p>
-        Configure the networks from which nodes are allowed to connect to Rudder policy server
-        to get their updated Rules. 
-      </p>
-      <p>
-        You can add as many networks as you want, the expected format is: <b>NetworkIP/mask</b>,
-        for example "42.42.0.0/16" 
-      </p>
-    </div></div>
+  <div class="portlet-header">Policy server - Configure allowed
+    networks</div>
+  <div class="portlet-content">
 
-    <hr class="spacer"/>
-
-    <div class="deca">
-       <div class="lift:administration.EditPolicyServerAllowedNetwork.render" id="allowedNetworksForm">
-       <form class="lift:form.ajax">
-         <table>
-           <thead>
-             <tr><th width="20px">Delete</th><th width="200px">Allowed network</th><th></th></tr>
-           </thead>
-           <tbody id="allowNetworkFields">
-           <tr>
-             <td class="delete"><input class="deleteNetwork" type="submit" value="delete"/></td>
-             <td><input name="network" class="networkField" /></td>
-             <br/><br/>
-             <td><lift:Msg errorClass="error">[error]</lift:Msg></td>
-           </tr>
-           </tbody>
-         </table>
-       
-         <br/>
-         <input id="addNetworkButton" type="submit" value="Add a network"/> 
-         <input id="submitAllowedNetwork" type="submit" value="Submit"/>
-       </form>
-       </div>
+    <div class="intro">
+      <div>
+        <p>Configure policy server.</p>
+      </div>
     </div>
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Configure allowed networks</div>
+      <div class="portlet-content">
+
+        <div class="intro">
+          <div>
+            <p>Configure the networks from which nodes are allowed
+              to connect to Rudder policy server to get their updated
+              Rules.</p>
+            <p>
+              You can add as many networks as you want, the expected
+              format is: <b>NetworkIP/mask</b>, for example
+              "42.42.0.0/16"
+            </p>
+          </div>
+        </div>
+
+        <hr class="spacer" />
+
+        <div class="deca">
+          <div
+            class="lift:administration.EditPolicyServerAllowedNetwork.render"
+            id="allowedNetworksForm">
+            <form class="lift:form.ajax">
+              <table>
+                <thead>
+                  <tr>
+                    <th width="20px">Delete</th>
+                    <th width="200px">Allowed network</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="allowNetworkFields">
+                  <tr>
+                    <td class="delete"><input
+                      class="deleteNetwork" type="submit"
+                      value="delete" /></td>
+                    <td><input name="network"
+                      class="networkField" /></td>
+                    <td><lift:Msg errorClass="error">[error]</lift:Msg></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <input id="addNetworkButton" type="submit" value="Add a network" /> 
+              <input id="submitAllowedNetwork" type="submit" value="Submit" />
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Clear deployment caches</div>
+      <div class="portlet-content">
+
+        <div class="intro">
+          <div>
+            <p>Clear cached datas, like node configuration. This
+              will trigger a full redeployment, with regeneration of
+              all promises files</p>
+          </div>
+        </div>
+
+        <hr class="spacer" />
+        <div class="deca">
+          <div class="lift:administration.ClearCache.render"
+            id="clearCacheForm">
+            <form class="lift:form.ajax">
+              <input id="clearCacheButton" type="submit"
+                value="[Clear cache]" />
+              <lift:Msg id="clearCacheNotice">[error]</lift:Msg>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Reload dynamic groups</div>
+      <div class="portlet-content">
+
+        <div class="intro">
+          <div>
+            <p>Reload dynamic groups, so that new nodes and their
+              inventories are taken into account. Normally, dynamic
+              group are automatically reloaded unless this feature is
+              explicitly disabled in Rudder configuration file.</p>
+          </div>
+        </div>
+
+        <hr class="spacer" />
+        <div class="deca">
+          <div class="lift:administration.DyngroupReloading.render"
+            id="dyngroupReloadingForm">
+            <form class="lift:form.ajax">
+              <input id="dyngroupReloadingButton" type="submit"
+                value="[Reload dyngroups]" />
+              <lift:msg id="dyngroupReloadingNotice"
+                errorClass="error">[error]</lift:msg>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Reload Techniques</div>
+      <div class="portlet-content">
+
+        <div class="intro">
+          <div>
+            <p>Reload the last available version of the Technique
+              library</p>
+          </div>
+        </div>
+
+        <hr class="spacer" />
+        <div class="deca">
+          <div
+            class="lift:configuration.TechniqueLibraryManagement.reloadTechniqueLibrary"
+            id="reloadTechniqueLibForm">
+            <form class="lift:form.ajax">
+              <input type="submit" value="Reload" />
+              <lift:Msg id="updateLib">[messages]</lift:Msg>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
-  <br/>
 </div>
-    
-<div class="portlet">
-  <div class="portlet-header">Policy server - Clear deployment caches</div>
-  <div class="portlet-content">
-    
-    <div class="intro"><div>
-      <p>
-        Clear cached datas, like node configuration. This will trigger a full redeployment,
-        with regeneration of all promises files 
-      </p>
-    </div></div>
-    <br/>
-
-    <hr class="spacer"/>
-    <div class="deca">
-     <div class="lift:administration.ClearCache.render" id="clearCacheForm">
-       <form class="lift:form.ajax">
-         <input id="clearCacheButton" type="submit" value="[Clear cache]"/> 
-         <br/><br/>
-         <lift:Msg id="clearCacheNotice">[error]</lift:Msg>
-       </form>
-      </div>
-    </div>
-  </div>
-  <br/>
-</div>    
-
- 
- 
-<div class="portlet">
-  <div class="portlet-header">Policy server - Reload dynamic groups</div>
-  <div class="portlet-content">
-    
-    <div class="intro"><div>
-      <p>
-        Reload dynamic groups, so that new nodes and their inventories are taken
-        into account. Normally, dynamic group are automatically reloaded unless
-        this feature is explicitly disabled in Rudder configuration file. 
-      </p>
-    </div></div>
-    <br/>
-
-    <hr class="spacer"/>
-    <div class="deca">
-     <div class="lift:administration.DyngroupReloading.render" id="dyngroupReloadingForm">
-       <form class="lift:form.ajax">
-         <input id="dyngroupReloadingButton" type="submit" value="[Reload dyngroups]"/> 
-         <br/><br/>
-         <lift:msg id="dyngroupReloadingNotice" errorClass="error">[error]</lift:msg>
-       </form>
-      </div>
-    </div>
-  </div>
-  <br/>
-</div>
-
-<div class="portlet">
-  <div class="portlet-header">Policy server - Reload Techniques</div>
-  <div class="portlet-content">
-    
-    <div class="intro"><div>
-      <p>
-        Reload the last available version of the Technique library
-      </p>
-    </div></div>
-    <br/>
-
-    <hr class="spacer"/>
-    <div class="deca">
-     <div class="lift:configuration.TechniqueLibraryManagement.reloadTechniqueLibrary" id="reloadTechniqueLibForm">
-       <form class="lift:form.ajax">
-            <input type="submit" value="Reload"/>
-            <br/><br/>
-            <lift:Msg id="updateLib">[messages]</lift:Msg>
-        </form>
-      </div>
-    </div>
-  </div>
-  <br/>
-</div>   
-
 </lift:surround>
 
