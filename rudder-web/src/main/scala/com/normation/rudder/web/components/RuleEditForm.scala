@@ -984,13 +984,13 @@ class RuleEditForm(
     val FormatDetailsJSFunction = """
       function fnFormatDetails( oTable, nTr ) {
         var fnData = oTable.fnGetData( nTr );
-        var oTable2 = fnData[fnData.length-1]
+        var oTable2 = fnData[fnData.length-1];
         var sOut ='<div class="innerDetails">'+oTable2+'</div>';
         return sOut;
       }"""
 
       /*
-       * That Javasctipt function describe the beavior of the inner dataTable
+       * That Javascript function describe the behavior of the inner dataTable
        * On click it open or close its details
        * the content is dynamically computed
        */
@@ -1031,7 +1031,7 @@ class RuleEditForm(
             anOpen.splice( i, 1 );
           } );
         }
-      } )"""
+      } );"""
       /*
        * This is the main Javascript function to have cascaded DataTables
        */
@@ -1167,8 +1167,8 @@ class RuleEditForm(
     </thead>
     <tbody>{
       components.flatMap { component =>
-        val severity = ReportType.getSeverityFromStatus(component.componentReportType).replaceAll(" ", "")
-        ( "#status [class+]" #> severity &
+        val severity = ReportType.getSeverityFromStatus(component.componentReportType)
+        ( "#status [class+]" #> severity.replaceAll(" ", "") &
           "#status *" #> <center>{severity}</center> &
           "#component *" #>  <b>{component.component}</b> &
           "#severity *" #>  buildComplianceChart(component)
@@ -1205,8 +1205,8 @@ class RuleEditForm(
       </thead>
       <tbody>{
         values.flatMap { value =>
-          val severity = ReportType.getSeverityFromStatus(value.cptValueReportType).replaceAll(" ", "")
-          ( "#valueStatus [class+]" #> severity &
+          val severity = ReportType.getSeverityFromStatus(value.cptValueReportType)
+          ( "#valueStatus [class+]" #> severity.replaceAll(" ", "") &
             "#valueStatus *" #> <center>{severity}</center> &
             "#componentValue *" #>  <b>{value.componentValue}</b> &
             "#componentValue [class+]" #>  "firstTd" &
@@ -1577,7 +1577,7 @@ class RuleEditForm(
         def showNodeReport(nodeReport:(NodeId,Seq[(String,String,List[String],ReportType)])) : NodeSeq = {
           nodeInfoService.getNodeInfo(nodeReport._1) match {
             case Full(nodeInfo)  => {
-              val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(nodeReport._2.map(_._4))).replaceAll(" ","")
+              val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(nodeReport._2.map(_._4)))
               ( "#node *" #>
                 <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeReport._1)}>
                   <span class="curspoint">
@@ -1586,7 +1586,7 @@ class RuleEditForm(
                 </a>  &
                 "#plus *" #> <center><img src="/images/details_open.png"/></center> &
                 "#status *" #>  <center>{status}</center> &
-                "#status [class+]" #>  status &
+                "#status [class+]" #>  status.replaceAll(" ","") &
                 "#details *" #> showComponentReport(nodeReport._2)
               ) ( reportLineXml )
             }
