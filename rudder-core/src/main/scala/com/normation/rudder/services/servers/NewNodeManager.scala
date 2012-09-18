@@ -62,6 +62,7 @@ import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import com.normation.eventlog.EventActor
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
+import com.normation.rudder.services.nodes.NodeInfoService
 
 
 /**
@@ -312,6 +313,9 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
       unitAcceptor.preAccept(sms.map( _._2),actor) match {
         case Full(seq) => //ok, cool
           logger.debug("Pre accepted phase: %s".format(unitAcceptor.name))
+        case f:Failure =>
+          logger.error(f.messageChain)
+          return Seq.fill(ids.size)(f)
         case e:EmptyBox => //on an error here, stop
           logger.error((e ?~! "Error when trying to execute pre-accepting for phase %s. Stop.".format(unitAcceptor.name)).messageChain)
           //stop now
@@ -697,6 +701,79 @@ class AcceptNodeRule(
   }   
 }
 
+class AcceptHostnameAndIp(
+  override val name:String,
+  nodeConfigRepo:NodeConfigurationRepository,
+  inventoryStatus: InventoryStatus,
+  nodeInfoService: NodeInfoService
+) extends UnitAcceptInventory {
+  
+  override def preAccept(sms:Seq[FullInventory], actor:EventActor) : Box[Seq[FullInventory]] = {
+    
+    def hostnameInUse(s : String): Box[Boolean] = {
+      nodeInfoService.getAllIds match { 
+        case t: EmptyBox => Empty 
+        case Full(nodesIds) => {
+          val nodeHostnames:Seq[String] = 
+            nodesIds.map { n => 
+              nodeInfoService.getNodeInfo(n) match {
+                case t: EmptyBox => ""
+                case Full(nodeInfo) =>  nodeInfo.hostname
+              }
+            }
+          Full(nodeHostnames.contains(s))
+        }
+      }
+    }
+    
+    def ipInUse(s : Seq[String]): Box[Boolean] = {
+      nodeInfoService.getAllIds match { 
+        case t: EmptyBox => Empty 
+        case Full(nodesIds) => {
+          val t :Seq[Seq[String]] = {
+            nodesIds.map { n => 
+              nodeInfoService.getNodeInfo(n) match {
+                case t: EmptyBox => Seq("")
+                case Full(nodeInfo) =>  nodeInfo.ips
+              }
+            }
+          }
+          val nodeIps:Seq[String] = t.flatMap(x => x)
+          Full(nodeIps.contains(true))
+        }
+      }
+    }
+    
+    val m = sms.foreach { sm => 
+      if(hostnameInUse(sm.node.main.hostname).get)
+        return Failure("There is already a node with \"%s\" as hostname in the database.".format(sm.node.main.hostname))
+      if(ipInUse(sm.node.serverIps).get)
+        return Failure("There is already a node with \"%s\" as IP address in the database.".format(sm.node.serverIps))
+    }
+    
+    Full(sms)
+  }
+  
+  override val fromInventoryStatus = inventoryStatus
+  
+  override val toInventoryStatus = inventoryStatus  
+    
+  /**
+   * Only add the server to the list of children of the policy server
+   */
+  def acceptOne(sm:FullInventory, actor:EventActor) : Box[FullInventory] = Full(sm)
+  
+  /**
+   * An action to execute after the whole batch 
+   */
+  def postAccept(sms:Seq[FullInventory], actor:EventActor) : Box[Seq[FullInventory]] = Full(sms)
+
+  /**
+   * Execute a rollback for the given inventory
+   */
+  def rollback(sms:Seq[FullInventory], actor:EventActor) : Unit = {}
+}
+
 /**
  * A unit acceptor in charge to historize the 
  * state of the Inventory so that we can keep it
@@ -731,7 +808,6 @@ class HistorizeNodeStateOnChoice(
    * inventory to remove
    */
   def rollback(sms:Seq[FullInventory], actor:EventActor) : Unit = {}
-  
   
   //////////// refuse //////////// 
   override def refuseOne(srv:Srv, actor:EventActor) : Box[Srv] = {
