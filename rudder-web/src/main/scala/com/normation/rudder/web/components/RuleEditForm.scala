@@ -1021,6 +1021,7 @@ class RuleEditForm(
               { "sWidth": "10px" , "bSortable": false  , "bVisible":false}
             ]
           });
+          $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
           $('td.details', nDetailsRow).attr("colspan",6);
           $('div.innerDetails table', nDetailsRow).attr("style","");
           $('div.innerDetails', nDetailsRow).slideDown(300);
@@ -1063,6 +1064,7 @@ class RuleEditForm(
            { "sWidth": "10px", "bSortable": false  , "bVisible":false }
          ]
        } );
+       $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
        $('div.innerDetails table:first', nDetailsRow).attr("style","");
        $('div.innerDetails', nDetailsRow).slideDown(300);
        %2$s
@@ -1156,7 +1158,7 @@ class RuleEditForm(
    */
   def showComponentsReports(components : Seq[ComponentRuleStatusReport]) : NodeSeq = {
     val worstseverity= ReportType.getSeverityFromStatus(ReportType.getWorseType(components.map(_.componentReportType))).replaceAll(" ", "")
-    <table id="componentGrid" cellspacing="0" style="display:none" class="tablewidth">
+    <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth">
      <thead>
        <tr class="head tablewidth">
        <th class="emptyTd"><span/></th>
@@ -1195,7 +1197,7 @@ class RuleEditForm(
    */
   def showComponentValueReport(values : Seq[ComponentValueRuleStatusReport],directiveSeverity:String) : NodeSeq = {
     val worstseverity= ReportType.getSeverityFromStatus(ReportType.getWorseType(values.map(_.cptValueReportType))).replaceAll(" ", "")
-    <table id="valueGrid" cellspacing="0" style="display:none" class="tablewidth ">
+    <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth ">
       <thead>
         <tr class="head tablewidth">
           <th class="emptyTd"><span/></th>
@@ -1294,7 +1296,7 @@ class RuleEditForm(
     * Node summary, treat all top level reports
     */
     def nodeGridXml : NodeSeq = {
-        <table id="nodeReportGrid"  cellspacing="0">
+        <table id={Helpers.nextFuncName}  cellspacing="0">
           <thead>
             <tr class="head">
               <th>Node<span/></th>
@@ -1508,6 +1510,7 @@ class RuleEditForm(
                  { "sWidth": "100px" },
                  { "sWidth": "100px" },
                  { "sWidth": "100px" },
+                 { "sWidth": "100px" },
                  { "sWidth": "200px" }
                ]
              } );
@@ -1601,7 +1604,7 @@ class RuleEditForm(
           }
         }
         def showComponentReport(componentReports:(Seq[(String,String,List[String],ReportType)])) : NodeSeq = {
-          <table id="componentGrid" cellspacing="0" style="display:none" class="tablewidth ">
+          <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class=" noMarginGrid tablewidth ">
             <thead>
               <tr class="head tablewidth">
                 <th class="emptyTd"><span/></th>
@@ -1627,7 +1630,7 @@ class RuleEditForm(
           </table>
         }
         def showValueReport(valueReport:(Seq[(String,List[String],ReportType)])) : NodeSeq = {
-          <table id="valueGrid" cellspacing="0" style="display:none" class="tablewidth ">
+          <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth ">
             <thead>
               <tr class="head tablewidth">
                 <th class="emptyTd"><span/></th>
@@ -1715,6 +1718,7 @@ class RuleEditForm(
                     { "sWidth": "10px", "bSortable": false  , "bVisible":false },
                   ]
                 } );
+                $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
                 $('div.innerDetails table:first', nDetailsRow).attr("style","");
                 $('div.innerDetails', nDetailsRow).slideDown(300);
                 anOpen%1$s.push( nTr );
@@ -1742,6 +1746,7 @@ class RuleEditForm(
                         { "sWidth": "10px" , "bSortable": false,  "bVisible":false}
                       ]
                     } );
+                    $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
                     $('td.details', nDetailsRow).attr("colspan",7);
                     $('div.innerDetails table', nDetailsRow).attr("style","");
                     $('div.innerDetails', nDetailsRow).slideDown(300);
