@@ -1470,7 +1470,7 @@ class RuleEditForm(
           nodeInfoService.getNodeInfo(report.report.node) match {
             case Full(nodeInfo)  => {
               ( "#node *" #>
-                <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(report.report.node)}>
+                <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(report.report.node.value)}>
                   <span class="curspoint">
                     {nodeInfo.hostname}
                   </span>
@@ -1481,6 +1481,9 @@ class RuleEditForm(
                 "#message *" #>  <ul>{report.report.message.map(msg => <li>{msg}</li>)}</ul>
               ) ( unexpectedLineXml )
             }
+            case x:EmptyBox =>
+              logger.error( (x?~! "An error occured when trying to load node %s".format(report.report.node.value)),x)
+              <div class="error">Node with ID "{report.report.node.value}" is invalid</div>
           }
        }
 
@@ -1581,7 +1584,7 @@ class RuleEditForm(
             case Full(nodeInfo)  => {
               val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(nodeReport._2.map(_._4)))
               ( "#node *" #>
-                <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeReport._1)}>
+                <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeReport._1.value)}>
                   <span class="curspoint">
                     {nodeInfo.hostname}
                   </span>
@@ -1593,8 +1596,8 @@ class RuleEditForm(
               ) ( reportLineXml )
             }
             case x:EmptyBox =>
-              logger.error( (x?~! "An error occured when trying to load node %s".format(nodeReport._1)),x)
-              <div class="error">Node with ID "{nodeReport._1}" is invalid</div>
+              logger.error( (x?~! "An error occured when trying to load node %s".format(nodeReport._1.value)),x)
+              <div class="error">Node with ID "{nodeReport._1.value}" is invalid</div>
           }
         }
         def showComponentReport(componentReports:(Seq[(String,String,List[String],ReportType)])) : NodeSeq = {
@@ -1715,7 +1718,7 @@ class RuleEditForm(
                 $('div.innerDetails table:first', nDetailsRow).attr("style","");
                 $('div.innerDetails', nDetailsRow).slideDown(300);
                 anOpen%1$s.push( nTr );
-                $('div.innerDetails table:first td#plus', nDetailsRow).click( function () {
+                $('div.innerDetails table td#plus', nDetailsRow).click( function () {
                   var nTr = this.parentNode;
                   var i = $.inArray( nTr, anOpen%1$s );
                     if ( i === -1 ) {
