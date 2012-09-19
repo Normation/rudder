@@ -25,17 +25,7 @@
 
 /* Interaction states
 ----------------------------------*/
-/* .ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default {  */
-/*   border-left: 1px solid #B4B3A8;  */
-/*   border-bottom: 1px solid #B4B3A8;  */
-/*   background: #f6f6f6 url(images/ui-bg_glass_100_f6f6f6_1x400.png) 50% 50% repeat-x;  */
-/* } */
-.ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default { 
-	border: 1px solid #B4B3A8; 
-	background: #f6f6f6 url(images/ui-bg_glass_100_f6f6f6_1x400.png) 50% 50% repeat-x; 
-	font-weight: bold; 
-}
-
+.ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default { border: 1px solid #cccccc; background: #f6f6f6 url(images/ui-bg_glass_100_f6f6f6_1x400.png) 50% 50% repeat-x; font-weight: bold; color: #1c94c4; }
 .ui-state-default a, .ui-state-default a:link, .ui-state-default a:visited { color: #1c94c4; text-decoration: none; }
 .ui-state-hover, .ui-widget-content .ui-state-hover, .ui-widget-header .ui-state-hover, .ui-state-focus, .ui-widget-content .ui-state-focus, .ui-widget-header .ui-state-focus { border: 1px solid #fbcb09; background: #fdf5ce url(images/ui-bg_glass_100_fdf5ce_1x400.png) 50% 50% repeat-x; font-weight: bold; color: #c77405; }
 .ui-state-hover a, .ui-state-hover a:hover { color: #c77405; text-decoration: none; }
@@ -52,9 +42,7 @@
 .ui-state-error-text, .ui-widget-content .ui-state-error-text, .ui-widget-header .ui-state-error-text { color: #ffffff; }
 .ui-priority-primary, .ui-widget-content .ui-priority-primary, .ui-widget-header .ui-priority-primary { font-weight: bold; }
 .ui-priority-secondary, .ui-widget-content .ui-priority-secondary,  .ui-widget-header .ui-priority-secondary { opacity: .7; filter:Alpha(Opacity=70); font-weight: normal; }
-.ui-state-disabled, .ui-widget-content .ui-state-disabled, .ui-widget-header .ui-state-disabled, .paginate_button_disabled, .paginate_active { 
-	opacity: .50; filter:Alpha(Opacity=50); background-image: none; 
-}
+.ui-state-disabled, .ui-widget-content .ui-state-disabled, .ui-widget-header .ui-state-disabled { opacity: .35; filter:Alpha(Opacity=35); background-image: none; }
 
 /* Icons
 ----------------------------------*/
