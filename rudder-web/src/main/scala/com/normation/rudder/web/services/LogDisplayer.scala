@@ -71,7 +71,7 @@ class LogDisplayer(
 ) {
 
 
-  private lazy val templatePath = List("templates-hidden", "node_logs_tabs")
+  private val templatePath = List("templates-hidden", "node_logs_tabs")
   private def template() =  Templates(templatePath) match {
     case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for server details not found. I was looking for %s.html".format(templatePath.mkString("/")))
