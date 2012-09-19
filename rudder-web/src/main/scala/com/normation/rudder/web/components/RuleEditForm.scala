@@ -304,14 +304,16 @@ class RuleEditForm(
       OnLoad(
         //build jstree and
         //init bind callback to move
-        JsRaw("buildGroupTree('#%1$s', %2$s, 'on');".format(
+        JsRaw("buildGroupTree('#%1$s','%3$s', %2$s, 'on');".format(
             htmlId_groupTree,
-            serializeTargets(selectedTargets.toSeq)
+            serializeTargets(selectedTargets.toSeq),
+            S.contextPath
         )) &
         //function to update list of PIs before submiting form
-        JsRaw("buildRulePIdepTree('#%1$s', %2$s);".format(  
+        JsRaw("buildRulePIdepTree('#%1$s', %2$s,'%3$s');".format(  
             htmlId_activeTechniquesTree,
-            serializedirectiveIds(selectedDirectiveIds.toSeq)
+            serializedirectiveIds(selectedDirectiveIds.toSeq),
+            S.contextPath
         )) &
         After(TimeSpan(50), JsRaw("""createTooltip();"""))
       )
@@ -984,13 +986,13 @@ class RuleEditForm(
     val FormatDetailsJSFunction = """
       function fnFormatDetails( oTable, nTr ) {
         var fnData = oTable.fnGetData( nTr );
-        var oTable2 = fnData[fnData.length-1]
+        var oTable2 = fnData[fnData.length-1];
         var sOut ='<div class="innerDetails">'+oTable2+'</div>';
         return sOut;
       }"""
 
       /*
-       * That Javasctipt function describe the beavior of the inner dataTable
+       * That Javascript function describe the behavior of the inner dataTable
        * On click it open or close its details
        * the content is dynamically computed
        */
@@ -999,7 +1001,7 @@ class RuleEditForm(
         var nTr = this.parentNode;
         var i = $.inArray( nTr, anOpen );
         if ( i === -1 ) {
-          $('img', this).attr( 'src', "images/details_close.png" );
+          $('img', this).attr( 'src', "%1$s/images/details_close.png" );
           var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
           $('div.innerDetails table', nDetailsRow).dataTable({
             "asStripClasses": [ 'color1', 'color2' ],
@@ -1025,13 +1027,13 @@ class RuleEditForm(
           anOpen.push( nTr );
         }
         else {
-          $('img', this).attr( 'src', "images/details_open.png" );
+          $('img', this).attr( 'src', "%1$s/images/details_open.png" );
           $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
             oTable.fnClose( nTr );
             anOpen.splice( i, 1 );
           } );
         }
-      } )"""
+      } );""".format(S.contextPath)
       /*
        * This is the main Javascript function to have cascaded DataTables
        */
@@ -1040,7 +1042,7 @@ class RuleEditForm(
      var nTr = this.parentNode;
      var i = $.inArray( nTr, anOpen );
      if ( i === -1 ) {
-       $('img', this).attr( 'src', "images/details_close.png" );
+       $('img', this).attr( 'src', "%1$s/images/details_close.png" );
        var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
        var Otable2 =  $('div.innerDetails table:first', nDetailsRow).dataTable({
          "asStripClasses": [ 'color1', 'color2' ],
@@ -1063,17 +1065,17 @@ class RuleEditForm(
        } );
        $('div.innerDetails table:first', nDetailsRow).attr("style","");
        $('div.innerDetails', nDetailsRow).slideDown(300);
-       %s
+       %2$s
        anOpen.push( nTr );
      }
      else {
-       $('img', this).attr( 'src', "images/details_open.png" );
+       $('img', this).attr( 'src', "%1$s/images/details_open.png" );
        $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
          oTable.fnClose( nTr );
          anOpen.splice( i, 1 );
        } );
      }
-   } );""".format(innerClickJSFunction)
+   } );""".format(S.contextPath,innerClickJSFunction)
 
     /*
      * It displays the report Detail of a Rule
@@ -1167,8 +1169,8 @@ class RuleEditForm(
     </thead>
     <tbody>{
       components.flatMap { component =>
-        val severity = ReportType.getSeverityFromStatus(component.componentReportType).replaceAll(" ", "")
-        ( "#status [class+]" #> severity &
+        val severity = ReportType.getSeverityFromStatus(component.componentReportType)
+        ( "#status [class+]" #> severity.replaceAll(" ", "") &
           "#status *" #> <center>{severity}</center> &
           "#component *" #>  <b>{component.component}</b> &
           "#severity *" #>  buildComplianceChart(component)
@@ -1205,8 +1207,8 @@ class RuleEditForm(
       </thead>
       <tbody>{
         values.flatMap { value =>
-          val severity = ReportType.getSeverityFromStatus(value.cptValueReportType).replaceAll(" ", "")
-          ( "#valueStatus [class+]" #> severity &
+          val severity = ReportType.getSeverityFromStatus(value.cptValueReportType)
+          ( "#valueStatus [class+]" #> severity.replaceAll(" ", "") &
             "#valueStatus *" #> <center>{severity}</center> &
             "#componentValue *" #>  <b>{value.componentValue}</b> &
             "#componentValue [class+]" #>  "firstTd" &
@@ -1468,7 +1470,7 @@ class RuleEditForm(
           nodeInfoService.getNodeInfo(report.report.node) match {
             case Full(nodeInfo)  => {
               ( "#node *" #>
-                <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(report.report.node)}>
+                <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(report.report.node.value)}>
                   <span class="curspoint">
                     {nodeInfo.hostname}
                   </span>
@@ -1479,6 +1481,9 @@ class RuleEditForm(
                 "#message *" #>  <ul>{report.report.message.map(msg => <li>{msg}</li>)}</ul>
               ) ( unexpectedLineXml )
             }
+            case x:EmptyBox =>
+              logger.error( (x?~! "An error occured when trying to load node %s".format(report.report.node.value)),x)
+              <div class="error">Node with ID "{report.report.node.value}" is invalid</div>
           }
        }
 
@@ -1577,22 +1582,22 @@ class RuleEditForm(
         def showNodeReport(nodeReport:(NodeId,Seq[(String,String,List[String],ReportType)])) : NodeSeq = {
           nodeInfoService.getNodeInfo(nodeReport._1) match {
             case Full(nodeInfo)  => {
-              val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(nodeReport._2.map(_._4))).replaceAll(" ","")
+              val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(nodeReport._2.map(_._4)))
               ( "#node *" #>
-                <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeReport._1)}>
+                <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeReport._1.value)}>
                   <span class="curspoint">
                     {nodeInfo.hostname}
                   </span>
                 </a>  &
                 "#plus *" #> <center><img src="/images/details_open.png"/></center> &
                 "#status *" #>  <center>{status}</center> &
-                "#status [class+]" #>  status &
+                "#status [class+]" #>  status.replaceAll(" ","") &
                 "#details *" #> showComponentReport(nodeReport._2)
               ) ( reportLineXml )
             }
             case x:EmptyBox =>
-              logger.error( (x?~! "An error occured when trying to load node %s".format(nodeReport._1)),x)
-              <div class="error">Node with ID "{nodeReport._1}" is invalid</div>
+              logger.error( (x?~! "An error occured when trying to load node %s".format(nodeReport._1.value)),x)
+              <div class="error">Node with ID "{nodeReport._1.value}" is invalid</div>
           }
         }
         def showComponentReport(componentReports:(Seq[(String,String,List[String],ReportType)])) : NodeSeq = {
@@ -1689,7 +1694,7 @@ class RuleEditForm(
               var nTr = this.parentNode;
               var i = $.inArray( nTr, anOpen%1$s );
               if ( i === -1 ) {
-                $('img', this).attr( 'src', "images/details_close.png" );
+                $('img', this).attr( 'src', "%3$s/images/details_close.png" );
                 var fnData = oTable%1$s.fnGetData( nTr );
                 var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails%1$s(oTable%1$s, nTr), 'details' );
                 var Otable2 = $('div.innerDetails table:first', nDetailsRow).dataTable({
@@ -1713,11 +1718,11 @@ class RuleEditForm(
                 $('div.innerDetails table:first', nDetailsRow).attr("style","");
                 $('div.innerDetails', nDetailsRow).slideDown(300);
                 anOpen%1$s.push( nTr );
-                $('div.innerDetails table:first td#plus', nDetailsRow).click( function () {
+                $('div.innerDetails table td#plus', nDetailsRow).click( function () {
                   var nTr = this.parentNode;
                   var i = $.inArray( nTr, anOpen%1$s );
                     if ( i === -1 ) {
-                    $('img', this).attr( 'src', "images/details_close.png" );
+                    $('img', this).attr( 'src', "%3$s/images/details_close.png" );
                     var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
                     $('div.innerDetails table', nDetailsRow).dataTable({
                       "asStripClasses": [ 'color1', 'color2' ],
@@ -1743,7 +1748,7 @@ class RuleEditForm(
                     anOpen%1$s.push( nTr );
                     }
                     else {
-                    $('img', this).attr( 'src', "images/details_open.png" );
+                    $('img', this).attr( 'src', "%3$s/images/details_open.png" );
                     $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
                       oTable%1$s.fnClose( nTr );
                       anOpen%1$s.splice( i, 1 );
@@ -1752,13 +1757,13 @@ class RuleEditForm(
                 } )
               }
               else {
-                $('img', this).attr( 'src', "images/details_open.png" );
+                $('img', this).attr( 'src', "%3$s/images/details_open.png" );
                 $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
                   oTable%1$s.fnClose( nTr );
                   anOpen%1$s.splice( i, 1 );
                 } );
               }
-          } );""".format(tabid,gridId+"Grid") ) ) }
+          } );""".format(tabid,gridId+"Grid",S.contextPath) ) ) }
         else
           NodeSeq.Empty
         }

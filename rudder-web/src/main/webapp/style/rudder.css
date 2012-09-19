@@ -117,14 +117,19 @@ td.nodeIndernal {
    float: right;
    cursor: pointer;
 }
+
+.inner-portlet div.intro {
+   margin: 5px 0px 0px 0px !important;
+}
+
 div.intro {
-   margin: 0;
+   margin: 0px 0px 0px 0px;
    padding: 0px;
    width: 100%;
    font-size: 1.1em;
    line-height: 1.5em;
-   color: #000;
-   background-color: #fff3c9;
+   color: #414141;
+   background-color: #FFF9E1;
    z-index: 1;
 }
 
@@ -948,10 +953,13 @@ tr.query_line, .query_line td {
 }
 
 .composition {
-  padding: 10px 0px 0px 5px;
-  width: 580px;
+  padding: 5px 0px 0px 5px;
+  margin: 0px 0px 0px 5px;
+  width: 538px;
   vertical-align: middle;
- 
+  border-left: solid 1px #ABABAB;
+  border-top: 1px solid #ABABAB;
+  border-right: 1px solid #ABABAB;
 }
 
 .composition span {
@@ -1526,7 +1534,7 @@ p img {
 }
 
 .inner-portlet {
-   margin: 5px 10px 6px 10px;
+   margin: 7px 10px 18px 10px;
    background-color: #fff;
    background:  url(../images/fondPortlet.jpg) repeat-x\9;
 }
@@ -2440,10 +2448,10 @@ table thead tr .ui-state-default {
   border-top-right-radius: 0px !important;
 }
 .bottomButton {
-  margin-left:15px;
+  margin-left:10px;
 }
 #SearchNodes {
-  margin: 0px 0px 0px 10px;
+  margin: 0px 0px 0px 0px;
 }
 
 .dataTables_paginate .last {

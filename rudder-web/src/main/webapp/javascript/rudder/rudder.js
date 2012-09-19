@@ -90,7 +90,7 @@ $(document).ready(function() {
 		},
 
 		image: {
-			prefix: "images/",
+			prefix: "/images/",
 
 			navigation: {
 				minimize: "puceHide.jpg",

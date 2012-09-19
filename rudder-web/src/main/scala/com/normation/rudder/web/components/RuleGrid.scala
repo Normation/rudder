@@ -91,7 +91,7 @@ class RuleGrid(
 
   private[this] val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   private[this] val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
-  private[this] val tableId_reportsPopup = "reportsGrid"
+  private[this] val tableId_reportsPopup = "popupReportsGrid"
   
   private[this] val techniqueRepository = inject[TechniqueRepository] 
    
@@ -604,7 +604,7 @@ class RuleGrid(
                       val tooltipid = Helpers.nextFuncName
                       val xml:NodeSeq = (
                               "#node *" #>
-                                <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.nodeId.value)}>
+                                <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.nodeId.value)}>
                                   <span class="curspoint">
                                     {nodeInfo.hostname}
                                   </span>
@@ -625,7 +625,7 @@ class RuleGrid(
 
 
     def reportsGridXml : NodeSeq = {
-    <table id="reportsGrid" cellspacing="0">
+    <table id="popupReportsGrid" cellspacing="0">
       <thead>
         <tr class="head">
           <th>Node<span/></th>

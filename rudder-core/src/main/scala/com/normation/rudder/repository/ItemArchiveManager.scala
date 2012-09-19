@@ -57,6 +57,9 @@ import org.joda.time.DateTime
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.policies.DirectiveId
+import net.liftweb.common.Failure
+import com.normation.rudder.domain.policies.ActiveTechniqueId
 
 
 
@@ -84,6 +87,32 @@ final case class GitCommitId(value: String) extends HashcodeCaching
  */
 final case class GitArchiveId(path: GitPath, commit: GitCommitId, commiter: PersonIdent) extends HashcodeCaching
 
+
+final case class ActiveTechniqueNotArchived(
+    activeTechniqueId: ActiveTechniqueId
+  , cause            : Failure
+)
+
+final case class DirectiveNotArchived(
+    directiveId: DirectiveId
+  , cause      : Failure
+)
+
+final case class CategoryNotArchived(
+    categoryId: ActiveTechniqueCategoryId
+  , cause     : Failure 
+)
+
+final case class NotArchivedElements(
+    categories      : Seq[CategoryNotArchived] 
+  , activeTechniques: Seq[ActiveTechniqueNotArchived]
+  , directives      : Seq[DirectiveNotArchived]
+) {
+  val isEmpty = categories.isEmpty && activeTechniques.isEmpty && directives.isEmpty
+}
+
+
+
 /**
  * This trait allow to manage archives of technique library, rules
  * and groupes. 
@@ -96,11 +125,16 @@ trait ItemArchiveManager {
    * Save all items handled by that archive manager 
    * and return an ID for the archive on success. 
    */
-  def exportAll(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
+  def exportAll(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[(GitArchiveId, NotArchivedElements)]
   
   def exportRules(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
   
-  def exportTechniqueLibrary(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
+  /**
+   * Export the technique library. 
+   * The strategy in case some directive are in error is to ignore them, keeping error message so that they can be logged/displayed
+   * at the end of the process. 
+   */
+  def exportTechniqueLibrary(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[(GitArchiveId, NotArchivedElements)]
   
   def exportGroupLibrary(commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
   
@@ -192,6 +226,8 @@ trait GitRuleArchiver {
 
 /////////////// Active Technique Library ///////////////
 
+
+
 /**
  * A specific trait to create archive of an active technique category.
  */
@@ -244,8 +280,16 @@ trait GitActiveTechniqueArchiver {
    * managed by git. 
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
+   * 
+   * The archiving will archive as many things as it can, and won't stop
+   * to the first error if other part could be archivied. 
+   * For example, a failing directive won't fail the whole archive, 
+   * but the list of failed directive will be stored. 
+   * 
+   * If an error at the ActiveTechnique happens, the whole archive step is 
+   * in error.
    */
-  def archiveActiveTechnique(activeTechnique:ActiveTechnique, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
+  def archiveActiveTechnique(activeTechnique:ActiveTechnique, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[(GitPath, Seq[DirectiveNotArchived])]
     
   /**
    * Delete an archived active technique. 
@@ -258,7 +302,7 @@ trait GitActiveTechniqueArchiver {
    * Move an archived technique from a 
    * parent category to an other. 
    */
-  def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[GitPath]
+  def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(PersonIdent,Option[String])]) : Box[(GitPath, Seq[DirectiveNotArchived])]
 
   /**
    * Get the root directory where active technique categories are saved.
