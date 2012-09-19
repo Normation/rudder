@@ -210,8 +210,8 @@ class SearchNodeComponent(
                 else 
                   rType = NodeReturnType}
               )}</span></label>,
-        "composition" -> SHtml.radio(Seq("And", "Or"), Full(if(comp == Or) "Or" else "And"), {value:String => 
-          composition = CriterionComposition.parse(value).getOrElse(And) //default to AND on unknow composition string
+        "composition" -> SHtml.radio(Seq("AND", "OR"), Full(if(comp == Or) "OR" else "AND"), {value:String =>
+          composition = CriterionComposition.parse(value).getOrElse(And) //default to AND on unknown composition string
           }, ("class", "radio")).flatMap(e => <label>{e.xhtml} <span class="radioTextLabel">{e.key.toString}</span></label>),
         "lines" -> {(ns: NodeSeq) => 
           /*

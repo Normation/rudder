@@ -230,7 +230,7 @@ class Groups extends StatefulSnippet with Loggable {
       //build jstree and
       //init bind callback to move
       JsRaw("""
-        buildGroupTree('#%1$s', '%4$s', 'off');
+        buildGroupTree('#%1$s','%5$s', '%4$s', 'off');
         $('#%1$s').bind("move_node.jstree", function (e,data) {
           var sourceCatId = $(data.rslt.o).attr("catId");
           var sourceGroupId = $(data.rslt.o).attr("groupId");
@@ -259,7 +259,8 @@ class Groups extends StatefulSnippet with Loggable {
         // %3$s
         SHtml.ajaxCall(JsVar("arg"), moveCategory _ )._2.toJsCmd,
         // %4$s
-        selectedNode
+        selectedNode ,
+        S.contextPath
 /*        { nodeGroupId match {
             case Full(x) => "jsTree-"+x
             case _ => ""

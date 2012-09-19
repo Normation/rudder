@@ -90,7 +90,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
                   )
              ),
             onSuccessCategory= { _ => Noop },
-            onSuccessGroup = { (node:NodeGroup) => RedirectTo("""secure/nodeManager/groups#{"groupId":"%s"}""".format(node.id.value)) }
+            onSuccessGroup = { (node:NodeGroup) => RedirectTo("""/secure/nodeManager/groups#{"groupId":"%s"}""".format(node.id.value)) }
          )))
   }
   
