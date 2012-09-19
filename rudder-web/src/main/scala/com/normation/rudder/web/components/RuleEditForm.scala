@@ -1350,7 +1350,7 @@ class RuleEditForm(
             case Full(nodeInfo) => {
               val tooltipid = Helpers.nextFuncName
                 ("#node *" #>
-                <a class="unfoldable" href={"""secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.node.value)}>
+                <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.node.value)}>
                   <span class="curspoint">
                     {nodeInfo.hostname}
                   </span>
