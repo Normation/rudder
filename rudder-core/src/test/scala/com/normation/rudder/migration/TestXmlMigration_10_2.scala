@@ -142,31 +142,31 @@ class TestXmlMigration_2_3 extends Specification with Loggable {
     
   "directive migration from fileFormat '2' to '3'" should {
     "correctly rewrite add" in {
-      compare(migration.directive(directive_add_2), directive_add_3)
+      compare(migration.other(directive_add_2), directive_add_3)
     }
     "correctly rewrite modify" in {
-      compare(migration.directive(directive_modify_2), directive_modify_3)
+      compare(migration.other(directive_modify_2), directive_modify_3)
     }
     "correctly rewrite delete" in {
-      compare(migration.directive(directive_delete_2), directive_delete_3)
+      compare(migration.other(directive_delete_2), directive_delete_3)
     }
   }
   
   "nodeGroup migration from fileFormat '2' to '3'" should {
     "correctly rewrite add" in {
-      compare(migration.nodeGroup(nodeGroup_add_2), nodeGroup_add_3)
+      compare(migration.other(nodeGroup_add_2), nodeGroup_add_3)
     }
     "correctly rewrite modify" in {
-      compare(migration.nodeGroup(nodeGroup_modify_2), nodeGroup_modify_3)
+      compare(migration.other(nodeGroup_modify_2), nodeGroup_modify_3)
     }
     "correctly rewrite delete" in {
-      compare(migration.nodeGroup(nodeGroup_delete_2), nodeGroup_delete_3)
+      compare(migration.other(nodeGroup_delete_2), nodeGroup_delete_3)
     }
   }
   
   "other migration from fileFormat '2' to '3'" should {
     "correctly rewrite 'add deployment status'" in {
-      compare(migration.addPendingDeployment(addPendingDeployment_2), addPendingDeployment_3)
+      compare(migration.other(addPendingDeployment_2), addPendingDeployment_3)
     }
  
 // introduced in 2.4 ?
@@ -175,7 +175,7 @@ class TestXmlMigration_2_3 extends Specification with Loggable {
 //    }
     
     "correctly rewrite node acceptation status" in {
-      compare(migration.node(node_accept_2), node_accept_3)
+      compare(migration.other(node_accept_2), node_accept_3)
     }
   }
 }
@@ -186,7 +186,17 @@ class TestXmlMigration_2_3 extends Specification with Loggable {
 @RunWith(classOf[JUnitRunner])
 class TestXmlMigration_10_3 extends Specification with Loggable {
   
-  val migration:List[XmlMigration] = List(new XmlMigration_10_2, new XmlMigration_2_3)
+  val migration10_2 = new XmlMigration_10_2
+  val migration2_3  = new XmlMigration_2_3
+  
+  def compose(f: Elem => Box[Elem], g: Elem => Box[Elem], xml:Elem) : Box[Elem] = {
+    for {
+      fxml <- f(xml)
+      gxml <- g(fxml)
+    } yield {
+      gxml
+    }
+  }
   
   def compare(b:Box[Elem], e:Elem) = {
     val Full(x) = b
@@ -194,44 +204,44 @@ class TestXmlMigration_10_3 extends Specification with Loggable {
   }
   "rule migration from fileFormat '1.0' to '3'" should {
     "correctly rewrite add" in {
-      compare(Full((migration.foldLeft(rule_add_10)((rule,migration)=>migration.rule(rule).get))) , rule_add_3)
+      compare( compose(migration10_2.rule, migration2_3.rule, rule_add_10), rule_add_3)
     }
     "correctly rewrite modify" in {
-      compare(Full((migration.foldLeft(rule_modify_10)((rule,migration)=>migration.rule(rule).get))) , rule_modify_3)
+      compare( compose(migration10_2.rule, migration2_3.rule, rule_modify_10), rule_modify_3)
     }
     "correctly rewrite delete" in {
-    compare(Full((migration.foldLeft(rule_delete_10)((rule,migration)=>migration.rule(rule).get))) , rule_delete_3)
+    compare( compose(migration10_2.rule, migration2_3.rule, rule_delete_10), rule_delete_3)
     }
   }
     
   "directive migration from fileFormat '1.0' to '3'" should {
     "correctly rewrite add" in {
   
-    compare(Full((migration.foldLeft(directive_add_10)((directive,migration)=>migration.directive(directive).get))) , directive_add_3)
+    compare( compose(migration10_2.directive, migration2_3.other, directive_add_10), directive_add_3)
     }
     "correctly rewrite modify" in {
-    compare(Full((migration.foldLeft(directive_modify_10)((directive,migration)=>migration.directive(directive).get))) , directive_modify_3)
+    compare( compose(migration10_2.directive, migration2_3.other, directive_modify_10), directive_modify_3)
     }
     "correctly rewrite delete" in {
-    compare(Full((migration.foldLeft(directive_delete_10)((directive,migration)=>migration.directive(directive).get))) , directive_delete_3)
+    compare( compose(migration10_2.directive, migration2_3.other, directive_delete_10), directive_delete_3)
     }
   }
   
   "nodeGroup migration from fileFormat '1.0' to '3'" should {
     "correctly rewrite add" in {
-    compare(Full((migration.foldLeft(nodeGroup_add_10)((nodeGroup,migration)=>migration.nodeGroup(nodeGroup).get))) , nodeGroup_add_3)
+    compare( compose(migration10_2.nodeGroup, migration2_3.other, nodeGroup_add_10), nodeGroup_add_3)
     }
     "correctly rewrite modify" in {
-    compare(Full((migration.foldLeft(nodeGroup_modify_10)((nodeGroup,migration)=>migration.nodeGroup(nodeGroup).get)))  , nodeGroup_modify_3)
+    compare( compose(migration10_2.nodeGroup, migration2_3.other, nodeGroup_modify_10), nodeGroup_modify_3)
     }
     "correctly rewrite delete" in {
-    compare(Full((migration.foldLeft(nodeGroup_delete_10)((nodeGroup,migration)=>migration.nodeGroup(nodeGroup).get)))  , nodeGroup_delete_3)
+    compare( compose(migration10_2.nodeGroup, migration2_3.other, nodeGroup_delete_10), nodeGroup_delete_3)
     }
   }
   
   "other migration from fileFormat '1.0' to '3'" should {
     "correctly rewrite 'add deployment status'" in {
-    compare(Full((migration.foldLeft(addPendingDeployment_10)((addPendingDeployment,migration)=>migration.addPendingDeployment(addPendingDeployment).get))) , addPendingDeployment_3)
+    compare( compose(migration10_2.addPendingDeployment, migration2_3.other, addPendingDeployment_10), addPendingDeployment_3)
     }
  
 // introduced in 2.4 ?
@@ -240,7 +250,7 @@ class TestXmlMigration_10_3 extends Specification with Loggable {
 //    }
     
     "correctly rewrite node acceptation status" in {
-    compare(Full((migration.foldLeft(node_accept_10)((node,migration)=>migration.node(node).get))) , node_accept_3)
+      compare( compose(migration10_2.node, migration2_3.other, node_accept_10), node_accept_3)
     }
   }
 }

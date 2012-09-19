@@ -361,34 +361,15 @@ class EventLogMigration_2_3(xmlMigration:XmlMigration_2_3) {
     }
     
     eventType.toLowerCase match {
-      case "acceptnode" => create(xmlMigration.node, "AcceptNode")
-      case "refusenode" => create(xmlMigration.node, "RefuseNode")
-      
       case "ruleadded"    => create(xmlMigration.rule, "RuleAdded")
       case "ruledeleted"  => create(xmlMigration.rule, "RuleDeleted")
       case "rulemodified" => create(xmlMigration.rule, "RuleModified")
 
-      case "nodegroupadded"    => create(xmlMigration.nodeGroup, "NodeGroupAdded")
-      case "nodegroupdeleted"  => create(xmlMigration.nodeGroup, "NodeGroupDeleted")
-      case "nodegroupmodified" => create(xmlMigration.nodeGroup, "NodeGroupModified")
-
-      case "directiveadded"    => create(xmlMigration.directive, "DirectiveAdded")
-      case "directivedeleted"  => create(xmlMigration.directive, "DirectiveDeleted")
-      case "directivemodified" => create(xmlMigration.directive, "DirectiveModified")
-        
-      //migrate all start deployment to automatic one
-      case "automaticstartdeployement" =>  create(xmlMigration.addPendingDeployment, "AutomaticStartDeployement")
-        
       /*
-       * nothing to do for these ones, they don't have a fileformat value:
-       * - ApplicationStarted
-       * - ActivateRedButton, ReleaseRedButton
-       * - UserLogin, BadCredentials, UserLogout
-       */ 
-        
-      case _ => 
-        val msg = "Not migrating eventLog with [id: %s] [type: %s]: no handler for that type.".format(eventLog.id, eventLog.eventType)
-        Failure(msg)
+       * When migrating from 2 to 3, no eventType name change, 
+       * so we can just pass it. 
+       */
+      case _    => create(xmlMigration.other, eventType)
     }
   }
 }
@@ -396,8 +377,15 @@ class EventLogMigration_2_3(xmlMigration:XmlMigration_2_3) {
 /**
  * That class handle migration of XML eventLog file
  * from format 2 to a 3. 
+ * 
+ * Hypothesis:
+ * - only rule was change, and only "target" was change 
+ *   (now we can have several targets, so we have <targets><target></target>...</targets> 
+ * - all other elements are well formed, and have a file format attribute, and it's 2
+ *   (because we filtered them to be so)
+ * - only the entity tag (<group ...>, <directive ...>, etc has a fileformat="2" attribute
  */
-class XmlMigration_2_3 extends XmlMigration {
+class XmlMigration_2_3 {
   
   private[this] def failBadElemType(xml:NodeSeq) = { 
     Failure("Not expected type of NodeSeq (wish it was an Elem): " + xml)
@@ -423,7 +411,7 @@ class XmlMigration_2_3 extends XmlMigration {
       migrated     <-
       
                     if (isEntryChild.attribute("changeType").map(_.text) == Some("modify"))
-                    isElem(
+                      isElem(
                         (
                         "rule [fileFormat]" #> Constants.XML_FILE_FORMAT_3  &
                         "target " #>  ChangeLabel("targets") andThen
@@ -432,15 +420,14 @@ class XmlMigration_2_3 extends XmlMigration {
                         "from" #> EncapsulateChild("target"))
                       
                       )(xml)) 
-                      else
-                            isElem(
+                    else //handle add/deletion
+                      isElem(
                         (
                         "rule [fileFormat]" #> Constants.XML_FILE_FORMAT_3  &
                      
                         "target " #> ChangeLabel("targets") andThen
-                                "none " #>  NodeSeq.Empty andThen
+                        "none "   #>  NodeSeq.Empty andThen
                         "targets" #> EncapsulateChild("target")
-                        
                       
                       )(xml)) 
     } yield {
@@ -448,57 +435,17 @@ class XmlMigration_2_3 extends XmlMigration {
     }
   }
   
-  def directive(xml:Elem) : Box[Elem] = {
+  def other(xml:Elem) : Box[Elem] = {
     for {
       isEntryChild <- TestIsEntry(xml)
-      labelOK      <- TestLabel(isEntryChild, "directive")
       fileFormatOK <- TestFileFormat(isEntryChild, Constants.XML_FILE_FORMAT_2.toString())
-      migrated     <- isElem((
-                        "directive [fileFormat]" #> Constants.XML_FILE_FORMAT_3
+      migrated     <- isElem(( 
+                        //here we use the hypothesis that no other element than the entity type has an attribute fileformat to 2
+                        "fileFormat=2 [fileFormat]" #> Constants.XML_FILE_FORMAT_3
                       )(xml)) 
     } yield {
       migrated
     }
   }
-  
-  def nodeGroup(xml:Elem) : Box[Elem] = {
-    for {
-      isEntryChild <- TestIsEntry(xml)
-      labelOK      <- TestLabel(isEntryChild, "nodeGroup")
-      fileFormatOK <- TestFileFormat(isEntryChild, Constants.XML_FILE_FORMAT_2.toString())
-      migrated     <- isElem((
-                        "nodeGroup [fileFormat]" #> Constants.XML_FILE_FORMAT_3
-                      )(xml)) 
-    } yield {
-      migrated
-    }
-  }
-  
 
-  def addPendingDeployment(xml:Elem) : Box[Elem] = {
-    for {
-      isEntryChild <- TestIsEntry(xml)
-      labelOK      <- TestLabel(isEntryChild, "addPendingDeployement")
-      fileFormatOK <- TestFileFormat(isEntryChild, Constants.XML_FILE_FORMAT_2.toString())
-      migrated     <- isElem((
-                        "addPendingDeployement [fileFormat]" #> Constants.XML_FILE_FORMAT_3
-                      )(xml)) 
-    } yield {
-      migrated
-    }
-  }
-  
-
-  def node(xml:Elem) : Box[Elem] = {
-    for {
-      isEntryChild <- TestIsEntry(xml)
-      labelOK      <- TestLabel(isEntryChild, "node")
-      fileFormatOK <- TestFileFormat(isEntryChild, Constants.XML_FILE_FORMAT_2.toString())
-      migrated     <- isElem((
-                        "node [fileFormat]" #> Constants.XML_FILE_FORMAT_3
-                      )(xml)) 
-    } yield {
-      migrated
-    }
-  }
 }
