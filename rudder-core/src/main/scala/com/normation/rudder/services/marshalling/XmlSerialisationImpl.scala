@@ -197,7 +197,7 @@ class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentSta
           <started>{d.started}</started>
           <ended>{d.ended}</ended>
           <status>failure</status>
-          <errorMessage>{d.failure}</errorMessage>
+          <errorMessage>{d.failure.messageChain}</errorMessage>
           )
       case _ => throw new TechnicalException("Bad CurrentDeploymentStatus type, expected a success or an error")
     }
