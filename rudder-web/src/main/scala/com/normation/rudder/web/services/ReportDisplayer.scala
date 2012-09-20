@@ -178,7 +178,7 @@ class ReportDisplayer(
            ) (directiveLineXml)
         case _ => <div>Could not fetch directive {directive.directiveId} </div>
       }
-    } }</tbody></table>++Script( OnLoad(After(TimeSpan(100), JsRaw("""createTooltip();"""))))
+    } }</tbody></table>
   }
 
   /*
@@ -395,7 +395,6 @@ class ReportDisplayer(
               { "sWidth": "10px" , "bSortable": false  , "bVisible":false}
             ]
           });
-      createTooltip();
           $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
           $('td.details', nDetailsRow).attr("colspan",6);
           $('div.innerDetails table', nDetailsRow).attr("style","");
@@ -441,6 +440,7 @@ class ReportDisplayer(
            { "sWidth": "10px", "bSortable": false  , "bVisible":false }
          ]
        } );
+       createTooltip();
        $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
        $('div.innerDetails table:first', nDetailsRow).attr("style","");
        $('div.innerDetails', nDetailsRow).slideDown(300);
