@@ -267,11 +267,12 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
             <div id={successPopupHtmlId}  class="nodisplay" />
             <lift:authz role="node_write">
               {
-                if(!isRootNode(sm.node.main.id) && !isDisplayingInPopup) {
+                if(!isRootNode(sm.node.main.id)) {
                   <fieldset class="nodeIndernal"><legend>Action</legend>
                     {SHtml.ajaxButton("Delete this node", 
-                      { () => {showPopup(sm.node.main.id); } }) 
+                      { () => {showConfirmationDialog(sm.node.main.id); } }, ("id", "boutonTest")) 
                     }
+                    <div id="test"></div>
                   </fieldset>
                 }
               }
@@ -608,6 +609,46 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     SetHtml(deleteNodePopupHtmlId, popupHtml) &
     JsRaw( """ createPopup("%s",300,400) """.format(deleteNodePopupHtmlId))
 
+  }
+  
+  private[this] def showConfirmationDialog(nodeId : NodeId) : JsCmd = {
+    def cancelDelete() : JsCmd = {
+      SetHtml("test", NodeSeq.Empty) &
+      JsRaw(""" $('#boutonTest').show(); """)
+    }
+    
+    val dialog = 
+    <div style="margin:5px;">
+     <div>
+      <div>
+          <img src="/images/icWarn.png" alt="Warning!" height="25" width="25" class="warnicon"
+            style="vertical-align: middle; padding: 0px 0px 2px 0px;"
+          />
+          <b>Are you sure you want to delete this node?</b>      
+      </div>
+      <div style="margin-top:7px">If you choose to remove this node from Rudder, it won't be managed anymore, 
+       and all informations about it will be removed from the application.</div>      
+     </div>
+    <div>
+      <div style="margin-top:7px">
+        <span >
+          { 
+            SHtml.ajaxButton("Cancel", { () => { cancelDelete } })
+          }    
+          { 
+            SHtml.ajaxButton("Delete this node", { () => {removeNode(nodeId) } })
+          }    
+        </span>
+      </div>
+    </div>
+    </div>
+    
+    def showDialog() : JsCmd = {
+      SetHtml("test", dialog) &
+      JsRaw(""" $('#boutonTest').hide(); correctButtons(); $('#test').stop(true, true).slideDown(1000); """)
+    }
+    
+    showDialog
   }
   
   private[this] def removeNode(nodeId: NodeId) : JsCmd = {
