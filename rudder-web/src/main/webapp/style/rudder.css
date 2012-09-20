@@ -582,21 +582,13 @@ div#Detail {
   margin: 10px 10px 0px 5px;
 }
 
-#componentGrid_wrapper {
-  margin: 0;
-}
-#componentGrid {
-  border-left : 0 ;
+
+table.noMarginGrid {
+	border-left : 0 ;
     border-right : 0 ;
 }
-
-#valueGrid_wrapper {
+.noMarginGrid {
   margin: 0;
-}
-
-#valueGrid {
-  border-left : 0 ;
-    border-right : 0 ;
 }
 #reportsGrid_wrapper {
   margin: 0;

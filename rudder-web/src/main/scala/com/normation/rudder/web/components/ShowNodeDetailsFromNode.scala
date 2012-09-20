@@ -96,17 +96,17 @@ class ShowNodeDetailsFromNode(
 ) extends DispatchSnippet with Loggable {
   import ShowNodeDetailsFromNode._
   
-  private[this] lazy val nodeInfoService = inject[NodeInfoService]
-  private[this] lazy val serverAndMachineRepo = inject[LDAPFullInventoryRepository]
-  private[this] lazy val acceptedInventoryDit = inject[InventoryDit]("acceptedNodesDit")
-  private[this] lazy val reportDisplayer = inject[ReportDisplayer]
-  private[this] lazy val logDisplayer = inject[LogDisplayer]
+  private[this] val nodeInfoService = inject[NodeInfoService]
+  private[this] val serverAndMachineRepo = inject[LDAPFullInventoryRepository]
+  private[this] val acceptedInventoryDit = inject[InventoryDit]("acceptedNodesDit")
+  private[this] val reportDisplayer = inject[ReportDisplayer]
+  private[this] val logDisplayer = inject[LogDisplayer]
 
   // to create the JsTree with the Group/CR
-  private[this] lazy val nodeGroupRepository = inject[NodeGroupRepository]
-  private[this] lazy val groupCategoryRepository = inject[NodeGroupCategoryRepository]
-  private[this] lazy val targetService = inject[RuleTargetService]
-  private[this] lazy val dependencyService = inject[DependencyAndDeletionService]  
+  private[this] val nodeGroupRepository = inject[NodeGroupRepository]
+  private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
+  private[this] val targetService = inject[RuleTargetService]
+  private[this] val dependencyService = inject[DependencyAndDeletionService]  
   
   def dispatch = {
     case "display" => { _ => display(false) }

@@ -76,7 +76,7 @@ class ReportDisplayer(
   
   
   
-  private[this] lazy val templateByNodePath = List("templates-hidden", "reports_server")
+  private[this] val templateByNodePath = List("templates-hidden", "reports_server")
   private def templateByNode() =  Templates(templateByNodePath) match {
     case Empty | Failure(_,_,_) => 
       throw new TechnicalException("Template for execution batch history not found. I was looking for %s.html".format(templateByNodePath.mkString("/")))
