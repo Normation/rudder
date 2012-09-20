@@ -423,6 +423,7 @@ object TestLabel {
 
 //test that the node is an entry and that it has EXACTLY one child
 //do not use to test empty entry
+//return the child
 object TestIsEntry {
   def apply(xml:Elem) : Box[Node] = {
     val trimed = XmlUtils.trim(xml)
@@ -477,7 +478,7 @@ case class Encapsulate(label:String) extends Function1[NodeSeq, Option[NodeSeq]]
  * Migrate an event log from fileFormat 1.0 to 2
  * Also take care of categories, etc. 
  */
-class EventLogMigration_10_2(xmlMigration:XmlMigration) {
+class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
  def logger = MigrationLogger(2)
   
   def migrate(eventLog:MigrationEventLog) : Box[MigrationEventLog] = {
@@ -527,26 +528,12 @@ class EventLogMigration_10_2(xmlMigration:XmlMigration) {
   }
 }
 
-trait XmlMigration {
-   def rule(xml:Elem) : Box[Elem] 
-  
-  def directive(xml:Elem) : Box[Elem] 
-  
-  def nodeGroup(xml:Elem) : Box[Elem]
-  
 
-  def addPendingDeployment(xml:Elem) : Box[Elem]
-  
-
-  def node(xml:Elem) : Box[Elem]
-  
-  
-}
 /**
  * That class handle migration of XML eventLog file
  * from a 1.0 format to a 2 one. 
  */
-class XmlMigration_10_2 extends XmlMigration{
+class XmlMigration_10_2 {
   
   private[this] def failBadElemType(xml:NodeSeq) = { 
     Failure("Not expected type of NodeSeq (wish it was an Elem): " + xml)

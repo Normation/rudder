@@ -303,12 +303,15 @@ class RuleGrid(
           %1$s_tableId = $('#%2$s').dataTable({
             "asStripClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
-            "bFilter" : false,
+            "bFilter" : true,
             "bPaginate" : true,
-            "bLengthChange": false,
+            "bLengthChange": true,
             "sPaginationType": "full_numbers",
-
-            "bJQueryUI": false,
+            "bJQueryUI": true,
+            "oLanguage": {
+              "sSearch": ""
+            },
+            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
             "aaSorting": [[ 0, "asc" ]],
             "aoColumns": [
               { "sWidth": "200px" },
@@ -395,12 +398,15 @@ class RuleGrid(
           %1$s_tableId = $('#%2$s').dataTable({
             "asStripClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
-            "bFilter" : false,
+            "bFilter" : true,
             "bPaginate" : true,
-            "bLengthChange": false,
+            "bLengthChange": true,
             "sPaginationType": "full_numbers",
-
-            "bJQueryUI": false,
+            "bJQueryUI": true,
+            "oLanguage": {
+              "sSearch": ""
+            },
+            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
             "aaSorting": [[ 0, "asc" ]],
             "aoColumns": [
               { "sWidth": "200px" },
@@ -501,7 +507,7 @@ class RuleGrid(
           <td>{ //  TARGET NODE GROUP
             displayTargets(line.targets)
           }</td>
-          <td>{ //  COMPLIANCE
+          <td style="text-align:right;">{ //  COMPLIANCE
             buildComplianceChart(line.compliance, line.rule, linkCompliancePopup)
           }</td>
           <td class="complianceTd">{ //  COMPLIANCE
@@ -542,7 +548,7 @@ class RuleGrid(
           <td>{ // EFFECTIVE STATUS
             "N/A"
           }</td>
-          <td>{ //  COMPLIANCE
+          <td style="text-align:right;">{ //  COMPLIANCE
             "N/A"
           }</td>
           <td>{ //  Directive: <not defined> or PIName [(disabled)]
@@ -610,7 +616,7 @@ class RuleGrid(
                                   </span>
                                 </a> &
                               "#severity *" #> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType) &
-                              ".unfoldable [class+]" #> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType).replaceAll(" ", "")
+                              "#severity [class+]" #> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType).replaceAll(" ", "")
                        )(nodeLineXml)
                        xml
                      }
@@ -629,7 +635,7 @@ class RuleGrid(
       <thead>
         <tr class="head">
           <th>Node<span/></th>
-          <th class="severityWidth">Severity<span/></th>
+          <th class="severityWidth">Status<span/></th>
         </tr>
       </thead>
       <tbody>
@@ -642,7 +648,7 @@ class RuleGrid(
     def nodeLineXml : NodeSeq = {
     <tr class="unfoldable">
       <td id="node"></td>
-      <td name="severity" class="severityWidth"><div id="severity"/></td>
+      <td id="severity" class="severityWidth" style="text-align:center;"></td>
     </tr>
   }
 
@@ -687,13 +693,18 @@ class RuleGrid(
         JsRaw("""
           /* Event handler function */
           #table_var# = $('#%1$s').dataTable({
+            "asStripClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
-            "bFilter" : false,
+            "bFilter" : true,
             "bPaginate" : true,
-            "bLengthChange": false,
+            "bLengthChange": true,
             "sPaginationType": "full_numbers",
-            "bJQueryUI": false,
-            "aaSorting": [[ 3, "asc" ]],
+            "bJQueryUI": true,
+            "oLanguage": {
+              "sSearch": ""
+            },
+            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+            "aaSorting": [[ 0, "asc" ]],
             "aoColumns": [
               { "sWidth": "200px" },
               { "sWidth": "300px" },
