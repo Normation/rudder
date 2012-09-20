@@ -26,6 +26,7 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.repository._
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.web.services.UserPropertyService
 
 class CreateCloneGroupPopup(
   nodeGroup : Option[NodeGroup],
@@ -41,6 +42,8 @@ class CreateCloneGroupPopup(
   private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] val categories = groupCategoryRepository.getAllNonSystemCategories
   private[this] val uuidGen = inject[StringUuidGenerator]
+  private[this] val userPropertyService = inject[UserPropertyService]
+  
   var createContainer = false 
   
   def dispatch = {
@@ -53,6 +56,14 @@ class CreateCloneGroupPopup(
       "itemContainer" -> piContainer.toForm_!,
       "itemDescription" -> piDescription.toForm_!,
       "groupType" -> piStatic.toForm_!,
+      "itemReason" -> { piReasons.map { f =>
+        <div> 
+          {f.toForm_!}
+          <div style="margin:5px 0px 15px 0px; float:right;color:#333">
+            {userPropertyService.reasonsFieldExplanation}
+          </div> 
+        </div>
+      } },
       "notifications" -> updateAndDisplayNotifications(formTracker),
       "cancel" -> SHtml.ajaxButton( "Cancel", { () => closePopup() } ) % ( "tabindex", "6" ),
       "save" -> SHtml.ajaxSubmit( "Save", onSubmit _ ) % ( "id", "createCOGSaveButton" ) % ( "tabindex", "5" )
@@ -124,7 +135,7 @@ class CreateCloneGroupPopup(
           NodeGroupCategoryId(piContainer.is),
           nodeGroup.map(x => x.isEnabled).getOrElse(true),
           CurrentUser.getActor,
-          Some("Group created by user")
+          piReasons.map(_.is)
         ) match {
           case Full(x) => 
             closePopup() & 
@@ -162,6 +173,32 @@ class CreateCloneGroupPopup(
   
   ///////////// fields for category settings ///////////////////
   
+  
+  private[this] val piReasons = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+  
+  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    new WBTextAreaField("Message", "") {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % 
+        ("style" -> "height:5em;")
+      override def errorClassName = ""
+      override def validations() = {
+        if(mandatory){
+          valMinLen(5, "The reasons must have at least 5 characters.") _ :: Nil
+        } else {
+          Nil
+        }
+      }
+    }
+  }
+  
   private[this] val piName = {
       new WBTextField("Name", 
         nodeGroup.map(x => "Copy of <%s>".format(x.name)).getOrElse("")) {
@@ -176,7 +213,7 @@ class CreateCloneGroupPopup(
   private[this] val piDescription = new WBTextAreaField("Description", 
       nodeGroup.map(x => x.description).getOrElse("") ) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:10em") % ("tabindex","3")
+    override def inputField = super.inputField  % ("style" -> "height:5em") % ("tabindex","3")
     override def errorClassName = ""
     override def validations =  Nil
   }
