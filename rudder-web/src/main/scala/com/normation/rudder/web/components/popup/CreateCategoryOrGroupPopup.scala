@@ -63,6 +63,7 @@ import com.normation.rudder.domain.queries.DitQueryData
 import com.normation.rudder.domain.queries.And
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.rudder.domain.queries.CriterionLine
+import com.normation.rudder.web.services.UserPropertyService
 
 /**
  * Create a group or a category
@@ -93,6 +94,7 @@ class CreateCategoryOrGroupPopup(
   private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] val categories = groupCategoryRepository.getAllNonSystemCategories
   private[this] val uuidGen = inject[StringUuidGenerator]
+  private[this] val userPropertyService = inject[UserPropertyService]
   
   def dispatch = {
     case "popupContent" => { _ => popupContent }
@@ -134,6 +136,14 @@ class CreateCategoryOrGroupPopup(
       "itemDescription" -> piDescription.toForm_!,
       "notifications" -> updateAndDisplayNotifications(),
       "groupType" -> piStatic.toForm_!,
+      "itemReason" -> { piReasons.map { f =>
+        <div> 
+          {f.toForm_!}
+          <div style="margin:5px 0px 15px 0px; float:right;color:#333">
+            {userPropertyService.reasonsFieldExplanation}
+          </div> 
+        </div>
+      } },
       "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","6"),
       "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCOGSaveButton") % ("tabindex","5")
     )) ++ Script(OnLoad(initJs)) 
@@ -150,7 +160,7 @@ class CreateCategoryOrGroupPopup(
 
   private[this] val piDescription = new WBTextAreaField("Description", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:10em") % ("tabindex","4")
+    override def inputField = super.inputField  % ("style" -> "height:5em") % ("tabindex","4")
     override def errorClassName = "threeColErrors"
     override def validations =  Nil
 
@@ -234,7 +244,7 @@ class CreateCategoryOrGroupPopup(
             )
           , NodeGroupCategoryId(piContainer.is)
           , CurrentUser.getActor
-          , Some("Node Group Category created by user from UI")
+          , piReasons.map(_.is)
         ) match {
           case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
           case Empty =>
@@ -266,7 +276,7 @@ class CreateCategoryOrGroupPopup(
           NodeGroupCategoryId(piContainer.is),
           true,
           CurrentUser.getActor,
-          Some("Group created by user")
+          piReasons.map(_.is)
         ) match {
           case Full(x) =>
             closePopup() & 
@@ -283,6 +293,33 @@ class CreateCategoryOrGroupPopup(
       }
     }
   }
+  
+  
+  private[this] val piReasons = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+  
+  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    new WBTextAreaField("Message", "") {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % 
+        ("style" -> "height:5em;")
+      override def errorClassName = ""
+      override def validations() = {
+        if(mandatory){
+          valMinLen(5, "The reasons must have at least 5 characters.") _ :: Nil
+        } else {
+          Nil
+        }
+      }
+    }
+  }
+  
 
   private[this] def onCreateSuccess : JsCmd = {
     notifications ::=  <span class="greenscala">The group was successfully created</span>
