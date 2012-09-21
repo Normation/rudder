@@ -2466,3 +2466,8 @@ table thead tr .ui-state-default {
 #reportFromDate, #archiveReports {
   margin-left: 7px;	
 }
+
+.ac_over {
+  background-color: #414141 !important;
+  color: white !important;
+}
