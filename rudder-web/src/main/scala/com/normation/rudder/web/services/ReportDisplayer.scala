@@ -111,25 +111,24 @@ class ReportDisplayer(
                      <div>All the last execution reports for this server are ok</div>
                    }
            } ),
-           "grid" -> showReportDetail(staticReportsSeq)
-
+           "grid" -> showReportDetail(staticReportsSeq),
+           "missing" -> showMissingReports(staticReportsSeq),
+           "unexpected" -> showUnexpectedReports(staticReportsSeq)
            )
   }
 
   def showReportDetail(executionsBatches : Seq[ExecutionBatch]) : NodeSeq = {
-    ("#reportsGrid [class+]" #> "fixedlayout tablewidth reportTable" &
+    ("#reportsGrid [class+]" #> "fixedlayout tablewidth " &
      "#reportLine" #> executionsBatches.flatMap(x => x.getNodeStatus()).map { reportStatus =>
          ruleRepository.get(reportStatus.ruleId) match {
            case Full(rule) =>
              val tooltipid = Helpers.nextFuncName
-             (
-                 "#rule [class+]" #> "listopen" &
-                 "#rule *" #> <span jsuuid={reportStatus.ruleId.value.replaceAll("-","")} ruleId={reportStatus.ruleId.value}>{rule.name}</span> &
-                 "#severity *" #> getSeverityFromStatus(reportStatus.nodeReportType) &
-                 ".unfoldable [class+]" #> getSeverityFromStatus(reportStatus.nodeReportType).replaceAll(" ", "") &
-                 ".unfoldable [toggler]" #> tooltipid &
-                 "#jsid [id]" #> tooltipid
-             )(reportsLineXml) ++ showDirectivesReport(reportStatus.directives,tooltipid)
+             ( "#plus *" #> <center><img src="/images/details_open.png"/></center> &
+               "#details *" #> showDirectivesReport(reportStatus.directives,tooltipid) &
+               "#rule *" #> <b>{rule.name}</b> &
+               "#status *" #> <center>{getSeverityFromStatus(reportStatus.nodeReportType)}</center> &
+               "#status [class+]" #> getSeverityFromStatus(reportStatus.nodeReportType).replaceAll(" ", "")
+             )(reportsLineXml)
            case _ => <div>Could not find rule {reportStatus.ruleId} </div>
          }
      }
@@ -138,74 +137,103 @@ class ReportDisplayer(
   }
   
   def showDirectivesReport(directives : Seq[DirectiveStatusReport], id :String) : NodeSeq = {
-    directives.flatMap { directive =>
+       <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth ">
+      <thead>
+        <tr class="head tablewidth">
+          <th class="emptyTd"><span/></th>
+          <th ></th>
+          <th >Directive<span/></th>
+          <th >Status<span/></th>
+          <th style="border-left:0;" ></th>
+        </tr>
+      </thead>
+      <tbody>{ directives.flatMap { directive =>
       directiveRepository.getDirective(directive.directiveId) match {
         case Full(dir) =>
           val tech = directiveRepository.getActiveTechnique(dir.id).map(act => techniqueRepository.getLastTechniqueByName(act.techniqueName).map(_.name).getOrElse("Unknown technique")).getOrElse("Unknown technique")
           val techversion = dir.techniqueVersion;
           val tooltipid = Helpers.nextFuncName
           val severity = getSeverityFromStatus(directive.directiveReportType)
-           (  "#directiveLine [class+]" #> severity.replaceAll(" ", "")  &
-              "#directiveLine [id]" #> id &
-              "#directive [class+]" #> "listopen firstTd" &
-              "#directive *" #> <span>{dir.name}</span> &
-              "#technique *" #> <span>{"%s (%s)".format(tech,techversion)}</span> &
-              "#severity *" #> severity &
-              "td [class+]" #> "detailReport" &
-              ".unfoldable [toggler]" #> tooltipid
-           )(directiveLineXml) ++ showComponentsReports(directive.components,tooltipid)
+          val directiveImage = <img   src="/images/icTools.png" style="padding-left:4px"/>
+          val directiveEditLink:NodeSeq = if (!dir.isSystem)
+              SHtml.a( {()=> RedirectTo("""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(dir.id.value))},directiveImage,("style","padding-left:4px"))
+            else
+              NodeSeq.Empty
+          val components = showComponentsReports(directive.components)
+           ( "#status [class+]" #> severity.replaceAll(" ", "") &
+             "#status *" #> <center>{severity}</center> &
+             "#plus *" #> <center><img src="/images/details_open.png"/></center> &
+             "#details *" #> components &
+             "#directiveLink *" #> directiveEditLink &
+             "#directiveInfo *" #>{
+                        <b>{dir.name}</b>
+                        <span class="tooltipable" tooltipid={tooltipid}>
+                          <img   src="/images/icInfo.png" style="padding-left:4px"/>
+                        </span>
+                         <span/>
+                        <div class="tooltipContent" id={tooltipid}>
+                          Directive <b>{dir.name}</b> is based on technique
+                          <b>{tech}</b> (version {techversion})
+                        </div> }
+           ) (directiveLineXml)
         case _ => <div>Could not fetch directive {directive.directiveId} </div>
       }
-    }
+    } }</tbody></table>
+  }
+
+  /*
+   * Display component details of a directive and add its compoenent value details if needed
+   */
+  def showComponentsReports(components : Seq[ComponentStatusReport]) : NodeSeq = {
+    val worstseverity= ReportType.getSeverityFromStatus(ReportType.getWorseType(components.map(_.componentReportType))).replaceAll(" ", "")
+    <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth">
+     <thead>
+       <tr class="head tablewidth">
+       <th class="emptyTd"><span/></th>
+       <th ><span/></th>
+       <th >Component<span/></th>
+       <th >Status<span/></th>
+       <th style="border-left:0;" ></th>
+     </tr>
+    </thead>
+    <tbody>{
+      components.flatMap { component =>
+        val severity = ReportType.getSeverityFromStatus(component.componentReportType)
+        val value = showComponentValueReport(component.componentValues++component.unexpectedCptValues,worstseverity)
+        ( "#status [class+]" #> severity.replaceAll(" ", "") &
+          "#status *" #> <center>{severity}</center> &
+          "#component *" #>  <b>{component.component}</b> &
+          "#plus *" #> <center><img src="/images/details_open.png"/></center> &
+          "#details *" #>  value
+        ) (componentDetails)
+        } }
+      </tbody>
+    </table>
   }
   
-  def showComponentsReports(components : Seq[ComponentStatusReport], id:String) : NodeSeq = {
-    components.flatMap { component =>
-      val cpValues =(component.componentValues++component.unexpectedCptValues)
-      val severity = getSeverityFromStatus(component.componentReportType)
-      ("#componentLine [class+]" #> severity.replaceAll(" ", "")  &
-       "#componentLine [id]" #> id &
-       "td [class+]" #> "detailReport" &
-       "#severity *" #>  severity ) (
-      cpValues.forall( x => x.componentValue =="None") match {
-        case true => // only None, we won't show the details
-          val tooltipid = Helpers.nextFuncName
-          ( "#component *" #>
-            <span class="tooltipable" tooltipid={tooltipid}>{"%s".format(component.component)}</span>
-            <div class="tooltipContent" id={tooltipid}>
-              <h3>{component.component}</h3>
-              <div>{component.message.map("%s\n".format(_))}</div>
-            </div> &
-            "#component [class+]" #> "firstTd"
-          ) (componentDetails)
-        case false => // standard  display that can be expanded
-          val tooltipid = Helpers.nextFuncName
-           (  "#component [class+]" #> "listopen firstTd" &
-              "#component *" #> <span>{"%s".format(component.component)}</span> &
-              ".unfoldable [toggler]" #> tooltipid
-           )(componentDetails) ++ showComponentValueReport(cpValues,tooltipid)
-      })
-    }
-  }
-  
-  def showComponentValueReport(values : Seq[ComponentValueStatusReport],id:String) : NodeSeq = {
-    values.flatMap { value => val severity = getSeverityFromStatus(value.cptValueReportType)
-             val tooltipid = Helpers.nextFuncName
-           (  "#valueLine [class+]" #> severity.replaceAll(" ", "") &
-              "#valueLine [id]" #> id &
-              "td [class+]" #> "detailReport" &
-              "#componentValue [class+]" #> "firstTd" &
-              "#componentValue *" #>
-                <span class="tooltipable" tooltipid={tooltipid}>{"%s".format(value.componentValue)}</span>
-                <div class="tooltipContent" id={tooltipid}>
-                  <h3>{value.componentValue.name}</h3>
-                  <ul>{
-                    value.message.map(msg => <li>{msg}</li>)
-                  }</ul>
-                </div>&
-              "#keySeverity *" #> severity
-           )(componentValueDetails)
-    }
+ def showComponentValueReport(values : Seq[ComponentValueStatusReport],directiveSeverity:String) : NodeSeq = {
+    val worstseverity= ReportType.getSeverityFromStatus(ReportType.getWorseType(values.map(_.cptValueReportType))).replaceAll(" ", "")
+    <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth ">
+      <thead>
+        <tr class="head tablewidth">
+          <th class="emptyTd"><span/></th>
+          <th >Value<span/></th>
+          <th >Message<span/></th>
+          <th >Status<span/></th>
+          <th style="border-left:0;" ></th>
+        </tr>
+      </thead>
+      <tbody>{
+        values.flatMap { value =>
+          val severity = ReportType.getSeverityFromStatus(value.cptValueReportType)
+          ( "#valueStatus [class+]" #> severity.replaceAll(" ", "") &
+            "#valueStatus *" #> <center>{severity}</center> &
+            "#message *" #>  <ul>{value.message.map(msg => <li>{msg}</li>)}</ul>&
+            "#componentValue *" #>  <b>{value.componentValue}</b> &
+            "#componentValue [class+]" #>  "firstTd"
+         ) (componentValueDetails) } }
+      </tbody>
+    </table>
   }
   
   def getSeverityFromStatus(status : ReportType) : String = {
@@ -254,24 +282,180 @@ class ReportDisplayer(
    */
   def initJs(tableId:String) : JsCmd = {
     JsRaw("""
-        $(".unfoldable").click(function() {
-          var togglerId = $(this).attr("toggler");
-          var totoggle = $(this).siblings('#'+togglerId)
-          var td = $(this).find("td.listclose")
-          if (td.length > 0){
-            totoggle.each( function() {
-              if( $(this).find("td.listclose").length != 0)
-                $(this).click();
-            } )
-            $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
-          } else {
-            $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
-          }
-          totoggle.each( function() { $(this).toggle() } );
-        } );
-      """)& OnLoad(After(TimeSpan(100), JsRaw("""createTooltip();""")))
+        %s
+       var oTable = $('#reportsGrid').dataTable( {
+         "asStripClasses": [ 'color1', 'color2' ],
+         "bAutoWidth": false,
+         "bFilter" : true,
+         "bPaginate" : true,
+         "bLengthChange": true,
+         "sPaginationType": "full_numbers",
+         "bJQueryUI": true,
+         "oLanguage": {
+           "sSearch": ""
+         },
+         "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+         "aaSorting": [[ 1, "asc" ]],
+         "aoColumns": [
+           { "sWidth": "50px", "bSortable": false },
+           { "sWidth": "400px" },
+           { "sWidth": "100px" },
+                      { "sWidth": "10px", "bSortable": false  , "bVisible":false }
+                    ]
+                  } );
+                  $('.dataTables_filter input').attr("placeholder", "Search");
+                  var anOpen = [];
+         %s
+      """.format(FormatDetailsJSFunction,ReportsGridClickFunction))
   }
-  
+
+    /*
+     * That javascript function gather all the data needed to display the details
+     * They are stocked in the details row of the line (which is not displayed)
+     */
+    val FormatDetailsJSFunction = """
+      function fnFormatDetails( oTable, nTr ) {
+        var fnData = oTable.fnGetData( nTr );
+        var oTable2 = fnData[fnData.length-1];
+        var sOut ='<div class="innerDetails">'+oTable2+'</div>';
+        return sOut;
+      }"""
+      /*
+       * That Javascript function describe the behavior of the inner dataTable
+       * On click it open or close its details
+       * the content is dynamically computed
+       */
+    def valueClickJSFunction = {
+      """ $('div.innerDetails table:first td#plus', nDetailsRow).click( function () {
+          var nTr = this.parentNode;
+            var i = $.inArray( nTr, anOpen );
+           if ( i === -1 ) {
+            $('img', this).attr( 'src', "%1$s/images/details_close.png" );
+            var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(Otable3, nTr), 'details' );
+          $('div.innerDetails table', nDetailsRow).dataTable({
+            "asStripClasses": [ 'color1', 'color2' ],
+            "bAutoWidth": false,
+            "bFilter" : false,
+            "bPaginate" : false,
+            "bLengthChange": false,
+            "bInfo" : false,
+            "sPaginationType": "full_numbers",
+            "bJQueryUI": true,
+            "aaSorting": [[ 1, "asc" ]],
+            "aoColumns": [
+              { "sWidth": "65px", "bSortable": false },
+              { "sWidth": "75px" },
+              { "sWidth": "300px" },
+              { "sWidth": "100px" },
+              { "sWidth": "10px" , "bSortable": false  , "bVisible":false}
+            ]
+          });
+          $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
+          $('td.details', nDetailsRow).attr("colspan",6);
+          $('div.innerDetails table', nDetailsRow).attr("style","");
+          $('div.innerDetails', nDetailsRow).slideDown(300);
+          anOpen.push( nTr );
+        }
+        else {
+          $('img', this).attr( 'src', "%1$s/images/details_open.png" );
+          $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
+            oTable.fnClose( nTr );
+            anOpen.splice( i, 1 );
+          } );
+        }
+      } );""".format(S.contextPath)
+    }
+      /*
+       * That Javascript function describe the behavior of the inner dataTable
+       * On click it open or close its details
+       * the content is dynamically computed
+       */
+    def componentClickJSFunction = {
+      """ $('div.innerDetails table:first td#plus', nDetailsRow).click( function () {
+        var nTr = this.parentNode;
+        var i = $.inArray( nTr, anOpen );
+        if ( i === -1 ) {
+          $('img', this).attr( 'src', "%1$s/images/details_close.png" );
+          var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
+          var Otable3 = $('div.innerDetails table', nDetailsRow).dataTable({
+            "asStripClasses": [ 'color1', 'color2' ],
+            "bAutoWidth": false,
+            "bFilter" : false,
+            "bPaginate" : false,
+            "bLengthChange": false,
+            "bInfo" : false,
+            "sPaginationType": "full_numbers",
+            "bJQueryUI": true,
+            "aaSorting": [[ 1, "asc" ]],
+            "aoColumns": [
+              { "sWidth": "35px", "bSortable": false },
+              { "sWidth": "20px", "bSortable": false },
+              { "sWidth": "385px" },
+              { "sWidth": "100px" },
+              { "sWidth": "10px" , "bSortable": false  , "bVisible":false}
+            ]
+          });
+          $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
+          $('td.details', nDetailsRow).attr("colspan",6);
+          $('div.innerDetails table', nDetailsRow).attr("style","");
+          $('div.innerDetails', nDetailsRow).slideDown(300);
+      %2$s
+          anOpen.push( nTr );
+        }
+        else {
+          $('img', this).attr( 'src', "%1$s/images/details_open.png" );
+          $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
+            oTable.fnClose( nTr );
+            anOpen.splice( i, 1 );
+          } );
+        }
+      } );""".format(S.contextPath,valueClickJSFunction)
+    }
+      /*
+       * This is the main Javascript function to have cascaded DataTables
+       */
+   def ReportsGridClickFunction ={
+     """
+      $('#reportsGrid td#plus').click( function () {
+     var nTr = this.parentNode;
+     var i = $.inArray( nTr, anOpen );
+     if ( i === -1 ) {
+       $('img', this).attr( 'src', "%1$s/images/details_close.png" );
+       var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
+         var Otable2 =  $('div.innerDetails table:first', nDetailsRow).dataTable({
+         "asStripClasses": [ 'color1', 'color2' ],
+         "bAutoWidth": false,
+         "bFilter" : false,
+         "bPaginate" : false,
+         "bLengthChange": false,
+         "bInfo" : false,
+         "sPaginationType": "full_numbers",
+         "bJQueryUI": true,
+         "aaSorting": [[ 2, "asc" ]],
+         "aoColumns": [
+           { "sWidth": "10px", "bSortable": false },
+           { "sWidth": "30px", "bSortable": false },
+           { "sWidth": "390px" },
+           { "sWidth": "100px" },
+           { "sWidth": "10px", "bSortable": false  , "bVisible":false }
+         ]
+       } );
+       createTooltip();
+       $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
+       $('div.innerDetails table:first', nDetailsRow).attr("style","");
+       $('div.innerDetails', nDetailsRow).slideDown(300);
+	   %2$s
+       anOpen.push( nTr );
+     }
+     else {
+       $('img', this).attr( 'src', "%1$s/images/details_open.png" );
+       $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
+         oTable.fnClose( nTr );
+         anOpen.splice( i, 1 );
+       } );
+     }
+   } );""".format(S.contextPath,componentClickJSFunction)
+   }
   
    /**
    * Initialize JS callback bound to the servername item
@@ -342,12 +526,10 @@ class ReportDisplayer(
     <table id="reportsGrid" cellspacing="0">
       <thead>
         <tr class="head tablewidth">
-          <th width="10%">Rule</th>
-          <th width="12%">Directive</th>
-          <th width="16%">Component</th>
-          <th width="32%">Value</th>
-          <th width="27%">Technique</th>
-          <th width="13%">Compliance<span/></th>
+          <th ><span/></th>
+          <th>Rule</th>
+          <th>Status<span/></th>
+		  <th style="border-left:0;" ></th>
         </tr>
       </thead>
       <tbody>
@@ -357,35 +539,212 @@ class ReportDisplayer(
   }
 
   def reportsLineXml : NodeSeq = {
-    <tr class="unfoldable">
-      <td id="rule" colspan="5"></td>
-      <td name="severity"><div id="severity"/></td>
+    <tr>
+      <td id="plus" class="firstTd curspoint nestedImg"/>
+      <td id="rule"></td>
+      <td id="status" class="firstTd"></td>
+      <td id="details" ></td>
     </tr>
   }
 
   def directiveLineXml : NodeSeq = {
-    <tr id="directiveLine" class="detailedReportLine unfoldable severity" style="display:none">
-      <td class="emptyTd"/>
-      <td id="directive" colspan="3" ></td>
-      <td name="technique"><div id="technique"/></td>
-      <td name="severity" ><div id="severity"/></td>
+    <tr id="directiveLine" class="detailedReportLine  severity">
+      <td id="first" class="emptyTd"/>
+      <td id="plus" class="firstTd curspoint nestedImg"/>
+      <td id="directive" class="nestedImg"><span id="directiveInfo"/><span id="directiveLink"/></td>
+      <td id="status" class="firstTd"></td>
+      <td id="details" ></td>
     </tr>
   }
   
   def componentDetails : NodeSeq = {
-   <tr id="componentLine" class="detailedReportLine unfoldable severity" style="display:none">
-      <td class="emptyTd" colspan="2"/>
-      <td id="component" colspan="3"></td>
-      <td name="severity"><div id="severity"/></td>
-   </tr>
-
+    <tr id="componentLine" class="detailedReportLine severity" >
+      <td id="first" class="emptyTd"/>
+      <td id="plus" class="firstTd curspoint nestedImg" />
+      <td id="component" ></td>
+      <td id="status" class="firstTd"></td>
+      <td id="details"/>
+    </tr>
   }
 
   def componentValueDetails : NodeSeq = {
-  <tr id="valueLine"  class="detailedReportLine severityClass severity " style="display:none">
-      <td class="emptyTd" colspan="3"/>
-      <td id="componentValue" colspan="2"></td>
-      <td name="keySeverity"><div id="keySeverity"/></td>
-  </tr>
+    <tr id="valueLine"  class="detailedReportLine severityClass severity ">
+      <td id="first" class="emptyTd"/>
+      <td id="componentValue" class="firstTd"></td>
+      <td id="message"></td>
+      <td id="valueStatus" class="firstTd"></td>
+      <td/>
+    </tr>
   }
+
+  def missingGridXml : NodeSeq = {
+
+     <h3>Missing reports</h3>
+      <div>The following reports are what Rudder expected to receive, but did not. This usually indicates a bug in the Technique being used.</div>
+      <table id="missingGrid"  cellspacing="0" style="clear:both">
+        <thead>
+          <tr class="head">
+            <th>Technique<span/></th>
+            <th>Component<span/></th>
+            <th>Value<span/></th>
+          </tr>
+        </thead>
+        <tbody>
+          <div id="reportLine"/>
+        </tbody>
+      </table>
+      <br/>
+    }
+
+  def missingLineXml : NodeSeq = {
+      <tr>
+        <td id="technique"></td>
+        <td id="component"></td>
+        <td id="value"></td>
+      </tr>
+    }
+
+    def showMissingReports(batches:Seq[ExecutionBatch]) : NodeSeq = {
+      def showMissingReport(report:((String,String),String,String)) : NodeSeq = {
+        val techniqueName =report._2
+        val techniqueVersion = report._3
+        val reportValue = report._1
+              ( "#technique *" #>  "%s (%s)".format(techniqueName,techniqueVersion)&
+                "#component *" #>  reportValue._1&
+                "#value *" #>  reportValue._2
+              ) ( missingLineXml )
+            }
+
+      /*
+       * To get missing reports we have to find them in each node report
+       * So we have to go the value level and also get technique details at directive level for each report
+       * we could add more information at each level (directive name? rule name?)
+       */
+      val reports = batches.flatMap(x => x.getNodeStatus()).filter(_.nodeReportType==UnknownReportType).flatMap { reports =>
+        val techniqueComponentsReports = reports.directives.filter(_.directiveReportType==UnknownReportType).flatMap{dir =>
+          val componentsReport = dir.components.filter(_.componentReportType==UnknownReportType).flatMap{component =>
+            val values = (component.componentValues++component.unexpectedCptValues).filter(value => value.cptValueReportType==UnknownReportType&&value.message.size==0)
+            values.map(value => (component.component,value.componentValue))
+            }
+          val tech = directiveRepository.getActiveTechnique(dir.directiveId).map(tech => techniqueRepository.getLastTechniqueByName(tech.techniqueName).map(_.name).getOrElse("Unknown Technique")).getOrElse("Unknown Technique")
+          val techVersion = directiveRepository.getDirective(dir.directiveId).map(_.techniqueVersion.toString).getOrElse("N/A")
+          componentsReport.map(compo=> (compo,tech,techVersion))}
+        techniqueComponentsReports }
+
+      if (reports.size >0){
+          ( "#reportLine" #> reports.flatMap(showMissingReport(_) )
+          ) (missingGridXml ) ++
+            Script( JsRaw("""
+             var oTable%1$s = $('#%2$s').dataTable({
+               "asStripClasses": [ 'color1', 'color2' ],
+               "bAutoWidth": false,
+               "bFilter" : true,
+               "bPaginate" : true,
+               "bLengthChange": true,
+               "sPaginationType": "full_numbers",
+               "bJQueryUI": true,
+               "oLanguage": {
+                 "sSearch": ""
+               },
+               "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+               "aaSorting": [[ 0, "asc" ]],
+               "aoColumns": [
+                 { "sWidth": "150px" },
+                 { "sWidth": "150px" },
+                 { "sWidth": "150px" }
+               ]
+             } );
+         """.format("missing","missingGrid") ) ) }
+        else
+          NodeSeq.Empty
+        }
+
+   def unexpectedGridXml : NodeSeq = {
+
+     <h3>Unexpected reports</h3>
+
+     <div>The following reports were received by Rudder, but did not match the reports declared by the Technique. This usually indicates a bug in the Technique being used.</div>
+
+      <table id="unexpectedGrid"  cellspacing="0" style="clear:both">
+        <thead>
+          <tr class="head">
+            <th>Technique<span/></th>
+            <th>Component<span/></th>
+            <th>Value<span/></th>
+            <th>Message<span/></th>
+          </tr>
+        </thead>
+        <tbody>
+          <div id="reportLine"/>
+        </tbody>
+      </table>
+      <br/>
+    }
+
+    def unexpectedLineXml : NodeSeq = {
+      <tr>
+        <td id="technique"></td>
+        <td id="component"></td>
+        <td id="value"></td>
+        <td id="message"></td>
+      </tr>
+    }
+
+    def showUnexpectedReports(batches:Seq[ExecutionBatch]) : NodeSeq = {
+       def showUnexpectedReport(report:((String,String,List[String]),String,String)) : NodeSeq = {
+        val techniqueName =report._2
+        val techniqueVersion = report._3
+        val reportValue = report._1
+              (  "#technique *" #>  "%s (%s)".format(techniqueName,techniqueVersion)&
+                "#component *" #>  reportValue._1 &
+                "#value *" #>  reportValue._2 &
+                "#message *" #>  <ul>{reportValue._3.map(msg => <li>{msg}</li>)}</ul>
+              ) ( unexpectedLineXml )
+            }
+
+      /*
+       * To get unexpected reports we have to find them in each node report
+       * So we have to go the value level, get the messages
+       * and also get technique details at directive level for each report
+       * we could add more information at each level (directive name? rule name?)
+       */
+      val reports = batches.flatMap(x => x.getNodeStatus()).filter(_.nodeReportType==UnknownReportType).flatMap { reports =>
+        val techniqueComponentsReports = reports.directives.filter(_.directiveReportType==UnknownReportType).flatMap{dir =>
+          val componentsReport = dir.components.filter(_.componentReportType==UnknownReportType).flatMap{component =>
+            val values = (component.componentValues++component.unexpectedCptValues).filter(value => value.cptValueReportType==UnknownReportType&&value.message.size!=0)
+            values.map(value => (component.component,value.componentValue,value.message))
+            }
+          val tech = directiveRepository.getActiveTechnique(dir.directiveId).map(tech => techniqueRepository.getLastTechniqueByName(tech.techniqueName).map(_.name).getOrElse("Unknown Technique")).getOrElse("Unknown Technique")
+          val techVersion = directiveRepository.getDirective(dir.directiveId).map(_.techniqueVersion.toString).getOrElse("N/A")
+          componentsReport.map(compo=> (compo,tech,techVersion))}
+        techniqueComponentsReports }
+       if (reports.size >0){
+         ( "#reportLine" #> reports.flatMap(showUnexpectedReport(_) )
+         ) (unexpectedGridXml ) ++
+            Script( JsRaw("""
+             var oTable%1$s = $('#%2$s').dataTable({
+               "asStripClasses": [ 'color1', 'color2' ],
+               "bAutoWidth": false,
+               "bFilter" : true,
+               "bPaginate" : true,
+               "bLengthChange": true,
+               "sPaginationType": "full_numbers",
+               "bJQueryUI": true,
+               "oLanguage": {
+                 "sSearch": ""
+               },
+               "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+               "aaSorting": [[ 0, "asc" ]],
+               "aoColumns": [
+                 { "sWidth": "100px" },
+                 { "sWidth": "100px" },
+                 { "sWidth": "100px" },
+                 { "sWidth": "200px" }
+               ]
+             } );
+         """.format("unexpected","unexpectedGrid") ) ) }
+        else
+          NodeSeq.Empty
+        }
+
 }
