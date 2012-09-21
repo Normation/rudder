@@ -2471,3 +2471,7 @@ table thead tr .ui-state-default {
   background-color: #414141 !important;
   color: white !important;
 }
+
+fieldset {
+  border: 1px solid #B4B3A8;
+}
