@@ -430,3 +430,7 @@ input .ui-button {
   color: #1F1E1E;
 }
 
+.ac_over {
+  background-color: #414141;
+  color: white;
+}	
