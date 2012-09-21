@@ -2248,7 +2248,7 @@ tr.Applying {
   background-color:#CCCCCC;
 }
 tr.Repaired {
-  background-color:#CCFA10;
+  background-color:#FFFA66;
 }
 tr.Warn {
   background-color:#FF9922;
@@ -2271,7 +2271,7 @@ td.Applying {
   background-color:#CCCCCC;
 }
 td.Repaired {
-  background-color:#CCFA10;
+  background-color:#FFFA66;
 }
 td.Warn {
   background-color:#FF9922;
