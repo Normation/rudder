@@ -50,7 +50,8 @@
 #note: if defined, must not end with /
 #let blank to use default value
 #
-base.url=
+## This property is no more use since Rudder 2.4
+#base.url=
 
 #
 # Directory used to store locks about
