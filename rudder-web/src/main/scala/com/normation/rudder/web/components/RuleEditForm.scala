@@ -239,10 +239,14 @@ class RuleEditForm(
     val updatedrule = ruleRepository.get(rule.id)
     (
       "#details *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
-      "#nameField" #>    <div>{crName.displayNameHtml.get} {updatedrule.map(_.name).openOr("could not fetch rule name")}</div> &
-      "#shortDescriptionField" #>  <div>{crShortDescription.displayNameHtml.get} {updatedrule.map(_.shortDescription).openOr("could not fetch rule short descritption")}</div> &
-      "#longDescriptionField" #>  <div>{crLongDescription.displayNameHtml.get} {updatedrule.map(_.longDescription).openOr("could not fetch rule long descritption")}</div> &
-      "#compliancedetails" #> showCompliance(updatedrule.get)
+      "#nameField" #>    <div>{crName.displayNameHtml.getOrElse("Could not fetch rule name")} {updatedrule.map(_.name).openOr("could not fetch rule name")}</div> &
+      "#shortDescriptionField" #>  <div>{crShortDescription.displayNameHtml.getOrElse("Could not fetch short description")} {updatedrule.map(_.shortDescription).openOr("could not fetch rule short descritption")}</div> &
+      "#longDescriptionField" #>  <div>{crLongDescription.displayNameHtml.getOrElse("Could not fetch description")} {updatedrule.map(_.longDescription).openOr("could not fetch rule long description")}</div> &
+      "#compliancedetails" #> { updatedrule match {
+        case Full(rule) => showCompliance(rule)
+        case _ => logger.debug("Could not display rule details for rule %s".format(rule.id))
+          <div>Could not fetch rule</div>
+      }}
     )(details)
   }
  
@@ -411,8 +415,8 @@ class RuleEditForm(
           }) match {
             case Full(x) => 
               onSuccessCallback() & 
-              SetHtml("details",
-                <div id={"details"}>Rule successfully deleted</div>
+              SetHtml("editRuleZone",
+                <div id="editRuleZone">Rule successfully deleted</div>
               ) &
               SetHtml(htmlId_rule, 
                 <div id={htmlId_rule}>Rule successfully deleted</div>
