@@ -62,6 +62,9 @@ import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import com.normation.eventlog.EventActor
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
+import com.normation.rudder.services.queries.QueryProcessor
+import com.normation.rudder.domain.queries._
+import java.lang.IllegalArgumentException
 
 
 /**
@@ -315,7 +318,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
         case e:EmptyBox => //on an error here, stop
           logger.error((e ?~! "Error when trying to execute pre-accepting for phase %s. Stop.".format(unitAcceptor.name)).messageChain)
           //stop now
-          return Seq.fill(ids.size)(e)
+          return Seq(e)
       }
     }
     
@@ -362,7 +365,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
       case e:EmptyBox => //on an error here, rollback all accpeted
         logger.error((e ?~! "Error when trying to execute accepting new server post-processing. Rollback.").messageChain)
         rollback(unitAcceptors, acceptedSMs,actor)
-        Seq.fill(ids.size)(e)
+        Seq(e)
     }
   }
 
@@ -698,6 +701,122 @@ class AcceptNodeRule(
 }
 
 /**
+ * We don't want to have node with the same hostname.
+ * That means don't accept two nodes with the same hostname, and don't 
+ * accept a node with a hostname already existing in database. 
+ */
+class AcceptHostnameAndIp(
+    override val name: String
+  , inventoryStatus  : InventoryStatus
+  , queryProcessor   : QueryProcessor
+  , ditQueryData     : DitQueryData
+) extends UnitAcceptInventory {
+  
+  
+
+  
+  
+  //return the list of ducplicated hostname from user input - we want that to be empty
+  private[this] def checkDuplicateString(attributes:Seq[String], attributeName:String) : Box[Unit]= {
+    val duplicates = attributes.groupBy( x => x ).collect { case (k,v) if v.size > 1 => v.head }.toSeq.sorted
+    if(duplicates.isEmpty) Full({})
+    else Failure("You can not accept two nodes with the same %s: %s".format(attributeName,duplicates.mkString("'", "', ", "'")))
+  }
+  
+  //some constant data for the query about hostname on node
+  private[this] val objectType = ditQueryData.criteriaMap(OC_NODE)
+  private[this] val hostnameCriteria = objectType.criteria.find(c => c.name == A_HOSTNAME).
+    getOrElse(throw new IllegalArgumentException("Data model inconsistency: missing '%s' criterion in object type '%s'".format(A_HOSTNAME, OC_NODE) ))
+  private[this] val ipCriteria = objectType.criteria.find(c => c.name == A_LIST_OF_IP).
+    getOrElse(throw new IllegalArgumentException("Data model inconsistency: missing '%s' criterion in object type '%s'".format(A_LIST_OF_IP, OC_NODE) ))
+    
+  /*
+   * search in database nodes having the same hostname as one provided.
+   * Only return existing hostname (and so again, we want that to be empty)
+   */
+  private[this] def queryForDuplicateHostnameAndIp(hostnames:Seq[String], ips: Seq[String]) : Box[Unit] = {
+    def failure(duplicates:Seq[String], name:String) = {
+      Failure("There is already a node with %s %s in database. You can not add it again.".format(name, duplicates.mkString("'", "' or '", "'")))
+    }
+      
+    val hostnameCriterion = hostnames.map { h =>
+      CriterionLine(
+          objectType = objectType
+        , attribute  = hostnameCriteria
+        , comparator = Equals
+        , value      = h
+      )
+    }
+    
+
+
+    val ipCriterion = ips.map(ip =>
+      CriterionLine(
+          objectType = objectType
+        , attribute  = ipCriteria
+        , comparator = Equals
+        , value      = ip
+      )      
+    )
+    
+    for {
+      duplicatesH    <- queryProcessor.process(Query(NodeReturnType,Or,hostnameCriterion)).map { nodesInfo => 
+                          //here, all nodes found are duplicate-in-being. They should be unique, but
+                          //if not, we will don't group them that the duplicate appears in the list
+                          nodesInfo.map( ni => ni.hostname)
+                        } 
+      noDuplicatesH  <- if(duplicatesH.isEmpty) Full({})
+                        else failure(duplicatesH, "Hostname")
+      duplicatesIP   <- queryProcessor.process(Query(NodeReturnType,Or,ipCriterion)).map { nodesInfo => 
+                          nodesInfo.map( ni => ni.ips.filter(ip1 => ips.exists(ip2 => ip2 == ip1))).flatten
+                        } 
+      noDuplicatesIP <- if(duplicatesIP.isEmpty) Full({})
+                        else failure(duplicatesIP , "IP")
+    } yield {
+      {}
+    }
+  }
+  
+  
+  override def preAccept(sms:Seq[FullInventory], actor:EventActor) : Box[Seq[FullInventory]] = {
+    
+    val hostnames = sms.map( _.node.main.hostname)
+    val ips = sms.map( _.node.serverIps).flatten.filter( InetAddressUtils.getAddressByName(_) match {
+      case None => false
+      //we don't want to check for duplicate loopback and the like - we expect them to be duplicated
+      case Some(ip) => !(ip.isAnyLocalAddress || ip.isLoopbackAddress || ip.isMulticastAddress )
+    })
+    
+    for {
+      noDuplicateHostnames <- checkDuplicateString(hostnames, "hostname")
+      noDuplicateIPs       <- checkDuplicateString(ips, "IP")
+      noDuplicateInDB      <- queryForDuplicateHostnameAndIp(hostnames,ips)
+    } yield {
+      sms
+    }    
+  }
+  
+  override val fromInventoryStatus = inventoryStatus
+  
+  override val toInventoryStatus = inventoryStatus  
+    
+  /**
+   * Only add the server to the list of children of the policy server
+   */
+  def acceptOne(sm:FullInventory, actor:EventActor) : Box[FullInventory] = Full(sm)
+  
+  /**
+   * An action to execute after the whole batch 
+   */
+  def postAccept(sms:Seq[FullInventory], actor:EventActor) : Box[Seq[FullInventory]] = Full(sms)
+
+  /**
+   * Execute a rollback for the given inventory
+   */
+  def rollback(sms:Seq[FullInventory], actor:EventActor) : Unit = {}
+}
+
+/**
  * A unit acceptor in charge to historize the 
  * state of the Inventory so that we can keep it
  * forever. 
@@ -731,7 +850,6 @@ class HistorizeNodeStateOnChoice(
    * inventory to remove
    */
   def rollback(sms:Seq[FullInventory], actor:EventActor) : Unit = {}
-  
   
   //////////// refuse //////////// 
   override def refuseOne(srv:Srv, actor:EventActor) : Box[Srv] = {
