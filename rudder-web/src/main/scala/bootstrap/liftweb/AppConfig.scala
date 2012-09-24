@@ -619,6 +619,14 @@ class AppConfig extends Loggable {
     ldapNodeGroupRepository,
     ldapNodeConfigurationRepository,
     AcceptedInventory)
+  
+  @Bean
+  def acceptHostnameAndIp: UnitAcceptInventory = new AcceptHostnameAndIp(
+    "accept_new_server:check_hostname_unicity",
+    AcceptedInventory,
+    queryProcessor,
+    ditQueryData
+  )
 
   @Bean
   def addNodeToDynGroup: UnitAcceptInventory with UnitRefuseInventory = new AddNodeToDynGroup(
@@ -694,6 +702,7 @@ class AppConfig extends Loggable {
       acceptNodeAndMachineInNodeOu ::
       acceptInventory ::
       acceptNodeRule ::
+      acceptHostnameAndIp ::
       Nil,
       //the sequence of unit process to refuse a new inventory
       historizeNodeStateOnChoice ::
