@@ -75,7 +75,8 @@ function createPopup(popupName, minHeight, minWidth){
 
 /* slickboxShowHide */
 
-$(document).ready(function() {
+	$(document).ready(function() {
+
 	var config = {
 		selectors: {
 			navigation: "#navigation",
@@ -90,7 +91,7 @@ $(document).ready(function() {
 		},
 
 		image: {
-			prefix: "/images/",
+			prefix: contextPath+"/images/",
 
 			navigation: {
 				minimize: "puceHide.jpg",
