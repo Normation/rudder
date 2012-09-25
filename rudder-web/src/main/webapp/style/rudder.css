@@ -670,7 +670,11 @@ table.noMarginGrid {
 
 .wbBaseField {
   vertical-align: middle;
-  margin-top:7px;
+  margin-top:4px;
+  display:block;
+  overflow:hidden;
+  padding-top:2px;
+  padding-bottom:2px;
 }
 
 .policyDisplay {
