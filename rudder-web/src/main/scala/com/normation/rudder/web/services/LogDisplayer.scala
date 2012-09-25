@@ -141,11 +141,11 @@ class LogDisplayer(
             "bAutoWidth": false,
             "bFilter" :true,
             "bPaginate" :true,
-            "bLengthChange": false,
+            "bLengthChange": true,
             %2$s
             "sPaginationType": "full_numbers",
             "oLanguage": {
-              "sSearch": "Filter:"
+              "sSearch": ""
             },
             "bJQueryUI": false,
             "aaSorting":[],
@@ -157,8 +157,11 @@ class LogDisplayer(
               { "sWidth": "100px" },
               { "sWidth": "100px" },
               { "sWidth": "220px" }
-            ]
-          });moveFilterAndFullPaginateArea('#%3$s');""".format(gridName,extension, gridName).replaceAll("#table_var#",jsVarNameForId(gridName))
+            ],
+            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
+          });
+            $('.dataTables_filter input').attr("placeholder", "Search"); 
+            """.format(gridName,extension, gridName).replaceAll("#table_var#",jsVarNameForId(gridName))
         )
     )
   }
