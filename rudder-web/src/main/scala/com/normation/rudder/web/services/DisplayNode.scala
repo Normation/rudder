@@ -156,7 +156,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                 "sPaginationType": "full_numbers",
                 "bPaginate": true, 
                 "bAutoWidth": false, 
-                "bInfo":false,
+                "bInfo":true,
                 "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
               });
               
