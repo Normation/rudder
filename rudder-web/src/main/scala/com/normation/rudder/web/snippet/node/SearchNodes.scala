@@ -280,7 +280,8 @@ class SearchNodes extends StatefulSnippet with Loggable {
     val arr = s.split("\\|")
     val nodeId = arr(1)
     SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId))).display()) &
-    updateLocationHash(nodeId)
+    updateLocationHash(nodeId) &
+    JsRaw("""scrollToElement("serverDetails");""".format(nodeId)) 
   }
   
   private def updateLocationHash(nodeId:String) =
