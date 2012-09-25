@@ -49,6 +49,7 @@ import com.normation.rudder.services.marshalling.NodeGroupUnserialisation
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
 import com.normation.utils.XmlUtils
+import com.normation.rudder.migration.XmlEntityMigration
 
 import net.liftweb.common.Box
 
@@ -56,6 +57,7 @@ class GitParseGroupLibrary(
     categoryUnserialiser: NodeGroupCategoryUnserialisation
   , groupUnserialiser   : NodeGroupUnserialisation
   , repo                : GitRepositoryProvider
+  , xmlMigration        : XmlEntityMigration
   , libRootDirectory    : String //relative name to git root file
   , categoryFileName    : String = "category.xml"
 ) extends ParseGroupLibrary {
@@ -90,9 +92,10 @@ class GitParseGroupLibrary(
       // ignore files other than NodeGroup (UUID.xml) and directories
       // don't forget to recurse sub-categories 
       for {
-        categoryXml  <- GitFindUtils.getFileContent(repo.db, revTreeId, categoryPath){ inputStream =>
+        xml          <- GitFindUtils.getFileContent(repo.db, revTreeId, categoryPath){ inputStream =>
                           XmlUtils.parseXml(inputStream, Some(categoryPath)) ?~! "Error when parsing file '%s' as a category".format(categoryPath)
                         }
+        categoryXml  <- xmlMigration.getUpToDateXml(xml)
         category     <- categoryUnserialiser.unserialise(categoryXml) ?~! "Error when unserializing category for file '%s'".format(categoryPath)
         groupFiles   =  {
                           paths.filter { p =>
@@ -104,10 +107,11 @@ class GitParseGroupLibrary(
                         }
         groups       <- sequence(groupFiles.toSeq) { groupPath =>
                           for {
-                            groupXml <- GitFindUtils.getFileContent(repo.db, revTreeId, groupPath){ inputStream =>
+                            xml2     <- GitFindUtils.getFileContent(repo.db, revTreeId, groupPath){ inputStream =>
                               XmlUtils.parseXml(inputStream, Some(groupPath)) ?~! "Error when parsing file '%s' as a directive".format(groupPath)
                             }
-                            group    <-  groupUnserialiser.unserialise(groupXml) ?~! "Error when unserializing group for file '%s'".format(groupPath)
+                            groupXml <- xmlMigration.getUpToDateXml(xml2)
+                            group    <- groupUnserialiser.unserialise(groupXml) ?~! "Error when unserializing group for file '%s'".format(groupPath)
                           } yield {
                             group
                           }

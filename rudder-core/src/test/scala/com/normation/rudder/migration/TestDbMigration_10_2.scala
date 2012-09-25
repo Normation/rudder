@@ -189,6 +189,7 @@ class TestDbMigration_2_3 extends DBCommon {
     lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
     , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
+    , null //don't test pre migration
     , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
     , successLogger = successLogger
     , batchSize = 2
@@ -300,9 +301,18 @@ CREATE TEMP TABLE EventLog (
 @RunWith(classOf[JUnitRunner])
 class TestDbMigration_10_3 extends DBCommon {
 
-      lazy val migration = new EventLogsMigration_2_3(
+ lazy val logs_10_2 = new EventLogsMigration_10_2(
+      jdbcTemplate
+    , new EventLogMigration_10_2(new XmlMigration_10_2())
+    , (f:Failure) => throw new MigEx102(f.messageChain)
+    , successLogger
+    , 2
+  )
+  
+  lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
     , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
+    , eventLogsMigration_10_2 = logs_10_2
     , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
     , successLogger = successLogger
     , batchSize = 2
@@ -360,7 +370,7 @@ CREATE TEMP TABLE EventLog (
     
     "be all found" in {          
       val logs = migration.findAllEventLogs.open_!
-      val parentlogs = migration.parent.findAllEventLogs.open_!
+      val parentlogs = migration.eventLogsMigration_10_2.findAllEventLogs.open_!
       logs.size+parentlogs.size must beEqualTo(logs10WithId.size) and
       forallWhen(logs) {
         case MigrationEventLog(id, eventType, data) => 
@@ -372,7 +382,7 @@ CREATE TEMP TABLE EventLog (
     }
     
     "be correctly migrated" in {
-      migration.parent.processEventLogs()
+      migration.eventLogsMigration_10_2.processEventLogs()
       migration.processEventLogs
       
       val logs = jdbcTemplate.query("select * from eventlog", testLogRowMapper).asScala.filter(log => 
@@ -414,18 +424,34 @@ CREATE TEMP TABLE EventLog (
  */
 @RunWith(classOf[JUnitRunner])
 class TestDbMigration_10_3b extends DBCommon {
-
+  lazy val logs_10_2 = new EventLogsMigration_10_2(
+      jdbcTemplate
+    , new EventLogMigration_10_2(new XmlMigration_10_2())
+    , (f:Failure) => throw new MigEx102(f.messageChain)
+    , successLogger
+    , 2
+  )
+  
   lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
     , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
+    , eventLogsMigration_10_2 = logs_10_2
     , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
     , successLogger = successLogger
     , batchSize = 2
   )
+  
+  lazy val logRepo = new MigrationEventLogRepository(squerylConnectionProvider)
 
+  lazy val migrationManagement_10_2 = new ControlEventLogsMigration_10_2(
+          migrationEventLogRepository = logRepo
+        , logs_10_2
+  )
+  
   lazy val migrationManagement = new ControlEventLogsMigration_2_3(
-          migrationEventLogRepository = new MigrationEventLogRepository(squerylConnectionProvider)
-          , migration
+          migrationEventLogRepository = logRepo
+        , migration
+        , migrationManagement_10_2
   )
  
   val sqlClean = "" //no need to clean temp data table. 

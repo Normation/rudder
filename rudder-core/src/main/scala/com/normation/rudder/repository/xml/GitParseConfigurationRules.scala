@@ -48,10 +48,12 @@ import com.normation.utils.XmlUtils
 
 import net.liftweb.common.Box
 import net.liftweb.common.Loggable
+import com.normation.rudder.migration.XmlEntityMigration
 
 class GitParseRules(
     ruleUnserialisation: RuleUnserialisation
-  , repo                            : GitRepositoryProvider
+  , repo               : GitRepositoryProvider
+  , xmlMigration       : XmlEntityMigration
   , rulesRootDirectory : String //relative name to git root file
 ) extends ParseRules with Loggable {
   
@@ -91,7 +93,12 @@ class GitParseRules(
                    }
                  }
       rules     <- sequence(xmls) { xml =>
-                   ruleUnserialisation.unserialise(xml)
+                     for {
+                       ruleXml <- xmlMigration.getUpToDateXml(xml)
+                       rule    <- ruleUnserialisation.unserialise(xml)
+                     } yield {
+                       rule
+                     }                   
                  }
     } yield {
       rules

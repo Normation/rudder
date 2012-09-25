@@ -206,6 +206,7 @@ class TestManageMigration_2_3 extends DBCommon {
       lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
     , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
+    , null
     , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
     , successLogger = successLogger
     , batchSize = 2
@@ -214,6 +215,7 @@ class TestManageMigration_2_3 extends DBCommon {
   lazy val migrationManagement = new ControlEventLogsMigration_2_3(
           migrationEventLogRepository = new MigrationEventLogRepository(squerylConnectionProvider)
         , migration
+        , null
       )
   val sqlClean = "" //no need to clean temp data table.   
   
