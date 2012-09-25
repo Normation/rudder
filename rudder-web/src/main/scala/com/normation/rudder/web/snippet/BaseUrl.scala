@@ -36,8 +36,9 @@ package com.normation.rudder.web.snippet
 
 import scala.xml._
 import net.liftweb.http._
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JE._
 import net.liftweb.util._
-
 import com.normation.rudder.web.services.GetBaseUrlService
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 
@@ -51,5 +52,12 @@ class BaseUrl {
 
   val urlService = inject[GetBaseUrlService]
 
-  def display = <base href={(urlService.baseUrl getOrElse S.hostAndPath)+"/"} />
+  /*
+   * We still need to have a base url for some javascript
+   * But now we use it as a javascript variable
+   */
+  def display = Script(JsRaw("""
+    var contextPath = '%s';""".format(S.contextPath)))
+
+/*I keep the old base url as a reminder <base href={(urlService.baseUrl getOrElse S.hostAndPath)+"/"} />*/
 }

@@ -162,6 +162,12 @@ class AcceptNode {
       //TODO : manage error message
       S.clearCurrentNotices
       newNodeManager.accept(listNode, CurrentUser.getActor).zip(listNode).foreach { case (box,id) => box match {
+        case f:Failure => 
+          S.error(
+            <span class="error">
+              {f.messageChain}
+            </span>
+          )
         case e:EmptyBox => 
           logger.error("Add new node '%s' lead to Failure.".format(id.value.toString), e)
           S.error(<span class="error">Error while accepting node(s).</span>)
