@@ -421,13 +421,32 @@ object TestLabel {
   }
 }
 
+
+object TestIsElem {
+  
+  private[this] def failBadElemType(xml:NodeSeq) = { 
+    Failure("Not expected type of NodeSeq (wish it was an Elem): " + xml)
+  }
+  
+  def apply(xml:NodeSeq) : Box[Elem] = {
+    xml match {
+      case seq if(seq.size == 1) => seq.head match {
+        case e:Elem => Full(e)
+        case x => failBadElemType(x)
+      }
+      case x => failBadElemType(x)
+    }
+  }  
+}
+
+
 //test that the node is an entry and that it has EXACTLY one child
 //do not use to test empty entry
 //return the child
 object TestIsEntry {
-  def apply(xml:Elem) : Box[Node] = {
+  def apply(xml:Elem) : Box[Elem] = {
     val trimed = XmlUtils.trim(xml)
-    if(trimed.label.toLowerCase == "entry" && trimed.child.size == 1) Full(trimed.child.head)
+    if(trimed.label.toLowerCase == "entry" && trimed.child.size == 1) TestIsElem(trimed.child.head)
     else Failure("Given XML data has not an 'entry' root element and exactly one child: " + trimed)
   }
 }
@@ -491,39 +510,44 @@ class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
     val MigrationEventLog(id,eventType,data) = eventLog
     
     //utility to factor common code
-    def create(xmlFn:Elem => Box[Elem], name:String) = {
-      xmlFn(data).map { xml => MigrationEventLog(id, name, xml) }
+    def create(optElem:Box[Elem], name:String) = {
+       optElem.map { xml => MigrationEventLog(id, name, <entry>{xml}</entry>) }
     }
     
-    eventType.toLowerCase match {
-      case "acceptnode" => create(xmlMigration.node, "AcceptNode")
-      case "refusenode" => create(xmlMigration.node, "RefuseNode")
-      
-      case "configurationruleadded"    => create(xmlMigration.rule, "RuleAdded")
-      case "configurationruledeleted"  => create(xmlMigration.rule, "RuleDeleted")
-      case "configurationrulemodified" => create(xmlMigration.rule, "RuleModified")
-
-      case "nodegroupadded"    => create(xmlMigration.nodeGroup, "NodeGroupAdded")
-      case "nodegroupdeleted"  => create(xmlMigration.nodeGroup, "NodeGroupDeleted")
-      case "nodegroupmodified" => create(xmlMigration.nodeGroup, "NodeGroupModified")
-
-      case "policyinstanceadded"    => create(xmlMigration.directive, "DirectiveAdded")
-      case "policyinstancedeleted"  => create(xmlMigration.directive, "DirectiveDeleted")
-      case "policyinstancemodified" => create(xmlMigration.directive, "DirectiveModified")
-        
-      //migrate all start deployment to automatic one
-      case "startdeployement" =>  create(xmlMigration.addPendingDeployment, "AutomaticStartDeployement")
-        
-      /*
-       * nothing to do for these ones:
-       * - ApplicationStarted
-       * - ActivateRedButton, ReleaseRedButton
-       * - UserLogin, BadCredentials, UserLogout
-       */ 
-        
-      case _ => 
-        val msg = "Not migrating eventLog with [id: %s] [type: %s]: no handler for that type.".format(eventLog.id, eventLog.eventType)
-        Failure(msg)
+    for {
+      xml      <- TestIsEntry(data)
+      migrated <- eventType.toLowerCase match {
+                    case "acceptnode" => create(xmlMigration.node(xml), "AcceptNode")
+                    case "refusenode" => create(xmlMigration.node(xml), "RefuseNode")
+                    
+                    case "configurationruleadded"    => create(xmlMigration.rule(xml), "RuleAdded")
+                    case "configurationruledeleted"  => create(xmlMigration.rule(xml), "RuleDeleted")
+                    case "configurationrulemodified" => create(xmlMigration.rule(xml), "RuleModified")
+              
+                    case "nodegroupadded"    => create(xmlMigration.nodeGroup(xml), "NodeGroupAdded")
+                    case "nodegroupdeleted"  => create(xmlMigration.nodeGroup(xml), "NodeGroupDeleted")
+                    case "nodegroupmodified" => create(xmlMigration.nodeGroup(xml), "NodeGroupModified")
+              
+                    case "policyinstanceadded"    => create(xmlMigration.directive(xml), "DirectiveAdded")
+                    case "policyinstancedeleted"  => create(xmlMigration.directive(xml), "DirectiveDeleted")
+                    case "policyinstancemodified" => create(xmlMigration.directive(xml), "DirectiveModified")
+                      
+                    //migrate all start deployment to automatic one
+                    case "startdeployement" =>  create(xmlMigration.addPendingDeployment(xml), "AutomaticStartDeployement")
+                      
+                    /*
+                     * nothing to do for these ones:
+                     * - ApplicationStarted
+                     * - ActivateRedButton, ReleaseRedButton
+                     * - UserLogin, BadCredentials, UserLogout
+                     */ 
+                      
+                    case _ => 
+                      val msg = "Not migrating eventLog with [id: %s] [type: %s]: no handler for that type.".format(eventLog.id, eventLog.eventType)
+                      Failure(msg)
+                  }
+    } yield {
+      migrated
     }
   }
 }
@@ -535,28 +559,13 @@ class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
  */
 class XmlMigration_10_2 {
   
-  private[this] def failBadElemType(xml:NodeSeq) = { 
-    Failure("Not expected type of NodeSeq (wish it was an Elem): " + xml)
-  }
-  
-  private[this] def isElem(xml:NodeSeq) = {
-    xml match {
-      case seq if(seq.size == 1) => seq.head match {
-        case e:Elem => Full(e)
-        case x => failBadElemType(x)
-      }
-      case x =>
-        val y = x
-        failBadElemType(x)
-    }
-  }
+
   
   def rule(xml:Elem) : Box[Elem] = {
     for {
-      isEntryChild <- TestIsEntry(xml)
-      labelOK      <- TestLabel(isEntryChild, "configurationRule")
-      fileFormatOK <- TestFileFormat(isEntryChild, Constants.XML_FILE_FORMAT_1_0)
-      migrated     <- isElem((
+      labelOK      <- TestLabel(xml, "configurationRule")
+      fileFormatOK <- TestFileFormat(xml, Constants.XML_FILE_FORMAT_1_0)
+      migrated     <- TestIsElem((
                         "configurationRule" #> ChangeLabel("rule") andThen
                         "rule [fileFormat]" #> Constants.XML_FILE_FORMAT_2 andThen
                         "policyInstanceIds" #> ChangeLabel("directiveIds") &
@@ -569,10 +578,9 @@ class XmlMigration_10_2 {
   
   def directive(xml:Elem) : Box[Elem] = {
     for {
-      isEntryChild <- TestIsEntry(xml)
-      labelOK      <- TestLabel(isEntryChild, "policyInstance")
-      fileFormatOK <- TestFileFormat(isEntryChild, Constants.XML_FILE_FORMAT_1_0)
-      migrated     <- isElem((
+      labelOK      <- TestLabel(xml, "policyInstance")
+      fileFormatOK <- TestFileFormat(xml, Constants.XML_FILE_FORMAT_1_0)
+      migrated     <- TestIsElem((
                         "policyInstance" #> ChangeLabel("directive") andThen
                         "directive [fileFormat]" #> Constants.XML_FILE_FORMAT_2 andThen
                         "policyTemplateName" #> ChangeLabel("techniqueName") &
@@ -584,12 +592,39 @@ class XmlMigration_10_2 {
     }
   }
   
+  def activeTechniqueCategory(xml:Elem) : Box[Elem] = {
+    for {
+      labelOK      <- TestLabel(xml, "policyLibraryCategory")
+      fileFormatOK <- TestFileFormat(xml, Constants.XML_FILE_FORMAT_1_0)
+      migrated     <- TestIsElem((
+                        "policyLibraryCategory" #> ChangeLabel("activeTechniqueCategory") andThen
+                        "activeTechniqueCategory [fileFormat]" #> Constants.XML_FILE_FORMAT_2
+                      )(xml)) 
+    } yield {
+      migrated
+    }
+  }
+    
+  def activeTechnique(xml:Elem) : Box[Elem] = {
+    for {
+      labelOK      <- TestLabel(xml, "policyLibraryTemplate")
+      fileFormatOK <- TestFileFormat(xml, Constants.XML_FILE_FORMAT_1_0)
+      migrated     <- TestIsElem((
+                        "policyLibraryTemplate" #> ChangeLabel("activeTechnique") andThen
+                        "activeTechnique [fileFormat]" #> Constants.XML_FILE_FORMAT_2 andThen
+                        "policyTemplateName" #> ChangeLabel("techniqueName") &
+                        "isActivated" #> ChangeLabel("isEnabled")
+                      )(xml)) 
+    } yield {
+      migrated
+    }
+  }
+  
   def nodeGroup(xml:Elem) : Box[Elem] = {
     for {
-      isEntryChild <- TestIsEntry(xml)
-      labelOK      <- TestLabel(isEntryChild, "nodeGroup")
-      fileFormatOK <- TestFileFormat(isEntryChild, Constants.XML_FILE_FORMAT_1_0)
-      migrated     <- isElem((
+      labelOK      <- TestLabel(xml, "nodeGroup")
+      fileFormatOK <- TestFileFormat(xml, Constants.XML_FILE_FORMAT_1_0)
+      migrated     <- TestIsElem((
                         "nodeGroup [fileFormat]" #> Constants.XML_FILE_FORMAT_2 andThen
                         "isActivated" #> ChangeLabel("isEnabled")
                       )(xml)) 
@@ -601,10 +636,9 @@ class XmlMigration_10_2 {
 
   def addPendingDeployment(xml:Elem) : Box[Elem] = {
     for {
-      isEntryChild <- TestIsEntry(xml)
-      labelOK      <- TestLabel(isEntryChild, "addPending")
-      fileFormatOK <- if(isEntryChild.attribute("fileFormat").isEmpty) Full("OK") else Failure("Bad file format, expecting none: " + xml)
-      migrated     <- isElem((
+      labelOK      <- TestLabel(xml, "addPending")
+      fileFormatOK <- if(xml.attribute("fileFormat").isEmpty) Full("OK") else Failure("Bad file format, expecting none: " + xml)
+      migrated     <- TestIsElem((
                         "addPending" #> ChangeLabel("addPendingDeployement") andThen
                         "addPendingDeployement [fileFormat]" #> Constants.XML_FILE_FORMAT_2
                       )(xml)) 
@@ -616,10 +650,9 @@ class XmlMigration_10_2 {
 
   def node(xml:Elem) : Box[Elem] = {
     for {
-      isEntryChild <- TestIsEntry(xml)
-      labelOK      <- TestLabel(isEntryChild, "node")
-      fileFormatOK <- TestFileFormat(isEntryChild, Constants.XML_FILE_FORMAT_1_0)
-      migrated     <- isElem((
+      labelOK      <- TestLabel(xml, "node")
+      fileFormatOK <- TestFileFormat(xml, Constants.XML_FILE_FORMAT_1_0)
+      migrated     <- TestIsElem((
                         "node [fileFormat]" #> Constants.XML_FILE_FORMAT_2
                       )(xml)) 
     } yield {
