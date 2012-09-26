@@ -138,10 +138,10 @@ class CreateCategoryOrGroupPopup(
       "groupType" -> piStatic.toForm_!,
       "itemReason" -> { piReasons.map { f =>
         <div> 
-          {f.toForm_!}
-          <div style="margin:5px 0px 15px 0px; float:right;color:#333">
+          <div style="margin:10px 0px 5px 0px; color:#444">
             {userPropertyService.reasonsFieldExplanation}
           </div> 
+          {f.toForm_!}
         </div>
       } },
       "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","6"),

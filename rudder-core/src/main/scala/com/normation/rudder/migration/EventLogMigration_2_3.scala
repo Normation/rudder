@@ -96,13 +96,13 @@ object LogMigrationEventLog_2_3 {
  * The actual migration of event logs is delegated to EventLogsMigration_10_2
  */
 class ControlEventLogsMigration_2_3(
-    migrationEventLogRepository: MigrationEventLogRepository
-  , eventLogsMigration_2_3    : EventLogsMigration_2_3
-
+    migrationEventLogRepository   : MigrationEventLogRepository
+  , eventLogsMigration_2_3        : EventLogsMigration_2_3
+  , controlEventLogsMigration_10_2: ControlEventLogsMigration_10_2
 ) {
- def logger = MigrationLogger(3)
   
-  val parent = new ControlEventLogsMigration_10_2(migrationEventLogRepository,eventLogsMigration_2_3.parent)
+  def logger = MigrationLogger(3)
+  
   def migrate() : Box[MigrationStatus] = {
     /*
      * test is we have to migrate, and execute migration
@@ -179,7 +179,7 @@ class ControlEventLogsMigration_2_3(
 
         
         logger.info("Found and older migration to do")
-        parent.migrate() match{
+        controlEventLogsMigration_10_2.migrate() match{
         case Full(MigrationSuccess(i)) =>
             logger.info("Older migration completed, relaunch migration")
             this.migrate()
@@ -202,7 +202,7 @@ class ControlEventLogsMigration_2_3(
       )) if(migrationFileFormat < 2) =>
         //create a new status line with detected format = migrationFileFormat,
         //and a description to say why we recurse
-        parent.migrate()
+        controlEventLogsMigration_10_2.migrate()
         this.migrate()
           
           
@@ -228,14 +228,14 @@ class ControlEventLogsMigration_2_3(
 class EventLogsMigration_2_3(
     jdbcTemplate               : JdbcTemplate
   , eventLogMigration          : EventLogMigration_2_3
+  , val eventLogsMigration_10_2: EventLogsMigration_10_2
   , errorLogger                : Failure => Unit
   , successLogger              : Seq[MigrationEventLog] => Unit
   , batchSize                  : Int = 1000
 ) {
   def logger = MigrationLogger(3)
   
- val parent = new EventLogsMigration_10_2(jdbcTemplate,new EventLogMigration_10_2(new XmlMigration_10_2()),MigrationLogger(2).defaultErrorLogger
-    ,MigrationLogger(2).defaultSuccessLogger,batchSize)
+  
   /**
    * retrieve all event log to migrate. 
    */
@@ -355,21 +355,38 @@ class EventLogMigration_2_3(xmlMigration:XmlMigration_2_3) {
      */
     val MigrationEventLog(id,eventType,data) = eventLog
     
-    //utility to factor common code
-    def create(xmlFn:Elem => Box[Elem], name:String) = {
-      xmlFn(data).map { xml => MigrationEventLog(id, name, xml) }
-    }
     
-    eventType.toLowerCase match {
-      case "ruleadded"    => create(xmlMigration.rule, "RuleAdded")
-      case "ruledeleted"  => create(xmlMigration.rule, "RuleDeleted")
-      case "rulemodified" => create(xmlMigration.rule, "RuleModified")
+    /*
+     * -- Important-- 
+     * The <entry></entry> part is tested here, then removed 
+     * for migration, then added back in create. 
+     * That is to have XmlMigration rule be independant of
+     * <entry>. 
+     */
 
-      /*
-       * When migrating from 2 to 3, no eventType name change, 
-       * so we can just pass it. 
-       */
-      case _    => create(xmlMigration.other, eventType)
+    
+    
+    //utility to factor common code
+    //notice the addition of <entry> tag in the result
+    def create(optElem:Box[Elem], name:String) = {
+       optElem.map { xml => MigrationEventLog(id, name, <entry>{xml}</entry>) }
+    }
+
+    for {
+      xml      <- TestIsEntry(data)
+      migrated <- eventType.toLowerCase match {
+                    case "ruleadded"    => create(xmlMigration.rule(xml), "RuleAdded")
+                    case "ruledeleted"  => create(xmlMigration.rule(xml), "RuleDeleted")
+                    case "rulemodified" => create(xmlMigration.rule(xml), "RuleModified")
+              
+                    /*
+                     * When migrating from 2 to 3, no eventType name change, 
+                     * so we can just pass it. 
+                     */
+                    case _    => create(xmlMigration.other(xml), eventType)
+                  }
+    } yield {
+      migrated
     }
   }
 }
@@ -386,32 +403,15 @@ class EventLogMigration_2_3(xmlMigration:XmlMigration_2_3) {
  * - only the entity tag (<group ...>, <directive ...>, etc has a fileformat="2" attribute
  */
 class XmlMigration_2_3 {
-  
-  private[this] def failBadElemType(xml:NodeSeq) = { 
-    Failure("Not expected type of NodeSeq (wish it was an Elem): " + xml)
-  }
-  
-  private[this] def isElem(xml:NodeSeq) = {
-    xml match {
-      case seq if(seq.size == 1) => seq.head match {
-        case e:Elem => Full(e)
-        case x => failBadElemType(x)
-      }
-      case x =>
-        val y = x
-        failBadElemType(x)
-    }
-  }
-  
+
   def rule(xml:Elem) : Box[Elem] = {
     for {
-      isEntryChild <- TestIsEntry(xml)
-      labelOK      <- TestLabel(isEntryChild, "rule")
-      fileFormatOK <- TestFileFormat(isEntryChild, Constants.XML_FILE_FORMAT_2.toString())
+      labelOK      <- TestLabel(xml, "rule")
+      fileFormatOK <- TestFileFormat(xml, Constants.XML_FILE_FORMAT_2.toString())
       migrated     <-
       
-                    if (isEntryChild.attribute("changeType").map(_.text) == Some("modify"))
-                      isElem(
+                    if (xml.attribute("changeType").map(_.text) == Some("modify"))
+                      TestIsElem(
                         (
                         "rule [fileFormat]" #> Constants.XML_FILE_FORMAT_3  &
                         "target " #>  ChangeLabel("targets") andThen
@@ -421,7 +421,7 @@ class XmlMigration_2_3 {
                       
                       )(xml)) 
                     else //handle add/deletion
-                      isElem(
+                      TestIsElem(
                         (
                         "rule [fileFormat]" #> Constants.XML_FILE_FORMAT_3  &
                      
@@ -437,9 +437,8 @@ class XmlMigration_2_3 {
   
   def other(xml:Elem) : Box[Elem] = {
     for {
-      isEntryChild <- TestIsEntry(xml)
-      fileFormatOK <- TestFileFormat(isEntryChild, Constants.XML_FILE_FORMAT_2.toString())
-      migrated     <- isElem(( 
+      fileFormatOK <- TestFileFormat(xml, Constants.XML_FILE_FORMAT_2.toString())
+      migrated     <- TestIsElem(( 
                         //here we use the hypothesis that no other element than the entity type has an attribute fileformat to 2
                         "fileFormat=2 [fileFormat]" #> Constants.XML_FILE_FORMAT_3
                       )(xml)) 

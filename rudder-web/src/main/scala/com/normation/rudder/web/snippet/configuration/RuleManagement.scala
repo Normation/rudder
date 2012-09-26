@@ -170,7 +170,11 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     currentRuleForm.is match {
       case f:Failure => errorDiv(f)
       case Empty => <div id={htmlId_editRuleDiv}/>
-      case Full(form) => { form.dispatch(dispatch)(NodeSeq.Empty) }
+      case Full(form) =>
+        form.dispatch(dispatch)(NodeSeq.Empty) ++
+        Script(JsRaw("""$("#editRuleZonePortlet").removeClass("nodisplay");
+                           scrollToElement("editRuleZonePortlet");"""
+        ) )
     }
   }
 
@@ -179,7 +183,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
     //update UI
     Replace(htmlId_viewAll,  viewRules()) &
-    Replace(htmlId_editRuleDiv, editRule("showEditForm")) 
+    Replace(htmlId_editRuleDiv, editRule("showEditForm"))
   }
    
   /**
@@ -237,8 +241,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     updateEditComponent(rule)
     //update UI
     Replace(htmlId_editRuleDiv, editRule(id)) &
-    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'ruleId':'%s'})""".format(rule.id.value)) &
-    JsRaw("""$("#editRuleZonePortlet").removeClass("nodisplay");""")
+    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'ruleId':'%s'})""".format(rule.id.value))
   }
   
 }

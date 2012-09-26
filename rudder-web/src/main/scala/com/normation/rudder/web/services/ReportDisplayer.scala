@@ -331,7 +331,7 @@ class ReportDisplayer(
             var i = $.inArray( nTr, anOpen );
            if ( i === -1 ) {
             $('img', this).attr( 'src', "%1$s/images/details_close.png" );
-            var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(Otable3, nTr), 'details' );
+            var nDetailsRow = Otable3.fnOpen( nTr, fnFormatDetails(Otable3, nTr), 'details' );
           $('div.innerDetails table', nDetailsRow).dataTable({
             "asStripClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
@@ -376,7 +376,7 @@ class ReportDisplayer(
         var i = $.inArray( nTr, anOpen );
         if ( i === -1 ) {
           $('img', this).attr( 'src', "%1$s/images/details_close.png" );
-          var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
+          var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
           var Otable3 = $('div.innerDetails table', nDetailsRow).dataTable({
             "asStripClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
