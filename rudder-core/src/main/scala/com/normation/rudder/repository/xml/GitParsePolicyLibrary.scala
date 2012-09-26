@@ -35,10 +35,8 @@
 package com.normation.rudder.repository.xml
 
 import scala.Option.option2Iterable
-
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.revwalk.RevTag
-
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.rudder.repository._
@@ -48,11 +46,8 @@ import com.normation.rudder.services.marshalling.ActiveTechniqueUnserialisation
 import com.normation.utils.Control._
 import com.normation.utils.UuidRegex
 import com.normation.utils.XmlUtils
-
-import net.liftweb.common.Box
-import net.liftweb.common.Empty
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
+import net.liftweb.common._
+import com.normation.rudder.migration.XmlEntityMigration
 
 
 class GitParseActiveTechniqueLibrary(
@@ -60,6 +55,7 @@ class GitParseActiveTechniqueLibrary(
   , uptUnserialiser     : ActiveTechniqueUnserialisation
   , piUnserialiser      : DirectiveUnserialisation
   , repo                : GitRepositoryProvider
+  , xmlMigration        : XmlEntityMigration
   , libRootDirectory    : String //relative name to git root file
   , uptcFileName        : String = "category.xml"
   , uptFileName         : String = "activeTechniqueSettings.xml"    
@@ -73,6 +69,7 @@ class GitParseActiveTechniqueLibrary(
       archive
     }
   }
+  
 
   private[this] def getArchiveForRevTreeId(revTreeId:ObjectId) = {
 
@@ -101,9 +98,11 @@ class GitParseActiveTechniqueLibrary(
           // ignore files other than uptcFileName (parsed as an ActiveTechniqueCategory), recurse on sub-directories
           // don't forget to sub-categories and UPT and UPTC
           for {
-            uptcXml  <- GitFindUtils.getFileContent(repo.db, revTreeId, category){ inputStream =>
+            xml      <- GitFindUtils.getFileContent(repo.db, revTreeId, category){ inputStream =>
                           XmlUtils.parseXml(inputStream, Some(category)) ?~! "Error when parsing file '%s' as a category".format(category)
                         }
+            //here, we have to migrate XML fileformat, if not up to date
+            uptcXml  <- xmlMigration.getUpToDateXml(xml)
             uptc     <- categoryUnserialiser.unserialise(uptcXml) ?~! "Error when unserializing category for file '%s'".format(category)
             subDirs  =  {
                           //we only wants to keep paths that are non-empty directories with a uptcFileName/uptFileName in them
@@ -136,9 +135,10 @@ class GitParseActiveTechniqueLibrary(
           // ignore sub-directories, parse uptFileName as an ActiveTechnique, parse UUID.xml as PI
           // don't forget to add PI ids to UPT
           for {
-            uptXml  <- GitFindUtils.getFileContent(repo.db, revTreeId, template){ inputStream =>
+            xml    <- GitFindUtils.getFileContent(repo.db, revTreeId, template){ inputStream =>
                          XmlUtils.parseXml(inputStream, Some(template)) ?~! "Error when parsing file '%s' as a category".format(template)
                        }
+            uptXml  <- xmlMigration.getUpToDateXml(xml)
             activeTechnique     <- uptUnserialiser.unserialise(uptXml) ?~! "Error when unserializing template for file '%s'".format(template)
             piFiles =  {
                          paths.filter { p =>
@@ -150,10 +150,11 @@ class GitParseActiveTechniqueLibrary(
                        }
             directives     <- sequence(piFiles.toSeq) { piFile =>
                          for {
-                           piXml      <-  GitFindUtils.getFileContent(repo.db, revTreeId, piFile){ inputStream =>
-                                            XmlUtils.parseXml(inputStream, Some(piFile)) ?~! "Error when parsing file '%s' as a directive".format(piFile)
-                                          }
-                           (_, directive, _) <-  piUnserialiser.unserialise(piXml) ?~! "Error when unserializing pdirective for file '%s'".format(piFile)
+                           xml2              <- GitFindUtils.getFileContent(repo.db, revTreeId, piFile){ inputStream =>
+                                                  XmlUtils.parseXml(inputStream, Some(piFile)) ?~! "Error when parsing file '%s' as a directive".format(piFile)
+                                                }
+                           piXml             <- xmlMigration.getUpToDateXml(xml2)
+                           (_, directive, _) <- piUnserialiser.unserialise(piXml) ?~! "Error when unserializing pdirective for file '%s'".format(piFile)
                          } yield {
                            directive
                          }

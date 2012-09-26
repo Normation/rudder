@@ -102,10 +102,24 @@ object DisplayNode extends Loggable {
         Str(x.name.getOrElse("")),
         Str(x.version.map(_.value).getOrElse("")),
         Str(x.description.getOrElse(""))
-      )}:_*) ) & JsRaw("""$('#%s').dataTable({"aaData":%s,"bJQueryUI": false, "bPaginate": true,
-          "asStripClasses": [ 'color1', 'color2' ] ,"bLengthChange": false, "bAutoWidth": false,
-          "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}] });
-           moveFilterAndPaginateArea('#%s');""".format(gridId,gridDataId,gridId))
+      )}:_*) ) & JsRaw("""
+          $('#%s').dataTable({
+            "aaData":%s,
+            "bJQueryUI": true, 
+            "bPaginate": true,
+            "bLengthChange": true,
+            "sPaginationType": "full_numbers",
+            "asStripClasses": [ 'color1', 'color2' ] ,
+            "oLanguage": {
+              "sSearch": ""
+            },
+            "bLengthChange": true, 
+            "bAutoWidth": false,
+            "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}],
+            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
+        });
+        $('.dataTables_filter input').attr("placeholder", "Search");          
+            """.format(gridId,gridDataId,gridId))
     ) match {
       case Empty => Alert("No software found for that server")
       case Failure(m,_,_) => Alert("Error when trying to fetch software. Reported message: "+m)
@@ -129,12 +143,47 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     OnLoad(
       JsRaw("$('#"+detailsId+"').tabs()") &
       { eltIds.map { i =>
-          JsRaw("""$('#%s').dataTable({"bJQueryUI": false,"bRetrieve": true,"bFilter": false,"asStripClasses": [ 'color1', 'color2' ],"bPaginate": false, "bAutoWidth": false, "bInfo":false});moveFilterAndPaginateArea('#%s');
+          JsRaw("""
+              $('#%s').dataTable({
+                "bJQueryUI": true,
+                "bRetrieve": true,
+                "bFilter": true,
+                "asStripClasses": [ 'color1', 'color2' ],
+                "oLanguage": {
+                  "sSearch": ""
+                },
+                "bLengthChange": true,
+                "sPaginationType": "full_numbers",
+                "bPaginate": true, 
+                "bAutoWidth": false, 
+                "bInfo":true,
+                "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
+              });
+              
+              $('.dataTables_filter input').attr("placeholder", "Search");
           | """.stripMargin('|').format(i,i)):JsCmd
         }.reduceLeft( (i,acc) => acc & i )
       } &
       { eltIdswidth.map { i =>
-          JsRaw("""$('#%s').dataTable({"bJQueryUI": false,"bRetrieve": true,"bFilter": true,"asStripClasses": [ 'color1', 'color2' ],"bPaginate": true,"aoColumns": %s , "aaSorting": [[ %s, "asc" ]], "bLengthChange": false, "bAutoWidth": false, "bInfo":true});moveFilterAndPaginateArea('#%s');
+          JsRaw("""
+              $('#%s').dataTable({
+                "bJQueryUI": true,
+                "bRetrieve": true,
+                "sPaginationType": "full_numbers",
+                "bFilter": true,
+                "asStripClasses": [ 'color1', 'color2' ],
+                "bPaginate": true,
+                "aoColumns": %s , 
+                "aaSorting": [[ %s, "asc" ]], 
+                "oLanguage": {
+                  "sSearch": ""
+                },
+                "bLengthChange": true, 
+                "bAutoWidth": false, 
+                "bInfo":true,
+                "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
+              });
+              $('.dataTables_filter input').attr("placeholder", "Search");
            | """.stripMargin('|').format(i._1,i._2.mkString("[",",","]"),i._3,i._1)):JsCmd
         }
       } &

@@ -99,6 +99,11 @@ import java.lang.IllegalArgumentException
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.repository.ldap.LDAPNodeGroupRepository
 import logger.MigrationLogger
+import com.normation.rudder.migration.ControlEventLogsMigration_10_2
+import com.normation.rudder.migration.EventLogsMigration_10_2
+import com.normation.rudder.migration.DefaultXmlEventLogMigration
+import com.normation.rudder.migration.XmlMigration_10_2
+import com.normation.rudder.migration.EventLogMigration_10_2
 
 /**
  * Spring configuration for services
@@ -857,9 +862,13 @@ class AppConfig extends Loggable {
   def deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
 
   @Bean
+  def entityMigration = new DefaultXmlEventLogMigration(xmlMigration_10_2, xmlMigration_2_3)
+  
+  @Bean
   def parseRules : ParseRules = new GitParseRules(
       ruleUnserialisation
     , gitRepo
+    , entityMigration
     , rulesDirectoryName
   )
   
@@ -869,6 +878,7 @@ class AppConfig extends Loggable {
     , activeTechniqueUnserialisation
     , directiveUnserialisation
     , gitRepo
+    , entityMigration
     , userLibraryDirectoryName
   )
   
@@ -885,6 +895,7 @@ class AppConfig extends Loggable {
       nodeGroupCategoryUnserialisation
     , nodeGroupUnserialisation
     , gitRepo
+    , entityMigration
     , groupLibraryDirectoryName
   )
   
@@ -977,10 +988,33 @@ class AppConfig extends Loggable {
   /**
    * Event log migration
    */
+  
+  @Bean
+  def xmlMigration_2_3 = new XmlMigration_2_3()
+  
+  @Bean
+  def xmlMigration_10_2 = new XmlMigration_10_2()
+  
+  @Bean
+  def eventLogsMigration_10_2 = new EventLogsMigration_10_2(
+      jdbcTemplate      = jdbcTemplate
+    , eventLogMigration = new EventLogMigration_10_2(xmlMigration_10_2)
+    , errorLogger       = MigrationLogger(2).defaultErrorLogger
+    , successLogger     = MigrationLogger(2).defaultSuccessLogger
+    , batchSize         = 1000      
+   )
+  
+  @Bean
+  def eventLogsMigration_10_2_Management = new ControlEventLogsMigration_10_2(
+      migrationEventLogRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
+    , eventLogsMigration_10_2
+  )
+  
   @Bean
   def eventLogsMigration_2_3 = new EventLogsMigration_2_3(
       jdbcTemplate      = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
+    , eventLogMigration = new EventLogMigration_2_3(xmlMigration_2_3)
+    , eventLogsMigration_10_2 = eventLogsMigration_10_2
     , errorLogger       = MigrationLogger(3).defaultErrorLogger
     , successLogger     = MigrationLogger(3).defaultSuccessLogger
     , batchSize         = 1000      
@@ -990,6 +1024,7 @@ class AppConfig extends Loggable {
   def eventLogsMigration_2_3_Management = new ControlEventLogsMigration_2_3(
           migrationEventLogRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
         , eventLogsMigration_2_3
+        , eventLogsMigration_10_2_Management
       )
 
   /**

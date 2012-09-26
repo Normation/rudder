@@ -1006,7 +1006,7 @@ class RuleEditForm(
         var i = $.inArray( nTr, anOpen );
         if ( i === -1 ) {
           $('img', this).attr( 'src', "%1$s/images/details_close.png" );
-          var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
+          var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
           $('div.innerDetails table', nDetailsRow).dataTable({
             "asStripClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
@@ -1731,7 +1731,7 @@ class RuleEditForm(
                   var i = $.inArray( nTr, anOpen%1$s );
                     if ( i === -1 ) {
                     $('img', this).attr( 'src', "%3$s/images/details_close.png" );
-                    var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
+                    var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
                     $('div.innerDetails table', nDetailsRow).dataTable({
                       "asStripClasses": [ 'color1', 'color2' ],
                       "bAutoWidth": false,
