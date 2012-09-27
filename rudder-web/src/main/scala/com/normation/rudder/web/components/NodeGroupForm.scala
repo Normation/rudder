@@ -258,7 +258,7 @@ class NodeGroupForm(
       "save" ->   {_nodeGroup match {
             case Some(x) =>
               if (CurrentUser.checkRights(Edit("group")))
-                SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId)
+                SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId) %("class", "ui-button ui-widget ui-state-default ui-corner-all")
               else NodeSeq.Empty
             case None =>
               if (CurrentUser.checkRights(Write("group")))
