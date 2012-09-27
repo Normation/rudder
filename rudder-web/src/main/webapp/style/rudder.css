@@ -2371,6 +2371,12 @@ li.disableTreeNode > a {
     background: none repeat scroll 0 0 #FFFFFF !important;
 }
 
+
+a>.jstree-icon
+{
+    background-position: 0!important;
+}
+
 .homePageBlock {
   margin: 10px; 
 }
