@@ -184,6 +184,12 @@ form input {
    background-color: #f8f8f8;
    border: 1px solid #b4b3a8;
 }
+
+form input[type=checkbox] {
+   width:auto;
+   padding:0px;
+}
+
 form textarea {
   padding: 2px;
   border: 1px solid #b4b3a8;
@@ -195,7 +201,7 @@ form input.radio {
 }
 
 .compositionCheckbox input {
-  width: 25px !important;
+  margin-left : 5px;
   vertical-align: middle;
   margin-bottom: 2px;
 }
