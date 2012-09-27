@@ -2429,7 +2429,7 @@ table thead th {
 	border-collapse: collapse;
 }
 
-table thead tr .ui-state-default {
+table thead tr.head .ui-state-default {
   background: url(../images/tableau/fdTaboHead.jpg) top left repeat-x;
 }
 

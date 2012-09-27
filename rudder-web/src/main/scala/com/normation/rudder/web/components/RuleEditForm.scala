@@ -1026,7 +1026,7 @@ class RuleEditForm(
             ]
           });
           $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-          $('td.details', nDetailsRow).attr("colspan",6);
+          $('td.details', nDetailsRow).attr("colspan",5);
           $('div.innerDetails table', nDetailsRow).attr("style","");
           $('div.innerDetails', nDetailsRow).slideDown(300);
           anOpen.push( nTr );
@@ -1719,12 +1719,12 @@ class RuleEditForm(
                     { "sWidth": "20px", "bSortable": false },
                     { "sWidth": "295px" },
                     { "sWidth": "50px" },
-                    { "sWidth": "10px", "bSortable": false  , "bVisible":false },
+                    { "sWidth": "10px", "bSortable": false  , "bVisible":false }
                   ]
                 } );
-                $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
                 $('div.innerDetails table:first', nDetailsRow).attr("style","");
                 $('div.innerDetails', nDetailsRow).slideDown(300);
+                $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
                 anOpen%1$s.push( nTr );
                 $('div.innerDetails table td#plus', nDetailsRow).click( function () {
                   var nTr = this.parentNode;
@@ -1751,7 +1751,7 @@ class RuleEditForm(
                       ]
                     } );
                     $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-                    $('td.details', nDetailsRow).attr("colspan",7);
+                    $('td.details', nDetailsRow).attr("colspan",4);
                     $('div.innerDetails table', nDetailsRow).attr("style","");
                     $('div.innerDetails', nDetailsRow).slideDown(300);
                     anOpen%1$s.push( nTr );
@@ -1867,8 +1867,7 @@ class RuleEditForm(
             """
         ) //&  initJsCallBack(tableId)
     ) &
-    JsRaw( """ createPopup("%s",600,900)
-     """.format(htmlId_modalReportsPopup))
+    JsRaw( """ createPopup("%s",600,900)""".format(htmlId_modalReportsPopup))
   }
   
 }
