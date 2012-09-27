@@ -707,13 +707,13 @@ class RuleGrid(
             "aaSorting": [[ 0, "asc" ]],
             "aoColumns": [
               { "sWidth": "200px" },
-              { "sWidth": "300px" },
+              { "sWidth": "300px" }
             ]
-          });moveFilterAndFullPaginateArea('#%1$s');""".format( tableId_reportsPopup).replaceAll("#table_var#",jsVarNameForId(tableId_reportsPopup))
+          });
+            moveFilterAndFullPaginateArea('#%1$s');""".format( tableId_reportsPopup).replaceAll("#table_var#",jsVarNameForId(tableId_reportsPopup))
         ) //&  initJsCallBack(tableId)
     ) &
-    JsRaw( """ createPopup("%s",300,500)
-     """.format(htmlId_modalReportsPopup))
+    JsRaw( """ createPopup("%s",300,500)""".format(htmlId_modalReportsPopup))
   }
 
 }
