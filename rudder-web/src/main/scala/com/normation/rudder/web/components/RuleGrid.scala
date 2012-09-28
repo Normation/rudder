@@ -222,21 +222,24 @@ class RuleGrid(
       if(cr.isEnabled) {
         
         val isAllTargetsEnabled = target.filter(x => !x.isEnabled).isEmpty
-        
-        if(isAllTargetsEnabled) {
-          val disabled = trackerVariables.filterNot { case (pi,upt, pt) => pi.isEnabled && upt.isEnabled }
-          if(disabled.size == 0) {
-            FullyApplied
+        val nodeTargetSize = (target.flatMap(target => targetInfoService.getNodeIds(target.target).map(_.size)):\ 0)  ((res,acc) => res+acc)
+        if (nodeTargetSize !=0)
+          if(isAllTargetsEnabled) {
+            val disabled = trackerVariables.filterNot { case (pi,upt, pt) => pi.isEnabled && upt.isEnabled }
+            if(disabled.size == 0) {
+              FullyApplied
+            }
+            else if(trackerVariables.size - disabled.size > 0) {
+              PartiallyApplied(disabled)
+            }
+            else {
+              NotAppliedNoPI
+            }
+          } else {
+            NotAppliedNoTarget
           }
-          else if(trackerVariables.size - disabled.size > 0) {
-            PartiallyApplied(disabled)
-          }
-          else {
-            NotAppliedNoPI
-          }
-        } else {
+        else
           NotAppliedNoTarget
-        }
       } else {
         NotAppliedCrDisabled
       }
@@ -487,10 +490,12 @@ class RuleGrid(
                  <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
               case x:NotAppliedStatus =>
                 val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
+                val nodeSize = (line.targets.flatMap(targetInfo => targetInfoService.getNodeIds(targetInfo.target).map(_.size)) :\ 0) ((res,acc) => res+acc)
                 val conditions = Seq(
                     ( line.rule.isEnabled, "rule disabled" ), 
                     ( line.trackerVariables.size > 0, "No policy defined"),
-                    ( isAllTargetsEnabled, "Group disabled")
+                    ( isAllTargetsEnabled, "Group disabled"),
+                    ( nodeSize!=0, "Empty groups")
                  ) ++ line.trackerVariables.flatMap { case (pi, upt,pt) => Seq(
                     ( pi.isEnabled, "Policy " + pi.name + " disabled") , 
                     ( upt.isEnabled, "Technique for '" + pi.name + "' disabled") 
