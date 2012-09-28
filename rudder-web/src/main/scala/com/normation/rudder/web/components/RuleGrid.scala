@@ -120,9 +120,9 @@ class RuleGrid(
               <tr class="head">
                 <th>Name</th>
                 <th>Status</th>
-                <th>Deployment&nbsp;status</th>
+                <th>Deployment status</th>
                 <th>Directives</th>
-                <th>Target&nbsp;node&nbsp;groups</th>
+                <th>Target node groups</th>
                 <th>Compliance</th>
                 <th>Details</th>
                 <th>Parameters</th>
