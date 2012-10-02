@@ -418,8 +418,17 @@ Use in <HEAD> with DEFER keyword wrapped in conditional comments:
 
 var arVersion = navigator.appVersion.split("MSIE")
 var version = parseFloat(arVersion[1])
+/*
+ * Sometimes body is not initiated on IE when javascript is launched
+ * default value should be true/false ?
+ */
+var filters= true ;
+if (document.body != null)
+	{
+	  filters = document.body.filters;
+	}
 
-if ((version >= 5.5) && (document.body.filters)) 
+if ((version >= 5.5) && (filters))
 {
    for(var i=0; i<document.images.length; i++)
    {

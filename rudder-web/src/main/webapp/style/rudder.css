@@ -184,6 +184,12 @@ form input {
    background-color: #f8f8f8;
    border: 1px solid #b4b3a8;
 }
+
+form input[type=checkbox] {
+   width:auto;
+   padding:0px;
+}
+
 form textarea {
   padding: 2px;
   border: 1px solid #b4b3a8;
@@ -195,7 +201,7 @@ form input.radio {
 }
 
 .compositionCheckbox input {
-  width: 25px !important;
+  margin-left : 5px;
   vertical-align: middle;
   margin-bottom: 2px;
 }
@@ -414,6 +420,7 @@ tr.foot {
 tr.head {
   background-image: -webkit-linear-gradient(top, #888, #555);
   background-image: -moz-linear-gradient(top, #888, #555);
+  background-color: #666;
 }
 .head th.first {
    padding: 5px 10px;
@@ -2371,6 +2378,12 @@ li.disableTreeNode > a {
     background: none repeat scroll 0 0 #FFFFFF !important;
 }
 
+
+a>.jstree-icon
+{
+    background-position: 0!important;
+}
+
 .homePageBlock {
   margin: 10px; 
 }
@@ -2428,12 +2441,6 @@ table thead th {
 .dataTables_wrapper table {
 	border-collapse: collapse;
 }
-
-table thead tr .ui-state-default {
-  background: url(../images/tableau/fdTaboHead.jpg) top left repeat-x;
-}
-
-
 
 #serverGrid_wrapper .dataTables_wrapper_top {
   border-top-left-radius: 0px !important;
