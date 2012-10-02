@@ -351,7 +351,7 @@ class ReportDisplayer(
             ]
           });
           $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-          $('td.details', nDetailsRow).attr("colspan",6);
+          $('td.details', nDetailsRow).attr("colspan",4);
           $('div.innerDetails table', nDetailsRow).attr("style","");
           $('div.innerDetails', nDetailsRow).slideDown(300);
           anOpen.push( nTr );
@@ -396,7 +396,7 @@ class ReportDisplayer(
             ]
           });
           $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-          $('td.details', nDetailsRow).attr("colspan",6);
+          $('td.details', nDetailsRow).attr("colspan",4);
           $('div.innerDetails table', nDetailsRow).attr("style","");
           $('div.innerDetails', nDetailsRow).slideDown(300);
       %2$s
