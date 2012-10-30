@@ -24,6 +24,9 @@ set_lg_regionmax 262144
 set_lg_bsize 2097152
 #set_lg_dir logs
 
+# Automatically remove logs after they've been commited, to save disk space
+set_flags DB_LOG_AUTOREMOVE
+
 # Locking system
 set_lk_max_locks 4000
 
