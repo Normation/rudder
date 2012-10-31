@@ -261,10 +261,10 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
       
     } 
   }
-  
+
   def archiveEntries(date : DateTime) : Int = {
     val migrate = jdbcTemplate.execute("""
-          insert into ArchivedRudderSysEvents 
+          insert into ArchivedRudderSysEvents
                 (id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)
           (select id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from RudderSysEvents
         where executionTimeStamp < '%s')
@@ -276,13 +276,32 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
                    | (select id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from RudderSysEvents 
                    | where executionTimeStamp < '%s')
                    |]]""".stripMargin.format(date.toString("yyyy-MM-dd")))
-        
+
     val delete = jdbcTemplate.update("""
         delete from RudderSysEvents  where executionTimeStamp < '%s'
         """.format(date.toString("yyyy-MM-dd") )
     )
     delete
     
+  }
+
+  def deleteEntries(date : DateTime) : Int = {
+
+    logger.debug("""Deleting report with SQL query: [[
+                   | delete from RudderSysEvents  where executionTimeStamp < '%s'
+                   |]] and: [[
+                   | delete from ArchivedRudderSysEvents  where executionTimeStamp < '%s'
+                   |]]""".stripMargin.format(date.toString("yyyy-MM-dd")))
+
+    val delete = jdbcTemplate.update("""
+        delete from RudderSysEvents  where executionTimeStamp < '%s'
+        """.format(date.toString("yyyy-MM-dd") )
+    ) + jdbcTemplate.update("""
+        delete from ArchivedRudderSysEvents  where executionTimeStamp < '%s'
+        """.format(date.toString("yyyy-MM-dd") )
+    )
+    delete
+
   }
 }
 
