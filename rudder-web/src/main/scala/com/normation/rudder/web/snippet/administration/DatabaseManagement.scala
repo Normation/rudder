@@ -54,7 +54,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
 
   private[this] val databaseManager = inject[DatabaseManager]
   private[this] var from : String = ""
-  
+  private[this] var action : (DateTime => Int, String) = (databaseManager.archiveEntries , "Archiv" )
 
   val DATETIME_FORMAT = "yyyy-MM-dd"
   val DATETIME_PARSER = DateTimeFormat.forPattern(DATETIME_FORMAT)
@@ -64,44 +64,95 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
   }
   
   def display(xml:NodeSeq) : NodeSeq = {
-    val reportsInterval = databaseManager.getReportsInterval()
-    val archivedReportsInterval = databaseManager.getArchivedReportsInterval()
-    (  
-      "#oldestEntry" #> displayDate(reportsInterval.map( x => x._1 )) &
-      "#newestEntry" #> displayDate(reportsInterval.map( x => x._2 )) &
-      "#databaseSize" #> databaseManager.getDatabaseSize().map(x => Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database")) &
-      "#oldestArchivedEntry" #> displayDate(archivedReportsInterval.map( x => x._1 )) &
-      "#newestArchivedEntry" #> displayDate(archivedReportsInterval.map( x => x._2 )) &
-      "#archiveReports" #> SHtml.ajaxSubmit("Archive Report", process _) &
+
+     ("#modeSelector" #> <ul style="float:left">{SHtml.radio(Seq("Archive", "Delete"), Full("Archive")
+          , {value:String => action = value match {
+            case "Archive" => (databaseManager.archiveEntries , "Archiv" )
+            case "Delete"  => (databaseManager.deleteEntries  , "Delet" )
+          } }
+          , ("class", "radio") ).flatMap(e =>
+            <li>
+              <label>{e.xhtml} <span class="radioTextLabel">{e.key.toString}</span></label>
+            </li>) }
+        </ul> &
+      "#archiveReports" #> SHtml.ajaxSubmit("Clean reports", process _) &
       "#reportFromDate" #> SHtml.text(from, {x => from = x } ) 
       
-    )(xml) ++ Script(OnLoad(JsRaw("""initReportDatepickler("#reportFromDate"); correctButtons(); """)))
+    )(xml) ++ Script(OnLoad(JsRaw("""initReportDatepickler("#reportFromDate"); correctButtons(); """)& updateValue))
   }
   
   def process(): JsCmd = {
     S.clearCurrentNotices
-    
+
     (for {
       fromDate <- tryo { DATETIME_PARSER.parseDateTime(from) } ?~! "Bad date format for 'Archive all reports older than' field"
     } yield {
       fromDate
-    }) match {
+    } ) match {
         case eb:EmptyBox =>
           val e = eb ?~! "An error occured"
           logger.info(e.failureChain.map( _.msg ).mkString("", ": ", ""))
           S.error(e.failureChain.map( _.msg ).mkString("", ": ", "")  )
           Noop
         case Full(date) =>
-          logger.info("Archiving all reports before %s".format(date))
-          try {
-            val result = databaseManager.archiveEntries(date)
-            Alert("Correctly archived %d reports".format(result))
-          } catch {
-            case e: Exception => logger.error("Could not archive reports", e)
-                                 Alert("An error occured while archiving reports")
-          }
-          
+          val warning = "Are you sure you want to %se reports older than %s?".format(action._2,DateFormaterService.getFormatedDate(date))
+          S.error("")
+          showConfirmationDialog(date,cleanReports(action._1,action._2),warning,action._2)
     }
+  }
+
+  def cleanReports (cleanAction:(DateTime=>Int), cleanType:String) (date:DateTime) : JsCmd = {
+    logger.info("%sing all reports before %s".format(cleanType,date))
+    try {
+      val result = cleanAction(date)
+      logger.info("Correctly %sed %d reports".format(cleanType.toLowerCase,result))
+      Alert("Correctly %sed %d reports".format(cleanType.toLowerCase,result))& updateValue
+    } catch {
+      case e: Exception => logger.error("Could not %se reports".format(cleanType.toLowerCase), e)
+        Alert("An error occured while %sing reports".format(cleanType.toLowerCase))
+    }
+  }
+  def updateValue = {
+    val reportsInterval = databaseManager.getReportsInterval()
+    val archivedReportsInterval = databaseManager.getArchivedReportsInterval()
+    SetHtml("oldestEntry", displayDate(reportsInterval.map( x => x._1 ))) &
+    SetHtml("newestEntry", displayDate(reportsInterval.map( x => x._2 ))) &
+    SetHtml("databaseSize" , databaseManager.getDatabaseSize().map(x =>
+      Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database"))) &
+    SetHtml("oldestArchivedEntry", displayDate(archivedReportsInterval.map( x => x._1 ))) &
+    SetHtml("newestArchivedEntry", displayDate(archivedReportsInterval.map( x => x._2 )))
+  }
+
+  private[this] def showConfirmationDialog(date:DateTime, action : (DateTime => JsCmd) , warning : String, sentence: String ) : JsCmd = {
+    val cancel : JsCmd = {
+      SetHtml("confirm", NodeSeq.Empty) &
+      JsRaw(""" $('#archiveReports').show(); """)
+    }
+
+    val dialog =
+    <span style="margin:5px;">
+          <img src="/images/icWarn.png" alt="Warning!" height="25" width="25" class="warnicon"
+            style="vertical-align: middle; padding: 0px 0px 2px 0px;"/>
+          <b>{warning}</b>
+
+      <span style="margin-left:7px">
+          {
+            SHtml.ajaxButton("Cancel", { () => { cancel } })
+          }
+      <span style="margin-left:10px">
+          {
+            SHtml.ajaxButton("%se reports".format(sentence), { () => action(date) & cancel } )
+          }
+        </span>
+      </span>
+    </span>
+
+    def showDialog : JsCmd = {
+      SetHtml("confirm", dialog) &
+      JsRaw(""" $('#archiveReports').hide(); correctButtons(); $('#confirm').stop(true, true).slideDown(1000); """)
+    }
+
+    showDialog
   }
   
   private[this] def displayDate( entry : Box[DateTime]) : NodeSeq= {
