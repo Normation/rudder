@@ -67,12 +67,15 @@
                 <td><b><span id="newestArchivedEntry">[Here
                       comes the newest archived entry]</span></b></td>
               </tr>
+                            <tr>
+
+              </tr>
             </table>
           </div>
         </div>
 
         <div class="inner-portlet">
-          <div class="inner-portlet-header">Archive reports</div>
+          <div class="inner-portlet-header">Clean reports</div>
             <div class="intro">
               <div>
                 When reports are archived, they are removed from the active reports table.
@@ -85,12 +88,15 @@
             <table class="database-info-table">
               <tr>
                 <td colspan="2">
+                <div style="margin-bottom:8px"><b>After cleaning database size on disk will not change immediately<br/>
+                To free disk space, you will have to wait until next database Vacuum is proceed</b></div>
                   <form class="lift:form.ajax">
                     <div>
-                      Archive all reports older than: <input
+                      <span id="modeSelector"/> all reports older than: <input
                         id="reportFromDate" value="" />
-                      <button id="archiveReports">Archive
+                      <button id="archiveReports">Start cleaning
                         reports</button>
+                        <span id="confirm"> </span>
                     </div>
                     <lift:Msgs>
                       <lift:error_msg class="error" />
