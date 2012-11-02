@@ -68,12 +68,12 @@ trait DatabaseManager {
    * Archive reports older than target date in archived reports database
    * and delete them from reports database
    */
-  def archiveEntries(date : DateTime) : Int
+  def archiveEntries(date : DateTime) : Box[Int]
 
   /**
    * Delete reports older than target date both in archived reports and reports database
    */
-  def deleteEntries(date : DateTime) : Int
+  def deleteEntries(date : DateTime) : Box[Int]
 }
 
 class DatabaseManagerImpl(
@@ -111,27 +111,18 @@ class DatabaseManagerImpl(
   }
   
    def getDatabaseSize() : Box[Long] = {
-     try {
-       reportsRepository.getDatabaseSize()
-     } catch {
-       case e: Exception =>
-         logger.error("Could not compute the size of the database, cause is " + e.getMessage())
-         Failure(e.getMessage())
-     }
+     reportsRepository.getDatabaseSize()
    }
    
    def getArchiveSize() : Box[Long] = {
-     try {
-       reportsRepository.getArchiveSize()
-     } catch {
-       case e: Exception =>
-         logger.error("Could not compute the size of the database, cause is " + e.getMessage())
-         Failure(e.getMessage())
-     }
+     reportsRepository.getArchiveSize()
    }
 
-   def archiveEntries(date : DateTime) = reportsRepository.archiveEntries(date)
+   def archiveEntries(date : DateTime) =  {
+     reportsRepository.archiveEntries(date)
+   }
 
-   def deleteEntries(date : DateTime) = reportsRepository.deleteEntries(date)
-
+   def deleteEntries(date : DateTime) = {
+     reportsRepository.deleteEntries(date)
+   }
 }

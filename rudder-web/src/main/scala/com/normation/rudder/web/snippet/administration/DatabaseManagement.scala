@@ -54,7 +54,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
 
   private[this] val databaseManager = inject[DatabaseManager]
   private[this] var from : String = ""
-  private[this] var action : (DateTime => Int, String) = (databaseManager.archiveEntries , "Archiv" )
+  private[this] var action : (DateTime => Box[Int], String) = (databaseManager.archiveEntries , "Archiv" )
 
   val DATETIME_FORMAT = "yyyy-MM-dd"
   val DATETIME_PARSER = DateTimeFormat.forPattern(DATETIME_FORMAT)
@@ -101,17 +101,28 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  def cleanReports (cleanAction:(DateTime=>Int), cleanType:String) (date:DateTime) : JsCmd = {
+  def cleanReports (cleanAction:(DateTime=>Box[Int]), cleanType:String) (date:DateTime) : JsCmd = {
     logger.info("%sing all reports before %s".format(cleanType,date))
     try {
-      val result = cleanAction(date)
-      logger.info("Correctly %sed %d reports".format(cleanType.toLowerCase,result))
-      Alert("Correctly %sed %d reports".format(cleanType.toLowerCase,result))& updateValue
+      cleanAction(date) match {
+
+        case eb:EmptyBox =>
+          val e = eb ?~! "An error occured while %sing reports".format(cleanType.toLowerCase)
+          val eToPrint = e.failureChain.map( _.msg ).mkString("", ": ", "")
+          logger.info(eToPrint)
+          Alert(eToPrint)
+
+        case Full(result) =>
+          logger.info("Correctly %sed %d reports".format(cleanType.toLowerCase,result))
+          Alert("Correctly %sed %d reports".format(cleanType.toLowerCase,result))& updateValue
+
+      }
     } catch {
       case e: Exception => logger.error("Could not %se reports".format(cleanType.toLowerCase), e)
         Alert("An error occured while %sing reports".format(cleanType.toLowerCase))
     }
   }
+
   def updateValue = {
     val reportsInterval = databaseManager.getReportsInterval()
     val archivedReportsInterval = databaseManager.getArchivedReportsInterval()

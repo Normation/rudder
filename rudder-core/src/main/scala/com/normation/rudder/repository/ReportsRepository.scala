@@ -114,9 +114,9 @@ trait ReportsRepository {
 
   def getArchiveSize() : Box[Long]
 
-  def archiveEntries(date : DateTime) : Int
+  def archiveEntries(date : DateTime) : Box[Int]
 
-  def deleteEntries(date : DateTime) : Int
+  def deleteEntries(date : DateTime) : Box[Int]
 
   
 }
