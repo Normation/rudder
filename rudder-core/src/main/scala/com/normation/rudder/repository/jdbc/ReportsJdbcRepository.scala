@@ -281,6 +281,9 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
         delete from RudderSysEvents  where executionTimeStamp < '%s'
         """.format(date.toString("yyyy-MM-dd") )
     )
+
+    jdbcTemplate.execute("vacuum RudderSysEvents")
+
     delete
     
   }
@@ -300,6 +303,10 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
         delete from ArchivedRudderSysEvents  where executionTimeStamp < '%s'
         """.format(date.toString("yyyy-MM-dd") )
     )
+    
+    jdbcTemplate.execute("vacuum RudderSysEvents")
+    jdbcTemplate.execute("vacuum full ArchivedRudderSysEvents")
+
     delete
 
   }
