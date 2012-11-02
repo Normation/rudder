@@ -82,14 +82,21 @@
             <table class="database-info-table">
               <tr>
                 <td colspan="2">
-                <div style="margin-bottom:8px"><b>After cleaning database size on disk will not change immediately<br/>
-                To free disk space, you will have to wait until next database Vacuum is proceed</b></div>
+                <div style="margin-bottom:8px">
+                <b>Archive :</b> Archiving reports stores them in a database table without indexes to save disk space,<br/>
+                RAM usage while still allowing an expert user to analyze them.<br/>
+                <b>it will not directly free space until a vacuum full is proceed</b>,<br/>
+                but no more more space will be used to store new reports<br/><br/>
+                <b>Delete :</b> Deleting reports <b>cannot be reverted</b>.<br/>
+                Without old reports, compliance cannot be calculated in the past<br/>
+                It will <b>free space on Archived reports dataTable but not in reports dataTable</b></div>
                   <form class="lift:form.ajax">
                     <div>
+                    <span id="cleanParam">
                       <span id="modeSelector"/> all reports older than: <input
                         id="reportFromDate" value="" />
                       <button id="archiveReports">Start cleaning
-                        reports</button>
+                        reports</button></span>
                         <span id="confirm"> </span>
                     </div>
                     <lift:Msgs>

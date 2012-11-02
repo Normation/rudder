@@ -128,7 +128,8 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
   private[this] def showConfirmationDialog(date:DateTime, action : (DateTime => JsCmd) , warning : String, sentence: String ) : JsCmd = {
     val cancel : JsCmd = {
       SetHtml("confirm", NodeSeq.Empty) &
-      JsRaw(""" $('#archiveReports').show(); """)
+      JsRaw(""" $('#archiveReports').show();
+                $('#cleanParam').show(); """)
     }
 
     val dialog =
@@ -151,7 +152,10 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
 
     def showDialog : JsCmd = {
       SetHtml("confirm", dialog) &
-      JsRaw(""" $('#archiveReports').hide(); correctButtons(); $('#confirm').stop(true, true).slideDown(1000); """)
+      JsRaw(""" $('#archiveReports').hide();
+                $('#cleanParam').hide();
+                correctButtons();
+                $('#confirm').stop(true, true).slideDown(1000); """)
     }
 
     showDialog
