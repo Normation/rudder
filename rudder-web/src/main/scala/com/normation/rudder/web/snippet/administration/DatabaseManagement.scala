@@ -120,7 +120,9 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     SetHtml("databaseSize" , databaseManager.getDatabaseSize().map(x =>
       Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database"))) &
     SetHtml("oldestArchivedEntry", displayDate(archivedReportsInterval.map( x => x._1 ))) &
-    SetHtml("newestArchivedEntry", displayDate(archivedReportsInterval.map( x => x._2 )))
+    SetHtml("newestArchivedEntry", displayDate(archivedReportsInterval.map( x => x._2 ))) &
+    SetHtml("archiveSize", databaseManager.getArchiveSize().map(x =>
+      Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database")))
   }
 
   private[this] def showConfirmationDialog(date:DateTime, action : (DateTime => JsCmd) , warning : String, sentence: String ) : JsCmd = {
