@@ -51,10 +51,12 @@ import org.joda.time.format.DateTimeFormat
 import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.reports._
+import com.normation.rudder.batch.AutomaticDatabaseCleaning
 
 class DatabaseManagement extends DispatchSnippet with Loggable {
 
   private[this] val databaseManager = inject[DatabaseManager]
+  private[this] val dbCleaner = inject[AutomaticDatabaseCleaning]
   private[this] var from : String = ""
   private[this] var action : CleanReportAction = ArchiveAction(databaseManager)
 
@@ -114,7 +116,26 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     SetHtml("oldestArchivedEntry", displayDate(archivedReportsInterval.map( x => x._1 ))) &
     SetHtml("newestArchivedEntry", displayDate(archivedReportsInterval.map( x => x._2 ))) &
     SetHtml("archiveSize", databaseManager.getArchiveSize().map(x =>
-      Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database")))
+      Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database"))) &
+      updateAutomaticCleaner
+  }
+
+  def updateAutomaticCleaner = {
+    SetHtml("autoArchiveStatus", if(dbCleaner.archivettl > 0) Text("Enabled") else Text("Disabled") ) &
+    { if(dbCleaner.archivettl > 1)
+        SetHtml("autoArchiveDays", Text("%d".format(dbCleaner.archivettl)))
+      else
+        JsRaw(""" $('#autoArchiveDetails').hide(); """) } &
+    SetHtml("autoDeleteStatus", if(dbCleaner.deletettl > 0) Text("Enabled") else Text("Disabled") ) &
+    { if(dbCleaner.deletettl > 1)
+        SetHtml("autoDeleteDays", Text("%d".format(dbCleaner.deletettl)))
+      else
+        JsRaw(""" $('#autoDeleteDetails').hide(); """) } &
+    { if(dbCleaner.deletettl > 1 || dbCleaner.archivettl > 1)
+        SetHtml("cleanFrequency",  Text(dbCleaner.freq.toString()) ) &
+        SetHtml("nextRun",  displayDate(Full(dbCleaner.freq.next)))
+      else
+        JsRaw(""" $('#automaticCleanDetails').hide(); """) }
   }
 
   private[this] def showConfirmationDialog(date:DateTime, action : CleanReportAction ) : JsCmd = {

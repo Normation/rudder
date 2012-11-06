@@ -23,26 +23,31 @@
     <div class="portlet-content">
 
       <div class="intro">
-        <div>Rudder stores all reports received from nodes in a database. These reports are used to calculate compliance for Rules applied to Nodes. The database can grow quite large, and keeping older reports is usually useless if you don't need to examine compliance data in the past. This page enables you to archive them to save on disk space.</div>
+        <div>Rudder stores all reports received from nodes in a database. These reports are used to calculate compliance for Rules applied to Nodes. The database can grow quite large, and keeping older reports is usually useless if you don't need to examine compliance data from the past. This page enables you to archive or delete them to save on disk space.</div>
       </div>
       <hr class="spacer" />
 
       <div class="lift:administration.DatabaseManagement.display">
 
         <div class="inner-portlet">
-          <div class="inner-portlet-header">Currently stored
-            reports</div>
+          <div class="inner-portlet-header">Active reports</div>
           <div class="inner-portlet-content">
+            <div class="intro"><div>
+            Active reports are stored in an SQL table with full indexing. Storing large quantities may consume considerable disk space, and generally slow Rudder down.<br/>
+            Active reports are required to calculate current compliance, and are available for problem analysis in the "Technical logs" tab of a node's details.
+              <br/>
+              <span style="text-decoration:underline">Note:</span> When reports are archived or deleted, they are removed from the active reports table. However, this will <b>not</b> immediately free up disk space (but new active reports will not use any extra space). See the Rudder User Documentation to recover this space.
+            </div></div>
             <table class="database-info-table">
-              <tr>
-                <td>Oldest report:</td>
-                <td><b><span id="oldestEntry">[Here
-                      comes the oldest entry]</span></b></td>
-              </tr>
               <tr>
                 <td>Newest report:</td>
                 <td><b><span id="newestEntry">[Here
                       comes the newest entry]</span></b></td>
+              </tr>
+              <tr>
+                <td>Oldest report:</td>
+                <td><b><span id="oldestEntry">[Here
+                      comes the oldest entry]</span></b></td>
               </tr>
               <tr>
                 <td>Total disk space used by reports:</td>
@@ -56,16 +61,23 @@
         <div class="inner-portlet">
           <div class="inner-portlet-header">Archived reports</div>
           <div class="inner-portlet-content">
+            <div class="intro"><div>
+              Archived reports are stored in an SQL table without any indexes, thus providing a substantial saving on disk space required to store them compared to the current reports above.<br/>
+              Archived reports will not be available in the "Technical logs" tab of a node's details. However, they remain available for future analysis by a plugin or an expert user.
+              <br/>
+              <u>Note:</u> When archived reports are deleted, disk space is freed immediately.
+            </div></div>
+
             <table class="database-info-table">
-              <tr>
-                <td>Oldest archived report:</td>
-                <td><b><span id="oldestArchivedEntry">[Here
-                      comes the oldest archived entry]</span></b></td>
-              </tr>
               <tr>
                 <td>Newest archived report:</td>
                 <td><b><span id="newestArchivedEntry">[Here
                       comes the newest archived entry]</span></b></td>
+              </tr>
+              <tr>
+                <td>Oldest archived report:</td>
+                <td><b><span id="oldestArchivedEntry">[Here
+                      comes the oldest archived entry]</span></b></td>
               </tr>
               <tr>
                 <td>Total disk space used by archived reports:</td>
@@ -76,20 +88,41 @@
           </div>
         </div>
 
+    <div class="inner-portlet">
+          <div class="inner-portlet-header">Automatic report cleaning</div>
+          <div class="inner-portlet-content">
+            <div class="intro"><div>Regular archiving and deleting of reports can be set in the Rudder configuration file (/opt/rudder/etc/rudder-web.properties).
+            <br/>
+            Enabling regular archiving and deleting of old reports is highly recommended, to avoid Rudder's disk usage growing forever.
+            </div></div>
+            <div class="automaticCleanDetail">Automatic report archiving is <b><span id="autoArchiveStatus">[Here
+                      comes the report archiving status]</span></b>.<span id="autoArchiveDetails"> All reports older than <b><span id="autoArchiveDays">[Here
+                      comes the automatic report archive age parameter]</span> days</b> will be archived regularly.</span></div>
+            <div class="automaticCleanDetail">Automatic report deleting is <b><span id="autoDeleteStatus">[Here
+                      comes the report deleting status]</span></b>.<span id="autoDeleteDetails"> All reports older than <b><span id="autoDeleteDays">[Here
+                      comes the automatic report delete age parameter]</span> days</b> will be deleted regularly.</span></div>
+
+            <table id="automaticCleanDetails" class="database-info-table">
+              <tr>
+                <td>Frequency:</td>
+                <td><b><span id="cleanFrequency">[Here
+                      comes the archive cleaning job frequency]</span></b></td>
+              </tr>
+                <tr>
+                <td>Next run:</td>
+                <td><b><span id="nextRun">[Here
+                      comes the next run time for the archive cleaning job]</span></b></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
         <div class="inner-portlet">
-          <div class="inner-portlet-header">Clean reports</div>
+          <div class="inner-portlet-header">Manual report cleaning</div>
           <div class="inner-portlet-content">
             <table class="database-info-table">
               <tr>
                 <td colspan="2">
-                <div style="margin-bottom:8px">
-                <b>Archive :</b> Archiving reports stores them in a database table without indexes to save disk space,<br/>
-                RAM usage while still allowing an expert user to analyze them.<br/>
-                <b>it will not directly free space until a vacuum full is proceed</b>,<br/>
-                but no more more space will be used to store new reports<br/><br/>
-                <b>Delete :</b> Deleting reports <b>cannot be reverted</b>.<br/>
-                Without old reports, compliance cannot be calculated in the past<br/>
-                It will <b>free space on Archived reports dataTable but not in reports dataTable</b></div>
                   <form class="lift:form.ajax">
                     <div>
                     <span id="cleanParam">
@@ -108,9 +141,7 @@
             </table>
           </div>
         </div>
-
       </div>
-
     </div>
     <br />
   </div>
