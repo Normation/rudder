@@ -205,6 +205,24 @@ class AppConfig extends Loggable {
   @Value("${rudder.batch.techniqueLibrary.updateInterval}")
   var ptlibUpdateInterval = 60 * 5 //five minutes
 
+  @Value("${rudder.batch.reportsCleaner.archive.TTL}")
+  var reportCleanerArchiveTTL = 30
+
+  @Value("${rudder.batch.reportsCleaner.delete.TTL}")
+  var reportCleanerDeleteTTL = 90
+
+  @Value("${rudder.batch.reportsCleaner.frequency}")
+  var reportCleanerFrequency = "daily"
+
+  @Value("${rudder.batch.reportsCleaner.runtime.minute}")
+  var reportCleanerRuntimeMinute = 0
+
+  @Value("${rudder.batch.reportsCleaner.runtime.hour}")
+  var reportCleanerRuntimeHour = 0
+
+  @Value("${rudder.batch.reportsCleaner.runtime.day}")
+  var reportCleanerRuntimeDay = "sunday"
+
   @Value("${rudder.techniqueLibrary.git.refs.path}")
   var ptRefsPath = ""
     
@@ -959,6 +977,21 @@ class AppConfig extends Loggable {
     , dyngroupUpdateInterval
   )
 
+
+  @Bean
+  def cleanFrequency = FrequencyBuilder.build(
+      reportCleanerFrequency
+    , reportCleanerRuntimeMinute
+    , reportCleanerRuntimeHour
+    , reportCleanerRuntimeDay).get
+
+  @Bean
+  def dbCleaner: AutomaticDatabaseCleaning = new AutomaticDatabaseCleaning(
+      databaseManager
+    , reportCleanerDeleteTTL
+    , reportCleanerArchiveTTL
+    , cleanFrequency
+  )
   @Bean
   def ptLibCron = new CheckTechniqueLibrary(
       techniqueRepository
