@@ -1235,7 +1235,9 @@ div#infosUser {
    text-decoration: underline;
    cursor: pointer;
 }
-
+.automaticCleanDetail {
+	padding : 5px 5px 0;
+} 
 #create-user {
    border: none;
    font-size: 1em;
