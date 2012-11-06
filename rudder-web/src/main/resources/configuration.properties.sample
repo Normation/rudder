@@ -116,6 +116,59 @@ rudder.jdbc.username=rudder
 rudder.jdbc.password=Normation
 
 
+###########################
+# Automatic reports cleaning ###########################################################
+###########################
+
+#
+# Automatic reports cleaning
+# This allows you to schedule automatically clean reports (archive or delete)
+#
+
+#
+# TTL are the maximum age (in days) of reports before archiving (archive.TTL)
+# or deleting (delete.TTL)
+#
+# A value equal to 0 or lower means disable automatic archiving/deleting.
+#
+# If the archive TTL is greater than the delete TTL then archiving will be disabled
+# as there will be no reports to archive (they would be deleted first).
+#
+# Defaults: archive after 30 days, delete after 90 days.
+#
+
+rudder.batch.reportscleaner.archive.TTL=30
+rudder.batch.reportscleaner.delete.TTL=90
+
+#
+# Schedule option for automatic cleaning
+# Automatic cleaning can be scheduled:
+#  - every hour at the minute past the hour of your choice
+#  - every day at the time of your choice
+#  - every week on the day at the time of your choice
+#
+# Default frequency: daily
+rudder.batch.reportscleaner.frequency=daily
+
+# Defaults: minute=0, hour=0, day=Sunday
+
+
+# Which minute the cleaner should be run on.
+# Values  : [0-59]
+# Default : 0
+rudder.batch.databasecleaner.runtime.minute=0
+
+# Which hour the cleaner should be run on.
+# Values : [0-23]
+# Default : 0
+rudder.batch.databasecleaner.runtime.hour=0
+
+# Which day the cleaner should be run on.
+# Values : monday | tuesday | wednesday | thursday | friday | saturday | sunday
+# Default : sunday
+rudder.batch.databasecleaner.runtime.day=sunday
+
+
 #####################
 # Webdav properties #################################################################
 #####################
