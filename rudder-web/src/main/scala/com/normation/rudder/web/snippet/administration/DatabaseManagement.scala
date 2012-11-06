@@ -49,12 +49,14 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import org.joda.time.format.DateTimeFormat
 import net.liftweb.http.js.JE.JsRaw
+import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.domain.reports._
 
 class DatabaseManagement extends DispatchSnippet with Loggable {
 
   private[this] val databaseManager = inject[DatabaseManager]
   private[this] var from : String = ""
-  private[this] var action : (DateTime => Box[Int], String) = (databaseManager.archiveEntries , "Archiv" )
+  private[this] var action : CleanReportAction = ArchiveAction(databaseManager)
 
   val DATETIME_FORMAT = "yyyy-MM-dd"
   val DATETIME_PARSER = DateTimeFormat.forPattern(DATETIME_FORMAT)
@@ -67,8 +69,8 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
 
      ("#modeSelector" #> <ul style="float:left">{SHtml.radio(Seq("Archive", "Delete"), Full("Archive")
           , {value:String => action = value match {
-            case "Archive" => (databaseManager.archiveEntries , "Archiv" )
-            case "Delete"  => (databaseManager.deleteEntries  , "Delet" )
+            case "Archive" => ArchiveAction(databaseManager)
+            case "Delete"  => DeleteAction(databaseManager)
           } }
           , ("class", "radio") ).flatMap(e =>
             <li>
@@ -95,33 +97,12 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
           S.error(e.failureChain.map( _.msg ).mkString("", ": ", "")  )
           Noop
         case Full(date) =>
-          val warning = "Are you sure you want to %se reports older than %s?".format(action._2,DateFormaterService.getFormatedDate(date))
           S.error("")
-          showConfirmationDialog(date,cleanReports(action._1,action._2),warning,action._2)
+          showConfirmationDialog(date,action)
     }
   }
 
-  def cleanReports (cleanAction:(DateTime=>Box[Int]), cleanType:String) (date:DateTime) : JsCmd = {
-    logger.info("%sing all reports before %s".format(cleanType,date))
-    try {
-      cleanAction(date) match {
 
-        case eb:EmptyBox =>
-          val e = eb ?~! "An error occured while %sing reports".format(cleanType.toLowerCase)
-          val eToPrint = e.failureChain.map( _.msg ).mkString("", ": ", "")
-          logger.info(eToPrint)
-          Alert(eToPrint)
-
-        case Full(result) =>
-          logger.info("Correctly %sed %d reports".format(cleanType.toLowerCase,result))
-          Alert("Correctly %sed %d reports".format(cleanType.toLowerCase,result))& updateValue
-
-      }
-    } catch {
-      case e: Exception => logger.error("Could not %se reports".format(cleanType.toLowerCase), e)
-        Alert("An error occured while %sing reports".format(cleanType.toLowerCase))
-    }
-  }
 
   def updateValue = {
     val reportsInterval = databaseManager.getReportsInterval()
@@ -136,7 +117,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
       Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database")))
   }
 
-  private[this] def showConfirmationDialog(date:DateTime, action : (DateTime => JsCmd) , warning : String, sentence: String ) : JsCmd = {
+  private[this] def showConfirmationDialog(date:DateTime, action : CleanReportAction ) : JsCmd = {
     val cancel : JsCmd = {
       SetHtml("confirm", NodeSeq.Empty) &
       JsRaw(""" $('#archiveReports').show();
@@ -147,15 +128,15 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     <span style="margin:5px;">
           <img src="/images/icWarn.png" alt="Warning!" height="25" width="25" class="warnicon"
             style="vertical-align: middle; padding: 0px 0px 2px 0px;"/>
-          <b>{warning}</b>
+          <b>{"Are you sure you want to %s reports older than %s?".format(action.name,DateFormaterService.getFormatedDate(date))}</b>
 
       <span style="margin-left:7px">
           {
-            SHtml.ajaxButton("Cancel", { () => { cancel } })
+            SHtml.ajaxButton("Cancel", { () => { cancel & updateValue } })
           }
       <span style="margin-left:10px">
           {
-            SHtml.ajaxButton("%se reports".format(sentence), { () => action(date) & cancel } )
+            SHtml.ajaxButton("%se reports".format(action.name), { () => action.cleanReports(date) & cancel & updateValue } )
           }
         </span>
       </span>
