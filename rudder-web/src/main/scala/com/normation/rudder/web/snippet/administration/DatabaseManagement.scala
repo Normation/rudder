@@ -51,12 +51,12 @@ import org.joda.time.format.DateTimeFormat
 import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.reports._
-import com.normation.rudder.batch.AutomaticDatabaseCleaning
+import com.normation.rudder.batch.AutomaticReportsCleaning
 
 class DatabaseManagement extends DispatchSnippet with Loggable {
 
   private[this] val databaseManager = inject[DatabaseManager]
-  private[this] val dbCleaner = inject[AutomaticDatabaseCleaning]
+  private[this] val dbCleaner = inject[AutomaticReportsCleaning]
   private[this] var from : String = ""
   private[this] var action : CleanReportAction = ArchiveAction(databaseManager)
 

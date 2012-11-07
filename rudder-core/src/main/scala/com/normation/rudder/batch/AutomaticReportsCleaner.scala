@@ -44,7 +44,7 @@ import com.normation.rudder.domain.reports._
 /**
  *  An helper object designed to help building automatic reports cleaning
  */
-object AutomaticDatabaseCleaning {
+object AutomaticReportsCleaning {
 
   /*
    *  Default parameters and properties name
@@ -254,7 +254,7 @@ case class CheckLaunch
  *  A negative or zero TTL means to not run the relative reports cleaner.
  *  Archive action doesn't run if its TTL is more than Delete TTL.
  */
-case class AutomaticDatabaseCleaning(
+case class AutomaticReportsCleaning(
   dbManager      : DatabaseManager
   , deletettl      : Int // in days
   , archivettl     : Int // in days

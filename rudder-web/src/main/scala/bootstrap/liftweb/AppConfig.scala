@@ -207,19 +207,19 @@ class AppConfig extends Loggable {
   var ptlibUpdateInterval = 60 * 5 //five minutes
 
   @Value("${rudder.batch.reportsCleaner.archive.TTL}")
-  var reportCleanerArchiveTTL = AutomaticDatabaseCleaning.defaultArchiveTTL
+  var reportCleanerArchiveTTL = AutomaticReportsCleaning.defaultArchiveTTL
 
   @Value("${rudder.batch.reportsCleaner.delete.TTL}")
-  var reportCleanerDeleteTTL = AutomaticDatabaseCleaning.defaultDeleteTTL
+  var reportCleanerDeleteTTL = AutomaticReportsCleaning.defaultDeleteTTL
 
   @Value("${rudder.batch.reportsCleaner.frequency}")
-  var reportCleanerFrequency = AutomaticDatabaseCleaning.defaultDay
+  var reportCleanerFrequency = AutomaticReportsCleaning.defaultDay
 
   @Value("${rudder.batch.reportsCleaner.runtime.hour}")
-  var reportCleanerRuntimeHour = AutomaticDatabaseCleaning.defaultHour
+  var reportCleanerRuntimeHour = AutomaticReportsCleaning.defaultHour
 
   @Value("${rudder.batch.reportsCleaner.runtime.minute}")
-  var reportCleanerRuntimeMinute = AutomaticDatabaseCleaning.defaultMinute
+  var reportCleanerRuntimeMinute = AutomaticReportsCleaning.defaultMinute
 
   @Value("${rudder.batch.reportsCleaner.runtime.day}")
   var reportCleanerRuntimeDay = "sunday"
@@ -980,7 +980,7 @@ class AppConfig extends Loggable {
 
 
   @Bean
-  def cleanFrequency = AutomaticDatabaseCleaning.buildFrequency(
+  def cleanFrequency = AutomaticReportsCleaning.buildFrequency(
       reportCleanerFrequency
     , reportCleanerRuntimeMinute
     , reportCleanerRuntimeHour
@@ -992,7 +992,7 @@ class AppConfig extends Loggable {
   }
 
   @Bean
-  def dbCleaner: AutomaticDatabaseCleaning = new AutomaticDatabaseCleaning(
+  def dbCleaner: AutomaticReportsCleaning = new AutomaticReportsCleaning(
       databaseManager
     , reportCleanerDeleteTTL
     , reportCleanerArchiveTTL
