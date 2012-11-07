@@ -104,8 +104,6 @@ import com.normation.rudder.migration.EventLogsMigration_10_2
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.migration.XmlMigration_10_2
 import com.normation.rudder.migration.EventLogMigration_10_2
-import com.normation.rudder.batch.FrequencyBuilder
-import com.normation.rudder.batch.FrequencyBuilder
 import net.liftweb.common._
 
 /**
@@ -209,19 +207,19 @@ class AppConfig extends Loggable {
   var ptlibUpdateInterval = 60 * 5 //five minutes
 
   @Value("${rudder.batch.reportsCleaner.archive.TTL}")
-  var reportCleanerArchiveTTL = FrequencyBuilder.defaultArchiveTTL
+  var reportCleanerArchiveTTL = AutomaticDatabaseCleaning.defaultArchiveTTL
 
   @Value("${rudder.batch.reportsCleaner.delete.TTL}")
-  var reportCleanerDeleteTTL = FrequencyBuilder.defaultDeleteTTL
+  var reportCleanerDeleteTTL = AutomaticDatabaseCleaning.defaultDeleteTTL
 
   @Value("${rudder.batch.reportsCleaner.frequency}")
-  var reportCleanerFrequency = FrequencyBuilder.defaultDay
+  var reportCleanerFrequency = AutomaticDatabaseCleaning.defaultDay
 
   @Value("${rudder.batch.reportsCleaner.runtime.hour}")
-  var reportCleanerRuntimeHour = FrequencyBuilder.defaultHour
+  var reportCleanerRuntimeHour = AutomaticDatabaseCleaning.defaultHour
 
   @Value("${rudder.batch.reportsCleaner.runtime.minute}")
-  var reportCleanerRuntimeMinute = FrequencyBuilder.defaultMinute
+  var reportCleanerRuntimeMinute = AutomaticDatabaseCleaning.defaultMinute
 
   @Value("${rudder.batch.reportsCleaner.runtime.day}")
   var reportCleanerRuntimeDay = "sunday"
@@ -982,7 +980,7 @@ class AppConfig extends Loggable {
 
 
   @Bean
-  def cleanFrequency = FrequencyBuilder.build(
+  def cleanFrequency = AutomaticDatabaseCleaning.buildFrequency(
       reportCleanerFrequency
     , reportCleanerRuntimeMinute
     , reportCleanerRuntimeHour

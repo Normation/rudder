@@ -41,9 +41,14 @@ import org.joda.time._
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.reports._
 
+/**
+ *  An helper object designed to help building automatic reports cleaning
+ */
+object AutomaticDatabaseCleaning {
 
-object FrequencyBuilder {
-
+  /*
+   *  Default parameters and properties name
+   */
   val minParam  = "rudder.batch.reportsCleaner.runtime.minute"
   val hourParam = "rudder.batch.reportsCleaner.runtime.hour"
   val dayParam  = "rudder.batch.reportsCleaner.runtime.day"
@@ -55,8 +60,11 @@ object FrequencyBuilder {
 
   val defaultArchiveTTL = 30
   val defaultDeleteTTL  = 90
-  
-  def build(kind:String,min:Int,hour:Int,day:String):Box[CleanFrequency] = {
+
+  /**
+   *  Build a frequency depending on the value
+   */
+  def buildFrequency(kind:String, min:Int, hour:Int, day:String):Box[CleanFrequency] = {
     kind.toLowerCase() match {
       case "hourly" => buildHourly(min)
       case "daily"  => buildDaily(min,hour)
@@ -65,7 +73,11 @@ object FrequencyBuilder {
     }
 
   }
-  def buildHourly(min:Int):Box[CleanFrequency] = {
+
+  /**
+   *  Build an hourly frequency
+   */
+  private[this] def buildHourly(min:Int):Box[CleanFrequency] = {
 
     if (min >= 0 && min <= 59)
       Full(Hourly(min))
@@ -73,7 +85,10 @@ object FrequencyBuilder {
       Failure("%s is not correctly set, value is %d, should be in [0-59]".format(minParam,min))
   }
 
-  def buildDaily(min:Int,hour:Int):Box[CleanFrequency] = {
+  /**
+   *  Build a daily frequency
+   */
+  private[this] def buildDaily(min:Int,hour:Int):Box[CleanFrequency] = {
 
     if (min >= 0 && min <= 59)
       if(hour >= 0 && hour <= 23)
@@ -84,7 +99,10 @@ object FrequencyBuilder {
       Failure("%s is not correctly set, value is %d, should be in [0-59]".format(minParam,min))
   }
 
-    def buildWeekly(min:Int,hour:Int,day:String):Option[CleanFrequency] = {
+  /**
+   *  Build a weekly frequency
+   */
+  private[this] def buildWeekly(min:Int,hour:Int,day:String):Option[CleanFrequency] = {
 
     if (min >= 0 && min <= 59)
       if(hour >= 0 && hour <= 23)
@@ -105,19 +123,47 @@ object FrequencyBuilder {
   }
 }
 
+/**
+ *  Clean Frequency represents how often a report cleaning will be done.
+ */
 trait CleanFrequency {
 
+  /**
+   *  Check if report cleaning has to be run
+   *  Actually check every minute.
+   *  TODO : check in a range of 5 minutes
+   */
   def check(date:DateTime):Boolean = {
     val target = checker(date)
     target.equals(date)
   }
 
+  /**
+   *  Compute the checker from now
+   */
   def checker(now: DateTime):DateTime
 
+  /**
+   *  Compute the next cleaning time
+   */
   def next:DateTime
+
+  /**
+   *  Display the frequency
+   */
+  def displayFrequency : Option[String]
+
+  override def toString = displayFrequency match {
+    case Some(freq) => freq
+    case None => "Could not compute frequency"
+  }
 
 }
 
+/**
+ *  An hourly frequency.
+ *  It runs every hour past min minutes
+ */
 case class Hourly(min:Int) extends CleanFrequency{
 
   def checker(date:DateTime):DateTime = date.withMinuteOfHour(min)
@@ -130,10 +176,14 @@ case class Hourly(min:Int) extends CleanFrequency{
       checker(now).plusHours(1)
   }
 
-  override def toString:String = "Every hour past %d minutes".format(min)
+   def displayFrequency = Some("Every hour past %d minutes".format(min))
 
 }
 
+/**
+ *  A daily frequency.
+ *  It runs every day at hour:min
+ */
 case class Daily(hour:Int,min:Int) extends CleanFrequency{
 
   def checker(date:DateTime):DateTime = date.withMinuteOfHour(min).withHourOfDay(hour)
@@ -146,10 +196,14 @@ case class Daily(hour:Int,min:Int) extends CleanFrequency{
       checker(now).plusDays(1)
   }
 
-  override def toString:String = "Every day at %d:%d".format(hour,min)
+  def displayFrequency = Some("Every day at %d:%d".format(hour,min))
 
 }
 
+/**
+ *  A weekly frequency.
+ *  It runs every week on day at hour:min
+ */
 case class Weekly(day:Int,hour:Int,min:Int) extends CleanFrequency{
 
   def checker(date:DateTime):DateTime = date.withMinuteOfHour(min).withHourOfDay(hour).withDayOfWeek(day)
@@ -163,41 +217,42 @@ case class Weekly(day:Int,hour:Int,min:Int) extends CleanFrequency{
   }
 
 
-  override def toString:String = {
-    val res = day match {
-      case DateTimeConstants.MONDAY    => "Monday"
-      case DateTimeConstants.TUESDAY   => "Tuesday"
-      case DateTimeConstants.WEDNESDAY => "Wednesday"
-      case DateTimeConstants.THURSDAY  => "Thursday"
-      case DateTimeConstants.FRIDAY    => "Friday"
-      case DateTimeConstants.SATURDAY  => "Saturday"
-      case DateTimeConstants.SUNDAY    => "Sunday"
+  def displayFrequency = {
+    def expressWeekly(day:String) = Some("every %s at %d:%d".format(day,hour,min))
+    day match {
+      case DateTimeConstants.MONDAY    => expressWeekly ("Monday")
+      case DateTimeConstants.TUESDAY   => expressWeekly ("Tuesday")
+      case DateTimeConstants.WEDNESDAY => expressWeekly ("Wednesday")
+      case DateTimeConstants.THURSDAY  => expressWeekly ("Thursday")
+      case DateTimeConstants.FRIDAY    => expressWeekly ("Friday")
+      case DateTimeConstants.SATURDAY  => expressWeekly ("Saturday")
+      case DateTimeConstants.SUNDAY    => expressWeekly ("Sunday")
+      case _ => None
     }
-    "Every %s at %d:%d".format(res,hour,min)
   }
 
 }
 
-//states into which the cleaner process can be
+// States into which the cleaner process can be.
 sealed trait CleanerState
-//the process is idle
+// The process is idle.
 case object IdleCleaner extends CleanerState
-//an update is currently cleaning the databases
+// An update is currently cleaning the databases.
 case object ActiveCleaner extends CleanerState
 
-//Messages the cleaner can receive
-// Ask to clean database (need to be in active state)
+// Messages the cleaner can receive.
+// Ask to clean database (need to be in active state).
 case class CleanDatabase
-// Ask to check if cleaning has to be launched (need to be in idle state)
+// Ask to check if cleaning has to be launched (need to be in idle state).
 case class CheckLaunch
 
 /**
- * A class that periodically check if the Database has to be cleaned.
+ *  A class that periodically check if the Database has to be cleaned.
  *
- * for now, Archive and delete run at same frequency
- * age before archive and delete are expressed in days
- * negative or zero age means to not run the dbcleaner
- * Archive don't run if it ttl is more than Delete one
+ *  for now, Archive and delete run at same frequency.
+ *  Delete and Archive TTL express the maximum age of reports.
+ *  A negative or zero TTL means to not run the relative reports cleaner.
+ *  Archive action doesn't run if its TTL is more than Delete TTL.
  */
 case class AutomaticDatabaseCleaning(
   dbManager      : DatabaseManager
@@ -206,12 +261,12 @@ case class AutomaticDatabaseCleaning(
   , freq : CleanFrequency
 ) extends Loggable {
   val reportLogger = ReportLogger
-  //check if automatic reports archiving has to be started
+  // Check if automatic reports archiving has to be started
   if(archivettl < 1) {
     val propertyName = "rudder.batch.reportsCleaner.archive.TTL"
     reportLogger.info("Disable automatic database archive sinces property %s is 0 or negative".format(propertyName))
   } else {
-    // don't launch automatic report archiving if reports would have already been deleted by automatic reports deleting
+    // Don't launch automatic report archiving if reports would have already been deleted by automatic reports deleting
     if ((archivettl < deletettl ) && (deletettl > 0)) {
       logger.trace("***** starting Automatic Archive Reports batch *****")
       (new LADatabaseCleaner(ArchiveAction(dbManager),archivettl)) ! CheckLaunch
@@ -248,7 +303,7 @@ case class AutomaticDatabaseCleaning(
        * always register to LAPinger
        */
       case CheckLaunch =>
-        //schedule next check, every minute
+        // Schedule next check, every minute
         LAPinger.schedule(this, CheckLaunch, 1000L*60)
         currentState match {
 
