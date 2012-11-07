@@ -104,6 +104,8 @@ import com.normation.rudder.migration.EventLogsMigration_10_2
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.migration.XmlMigration_10_2
 import com.normation.rudder.migration.EventLogMigration_10_2
+import com.normation.rudder.batch.FrequencyBuilder
+import com.normation.rudder.batch.FrequencyBuilder
 
 /**
  * Spring configuration for services
@@ -206,19 +208,19 @@ class AppConfig extends Loggable {
   var ptlibUpdateInterval = 60 * 5 //five minutes
 
   @Value("${rudder.batch.reportsCleaner.archive.TTL}")
-  var reportCleanerArchiveTTL = 30
+  var reportCleanerArchiveTTL = FrequencyBuilder.defaultArchiveTTL
 
   @Value("${rudder.batch.reportsCleaner.delete.TTL}")
-  var reportCleanerDeleteTTL = 90
+  var reportCleanerDeleteTTL = FrequencyBuilder.defaultDeleteTTL
 
   @Value("${rudder.batch.reportsCleaner.frequency}")
-  var reportCleanerFrequency = "daily"
-
-  @Value("${rudder.batch.reportsCleaner.runtime.minute}")
-  var reportCleanerRuntimeMinute = 0
+  var reportCleanerFrequency = FrequencyBuilder.defaultDay
 
   @Value("${rudder.batch.reportsCleaner.runtime.hour}")
-  var reportCleanerRuntimeHour = 0
+  var reportCleanerRuntimeHour = FrequencyBuilder.defaultHour
+
+  @Value("${rudder.batch.reportsCleaner.runtime.minute}")
+  var reportCleanerRuntimeMinute = FrequencyBuilder.defaultMinute
 
   @Value("${rudder.batch.reportsCleaner.runtime.day}")
   var reportCleanerRuntimeDay = "sunday"

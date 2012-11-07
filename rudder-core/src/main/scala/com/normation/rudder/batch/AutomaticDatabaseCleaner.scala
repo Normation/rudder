@@ -48,6 +48,13 @@ object FrequencyBuilder {
   val dayParam  = "rudder.batch.reportsCleaner.runtime.day"
   val freqParam = "rudder.batch.reportsCleaner.frequency"
 
+  val defaultMinute = 0
+  val defaultHour   = 0
+  val defaultDay    = "sunday"
+
+  val defaultArchiveTTL = 30
+  val defaultDeleteTTL  = 90
+  
   def build(kind:String,min:Int,hour:Int,day:String):Box[CleanFrequency] = {
     kind.toLowerCase() match {
       case "hourly" => buildHourly(min)
