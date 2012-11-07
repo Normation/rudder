@@ -106,6 +106,7 @@ import com.normation.rudder.migration.XmlMigration_10_2
 import com.normation.rudder.migration.EventLogMigration_10_2
 import com.normation.rudder.batch.FrequencyBuilder
 import com.normation.rudder.batch.FrequencyBuilder
+import net.liftweb.common._
 
 /**
  * Spring configuration for services
@@ -985,7 +986,12 @@ class AppConfig extends Loggable {
       reportCleanerFrequency
     , reportCleanerRuntimeMinute
     , reportCleanerRuntimeHour
-    , reportCleanerRuntimeDay).get
+    , reportCleanerRuntimeDay) match {
+    case Full(freq) => freq
+    case eb:EmptyBox => val fail = eb ?~! "automatic reports cleaner is not correct"
+      val exceptionMsg = "configuration file (/opt/rudder/etc/rudder-webapp.conf) is not correctly set, cause is %s".format(fail.msg)
+      throw new RuntimeException(exceptionMsg)
+  }
 
   @Bean
   def dbCleaner: AutomaticDatabaseCleaning = new AutomaticDatabaseCleaning(
