@@ -39,6 +39,7 @@ import com.normation.rudder.services.system.DatabaseManager
 import net.liftweb.common._
 import org.joda.time._
 import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.domain.reports._
 
 
 object FrequencyBuilder {
@@ -213,7 +214,7 @@ case class AutomaticDatabaseCleaning(
     // don't launch automatic report archiving if reports would have already been deleted by automatic reports deleting
     if ((archivettl < deletettl ) && (deletettl > 0)) {
       logger.trace("***** starting Automatic Archive Reports batch *****")
-      (new LADatabaseCleaner(dbManager.archiveEntries,archivettl,"archiv")) ! CheckLaunch
+      (new LADatabaseCleaner(ArchiveAction(dbManager),archivettl)) ! CheckLaunch
     }
     else
       reportLogger.info("Disable automatic archive since archive maximum age is older than delete maximum age")
@@ -224,7 +225,7 @@ case class AutomaticDatabaseCleaning(
     reportLogger.info("Disable automatic database deletion sinces property %s is 0 or negative".format(propertyName))
   } else {
     logger.trace("***** starting Automatic Delete Reports batch *****")
-    (new LADatabaseCleaner(dbManager.deleteEntries,deletettl,"delet")) ! CheckLaunch
+    (new LADatabaseCleaner(DeleteAction(dbManager),deletettl)) ! CheckLaunch
   }
 
 
@@ -232,7 +233,7 @@ case class AutomaticDatabaseCleaning(
   //////////////////// implementation details ////////////////////
   ////////////////////////////////////////////////////////////////
 
-  private class LADatabaseCleaner(cleanaction:(DateTime)=> Box[Int],ttl:Int,action:String) extends LiftActor with Loggable {
+  private class LADatabaseCleaner(cleanaction:CleanReportAction,ttl:Int) extends LiftActor with Loggable {
     updateManager =>
 
     private[this] val reportLogger = ReportLogger
@@ -255,7 +256,7 @@ case class AutomaticDatabaseCleaning(
 
             logger.trace("***** Check launch *****")
             if(freq.check(DateTime.now)){
-              logger.trace("***** Automatic %ser entering in active State *****".format(action))
+              logger.trace("***** Automatic %s entering in active State *****".format(cleanaction.name.toLowerCase()))
               currentState = ActiveCleaner
               (this) ! CleanDatabase
             }
@@ -273,20 +274,20 @@ case class AutomaticDatabaseCleaning(
 
           case ActiveCleaner =>
             val now = DateTime.now
-            logger.trace("***** %se Database *****".format(action))
-            reportLogger.info("Automatic start %sing".format(action))
-            val res = cleanaction(now.minusDays(ttl))
+            logger.trace("***** %s Database *****".format(cleanaction.name))
+            reportLogger.info("Automatic start %s".format(cleanaction.continue.toLowerCase()))
+            val res = cleanaction.act(now.minusDays(ttl))
             res match {
               case eb:EmptyBox =>
                 // Error while cleaning, should launch again
-                reportLogger.error("Error while processing database %sing %s ".format(action,eb))
-                reportLogger.error("Relaunching automatic %sing process".format(action))
+                reportLogger.error("Error while processing database %s, cause is : %s ".format(cleanaction.continue.toLowerCase(),eb))
+                reportLogger.error("Relaunching automatic %s process".format(cleanaction.continue.toLowerCase()))
                 (this) ! CleanDatabase
               case Full(res) =>
                 if (res==0)
-                  reportLogger.info("Automatic reports %ser has nothing to %se".format(action,action))
+                  reportLogger.info("Automatic reports %s has nothing to do".format(cleanaction.name.toLowerCase()))
                 else
-                  reportLogger.info("Automatic reports %ser has %sed %d reports".format(action,action,res))
+                  reportLogger.info("Automatic reports %s has %s %d reports".format(cleanaction.name.toLowerCase(),cleanaction.past.toLowerCase(),res))
                 lastRun=DateTime.now
                 currentState = IdleCleaner
             }
@@ -296,7 +297,7 @@ case class AutomaticDatabaseCleaning(
         }
 
       case _ =>
-        reportLogger.error("Wrong message for automatic database cleaner ")
+        reportLogger.error("Wrong message for automatic reports %s ".format(cleanaction.name.toLowerCase()))
 
     }
   }
