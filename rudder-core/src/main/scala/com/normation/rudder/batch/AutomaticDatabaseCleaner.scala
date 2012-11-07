@@ -204,11 +204,11 @@ case class AutomaticDatabaseCleaning(
   , archivettl     : Int // in days
   , freq : CleanFrequency
 ) extends Loggable {
-  override val logger = ReportLogger
+  val reportLogger = ReportLogger
   //check if automatic reports archiving has to be started
   if(archivettl < 1) {
-    val propertyName = "rudder.batch.techniqueLibrary.updateInterval"
-    logger.info("Disable automatic database archive sinces property %s is 0 or negative".format(propertyName))
+    val propertyName = "rudder.batch.reportsCleaner.archive.TTL"
+    reportLogger.info("Disable automatic database archive sinces property %s is 0 or negative".format(propertyName))
   } else {
     // don't launch automatic report archiving if reports would have already been deleted by automatic reports deleting
     if ((archivettl < deletettl ) && (deletettl > 0)) {
@@ -216,12 +216,12 @@ case class AutomaticDatabaseCleaning(
       (new LADatabaseCleaner(dbManager.archiveEntries,archivettl,"archiv")) ! CheckLaunch
     }
     else
-      logger.info("Disable automatic archive since archive maximum age is older than delete maximum age")
+      reportLogger.info("Disable automatic archive since archive maximum age is older than delete maximum age")
   }
 
   if(deletettl < 1) {
-    val propertyName = "rudder.batch.techniqueLibrary.updateInterval"
-    logger.info("Disable automatic database deletion sinces property %s is 0 or negative".format(propertyName))
+    val propertyName = "rudder.batch.reportsCleaner.delete.TTL"
+    reportLogger.info("Disable automatic database deletion sinces property %s is 0 or negative".format(propertyName))
   } else {
     logger.trace("***** starting Automatic Delete Reports batch *****")
     (new LADatabaseCleaner(dbManager.deleteEntries,deletettl,"delet")) ! CheckLaunch
@@ -235,9 +235,9 @@ case class AutomaticDatabaseCleaning(
   private class LADatabaseCleaner(cleanaction:(DateTime)=> Box[Int],ttl:Int,action:String) extends LiftActor with Loggable {
     updateManager =>
 
-    override val logger = ReportLogger
-    private var currentState: CleanerState = IdleCleaner
-    private var lastRun: DateTime = DateTime.now()
+    private[this] val reportLogger = ReportLogger
+    private[this] var currentState: CleanerState = IdleCleaner
+    private[this] var lastRun: DateTime = DateTime.now()
 
     override protected def messageHandler = {
       /*
@@ -274,19 +274,19 @@ case class AutomaticDatabaseCleaning(
           case ActiveCleaner =>
             val now = DateTime.now
             logger.trace("***** %se Database *****".format(action))
-            logger.info("Automatic start %sing".format(action))
+            reportLogger.info("Automatic start %sing".format(action))
             val res = cleanaction(now.minusDays(ttl))
             res match {
               case eb:EmptyBox =>
                 // Error while cleaning, should launch again
-                logger.error("Error while processing database %sing %s ".format(action,eb))
-                logger.error("Relaunching automatic %sing process".format(action))
+                reportLogger.error("Error while processing database %sing %s ".format(action,eb))
+                reportLogger.error("Relaunching automatic %sing process".format(action))
                 (this) ! CleanDatabase
               case Full(res) =>
                 if (res==0)
-                  logger.info("Automatic reports %ser has nothing to %se".format(action,action))
+                  reportLogger.info("Automatic reports %ser has nothing to %se".format(action,action))
                 else
-                  logger.info("Automatic reports %ser has %sed %d reports".format(action,action,res))
+                  reportLogger.info("Automatic reports %ser has %sed %d reports".format(action,action,res))
                 lastRun=DateTime.now
                 currentState = IdleCleaner
             }
@@ -296,7 +296,7 @@ case class AutomaticDatabaseCleaning(
         }
 
       case _ =>
-        logger.error("Wrong message for automatic database cleaner ")
+        reportLogger.error("Wrong message for automatic database cleaner ")
 
     }
   }
