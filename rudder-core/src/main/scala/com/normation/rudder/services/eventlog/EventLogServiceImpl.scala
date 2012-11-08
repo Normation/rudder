@@ -81,7 +81,7 @@ trait EventLogDeploymentService {
   def getListOfModificationEvents(lastSuccess : EventLog) = {
     val eventList = ModificationWatchList.events.map("'"+_.serialize+"'").mkString(",")
     
-    repository.getEventLogByCriteria(Some("eventtype in (" +eventList+ ") and id > " +lastSuccess.id.get ), None, Some("id DESC") )
+    repository.getEventLogByCriteria(Some("eventtype in (" +eventList+ ") and id > " +lastSuccess.id.getOrElse(0) ), None, Some("id DESC") )
   }
   
 }
@@ -106,7 +106,7 @@ class EventLogServiceImpl(
   def saveEventLogs(entries : EventLogNode) : Box[Seq[EventLog]] = {
     repository.saveEventLog(entries.entry) match {
        case Full(log) => 
-           recursiveWriteEntry(entries, log.id.get).map(logs => log +: logs)
+           recursiveWriteEntry(entries, log.id.getOrElse(0)).map(logs => log +: logs)
        case _ => Failure("Cannot save value")
     }
   }
@@ -118,7 +118,7 @@ class EventLogServiceImpl(
       val parent = repository.saveEventLog(child.entry.copySetCause(causeId))
       parent match {
         case Full(log) => 
-          recursiveWriteEntry(child, log.id.get) match {
+          recursiveWriteEntry(child, log.id.getOrElse(0)) match {
             case Full(cLogs) => Full(log +: cLogs)
             case e:EmptyBox => e
           }
