@@ -511,7 +511,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
               {directive.name}
             </span>
             <div class="tooltipContent" id={tooltipid}>
-              {directive.shortDescription}
+              {
+                directive.shortDescription match {
+                  case "" => <i>No description available</i>
+                  case f => {f}
+                }
+              }
             </div>
           }
           SHtml.a(onClickNode _, nSeq)
