@@ -448,6 +448,10 @@ tr.color2 {
    background-color: #fff;
 }
 
+tr.eventLogDescription {
+  border-bottom: 1px solid #ABABAB;
+}
+
 .dataTables_wrapper td {
   border-top: none;
   border-bottom: 1px solid #ababab;
