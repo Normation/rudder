@@ -544,7 +544,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             </span>
           </a>
           <div class="tooltipContent" id={tooltipid}>
-            {category.description}
+            {
+              category.description match {
+                case "" => <i>No description available</i>
+                case f => {f}
+              }
+            }
           </div>  
         )
       }
