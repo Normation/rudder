@@ -150,7 +150,11 @@ class EventListDisplayer(
                   jTr.prop("open", "opened");
                   $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
                   var jsid = jTr.attr("jsuuid");
-                  #table_var#.fnOpen( this, fnFormatDetails(jsid), 'details' );
+                  var color = 'color1';
+                  if(jTr.hasClass('color2'))
+                    color = 'color2';
+                  var row = $(#table_var#.fnOpen(this, fnFormatDetails(jsid), 'details'));
+                  $(row).addClass(color + ' eventLogDescription')
                   %s;
                 }
               }
