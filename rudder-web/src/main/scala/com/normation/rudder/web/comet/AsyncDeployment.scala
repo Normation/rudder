@@ -243,7 +243,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       </div>
       <div class="simplemodal-content">
        <br />
-       <div class="popupContent"/>
+       <div class="popupContent ui-widget ui-widget-content"/>
        <hr class="spacer" />
     </div>
     <div class="simplemodal-bottom">
