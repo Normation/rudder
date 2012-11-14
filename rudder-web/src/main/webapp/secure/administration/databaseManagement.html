@@ -67,22 +67,37 @@
                 <td><b><span id="newestArchivedEntry">[Here
                       comes the newest archived entry]</span></b></td>
               </tr>
+              <tr>
+                <td>Total disk space used by archived reports:</td>
+                <td><b><span id="archiveSize">[here
+                      comes the database size]</span></b></td>
+              </tr>
             </table>
           </div>
         </div>
 
         <div class="inner-portlet">
-          <div class="inner-portlet-header">Archive reports</div>
+          <div class="inner-portlet-header">Clean reports</div>
           <div class="inner-portlet-content">
             <table class="database-info-table">
               <tr>
                 <td colspan="2">
+                <div style="margin-bottom:8px">
+                <b>Archive :</b> Archiving reports stores them in a database table without indexes to save disk space,<br/>
+                RAM usage while still allowing an expert user to analyze them.<br/>
+                <b>it will not directly free space until a vacuum full is proceed</b>,<br/>
+                but no more more space will be used to store new reports<br/><br/>
+                <b>Delete :</b> Deleting reports <b>cannot be reverted</b>.<br/>
+                Without old reports, compliance cannot be calculated in the past<br/>
+                It will <b>free space on Archived reports dataTable but not in reports dataTable</b></div>
                   <form class="lift:form.ajax">
                     <div>
-                      Archive all reports older than: <input
+                    <span id="cleanParam">
+                      <span id="modeSelector"/> all reports older than: <input
                         id="reportFromDate" value="" />
-                      <button id="archiveReports">Archive
-                        reports</button>
+                      <button id="archiveReports">Start cleaning
+                        reports</button></span>
+                        <span id="confirm"> </span>
                     </div>
                     <lift:Msgs>
                       <lift:error_msg class="error" />

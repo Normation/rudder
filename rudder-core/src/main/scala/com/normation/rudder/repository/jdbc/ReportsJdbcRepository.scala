@@ -50,6 +50,7 @@ import scala.collection.JavaConversions._
 import net.liftweb.common._
 import net.liftweb.common.Box._
 import java.sql.Types
+import org.springframework.dao.DataAccessException
 
 class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsRepository with Loggable {
 
@@ -248,41 +249,108 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   }
   
   def getDatabaseSize() : Box[Long] = {
-    jdbcTemplate.query(
-      """SELECT  nspname ||  '.'  ||  relname AS  "relation",
-          pg_relation_size(C.oid)  AS  "size"
-        FROM  pg_class C
-        LEFT  JOIN  pg_namespace N ON  (N.oid=  C.relnamespace)
-        WHERE  nspname NOT  IN  ('pg_catalog',  'information_schema') and relname = 'ruddersysevents' 
-        """
-        , DatabaseSizeMapper).toSeq match {
-      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq  => seq.headOption ?~! "The query used to find database size did not return any tuple"
+    try {
+      jdbcTemplate.query(
+        """SELECT  nspname ||  '.'  ||  relname AS  "relation",
+            pg_relation_size(C.oid)  AS  "size"
+          FROM  pg_class C
+          LEFT  JOIN  pg_namespace N ON  (N.oid=  C.relnamespace)
+          WHERE  nspname NOT  IN  ('pg_catalog',  'information_schema') and relname = 'ruddersysevents'
+          """
+          , DatabaseSizeMapper).toSeq match {
+        case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
+        case seq  => seq.headOption ?~! "The query used to find database size did not return any tuple"
       
-    } 
+       }
+     } catch {
+       case e: DataAccessException =>
+         val msg ="Could not compute the size of the database, cause is " + e.getMessage()
+         logger.error(msg)
+         Failure(msg,Full(e),Empty)
+     }
   }
   
-  def archiveEntries(date : DateTime) : Int = {
-    val migrate = jdbcTemplate.execute("""
-          insert into ArchivedRudderSysEvents 
+  def getArchiveSize() : Box[Long] = {
+    try {
+      jdbcTemplate.query(
+        """SELECT  nspname ||  '.'  ||  relname AS  "relation",
+            pg_relation_size(C.oid)  AS  "size"
+          FROM  pg_class C
+          LEFT  JOIN  pg_namespace N ON  (N.oid=  C.relnamespace)
+          WHERE  nspname NOT  IN  ('pg_catalog',  'information_schema') and relname = 'archivedruddersysevents'
+          """
+          , DatabaseSizeMapper).toSeq match {
+        case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
+        case seq  => seq.headOption ?~! "The query used to find database size did not return any tuple"
+
+      }
+    } catch {
+       case e: DataAccessException =>
+         val msg ="Could not compute the size of the archive, cause is " + e.getMessage()
+         logger.error(msg)
+         Failure(msg,Full(e),Empty)
+     }
+  }
+
+  def archiveEntries(date : DateTime) : Box[Int] = {
+    try{
+      val migrate = jdbcTemplate.execute("""
+          insert into ArchivedRudderSysEvents
                 (id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)
           (select id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from RudderSysEvents
         where executionTimeStamp < '%s')
-        """.format(date.toString("yyyy-MM-dd") )     
-    )
-    
-    logger.debug("""Archiving report with SQL query: [[
-                   | insert into ArchivedRudderSysEvents (id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)    
-                   | (select id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from RudderSysEvents 
+        """.format(date.toString("yyyy-MM-dd") )
+       )
+
+      logger.debug("""Archiving report with SQL query: [[
+                   | insert into ArchivedRudderSysEvents (id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)
+                   | (select id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from RudderSysEvents
                    | where executionTimeStamp < '%s')
                    |]]""".stripMargin.format(date.toString("yyyy-MM-dd")))
-        
-    val delete = jdbcTemplate.update("""
+
+      val delete = jdbcTemplate.update("""
         delete from RudderSysEvents  where executionTimeStamp < '%s'
         """.format(date.toString("yyyy-MM-dd") )
-    )
-    delete
+      )
+
+      jdbcTemplate.execute("vacuum RudderSysEvents")
+
+      Full(delete)
+    } catch {
+       case e: DataAccessException =>
+         val msg ="Could not archive entries in the database, cause is " + e.getMessage()
+         logger.error(msg)
+         Failure(msg,Full(e),Empty)
+     }
+
+  }
+
+  def deleteEntries(date : DateTime) : Box[Int] = {
+
+    logger.debug("""Deleting report with SQL query: [[
+                   | delete from RudderSysEvents  where executionTimeStamp < '%s'
+                   |]] and: [[
+                   | delete from ArchivedRudderSysEvents  where executionTimeStamp < '%s'
+                   |]]""".stripMargin.format(date.toString("yyyy-MM-dd")))
+    try{
+      val delete = jdbcTemplate.update("""
+          delete from RudderSysEvents  where executionTimeStamp < '%s'
+          """.format(date.toString("yyyy-MM-dd") )
+      ) + jdbcTemplate.update("""
+          delete from ArchivedRudderSysEvents  where executionTimeStamp < '%s'
+          """.format(date.toString("yyyy-MM-dd") )
+      )
     
+      jdbcTemplate.execute("vacuum RudderSysEvents")
+      jdbcTemplate.execute("vacuum full ArchivedRudderSysEvents")
+
+      Full(delete)
+    } catch {
+       case e: DataAccessException =>
+         val msg ="Could not delete entries in the database, cause is " + e.getMessage()
+         logger.error(msg)
+         Failure(msg,Full(e),Empty)
+     }
   }
 }
 
