@@ -57,7 +57,8 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   val baseQuery = "select executiondate, nodeid, ruleid, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents where 1=1 ";
   val baseArchivedQuery = "select executiondate, nodeid, ruleid, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from archivedruddersysevents where 1=1 ";
   
-  
+  val reportsTable = "ruddersysevents"
+  val archiveTable = "archivedruddersysevents"
   // find the last full run per node
   // we are not looking for older request that 15 minutes for the moment
   val lastQuery = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where ruleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and executionTimeStamp > (now() - interval '15 minutes') group by nodeid"
@@ -248,15 +249,15 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     } 
   }
   
-  def getDatabaseSize() : Box[Long] = {
+  def getDatabaseSize(databaseName:String) : Box[Long] = {
     try {
       jdbcTemplate.query(
         """SELECT  nspname ||  '.'  ||  relname AS  "relation",
             pg_relation_size(C.oid)  AS  "size"
           FROM  pg_class C
           LEFT  JOIN  pg_namespace N ON  (N.oid=  C.relnamespace)
-          WHERE  nspname NOT  IN  ('pg_catalog',  'information_schema') and relname = 'ruddersysevents'
-          """
+          WHERE  nspname NOT  IN  ('pg_catalog',  'information_schema') and relname = '%s'
+          """.format(databaseName)
           , DatabaseSizeMapper).toSeq match {
         case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
         case seq  => seq.headOption ?~! "The query used to find database size did not return any tuple"
@@ -269,51 +270,29 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
          Failure(msg,Full(e),Empty)
      }
   }
-  
-  def getArchiveSize() : Box[Long] = {
-    try {
-      jdbcTemplate.query(
-        """SELECT  nspname ||  '.'  ||  relname AS  "relation",
-            pg_relation_size(C.oid)  AS  "size"
-          FROM  pg_class C
-          LEFT  JOIN  pg_namespace N ON  (N.oid=  C.relnamespace)
-          WHERE  nspname NOT  IN  ('pg_catalog',  'information_schema') and relname = 'archivedruddersysevents'
-          """
-          , DatabaseSizeMapper).toSeq match {
-        case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-        case seq  => seq.headOption ?~! "The query used to find database size did not return any tuple"
-
-      }
-    } catch {
-       case e: DataAccessException =>
-         val msg ="Could not compute the size of the archive, cause is " + e.getMessage()
-         logger.error(msg)
-         Failure(msg,Full(e),Empty)
-     }
-  }
 
   def archiveEntries(date : DateTime) : Box[Int] = {
     try{
       val migrate = jdbcTemplate.execute("""
-          insert into ArchivedRudderSysEvents
+          insert into %s
                 (id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)
-          (select id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from RudderSysEvents
+          (select id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from %s
         where executionTimeStamp < '%s')
-        """.format(date.toString("yyyy-MM-dd") )
+        """.format(archiveTable,reportsTable,date.toString("yyyy-MM-dd") )
        )
 
       logger.debug("""Archiving report with SQL query: [[
-                   | insert into ArchivedRudderSysEvents (id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)
-                   | (select id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from RudderSysEvents
+                   | insert into %s (id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)
+                   | (select id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from %s
                    | where executionTimeStamp < '%s')
-                   |]]""".stripMargin.format(date.toString("yyyy-MM-dd")))
+                   |]]""".stripMargin.format(archiveTable,reportsTable,date.toString("yyyy-MM-dd")))
 
       val delete = jdbcTemplate.update("""
-        delete from RudderSysEvents  where executionTimeStamp < '%s'
-        """.format(date.toString("yyyy-MM-dd") )
+        delete from %s  where executionTimeStamp < '%s'
+        """.format(reportsTable,date.toString("yyyy-MM-dd") )
       )
 
-      jdbcTemplate.execute("vacuum RudderSysEvents")
+      jdbcTemplate.execute("vacuum %s".format(reportsTable))
 
       Full(delete)
     } catch {
@@ -328,21 +307,21 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   def deleteEntries(date : DateTime) : Box[Int] = {
 
     logger.debug("""Deleting report with SQL query: [[
-                   | delete from RudderSysEvents  where executionTimeStamp < '%s'
+                   | delete from %s  where executionTimeStamp < '%s'
                    |]] and: [[
-                   | delete from ArchivedRudderSysEvents  where executionTimeStamp < '%s'
-                   |]]""".stripMargin.format(date.toString("yyyy-MM-dd")))
+                   | delete from %s  where executionTimeStamp < '%s'
+                   |]]""".stripMargin.format(reportsTable,archiveTable,date.toString("yyyy-MM-dd")))
     try{
       val delete = jdbcTemplate.update("""
-          delete from RudderSysEvents  where executionTimeStamp < '%s'
-          """.format(date.toString("yyyy-MM-dd") )
+          delete from %s where executionTimeStamp < '%s'
+          """.format(reportsTable,date.toString("yyyy-MM-dd") )
       ) + jdbcTemplate.update("""
-          delete from ArchivedRudderSysEvents  where executionTimeStamp < '%s'
-          """.format(date.toString("yyyy-MM-dd") )
+          delete from %s  where executionTimeStamp < '%s'
+          """.format(archiveTable,date.toString("yyyy-MM-dd") )
       )
     
-      jdbcTemplate.execute("vacuum RudderSysEvents")
-      jdbcTemplate.execute("vacuum full ArchivedRudderSysEvents")
+      jdbcTemplate.execute("vacuum %s".format(reportsTable))
+      jdbcTemplate.execute("vacuum full %s".format(archiveTable))
 
       Full(delete)
     } catch {
@@ -353,7 +332,6 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
      }
   }
 }
-
 
 object ReportsMapper extends RowMapper[Reports] {
    def mapRow(rs : ResultSet, rowNum: Int) : Reports = {

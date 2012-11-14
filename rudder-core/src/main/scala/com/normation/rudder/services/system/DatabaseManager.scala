@@ -111,11 +111,11 @@ class DatabaseManagerImpl(
   }
   
    def getDatabaseSize() : Box[Long] = {
-     reportsRepository.getDatabaseSize()
+     reportsRepository.getDatabaseSize(reportsRepository.reportsTable)
    }
    
    def getArchiveSize() : Box[Long] = {
-     reportsRepository.getArchiveSize()
+     reportsRepository.getDatabaseSize(reportsRepository.archiveTable)
    }
 
    def archiveEntries(date : DateTime) =  {
