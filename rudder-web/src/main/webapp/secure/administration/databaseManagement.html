@@ -23,7 +23,7 @@
     <div class="portlet-content">
 
       <div class="intro">
-        <div>Rudder stores all reports received from nodes in a database. These reports are used to calculate compliance for Rules applied to Nodes. The database can grow quite large, and keeping older reports is usually useless if you don't need to examine compliance data in the past. This page enables you to archive them to save on disk space.</div>
+        <div>Rudder stores all reports received from nodes in a database. These reports are used to calculate compliance for Rules applied to Nodes. The database can grow quite large, and keeping older reports is usually useless if you don't need to examine compliance data in the past. This page enables you to archive them to limit disk space usage growth.</div>
       </div>
       <hr class="spacer" />
 
@@ -73,6 +73,14 @@
 
         <div class="inner-portlet">
           <div class="inner-portlet-header">Archive reports</div>
+            <div class="intro">
+              <div>
+                When reports are archived, they are removed from the active reports table.
+                However, this will <b>not</b> immediately free up disk space
+                (but new active reports will not use any extra space).
+                See the Rudder User Documentation to recover this space.
+              </div>
+            </div>
           <div class="inner-portlet-content">
             <table class="database-info-table">
               <tr>
