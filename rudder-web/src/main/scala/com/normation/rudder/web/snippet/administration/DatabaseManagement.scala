@@ -85,12 +85,12 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
   
   def process(): JsCmd = {
     S.clearCurrentNotices
-
+    
     (for {
       fromDate <- tryo { DATETIME_PARSER.parseDateTime(from) } ?~! "Bad date format for 'Archive all reports older than' field"
     } yield {
       fromDate
-    } ) match {
+    }) match {
         case eb:EmptyBox =>
           val e = eb ?~! "An error occured"
           logger.info(e.failureChain.map( _.msg ).mkString("", ": ", ""))
