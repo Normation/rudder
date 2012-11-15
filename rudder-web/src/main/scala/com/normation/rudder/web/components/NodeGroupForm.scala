@@ -220,16 +220,23 @@ class NodeGroupForm(
              Group details
            </div>
            <div class="inner-portlet-content" style="display: inline-block">
-             <directive:notifications /><hr class="spacer"/>
-             <directive:name/><hr class="spacer"/>
-             <directive:description/><hr class="spacer"/>
-             <directive:container/><hr class="spacer"/>
-             <directive:static/><hr class="spacer"/>
-             <div><div style="margin:7px 0px 5px 0px; font-weight:bold;">Group criteria:</div>
+             <directive:notifications />
+             <hr class="spacer"/>
+             <directive:name/>
+             <hr class="spacer"/>
+             <directive:rudderID/>
+             <hr class="spacer"/>
+             <directive:description/>
+             <hr class="spacer"/>
+             <directive:container/>
+             <hr class="spacer"/>
+             <directive:static/>
+             <hr class="spacer"/>
+             <fieldset class="searchNodes"><legend>Group criteria</legend>
                <div id="SearchNodes">
                  <directive:showGroup />
                </div>
-             </div>
+             </fieldset>
              <lift:authz role="group_edit">
                <directive:reason />
              </lift:authz>
@@ -254,6 +261,7 @@ class NodeGroupForm(
 
      bind("directive", html,
       "name" -> piName.toForm_!,
+      "rudderID" -> <div><b class="threeCol">Rudder ID : </b>{_nodeGroup.map( x => x.id.value ).getOrElse("no ID")}</div>,
       "description" -> piDescription.toForm_!,
       "container" -> piContainer.toForm_!,
       "static" -> piStatic.toForm_!,
