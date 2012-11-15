@@ -62,6 +62,27 @@ class RestGetGitCommitAsZip(
     case Get("api" :: "archives" :: "zip" :: "all"        :: commitId :: Nil, req) =>
       getZip(commitId, List("groups", "directives", "rules"))
       
+      
+    /*
+     * same archives methods for the authenticated part only. That is needed until
+     * we have a fully authenticated (cli available) version of our REST API, 
+     * because else, user who whish to use API from scripts tends to make the
+     * API not authenticated but restricted to localhost.
+     * See http://www.rudder-project.org/redmine/issues/2990
+     */
+    case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "groups"     :: commitId :: Nil, req) =>
+      getZip(commitId, List("groups"))
+      
+    case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "directives" :: commitId :: Nil, req) =>
+      getZip(commitId, List("directives"))
+      
+    case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "rules"      :: commitId :: Nil, req) =>
+      getZip(commitId, List("rules"))
+      
+    case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "all"        :: commitId :: Nil, req) =>
+      getZip(commitId, List("groups", "directives", "rules"))
+      
+      
   }
   
   private[this] def getZip(commitId:String, paths:List[String]) = {

@@ -315,7 +315,7 @@ input .ui-button {
   font-weight: bold;/* texte des boutons*/
 }
 
-.ui-state-default, .ui-widget-content .ui-button, .ui-widget select  {
+.ui-widget-content .ui-button, .ui-widget select  {
   background: linear-gradient(#FAFAFA, #EAEAEA) repeat scroll 0 0 transparent;
   background: -webkit-linear-gradient(#FAFAFA, #EAEAEA) repeat scroll 0 0 transparent;
   background: -moz-linear-gradient(#FAFAFA, #EAEAEA) repeat scroll 0 0 transparent;
