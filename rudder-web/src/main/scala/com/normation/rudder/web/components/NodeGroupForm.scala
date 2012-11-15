@@ -209,6 +209,8 @@ class NodeGroupForm(
      <hr class="spacer"/>
      <directive:name/>
      <hr class="spacer"/>
+     <directive:rudderID/>
+     <hr class="spacer"/>
      <directive:description/>
      <hr class="spacer"/>
      <directive:container/>
@@ -236,7 +238,8 @@ class NodeGroupForm(
      <directive:removeForm/>)
 
      bind("directive", html,
-      "name" -> <div>{piName.toForm_!}<br/><div class="rudderID"><b class="threeCol">Rudder ID : </b>{_nodeGroup.map( x => x.id.value ).getOrElse("no ID")}</div></div>,
+      "name" -> piName.toForm_!,
+      "rudderID" -> <div><b class="threeCol">Rudder ID : </b>{_nodeGroup.map( x => x.id.value ).getOrElse("no ID")}</div>,
       "description" -> piDescription.toForm_!,
       "container" -> piContainer.toForm_!,
       "static" -> piStatic.toForm_!,
