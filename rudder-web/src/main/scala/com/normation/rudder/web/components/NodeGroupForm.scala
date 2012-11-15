@@ -236,7 +236,7 @@ class NodeGroupForm(
      <directive:removeForm/>)
 
      bind("directive", html,
-      "name" -> piName.toForm_!,
+      "name" -> <div>{piName.toForm_!}<br/><div class="rudderID"><b class="threeCol">Rudder ID : </b>{_nodeGroup.map( x => x.id.value ).getOrElse("no ID")}</div></div>,
       "description" -> piDescription.toForm_!,
       "container" -> piContainer.toForm_!,
       "static" -> piStatic.toForm_!,
