@@ -200,7 +200,7 @@ class RuleEditForm(
     form ++  Script(OnLoad(JsRaw("""$( "#editRuleZone" ).tabs();
           $( "#editRuleZone" ).tabs('select', %s);""".format(tab)) )&
           JsRaw("""
-              | $("#%s").bind( "tabsshow", function(event, ui) {
+              | $("#%s").bind( "show", function(event, ui) {
               | if(ui.panel.id== '%s') { %s; }
               | });
               """.stripMargin('|').format("editRuleZone",
@@ -1135,7 +1135,7 @@ class RuleEditForm(
                       "#details *" #> components &
                       "#directive *" #>{
                         <b>{directive.name}</b>
-                        <span class="tooltipable" tooltipid={tooltipid}>
+                        <span class="tooltipable" tooltipid={tooltipid} title="">
                           <img   src="/images/icInfo.png" style="padding-left:4px"/>
                         </span>++{val xml = <img   src="/images/icTools.png" style="padding-left:4px"/>
                           SHtml.a( {()=> RedirectTo("""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value))},xml,("style","padding-left:4px"))}++

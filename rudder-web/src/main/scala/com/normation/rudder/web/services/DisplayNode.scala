@@ -191,7 +191,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
       // for the software tab, we check for the panel id, and the firstChild id
       // if the firstChild.id == softGridId, then it hasn't been loaded, otherwise it is softGridId_wrapper
       JsRaw("""
-| $("#%s").bind( "tabsshow", function(event, ui) {
+| $("#%s").bind( "show", function(event, ui) {
 | if(ui.panel.id== '%s' && ui.panel.firstChild.id == '%s') { %s; }
 | });
 """.stripMargin('|').format(tabContainer.getOrElse(detailsId),
