@@ -64,7 +64,7 @@ var #table_var#;
  */
 function createTooltip() {
 	$(".tooltipable").tooltip({
-			bodyHandler: function() {
+			content: function() {
 		    return $("#"+$(this).attr("tooltipid")).html();
 		}
 		});
