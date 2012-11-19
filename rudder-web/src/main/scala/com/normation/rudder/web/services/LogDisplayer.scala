@@ -147,7 +147,7 @@ class LogDisplayer(
             "oLanguage": {
               "sSearch": ""
             },
-            "bJQueryUI": false,
+            "bJQueryUI": true,
             "aaSorting":[],
             "aoColumns": [
               { "sWidth": "120px" },
