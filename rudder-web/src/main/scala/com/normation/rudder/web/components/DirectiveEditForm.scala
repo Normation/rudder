@@ -265,8 +265,8 @@ class DirectiveEditForm(
           { technique.name }
         </a> &
       "#techniqueDescription" #> technique.description &
-      "#nameField" #> <div>{piName.toForm_!}<br/></div> &
-      "#rudderID" #> <div> <b class="threeCol">Rudder ID :</b> {directive.id.value} </div> &
+      "#nameField" #> {piName.toForm_!} &
+      "#rudderID" #> {directive.id.value} &
       "#shortDescriptionField" #> piShortDescription.toForm_! &
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
