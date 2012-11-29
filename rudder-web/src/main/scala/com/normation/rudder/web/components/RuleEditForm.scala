@@ -200,7 +200,7 @@ class RuleEditForm(
     form ++  Script(OnLoad(JsRaw("""$( "#editRuleZone" ).tabs();
           $( "#editRuleZone" ).tabs('select', %s);""".format(tab)) )&
           JsRaw("""
-              | $("#%s").bind( "tabsshow", function(event, ui) {
+              | $("#%s").bind( "show", function(event, ui) {
               | if(ui.panel.id== '%s') { %s; }
               | });
               """.stripMargin('|').format("editRuleZone",

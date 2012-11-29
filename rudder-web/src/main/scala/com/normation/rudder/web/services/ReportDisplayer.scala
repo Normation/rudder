@@ -249,7 +249,7 @@ class ReportDisplayer(
   
   def asyncDisplay(node : NodeInfo) : NodeSeq = { 
       Script(OnLoad(JsRaw("""
-              | $("#%s").bind( "tabsshow", function(event, ui) {
+              | $("#%s").bind( "show", function(event, ui) {
               | if(ui.panel.id== '%s') { %s; }
               | });
               """.stripMargin('|').format("node_tabs",
