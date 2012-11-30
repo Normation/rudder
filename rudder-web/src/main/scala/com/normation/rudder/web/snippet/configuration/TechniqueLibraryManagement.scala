@@ -118,7 +118,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   //current states for the page - they will be kept only for the duration
   //of one request and its followng Ajax requests
   
-  private[this] val rootCategoryId = activeTechniqueCategoryRepository.getActiveTechniqueLibrary.id
+  private[this] val rootCategoryId = activeTechniqueCategoryRepository.getActiveTechniqueLibrary.map( _.id )
   
   private[this] val currentTechniqueDetails = new LocalSnippet[TechniqueEditForm]
   private[this] var currentTechniqueCategoryDetails = new LocalSnippet[TechniqueCategoryEditForm]
@@ -138,12 +138,16 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   
   //create a new Technique edit form and update currentTechniqueDetails
   private[this] def updateCurrentTechniqueCategoryDetails(category:ActiveTechniqueCategory) = {
-    currentTechniqueCategoryDetails.set(Full(new TechniqueCategoryEditForm(
-        htmlId_bottomPanel,
-        category,
-        rootCategoryId,
-        { () => Replace(htmlId_activeTechniquesTree, userLibrary) } 
-    )))
+    currentTechniqueCategoryDetails.set(
+        rootCategoryId.map { rootCategoryId => 
+          new TechniqueCategoryEditForm(
+              htmlId_bottomPanel,
+              category,
+              rootCategoryId,
+              { () => Replace(htmlId_activeTechniquesTree, userLibrary) } 
+          )
+        }
+      )
   }
   
   /**
@@ -226,9 +230,22 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Categories are ordered in trees of subcategories. 
    */
   def userLibrary() : NodeSeq = {
-    <div id={htmlId_activeTechniquesTree}>
-      <ul>{jsTreeNodeOf_uptCategory(activeTechniqueCategoryRepository.getActiveTechniqueLibrary).toXml}</ul>
-      { 
+    <div id={htmlId_activeTechniquesTree}>{
+      val xml = {
+        activeTechniqueCategoryRepository.getActiveTechniqueLibrary match {
+          case eb:EmptyBox =>
+            val f = eb ?~! "Error when trying to get the root category of Active Techniques"
+            logger.error(f.messageChain)
+            f.rootExceptionCause.foreach { ex => 
+              logger.error("Exception causing the error was:" , ex)
+            }
+            <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
+          case Full(activeTechLib) =>
+            <ul>{ jsTreeNodeOf_uptCategory(activeTechLib).toXml }</ul>
+        }
+      }
+      
+      xml ++ { 
         Script(OnLoad(
           buildUserLibraryJsTree &
           //init bind callback to move
@@ -303,7 +320,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           )))
         )
       }
-    </div>
+    }</div>
   }
   
   def showBottomPanel : NodeSeq = {
@@ -631,7 +648,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     //the actual mapping activeTechnique category to jsTree nodes:
     new JsTreeNode {
       override val attrs = 
-        ( "rel" -> { if(category.id == rootCategoryId) "root-category" else "category" } ) ::
+        ( "rel" -> { if(Full(category.id) == rootCategoryId) "root-category" else "category" } ) ::
         ( "catId" -> category.id.value ) ::      
         Nil   
       override def body = {
