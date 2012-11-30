@@ -142,9 +142,11 @@ class CheckInitUserTemplateLibrary(
     }
 
     //apply with root cat children ids
-    bestEffort(refTemplateService.getTechniqueLibrary.subCategoryIds.toSeq) { id =>
-      recCopyRef(id, userCategoryService.getActiveTechniqueLibrary)
-    }    
+    userCategoryService.getActiveTechniqueLibrary.flatMap { root => 
+      bestEffort(refTemplateService.getTechniqueLibrary.subCategoryIds.toSeq) { id =>
+        recCopyRef(id, root)
+      }    
+    }
   }
   
   private[this] def genUserCatId(fromCat:TechniqueCategory) : ActiveTechniqueCategoryId = {

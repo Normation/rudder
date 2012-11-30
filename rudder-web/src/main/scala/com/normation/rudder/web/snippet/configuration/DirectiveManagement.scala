@@ -141,13 +141,21 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    */
   def userLibrary(): NodeSeq = {
     (
-      <div id={htmlId_activeTechniquesTree} class="nodisplay">
-        <ul> {
-          val activeTechLib = activeTechniqueCategoryRepository.getActiveTechniqueLibrary
-          jsTreeNodeOf_uptCategory(activeTechLib, "jstn_0").toXml
-        }
-        </ul>
-     </div>
+      <div id={htmlId_activeTechniquesTree} class="nodisplay">{
+          activeTechniqueCategoryRepository.getActiveTechniqueLibrary match {
+            case eb:EmptyBox =>
+              val f = eb ?~! "Error when trying to get the root category of Active Techniques"
+              logger.error(f.messageChain)
+              f.rootExceptionCause.foreach { ex => 
+                logger.error("Exception causing the error was:" , ex)
+              }
+              <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
+            case Full(activeTechLib) =>
+              <ul>{ 
+                jsTreeNodeOf_uptCategory(activeTechLib, "jstn_0").toXml
+              }</ul>
+          }
+      }</div>
     ) ++ Script(OnLoad(buildJsTree()))
   }
   
