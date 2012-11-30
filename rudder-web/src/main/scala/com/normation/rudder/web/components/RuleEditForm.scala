@@ -272,12 +272,22 @@ class RuleEditForm(
         "#reasonsField" #> f.toForm_!
       } } &
       "#selectPiField" #> {
-        <div id={htmlId_activeTechniquesTree}>
-          <ul>{ activeTechniqueCategoryToJsTreeNode(
-              activeTechniqueCategoryRepository.getActiveTechniqueLibrary
-            ).toXml }
-          </ul>
-        </div> } &
+        <div id={htmlId_activeTechniquesTree}>{
+          activeTechniqueCategoryRepository.getActiveTechniqueLibrary match {
+            case eb:EmptyBox =>
+              val f = eb ?~! "Error when trying to get the root category of Active Techniques"
+              logger.error(f.messageChain)
+              f.rootExceptionCause.foreach { ex => 
+                logger.error("Exception causing the error was:" , ex)
+              }
+              <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
+            case Full(root) =>
+              <ul>{ activeTechniqueCategoryToJsTreeNode(
+                  root
+                ).toXml 
+              }</ul>
+          }     
+        }</div> } &
       "#selectGroupField" #> { 
         <div id={htmlId_groupTree}>
           <ul>
