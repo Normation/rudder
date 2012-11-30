@@ -162,7 +162,7 @@ class ReportDisplayer(
           val components = showComponentsReports(directive.components)
            ( "#status [class+]" #> severity.replaceAll(" ", "") &
              "#status *" #> <center>{severity}</center> &
-             "#plus *" #> <center><img src="/images/details_open.png"/></center> &
+             "#directivePlus *" #> <center><img src="/images/details_open.png"/></center> &
              "#details *" #> components &
              "#directiveLink *" #> directiveEditLink &
              "#directiveInfo *" #>{
@@ -203,7 +203,7 @@ class ReportDisplayer(
         ( "#status [class+]" #> severity.replaceAll(" ", "") &
           "#status *" #> <center>{severity}</center> &
           "#component *" #>  <b>{component.component}</b> &
-          "#plus *" #> <center><img src="/images/details_open.png"/></center> &
+          "#componentPlus *" #> <center><img src="/images/details_open.png"/></center> &
           "#details *" #>  value
         ) (componentDetails)
         } }
@@ -283,6 +283,7 @@ class ReportDisplayer(
   def initJs(tableId:String) : JsCmd = {
     JsRaw("""
         %s
+       var anOpen = [];
        var oTable = $('#reportsGrid').dataTable( {
          "asStripClasses": [ 'color1', 'color2' ],
          "bAutoWidth": false,
@@ -301,11 +302,11 @@ class ReportDisplayer(
            { "sWidth": "400px" },
            { "sWidth": "100px" },
                       { "sWidth": "10px", "bSortable": false  , "bVisible":false }
-                    ]
+                    ],
+          "fnDrawCallback" : function( oSettings ) {%s}
                   } );
                   $('.dataTables_filter input').attr("placeholder", "Search");
-                  var anOpen = [];
-         %s
+
       """.format(FormatDetailsJSFunction,ReportsGridClickFunction))
   }
 
@@ -326,7 +327,11 @@ class ReportDisplayer(
        * the content is dynamically computed
        */
     def valueClickJSFunction = {
-      """ $('div.innerDetails table:first td#plus', nDetailsRow).click( function () {
+      """
+      var componentPlusTd = $(this).find('td#componentPlus');
+      componentPlusTd.unbind();
+
+      componentPlusTd.click( function () {
           var nTr = this.parentNode;
             var i = $.inArray( nTr, anOpen );
            if ( i === -1 ) {
@@ -371,7 +376,20 @@ class ReportDisplayer(
        * the content is dynamically computed
        */
     def componentClickJSFunction = {
-      """ $('div.innerDetails table:first td#plus', nDetailsRow).click( function () {
+      """
+      createTooltip();
+
+      var directivePlusTd =  $(this).find('td#directivePlus');
+      directivePlusTd.unbind();
+
+      directivePlusTd.each(function(i) {
+       var nTr = this.parentNode;
+       var i = $.inArray( nTr, anOpen );
+         if ( i != -1 ) {
+           $(nTr).next().find("table").dataTable().fnDraw();
+         }
+      } );
+      directivePlusTd.click( function () {
         var nTr = this.parentNode;
         var i = $.inArray( nTr, anOpen );
         if ( i === -1 ) {
@@ -393,13 +411,13 @@ class ReportDisplayer(
               { "sWidth": "385px" },
               { "sWidth": "100px" },
               { "sWidth": "10px" , "bSortable": false  , "bVisible":false}
-            ]
+            ],
+          "fnDrawCallback" : function( oSettings ) {%2$s}
           });
           $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
           $('td.details', nDetailsRow).attr("colspan",4);
           $('div.innerDetails table', nDetailsRow).attr("style","");
           $('div.innerDetails', nDetailsRow).slideDown(300);
-      %2$s
           anOpen.push( nTr );
         }
         else {
@@ -416,7 +434,17 @@ class ReportDisplayer(
        */
    def ReportsGridClickFunction ={
      """
-      $('#reportsGrid td#plus').click( function () {
+     var plusTd = $('#reportsGrid td#plus');
+     plusTd.unbind();
+
+     plusTd.each(function(i) {
+       var nTr = this.parentNode;
+       var i = $.inArray( nTr, anOpen );
+         if ( i != -1 ) {
+           $(nTr).next().find("table").dataTable().fnDraw();
+         }
+     } );
+     plusTd.click( function () {
      var nTr = this.parentNode;
      var i = $.inArray( nTr, anOpen );
      if ( i === -1 ) {
@@ -438,13 +466,13 @@ class ReportDisplayer(
            { "sWidth": "390px" },
            { "sWidth": "100px" },
            { "sWidth": "10px", "bSortable": false  , "bVisible":false }
-         ]
+         ],
+          "fnDrawCallback" : function( oSettings ) {%2$s}
        } );
-       createTooltip();
+
        $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
        $('div.innerDetails table:first', nDetailsRow).attr("style","");
        $('div.innerDetails', nDetailsRow).slideDown(300);
-	   %2$s
        anOpen.push( nTr );
      }
      else {
@@ -550,7 +578,7 @@ class ReportDisplayer(
   def directiveLineXml : NodeSeq = {
     <tr id="directiveLine" class="detailedReportLine  severity">
       <td id="first" class="emptyTd"/>
-      <td id="plus" class="firstTd curspoint nestedImg"/>
+      <td id="directivePlus" class="firstTd curspoint nestedImg"/>
       <td id="directive" class="nestedImg"><span id="directiveInfo"/><span id="directiveLink"/></td>
       <td id="status" class="firstTd"></td>
       <td id="details" ></td>
@@ -560,7 +588,7 @@ class ReportDisplayer(
   def componentDetails : NodeSeq = {
     <tr id="componentLine" class="detailedReportLine severity" >
       <td id="first" class="emptyTd"/>
-      <td id="plus" class="firstTd curspoint nestedImg" />
+      <td id="componentPlus" class="firstTd curspoint nestedImg" />
       <td id="component" ></td>
       <td id="status" class="firstTd"></td>
       <td id="details"/>
