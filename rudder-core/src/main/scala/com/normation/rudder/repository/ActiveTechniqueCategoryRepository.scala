@@ -64,7 +64,7 @@ trait ActiveTechniqueCategoryRepository {
   /**
    * Root user categories
    */
-  def getActiveTechniqueLibrary : ActiveTechniqueCategory
+  def getActiveTechniqueLibrary : Box[ActiveTechniqueCategory]
 
   /**
    * Return all categories non system (lightweight version, with no children)
