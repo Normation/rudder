@@ -141,13 +141,21 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    */
   def userLibrary(): NodeSeq = {
     (
-      <div id={htmlId_activeTechniquesTree} class="nodisplay">
-        <ul> {
-          val activeTechLib = activeTechniqueCategoryRepository.getActiveTechniqueLibrary
-          jsTreeNodeOf_uptCategory(activeTechLib, "jstn_0").toXml
-        }
-        </ul>
-     </div>
+      <div id={htmlId_activeTechniquesTree} class="nodisplay">{
+          activeTechniqueCategoryRepository.getActiveTechniqueLibrary match {
+            case eb:EmptyBox =>
+              val f = eb ?~! "Error when trying to get the root category of Active Techniques"
+              logger.error(f.messageChain)
+              f.rootExceptionCause.foreach { ex => 
+                logger.error("Exception causing the error was:" , ex)
+              }
+              <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
+            case Full(activeTechLib) =>
+              <ul>{ 
+                jsTreeNodeOf_uptCategory(activeTechLib, "jstn_0").toXml
+              }</ul>
+          }
+      }</div>
     ) ++ Script(OnLoad(buildJsTree()))
   }
   
@@ -269,16 +277,30 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     techniqueRepository
       .getTechniqueVersions(activeTechnique.techniqueName)
       .toSeq
-      .map { v =>
-        <li>
-          <b>{v.toString}</b>, last accepted on: 
-          {DateFormaterService.getFormatedDate(activeTechnique.acceptationDatetimes(v))} {
-            directiveVersion match {
-              case Full(x) if(x == v) => <i>(version used)</i>
-              case _ => NodeSeq.Empty
-            }
-          }
-       </li>
+      .flatMap { v =>
+
+        activeTechnique.acceptationDatetimes.get(v) match {
+          case Some(timeStamp) =>
+            <li>
+              <b>{v.toString}</b>, last accepted on:
+                { DateFormaterService.getFormatedDate(timeStamp)} {
+                  directiveVersion match {
+                    case Full(x) if(x == v) => <i>(version used)</i>
+                    case _ => NodeSeq.Empty
+                  }
+                }
+             </li>
+
+          case None =>
+            logger.error("Inconsistent Technique version state for Technique with ID '%s' and its version '%s': ".format(activeTechnique.techniqueName, v.toString) +
+                    "that version was not correctly registered into Rudder and can not be use for now.")
+            logger.debug("A workaround is to remove that version manually from Rudder (move the directory for that version of the Technique out " +
+                    "of your configuration-repository directory (for example in /tmp) and 'git commit' the modification), " +
+                    "reload the Technique Library, then add back the version back (move it back at its place, 'git add' the directory, 'git commit' the" +
+                    "modification), and reload again the Technique Library.")
+
+            NodeSeq.Empty
+        }
      }
   }
   

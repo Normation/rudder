@@ -130,11 +130,12 @@ class LDAPActiveTechniqueCategoryRepository(
       case _ => false
     }
   }
+  
   /**
    * Root user categories
    */
-  def getActiveTechniqueLibrary : ActiveTechniqueCategory = {
-    (for {
+  def getActiveTechniqueLibrary : Box[ActiveTechniqueCategory] = {
+    for {
       con               <- ldap
       locked            <- userLibMutex.readLock
       rootCategoryEntry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn) ?~! "The root category of the user library of techniques seems to be missing in LDAP directory. Please check its content"
@@ -142,9 +143,6 @@ class LDAPActiveTechniqueCategoryRepository(
       rootCategory      <- mapper.entry2ActiveTechniqueCategory(rootCategoryEntry) ?~! "Error when mapping from an LDAP entry to an active technique Category: %s".format(rootCategoryEntry)
     } yield {
       addSubEntries(rootCategory,rootCategoryEntry.dn, con)
-    }) match {
-      case Full(root) => root
-      case e:EmptyBox => throw new RuntimeException(e.toString)
     }
   }
 
@@ -282,11 +280,13 @@ class LDAPActiveTechniqueCategoryRepository(
   def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[List[ActiveTechniqueCategory]] = {
     userLibMutex.readLock {
       //TODO : LDAPify that, we can have the list of all DN from id to root at the begining (just dn.getParent until rudderDit.ACTIVE_TECHNIQUES_LIB.dn)
-      if(id == getActiveTechniqueLibrary.id) Full(Nil)
-      else getParentActiveTechniqueCategory(id) match {
-        case Full(parent) => getParentsForActiveTechniqueCategory(parent.id).map(parents => parent :: parents)
-        case e:EmptyBox => e
-      }     
+      getActiveTechniqueLibrary.flatMap { root => 
+        if(id == root.id) Full(Nil)
+        else getParentActiveTechniqueCategory(id) match {
+          case Full(parent) => getParentsForActiveTechniqueCategory(parent.id).map(parents => parent :: parents)
+          case e:EmptyBox => e
+        }
+      }
     }
   }
   
