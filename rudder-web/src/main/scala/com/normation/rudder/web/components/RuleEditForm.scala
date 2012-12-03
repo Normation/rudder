@@ -272,12 +272,22 @@ class RuleEditForm(
         "#reasonsField" #> f.toForm_!
       } } &
       "#selectPiField" #> {
-        <div id={htmlId_activeTechniquesTree}>
-          <ul>{ activeTechniqueCategoryToJsTreeNode(
-              activeTechniqueCategoryRepository.getActiveTechniqueLibrary
-            ).toXml }
-          </ul>
-        </div> } &
+        <div id={htmlId_activeTechniquesTree}>{
+          activeTechniqueCategoryRepository.getActiveTechniqueLibrary match {
+            case eb:EmptyBox =>
+              val f = eb ?~! "Error when trying to get the root category of Active Techniques"
+              logger.error(f.messageChain)
+              f.rootExceptionCause.foreach { ex => 
+                logger.error("Exception causing the error was:" , ex)
+              }
+              <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
+            case Full(root) =>
+              <ul>{ activeTechniqueCategoryToJsTreeNode(
+                  root
+                ).toXml 
+              }</ul>
+          }     
+        }</div> } &
       "#selectGroupField" #> { 
         <div id={htmlId_groupTree}>
           <ul>
@@ -1001,7 +1011,10 @@ class RuleEditForm(
        * the content is dynamically computed
        */
     val innerClickJSFunction = """
-      $('div.innerDetails table:first td#plus', nDetailsRow).click( function () {
+      var componentPlusTd = $(this).find('td#componentPlus');
+      componentPlusTd.unbind();
+
+      componentPlusTd.click( function () {
         var nTr = this.parentNode;
         var i = $.inArray( nTr, anOpen );
         if ( i === -1 ) {
@@ -1043,7 +1056,19 @@ class RuleEditForm(
        * This is the main Javascript function to have cascaded DataTables
        */
    val ReportsGridClickFunction = """
-     $('#reportsGrid td#plus').click( function () {
+     createTooltip();
+     var plusTd = $('#reportsGrid td#plus');
+     plusTd.unbind();
+
+     plusTd.each(function(i) {
+       var nTr = this.parentNode;
+       var i = $.inArray( nTr, anOpen );
+         if ( i != -1 ) {
+           $(nTr).next().find("table").dataTable().fnDraw();
+         }
+     } );
+
+     plusTd.click( function () {
      var nTr = this.parentNode;
      var i = $.inArray( nTr, anOpen );
      if ( i === -1 ) {
@@ -1066,12 +1091,12 @@ class RuleEditForm(
            { "sWidth": "50px" },
            { "sWidth": "120px" },
            { "sWidth": "10px", "bSortable": false  , "bVisible":false }
-         ]
+         ],
+          "fnDrawCallback" : function( oSettings ) {%2$s}
        } );
        $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
        $('div.innerDetails table:first', nDetailsRow).attr("style","");
        $('div.innerDetails', nDetailsRow).slideDown(300);
-       %2$s
        anOpen.push( nTr );
      }
      else {
@@ -1130,6 +1155,7 @@ class RuleEditForm(
             }
           ) (reportsGridXml) ++ Script( JsRaw("""
                   %s
+                  var anOpen = [];
                   var oTable = $('#reportsGrid').dataTable( {
                     "asStripClasses": [ 'color1', 'color2' ],
                     "bAutoWidth": false,
@@ -1149,11 +1175,10 @@ class RuleEditForm(
                       { "sWidth": "50px" },
                       { "sWidth": "120px" },
                       { "sWidth": "10px", "bSortable": false  , "bVisible":false }
-                    ]
+                    ],
+                    "fnDrawCallback" : function( oSettings ) {%s}
                   } );
                   $('.dataTables_filter input').attr("placeholder", "Search");
-                  var anOpen = [];
-                  %s
                   """.format(FormatDetailsJSFunction,ReportsGridClickFunction) ) )
       }
     }
@@ -1186,9 +1211,9 @@ class RuleEditForm(
             case false => // standard  display that can be expanded
               val tooltipid = Helpers.nextFuncName
               val value = showComponentValueReport(component.componentValues,worstseverity)
-              ( "#plus *" #> <center><img src="/images/details_open.png"/></center> &
+              ( "#componentPlus *" #> <center><img src="/images/details_open.png"/></center> &
                 "#details *" #>  value
-              ) (componentDetails("plus") )
+              ) (componentDetails("componentPlus") )
             }
           )
         } }
@@ -1555,7 +1580,7 @@ class RuleEditForm(
     def messageLineXml : NodeSeq = {
       <tr >
         <td class="emptyTd"/>
-        <td id="plus"></td>
+        <td id="componentPlus"></td>
         <td id="component"></td>
         <td id="status"></td>
         <td id="details"></td>
@@ -1625,7 +1650,7 @@ class RuleEditForm(
               valueReports.flatMap{ report =>
                  val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(report._2.map(_._3)))
                 ( "#component *" #> report._1 &
-                  "#plus *" #> <center><img src="/images/details_open.png"/></center> &
+                  "#componentPlus *" #> <center><img src="/images/details_open.png"/></center> &
                   "#status *" #>  <center>{status}</center> &
                   "#status [class+]" #>  status.replaceAll(" ","") &
                   "#details *" #>  showValueReport(report._2)
@@ -1660,77 +1685,16 @@ class RuleEditForm(
           val datas = nodes.map(node => {
             val report = reports.filter(_.report.node==node).map(report =>(report.component,report.value,report.report.message,report.report.reportType))
             (node,report) } )
-            ( "#reportLine" #> datas.flatMap(showNodeReport(_) )
-            ) (reportsGridXml(gridId,message) ) ++
-            /*Sorry about the Javascript
-             * but we need to have dynamic definition of those datatables
-             * As we need to have several dynamic datables, we have to add a specific identifier, the tabid
-             * Everything is based what has been done for the previous dataTable
-             */
-            Script( JsRaw("""
-             var oTable%1$s = $('#%2$s').dataTable({
-               "asStripClasses": [ 'color1', 'color2' ],
-               "bAutoWidth": false,
-               "bFilter" : true,
-               "bPaginate" : true,
-               "bLengthChange": true,
-               "sPaginationType": "full_numbers",
-               "bJQueryUI": true,
-               "oLanguage": {
-                 "sSearch": ""
-               },
-               "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
-               "aaSorting": [[ 1, "asc" ]],
-               "aoColumns": [
-                 { "sWidth": "45px","bSortable": false },
-                 { "sWidth": "295px" },
-                 { "sWidth": "50px" },
-                 { "sWidth": "10px","bSortable": false  , "bVisible":false}
-               ]
-             } );
+            val innerJsFun = """
+              var componentPlusTd = $(this).find("td#componentPlus");
 
+              componentPlusTd.unbind();
 
-            function fnFormatDetails%1$s( oTable, nTr ) {
-              var fnData = oTable.fnGetData( nTr );
-              var oTable2 = fnData[fnData.length-1]
-              var sOut ='<div class="innerDetails">'+oTable2+'</div>';
-              return sOut;
-            }
-            var anOpen%1$s = [];
-            $('#%2$s td#plus').click( function () {
-              var nTr = this.parentNode;
-              var i = $.inArray( nTr, anOpen%1$s );
-              if ( i === -1 ) {
-                $('img', this).attr( 'src', "%3$s/images/details_close.png" );
-                var fnData = oTable%1$s.fnGetData( nTr );
-                var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails%1$s(oTable%1$s, nTr), 'details' );
-                var Otable2 = $('div.innerDetails table:first', nDetailsRow).dataTable({
-                  "asStripClasses": [ 'color1', 'color2' ],
-                  "bAutoWidth": false,
-                  "bFilter" : false,
-                  "bPaginate" : false,
-                  "bLengthChange": false,
-                  "bInfo" : false,
-                  "sPaginationType": "full_numbers",
-                  "bJQueryUI": true,
-                  "aaSorting": [[ 1, "asc" ]],
-                  "aoColumns": [
-                    { "sWidth": "20px", "bSortable": false },
-                    { "sWidth": "20px", "bSortable": false },
-                    { "sWidth": "295px" },
-                    { "sWidth": "50px" },
-                    { "sWidth": "10px", "bSortable": false  , "bVisible":false }
-                  ]
-                } );
-                $('div.innerDetails table:first', nDetailsRow).attr("style","");
-                $('div.innerDetails', nDetailsRow).slideDown(300);
-                $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-                anOpen%1$s.push( nTr );
-                $('div.innerDetails table td#plus', nDetailsRow).click( function () {
+              componentPlusTd.click( function () {
                   var nTr = this.parentNode;
                   var i = $.inArray( nTr, anOpen%1$s );
                     if ( i === -1 ) {
-                    $('img', this).attr( 'src', "%3$s/images/details_close.png" );
+                    $('img', this).attr( 'src', "%2$s/images/details_close.png" );
                     var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
                     $('div.innerDetails table', nDetailsRow).dataTable({
                       "asStripClasses": [ 'color1', 'color2' ],
@@ -1757,13 +1721,46 @@ class RuleEditForm(
                     anOpen%1$s.push( nTr );
                     }
                     else {
-                    $('img', this).attr( 'src', "%3$s/images/details_open.png" );
+                    $('img', this).attr( 'src', "%2$s/images/details_open.png" );
                     $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
                       oTable%1$s.fnClose( nTr );
                       anOpen%1$s.splice( i, 1 );
                     } );
                   }
-                } )
+                } )""".format(tabid,S.contextPath)
+
+            val jsFun = """
+            $('#%2$s td#plus').unbind();
+            $('#%2$s td#plus').click( function () {
+              var nTr = this.parentNode;
+              var i = $.inArray( nTr, anOpen%1$s );
+              if ( i === -1 ) {
+                $('img', this).attr( 'src', "%3$s/images/details_close.png" );
+                var fnData = oTable%1$s.fnGetData( nTr );
+                var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails%1$s(oTable%1$s, nTr), 'details' );
+                var Otable2 = $('div.innerDetails table:first', nDetailsRow).dataTable({
+                  "asStripClasses": [ 'color1', 'color2' ],
+                  "bAutoWidth": false,
+                  "bFilter" : false,
+                  "bPaginate" : false,
+                  "bLengthChange": false,
+                  "bInfo" : false,
+                  "sPaginationType": "full_numbers",
+                  "bJQueryUI": true,
+                  "aaSorting": [[ 1, "asc" ]],
+                  "aoColumns": [
+                    { "sWidth": "20px", "bSortable": false },
+                    { "sWidth": "20px", "bSortable": false },
+                    { "sWidth": "295px" },
+                    { "sWidth": "50px" },
+                    { "sWidth": "10px", "bSortable": false  , "bVisible":false }
+                  ],
+               "fnDrawCallback" : function( oSettings ) {%4$s}
+                } );
+                $('div.innerDetails table:first', nDetailsRow).attr("style","");
+                $('div.innerDetails', nDetailsRow).slideDown(300);
+                $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
+                anOpen%1$s.push( nTr );
               }
               else {
                 $('img', this).attr( 'src', "%3$s/images/details_open.png" );
@@ -1772,7 +1769,44 @@ class RuleEditForm(
                   anOpen%1$s.splice( i, 1 );
                 } );
               }
-          } );""".format(tabid,gridId+"Grid",S.contextPath) ) ) }
+          } );""".format(tabid,gridId+"Grid",S.contextPath,innerJsFun)
+            ( "#reportLine" #> datas.flatMap(showNodeReport(_) )
+            ) (reportsGridXml(gridId,message) ) ++
+            /*Sorry about the Javascript
+             * but we need to have dynamic definition of those datatables
+             * As we need to have several dynamic datables, we have to add a specific identifier, the tabid
+             * Everything is based what has been done for the previous dataTable
+             */
+            Script( JsRaw("""
+            function fnFormatDetails%1$s( oTable, nTr ) {
+              var fnData = oTable.fnGetData( nTr );
+              var oTable2 = fnData[fnData.length-1]
+              var sOut ='<div class="innerDetails">'+oTable2+'</div>';
+              return sOut;
+            }
+            var anOpen%1$s = [];
+             var oTable%1$s = $('#%2$s').dataTable({
+               "asStripClasses": [ 'color1', 'color2' ],
+               "bAutoWidth": false,
+               "bFilter" : true,
+               "bPaginate" : true,
+               "bLengthChange": true,
+               "sPaginationType": "full_numbers",
+               "bJQueryUI": true,
+               "oLanguage": {
+                 "sSearch": ""
+               },
+               "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+               "aaSorting": [[ 1, "asc" ]],
+               "aoColumns": [
+                 { "sWidth": "45px","bSortable": false },
+                 { "sWidth": "295px" },
+                 { "sWidth": "50px" },
+                 { "sWidth": "10px","bSortable": false  , "bVisible":false}
+               ],
+               "fnDrawCallback" : function( oSettings ) {%3$s}
+             } );
+                """.format(tabid,gridId+"Grid",jsFun) ) ) }
         else
           NodeSeq.Empty
         }
