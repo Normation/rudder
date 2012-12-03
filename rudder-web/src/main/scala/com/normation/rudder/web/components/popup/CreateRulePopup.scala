@@ -51,11 +51,12 @@ import com.normation.rudder.web.model.{
 }
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import CreateRulePopup._
+import CreateOrCloneRulePopup._
 import com.normation.rudder.domain.eventlog.AddRule
 import com.normation.rudder.web.model.CurrentUser
 
-class CreateRulePopup(
+class CreateOrCloneRulePopup(
+  clonedRule: Option[Rule],
   onSuccessCallback : (Rule) => JsCmd = { (rule : Rule) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
        ) extends DispatchSnippet with Loggable {
@@ -74,16 +75,17 @@ class CreateRulePopup(
   private[this] val uuidGen = inject[StringUuidGenerator]
 
   def dispatch = {
-    case "popupContent" => popupContent _
+    case "popupContent" => _ => popupContent()
   }
 
   def initJs : JsCmd = {
       JsRaw("correctButtons();")
   }
 
-  def popupContent(html : NodeSeq) : NodeSeq = {
+  def popupContent() : NodeSeq = {
 
     SHtml.ajaxForm(bind("item", popupTemplate,
+      "title" -> { if(clonedRule.isDefined) "Clone a rule" else "Create a new rule" },
       "itemName" -> ruleName.toForm_!,
       "itemShortDescription" -> ruleShortDescription.toForm_!,
       "notifications" -> updateAndDisplayNotifications(),
@@ -93,7 +95,7 @@ class CreateRulePopup(
   }
 
   ///////////// fields for category settings ///////////////////
-  private[this] val ruleName = new WBTextField("Name", "") {
+  private[this] val ruleName = new WBTextField("Name", clonedRule.map(r => "Copy of <%s>".format(r.name)).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = ""
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createCRSaveButton')") % ("tabindex","1")
@@ -101,7 +103,7 @@ class CreateRulePopup(
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val ruleShortDescription = new WBTextAreaField("Short description", "") {
+  private[this] val ruleShortDescription = new WBTextAreaField("Short description", clonedRule.map( _.shortDescription).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
     override def errorClassName = ""
@@ -123,7 +125,7 @@ class CreateRulePopup(
    * Update the form when something happened
    */
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml(htmlId_popupContainer, popupContent(NodeSeq.Empty)) &
+    SetHtml(htmlId_popupContainer, popupContent()) &
     initJs
   }
 
@@ -136,8 +138,12 @@ class CreateRulePopup(
           id = RuleId(uuidGen.newUuid),
           name = ruleName.is,
           serial = 0,
+          targets = clonedRule.map( _.targets).getOrElse(Set()),
+          directiveIds = clonedRule.map( _.directiveIds).getOrElse(Set()),
           shortDescription = ruleShortDescription.is,
-          isEnabledStatus = true)
+          longDescription = clonedRule.map( _.longDescription ).getOrElse(""),
+          isEnabledStatus = clonedRule.map( _.isEnabledStatus ).getOrElse(true)
+      )
 
 
       ruleRepository.create(rule, CurrentUser.getActor, Some("")) match {
@@ -182,8 +188,7 @@ class CreateRulePopup(
   }
 }
 
-
-object CreateRulePopup {
+object CreateOrCloneRulePopup {
   val htmlId_popupContainer = "createRuleContainer"
   val htmlId_popup = "createRulePopup"
 }

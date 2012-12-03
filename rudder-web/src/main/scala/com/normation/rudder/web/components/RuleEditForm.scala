@@ -70,6 +70,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.inventory.domain.NodeId
 import com.normation.exceptions.TechnicalException
 import net.liftweb.http.SHtml.BasicElemAttr
+import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 
 object RuleEditForm {
   
@@ -144,7 +145,8 @@ class RuleEditForm(
   //JS to execute on form success (update UI parts)
   //there are call by name to have the context matching their execution when called
   onSuccessCallback : () => JsCmd = { () => Noop },
-  onFailureCallback : () => JsCmd = { () => Noop }
+  onFailureCallback : () => JsCmd = { () => Noop },
+  onCloneCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with SpringExtendableSnippet[RuleEditForm] with Loggable {
   import RuleEditForm._
   
@@ -295,6 +297,11 @@ class RuleEditForm(
           </ul>
         </div> } &
       "#save" #> saveButton &
+      "#clone" #> SHtml.ajaxButton( 
+                      { Text("Clone") }
+                    , { () =>  onCloneCallback() }
+                    , ("class", "autoWidthButton"), ("type", "button")
+                  ) &
       "#notification *" #>  updateAndDisplayNotifications(formTracker) &
       "#editForm [id]" #> htmlId_rule
     )(crForm) ++ 
