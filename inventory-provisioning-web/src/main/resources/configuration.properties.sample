@@ -22,7 +22,9 @@ ldap.inventories.accepted.basedn=ou=Accepted Inventories,ou=Inventories,cn=rudde
 ldap.inventories.pending.basedn=ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
 ldap.inventories.removed.basedn=ou=Removed Inventories, ou=Inventories, cn=rudder-configuration
 
-# whether to historize inventory version as LDIF file or not
+# whether to historize inventory version as LDIF files or not
+# WARNING: If this is disabled, you will no longer be able to view the
+#          original inventory of a node at acceptation time in the UI.
 history.inventories.enable=true
 
 # where to store LDIF inventory versions
