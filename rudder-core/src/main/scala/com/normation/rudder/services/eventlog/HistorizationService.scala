@@ -48,6 +48,7 @@ import com.normation.rudder.repository.RuleRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.repository.jdbc.SerializedGroups
 import com.normation.rudder.domain.logger.HistorizationLogger
+import com.normation.inventory.domain.NodeId
 
 /**
  * At each deployment, we compare the content of the groups/PI/CR in the ldap with the content
@@ -58,12 +59,15 @@ import com.normation.rudder.domain.logger.HistorizationLogger
  */
 trait HistorizationService {
 
+  /**
+   * Update the nodes, based on what is on the ldap, and return nothing (I don't know yet how to know what has been updated)
+   */
   def updateNodes() : Box[Unit]
+  
   
   /**
    * Update the groups, based on what is on the ldap, and return nothing (I don't know yet how to know what has been updated)
    */
-
   def updateGroups() : Box[Unit]
 
   /**
@@ -122,13 +126,17 @@ class HistorizationServiceImpl(
       val nodeGroups = nodeGroupRepository.getAll().openOr(
           {HistorizationLogger.error("Could not fetch all groups"); Seq()} )
       
-      // fetch all the current group in the ldap
-      val registered = historizationRepository.getAllOpenedGroups().map(x => x.groupId -> x).toMap
+      // fetch all the current group in the database
+      val registered = historizationRepository.getAllOpenedGroups().map(x => x._1.groupId -> x).toMap
       
       // detect changes 
       val changed = nodeGroups.filter(x => registered.get(x.id.value) match {
         case None => true
-        case Some(entry) => (entry.groupName != x.name || entry.groupDescription != x.description || entry.nodeCount != x.serverList.size || SerializedGroups.fromSQLtoDynamic(entry.groupStatus) != Some(x.isDynamic))
+        case Some((entry, nodes)) => 
+          (entry.groupName != x.name || 
+           entry.groupDescription != x.description || 
+           nodes.map(x => NodeId(x.nodes)).toSet != x.serverList || 
+           SerializedGroups.fromSQLtoDynamic(entry.groupStatus) != Some(x.isDynamic))
       })
       
       // a group closable is a group that is current in the database, but don't exist in the

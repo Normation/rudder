@@ -56,6 +56,7 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.inventory.domain.NodeId
 
 
 class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionProvider)  extends HistorizationRepository with  Loggable {
@@ -103,18 +104,23 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
     }
   }
   
-  def getAllOpenedGroups() : Seq[SerializedGroups] = {
+  /**
+   * Fetch the serialization of groups that are still open (endTime is null), along with the 
+   * nodes within
+   */
+  def getAllOpenedGroups() : Seq[(SerializedGroups, Seq[SerializedGroupsNodes])] = {
     squerylConnectionProvider.ourTransaction {
+      // first, fetch all the groups (without nodes
 	    val q = from(Groups.groups)(group => 
 	      where(group.endTime.isNull)
 	      select(group)
 	    )
-	    Seq() ++ q.toList
-
+	    getNodesFromSerializedGroups(Seq() ++ q.toList)
+	    
     }
   }
   
-  def getAllGroups(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedGroups] = {
+  def getAllGroups(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[(SerializedGroups, Seq[SerializedGroupsNodes])] = {
     squerylConnectionProvider.ourTransaction {
 	    val q = from(Groups.groups)(group =>
 	      where(after.map(date => {
@@ -124,29 +130,47 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 	      }).getOrElse(1===1))
 	      select(group)
 	    )
-      Seq() ++ q.toList
+	    
+	    getNodesFromSerializedGroups(Seq() ++ q.toList) 
     }
+  }
+  
+  /** 
+   * Utility method to get the groups of nodes
+   */
+  private[this] def getNodesFromSerializedGroups(groups: Seq[SerializedGroups]) :  Seq[(SerializedGroups, Seq[SerializedGroupsNodes])] = {
+    // fetch all the nodes linked to these groups
+    val r = from(Groups.nodes)( node => 
+      where(node.groupPkeyId.in(groups.map(x => x.id)))
+      select(node)
+    )
+    val nodes = Seq() ++ r.toList
+
+    groups.map (group => (group, nodes.filter(node => node.groupPkeyId == group.id)))    
   }
   
   
   
-  def updateGroups(nodes : Seq[NodeGroup], closable : Seq[String]) :Seq[SerializedGroups] = {
+  def updateGroups(groups : Seq[NodeGroup], closable : Seq[String]) :Seq[SerializedGroups] = {
     squerylConnectionProvider.ourTransaction {
-      // close the nodes
+      // close the groups
       val q = update(Groups.groups)(group => 
-        where(group.endTime.isNull and group.groupId.in(nodes.map(x => x.id.value) ++ closable))
+        where(group.endTime.isNull and group.groupId.in(groups.map(x => x.id.value) ++ closable))
         set(group.endTime := Some(toTimeStamp(DateTime.now())))
       )
       
-      val insertion = Groups.groups.insert(nodes.map(SerializedGroups.fromNodeGroup(_)))
-      // add the new ones
+      // Add the new/updated groups
+      groups.map { group =>
+        val insertion = Groups.groups.insert(SerializedGroups.fromNodeGroup(group))
+        group.serverList.map( node => Groups.nodes.insert(SerializedGroupsNodes(insertion.id , node.value)))
+      }
+
       Seq()
     }
   }
   
   
   def getAllOpenedDirectives() : Seq[SerializedDirectives] = {
-   
     squerylConnectionProvider.ourTransaction {
       val q = from(Directives.directives)(directive => 
         where(directive.endTime.isNull)
@@ -302,7 +326,16 @@ case class SerializedGroups(
   val id = 0L
 }
 
+case class SerializedGroupsNodes(
+    @Column("grouppkeyid") groupPkeyId: Long,// really, the database id from the group
+    @Column("nodeid") nodes: String
+) extends KeyedEntity[CompositeKey2[Long,String]]  {
+ 
+  def id = compositeKey(groupPkeyId, nodes)
+}
+
 object SerializedGroups {
+  // Utilitary method to convert from/to nodeGroup/SerializedGroups
   def fromNodeGroup(nodeGroup : NodeGroup) : SerializedGroups = {
     new SerializedGroups(nodeGroup.id.value, 
             nodeGroup.name, 
@@ -310,6 +343,26 @@ object SerializedGroups {
             nodeGroup.serverList.size,
             isDynamicToSql(nodeGroup.isDynamic),
             new Timestamp(DateTime.now().getMillis), None )
+  }
+  
+  def fromSerializedGroup(
+      group: SerializedGroups
+    , nodes: Seq[SerializedGroupsNodes]) : Option[NodeGroup] = {
+    fromSQLtoDynamic(group.groupStatus) match {
+      case Some(status) => 
+        Some(NodeGroup(
+          NodeGroupId(group.groupId)
+        , group.groupName
+        , group.groupDescription
+        , None
+        , status
+        , nodes.map(x => NodeId(x.nodes)).toSet
+        , true
+        , false    
+        ))
+      case _ => None
+    }
+    
   }
  
   def isDynamicToSql(boolean : Boolean) : Int = {
@@ -331,6 +384,7 @@ object SerializedGroups {
 
 object Groups extends Schema {
   val groups = table[SerializedGroups]("groups")
+  val nodes = table[SerializedGroupsNodes]("groupsnodesjoin")
   
   on(groups)(t => declare( 
       t.id.is(autoIncremented("groupsid"), primaryKey)))
