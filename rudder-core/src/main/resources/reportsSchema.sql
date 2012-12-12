@@ -151,6 +151,12 @@ endTime timestamp with time zone
 );
 
 
+CREATE TABLE GroupsNodesJoin (
+groupPkeyId integer, -- really the id of the table Groups
+nodeId text NOT NULL CHECK (nodeid <> ''),
+PRIMARY KEY(groupPkeyId, nodeId)
+);
+
 
 create index groups_id_start on Groups (groupId, startTime);
 create index groups_end on Groups (endTime);
