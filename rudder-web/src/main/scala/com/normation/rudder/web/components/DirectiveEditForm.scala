@@ -89,8 +89,15 @@ object DirectiveEditForm {
     } yield {
       chooseTemplate("component", "itemDependencies", xml)
     }) openOr Nil
+
+  private def popupDependentUpdateForm =
+    (for {
+      xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
+    } yield {
+      chooseTemplate("component", "popupDependentUpdateForm", xml)
+    }) openOr Nil
     
-  private def popupRemoveForm = 
+  private def popupRemoveForm =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
     } yield {
@@ -157,12 +164,14 @@ class DirectiveEditForm(
   private[this] var piCurrentStatusIsActivated = directive.isEnabled
   private[this] var directiveCurrentStatusCreationStatus = isADirectiveCreation
   
+  lazy val dependentRules =  dependencyService.directiveDependencies(directive.id).map(_.rules)
+
   // pop-up: their content should be retrieve lazily
   lazy val removePopupGridXml = {
     if (directiveCurrentStatusCreationStatus) {
       NodeSeq.Empty
     } else {
-      dependencyService.directiveDependencies(directive.id).map(_.rules) match {
+      dependentRules match {
         case e: EmptyBox => 
           <div class="error">An error occurred while trying to find dependent item</div>
         case Full(rules) => {
@@ -173,6 +182,22 @@ class DirectiveEditForm(
     }
   }
   
+  // popup for the list of dependent rules when updating the directives
+  lazy val updatePopupGridXml = {
+    if (directiveCurrentStatusCreationStatus) {
+      NodeSeq.Empty
+    } else {
+      dependentRules match {
+        case e: EmptyBox =>
+          <div class="error">An error occurred while trying to find dependent item</div>
+        case Full(rules) => {
+          val cmp = new RuleGrid("dependent_popup_grid", rules, None, false)
+          cmp.rulesGrid(linkCompliancePopup = false)
+        }
+      }
+    }
+  }
+
   // if directive current inherited status is "activated", the two pop-up (disable and 
   // remove) show the same content. Else, we have to build two different pop-up
   val switchStatusFilter = if (directive.isEnabled) OnlyDisableable else OnlyEnableable
@@ -236,7 +261,16 @@ class DirectiveEditForm(
           "#reasonsField" #> f.toForm_!
         } 
       }
-    )(popupDisactivateForm) 
+    )(popupDisactivateForm)
+  }
+
+  def showUpdatePopupForm( onConfirmCallback:  => JsCmd) : NodeSeq = {
+    (
+       "#dialogSaveButton" #> SHtml.ajaxButton("Save", () => JsRaw("$.modal.close();") & onConfirmCallback ) &
+       "#updateItemDependencies" #> {
+        (ClearClearable & "#itemDependenciesGrid" #> updatePopupGridXml)(itemDependencies)
+      }
+    )(popupDependentUpdateForm)
   }
 
   def showDirectiveForm(): NodeSeq = {
@@ -574,9 +608,8 @@ class DirectiveEditForm(
   }
   
   private[this] def onSubmit(): JsCmd = {
-    
     parameterEditor.removeDuplicateSections
-   
+
     checkVariables()
 
     if (formTracker.hasErrors) {
@@ -600,9 +633,22 @@ class DirectiveEditForm(
           longDescription = piLongDescription.is
         )
       }
+      // here everything is good, I can display the popup if there are
+      // dependent rules
+      dependentRules match {
+        case e: EmptyBox => saveAndDeployDirective(newDirective, crReasons.map(_.is))
+        case Full(rules) if rules.size == 0 => saveAndDeployDirective(newDirective, crReasons.map(_.is))
+        case _ => displayDependenciesPopup(newDirective, crReasons.map(_.is))
+      }
       
-      saveAndDeployDirective(newDirective, crReasons.map(_.is))
     }
+  }
+
+  // Fill the content of the popup with the list of dependant rules (this list is computed
+  // at the load of page), and wait for user confirmation
+  private[this] def displayDependenciesPopup(directive: Directive, why:Option[String]): JsCmd = {
+    SetHtml("confirmUpdateActionDialog", showUpdatePopupForm(saveAndDeployDirective(directive, why))) &
+    createPopup("updateActionDialog",140,850)
   }
 
   private[this] def saveAndDeployDirective(directive: Directive, why:Option[String]): JsCmd = {

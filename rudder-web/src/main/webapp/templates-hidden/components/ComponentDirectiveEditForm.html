@@ -80,6 +80,7 @@
 		<div id="editForm" />
 		<div id="removeActionDialog" />
 		<div id="disableActionDialog" />
+		<div id="confirmUpdateActionDialog" />
 	</div>
 </component:body>
 
@@ -256,4 +257,36 @@
    </div>
 </component:popupDisactivateForm>
 
+<component:popupDependentUpdateForm>
+   <div id="updateActionDialog" class="nodisplay">
+     <div class="simplemodal-title">
+       <h1>Update the Directive</h1>
+       <hr/>
+     </div>
+     <div class="simplemodal-content">
+       <div>
+         <img src="/images/icDetails.png" alt="Details" height="20" width="22" class="icon"/>
+         <h2>Are you sure that you want to update this directive ?</h2>
+       </div>
+       <br />
+         <div>
+           Updating this Directive will have an impact on the following Rules which depend on it.
+         </div>
+       <div id="updateItemDependencies">
+         Here comes the grid of Rules that will be dependantly updated
+       </div>
+       <br />
+       <hr class="spacer" />
+     </div>
+     <div class="simplemodal-bottom">
+       <hr/>
+       <div class="popupButton">
+         <span>
+           <button class="simplemodal-close" onClick="$.modal.close();">Cancel</button>
+           <button id="dialogSaveButton">Save</button>
+         </span>
+       </div>
+     </div>
+   </div>
+</component:popupDependentUpdateForm>
 </xml:group>
