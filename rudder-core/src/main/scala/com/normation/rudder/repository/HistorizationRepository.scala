@@ -46,6 +46,7 @@ import com.normation.rudder.repository.jdbc.SerializedRules
 import org.joda.time.DateTime
 import com.normation.rudder.repository.jdbc.SerializedNodes
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.repository.jdbc.SerializedGroupsNodes
 
 /**
  * Repository to retrieve information about Nodes, Groups, directives, rules
@@ -77,12 +78,12 @@ trait HistorizationRepository {
    * If fetchUnclosed is set to true, it will also return the opened group, regardless of their
    * opening time
    */
-  def getAllGroups(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedGroups]
+  def getAllGroups(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[(SerializedGroups, Seq[SerializedGroupsNodes])]
   
   /**
    * Return all the groups that are still "opened"
    */
-  def getAllOpenedGroups() : Seq[SerializedGroups] 
+  def getAllOpenedGroups() : Seq[(SerializedGroups, Seq[SerializedGroupsNodes])] 
   
   /**
    * Update a list of groups, and close (end) another list, based on their id
