@@ -396,7 +396,6 @@ case class MultivaluedSectionField(
       }</div>
     </td> ++  Script(OnLoad(JsVar("""
           $("input").keydown( function(event) {
-          console.log("trololo");
             processKey(event , 'policyConfigurationSave')
           } );
           """)))
