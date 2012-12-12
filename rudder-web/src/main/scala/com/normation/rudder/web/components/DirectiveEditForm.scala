@@ -292,7 +292,6 @@ class DirectiveEditForm(
       """) &
       JsVar("""
           $("input").keydown( function(event) {
-          console.log("trololo");
             processKey(event , '%s')
           } );
           """.format(htmlId_save)))
