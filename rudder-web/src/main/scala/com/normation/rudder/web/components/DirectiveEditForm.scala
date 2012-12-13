@@ -291,7 +291,7 @@ class DirectiveEditForm(
         correctButtons();
       """) &
       JsVar("""
-          $("input").keydown( function(event) {
+          $("input").not("#treeSearch").keydown( function(event) {
             processKey(event , '%s')
           } );
           """.format(htmlId_save)))
