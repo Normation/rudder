@@ -73,6 +73,26 @@ function createPopup(popupName, minHeight, minWidth){
 		correctButtons();
 }
 
+/* ignore enter in a field */
+
+function refuseEnter(event)
+{
+    // IE / Firefox
+    if(!event && window.event) {
+        event = window.event;
+    }
+    // IE
+    if(event.keyCode == 13) {
+        event.returnValue = false;
+        event.cancelBubble = true;
+    }
+    // DOM
+    if(event.which == 13) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+}
+
 /* slickboxShowHide */
 
 	$(document).ready(function() {
