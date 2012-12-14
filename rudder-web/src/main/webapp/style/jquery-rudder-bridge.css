@@ -346,10 +346,6 @@ input .ui-button {
   margin: 2px 0px 2px 0px;
 }
 
-.ui-button:hover{
-  background-color: #EEEBE7;
-}
-
 .dataTables_wrapper .dataTables_paginate .ui-button:hover, .paginate_button_disabled:hover, .paginate_button:hover, .paginate_active:hover {
   text-decoration:underline;
   background-color: #EEEBE7;
