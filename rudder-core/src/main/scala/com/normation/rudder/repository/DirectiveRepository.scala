@@ -38,6 +38,7 @@ import com.normation.rudder.domain.policies._
 import net.liftweb.common._
 import com.normation.eventlog.EventActor
 import com.normation.cfclerk.domain.Technique
+import com.normation.eventlog.ModificationId
 
 
 
@@ -89,7 +90,7 @@ trait DirectiveRepository {
    * 
    * Returned the saved UserDirective
    */
-  def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]]
+  def saveDirective(inActiveTechniqueId:ActiveTechniqueId, directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]]
  
   /**
    * Get all directives defined in that repository
@@ -105,6 +106,6 @@ trait DirectiveRepository {
    * If the given directiveId does not exists, it leads to a
    * failure.
    */
-  def delete(id:DirectiveId, actor:EventActor, reason:Option[String]) : Box[DeleteDirectiveDiff]
+  def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteDirectiveDiff]
 
 }

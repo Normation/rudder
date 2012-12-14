@@ -50,17 +50,20 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.services.servers.NodeConfigurationService
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
-import com.normation.eventlog.EventLogService
 import com.normation.rudder.domain.eventlog.ClearCacheEventLog
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
+import com.normation.rudder.repository.EventLogRepository
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
 
 
 class ClearCache extends DispatchSnippet with Loggable {
 
   private[this] val nodeConfigurationService = inject[NodeConfigurationService]
-  private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
-  private[this] val eventLogService = inject[EventLogService]
+  private[this] val asyncDeploymentAgent     = inject[AsyncDeploymentAgent]
+  private[this] val eventLogRepository       = inject[EventLogRepository]
+  private[this] val uuidGen                  = inject[StringUuidGenerator]
   
   def dispatch = {
     case "render" => clearCache
@@ -76,12 +79,13 @@ class ClearCache extends DispatchSnippet with Loggable {
       //clear errors
       S.clearCurrentNotices
 
+      val modId = ModificationId(uuidGen.newUuid)
       nodeConfigurationService.deleteAllNodeConfigurations match {
         case empty:EmptyBox => 
           val e = empty ?~! "Error when clearing caches"
           S.error(e.messageChain)
         case Full(set) => 
-          eventLogService.saveEventLog(ClearCacheEventLog(EventLogDetails(principal = CurrentUser.getActor, details = EventLog.emptyDetails, reason = None))) match {
+          eventLogRepository.saveEventLog(modId, ClearCacheEventLog(EventLogDetails(principal = CurrentUser.getActor, details = EventLog.emptyDetails, reason = None))) match {
             case eb:EmptyBox => 
               val e = eb ?~! "Error when logging the cache event"
               logger.error(e.messageChain)
@@ -89,7 +93,7 @@ class ClearCache extends DispatchSnippet with Loggable {
             case _ => //ok
           }
           logger.debug("Delete node configurations on user clear cache demand: " + set.mkString(", ") )
-          asyncDeploymentAgent ! AutomaticStartDeployment(CurrentUser.getActor)
+          asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
           S.notice("clearCacheNotice","Caches were correctly cleaned")
       }
       

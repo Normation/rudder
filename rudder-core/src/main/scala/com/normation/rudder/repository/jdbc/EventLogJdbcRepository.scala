@@ -84,7 +84,7 @@ class EventLogJdbcRepository(
    * Optionnal : the user. At least one of the eventLog user or user must be defined
    * Return the event log with its serialization number
    */
-  def saveEventLog(eventLog : EventLog) : Box[EventLog] = {
+  def saveEventLog(modId: ModificationId, eventLog : EventLog) : Box[EventLog] = {
      val keyHolder = new GeneratedKeyHolder()
 
      try {

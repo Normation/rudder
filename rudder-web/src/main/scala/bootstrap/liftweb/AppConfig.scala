@@ -50,7 +50,6 @@ import com.normation.rudder.services.policies._
 import com.normation.rudder.services.reports._
 import com.normation.rudder.domain.queries._
 import bootstrap.liftweb.checks._
-import com.normation.eventlog.EventLogService
 import com.normation.cfclerk.services._
 import org.springframework.context.annotation.Lazy
 import org.springframework.context.annotation.{ Bean, Configuration, Import, ImportResource }
@@ -395,7 +394,7 @@ class AppConfig extends Loggable {
     , importTechniqueLibrary
     , parseGroupLibrary
     , importGroupLibrary
-    , logService
+    , logRepository
     , asyncDeploymentAgent
   )
   
@@ -410,9 +409,6 @@ class AppConfig extends Loggable {
   
   @Bean
   def logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
-
-  @Bean
-  def logService = new EventLogServiceImpl(logRepository, eventLogDetailsService)
 
   @Bean
   def inventoryLogEventService: InventoryEventLogService = new InventoryEventLogServiceImpl(logRepository)
@@ -496,8 +492,9 @@ class AppConfig extends Loggable {
     val service = new TechniqueRepositoryImpl(
         techniqueReader
       , Seq(techniqueAcceptationDatetimeUpdater)
+      , uuidGen
     )
-    service.registerCallback(new LogEventOnTechniqueReloadCallback("LogEventOnPTLibUpdate", logService))
+    service.registerCallback(new LogEventOnTechniqueReloadCallback("LogEventOnPTLibUpdate", logRepository))
     service
   }
 
@@ -709,7 +706,7 @@ class AppConfig extends Loggable {
           nodeConfigurationChangeDetectService,
           reportingService,
           historizationService)
-      , logService
+      , eventLogDeploymentService
       , autoDeployOnModification
       , deploymentStatusSerialisation)
     techniqueRepository.registerCallback(
@@ -941,6 +938,9 @@ class AppConfig extends Loggable {
     , new DeploymentStatusUnserialisationImpl
   )
   
+  @Bean 
+  def eventLogDeploymentService = new EventLogDeploymentService(logRepository, eventLogDetailsService)
+  
   @Bean
   def nodeInfoService: NodeInfoService = new NodeInfoServiceImpl(nodeDit, rudderDit, acceptedNodesDit, ldap, ldapEntityMapper)
 
@@ -980,6 +980,7 @@ class AppConfig extends Loggable {
       dynGroupService
     , new DynGroupUpdaterServiceImpl(ldapNodeGroupRepository, queryProcessor)
     , asyncDeploymentAgent
+    , uuidGen
     , dyngroupUpdateInterval
   )
 
@@ -1007,11 +1008,12 @@ class AppConfig extends Loggable {
   def ptLibCron = new CheckTechniqueLibrary(
       techniqueRepository
     , asyncDeploymentAgent
+    , uuidGen
     , ptlibUpdateInterval
   )
   
   @Bean
-  def userSessionLogEvent = new UserSessionLogEvent(logRepository)
+  def userSessionLogEvent = new UserSessionLogEvent(logRepository, uuidGen)
 
   @Bean
   def jsTreeUtilService = new JsTreeUtilService(
@@ -1083,9 +1085,9 @@ class AppConfig extends Loggable {
     , new CheckSystemDirectives(rudderDit, ldapRuleRepository)
     , new CheckInitUserTemplateLibrary(
         rudderDit, ldap, techniqueRepository,
-        ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository) //new CheckDirectiveBusinessRules()
+        ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository, uuidGen) //new CheckDirectiveBusinessRules()
     , new CheckMigrationEventLog2_3(eventLogsMigration_2_3_Management)
-    , new CheckInitXmlExport(itemArchiveManager, personIdentService)
+    , new CheckInitXmlExport(itemArchiveManager, personIdentService, uuidGen)
   )
 
   
@@ -1095,16 +1097,16 @@ class AppConfig extends Loggable {
   
 
   @Bean
-  def restDeploy = new RestDeploy(asyncDeploymentAgent)
+  def restDeploy = new RestDeploy(asyncDeploymentAgent, uuidGen)
 
   @Bean
   def restDyngroup = new RestDyngroupReload(dyngroupUpdaterBatch)
   
   @Bean
-  def restDptLibReload = new RestTechniqueReload(techniqueRepository)
+  def restDptLibReload = new RestTechniqueReload(techniqueRepository, uuidGen)
   
   @Bean
-  def restArchiving = new RestArchiving(itemArchiveManager,personIdentService)
+  def restArchiving = new RestArchiving(itemArchiveManager,personIdentService, uuidGen)
   
   @Bean
   def restZipArchiving = new RestGetGitCommitAsZip(gitRepo)

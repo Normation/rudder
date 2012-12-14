@@ -38,14 +38,11 @@ import net.liftweb.http.js._
 import JsCmds._
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.domain.policies.{Rule,RuleId}
-
-// For implicits
 import JE._
 import net.liftweb.common._
 import net.liftweb.http.{SHtml,DispatchSnippet,Templates}
 import scala.xml._
 import net.liftweb.util.Helpers._
-
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField
 }
@@ -55,6 +52,7 @@ import CreateOrCloneRulePopup._
 import com.normation.rudder.domain.eventlog.AddRule
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.services.UserPropertyService
+import com.normation.eventlog.ModificationId
 
 class CreateOrCloneRulePopup(
   clonedRule: Option[Rule],
@@ -186,7 +184,7 @@ class CreateOrCloneRulePopup(
       )
 
 
-      ruleRepository.create(rule, CurrentUser.getActor, reason.map( _.is )) match {
+      ruleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.getActor, reason.map( _.is )) match {
           case Full(x) => 
             closePopup() & onSuccessCallback(rule)
           case Empty =>

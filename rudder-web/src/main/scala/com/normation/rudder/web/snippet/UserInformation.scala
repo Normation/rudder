@@ -52,10 +52,13 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
+import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
 
 class UserInformation extends DispatchSnippet with Loggable {
 
   private[this] val eventLogger = inject[EventLogRepository]
+  private[this] val uuidGen     = inject[StringUuidGenerator]
   
   def dispatch = { 
     case "userCredentials" =>  userCredentials
@@ -81,7 +84,8 @@ class UserInformation extends DispatchSnippet with Loggable {
             case auth => auth.getPrincipal() match {
               case u:UserDetails =>
                 eventLogger.saveEventLog(
-                    LogoutEventLog(
+                    ModificationId(uuidGen.newUuid)
+                  , LogoutEventLog(
                         EventLogDetails(
                             principal = EventActor(u.getUsername)
                           , details = EventLog.emptyDetails

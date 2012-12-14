@@ -56,13 +56,17 @@ import org.eclipse.jgit.lib.PersonIdent
 import scala.xml.Text
 import com.normation.eventlog.EventActor
 import com.normation.cfclerk.services.GitRevisionProvider
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
 
 class Archives extends DispatchSnippet with Loggable {
 
   private[this] val DL_NAME = "Download as zip"
-  private[this] val itemArchiver = inject[ItemArchiveManager]
-  private[this] val personIdentService = inject[PersonIdentService]
+    
+  private[this] val itemArchiver        = inject[ItemArchiveManager]
+  private[this] val personIdentService  = inject[PersonIdentService]
   private[this] val gitRevisionProvider = inject[GitRevisionProvider]
+  private[this] val uuidGen             = inject[StringUuidGenerator]
   
   private[this] val noElements = NotArchivedElements(Seq(),Seq(),Seq())
   
@@ -103,7 +107,7 @@ class Archives extends DispatchSnippet with Loggable {
         formName                  = "rulesForm"
       , archiveButtonId           = "exportRulesButton"
       , archiveButtonName         = "Archive Rules"
-      , archiveFunction           = (a,b,c,d) => itemArchiver.exportRules(a,b,c,d).map(x=> (x, noElements))
+      , archiveFunction           = (a,b,c,d,e) => itemArchiver.exportRules(a,b,c,d,e).map(x=> (x, noElements))
       , archiveErrorMessage       = "Error when exporting Rules."
       , archiveSuccessDebugMessage= s => "Exporting Rules on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importRulesSelect"
@@ -145,7 +149,7 @@ class Archives extends DispatchSnippet with Loggable {
         formName                  = "groupLibraryForm"
       , archiveButtonId           = "exportGroupLibraryButton"
       , archiveButtonName         = "Archive groups"
-      , archiveFunction           = (a,b,c,d) => itemArchiver.exportGroupLibrary(a,b,c,d).map(x=> (x, noElements))
+      , archiveFunction           = (a,b,c,d,e) => itemArchiver.exportGroupLibrary(a,b,c,d,e).map(x=> (x, noElements))
       , archiveErrorMessage       = "Error when exporting groups."
       , archiveSuccessDebugMessage= s => "Exporting groups on user request, archive id: %s".format(s)
       , archiveDateSelectId       = "importGroupLibrarySelect"
@@ -169,14 +173,14 @@ class Archives extends DispatchSnippet with Loggable {
       formName                  : String               //the element name to update on error/succes
     , archiveButtonId           : String               //input button
     , archiveButtonName         : String               //what is displayed on the button to the user
-    , archiveFunction           : (PersonIdent, EventActor, Option[String], Boolean) => Box[(GitArchiveId, NotArchivedElements)] //the actual logic to execute the action
+    , archiveFunction           : (PersonIdent, ModificationId, EventActor, Option[String], Boolean) => Box[(GitArchiveId, NotArchivedElements)] //the actual logic to execute the action
     , archiveErrorMessage       : String               //error message to display to the user
     , archiveSuccessDebugMessage: String => String     //debug log - the string param is the archive id
     , archiveDateSelectId       : String
     , archiveListFunction       : () => Box[Map[DateTime,GitArchiveId]]
     , restoreButtonId           : String               //input button id to restore an archive
     , restoreButtonName         : String               //what is displayed on the button to the user
-    , restoreFunction           : (GitCommitId, PersonIdent, EventActor, Option[String], Boolean) => Box[GitCommitId] //the actual logic to execute the action
+    , restoreFunction           : (GitCommitId, PersonIdent, ModificationId, EventActor, Option[String], Boolean) => Box[GitCommitId] //the actual logic to execute the action
     , restoreErrorMessage       : String               //error message to display to the user
     , restoreSuccessDebugMessage: String               //debug log - the string param is the archive id
     , downloadButtonId          : String               //input button id to download the zip of an archive
@@ -230,7 +234,7 @@ class Archives extends DispatchSnippet with Loggable {
       S.clearCurrentNotices
       (for {
         commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.getActor.name)
-        archive  <- archiveFunction(commiter, CurrentUser.getActor, Some("User requested archive creation"), false)
+        archive  <- archiveFunction(commiter, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User requested archive creation"), false)
       } yield {
         archive
       }) match {
@@ -246,7 +250,7 @@ class Archives extends DispatchSnippet with Loggable {
         case Some(commit) => (
           for {
             commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.getActor.name)
-            archive <- restoreFunction(commit, commiter, CurrentUser.getActor, Some("User requested archive restoration to commit %s".format(commit.value)), false)
+            archive <- restoreFunction(commit, commiter, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User requested archive restoration to commit %s".format(commit.value)), false)
           } yield
             archive ) match {
           case eb:EmptyBox => error(eb, restoreErrorMessage)

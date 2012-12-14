@@ -45,10 +45,10 @@ import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisation
 import com.normation.rudder.batch.CurrentDeploymentStatus
 
 
-trait EventLogDeploymentService {
-  def repository : EventLogRepository
-  def eventLogDetailsService : EventLogDetailsService
-  
+class EventLogDeploymentService(
+    val repository             : EventLogRepository
+  , val eventLogDetailsService : EventLogDetailsService
+) {  
   /**
    * Fetch the last deployment (may it be failure or success)
    */
@@ -84,46 +84,4 @@ trait EventLogDeploymentService {
     repository.getEventLogByCriteria(Some("eventtype in (" +eventList+ ") and id > " +lastSuccess.id.getOrElse(0) ), None, Some("id DESC") )
   }
   
-}
-
-class EventLogServiceImpl(
-    override val repository : EventLogRepository
-  , override val eventLogDetailsService : EventLogDetailsService) extends EventLogDeploymentService with EventLogService {
-
-  /**
-   * Save an entry 
-   */
-  def saveEventLog(entry : EventLog) : Box[EventLog] = {
-    repository.saveEventLog(entry)
-    //entry
-  }
-  
-  /**
-   * Save several entries at once. This is especially useful when saving a 
-   * batch of operations depending each from another.
-   * This is really the only way to save the entrylog along with their causes
-   */
-  def saveEventLogs(entries : EventLogNode) : Box[Seq[EventLog]] = {
-    repository.saveEventLog(entries.entry) match {
-       case Full(log) => 
-           recursiveWriteEntry(entries, log.id.getOrElse(0)).map(logs => log +: logs)
-       case _ => Failure("Cannot save value")
-    }
-  }
-  
-     
-  
-  private def recursiveWriteEntry(currentEntry : EventLogNode, causeId : Int) : Box[Seq[EventLog]] = {
-    sequence(currentEntry.children) { child =>
-      val parent = repository.saveEventLog(child.entry.copySetCause(causeId))
-      parent match {
-        case Full(log) => 
-          recursiveWriteEntry(child, log.id.getOrElse(0)) match {
-            case Full(cLogs) => Full(log +: cLogs)
-            case e:EmptyBox => e
-          }
-        case e:EmptyBox => e
-      }
-    }.map( _.flatten )
-  }
 }

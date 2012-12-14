@@ -42,6 +42,8 @@ import org.joda.time._
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.Constants.DYNGROUP_MINIMUM_UPDATE_INTERVAL
 import com.normation.utils.HashcodeCaching
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
 
 //Message to send to the updater manager to start a new update of all dynamic groups
 case object StartUpdate
@@ -55,9 +57,9 @@ sealed trait UpdaterStates //states into wich the updater process can be
 //the process is idle
 case object IdleUdater extends UpdaterStates
 //an update is currently running for the given nodes
-case class StartProcessing(id:Long, started: DateTime, groupIds:GroupsToUpdate) extends UpdaterStates with HashcodeCaching 
+case class StartProcessing(id:Long, modId:ModificationId, started: DateTime, groupIds:GroupsToUpdate) extends UpdaterStates with HashcodeCaching 
 //the process gave a result
-case class UpdateResult(id:Long, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends UpdaterStates with HashcodeCaching 
+case class UpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends UpdaterStates with HashcodeCaching 
 
   
 
@@ -75,6 +77,7 @@ class UpdateDynamicGroups(
     dynGroupService       : DynGroupService
   , dynGroupUpdaterService: DynGroupUpdaterService
   , asyncDeploymentAgent  : AsyncDeploymentAgent
+  , uuidGen               : StringUuidGenerator
   , updateInterval        : Int // in minutes
 ) extends Loggable {
   
@@ -128,7 +131,7 @@ class UpdateDynamicGroups(
             dynGroupService.getAllDynGroups match {
               case Full(groupIds) => 
                 updateId = updateId + 1
-                LAUpdateDyngroup ! StartProcessing(updateId, DateTime.now, GroupsToUpdate(groupIds))
+                LAUpdateDyngroup ! StartProcessing(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groupIds))
               case e:EmptyBox => 
                 val error = (e?~! "Errro when trying to get the list of dynamic group to update")
                 
@@ -155,7 +158,7 @@ class UpdateDynamicGroups(
       //
       //Process a dynamic group update response
       //
-      case UpdateResult(id,start,end,results) => //TODO: other log ?
+      case UpdateResult(id, modId, start,end,results) => //TODO: other log ?
         logger.trace("***** Get result for process: " + id)
 
         currentState = IdleUdater
@@ -182,7 +185,7 @@ class UpdateDynamicGroups(
               //if the diff is not empty, start a new deploy
               if(diff.added.nonEmpty || diff.removed.nonEmpty) {
                 logger.info("Dynamic group %s: added node with id: [%s], removed: [%s]".format(id,diff.added.map(_.value), diff.removed.map(_.value)))
-                asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
+                asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
               }
           }
         }
@@ -200,17 +203,17 @@ class UpdateDynamicGroups(
         //
         //Process a dynamic group update 
         //
-        case StartProcessing(processId, startTime, GroupsToUpdate(dynGroupIds)) => {
+        case StartProcessing(processId, modId, startTime, GroupsToUpdate(dynGroupIds)) => {
           logger.trace("***** Start a new update, id: " + processId)
           try {
             val results = for {
               dynGroupId <- dynGroupIds
             } yield {
-              (dynGroupId, dynGroupUpdaterService.update(dynGroupId,RudderEventActor, Some("Update group due to batch update of dynamic groups")))
+              (dynGroupId, dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")))
             }
-            updateManager ! UpdateResult(processId, startTime, DateTime.now, results.toMap)
+            updateManager ! UpdateResult(processId, modId, startTime, DateTime.now, results.toMap)
           } catch {
-            case e:Exception => updateManager ! UpdateResult(processId,startTime,DateTime.now,
+            case e:Exception => updateManager ! UpdateResult(processId, modId, startTime,DateTime.now,
                   dynGroupIds.map(id => (id,Failure("Exception caught during update process.",Full(e), Empty))).toMap)
           }
         }
