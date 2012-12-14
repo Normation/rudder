@@ -266,6 +266,11 @@ class RuleEditForm(
          val status = crCurrentStatusIsActivated ? "Disable" | "Enable"
          SHtml.ajaxButton(   status, () => createPopup("desactivateActionDialog",100,450),("type", "button"))
        } &
+      "#clone" #> SHtml.ajaxButton( 
+                      { Text("Clone") }
+                    , { () =>  onCloneCallback() }
+                    , ("type", "button")
+      ) &
       "#nameField" #> crName.toForm_! &
       "#shortDescriptionField" #> crShortDescription.toForm_! &
       "#longDescriptionField" #> crLongDescription.toForm_! &
@@ -297,11 +302,6 @@ class RuleEditForm(
           </ul>
         </div> } &
       "#save" #> saveButton &
-      "#clone" #> SHtml.ajaxButton( 
-                      { Text("Clone") }
-                    , { () =>  onCloneCallback() }
-                    , ("class", "autoWidthButton"), ("type", "button")
-                  ) &
       "#notification *" #>  updateAndDisplayNotifications(formTracker) &
       "#editForm [id]" #> htmlId_rule
     )(crForm) ++ 

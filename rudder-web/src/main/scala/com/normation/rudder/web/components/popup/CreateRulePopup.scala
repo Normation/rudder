@@ -54,6 +54,7 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import CreateOrCloneRulePopup._
 import com.normation.rudder.domain.eventlog.AddRule
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.UserPropertyService
 
 class CreateOrCloneRulePopup(
   clonedRule: Option[Rule],
@@ -73,6 +74,7 @@ class CreateOrCloneRulePopup(
 
   private[this] val ruleRepository = inject[RuleRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
+  private[this] val userPropertyService = inject[UserPropertyService]
 
   def dispatch = {
     case "popupContent" => _ => popupContent()
@@ -88,13 +90,51 @@ class CreateOrCloneRulePopup(
       "title" -> { if(clonedRule.isDefined) "Clone a rule" else "Create a new rule" },
       "itemName" -> ruleName.toForm_!,
       "itemShortDescription" -> ruleShortDescription.toForm_!,
+      "itemReason" -> { piReasons.map { f =>
+        <div> 
+          <div style="margin:10px 0px 5px 0px; color:#444">
+            {userPropertyService.reasonsFieldExplanation}
+          </div> 
+          {f.toForm_!}
+        </div>
+      } },
+      "cloneNotice" -> { if(clonedRule.isDefined) 
+                           <span style="margin:10px 0px 5px 0px; color:#444">The cloned rule will be disabled.</span> 
+                         else NodeSeq.Empty 
+      },
       "notifications" -> updateAndDisplayNotifications(),
       "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","3")
+      "save" -> SHtml.ajaxSubmit(if(clonedRule.isDefined) "Clone" else "Save", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","3")
     ))
   }
 
   ///////////// fields for category settings ///////////////////
+  
+  private[this] val piReasons = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+  
+  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    new WBTextAreaField("Message", "") {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % 
+        ("style" -> "height:5em;")
+      override def errorClassName = ""
+      override def validations() = {
+        if(mandatory){
+          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+        } else {
+          Nil
+        }
+      }
+    }
+  }
+  
   private[this] val ruleName = new WBTextField("Name", clonedRule.map(r => "Copy of <%s>".format(r.name)).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = ""
@@ -111,7 +151,7 @@ class CreateOrCloneRulePopup(
 
   }
 
-  private[this] val formTracker = new FormTracker(ruleName,ruleShortDescription)
+  private[this] val formTracker = new FormTracker(ruleName :: ruleShortDescription :: piReasons.toList)
 
   private[this] var notifications = List.empty[NodeSeq]
 
@@ -142,7 +182,7 @@ class CreateOrCloneRulePopup(
           directiveIds = clonedRule.map( _.directiveIds).getOrElse(Set()),
           shortDescription = ruleShortDescription.is,
           longDescription = clonedRule.map( _.longDescription ).getOrElse(""),
-          isEnabledStatus = clonedRule.map( _.isEnabledStatus ).getOrElse(true)
+          isEnabledStatus = !clonedRule.isDefined
       )
 
 
@@ -160,16 +200,8 @@ class CreateOrCloneRulePopup(
       }
     }
   }
-/*
-  private[this] def onCreateSuccess : JsCmd = {
-    notifications ::=  <span class="greenscala">The group was successfully created</span>
-    updateFormClientSide
-  }
-  private[this] def onUpdateSuccess : JsCmd = {
-    notifications ::=  <span class="greenscala">The group was successfully updated</span>
-    updateFormClientSide
-  }
-*/
+
+
   private[this] def onFailure : JsCmd = {
     updateFormClientSide() 
   }
