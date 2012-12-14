@@ -267,6 +267,7 @@ class DirectiveEditForm(
   def showUpdatePopupForm( onConfirmCallback:  => JsCmd) : NodeSeq = {
     (
        "#dialogSaveButton" #> SHtml.ajaxButton("Save", () => JsRaw("$.modal.close();") & onConfirmCallback ) &
+       "#directiveDisabled [class]" #> ( if (piCurrentStatusIsActivated) "nodisplay" else "" ) &
        "#updateItemDependencies" #> {
         (ClearClearable & "#itemDependenciesGrid" #> updatePopupGridXml)(itemDependencies)
       }
