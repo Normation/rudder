@@ -53,6 +53,7 @@ import com.normation.rudder.repository.ActiveTechniqueRepository
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import scala.collection.immutable.SortedMap
 import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 
 
 class DummyActiveTechniqueRepository extends ActiveTechniqueRepository {
@@ -81,16 +82,16 @@ class DummyActiveTechniqueRepository extends ActiveTechniqueRepository {
   def addTechniqueInUserLibrary(
     categoryId:ActiveTechniqueCategoryId, 
     techniqueName:TechniqueName,
-    versions:Seq[TechniqueVersion], actor: EventActor, reason:Option[String]
+    versions:Seq[TechniqueVersion], modId: ModificationId, actor: EventActor, reason:Option[String]
   ) = Failure("Can't call this")
   
-  def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, actor: EventActor, reason:Option[String]) = Failure("Can't call this") 
+  def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason:Option[String]) = Failure("Can't call this") 
   
-  def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, actor: EventActor, reason:Option[String]) : Box[ActiveTechniqueId] = Failure("Can't call this") 
+  def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, modId: ModificationId, actor: EventActor, reason:Option[String]) : Box[ActiveTechniqueId] = Failure("Can't call this") 
   
-  def setAcceptationDatetimes(uactiveTechniqueId:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], actor: EventActor, reason:Option[String]) = Failure("Can't call this")
+  def setAcceptationDatetimes(uactiveTechniqueId:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], modId: ModificationId, actor: EventActor, reason:Option[String]) = Failure("Can't call this")
   
-  def delete(uactiveTechniqueId:ActiveTechniqueId, actor: EventActor, reason:Option[String]) = Failure("Can't call this")
+  def delete(uactiveTechniqueId:ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason:Option[String]) = Failure("Can't call this")
   
   def activeTechniqueBreadCrump(id:ActiveTechniqueId) = Failure("Can't call this")
   

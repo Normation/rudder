@@ -60,6 +60,8 @@ import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup
 import com.normation.rudder.web.components.popup.CreateDirectivePopup
 import com.normation.rudder.web.snippet.configuration.DirectiveManagement
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
 
 object DirectiveEditForm {
 
@@ -133,11 +135,14 @@ class DirectiveEditForm(
   
   val currentDirectiveSettingForm = new LocalSnippet[DirectiveEditForm]
 
-  private[this] val directiveRepository = inject[DirectiveRepository]
-  private[this] val dependencyService = inject[DependencyAndDeletionService]
+  private[this] val directiveRepository    = inject[DirectiveRepository]
+  private[this] val dependencyService      = inject[DependencyAndDeletionService]
   private[this] val directiveEditorService = inject[DirectiveEditorService]
-  private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]  
-  private[this] val userPropertyService = inject[UserPropertyService]
+  private[this] val asyncDeploymentAgent   = inject[AsyncDeploymentAgent]  
+  private[this] val userPropertyService    = inject[UserPropertyService]
+  private[this] val uuidGen                = inject[StringUuidGenerator]
+  
+  
   private[this] val htmlId_save = htmlId_policyConf + "Save"
   private[this] val parameterEditor = {
     directiveEditorService.get(technique.id, directive.id, directive.parameters) match {
@@ -372,13 +377,18 @@ class DirectiveEditForm(
             onRemoveSuccessCallback() & SetHtml(htmlId_policyConf, nSeq) &
             successPopup
           } else {
+            val modId = ModificationId(uuidGen.newUuid)
             (for {
-              deleted <- dependencyService
-                .cascadeDeleteDirective(directive.id, CurrentUser.getActor, crReasons.map(_.is))
-              deploy <- {
-                asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
-                Full("Deployment request sent")
-              }
+              deleted <- dependencyService.cascadeDeleteDirective(
+                             directive.id
+                           , modId
+                           , CurrentUser.getActor
+                           , crReasons.map(_.is)
+                         )
+              deploy  <- {
+                           asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+                           Full("Deployment request sent")
+                         }
             } yield {
               deploy
             }) match {
@@ -609,11 +619,11 @@ class DirectiveEditForm(
   }
 
   private[this] def saveAndDeployDirective(directive: Directive, why:Option[String]): JsCmd = {
+    val modId = ModificationId(uuidGen.newUuid)
     (for {
-      saved <- directiveRepository
-                 .saveDirective(activeTechnique.id, directive, CurrentUser.getActor, why)
+      saved <- directiveRepository.saveDirective(activeTechnique.id, directive, modId, CurrentUser.getActor, why)
       deploy <- {
-        asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
+        asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
         Full("Deployment request sent")
       }
     } yield {

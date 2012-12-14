@@ -21,6 +21,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.inventory.services.core.MachineRepository
 import com.normation.inventory.services.core.WriteOnlyMachineRepository
 import com.normation.inventory.services.core.ReadOnlyMachineRepository
+import com.normation.eventlog.ModificationId
 
 
 trait RemoveNodeService {
@@ -34,7 +35,7 @@ trait RemoveNodeService {
    * - clean the groups
    * - clean the AcceptedNodeConfiguration
    */
-  def removeNode(nodeId : NodeId, actor:EventActor) : Box[Seq[LDIFChangeRecord]]
+  def removeNode(nodeId : NodeId, modId: ModificationId, actor:EventActor) : Box[Seq[LDIFChangeRecord]]
 }
 
 
@@ -60,13 +61,13 @@ class RemoveNodeServiceImpl(
    *        if not, move the container to the removed inventory
    * 
    */
-  def removeNode(nodeId : NodeId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
+  def removeNode(nodeId : NodeId, modId: ModificationId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
     logger.debug("Trying to remove node %s from the LDAP".format(nodeId.value))
     nodeId.value match {
       case "root" => Failure("The root node cannot be deleted from the nodes list.")
       case _ => {
         for {
-          moved <- groupLibMutex.writeLock { atomicDelete(nodeId, actor) } ?~! 
+          moved <- groupLibMutex.writeLock { atomicDelete(nodeId, modId, actor) } ?~! 
                    "Error when archiving a node"
         } yield {
           moved
@@ -76,9 +77,9 @@ class RemoveNodeServiceImpl(
   }
   
   
-  private[this] def atomicDelete(nodeId : NodeId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
+  private[this] def atomicDelete(nodeId : NodeId, modId: ModificationId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
     for {
-      cleanGroup            <- deleteFromGroups(nodeId, actor) ?~! "Could not remove the node '%s' from the groups".format(nodeId.value)
+      cleanGroup            <- deleteFromGroups(nodeId, modId, actor) ?~! "Could not remove the node '%s' from the groups".format(nodeId.value)
       cleanNode             <- deleteFromNodes(nodeId) ?~! "Could not remove the node '%s' from the nodes list".format(nodeId.value)
       cleanNodeConfiguration<- deleteAllNodesConfiguration ?~! "Could not clear all cache"
       moveNodeInventory     <- fullNodeRepo.move(nodeId, AcceptedInventory, RemovedInventory)
@@ -117,7 +118,7 @@ class RemoveNodeServiceImpl(
    * Look for the groups containing this node in their nodes list, and remove the node
    * from the list
    */
-  private def deleteFromGroups(nodeId: NodeId, actor:EventActor): Box[Seq[ModifyNodeGroupDiff]]= {
+  private def deleteFromGroups(nodeId: NodeId, modId: ModificationId, actor:EventActor): Box[Seq[ModifyNodeGroupDiff]]= {
     logger.debug("Trying to remove node %s from all the groups were it is referenced".format(nodeId.value))
     for {
       nodeGroupIds <- nodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))
@@ -127,7 +128,7 @@ class RemoveNodeServiceImpl(
         nodeGroup    <- nodeGroups
         updatedGroup =  nodeGroup.copy(serverList = nodeGroup.serverList - nodeId)
         msg          =  Some("Automatic update of group due to deletion of node " + nodeId.value)
-        diff         <- nodeGroupRepository.update(updatedGroup, actor, msg)  ?~! "Could not update group %s to remove node '%s'".format(nodeGroup.id.value, nodeId.value)
+        diff         <- nodeGroupRepository.update(updatedGroup, modId, actor, msg)  ?~! "Could not update group %s to remove node '%s'".format(nodeGroup.id.value, nodeId.value)
       } yield {
         diff
       }).flatten

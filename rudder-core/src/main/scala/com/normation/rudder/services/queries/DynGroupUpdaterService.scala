@@ -49,6 +49,7 @@ import net.liftweb.common._
 import com.normation.rudder.repository.NodeGroupRepository
 import com.normation.eventlog.EventActor
 import com.normation.utils.HashcodeCaching
+import com.normation.eventlog.ModificationId
 
 
 /**
@@ -70,18 +71,18 @@ trait DynGroupUpdaterService {
    * from the pre-update. 
    * @return
    */
-  def update(dynGroupId:NodeGroupId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff]
+  def update(dynGroupId:NodeGroupId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff]
 }
 
 
 class DynGroupUpdaterServiceImpl(
-  nodeGroupRepository:NodeGroupRepository,
-  queryProcessor : QueryProcessor  
+  nodeGroupRepository: NodeGroupRepository,
+  queryProcessor     : QueryProcessor  
 ) extends DynGroupUpdaterService with Loggable {
   
   
   
-  override def update(dynGroupId:NodeGroupId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff] = {
+  override def update(dynGroupId:NodeGroupId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff] = {
     for {
       group <- nodeGroupRepository.getNodeGroup(dynGroupId)
       isDynamic <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
@@ -89,7 +90,7 @@ class DynGroupUpdaterServiceImpl(
       newMembers <- queryProcessor.process(query) ?~! "Error when processing request for updating dynamic group with id %s".format(dynGroupId)
       //save
       val newMemberIdsSet = newMembers.map( _.id).toSet
-      savedGroup <- nodeGroupRepository.update(group.copy(serverList = newMemberIdsSet ), actor, reason) ?~! "Error when saving update for dynmic group '%s'".format(dynGroupId)
+      savedGroup <- nodeGroupRepository.update(group.copy(serverList = newMemberIdsSet ), modId, actor, reason) ?~! "Error when saving update for dynmic group '%s'".format(dynGroupId)
     } yield {
       val plus = newMemberIdsSet -- group.serverList
       val minus = group.serverList -- newMemberIdsSet

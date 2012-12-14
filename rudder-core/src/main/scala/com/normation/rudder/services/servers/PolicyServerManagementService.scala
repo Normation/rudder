@@ -47,6 +47,7 @@ import com.normation.utils.NetUtils.isValidNetwork
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.domain.policies._
 import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 
 /**
  * This service allows to manage properties linked to the root policy server,
@@ -66,7 +67,7 @@ trait PolicyServerManagementService {
   /**
    * Update the list of authorized networks with the given list
    */
-  def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], actor:EventActor) : Box[Seq[String]]
+  def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) : Box[Seq[String]]
 }
 
 
@@ -90,7 +91,7 @@ class PolicyServerManagementServiceImpl(
   }
   
   
-  override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], actor:EventActor) : Box[Seq[String]] = {
+  override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) : Box[Seq[String]] = {
 
     val directiveId = Constants.buildCommonDirectiveId(policyServerId)
     
@@ -108,10 +109,10 @@ class PolicyServerManagementServiceImpl(
       activeTechnique <- directiveRepository.getActiveTechnique(directiveId) ?~! "Error when getting active technique for directive with ID '%s'".format(directiveId.value)
       newPi = directive.copy(parameters = directive.parameters + (Constants.V_ALLOWED_NETWORK -> networks.map( _.toString)))
       msg = Some("Automatic update of system directive due to modification of accepted networks ")
-      saved <- directiveRepository.saveDirective(activeTechnique.id, newPi, actor, msg) ?~! "Can not save directive for Active Technique '%s'".format(activeTechnique.id.value)
+      saved <- directiveRepository.saveDirective(activeTechnique.id, newPi, modId, actor, msg) ?~! "Can not save directive for Active Technique '%s'".format(activeTechnique.id.value)
     } yield {
       //ask for a new policy deployment
-      asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
       networks
     }
   }

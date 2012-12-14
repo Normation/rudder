@@ -39,6 +39,8 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.common._
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
 
 
 /**
@@ -46,11 +48,12 @@ import com.normation.cfclerk.services.UpdateTechniqueLibrary
  */
 class RestTechniqueReload(
     updatePTLibService : UpdateTechniqueLibrary
+  , uuidGen            : StringUuidGenerator  
 ) extends RestHelper with Loggable {
   
   serve {
     case Get("api" :: "techniqueLibrary" :: "reload" :: Nil, req) =>
-      updatePTLibService.update(RestUtils.getActor(req), Some("Technique library reloaded from REST API")) match {
+      updatePTLibService.update(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), Some("Technique library reloaded from REST API")) match {
         case Full(x) => PlainTextResponse("OK")
         case eb:EmptyBox => 
           val e = eb ?~! "An error occured when updating the Technique library from file system"

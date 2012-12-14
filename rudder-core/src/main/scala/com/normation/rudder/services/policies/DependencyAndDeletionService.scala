@@ -51,6 +51,8 @@ import BuildFilter._
 import com.normation.rudder.repository._
 import com.normation.eventlog.EventActor
 import com.normation.utils.HashcodeCaching
+import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
 
 
 /**
@@ -114,7 +116,7 @@ trait DependencyAndDeletionService {
    * be: delete item, make the item no more use that directive, etc. 
    * Return the list of items actually modified.
    */
-  def cascadeDeleteDirective(id:DirectiveId, actor:EventActor, reason:Option[String]) : Box[DirectiveDependencies]
+  def cascadeDeleteDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DirectiveDependencies]
 
   /**
    * Find all rules and directives that depend on that
@@ -135,7 +137,7 @@ trait DependencyAndDeletionService {
    * be: delete item, make the item no more use that directive, etc. 
    * Return the list of items actually modified.
    */
-  def cascadeDeleteTechnique(id:ActiveTechniqueId, actor:EventActor, reason:Option[String]) : Box[TechniqueDependencies]
+  def cascadeDeleteTechnique(id:ActiveTechniqueId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[TechniqueDependencies]
 
   /**
    * Find all rules that depend on that
@@ -153,7 +155,7 @@ trait DependencyAndDeletionService {
    * be: delete item, make the item no more use that directive, etc. 
    * Return the list of items actually modified.
    */
-  def cascadeDeleteTarget(target:RuleTarget, actor:EventActor, reason:Option[String]) : Box[TargetDependencies]
+  def cascadeDeleteTarget(target:RuleTarget, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[TargetDependencies]
   
   
 }
@@ -163,14 +165,14 @@ trait DependencyAndDeletionService {
 ///////////////////////////////// default implementation /////////////////////////////////
 
 class DependencyAndDeletionServiceImpl(
-    ldap                       : LDAPConnectionProvider
-  , rudderDit                  : RudderDit
-  , directiveRepository   : DirectiveRepository
-  , techniqueRepository   : ActiveTechniqueRepository
-  , ruleRepository: RuleRepository
-  , groupRepository            : NodeGroupRepository
-  , mapper                     : LDAPEntityMapper
-  , targetService              : RuleTargetService
+    ldap               : LDAPConnectionProvider
+  , rudderDit          : RudderDit
+  , directiveRepository: DirectiveRepository
+  , techniqueRepository: ActiveTechniqueRepository
+  , ruleRepository     : RuleRepository
+  , groupRepository    : NodeGroupRepository
+  , mapper             : LDAPEntityMapper
+  , targetService      : RuleTargetService
 ) extends DependencyAndDeletionService with Loggable {
 
   /**
@@ -246,14 +248,14 @@ class DependencyAndDeletionServiceImpl(
    * Delete a given item and all its dependencies.
    * Return the list of items actually deleted.
    */
-  override def cascadeDeleteDirective(id:DirectiveId, actor:EventActor, reason:Option[String]) : Box[DirectiveDependencies] = {
+  override def cascadeDeleteDirective(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DirectiveDependencies] = {
     for {
       con          <- ldap
       configRules  <- searchRules(con,id)
       updatedRules <- sequence(configRules) { rule =>
                         //check that target is actually "target", and remove it
                         if(rule.directiveIds.exists(i => id == i)) {
-                          ruleRepository.update(rule.copy(directiveIds = rule.directiveIds - id), actor, reason) ?~!
+                          ruleRepository.update(rule.copy(directiveIds = rule.directiveIds - id), modId, actor, reason) ?~!
                             "Can not update rule with ID %s. %s".format(rule.id, {
                                val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
                                if(alreadyUpdated.isEmpty) ""
@@ -264,7 +266,7 @@ class DependencyAndDeletionServiceImpl(
                           None
                         }
       }
-      diff         <- directiveRepository.delete(id,actor, reason) ?~! 
+      diff         <- directiveRepository.delete(id, modId, actor, reason) ?~! 
                       "Error when deleting policy instanc with ID %s. All dependent rules where deleted %s.".format(
                           id, configRules.map( _.id.value ).mkString(" (", ", ", ")"))
     } yield {
@@ -326,15 +328,15 @@ class DependencyAndDeletionServiceImpl(
    * Delete a given item and all its dependencies.
    * Return the list of items actually deleted.
    */
-  def cascadeDeleteTechnique(id:ActiveTechniqueId, actor:EventActor, reason:Option[String]) : Box[TechniqueDependencies] = {
+  def cascadeDeleteTechnique(id:ActiveTechniqueId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[TechniqueDependencies] = {
     for {
       con <- ldap
       directives <- directiveRepository.getDirectives(id)
       piMap = directives.map(directive => (directive.id, directive) ).toMap
       deletedPis <- sequence(directives) { directive =>
-        cascadeDeleteDirective(directive.id, actor, reason = reason) 
+        cascadeDeleteDirective(directive.id, modId, actor, reason = reason) 
       }
-      deletedActiveTechnique <- techniqueRepository.delete(id, actor, reason)
+      deletedActiveTechnique <- techniqueRepository.delete(id, modId, actor, reason)
     } yield {
       val allCrs = scala.collection.mutable.Map[RuleId,Rule]()
       val directives = deletedPis.map { case DirectiveDependencies(directiveId,seqCrs) =>
@@ -401,7 +403,7 @@ class DependencyAndDeletionServiceImpl(
    * Delete a given item and all its dependencies.
    * Return the list of items actually deleted.
    */
-  override def cascadeDeleteTarget(target:RuleTarget, actor:EventActor, reason:Option[String]) : Box[TargetDependencies] = {
+  override def cascadeDeleteTarget(target:RuleTarget, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[TargetDependencies] = {
     target match {
       case GroupTarget(groupId) =>
         for {
@@ -410,7 +412,7 @@ class DependencyAndDeletionServiceImpl(
           updatedRules  <- sequence(configRules) { rule =>
                              //check that target is actually "target", and remove it
                              if (rule.targets.contains(target)) {
-                                 ruleRepository.update(rule.copy(targets = rule.targets - target), actor, reason) ?~! 
+                                 ruleRepository.update(rule.copy(targets = rule.targets - target), modId, actor, reason) ?~! 
                                    "Can not remove target '%s' from rule with Dd '%s'. %s".format(
                                        target.target, rule.id.value, {
                                          val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
@@ -424,7 +426,7 @@ class DependencyAndDeletionServiceImpl(
                                 Full(None)
                              }
                            }
-          deletedTarget <- groupRepository.delete(groupId, actor, reason) ?~!
+          deletedTarget <- groupRepository.delete(groupId, modId, actor, reason) ?~!
                             "Error when deleting target %s. All dependent rules where updated %s".format(
                               target, configRules.map( _.id.value ).mkString("(", ", ", ")" ))
         } yield {

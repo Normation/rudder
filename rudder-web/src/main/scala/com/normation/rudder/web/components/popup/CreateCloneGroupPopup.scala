@@ -26,6 +26,7 @@ import com.normation.rudder.repository._
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.web.services.UserPropertyService
+import com.normation.eventlog.ModificationId
 
 class CreateCloneGroupPopup(
   nodeGroup : Option[NodeGroup],
@@ -133,6 +134,7 @@ class CreateCloneGroupPopup(
           nodeGroup.map(x => x.serverList).getOrElse(Set[NodeId]()),
           NodeGroupCategoryId(piContainer.is),
           nodeGroup.map(x => x.isEnabled).getOrElse(true),
+          ModificationId(uuidGen.newUuid),
           CurrentUser.getActor,
           piReasons.map(_.is)
         ) match {

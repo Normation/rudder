@@ -57,6 +57,8 @@ import org.joda.time.DateTime
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.web.services.EventListDisplayer
 import com.normation.eventlog.EventLogDetails
+import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
   
@@ -78,7 +80,9 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   
   private[this] val asyncDeploymentAgent      = inject[AsyncDeploymentAgent]
   private[this] val eventLogDeploymentService = inject[EventLogDeploymentService]
-  private[this] val eventList = inject[EventListDisplayer]
+  private[this] val eventList                 = inject[EventListDisplayer]
+  private[this] val uuidGen                   = inject[StringUuidGenerator]
+  
   
   //current states of the deployment
   private[this] var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
@@ -181,7 +185,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         } } ++
           <lift:authz role="deployment_write"> {
           SHtml.ajaxButton("Regenerate now", { () =>
-            asyncDeploymentAgent ! ManualStartDeployment(CurrentUser.getActor, "User requested a manual regeneration") //TODO: let the user fill the cause
+            asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.getActor, "User requested a manual regeneration") //TODO: let the user fill the cause
             Noop
           }, ( "class" , "deploymentButton")) }
         </lift:authz>

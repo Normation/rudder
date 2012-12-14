@@ -61,6 +61,7 @@ import com.normation.rudder.services.policies._
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
+import com.normation.eventlog.ModificationId
 
 object TechniqueEditForm {
   
@@ -365,10 +366,11 @@ class TechniqueEditForm(
       } else {
         JsRaw("$.modal.close();") & 
         { 
+          val modId = ModificationId(uuidGen.newUuid)
           (for {
-            deleted <- dependencyService.cascadeDeleteTechnique(id, CurrentUser.getActor, crReasonsRemovePopup.map (_.is))
+            deleted <- dependencyService.cascadeDeleteTechnique(id, modId, CurrentUser.getActor, crReasonsRemovePopup.map (_.is))
             deploy <- {
-              asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
+              asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
               Full("Deployment request sent")
             }
           } yield {
@@ -474,6 +476,7 @@ class TechniqueEditForm(
                       category.id
                     , technique.id.name
                     , techniqueRepository.getTechniqueVersions(technique.id.name).toSeq
+                    , ModificationId(uuidGen.newUuid)
                     , CurrentUser.getActor
                     , Some("User added a technique from UI")
                   ) 
@@ -610,24 +613,25 @@ class TechniqueEditForm(
 
   
   private[this] def statusAndDeployTechnique(uactiveTechniqueId:ActiveTechniqueId, status:Boolean) : JsCmd = {
-      (for {
-        save <- activeTechniqueRepository.changeStatus(uactiveTechniqueId, status, 
-                  CurrentUser.getActor, crReasonsDisablePopup.map(_.is))
-        deploy <- {
-          asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
-          Full("Deployment request sent")
-        }
-      } yield {
-        save 
-      }) match {
-        case Full(x) => onSuccess
-        case Empty => 
-          formTracker.addFormError(error("An error occurred while saving the Technique"))
-          onFailure
-        case f:Failure =>
-          formTracker.addFormError(error("An error occurred while saving the Technique: " + f.messageChain))
-          onFailure
-      }      
+    val modId = ModificationId(uuidGen.newUuid)
+    (for {
+      save <- activeTechniqueRepository.changeStatus(uactiveTechniqueId, status, 
+                modId, CurrentUser.getActor, crReasonsDisablePopup.map(_.is))
+      deploy <- {
+        asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+        Full("Deployment request sent")
+      }
+    } yield {
+      save 
+    }) match {
+      case Full(x) => onSuccess
+      case Empty => 
+        formTracker.addFormError(error("An error occurred while saving the Technique"))
+        onFailure
+      case f:Failure =>
+        formTracker.addFormError(error("An error occurred while saving the Technique: " + f.messageChain))
+        onFailure
+    }      
   }
   
   private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {

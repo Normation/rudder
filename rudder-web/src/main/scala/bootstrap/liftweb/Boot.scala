@@ -55,6 +55,8 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization._
 import com.normation.authorization.AuthorizationType
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -234,7 +236,8 @@ class Boot extends Loggable {
     LiftRules.setSiteMapFunc(() => SiteMap(newSiteMap:_*))
 
     inject[EventLogRepository].saveEventLog(
-        ApplicationStarted(
+        ModificationId(inject[StringUuidGenerator].newUuid)
+      , ApplicationStarted(
             EventLogDetails(
                 principal = com.normation.rudder.domain.eventlog.RudderEventActor
               , details = EventLog.emptyDetails
