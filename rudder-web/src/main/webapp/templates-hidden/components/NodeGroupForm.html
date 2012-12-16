@@ -38,6 +38,8 @@
   <div id="createCloneGroupPopup" class="nodisplay">
     <div id="createCloneGroupContainer" />
   </div>
+  
+  <div id="confirmUpdateActionDialog" />
 </component:staticBody>
 
 <component:popupRemoveForm>
@@ -87,6 +89,43 @@
     </div>
   </div>   
 </component:popupRemoveForm>
+
+<component:popupDependentUpdateForm>
+  <div id="updateActionDialog" class="nodisplay">
+    <div class="simplemodal-title">
+      <h1>Update a group</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content">
+      <div>
+        <img src="/images/icDetails.png" alt="Details" height="20" width="22" class="icon"/>
+        <h2>Are you sure that you want to update this group ?</h2> 
+      </div>
+      <br />
+      <div>
+        Updating this Group will have an impact on the following Rules which depend on it.
+      </div>
+      <hr class="spacer" />
+      <div id="updateItemDependencies">
+        Here comes the grid.
+      </div>
+      <br />
+
+      <hr class="spacer" />
+      <br />
+      <hr class="spacer" />
+    </div>
+    <div class="simplemodal-bottom">
+      <hr/>
+      <div class="popupButton">
+         <span>
+          <button class="simplemodal-close" onClick="return false;">Cancel</button>
+          <button id="dialogSaveButton">Save</button>
+        </span>
+      </div>
+    </div>
+  </div>
+</component:popupDependentUpdateForm>
 
 <component:body>
 <!--  TODO!  -->
