@@ -2489,3 +2489,20 @@ div.ac_results {
 fieldset {
   border: 1px solid #B4B3A8;
 }
+
+.filterMainBlock{
+  display:inline-block;
+  padding-left : 20px;
+  vertical-align:top;
+  height:100px
+}
+
+.filterBlock {
+  overflow:auto;
+  display:inline-block;
+  border: 1px solid #B4B3A8;
+  border-radius: 4px;
+  min-width:200px;
+  max-height:100px;
+  margin-left:25px;
+}

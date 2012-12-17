@@ -37,11 +37,11 @@ package com.normation.rudder.web.snippet.administration
 import com.normation.eventlog.EventLog
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.web.services.EventListDisplayer
-
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import net.liftweb.common._
 import net.liftweb.http.js.JsCmds.Script
 import net.liftweb.http.DispatchSnippet
+import com.normation.rudder.web.components.EventFilter
 
 class EventLogsViewer extends DispatchSnippet with Loggable {
   private[this] val repos = inject[EventLogRepository]
@@ -55,11 +55,12 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
     
   def dispatch = { 
     case "display" => xml => getLastEvents match {
-      case Full(seq) => eventList.display(seq,gridName) ++ Script(eventList.initJs(gridName))
-      case Empty => eventList.display(Seq(), gridName) ++ Script(eventList.initJs(gridName))
+      case Full(seq) => eventList.display(seq,gridName) ++ new EventFilter(gridName).filter() ++ Script(eventList.initJs(gridName))
+      case Empty     => eventList.display(Seq(), gridName) ++ new EventFilter(gridName).filter() ++ Script(eventList.initJs(gridName))
       case f:Failure => 
         <div class="error">Error when trying to get last event logs. Error message was: {f.msg}</div>
     } 
+
   } 
 
 }
