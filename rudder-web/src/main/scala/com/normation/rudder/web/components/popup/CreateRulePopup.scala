@@ -99,7 +99,7 @@ class CreateOrCloneRulePopup(
         </div>
       } },
       "cloneNotice" -> { if(clonedRule.isDefined) 
-                           <span style="margin:10px 0px 5px 0px; color:#444">The cloned rule will be disabled.</span> 
+                           <span style="margin:10px 0px 5px 0px; color:#444">The cloned rule will be created disabled.</span> 
                          else NodeSeq.Empty 
       },
       "notifications" -> updateAndDisplayNotifications(),
