@@ -51,11 +51,13 @@ import com.normation.rudder.web.model.{
 }
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import CreateRulePopup._
+import CreateOrCloneRulePopup._
 import com.normation.rudder.domain.eventlog.AddRule
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.services.UserPropertyService
 
-class CreateRulePopup(
+class CreateOrCloneRulePopup(
+  clonedRule: Option[Rule],
   onSuccessCallback : (Rule) => JsCmd = { (rule : Rule) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
        ) extends DispatchSnippet with Loggable {
@@ -72,28 +74,68 @@ class CreateRulePopup(
 
   private[this] val ruleRepository = inject[RuleRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
+  private[this] val userPropertyService = inject[UserPropertyService]
 
   def dispatch = {
-    case "popupContent" => popupContent _
+    case "popupContent" => _ => popupContent()
   }
 
   def initJs : JsCmd = {
       JsRaw("correctButtons();")
   }
 
-  def popupContent(html : NodeSeq) : NodeSeq = {
+  def popupContent() : NodeSeq = {
 
     SHtml.ajaxForm(bind("item", popupTemplate,
+      "title" -> { if(clonedRule.isDefined) "Clone a rule" else "Create a new rule" },
       "itemName" -> ruleName.toForm_!,
       "itemShortDescription" -> ruleShortDescription.toForm_!,
+      "itemReason" -> { piReasons.map { f =>
+        <div> 
+          <div style="margin:10px 0px 5px 0px; color:#444">
+            {userPropertyService.reasonsFieldExplanation}
+          </div> 
+          {f.toForm_!}
+        </div>
+      } },
+      "cloneNotice" -> { if(clonedRule.isDefined) 
+                           <span style="margin:10px 0px 5px 0px; color:#444">The cloned rule will be created disabled.</span> 
+                         else NodeSeq.Empty 
+      },
       "notifications" -> updateAndDisplayNotifications(),
       "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","3")
+      "save" -> SHtml.ajaxSubmit(if(clonedRule.isDefined) "Clone" else "Save", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","3")
     ))
   }
 
   ///////////// fields for category settings ///////////////////
-  private[this] val ruleName = new WBTextField("Name", "") {
+  
+  private[this] val piReasons = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+  
+  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    new WBTextAreaField("Message", "") {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % 
+        ("style" -> "height:5em;")
+      override def errorClassName = ""
+      override def validations() = {
+        if(mandatory){
+          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+        } else {
+          Nil
+        }
+      }
+    }
+  }
+  
+  private[this] val ruleName = new WBTextField("Name", clonedRule.map(r => "Copy of <%s>".format(r.name)).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = ""
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createCRSaveButton')") % ("tabindex","1")
@@ -101,7 +143,7 @@ class CreateRulePopup(
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val ruleShortDescription = new WBTextAreaField("Short description", "") {
+  private[this] val ruleShortDescription = new WBTextAreaField("Short description", clonedRule.map( _.shortDescription).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
     override def errorClassName = ""
@@ -109,7 +151,7 @@ class CreateRulePopup(
 
   }
 
-  private[this] val formTracker = new FormTracker(ruleName,ruleShortDescription)
+  private[this] val formTracker = new FormTracker(ruleName :: ruleShortDescription :: piReasons.toList)
 
   private[this] var notifications = List.empty[NodeSeq]
 
@@ -123,7 +165,7 @@ class CreateRulePopup(
    * Update the form when something happened
    */
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml(htmlId_popupContainer, popupContent(NodeSeq.Empty)) &
+    SetHtml(htmlId_popupContainer, popupContent()) &
     initJs
   }
 
@@ -136,8 +178,12 @@ class CreateRulePopup(
           id = RuleId(uuidGen.newUuid),
           name = ruleName.is,
           serial = 0,
+          targets = clonedRule.map( _.targets).getOrElse(Set()),
+          directiveIds = clonedRule.map( _.directiveIds).getOrElse(Set()),
           shortDescription = ruleShortDescription.is,
-          isEnabledStatus = true)
+          longDescription = clonedRule.map( _.longDescription ).getOrElse(""),
+          isEnabledStatus = !clonedRule.isDefined
+      )
 
 
       ruleRepository.create(rule, CurrentUser.getActor, Some("")) match {
@@ -154,16 +200,8 @@ class CreateRulePopup(
       }
     }
   }
-/*
-  private[this] def onCreateSuccess : JsCmd = {
-    notifications ::=  <span class="greenscala">The group was successfully created</span>
-    updateFormClientSide
-  }
-  private[this] def onUpdateSuccess : JsCmd = {
-    notifications ::=  <span class="greenscala">The group was successfully updated</span>
-    updateFormClientSide
-  }
-*/
+
+
   private[this] def onFailure : JsCmd = {
     updateFormClientSide() 
   }
@@ -182,8 +220,7 @@ class CreateRulePopup(
   }
 }
 
-
-object CreateRulePopup {
+object CreateOrCloneRulePopup {
   val htmlId_popupContainer = "createRuleContainer"
   val htmlId_popup = "createRulePopup"
 }
