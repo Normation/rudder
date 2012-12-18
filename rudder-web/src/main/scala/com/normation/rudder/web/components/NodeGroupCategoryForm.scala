@@ -85,19 +85,24 @@ class NodeGroupCategoryForm(
   }
      
   def showForm() : NodeSeq = {
-     val html = SHtml.ajaxForm(<fieldset class="groupCategoryUpdateComponent"><legend>Category: {nodeGroupCategory.name}</legend>
-     <directive:notifications />
-     <hr class="spacer"/>
-     <directive:name/>
-     <hr class="spacer"/>
-     <directive:description/>
-     <hr class="spacer"/>
-     <directive:container/>
-     <hr class="spacer"/>
-     <lift:authz role="node_write">
-     <div class="margins" align="right"><directive:save/> <directive:delete/></div>
-     </lift:authz>
-     </fieldset>) ++ Script(JsRaw("correctButtons();"))
+    val html = SHtml.ajaxForm(
+      <div class="inner-portlet groupCategoryUpdateComponent">
+        <div>
+          <div class="inner-portlet-header">Category details</div>
+        </div>
+        <directive:notifications />
+        <hr class="spacer"/>
+        <directive:name/>
+        <hr class="spacer"/>
+        <directive:description/>
+        <hr class="spacer"/>
+        <directive:container/>
+        <hr class="spacer"/>
+        <lift:authz role="node_write">
+        <div class="margins" align="right"><directive:save/> <directive:delete/></div>
+        </lift:authz>
+      </div>
+   ) ++ Script(JsRaw("correctButtons();"))
 
     if (_nodeGroupCategory.isSystem) {
       ("input" #> {(n:NodeSeq) => n match {
@@ -174,7 +179,7 @@ class NodeGroupCategoryForm(
         """))
     } else {
       <button disabled="disabled">Delete</button><br/>
-      <span class="catdelete">Only empty and non root categories can be deleted</span>
+      <div class="note"><b>Note: </b>Only empty and non root categories can be deleted.</div>
     }
   }
   
@@ -203,39 +208,28 @@ class NodeGroupCategoryForm(
   private[this] val piDescription = new WBTextAreaField("Category description", _nodeGroupCategory.description.toString) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:10em")
-
-    override def toForm_! = bind("field", 
-    <div class="wbBaseField">
-      <field:errors />
-      <label for={id} class="wbBaseFieldLabel threeCol textright"><b><field:label /></b></label>
-      <field:input />
-      <field:infos />
-      
-    </div>,
-    "label" -> displayHtml,
-    "input" -> inputField % ( "id" -> id) % ("class" -> "largeCol"),
-    "infos" -> (helpAsHtml openOr NodeSeq.Empty),
-    "errors" -> {
-      errors match {
-        case Nil => NodeSeq.Empty
-        case l => 
-          <span><ul class="field_errors paddscala">{
-            l.map(e => <li class="field_error lopaddscala">{e.msg}</li>)
-          }</ul></span><hr class="spacer"/>
-      }
-    }
-  )
+    override def validations =  Nil
+    override def errorClassName = "field_errors paddscala"
   }
   
   /**
    * If there is no parent, it is its own parent
    */
   private[this] val piContainer = parentCategory match {
-    case x:EmptyBox => new WBSelectField("Parent category: ", Seq(_nodeGroupCategory.id.value -> _nodeGroupCategory.name), _nodeGroupCategory.id .value, Seq("disabled"->"true")) {
-      //  override def setFilter = notNull _ :: trim _ :: Nil
+    case x:EmptyBox => 
+      new WBSelectField("Parent category", 
+        Seq(_nodeGroupCategory.id.value -> _nodeGroupCategory.name), 
+        _nodeGroupCategory.id .value, 
+        Seq("disabled"->"true")
+      ) {
+        override def className = "rudderBaseFieldSelectClassName"
       }
-    case Full(category) => new WBSelectField("Parent category: ", categories.map(x => (x.id.value -> x.name)), parentCategoryId) {
-      //  override def setFilter = notNull _ :: trim _ :: Nil
+    case Full(category) => 
+      new WBSelectField(
+        "Parent category", 
+        categories.map(x => (x.id.value -> x.name)), 
+        parentCategoryId) {
+          override def className = "rudderBaseFieldSelectClassName"
       }    
   }
   
