@@ -36,7 +36,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   <parent>
     <groupId>com.normation.rudder</groupId>
     <artifactId>rudder-parent</artifactId>
-    <version>2.4.0-SNAPSHOT</version>
+    <version>2.4.0</version>
   </parent>
 
   <description>
