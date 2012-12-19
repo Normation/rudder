@@ -75,9 +75,9 @@ class EventLogJdbcRepository(
   
    //reason: column 6
    //causeId: column 7
-   val INSERT_SQL = "insert into EventLog (creationDate, principal, eventType, severity, data %s %s) values (?, ?, ?, ?, ? %s %s)"
+   val INSERT_SQL = "insert into EventLog (creationDate, modificationId, principal, eventType, severity, data %s %s) values (?, ?, ?, ?, ? %s %s)"
  
-   val SELECT_SQL = "SELECT id, creationDate, principal, eventType, severity, data, reason, causeId FROM EventLog where 1=1 "
+   val SELECT_SQL = "SELECT id, creationDate, modificationId, principal, eventType, severity, data, reason, causeId FROM EventLog where 1=1 "
    
   /**
    * Save an eventLog
@@ -112,10 +112,11 @@ class EventLogJdbcRepository(
              val ps = connection.prepareStatement(INSERT_SQL.format(reasonCol, causeCol, reasonVal, causeVal), Seq[String]("id").toArray[String]);
              
              ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
-             ps.setString(2, eventLog.principal.name)
-             ps.setString(3, eventLog.eventType.serialize)
-             ps.setInt(4, eventLog.severity)
-             ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
+             ps.setString(2, modId.value)
+             ps.setString(3, eventLog.principal.name)
+             ps.setString(4, eventLog.eventType.serialize)
+             ps.setInt(5, eventLog.severity)
+             ps.setSQLXML(6, sqlXml) // have a look at the SQLXML
              
              eventLog.eventDetails.reason.foreach( x => ps.setString(6, x) )
              eventLog.cause foreach( x => ps.setInt(i, x)  )
@@ -163,10 +164,17 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
     
   def mapRow(rs : ResultSet, rowNum: Int) : EventLog = {
     val eventLogDetails = EventLogDetails(
-        id          = Some(rs.getInt("id"))
-      , principal   = EventActor(rs.getString("principal"))
-      , creationDate= new DateTime(rs.getTimestamp("creationDate"))
-      , cause       = {
+        id             = Some(rs.getInt("id"))
+      , modificationId = {
+          val modId = rs.getString("modificationId")
+          if (modId != null && modId.size > 0)
+            Some(ModificationId(rs.getString("modificationId")))
+          else 
+            None
+        }
+      , principal      = EventActor(rs.getString("principal"))
+      , creationDate   = new DateTime(rs.getTimestamp("creationDate"))
+      , cause          = {
                         if(rs.getInt("causeId")>0) {
                           Some(rs.getInt("causeId"))
                         } else None

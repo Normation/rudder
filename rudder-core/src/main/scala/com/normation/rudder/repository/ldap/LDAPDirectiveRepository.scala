@@ -213,7 +213,7 @@ class LDAPDirectiveRepository(
                                  for {
                                    parents  <- ldapActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)
                                    commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                   archived <- gitPiArchiver.archiveDirective(directive, technique.id.name, parents.map( _.id), technique.rootSection, Some(commiter, reason))
+                                   archived <- gitPiArchiver.archiveDirective(directive, technique.id.name, parents.map( _.id), technique.rootSection, Some(modId,commiter, reason))
                                  } yield archived
                                } else Full("ok")
     } yield {
@@ -255,7 +255,7 @@ class LDAPDirectiveRepository(
                         for {
                           parents  <- ldapActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some(commiter, reason))
+                          archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some(modId,commiter, reason))
                         } yield archived
                       } else Full("ok")
     } yield {

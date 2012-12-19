@@ -114,7 +114,7 @@ class ItemArchiveManagerImpl(
       saved       <- sequence(rules) { rule => 
                        gitRuleArchiver.archiveRule(rule, None)
                      }
-      commitId    <- gitRuleArchiver.commitRules(commiter, reason)
+      commitId    <- gitRuleArchiver.commitRules(modId, commiter, reason)
       eventLogged <- eventLogger.saveEventLog(modId, new ExportRulesArchive(actor,commitId, reason))
     } yield {
       if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
@@ -142,7 +142,7 @@ class ItemArchiveManagerImpl(
 
       savedItems  = exportElements(okCatWithUPT.toSeq)
       
-      commitId    <- gitActiveTechniqueCategoryArchiver.commitActiveTechniqueLibrary(commiter, reason)
+      commitId    <- gitActiveTechniqueCategoryArchiver.commitActiveTechniqueLibrary(modId, commiter, reason)
       eventLogged <- eventLogger.saveEventLog(modId, new ExportTechniqueLibraryArchive(actor,commitId, reason))
     } yield {
       if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
@@ -211,7 +211,7 @@ class ItemArchiveManagerImpl(
                              "OK"
                            }
                          }
-      commitId        <- gitNodeGroupCategoryArchiver.commitGroupLibrary(commiter, reason)
+      commitId        <- gitNodeGroupCategoryArchiver.commitGroupLibrary(modId, commiter, reason)
       eventLogged     <- eventLogger.saveEventLog(modId, new ExportGroupsArchive(actor,commitId, reason))
     } yield {
       if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }

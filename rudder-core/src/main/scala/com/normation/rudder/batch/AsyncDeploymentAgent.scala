@@ -156,7 +156,8 @@ final class AsyncDeploymentAgent(
 
   private[this] def WithDetails(xml:NodeSeq)(implicit actor:EventActor, reason: Option[String] = None) = {
     EventLogDetails(
-        principal = actor
+        modificationId = None
+      , principal = actor
       , reason    = reason
       , details   = EventLog.withContent(xml)
     )
@@ -263,7 +264,8 @@ final class AsyncDeploymentAgent(
           logger.error(m, e)
           lastFinishedDeployement = ErrorStatus(id, startTime, endTime, e ?~! m)
           eventLogger.repository.saveEventLog(modId, FailedDeployment(EventLogDetails(
-              principal = actor
+              modificationId = None
+            , principal = actor
             , details = EventLog.withContent(deploymentStatusSerialisation.serialise(lastFinishedDeployement))
             , cause = Some(deploymentEventId)
             , creationDate = startTime
@@ -274,7 +276,8 @@ final class AsyncDeploymentAgent(
           logger.info("Successful deployment %s [%s - %s]".format(id, startTime.toString(timeFormat), endTime.toString(timeFormat)))
           lastFinishedDeployement = SuccessStatus(id, startTime, endTime, nodeConfigurations)
           eventLogger.repository.saveEventLog(modId, SuccessfulDeployment(EventLogDetails(
-              principal = actor
+              modificationId = None
+            , principal = actor
             , details = EventLog.withContent(deploymentStatusSerialisation.serialise(lastFinishedDeployement))
             , cause = Some(deploymentEventId)
             , creationDate = startTime

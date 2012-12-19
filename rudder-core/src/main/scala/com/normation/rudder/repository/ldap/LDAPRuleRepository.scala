@@ -103,7 +103,7 @@ class LDAPRuleRepository(
       autoArchive  <- if(autoExportOnModify && deleted.size > 0) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archive  <- gitCrArchiver.deleteRule(id, Some(commiter, reason))
+                          archive  <- gitCrArchiver.deleteRule(id, Some(modId,commiter, reason))
                         } yield {
                           archive
                         }
@@ -147,7 +147,7 @@ class LDAPRuleRepository(
       autoArchive     <- if(autoExportOnModify) {
                            for {
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive  <- gitCrArchiver.archiveRule(rule, Some(commiter, reason))
+                             archive  <- gitCrArchiver.archiveRule(rule, Some(modId,commiter, reason))
                            } yield {
                              archive
                            }
@@ -175,7 +175,7 @@ class LDAPRuleRepository(
       autoArchive     <- if(autoExportOnModify && optDiff.isDefined) {
                          for {
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archive  <- gitCrArchiver.archiveRule(rule, Some(commiter, reason))
+                           archive  <- gitCrArchiver.archiveRule(rule, Some(modId,commiter, reason))
                          } yield {
                            archive
                          }
