@@ -40,6 +40,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.utils.Utils
 import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 
 
 /**
@@ -90,20 +91,21 @@ trait NodeGroupCategoryRepository {
    * return the new category.
    */
   def addGroupCategorytoCategory(
-      that:NodeGroupCategory,
-      into:NodeGroupCategoryId //parent category
+      that:NodeGroupCategory
+    , into:NodeGroupCategoryId //parent category
+    , modificationId: ModificationId
     , actor:EventActor, reason: Option[String]
   ) : Box[NodeGroupCategory] 
   
   /**
    * Update an existing group category
    */
-  def saveGroupCategory(category:NodeGroupCategory, actor:EventActor, reason: Option[String]) : Box[NodeGroupCategory]  
+  def saveGroupCategory(category:NodeGroupCategory, modificationId: ModificationId, actor:EventActor, reason: Option[String]) : Box[NodeGroupCategory]  
 
   /**
     * Update/move an existing group category
     */
-   def saveGroupCategory(category: NodeGroupCategory, containerId : NodeGroupCategoryId, actor:EventActor, reason: Option[String]): Box[NodeGroupCategory]
+   def saveGroupCategory(category: NodeGroupCategory, containerId : NodeGroupCategoryId, modificationId: ModificationId, actor:EventActor, reason: Option[String]): Box[NodeGroupCategory]
 
 
   /**
@@ -138,6 +140,6 @@ trait NodeGroupCategoryRepository {
    *  - Full(category id) for a success
    *  - Failure(with error message) iif an error happened. 
    */
-  def delete(id:NodeGroupCategoryId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[NodeGroupCategoryId]
+  def delete(id:NodeGroupCategoryId, modificationId: ModificationId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[NodeGroupCategoryId]
   
 }

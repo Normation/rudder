@@ -194,7 +194,7 @@ class LDAPNodeGroupRepository(
                          for {
                            parents  <- categoryRepo.getParents_NodeGroupCategory(into)
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)), Some(commiter, reason))
+                           archived <- gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map( _.id)), Some(modId, commiter, reason))
                          } yield archived
                        } else Full("ok")
     } yield {
@@ -229,7 +229,7 @@ class LDAPNodeGroupRepository(
                           parent   <- getParentGroupCategory(nodeGroup.id)
                           parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some(commiter, reason))
+                          archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map( _.id), Some(modId, commiter, reason))
                         } yield archived
                       } else Full("ok")
     } yield {
@@ -263,7 +263,7 @@ class LDAPNodeGroupRepository(
                            parent   <- getParentGroupCategory(nodeGroup.id)
                            parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           moved    <- gitArchiver.moveNodeGroup(newGroup, oldParents, (parent::parents).map( _.id ), Some(commiter, reason))
+                           moved    <- gitArchiver.moveNodeGroup(newGroup, oldParents, (parent::parents).map( _.id ), Some(modId, commiter, reason))
                          } yield {
                            moved
                          }
@@ -349,7 +349,7 @@ class LDAPNodeGroupRepository(
       autoArchive  <- if(autoExportOnModify) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archive  <- gitArchiver.deleteNodeGroup(id, parents, Some(commiter, reason))
+                          archive  <- gitArchiver.deleteNodeGroup(id, parents, Some(modId, commiter, reason))
                         } yield {
                           archive
                         }

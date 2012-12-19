@@ -75,7 +75,7 @@ import net.liftweb.common.Loggable
 import com.normation.utils.ScalaReadWriteLock
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.eventlog.EventActor
+import com.normation.eventlog._
 
 
 class LDAPNodeGroupCategoryRepository(
@@ -243,6 +243,7 @@ class LDAPNodeGroupCategoryRepository(
   def addGroupCategorytoCategory(
       that: NodeGroupCategory
     , into: NodeGroupCategoryId
+    , modId : ModificationId
     , actor:EventActor, reason: Option[String]
   ): Box[NodeGroupCategory] = {
     for {
@@ -257,7 +258,7 @@ class LDAPNodeGroupCategoryRepository(
                                for {
                                  parents  <- this.getParents_NodeGroupCategory(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitArchiver.archiveNodeGroupCategory(that,parents.map( _.id), Some(commiter, reason))
+                                 archive  <- gitArchiver.archiveNodeGroupCategory(that,parents.map( _.id), Some(modId,commiter, reason))
                                } yield archive
                              } else Full("ok")
       newCategory         <- getGroupCategory(that.id) ?~! "The newly created category '%s' was not found".format(that.id.value)
@@ -269,7 +270,7 @@ class LDAPNodeGroupCategoryRepository(
   /**
    * Update an existing group category
    */
-  def saveGroupCategory(category: NodeGroupCategory, actor:EventActor, reason: Option[String]): Box[NodeGroupCategory] = { 
+  def saveGroupCategory(category: NodeGroupCategory, modId : ModificationId, actor:EventActor, reason: Option[String]): Box[NodeGroupCategory] = { 
     repo.synchronized { for {
       con              <- ldap 
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
@@ -283,7 +284,7 @@ class LDAPNodeGroupCategoryRepository(
                             for {
                               parents  <- this.getParents_NodeGroupCategory(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                              archive  <- gitArchiver.archiveNodeGroupCategory(updated,parents.map( _.id), Some(commiter, reason))
+                              archive  <- gitArchiver.archiveNodeGroupCategory(updated,parents.map( _.id), Some(modId,commiter, reason))
                             } yield archive
                           } else Full("ok")
     } yield {
@@ -294,7 +295,7 @@ class LDAPNodeGroupCategoryRepository(
    /**
    * Update/move an existing group category
    */
-  def saveGroupCategory(category: NodeGroupCategory, containerId : NodeGroupCategoryId, actor:EventActor, reason: Option[String]): Box[NodeGroupCategory] = {
+  def saveGroupCategory(category: NodeGroupCategory, containerId : NodeGroupCategoryId, modId : ModificationId, actor:EventActor, reason: Option[String]): Box[NodeGroupCategory] = {
     repo.synchronized { for {
       con              <- ldap
       oldParents       <- if(autoExportOnModify) {
@@ -317,7 +318,7 @@ class LDAPNodeGroupCategoryRepository(
                               (for {
                                 parents  <- this.getParents_NodeGroupCategory(updated.id)
                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                moved    <- gitArchiver.moveNodeGroupCategory(updated, oldParents.map( _.id), parents.map( _.id), Some(commiter, reason))
+                                moved    <- gitArchiver.moveNodeGroupCategory(updated, oldParents.map( _.id), parents.map( _.id), Some(modId,commiter, reason))
                               } yield {
                                 moved
                               }) ?~! "Error when trying to archive automatically the category move"
@@ -382,7 +383,7 @@ class LDAPNodeGroupCategoryRepository(
    *  - Full(category id) for a success
    *  - Failure(with error message) iif an error happened. 
    */
-  def delete(id:NodeGroupCategoryId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[NodeGroupCategoryId] = {
+  def delete(id:NodeGroupCategoryId, modId : ModificationId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[NodeGroupCategoryId] = {
     for {
       con <-ldap
       deleted <- {
@@ -401,7 +402,7 @@ class LDAPNodeGroupCategoryRepository(
               autoArchive <- (if(autoExportOnModify && ok.size > 0) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitArchiver.deleteNodeGroupCategory(id,parents.map( _.id), Some(commiter, reason))
+                                 archive  <- gitArchiver.deleteNodeGroupCategory(id,parents.map( _.id), Some(modId, commiter, reason))
                                } yield {
                                  archive
                                }                              

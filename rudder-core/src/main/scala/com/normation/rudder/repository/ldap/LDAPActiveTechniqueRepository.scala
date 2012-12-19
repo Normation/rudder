@@ -182,7 +182,7 @@ class LDAPActiveTechniqueRepository(
                               for {
                                 parents  <- this.activeTechniqueBreadCrump(newActiveTechnique.id)
                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                archive  <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(commiter, reason))
+                                archive  <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(modId,commiter, reason))
                               } yield archive
                             } else Full("ok")
     } yield {
@@ -221,7 +221,7 @@ class LDAPActiveTechniqueRepository(
                           parents  <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
                           newActiveTechnique   <- this.getActiveTechnique(uactiveTechniqueId)
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          moved    <- gitArchiver.moveActiveTechnique(newActiveTechnique, oldParents.map( _.id), parents.map( _.id), Some(commiter, reason))
+                          moved    <- gitArchiver.moveActiveTechnique(newActiveTechnique, oldParents.map( _.id), parents.map( _.id), Some(modId,commiter, reason))
                         } yield {
                           moved
                         }
@@ -255,7 +255,7 @@ class LDAPActiveTechniqueRepository(
                              parents  <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
                              newActiveTechnique   <- getActiveTechnique(uactiveTechniqueId)
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive  <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(commiter, reason))
+                             archive  <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(modId,commiter, reason))
                            } yield archive
                          } else Full("ok")
     } yield {
@@ -278,7 +278,7 @@ class LDAPActiveTechniqueRepository(
                              parents <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
                              newActiveTechnique  <- getActiveTechnique(uactiveTechniqueId)
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(commiter, reason))
+                             archive <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(modId,commiter, reason))
                            } yield archive
                          } else Full("ok")
     } yield {
@@ -307,7 +307,7 @@ class LDAPActiveTechniqueRepository(
                                for {
                                  ptName   <- Box(activeTechnique(A_TECHNIQUE_UUID)) ?~! "Missing required reference technique name"
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 res      <- gitArchiver.deleteActiveTechnique(TechniqueName(ptName),oldParents.map( _.id), Some(commiter, reason))
+                                 res      <- gitArchiver.deleteActiveTechnique(TechniqueName(ptName),oldParents.map( _.id), Some(modId,commiter, reason))
                                } yield res
                               } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
     } yield {

@@ -90,7 +90,8 @@ final case class ExportGroupsArchive(
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
-      principal = actor
+      modificationId = None
+    , principal = actor
     , reason = reason
     , details = ExportGroupsArchive.buildDetails(gitArchiveId)
   ))
@@ -114,7 +115,8 @@ final case class ImportGroupsArchive(
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
-      principal = actor
+      modificationId = None
+    , principal = actor
     , reason = reason
     , details = ImportGroupsArchive.buildDetails(gitCommitId)
   ))
@@ -138,7 +140,8 @@ final case class ExportTechniqueLibraryArchive(
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
-      principal = actor
+      modificationId = None
+    , principal = actor
     , reason = reason
     , details = ExportTechniqueLibraryArchive.buildDetails(gitArchiveId)
   ))
@@ -162,7 +165,8 @@ final case class ImportTechniqueLibraryArchive(
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
-      principal = actor
+      modificationId = None
+    , principal = actor
     , reason = reason
     , details = ImportTechniqueLibraryArchive.buildDetails(gitCommitId)
   ))
@@ -187,7 +191,8 @@ final case class ExportRulesArchive(
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
-      principal = actor
+      modificationId = None
+    , principal = actor
     , reason = reason
     , details = ExportRulesArchive.buildDetails(gitArchiveId)
   ))
@@ -211,7 +216,8 @@ final case class ImportRulesArchive(
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
-      principal = actor
+      modificationId = None
+    , principal = actor
     , reason = reason
     , details = ImportRulesArchive.buildDetails(gitCommitId)
   ))
@@ -235,7 +241,8 @@ final case class ExportFullArchive(
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
-      principal = actor
+      modificationId = None
+    , principal = actor
     , reason = reason
     , details = ExportFullArchive.buildDetails(gitArchiveId)
   ))
@@ -259,7 +266,8 @@ final case class ImportFullArchive(
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
-      principal = actor
+      modificationId = None
+    , principal = actor
     , reason = reason
     , details = ImportFullArchive.buildDetails(gitCommitId)
   ))

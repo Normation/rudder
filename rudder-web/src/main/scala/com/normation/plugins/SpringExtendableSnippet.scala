@@ -36,7 +36,7 @@ package com.normation.plugins
 
 
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import net.liftweb.http.DispatchSnippet
+
 
 /**
  * A version of the PlugableSnippet that

@@ -64,7 +64,8 @@ class LogEventOnTechniqueReloadCallback(
 
   override def updatedTechniques(TechniqueIds:Seq[TechniqueId], modId:ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
     eventLogRepos.saveEventLog(modId, ReloadTechniqueLibrary(EventLogDetails(
-        principal   = actor
+        modificationId = None
+      , principal   = actor
       , details     = ReloadTechniqueLibrary.buildDetails(TechniqueIds)
       , reason = reason
     ))) match {
