@@ -761,7 +761,7 @@ class AppConfig extends Loggable {
   @Bean
   def modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManager,uuidGen)
   @Bean
-  def eventListDisplayer = new EventListDisplayer(eventLogDetailsService, logRepository, ldapNodeGroupRepository, ldapDirectiveRepository, nodeInfoService,modificationService)
+  def eventListDisplayer = new EventListDisplayer(eventLogDetailsService, logRepository, ldapNodeGroupRepository, ldapDirectiveRepository, nodeInfoService,modificationService,personIdentService)
   
   @Bean
   def fileManager = new FileManager(UPLOAD_ROOT_DIRECTORY)
