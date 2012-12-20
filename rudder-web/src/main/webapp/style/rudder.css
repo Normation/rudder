@@ -227,9 +227,20 @@ button.largeButton {
 }
 
 .popupButton button {
-   background-color: #f8f8f8;
+   background: linear-gradient(#FAFAFA, #EAEAEA) repeat scroll 0 0 transparent;
    border: 1px solid #b4b3a8;
+   transition: none 0s ease 0s;
+   margin: 2px 0px 2px 0px;
 }
+
+.popupButton button:hover {
+   background-color: #EEEBE7;
+   font-weight: bold;
+   color: #000;
+   background: none;
+   border-color: #FBCB09;
+}
+
 .popupButton input {
    background-color: #f8f8f8;
    border: 1px solid #b4b3a8;
@@ -532,6 +543,7 @@ div#Detail {
 
 .dataTables_length select {
   padding: 1px;
+  border: 1px solid #B4B3A8;
 }
 
 .dataTables_length {
@@ -1608,7 +1620,6 @@ div#refusePopup {
 }
 
 .popupButton {
-  
   padding: 5px;
   float: right;
 }
