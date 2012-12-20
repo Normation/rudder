@@ -239,7 +239,8 @@ class Boot extends Loggable {
         ModificationId(inject[StringUuidGenerator].newUuid)
       , ApplicationStarted(
             EventLogDetails(
-                principal = com.normation.rudder.domain.eventlog.RudderEventActor
+                modificationId = None
+              , principal = com.normation.rudder.domain.eventlog.RudderEventActor
               , details = EventLog.emptyDetails
               , reason = None
             )

@@ -409,7 +409,12 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
        }) match {
         case (sourceCatId, destCatId) :: Nil =>
           (for {
-            result <- activeTechniqueCategoryRepository.move(ActiveTechniqueCategoryId(sourceCatId), ActiveTechniqueCategoryId(destCatId), CurrentUser.getActor, Some("User moved Active Technique Category from UI")) ?~! "Error while trying to move category with requested id %s into new parent: %s".format(sourceCatId,destCatId)
+            result <- activeTechniqueCategoryRepository.move(
+                          ActiveTechniqueCategoryId(sourceCatId)
+                        , ActiveTechniqueCategoryId(destCatId)
+                        , ModificationId(uuidGen.newUuid)
+                        , CurrentUser.getActor
+                        , Some("User moved Active Technique Category from UI")) ?~! "Error while trying to move category with requested id %s into new parent: %s".format(sourceCatId,destCatId)
           } yield {
             result
           }) match {

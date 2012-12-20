@@ -118,6 +118,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                     UnspecializedEventLog(
                         EventLogDetails(
                             id = Some(-1)
+                          , modificationId = None
                           , principal = RudderEventActor
                           , creationDate = DateTime.now
                           , cause = None

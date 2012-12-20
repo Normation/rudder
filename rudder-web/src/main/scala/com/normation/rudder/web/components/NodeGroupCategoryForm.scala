@@ -35,7 +35,7 @@
 package com.normation.rudder.web.components
 
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.common._
 import net.liftweb.http.{SHtml,S,DispatchSnippet}
@@ -49,6 +49,8 @@ import com.normation.rudder.web.model.{
 }
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
 
 /**
  * The form that deals with updating the server group category
@@ -67,7 +69,8 @@ class NodeGroupCategoryForm(
   var _nodeGroupCategory = nodeGroupCategory.copy()
 
   val groupCategoryRepository = inject[NodeGroupCategoryRepository]
-  
+  private[this] val uuidGen = inject[StringUuidGenerator]
+
   val categories = groupCategoryRepository.getAllNonSystemCategories.open_!.filter(x => x.id != _nodeGroupCategory.id)
   val parentCategory = groupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id )
   
@@ -184,7 +187,7 @@ class NodeGroupCategoryForm(
   }
   
   private[this] def onDelete() : JsCmd = {
-    groupCategoryRepository.delete(_nodeGroupCategory.id, CurrentUser.getActor, Some("Node Group category deleted by user from UI")) match {
+    groupCategoryRepository.delete(_nodeGroupCategory.id, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Node Group category deleted by user from UI")) match {
       case Full(id) => 
         JsRaw("""$.modal.close();""") &
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
@@ -275,6 +278,7 @@ class NodeGroupCategoryForm(
       groupCategoryRepository.saveGroupCategory(
           newNodeGroup
         , NodeGroupCategoryId(piContainer.is)
+        , ModificationId(uuidGen.newUuid)
         , CurrentUser.getActor
         , Some("Node Group category saved by user from UI")
       ) match {
