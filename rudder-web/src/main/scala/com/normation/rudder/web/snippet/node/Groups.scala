@@ -65,6 +65,9 @@ import com.normation.utils.HashcodeCaching
 import com.normation.rudder.repository.NodeGroupRepository
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.plugins.ExtendableSnippet
+import com.normation.plugins.SnippetExtensionKey
+import com.normation.plugins.SpringExtendableSnippet
 
 
 object Groups {
@@ -82,18 +85,20 @@ object Groups {
 
 
 
-class Groups extends StatefulSnippet with Loggable {
+class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with Loggable {
   import Groups._
   
   private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
   private[this] val nodeGroupRepository = inject[NodeGroupRepository]
   
-  var dispatch : DispatchIt = {
-    case "head" => head _
-    case "groupHierarchy" => groupHierarchy()
-    case "initRightPanel" => initRightPanel _
-    case "detailsPopup" =>  { _ => NodeGroupForm.staticBody }
-  }
+  def mainDispatch =  Map(
+      "head" -> head _ ,
+     "groupHierarchy" ->  groupHierarchy() ,
+     "initRightPanel" -> initRightPanel _,
+     "detailsPopup" ->  { _:NodeSeq => NodeGroupForm.staticBody }
+    )
+
+  def extendsAt = SnippetExtensionKey(classOf[Groups].getSimpleName)
   
   //the current nodeGroupCategoryForm component
   private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm] 
@@ -193,7 +198,7 @@ class Groups extends StatefulSnippet with Loggable {
       case GroupForm(group) =>
         val form = new NodeGroupForm(htmlId_item, Some(group), onSuccessCallback())
         nodeGroupForm.set(Full(form))
-        form.showForm()
+        form.dispatch("showForm")(NodeSeq.Empty);
 
       case CategoryForm(category) =>
         val form = new NodeGroupCategoryForm(htmlId_item, category, onSuccessCallback())
