@@ -44,7 +44,6 @@ import com.normation.rudder.services.policies.DependencyAndDeletionService
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.authorization._
-
 import net.liftweb.http.js._
 import JsCmds._ // For implicits
 import JE._
@@ -53,9 +52,7 @@ import net.liftweb.http._
 import scala.xml._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-
 import com.normation.rudder.domain.policies.GroupTarget
-
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField,WBSelectField,WBRadioField
 }
@@ -67,6 +64,8 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
 import com.normation.utils.HashcodeCaching
+import com.normation.plugins.SpringExtendableSnippet
+import com.normation.plugins.SnippetExtensionKey
 
 object NodeGroupForm {
   
@@ -130,11 +129,13 @@ class NodeGroupForm(
   nodeGroup : Option[NodeGroup],
   onSuccessCallback : (String) => JsCmd = { (String) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends DispatchSnippet with SpringExtendableSnippet[NodeGroupForm] with Loggable {
 
   // I use a copy and a var to really isolate what is happening in this compenent from 
-  // the argument, and I need to change the object when it is created (from None to Some(x)
-  private[this] var _nodeGroup = nodeGroup.map(x => x.copy())
+  // the argument, and I need to change the object when it is created (from None to Some(x))
+  // Removed private[this] to let extension access it
+
+  var _nodeGroup = nodeGroup.map(x => x.copy())
   
   private[this] val nodeGroupRepository = inject[NodeGroupRepository]
   private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
@@ -189,22 +190,30 @@ class NodeGroupForm(
   }
   
   setNodeGroupCategoryForm
-  
-  
-  def dispatch = { 
-    case "showForm" => { _ => showForm }
-    case "showGroup" => searchNodeComponent.is match {
-      case Full(component) => { _ => component.buildQuery }
-      case _ => x : NodeSeq => <div>The component is not set</div><div></div>
-    }
-  }
-  
+
+  def extendsAt = SnippetExtensionKey(classOf[NodeGroupForm].getSimpleName)
+
+  def mainDispatch = Map(
+    "showForm" -> { _:NodeSeq => showForm() },
+    "showGroup" -> { _:NodeSeq => searchNodeComponent.is match {
+      case Full(component) => component.buildQuery
+      case _ =>  <div>The component is not set</div>
+     } }
+  )
+
   def initJs : JsCmd = {
     JsRaw("correctButtons();")
   }
      
   def showForm() : NodeSeq = {
-     val html = SHtml.ajaxForm(<fieldset class="groupUpdateComponent"><legend>Group: {_nodeGroup.map( x => x.name).getOrElse("Create a new group")}</legend>
+     val html = SHtml.ajaxForm(
+          <div id="GroupTabs">
+    <ul id="groupTabMenu">
+      <li><a href="#groupParametersTab">Group parameters</a></li>
+    </ul>
+    <div id="groupParametersTab">
+
+     <fieldset class="groupUpdateComponent"><legend>Group: {_nodeGroup.map( x => x.name).getOrElse("Create a new group")}</legend>
      <directive:notifications />
      <hr class="spacer"/>
      <directive:name/>
@@ -233,7 +242,10 @@ class NodeGroupForm(
        </div>
      </div>
      </fieldset>
-     <directive:removeForm/>)
+    <directive:removeForm/>
+  </div>   </div>
+ ++ Script(OnLoad(JsRaw("""$('#GroupTabs').tabs();
+          $( "#GroupTabs" ).tabs('select', 0);"""))))
 
      bind("directive", html,
       "name" -> piName.toForm_!,
