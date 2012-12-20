@@ -262,7 +262,6 @@ limitations under the License.
 
     <rudder-version>2.5.0-SNAPSHOT</rudder-version>    
     <spring-run-dep-version>2.5.0-SNAPSHOT</spring-run-dep-version>
-    <scala-ldap-version>0.12-SNAPSHOT</scala-ldap-version>
     
     <scala-version>2.9.2</scala-version>
     <scala-lift-version>2.9.1</scala-lift-version>
