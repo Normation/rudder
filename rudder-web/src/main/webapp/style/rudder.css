@@ -2520,3 +2520,23 @@ fieldset {
 #ajaxItemContainer {
   float:left;
 }
+
+/**
+ * Rollback
+ */
+
+.rollbackFieldSet {
+  float : right;
+  padding : 10px 0px;
+  width : 400px;
+  text-align : center;
+}
+
+.rollbackFieldSet legend{
+  margin-left : 10px;
+}
+
+.alignRollback {
+  vertical-align:50%
+}
+}
