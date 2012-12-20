@@ -183,7 +183,7 @@ class RestArchiving(
       archives   <- list()
       commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
       (date,tag) <- Box(archives.toList.sortWith { case ( (d1,_), (d2,_) ) => d1.isAfter(d2) }.headOption) ?~! "No archive is available"
-      restored   <- restore(tag.commit,newModId,commiter,RestUtils.getActor(req),Some("Restore latest archive required from REST API"),false)
+      restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore latest archive required from REST API"),false)
     } yield {
       restored
     }) match {
@@ -198,7 +198,7 @@ class RestArchiving(
   private[this] def restoreLatestCommit(req:Req, restore: (PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
     (for {
       commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
-      restored   <- restore(newModId,commiter,RestUtils.getActor(req),Some("Restore archive from latest commit on HEAD required from REST API"), false)
+      restored   <- restore(commiter,newModId,RestUtils.getActor(req),Some("Restore archive from latest commit on HEAD required from REST API"), false)
     } yield {
       restored
     }) match {
@@ -216,7 +216,7 @@ class RestArchiving(
       archives   <- list()
       commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
       tag        <- Box(archives.get(valideDate)) ?~! "The archive with tag '%s' is not available. Available archives: %s".format(datetime,archives.keySet.map( _.toString(GitTagDateTimeFormatter)).mkString(", "))
-      restored   <- restore(tag.commit,newModId,commiter,RestUtils.getActor(req),Some("Restore archive for date time %s requested from REST API".format(datetime)),false)
+      restored   <- restore(tag.commit,commiter,newModId,RestUtils.getActor(req),Some("Restore archive for date time %s requested from REST API".format(datetime)),false)
     } yield {
       restored
     }) match {

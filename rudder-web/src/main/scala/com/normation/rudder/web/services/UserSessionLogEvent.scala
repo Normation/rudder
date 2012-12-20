@@ -71,7 +71,8 @@ class UserSessionLogEvent(
                 ModificationId(uuidGen.newUuid)
               , LoginEventLog(
                     EventLogDetails( 
-                        principal = EventActor(u.getUsername)
+                        modificationId = None
+                      , principal = EventActor(u.getUsername)
                       , details = EventLog.emptyDetails
                       , reason = None
                     )
@@ -88,7 +89,8 @@ class UserSessionLogEvent(
                 ModificationId(uuidGen.newUuid)
               , BadCredentialsEventLog(
                     EventLogDetails( 
-                        principal = EventActor(u)
+                        modificationId = None
+                      , principal = EventActor(u)
                       , details = EventLog.emptyDetails
                       , reason = None
                     )

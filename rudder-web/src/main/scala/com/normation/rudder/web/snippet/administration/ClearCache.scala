@@ -85,7 +85,13 @@ class ClearCache extends DispatchSnippet with Loggable {
           val e = empty ?~! "Error when clearing caches"
           S.error(e.messageChain)
         case Full(set) => 
-          eventLogRepository.saveEventLog(modId, ClearCacheEventLog(EventLogDetails(principal = CurrentUser.getActor, details = EventLog.emptyDetails, reason = None))) match {
+          eventLogRepository.saveEventLog(modId,
+              ClearCacheEventLog(
+                EventLogDetails(
+                    modificationId = Some(modId)
+                  , principal = CurrentUser.getActor
+                  , details = EventLog.emptyDetails
+                  , reason = None))) match {
             case eb:EmptyBox => 
               val e = eb ?~! "Error when logging the cache event"
               logger.error(e.messageChain)

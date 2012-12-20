@@ -87,7 +87,8 @@ class UserInformation extends DispatchSnippet with Loggable {
                     ModificationId(uuidGen.newUuid)
                   , LogoutEventLog(
                         EventLogDetails(
-                            principal = EventActor(u.getUsername)
+                            modificationId = None
+                          , principal = EventActor(u.getUsername)
                           , details = EventLog.emptyDetails
                           , reason = None
                         )

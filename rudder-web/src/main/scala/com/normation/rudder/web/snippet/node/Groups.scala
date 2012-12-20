@@ -334,7 +334,12 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
         case (sourceCatId, destCatId) :: Nil =>
           (for {
             group <- groupCategoryRepository.getGroupCategory(NodeGroupCategoryId(sourceCatId)) ?~! "Error while trying to find category with requested id %s".format(sourceCatId)
-            result <- groupCategoryRepository.saveGroupCategory(group, NodeGroupCategoryId(destCatId), CurrentUser.getActor, reason = None)?~! "Error while trying to move category with requested id '%s' to category id '%s'".format(sourceCatId,destCatId)
+            result <- groupCategoryRepository.saveGroupCategory(
+                          group
+                        , NodeGroupCategoryId(destCatId)
+                        , ModificationId(uuidGen.newUuid)
+                        , CurrentUser.getActor
+                        , reason = None)?~! "Error while trying to move category with requested id '%s' to category id '%s'".format(sourceCatId,destCatId)
           } yield {
             (group,result)
           }) match {

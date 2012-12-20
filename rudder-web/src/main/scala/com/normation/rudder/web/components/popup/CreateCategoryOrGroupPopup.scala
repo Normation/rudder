@@ -244,6 +244,7 @@ class CreateCategoryOrGroupPopup(
               Nil
             )
           , NodeGroupCategoryId(piContainer.is)
+          , ModificationId(uuidGen.newUuid)
           , CurrentUser.getActor
           , piReasons.map(_.is)
         ) match {

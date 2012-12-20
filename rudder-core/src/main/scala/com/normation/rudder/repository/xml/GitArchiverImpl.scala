@@ -78,12 +78,13 @@ private[xml] object GET {
 }
 
 class GitRuleArchiverImpl(
-    override val gitRepo          : GitRepositoryProvider
-  , override val gitRootDirectory : File
-  , ruleSerialisation             : RuleSerialisation
-  , ruleRootDir                   : String //relative path !
-  , override val xmlPrettyPrinter : PrettyPrinter
-  , override val encoding         : String = "UTF-8"
+    override val gitRepo                   : GitRepositoryProvider
+  , override val gitRootDirectory          : File
+  , ruleSerialisation                      : RuleSerialisation
+  , ruleRootDir                            : String //relative path !
+  , override val xmlPrettyPrinter          : PrettyPrinter
+  , override val gitModificationRepository : GitModificationRepository
+  , override val encoding                  : String = "UTF-8"
 ) extends 
   GitRuleArchiver with 
   Loggable with 
@@ -109,7 +110,7 @@ class GitRuleArchiverImpl(
       commit  <- doCommit match {
                    case Some((modId, commiter, reason)) => 
                      val msg = "Archive rule with ID '%s'%s".format(rule.id.value, GET(reason))
-                     commitAddFile(commiter, gitPath, msg)
+                     commitAddFile(modId, commiter, gitPath, msg)
                    case None => Full("ok")
                  }
     } yield {
@@ -134,7 +135,7 @@ class GitRuleArchiverImpl(
                       logger.debug("Deleted archive of rule: " + crFile.getPath)
                     }
         commited <- doCommit match {
-                      case Some((modId, commiter, reason)) => commitRmFile(commiter, gitPath, "Delete archive of rule with ID '%s'%s".format(ruleId.value, GET(reason)))
+                      case Some((modId, commiter, reason)) => commitRmFile(modId, commiter, gitPath, "Delete archive of rule with ID '%s'%s".format(ruleId.value, GET(reason)))
                       case None => Full("OK")
                     }
       } yield {
@@ -190,6 +191,7 @@ class GitActiveTechniqueCategoryArchiverImpl(
   , activeTechniqueCategorySerialisation: ActiveTechniqueCategorySerialisation
   , techniqueLibraryRootDir             : String //relative path !
   , override val xmlPrettyPrinter       : PrettyPrinter
+  , override val gitModificationRepository : GitModificationRepository
   , override val encoding               : String = "UTF-8"
   , serializedCategoryName              : String = "category.xml"
 ) extends 
@@ -229,9 +231,9 @@ class GitActiveTechniqueCategoryArchiverImpl(
                        case Some((modId,commiter, reason)) =>
                          oldParents match {
                            case Some(olds) => 
-                             commitMvDirectory(commiter, toGitPath(newActiveTechniquecFile(uptc.id, olds)), uptcGitPath, "Move archive of technique library category with ID '%s'%s".format(uptc.id.value, GET(reason)))
+                             commitMvDirectory(modId, commiter, toGitPath(newActiveTechniquecFile(uptc.id, olds)), uptcGitPath, "Move archive of technique library category with ID '%s'%s".format(uptc.id.value, GET(reason)))
                            case None       => 
-                             commitAddFile(commiter, uptcGitPath, "Archive of technique library category with ID '%s'%s".format(uptc.id.value, GET(reason)))
+                             commitAddFile(modId, commiter, uptcGitPath, "Archive of technique library category with ID '%s'%s".format(uptc.id.value, GET(reason)))
                          }
                        case None => Full("ok")
                     }
@@ -255,7 +257,7 @@ class GitActiveTechniqueCategoryArchiverImpl(
                       logger.debug("Deleted archived technique library category: " + uptcFile.getPath)
                     }
         commited <- gitCommit match {
-                      case Some((modId, commiter, reason)) => commitRmFile(commiter, gitPath, "Delete archive of technique library category with ID '%s'%s".format(uptcId.value, GET(reason)))
+                      case Some((modId, commiter, reason)) => commitRmFile(modId, commiter, gitPath, "Delete archive of technique library category with ID '%s'%s".format(uptcId.value, GET(reason)))
                       case None => Full("OK")
                     }
       } yield {
@@ -363,6 +365,7 @@ class GitActiveTechniqueArchiverImpl(
   , activeTechniqueSerialisation   : ActiveTechniqueSerialisation
   , techniqueLibraryRootDir        : String //relative path !
   , override val xmlPrettyPrinter  : PrettyPrinter
+  , override val gitModificationRepository : GitModificationRepository
   , override val encoding          : String = "UTF-8"
   , val uptModificationCallback    : Buffer[ActiveTechniqueModificationCallback] = Buffer()
   , val activeTechniqueFileName : String = "activeTechniqueSettings.xml"
@@ -393,7 +396,7 @@ class GitActiveTechniqueArchiverImpl(
       //if none is in error, we are going to next step             
       callbacks <- sequence(uptModificationCallback) { _.onArchive(activeTechnique, parents, None) }
       commit    <- gitCommit match {
-                     case Some((modId, commiter, reason)) => commitAddFile(commiter, gitPath, "Archive of technique library template for technique name '%s'%s".format(activeTechnique.techniqueName.value, GET(reason)))
+                     case Some((modId, commiter, reason)) => commitAddFile(modId, commiter, gitPath, "Archive of technique library template for technique name '%s'%s".format(activeTechnique.techniqueName.value, GET(reason)))
                      case None => Full("ok")
                    }
     } yield {
@@ -413,7 +416,7 @@ class GitActiveTechniqueArchiverImpl(
           gitPath   =  toGitPath(uptFile)
           callbacks <- sequence(uptModificationCallback) { _.onDelete(ptName, parents, None) }
           commited <- gitCommit match {
-                        case Some((modId, commiter, reason)) => commitRmFile(commiter, gitPath, "Delete archive of technique library template for technique name '%s'%s".format(ptName.value, GET(reason)))
+                        case Some((modId, commiter, reason)) => commitRmFile(modId, commiter, gitPath, "Delete archive of technique library template for technique name '%s'%s".format(ptName.value, GET(reason)))
                         case None => Full("OK")
                       }
         } yield {
@@ -450,7 +453,8 @@ class GitActiveTechniqueArchiverImpl(
       commited        <- gitCommit match {
                            case Some((modId, commiter, reason)) => 
                              commitMvDirectory(
-                                 commiter
+                                 modId
+                               , commiter
                                , toGitPath(oldActiveTechniqueDirectory)
                                , toGitPath(newActiveTechniqueDirectory)
                                , "Move active technique for technique name '%s'%s".format(activeTechnique.techniqueName.value, GET(reason))
@@ -473,6 +477,7 @@ class GitDirectiveArchiverImpl(
   , directiveSerialisation         : DirectiveSerialisation
   , techniqueLibraryRootDir        : String //relative path !
   , override val xmlPrettyPrinter  : PrettyPrinter
+  , override val gitModificationRepository : GitModificationRepository
   , override val encoding          : String = "UTF-8"
 ) extends GitDirectiveArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[ActiveTechniqueCategoryId] {
 
@@ -508,7 +513,7 @@ class GitDirectiveArchiverImpl(
                    , "Archived directive: " + piFile.getPath
                  )
       commit  <- gitCommit match {
-                   case Some((modId, commiter, reason)) => commitAddFile(commiter, gitPath, "Archive directive with ID '%s'%s".format(directive.id.value,GET(reason)))
+                   case Some((modId, commiter, reason)) => commitAddFile(modId, commiter, gitPath, "Archive directive with ID '%s'%s".format(directive.id.value,GET(reason)))
                    case None => Full("ok")
                  }
     } yield {
@@ -536,7 +541,7 @@ class GitDirectiveArchiverImpl(
                       }
           gitPath  =  toGitPath(piFile)
           commited <- gitCommit match {
-                        case Some((modId, commiter, reason)) => commitRmFile(commiter, gitPath, "Delete archive of directive with ID '%s'%s".format(directiveId.value,GET(reason)))
+                        case Some((modId, commiter, reason)) => commitRmFile(modId, commiter, gitPath, "Delete archive of directive with ID '%s'%s".format(directiveId.value,GET(reason)))
                         case None => Full("OK")
                       }
         } yield {
@@ -565,6 +570,7 @@ class GitNodeGroupCategoryArchiverImpl(
   , nodeGroupCategorySerialisation: NodeGroupCategorySerialisation
   , groupLibraryRootDir           : String //relative path !
   , override val xmlPrettyPrinter : PrettyPrinter
+  , override val gitModificationRepository : GitModificationRepository
   , override val encoding         : String = "UTF-8"
   , serializedCategoryName        : String = "category.xml"
 ) extends 
@@ -595,7 +601,7 @@ class GitNodeGroupCategoryArchiverImpl(
                     )
       gitPath    =  toGitPath(ngcFile)
       commit     <- gitCommit match {
-                      case Some((modId, commiter, reason)) => commitAddFile(commiter, gitPath, "Archive of node group category with ID '%s'%s".format(ngc.id.value,GET(reason)))
+                      case Some((modId, commiter, reason)) => commitAddFile(modId, commiter, gitPath, "Archive of node group category with ID '%s'%s".format(ngc.id.value,GET(reason)))
                       case None => Full("ok")
                     }
     } yield {
@@ -614,7 +620,7 @@ class GitNodeGroupCategoryArchiverImpl(
                       logger.debug("Deleted archived node group category: " + ngcFile.getPath)
                     }
         commited <- gitCommit match {
-                      case Some((modId, commiter, reason)) => commitRmFile(commiter, gitPath, "Delete archive of node group category with ID '%s'%s".format(ngcId.value,GET(reason)))
+                      case Some((modId, commiter, reason)) => commitRmFile(modId, commiter, gitPath, "Delete archive of node group category with ID '%s'%s".format(ngcId.value,GET(reason)))
                       case None => Full("OK")
                     }
       } yield {
@@ -661,7 +667,7 @@ class GitNodeGroupCategoryArchiverImpl(
                    } else Full("OK")
                  } 
       commit  <- gitCommit match {
-                   case Some((modId, commiter, reason)) => commitMvDirectory(commiter, toGitPath(oldNgcDir), toGitPath(newNgcDir), "Move archive of node group category with ID '%s'%s".format(ngc.id.value,GET(reason)))
+                   case Some((modId, commiter, reason)) => commitMvDirectory(modId, commiter, toGitPath(oldNgcDir), toGitPath(newNgcDir), "Move archive of node group category with ID '%s'%s".format(ngc.id.value,GET(reason)))
                    case None => Full("ok")
                  }
     } yield {
@@ -696,6 +702,7 @@ class GitNodeGroupArchiverImpl(
   , nodeGroupSerialisation        : NodeGroupSerialisation
   , groupLibraryRootDir           : String //relative path !
   , override val xmlPrettyPrinter : PrettyPrinter
+  , override val gitModificationRepository : GitModificationRepository
   , override val encoding         : String = "UTF-8"
 ) extends GitNodeGroupArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[NodeGroupCategoryId] {
 
@@ -718,7 +725,7 @@ class GitNodeGroupArchiverImpl(
                       , "Archived node group: " + ngFile.getPath
                     )
       commit     <- gitCommit match {
-                      case Some((modId, commiter, reason)) => commitAddFile(commiter, toGitPath(ngFile), "Archive of node group with ID '%s'%s".format(ng.id.value,GET(reason)))
+                      case Some((modId, commiter, reason)) => commitAddFile(modId, commiter, toGitPath(ngFile), "Archive of node group with ID '%s'%s".format(ng.id.value,GET(reason)))
                       case None => Full("ok")
                     }
     } yield {
@@ -738,7 +745,7 @@ class GitNodeGroupArchiverImpl(
                           logger.debug("Deleted archived node group: " + ngFile.getPath)
                         }
             commited <- gitCommit match {
-                          case Some((modId, commiter, reason)) => commitRmFile(commiter, gitPath, "Delete archive of node group with ID '%s'%s".format(ngId.value,GET(reason)))
+                          case Some((modId, commiter, reason)) => commitRmFile(modId, commiter, gitPath, "Delete archive of node group with ID '%s'%s".format(ngId.value,GET(reason)))
                           case None => Full("OK")
                         }
           } yield {
@@ -767,7 +774,7 @@ class GitNodeGroupArchiverImpl(
                        } else Full("OK")
                      } 
       commit       <- gitCommit match {
-                        case Some((modId, commiter, reason)) => commitMvDirectory(commiter, toGitPath(oldNgXmlFile), toGitPath(newNgXmlFile), "Move archive of node group with ID '%s'%s".format(ng.id.value,GET(reason)))
+                        case Some((modId, commiter, reason)) => commitMvDirectory(modId, commiter, toGitPath(oldNgXmlFile), toGitPath(newNgXmlFile), "Move archive of node group with ID '%s'%s".format(ng.id.value,GET(reason)))
                         case None => Full("ok")
                       }
     } yield {
