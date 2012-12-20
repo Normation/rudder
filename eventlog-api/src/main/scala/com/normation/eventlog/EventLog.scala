@@ -46,12 +46,22 @@ private[eventlog] final case object UnknownLogCategory extends EventLogCategory
 trait EventLogType extends PartialFunction[String, EventLogType] {
   def serialize : String
   
+  def canRollback : Boolean
+  
   override  def isDefinedAt(x : String) : Boolean = {
     serialize == x
   }
   
   def apply(x : String) = this
   
+}
+
+trait RollbackEventLogType extends EventLogType {
+  val canRollback = true
+}
+
+trait NoRollbackEventLogType extends EventLogType {
+  val canRollback = false
 }
 
 
@@ -81,6 +91,7 @@ trait EventLogFilter extends PartialFunction[(EventLogType, EventLogDetails) , E
    * Most of the time, the event class name plus Type is OK. 
    */
   val eventType : EventLogType
+  
   
   override  def isDefinedAt(x : (EventLogType, EventLogDetails)) : Boolean = {
     eventType == x._1
@@ -153,6 +164,8 @@ trait EventLog  {
    * Most of the time, the event class name plus Type is OK. 
    */
   def eventType : EventLogType
+  
+  def canRollBack : Boolean = eventType.canRollback
 }
 
 /**
@@ -178,7 +191,7 @@ object EventLog {
   val emptyDetails = withContent(NodeSeq.Empty)
 }
 
-case object UnknownEventLogType extends EventLogType {
+case object UnknownEventLogType extends NoRollbackEventLogType {
   def serialize = "UnknownType"   
 }
 
