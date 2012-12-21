@@ -52,6 +52,7 @@ import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
+import org.eclipse.jgit.api._
 
 class ItemArchiveManagerImpl(
     ruleRepository                    : RuleRepository
@@ -223,21 +224,28 @@ class ItemArchiveManagerImpl(
   
   
   
-  override def importAll(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+  override def importAll(archiveId:GitCommitId, commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing full archive with id '%s'".format(archiveId.value))
     for {
-      rules <- importRulesAndDeploy(archiveId, actor, reason, includeSystem, false)
-      userLib            <- importTechniqueLibraryAndDeploy(archiveId, actor, reason, includeSystem, false)
-      groupLIb           <- importGroupLibraryAndDeploy(archiveId, actor, reason, includeSystem, false)
-      eventLogged        <- eventLogger.saveEventLog(new ImportFullArchive(actor,archiveId, reason))
+      rules       <- importRulesAndDeploy(archiveId, actor, reason, includeSystem, false)
+      userLib     <- importTechniqueLibraryAndDeploy(archiveId, actor, reason, includeSystem, false)
+      groupLIb    <- importGroupLibraryAndDeploy(archiveId, actor, reason, includeSystem, false)
+      eventLogged <- eventLogger.saveEventLog(new ImportFullArchive(actor,archiveId, reason))
+      commit      <- restoreCommitAtHead(commiter,"User %s requested full archive restoration to commit %s".format(actor.name,archiveId.value),archiveId,FullArchive)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(actor)
       archiveId
     }
   }
   
-  override def importRules(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) =
-    importRulesAndDeploy(archiveId, actor, reason, includeSystem)
+  override def importRules(archiveId:GitCommitId, commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) = {
+    val commitMsg = "User %s requested rule archive restoration to commit %s".format(actor.name,archiveId.value)
+    for {
+    rulesArchiveId <- importRulesAndDeploy(archiveId, actor, reason, includeSystem)
+    commit         <- restoreCommitAtHead(commiter,commitMsg,archiveId,RuleArchive)
+    } yield
+      archiveId
+  }
         
   private[this] def importRulesAndDeploy(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing rules archive with id '%s'".format(archiveId.value))
@@ -258,9 +266,14 @@ class ItemArchiveManagerImpl(
     }
   }
   
-  override def importTechniqueLibrary(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean) : Box[GitCommitId] = 
-    importTechniqueLibraryAndDeploy(archiveId, actor, reason, includeSystem)
-  
+  override def importTechniqueLibrary(archiveId:GitCommitId, commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean) : Box[GitCommitId] = {
+    val commitMsg = "User %s requested directive archive restoration to commit %s".format(actor.name,archiveId.value)
+    for {
+      directivesArchiveId <- importTechniqueLibraryAndDeploy(archiveId, actor, reason, includeSystem)
+      commit              <- restoreCommitAtHead(commiter,commitMsg,archiveId,TechniqueLibraryArchive)
+    } yield
+      archiveId
+  }
   private[this] def importTechniqueLibraryAndDeploy(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing technique library archive with id '%s'".format(archiveId.value))
       for {
@@ -273,8 +286,14 @@ class ItemArchiveManagerImpl(
       }
   }
   
-  override def importGroupLibrary(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean) : Box[GitCommitId] =
-    importGroupLibraryAndDeploy(archiveId, actor, reason, includeSystem)
+  override def importGroupLibrary(archiveId:GitCommitId, commiter:PersonIdent, actor:EventActor, reason:Option[String], includeSystem:Boolean) : Box[GitCommitId] = {
+    val commitMsg = "User %s requested group archive restoration to commit %s".format(actor.name,archiveId.value)
+    for {
+      groupsArchiveId <- importGroupLibraryAndDeploy(archiveId, actor, reason, includeSystem)
+      commit          <- restoreCommitAtHead(commiter,commitMsg,archiveId,GroupArchive)
+    } yield
+      archiveId
+  }
 
   private[this] def importGroupLibraryAndDeploy(archiveId:GitCommitId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing groups archive with id '%s'".format(archiveId.value))
@@ -290,24 +309,24 @@ class ItemArchiveManagerImpl(
 
   private[this] def lastGitCommitId = GitCommitId(revisionProvider.getAvailableRevTreeId.getName)
   
-  override def importHeadAll(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+  override def importHeadAll(commiter:PersonIdent, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing full archive from HEAD")
-    this.importAll(lastGitCommitId, actor, reason: Option[String], includeSystem)
+    this.importAll(lastGitCommitId, commiter, actor, reason: Option[String], includeSystem)
   }
   
-  override def importHeadRules(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+  override def importHeadRules(commiter:PersonIdent, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing rules archive from HEAD")
-    this.importRules(lastGitCommitId, actor, reason: Option[String], includeSystem)
+    this.importRules(lastGitCommitId, commiter, actor, reason: Option[String], includeSystem)
   }
   
-  override def importHeadTechniqueLibrary(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+  override def importHeadTechniqueLibrary(commiter:PersonIdent, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing technique library archive from HEAD")
-    this.importTechniqueLibrary(lastGitCommitId, actor, reason: Option[String], includeSystem)
+    this.importTechniqueLibrary(lastGitCommitId, commiter, actor, reason: Option[String], includeSystem)
   }
   
-  override def importHeadGroupLibrary(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+  override def importHeadGroupLibrary(commiter:PersonIdent, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing groups archive from HEAD")
-    this.importGroupLibrary(lastGitCommitId, actor, reason: Option[String], includeSystem)
+    this.importGroupLibrary(lastGitCommitId, commiter, actor, reason: Option[String], includeSystem)
   }
   
   override def getFullArchiveTags : Box[Map[DateTime,GitArchiveId]] = this.getTags()
@@ -341,4 +360,37 @@ class ItemArchiveManagerImpl(
       globalTags ++ crTags
     }
   }
+}
+
+/*
+ * In a near future we should factorise code in archive manager to have only 2
+ * implementation (Partial, Full) instead of 4 (All, groups, directives, rules)
+ */
+trait ArchiveMode {
+  def configureRm(rmCmd:RmCommand):RmCommand
+  def configureCheckout(coCmd:CheckoutCommand):CheckoutCommand
+}
+
+case class PartialArchive(directory:String) extends ArchiveMode {
+  def configureRm(rmCmd:RmCommand) = rmCmd.addFilepattern(directory)
+  def configureCheckout(coCmd:CheckoutCommand) = coCmd.addPath(directory)
+}
+
+object GroupArchive            extends PartialArchive("groups/")
+object RuleArchive             extends PartialArchive("rules/")
+object TechniqueLibraryArchive extends PartialArchive("directives/")
+
+case object FullArchive extends ArchiveMode {
+
+  def configureRm(rmCmd:RmCommand) =
+    TechniqueLibraryArchive.configureRm(
+      RuleArchive.configureRm(
+        GroupArchive.configureRm(rmCmd)
+    ) )
+
+  def configureCheckout(coCmd:CheckoutCommand) =
+    TechniqueLibraryArchive.configureCheckout(
+      RuleArchive.configureCheckout(
+        GroupArchive.configureCheckout(coCmd)
+    ) )
 }
