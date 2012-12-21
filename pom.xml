@@ -267,7 +267,7 @@ limitations under the License.
     <scala-version>2.9.2</scala-version>
     <scala-lift-version>2.9.1</scala-lift-version>
     <lift-version>2.4</lift-version>
-    <slf4j-version>1.7.2</slf4j-version>
+    <slf4j-version>1.6.6</slf4j-version>
     <logback-version>1.0.7</logback-version>
     <junit-version>4.11</junit-version>
     <jodatime-version>2.1</jodatime-version>
