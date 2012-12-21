@@ -177,7 +177,27 @@ trait GitArchiverFullCommitUtils extends Loggable {
       GitArchiveId(path, GitCommitId(commit.getName), commiter)
     }
   }
-  
+
+  def restoreCommitAtHead(commiter:PersonIdent, commitMessage:String, commit:GitCommitId, archiveMode:ArchiveMode) = {
+    tryo {
+      /* Configure rm with archive mode and call it
+       *this will delete latest (HEAD) configuration files from the repository
+       */
+      archiveMode.configureRm(gitRepo.git.rm).call
+
+      /* Configure checkout with archive mode, set reference commit to target commit,
+       * set master as branches to update, and finally call checkout on it
+       *This will add the content from the commit to be restored on the HEAD of branch master
+       */
+      archiveMode.configureCheckout(gitRepo.git.checkout).setStartPoint(commit.value).setName("master").call
+
+      // The commit will actually delete old files and replace them with those from the checkout
+      val newCommit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
+      logger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommit.getName()))
+      newCommit
+    }
+  }
+
   /**
    * List tags and their date for that use of commitFullGitPathContentAndTag
    * The DateTime is the one from the name, which may differ from the 
