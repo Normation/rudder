@@ -306,6 +306,7 @@ class FusionReportUnmarshaller(
         case "vmware" => report.machine.copy(machineType = VirtualMachineType(VMWare) )
         case "qemu" => report.machine.copy(machineType = VirtualMachineType(QEmu) )
         case "solariszone" => report.machine.copy(machineType = VirtualMachineType(SolarisZone) )
+        case _ => report.machine.copy(machineType = VirtualMachineType(UnknownVmType) )
       }
     }
         
