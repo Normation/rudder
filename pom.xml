@@ -256,7 +256,7 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Maven plugin version -->
-    <scala-maven-plugin-version>3.0.2</scala-maven-plugin-version>
+    <scala-maven-plugin-version>3.1.0</scala-maven-plugin-version>
 
     <!-- Libraries version that MUST be used in all children project -->
 
@@ -267,15 +267,15 @@ limitations under the License.
     <scala-version>2.9.2</scala-version>
     <scala-lift-version>2.9.1</scala-lift-version>
     <lift-version>2.4</lift-version>
-    <slf4j-version>1.6.4</slf4j-version>
-    <logback-version>1.0.3</logback-version>
-    <junit-version>4.8.2</junit-version>
+    <slf4j-version>1.7.2</slf4j-version>
+    <logback-version>1.0.7</logback-version>
+    <junit-version>4.11</junit-version>
     <jodatime-version>2.1</jodatime-version>
-    <commons-io-version>2.3</commons-io-version>
-    <specs2-version>1.10</specs2-version>
+    <commons-io-version>2.4</commons-io-version>
+    <specs2-version>1.12.3</specs2-version>
     <spring-version>3.1.1.RELEASE</spring-version>
     <spring-security-version>3.1.0.RELEASE</spring-security-version>
-    <squeryl-version>0.9.5</squeryl-version>
+    <squeryl-version>0.9.5-4</squeryl-version>
   </properties>
   
   <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
