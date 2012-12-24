@@ -6,8 +6,8 @@
 jQuery(function($){
 	$.datepicker.regional['ro'] = {
 		closeText: 'Închide',
-		prevText: '&laquo; Luna precedentă',
-		nextText: 'Luna următoare &raquo;',
+		prevText: '&#xAB; Luna precedentă',
+		nextText: 'Luna următoare &#xBB;',
 		currentText: 'Azi',
 		monthNames: ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie',
 		'Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'],
@@ -16,7 +16,7 @@ jQuery(function($){
 		dayNames: ['Duminică', 'Luni', 'Marţi', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'],
 		dayNamesShort: ['Dum', 'Lun', 'Mar', 'Mie', 'Joi', 'Vin', 'Sâm'],
 		dayNamesMin: ['Du','Lu','Ma','Mi','Jo','Vi','Sâ'],
-		weekHeader: 'Sătechnique',
+		weekHeader: 'Săpt',
 		dateFormat: 'dd.mm.yy',
 		firstDay: 1,
 		isRTL: false,
