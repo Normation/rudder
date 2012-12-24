@@ -272,7 +272,7 @@ limitations under the License.
     <junit-version>4.11</junit-version>
     <jodatime-version>2.1</jodatime-version>
     <commons-io-version>2.4</commons-io-version>
-    <specs2-version>1.12.3</specs2-version>
+    <specs2-version>1.11</specs2-version>
     <spring-version>3.1.1.RELEASE</spring-version>
     <spring-security-version>3.1.0.RELEASE</spring-security-version>
     <squeryl-version>0.9.5-4</squeryl-version>
