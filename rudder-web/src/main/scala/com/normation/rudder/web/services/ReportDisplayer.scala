@@ -167,7 +167,7 @@ class ReportDisplayer(
              "#directiveLink *" #> directiveEditLink &
              "#directiveInfo *" #>{
                         <b>{dir.name}</b>
-                        <span class="tooltipable" tooltipid={tooltipid}>
+                        <span class="tooltipable" tooltipid={tooltipid} title="">
                           <img   src="/images/icInfo.png" style="padding-left:4px"/>
                         </span>
                          <span/>
@@ -249,7 +249,7 @@ class ReportDisplayer(
   
   def asyncDisplay(node : NodeInfo) : NodeSeq = { 
       Script(OnLoad(JsRaw("""
-              | $("#%s").bind( "tabsshow", function(event, ui) {
+              | $("#%s").bind( "show", function(event, ui) {
               | if(ui.panel.id== '%s') { %s; }
               | });
               """.stripMargin('|').format("node_tabs",
