@@ -237,13 +237,17 @@ var buildDirectiveTree = function(id, initially_select , appContext) {
 /*
  * Group tree
  */
-var buildGroupTree = function(id, appContext, initially_select, select_multiple_modifier) {
-  if(select_multiple_modifier !== 'undefined') {
+var buildGroupTree = function(id, appContext, initially_select, select_multiple_modifier, select_node) {
+  if(select_multiple_modifier !== undefined) {
     select_limit = -1;
   } else {
     select_multiple_modifier = "";
     select_limit = 1;
   }
+  if(select_node == undefined) {
+    select_node = false; 
+  } 
+  
   $(id).bind("loaded.jstree", function (event, data) {
     data.inst.open_all(-1);
   }).jstree({
@@ -269,7 +273,7 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
           "start_drag" : false,
           "select_node" : function(e) {
         	  this.toggle_node(e);
-        	  return false;
+        	  return select_node;
           }
         },
         "category" : {
@@ -277,7 +281,7 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
           "valid_children" : [ "category", "group" , "special_target" ],
           "select_node" : function(e) {
         	  this.toggle_node(e);
-        	  return false;
+        	  return select_node;
           }
         },
         "group" : {
