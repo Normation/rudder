@@ -486,7 +486,7 @@ class RuleGrid(
                   val tooltipId = Helpers.nextFuncName
                   val why = seq.map { case (pi, upt, pt) => "Policy " + pi.name + " disabled" }.mkString(", ")
 
-                 <span class="tooltip tooltipable" tooltipid={tooltipId}>Partially applied</span>
+                 <span class="tooltip tooltipable" title="" tooltipid={tooltipId}>Partially applied</span>
                  <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
               case x:NotAppliedStatus =>
                 val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
@@ -502,7 +502,7 @@ class RuleGrid(
                  )}
                
                 val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ") 
-                <span class="tooltip tooltipable" tooltipid={line.rule.id.value}>Not applied</span>
+                <span class="tooltip tooltipable" title="" tooltipid={line.rule.id.value}>Not applied</span>
                  <div class="tooltipContent" id={line.rule.id.value}><h3>Reason(s)</h3><div>{why}</div></div>
             }
           }</b></td>

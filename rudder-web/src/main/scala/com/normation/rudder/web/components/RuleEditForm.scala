@@ -747,7 +747,7 @@ class RuleEditForm(
       case x => new JsTreeNode {
          override def body =  {
            val tooltipid = Helpers.nextFuncName
-           <span class="treeGroupName tooltipable" tooltipid={tooltipid} >
+           <span class="treeGroupName tooltipable" title="" tooltipid={tooltipid} >
              {targetInfo.name} 
              <span title={targetInfo.description} class="greyscala">
                (special)
