@@ -498,7 +498,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           val tooltipid = Helpers.nextFuncName
           SHtml.a(
             onClickNode _,  
-            <span class="treeActiveTechniqueName tooltipable" tooltipid={tooltipid}>
+            <span class="treeActiveTechniqueName tooltipable" title="" tooltipid={tooltipid}>
               {technique.name}
             </span>
             <div class="tooltipContent" id={tooltipid}>
@@ -529,7 +529,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         override def body = {
           val tooltipid = Helpers.nextFuncName
           val nSeq = {
-            <span class="treeDirective tooltipable" tooltipid={tooltipid}>
+            <span class="treeDirective tooltipable" title="" tooltipid={tooltipid}>
               {directive.name}
             </span>
             <div class="tooltipContent" id={tooltipid}>
@@ -561,7 +561,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       override def body = { 
         val tooltipid = Helpers.nextFuncName
         ( <a href="#">
-            <span class="treeActiveTechniqueCategoryName tooltipable" tooltipid={tooltipid}>
+            <span class="treeActiveTechniqueCategoryName tooltipable" title="" tooltipid={tooltipid}>
               {Text(category.name)}
             </span>
           </a>
