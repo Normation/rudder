@@ -63,11 +63,15 @@ var #table_var#;
  * tooltipid 
  */
 function createTooltip() {
-	$(".tooltipable").tooltip({
+  $(".tooltipable").tooltip({
+			show: {
+				effect: "none",
+                delay: 100
+            },
 			content: function() {
-		    return $("#"+$(this).attr("tooltipid")).html();
-		}
-		});
+		      return $("#"+$(this).attr("tooltipid")).html();
+		    }
+  });
 }
 
 /* popups */
