@@ -23,15 +23,37 @@
     <div class="portlet-content">
 
       <div class="intro">
-        <div>Rudder stores all reports received from nodes in a database. These reports are used to calculate compliance for Rules applied to Nodes. The database can grow quite large, and keeping older reports is usually useless if you don't need to examine compliance data in the past. This page enables you to archive them to limit disk space usage growth.</div>
+        <div>
+          Rudder stores all reports received from nodes in a database.
+          These reports are used to calculate compliance for Rules applied
+          to Nodes. The database can grow quite large, and keeping older
+          reports is usually useless if you don't need to examine compliance
+          data in the past. This page enables you to archive or delete them to
+          limit disk space usage.
+        </div>
       </div>
       <hr class="spacer" />
 
       <div class="lift:administration.DatabaseManagement.display">
 
         <div class="inner-portlet">
-          <div class="inner-portlet-header">Currently stored
-            reports</div>
+          <div class="inner-portlet-header">Active
+            reports
+          </div>
+          <div class="intro">
+            <div>
+              Active reports are stored in an SQL table with full indexing.
+              Storing large quantities may consume considerable disk space,
+              and generally slow Rudder down. Active reports are required
+              to calculate current compliance, and are available for problem
+              analysis in the "Technical logs" tab of a node's details.
+              <br/> <span style="text-decoration:underline">Note:</span>
+               When reports are archived or deleted, they are removed from
+               the active reports table. However, this will <b>not</b>
+               immediately free up disk space (but new active reports will
+               not use any extra space). See the Rudder User Documentation
+               to recover this space.
+            </div></div>
           <div class="inner-portlet-content">
             <table class="database-info-table">
               <tr>
@@ -55,6 +77,18 @@
 
         <div class="inner-portlet">
           <div class="inner-portlet-header">Archived reports</div>
+            <div class="intro">
+              <div>
+                Archived reports are stored in an SQL table without any indexes,
+                thus providing a substantial saving on disk space required to
+                store them compared to the current reports above. Archived
+                reports will not be available in the "Technical logs" tab of
+                a node's details. However, they remain available for future
+                analysis by a plugin or an expert user.
+                <br/>  <span style="text-decoration:underline">Note:</span> When
+                archived reports are deleted, disk space is freed immediately.
+              </div>
+            </div>
           <div class="inner-portlet-content">
             <table class="database-info-table">
               <tr>
@@ -67,30 +101,29 @@
                 <td><b><span id="newestArchivedEntry">[Here
                       comes the newest archived entry]</span></b></td>
               </tr>
+              <tr>
+                <td>Total disk space used by archived reports:</td>
+                <td><b><span id="archiveSize">[here
+                      comes the archive size]</span></b></td>
+              </tr>
             </table>
           </div>
         </div>
 
         <div class="inner-portlet">
-          <div class="inner-portlet-header">Archive reports</div>
-            <div class="intro">
-              <div>
-                When reports are archived, they are removed from the active reports table.
-                However, this will <b>not</b> immediately free up disk space
-                (but new active reports will not use any extra space).
-                See the Rudder User Documentation to recover this space.
-              </div>
-            </div>
+          <div class="inner-portlet-header">Clean reports</div>
           <div class="inner-portlet-content">
             <table class="database-info-table">
               <tr>
                 <td colspan="2">
                   <form class="lift:form.ajax">
                     <div>
-                      Archive all reports older than: <input
+                    <span id="cleanParam">
+                      <span id="modeSelector"/> all reports older than: <input
                         id="reportFromDate" value="" />
-                      <button id="archiveReports">Archive
-                        reports</button>
+                      <button id="archiveReports">Start cleaning
+                        reports</button></span>
+                        <span id="confirm"> </span>
                     </div>
                     <lift:Msgs>
                       <lift:error_msg class="error" />
