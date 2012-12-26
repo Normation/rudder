@@ -486,7 +486,7 @@ class DirectiveEditForm(
     (0 to 10).map(i => (i, i.toString)),
     defaultValue = directive.priority) {
     override val displayHtml = 
-      <span class="tooltipable greytooltip" tooltipid="priorityId">
+      <span class="tooltipable greytooltip" title="" tooltipid="priorityId">
         <b>Priority:</b>
         <div class="tooltipContent" id="priorityId">
           If a node is configured with several Directive derived from that template, 
