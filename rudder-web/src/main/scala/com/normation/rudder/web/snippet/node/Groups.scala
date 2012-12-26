@@ -375,7 +375,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       SHtml.a(
           {() => onClickCategory(category)}
         , (
-            <span class="treeGroupCategoryName tooltipable" tooltipid={tooltipId}>{category.name}</span>
+            <span class="treeGroupCategoryName tooltipable" title="" tooltipid={tooltipId}>{category.name}</span>
             <div class="tooltipContent" id={tooltipId}>{if(category.description.size > 0) category.description else category.name}</div>
           )
       )
@@ -425,7 +425,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
            val tooltipId = Helpers.nextFuncName
            
            (
-             <span class="treeGroupName tooltipable" tooltipid={tooltipId} >{targetInfo.name} 
+             <span class="treeGroupName tooltipable" title="" tooltipid={tooltipId} >{targetInfo.name} 
                <span class="greyscala">(special)</span>
              </span>
              <div class="tooltipContent" id={tooltipId}>{
@@ -454,7 +454,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       SHtml.a(
         onClickNode _,  
         (
-          <span class="treeGroupName tooltipable" tooltipid={tooltupId}>{List(group.name,group.isDynamic?"dynamic"|"static").mkString(": ")}</span>
+          <span class="treeGroupName tooltipable" title="" tooltipid={tooltupId}>{List(group.name,group.isDynamic?"dynamic"|"static").mkString(": ")}</span>
           <div class="tooltipContent" id={tooltupId}>{
             if(group.description.size > 0) group.description else group.name
           }</div>
