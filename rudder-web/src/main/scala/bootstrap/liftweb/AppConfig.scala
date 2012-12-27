@@ -104,6 +104,7 @@ import com.normation.rudder.migration.EventLogsMigration_10_2
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.migration.XmlMigration_10_2
 import com.normation.rudder.migration.EventLogMigration_10_2
+import net.liftweb.common._
 
 /**
  * Spring configuration for services
@@ -204,6 +205,24 @@ class AppConfig extends Loggable {
   
   @Value("${rudder.batch.techniqueLibrary.updateInterval}")
   var ptlibUpdateInterval = 60 * 5 //five minutes
+
+  @Value("${rudder.batch.reportsCleaner.archive.TTL}")
+  var reportCleanerArchiveTTL = AutomaticReportsCleaning.defaultArchiveTTL
+
+  @Value("${rudder.batch.reportsCleaner.delete.TTL}")
+  var reportCleanerDeleteTTL = AutomaticReportsCleaning.defaultDeleteTTL
+
+  @Value("${rudder.batch.reportsCleaner.frequency}")
+  var reportCleanerFrequency = AutomaticReportsCleaning.defaultDay
+
+  @Value("${rudder.batch.reportsCleaner.runtime.hour}")
+  var reportCleanerRuntimeHour = AutomaticReportsCleaning.defaultHour
+
+  @Value("${rudder.batch.reportsCleaner.runtime.minute}")
+  var reportCleanerRuntimeMinute = AutomaticReportsCleaning.defaultMinute
+
+  @Value("${rudder.batch.reportsCleaner.runtime.day}")
+  var reportCleanerRuntimeDay = "sunday"
 
   @Value("${rudder.techniqueLibrary.git.refs.path}")
   var ptRefsPath = ""
@@ -959,6 +978,26 @@ class AppConfig extends Loggable {
     , dyngroupUpdateInterval
   )
 
+
+  @Bean
+  def cleanFrequency = AutomaticReportsCleaning.buildFrequency(
+      reportCleanerFrequency
+    , reportCleanerRuntimeMinute
+    , reportCleanerRuntimeHour
+    , reportCleanerRuntimeDay) match {
+    case Full(freq) => freq
+    case eb:EmptyBox => val fail = eb ?~! "automatic reports cleaner is not correct"
+      val exceptionMsg = "configuration file (/opt/rudder/etc/rudder-webapp.conf) is not correctly set, cause is %s".format(fail.msg)
+      throw new RuntimeException(exceptionMsg)
+  }
+
+  @Bean
+  def dbCleaner: AutomaticReportsCleaning = new AutomaticReportsCleaning(
+      databaseManager
+    , reportCleanerDeleteTTL
+    , reportCleanerArchiveTTL
+    , cleanFrequency
+  )
   @Bean
   def ptLibCron = new CheckTechniqueLibrary(
       techniqueRepository

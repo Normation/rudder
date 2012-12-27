@@ -37,8 +37,7 @@
       <div class="lift:administration.DatabaseManagement.display">
 
         <div class="inner-portlet">
-          <div class="inner-portlet-header">Active
-            reports
+          <div class="inner-portlet-header">Active reports
           </div>
           <div class="intro">
             <div>
@@ -57,14 +56,14 @@
           <div class="inner-portlet-content">
             <table class="database-info-table">
               <tr>
-                <td>Oldest report:</td>
-                <td><b><span id="oldestEntry">[Here
-                      comes the oldest entry]</span></b></td>
-              </tr>
-              <tr>
                 <td>Newest report:</td>
                 <td><b><span id="newestEntry">[Here
                       comes the newest entry]</span></b></td>
+              </tr>
+              <tr>
+                <td>Oldest report:</td>
+                <td><b><span id="oldestEntry">[Here
+                      comes the oldest entry]</span></b></td>
               </tr>
               <tr>
                 <td>Total disk space used by reports:</td>
@@ -92,14 +91,14 @@
           <div class="inner-portlet-content">
             <table class="database-info-table">
               <tr>
-                <td>Oldest archived report:</td>
-                <td><b><span id="oldestArchivedEntry">[Here
-                      comes the oldest archived entry]</span></b></td>
-              </tr>
-              <tr>
                 <td>Newest archived report:</td>
                 <td><b><span id="newestArchivedEntry">[Here
                       comes the newest archived entry]</span></b></td>
+              </tr>
+              <tr>
+                <td>Oldest archived report:</td>
+                <td><b><span id="oldestArchivedEntry">[Here
+                      comes the oldest archived entry]</span></b></td>
               </tr>
               <tr>
                 <td>Total disk space used by archived reports:</td>
@@ -110,8 +109,50 @@
           </div>
         </div>
 
+    <div class="inner-portlet">
+          <div class="inner-portlet-header">Automatic report cleaning</div>
+          <div class="inner-portlet-content">
+            <div class="intro">
+              <div>
+                Regular archiving and deleting of reports can be set in the
+                Rudder configuration file (/opt/rudder/etc/rudder-web.properties).
+                <br/> Enabling regular archiving and deleting of old reports is
+                highly recommended, to avoid Rudder's disk usage growing forever.
+              </div>
+            </div>
+            <div class="automaticCleanDetail">
+              Automatic report archiving is <b><span id="autoArchiveStatus">
+              [Here comes the report archiving status]</span></b>.
+              <span id="autoArchiveDetails"> All reports older than
+              <b><span id="autoArchiveDays">[Here comes the automatic report
+              archive age parameter]</span> days</b> will be archived regularly.
+              </span>
+            </div>
+            <div class="automaticCleanDetail">
+              Automatic report deleting is <b><span id="autoDeleteStatus">[Here
+              comes the report deleting status]</span></b>.
+              <span id="autoDeleteDetails"> All reports older than
+              <b><span id="autoDeleteDays">[Here comes the automatic report
+              delete age parameter]</span> days</b> will be deleted regularly.
+              </span>
+            </div>
+            <table id="automaticCleanDetails" class="database-info-table">
+              <tr>
+                <td>Frequency:</td>
+                <td><b><span id="cleanFrequency">[Here
+                      comes the archive cleaning job frequency]</span></b></td>
+              </tr>
+                <tr>
+                <td>Next run:</td>
+                <td><b><span id="nextRun">[Here
+                      comes the next run time for the archive cleaning job]</span></b></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
         <div class="inner-portlet">
-          <div class="inner-portlet-header">Clean reports</div>
+          <div class="inner-portlet-header">Manual report cleaning</div>
           <div class="inner-portlet-content">
             <table class="database-info-table">
               <tr>
@@ -134,9 +175,7 @@
             </table>
           </div>
         </div>
-
       </div>
-
     </div>
     <br />
   </div>
