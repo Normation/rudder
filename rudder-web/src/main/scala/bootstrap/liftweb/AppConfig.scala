@@ -206,22 +206,22 @@ class AppConfig extends Loggable {
   @Value("${rudder.batch.techniqueLibrary.updateInterval}")
   var ptlibUpdateInterval = 60 * 5 //five minutes
 
-  @Value("${rudder.batch.reportsCleaner.archive.TTL}")
+  @Value("${rudder.batch.reportscleaner.archive.TTL}")
   var reportCleanerArchiveTTL = AutomaticReportsCleaning.defaultArchiveTTL
 
-  @Value("${rudder.batch.reportsCleaner.delete.TTL}")
+  @Value("${rudder.batch.reportscleaner.delete.TTL}")
   var reportCleanerDeleteTTL = AutomaticReportsCleaning.defaultDeleteTTL
 
-  @Value("${rudder.batch.reportsCleaner.frequency}")
+  @Value("${rudder.batch.reportscleaner.frequency}")
   var reportCleanerFrequency = AutomaticReportsCleaning.defaultDay
 
-  @Value("${rudder.batch.reportsCleaner.runtime.hour}")
+  @Value("${rudder.batch.reportscleaner.runtime.hour}")
   var reportCleanerRuntimeHour = AutomaticReportsCleaning.defaultHour
 
-  @Value("${rudder.batch.reportsCleaner.runtime.minute}")
+  @Value("${rudder.batch.reportscleaner.runtime.minute}")
   var reportCleanerRuntimeMinute = AutomaticReportsCleaning.defaultMinute
 
-  @Value("${rudder.batch.reportsCleaner.runtime.day}")
+  @Value("${rudder.batch.reportscleaner.runtime.day}")
   var reportCleanerRuntimeDay = "sunday"
 
   @Value("${rudder.techniqueLibrary.git.refs.path}")
