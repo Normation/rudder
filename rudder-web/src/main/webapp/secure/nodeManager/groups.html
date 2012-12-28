@@ -17,24 +17,22 @@
  
   <hr class="spacer"/> 
   <div class="groupDisplay">
+  
     <lift:node.Groups.groupHierarchy>
-    <fieldset class="hierarchy">
-      <legend>Group hierarchy</legend>
-      <div>
-      <lift:Authz role="group_write">
-        <div id="newItem">
-         Here comes the New item Button
+      <div class="inner-portlet" style="float:left; margin-right:15px;">
+        <div class="inner-portlet-header">Group hierarchy</div>
+        <div class="inner-portlet-content">
+          <div>
+            <lift:Authz role="group_write">
+              <div id="newItem">Here comes the New item Button</div>
+            </lift:Authz>
+          </div>
+          <fieldset style="display:inline-block;">
+            <div id="groupTree">Here comes the Groups Tree</div>
+          </fieldset>
+          <p class="note"><b>Note:</b> Drag'n'drop items to change the hierarchy.</p>
         </div>
-      </lift:Authz>
-      <p class="green">Drag'n'drop items to change the hierarchy</p>
       </div>
-      <fieldset>
-        <div id="groupTree">
-            Here comes the Groups Tree        
-        </div>
-      </fieldset>
-   </fieldset>
-    
     </lift:node.Groups.groupHierarchy>
     
     <div id="ajaxItemContainer">
@@ -43,6 +41,7 @@
         This div gets the content of the item selected in the js tree
       </lift:ignore>
     </div>
+    
   </div>
 
   </div>

@@ -620,7 +620,6 @@ table.noMarginGrid {
 .dataTables_wrapper_top {
   padding: 6px;
   overflow: hidden;
-  display: inline-block; 
   display: block; 
   border-top: 1px solid #B4B3A8;
   border-left: 1px solid #B4B3A8;
@@ -694,7 +693,7 @@ table.noMarginGrid {
 
 .wbBaseField {
   vertical-align: middle;
-  margin-top:7px;
+  margin-top: 7px;
 }
 
 .policyDisplay {
@@ -896,7 +895,7 @@ padding:0 20px;
   margin-left: 5px;
 }
 .margins{
-  margin:8px;
+  margin: 15px 0px 8px 0px;
 }
 .spacerscala{
   float:right;
@@ -917,7 +916,7 @@ padding:0 20px;
 }
 table.searchNodes {
   width: 545px;
-  margin:0 0 0 5px;
+  margin: 0;
 }
 
 table.searchNodes tbody td.first {
@@ -969,7 +968,7 @@ tr.query_line, .query_line td {
 
 .composition {
   padding: 5px 0px 0px 5px;
-  margin: 0px 0px 0px 5px;
+  margin: 0px 0px 0px 0px;
   width: 538px;
   vertical-align: middle;
   border-left: solid 1px #ABABAB;
@@ -999,11 +998,11 @@ table#serverGrid tbody td {
 
 #serverGrid_wrapper {
   width: 545px;
-  margin:0 0 0 5px;
+  margin: 0;
 }
 
 #serverGrid_wrapper table {
-  margin:0px;
+  margin:0;
 }
 
 
@@ -1088,10 +1087,6 @@ fieldset.hierarchy {
   vertical-align: top;
 }
 
-#ajaxItemContainer {
-  display: inline-block; 
-}
-
 fieldset.groupCategory {
   width:600px;
   margin:5px;
@@ -1104,7 +1099,7 @@ fieldset.groupCategory {
    width:543px;
    border-left: 1px solid #ABABAB;
    border-right: 1px solid #ABABAB;
-   margin: 0 0 0 5px;
+   margin: 0 ;
    padding: 5px 0 5px 0;
 }
 
@@ -1146,7 +1141,7 @@ a:focus {
 structure
 **************************************/
 .subContainerReasonField {
-    width: 100%;    
+    width: 99%;    
 }
 
 div#prelude {
@@ -1865,7 +1860,7 @@ popin Alert
 #tooltip {
   position: absolute;
   z-index: 3000;
-  border: 1px solid #555;
+  border: 1px solid #666;
   background-color: #eee;
   padding: 5px;
   opacity: 0.85;
@@ -2043,6 +2038,13 @@ hr.spacer {
     margin-right: 2px;
 }
 
+.threeColReason {
+    float:left;
+    width:30%; 
+    margin-right: 2px;
+    margin-bottom: 5px;
+}
+
 .threeColErrors {
     float:left;
     margin-right: 2px;
@@ -2084,8 +2086,7 @@ legend {
 }
 
 #createANewItem {
-  margin-top:7px;
-  text-align:right;
+  margin: 5px 0px 9px 0px;
 }
 
 #createANewItemContentForm div {
@@ -2501,4 +2502,17 @@ div.ac_results {
 
 fieldset {
   border: 1px solid #B4B3A8;
+}
+
+.note {
+  color: #555555;	
+  margin: 5px 0px 0px 0px; 
+}
+
+.groupCategoryUpdateComponent {
+  width: 450px;	
+}
+
+#ajaxItemContainer {
+  float:left;
 }
