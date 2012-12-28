@@ -82,7 +82,7 @@ class UploadedFiles {
             )
           } ++ Script(OnLoad(JsRaw(""" $('#uploaded_files_grid').dataTable({
               "bJQueryUI": false, "bPaginate": false, "bInfo":false,   
-              "bAutoWidth": false, "asStripClasses": [ 'color1', 'color2' ],
+              "bAutoWidth": false, "asStripeClasses": [ 'color1', 'color2' ],
               "aoColumns": [ 
                 { "sWidth": "500px" },
                 { "sWidth": "150px" },
