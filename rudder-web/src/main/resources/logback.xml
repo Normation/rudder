@@ -63,13 +63,15 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   </appender>
   
   <!-- 
-    That property defines the directory into which log using OPSLOG 
-    appender will be write. 
+    Those properties defines the directory into which log using OPSLOG and
+    REPORTLOG appender will be writen.
     It can be overwritten when the application is launched with the
     Java system property syntax: java -DOPSLOG_DIR="/some/other/directory/"
   -->
   <property name="OPSLOG_DIR" value="/var/log/rudder/core" />
-  
+
+  <property name="REPORT_DIR" value="/var/log/rudder/compliance" />
+
   <!-- 
     A file log appender for exploitation logs about reports, outputing in a file
     The message format will be looking like syslog message:
@@ -84,7 +86,17 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
       <pattern>%d{MMM dd HH:mm:ss} ${HOSTNAME} rudder[%logger]: [%level] %msg%n</pattern>
     </encoder>
   </appender>
-   
+
+  <!--
+    A file log appender for exploitation logs about failure reports.
+  -->
+    <appender name="REPORTLOG" class="ch.qos.logback.core.FileAppender">
+    <file>${REPORT_DIR}/non-compliant-reports.log</file>
+    <append>true</append>
+        <encoder>
+      <pattern>%msg%n</pattern>
+    </encoder>
+  </appender>
 
   <!-- 
     Manage the global log level of the application.
@@ -181,4 +193,14 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
      <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
      <appender-ref ref="STDOUT" />
    </logger>
+
+   <!-- Here come non compliant reports logger -->
+
+   <logger name="non-compliant-reports" level="info" additivity="false">
+     <appender-ref ref="REPORTLOG" />
+   <!--  <appender-ref ref="REPORTSYSLOG" /> -->
+     <!-- comment the following appender if you don't want to have logs about non compliant reports in both stdout and reportlog -->
+     <appender-ref ref="STDOUT" />
+   </logger>
+
 </configuration>

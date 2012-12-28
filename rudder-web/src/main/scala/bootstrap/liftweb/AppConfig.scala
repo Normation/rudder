@@ -105,6 +105,8 @@ import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.migration.XmlMigration_10_2
 import com.normation.rudder.migration.EventLogMigration_10_2
 import net.liftweb.common._
+import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
+import com.normation.rudder.repository.squeryl._
 
 /**
  * Spring configuration for services
@@ -223,6 +225,9 @@ class AppConfig extends Loggable {
 
   @Value("${rudder.batch.databasecleaner.runtime.day}")
   var reportCleanerRuntimeDay = "sunday"
+    
+  @Value("${rudder.batch.reports.logInterval}")
+  var reportLogInterval = 1 //one minute
 
   @Value("${rudder.techniqueLibrary.git.refs.path}")
   var ptRefsPath = ""
@@ -1168,6 +1173,20 @@ class AppConfig extends Loggable {
     , ldapDirectiveRepository
     , reportingService
     , techniqueRepository)
+
+  @Bean
+  def propertyRepository = new RudderPropertiesSquerylRepository(
+      squerylDatasourceProvider
+    , reportsRepository )
+
+  @Bean
+  def automaticReportLogger = new AutomaticReportLogger(
+      propertyRepository
+    , reportsRepository
+    , ldapRuleRepository
+    , ldapDirectiveRepository
+    , nodeInfoService
+    , reportLogInterval )
 
   ////////////////////// Snippet plugins & extension register //////////////////////
   import com.normation.plugins.{ SnippetExtensionRegister, SnippetExtensionRegisterImpl }
