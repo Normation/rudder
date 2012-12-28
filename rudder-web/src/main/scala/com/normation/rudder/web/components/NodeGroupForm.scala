@@ -207,41 +207,46 @@ class NodeGroupForm(
      
   def showForm() : NodeSeq = {
      val html = SHtml.ajaxForm(
-          <div id="GroupTabs">
+
+      <div id="GroupTabs">
     <ul id="groupTabMenu">
       <li><a href="#groupParametersTab">Group parameters</a></li>
     </ul>
     <div id="groupParametersTab">
 
-     <fieldset class="groupUpdateComponent"><legend>Group: {_nodeGroup.map( x => x.name).getOrElse("Create a new group")}</legend>
-     <directive:notifications />
-     <hr class="spacer"/>
-     <directive:name/>
-     <hr class="spacer"/>
-     <directive:description/>
-     <hr class="spacer"/>
-     <directive:container/>
-     <hr class="spacer"/>
-     <directive:static/>
-     <hr class="spacer"/>
-     <fieldset class="searchNodes"><legend>Group criteria</legend>
-       <div id="SearchNodes">
-       <directive:showGroup />
+       <div class="inner-portlet">
+         <div>
+           <div class="inner-portlet-header">
+             Group details
+           </div>
+           <div class="inner-portlet-content" style="display: inline-block">
+             <directive:notifications /><hr class="spacer"/>
+             <directive:name/><hr class="spacer"/>
+             <directive:description/><hr class="spacer"/>
+             <directive:container/><hr class="spacer"/>
+             <directive:static/><hr class="spacer"/>
+             <div><div style="margin:7px 0px 5px 0px; font-weight:bold;">Group criteria:</div>
+               <div id="SearchNodes">
+                 <directive:showGroup />
+               </div>
+             </div>
+             <lift:authz role="group_edit">
+               <directive:reason />
+             </lift:authz>
+             <div >
+               <div class="margins" align="right" style="overflow:hidden;display:block;">
+                 <div style="float:left" align="left">
+                 <lift:authz role="group_write"><directive:group/></lift:authz>
+                 <lift:authz role="group_write"><directive:delete/></lift:authz>
+               </div>
+               <div style="float:right" align="right">
+                 <directive:save/>
+               </div>
+             </div>
+           </div>
+        </div>
       </div>
-     </fieldset>
-     <lift:authz role="group_edit">
-     <directive:reason />
-     </lift:authz>
-     <div class="margins" align="right">
-       <div style="float:left" align="left">
-         <lift:authz role="group_write"><directive:group/></lift:authz>
-         <lift:authz role="group_write"><directive:delete/></lift:authz>
-       </div>
-       <div style="float:right" align="right">
-         <directive:save/>
-       </div>
      </div>
-     </fieldset>
     <directive:removeForm/>
   </div>   </div>
  ++ Script(OnLoad(JsRaw("""$('#GroupTabs').tabs();
@@ -256,13 +261,14 @@ class NodeGroupForm(
       "explanation" -> crReasons.map {
         f => <div>{userPropertyService.reasonsFieldExplanation}</div>
       },       
-      "reason" -> crReasons.map {f =>
-        <fieldset class="reasonNode"><legend>Reason</legend>
+      "reason" -> crReasons.map { f =>
+        <div>
           <div style="margin-bottom:5px">
-            {userPropertyService.reasonsFieldExplanation}
+            {f.toForm_!}
           </div>
-          {f.toForm_!}
-        </fieldset>},
+          <div class="note"><b>Indication: </b>{userPropertyService.reasonsFieldExplanation}</div>
+        </div>
+      },
       "group" -> { if (CurrentUser.checkRights(Write("group")))
                 cloneButton()
               else NodeSeq.Empty
@@ -370,7 +376,7 @@ class NodeGroupForm(
   private[this] val piName = {
     new WBTextField("Group name", _nodeGroup.map( x => x.name).getOrElse("")) {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def className = "twoCol"
+      override def className = "rudderBaseFieldClassName"
       override def inputField = super.inputField %("onkeydown" , "return processKey(event , '%s')".format(saveButtonId))
       override def validations = 
         valMinLen(3, "The name must have at least 3 characters") _ :: Nil
@@ -396,11 +402,12 @@ class NodeGroupForm(
   }
   
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
-    new WBTextAreaField("Message", "") {
+    new WBTextAreaField("Reason message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  % 
         ("style" -> "height:8em;")
       override def subContainerClassName = containerClass
+      override def labelClassName = "threeColReason"
       override def validations() = {
         if(mandatory){
           valMinLen(5, "The reasons must have at least 5 characters.") _ :: Nil
@@ -432,6 +439,7 @@ class NodeGroupForm(
   private[this] val piContainer = new WBSelectField("Group container", 
       (categories.open_!.map(x => (x.id.value -> x.name))),
       parentCategoryId) {
+    override def className = "rudderBaseFieldSelectClassName"
   }
   
   private[this] val formTracker = {
