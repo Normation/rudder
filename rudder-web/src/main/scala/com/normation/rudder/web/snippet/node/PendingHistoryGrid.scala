@@ -107,7 +107,7 @@ object PendingHistoryGrid extends Loggable {
       """.replaceAll("#table_var#",jsVarNameForId)) &  OnLoad(
         JsRaw("""
          #table_var# =  $('#pending_server_history').dataTable({
-            "asStripClasses": [ 'color1', 'color2' ],
+            "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" :true,
             "bLengthChange": true,

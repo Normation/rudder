@@ -42,7 +42,7 @@ var #table_var#;
         }
 
 #table_var# = $('').dataTable({
-            "asStripClasses": [ 'color1', 'color2' ],
+            "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": ,
             "bFilter" :,
             "bPaginate" :,

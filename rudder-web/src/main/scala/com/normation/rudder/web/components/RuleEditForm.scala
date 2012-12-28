@@ -1021,7 +1021,7 @@ class RuleEditForm(
           $('img', this).attr( 'src', "%1$s/images/details_close.png" );
           var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
           $('div.innerDetails table', nDetailsRow).dataTable({
-            "asStripClasses": [ 'color1', 'color2' ],
+            "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" : false,
             "bPaginate" : false,
@@ -1075,7 +1075,7 @@ class RuleEditForm(
        $('img', this).attr( 'src', "%1$s/images/details_close.png" );
        var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
        var Otable2 =  $('div.innerDetails table:first', nDetailsRow).dataTable({
-         "asStripClasses": [ 'color1', 'color2' ],
+         "asStripeClasses": [ 'color1', 'color2' ],
          "bAutoWidth": false,
          "bFilter" : false,
          "bPaginate" : false,
@@ -1157,7 +1157,7 @@ class RuleEditForm(
                   %s
                   var anOpen = [];
                   var oTable = $('#reportsGrid').dataTable( {
-                    "asStripClasses": [ 'color1', 'color2' ],
+                    "asStripeClasses": [ 'color1', 'color2' ],
                     "bAutoWidth": false,
                     "bFilter" : true,
                     "bPaginate" : true,
@@ -1342,7 +1342,7 @@ class RuleEditForm(
         <hr class="spacer"/>
         <br/> ++ Script(OnLoad(JsRaw("""
           $('#nodeReportGrid').dataTable({
-                "asStripClasses": [ 'color1', 'color2' ],
+                "asStripeClasses": [ 'color1', 'color2' ],
                 "bAutoWidth": false,
                 "bFilter" : true,
                 "bPaginate" : true,
@@ -1440,7 +1440,7 @@ class RuleEditForm(
           ) (missingGridXml(gridId) ) ++
             Script( JsRaw("""
              var oTable%1$s = $('#%2$s').dataTable({
-               "asStripClasses": [ 'color1', 'color2' ],
+               "asStripeClasses": [ 'color1', 'color2' ],
                "bAutoWidth": false,
                "bFilter" : true,
                "bPaginate" : true,
@@ -1523,7 +1523,7 @@ class RuleEditForm(
          ) (unexpectedGridXml(gridId) ) ++
             Script( JsRaw("""
              var oTable%1$s = $('#%2$s').dataTable({
-               "asStripClasses": [ 'color1', 'color2' ],
+               "asStripeClasses": [ 'color1', 'color2' ],
                "bAutoWidth": false,
                "bFilter" : true,
                "bPaginate" : true,
@@ -1697,7 +1697,7 @@ class RuleEditForm(
                     $('img', this).attr( 'src', "%2$s/images/details_close.png" );
                     var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
                     $('div.innerDetails table', nDetailsRow).dataTable({
-                      "asStripClasses": [ 'color1', 'color2' ],
+                      "asStripeClasses": [ 'color1', 'color2' ],
                       "bAutoWidth": false,
                       "bFilter" : false,
                       "bPaginate" : false,
@@ -1739,7 +1739,7 @@ class RuleEditForm(
                 var fnData = oTable%1$s.fnGetData( nTr );
                 var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails%1$s(oTable%1$s, nTr), 'details' );
                 var Otable2 = $('div.innerDetails table:first', nDetailsRow).dataTable({
-                  "asStripClasses": [ 'color1', 'color2' ],
+                  "asStripeClasses": [ 'color1', 'color2' ],
                   "bAutoWidth": false,
                   "bFilter" : false,
                   "bPaginate" : false,
@@ -1786,7 +1786,7 @@ class RuleEditForm(
             }
             var anOpen%1$s = [];
              var oTable%1$s = $('#%2$s').dataTable({
-               "asStripClasses": [ 'color1', 'color2' ],
+               "asStripeClasses": [ 'color1', 'color2' ],
                "bAutoWidth": false,
                "bFilter" : true,
                "bPaginate" : true,

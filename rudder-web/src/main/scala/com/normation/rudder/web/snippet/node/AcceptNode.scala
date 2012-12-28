@@ -257,7 +257,7 @@ class AcceptNode {
           JsRaw("""
             /* Set the table layout */
             $('#pendingNodeConfirm').dataTable({
-              "asStripClasses": [ 'color1', 'color2' ],
+              "asStripeClasses": [ 'color1', 'color2' ],
               "bAutoWidth": false,
               "bFilter" :false,
               "bLengthChange": false,
