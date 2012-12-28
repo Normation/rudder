@@ -109,7 +109,7 @@ object DisplayNode extends Loggable {
             "bPaginate": true,
             "bLengthChange": true,
             "sPaginationType": "full_numbers",
-            "asStripClasses": [ 'color1', 'color2' ] ,
+            "asStripeClasses": [ 'color1', 'color2' ] ,
             "oLanguage": {
               "sSearch": ""
             },
@@ -148,7 +148,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                 "bJQueryUI": true,
                 "bRetrieve": true,
                 "bFilter": true,
-                "asStripClasses": [ 'color1', 'color2' ],
+                "asStripeClasses": [ 'color1', 'color2' ],
                 "oLanguage": {
                   "sSearch": ""
                 },
@@ -171,7 +171,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                 "bRetrieve": true,
                 "sPaginationType": "full_numbers",
                 "bFilter": true,
-                "asStripClasses": [ 'color1', 'color2' ],
+                "asStripeClasses": [ 'color1', 'color2' ],
                 "bPaginate": true,
                 "aoColumns": %s , 
                 "aaSorting": [[ %s, "asc" ]], 
