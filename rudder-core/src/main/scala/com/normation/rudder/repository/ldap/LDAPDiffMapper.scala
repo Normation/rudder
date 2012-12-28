@@ -297,11 +297,12 @@ class LDAPDiffMapper(
         case noop:LDIFNoopChangeRecord => Full(None)
         
         /*
-         * We don't keep trace of group modification, just log it
+         * We have to keep a track of moves beetween category, if not git  repository would not be synchronized with LDAP
          */
         case move:LDIFModifyDNChangeRecord => 
           logger.info("Group DN entry '%s' moved to '%s'".format(beforeChangeEntry.dn,move.getNewDN))
-          Full(None)
+          val diff= mapper.entry2NodeGroup(beforeChangeEntry).map(oldGroup => ModifyNodeGroupDiff(oldGroup.id, oldGroup.name))
+          Full(diff)
           
         case _ => Failure("Bad change record type for requested action 'update node group': %s".format(change))
       }
