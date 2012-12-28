@@ -59,6 +59,9 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   
   val reportsTable = "ruddersysevents"
   val archiveTable = "archivedruddersysevents"
+
+  val idQuery = "select id, executiondate, nodeid, ruleid, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from ruddersysevents where 1=1 ";
+
   // find the last full run per node
   // we are not looking for older request that 15 minutes for the moment
   val lastQuery = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where ruleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and executionTimeStamp > (now() - interval '15 minutes') group by nodeid"
@@ -332,6 +335,45 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
          Failure(msg,Full(e),Empty)
      }
   }
+
+  def getHighestId : Box[Int] = {
+    val query = "select id from RudderSysEvents order by id desc limit 1"
+    try {
+      jdbcTemplate.query(query,IdMapper).toSeq match {
+        case seq if seq.size > 1 => Failure("Too many answer for the highest id in the database")
+        case seq => seq.headOption ?~! "No report where found in database (and so, we can not get highest id)"
+      }
+    } catch {
+      case e:DataAccessException =>
+        logger.error("Could not fetch highest id in the database. Reason is : %s".format(e.getMessage()))
+        Failure(e.getMessage())
+    }
+  }
+
+  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Reports,Int)]] = {
+    val query = "%s and (%s) order by executiondate desc limit 100".format(idQuery,kinds.map("eventtype='%s'".format(_)).mkString(" or "))
+      try {
+        Full(jdbcTemplate.query(query,ReportsWithIdMapper).toSeq)
+      } catch {
+        case e:DataAccessException =>
+        logger.error("Could not fetch last hundred reports in the database. Reason is : %s".format(e.getMessage()))
+        Failure("Could not fetch last hundred reports in the database. Reason is : %s".format(e.getMessage()))
+      }
+  }
+  def getErrorReportsBeetween(lower : Int, upper:Int,kinds:List[String]) : Box[Seq[Reports]] = {
+    if (lower>=upper)
+      Empty
+    else{
+      val query = "%s and id between '%d' and '%d' and (%s) order by executiondate asc".format(baseQuery,lower,upper,kinds.map("eventtype='%s'".format(_)).mkString(" or "))
+      try {
+        Full(jdbcTemplate.query(query,ReportsMapper).toSeq)
+      } catch {
+        case e:DataAccessException =>
+        logger.error("Could not fetch reports between ids %d and %d in the database. Reason is : %s".format(lower,upper,e.getMessage()))
+        Failure("Could not fetch reports between ids %d and %d in the database. Reason is : %s".format(lower,upper,e.getMessage()))
+      }
+    }
+  }
 }
 
 object ReportsMapper extends RowMapper[Reports] {
@@ -358,5 +400,16 @@ object ExecutionTimeMapper extends RowMapper[DateTime] {
 object DatabaseSizeMapper extends RowMapper[Long] {
    def mapRow(rs : ResultSet, rowNum: Int) : Long = {
         rs.getLong("size")
+    }
+}
+object IdMapper extends RowMapper[Int] {
+   def mapRow(rs : ResultSet, rowNum: Int) : Int = {
+        rs.getInt("id")
+    }
+}
+
+object ReportsWithIdMapper extends RowMapper[(Reports,Int)] {
+  def mapRow(rs : ResultSet, rowNum: Int) : (Reports,Int) = {
+    (ReportsMapper.mapRow(rs, rowNum),IdMapper.mapRow(rs, rowNum))
     }
 }
