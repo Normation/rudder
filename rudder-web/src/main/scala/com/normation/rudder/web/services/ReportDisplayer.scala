@@ -285,7 +285,7 @@ class ReportDisplayer(
         %s
        var anOpen = [];
        var oTable = $('#reportsGrid').dataTable( {
-         "asStripClasses": [ 'color1', 'color2' ],
+         "asStripeClasses": [ 'color1', 'color2' ],
          "bAutoWidth": false,
          "bFilter" : true,
          "bPaginate" : true,
@@ -338,7 +338,7 @@ class ReportDisplayer(
             $('img', this).attr( 'src', "%1$s/images/details_close.png" );
             var nDetailsRow = Otable3.fnOpen( nTr, fnFormatDetails(Otable3, nTr), 'details' );
           $('div.innerDetails table', nDetailsRow).dataTable({
-            "asStripClasses": [ 'color1', 'color2' ],
+            "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" : false,
             "bPaginate" : false,
@@ -396,7 +396,7 @@ class ReportDisplayer(
           $('img', this).attr( 'src', "%1$s/images/details_close.png" );
           var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
           var Otable3 = $('div.innerDetails table', nDetailsRow).dataTable({
-            "asStripClasses": [ 'color1', 'color2' ],
+            "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" : false,
             "bPaginate" : false,
@@ -451,7 +451,7 @@ class ReportDisplayer(
        $('img', this).attr( 'src', "%1$s/images/details_close.png" );
        var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
          var Otable2 =  $('div.innerDetails table:first', nDetailsRow).dataTable({
-         "asStripClasses": [ 'color1', 'color2' ],
+         "asStripeClasses": [ 'color1', 'color2' ],
          "bAutoWidth": false,
          "bFilter" : false,
          "bPaginate" : false,
@@ -664,7 +664,7 @@ class ReportDisplayer(
           ) (missingGridXml ) ++
             Script( JsRaw("""
              var oTable%1$s = $('#%2$s').dataTable({
-               "asStripClasses": [ 'color1', 'color2' ],
+               "asStripeClasses": [ 'color1', 'color2' ],
                "bAutoWidth": false,
                "bFilter" : true,
                "bPaginate" : true,
@@ -751,7 +751,7 @@ class ReportDisplayer(
          ) (unexpectedGridXml ) ++
             Script( JsRaw("""
              var oTable%1$s = $('#%2$s').dataTable({
-               "asStripClasses": [ 'color1', 'color2' ],
+               "asStripeClasses": [ 'color1', 'color2' ],
                "bAutoWidth": false,
                "bFilter" : true,
                "bPaginate" : true,

@@ -139,7 +139,7 @@ class SrvGrid {
         JsRaw("""
           /* Event handler function */
           #table_var# = $('#%s').dataTable({
-            "asStripClasses": [ 'color1', 'color2' ],
+            "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" :true,
             "bPaginate" :%s,
