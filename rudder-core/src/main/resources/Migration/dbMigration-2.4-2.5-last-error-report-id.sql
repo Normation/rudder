@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2012 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,30 +32,10 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.logger
 
-import org.slf4j.LoggerFactory
-import net.liftweb.common.Logger
-import net.liftweb.common.Failure
-import com.normation.rudder.domain.reports.bean.ReportType
-import com.normation.rudder.domain.reports.bean.ErrorReportType
-import com.normation.rudder.domain.reports.bean.RepairedReportType
-import com.normation.rudder.domain.reports.bean.Reports
+-- Create an empty table to store last report id parsed by error report logger
 
-object ReportLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("report")
-}
-
-
-object AllReportLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("non-compliant-reports")
-
-  def FindLogger(reportType : String) :((=> AnyRef) => Unit) = reportType match{
-    case Reports.RESULT_ERROR    => error
-    case Reports.RESULT_REPAIRED => warn
-    case Reports.LOG_WARN        => warn
-    case _                       => info
-  }
-}
-
-
+CREATE TABLE RudderProperties(
+  name text PRIMARY KEY
+, value text
+);

@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2012 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,30 +32,20 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.logger
+package com.normation.rudder.repository
 
-import org.slf4j.LoggerFactory
-import net.liftweb.common.Logger
-import net.liftweb.common.Failure
-import com.normation.rudder.domain.reports.bean.ReportType
-import com.normation.rudder.domain.reports.bean.ErrorReportType
-import com.normation.rudder.domain.reports.bean.RepairedReportType
-import com.normation.rudder.domain.reports.bean.Reports
+import net.liftweb.common.Box
 
-object ReportLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("report")
+trait RudderPropertiesRepository {
+
+  /**
+   * Get the last report id processed by the non compliant report Logger.
+   */
+  def getReportLoggerLastId: Box[Int]
+
+  /**
+   * Update or create (if needed the last id processed by the non compliant report logger
+   */
+  def updateReportLoggerLastId(newId: Int) : Box[Int]
+
 }
-
-
-object AllReportLogger extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("non-compliant-reports")
-
-  def FindLogger(reportType : String) :((=> AnyRef) => Unit) = reportType match{
-    case Reports.RESULT_ERROR    => error
-    case Reports.RESULT_REPAIRED => warn
-    case Reports.LOG_WARN        => warn
-    case _                       => info
-  }
-}
-
-

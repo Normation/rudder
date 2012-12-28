@@ -245,3 +245,8 @@ CREATE TABLE MigrationEventLog(
 , migrationFileFormat integer
 , description         text
 );
+
+CREATE TABLE RudderProperties(
+  name text PRIMARY KEY
+, value text
+);
