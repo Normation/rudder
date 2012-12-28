@@ -215,13 +215,13 @@ class AppConfig extends Loggable {
   @Value("${rudder.batch.reportscleaner.frequency}")
   var reportCleanerFrequency = AutomaticReportsCleaning.defaultDay
 
-  @Value("${rudder.batch.reportscleaner.runtime.hour}")
+  @Value("${rudder.batch.databasecleaner.runtime.hour}")
   var reportCleanerRuntimeHour = AutomaticReportsCleaning.defaultHour
 
-  @Value("${rudder.batch.reportscleaner.runtime.minute}")
+  @Value("${rudder.batch.databasecleaner.runtime.minute}")
   var reportCleanerRuntimeMinute = AutomaticReportsCleaning.defaultMinute
 
-  @Value("${rudder.batch.reportscleaner.runtime.day}")
+  @Value("${rudder.batch.databasecleaner.runtime.day}")
   var reportCleanerRuntimeDay = "sunday"
 
   @Value("${rudder.techniqueLibrary.git.refs.path}")

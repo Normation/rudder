@@ -49,9 +49,9 @@ object AutomaticReportsCleaning {
   /*
    *  Default parameters and properties name
    */
-  val minParam  = "rudder.batch.reportsCleaner.runtime.minute"
-  val hourParam = "rudder.batch.reportsCleaner.runtime.hour"
-  val dayParam  = "rudder.batch.reportsCleaner.runtime.day"
+  val minParam  = "rudder.batch.databasecleaner.runtime.minute"
+  val hourParam = "rudder.batch.databasecleaner.runtime.hour"
+  val dayParam  = "rudder.batch.databasecleaner.runtime.day"
   val freqParam = "rudder.batch.reportsCleaner.frequency"
 
   val defaultMinute = 0
