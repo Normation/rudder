@@ -109,7 +109,7 @@ class RuleGrid(
   
   def jsVarNameForId(tableId:String) = "oTable" + tableId
   
-  def rulesGrid(linkCompliancePopup:Boolean = true) : NodeSeq = {
+  def rulesGrid(popup:Boolean = false, linkCompliancePopup:Boolean = true) : NodeSeq = {
     (
         <div id={htmlId_rulesGridZone}>
           <div id={htmlId_modalReportsPopup} class="nodisplay">
@@ -130,7 +130,7 @@ class RuleGrid(
               </tr>
             </thead>
             <tbody>   
-            {showRulesDetails(rules,linkCompliancePopup)}
+            {showRulesDetails(popup,rules,linkCompliancePopup)}
             </tbody>
           </table> 
           <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
@@ -184,7 +184,7 @@ class RuleGrid(
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
-  private[this] def showRulesDetails(rules:Seq[Rule],linkCompliancePopup:Boolean) : NodeSeq = {
+  private[this] def showRulesDetails(popup:Boolean, rules:Seq[Rule],linkCompliancePopup:Boolean) : NodeSeq = {
     sealed trait Line { val rule:Rule }
     
     case class OKLine(
@@ -252,8 +252,8 @@ class RuleGrid(
      * - if more than one => <a href="Directive">Directive name</a>, ... + tooltip with the full list
      */
     
-    def displayPis(seq:Seq[(Directive,ActiveTechnique,Technique)]) : NodeSeq = {
-      def piLink(directive:Directive) = <a href={"""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value)}>{
+    def displayPis(popup:Boolean, seq:Seq[(Directive,ActiveTechnique,Technique)]) : NodeSeq = {
+      def piLink(directive:Directive) = if (popup) directive.name + (if (directive.isEnabled) "" else " (disabled)") else <a href={"""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value)}>{
           directive.name + (if (directive.isEnabled) "" else " (disabled)")
         }</a>
       
@@ -261,7 +261,7 @@ class RuleGrid(
       else { 
         val popupId = Helpers.nextFuncName
         val tableId_listPI = Helpers.nextFuncName
-        <span class="popcurs" onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name + (if (seq.size > 1) ", ..." else "")}</span> ++
+        <span class={if(popup)"" else "popcurs"} onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name + (if (seq.size > 1) ", ..." else "")}</span> ++
         <div id={popupId} class="nodisplay">
           <div class="simplemodal-title">
             <h1>List of Directives</h1>
@@ -337,7 +337,7 @@ class RuleGrid(
     }
     
     def displayTargets(targets: Set[RuleTargetInfo]) = {
-      def groupLink(t:RuleTargetInfo) = {
+      def groupLink(t:RuleTargetInfo) = if(popup) t.name + (if (t.isEnabled) "" else " (disabled)") else{
         val content = {t.name + (if (t.isEnabled) "" else " (disabled)")}
         t.target match {
           case GroupTarget(groupId) => 
@@ -353,7 +353,7 @@ class RuleGrid(
       else { 
         val popupId = Helpers.nextFuncName
         val tableId_listPI = Helpers.nextFuncName
-        <span class="popcurs" onclick={"openMultiPiPopup('" + popupId + "') ; return false;"}>
+        <span class={if(popup)"" else "popcurs"} onclick={"openMultiPiPopup('" + popupId + "') ; return false;"}>
           {targets.head.name + (if (targets.size > 1) ", ..." else "")}
         </span>
         <div id={popupId} class="nodisplay">
@@ -474,7 +474,7 @@ class RuleGrid(
       case line:OKLine =>
         <tr>
           <td>{ // NAME 
-            detailsLink(line.rule, line.rule.name)
+            if(popup) <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a> else detailsLink(line.rule, line.rule.name)
           }</td>
           <td>{ // OWN STATUS
             if (line.rule.isEnabledStatus) "Enabled" else "Disabled"
@@ -507,7 +507,7 @@ class RuleGrid(
             }
           }</b></td>
           <td>{ //  Directive: <not defined> or PIName [(disabled)]
-            displayPis(line.trackerVariables)
+            displayPis(popup,line.trackerVariables)
            }</td>
           <td>{ //  TARGET NODE GROUP
             displayTargets(line.targets)
@@ -542,7 +542,7 @@ class RuleGrid(
       case line:ErrorLine =>
         <tr class="error">
           <td>{ // NAME 
-            detailsLink(line.rule, line.rule.name)
+            if(popup) <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a> else detailsLink(line.rule, line.rule.name)
           }</td>
           <td>{ // DESCRIPTION
             detailsLink(line.rule, line.rule.shortDescription)
@@ -557,7 +557,7 @@ class RuleGrid(
             "N/A"
           }</td>
           <td>{ //  Directive: <not defined> or PIName [(disabled)]
-            line.trackerVariables.map(displayPis _).getOrElse("ERROR")
+            line.trackerVariables.map(displayPis(popup,_)).getOrElse("ERROR")
            }</td>
           <td>{ //  TARGET NODE GROUP
             // TODO line.targets.map(displayTarget(_)).getOrElse("ERROR")
