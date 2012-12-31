@@ -295,12 +295,14 @@ class Archives extends DispatchSnippet with Loggable {
       SHtml.selectObj[Option[GitCommitId]](buildCommitIdList, Full(selectedCommitId), { id => selectedCommitId = id}, ("id" -> archiveDateSelectId) )
     } &
     ("#"+restoreButtonId) #> { 
-      SHtml.ajaxSubmit(restoreButtonName, restore _, ("id" -> restoreButtonId), ("disabled" -> "disabled") ) ++ 
-      Script(OnLoad(JsRaw(""" correctButtons(); enableIfNonEmpty("%s", "%s");""".format(archiveDateSelectId, restoreButtonId))))
+      SHtml.ajaxSubmit(restoreButtonName, restore _, ("id" -> restoreButtonId)) ++
+      Script(OnLoad(JsRaw(""" correctButtons(); enableIfNonEmpty("%s", "%s");
+          $("#%s").prop("disabled",true);""".format(archiveDateSelectId, restoreButtonId, restoreButtonId))))
     } &
     ("#"+downloadButtonId) #> { 
-      SHtml.ajaxSubmit(downloadButtonName, download _, ("id" -> downloadButtonId), ("disabled" -> "disabled") ) ++ 
-      Script(OnLoad(JsRaw(""" correctButtons(); enableIfNonEmpty("%s", "%s");""".format(archiveDateSelectId, downloadButtonId))))
+      SHtml.ajaxSubmit(downloadButtonName, download _, ("id" -> downloadButtonId) ) ++
+      Script(OnLoad(JsRaw(""" correctButtons(); enableIfNonEmpty("%s", "%s");
+          $("#%s").prop("disabled",true);""".format(archiveDateSelectId, downloadButtonId, downloadButtonId))))
     } 
   }
   
