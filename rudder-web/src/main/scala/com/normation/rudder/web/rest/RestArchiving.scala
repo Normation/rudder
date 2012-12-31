@@ -173,11 +173,12 @@ class RestArchiving(
   }
 
   
-  private[this] def restoreLatestArchive(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
+  private[this] def restoreLatestArchive(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
     (for {
       archives   <- list()
+      commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
       (date,tag) <- Box(archives.toList.sortWith { case ( (d1,_), (d2,_) ) => d1.isAfter(d2) }.headOption) ?~! "No archive is available"
-      restored   <- restore(tag.commit,RestUtils.getActor(req),Some("estore latest archive required from REST API"),false)
+      restored   <- restore(tag.commit,commiter,RestUtils.getActor(req),Some("estore latest archive required from REST API"),false)
     } yield {
       restored
     }) match {
@@ -189,9 +190,10 @@ class RestArchiving(
     }
   }
   
-  private[this] def restoreLatestCommit(req:Req, restore: (EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
+  private[this] def restoreLatestCommit(req:Req, restore: (PersonIdent,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
     (for {
-      restored   <- restore(RestUtils.getActor(req),Some("Restore archive from latest commit on HEAD required from REST API"), false)
+      commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
+      restored   <- restore(commiter,RestUtils.getActor(req),Some("Restore archive from latest commit on HEAD required from REST API"), false)
     } yield {
       restored
     }) match {
@@ -203,12 +205,13 @@ class RestArchiving(
     }
   }
   
-  private[this] def restoreByDatetime(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,EventActor,Option[String],Boolean) => Box[GitCommitId], datetime:String, archiveType:String) = {
+  private[this] def restoreByDatetime(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,EventActor,Option[String],Boolean) => Box[GitCommitId], datetime:String, archiveType:String) = {
     (for {
       valideDate <- tryo { GitTagDateTimeFormatter.parseDateTime(datetime) } ?~! "The given archive id is not a valid archive tag: %s".format(datetime)
       archives   <- list()
+      commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
       tag        <- Box(archives.get(valideDate)) ?~! "The archive with tag '%s' is not available. Available archives: %s".format(datetime,archives.keySet.map( _.toString(GitTagDateTimeFormatter)).mkString(", "))
-      restored   <- restore(tag.commit,RestUtils.getActor(req),Some("Restore archive for date time %s requested from REST API".format(datetime)),false)
+      restored   <- restore(tag.commit,commiter,RestUtils.getActor(req),Some("Restore archive for date time %s requested from REST API".format(datetime)),false)
     } yield {
       restored
     }) match {
