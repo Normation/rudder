@@ -56,7 +56,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     <dependency>
       <groupId>com.normation</groupId>
       <artifactId>scala-ldap</artifactId>
-      <version>${scala-ldap-version}</version>
+      <version>${rudder-version}</version>
     </dependency>
     <dependency>
       <groupId>commons-lang</groupId>
