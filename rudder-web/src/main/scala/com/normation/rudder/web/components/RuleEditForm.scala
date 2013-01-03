@@ -239,7 +239,8 @@ class RuleEditForm(
     val updatedrule = ruleRepository.get(rule.id)
     (
       "#details *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
-      "#nameField" #>    <div>{crName.displayNameHtml.getOrElse("Could not fetch rule name")} {updatedrule.map(_.name).openOr("could not fetch rule name")}</div> &
+      "#nameField" #>    <div>{crName.displayNameHtml.getOrElse("Could not fetch rule name")} {updatedrule.map(_.name).openOr("could not fetch rule name")} </div> &
+      "#rudderID" #> {rule.id.value.toUpperCase} &
       "#shortDescriptionField" #>  <div>{crShortDescription.displayNameHtml.getOrElse("Could not fetch short description")} {updatedrule.map(_.shortDescription).openOr("could not fetch rule short descritption")}</div> &
       "#longDescriptionField" #>  <div>{crLongDescription.displayNameHtml.getOrElse("Could not fetch description")} {updatedrule.map(_.longDescription).openOr("could not fetch rule long description")}</div> &
       "#compliancedetails" #> { updatedrule match {
