@@ -220,48 +220,48 @@ class NodeGroupForm(
              Group details
            </div>
            <div class="inner-portlet-content" style="display: inline-block">
-             <directive:notifications />
+             <group:notifications />
              <hr class="spacer"/>
-             <directive:name/>
+             <group:name/>
              <hr class="spacer"/>
-             <directive:rudderID/>
+             <group:container/>
              <hr class="spacer"/>
-             <directive:description/>
+             <group:static/>
              <hr class="spacer"/>
-             <directive:container/>
+             <group:description/>
              <hr class="spacer"/>
-             <directive:static/>
+             <group:rudderID/>
              <hr class="spacer"/>
              <fieldset class="searchNodes"><legend>Group criteria</legend>
                <div id="SearchNodes">
-                 <directive:showGroup />
+                 <group:showGroup />
                </div>
              </fieldset>
              <lift:authz role="group_edit">
-               <directive:reason />
+               <group:reason />
              </lift:authz>
              <div >
                <div class="margins" align="right" style="overflow:hidden;display:block;">
                  <div style="float:left" align="left">
-                 <lift:authz role="group_write"><directive:group/></lift:authz>
-                 <lift:authz role="group_write"><directive:delete/></lift:authz>
+                 <lift:authz role="group_write"><group:group/></lift:authz>
+                 <lift:authz role="group_write"><group:delete/></lift:authz>
                </div>
                <div style="float:right" align="right">
-                 <directive:save/>
+                 <group:save/>
                </div>
              </div>
            </div>
         </div>
       </div>
      </div>
-    <directive:removeForm/>
+    <group:removeForm/>
   </div>   </div>
  ++ Script(OnLoad(JsRaw("""$('#GroupTabs').tabs();
           $( "#GroupTabs" ).tabs('select', 0);"""))))
 
-     bind("directive", html,
+     bind("group", html,
       "name" -> piName.toForm_!,
-      "rudderID" -> <div><b class="threeCol">Rudder ID : </b>{_nodeGroup.map( x => x.id.value ).getOrElse("no ID")}</div>,
+      "rudderID" -> <div><b class="threeCol">Rudder ID: </b>{_nodeGroup.map( x => x.id.value.toUpperCase ).getOrElse("no ID")}</div>,
       "description" -> piDescription.toForm_!,
       "container" -> piContainer.toForm_!,
       "static" -> piStatic.toForm_!,
