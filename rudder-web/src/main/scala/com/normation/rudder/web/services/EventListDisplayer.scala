@@ -372,7 +372,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               <h4>Rule overview:</h4>
               <ul class="evlogviewpad">
-                <li><b>Rule ID:</b> { modDiff.id.value }</li>
+                <li><b>Rule ID:</b> { modDiff.id.value.toUpperCase }</li>
                 <li><b>Name:</b> { 
                   modDiff.modName.map(diff => diff.newValue).getOrElse(modDiff.name)
                }</li>
@@ -411,7 +411,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               <h4>Directive overview:</h4>
               <ul class="evlogviewpad">
-                <li><b>Directive ID:</b> { modDiff.id.value }</li>
+                <li><b>Directive ID:</b> { modDiff.id.value.toUpperCase }</li>
                 <li><b>Name:</b> {
                   modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)
                 }</li>
@@ -471,7 +471,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               <h4>Group overview:</h4>
               <ul class="evlogviewpad">
-                <li><b>Node ID:</b> { modDiff.id.value }</li>
+                <li><b>Node Group ID:</b> { modDiff.id.value.toUpperCase }</li>
                 <li><b>Name:</b> {
                   modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)
                 }</li>
@@ -881,7 +881,7 @@ class EventListDisplayer(
   }
   
   private[this] def ruleDetails(xml:NodeSeq, rule:Rule) = (
-      "#ruleID" #> rule.id.value &
+      "#ruleID" #> rule.id.value.toUpperCase &
       "#ruleName" #> rule.name &
       "#target" #> groupTargetDetails(rule.targets) &
       "#policy" #> (xml =>  
@@ -895,7 +895,7 @@ class EventListDisplayer(
   )(xml)
   
   private[this] def directiveDetails(xml:NodeSeq, ptName: TechniqueName, directive:Directive, sectionVal:SectionVal) = (
-      "#directiveID" #> directive.id.value &
+      "#directiveID" #> directive.id.value.toUpperCase &
       "#directiveName" #> directive.name &
       "#ptVersion" #> directive.techniqueVersion.toString &
       "#ptName" #> ptName.value &
@@ -909,7 +909,7 @@ class EventListDisplayer(
   )(xml)
   
   private[this] def groupDetails(xml:NodeSeq, group: NodeGroup) = (
-      "#groupID" #> group.id.value &
+      "#groupID" #> group.id.value.toUpperCase &
       "#groupName" #> group.name &
       "#shortDescription" #> group.description &
       "#shortDescription" #> group.description &
@@ -948,11 +948,11 @@ class EventListDisplayer(
  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]], id: DirectiveId) = opt.map { diff =>
    ".diffOldValue *" #> diff.oldValue.toString &
    ".diffNewValue *" #> diff.newValue.toString &
-   "#directiveID" #> id.value
+   "#directiveID" #> id.value.toUpperCase
   }  
   
   private[this] def nodeDetails(details:InventoryLogDetails) = (
-     "#nodeID" #> details.nodeId.value &
+     "#nodeID" #> details.nodeId.value.toUpperCase &
      "#nodeName" #> details.hostname &
      "#os" #> details.fullOsName &
      "#version" #> DateFormaterService.getFormatedDate(details.inventoryVersion)
@@ -966,7 +966,7 @@ class EventListDisplayer(
   )
   
   private[this] def nodeDetails(details:NodeLogDetails) = (
-     "#id" #> details.node.id.value &
+     "#id" #> details.node.id.value.toUpperCase &
      "#name" #> details.node.name &
      "#hostname" #> details.node.hostname &
      "#description" #> details.node.description &
