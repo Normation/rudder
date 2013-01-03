@@ -266,7 +266,7 @@ class DirectiveEditForm(
         </a> &
       "#techniqueDescription" #> technique.description &
       "#nameField" #> {piName.toForm_!} &
-      "#rudderID" #> {directive.id.value} &
+      "#rudderID" #> {directive.id.value.toUpperCase} &
       "#shortDescriptionField" #> piShortDescription.toForm_! &
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
