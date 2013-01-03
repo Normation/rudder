@@ -350,14 +350,14 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
             
       <h4 class="tablemargin">Rudder information</h4>
         <div class="tablepadding">
-          <b>Agent name:</b> {sm.node.agentNames.map(_.fullname()).mkString(";")}<br/>
-          <b>Rudder ID:</b> {sm.node.main.id.value}<br/>
           { if(isRootNode(sm.node.main.id)) <span><b>Role: </b>Rudder root server</span><br/> }
           <b>Inventory date:</b>  {sm.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
           <b>Date inventory last received:</b>  {sm.node.receiveDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
           {creationDate.map { creation =>
             <xml:group><b>Date first accepted in Rudder:</b> {DateFormaterService.getFormatedDate(creation)}<br/></xml:group>
           }.getOrElse(NodeSeq.Empty) }
+          <b>Agent name:</b> {sm.node.agentNames.map(_.fullname()).mkString(";")}<br/>
+          <b>Rudder ID:</b> {sm.node.main.id.value.toUpperCase}<br/>
         </div>
         
       <h4 class="tablemargin">Accounts</h4>

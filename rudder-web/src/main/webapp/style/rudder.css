@@ -113,6 +113,10 @@ td.nodeIndernal {
  *          formulaire            *
  **********************************/
 
+.rudderID{
+	padding-top: 12px;
+}
+
 .portlet-header .ui-icon {
    float: right;
    cursor: pointer;
