@@ -24,9 +24,8 @@ class ModificationService(
     }
   }
   
-  def restoreToEventLog(eventLog:EventLog, commiter:Box[PersonIdent]) = {
+  def restoreToEventLog(eventLog:EventLog, commiter:PersonIdent) = {
     for {
-      commiter <- commiter
       commit   <-  getCommitsfromEventLog(eventLog) 
     } yield {
       itemArchiveManager.importAll(commit, commiter, ModificationId(uuidGen.newUuid), eventLog.principal, None, false)
@@ -34,9 +33,8 @@ class ModificationService(
   
   }
   
-  def restoreBeforeEventLog(eventLog:EventLog, commiter:Box[PersonIdent]) = {
+  def restoreBeforeEventLog(eventLog:EventLog, commiter:PersonIdent) = {
     for {
-      commiter <- commiter
       commit   <-  getCommitsfromEventLog(eventLog) 
     } yield { val parentCommit = GitCommitId(commit.value+"^")
         itemArchiveManager.importAll(parentCommit, commiter, ModificationId(uuidGen.newUuid), eventLog.principal, None, false)

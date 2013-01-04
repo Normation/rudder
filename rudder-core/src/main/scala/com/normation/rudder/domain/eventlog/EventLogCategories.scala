@@ -109,15 +109,15 @@ final case object ReleaseRedButtonEventType extends NoRollbackEventLogType {
   def serialize = "ReleaseRedButton"
 }
 
-final case object ReloadTechniqueLibraryType extends RollbackEventLogType {
+final case object ReloadTechniqueLibraryType extends NoRollbackEventLogType {
   def serialize = "ReloadTechniqueLibrary"
 }
 
-final case object ModifyTechniqueEventType extends RollbackEventLogType {
+final case object ModifyTechniqueEventType extends NoRollbackEventLogType {
   def serialize = "TechniqueModified"
 }
 
-final case object DeleteTechniqueEventType extends RollbackEventLogType {
+final case object DeleteTechniqueEventType extends NoRollbackEventLogType {
   def serialize = "TechniqueDeleted"
 }
 
@@ -154,25 +154,25 @@ final case object UpdatePolicyServerEventType extends NoRollbackEventLogType {
 final case object ExportGroupsEventType extends NoRollbackEventLogType {
   def serialize = "ExportGroups"
 }
-final case object ImportGroupsEventType extends NoRollbackEventLogType {
+final case object ImportGroupsEventType extends RollbackEventLogType {
   def serialize = "ImportGroups"
 }
 final case object ExportTechniqueLibraryEventType extends NoRollbackEventLogType {
   def serialize = "ExportTechniqueLibrary"
 }
-final case object ImportTechniqueLibraryEventType extends NoRollbackEventLogType {
+final case object ImportTechniqueLibraryEventType extends RollbackEventLogType {
   def serialize = "ImportTechniqueLibrary"
 }
 final case object ExportRulesEventType extends NoRollbackEventLogType {
   def serialize = "ExportRules"
 }
-final case object ImportRulesEventType extends NoRollbackEventLogType {
+final case object ImportRulesEventType extends RollbackEventLogType {
   def serialize = "ImportRules"
 }
 final case object ExportFullArchiveEventType extends NoRollbackEventLogType {
   def serialize = "ExportFullArchive"
 }
-final case object ImportFullArchiveEventType extends NoRollbackEventLogType {
+final case object ImportFullArchiveEventType extends RollbackEventLogType {
   def serialize = "ImportFullArchive"
 }
 
