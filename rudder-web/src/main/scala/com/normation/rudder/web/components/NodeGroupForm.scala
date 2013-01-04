@@ -95,8 +95,14 @@ object NodeGroupForm {
     } yield {
       chooseTemplate("component", "popupRemoveForm", xml)
     }) openOr Nil
-    
-    
+
+  private def popupDependentUpdateForm = 
+    (for {
+      xml <- Templates("templates-hidden" :: "components" :: "NodeGroupForm" :: Nil)
+    } yield {
+      chooseTemplate("component", "popupDependentUpdateForm", xml)
+    }) openOr Nil
+
   private def body =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "NodeGroupForm" :: Nil)
@@ -342,6 +348,26 @@ class NodeGroupForm(
     }
   }
   
+  private[this] def showUpdatePopupForm( onConfirmCallback:  => JsCmd) : NodeSeq = {
+    _nodeGroup match {
+      case None => NodeSeq.Empty //we are creating a group, no need to show delete
+      case Some(group) => 
+        //pop-up: their content should be retrieve lazily
+        val target = GroupTarget(group.id)
+        val updatePopupGridXml = dependencyService.targetDependencies(target).map( _.rules ) match {
+          case e:EmptyBox => <div class="error">An error occurred while trying to find dependent item</div>
+          case Full(rules) => {
+            val cmp = new RuleGrid("dependent_popup_grid", rules, None, false)
+            cmp.rulesGrid(linkCompliancePopup=false)
+          }
+        }
+        (
+            "#dialogSaveButton" #> SHtml.ajaxButton("Save", () => JsRaw("$.modal.close();") & onConfirmCallback ) &
+            "#updateItemDependencies" #> {updatePopupGridXml}
+        )(popupDependentUpdateForm)
+      }
+  }
+  
   private[this] def removeButton(target:GroupTarget) : Elem = {
     def removeCr() : JsCmd = {      
       if(formTrackerRemovePopup.hasErrors) {
@@ -522,18 +548,60 @@ class NodeGroupForm(
           }
         case Some(nodeGroup) =>
           //  we are updating a nodeGroup
-          srvList match {
-            case Full(list) =>
-              updateGroup(nodeGroup, name, description, query.get, isDynamic, list.map(x => x.id).toList, container)
-            case Empty =>
-              updateGroup(nodeGroup, name, description, query.get, isDynamic, Nil, container)
-            case Failure(m, _, _) =>
-              logger.error("Could not retrieve the server list from the search component : %s".format(m))
-              formTracker.addFormError(error("An error occurred while trying to fetch the server list of the group: " + m))
-              onFailure& onFailureCallback()
+          // we have to check if there are dependant rules
+          dependencyService.targetDependencies(GroupTarget(nodeGroup.id)).map(_.rules) match {
+            case e:EmptyBox => // something really bad happen 
+              logger.error("Could not retrieve the dependency list from the search component : %s".format(e))
+              formTracker.addFormError(error("An error occurred while trying to fetch the dependency list of the group: " + e))
+              checkAndUpdateGroup(nodeGroup, name, description, query.get, isDynamic, srvList, container)
+            case Full(rules) if rules.size == 0 => 
+              // no dependencies
+              checkAndUpdateGroup(nodeGroup, name, description, query.get, isDynamic, srvList, container)
+            case Full(rules) => 
+              // dependencies
+              displayDependenciesPopup(nodeGroup, name, description, query.get, isDynamic, srvList, container)
           }
       }
     }
+  }
+
+  private[this] def checkAndUpdateGroup(
+      nodeGroup  : NodeGroup
+    , name       : String
+    , description: String
+    , query      : Query
+    , isDynamic  : Boolean
+    , srvList    : Box[Seq[NodeInfo]]
+    , container  : String): JsCmd = {
+      srvList match {
+        case Full(list) =>
+          updateGroup(nodeGroup, name, description, query, isDynamic, list.map(x => x.id).toList, container)
+        case Empty =>
+          updateGroup(nodeGroup, name, description, query, isDynamic, Nil, container)
+        case Failure(m, _, _) =>
+          logger.error("Could not retrieve the server list from the search component : %s".format(m))
+          formTracker.addFormError(error("An error occurred while trying to fetch the server list of the group: " + m))
+          onFailure& onFailureCallback()
+      }
+    }
+
+  
+  // Fill the content of the popup with the list of dependant rules and wait for user confirmation
+  private[this] def displayDependenciesPopup(
+      nodeGroup  : NodeGroup
+    , name       : String
+    , description: String
+    , query      : Query
+    , isDynamic  : Boolean
+    , srvList    : Box[Seq[NodeInfo]]
+    , container  : String): JsCmd = {
+    SetHtml("confirmUpdateActionDialog", showUpdatePopupForm(checkAndUpdateGroup(
+        nodeGroup, name, description, query, isDynamic, srvList, container))) &
+    createPopup("updateActionDialog",140,850)
+  }
+  
+  def createPopup(name:String,height:Int,width:Int) :JsCmd = {
+    JsRaw("""createPopup("%s",%s,%s);""".format(name,height,width))
   }
   
   private[this] def showCloneGroupPopup() : JsCmd = {
