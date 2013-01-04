@@ -61,6 +61,10 @@ import com.normation.rudder.services.modification.ModificationService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.web.model.CurrentUser
 import org.eclipse.jgit.lib.PersonIdent
+import org.joda.time.DateTime
+import net.liftweb.util.ToJsCmd
+import com.normation.rudder.services.eventlog.RollbackInfo
+import com.normation.rudder.services.eventlog.RollbackedEvent
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment), 
@@ -77,11 +81,13 @@ class EventListDisplayer(
 ) extends Loggable {
   
   private[this] var rollbackAction:RollBackAction = RollbackTo
+  private[this] var gridname = "notnamed"
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
  // private[this] val gridName = "eventLogsGrid"
  // private[this] val jsGridName = "oTable" + gridName
   
   def display(events:Seq[EventLog], gridName:String) : NodeSeq  = {
+    gridname = gridName
     (
       "tbody *" #> ("tr" #> events.map { event => 
         ".eventLine [jsuuid]" #> Text(gridName + "-" + event.id.getOrElse(0).toString) &
@@ -314,6 +320,7 @@ class EventListDisplayer(
       case x:ImportTechniqueLibraryArchive => Text("Restoring Directive library archive")
       case x:ImportRulesArchive => Text("Restoring Rules archive")
       case x:ImportFullArchive => Text("Restoring full archive")
+      case _:Rollback          => Text("Restore a previous state of configuration policy")
       case _ => Text("Unknow event type")
       
     }
@@ -353,8 +360,16 @@ class EventListDisplayer(
         SHtml.ajaxButton(
           "Confirm"
         , () => {
-            action.action(event,commiter)
-            S.redirectTo("eventLogs")
+            val select = event.id.map(action.selectRollbackedEventsRequest)
+            repos.getEventLogByCriteria(select) match {
+              case Full(events) =>
+                val rollbackedEvents = events.filter(_.canRollBack)
+                action.action(event,commiter,rollbackedEvents,event)
+                S.redirectTo("eventLogs")
+              case _ => S.error("Problem while rollbacking")
+              cancel
+            }
+            
           }
         )
 
@@ -797,19 +812,27 @@ class EventListDisplayer(
       case x:ExportEventLog => 
         "*" #> (logDetailsService.getNewArchiveDetails(x.details, x) match {
           case Full(gitArchiveId) =>
-              { addRestoreAction }
-              { displayExportArchiveDetails(gitArchiveId, xmlParameters(event.id)) }
+              addRestoreAction ++
+              displayExportArchiveDetails(gitArchiveId, xmlParameters(event.id)) 
             
           case e:EmptyBox => errorMessage(e)
         })
-        
+       case x:Rollback =>
+        "*" #> (logDetailsService.getRollbackDetails(x.details) match {
+          case Full(eventLogs) =>
+               addRestoreAction ++
+               displayRollbackDetails(eventLogs,event.id.get)
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        })
       case x:ImportEventLog => 
         "*" #> (logDetailsService.getRestoreArchiveDetails(x.details, x) match {
           case Full(gitArchiveId) =>
-              { addRestoreAction }
-              { displayImportArchiveDetails(gitArchiveId, xmlParameters(event.id)) }
+               addRestoreAction ++
+               displayImportArchiveDetails(gitArchiveId, xmlParameters(event.id))
           case e:EmptyBox => errorMessage(e)
         })
+        
 
       // other case: do not display details at all
       case _ => "*" #> ""
@@ -1236,7 +1259,95 @@ class EventListDisplayer(
       {liModDetailsXML("isEnabled", "Activation status")}
       {liModDetailsXML("isSystem", "System")}
     </xml:group>
-      
+
+  private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int) = {
+    val rollbackedEvents = rollbackInfo.rollbacked
+    logger.info(rollbackInfo)
+    <div class="evloglmargin">
+      <div style="width:50%; float:left;">
+        <br/>
+        <h4>Details of the rollback:</h4>
+        <br/>
+        <span>A rollback to {rollbackInfo.rollbackType} event
+          { SHtml.a(() =>
+              JsRaw("""$('#%s').dataTable().fnFilter("%s|%s",0,true,false);
+                $("#cancel%s").show();""".format(gridname,rollbackInfo.target.id,id,id))
+              , Text(rollbackInfo.target.id.toString)
+            )
+          } has been completed.
+        </span>
+        <br/><br/>
+        <b>Events that were rollbacked can be consulted in the table on the right side of this panel.</b>
+        <br/>
+        <span>Those events are not applied anymore by the configuration policy.</span>
+        <br/><br/>
+      </div>
+      <div style="width:50%; float:right;">
+        <table id={"rollbackTable%s".format(id)} class="display" cellspacing="0">
+          <thead>
+            <tr class="head">
+              <th>ID</th>
+              <th>Event type</th>
+              <th>Actor</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+          {rollbackedEvents.map{ ev =>
+            <tr>
+              <td>
+              {SHtml.a(() =>
+                JsRaw("""$('#%s').dataTable().fnFilter("%s|%s",0,true,false);
+                    $("#cancel%s").show();""".format(gridname,ev.id,id,id))
+                  , Text(ev.id.toString)
+                )
+              }
+              </td>
+              <td>{ev.eventType} </td>
+              <td>{ev.author} </td>
+              <td>{ev.date} </td>
+            </tr>
+          } }
+          </tbody>
+        </table>
+        <br/>
+      </div>
+      <br/><br/>
+      {SHtml.ajaxButton("Show all events", () =>
+         Run("""$('#%s').dataTable().fnFilter("%s|%s",0,true,false);
+            $("#cancel%s").show();""".format(gridname,rollbackedEvents.map(_.id).mkString("|"),id,id)
+      ) ) }
+      <br/>
+      {SHtml.ajaxButton("Cancel", () =>
+        Run("""$('#%s').dataTable().fnFilter("",0,true,false);
+            $("#cancel%s").hide();""".format(gridname,id)),("id","cancel%s".format(id)
+        )
+      , ("style","display:none;")
+      ) }
+    </div> ++ Script(JsRaw("""
+        $('#rollbackTable%s').dataTable({
+            "asStripeClasses": [ 'color1', 'color2' ],
+            "bAutoWidth": false,
+            "bFilter" :true,
+            "bPaginate" :true,
+            "bLengthChange": true,
+            "sPaginationType": "full_numbers",
+            "bJQueryUI": true,
+            "oLanguage": {
+              "sSearch": ""
+            },
+            "aaSorting":[],
+            "aoColumns": [
+                { "sWidth": "100px" }
+              , { "sWidth": "100px" }
+              , { "sWidth": "100px" }
+              , { "sWidth": "100px" }
+            ],
+            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
+          });
+        """.format(id)))
+  }
+
   private[this] def authorizedNetworksXML() = (
     <div>
       <b>Networks authorized on policy server were updated:</b>
@@ -1254,20 +1365,25 @@ class EventListDisplayer(
 
   trait RollBackAction {
   def name:String 
-  def action:(EventLog,PersonIdent) => Box[Box[GitCommitId]]
+  def selectRollbackedEventsRequest(id:Int): String
+  def action:(EventLog,PersonIdent,Seq[EventLog],EventLog) => Box[GitCommitId]
 }
 
 case object RollbackTo extends RollBackAction{
   def name = "after"
+  def selectRollbackedEventsRequest(id:Int) = " id > %d and modificationid IS NOT NULL".format(id)
   def action = modificationService.restoreToEventLog _ 
   
 }
 case object RollbackBefore extends RollBackAction{
   def name = "before"
+  def selectRollbackedEventsRequest(id:Int) = " id >= %d and modificationid IS NOT NULL".format(id)
   def action = modificationService.restoreBeforeEventLog _ 
   
 }
   
 }
+
+
 
 

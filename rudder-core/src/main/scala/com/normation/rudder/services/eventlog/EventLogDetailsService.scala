@@ -62,6 +62,8 @@ import com.normation.rudder.repository.GitArchiveId
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.services.marshalling.TestFileFormat
+import com.normation.eventlog.EventLog
+import org.joda.time.DateTime
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -123,7 +125,10 @@ trait EventLogDetailsService {
   ///// archiving & restoration /////
   
   def getNewArchiveDetails[T <: ExportEventLog](xml:NodeSeq, archive:T) : Box[GitArchiveId]
+  
   def getRestoreArchiveDetails[T <: ImportEventLog](xml:NodeSeq, archive:T) : Box[GitCommitId]
+  
+  def getRollbackDetails(xml:NodeSeq) : Box[RollbackInfo]
 }
 
 
@@ -704,4 +709,47 @@ class EventLogDetailsServiceImpl(
     }
   }
 
+  def getRollbackDetails(xml:NodeSeq) : Box[RollbackInfo] = {
+  def getEvents(xml:NodeSeq)= {
+    for{
+      event <- xml
+      eventlogs <- event.child
+      entry <- eventlogs \ "rollbackedEvent"
+      id    <- (entry \ "id").headOption.map(_.text.toInt) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      evtType <-(entry \ "type").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      author <-(entry \ "author").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      date <-(entry \ "date").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+    } yield {
+      RollbackedEvent(id,date,evtType,author)
+    }
+    
+  }
+ val res =  for{
+      event <- xml
+      eventlogs <- event.child
+      entry <- (eventlogs \ "main").headOption
+      id    <- (entry \ "id").headOption.map(_.text.toInt) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      evtType <-(entry \ "type").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      author <-(entry \ "author").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      date <-(entry \ "date").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      rollbackType <-(entry \ "rollbackType").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+    } yield {
+      println(entry)
+      val target = RollbackedEvent(id,date,evtType,author)
+     RollbackInfo(target,rollbackType,getEvents(xml))
+    }
+   res.headOption
+  }
+  
 }
+
+case class RollbackInfo(
+    target : RollbackedEvent
+  , rollbackType : String
+  , rollbacked : Seq[RollbackedEvent])
+case class RollbackedEvent(
+    id        : Int
+  , date      : String
+  , eventType : String
+  , author    : String 
+)
