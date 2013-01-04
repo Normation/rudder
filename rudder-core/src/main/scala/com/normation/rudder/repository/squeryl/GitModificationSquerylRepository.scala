@@ -47,11 +47,12 @@ class GitModificationSquerylRepository(
              where(entry.ModificationId === modificationId.value)
           select(entry.id)
               )
-       if (q.size == 1)
-       Full(Some((GitCommitId(q.single))))
-       else
-         Full(None)
+       if (q.size <= 1)
+         Full(q.headOption.map(GitCommitId))
+       else {
+         Failure("Multiple commits for modification %s, commits are : %s ".format(modificationId.value,q.mkString(", ")))
        }
+     }
   } catch {
     case e : Exception => 
       Failure("could not get any commit id from the database, cause is %s".format(e.getMessage()))

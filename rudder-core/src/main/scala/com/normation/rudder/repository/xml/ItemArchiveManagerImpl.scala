@@ -370,7 +370,12 @@ trait ArchiveMode {
   def configureRm(rmCmd:RmCommand):RmCommand
   def configureCheckout(coCmd:CheckoutCommand):CheckoutCommand
 }
-
+/**
+ * Restore a part of the configuration repository
+ * the directory is a path from the configuration git, so the path is
+ * relative to git directory root.
+ * To be counted as a directory the last character have to be a /.
+ */
 case class PartialArchive(directory:String) extends ArchiveMode {
   def configureRm(rmCmd:RmCommand) = rmCmd.addFilepattern(directory)
   def configureCheckout(coCmd:CheckoutCommand) = coCmd.addPath(directory)

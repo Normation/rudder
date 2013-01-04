@@ -333,7 +333,7 @@ class EventListDisplayer(
       }
     }
 
-    def showConfirmationDialog(action : RollBackAction, commiter:Box[PersonIdent]) : JsCmd = {
+    def showConfirmationDialog(action : RollBackAction, commiter:PersonIdent) : JsCmd = {
       val cancel : JsCmd = {
         SetHtml("confirm%d".format(event.id.getOrElse(0)), NodeSeq.Empty) &
         JsRaw(""" $('#rollback%d').show();""".format(event.id.getOrElse(0)))
@@ -369,10 +369,11 @@ class EventListDisplayer(
     }
 
     def addRestoreAction =
-      if (event.canRollBack)
-        modificationService.getCommitsfromEventLog(event).map{ commit =>
-        val commiter = personIdentService.getPersonIdentOrDefault(CurrentUser.getActor.name)
-        <form class="lift:form.ajax" >
+      personIdentService.getPersonIdentOrDefault(CurrentUser.getActor.name) match {
+      case Full(commiter) =>
+        if (event.canRollBack)
+          modificationService.getCommitsfromEventLog(event).map{ commit =>
+          <form class="lift:form.ajax" >
           <fieldset class="rollbackFieldSet"> <legend>Rollback</legend>
           <div id={"rollback%d".format(event.id.getOrElse(0))}>
             <span class="alignRollback">Restore configuration policy to </span>
@@ -410,6 +411,9 @@ class EventListDisplayer(
       }.getOrElse(NodeSeq.Empty)
       else
         NodeSeq.Empty
+      case eb:EmptyBox => logger.error("this should not happen, as person identifier service always return a working value")
+        NodeSeq.Empty
+    }
 
     val reasonHtml = {
       val r = event.eventDetails.reason.getOrElse("")  
@@ -1250,7 +1254,7 @@ class EventListDisplayer(
 
   trait RollBackAction {
   def name:String 
-  def action:(EventLog,Box[PersonIdent]) => Box[Box[GitCommitId]]
+  def action:(EventLog,PersonIdent) => Box[Box[GitCommitId]]
 }
 
 case object RollbackTo extends RollBackAction{
