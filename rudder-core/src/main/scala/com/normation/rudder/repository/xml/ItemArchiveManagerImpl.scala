@@ -53,6 +53,7 @@ import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import org.eclipse.jgit.api._
 import com.normation.eventlog.ModificationId
+import com.normation.eventlog.EventLog
 
 class ItemArchiveManagerImpl(
     ruleRepository                    : RuleRepository
@@ -307,6 +308,25 @@ class ItemArchiveManagerImpl(
       }
   }
 
+  /*
+   * Rollback, it acts like a full archive restoration
+   * (restoring rules, groups, directives) but it is based on a git commit
+   * linked to a modification made in the rudder UI. 
+   */
+
+  override def rollback(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String],  rollbackedEvents :Seq[EventLog], target:EventLog, rollbackType:String, includeSystem:Boolean = false) : Box[GitCommitId] = {
+    logger.info("Importing full archive with id '%s'".format(archiveId.value))
+    for {
+      rules       <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
+      userLib     <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
+      groupLIb    <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
+      eventLogged <- eventLogger.saveEventLog(modId,new Rollback(actor,rollbackedEvents, target, rollbackType, reason))
+      commit      <- restoreCommitAtHead(commiter,"User %s requested full archive restoration to commit %s".format(actor.name,archiveId.value),archiveId,FullArchive)
+    } yield {
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+      archiveId
+    }
+  }
   private[this] def lastGitCommitId = GitCommitId(revisionProvider.getAvailableRevTreeId.getName)
   
   override def importHeadAll(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {

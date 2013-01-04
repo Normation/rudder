@@ -175,6 +175,9 @@ final case object ExportFullArchiveEventType extends NoRollbackEventLogType {
 final case object ImportFullArchiveEventType extends RollbackEventLogType {
   def serialize = "ImportFullArchive"
 }
+final case object RollbackEventType extends RollbackEventLogType {
+  def serialize = "Rollback"
+}
 
 
 /**
@@ -202,6 +205,7 @@ object ModificationWatchList {
     , ImportTechniqueLibraryEventType
     , ImportRulesEventType
     , ImportFullArchiveEventType
+    , RollbackEventType
   )
   
 }
@@ -252,6 +256,7 @@ object EventTypeFactory {
     , ImportRulesEventType
     , ExportFullArchiveEventType
     , ImportFullArchiveEventType
+    , RollbackEventType
   )
       
   def apply(s:String) : EventLogType = {
