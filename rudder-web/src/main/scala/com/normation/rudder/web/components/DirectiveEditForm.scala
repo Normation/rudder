@@ -200,6 +200,7 @@ class DirectiveEditForm(
   
   def showForm(): NodeSeq = {
     ( 
+      "#container [id]" #> htmlId_policyConf &
       "#editForm" #> showDirectiveForm() &
       "#removeActionDialog" #> showRemovePopupForm() &
       "#disableActionDialog" #> showDisactivatePopupForm()
@@ -216,7 +217,8 @@ class DirectiveEditForm(
        ".reasonsFieldsetPopup" #> { crReasonsRemovePopup.map { f =>
          "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
          "#reasonsField" #> f.toForm_!
-       } } 
+       } } &
+        "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerRemovePopup) }
     )(popupRemoveForm) 
   }
   
@@ -235,8 +237,9 @@ class DirectiveEditForm(
           "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
           "#reasonsField" #> f.toForm_!
         } 
-      }
-    )(popupDisactivateForm) 
+      } &
+      "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerDisactivatePopup) }
+    )(popupDisactivateForm)
   }
 
   def showDirectiveForm(): NodeSeq = {
@@ -282,8 +285,8 @@ class DirectiveEditForm(
             ("class", "autoWidthButton"),("type", "button")
           ) &
       "#notifications *" #> updateAndDisplayNotifications(formTracker) &
-      "#isSingle *" #> showIsSingle &
-      "#editForm [id]" #> htmlId_policyConf
+      "#isSingle *" #> showIsSingle// &
+      //"#editForm [id]" #> htmlId_policyConf
     )(crForm) ++ 
     Script(OnLoad(
       JsRaw("""activateButtonOnFormChange("%s", "%s");  """
