@@ -46,9 +46,7 @@ import scala.xml._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
 import JsCmds._
-import com.normation.rudder.web.components.popup.CreateRulePopup
-
-// For implicits
+import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import JE._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
@@ -60,9 +58,7 @@ import com.normation.rudder.web.components.{
 import com.normation.rudder.domain.policies.{GroupTarget,Rule}
 import com.normation.rudder.repository._
 import com.normation.utils.StringUuidGenerator
-
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-
 import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
 
 /**
@@ -79,8 +75,7 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
   private[this] val uuidGen = inject[StringUuidGenerator]
 
   //the popup component
-  private[this] val creationPopup = new LocalSnippet[CreateRulePopup]
-
+  private[this] val creationPopup = new LocalSnippet[CreateOrCloneRulePopup]
 
   val extendsAt = SnippetExtensionKey(classOf[RuleManagement].getSimpleName)
 
@@ -92,10 +87,11 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
   )
 
 
-  private def setCreationPopup : Unit = {
-         creationPopup.set(Full(new CreateRulePopup(
+  private def setCreationPopup(ruleToClone:Option[Rule]) : Unit = {
+         creationPopup.set(Full(new CreateOrCloneRulePopup(ruleToClone, 
             onSuccessCallback = onCreateRule )))
    }
+  
   
    /**
     * Create the popup
@@ -104,7 +100,7 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
     creationPopup.is match {
       case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
       case Empty => <div>The component is not set</div>
-      case Full(popup) => popup.popupContent(NodeSeq.Empty)
+      case Full(popup) => popup.popupContent()
     }
   }
 
@@ -156,7 +152,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
             <div id={htmlId_viewAll}>
             <lift:authz role="rule_write">
               <div id="actions_zone">
-                {SHtml.ajaxButton("Add a new rule", () => showPopup(), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))}
+                {SHtml.ajaxButton("Add a new rule", () => showPopup(None), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))}
               </div> 
             </lift:authz>
              {ruleGrid.rulesGrid() }             
@@ -215,11 +211,11 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     )
   }
   
-  private[this] def showPopup() : JsCmd = {
-    setCreationPopup
+  private[this] def showPopup(clonedRule:Option[Rule]) : JsCmd = {
+    setCreationPopup(clonedRule)
     val popupHtml = createPopup
-    SetHtml(CreateRulePopup.htmlId_popupContainer, popupHtml) &
-    JsRaw( """ createPopup("%s",300,400) """.format(CreateRulePopup.htmlId_popup))
+    SetHtml(CreateOrCloneRulePopup.htmlId_popupContainer, popupHtml) &
+    JsRaw( """ createPopup("%s",300,400) """.format(CreateOrCloneRulePopup.htmlId_popup))
 
   }
 
@@ -229,6 +225,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     val form = new RuleEditForm(
         htmlId_editRuleDiv+"Form",
         rule,
+        onCloneCallback = { () => showPopup(Some(rule)) },
         onSuccessCallback = { () => 
           //update UI
           Replace(htmlId_viewAll,  viewRules ) 
