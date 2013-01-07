@@ -168,6 +168,7 @@ trait GitArchiverUtils extends Loggable {
 trait GitArchiverFullCommitUtils extends Loggable {
   
   def gitRepo : GitRepositoryProvider
+  def gitModificationRepository : GitModificationRepository
   //where goes tags, something like archives/groups/ (with a final "/") is awaited
   def tagPrefix : String
   def relativePath : String
@@ -193,7 +194,7 @@ trait GitArchiverFullCommitUtils extends Loggable {
     }
   }
 
-  def restoreCommitAtHead(commiter:PersonIdent, commitMessage:String, commit:GitCommitId, archiveMode:ArchiveMode) = {
+  def restoreCommitAtHead(commiter:PersonIdent, commitMessage:String, commit:GitCommitId, archiveMode:ArchiveMode,modId:ModificationId) = {
     tryo {
       /* Configure rm with archive mode and call it
        *this will delete latest (HEAD) configuration files from the repository
@@ -208,7 +209,9 @@ trait GitArchiverFullCommitUtils extends Loggable {
 
       // The commit will actually delete old files and replace them with those from the checkout
       val newCommit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-      logger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommit.getName()))
+       val t =   gitModificationRepository.addCommit(commit, modId)
+     logger.warn(t)
+     logger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommit.getName()))
       newCommit
     }
   }

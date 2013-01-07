@@ -220,7 +220,7 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
       eventType     : EventLogType
     , eventLogDetails  : EventLogDetails
   ) : Box[EventLog] = {
-  
+
   logFilters.find {
     pf => pf.isDefinedAt((eventType, eventLogDetails))
   }.map(
