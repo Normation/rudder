@@ -312,7 +312,7 @@ class ItemArchiveManagerImpl(
   /*
    * Rollback, it acts like a full archive restoration
    * (restoring rules, groups, directives) but it is based on a git commit
-   * linked to a modification made in the rudder UI. 
+   * linked to a modification made in the rudder UI.
    */
 
   override def rollback(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String],  rollbackedEvents :Seq[EventLog], target:EventLog, rollbackType:String, includeSystem:Boolean = false) : Box[GitCommitId] = {
@@ -322,7 +322,7 @@ class ItemArchiveManagerImpl(
       userLib     <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       groupLIb    <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       eventLogged <- eventLogger.saveEventLog(modId,new Rollback(actor,rollbackedEvents, target, rollbackType, reason))
-      commit      <- restoreCommitAtHead(commiter,"User %s requested full archive restoration to commit %s".format(actor.name,archiveId.value),archiveId,FullArchive,modId)
+      commit      <- restoreCommitAtHead(commiter,"User %s requested a rollback to a previous configuration : %s".format(actor.name,archiveId.value),archiveId,FullArchive,modId)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
       archiveId
