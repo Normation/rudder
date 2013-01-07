@@ -38,6 +38,8 @@ import net.liftweb.http._
 import net.liftweb.http.rest._
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.ManualStartDeployment
+import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
 
 
 /**
@@ -46,11 +48,12 @@ import com.normation.rudder.batch.ManualStartDeployment
  */
 class RestDeploy(
     asyncDeploymentAgent: AsyncDeploymentAgent
+  , uuidGen             : StringUuidGenerator
 ) extends RestHelper {
   
   serve {
     case Get("api" :: "deploy" :: "reload" :: Nil, req) =>
-      asyncDeploymentAgent ! ManualStartDeployment(RestUtils.getActor(req), "Regeneration asked by REST request")
+      asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), "Regeneration asked by REST request")
       PlainTextResponse("OK")
   }
   

@@ -48,6 +48,8 @@ import org.joda.time.DateTime
 import com.normation.inventory.ldap.core.LDAPConstants.A_OC
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
 
 /**
  * That class add all the available reference template in 
@@ -55,11 +57,12 @@ import com.normation.rudder.domain.logger.ApplicationLogger
  * if it wasn't already initialized.
  */
 class CheckInitUserTemplateLibrary(
-  rudderDit:RudderDit,
-  ldap:LDAPConnectionProvider, 
-  refTemplateService:TechniqueRepository, 
-  userCategoryService:ActiveTechniqueCategoryRepository, 
-  userTempalteService:ActiveTechniqueRepository
+    rudderDit          : RudderDit
+  , ldap               : LDAPConnectionProvider
+  , refTemplateService : TechniqueRepository
+  , userCategoryService: ActiveTechniqueCategoryRepository
+  , userTempalteService: ActiveTechniqueRepository
+  , uuidGen            : StringUuidGenerator
 ) extends BootstrapChecks with Loggable {
 
  
@@ -115,14 +118,24 @@ class CheckInitUserTemplateLibrary(
             Full(newUserPTCat)
           } else {
             for {
-              updatedParentCat <- userCategoryService.addActiveTechniqueCategory(newUserPTCat, toParentCat, RudderEventActor, reason = Some("Initialize active templates library")) ?~! 
+              updatedParentCat <- userCategoryService.addActiveTechniqueCategory(
+                                      newUserPTCat
+                                    , toParentCat
+                                    , ModificationId(uuidGen.newUuid)
+                                    , RudderEventActor
+                                    , reason = Some("Initialize active templates library")) ?~! 
                 "Error when adding category '%s' to user library parent category '%s'".format(newUserPTCat.id.value, toParentCat.id.value)
                 //now, add items and subcategories, in a "try to do the max you can" way
                 fullRes <- boxSequence(
                   //Techniques
                   bestEffort(fromCat.packageIds.groupBy(id => id.name).toSeq) { case (name, ids) =>
                     for {
-                      activeTechnique <- userTempalteService.addTechniqueInUserLibrary(newUserPTCat.id, name, ids.map( _.version).toSeq, RudderEventActor, reason = Some("Initialize active templates library")) ?~!
+                      activeTechnique <- userTempalteService.addTechniqueInUserLibrary(
+                          newUserPTCat.id
+                        , name
+                        , ids.map( _.version).toSeq
+                        , ModificationId(uuidGen.newUuid)
+                        , RudderEventActor, reason = Some("Initialize active templates library")) ?~!
                         "Error when adding Technique '%s' into user library category '%s'".format(name.value, newUserPTCat.id.value)
                     } yield {
                       activeTechnique

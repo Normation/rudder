@@ -56,6 +56,7 @@ import com.normation.rudder.web.model.{
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.eventlog.ModificationId
 
 
 class GiveReasonPopup(
@@ -175,6 +176,7 @@ class GiveReasonPopup(
                       ActiveTechniqueCategoryId(destCatId.value), 
                       ptName, 
                       techniqueRepository.getTechniqueVersions(ptName).toSeq, 
+                      ModificationId(uuidGen.newUuid), 
                       CurrentUser.getActor, 
                       crReasons.map (_.is)
                    ) 

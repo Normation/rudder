@@ -35,26 +35,22 @@
 package com.normation.rudder.web.components.popup
 
 import net.liftweb.http.LocalSnippet
-
 import net.liftweb.http.js._
 import JsCmds._
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.domain.policies.{ActiveTechniqueCategory,ActiveTechniqueCategoryId}
-
-// For implicits
 import JE._
 import net.liftweb.common._
 import net.liftweb.http.{SHtml,S,DispatchSnippet,Templates}
 import scala.xml._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-
-
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField,WBSelectField, CurrentUser
 }
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
+import com.normation.eventlog.ModificationId
 
 
 class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () => Noop },
@@ -160,7 +156,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
                  children = Nil,
                  items = Nil
                ),
-               parent, CurrentUser.getActor, Some("user created a new category")
+               parent, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("user created a new category")
              ) match {
                case Failure(m,_,_) =>
                   logger.error("An error occurred while saving the category:" + m)

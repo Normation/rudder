@@ -64,6 +64,7 @@ import com.normation.rudder.domain.queries.And
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.web.services.UserPropertyService
+import com.normation.eventlog.ModificationId
 
 /**
  * Create a group or a category
@@ -243,6 +244,7 @@ class CreateCategoryOrGroupPopup(
               Nil
             )
           , NodeGroupCategoryId(piContainer.is)
+          , ModificationId(uuidGen.newUuid)
           , CurrentUser.getActor
           , piReasons.map(_.is)
         ) match {
@@ -275,6 +277,7 @@ class CreateCategoryOrGroupPopup(
           groupGenerator.map(_.serverList).getOrElse(Set[NodeId]()),
           NodeGroupCategoryId(piContainer.is),
           true,
+          ModificationId(uuidGen.newUuid),
           CurrentUser.getActor,
           piReasons.map(_.is)
         ) match {

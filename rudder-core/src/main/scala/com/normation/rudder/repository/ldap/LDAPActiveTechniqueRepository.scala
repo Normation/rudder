@@ -55,6 +55,7 @@ import com.normation.utils.ScalaReadWriteLock
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 
 /**
  * Implementation of the repository for active techniques in 
@@ -153,35 +154,37 @@ class LDAPActiveTechniqueRepository(
   }
 
   def addTechniqueInUserLibrary(
-      categoryId: ActiveTechniqueCategoryId, 
-      techniqueName: TechniqueName,
-      versions:Seq[TechniqueVersion],
-      actor: EventActor, reason: Option[String]
+      categoryId   : ActiveTechniqueCategoryId
+    , techniqueName: TechniqueName
+    , versions     : Seq[TechniqueVersion]
+    , modId        : ModificationId 
+    , actor        : EventActor
+    , reason: Option[String]
   ): Box[ActiveTechnique] = { 
     //check if the technique is already in user lib, and if the category exists
     for {
-      con           <- ldap
-      noActiveTechnique         <- { //check that there is not already defined activeTechnique with such ref id
-                         getUPTEntry[TechniqueName](
-                           con, techniqueName, 
-                           { name => EQ(A_TECHNIQUE_UUID, name.value) }, 
-                           "1.1") match {
-                             case Empty => Full("ok")
-                             case Full(uptEntry) => Failure("Can not add a technique with id %s in user library. active technique %s is already defined with such a reference technique.".format(techniqueName,uptEntry.dn))
-                             case f:Failure => f
-                         }
-                       }
-      categoryEntry <- userCategoryRepo.getCategoryEntry(con, categoryId, "1.1") ?~! "Category entry with ID '%s' was not found".format(categoryId)
-      newActiveTechnique        =  ActiveTechnique(ActiveTechniqueId(uuidGen.newUuid),techniqueName, versions.map(x => x -> DateTime.now()).toMap)
-      uptEntry      =  mapper.activeTechnique2Entry(newActiveTechnique,categoryEntry.dn)
-      result        <- userLibMutex.writeLock { con.save(uptEntry, true) }
-      autoArchive   <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
-                         for {
-                           parents  <- this.activeTechniqueBreadCrump(newActiveTechnique.id)
-                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archive  <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(commiter, reason))
-                         } yield archive
-                       } else Full("ok")
+      con                <- ldap
+      noActiveTechnique  <- { //check that there is not already defined activeTechnique with such ref id
+                              getUPTEntry[TechniqueName](
+                                con, techniqueName, 
+                                { name => EQ(A_TECHNIQUE_UUID, name.value) }, 
+                                "1.1") match {
+                                  case Empty => Full("ok")
+                                  case Full(uptEntry) => Failure("Can not add a technique with id %s in user library. active technique %s is already defined with such a reference technique.".format(techniqueName,uptEntry.dn))
+                                  case f:Failure => f
+                              }
+                            }
+      categoryEntry      <- userCategoryRepo.getCategoryEntry(con, categoryId, "1.1") ?~! "Category entry with ID '%s' was not found".format(categoryId)
+      newActiveTechnique =  ActiveTechnique(ActiveTechniqueId(uuidGen.newUuid),techniqueName, versions.map(x => x -> DateTime.now()).toMap)
+      uptEntry           =  mapper.activeTechnique2Entry(newActiveTechnique,categoryEntry.dn)
+      result             <- userLibMutex.writeLock { con.save(uptEntry, true) }
+      autoArchive        <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
+                              for {
+                                parents  <- this.activeTechniqueBreadCrump(newActiveTechnique.id)
+                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                archive  <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(modId,commiter, reason))
+                              } yield archive
+                            } else Full("ok")
     } yield {
       newActiveTechnique
     }
@@ -204,25 +207,25 @@ class LDAPActiveTechniqueRepository(
    * does not exists. 
    * 
    */
-  def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
+  def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
      for {
-      con         <- ldap
-      oldParents  <- if(autoExportOnModify) {
-                       this.activeTechniqueBreadCrump(uactiveTechniqueId)
-                     } else Full(Nil)
-      activeTechnique         <- getUPTEntry(con, uactiveTechniqueId, "1.1") ?~! "Can not move non existing template in use library with ID %s".format(uactiveTechniqueId)
-      newCategory <- userCategoryRepo.getCategoryEntry(con, newCategoryId, "1.1") ?~! "Can not move template with ID %s into non existing category of user library %s".format(uactiveTechniqueId, newCategoryId)
-      moved       <- userLibMutex.writeLock { con.move(activeTechnique.dn, newCategory.dn) ?~! "Error when moving technique %s to category %s".format(uactiveTechniqueId, newCategoryId) }
-      autoArchive <- (if(autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord]) {
-                       for {
-                         parents  <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
-                         newActiveTechnique   <- this.getActiveTechnique(uactiveTechniqueId)
-                         commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                         moved    <- gitArchiver.moveActiveTechnique(newActiveTechnique, oldParents.map( _.id), parents.map( _.id), Some(commiter, reason))
-                       } yield {
-                         moved
-                       }
-                     } else Full("ok") ) ?~! "Error when trying to archive automatically the technique move"
+      con             <- ldap
+      oldParents      <- if(autoExportOnModify) {
+                           this.activeTechniqueBreadCrump(uactiveTechniqueId)
+                         } else Full(Nil)
+      activeTechnique <- getUPTEntry(con, uactiveTechniqueId, "1.1") ?~! "Can not move non existing template in use library with ID %s".format(uactiveTechniqueId)
+      newCategory     <- userCategoryRepo.getCategoryEntry(con, newCategoryId, "1.1") ?~! "Can not move template with ID %s into non existing category of user library %s".format(uactiveTechniqueId, newCategoryId)
+      moved           <- userLibMutex.writeLock { con.move(activeTechnique.dn, newCategory.dn) ?~! "Error when moving technique %s to category %s".format(uactiveTechniqueId, newCategoryId) }
+      autoArchive     <- (if(autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord]) {
+                        for {
+                          parents  <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
+                          newActiveTechnique   <- this.getActiveTechnique(uactiveTechniqueId)
+                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                          moved    <- gitArchiver.moveActiveTechnique(newActiveTechnique, oldParents.map( _.id), parents.map( _.id), Some(modId,commiter, reason))
+                        } yield {
+                          moved
+                        }
+                      } else Full("ok") ) ?~! "Error when trying to archive automatically the technique move"
     } yield {
       uactiveTechniqueId
     }   
@@ -231,53 +234,53 @@ class LDAPActiveTechniqueRepository(
   /**
    * Set the status of the technique to the new value
    */
-  def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
+  def changeStatus(uactiveTechniqueId:ActiveTechniqueId, status:Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
     for {
-      con         <- ldap
-      oldTechnique         <- getUPTEntry(con, uactiveTechniqueId)
-      activeTechnique      <- getUPTEntry(con, uactiveTechniqueId)
-      saved       <- {
-                       activeTechnique +=! (A_IS_ENABLED, status.toLDAPString)
-                       userLibMutex.writeLock { con.save(activeTechnique) }
-                     }
-      optDiff       <- diffMapper.modChangeRecords2TechniqueDiff(oldTechnique, saved) ?~! 
-                       "Error when mapping technique '%s' update to an diff: %s"
-                         .format(uactiveTechniqueId.value, saved)
-      loggedAction  <- optDiff match {
-                         case None => Full("OK")
-                         case Some(diff) => actionLogger.saveModifyTechnique(principal = actor, modifyDiff = diff, reason = reason)
-                       }
-      autoArchive <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord]) {
-                         for {
-                           parents  <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
-                           newActiveTechnique   <- getActiveTechnique(uactiveTechniqueId)
-                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archive  <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(commiter, reason))
-                         } yield archive
-                       } else Full("ok")
+      con             <- ldap
+      oldTechnique    <- getUPTEntry(con, uactiveTechniqueId)
+      activeTechnique <- getUPTEntry(con, uactiveTechniqueId)
+      saved           <- {
+                           activeTechnique +=! (A_IS_ENABLED, status.toLDAPString)
+                           userLibMutex.writeLock { con.save(activeTechnique) }
+                         }
+      optDiff         <- diffMapper.modChangeRecords2TechniqueDiff(oldTechnique, saved) ?~! 
+                           "Error when mapping technique '%s' update to an diff: %s".
+                             format(uactiveTechniqueId.value, saved)
+      loggedAction    <- optDiff match {
+                           case None => Full("OK")
+                           case Some(diff) => actionLogger.saveModifyTechnique(modId, principal = actor, modifyDiff = diff, reason = reason)
+                         }
+      autoArchive     <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord]) {
+                           for {
+                             parents  <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
+                             newActiveTechnique   <- getActiveTechnique(uactiveTechniqueId)
+                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                             archive  <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(modId,commiter, reason))
+                           } yield archive
+                         } else Full("ok")
     } yield {
       uactiveTechniqueId
     }
   }
   
-  def setAcceptationDatetimes(uactiveTechniqueId:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
+  def setAcceptationDatetimes(uactiveTechniqueId:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
     for {
-      con         <- ldap
-      activeTechnique         <- getUPTEntry(con, uactiveTechniqueId, A_ACCEPTATION_DATETIME)
-      saved       <- {
-                       val oldAcceptations = mapper.unserializeAcceptations(activeTechnique(A_ACCEPTATION_DATETIME).getOrElse(""))
-                       val json = Printer.compact(JsonAST.render(mapper.serializeAcceptations(oldAcceptations ++ datetimes)))
-                       activeTechnique.+=!(A_ACCEPTATION_DATETIME, json)
-                       userLibMutex.writeLock { con.save(activeTechnique) }
-                     }
-      autoArchive <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord]) {
-                         for {
-                           parents <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
-                           newActiveTechnique  <- getActiveTechnique(uactiveTechniqueId)
-                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archive <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(commiter, reason))
-                         } yield archive
-                       } else Full("ok")
+      con             <- ldap
+      activeTechnique <- getUPTEntry(con, uactiveTechniqueId, A_ACCEPTATION_DATETIME)
+      saved           <- {
+                           val oldAcceptations = mapper.unserializeAcceptations(activeTechnique(A_ACCEPTATION_DATETIME).getOrElse(""))
+                           val json = Printer.compact(JsonAST.render(mapper.serializeAcceptations(oldAcceptations ++ datetimes)))
+                           activeTechnique.+=!(A_ACCEPTATION_DATETIME, json)
+                           userLibMutex.writeLock { con.save(activeTechnique) }
+                         }
+      autoArchive     <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord]) {
+                           for {
+                             parents <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
+                             newActiveTechnique  <- getActiveTechnique(uactiveTechniqueId)
+                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                             archive <- gitArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(modId,commiter, reason))
+                           } yield archive
+                         } else Full("ok")
     } yield {
       uactiveTechniqueId
     }
@@ -288,25 +291,25 @@ class LDAPActiveTechniqueRepository(
    * Delete the technique in user library.
    * If no such element exists, it is a success.
    */
-  def delete(uactiveTechniqueId:ActiveTechniqueId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
+  def delete(uactiveTechniqueId:ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
      for {
-      con         <- ldap
-      oldParents  <- if(autoExportOnModify) {
-                       this.activeTechniqueBreadCrump(uactiveTechniqueId)
-                     } else Full(Nil)
-      activeTechnique         <- getUPTEntry(con, uactiveTechniqueId, A_TECHNIQUE_UUID)
+      con                <- ldap
+      oldParents         <- if(autoExportOnModify) {
+                              this.activeTechniqueBreadCrump(uactiveTechniqueId)
+                            } else Full(Nil)
+      activeTechnique    <- getUPTEntry(con, uactiveTechniqueId, A_TECHNIQUE_UUID)
       ldapEntryTechnique <- getUPTEntry(con, uactiveTechniqueId)
-      oldTechnique <- mapper.entry2ActiveTechnique(ldapEntryTechnique)
-      deleted     <- userLibMutex.writeLock { con.delete(activeTechnique.dn, false) }
-      diff            = DeleteTechniqueDiff(oldTechnique)
-      loggedAction <- actionLogger.saveDeleteTechnique(principal = actor, deleteDiff = diff, reason = reason)
-      autoArchive <- (if(autoExportOnModify && deleted.size > 0) {
-                       for {
-                         ptName   <- Box(activeTechnique(A_TECHNIQUE_UUID)) ?~! "Missing required reference technique name"
-                         commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                         res      <- gitArchiver.deleteActiveTechnique(TechniqueName(ptName),oldParents.map( _.id), Some(commiter, reason))
-                       } yield res
-                      } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
+      oldTechnique       <- mapper.entry2ActiveTechnique(ldapEntryTechnique)
+      deleted            <- userLibMutex.writeLock { con.delete(activeTechnique.dn, false) }
+      diff               =  DeleteTechniqueDiff(oldTechnique)
+      loggedAction       <- actionLogger.saveDeleteTechnique(modId, principal = actor, deleteDiff = diff, reason = reason)
+      autoArchive        <- (if(autoExportOnModify && deleted.size > 0) {
+                               for {
+                                 ptName   <- Box(activeTechnique(A_TECHNIQUE_UUID)) ?~! "Missing required reference technique name"
+                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                 res      <- gitArchiver.deleteActiveTechnique(TechniqueName(ptName),oldParents.map( _.id), Some(modId,commiter, reason))
+                               } yield res
+                              } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
     } yield {
       uactiveTechniqueId
     }   

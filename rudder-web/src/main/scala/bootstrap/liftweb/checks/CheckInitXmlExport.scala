@@ -39,6 +39,8 @@ import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import net.liftweb.common._
+import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
 
 
 /**
@@ -55,6 +57,7 @@ import net.liftweb.common._
 class CheckInitXmlExport(
     itemArchiveManager: ItemArchiveManager
   , personIdentService: PersonIdentService
+  , uuidGen           : StringUuidGenerator
 ) extends BootstrapChecks with Loggable {
 
   override def checks() : Unit = {
@@ -64,7 +67,7 @@ class CheckInitXmlExport(
     } yield {
       if(tagMap.isEmpty) {
         logger.info("No full archive of configuration-repository items seems to have been done, initialising the system with one")
-        itemArchiveManager.exportAll(ident, RudderEventActor, Some("Initialising configuration-repository sub-system"), false)
+        itemArchiveManager.exportAll(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository sub-system"), false)
       } else {
         logger.trace("At least a full archive of configuration items done, no need for further initialisation")
         Full("OK")

@@ -38,32 +38,25 @@ import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.services.servers.NodeSummaryService
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.inventory.ldap.core.{InventoryHistoryLogRepository,InventoryDit}
-
 import com.normation.inventory.domain.NodeId
-
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.ldap.sdk._
 import BuildFilter._
-
 import org.slf4j.LoggerFactory
 import net.liftweb.json._
 import JsonDSL._
-
-//lift std import
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
-
 import org.joda.time.DateTime
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.web.services.NodeGrid
-import com.normation.eventlog.EventLogService
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.domain.eventlog._
 import com.normation.utils.User
@@ -77,6 +70,9 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.domain.eventlog.{
   AcceptNodeEventLog, RefuseNodeEventLog
 }
+import com.normation.rudder.repository.EventLogRepository
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
 
 /**
  * Check for server in the pending repository and propose to 
@@ -84,16 +80,17 @@ import com.normation.rudder.domain.eventlog.{
  * 
  */
 class AcceptNode {
-  val logger = LoggerFactory.getLogger(classOf[AcceptNode])
-  val newNodeManager = inject[NewNodeManager]
-  val ldap = inject[LDAPConnectionProvider]
-  val rudderDit = inject[RudderDit]
-  val serverGrid = inject[NodeGrid]
+  val logger               = LoggerFactory.getLogger(classOf[AcceptNode])
+  val newNodeManager       = inject[NewNodeManager]
+  val ldap                 = inject[LDAPConnectionProvider]
+  val rudderDit            = inject[RudderDit]
+  val serverGrid           = inject[NodeGrid]
   val serverSummaryService = inject[NodeSummaryService]
-  val diffRepos = inject[InventoryHistoryLogRepository]
-  val logService = inject[EventLogService]
-  val acceptedNodesDit = inject[InventoryDit]("acceptedNodesDit")
-  val pendingNodeDit = inject[InventoryDit]("pendingNodesDit")
+  val diffRepos            = inject[InventoryHistoryLogRepository]
+  val logRepository        = inject[EventLogRepository]
+  val acceptedNodesDit     = inject[InventoryDit]("acceptedNodesDit")
+  val pendingNodeDit       = inject[InventoryDit]("pendingNodesDit")
+  val uuidGen              = inject[StringUuidGenerator]
   
   val gridHtmlId = "acceptNodeGrid"
 
@@ -159,9 +156,10 @@ class AcceptNode {
     }
      
     def addNodes(listNode : Seq[NodeId]) : Unit = {
+      val modId = ModificationId(uuidGen.newUuid)
       //TODO : manage error message
       S.clearCurrentNotices
-      newNodeManager.accept(listNode, CurrentUser.getActor).zip(listNode).foreach { case (box,id) => box match {
+      newNodeManager.accept(listNode, modId, CurrentUser.getActor).zip(listNode).foreach { case (box,id) => box match {
         case f:Failure => 
           S.error(
             <span class="error">
@@ -191,7 +189,7 @@ class AcceptNode {
                         )
                     )
                     
-                    logService.saveEventLog(entry) match {
+                    logRepository.saveEventLog(modId, entry) match {
                         case Full(_) => logger.debug("Successfully added node '%s'".format(id.value.toString))
                         case _ => logger.warn("Node '%s'added, but the action couldn't be logged".format(id.value.toString))
                     }
@@ -208,7 +206,8 @@ class AcceptNode {
     def refuseNodes(listNode : Seq[NodeId]) : Unit = {
       //TODO : manage error message    
       S.clearCurrentNotices
-      newNodeManager.refuse(listNode, CurrentUser.getActor).zip(listNode).foreach {case (box,id) =>  box match {
+      val modId = ModificationId(uuidGen.newUuid)
+      newNodeManager.refuse(listNode, modId, CurrentUser.getActor).zip(listNode).foreach {case (box,id) =>  box match {
         case e:EmptyBox => 
           logger.error("Refuse node '%s' lead to Failure.".format(id.value.toString), e)
           S.error(<span class="error">Error while refusing node(s).</span>)
@@ -229,7 +228,7 @@ class AcceptNode {
                   )
               )
             
-              logService.saveEventLog(entry) match {
+              logRepository.saveEventLog(modId, entry) match {
                 case Full(_) => logger.debug("Successfully refused node '%s'".format(id.value.toString))
                 case _ => logger.warn("Node '%refused, but the action couldn't be logged".format(id.value.toString))
               }
