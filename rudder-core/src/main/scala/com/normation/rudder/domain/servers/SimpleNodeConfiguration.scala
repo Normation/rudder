@@ -42,7 +42,6 @@ import com.normation.rudder.domain._
 import com.normation.rudder.domain.eventlog._
 import com.normation.cfclerk.domain.{TechniqueId, Cf3PolicyDraftId, Cf3PolicyDraft, Cf3PolicyDraftContainer}
 import com.normation.inventory.domain.AgentType
-import com.normation.eventlog.EventLogNode
 import org.joda.time.DateTime
 import org.joda.time.format._
 import scala.collection._

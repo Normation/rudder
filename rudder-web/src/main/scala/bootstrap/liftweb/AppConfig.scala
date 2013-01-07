@@ -50,7 +50,6 @@ import com.normation.rudder.services.policies._
 import com.normation.rudder.services.reports._
 import com.normation.rudder.domain.queries._
 import bootstrap.liftweb.checks._
-import com.normation.eventlog.EventLogService
 import com.normation.cfclerk.services._
 import org.springframework.context.annotation.Lazy
 import org.springframework.context.annotation.{ Bean, Configuration, Import, ImportResource }
@@ -107,6 +106,8 @@ import com.normation.rudder.migration.EventLogMigration_10_2
 import net.liftweb.common._
 import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
 import com.normation.rudder.repository.squeryl._
+import com.normation.rudder.repository._
+import com.normation.rudder.services.modification.ModificationService
 
 /**
  * Spring configuration for services
@@ -323,6 +324,8 @@ class AppConfig extends Loggable {
   
   
   ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
+  @Bean 
+  def gitModificationRepository = new GitModificationSquerylRepository(squerylDatasourceProvider)
   
   @Bean
   def gitRuleArchiver: GitRuleArchiver = new GitRuleArchiverImpl(
@@ -331,6 +334,7 @@ class AppConfig extends Loggable {
     , ruleSerialisation
     , rulesDirectoryName
     , prettyPrinter
+    , gitModificationRepository
   )
   
   @Bean
@@ -340,6 +344,7 @@ class AppConfig extends Loggable {
     , activeTechniqueCategorySerialisation
     , userLibraryDirectoryName
     , prettyPrinter
+    , gitModificationRepository
   )
   
   @Bean
@@ -349,6 +354,7 @@ class AppConfig extends Loggable {
     , activeTechniqueSerialisation
     , userLibraryDirectoryName
     , prettyPrinter
+    , gitModificationRepository
   )
   
   @Bean
@@ -358,6 +364,7 @@ class AppConfig extends Loggable {
     , directiveSerialisation
     , userLibraryDirectoryName
     , prettyPrinter
+    , gitModificationRepository
   )
   
   @Bean
@@ -367,6 +374,7 @@ class AppConfig extends Loggable {
     , nodeGroupCategorySerialisation
     , groupLibraryDirectoryName
     , prettyPrinter
+    , gitModificationRepository
   )
     
   @Bean
@@ -376,6 +384,7 @@ class AppConfig extends Loggable {
     , nodeGroupSerialisation
     , groupLibraryDirectoryName
     , prettyPrinter
+    , gitModificationRepository
   )
   
   @Bean
@@ -395,7 +404,7 @@ class AppConfig extends Loggable {
     , importTechniqueLibrary
     , parseGroupLibrary
     , importGroupLibrary
-    , logService
+    , logRepository
     , asyncDeploymentAgent
   )
   
@@ -410,9 +419,6 @@ class AppConfig extends Loggable {
   
   @Bean
   def logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
-
-  @Bean
-  def logService = new EventLogServiceImpl(logRepository, eventLogDetailsService)
 
   @Bean
   def inventoryLogEventService: InventoryEventLogService = new InventoryEventLogServiceImpl(logRepository)
@@ -496,8 +502,9 @@ class AppConfig extends Loggable {
     val service = new TechniqueRepositoryImpl(
         techniqueReader
       , Seq(techniqueAcceptationDatetimeUpdater)
+      , uuidGen
     )
-    service.registerCallback(new LogEventOnTechniqueReloadCallback("LogEventOnPTLibUpdate", logService))
+    service.registerCallback(new LogEventOnTechniqueReloadCallback("LogEventOnPTLibUpdate", logRepository))
     service
   }
 
@@ -709,7 +716,7 @@ class AppConfig extends Loggable {
           nodeConfigurationChangeDetectService,
           reportingService,
           historizationService)
-      , logService
+      , eventLogDeploymentService
       , autoDeployOnModification
       , deploymentStatusSerialisation)
     techniqueRepository.registerCallback(
@@ -752,7 +759,9 @@ class AppConfig extends Loggable {
   def srvGrid = new SrvGrid
 
   @Bean
-  def eventListDisplayer = new EventListDisplayer(eventLogDetailsService, logRepository, ldapNodeGroupRepository, ldapDirectiveRepository, nodeInfoService)
+  def modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManager,uuidGen)
+  @Bean
+  def eventListDisplayer = new EventListDisplayer(eventLogDetailsService, logRepository, ldapNodeGroupRepository, ldapDirectiveRepository, nodeInfoService,modificationService,personIdentService)
   
   @Bean
   def fileManager = new FileManager(UPLOAD_ROOT_DIRECTORY)
@@ -941,6 +950,9 @@ class AppConfig extends Loggable {
     , new DeploymentStatusUnserialisationImpl
   )
   
+  @Bean 
+  def eventLogDeploymentService = new EventLogDeploymentService(logRepository, eventLogDetailsService)
+  
   @Bean
   def nodeInfoService: NodeInfoService = new NodeInfoServiceImpl(nodeDit, rudderDit, acceptedNodesDit, ldap, ldapEntityMapper)
 
@@ -980,6 +992,7 @@ class AppConfig extends Loggable {
       dynGroupService
     , new DynGroupUpdaterServiceImpl(ldapNodeGroupRepository, queryProcessor)
     , asyncDeploymentAgent
+    , uuidGen
     , dyngroupUpdateInterval
   )
 
@@ -1007,11 +1020,12 @@ class AppConfig extends Loggable {
   def ptLibCron = new CheckTechniqueLibrary(
       techniqueRepository
     , asyncDeploymentAgent
+    , uuidGen
     , ptlibUpdateInterval
   )
   
   @Bean
-  def userSessionLogEvent = new UserSessionLogEvent(logRepository)
+  def userSessionLogEvent = new UserSessionLogEvent(logRepository, uuidGen)
 
   @Bean
   def jsTreeUtilService = new JsTreeUtilService(
@@ -1083,9 +1097,9 @@ class AppConfig extends Loggable {
     , new CheckSystemDirectives(rudderDit, ldapRuleRepository)
     , new CheckInitUserTemplateLibrary(
         rudderDit, ldap, techniqueRepository,
-        ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository) //new CheckDirectiveBusinessRules()
+        ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository, uuidGen) //new CheckDirectiveBusinessRules()
     , new CheckMigrationEventLog2_3(eventLogsMigration_2_3_Management)
-    , new CheckInitXmlExport(itemArchiveManager, personIdentService)
+    , new CheckInitXmlExport(itemArchiveManager, personIdentService, uuidGen)
   )
 
   
@@ -1095,16 +1109,16 @@ class AppConfig extends Loggable {
   
 
   @Bean
-  def restDeploy = new RestDeploy(asyncDeploymentAgent)
+  def restDeploy = new RestDeploy(asyncDeploymentAgent, uuidGen)
 
   @Bean
   def restDyngroup = new RestDyngroupReload(dyngroupUpdaterBatch)
   
   @Bean
-  def restDptLibReload = new RestTechniqueReload(techniqueRepository)
+  def restDptLibReload = new RestTechniqueReload(techniqueRepository, uuidGen)
   
   @Bean
-  def restArchiving = new RestArchiving(itemArchiveManager,personIdentService)
+  def restArchiving = new RestArchiving(itemArchiveManager,personIdentService, uuidGen)
   
   @Bean
   def restZipArchiving = new RestGetGitCommitAsZip(gitRepo)

@@ -73,18 +73,18 @@ class EventLogJdbcRepository(
 
    val logger = LoggerFactory.getLogger(classOf[EventLogRepository])
   
-   //reason: column 6
-   //causeId: column 7
-   val INSERT_SQL = "insert into EventLog (creationDate, principal, eventType, severity, data %s %s) values (?, ?, ?, ?, ? %s %s)"
+   //reason: column 7
+   //causeId: column 8
+   val INSERT_SQL = "insert into EventLog (creationDate, modificationId, principal, eventType, severity, data %s %s) values (?, ?, ?, ?, ?, ? %s %s)"
  
-   val SELECT_SQL = "SELECT id, creationDate, principal, eventType, severity, data, reason, causeId FROM EventLog where 1=1 "
+   val SELECT_SQL = "SELECT id, creationDate, modificationId, principal, eventType, severity, data, reason, causeId FROM EventLog where 1=1 "
    
   /**
    * Save an eventLog
    * Optionnal : the user. At least one of the eventLog user or user must be defined
    * Return the event log with its serialization number
    */
-  def saveEventLog(eventLog : EventLog) : Box[EventLog] = {
+  def saveEventLog(modId: ModificationId, eventLog : EventLog) : Box[EventLog] = {
      val keyHolder = new GeneratedKeyHolder()
 
      try {
@@ -94,30 +94,31 @@ class EventLogJdbcRepository(
              val sqlXml = connection.createSQLXML()
              sqlXml.setString(eventLog.details.toString)
              
-             var i = 5
+             var i = 6
              val (reasonCol, reasonVal) = eventLog.eventDetails.reason match {
                case None => ("", "")
                case Some(r) => 
                  i = i + 1
-                 (", reason", ", ?") //#6
+                 (", reason", ", ?") //#7
              }
              
              val (causeCol, causeVal) = eventLog.cause match {
                case None => ("","")
                case Some(id) => 
                  i = i + 1
-                 (", causeId", ", ?") //#7
+                 (", causeId", ", ?") //#8
              }
              
              val ps = connection.prepareStatement(INSERT_SQL.format(reasonCol, causeCol, reasonVal, causeVal), Seq[String]("id").toArray[String]);
              
              ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
-             ps.setString(2, eventLog.principal.name)
-             ps.setString(3, eventLog.eventType.serialize)
-             ps.setInt(4, eventLog.severity)
-             ps.setSQLXML(5, sqlXml) // have a look at the SQLXML
+             ps.setString(2, modId.value)
+             ps.setString(3, eventLog.principal.name)
+             ps.setString(4, eventLog.eventType.serialize)
+             ps.setInt(5, eventLog.severity)
+             ps.setSQLXML(6, sqlXml) // have a look at the SQLXML
              
-             eventLog.eventDetails.reason.foreach( x => ps.setString(6, x) )
+             eventLog.eventDetails.reason.foreach( x => ps.setString(7, x) )
              eventLog.cause foreach( x => ps.setInt(i, x)  )
 
              ps
@@ -163,10 +164,17 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
     
   def mapRow(rs : ResultSet, rowNum: Int) : EventLog = {
     val eventLogDetails = EventLogDetails(
-        id          = Some(rs.getInt("id"))
-      , principal   = EventActor(rs.getString("principal"))
-      , creationDate= new DateTime(rs.getTimestamp("creationDate"))
-      , cause       = {
+        id             = Some(rs.getInt("id"))
+      , modificationId = {
+          val modId = rs.getString("modificationId")
+          if (modId != null && modId.size > 0)
+            Some(ModificationId(rs.getString("modificationId")))
+          else 
+            None
+        }
+      , principal      = EventActor(rs.getString("principal"))
+      , creationDate   = new DateTime(rs.getTimestamp("creationDate"))
+      , cause          = {
                         if(rs.getInt("causeId")>0) {
                           Some(rs.getInt("causeId"))
                         } else None

@@ -68,6 +68,8 @@ import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.plugins.ExtendableSnippet
 import com.normation.plugins.SnippetExtensionKey
 import com.normation.plugins.SpringExtendableSnippet
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
 
 
 object Groups {
@@ -89,7 +91,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   import Groups._
   
   private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
-  private[this] val nodeGroupRepository = inject[NodeGroupRepository]
+  private[this] val nodeGroupRepository     = inject[NodeGroupRepository]
+  private[this] val uuidGen                 = inject[StringUuidGenerator]
   
   def mainDispatch =  Map(
       "head" -> head _ ,
@@ -301,7 +304,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
         case (sourceGroupId, destCatId) :: Nil =>
           (for {
             group <- nodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId)) ?~! "Error while trying to find group with requested id %s".format(sourceGroupId)
-            result <- nodeGroupRepository.move(group, NodeGroupCategoryId(destCatId), CurrentUser.getActor, Some("Group moved by user"))?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
+            result <- nodeGroupRepository.move(group, NodeGroupCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Group moved by user"))?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
             newGroup <- nodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId))
           } yield {
             newGroup
@@ -331,7 +334,12 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
         case (sourceCatId, destCatId) :: Nil =>
           (for {
             group <- groupCategoryRepository.getGroupCategory(NodeGroupCategoryId(sourceCatId)) ?~! "Error while trying to find category with requested id %s".format(sourceCatId)
-            result <- groupCategoryRepository.saveGroupCategory(group, NodeGroupCategoryId(destCatId), CurrentUser.getActor, reason = None)?~! "Error while trying to move category with requested id '%s' to category id '%s'".format(sourceCatId,destCatId)
+            result <- groupCategoryRepository.saveGroupCategory(
+                          group
+                        , NodeGroupCategoryId(destCatId)
+                        , ModificationId(uuidGen.newUuid)
+                        , CurrentUser.getActor
+                        , reason = None)?~! "Error while trying to move category with requested id '%s' to category id '%s'".format(sourceCatId,destCatId)
           } yield {
             (group,result)
           }) match {

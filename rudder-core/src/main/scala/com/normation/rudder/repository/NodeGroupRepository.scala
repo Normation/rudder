@@ -41,6 +41,7 @@ import net.liftweb.common._
 import com.normation.eventlog.EventActor
 import com.normation.utils.HashcodeCaching
 import scala.collection.SortedMap
+import com.normation.eventlog.ModificationId
 
 
 /**
@@ -116,7 +117,7 @@ trait NodeGroupRepository {
    */
   def createNodeGroup( name:String, description : String, q: Option[Query],
         isDynamic : Boolean, srvList : Set[NodeId], into: NodeGroupCategoryId,
-                       isEnabled : Boolean, actor:EventActor, why: Option[String]): Box[AddNodeGroupDiff]
+                       isEnabled : Boolean, modId: ModificationId, actor:EventActor, why: Option[String]): Box[AddNodeGroupDiff]
   
   
   /**
@@ -125,7 +126,7 @@ trait NodeGroupRepository {
    * so you will have to manage rule deployment
    * if needed
    */
-  def update(group:NodeGroup, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
+  def update(group:NodeGroup, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
 
 
   /**
@@ -134,7 +135,7 @@ trait NodeGroupRepository {
    * so you will have to manage rule deployment
    * if needed
    */
-  def move(group:NodeGroup, containerId : NodeGroupCategoryId, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
+  def move(group:NodeGroup, containerId : NodeGroupCategoryId, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
   
   /**
    * Delete the given nodeGroup. 
@@ -142,6 +143,6 @@ trait NodeGroupRepository {
    * @param id
    * @return
    */
-  def delete(id:NodeGroupId, actor:EventActor, whyDescription:Option[String]) : Box[DeleteNodeGroupDiff]
+  def delete(id:NodeGroupId, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : Box[DeleteNodeGroupDiff]
 
 }

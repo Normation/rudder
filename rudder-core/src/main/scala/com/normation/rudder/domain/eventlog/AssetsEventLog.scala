@@ -111,7 +111,7 @@ object AcceptNodeEventLog extends EventLogFilter {
       inventoryDetails, "accept"
     ) )
     
-    AcceptNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, description, details)) 
+    AcceptNodeEventLog(EventLogDetails(id,None,principal,creationDate, None, severity, description, details)) 
   }
 }
 
@@ -141,7 +141,7 @@ object RefuseNodeEventLog extends EventLogFilter {
       inventoryDetails, "refuse"
     ) )
     
-    RefuseNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, description, details)) 
+    RefuseNodeEventLog(EventLogDetails(id,None,principal,creationDate, None, severity, description, details)) 
   }
 }
 
@@ -213,7 +213,7 @@ object DeleteNodeEventLog extends EventLogFilter {
       node, "delete"
     ) )
     
-    DeleteNodeEventLog(EventLogDetails(id,principal,creationDate, None, severity, description, details)) 
+    DeleteNodeEventLog(EventLogDetails(id,None,principal,creationDate, None, severity, description, details)) 
   }
 }
 

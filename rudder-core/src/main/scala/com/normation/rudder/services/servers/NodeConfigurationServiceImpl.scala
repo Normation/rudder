@@ -46,7 +46,7 @@ import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.utils.User
-import com.normation.eventlog.{EventLogNode,EventActor}
+import com.normation.eventlog.EventActor
 import scala.collection._
 import com.normation.rudder.domain.servers._
 import com.normation.rudder.domain._

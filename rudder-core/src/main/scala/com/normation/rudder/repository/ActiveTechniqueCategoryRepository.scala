@@ -38,6 +38,7 @@ import com.normation.rudder.domain.policies._
 import net.liftweb.common._
 import com.normation.utils.Utils
 import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 
 
 
@@ -91,6 +92,7 @@ trait ActiveTechniqueCategoryRepository {
   def addActiveTechniqueCategory(
       that : ActiveTechniqueCategory
     , into : ActiveTechniqueCategory //parent category
+    , modificationId: ModificationId
     , actor: EventActor
     , reason: Option[String]
   ) : Box[ActiveTechniqueCategory] 
@@ -100,7 +102,7 @@ trait ActiveTechniqueCategoryRepository {
    * Fail if the parent already contains a category of the
    * same name (name must be unique for a given level)
    */
-  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategory]  
+  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, modificationId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategory]  
   
   /**
    * Get the direct parent of the given category.
@@ -130,7 +132,7 @@ trait ActiveTechniqueCategoryRepository {
    *  - Full(category id) for a success
    *  - Failure(with error message) iif an error happened. 
    */
-  def delete(id:ActiveTechniqueCategoryId, actor: EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId]
+  def delete(id:ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId]
   
   /**
    * Move an existing category into a new one.
@@ -139,7 +141,7 @@ trait ActiveTechniqueCategoryRepository {
    * Fail if the parent already contains a category of the
    * same name (name must be unique for a given level)
    */
-  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategoryId]
+  def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategoryId]
   
   /**
    * Return true if at least one directive exists in this category (or a sub category 

@@ -60,6 +60,7 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.domain.reports.bean._
+import com.normation.eventlog.ModificationId
 
 
 object RuleGrid {
@@ -83,6 +84,7 @@ class RuleGrid(
   private[this] val targetInfoService = inject[RuleTargetService]
   private[this] val directiveRepository = inject[DirectiveRepository]
   private[this] val ruleRepository = inject[RuleRepository]
+  private[this] val uuidGen = inject[StringUuidGenerator]
 
   private[this] val reportingService = inject[ReportingService]
   private[this] val nodeInfoService = inject[NodeInfoService]
@@ -459,7 +461,7 @@ class RuleGrid(
           OKLine(rule, compliance, seq, targetsInfo)
         case (x,y) =>
           //the Rule has some error, try to disactivate it
-          ruleRepository.update(rule.copy(isEnabledStatus=false), RudderEventActor, 
+          ruleRepository.update(rule.copy(isEnabledStatus=false), ModificationId(uuidGen.newUuid), RudderEventActor, 
             Some("Rule automatically disabled because it contains error (bad target or bad directives)")) 
           ErrorLine(rule, x, y)
       }
