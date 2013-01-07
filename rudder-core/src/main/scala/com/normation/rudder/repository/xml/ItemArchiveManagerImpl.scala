@@ -73,6 +73,7 @@ class ItemArchiveManagerImpl(
   , importGroupLibrary                : ImportGroupLibrary
   , eventLogger                       : EventLogRepository
   , asyncDeploymentAgent              : AsyncDeploymentAgent
+  , gitModificationRepo         : GitModificationRepository
 ) extends 
   ItemArchiveManager with 
   Loggable with 
@@ -81,7 +82,7 @@ class ItemArchiveManagerImpl(
   
   override val tagPrefix = "archives/full/"
   override val relativePath = "."
-  
+  override val gitModificationRepository = gitModificationRepo
   ///// implementation /////
   
   override def exportAll(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[(GitArchiveId, NotArchivedElements)] = { 
@@ -232,7 +233,7 @@ class ItemArchiveManagerImpl(
       userLib     <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       groupLIb    <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       eventLogged <- eventLogger.saveEventLog(modId,new ImportFullArchive(actor,archiveId, reason))
-      commit      <- restoreCommitAtHead(commiter,"User %s requested full archive restoration to commit %s".format(actor.name,archiveId.value),archiveId,FullArchive)
+      commit      <- restoreCommitAtHead(commiter,"User %s requested full archive restoration to commit %s".format(actor.name,archiveId.value),archiveId,FullArchive,modId)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
       archiveId
@@ -244,7 +245,7 @@ class ItemArchiveManagerImpl(
     for {
     rulesArchiveId <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem)
     eventLogged    <- eventLogger.saveEventLog(modId,new ImportRulesArchive(actor,archiveId, reason))
-    commit         <- restoreCommitAtHead(commiter,commitMsg,archiveId,RuleArchive)
+    commit         <- restoreCommitAtHead(commiter,commitMsg,archiveId,RuleArchive,modId)
     } yield
       archiveId
   }
@@ -272,7 +273,7 @@ class ItemArchiveManagerImpl(
     for {
       directivesArchiveId <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem)
       eventLogged <- eventLogger.saveEventLog(modId, new ImportTechniqueLibraryArchive(actor,archiveId, reason))
-      commit              <- restoreCommitAtHead(commiter,commitMsg,archiveId,TechniqueLibraryArchive)
+      commit              <- restoreCommitAtHead(commiter,commitMsg,archiveId,TechniqueLibraryArchive,modId)
     } yield
       archiveId
   }
@@ -291,8 +292,8 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested group archive restoration to commit %s".format(actor.name,archiveId.value)
     for {
       groupsArchiveId <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem)
-      commit          <- restoreCommitAtHead(commiter,commitMsg,archiveId,GroupArchive)
       eventLogged <- eventLogger.saveEventLog(modId, new ImportGroupsArchive(actor,archiveId, reason))
+      commit          <- restoreCommitAtHead(commiter,commitMsg,archiveId,GroupArchive,modId)
     } yield
       archiveId
   }
@@ -321,7 +322,7 @@ class ItemArchiveManagerImpl(
       userLib     <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       groupLIb    <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       eventLogged <- eventLogger.saveEventLog(modId,new Rollback(actor,rollbackedEvents, target, rollbackType, reason))
-      commit      <- restoreCommitAtHead(commiter,"User %s requested full archive restoration to commit %s".format(actor.name,archiveId.value),archiveId,FullArchive)
+      commit      <- restoreCommitAtHead(commiter,"User %s requested full archive restoration to commit %s".format(actor.name,archiveId.value),archiveId,FullArchive,modId)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
       archiveId

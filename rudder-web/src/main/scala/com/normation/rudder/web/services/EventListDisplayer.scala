@@ -1262,7 +1262,6 @@ class EventListDisplayer(
 
   private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int) = {
     val rollbackedEvents = rollbackInfo.rollbacked
-    logger.info(rollbackInfo)
     <div class="evloglmargin">
       <div style="width:50%; float:left;">
         <br/>

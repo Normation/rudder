@@ -734,9 +734,8 @@ class EventLogDetailsServiceImpl(
       date <-(entry \ "date").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
       rollbackType <-(entry \ "rollbackType").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
     } yield {
-      println(entry)
       val target = RollbackedEvent(id,date,evtType,author)
-     RollbackInfo(target,rollbackType,getEvents(xml))
+      RollbackInfo(target,rollbackType,getEvents(xml))
     }
    res.headOption
   }
