@@ -406,6 +406,7 @@ class AppConfig extends Loggable {
     , importGroupLibrary
     , logRepository
     , asyncDeploymentAgent
+    , gitModificationRepository
   )
   
   ///// end /////
