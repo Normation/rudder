@@ -58,6 +58,7 @@ import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.eventlog.ModificationId
 
 class LDAPRuleRepository(
     rudderDit           : RudderDit
@@ -66,7 +67,7 @@ class LDAPRuleRepository(
   , mapper              : LDAPEntityMapper
   , diffMapper          : LDAPDiffMapper
   , groupRepository     : NodeGroupRepository
-  , techniqueRepository: TechniqueRepository
+  , techniqueRepository : TechniqueRepository
   , actionLogger        : EventLogRepository
   , gitCrArchiver       : GitRuleArchiver
   , personIdentService  : PersonIdentService
@@ -84,25 +85,25 @@ class LDAPRuleRepository(
     for {
       con     <- ldap 
       crEntry <- con.get(rudderDit.RULES.configRuleDN(id.value)) 
-      rule      <- mapper.entry2Rule(crEntry) ?~! "Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, crEntry)
+      rule    <- mapper.entry2Rule(crEntry) ?~! "Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, crEntry)
     } yield {
       rule
     }
   }
 
 
-  def delete(id:RuleId, actor:EventActor, reason:Option[String]) : Box[DeleteRuleDiff] = {
+  def delete(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteRuleDiff] = {
     for {
       con          <- ldap
       entry        <- con.get(rudderDit.RULES.configRuleDN(id.value)) ?~! "rule with ID '%s' is not present".format(id.value)
       oldCr        <- mapper.entry2Rule(entry) ?~! "Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry)
       deleted      <- con.delete(rudderDit.RULES.configRuleDN(id.value)) ?~! "Error when deleting rule with ID %s".format(id)
       diff         =  DeleteRuleDiff(oldCr)
-      loggedAction <- actionLogger.saveDeleteRule(principal = actor, deleteDiff = diff, reason = reason)
+      loggedAction <- actionLogger.saveDeleteRule(modId, principal = actor, deleteDiff = diff, reason = reason)
       autoArchive  <- if(autoExportOnModify && deleted.size > 0) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archive  <- gitCrArchiver.deleteRule(id, Some(commiter, reason))
+                          archive  <- gitCrArchiver.deleteRule(id, Some(modId,commiter, reason))
                         } yield {
                           archive
                         }
@@ -116,17 +117,17 @@ class LDAPRuleRepository(
   def getAll(includeSystem:Boolean = false) : Box[Seq[Rule]] = {
     val filter = if(includeSystem) IS(OC_RULE) else AND(IS(OC_RULE), EQ(A_IS_SYSTEM,false.toLDAPString))
     for {
-      con <- ldap
+      con   <- ldap
       rules <- sequence(con.searchOne(rudderDit.RULES.dn, filter)) { crEntry =>
-               mapper.entry2Rule(crEntry) ?~! "Error when transforming LDAP entry into a rule. Entry: %s".format(crEntry)
-             }
+                 mapper.entry2Rule(crEntry) ?~! "Error when transforming LDAP entry into a rule. Entry: %s".format(crEntry)
+               }
     } yield {
       rules
     }
   }
   
   
-  def create(rule:Rule, actor:EventActor, reason:Option[String]) : Box[AddRuleDiff] = {
+  def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[AddRuleDiff] = {
     repo.synchronized { for {
       con             <- ldap
       idDoesntExist   <- if(con.exists(rudderDit.RULES.configRuleDN(rule.id.value))) {
@@ -142,11 +143,11 @@ class LDAPRuleRepository(
                            con.save(crEntry) ?~! "Error when saving rule entry in repository: %s".format(crEntry)
                          }
       diff            <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn,result)
-      loggedAction    <- actionLogger.saveAddRule(principal = actor, addDiff = diff, reason = reason)
+      loggedAction    <- actionLogger.saveAddRule(modId, principal = actor, addDiff = diff, reason = reason)
       autoArchive     <- if(autoExportOnModify) {
                            for {
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive  <- gitCrArchiver.archiveRule(rule, Some(commiter, reason))
+                             archive  <- gitCrArchiver.archiveRule(rule, Some(modId,commiter, reason))
                            } yield {
                              archive
                            }
@@ -157,24 +158,24 @@ class LDAPRuleRepository(
   }
 
   
-  def update(rule:Rule, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]] = {
+  def update(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]] = {
     repo.synchronized { for {
-      con           <- ldap
-      existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)) ?~! "Cannot update rule with id %s : there is no rule with that id".format(rule.id.value)
+      con             <- ldap
+      existingEntry   <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)) ?~! "Cannot update rule with id %s : there is no rule with that id".format(rule.id.value)
       nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id)) 
                            Failure("Cannot update rule with name \"%s\" : this name is already in use.".format(rule.name))
                          else Full(Unit)
-      crEntry       =  mapper.rule2Entry(rule)
-      result        <- con.save(crEntry, true, Seq(A_SERIAL)) ?~! "Error when saving rule entry in repository: %s".format(crEntry)
-      optDiff       <- diffMapper.modChangeRecords2RuleDiff(existingEntry,result) ?~! "Error when mapping rule '%s' update to an diff: %s".format(rule.id.value, result)
-      loggedAction  <- optDiff match {
-                         case None => Full("OK")
-                         case Some(diff) => actionLogger.saveModifyRule(principal = actor, modifyDiff = diff, reason = reason)
-                       }
-      autoArchive   <- if(autoExportOnModify && optDiff.isDefined) {
+      crEntry         =  mapper.rule2Entry(rule)
+      result          <- con.save(crEntry, true, Seq(A_SERIAL)) ?~! "Error when saving rule entry in repository: %s".format(crEntry)
+      optDiff         <- diffMapper.modChangeRecords2RuleDiff(existingEntry,result) ?~! "Error when mapping rule '%s' update to an diff: %s".format(rule.id.value, result)
+      loggedAction    <- optDiff match {
+                           case None => Full("OK")
+                           case Some(diff) => actionLogger.saveModifyRule(modId, principal = actor, modifyDiff = diff, reason = reason)
+                         }
+      autoArchive     <- if(autoExportOnModify && optDiff.isDefined) {
                          for {
                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archive  <- gitCrArchiver.archiveRule(rule, Some(commiter, reason))
+                           archive  <- gitCrArchiver.archiveRule(rule, Some(modId,commiter, reason))
                          } yield {
                            archive
                          }

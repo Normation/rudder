@@ -48,7 +48,7 @@ import net.liftweb.http.{SHtml,S}
 import scala.xml._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
@@ -57,8 +57,8 @@ import com.normation.rudder.repository._
 import net.liftweb.http.LocalSnippet
 import net.liftweb.json._
 import net.liftweb.json.JsonAST._
-
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
+import com.normation.eventlog.ModificationId
 
 
 /**
@@ -78,6 +78,7 @@ class TechniqueCategoryEditForm(
   private[this] val htmlId_categoryDetailsForm = "categoryDetailsForm"
 
   private[this] val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
+  private[this] val uuidGen = inject[StringUuidGenerator]
 
 
   def dispatch = { 
@@ -121,7 +122,7 @@ class TechniqueCategoryEditForm(
   }
   
   private[this] def deleteCategory() : JsCmd = {
-    activeTechniqueCategoryRepository.delete(currentCategory.id, CurrentUser.getActor, Some("User deleted technique category from UI")) match {
+    activeTechniqueCategoryRepository.delete(currentCategory.id, ModificationId(uuidGen.newUuid),CurrentUser.getActor, Some("User deleted technique category from UI")) match {
       case Full(id) =>
         //update UI
         JsRaw("$.modal.close();") & 
@@ -215,7 +216,7 @@ class TechniqueCategoryEditForm(
                  name = categoryName.is,
                  description = categoryDescription.is
              )
-             activeTechniqueCategoryRepository.saveActiveTechniqueCategory(updatedCategory, CurrentUser.getActor, Some("User updated category from UI")) match {
+             activeTechniqueCategoryRepository.saveActiveTechniqueCategory(updatedCategory, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User updated category from UI")) match {
                case Failure(m,_,_) => 
                  categorFormTracker.addFormError(  error("An error occured: " + m) )
                case Empty => 

@@ -39,6 +39,7 @@ import com.normation.rudder.domain.policies._
 import net.liftweb.common._
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.archives.RuleArchiveId
+import com.normation.eventlog.ModificationId
 
 
 
@@ -75,7 +76,7 @@ trait RuleRepository {
    * with the provided resulting rule. 
    * 
    */  
-  def create(rule:Rule, actor:EventActor, reason:Option[String]) : Box[AddRuleDiff]
+  def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[AddRuleDiff]
 
   /**
    * Update the rule with the given ID with the given 
@@ -85,7 +86,7 @@ trait RuleRepository {
    * 
    * NOTE: the serial is *never* updated with that methods. 
    */
-  def update(rule:Rule, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]]
+  def update(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]]
   
   /**
    * Increment the serial of rules with given ID by one. 
@@ -100,7 +101,7 @@ trait RuleRepository {
    * (it's the caller site responsability to decide if it's
    * and error or not). 
    */
-  def delete(id:RuleId, actor:EventActor, reason:Option[String]) : Box[DeleteRuleDiff]
+  def delete(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteRuleDiff]
   
   def getAll(includeSytem:Boolean = false) : Box[Seq[Rule]] 
   

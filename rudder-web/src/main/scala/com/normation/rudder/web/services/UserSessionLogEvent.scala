@@ -48,6 +48,8 @@ import com.normation.eventlog.EventActor
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLog
+import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
 
 /**
  * A class used to log user session creation/destruction events.
@@ -56,7 +58,8 @@ import com.normation.eventlog.EventLog
  * hopefully a simple one to break.
  */
 class UserSessionLogEvent(
-    repository:EventLogRepository
+    repository: EventLogRepository
+  , uuidGen   : StringUuidGenerator
 ) extends ApplicationListener[ApplicationEvent] with Loggable {
 
   def onApplicationEvent(event : ApplicationEvent):Unit = {
@@ -65,9 +68,11 @@ class UserSessionLogEvent(
         login.getAuthentication.getPrincipal match {
           case u:UserDetails => 
             repository.saveEventLog(
-                LoginEventLog(
+                ModificationId(uuidGen.newUuid)
+              , LoginEventLog(
                     EventLogDetails( 
-                        principal = EventActor(u.getUsername)
+                        modificationId = None
+                      , principal = EventActor(u.getUsername)
                       , details = EventLog.emptyDetails
                       , reason = None
                     )
@@ -81,9 +86,11 @@ class UserSessionLogEvent(
         badLogin.getAuthentication.getPrincipal match {
           case u:String =>
             repository.saveEventLog(
-                BadCredentialsEventLog(
+                ModificationId(uuidGen.newUuid)
+              , BadCredentialsEventLog(
                     EventLogDetails( 
-                        principal = EventActor(u)
+                        modificationId = None
+                      , principal = EventActor(u)
                       , details = EventLog.emptyDetails
                       , reason = None
                     )

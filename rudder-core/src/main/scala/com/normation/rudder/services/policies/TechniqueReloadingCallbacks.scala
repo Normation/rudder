@@ -39,31 +39,33 @@ import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.eventlog.EventActor
-import com.normation.eventlog.EventLogService
 import com.normation.rudder.domain.eventlog.ReloadTechniqueLibrary
 import com.normation.eventlog.EventLogDetails
 import net.liftweb.common._
+import com.normation.rudder.repository.EventLogRepository
+import com.normation.eventlog.ModificationId
 
 class DeployOnTechniqueCallback(
     override val name   : String
   , asyncDeploymentAgent: AsyncDeploymentAgent
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(TechniqueIds:Seq[TechniqueId], actor:EventActor, reason: Option[String]) : Unit = {
+  override def updatedTechniques(TechniqueIds:Seq[TechniqueId], modId:ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
     reason.foreach( msg => logger.info(msg) )
     logger.debug("Ask for a deployment since technique library was reloaded")
-    asyncDeploymentAgent ! AutomaticStartDeployment(actor)
+    asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
   }
 }
 
 class LogEventOnTechniqueReloadCallback(
     override val name: String
-  , eventLogService  : EventLogService
+  , eventLogRepos    : EventLogRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(TechniqueIds:Seq[TechniqueId], actor:EventActor, reason: Option[String]) : Unit = {
-    eventLogService.saveEventLog(ReloadTechniqueLibrary(EventLogDetails(
-        principal   = actor
+  override def updatedTechniques(TechniqueIds:Seq[TechniqueId], modId:ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
+    eventLogRepos.saveEventLog(modId, ReloadTechniqueLibrary(EventLogDetails(
+        modificationId = None
+      , principal   = actor
       , details     = ReloadTechniqueLibrary.buildDetails(TechniqueIds)
       , reason = reason
     ))) match {

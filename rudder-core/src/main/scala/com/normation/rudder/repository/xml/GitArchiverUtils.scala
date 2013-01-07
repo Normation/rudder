@@ -53,6 +53,7 @@ import org.eclipse.jgit.revwalk.RevTag
 import org.eclipse.jgit.api.errors.JGitInternalException
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.rudder.repository._
+import com.normation.eventlog.ModificationId
 
 
 /**
@@ -65,6 +66,7 @@ trait GitArchiverUtils extends Loggable {
   def relativePath : String
   def xmlPrettyPrinter : PrettyPrinter
   def encoding : String
+  def gitModificationRepository : GitModificationRepository
 
   def newDateTimeTagString = (DateTime.now()).toString(ISODateTimeFormat.dateTime)
   
@@ -83,8 +85,9 @@ trait GitArchiverUtils extends Loggable {
    * Files in gitPath are added. 
    * commitMessage is used for the message of the commit. 
    */
-  def commitAddFile(commiter:PersonIdent, gitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
+  def commitAddFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
     tryo {
+           logger.info("begin commit")
       gitRepo.git.add.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
       //for debugging
@@ -92,7 +95,10 @@ trait GitArchiverUtils extends Loggable {
         logger.warn("Auto-archive git failure: not found in git added files: '%s'. You can safelly ignore that warning if the file was already existing in Git and was not modified by that archive.".format(gitPath))
       }
       val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-      GitCommitId(rev.getName)
+      val commit = GitCommitId(rev.getName)
+            logger.info(commit)
+      logger.info(gitModificationRepository.addCommit(commit, modId))
+      commit
     }
   }
   
@@ -100,7 +106,7 @@ trait GitArchiverUtils extends Loggable {
    * Files in gitPath are removed. 
    * commitMessage is used for the message of the commit. 
    */
-  def commitRmFile(commiter:PersonIdent, gitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
+  def commitRmFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
     tryo {
       gitRepo.git.rm.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
@@ -109,6 +115,9 @@ trait GitArchiverUtils extends Loggable {
       }
       val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
       GitCommitId(rev.getName)
+      val commit = GitCommitId(rev.getName)
+      gitModificationRepository.addCommit(commit, modId)
+      commit
     }
   }
   
@@ -119,8 +128,10 @@ trait GitArchiverUtils extends Loggable {
    * 'git added' (with and without the 'update' mode). 
    * commitMessage is used for the message of the commit. 
    */
-  def commitMvDirectory(commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
+  def commitMvDirectory(modId : ModificationId, commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
+    
     tryo {
+      logger.info("begin commit")
       gitRepo.git.rm.addFilepattern(oldGitPath).call
       gitRepo.git.add.addFilepattern(newGitPath).call
       gitRepo.git.add.setUpdate(true).addFilepattern(newGitPath).call //if some files were removed from dest dir
@@ -130,6 +141,10 @@ trait GitArchiverUtils extends Loggable {
       }
       val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
       GitCommitId(rev.getName)
+      val commit = GitCommitId(rev.getName)
+      logger.info(commit)
+      gitModificationRepository.addCommit(commit, modId)
+      commit
     }
   }
   
@@ -177,7 +192,27 @@ trait GitArchiverFullCommitUtils extends Loggable {
       GitArchiveId(path, GitCommitId(commit.getName), commiter)
     }
   }
-  
+
+  def restoreCommitAtHead(commiter:PersonIdent, commitMessage:String, commit:GitCommitId, archiveMode:ArchiveMode) = {
+    tryo {
+      /* Configure rm with archive mode and call it
+       *this will delete latest (HEAD) configuration files from the repository
+       */
+      archiveMode.configureRm(gitRepo.git.rm).call
+
+      /* Configure checkout with archive mode, set reference commit to target commit,
+       * set master as branches to update, and finally call checkout on it
+       *This will add the content from the commit to be restored on the HEAD of branch master
+       */
+      archiveMode.configureCheckout(gitRepo.git.checkout).setStartPoint(commit.value).setName("master").call
+
+      // The commit will actually delete old files and replace them with those from the checkout
+      val newCommit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
+      logger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommit.getName()))
+      newCommit
+    }
+  }
+
   /**
    * List tags and their date for that use of commitFullGitPathContentAndTag
    * The DateTime is the one from the name, which may differ from the 

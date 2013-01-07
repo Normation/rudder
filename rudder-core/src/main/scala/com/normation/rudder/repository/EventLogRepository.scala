@@ -42,6 +42,7 @@ import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
+import com.normation.eventlog.ModificationId
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory
@@ -52,96 +53,129 @@ trait EventLogRepository {
    * Optionnal : the user. At least one of the eventLog user or user must be defined
    * Return the unspecialized event log with its serialization number
    */
-  def saveEventLog(eventLog : EventLog) : Box[EventLog]
+  def saveEventLog(modId: ModificationId, eventLog : EventLog) : Box[EventLog]
                          
-  def saveAddRule(principal: EventActor, addDiff: AddRuleDiff, reason:Option[String]) = {
-    saveEventLog(eventLogFactory.getAddRuleFromDiff(
-        principal = principal
-      , addDiff   = addDiff
-      , reason = reason
-    ))
+  def saveAddRule(modId: ModificationId, principal: EventActor, addDiff: AddRuleDiff, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getAddRuleFromDiff(
+          principal = principal
+        , addDiff   = addDiff
+        , reason = reason
+      )
+    )
   }
   
-  def saveDeleteRule(principal: EventActor, deleteDiff: DeleteRuleDiff, reason:Option[String]) = {
-    saveEventLog(eventLogFactory.getDeleteRuleFromDiff(
-        principal  = principal
-      , deleteDiff = deleteDiff
-      , reason = reason
-    ))
+  def saveDeleteRule(modId: ModificationId, principal: EventActor, deleteDiff: DeleteRuleDiff, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getDeleteRuleFromDiff(
+            principal  = principal
+          , deleteDiff = deleteDiff
+          , reason = reason
+        )
+    )
   }
 
-  def saveModifyRule(principal: EventActor, modifyDiff: ModifyRuleDiff, reason:Option[String]) = {
-    saveEventLog(eventLogFactory.getModifyRuleFromDiff(
-        principal = principal
-      , modifyDiff = modifyDiff
-      , reason = reason
-    ))
+  def saveModifyRule(modId: ModificationId, principal: EventActor, modifyDiff: ModifyRuleDiff, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getModifyRuleFromDiff(
+          principal = principal
+        , modifyDiff = modifyDiff
+        , reason = reason
+      )
+    )
   }
 
-  def saveAddDirective(principal: EventActor, addDiff: AddDirectiveDiff, varsRootSectionSpec: SectionSpec, reason:Option[String]) = {
-    saveEventLog(eventLogFactory.getAddDirectiveFromDiff(
-        principal           = principal
-      , addDiff             = addDiff
-      , varsRootSectionSpec = varsRootSectionSpec
-      , reason = reason
-    ))
+  def saveAddDirective(modId: ModificationId, principal: EventActor, addDiff: AddDirectiveDiff, varsRootSectionSpec: SectionSpec, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getAddDirectiveFromDiff(
+          principal           = principal
+        , addDiff             = addDiff
+        , varsRootSectionSpec = varsRootSectionSpec
+        , reason = reason
+      )
+    )
   }
   
-  def saveDeleteDirective(principal : EventActor, deleteDiff:DeleteDirectiveDiff, varsRootSectionSpec: SectionSpec, reason:Option[String]) = {
-    saveEventLog(eventLogFactory.getDeleteDirectiveFromDiff(
-        principal  = principal
-      , deleteDiff = deleteDiff
-      , varsRootSectionSpec = varsRootSectionSpec
-      , reason = reason
-    ))
+  def saveDeleteDirective(modId: ModificationId, principal : EventActor, deleteDiff:DeleteDirectiveDiff, varsRootSectionSpec: SectionSpec, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getDeleteDirectiveFromDiff(
+          principal  = principal
+        , deleteDiff = deleteDiff
+        , varsRootSectionSpec = varsRootSectionSpec
+        , reason = reason
+      )
+    )
   }
 
-  def saveModifyDirective(principal : EventActor, modifyDiff: ModifyDirectiveDiff, reason:Option[String]) = {
-    saveEventLog(eventLogFactory.getModifyDirectiveFromDiff(
-        principal = principal
-      , modifyDiff = modifyDiff
-      , reason = reason
-    ))
+  def saveModifyDirective(modId: ModificationId, principal : EventActor, modifyDiff: ModifyDirectiveDiff, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getModifyDirectiveFromDiff(
+          principal = principal
+        , modifyDiff = modifyDiff
+        , reason = reason
+      )
+    )
   }
   
-  def saveAddNodeGroup(principal: EventActor, addDiff: AddNodeGroupDiff, reason:Option[String]) = {
-    saveEventLog(eventLogFactory.getAddNodeGroupFromDiff(
-        principal           = principal
-      , addDiff             = addDiff
-      , reason = reason
-    ))
+  def saveAddNodeGroup(modId: ModificationId, principal: EventActor, addDiff: AddNodeGroupDiff, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getAddNodeGroupFromDiff(
+          principal           = principal
+        , addDiff             = addDiff
+        , reason = reason
+      )
+    )
   }
   
-  def saveDeleteNodeGroup(principal : EventActor, deleteDiff:DeleteNodeGroupDiff, reason:Option[String]) = {
-    saveEventLog(eventLogFactory.getDeleteNodeGroupFromDiff(
-        principal  = principal
-      , deleteDiff = deleteDiff
-      , reason = reason
-    ))
+  def saveDeleteNodeGroup(modId: ModificationId, principal : EventActor, deleteDiff:DeleteNodeGroupDiff, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getDeleteNodeGroupFromDiff(
+          principal  = principal
+        , deleteDiff = deleteDiff
+        , reason = reason
+      )
+    )
   }
 
-  def saveModifyNodeGroup(principal : EventActor, modifyDiff: ModifyNodeGroupDiff, reason:Option[String]) = {
-    saveEventLog(eventLogFactory.getModifyNodeGroupFromDiff(
-        principal = principal
-      , modifyDiff = modifyDiff
-      , reason = reason
-    ))
+  def saveModifyNodeGroup(modId: ModificationId, principal : EventActor, modifyDiff: ModifyNodeGroupDiff, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getModifyNodeGroupFromDiff(
+          principal = principal
+        , modifyDiff = modifyDiff
+        , reason = reason
+      )
+    )
   } 
   
-  def saveModifyTechnique(principal: EventActor, modifyDiff: ModifyTechniqueDiff, reason:Option[String]) = {
-    saveEventLog(eventLogFactory.getModifyTechniqueFromDiff(
-        principal = principal
-      , modifyDiff = modifyDiff
-      , reason = reason
-    ))
+  def saveModifyTechnique(modId: ModificationId, principal: EventActor, modifyDiff: ModifyTechniqueDiff, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getModifyTechniqueFromDiff(
+          principal = principal
+        , modifyDiff = modifyDiff
+        , reason = reason
+      )
+    )
   }
 
-  def saveDeleteTechnique(principal: EventActor, deleteDiff: DeleteTechniqueDiff, reason:Option[String]) = {
-    saveEventLog(eventLogFactory.getDeleteTechniqueFromDiff(
-        principal  = principal
-      , deleteDiff = deleteDiff
-      , reason = reason
-    ))
+  def saveDeleteTechnique(modId: ModificationId, principal: EventActor, deleteDiff: DeleteTechniqueDiff, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getDeleteTechniqueFromDiff(
+          principal  = principal
+        , deleteDiff = deleteDiff
+        , reason = reason
+      )
+    )
   }
   
   /**

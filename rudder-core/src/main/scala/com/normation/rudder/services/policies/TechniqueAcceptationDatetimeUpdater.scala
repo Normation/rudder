@@ -41,13 +41,14 @@ import com.normation.rudder.repository.ActiveTechniqueRepository
 import net.liftweb.common._
 import org.joda.time.DateTime
 import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 
 class TechniqueAcceptationDatetimeUpdater(
     override val name:String
   , activeTechniqueRepo : ActiveTechniqueRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
   
-    override def updatedTechniques(TechniqueIds:Seq[TechniqueId], actor:EventActor, reason: Option[String]) : Unit = {
+    override def updatedTechniques(TechniqueIds:Seq[TechniqueId], modId: ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
       val byNames = TechniqueIds.groupBy( _.name ).map { case (name,ids) => 
                       (name, ids.map( _.version )) 
                     }.toMap
@@ -64,7 +65,7 @@ class TechniqueAcceptationDatetimeUpdater(
           case Full(activeTechnique) => 
             logger.debug("Update acceptation datetime for: " + activeTechnique.techniqueName)
             val versionsMap = versions.map( v => (v,acceptationDatetime)).toMap
-            activeTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap,  actor, reason) match {
+            activeTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap, modId, actor, reason) match {
               case e:EmptyBox =>
                 logger.error("Error when saving Active Technique " + activeTechnique.id, (e ?~! "Error was:"))
               case _ => //ok

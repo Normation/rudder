@@ -57,6 +57,10 @@ import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.modification.ModificationService
+import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.web.model.CurrentUser
+import org.eclipse.jgit.lib.PersonIdent
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment), 
@@ -68,8 +72,11 @@ class EventListDisplayer(
     , nodeGroupRepository : NodeGroupRepository
     , directiveRepository : DirectiveRepository
     , nodeInfoService     : NodeInfoService
+    , modificationService : ModificationService
+    , personIdentService  : PersonIdentService
 ) extends Loggable {
   
+  private[this] var rollbackAction:RollBackAction = RollbackTo
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
  // private[this] val gridName = "eventLogsGrid"
  // private[this] val jsGridName = "oTable" + gridName
@@ -92,7 +99,7 @@ class EventListDisplayer(
         } &
         ".logId *" #> event.id.getOrElse(0).toString &
         ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
-        ".logActor *" #> event.principal.name &
+        ".logActor *" #> event.principal.name & 
         ".logType *" #> S.?("rudder.log.eventType.names." + event.eventType.serialize) &
         ".logDescription *" #> displayDescription(event) 
       })
@@ -105,6 +112,8 @@ class EventListDisplayer(
     JsRaw("var %s;".format(jsGridName)) &
     OnLoad(
         JsRaw("""
+            $('.restore').button();
+            correctButtons();
           /* Event handler function */
           #table_var# = $('#%s').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
@@ -311,19 +320,101 @@ class EventListDisplayer(
   }
 
   def displayDetails(event:EventLog) = {
-    
+
     def xmlParameters(eventId: Option[Int]) = {
       eventId match {
         case None => NodeSeq.Empty
         case Some(id) =>
           <h4 id={"showParameters%s".format(id)}
-          class="curspoint showParameters" 
+          class="curspoint showParameters"
           onclick={"showParameters(%s)".format(id)}>Raw Technical Details</h4>
-          <pre id={"showParametersInfo%s".format(id) } 
+          <pre id={"showParametersInfo%s".format(id) }
           style="display:none;width:200px;">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
       }
     }
-    
+
+    def showConfirmationDialog(action : RollBackAction, commiter:PersonIdent) : JsCmd = {
+      val cancel : JsCmd = {
+        SetHtml("confirm%d".format(event.id.getOrElse(0)), NodeSeq.Empty) &
+        JsRaw(""" $('#rollback%d').show();""".format(event.id.getOrElse(0)))
+      }
+
+      val dialog =
+      <div>
+          <img src="/images/icWarn.png" alt="Warning!" height="25" width="25" class="warnicon"
+            style="vertical-align: middle; padding: 0px 0px 2px 0px;"/>
+          <b>{"Are you sure you want to restore configuration policy %s this change".format(action.name)}</b>
+      </div> ++
+        SHtml.ajaxButton(
+          "Cancel"
+        ,  () =>  cancel
+        , ("style","margin-right:10px")
+        ) ++
+        SHtml.ajaxButton(
+          "Confirm"
+        , () => {
+            action.action(event,commiter)
+            S.redirectTo("eventLogs")
+          }
+        )
+
+      def showDialog : JsCmd = {
+        SetHtml("confirm%d".format(event.id.getOrElse(0)), dialog) &
+        JsRaw(""" $('#rollback%d').hide();
+                  correctButtons();
+                  $('#confirm%d').stop(true, true).slideDown(1000); """.format(event.id.getOrElse(0),event.id.getOrElse(0)))
+      }
+
+      showDialog
+    }
+
+    def addRestoreAction =
+      personIdentService.getPersonIdentOrDefault(CurrentUser.getActor.name) match {
+      case Full(commiter) =>
+        if (event.canRollBack)
+          modificationService.getCommitsfromEventLog(event).map{ commit =>
+          <form class="lift:form.ajax" >
+          <fieldset class="rollbackFieldSet"> <legend>Rollback</legend>
+          <div id={"rollback%d".format(event.id.getOrElse(0))}>
+            <span class="alignRollback">Restore configuration policy to </span>
+            <ul style="display: inline-block;padding-left:5px;"> {
+              SHtml.radio(
+                  Seq("before","after")
+                , Full("before")
+                , {value:String =>
+                    rollbackAction = value match {
+                      case "after" => RollbackTo
+                      case "before"  => RollbackBefore
+                    }
+                  }
+                , ("class", "radio")
+              ).flatMap(e =>
+                <li>
+                  <label>{e.xhtml}
+                    <span class="radioTextLabel">{e.key.toString}</span>
+                  </label>
+                </li>
+              )
+            }
+            </ul>
+            <span class="alignRollback"> this change </span>
+            { SHtml.ajaxSubmit(
+                  "Restore"
+                , () => showConfirmationDialog(rollbackAction,commiter)
+                , ("style","vertical-align:50%;width:75px;")
+              )
+             }
+          </div>
+          <span id={"confirm%d".format(event.id.getOrElse(0))}> </span>
+          </fieldset>
+        </form>
+      }.getOrElse(NodeSeq.Empty)
+      else
+        NodeSeq.Empty
+      case eb:EmptyBox => logger.error("this should not happen, as person identifier service always return a working value")
+        NodeSeq.Empty
+    }
+
     val reasonHtml = {
       val r = event.eventDetails.reason.getOrElse("")  
       if(r == "") NodeSeq.Empty 
@@ -347,6 +438,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getRuleAddDetails(add.details) match {
           case Full(addDiff) => 
             <div class="evloglmargin">
+              { addRestoreAction }
               { ruleDetails(crDetailsXML, addDiff.rule)}
               { reasonHtml }
               { xmlParameters(event.id) }
@@ -359,6 +451,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getRuleDeleteDetails(del.details) match {
           case Full(delDiff) =>
             <div class="evloglmargin">
+              { addRestoreAction }
               { ruleDetails(crDetailsXML, delDiff.rule) }
               { reasonHtml }
               { xmlParameters(event.id) }
@@ -370,6 +463,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getRuleModifyDetails(mod.details) match {
           case Full(modDiff) =>            
             <div class="evloglmargin">
+              { addRestoreAction }
               <h4>Rule overview:</h4>
               <ul class="evlogviewpad">
                 <li><b>Rule ID:</b> { modDiff.id.value.toUpperCase }</li>
@@ -409,6 +503,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getDirectiveModifyDetails(x.details) match {
           case Full(modDiff) =>
             <div class="evloglmargin">
+              { addRestoreAction }
               <h4>Directive overview:</h4>
               <ul class="evlogviewpad">
                 <li><b>Directive ID:</b> { modDiff.id.value.toUpperCase }</li>
@@ -442,6 +537,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getDirectiveAddDetails(x.details) match {
           case Full((diff,sectionVal)) =>
             <div class="evloglmargin">
+              { addRestoreAction }
               { directiveDetails(piDetailsXML, diff.techniqueName, 
                   diff.directive, sectionVal) }
               { reasonHtml }
@@ -455,6 +551,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getDirectiveDeleteDetails(x.details) match {
           case Full((diff,sectionVal)) =>
             <div class="evloglmargin">
+              { addRestoreAction }
               { directiveDetails(piDetailsXML, diff.techniqueName, 
                   diff.directive, sectionVal) }
               { reasonHtml }
@@ -469,6 +566,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getNodeGroupModifyDetails(x.details) match {
           case Full(modDiff) => 
             <div class="evloglmargin">
+              { addRestoreAction }
               <h4>Group overview:</h4>
               <ul class="evlogviewpad">
                 <li><b>Node Group ID:</b> { modDiff.id.value.toUpperCase }</li>
@@ -512,6 +610,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getNodeGroupAddDetails(x.details) match {
           case Full(diff) =>
             <div class="evloglmargin">
+              { addRestoreAction }
               { groupDetails(groupDetailsXML, diff.group) }
               { reasonHtml }
               { xmlParameters(event.id) }
@@ -524,6 +623,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getNodeGroupDeleteDetails(x.details) match {
           case Full(diff) =>
             <div class="evloglmargin">
+            { addRestoreAction }
             { groupDetails(groupDetailsXML, diff.group) }
             { reasonHtml }
               { xmlParameters(event.id) }
@@ -537,6 +637,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getAcceptNodeLogDetails(x.details) match {
           case Full(details) =>
             <div class="evloglmargin">
+              { addRestoreAction }
               <h4>Node accepted overview:</h4>
               { nodeDetails(details) }
               { reasonHtml }
@@ -549,6 +650,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getRefuseNodeLogDetails(x.details) match {
           case Full(details) =>
             <div class="evloglmargin">
+              { addRestoreAction }
               <h4>Node refused overview:</h4>
               { nodeDetails(details) }
               { reasonHtml }
@@ -561,6 +663,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getDeleteNodeLogDetails(x.details) match {
           case Full(details) =>
             <div class="evloglmargin">
+              { addRestoreAction }
               <h4>Node deleted overview:</h4>
               { nodeDetails(details) }
               { reasonHtml }
@@ -574,6 +677,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
           case Full(SuccessStatus(id,started,ended,_)) =>
             <div class="evloglmargin">
+              { addRestoreAction }
               <h4>Successful deployment:</h4>
               <ul class="evlogviewpad">
                 <li><b>ID:</b>&nbsp;{id}</li>
@@ -591,6 +695,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
           case Full(ErrorStatus(id,started,ended,failure)) =>
             <div class="evloglmargin">
+              { addRestoreAction }
               <h4>Failed deployment:</h4>
               <ul class="evlogviewpad">
                 <li><b>ID:</b>&nbsp;{id}</li>
@@ -608,6 +713,7 @@ class EventListDisplayer(
       case x:AutomaticStartDeployement => 
         "*" #> 
             <div class="evloglmargin">
+              { addRestoreAction }
               { xmlParameters(event.id) }
             </div>
         
@@ -621,7 +727,8 @@ class EventListDisplayer(
               <ul>{ nets.map { n => <li class="eventLogUpdatePolicy">{n}</li> } }</ul>
             }
             
-            <div class="evloglmargin">{
+            <div class="evloglmargin">
+              { addRestoreAction }{
               (
                   ".diffOldValue *" #> networksToXML(details.oldNetworks) &
                   ".diffNewValue *" #> networksToXML(details.newNetworks)
@@ -639,6 +746,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getTechniqueLibraryReloadDetails(x.details) match {
           case Full(details) => 
               <div class="evloglmargin">
+                { addRestoreAction }
                 <b>The Technique library was reloaded and following Techniques were updated:</b>
                 <ul>{ details.map {technique => 
                   <li class="eventLogUpdatePolicy">{ "%s (version %s)".format(technique.name.value, technique.version.toString)}</li>
@@ -655,6 +763,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getTechniqueModifyDetails(x.details) match {
           case Full(modDiff) =>            
             <div class="evloglmargin">
+              { addRestoreAction }
               <h4>Technique overview:</h4>
               <ul class="evlogviewpad">
                 <li><b>Technique ID:</b> { modDiff.id.value }</li>
@@ -675,6 +784,7 @@ class EventListDisplayer(
         "*" #> (logDetailsService.getTechniqueDeleteDetails(x.details) match {
           case Full(techDiff) =>
             <div class="evloglmargin">
+              { addRestoreAction }
               { techniqueDetails(techniqueDetailsXML, techDiff.technique) }
               { reasonHtml }
               { xmlParameters(event.id) }
@@ -686,7 +796,8 @@ class EventListDisplayer(
         
       case x:ExportEventLog => 
         "*" #> (logDetailsService.getNewArchiveDetails(x.details, x) match {
-          case Full(gitArchiveId) => 
+          case Full(gitArchiveId) =>
+              { addRestoreAction }
               { displayExportArchiveDetails(gitArchiveId, xmlParameters(event.id)) }
             
           case e:EmptyBox => errorMessage(e)
@@ -694,7 +805,8 @@ class EventListDisplayer(
         
       case x:ImportEventLog => 
         "*" #> (logDetailsService.getRestoreArchiveDetails(x.details, x) match {
-          case Full(gitArchiveId) => 
+          case Full(gitArchiveId) =>
+              { addRestoreAction }
               { displayImportArchiveDetails(gitArchiveId, xmlParameters(event.id)) }
           case e:EmptyBox => errorMessage(e)
         })
@@ -702,7 +814,7 @@ class EventListDisplayer(
       // other case: do not display details at all
       case _ => "*" #> ""
     
-    })(event.details)
+    })(event.details)++Script(JsRaw("correctButtons();"))
   }
   
   
@@ -1140,4 +1252,22 @@ class EventListDisplayer(
     </div>
   )
 
+  trait RollBackAction {
+  def name:String 
+  def action:(EventLog,PersonIdent) => Box[Box[GitCommitId]]
 }
+
+case object RollbackTo extends RollBackAction{
+  def name = "after"
+  def action = modificationService.restoreToEventLog _ 
+  
+}
+case object RollbackBefore extends RollBackAction{
+  def name = "before"
+  def action = modificationService.restoreBeforeEventLog _ 
+  
+}
+  
+}
+
+

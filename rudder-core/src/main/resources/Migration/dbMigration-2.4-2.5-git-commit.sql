@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2012 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,34 +32,10 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest
+-- Migration script of the databases from Rudder 2.4 to 2.5
+-- Create table gitCommit, to link a modification to a git commit and perform rollback
 
-import com.normation.rudder.batch.UpdateDynamicGroups
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.PlainTextResponse
-import net.liftweb.common._
-import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.eventlog.ModificationId
-import com.normation.utils.StringUuidGenerator
-
-
-/**
- * A rest api that allows to deploy promises.
- */
-class RestTechniqueReload(
-    updatePTLibService : UpdateTechniqueLibrary
-  , uuidGen            : StringUuidGenerator  
-) extends RestHelper with Loggable {
-  
-  serve {
-    case Get("api" :: "techniqueLibrary" :: "reload" :: Nil, req) =>
-      updatePTLibService.update(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), Some("Technique library reloaded from REST API")) match {
-        case Full(x) => PlainTextResponse("OK")
-        case eb:EmptyBox => 
-          val e = eb ?~! "An error occured when updating the Technique library from file system"
-          logger.debug(e.messageChain, e)
-          PlainTextResponse("Error: " + e.messageChain.mkString("\n","\ncause:","\n"), 500)
-      }
-  }
-  
-}
+CREATE TABLE gitCommit(
+  gitcommit text PRIMARY KEY
+, modificationid text
+);
