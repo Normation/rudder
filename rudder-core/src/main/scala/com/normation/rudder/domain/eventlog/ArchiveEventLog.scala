@@ -284,6 +284,50 @@ object ImportFullArchive extends EventLogFilter {
   val tagName = "restoreFullArchive"
 }
 
+
+final case class Rollback(
+    override val eventDetails : EventLogDetails
+) extends ImportEventLog with HashcodeCaching {
+  override val eventType = RollbackEventType
+  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
+
+  def this(actor:EventActor, rollbackedEvent:Seq[EventLog],targetEvent: EventLog, rollbackType:String, reason: Option[String]) = this(EventLogDetails(
+      modificationId = None
+    , principal = actor
+    , reason = reason
+    , details = Rollback.buildDetails(rollbackedEvent,targetEvent,rollbackType)
+  ))
+}
+
+object Rollback extends EventLogFilter {
+  override val eventType = RollbackEventType
+
+  override def apply(x : (EventLogType, EventLogDetails)) : Rollback = Rollback(x._2)
+
+  def buildDetails(rollbackedEvents:Seq[EventLog],targetEvent:EventLog,rollbackType:String) =
+      EventLog.withContent(new Elem(
+        prefix = null
+      , label = "rollbackedEvents"
+      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_CURRENT_FILE_FORMAT.toString)), Null)
+      , scope = TopScope
+      , child =  (rollbackedEvents.map(ev =>
+        <rollbackedEvent>
+          <id>{ev.id.get}</id>
+          <type>{ev.eventType.serialize}</type>
+          <author>{ev.principal.name}</author>
+          <date>{ev.creationDate.toString("yyyy-MM-dd HH:mm")}</date>
+        </rollbackedEvent>
+        )++ (<main>
+                <rollbackType>{rollbackType}</rollbackType>
+                <id>{targetEvent.id.get}</id>
+          <type>{targetEvent.eventType.serialize}</type>
+          <author>{targetEvent.principal.name}</author>
+          <date>{targetEvent.creationDate.toString("yyyy-MM-dd HH:mm")}</date>
+      </main>):_*
+    ) ) )
+
+}
+
 object ImportExportEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
       ExportGroupsArchive 
@@ -294,5 +338,6 @@ object ImportExportEventLogsFilter {
     , ImportTechniqueLibraryArchive
     , ImportRulesArchive
     , ImportFullArchive
+    , Rollback
     )
 }

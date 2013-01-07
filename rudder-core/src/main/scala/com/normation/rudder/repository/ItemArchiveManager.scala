@@ -61,6 +61,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.common.Failure
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.eventlog.ModificationId
+import com.normation.eventlog.EventLog
 
 
 
@@ -167,7 +168,10 @@ trait ItemArchiveManager {
   
   def importHeadGroupLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
   
-  
+  /**
+   * Rollback method
+   */
+  def rollback(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String],  rollbackedEvents :Seq[EventLog], target:EventLog, rollbackType:String, includeSystem:Boolean = false) : Box[GitCommitId]
   /**
    * Get the list of tags for the archive type
    */
