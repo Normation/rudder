@@ -242,6 +242,7 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested rule archive restoration to commit %s".format(actor.name,archiveId.value)
     for {
     rulesArchiveId <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem)
+    eventLogged    <- eventLogger.saveEventLog(modId,new ImportRulesArchive(actor,archiveId, reason))
     commit         <- restoreCommitAtHead(commiter,commitMsg,archiveId,RuleArchive)
     } yield
       archiveId
@@ -252,7 +253,6 @@ class ItemArchiveManagerImpl(
     for {
       parsed      <- parseRules.getArchive(archiveId)
       imported    <- ruleRepository.swapRules(parsed)
-      eventLogged <- eventLogger.saveEventLog(modId, new ImportRulesArchive(actor,archiveId, reason))
     } yield {
       //try to clean
       ruleRepository.deleteSavedRuleArchiveId(imported) match {
@@ -270,6 +270,7 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested directive archive restoration to commit %s".format(actor.name,archiveId.value)
     for {
       directivesArchiveId <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem)
+      eventLogged <- eventLogger.saveEventLog(modId, new ImportTechniqueLibraryArchive(actor,archiveId, reason))
       commit              <- restoreCommitAtHead(commiter,commitMsg,archiveId,TechniqueLibraryArchive)
     } yield
       archiveId
@@ -279,7 +280,6 @@ class ItemArchiveManagerImpl(
       for {
         parsed      <- parseActiveTechniqueLibrary.getArchive(archiveId)
         imported    <- importTechniqueLibrary.swapActiveTechniqueLibrary(parsed, includeSystem)
-        eventLogged <- eventLogger.saveEventLog(modId, new ImportTechniqueLibraryArchive(actor,archiveId, reason))
       } yield {
         if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
         archiveId
@@ -291,6 +291,7 @@ class ItemArchiveManagerImpl(
     for {
       groupsArchiveId <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem)
       commit          <- restoreCommitAtHead(commiter,commitMsg,archiveId,GroupArchive)
+      eventLogged <- eventLogger.saveEventLog(modId, new ImportGroupsArchive(actor,archiveId, reason))
     } yield
       archiveId
   }
@@ -298,9 +299,8 @@ class ItemArchiveManagerImpl(
   private[this] def importGroupLibraryAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing groups archive with id '%s'".format(archiveId.value))
       for {
-        parsed      <- parseGroupLibrary.getArchive(archiveId)
-        imported    <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
-        eventLogged <- eventLogger.saveEventLog(modId, new ImportGroupsArchive(actor,archiveId, reason))
+        parsed   <- parseGroupLibrary.getArchive(archiveId)
+        imported <- importGroupLibrary.swapGroupLibrary(parsed, includeSystem)
       } yield {
         if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
         archiveId
