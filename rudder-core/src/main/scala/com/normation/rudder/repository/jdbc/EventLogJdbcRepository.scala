@@ -220,17 +220,14 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
       eventType     : EventLogType
     , eventLogDetails  : EventLogDetails
   ) : Box[EventLog] = {
-  var value = "nothing"
-  logFilters.find { 
-    pf => value = pf.eventType.serialize
-      pf.isDefinedAt((eventType, eventLogDetails))
+
+  logFilters.find {
+    pf => pf.isDefinedAt((eventType, eventLogDetails))
   }.map(
     x => x.apply((eventType, eventLogDetails))
   ) match {
     case Some(value) => Full(value)
-    case None =>  logger.warn(value)
-    logger.warn(eventType.serialize)
-  logger.warn(eventLogDetails)
+    case None =>
       logger.error("Could not match event type %s".format(eventType.serialize))
       Failure("Unknow Event type")
   }
