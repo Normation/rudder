@@ -938,4 +938,74 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
+  
+   "An execution Batch, with one component with an escaped quote in its value, cardinality one, one node" should {
+         
+    val uniqueExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[PolicyExpectedReports](new PolicyExpectedReports(
+                  "policy",
+                  Seq(new ComponentCard("component", 1, Seq("""some\"text""")  )))),
+       12,
+       new DateTime(),
+       Seq[Reports](new ResultSuccessReport(new DateTime(), "cr", "policy", "one", 12, "component", """some"text""",new DateTime(), "message")),
+       Seq[NodeId]("one"),
+       new DateTime(), None)
+
+    "have one reports when we create it with one report" in {
+      uniqueExecutionBatch.executionReports.size ==1
+    }
+    
+    "have one success node when we create it with one success report" in {
+      uniqueExecutionBatch.getSuccessServer == Seq(NodeId("one"))
+    }
+   
+    "have no repaired node when we create it with one success report" in {
+      (uniqueExecutionBatch.getRepairedServer.size == 0)
+    }
+    
+
+    "have no error node when we create it with one success report" in {
+      (uniqueExecutionBatch.getErrorServer.size == 0)
+    }
+
+    "have no error report when we create it with one success report" in {
+      uniqueExecutionBatch.getErrorReports.size == 0
+    }
+    "have no node without answer when we create it with one success report" in {
+      uniqueExecutionBatch.getServerWithNoReports.size == 0 &&
+      uniqueExecutionBatch.getPendingServer.size == 0
+    }
+    
+    "have one success report when we create it with one success report" in {
+      uniqueExecutionBatch.getSuccessReports.size == 1
+    }
+  }
+  
+ 
+ "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {, and a quote as well" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", """/var/cfengine/inputs/"test""", executionTimestamp, "message")        
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "cr", 
+       Seq[PolicyExpectedReports](new PolicyExpectedReports(
+                  "policy",
+                  Seq(new ComponentCard("component", 1, Seq("""${sys.workdir}/inputs/\"test""") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+        
+    "have one success node" in {
+      sameKeyExecutionBatch.getSuccessServer.size == 1
+    }
+    
+    "have no error node" in {
+      sameKeyExecutionBatch.getErrorServer.size == 0
+    }
+  }
 }

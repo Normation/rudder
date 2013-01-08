@@ -124,6 +124,9 @@ trait ExecutionBatch {
 object ConfigurationExecutionBatch {
   final val matchCFEngineVars = """.*\$(\{.+\}|\(.+\)).*""".r
   final val replaceCFEngineVars = """\$\{.+\}|\$\(.+\)"""
+
+  final val matchEscapedQuote = """\\""""
+  final val replaceEscapedQuote = """""""
 }
 
 /**
@@ -161,8 +164,11 @@ class ConfigurationExecutionBatch(
     , whenStringCaseCondition: Int => Boolean
   ) : Boolean = {
     
-    linearisedTestType(linearised, expected =>
-      expected.componentValue match {
+    linearisedTestType(linearised, expected => {
+      // Replace all \" by " in the expected component value
+      val unescapedComponentValue = expected.componentValue.replaceAll(matchEscapedQuote, replaceEscapedQuote)
+      
+      unescapedComponentValue match {
         case "None" =>
           // each non defined component key must have the right cardinality, no more, no less
           whenNoneCaseCondition(
@@ -171,7 +177,7 @@ class ConfigurationExecutionBatch(
           )
         case matchCFEngineVars(_) =>
           // this is a case when we have a CFEngine Variable
-          val matchableExpected = expected.componentValue.replaceAll(replaceCFEngineVars, ".*")
+          val matchableExpected = unescapedComponentValue.replaceAll(replaceCFEngineVars, ".*")
           // We've converted the string into a regexp, by replacing ${} and $() by .*
           whenCfeVarCaseCondition(filteredReports.filter( x =>  
                x.component == expected.componentName 
@@ -184,8 +190,9 @@ class ConfigurationExecutionBatch(
           // name collision, but it would be resolved by the total number 
           whenStringCaseCondition(filteredReports.filter( x => 
                x.component == expected.componentName 
-            && x.keyValue == expected.componentValue
+            && x.keyValue == unescapedComponentValue
           ).size)
+      }
       }
     )
   }
