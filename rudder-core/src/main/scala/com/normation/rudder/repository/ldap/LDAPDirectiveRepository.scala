@@ -188,17 +188,30 @@ class LDAPDirectiveRepository(
 
                             else Failure("An other directive with the id %s exists in an other category that the one with id %s : %s".format(directive.id, inActiveTechniqueId, otherPi.dn))
                         }
-                      }
-      nameIsAvailable <- if (directiveNameExists(con, directive.name, directive.id)) 
-                           Failure("Cannot set directive with name \"%s\" : this name is already in use.".format(directive.name))
-                         else Full(Unit)
-      piEntry     =  mapper.userDirective2Entry(directive, uptEntry.dn)
-      result      <- userLibMutex.writeLock { con.save(piEntry, true) }
+                     }
+      // We have to keep the old rootSection to generate the event log
+      oldDirective       <- getDirective(directive.id)
+      oldActiveTechnique <- getActiveTechnique(directive.id)
+      oldTechniqueId     =  TechniqueId(oldActiveTechnique.techniqueName,oldDirective.techniqueVersion)
+      oldRootSection     =  techniqueRepository.get(oldTechniqueId).map(_.rootSection)
+      nameIsAvailable    <- if (directiveNameExists(con, directive.name, directive.id))
+                              Failure("Cannot set directive with name \"%s\" : this name is already in use.".format(directive.name))
+                            else
+                              Full(Unit)
+      piEntry            =  mapper.userDirective2Entry(directive, uptEntry.dn)
+      result             <- userLibMutex.writeLock { con.save(piEntry, true) }
       //for log event - perhaps put that elsewhere ?
-      activeTechnique         <- ldapActiveTechniqueRepository.getActiveTechnique(inActiveTechniqueId) ?~! "Can not find the User Policy Entry with id %s to add directive %s".format(inActiveTechniqueId, directive.id)
-      val activeTechniqueId    =  TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)
+      activeTechnique    <- ldapActiveTechniqueRepository.getActiveTechnique(inActiveTechniqueId) ?~! "Can not find the User Policy Entry with id %s to add directive %s".format(inActiveTechniqueId, directive.id)
+      activeTechniqueId  =  TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)
       technique          <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "Can not find the technique with ID '%s'".format(activeTechniqueId.toString)
-      optDiff     <- diffMapper.modChangeRecords2DirectiveSaveDiff(technique.id.name, technique.rootSection, piEntry.dn, canAdd, result) ?~! "Error when processing saved modification to log them"
+      optDiff            <- diffMapper.modChangeRecords2DirectiveSaveDiff(
+                                   technique.id.name
+                                 , technique.rootSection
+                                 , piEntry.dn
+                                 , canAdd
+                                 , result
+                                 , oldRootSection
+                               ) ?~! "Error when processing saved modification to log them"
       eventLogged <- optDiff match {
                        case None => Full("OK")
                        case Some(diff:AddDirectiveDiff) => 
