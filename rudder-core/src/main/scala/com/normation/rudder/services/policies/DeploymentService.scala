@@ -291,7 +291,7 @@ trait DeploymentService_buildRuleVals extends DeploymentService {
    * Build the list of "CFclerkRuleVal" from a list of
    * rules. 
    * These objects are a cache of all rules, with for
-   * each of them the ${confRule.varName} replaced
+   * each of them the ${rudder.confRule.varName} replaced
    */
    override def buildRuleVals(rules:Seq[Rule]) : Box[Seq[RuleVal]] = {
      for {
@@ -301,7 +301,7 @@ trait DeploymentService_buildRuleVals extends DeploymentService {
    }
    
    /**
-    * For each configuraiton rule, find its directive and policy package, and
+    * For each rule, find its directive and policy package, and
     * store all variables / values
     * @param rules
     * @return
@@ -316,7 +316,7 @@ trait DeploymentService_buildRuleVals extends DeploymentService {
 
    /**
     * 
-    * Replace all variable of the for ${ruleId.varName} by the seq of values for
+    * Replace all variable of the for ${rudder.ruleId.varName} by the seq of values for
     * the varName in RuleVal with id ruleId.
     * 
     * Replacement rules are:

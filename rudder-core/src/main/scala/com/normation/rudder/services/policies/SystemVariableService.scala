@@ -133,15 +133,15 @@ class SystemVariableServiceImpl(
     // If we are facing a policy server, we have to allow each children to connect, plus the policy parent,
     // else it's only the policy server
     if(nodeInfo.isPolicyServer) {
-      val allowedNodeVar = new SystemVariable(SystemVariableSpec(name = "${hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true))
-      allowedNodeVar.values = Seq("${hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}")
+      val allowedNodeVar = new SystemVariable(SystemVariableSpec(name = "${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true))
+      allowedNodeVar.values = Seq("${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}")
 
       parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNodeVar)) match {
         case Full(variable) =>
           allowConnect ++= variable.flatMap(x => x.values)
           clientList ++= variable.flatMap(x => x.values)
           varClientList.saveValues(clientList.toSeq)
-        case Empty => logger.warn("No variable parametrized found for ${hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}")
+        case Empty => logger.warn("No variable parametrized found for ${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}")
         case f: Failure => logger.error("Failure when fetching the policy children : %s ".format(f.msg))
       }
     }
