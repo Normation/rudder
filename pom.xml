@@ -19,7 +19,7 @@ limitations under the License.
   
   <groupId>com.normation</groupId>
   <artifactId>parent-pom</artifactId>
-  <version>2.4.2</version>
+  <version>2.4.3-SNAPSHOT</version>
   <packaging>pom</packaging>
   
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
@@ -260,8 +260,8 @@ limitations under the License.
 
     <!-- Libraries version that MUST be used in all children project -->
 
-    <rudder-version>2.4.2</rudder-version>
-    <spring-run-dep-version>2.4.2</spring-run-dep-version>
+    <rudder-version>2.4.3-SNAPSHOT</rudder-version>
+    <spring-run-dep-version>2.4.3-SNAPSHOT</spring-run-dep-version>
     <scala-ldap-version>0.12-SNAPSHOT</scala-ldap-version>
     
     <scala-version>2.9.2</scala-version>
