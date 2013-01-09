@@ -368,15 +368,14 @@ class FusionReportUnmarshaller(
           else                             UnknownWindowsType
 
         case ("linux"  , x ) => 
-          if     (x contains "debian") Debian
-          else if(x contains "ubuntu") Ubuntu
-          else if(x contains "redhat") Redhat
-          else if(x contains "centos") Centos
-          else if(x contains "fedora") Fedora
-          else if(x contains "suse"  ) Suse
-          else                         UnknownLinuxType
-        //be sure to handle the validity of that case further down the processing pipeline, 
-        //for example in PostUnMarshallCheckConsistency
+          if     (x contains "debian" ) Debian
+          else if(x contains "ubuntu" ) Ubuntu
+          else if(x contains "redhat" ) Redhat
+          else if(x contains "centos" ) Centos
+          else if(x contains "fedora" ) Fedora
+          else if(x contains "suse"   ) Suse
+          else if(x contains "android") Android
+          else                          UnknownOSType
         case _  => UnknownOSType
       }
     

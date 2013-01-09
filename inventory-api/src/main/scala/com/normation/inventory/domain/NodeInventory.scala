@@ -168,17 +168,19 @@ object LinuxType {
     :: Centos
     :: Fedora
     :: Suse
+    :: Android
     :: Nil
   )
 }
 
-case object UnknownLinuxType extends LinuxType with HashcodeCaching { val name = "Linux"  }
-case object Debian extends LinuxType with HashcodeCaching           { val name = "Debian" }
-case object Ubuntu extends LinuxType with HashcodeCaching           { val name = "Ubuntu" }
-case object Redhat extends LinuxType with HashcodeCaching           { val name = "Redhat" }
-case object Centos extends LinuxType with HashcodeCaching           { val name = "Centos" }
-case object Fedora extends LinuxType with HashcodeCaching           { val name = "Fedora" }
-case object Suse   extends LinuxType with HashcodeCaching           { val name = "Suse"   }
+case object UnknownLinuxType extends LinuxType with HashcodeCaching { val name = "Linux"   }
+case object Debian  extends LinuxType with HashcodeCaching          { val name = "Debian"  }
+case object Ubuntu  extends LinuxType with HashcodeCaching          { val name = "Ubuntu"  }
+case object Redhat  extends LinuxType with HashcodeCaching          { val name = "Redhat"  }
+case object Centos  extends LinuxType with HashcodeCaching          { val name = "Centos"  }
+case object Fedora  extends LinuxType with HashcodeCaching          { val name = "Fedora"  }
+case object Suse    extends LinuxType with HashcodeCaching          { val name = "Suse"    }
+case object Android extends LinuxType with HashcodeCaching          { val name = "Android" }
 
 /**
  * The different OS type. For now, we know

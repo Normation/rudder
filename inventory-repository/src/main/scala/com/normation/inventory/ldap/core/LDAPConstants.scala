@@ -190,6 +190,7 @@ object LDAPConstants {
   val A_OS_CENTOS = "Centos"
   val A_OS_FEDORA = "Fedora"
   val A_OS_SUZE = "Suse"
+  val A_OS_ANDROID = "Android"
     
   /*
    * A bunch of name, just to be sur to use variable
