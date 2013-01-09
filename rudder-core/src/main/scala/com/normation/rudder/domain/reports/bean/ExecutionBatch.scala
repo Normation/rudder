@@ -97,6 +97,9 @@ trait ExecutionBatch {
 object ConfigurationExecutionBatch {
   final val matchCFEngineVars = """.*\$(\{.+\}|\(.+\)).*""".r
   final val replaceCFEngineVars = """\$\{.+\}|\$\(.+\)"""
+
+  final val matchEscapedQuote = """\\""""
+  final val replaceEscapedQuote = """""""
 }
 
 /**
@@ -205,15 +208,17 @@ class ConfigurationExecutionBatch(
                                || x.isInstanceOf[ResultRepairedReport]  
                                || x.isInstanceOf[ResultSuccessReport]
                                || x.isInstanceOf[UnknownReport])
-      
-                               
+
+        // Replace all \" by " in the expected component value
+        val unescapedComponentValues = expectedComponent.componentsValues.map(x => x.replaceAll(matchEscapedQuote, replaceEscapedQuote))
+
         val components = for {
-            componentValue <- expectedComponent.componentsValues
+            componentValue <- unescapedComponentValues
             val (status,message) = checkExpectedComponentStatus(
-                              expectedComponent
-                            , componentValue
+                              componentValue
                             , purgedReports
-                            , expectedComponent.componentsValues )
+                            , unescapedComponentValues
+                            )
         } yield {
           ComponentValueStatusReport(
                 componentValue
@@ -224,7 +229,7 @@ class ConfigurationExecutionBatch(
         
         // must fetch extra entries
         val unexpectedReports = getUnexpectedReports(
-            expectedComponent.componentsValues.toList
+            unescapedComponentValues.toList
           , purgedReports
         )
 
@@ -307,12 +312,10 @@ class ConfigurationExecutionBatch(
    * a couple containing the actual status of the component key and the messages associated
    */
   protected def checkExpectedComponentStatus(
-      expectedComponent      : ReportComponent
-    , currentValue           : String
+      currentValue           : String
     , purgedReports          : Seq[Reports]
     , values                 : Seq[String]
   ) : (ReportType,List[String]) = {
-
     val unexepectedReports = purgedReports.filterNot(value => values.contains(value.keyValue))
 
     /* Refactored this function because it was the same behavior for each case*/
@@ -325,7 +328,7 @@ class ConfigurationExecutionBatch(
               case 0 if unexepectedReports.size==0 =>  (getNoAnswerOrPending(),Nil)
               /* Reports were received for that component, but not for that key, that's a missing report */
               case 0 =>  (UnknownReportType,Nil)
-              case x if x == expectedComponent.componentsValues.filter( x => x == currentValue).size =>
+              case x if x == values.filter( x => x == currentValue).size =>
                 (returnWorseStatus(filteredReports),filteredReports.map(_.message).toList)
               case _ => (UnknownReportType,filteredReports.map(_.message).toList)
             }
@@ -347,11 +350,10 @@ class ConfigurationExecutionBatch(
            case i if i > 0 => (ErrorReportType,matchedReports.map(_.message).toList)
 
            case _ => {
-
             matchedReports.size match {
               case 0 if unexepectedReports.size==0 => (getNoAnswerOrPending(),Nil)
-              case 0 =>  (UnknownReportType,Nil)
-              case x if x == expectedComponent.componentsValues.filter( x => x.matches(matchableExpected)).size =>
+              case 0 => (UnknownReportType,Nil)
+              case x if x == values.filter( x => x.matches(matchableExpected)).size =>
               (returnWorseStatus(matchedReports),matchedReports.map(_.message).toList)
               case _ => (UnknownReportType,matchedReports.map(_.message).toList)
             }
@@ -444,7 +446,9 @@ class ConfigurationExecutionBatch(
        val id = component.componentName
        val componentvalues = directive.flatMap{ nodestatus =>
          val components = nodestatus.components.filter(_.component==id)
-         getComponentValuesRuleStatus(directiveid,id,component.componentsValues,components) ++
+         // we need to unescape the quotes
+         val unescapedComponentValues = component.componentsValues.map(x => x.replaceAll(matchEscapedQuote, replaceEscapedQuote))
+         getComponentValuesRuleStatus(directiveid,id,unescapedComponentValues,components) ++
          getUnexpectedComponentValuesRuleStatus(directiveid,id,components.flatMap(_.unexpectedCptValues))
        }
        val reportType =   if (componentvalues.map(_.cptValueReportType).contains(UnknownReportType))
@@ -495,7 +499,7 @@ class ConfigurationExecutionBatch(
  * For a component value, store the report status
  */
 case class ComponentValueStatusReport(
-    componentValue 		: String
+    componentValue 		  : String
   , cptValueReportType  : ReportType
   , message             : List[String]
   , nodeId	            : NodeId
