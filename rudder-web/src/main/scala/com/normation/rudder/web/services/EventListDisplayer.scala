@@ -933,9 +933,9 @@ class EventListDisplayer(
   private[this] def groupNodeSeqLink(id: NodeGroupId): NodeSeq = {
     nodeGroupRepository.getNodeGroup(id) match {
       case t: EmptyBox => 
-        <span>group({id.value})</span>
+        <span>Group (Rudder ID: {id.value.toUpperCase})</span>
       case Full(nodeGroup) => 
-        <span>group(<a href={groupLink(id)}>{nodeGroup.name}</a>)</span>
+        <span>Group "<a href={groupLink(id)}>{nodeGroup.name}</a>" (Rudder ID: {id.value.toUpperCase})</span>
     }
   }
   
@@ -950,7 +950,7 @@ class EventListDisplayer(
             case GroupTarget(id@NodeGroupId(g)) => 
               groupNodeSeqLink(id)
             case x => 
-              <span>{Text("group_special(" + x.toString + ")")}</span>
+              <span>{Text("Special group (" + x.toString + ")")}</span>
           }
         }
         .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
@@ -963,9 +963,9 @@ class EventListDisplayer(
   private[this] def nodeNodeSeqLink(id: NodeId): NodeSeq = {
     nodeInfoService.getNodeInfo(id) match {
       case t: EmptyBox => 
-        <span>node({id.value})</span>
+        <span>Node (Rudder ID: {id.value.toUpperCase})</span>
       case Full(node) => 
-        <span>node(<a href={nodeLink(id)}>{node.name}</a>)</span>
+        <span>Node "<a href={nodeLink(id)}>{node.hostname}</a>" (Rudder ID: {id.value.toUpperCase})</span>
     }
   }
   
@@ -998,9 +998,9 @@ class EventListDisplayer(
               .map { id =>
                 directiveRepository.getDirective(id) match {
                   case t: EmptyBox => 
-                    <span>directive({id.value})</span>
+                    <span>Directive (Rudder ID: {id.value.toUpperCase})</span>
                   case Full(directive) => 
-                    <span>directive(<a href={directiveLink(id)}>{directive.name}</a>)</span>
+                    <span>Directive "<a href={directiveLink(id)}>{directive.name}</a>" (Rudder ID: {id.value.toUpperCase})</span>
                 }
               }
               .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
