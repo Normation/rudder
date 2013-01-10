@@ -84,7 +84,7 @@ class TextareaField(override val id: String) extends TextField(id) {
   self =>
 
   override def toForm() = Full {
-    SHtml.textarea(toClient, { x => parseClient(x) }) % ("class" -> "textareaField")
+    SHtml.textarea(toClient, { x => parseClient(x) }) % ("class" -> "textareaField") % ("COLS" -> "80")
   }
   
 }
