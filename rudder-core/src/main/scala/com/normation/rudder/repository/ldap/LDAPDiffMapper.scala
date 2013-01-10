@@ -186,7 +186,13 @@ class LDAPDiffMapper(
     
   ///// directive diff /////
 
-  def modChangeRecords2DirectiveSaveDiff(ptName:TechniqueName, variableRootSection:SectionSpec, piDn:DN, oldPiEntry:Option[LDAPEntry], change:LDIFChangeRecord) : Box[Option[DirectiveSaveDiff]] = {
+  def modChangeRecords2DirectiveSaveDiff(
+      ptName:TechniqueName
+    , variableRootSection:SectionSpec
+    , piDn:DN, oldPiEntry:Option[LDAPEntry]
+    , change:LDIFChangeRecord
+    , oldVariableRootSection:Option[SectionSpec]
+  ) : Box[Option[DirectiveSaveDiff]] = {
     if(change.getParsedDN == piDn ) {
       //if oldPI is None, we want and addChange, else a modifyChange
       (change, oldPiEntry) match {
@@ -204,8 +210,9 @@ class LDAPDiffMapper(
                 case A_TECHNIQUE_VERSION =>
                   tryo(diff.copy(modTechniqueVersion = Some(SimpleDiff(oldPi.techniqueVersion, TechniqueVersion(mod.getAttribute().getValue)))))
                 case A_DIRECTIVE_VARIABLES =>
+                  val beforeRootSection = oldVariableRootSection.getOrElse(variableRootSection)
                   Full(diff.copy(modParameters = Some(SimpleDiff(
-                      SectionVal.directiveValToSectionVal(variableRootSection,oldPi.parameters), 
+                      SectionVal.directiveValToSectionVal(beforeRootSection,oldPi.parameters),
                       SectionVal.directiveValToSectionVal(variableRootSection,parsePolicyVariables(mod.getAttribute().getValues)))
                   )))
                 case A_NAME =>
