@@ -102,13 +102,13 @@ trait ReportsRepository {
   ) : Seq[DateTime]
   
   
-  def getOldestReports() : Box[Reports]
+  def getOldestReports() : Box[Option[Reports]]
   
-  def getOldestArchivedReports() : Box[Reports]
+  def getOldestArchivedReports() : Box[Option[Reports]]
   
-  def getNewestReports() : Box[Reports]
+  def getNewestReports() : Box[Option[Reports]]
   
-  def getNewestArchivedReports() : Box[Reports]
+  def getNewestArchivedReports() : Box[Option[Reports]]
   
   def getDatabaseSize() : Box[Long]
   
