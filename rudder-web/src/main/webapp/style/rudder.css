@@ -306,10 +306,13 @@ input.queryInputValue, select.queryInputValue {
   width:115px !important;
   margin: 0px !important;
   padding: 0px !important;
-}.popcurs{
-  text-decoration: underline;
+  
+}
+
+.cursor{
   cursor:pointer;
 }
+
 .curspoint{
   cursor:pointer;
   text-decoration:underline;
