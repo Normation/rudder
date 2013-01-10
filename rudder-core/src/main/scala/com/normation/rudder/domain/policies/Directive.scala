@@ -131,13 +131,13 @@ object SectionVal {
   
   def toXml(sv:SectionVal, sectionName:String = ROOT_SECTION_NAME): Node = {
     <section name={sectionName}>
-      { //varibales
-        sv.variables.map { case (variable,value) =>
+      { //variables
+        sv.variables.toSeq.sortBy(_._1).map { case (variable,value) =>
           <var name={variable}>{value}</var>
         } ++
         //section
         (for {
-          (sectionName, sectionIterations) <- sv.sections
+          (sectionName, sectionIterations) <- sv.sections.toSeq.sortBy(_._1)
           sectionValue <- sectionIterations
         } yield {
           this.toXml(sectionValue,sectionName)
