@@ -929,11 +929,7 @@ class EventListDisplayer(
           ("from ^*" #> "X" & "* *" #> (x => x))(xml) 
         , ("to ^*" #> "X" & "* *" #> (x => x))(xml)
       )
-  
-  private[this] def directiveIdDetails(directiveIds:Seq[DirectiveId]) = directiveIds.map { id => 
-    (<b>ID:</b><a href={directiveLink(id)}>{id.value}</a>):NodeSeq
-  }
-  
+
   private[this] def groupNodeSeqLink(id: NodeGroupId): NodeSeq = {
     nodeGroupRepository.getNodeGroup(id) match {
       case t: EmptyBox => 
@@ -1020,10 +1016,7 @@ class EventListDisplayer(
       "#ruleID" #> rule.id.value.toUpperCase &
       "#ruleName" #> rule.name &
       "#target" #> groupTargetDetails(rule.targets) &
-      "#policy" #> (xml =>  
-        if(rule.directiveIds.size < 1) Text("None") else {
-          (".techniqueId *" #> directiveIdDetails(rule.directiveIds.toSeq))(xml)              
-        } ) &
+      "#policy" #> directiveTargetDetails(rule.directiveIds) &
       "#isEnabled" #> rule.isEnabled &
       "#isSystem" #> rule.isSystem &
       "#shortDescription" #> rule.shortDescription &
