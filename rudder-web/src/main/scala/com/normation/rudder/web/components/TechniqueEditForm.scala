@@ -284,7 +284,7 @@ class TechniqueEditForm(
       override def subContainerClassName = containerClass
       override def validations() = {
         if(mandatory){
-          valMinLen(5, "The reasons must have at least 5 characters.") _ :: Nil
+          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
         } else {
           Nil
         }
