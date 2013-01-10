@@ -261,7 +261,7 @@ class RuleGrid(
       else { 
         val popupId = Helpers.nextFuncName
         val tableId_listPI = Helpers.nextFuncName
-        <span class={if(popup)"" else "popcurs"} onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name + (if (seq.size > 1) ", ..." else "")}</span> ++
+        <span class={if(popup)"" else "curspoint"} onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name + (if (seq.size > 1) ", ..." else "")}</span> ++
         <div id={popupId} class="nodisplay">
           <div class="simplemodal-title">
             <h1>List of Directives</h1>
@@ -353,7 +353,7 @@ class RuleGrid(
       else { 
         val popupId = Helpers.nextFuncName
         val tableId_listPI = Helpers.nextFuncName
-        <span class={if(popup)"" else "popcurs"} onclick={"openMultiPiPopup('" + popupId + "') ; return false;"}>
+        <span class={if(popup)"" else "curspoint"} onclick={"openMultiPiPopup('" + popupId + "') ; return false;"}>
           {targets.head.name + (if (targets.size > 1) ", ..." else "")}
         </span>
         <div id={popupId} class="nodisplay">
