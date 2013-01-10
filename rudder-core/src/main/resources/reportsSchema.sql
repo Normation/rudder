@@ -250,6 +250,7 @@ CREATE TABLE MigrationEventLog(
 CREATE TABLE RudderProperties(
   name text PRIMARY KEY
 , value text
+);
 
 CREATE TABLE gitCommit(
   gitcommit text PRIMARY KEY
