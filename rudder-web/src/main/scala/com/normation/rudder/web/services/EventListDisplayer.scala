@@ -1283,9 +1283,9 @@ class EventListDisplayer(
           <thead>
             <tr class="head">
               <th>ID</th>
-              <th>Event type</th>
-              <th>Actor</th>
               <th>Date</th>
+              <th>Actor</th>
+              <th>Event type</th>
             </tr>
           </thead>
           <tbody>
@@ -1303,9 +1303,9 @@ class EventListDisplayer(
                 )
               }
               </td>
-              <td>{S.?("rudder.log.eventType.names." + ev.eventType)} </td>
-              <td>{ev.author} </td>
               <td>{ev.date} </td>
+              <td>{ev.author} </td>
+              <td>{S.?("rudder.log.eventType.names." + ev.eventType)} </td>
             </tr>
           } }
           </tbody>
