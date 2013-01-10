@@ -211,38 +211,39 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
           ExecutionTimeMapper).toSeq;
   }
   
-  def getOldestReports() : Box[Reports] = {
+  def getOldestReports() : Box[Option[Reports]] = {
     jdbcTemplate.query(baseQuery + " order by executionTimeStamp asc limit 1",
           ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => seq.headOption ?~! "No report where found in database (and so, we can not get the oldest one)"
-      
+      case seq => Full(seq.headOption)
+
     } 
   }
   
-  def getOldestArchivedReports() : Box[Reports] = {
+  def getOldestArchivedReports() : Box[Option[Reports]] = {
     jdbcTemplate.query(baseArchivedQuery + " order by executionTimeStamp asc limit 1",
           ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => seq.headOption ?~! "No archived report where found in database (and so, we can not get the oldest one)"
-      
+      case seq => Full(seq.headOption)
+
     }
   }
   
-    def getNewestReports() : Box[Reports] = {
+    def getNewestReports() : Box[Option[Reports]] = {
     jdbcTemplate.query(baseQuery + " order by executionTimeStamp desc limit 1",
           ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => seq.headOption ?~! "No report where found in database (and so, we can not get the newest one)"
+      case seq => Full(seq.headOption)
       
     } 
   }
   
-  def getNewestArchivedReports() : Box[Reports] = {
+  def getNewestArchivedReports() : Box[Option[Reports]] = {
     jdbcTemplate.query(baseArchivedQuery + " order by executionTimeStamp desc limit 1",
           ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => seq.headOption ?~! "No archived report where found in database (and so, we can not get the newest one)"
+      case seq => Full(seq.headOption)
+
       
     } 
   }
