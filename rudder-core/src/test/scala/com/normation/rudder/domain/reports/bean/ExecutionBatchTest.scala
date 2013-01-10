@@ -52,7 +52,6 @@ class ExecutionBatchTest extends Specification {
   private implicit def str2ruleId(s:String) = RuleId(s)
   private implicit def str2nodeId(s:String) = NodeId(s)
 
-  
   "An execution Batch, with one component, cardinality one, one node" should {
          
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
@@ -193,12 +192,7 @@ class ExecutionBatchTest extends Specification {
     "have 8 reports when we create it with 8 reports" in {
       multipleNodeExecutionBatch.executionReports.size == 8
     }
-    
 
-     /*
-    "have one warn report" in {
-      multipleNodeExecutionBatch.getWarnReports.size == 1
-    }*/
     "have one error report" in {
       multipleNodeExecutionBatch.getErrorReports.size == 1
     }
@@ -997,6 +991,150 @@ class ExecutionBatchTest extends Specification {
     }
     "have detailed rule report for policy-component-value of 33%" in {
       uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.components.filter(x => x.component == "component").head.componentValues.filter(_.componentValue == "value3").head.computeCompliance must beSome(33)
+    }
+  }
+
+   "An execution Batch, with one component with an escaped quote in its value, cardinality one, one node" should {
+         
+    val uniqueExecutionBatch = new ConfigurationExecutionBatch(
+       "rule", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 1, Seq("""some\"text""")  )))),
+       12,
+       new DateTime(),
+       Seq[Reports](new ResultSuccessReport(new DateTime(), "rule", "policy", "one", 12, "component", """some"text""",new DateTime(), "message")),
+       Seq[NodeId]("one"),
+       new DateTime(), None)
+
+    "have one reports when we create it with one report" in {
+      uniqueExecutionBatch.executionReports.size ==1
+    }
+    
+    "have one detailed reports when we create it with one report" in {
+      uniqueExecutionBatch.getNodeStatus.size ==1
+    }
+   
+    "have one detailed success node when we create it with one success report" in {
+      uniqueExecutionBatch.getNodeStatus.head.nodeId == NodeId("one") &&
+      uniqueExecutionBatch.getNodeStatus.head.nodeReportType == SuccessReportType
+    }
+   
+    "have no detailed repaired node when we create it with one success report" in {
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
+    }
+    
+    "have no detailed error node when we create it with one success report" in {
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
+    }
+    
+    "have no detailed unknown node when we create it with one success report" in {
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == UnknownReportType).size == 0)
+    }
+    
+    "have one success report when we create it with one success report" in {
+      uniqueExecutionBatch.getSuccessReports.size == 1
+    }
+     "have one detailed rule reports when we create it with one report" in {
+      uniqueExecutionBatch.getRuleStatus.size ==1
+    }
+
+    "have one detailed rule success directive when we create it with one success report" in {
+      uniqueExecutionBatch.getRuleStatus.head.directiveId == DirectiveId("policy") &&
+      uniqueExecutionBatch.getRuleStatus.head.directiveReportType == SuccessReportType
+    }
+
+    "have no detailed rule repaired directive when we create it with one success report" in {
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == RepairedReportType).size == 0)
+    }
+    "have no detailed rule error directive when we create it with one success report" in {
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == ErrorReportType).size == 0)
+    }
+
+    "have no detailed rule unknown directive when we create it with one success report" in {
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == UnknownReportType).size == 0)
+    }
+
+    "have no detailed rule no answer directive when we create it with one success report" in {
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == NoAnswerReportType).size == 0)
+    }
+
+    "have no detailed rule no pending directive when we create it with one success report" in {
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size == 0)
+    }
+  }
+ 
+ "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {, and a quote as well" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "rule", "policy", "nodeId", 12, "component", """/var/cfengine/inputs/"test""", executionTimestamp, "message")        
+              )
+              
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "rule", 
+       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
+                  "policy",
+                  Seq(new ReportComponent("component", 1, Seq("""${sys.workdir}/inputs/\"test""") )))),
+       12,
+       executionTimestamp,
+       reports,
+       Seq[NodeId]("nodeId"),
+       executionTimestamp, None)
+        
+    "have one reports when we create it with one report" in {
+      sameKeyExecutionBatch.executionReports.size ==1
+    }
+    
+    "have one detailed reports when we create it with one report" in {
+      sameKeyExecutionBatch.getNodeStatus.size ==1
+    }
+   
+    "have one detailed success node when we create it with one success report" in {
+      sameKeyExecutionBatch.getNodeStatus.head.nodeId == NodeId("nodeId") &&
+      sameKeyExecutionBatch.getNodeStatus.head.nodeReportType == SuccessReportType
+    }
+   
+    "have no detailed repaired node when we create it with one success report" in {
+      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
+    }
+    
+    "have no detailed error node when we create it with one success report" in {
+      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
+    }
+    
+    "have no detailed unknown node when we create it with one success report" in {
+      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == UnknownReportType).size == 0)
+    }
+    
+    "have one success report when we create it with one success report" in {
+      sameKeyExecutionBatch.getSuccessReports.size == 1
+    }
+     "have one detailed rule reports when we create it with one report" in {
+      sameKeyExecutionBatch.getRuleStatus.size ==1
+    }
+
+    "have one detailed rule success directive when we create it with one success report" in {
+      sameKeyExecutionBatch.getRuleStatus.head.directiveId == DirectiveId("policy") &&
+      sameKeyExecutionBatch.getRuleStatus.head.directiveReportType == SuccessReportType
+    }
+
+    "have no detailed rule repaired directive when we create it with one success report" in {
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == RepairedReportType).size == 0)
+    }
+    "have no detailed rule error directive when we create it with one success report" in {
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == ErrorReportType).size == 0)
+    }
+
+    "have no detailed rule unknown directive when we create it with one success report" in {
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == UnknownReportType).size == 0)
+    }
+
+    "have no detailed rule no answer directive when we create it with one success report" in {
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == NoAnswerReportType).size == 0)
+    }
+
+    "have no detailed rule no pending directive when we create it with one success report" in {
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size == 0)
     }
   }
 }
