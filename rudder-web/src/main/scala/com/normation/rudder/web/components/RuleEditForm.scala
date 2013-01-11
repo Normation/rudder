@@ -1011,54 +1011,55 @@ class RuleEditForm(
        * the content is dynamically computed
        */
     val innerClickJSFunction = """
-      var componentPlusTd = $(this).find('td#componentPlus');
-      componentPlusTd.unbind();
-
-      componentPlusTd.click( function () {
-        var nTr = this.parentNode;
-        var i = $.inArray( nTr, anOpen );
-        if ( i === -1 ) {
-          $('img', this).attr( 'src', "%1$s/images/details_close.png" );
-          var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
-          $('div.innerDetails table', nDetailsRow).dataTable({
-            "asStripClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter" : false,
-            "bPaginate" : false,
-            "bLengthChange": false,
-            "bInfo" : false,
-            "sPaginationType": "full_numbers",
-            "bJQueryUI": true,
-            "aaSorting": [[ 1, "asc" ]],
-            "aoColumns": [
-              { "sWidth": "55px", "bSortable": false },
-              { "sWidth": "397px" },
-              { "sWidth": "60px" },
-              { "sWidth": "125px" },
-              { "sWidth": "10px" , "bSortable": false  , "bVisible":false}
-            ]
-          });
-          $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-          $('td.details', nDetailsRow).attr("colspan",5);
-          $('div.innerDetails table', nDetailsRow).attr("style","");
-          $('div.innerDetails', nDetailsRow).slideDown(300);
-          anOpen.push( nTr );
-        }
-        else {
-          $('img', this).attr( 'src', "%1$s/images/details_open.png" );
-          $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
-            oTable.fnClose( nTr );
-            anOpen.splice( i, 1 );
-          } );
-        }
-      } );""".format(S.contextPath)
+      var componentPlusTd = $(this.fnGetNodes());
+      componentPlusTd.each( function () {
+        $(this).unbind();
+        $(this).click( function (e) {
+          if ($(e.target).hasClass('noexpand'))
+            return false;
+            var nTr = this;
+            var i = $.inArray( nTr, anOpen );
+            if ( i === -1 ) {
+             $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
+              var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
+              $('div.innerDetails table', nDetailsRow).dataTable({
+                "asStripClasses": [ 'color1', 'color2' ],
+                "bAutoWidth": false,
+                "bFilter" : false,
+                "bPaginate" : false,
+                "bLengthChange": false,
+                "bInfo" : false,
+                "sPaginationType": "full_numbers",
+                "bJQueryUI": true,
+                "aaSorting": [[ 1, "asc" ]],
+                "aoColumns": [
+                  { "sWidth": "40px", "bSortable": false },
+                  { "sWidth": "355px" },
+                  { "sWidth": "50px" },
+                  { "sWidth": "120px" },
+                  { "sWidth": "10px" , "bSortable": false  , "bVisible":false}
+                ]
+              });
+              $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
+              $('td.details', nDetailsRow).attr("colspan",5);
+              $('div.innerDetails table', nDetailsRow).attr("style","");
+              $('div.innerDetails', nDetailsRow).slideDown(300);
+              anOpen.push( nTr );
+            }
+            else {
+              $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
+              $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
+                oTable.fnClose( nTr );
+                anOpen.splice( i, 1 );
+              } );
+            }
+      } ); } );""".format(S.contextPath)
       /*
        * This is the main Javascript function to have cascaded DataTables
        */
    val ReportsGridClickFunction = """
      createTooltip();
-     var plusTd = $('#reportsGrid td#plus');
-     plusTd.unbind();
+     var plusTd = $($('#reportsGrid').dataTable().fnGetNodes());
 
      plusTd.each(function(i) {
        var nTr = this.parentNode;
@@ -1068,45 +1069,48 @@ class RuleEditForm(
          }
      } );
 
-     plusTd.click( function () {
-     var nTr = this.parentNode;
-     var i = $.inArray( nTr, anOpen );
-     if ( i === -1 ) {
-       $('img', this).attr( 'src', "%1$s/images/details_close.png" );
-       var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
-       var Otable2 =  $('div.innerDetails table:first', nDetailsRow).dataTable({
-         "asStripClasses": [ 'color1', 'color2' ],
-         "bAutoWidth": false,
-         "bFilter" : false,
-         "bPaginate" : false,
-         "bLengthChange": false,
-         "bInfo" : false,
-         "sPaginationType": "full_numbers",
-         "bJQueryUI": true,
-         "aaSorting": [[ 2, "asc" ]],
-         "aoColumns": [
-           { "sWidth": "20px", "bSortable": false },
-           { "sWidth": "20px", "bSortable": false },
-           { "sWidth": "385px" },
-           { "sWidth": "50px" },
-           { "sWidth": "120px" },
-           { "sWidth": "10px", "bSortable": false  , "bVisible":false }
-         ],
-          "fnDrawCallback" : function( oSettings ) {%2$s}
-       } );
-       $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-       $('div.innerDetails table:first', nDetailsRow).attr("style","");
-       $('div.innerDetails', nDetailsRow).slideDown(300);
-       anOpen.push( nTr );
-     }
-     else {
-       $('img', this).attr( 'src', "%1$s/images/details_open.png" );
-       $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
-         oTable.fnClose( nTr );
-         anOpen.splice( i, 1 );
-       } );
-     }
-   } );""".format(S.contextPath,innerClickJSFunction)
+     plusTd.each( function () {
+       $(this).unbind();
+       $(this).click( function (e) {
+         if ($(e.target).hasClass('noexpand'))
+           return false;
+         var nTr = this;
+         var i = $.inArray( nTr, anOpen );
+         if ( i === -1 ) {
+               $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
+           var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
+           var Otable2 =  $('div.innerDetails table:first', nDetailsRow).dataTable({
+             "asStripClasses": [ 'color1', 'color2' ],
+             "bAutoWidth": false,
+             "bFilter" : false,
+             "bPaginate" : false,
+             "bLengthChange": false,
+             "bInfo" : false,
+             "sPaginationType": "full_numbers",
+             "bJQueryUI": true,
+             "aaSorting": [[ 2, "asc" ]],
+             "aoColumns": [
+               { "sWidth": "20px", "bSortable": false },
+               { "sWidth": "375px" },
+               { "sWidth": "50px" },
+               { "sWidth": "120px" },
+               { "sWidth": "10px", "bSortable": false  , "bVisible":false }
+             ],
+              "fnDrawCallback" : function( oSettings ) {%2$s}
+           } );
+           $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
+           $('div.innerDetails table:first', nDetailsRow).attr("style","");
+           $('div.innerDetails', nDetailsRow).slideDown(300);
+           anOpen.push( nTr );
+         }
+         else {
+           $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
+           $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
+             oTable.fnClose( nTr );
+             anOpen.splice( i, 1 );
+           } );
+         }
+   } ) } );""".format(S.contextPath,innerClickJSFunction)
 
     /*
      * It displays the report Detail of a Rule
@@ -1133,12 +1137,13 @@ class RuleEditForm(
                       "#status *" #> <center>{severity}</center> &
                       "#plus *" #> <center><img src="/images/details_open.png"/></center> &
                       "#details *" #> components &
+                      "#directive [class+]" #> "listopen" &
                       "#directive *" #>{
                         <b>{directive.name}</b>
                         <span class="tooltipable" tooltipid={tooltipid}>
                           <img   src="/images/icInfo.png" style="padding-left:4px"/>
-                        </span>++{val xml = <img   src="/images/icTools.png" style="padding-left:4px"/>
-                          SHtml.a( {()=> RedirectTo("""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value))},xml,("style","padding-left:4px"))}++
+                        </span>++{val xml = <img   src="/images/icTools.png" style="padding-left:4px" class="noexpand"/>
+                          SHtml.a( {()=> RedirectTo("""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value))},xml,("style","padding-left:4px"),("class","noexpand"))}++
                         <span/>
                         <div class="tooltipContent" id={tooltipid}>
                           Directive <b>{directive.name}</b> is based on technique
@@ -1170,7 +1175,6 @@ class RuleEditForm(
                     "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
                     "aaSorting": [[ 1, "asc" ]],
                     "aoColumns": [
-                      { "sWidth": "30px", "bSortable": false },
                       { "sWidth": "403px" },
                       { "sWidth": "50px" },
                       { "sWidth": "120px" },
@@ -1191,7 +1195,6 @@ class RuleEditForm(
      <thead>
        <tr class="head tablewidth">
        <th class="emptyTd"><span/></th>
-       <th ><span/></th>
        <th >Component<span/></th>
        <th >Status<span/></th>
        <th >Compliance<span/></th>
@@ -1205,18 +1208,20 @@ class RuleEditForm(
           "#status *" #> <center>{severity}</center> &
           "#component *" #>  <b>{component.component}</b> &
           "#severity *" #>  buildComplianceChart(component)
-          ) ( component.componentValues.forall( x => x.componentValue =="None") match {
-            case true => // only None, we won't show the details, we don't need the plus and that td should not be clickable
-              componentDetails("noPlus")
-            case false => // standard  display that can be expanded
+          ) (
+            if (component.componentValues.forall( x => x.componentValue =="None")) {
+              // only None, we won't show the details, we don't need the plus and that td should not be clickable
+              ("* [class+]" #> "noexpand") (componentDetails)
+            } else {
+              // standard  display that can be expanded
               val tooltipid = Helpers.nextFuncName
               val value = showComponentValueReport(component.componentValues,worstseverity)
-              ( "#componentPlus *" #> <center><img src="/images/details_open.png"/></center> &
-                "#details *" #>  value
-              ) (componentDetails("componentPlus") )
+              ( "#details *" #>  value &
+                "tr [class+]" #> "cursor" &
+                "#component [class+]" #>  "listopen"
+              ) (componentDetails )
             }
-          )
-        } }
+      )  }  }
       </tbody>
     </table>
   }
@@ -1253,7 +1258,6 @@ class RuleEditForm(
     <table id="reportsGrid" cellspacing="0">
       <thead>
         <tr class="head tablewidth">
-          <th ><span/></th>
           <th >Directive<span/></th>
           <th >Status<span/></th>
           <th >Compliance<span/></th>
@@ -1267,8 +1271,7 @@ class RuleEditForm(
   }
 
   def reportsLineXml : NodeSeq = {
-    <tr >
-      <td id="plus" class="firstTd curspoint nestedImg"/>
+    <tr class="cursor">
       <td id="directive" class="nestedImg"></td>
       <td id="status" class="firstTd"></td>
       <td name="severity" class="firstTd"><div id="severity" style="text-align:right;"/></td>
@@ -1276,10 +1279,9 @@ class RuleEditForm(
     </tr>
   }
 
-  def componentDetails(idPlus:String) : NodeSeq = {
+  def componentDetails : NodeSeq = {
     <tr id="componentLine" class="detailedReportLine severity" >
       <td id="first" class="emptyTd"/>
-      <td id={idPlus} class={if (idPlus=="plus") "firstTd curspoint nestedImg" else "firstTd nestedImg"} />
       <td id="component" ></td>
       <td id="status" class="firstTd"></td>
       <td name="severity" class="firstTd"><div id="severity" style="text-align:right;"/></td>
@@ -1301,7 +1303,7 @@ class RuleEditForm(
     rulestatusreport.computeCompliance match {
       case Some(percent) =>  {
         val text = Text(percent.toString + "%")
-        val attr = BasicElemAttr("class","unfoldable")
+        val attr = BasicElemAttr("class","noexpand")
         SHtml.a({() => showPopup(rulestatusreport)}, text,attr)
       }
       case None => Text("Not Applied")
@@ -1361,7 +1363,7 @@ class RuleEditForm(
     }
 
     def nodeLineXml : NodeSeq = {
-      <tr class="unfoldable">
+      <tr class="noexpand">
         <td id="node"></td>
         <td id="severity"></td>
       </tr>
@@ -1381,7 +1383,7 @@ class RuleEditForm(
             case Full(nodeInfo) => {
               val tooltipid = Helpers.nextFuncName
                 ("#node *" #>
-                <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.node.value)}>
+                <a class="noexpand" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.node.value)}>
                   <span class="curspoint">
                     {nodeInfo.hostname}
                   </span>
@@ -1502,7 +1504,7 @@ class RuleEditForm(
             case Full(nodeInfo)  => {
               ( "#node *" #>
                 <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(report.report.node.value)}>
-                  <span class="curspoint">
+                  <span class="curspoint noexpand">
                     {nodeInfo.hostname}
                   </span>
                 </a> &
@@ -1556,7 +1558,6 @@ class RuleEditForm(
       <table id={id+"Grid"}  cellspacing="0" style="clear:both">
         <thead>
           <tr class="head">
-            <th></th>
             <th>Node<span/></th>
             <th>Status<span/></th>
           <th style="border-left:0;" ></th>
@@ -1570,18 +1571,16 @@ class RuleEditForm(
     }
 
     def reportLineXml : NodeSeq = {
-      <tr>
-        <td id="plus"></td>
-        <td id="node"></td>
+      <tr class="cursor">
+        <td id="node" class="listopen"></td>
         <td id="status"></td>
         <td id="details"/>
       </tr>
     }
     def messageLineXml : NodeSeq = {
-      <tr >
+      <tr class="cursor">
         <td class="emptyTd"/>
-        <td id="componentPlus"></td>
-        <td id="component"></td>
+        <td id="component" class="listopen"></td>
         <td id="status"></td>
         <td id="details"></td>
       </tr>
@@ -1592,7 +1591,6 @@ class RuleEditForm(
         <td id="value"></td>
         <td id="message"></td>
         <td id="status"></td>
-        <td/>
       </tr>
     }
 
@@ -1617,11 +1615,10 @@ class RuleEditForm(
               val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(nodeReport._2.map(_._4)))
               ( "#node *" #>
                 <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeReport._1.value)}>
-                  <span class="curspoint">
+                  <span class="curspoint noexpand">
                     {nodeInfo.hostname}
                   </span>
                 </a>  &
-                "#plus *" #> <center><img src="/images/details_open.png"/></center> &
                 "#status *" #>  <center>{status}</center> &
                 "#status [class+]" #>  status.replaceAll(" ","") &
                 "#details *" #> showComponentReport(nodeReport._2)
@@ -1637,7 +1634,6 @@ class RuleEditForm(
             <thead>
               <tr class="head tablewidth">
                 <th class="emptyTd"><span/></th>
-                <th ><span/></th>
                 <th >Component<span/></th>
                 <th >Status<span/></th>
                 <th ></th>
@@ -1666,7 +1662,6 @@ class RuleEditForm(
                 <th >Value<span/></th>
                 <th >Message<span/></th>
                 <th >Status<span/></th>
-                <th ></th>
               </tr>
             </thead>
             <tbody>{
@@ -1686,15 +1681,16 @@ class RuleEditForm(
             val report = reports.filter(_.report.node==node).map(report =>(report.component,report.value,report.report.message,report.report.reportType))
             (node,report) } )
             val innerJsFun = """
-              var componentPlusTd = $(this).find("td#componentPlus");
-
-              componentPlusTd.unbind();
-
-              componentPlusTd.click( function () {
-                  var nTr = this.parentNode;
+              var componentTab = $(this.fnGetNodes());
+              componentTab.each( function () {
+                $(this).unbind();
+                $(this).click( function (e) {
+                  if ($(e.target).hasClass('noexpand'))
+                    return false;
+                  var nTr = this;
                   var i = $.inArray( nTr, anOpen%1$s );
                     if ( i === -1 ) {
-                    $('img', this).attr( 'src', "%2$s/images/details_close.png" );
+                    $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
                     var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
                     $('div.innerDetails table', nDetailsRow).dataTable({
                       "asStripClasses": [ 'color1', 'color2' ],
@@ -1707,11 +1703,10 @@ class RuleEditForm(
                       "bJQueryUI": true,
                       "aaSorting": [[ 1, "asc" ]],
                       "aoColumns": [
-                        { "sWidth": "50px", "bSortable": false },
-                        { "sWidth": "100px" },
-                        { "sWidth": "185px" },
+                        { "sWidth": "40px", "bSortable": false },
+                        { "sWidth": "110px" },
+                        { "sWidth": "210px" },
                         { "sWidth": "50px" , "bSortable": false},
-                        { "sWidth": "10px" , "bSortable": false,  "bVisible":false}
                       ]
                     } );
                     $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
@@ -1721,55 +1716,58 @@ class RuleEditForm(
                     anOpen%1$s.push( nTr );
                     }
                     else {
-                    $('img', this).attr( 'src', "%2$s/images/details_open.png" );
+                    $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
                     $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
                       oTable%1$s.fnClose( nTr );
                       anOpen%1$s.splice( i, 1 );
                     } );
                   }
-                } )""".format(tabid,S.contextPath)
+                } ); } )""".format(tabid,S.contextPath)
 
             val jsFun = """
-            $('#%2$s td#plus').unbind();
-            $('#%2$s td#plus').click( function () {
-              var nTr = this.parentNode;
-              var i = $.inArray( nTr, anOpen%1$s );
-              if ( i === -1 ) {
-                $('img', this).attr( 'src', "%3$s/images/details_close.png" );
-                var fnData = oTable%1$s.fnGetData( nTr );
-                var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails%1$s(oTable%1$s, nTr), 'details' );
-                var Otable2 = $('div.innerDetails table:first', nDetailsRow).dataTable({
-                  "asStripClasses": [ 'color1', 'color2' ],
-                  "bAutoWidth": false,
-                  "bFilter" : false,
-                  "bPaginate" : false,
-                  "bLengthChange": false,
-                  "bInfo" : false,
-                  "sPaginationType": "full_numbers",
-                  "bJQueryUI": true,
-                  "aaSorting": [[ 1, "asc" ]],
-                  "aoColumns": [
-                    { "sWidth": "20px", "bSortable": false },
-                    { "sWidth": "20px", "bSortable": false },
-                    { "sWidth": "295px" },
-                    { "sWidth": "50px" },
-                    { "sWidth": "10px", "bSortable": false  , "bVisible":false }
-                  ],
-               "fnDrawCallback" : function( oSettings ) {%4$s}
-                } );
-                $('div.innerDetails table:first', nDetailsRow).attr("style","");
-                $('div.innerDetails', nDetailsRow).slideDown(300);
-                $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-                anOpen%1$s.push( nTr );
-              }
-              else {
-                $('img', this).attr( 'src', "%3$s/images/details_open.png" );
-                $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
-                  oTable%1$s.fnClose( nTr );
-                  anOpen%1$s.splice( i, 1 );
-                } );
-              }
-          } );""".format(tabid,gridId+"Grid",S.contextPath,innerJsFun)
+            var tab = $($('#%2$s').dataTable().fnGetNodes());
+            tab.each( function () {
+              $(this).unbind();
+              $(this).click( function (e) {
+                if ($(e.target).hasClass('noexpand'))
+                  return false;
+                var nTr = this;
+                var i = $.inArray( nTr, anOpen%1$s );
+                if ( i === -1 ) {
+                  $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
+                  var fnData = oTable%1$s.fnGetData( nTr );
+                  var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails%1$s(oTable%1$s, nTr), 'details' );
+                  var Otable2 = $('div.innerDetails table:first', nDetailsRow).dataTable({
+                    "asStripClasses": [ 'color1', 'color2' ],
+                    "bAutoWidth": false,
+                    "bFilter" : false,
+                    "bPaginate" : false,
+                    "bLengthChange": false,
+                    "bInfo" : false,
+                    "sPaginationType": "full_numbers",
+                    "bJQueryUI": true,
+                    "aaSorting": [[ 1, "asc" ]],
+                    "aoColumns": [
+                      { "sWidth": "20px", "bSortable": false },
+                      { "sWidth": "350px" },
+                      { "sWidth": "50px" },
+                      { "sWidth": "10px", "bSortable": false  , "bVisible":false }
+                    ],
+                 "fnDrawCallback" : function( oSettings ) {%4$s}
+                  } );
+                  $('div.innerDetails table:first', nDetailsRow).attr("style","");
+                  $('div.innerDetails', nDetailsRow).slideDown(300);
+                  $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
+                  anOpen%1$s.push( nTr );
+                }
+                else {
+                   $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
+                    $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
+                    oTable%1$s.fnClose( nTr );
+                    anOpen%1$s.splice( i, 1 );
+                  } );
+                }
+          } );} );""".format(tabid,gridId+"Grid",S.contextPath,innerJsFun)
             ( "#reportLine" #> datas.flatMap(showNodeReport(_) )
             ) (reportsGridXml(gridId,message) ) ++
             /*Sorry about the Javascript
@@ -1799,8 +1797,7 @@ class RuleEditForm(
                "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
                "aaSorting": [[ 1, "asc" ]],
                "aoColumns": [
-                 { "sWidth": "45px","bSortable": false },
-                 { "sWidth": "295px" },
+                 { "sWidth": "378px" },
                  { "sWidth": "50px" },
                  { "sWidth": "10px","bSortable": false  , "bVisible":false}
                ],
