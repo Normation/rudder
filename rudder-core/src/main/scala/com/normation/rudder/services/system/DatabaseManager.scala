@@ -46,12 +46,12 @@ trait DatabaseManager {
   /**
    * Get the older entry in the report database, and the newest
    */
-  def getReportsInterval() : Box[(DateTime, DateTime)]
+  def getReportsInterval() : Box[(Option[DateTime], Option[DateTime])]
   
   /**
    * Get the older entry in the archived report database, and the newest
    */
-  def getArchivedReportsInterval() : Box[(DateTime, DateTime)]
+  def getArchivedReportsInterval() : Box[(Option[DateTime], Option[DateTime])]
   
 
   /**
@@ -80,13 +80,13 @@ class DatabaseManagerImpl(
     reportsRepository : ReportsRepository
   )  extends DatabaseManager with  Loggable {
   
-  def getReportsInterval() : Box[(DateTime, DateTime)] = {
+  def getReportsInterval() : Box[(Option[DateTime], Option[DateTime])] = {
     try {
       for {
         oldest   <- reportsRepository.getOldestReports()
         youngest <- reportsRepository.getNewestReports()
       } yield {
-        (oldest.executionTimestamp, youngest.executionTimestamp)
+        (oldest.map(_.executionTimestamp), youngest.map(_.executionTimestamp))
       }
     } catch {
       case e: Exception =>
@@ -95,13 +95,13 @@ class DatabaseManagerImpl(
     }
   }
   
-  def getArchivedReportsInterval() : Box[(DateTime, DateTime)] = {
+  def getArchivedReportsInterval() : Box[(Option[DateTime], Option[DateTime])] = {
     try {
       for {
         oldest   <- reportsRepository.getOldestArchivedReports()
         youngest <- reportsRepository.getNewestArchivedReports()
       } yield {
-        (oldest.executionTimestamp, youngest.executionTimestamp)
+        (oldest.map(_.executionTimestamp), youngest.map(_.executionTimestamp))
       }
     } catch {
       case e: Exception =>
