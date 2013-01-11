@@ -209,10 +209,12 @@ trait GitArchiverFullCommitUtils extends Loggable {
 
       // The commit will actually delete old files and replace them with those from the checkout
       val newCommit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-       val t =   gitModificationRepository.addCommit(commit, modId)
-     logger.warn(t)
-     logger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommit.getName()))
-      newCommit
+      val newCommitId = GitCommitId(newCommit.getName)
+      // Store the commit the modification repository
+      gitModificationRepository.addCommit(newCommitId, modId)
+
+      logger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommitId.value))
+      newCommitId
     }
   }
 
