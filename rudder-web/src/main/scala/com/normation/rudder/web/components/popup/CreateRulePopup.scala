@@ -96,9 +96,13 @@ class CreateOrCloneRulePopup(
           {f.toForm_!}
         </div>
       } },
-      "cloneNotice" -> { if(clonedRule.isDefined) 
-                           <span style="margin:10px 0px 5px 0px; color:#444">The new rule will be disabled.</span> 
-                         else NodeSeq.Empty 
+      "cloneNotice" -> {
+        if(clonedRule.isDefined)
+          <br/>
+          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+          <h3>The new rule will be disabled.</h3>
+        else
+          NodeSeq.Empty
       },
       "notifications" -> updateAndDisplayNotifications(),
       "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","5"),
