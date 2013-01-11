@@ -181,7 +181,7 @@ class DirectiveEditForm(
           <div class="error">An error occurred while trying to find dependent item</div>
         case Full(rules) => {
           val cmp = new RuleGrid("remove_popup_grid", rules, None, false)
-          cmp.rulesGrid(linkCompliancePopup = false)
+          cmp.rulesGrid(popup = true,linkCompliancePopup = false)
         }
       }
     }
@@ -197,7 +197,7 @@ class DirectiveEditForm(
           <div class="error">An error occurred while trying to find dependent item</div>
         case Full(rules) => {
           val cmp = new RuleGrid("dependent_popup_grid", rules, None, false)
-          cmp.rulesGrid(linkCompliancePopup = false)
+          cmp.rulesGrid(popup = true,linkCompliancePopup = false)
         }
       }
     }
@@ -218,7 +218,7 @@ class DirectiveEditForm(
             <div class="error">An error occurred while trying to find dependent item</div>
           case Full(rules) => {
             val cmp = new RuleGrid("disable_popup_grid", rules, None, false)
-            cmp.rulesGrid(linkCompliancePopup = false)
+            cmp.rulesGrid(popup = true,linkCompliancePopup = false)
           }
         }
     }

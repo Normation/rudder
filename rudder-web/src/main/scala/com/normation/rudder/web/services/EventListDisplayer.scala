@@ -851,16 +851,16 @@ class EventListDisplayer(
             class="nodisplay">{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre>
           <pre style="width:200px;" id={"after" + id} 
             class="nodisplay">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
-          <pre id="result"></pre>
+          <pre id={"result" + id} ></pre>
         ) ++ Script(OnLoad(JsRaw("""
             
             var eventId = '%s';
-            var a = document.getElementById('before' + eventId);
-            var b = document.getElementById('after' + eventId);
-            var result = document.getElementById('result');
+            var a = $('#before' + eventId);
+            var b = $('#after' + eventId);
+            var result = $('#result' + eventId);
             
             function changed() {
-              var diff = JsDiff.diffLines(a.textContent, b.textContent);
+              var diff = JsDiff.diffLines(a.text(), b.text());
               var fragment = document.createDocumentFragment();
               for (var i=0; i < diff.length; i++) {
             
@@ -878,18 +878,18 @@ class EventListDisplayer(
                   node = document.createElement('ins');
                   node.appendChild(document.createTextNode(appendLines('+', diff[i].value)));
                 } else {
-                  node = document.createTextNode(" " + diff[i].value);
+                  node = document.createTextNode(appendLines(" ", diff[i].value));
                 }
                 fragment.appendChild(node);
               }
             
-              result.textContent = '';
-              result.appendChild(fragment);
+              result.text('');
+              result.append(fragment);
             }
             
             function appendLines(c, s) {
-              var res = s.replace("\n ", "\n" + c);
-              res = c + res.substring(1, res.length);
+              var res = s.replace(/\n/g, "\n" + c);
+              res = c+res;
               if(res.charAt(res.length -1) == c)
                 res = res.substring(0, res.length - 1);
               return res;
@@ -929,17 +929,13 @@ class EventListDisplayer(
           ("from ^*" #> "X" & "* *" #> (x => x))(xml) 
         , ("to ^*" #> "X" & "* *" #> (x => x))(xml)
       )
-  
-  private[this] def directiveIdDetails(directiveIds:Seq[DirectiveId]) = directiveIds.map { id => 
-    (<b>ID:</b><a href={directiveLink(id)}>{id.value}</a>):NodeSeq
-  }
-  
+
   private[this] def groupNodeSeqLink(id: NodeGroupId): NodeSeq = {
     nodeGroupRepository.getNodeGroup(id) match {
       case t: EmptyBox => 
-        <span>group({id.value})</span>
+        <span>Group (Rudder ID: {id.value.toUpperCase})</span>
       case Full(nodeGroup) => 
-        <span>group(<a href={groupLink(id)}>{nodeGroup.name}</a>)</span>
+        <span>Group "<a href={groupLink(id)}>{nodeGroup.name}</a>" (Rudder ID: {id.value.toUpperCase})</span>
     }
   }
   
@@ -954,7 +950,7 @@ class EventListDisplayer(
             case GroupTarget(id@NodeGroupId(g)) => 
               groupNodeSeqLink(id)
             case x => 
-              <span>{Text("group_special(" + x.toString + ")")}</span>
+              <span>{Text("Special group (" + x.toString + ")")}</span>
           }
         }
         .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
@@ -967,9 +963,9 @@ class EventListDisplayer(
   private[this] def nodeNodeSeqLink(id: NodeId): NodeSeq = {
     nodeInfoService.getNodeInfo(id) match {
       case t: EmptyBox => 
-        <span>node({id.value})</span>
+        <span>Node (Rudder ID: {id.value.toUpperCase})</span>
       case Full(node) => 
-        <span>node(<a href={nodeLink(id)}>{node.name}</a>)</span>
+        <span>Node "<a href={nodeLink(id)}>{node.hostname}</a>" (Rudder ID: {id.value.toUpperCase})</span>
     }
   }
   
@@ -1002,9 +998,9 @@ class EventListDisplayer(
               .map { id =>
                 directiveRepository.getDirective(id) match {
                   case t: EmptyBox => 
-                    <span>directive({id.value})</span>
+                    <span>Directive (Rudder ID: {id.value.toUpperCase})</span>
                   case Full(directive) => 
-                    <span>directive(<a href={directiveLink(id)}>{directive.name}</a>)</span>
+                    <span>Directive "<a href={directiveLink(id)}>{directive.name}</a>" (Rudder ID: {id.value.toUpperCase})</span>
                 }
               }
               .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
@@ -1020,10 +1016,7 @@ class EventListDisplayer(
       "#ruleID" #> rule.id.value.toUpperCase &
       "#ruleName" #> rule.name &
       "#target" #> groupTargetDetails(rule.targets) &
-      "#policy" #> (xml =>  
-        if(rule.directiveIds.size < 1) Text("None") else {
-          (".techniqueId *" #> directiveIdDetails(rule.directiveIds.toSeq))(xml)              
-        } ) &
+      "#policy" #> directiveTargetDetails(rule.directiveIds) &
       "#isEnabled" #> rule.isEnabled &
       "#isSystem" #> rule.isSystem &
       "#shortDescription" #> rule.shortDescription &
@@ -1290,9 +1283,9 @@ class EventListDisplayer(
           <thead>
             <tr class="head">
               <th>ID</th>
-              <th>Event type</th>
-              <th>Actor</th>
               <th>Date</th>
+              <th>Actor</th>
+              <th>Event type</th>
             </tr>
           </thead>
           <tbody>
@@ -1310,9 +1303,9 @@ class EventListDisplayer(
                 )
               }
               </td>
-              <td>{S.?("rudder.log.eventType.names." + ev.eventType)} </td>
-              <td>{ev.author} </td>
               <td>{ev.date} </td>
+              <td>{ev.author} </td>
+              <td>{S.?("rudder.log.eventType.names." + ev.eventType)} </td>
             </tr>
           } }
           </tbody>
