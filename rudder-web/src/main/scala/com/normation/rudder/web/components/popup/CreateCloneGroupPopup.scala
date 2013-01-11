@@ -44,6 +44,9 @@ class CreateCloneGroupPopup(
   private[this] val uuidGen = inject[StringUuidGenerator]
   private[this] val userPropertyService = inject[UserPropertyService]
   
+  // Fetch the parent category, if any
+  private[this] val parentCategoryId = nodeGroup.flatMap(x => nodeGroupRepository.getParentGroupCategory(x.id)).map(_.id.value).getOrElse("")
+  
   var createContainer = false 
   
   def dispatch = {
@@ -234,7 +237,7 @@ class CreateCloneGroupPopup(
 
   private[this] val piContainer = new WBSelectField("Parent category",
       (categories.open_!.map(x => (x.id.value -> x.name))),
-      "") {
+      parentCategoryId) {
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
     override def className = "rudderBaseFieldSelectClassName"
   }
