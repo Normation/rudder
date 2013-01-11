@@ -123,8 +123,7 @@ class ReportDisplayer(
          ruleRepository.get(reportStatus.ruleId) match {
            case Full(rule) =>
              val tooltipid = Helpers.nextFuncName
-             ( "#plus *" #> <center><img src="/images/details_open.png"/></center> &
-               "#details *" #> showDirectivesReport(reportStatus.directives,tooltipid) &
+             ( "#details *" #> showDirectivesReport(reportStatus.directives,tooltipid) &
                "#rule *" #> <b>{rule.name}</b> &
                "#status *" #> <center>{getSeverityFromStatus(reportStatus.nodeReportType)}</center> &
                "#status [class+]" #> getSeverityFromStatus(reportStatus.nodeReportType).replaceAll(" ", "")
@@ -141,7 +140,6 @@ class ReportDisplayer(
       <thead>
         <tr class="head tablewidth">
           <th class="emptyTd"><span/></th>
-          <th ></th>
           <th >Directive<span/></th>
           <th >Status<span/></th>
           <th style="border-left:0;" ></th>
@@ -162,7 +160,6 @@ class ReportDisplayer(
           val components = showComponentsReports(directive.components)
            ( "#status [class+]" #> severity.replaceAll(" ", "") &
              "#status *" #> <center>{severity}</center> &
-             "#directivePlus *" #> <center><img src="/images/details_open.png"/></center> &
              "#details *" #> components &
              "#directiveLink *" #> directiveEditLink &
              "#directiveInfo *" #>{
@@ -190,7 +187,6 @@ class ReportDisplayer(
      <thead>
        <tr class="head tablewidth">
        <th class="emptyTd"><span/></th>
-       <th ><span/></th>
        <th >Component<span/></th>
        <th >Status<span/></th>
        <th style="border-left:0;" ></th>
@@ -203,7 +199,6 @@ class ReportDisplayer(
         ( "#status [class+]" #> severity.replaceAll(" ", "") &
           "#status *" #> <center>{severity}</center> &
           "#component *" #>  <b>{component.component}</b> &
-          "#componentPlus *" #> <center><img src="/images/details_open.png"/></center> &
           "#details *" #>  value
         ) (componentDetails)
         } }
@@ -298,10 +293,9 @@ class ReportDisplayer(
          "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
          "aaSorting": [[ 1, "asc" ]],
          "aoColumns": [
-           { "sWidth": "50px", "bSortable": false },
-           { "sWidth": "400px" },
+           { "sWidth": "500px" },
            { "sWidth": "100px" },
-                      { "sWidth": "10px", "bSortable": false  , "bVisible":false }
+           { "sWidth": "10px", "bSortable": false  , "bVisible":false }
                     ],
           "fnDrawCallback" : function( oSettings ) {%s}
                   } );
@@ -328,14 +322,16 @@ class ReportDisplayer(
        */
     def valueClickJSFunction = {
       """
-      var componentPlusTd = $(this).find('td#componentPlus');
-      componentPlusTd.unbind();
-
-      componentPlusTd.click( function () {
-          var nTr = this.parentNode;
+      var componentPlusTd = $(this.fnGetNodes());
+      componentPlusTd.each( function () {
+        $(this).unbind();
+        $(this).click( function (e) {
+          if ($(e.target).hasClass('noexpand'))
+            return false;
+            var nTr = this;
             var i = $.inArray( nTr, anOpen );
            if ( i === -1 ) {
-            $('img', this).attr( 'src', "%1$s/images/details_close.png" );
+             $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
             var nDetailsRow = Otable3.fnOpen( nTr, fnFormatDetails(Otable3, nTr), 'details' );
           $('div.innerDetails table', nDetailsRow).dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
@@ -350,7 +346,7 @@ class ReportDisplayer(
             "aoColumns": [
               { "sWidth": "65px", "bSortable": false },
               { "sWidth": "75px" },
-              { "sWidth": "300px" },
+              { "sWidth": "345px" },
               { "sWidth": "100px" },
               { "sWidth": "10px" , "bSortable": false  , "bVisible":false}
             ]
@@ -362,13 +358,13 @@ class ReportDisplayer(
           anOpen.push( nTr );
         }
         else {
-          $('img', this).attr( 'src', "%1$s/images/details_open.png" );
+          $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
           $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
             oTable.fnClose( nTr );
             anOpen.splice( i, 1 );
           } );
         }
-      } );""".format(S.contextPath)
+      } );} );""".format(S.contextPath)
     }
       /*
        * That Javascript function describe the behavior of the inner dataTable
@@ -379,21 +375,16 @@ class ReportDisplayer(
       """
       createTooltip();
 
-      var directivePlusTd =  $(this).find('td#directivePlus');
-      directivePlusTd.unbind();
-
-      directivePlusTd.each(function(i) {
-       var nTr = this.parentNode;
-       var i = $.inArray( nTr, anOpen );
-         if ( i != -1 ) {
-           $(nTr).next().find("table").dataTable().fnDraw();
-         }
-      } );
-      directivePlusTd.click( function () {
-        var nTr = this.parentNode;
+      var directivePlusTd = $(this.fnGetNodes());
+      directivePlusTd.each( function () {
+        $(this).unbind();
+        $(this).click( function (e) {
+          if ($(e.target).hasClass('noexpand'))
+            return false;
+            var nTr = this;
         var i = $.inArray( nTr, anOpen );
         if ( i === -1 ) {
-          $('img', this).attr( 'src', "%1$s/images/details_close.png" );
+          $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
           var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
           var Otable3 = $('div.innerDetails table', nDetailsRow).dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
@@ -406,9 +397,8 @@ class ReportDisplayer(
             "bJQueryUI": true,
             "aaSorting": [[ 1, "asc" ]],
             "aoColumns": [
-              { "sWidth": "35px", "bSortable": false },
-              { "sWidth": "20px", "bSortable": false },
-              { "sWidth": "385px" },
+              { "sWidth": "45px", "bSortable": false },
+              { "sWidth": "447px" },
               { "sWidth": "100px" },
               { "sWidth": "10px" , "bSortable": false  , "bVisible":false}
             ],
@@ -421,21 +411,20 @@ class ReportDisplayer(
           anOpen.push( nTr );
         }
         else {
-          $('img', this).attr( 'src', "%1$s/images/details_open.png" );
+          $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
           $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
             oTable.fnClose( nTr );
             anOpen.splice( i, 1 );
           } );
         }
-      } );""".format(S.contextPath,valueClickJSFunction)
+      } ); } );""".format(S.contextPath,valueClickJSFunction)
     }
       /*
        * This is the main Javascript function to have cascaded DataTables
        */
    def ReportsGridClickFunction ={
      """
-     var plusTd = $('#reportsGrid td#plus');
-     plusTd.unbind();
+     var plusTd = $($('#reportsGrid').dataTable().fnGetNodes());
 
      plusTd.each(function(i) {
        var nTr = this.parentNode;
@@ -444,45 +433,49 @@ class ReportDisplayer(
            $(nTr).next().find("table").dataTable().fnDraw();
          }
      } );
-     plusTd.click( function () {
-     var nTr = this.parentNode;
-     var i = $.inArray( nTr, anOpen );
-     if ( i === -1 ) {
-       $('img', this).attr( 'src', "%1$s/images/details_close.png" );
-       var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
-         var Otable2 =  $('div.innerDetails table:first', nDetailsRow).dataTable({
-         "asStripeClasses": [ 'color1', 'color2' ],
-         "bAutoWidth": false,
-         "bFilter" : false,
-         "bPaginate" : false,
-         "bLengthChange": false,
-         "bInfo" : false,
-         "sPaginationType": "full_numbers",
-         "bJQueryUI": true,
-         "aaSorting": [[ 2, "asc" ]],
-         "aoColumns": [
-           { "sWidth": "10px", "bSortable": false },
-           { "sWidth": "30px", "bSortable": false },
-           { "sWidth": "390px" },
-           { "sWidth": "100px" },
-           { "sWidth": "10px", "bSortable": false  , "bVisible":false }
-         ],
-          "fnDrawCallback" : function( oSettings ) {%2$s}
-       } );
-
-       $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-       $('div.innerDetails table:first', nDetailsRow).attr("style","");
-       $('div.innerDetails', nDetailsRow).slideDown(300);
-       anOpen.push( nTr );
-     }
-     else {
-       $('img', this).attr( 'src', "%1$s/images/details_open.png" );
-       $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
-         oTable.fnClose( nTr );
-         anOpen.splice( i, 1 );
-       } );
-     }
-   } );""".format(S.contextPath,componentClickJSFunction)
+     
+     plusTd.each( function () {
+       $(this).unbind();
+       $(this).click( function (e) {
+         if ($(e.target).hasClass('noexpand'))
+           return false;
+         var nTr = this;
+         var i = $.inArray( nTr, anOpen );
+         if ( i === -1 ) {
+           $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
+           var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
+             var Otable2 =  $('div.innerDetails table:first', nDetailsRow).dataTable({
+             "asStripeClasses": [ 'color1', 'color2' ],
+             "bAutoWidth": false,
+             "bFilter" : false,
+             "bPaginate" : false,
+             "bLengthChange": false,
+             "bInfo" : false,
+             "sPaginationType": "full_numbers",
+             "bJQueryUI": true,
+             "aaSorting": [[ 2, "asc" ]],
+             "aoColumns": [
+               { "sWidth": "10px", "bSortable": false },
+               { "sWidth": "472px" },
+               { "sWidth": "100px" },
+               { "sWidth": "10px", "bSortable": false  , "bVisible":false }
+             ],
+              "fnDrawCallback" : function( oSettings ) {%2$s}
+           } );
+    
+           $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
+           $('div.innerDetails table:first', nDetailsRow).attr("style","");
+           $('div.innerDetails', nDetailsRow).slideDown(300);
+           anOpen.push( nTr );
+         }
+         else {
+           $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
+           $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
+             oTable.fnClose( nTr );
+             anOpen.splice( i, 1 );
+           } );
+         }
+   } );} );""".format(S.contextPath,componentClickJSFunction)
    }
   
    /**
@@ -554,7 +547,6 @@ class ReportDisplayer(
     <table id="reportsGrid" cellspacing="0">
       <thead>
         <tr class="head tablewidth">
-          <th ><span/></th>
           <th>Rule</th>
           <th>Status<span/></th>
 		  <th style="border-left:0;" ></th>
@@ -568,28 +560,25 @@ class ReportDisplayer(
 
   def reportsLineXml : NodeSeq = {
     <tr>
-      <td id="plus" class="firstTd curspoint nestedImg"/>
-      <td id="rule"></td>
+      <td id="rule" class="listopen cursor"></td>
       <td id="status" class="firstTd"></td>
       <td id="details" ></td>
     </tr>
   }
 
   def directiveLineXml : NodeSeq = {
-    <tr id="directiveLine" class="detailedReportLine  severity">
+    <tr id="directiveLine" class="detailedReportLine  severity cursor">
       <td id="first" class="emptyTd"/>
-      <td id="directivePlus" class="firstTd curspoint nestedImg"/>
-      <td id="directive" class="nestedImg"><span id="directiveInfo"/><span id="directiveLink"/></td>
+      <td id="directive" class="nestedImg listopen"><span id="directiveInfo"/><span id="directiveLink"/></td>
       <td id="status" class="firstTd"></td>
       <td id="details" ></td>
     </tr>
   }
   
   def componentDetails : NodeSeq = {
-    <tr id="componentLine" class="detailedReportLine severity" >
+    <tr id="componentLine" class="detailedReportLine severity cursor" >
       <td id="first" class="emptyTd"/>
-      <td id="componentPlus" class="firstTd curspoint nestedImg" />
-      <td id="component" ></td>
+      <td id="component" class="listopen"></td>
       <td id="status" class="firstTd"></td>
       <td id="details"/>
     </tr>

@@ -153,6 +153,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           <span class="errorscala" id="errorDetailsLink" onClick={
             """$('#errorDetailsDialog').modal({ minHeight:140, minWidth: 300 }); 
                $('#simplemodal-container').css('height', 'auto');
+               correctButtons();
                return false;"""}>details</span>) 
         </span>} ++ {
           ("#errorDetailsMessage" #> { failure.messageChain match {
@@ -250,15 +251,15 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
        <br />
        <div class="popupContent"/>
        <hr class="spacer" />
-    </div>
-    <div class="simplemodal-bottom">
+      </div>
+      <div class="simplemodal-bottom">
         <hr/>
         <div class="popupButton">
-      <span>
+        <span>
           <button class="simplemodal-close" onClick="return false;">
             Close
           </button>
-      </span>
+        </span>
         </div>
       </div>
     </div>   
@@ -286,13 +287,15 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         <br />
         <p id="errorDetailsMessage">[Here come the error message]</p>
         <hr class="spacer" />
-        <br />
-        <br />
-        <div align="right">
-          <button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only simplemodal-close" onClick="return false;">
-            <span class="ui-button-text">Close</span>
-          </button>
-        <br />
+      </div>
+      <div class="simplemodal-bottom">
+        <hr/>
+        <div class="popupButton">
+          <span>
+            <button class="simplemodal-close" onClick="return false;">
+              Close
+            </button>
+          </span>
         </div>
       </div>
     </div>

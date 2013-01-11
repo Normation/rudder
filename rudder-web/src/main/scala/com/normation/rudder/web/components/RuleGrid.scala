@@ -126,8 +126,7 @@ class RuleGrid(
                 <th>Directives</th>
                 <th>Target node groups</th>
                 <th>Compliance</th>
-                <th>Details</th>
-                <th>Parameters</th>
+                { if (!popup) <th>Details</th><th>Parameters</th> else NodeSeq.Empty }
                 { if(showCheckboxColumn) <th></th> else NodeSeq.Empty }
               </tr>
             </thead>
@@ -168,17 +167,18 @@ class RuleGrid(
           { "sWidth": "115px" },
           { "sWidth": "100px" },
           { "sWidth": "120px", "sType": "html" },
-          { "sWidth": "60px"  },
-          { "sWidth": "20px", "bSortable" : false },
-          { "sWidth": "20px", "bSortable" : false } %2$s
+          { "sWidth": "60px"  } 
+         %2$s 
+         %3$s
         ],
         "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
       });
       $('.dataTables_filter input').attr("placeholder", "Search");
          
       createTooltip();""".format(
-          htmlId_rulesGridId,
-          { if(showCheckboxColumn) """, { "sWidth": "30px" }""" else "" }
+          htmlId_rulesGridId
+        , { if(!popup) """, { "sWidth": "20px", "bSortable" : false }, { "sWidth": "20px", "bSortable" : false }""" else "" }
+        , { if(showCheckboxColumn) """, { "sWidth": "30px" }""" else "" }
       ).replaceAll("#table_var#",jsVarNameForId(htmlId_rulesGridId))
     )))
   }
@@ -263,7 +263,7 @@ class RuleGrid(
       else { 
         val popupId = Helpers.nextFuncName
         val tableId_listPI = Helpers.nextFuncName
-        <span class={if(popup)"" else "popcurs"} onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name + (if (seq.size > 1) ", ..." else "")}</span> ++
+        <span class={if(popup)"" else "curspoint"} onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name + (if (seq.size > 1) ", ..." else "")}</span> ++
         <div id={popupId} class="nodisplay">
           <div class="simplemodal-title">
             <h1>List of Directives</h1>
@@ -355,7 +355,7 @@ class RuleGrid(
       else { 
         val popupId = Helpers.nextFuncName
         val tableId_listPI = Helpers.nextFuncName
-        <span class={if(popup)"" else "popcurs"} onclick={"openMultiPiPopup('" + popupId + "') ; return false;"}>
+        <span class={if(popup)"" else "curspoint"} onclick={"openMultiPiPopup('" + popupId + "') ; return false;"}>
           {targets.head.name + (if (targets.size > 1) ", ..." else "")}
         </span>
         <div id={popupId} class="nodisplay">
@@ -517,25 +517,27 @@ class RuleGrid(
           <td style="text-align:right;">{ //  COMPLIANCE
             buildComplianceChart(line.compliance, line.rule, linkCompliancePopup)
           }</td>
-          <td class="complianceTd">{ //  COMPLIANCE
-              detailsCallbackLink match {
-      case None => Text("No details")
-      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { 
-                      () =>  callback(line.rule,"showForm")
-                    }, ("class", "smallButton")) }
-    
-    
-          }</td>
-          <td class="parametersTd">{ 
-              detailsCallbackLink match {
-      case None => Text("No parameters")
-      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icTools.jpg"/>, { 
-                      () =>  callback(line.rule,"showEditForm")
-                    }, ("class", "smallButton")) }
-    
-    
-          }</td>
-
+          { if (!popup) 
+            <td class="complianceTd">{ //  COMPLIANCE
+                detailsCallbackLink match {
+                  case None => Text("No details")
+                  case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { 
+                        () =>  callback(line.rule,"showForm")
+                      }, ("class", "smallButton")) }
+      
+      
+            }</td>
+            <td class="parametersTd">{ 
+                detailsCallbackLink match {
+                  case None => Text("No parameters")
+                  case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icTools.jpg"/>, { 
+                        () =>  callback(line.rule,"showEditForm")
+                      }, ("class", "smallButton")) }
+      
+      
+            }</td>
+            else NodeSeq.Empty 
+          }
           { // CHECKBOX 
             if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty 
           }
