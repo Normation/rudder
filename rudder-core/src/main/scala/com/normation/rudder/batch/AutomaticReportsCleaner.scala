@@ -196,7 +196,7 @@ case class Daily(hour:Int,min:Int) extends CleanFrequency{
       checker(now).plusDays(1)
   }
 
-  def displayFrequency = Some("Every day at %d:%d".format(hour,min))
+  def displayFrequency = Some("Every day at %02d:%02d".format(hour,min))
 
 }
 
@@ -218,7 +218,7 @@ case class Weekly(day:Int,hour:Int,min:Int) extends CleanFrequency{
 
 
   def displayFrequency = {
-    def expressWeekly(day:String) = Some("every %s at %d:%d".format(day,hour,min))
+    def expressWeekly(day:String) = Some("every %s at %02d:%02d".format(day,hour,min))
     day match {
       case DateTimeConstants.MONDAY    => expressWeekly ("Monday")
       case DateTimeConstants.TUESDAY   => expressWeekly ("Tuesday")
