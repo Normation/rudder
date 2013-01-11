@@ -68,7 +68,7 @@ class NodeGroupCategoryForm(
 
 	val groupCategoryRepository = inject[GroupCategoryRepository]
 	
-	val categories = groupCategoryRepository.getAllNonSystemCategories.open_!.filter(x => x.id != _nodeGroupCategory.id)
+	val categories = groupCategoryRepository.getCategoryHierarchy
 	val parentCategory = groupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id )
 	
 	val parentCategoryId = parentCategory match {
@@ -230,10 +230,8 @@ class NodeGroupCategoryForm(
 	 */
 	private[this] val piContainer = parentCategory match {
 		case x:EmptyBox => new WBSelectField("Parent category: ", Seq(_nodeGroupCategory.id.value -> _nodeGroupCategory.name), _nodeGroupCategory.id .value, Seq("disabled"->"true")) {
-			//	override def setFilter = notNull _ :: trim _ :: Nil
 			}
-		case Full(category) => new WBSelectField("Parent category: ", categories.map(x => (x.id.value -> x.name)), parentCategoryId) {
-			//	override def setFilter = notNull _ :: trim _ :: Nil
+		case Full(category) => new WBSelectField("Parent category: ", categories.map { case (id, name) => (id.value -> name)}, parentCategoryId) {
 			}    
   }
 	

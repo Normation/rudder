@@ -127,7 +127,7 @@ class NodeGroupForm(
   private[this] val dependencyService = inject[DependencyAndDeletionService]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
   
-  val categories = groupCategoryRepository.getAllNonSystemCategories
+  private[this] val categories = groupCategoryRepository.getCategoryHierarchy
 
 
   var parentCategory = Option.empty[Box[NodeGroupCategory]]
@@ -368,7 +368,7 @@ class NodeGroupForm(
   }
   
   private[this] val piContainer = new WBSelectField("Group container: ", 
-      (categories.open_!.map(x => (x.id.value -> x.name))),
+      (categories.map { case (id, name) => (id.value -> name)}),
       parentCategoryId) {
   }
   

@@ -47,6 +47,17 @@ trait GroupCategoryRepository {
   def getRootCategory() : NodeGroupCategory
 
   /**
+   * Get the category hierarchy
+   * Returns a Seq of NodeGroupCategoryId, String
+   * The String are in the form
+   * Root of the group and group categories
+   * └─Server roles
+   *   └─Server role child
+   * The Seq if ordered by Category name name at each level
+   */
+  def getCategoryHierarchy() : Seq[(NodeGroupCategoryId, String)]
+  
+  /**
    * retrieve the hierarchy of group category/group containing the selected node
    * From a category id (should start from root) return Empty if no children nor items contains the targets, Full(category) otherwise, with both
    * target and children filtered.

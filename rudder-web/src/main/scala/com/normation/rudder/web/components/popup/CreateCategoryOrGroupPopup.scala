@@ -90,11 +90,12 @@ class CreateCategoryOrGroupPopup(
   private[this] val nodeGroupRepository = inject[NodeGroupRepository]
 	private[this] val groupCategoryRepository = inject[GroupCategoryRepository]
   private[this] val nodeInfoService = inject[NodeInfoService]
-  private[this] val categories = groupCategoryRepository.getAllNonSystemCategories
+  private[this] val categories = groupCategoryRepository.getCategoryHierarchy
   private[this] val uuidGen = inject[StringUuidGenerator]
   
   var createContainer = false //issue #1190 always create a group by default
 
+  
   def dispatch = {
     case "popupContent" => { _ => popupContent }
   }
@@ -166,7 +167,7 @@ class CreateCategoryOrGroupPopup(
   }
 
   private[this] val piContainer = new WBSelectField("Parent category: ",
-			(categories.open_!.map(x => (x.id.value -> x.name))),
+			(categories.map { case (id, name) => (id.value -> name)}),
 			"") {
     override def className = "twoCol"
   }
