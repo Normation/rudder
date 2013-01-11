@@ -147,7 +147,7 @@ class RuleEditForm(
   //there are call by name to have the context matching their execution when called
   onSuccessCallback : () => JsCmd = { () => Noop },
   onFailureCallback : () => JsCmd = { () => Noop },
-  onCloneCallback : () => JsCmd = { () => Noop }
+  onCloneCallback : (Rule) => JsCmd = { (r:Rule) => Noop }
 ) extends DispatchSnippet with SpringExtendableSnippet[RuleEditForm] with Loggable {
   import RuleEditForm._
   
@@ -270,7 +270,7 @@ class RuleEditForm(
        } &
       "#clone" #> SHtml.ajaxButton( 
                       { Text("Clone") }
-                    , { () =>  onCloneCallback() }
+                    , { () =>  onCloneCallback(rule) }
                     , ("type", "button")
       ) &
       "#nameField" #> crName.toForm_! &
