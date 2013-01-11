@@ -133,7 +133,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
         JsRaw(""" $('#autoDeleteDetails').hide(); """) } &
     { if(dbCleaner.deletettl > 1 || dbCleaner.archivettl > 1)
         SetHtml("cleanFrequency",  Text(dbCleaner.freq.toString()) ) &
-        SetHtml("nextRun",  displayDate(Full(dbCleaner.freq.next)))
+        SetHtml("nextRun",  displayDate(Full(Option(dbCleaner.freq.next))))
       else
         JsRaw(""" $('#automaticCleanDetails').hide(); """) }
   }
@@ -174,9 +174,13 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     showDialog
   }
   
-  private[this] def displayDate( entry : Box[DateTime]) : NodeSeq= {
-    entry.
-      map ( x => <span>{DateFormaterService.getFormatedDate(x)}</span> ).
-      openOr( <span>There's been an error with the database, could not fetch the value</span>)
+  private[this] def displayDate( entry : Box[Option[DateTime]]) : NodeSeq= {
+    entry match {
+      case Full(dateOption) => dateOption match {
+        case Some(date) =>  <span>{DateFormaterService.getFormatedDate(date)}</span>
+        case None => <span>There is no reports in the table yet</span>
+      }
+      case _:EmptyBox => <span>There's been an error with the database, could not fetch the value</span>
+    }
   }
 }

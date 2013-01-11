@@ -851,16 +851,16 @@ class EventListDisplayer(
             class="nodisplay">{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre>
           <pre style="width:200px;" id={"after" + id} 
             class="nodisplay">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
-          <pre id="result"></pre>
+          <pre id={"result" + id} ></pre>
         ) ++ Script(OnLoad(JsRaw("""
             
             var eventId = '%s';
-            var a = document.getElementById('before' + eventId);
-            var b = document.getElementById('after' + eventId);
-            var result = document.getElementById('result');
+            var a = $('#before' + eventId);
+            var b = $('#after' + eventId);
+            var result = $('#result' + eventId);
             
             function changed() {
-              var diff = JsDiff.diffLines(a.textContent, b.textContent);
+              var diff = JsDiff.diffLines(a.text(), b.text());
               var fragment = document.createDocumentFragment();
               for (var i=0; i < diff.length; i++) {
             
@@ -878,18 +878,18 @@ class EventListDisplayer(
                   node = document.createElement('ins');
                   node.appendChild(document.createTextNode(appendLines('+', diff[i].value)));
                 } else {
-                  node = document.createTextNode(" " + diff[i].value);
+                  node = document.createTextNode(appendLines(" ", diff[i].value));
                 }
                 fragment.appendChild(node);
               }
             
-              result.textContent = '';
-              result.appendChild(fragment);
+              result.text('');
+              result.append(fragment);
             }
             
             function appendLines(c, s) {
-              var res = s.replace("\n ", "\n" + c);
-              res = c + res.substring(1, res.length);
+              var res = s.replace(/\n/g, "\n" + c);
+              res = c+res;
               if(res.charAt(res.length -1) == c)
                 res = res.substring(0, res.length - 1);
               return res;
