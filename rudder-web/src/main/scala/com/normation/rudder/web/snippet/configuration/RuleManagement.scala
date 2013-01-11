@@ -225,10 +225,10 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     val form = new RuleEditForm(
         htmlId_editRuleDiv+"Form",
         rule,
-        onCloneCallback = { () => showPopup(Some(rule)) },
+        onCloneCallback = { (updatedRule:Rule) => showPopup(Some(updatedRule)) },
         onSuccessCallback = { () => 
           //update UI
-          Replace(htmlId_viewAll,  viewRules ) 
+          Replace(htmlId_viewAll,  viewRules )
         }
     )
     currentRuleForm.set(Full(form))    
