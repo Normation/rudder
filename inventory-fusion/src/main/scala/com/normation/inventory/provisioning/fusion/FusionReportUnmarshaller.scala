@@ -188,15 +188,15 @@ class FusionReportUnmarshaller(
           report = pf(e,report)
         }
     } }
-    val fullReport = report.copy(
+    
+    val demuxed = demux(report)
+    val fullReport = demuxed.copy(
        //add all VMs and software ids to node
-      node = report.node.copy( 
-          softwareIds = report.applications.map( _.id ) 
+      node = demuxed.node.copy( 
+          softwareIds = demuxed.applications.map( _.id ) 
       )
     )
-    
-    val demuxed = demux(fullReport)
-    Full(demuxed)
+    Full(fullReport)
   }
   
   /**
@@ -215,6 +215,7 @@ class FusionReportUnmarshaller(
     r = r.copy(machine = r.machine.copy( sounds = report.machine.sounds.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( storages = report.machine.storages.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( videos = report.machine.videos.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    r = r.copy(applications = report.applications.groupBy( app => (app.name, app.version)).map { case (x,seq) => seq.head }.toSeq ) //seq.head is ok since its the result of groupBy
     r
   }
   

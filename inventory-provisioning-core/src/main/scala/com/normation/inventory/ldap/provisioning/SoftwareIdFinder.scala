@@ -80,7 +80,9 @@ class NameAndVersionIdFinder(
     
 
     ldapConnectionProvider.flatMap { con =>
-      val entries = con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID)
+      //get potential entries, and only get the one with a A_SOFTWARE_UUID
+      //return the list of A_SOFTWARE_UUID sorted
+      val entries = con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID).map(e => e(A_SOFTWARE_UUID)).flatten.sorted
       if(entries.size >= 1) {
         if(entries.size > 1) {
         /*
@@ -89,12 +91,12 @@ class NameAndVersionIdFinder(
          * For that case, take the first one
          */
         //TODO : notify merge
-          logger.info("Several software ids found for filter '{}':",filter)
+          logger.info("Several software ids found for filter '{}', chosing the first one:",filter)
           for(e <- entries) {
-            logger.info("-> {}",e(A_SOFTWARE_UUID).get)
+            logger.info("-> {}",e )
           }
-        }
-        Full(SoftwareUuid(entries(0)(A_SOFTWARE_UUID).get))
+        } 
+        Full(SoftwareUuid(entries.head))
       } else Empty
     }
   }

@@ -1,0 +1,3462 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<REQUEST>
+  <CONTENT>
+<VMS>
+</VMS>
+<USERSLIST>
+<USER>mail</USER>
+<USER>lp</USER>
+<USER>apache</USER>
+<USER>games</USER>
+<USER>adm</USER>
+<USER>sshd</USER>
+<USER>bin</USER>
+<USER>uucp</USER>
+<USER>postfix</USER>
+<USER>operator</USER>
+<USER>sync</USER>
+<USER>halt</USER>
+<USER>nobody</USER>
+<USER>shutdown</USER>
+<USER>gopher</USER>
+<USER>saslauth</USER>
+<USER>daemon</USER>
+<USER>vcsa</USER>
+<USER>ftp</USER>
+</USERSLIST>
+    <ACCESSLOG>
+      <LOGDATE>2011-09-22 12:34:23</LOGDATE>
+      <USERID>N/A</USERID>
+    </ACCESSLOG>
+    <BATTERIES></BATTERIES>
+    <BIOS>
+      <ASSETTAG></ASSETTAG>
+      <BDATE>01/01/2007</BDATE>
+      <BMANUFACTURER>Bochs</BMANUFACTURER>
+      <BVERSION>Bochs</BVERSION>
+      <SKUNUMBER>Not Specified</SKUNUMBER>
+      <SMANUFACTURER>Bochs</SMANUFACTURER>
+      <SMODEL>Bochs</SMODEL>
+      <SSN>Not Specified</SSN>
+    </BIOS>
+    <CPUS>
+      <CORE>1</CORE>
+      <ID>23 06 00 00 FD FB 8B 07</ID>
+      <MANUFACTURER>Intel</MANUFACTURER>
+      <NAME>QEMU Virtual CPU version 0.12.5</NAME>
+      <SPEED>2000</SPEED>
+    </CPUS>
+    <DRIVES>
+      <FILESYSTEM>ext4</FILESYSTEM>
+      <FREE>8105</FREE>
+      <SERIAL>4f5377db-1e46-4c1c-b145-1677412a3e5c</SERIAL>
+      <TOTAL>10622</TOTAL>
+      <TYPE>/</TYPE>
+      <VOLUMN>/dev/mapper/VolGroup-lv_root</VOLUMN>
+    </DRIVES>
+    <DRIVES>
+      <FILESYSTEM>ext4</FILESYSTEM>
+      <FREE>412</FREE>
+      <SERIAL>5a9af4c1-4c2d-477a-9264-793133c35e39</SERIAL>
+      <TOTAL>484</TOTAL>
+      <TYPE>/boot</TYPE>
+      <VOLUMN>/dev/vda1</VOLUMN>
+    </DRIVES>
+    <ENVS>
+      <KEY>HOME</KEY>
+      <VAL>/root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SSH_CLIENT</KEY>
+      <VAL>192.168.90.40 52668 22</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>CVS_RSH</KEY>
+      <VAL>ssh</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SSH_CONNECTION</KEY>
+      <VAL>192.168.90.40 52668 192.168.100.34 22</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LC_ALL</KEY>
+      <VAL>C</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LESSOPEN</KEY>
+      <VAL>|/usr/bin/lesspipe.sh %s</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>MAIL</KEY>
+      <VAL>/var/spool/mail/root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SSH_AUTH_SOCK</KEY>
+      <VAL>/tmp/ssh-bfyqd11413/agent.11413</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PWD</KEY>
+      <VAL>/var/rudder</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SELINUX_ROLE_REQUESTED</KEY>
+      <VAL></VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SELINUX_USE_CURRENT_RANGE</KEY>
+      <VAL></VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LANG</KEY>
+      <VAL>C</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>USER</KEY>
+      <VAL>root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>G_BROKEN_FILENAMES</KEY>
+      <VAL>1</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>DEBIAN_FRONTEND</KEY>
+      <VAL>noninteractive</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LOGNAME</KEY>
+      <VAL>root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SHLVL</KEY>
+      <VAL>3</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>HOSTNAME</KEY>
+      <VAL>centos-6-64</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SELINUX_LEVEL_REQUESTED</KEY>
+      <VAL></VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>_</KEY>
+      <VAL>/opt/rudder/bin/perl</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PATH</KEY>
+      <VAL>/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LS_COLORS</KEY>
+      <VAL>rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=01;05;37;41:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.lz=01;31:*.xz=01;31:*.bz2=01;31:*.tbz=01;31:*.tbz2=01;31:*.bz=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=01;36:*.au=01;36:*.flac=01;36:*.mid=01;36:*.midi=01;36:*.mka=01;36:*.mp3=01;36:*.mpc=01;36:*.ogg=01;36:*.ra=01;36:*.wav=01;36:*.axa=01;36:*.oga=01;36:*.spx=01;36:*.xspf=01;36:</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SHELL</KEY>
+      <VAL>/bin/bash</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>HISTSIZE</KEY>
+      <VAL>1000</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TERM</KEY>
+      <VAL>xterm</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SSH_TTY</KEY>
+      <VAL>/dev/pts/1</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>HISTCONTROL</KEY>
+      <VAL>ignoredups</VAL>
+    </ENVS>
+    <HARDWARE>
+      <ARCHNAME>x86_64-linux-thread-multi</ARCHNAME>
+      <CHASSIS_TYPE>Other</CHASSIS_TYPE>
+      <CHECKSUM>262143</CHECKSUM>
+      <DATELASTLOGGEDUSER>Thu Sep 22 12:27</DATELASTLOGGEDUSER>
+      <DEFAULTGATEWAY>192.168.100.1</DEFAULTGATEWAY>
+      <DESCRIPTION>x86_64/00-01-01 16:03:54</DESCRIPTION>
+      <DNS>8.8.8.8</DNS>
+      <ETIME>1</ETIME>
+      <IPADDR>192.168.100.34</IPADDR>
+      <LASTLOGGEDUSER>root</LASTLOGGEDUSER>
+      <MEMORY>239</MEMORY>
+      <NAME>centos-6-64</NAME>
+      <OSCOMMENTS>#1 SMP Mon Jun 27 19:49:27 BST 2011</OSCOMMENTS>
+      <OSNAME>CentOS Linux release 6.0 (Final)</OSNAME>
+      <OSVERSION>2.6.32-71.29.1.el6.x86_64</OSVERSION>
+      <PROCESSORN>1</PROCESSORN>
+      <PROCESSORS>2000</PROCESSORS>
+      <PROCESSORT>QEMU Virtual CPU version 0.12.5</PROCESSORT>
+      <SWAP>991</SWAP>
+      <USERDOMAIN></USERDOMAIN>
+      <USERID>root</USERID>
+      <UUID>44799357-3DB8-5A9F-F366-AED334E6DA2B</UUID>
+      <VMSYSTEM>QEMU</VMSYSTEM>
+      <WINPRODID></WINPRODID>
+      <WORKGROUP>normation.com</WORKGROUP>
+    </HARDWARE>
+    <INPUTS>
+      <CAPTION>AT Translated Set 2 keyboard</CAPTION>
+      <DESCRIPTION>AT Translated Set 2 keyboard</DESCRIPTION>
+      <TYPE>Keyboard</TYPE>
+    </INPUTS>
+    <INPUTS>
+      <CAPTION>ImExPS/2 Generic Explorer Mouse</CAPTION>
+      <DESCRIPTION>ImExPS/2 Generic Explorer Mouse</DESCRIPTION>
+      <TYPE>Pointing</TYPE>
+    </INPUTS>
+    <LOGICAL_VOLUMES>
+      <ATTR>-wi-ao</ATTR>
+      <LV_NAME>lv_root</LV_NAME>
+      <LV_UUID>bGDisK-uCIa-tLp4-blrk-dvtg-LsrY-RwgduE</LV_UUID>
+      <SEG_COUNT>1</SEG_COUNT>
+      <SIZE>11316</SIZE>
+    </LOGICAL_VOLUMES>
+    <LOGICAL_VOLUMES>
+      <ATTR>-wi-ao</ATTR>
+      <LV_NAME>lv_swap</LV_NAME>
+      <LV_UUID>SuLkyV-b7vG-Vmjs-GlCL-dVfF-BhQA-s50f1t</LV_UUID>
+      <SEG_COUNT>1</SEG_COUNT>
+      <SIZE>1040</SIZE>
+    </LOGICAL_VOLUMES>
+    <MEMORIES>
+      <CAPACITY>256</CAPACITY>
+      <CAPTION>DIMM 0</CAPTION>
+      <DESCRIPTION>DIMM</DESCRIPTION>
+      <NUMSLOTS>1</NUMSLOTS>
+      <TYPE>RAM</TYPE>
+    </MEMORIES>
+    <NETWORKS>
+      <DESCRIPTION>eth0</DESCRIPTION>
+      <DRIVER>virtio_net</DRIVER>
+      <IPADDRESS>192.168.100.34</IPADDRESS>
+      <IPADDRESS6>fe80::5054:ff:fef5:dca3/64</IPADDRESS6>
+      <IPDHCP>192.168.100.1</IPDHCP>
+      <IPGATEWAY>192.168.100.1</IPGATEWAY>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>192.168.100.0</IPSUBNET>
+      <MACADDR>52:54:00:F5:DC:A3</MACADDR>
+      <SLAVES></SLAVES>
+      <STATUS>Up</STATUS>
+      <TYPE>Ethernet</TYPE>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>lo</DESCRIPTION>
+      <IPADDRESS>127.0.0.1</IPADDRESS>
+      <IPADDRESS6>::1/128</IPADDRESS6>
+      <IPMASK>255.0.0.0</IPMASK>
+      <IPSUBNET>127.0.0.0</IPSUBNET>
+      <SLAVES></SLAVES>
+      <STATUS>Up</STATUS>
+      <TYPE>Local</TYPE>
+      <VIRTUALDEV>1</VIRTUALDEV>
+    </NETWORKS>
+    <OPERATINGSYSTEM>
+      <FULL_NAME>CentOS Linux release 6.0 (Final)</FULL_NAME>
+      <KERNEL_NAME>linux</KERNEL_NAME>
+      <KERNEL_VERSION>2.6.32-71.29.1.el6.x86_64</KERNEL_VERSION>
+      <NAME>CentOS</NAME>
+      <VERSION>6.0</VERSION>
+    </OPERATINGSYSTEM>
+    <PHYSICAL_VOLUMES>
+      <ATTR>a-</ATTR>
+      <DEVICE>/dev/vda2</DEVICE>
+      <FORMAT>lvm2</FORMAT>
+      <FREE>0</FREE>
+      <PE_SIZE>4</PE_SIZE>
+      <PV_NAME>VolGroup</PV_NAME>
+      <PV_PE_COUNT>2946</PV_PE_COUNT>
+      <PV_UUID>gcv7pC-c6YL-idUK-Mf07-edwG-WagV-Ncq4uy</PV_UUID>
+      <SIZE>12356</SIZE>
+    </PHYSICAL_VOLUMES>
+    <PROCESSES>
+      <CMD>/sbin/init</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>1</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>19112</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kthreadd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>2</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[migration/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>3</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ksoftirqd/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>4</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[watchdog/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>5</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[events/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>6</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[cpuset]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>7</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[khelper]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>8</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[netns]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>9</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[async/mgr]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>10</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[pm]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>11</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[sync_supers]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>12</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[bdi-default]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>13</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kintegrityd/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>14</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kblockd/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>15</PID>
+      <STARTED>2011-08-20 0:05</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kacpid]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>16</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kacpi_notify]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>17</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kacpi_hotplug]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>18</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ata/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>19</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ata_aux]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>20</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ksuspend_usbd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>21</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[khubd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>22</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kseriod]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>23</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[khungtaskd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>25</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kswapd0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>26</PID>
+      <STARTED>2011-08-20 0:04</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ksmd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>27</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[aio/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>28</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[crypto/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>29</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kpsmoused]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>35</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[usbhid_resumer]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>36</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kstriped]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>66</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_eh_0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>169</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_eh_1]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>170</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_eh_2]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>195</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kdmflush]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>279</PID>
+      <STARTED>2011-08-20 0:14</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kdmflush]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>286</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[jbd2/dm-0-8]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>298</PID>
+      <STARTED>2011-08-20 0:41</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ext4-dio-unwrit]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>299</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/udevd -d</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>369</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>10908</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[vballoon]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>585</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[jbd2/vda1-8]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>686</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ext4-dio-unwrit]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>687</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kauditd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>722</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[flush-253:0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>837</PID>
+      <STARTED>2011-08-20 0:05</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/dhclient -1 -q -lf /var/lib/dhclient/dhclient-eth0.leases -pf /var/run/dhclient-eth0.pid eth0</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>911</PID>
+      <STARTED>2011-08-20 0:01</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>9016</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>auditd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>953</PID>
+      <STARTED>2011-08-20 0:01</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>27536</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/sshd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>1001</PID>
+      <STARTED>2011-08-20 0:01</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>63756</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/libexec/postfix/master</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>1077</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>61968</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>qmgr -l -t fifo -u</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.3</MEM>
+      <PID>1089</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>postfix</USER>
+      <VIRTUALMEMORY>62116</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>crond</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>1679</PID>
+      <STARTED>2011-08-20 0:10</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>117104</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>login -- root</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1692</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>56960</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/mingetty /dev/tty2</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1694</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>tty2</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>3972</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/mingetty /dev/tty3</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1696</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>tty3</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>3972</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/udevd -d</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1699</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12224</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/udevd -d</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1700</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12224</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/mingetty /dev/tty4</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1701</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>tty4</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>3972</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/mingetty /dev/tty5</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1703</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>tty5</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>3972</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/mingetty /dev/tty6</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>1705</PID>
+      <STARTED>2011-08-20 0:00</STARTED>
+      <TTY>tty6</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>3972</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>pickup -l -t fifo -u</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.8</MEM>
+      <PID>9977</PID>
+      <STARTED>2011-9-22 11:54</STARTED>
+      <TTY>?</TTY>
+      <USER>postfix</USER>
+      <VIRTUALMEMORY>62048</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/var/rudder/cfengine-community/bin/cf-serverd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.4</MEM>
+      <PID>10185</PID>
+      <STARTED>2011-9-22 12:02</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>38320</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/var/rudder/cfengine-community/bin/cf-execd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.2</MEM>
+      <PID>10200</PID>
+      <STARTED>2011-9-22 12:02</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>105584</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/rsyslogd -c 4</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.6</MEM>
+      <PID>10639</PID>
+      <STARTED>2011-9-22 12:06</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>195560</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: root@pts/1</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.4</MEM>
+      <PID>11413</PID>
+      <STARTED>2011-9-22 12:26</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>97448</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>-bash</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.7</MEM>
+      <PID>11418</PID>
+      <STARTED>2011-9-22 12:27</STARTED>
+      <TTY>pts/1</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>108212</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/sbin/cf-agent -KI -D force_inventory</CMD>
+      <CPUUSAGE>6.2</CPUUSAGE>
+      <MEM>3.7</MEM>
+      <PID>11504</PID>
+      <STARTED>2011-9-22 12:34</STARTED>
+      <TTY>pts/1</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>42100</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/bin/run-inventory --local=/var/rudder/tmp/inventory</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.4</MEM>
+      <PID>11542</PID>
+      <STARTED>2011-9-22 12:34</STARTED>
+      <TTY>pts/1</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>9108</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/perl -I /opt/rudder/lib/perl5 /opt/rudder/bin/fusioninventory-agent --share-dir=/opt/rudder/share/fusion-utils --local=/var/rudder/tmp/inventory</CMD>
+      <CPUUSAGE>7.5</CPUUSAGE>
+      <MEM>5.7</MEM>
+      <PID>11543</PID>
+      <STARTED>2011-9-22 12:34</STARTED>
+      <TTY>pts/1</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>61692</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/perl -e @INC=qw(/opt/rudder/lib/perl5/5.12.1/x86_64-linux-thread-multi /opt/rudder/lib/perl5/5.12.1 /opt/rudder/lib/perl5/x86_64-linux-thread-multi /opt/rudder/lib/perl5 /opt/rudder/lib/perl5/site_perl/5.12.1/x86_64-linux-thread-multi /opt/rudder/lib/perl5/site_perl/5.12.1 /opt/rudder/lib/perl5/5.12.1/x86_64-linux-thread-multi /opt/rudder/lib/perl5/5.12.1 . ); eval 'use FusionInventory::Agent::Task::Inventory;'; FusionInventory::Agent::Task::Inventory::main(); -- /var/lib/fusioninventory-agent/__LOCAL__</CMD>
+      <CPUUSAGE>25.0</CPUUSAGE>
+      <MEM>7.8</MEM>
+      <PID>11544</PID>
+      <STARTED>2011-9-22 12:34</STARTED>
+      <TTY>pts/1</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>66884</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>ps aux</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.3</MEM>
+      <PID>11671</PID>
+      <STARTED>2011-9-22 12:34</STARTED>
+      <TTY>pts/1</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>11092</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>-bash</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>25097</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>tty1</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>108208</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: root@pts/0</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>25912</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>97576</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>-bash</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.5</MEM>
+      <PID>25918</PID>
+      <STARTED>2011-09-21 0:00</STARTED>
+      <TTY>pts/0</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>108468</VIRTUALMEMORY>
+    </PROCESSES>
+    <SOFTWARES>
+      <COMMENTS>Parma Polyhedra Library backend (ppl) based version of the Cloog binaries</COMMENTS>
+      <FILESIZE>185386</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:08 2011</INSTALLDATE>
+      <NAME>cloog-ppl.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.15.7-1.2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A set of system configuration and setup files</COMMENTS>
+      <FILESIZE>664693</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:26 2011</INSTALLDATE>
+      <NAME>setup.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.8.14-10.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A C library for multiple-precision floating-point computations</COMMENTS>
+      <FILESIZE>377376</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:09 2011</INSTALLDATE>
+      <NAME>mpfr.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.4.1-6.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The skeleton package which defines a simple Red Hat Enterprise Linux system</COMMENTS>
+      <FILESIZE>0</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:26 2011</INSTALLDATE>
+      <NAME>basesystem.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>10.0-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GCC OpenMP v3.0 shared support library</COMMENTS>
+      <FILESIZE>95351</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:12 2011</INSTALLDATE>
+      <NAME>libgomp.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.4.4-13.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Descriptions of common terminals</COMMENTS>
+      <FILESIZE>193090</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:27 2011</INSTALLDATE>
+      <NAME>ncurses-base.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.7-3.20090208.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Header files and libraries used to build SELinux</COMMENTS>
+      <FILESIZE>162018</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:15 2011</INSTALLDATE>
+      <NAME>libselinux-devel.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.94-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Header files and libraries for Zlib development</COMMENTS>
+      <FILESIZE>117496</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:17 2011</INSTALLDATE>
+      <NAME>zlib-devel.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.2.3-25.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Header files for development using standard C libraries.</COMMENTS>
+      <FILESIZE>2143069</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:27 2011</INSTALLDATE>
+      <NAME>glibc-headers.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.12-1.7.el6_0.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU Bourne Again shell</COMMENTS>
+      <FILESIZE>3143561</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:53 2011</INSTALLDATE>
+      <NAME>bash.x86_64</NAME>
+      <PUBLISHER>(none)</PUBLISHER>
+      <VERSION>4.1.2-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Development package for building Linux key management utilities</COMMENTS>
+      <FILESIZE>22497</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:34 2011</INSTALLDATE>
+      <NAME>keyutils-libs-devel.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.4-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A stand-alone TTY-based reader for GNU texinfo documentation</COMMENTS>
+      <FILESIZE>329482</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:54 2011</INSTALLDATE>
+      <NAME>info.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.13a-8.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Various compilers (C, C++, Objective-C, Java, ...)</COMMENTS>
+      <FILESIZE>19364026</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:40 2011</INSTALLDATE>
+      <NAME>gcc.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.4.4-13.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>C library for parsing command line parameters</COMMENTS>
+      <FILESIZE>83420</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:54 2011</INSTALLDATE>
+      <NAME>popt.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.13-7.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Files for development of applications which will use OpenSSL</COMMENTS>
+      <FILESIZE>2160270</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:46 2011</INSTALLDATE>
+      <NAME>openssl-devel.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.0.0-4.el6_0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Common error description library</COMMENTS>
+      <FILESIZE>56833</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:55 2011</INSTALLDATE>
+      <NAME>libcom_err.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.41.12-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Development files for pcre</COMMENTS>
+      <FILESIZE>976929</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:57 2011</INSTALLDATE>
+      <NAME>pcre-devel.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>7.8-3.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>SELinux binary policy manipulation library</COMMENTS>
+      <FILESIZE>245896</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:55 2011</INSTALLDATE>
+      <NAME>libsepol.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.41-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A GNU general-purpose parser generator</COMMENTS>
+      <FILESIZE>2081518</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:53:50 2011</INSTALLDATE>
+      <NAME>bison.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.4.1-5.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A library of handy utility functions</COMMENTS>
+      <FILESIZE>5193444</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:56 2011</INSTALLDATE>
+      <NAME>glib2.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.22.5-5.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A GNU tool which simplifies the build process for users</COMMENTS>
+      <FILESIZE>1079569</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:53:52 2011</INSTALLDATE>
+      <NAME>make.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.81-19.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Utilities for managing accounts and shadow password files</COMMENTS>
+      <FILESIZE>2699745</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:58 2011</INSTALLDATE>
+      <NAME>shadow-utils.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.1.4.2-8.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An open source SSH client applications</COMMENTS>
+      <FILESIZE>1049349</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 12:24:02 2011</INSTALLDATE>
+      <NAME>openssh-clients.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.3p1-20.el6_0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Netscape Portable Runtime</COMMENTS>
+      <FILESIZE>267696</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:58 2011</INSTALLDATE>
+      <NAME>nspr.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.8.6-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl module for resolving POD escape sequences</COMMENTS>
+      <FILESIZE>21092</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:06:16 2011</INSTALLDATE>
+      <NAME>perl-Pod-Escapes.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.04-115.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Automatically give your module the ability to have plugins</COMMENTS>
+      <FILESIZE>31031</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:06:19 2011</INSTALLDATE>
+      <NAME>perl-Module-Pluggable.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.90-115.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Dynamic library for extended attribute support</COMMENTS>
+      <FILESIZE>17896</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:58 2011</INSTALLDATE>
+      <NAME>libattr.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.4.44-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl extension for Version Objects</COMMENTS>
+      <FILESIZE>51960</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:06:20 2011</INSTALLDATE>
+      <NAME>perl-version.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.77-115.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Library for getting and setting POSIX.1e capabilities</COMMENTS>
+      <FILESIZE>62670</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:58 2011</INSTALLDATE>
+      <NAME>libcap.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.16-5.2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Error/exception handling in an OO-ish way</COMMENTS>
+      <FILESIZE>47372</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:06:26 2011</INSTALLDATE>
+      <NAME>perl-Error.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.17015-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Dynamic library to access udev device information</COMMENTS>
+      <FILESIZE>78443</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:59 2011</INSTALLDATE>
+      <NAME>libudev.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>147-2.29.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Fast Version Control System</COMMENTS>
+      <FILESIZE>15308050</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:06:31 2011</INSTALLDATE>
+      <NAME>git.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.7.1-2.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Powerful light-weight programming language</COMMENTS>
+      <FILESIZE>617799</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:59 2011</INSTALLDATE>
+      <NAME>lua.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.1.4-4.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Older LZMA format compatibility binaries</COMMENTS>
+      <FILESIZE>21154</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:08:34 2011</INSTALLDATE>
+      <NAME>xz-lzma-compat.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.999.9-0.3.beta.20091007git.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Shared libraries needed by applications which use Cyrus SASL</COMMENTS>
+      <FILESIZE>355822</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:59 2011</INSTALLDATE>
+      <NAME>cyrus-sasl-lib.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.1.23-8.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A collection of utilities and DSOs to handle compiled objects</COMMENTS>
+      <FILESIZE>545511</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:08:38 2011</INSTALLDATE>
+      <NAME>elfutils.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.148-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Internationalized Domain Name support library</COMMENTS>
+      <FILESIZE>567612</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:00 2011</INSTALLDATE>
+      <NAME>libidn.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.18-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A utility for determining file types</COMMENTS>
+      <FILESIZE>56466</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:08:41 2011</INSTALLDATE>
+      <NAME>file.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.04-6.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Scripts and executable programs used to build packages</COMMENTS>
+      <FILESIZE>321374</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:08:43 2011</INSTALLDATE>
+      <NAME>rpm-build.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.8.0-12.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Library to read and write ELF files</COMMENTS>
+      <FILESIZE>874559</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:00 2011</INSTALLDATE>
+      <NAME>elfutils-libelf.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.148-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Apache Portable Runtime library</COMMENTS>
+      <FILESIZE>303397</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Aug 23 13:53:39 2011</INSTALLDATE>
+      <NAME>apr.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.3.9-3.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU Standard C++ Library</COMMENTS>
+      <FILESIZE>991192</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:00 2011</INSTALLDATE>
+      <NAME>libstdc++.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.4.4-13.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>APR utility library LDAP support</COMMENTS>
+      <FILESIZE>9488</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Aug 23 13:53:46 2011</INSTALLDATE>
+      <NAME>apr-util-ldap.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.3.9-3.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Pattern matching utilities</COMMENTS>
+      <FILESIZE>802925</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:00 2011</INSTALLDATE>
+      <NAME>grep.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.6.3-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Helper application and MIME type associations for file types</COMMENTS>
+      <FILESIZE>52857</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Aug 23 13:53:50 2011</INSTALLDATE>
+      <NAME>mailcap.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.1.31-1.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Tool to analyse BIOS DMI data</COMMENTS>
+      <FILESIZE>180507</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 15 10:16:43 2011</INSTALLDATE>
+      <NAME>dmidecode.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.10-1.30.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>SELinux libselinux utilies</COMMENTS>
+      <FILESIZE>62617</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:01 2011</INSTALLDATE>
+      <NAME>libselinux-utils.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.94-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A GNU archiving program</COMMENTS>
+      <FILESIZE>650610</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:01 2011</INSTALLDATE>
+      <NAME>cpio.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.10-9.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Rudder agent for RedHat/CentOS</COMMENTS>
+      <FILESIZE>67408027</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 22 12:01:07 2011</INSTALLDATE>
+      <NAME>rudder-agent.x86_64</NAME>
+      <PUBLISHER>Normation</PUBLISHER>
+      <VERSION>2.3.0.beta4.git-1.EL.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Rudder agent for RedHat/CentOS</COMMENTS>
+      <FILESIZE>67408027</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 22 12:01:07 2011</INSTALLDATE>
+      <NAME>rudder-agent.x86_64</NAME>
+      <PUBLISHER>Normation</PUBLISHER>
+      <VERSION>2.3.0.beta4.git-1.EL.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU libraries and utilities for producing multi-lingual messages</COMMENTS>
+      <FILESIZE>6371313</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 22 12:08:42 2011</INSTALLDATE>
+      <NAME>gettext.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.17-16.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An XML parser library</COMMENTS>
+      <FILESIZE>197306</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:01 2011</INSTALLDATE>
+      <NAME>expat.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.1-9.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Job spooling tools</COMMENTS>
+      <FILESIZE>93940</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 22 12:08:48 2011</INSTALLDATE>
+      <NAME>at.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.1.10-43.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GLib bindings for D-Bus</COMMENTS>
+      <FILESIZE>579827</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:02 2011</INSTALLDATE>
+      <NAME>dbus-glib.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.86-5.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>POSIX File System Archiver</COMMENTS>
+      <FILESIZE>137868</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 22 12:08:51 2011</INSTALLDATE>
+      <NAME>pax.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.4-10.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A text file browser similar to more, but better</COMMENTS>
+      <FILESIZE>200441</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:02 2011</INSTALLDATE>
+      <NAME>less.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>436-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU line editor</COMMENTS>
+      <FILESIZE>119832</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 22 12:08:53 2011</INSTALLDATE>
+      <NAME>ed.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.1-3.3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A library which allows userspace access to USB devices</COMMENTS>
+      <FILESIZE>54440</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:02 2011</INSTALLDATE>
+      <NAME>libusb.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.1.12-23.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A set of documentation tools: man, apropos and whatis</COMMENTS>
+      <FILESIZE>398460</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 22 12:09:03 2011</INSTALLDATE>
+      <NAME>man.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.6f-29.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Advanced IP routing and network device configuration tools</COMMENTS>
+      <FILESIZE>861052</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:02 2011</INSTALLDATE>
+      <NAME>iproute.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.6.32-10.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A privileged helper for utmp/wtmp updates</COMMENTS>
+      <FILESIZE>40785</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:05 2011</INSTALLDATE>
+      <NAME>libutempter.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.1.5-4.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Command line tools for managing Berkeley DB (version 4) databases</COMMENTS>
+      <FILESIZE>415206</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:07 2011</INSTALLDATE>
+      <NAME>db4-utils.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.7.25-16.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Command line interface parsing library</COMMENTS>
+      <FILESIZE>68993</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:07 2011</INSTALLDATE>
+      <NAME>libss.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.41.12-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A GNU collection of binary utilities</COMMENTS>
+      <FILESIZE>9795974</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:08 2011</INSTALLDATE>
+      <NAME>binutils.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.20.51.0.2-5.11.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Displays where a particular program in your path is located</COMMENTS>
+      <FILESIZE>73197</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:08 2011</INSTALLDATE>
+      <NAME>which.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.19-5.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Ncurses support utilities</COMMENTS>
+      <FILESIZE>386379</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:09 2011</INSTALLDATE>
+      <NAME>ncurses.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.7-3.20090208.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU data compression program</COMMENTS>
+      <FILESIZE>225845</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:09 2011</INSTALLDATE>
+      <NAME>gzip.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.3.12-18.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>System NSS Initilization</COMMENTS>
+      <FILESIZE>31149</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:14 2011</INSTALLDATE>
+      <NAME>nss-sysinit.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.12.7-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Linux PCI library</COMMENTS>
+      <FILESIZE>48992</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:14 2011</INSTALLDATE>
+      <NAME>pciutils-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.1.4-9.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A compact getty program for virtual consoles only</COMMENTS>
+      <FILESIZE>34578</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:14 2011</INSTALLDATE>
+      <NAME>mingetty.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.08-4.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A library for getting files from web servers</COMMENTS>
+      <FILESIZE>339464</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:15 2011</INSTALLDATE>
+      <NAME>libcurl.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>7.19.7-16.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Libraries for manipulating RPM packages</COMMENTS>
+      <FILESIZE>770808</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:15 2011</INSTALLDATE>
+      <NAME>rpm-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.8.0-12.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Utility for secure communication and data storage</COMMENTS>
+      <FILESIZE>6088924</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:16 2011</INSTALLDATE>
+      <NAME>gnupg2.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.14-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Library files for fipscheck</COMMENTS>
+      <FILESIZE>6985</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:17 2011</INSTALLDATE>
+      <NAME>fipscheck-lib.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.2.0-4.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>String library, very low memory overhead, simple to import</COMMENTS>
+      <FILESIZE>273983</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:17 2011</INSTALLDATE>
+      <NAME>ustr.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.0.4-9.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A GNU set of database routines which use extensible hashing</COMMENTS>
+      <FILESIZE>48586</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:17 2011</INSTALLDATE>
+      <NAME>gdbm.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.8.0-36.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A fast metadata parser for yum</COMMENTS>
+      <FILESIZE>58327</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:21 2011</INSTALLDATE>
+      <NAME>yum-metadata-parser.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.1.2-14.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Python bindings for apps which will manipulate RPM packages</COMMENTS>
+      <FILESIZE>119874</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:22 2011</INSTALLDATE>
+      <NAME>rpm-python.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.8.0-12.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Small and fast POSIX-compliant shell</COMMENTS>
+      <FILESIZE>127501</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:22 2011</INSTALLDATE>
+      <NAME>dash.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.5.5.1-3.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A library for text mode user interfaces</COMMENTS>
+      <FILESIZE>173269</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:22 2011</INSTALLDATE>
+      <NAME>newt.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.52.11-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Plymouth libraries</COMMENTS>
+      <FILESIZE>177536</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:23 2011</INSTALLDATE>
+      <NAME>plymouth-core-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.8.3-17.el6.centos</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Plymouth related scripts</COMMENTS>
+      <FILESIZE>11006</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:25 2011</INSTALLDATE>
+      <NAME>plymouth-scripts.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.8.3-17.el6.centos</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Python Module for Accessing and Modifying Configuration Data in INI files</COMMENTS>
+      <FILESIZE>109284</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:25 2011</INSTALLDATE>
+      <NAME>python-iniparse.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.3.1-2.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>RPM installer/updater</COMMENTS>
+      <FILESIZE>3994324</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:25 2011</INSTALLDATE>
+      <NAME>yum.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.2.27-14.el6.centos</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Data for kbd package</COMMENTS>
+      <FILESIZE>1443451</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:26 2011</INSTALLDATE>
+      <NAME>kbd-misc.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.15-11.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Network monitoring tools including ping</COMMENTS>
+      <FILESIZE>292648</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:26 2011</INSTALLDATE>
+      <NAME>iputils.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>20071127-13.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Enhanced system logging and kernel message trapping daemons</COMMENTS>
+      <FILESIZE>1225934</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:40 2011</INSTALLDATE>
+      <NAME>rsyslog.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.6.2-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The Cyrus SASL library</COMMENTS>
+      <FILESIZE>129294</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:42 2011</INSTALLDATE>
+      <NAME>cyrus-sasl.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.1.23-8.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Utility for running regular jobs</COMMENTS>
+      <FILESIZE>41538</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:48 2011</INSTALLDATE>
+      <NAME>cronie-anacron.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.4.4-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Root crontab files used to schedule the execution of programs</COMMENTS>
+      <FILESIZE>2486</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:48 2011</INSTALLDATE>
+      <NAME>crontabs.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.10-32.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Command line tool for setting up authentication from network services</COMMENTS>
+      <FILESIZE>1816496</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:52 2011</INSTALLDATE>
+      <NAME>authconfig.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>6.1.4-6.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Allows restricted root access for specified users</COMMENTS>
+      <FILESIZE>915904</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:54 2011</INSTALLDATE>
+      <NAME>sudo.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.7.2p2-9.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>User space tools for 2.6 kernel auditing</COMMENTS>
+      <FILESIZE>894714</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:55 2011</INSTALLDATE>
+      <NAME>audit.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.4-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Access control list utilities</COMMENTS>
+      <FILESIZE>188572</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:55 2011</INSTALLDATE>
+      <NAME>acl.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.2.49-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Direct Rendering Manager runtime library</COMMENTS>
+      <FILESIZE>125752</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:55 2011</INSTALLDATE>
+      <NAME>libdrm.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.4.20-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The Linux kernel</COMMENTS>
+      <FILESIZE>117757929</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:07 2011</INSTALLDATE>
+      <NAME>kernel.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.6.32-71.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Brocade Fibre Channel HBA Firmware</COMMENTS>
+      <FILESIZE>541722</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:50 2011</INSTALLDATE>
+      <NAME>bfa-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.1.2.1-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Intel(R) Wireless WiFi Link 6050 Series Adapters</COMMENTS>
+      <FILESIZE>472651</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:50 2011</INSTALLDATE>
+      <NAME>iwl6050-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>9.201.4.1-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Intel(R) Wireless WiFi Link 6000 Series AGN Adapter</COMMENTS>
+      <FILESIZE>467033</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:50 2011</INSTALLDATE>
+      <NAME>iwl6000-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>9.176.4.1-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Grand Unified Boot Loader.</COMMENTS>
+      <FILESIZE>2394552</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:50 2011</INSTALLDATE>
+      <NAME>grub.x86_64</NAME>
+      <PUBLISHER>(none)</PUBLISHER>
+      <VERSION>0.97-68.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for qlogic 2400 devices</COMMENTS>
+      <FILESIZE>251757</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:51 2011</INSTALLDATE>
+      <NAME>ql2400-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.03.02-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Marvell Libertas USB 8388 Network Adapter</COMMENTS>
+      <FILESIZE>129601</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:51 2011</INSTALLDATE>
+      <NAME>libertas-usb8388-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.110.22.p23-3.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>ATI firmware for R600/700/800</COMMENTS>
+      <FILESIZE>62330</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:51 2011</INSTALLDATE>
+      <NAME>xorg-x11-drv-ati-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>6.13.0-6.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Intel® PRO/Wireless 4965 A/G/N network adaptors</COMMENTS>
+      <FILESIZE>382618</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:51 2011</INSTALLDATE>
+      <NAME>iwl4965-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>228.61.2.24-2.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Intel® PRO/Wireless 3945 A/B/G network adaptors</COMMENTS>
+      <FILESIZE>457396</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:52 2011</INSTALLDATE>
+      <NAME>iwl3945-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>15.32.2.9-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Ralink® RT2561/RT2661 A/B/G network adaptors</COMMENTS>
+      <FILESIZE>26679</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:52 2011</INSTALLDATE>
+      <NAME>rt61pci-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.2-7.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for qlogic 2100 devices</COMMENTS>
+      <FILESIZE>78639</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:52 2011</INSTALLDATE>
+      <NAME>ql2100-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.19.38-3.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for wireless devices based on zd1211 chipset</COMMENTS>
+      <FILESIZE>65337</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:52 2011</INSTALLDATE>
+      <NAME>zd1211-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.4-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for qlogic 23xx devices</COMMENTS>
+      <FILESIZE>262821</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:52 2011</INSTALLDATE>
+      <NAME>ql23xx-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.03.27-3.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for the Hauppauge PVR 250/350/150/500/USB2 model series</COMMENTS>
+      <FILESIZE>857256</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:52 2011</INSTALLDATE>
+      <NAME>ivtv-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>20080701-20.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware files used by the Linux kernel</COMMENTS>
+      <FILESIZE>2097312</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:02:00 2011</INSTALLDATE>
+      <NAME>kernel-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.6.32-71.29.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Common binaries and locale data for glibc</COMMENTS>
+      <FILESIZE>112305955</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:02:17 2011</INSTALLDATE>
+      <NAME>glibc-common.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.12-1.7.el6_0.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Freebl library for the Network Security Services</COMMENTS>
+      <FILESIZE>364342</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:02:39 2011</INSTALLDATE>
+      <NAME>nss-softokn-freebl.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.12.8-1.el6_0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A general purpose cryptography library with TLS implementation</COMMENTS>
+      <FILESIZE>3731577</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:02:44 2011</INSTALLDATE>
+      <NAME>openssl.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.0.0-4.el6_0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Libraries for applications using bzip2</COMMENTS>
+      <FILESIZE>67592</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:02:49 2011</INSTALLDATE>
+      <NAME>bzip2-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.0.5-7.el6_0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An interpreted, interactive, object-oriented programming language</COMMENTS>
+      <FILESIZE>21539292</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:07 2011</INSTALLDATE>
+      <NAME>python.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.6.5-3.el6_0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Libraries for accessing D-BUS</COMMENTS>
+      <FILESIZE>265696</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:13 2011</INSTALLDATE>
+      <NAME>dbus-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.2.24-4.el6_0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Universally unique ID library</COMMENTS>
+      <FILESIZE>16016</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:20 2011</INSTALLDATE>
+      <NAME>libuuid.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.17.2-6.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An event-driven init system</COMMENTS>
+      <FILESIZE>516356</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:26 2011</INSTALLDATE>
+      <NAME>upstart.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.6.5-6.1.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Utilities for managing processes on your system</COMMENTS>
+      <FILESIZE>222302</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:39 2011</INSTALLDATE>
+      <NAME>psmisc.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>22.6-15.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Network Security Services Utilities Library</COMMENTS>
+      <FILESIZE>124936</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:48 2011</INSTALLDATE>
+      <NAME>nss-util.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.12.8-1.el6_0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A Python interface to libcurl</COMMENTS>
+      <FILESIZE>236939</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:54 2011</INSTALLDATE>
+      <NAME>python-pycurl.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>7.19.0-8.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Libraries for applications using libmagic</COMMENTS>
+      <FILESIZE>2498755</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:56 2011</INSTALLDATE>
+      <NAME>file-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.04-6.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The standard CrackLib dictionaries</COMMENTS>
+      <FILESIZE>9327207</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:58 2011</INSTALLDATE>
+      <NAME>cracklib-dicts.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.8.16-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A collection of basic system utilities</COMMENTS>
+      <FILESIZE>5724381</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:07 2011</INSTALLDATE>
+      <NAME>util-linux-ng.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.17.2-6.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>SELinux policy core utilities</COMMENTS>
+      <FILESIZE>3918075</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:12 2011</INSTALLDATE>
+      <NAME>policycoreutils.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.83-19.8.el6_0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Device mapper utility</COMMENTS>
+      <FILESIZE>142643</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:14 2011</INSTALLDATE>
+      <NAME>device-mapper.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.02.53-8.el6_0.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Device-mapper event daemon</COMMENTS>
+      <FILESIZE>28925</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:15 2011</INSTALLDATE>
+      <NAME>device-mapper-event.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.02.53-8.el6_0.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An open source implementation of SSH protocol versions 1 and 2</COMMENTS>
+      <FILESIZE>674811</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:17 2011</INSTALLDATE>
+      <NAME>openssh.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.3p1-20.el6_0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Userland logical volume management tools</COMMENTS>
+      <FILESIZE>1063926</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:19 2011</INSTALLDATE>
+      <NAME>lvm2.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.02.72-8.el6_0.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Tools and libraries to control and monitor control groups</COMMENTS>
+      <FILESIZE>238472</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:21 2011</INSTALLDATE>
+      <NAME>libcgroup.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.36.1-6.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A user and group account administration library</COMMENTS>
+      <FILESIZE>1876935</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:26 2011</INSTALLDATE>
+      <NAME>libuser.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.56.13-4.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Initramfs generator using udev</COMMENTS>
+      <FILESIZE>149952</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:30 2011</INSTALLDATE>
+      <NAME>dracut.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>004-33.2.el6_0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The Linux kernel</COMMENTS>
+      <FILESIZE>117793893</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:39 2011</INSTALLDATE>
+      <NAME>kernel.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.6.32-71.29.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>system-config-firewall base components and command line tool</COMMENTS>
+      <FILESIZE>2363957</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:05:09 2011</INSTALLDATE>
+      <NAME>system-config-firewall-base.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.2.27-3.el6_0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The Parma Polyhedra Library: a library of numerical abstractions</COMMENTS>
+      <FILESIZE>4637284</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:06 2011</INSTALLDATE>
+      <NAME>ppl.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.10.2-11.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GCC version 4.4 shared support library</COMMENTS>
+      <FILESIZE>119648</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:26 2011</INSTALLDATE>
+      <NAME>libgcc.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.4.4-13.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The Berkeley DB database library (version 4) for C++</COMMENTS>
+      <FILESIZE>1647120</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:08 2011</INSTALLDATE>
+      <NAME>db4-cxx.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.7.25-16.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The basic directory layout for a Linux system</COMMENTS>
+      <FILESIZE>0</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:26 2011</INSTALLDATE>
+      <NAME>filesystem.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.4.30-2.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The C Preprocessor</COMMENTS>
+      <FILESIZE>9963936</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:11 2011</INSTALLDATE>
+      <NAME>cpp.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.4.4-13.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The Mozilla CA root certificate bundle</COMMENTS>
+      <FILESIZE>1368759</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:27 2011</INSTALLDATE>
+      <NAME>ca-certificates.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2010.63-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Header files and libraries used to build policy manipulation tools</COMMENTS>
+      <FILESIZE>105619</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:13 2011</INSTALLDATE>
+      <NAME>libsepol-devel.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.41-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Common error description library</COMMENTS>
+      <FILESIZE>34463</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:16 2011</INSTALLDATE>
+      <NAME>libcom_err-devel.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.41.12-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Header files for the Linux kernel for use by glibc</COMMENTS>
+      <FILESIZE>2413249</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:24 2011</INSTALLDATE>
+      <NAME>kernel-headers.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.6.32-71.29.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Ncurses libraries</COMMENTS>
+      <FILESIZE>760448</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:53 2011</INSTALLDATE>
+      <NAME>ncurses-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.7-3.20090208.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Object files for development using standard C libraries.</COMMENTS>
+      <FILESIZE>988708</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:31 2011</INSTALLDATE>
+      <NAME>glibc-devel.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.12-1.7.el6_0.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The zlib compression and decompression library</COMMENTS>
+      <FILESIZE>149569</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:54 2011</INSTALLDATE>
+      <NAME>zlib.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.2.3-25.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Development files needed to compile Kerberos 5 programs</COMMENTS>
+      <FILESIZE>3169874</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:38 2011</INSTALLDATE>
+      <NAME>krb5-devel.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.8.2-3.el6_0.7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Dynamic library for libaudit</COMMENTS>
+      <FILESIZE>153242</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:54 2011</INSTALLDATE>
+      <NAME>audit-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.4-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A utility for retrieving files using the HTTP or FTP protocols</COMMENTS>
+      <FILESIZE>1877597</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:44 2011</INSTALLDATE>
+      <NAME>wget.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.12-1.4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A system tool for maintaining the /etc/rc*.d hierarchy</COMMENTS>
+      <FILESIZE>668317</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:55 2011</INSTALLDATE>
+      <NAME>chkconfig.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.3.47-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>C development files for the Berkeley DB (version 4) library</COMMENTS>
+      <FILESIZE>25205069</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:55 2011</INSTALLDATE>
+      <NAME>db4-devel.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.7.25-16.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The Berkeley DB database library (version 4) for C</COMMENTS>
+      <FILESIZE>1532103</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:55 2011</INSTALLDATE>
+      <NAME>db4.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.7.25-16.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A tool for creating scanners (text pattern recognizers)</COMMENTS>
+      <FILESIZE>741733</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:53:48 2011</INSTALLDATE>
+      <NAME>flex.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.5.35-8.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>SELinux library and simple utilities</COMMENTS>
+      <FILESIZE>130064</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:55 2011</INSTALLDATE>
+      <NAME>libselinux.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.94-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Berkeley Yacc, a parser generator</COMMENTS>
+      <FILESIZE>88256</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:53:52 2011</INSTALLDATE>
+      <NAME>byacc.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.9.20070509-6.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Library providing the FAM File Alteration Monitor API</COMMENTS>
+      <FILESIZE>416440</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:57 2011</INSTALLDATE>
+      <NAME>gamin.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.1.10-9.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The NetBSD Editline library</COMMENTS>
+      <FILESIZE>185648</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 12:24:01 2011</INSTALLDATE>
+      <NAME>libedit.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.11-4.20080712cvs.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A GNU stream text editor</COMMENTS>
+      <FILESIZE>542165</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:58 2011</INSTALLDATE>
+      <NAME>sed.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.2.1-5.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A program for synchronizing files over a network</COMMENTS>
+      <FILESIZE>699126</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:06:15 2011</INSTALLDATE>
+      <NAME>rsync.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.0.6-5.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The libraries for the perl runtime</COMMENTS>
+      <FILESIZE>1486440</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:06:18 2011</INSTALLDATE>
+      <NAME>perl-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.10.1-115.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A library for editing typed command lines</COMMENTS>
+      <FILESIZE>433925</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:58 2011</INSTALLDATE>
+      <NAME>readline.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>6.0-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Framework for parsing POD documentation</COMMENTS>
+      <FILESIZE>476717</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:06:19 2011</INSTALLDATE>
+      <NAME>perl-Pod-Simple.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.13-115.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Dynamic library for access control list support</COMMENTS>
+      <FILESIZE>31856</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:58 2011</INSTALLDATE>
+      <NAME>libacl.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.2.49-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Practical Extraction and Report Language</COMMENTS>
+      <FILESIZE>35235469</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:06:25 2011</INSTALLDATE>
+      <NAME>perl.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.10.1-115.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU version of the awk text processing utility</COMMENTS>
+      <FILESIZE>2036632</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:59 2011</INSTALLDATE>
+      <NAME>gawk.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.1.7-6.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl interface to Git</COMMENTS>
+      <FILESIZE>35913</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:06:27 2011</INSTALLDATE>
+      <NAME>perl-Git.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.7.1-2.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>LZMA compression utilities</COMMENTS>
+      <FILESIZE>487887</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:08:32 2011</INSTALLDATE>
+      <NAME>xz.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.999.9-0.3.beta.20091007git.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Library that implements an embeddable SQL database engine</COMMENTS>
+      <FILESIZE>641020</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:59 2011</INSTALLDATE>
+      <NAME>sqlite.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.6.20-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Libraries to handle compiled objects</COMMENTS>
+      <FILESIZE>484592</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:08:36 2011</INSTALLDATE>
+      <NAME>elfutils-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.148-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Tools for managing Linux kernel packet filtering capabilities</COMMENTS>
+      <FILESIZE>843556</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:51:59 2011</INSTALLDATE>
+      <NAME>iptables.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.4.7-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Utility for modifying/upgrading files</COMMENTS>
+      <FILESIZE>175662</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:08:39 2011</INSTALLDATE>
+      <NAME>patch.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.6-6.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A utility for unpacking zip files</COMMENTS>
+      <FILESIZE>320358</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 13:08:42 2011</INSTALLDATE>
+      <NAME>unzip.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>6.0-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Libraries for decoding LZMA compression</COMMENTS>
+      <FILESIZE>214490</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:00 2011</INSTALLDATE>
+      <NAME>xz-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.999.9-0.3.beta.20091007git.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Apache Portable Runtime Utility library</COMMENTS>
+      <FILESIZE>202360</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Aug 23 13:53:44 2011</INSTALLDATE>
+      <NAME>apr-util.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.3.9-3.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Perl-compatible regular expression library</COMMENTS>
+      <FILESIZE>526215</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:00 2011</INSTALLDATE>
+      <NAME>pcre.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>7.8-3.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Tools for use with the Apache HTTP Server</COMMENTS>
+      <FILESIZE>140385</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Aug 23 13:53:48 2011</INSTALLDATE>
+      <NAME>httpd-tools.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.2.15-5.el6.centos</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Library for error values used by GnuPG components</COMMENTS>
+      <FILESIZE>212625</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:01 2011</INSTALLDATE>
+      <NAME>libgpg-error.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.7-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU versions of find utilities (find and xargs)</COMMENTS>
+      <FILESIZE>1446945</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:01 2011</INSTALLDATE>
+      <NAME>findutils.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.4.2-6.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>SELinux policy compiler</COMMENTS>
+      <FILESIZE>870239</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:01 2011</INSTALLDATE>
+      <NAME>checkpolicy.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.22-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Libraries for tcp_wrappers</COMMENTS>
+      <FILESIZE>127987</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:01 2011</INSTALLDATE>
+      <NAME>tcp_wrappers-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>7.6-56.3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A version control system</COMMENTS>
+      <FILESIZE>1595158</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 22 12:08:38 2011</INSTALLDATE>
+      <NAME>cvs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.11.23-11.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Tools used for process and utmp management.</COMMENTS>
+      <FILESIZE>112743</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:01 2011</INSTALLDATE>
+      <NAME>sysvinit-tools.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.87-3.dsf.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A GNU utility for monitoring a program's use of system resources</COMMENTS>
+      <FILESIZE>39759</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 22 12:08:47 2011</INSTALLDATE>
+      <NAME>time.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.7-37.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU Portable Threads library</COMMENTS>
+      <FILESIZE>261931</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:02 2011</INSTALLDATE>
+      <NAME>pth.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.7-9.3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GNU's bc (a numeric processing language) and dc (a calculator)</COMMENTS>
+      <FILESIZE>217289</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 22 12:08:49 2011</INSTALLDATE>
+      <NAME>bc.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.06.95-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A general-purpose cryptography library</COMMENTS>
+      <FILESIZE>535342</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:02 2011</INSTALLDATE>
+      <NAME>libgcrypt.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.4.5-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Enhanced implementation of the mailx command</COMMENTS>
+      <FILESIZE>462852</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 22 12:08:52 2011</INSTALLDATE>
+      <NAME>mailx.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>12.4-6.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A GNU arbitrary precision library</COMMENTS>
+      <FILESIZE>667867</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:02 2011</INSTALLDATE>
+      <NAME>gmp.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.3.1-7.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A document formatting system</COMMENTS>
+      <FILESIZE>5318766</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Thu Sep 22 12:08:55 2011</INSTALLDATE>
+      <NAME>groff.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.18.1.4-21.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Command line tool for updating bootloader configs</COMMENTS>
+      <FILESIZE>84472</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:02 2011</INSTALLDATE>
+      <NAME>grubby.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>7.0.15-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>IPv6 support for iptables</COMMENTS>
+      <FILESIZE>187425</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:02 2011</INSTALLDATE>
+      <NAME>iptables-ipv6.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.4.7-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Lightweight application development library</COMMENTS>
+      <FILESIZE>485694</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:02 2011</INSTALLDATE>
+      <NAME>libnih.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.0.1-6.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Collection of simple PIN or passphrase entry dialogs</COMMENTS>
+      <FILESIZE>146556</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:03 2011</INSTALLDATE>
+      <NAME>pinentry.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.7.6-5.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A GNU file archiving program</COMMENTS>
+      <FILESIZE>2607486</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:04 2011</INSTALLDATE>
+      <NAME>tar.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.23-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A program used for creating device files in /dev</COMMENTS>
+      <FILESIZE>227290</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:05 2011</INSTALLDATE>
+      <NAME>MAKEDEV.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.24-6.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Basic networking tools</COMMENTS>
+      <FILESIZE>777741</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:07 2011</INSTALLDATE>
+      <NAME>net-tools.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.60-102.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Ext2/3/4 filesystem-specific shared libraries</COMMENTS>
+      <FILESIZE>261985</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:07 2011</INSTALLDATE>
+      <NAME>e2fsprogs-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.41.12-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A GNU collection of diff utilities</COMMENTS>
+      <FILESIZE>588813</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:07 2011</INSTALLDATE>
+      <NAME>diffutils.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.8.1-28.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU macro processor</COMMENTS>
+      <FILESIZE>560949</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:08 2011</INSTALLDATE>
+      <NAME>m4.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.4.13-5.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Library providing XML and HTML support</COMMENTS>
+      <FILESIZE>1771867</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:08 2011</INSTALLDATE>
+      <NAME>libxml2.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.7.6-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Libraries for coreutils</COMMENTS>
+      <FILESIZE>5576</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:09 2011</INSTALLDATE>
+      <NAME>coreutils-libs.x86_64</NAME>
+      <PUBLISHER>(none)</PUBLISHER>
+      <VERSION>8.4-9.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A set of basic GNU tools commonly used in shell scripts</COMMENTS>
+      <FILESIZE>12841700</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:13 2011</INSTALLDATE>
+      <NAME>coreutils.x86_64</NAME>
+      <PUBLISHER>(none)</PUBLISHER>
+      <VERSION>8.4-9.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Kernel module management utilities.</COMMENTS>
+      <FILESIZE>1145175</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:13 2011</INSTALLDATE>
+      <NAME>module-init-tools.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.9-17.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Network Security Services</COMMENTS>
+      <FILESIZE>2454432</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:14 2011</INSTALLDATE>
+      <NAME>nss.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.12.7-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>System and process monitoring utilities</COMMENTS>
+      <FILESIZE>465667</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:14 2011</INSTALLDATE>
+      <NAME>procps.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.2.8-14.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Ethernet settings tool for PCI ethernet cards</COMMENTS>
+      <FILESIZE>203259</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:14 2011</INSTALLDATE>
+      <NAME>ethtool.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.6.33-0.3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Key utilities library</COMMENTS>
+      <FILESIZE>34416</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:14 2011</INSTALLDATE>
+      <NAME>keyutils-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.4-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A library implementing the SSH2 protocol</COMMENTS>
+      <FILESIZE>190698</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:15 2011</INSTALLDATE>
+      <NAME>libssh2.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.2.2-7.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A utility for getting files from remote servers (FTP, HTTP, and others)</COMMENTS>
+      <FILESIZE>354831</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:15 2011</INSTALLDATE>
+      <NAME>curl.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>7.19.7-16.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The RPM package management system</COMMENTS>
+      <FILESIZE>2030967</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:15 2011</INSTALLDATE>
+      <NAME>rpm.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.8.0-12.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>GnuPG Made Easy - high level crypto API</COMMENTS>
+      <FILESIZE>729658</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:16 2011</INSTALLDATE>
+      <NAME>gpgme.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.1.8-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A library for integrity verification of FIPS validated modules</COMMENTS>
+      <FILESIZE>27651</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:17 2011</INSTALLDATE>
+      <NAME>fipscheck.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.2.0-4.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>SELinux binary policy manipulation library</COMMENTS>
+      <FILESIZE>205574</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:17 2011</INSTALLDATE>
+      <NAME>libsemanage.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.0.43-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A portable foreign function interface library</COMMENTS>
+      <FILESIZE>42881</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:17 2011</INSTALLDATE>
+      <NAME>libffi.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.0.5-3.2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Python module for working with OpenPGP messages</COMMENTS>
+      <FILESIZE>251432</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:22 2011</INSTALLDATE>
+      <NAME>pygpgme.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.1-18.20090824bzr68.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The shared library for the S-Lang extension language</COMMENTS>
+      <FILESIZE>1800725</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:22 2011</INSTALLDATE>
+      <NAME>slang.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.2.1-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Python bindings for newt</COMMENTS>
+      <FILESIZE>110183</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:22 2011</INSTALLDATE>
+      <NAME>newt-python.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.52.11-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>CentOS-related icons and pictures</COMMENTS>
+      <FILESIZE>11591453</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:25 2011</INSTALLDATE>
+      <NAME>redhat-logos.noarch</NAME>
+      <PUBLISHER>(none)</PUBLISHER>
+      <VERSION>60.0.14-10.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A high-level cross-protocol url-grabber</COMMENTS>
+      <FILESIZE>321743</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:25 2011</INSTALLDATE>
+      <NAME>python-urlgrabber.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.9.1-7.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Yum plugin which chooses fastest repository from a mirrorlist</COMMENTS>
+      <FILESIZE>34264</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:25 2011</INSTALLDATE>
+      <NAME>yum-plugin-fastestmirror.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.1.26-11.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Hardware identification and configuration data</COMMENTS>
+      <FILESIZE>3751919</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:26 2011</INSTALLDATE>
+      <NAME>hwdata.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.233-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>CentOS Linux release file</COMMENTS>
+      <FILESIZE>28948</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:26 2011</INSTALLDATE>
+      <NAME>centos-release.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>6-0.el6.centos.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A userspace implementation of devfs</COMMENTS>
+      <FILESIZE>1235649</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:39 2011</INSTALLDATE>
+      <NAME>udev.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>147-2.29.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Tools for configuring the console (keyboard, virtual terminals, etc.)</COMMENTS>
+      <FILESIZE>991792</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:40 2011</INSTALLDATE>
+      <NAME>kbd.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.15-11.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Cron daemon for executing programs at set times</COMMENTS>
+      <FILESIZE>170174</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:48 2011</INSTALLDATE>
+      <NAME>cronie.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.4.4-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An utility for setting or changing passwords using PAM</COMMENTS>
+      <FILESIZE>352186</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:53 2011</INSTALLDATE>
+      <NAME>passwd.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.77-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>EFI Boot Manager</COMMENTS>
+      <FILESIZE>72598</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:55 2011</INSTALLDATE>
+      <NAME>efibootmgr.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.5.4-8.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Utilities for managing ext2, ext3, and ext4 filesystems</COMMENTS>
+      <FILESIZE>1986723</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:55 2011</INSTALLDATE>
+      <NAME>e2fsprogs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.41.12-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Utilities for managing filesystem extended attributes</COMMENTS>
+      <FILESIZE>137847</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:55 2011</INSTALLDATE>
+      <NAME>attr.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.4.44-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Graphical Boot Animation and Logger</COMMENTS>
+      <FILESIZE>191172</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:52:55 2011</INSTALLDATE>
+      <NAME>plymouth.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.8.3-17.el6.centos</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Intel® Wireless 5150 A/G/N network adaptors</COMMENTS>
+      <FILESIZE>344430</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:50 2011</INSTALLDATE>
+      <NAME>iwl5150-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>8.24.2.2-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Open firmware for some Broadcom 43xx series WLAN chips</COMMENTS>
+      <FILESIZE>31549</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:50 2011</INSTALLDATE>
+      <NAME>b43-openfwwf.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.2-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Adaptec SAS 44300, 48300, 58300 Sequencer Firmware for AIC94xx driver</COMMENTS>
+      <FILESIZE>30752</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:50 2011</INSTALLDATE>
+      <NAME>aic94xx-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>30-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Intel® PRO/Wireless 5000 A/G/N network adaptors</COMMENTS>
+      <FILESIZE>705300</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:51 2011</INSTALLDATE>
+      <NAME>iwl5000-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>8.24.2.12-3.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The basic required files for the root user's directory</COMMENTS>
+      <FILESIZE>599</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:51 2011</INSTALLDATE>
+      <NAME>rootfiles.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>8.1-6.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Atmel at76c50x wireless network chips</COMMENTS>
+      <FILESIZE>728154</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:51 2011</INSTALLDATE>
+      <NAME>atmel-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.3-7.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Intel® PRO/Wireless 1000 B/G/N network adaptors</COMMENTS>
+      <FILESIZE>342083</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:51 2011</INSTALLDATE>
+      <NAME>iwl1000-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>128.50.3.1-1.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for qlogic 2200 devices</COMMENTS>
+      <FILESIZE>86403</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:52 2011</INSTALLDATE>
+      <NAME>ql2200-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.02.08-3.1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Ralink® RT2571W/RT2671 A/B/G network adaptors</COMMENTS>
+      <FILESIZE>4151</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:52 2011</INSTALLDATE>
+      <NAME>rt73usb-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.8-7.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for qlogic 2500 devices</COMMENTS>
+      <FILESIZE>240729</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:52 2011</INSTALLDATE>
+      <NAME>ql2500-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.03.02-2.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Intel® PRO/Wireless 2100 network adaptors</COMMENTS>
+      <FILESIZE>618666</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:52 2011</INSTALLDATE>
+      <NAME>ipw2100-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.3-11.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Firmware for Intel® PRO/Wireless 2200 network adaptors</COMMENTS>
+      <FILESIZE>576425</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:53:52 2011</INSTALLDATE>
+      <NAME>ipw2200-firmware.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.1-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>gpg(CentOS-6 Key (CentOS 6 Official Signing Key) &lt;centos-6-key@centos.org&gt;)</COMMENTS>
+      <FILESIZE>0</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 09:58:59 2011</INSTALLDATE>
+      <NAME>gpg-pubkey.(none)</NAME>
+      <PUBLISHER>(none)</PUBLISHER>
+      <VERSION>c105b9de-4e0fd3a3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Timezone data</COMMENTS>
+      <FILESIZE>1882660</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:02:08 2011</INSTALLDATE>
+      <NAME>tzdata.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2011g-1.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The GNU libc libraries</COMMENTS>
+      <FILESIZE>12619595</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:02:33 2011</INSTALLDATE>
+      <NAME>glibc.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.12-1.7.el6_0.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The shared libraries used by Kerberos 5</COMMENTS>
+      <FILESIZE>1898387</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:02:41 2011</INSTALLDATE>
+      <NAME>krb5-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.8.2-3.el6_0.7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>LDAP support libraries</COMMENTS>
+      <FILESIZE>696888</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:02:47 2011</INSTALLDATE>
+      <NAME>openldap.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.4.19-15.el6_0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The libraries for python runtime</COMMENTS>
+      <FILESIZE>1818847</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:02:52 2011</INSTALLDATE>
+      <NAME>python-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.6.5-3.el6_0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A file compression utility</COMMENTS>
+      <FILESIZE>79087</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:11 2011</INSTALLDATE>
+      <NAME>bzip2.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.0.5-7.el6_0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A password-checking library</COMMENTS>
+      <FILESIZE>187265</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:16 2011</INSTALLDATE>
+      <NAME>cracklib.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.8.16-4.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Block device ID library</COMMENTS>
+      <FILESIZE>136104</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:22 2011</INSTALLDATE>
+      <NAME>libblkid.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.17.2-6.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The shared libraries required for MySQL clients</COMMENTS>
+      <FILESIZE>4236020</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:31 2011</INSTALLDATE>
+      <NAME>mysql-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.1.52-1.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An alternate posix capabilities library</COMMENTS>
+      <FILESIZE>45214</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:43 2011</INSTALLDATE>
+      <NAME>libcap-ng.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.6.4-3.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Network Security Services Softoken Module</COMMENTS>
+      <FILESIZE>431588</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:52 2011</INSTALLDATE>
+      <NAME>nss-softokn.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.12.8-1.el6_0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Rotates, compresses, removes and mails system log files</COMMENTS>
+      <FILESIZE>83285</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:55 2011</INSTALLDATE>
+      <NAME>logrotate.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.7.8-12.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A minimal version of the VIM editor</COMMENTS>
+      <FILESIZE>767842</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:03:57 2011</INSTALLDATE>
+      <NAME>vim-minimal.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>7.2.411-1.6.el6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An extensible library which provides authentication for applications</COMMENTS>
+      <FILESIZE>2241000</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:05 2011</INSTALLDATE>
+      <NAME>pam.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.1.1-4.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>The inittab file and the /etc/init.d scripts</COMMENTS>
+      <FILESIZE>5707736</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:10 2011</INSTALLDATE>
+      <NAME>initscripts.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>9.03.17-1.el6_0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Device-mapper shared library</COMMENTS>
+      <FILESIZE>152200</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:13 2011</INSTALLDATE>
+      <NAME>device-mapper-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.02.53-8.el6_0.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Device-mapper event daemon shared library</COMMENTS>
+      <FILESIZE>19280</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:15 2011</INSTALLDATE>
+      <NAME>device-mapper-event-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>1.02.53-8.el6_0.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Shared libraries for lvm2</COMMENTS>
+      <FILESIZE>1290640</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:16 2011</INSTALLDATE>
+      <NAME>lvm2-libs.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.02.72-8.el6_0.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>An open source SSH server daemon</COMMENTS>
+      <FILESIZE>599193</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:17 2011</INSTALLDATE>
+      <NAME>openssh-server.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>5.3p1-20.el6_0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Provides the dhclient ISC DHCP client daemon and dhclient-script</COMMENTS>
+      <FILESIZE>640621</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:20 2011</INSTALLDATE>
+      <NAME>dhclient.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>4.1.1-12.P1.el6_0.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Postfix Mail Transport Agent</COMMENTS>
+      <FILESIZE>10157192</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:23 2011</INSTALLDATE>
+      <NAME>postfix.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>2.6.6-2.1.el6_0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>SELinux policy configuration</COMMENTS>
+      <FILESIZE>7706816</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:28 2011</INSTALLDATE>
+      <NAME>selinux-policy.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.7.19-54.el6_0.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>Metapackage to build generic initramfs with dracut with only kernel modules</COMMENTS>
+      <FILESIZE>202</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:31 2011</INSTALLDATE>
+      <NAME>dracut-kernel.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>004-33.2.el6_0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>SELinux targeted base policy</COMMENTS>
+      <FILESIZE>2777371</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 10:04:42 2011</INSTALLDATE>
+      <NAME>selinux-policy-targeted.noarch</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>3.7.19-54.el6_0.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <COMMENTS>A tool for determining compilation options</COMMENTS>
+      <FILESIZE>140091</FILESIZE>
+      <FROM>rpm</FROM>
+      <INSTALLDATE>Tue Jul 19 11:48:05 2011</INSTALLDATE>
+      <NAME>pkgconfig.x86_64</NAME>
+      <PUBLISHER>CentOS</PUBLISHER>
+      <VERSION>0.23-9.1.el6</VERSION>
+    </SOFTWARES>
+    <USERS>
+      <LOGIN>root</LOGIN>
+    </USERS>
+    <VERSIONCLIENT>FusionInventory-Agent_v2.1.9</VERSIONCLIENT>
+    <VIDEOS></VIDEOS>
+    <VOLUME_GROUPS>
+      <ATTR>wz--n-</ATTR>
+      <FREE>0</FREE>
+      <LV_COUNT>2</LV_COUNT>
+      <PV_COUNT>1</PV_COUNT>
+      <SIZE>12356</SIZE>
+      <VG_EXTENT_SIZE>4.19</VG_EXTENT_SIZE>
+      <VG_NAME>VolGroup</VG_NAME>
+      <VG_UUID>epvVOB-HUbG-lg0m-sZgC-k5Bj-Yol1-XfLI9T</VG_UUID>
+    </VOLUME_GROUPS>
+  </CONTENT>
+  <DEVICEID>centos-6-64-2011-09-22-12-02-27</DEVICEID>
+<UUID>06da3556-5204-4bd7-b3b0-fa5e7bcfbbea</UUID>
+<USER>root</USER>
+<AGENTSNAME>
+<AGENTNAME>Community</AGENTNAME>
+</AGENTSNAME>
+<MACHINEID>44799357-3DB8-5A9F-F366-AED334E6DA2B</MACHINEID>
+<CFKEY>-----BEGIN RSA PUBLIC KEY-----
+MIIBCAKCAQEAo4OL4A4zbwImvkwKnXQG2ooNWKYLZD9NjWcljBusaEE118xbDlm/
+9Rs0k74fKk7Stn9XZTqCwQqt0r2qeTcmA7sHa+5Ib0debHP5U1suGMjhQBPION8Z
+RTuLwbfYRQQeikZfT0PaSaVTjRmTuIyUMToLM8DG9pZtpjmAz3EvjE8LK1EgZW55
+t7LfeBKJm0mggRU4UQ3Y62Zlq7mTIJFMGRCGjt3KQE1a7l/htwU+wpk44v4PSCxC
+DeIy00VgEM3MPc34/w2deSsXGOFQ1bYFympRj9Cc1jg/NPysxpKmdLuu8QpiPuCg
+WvAyxyhu3yHZEQk5U3BGa7Y65KjJt/IGFwIBIw==
+-----END RSA PUBLIC KEY-----</CFKEY>
+<POLICIES>InitPolicies</POLICIES>
+<HOSTNAME>centos-6-64</HOSTNAME>
+<PROCESSORS>
+	<PROCESSOR>
+		<VENDOR>GenuineIntel</VENDOR>
+		<FAMILY>6</FAMILY>
+		<MODEL>2</MODEL>
+		<NAME>QEMU Virtual CPU version 0.12.5</NAME>
+		<STEPPING>3</STEPPING>
+		<FREQUENCY>2832.560</FREQUENCY>
+	</PROCESSOR>
+</PROCESSORS>
+<POLICY_SERVER>root</POLICY_SERVER>
+
+  <QUERY>INVENTORY</QUERY>
+</REQUEST>
