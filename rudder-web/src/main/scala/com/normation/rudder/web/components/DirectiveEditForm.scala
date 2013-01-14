@@ -261,6 +261,11 @@ class DirectiveEditForm(
          val status = piCurrentStatusIsActivated ? "Disable" | "Enable"
          SHtml.ajaxSubmit(   status, () => createPopup("disableActionDialog",100,850))
        } &
+       "#clone" #> SHtml.ajaxButton(
+            { Text("Clone") },
+            { () =>  clone() },
+            ("class", "autoWidthButton twoColumns twoColumnsRight"),("type", "button")
+       ) &
        //form and form fields
       "#techniqueName" #> 
         <a href={ "/secure/configurationManager/techniqueLibraryManagement/" + 
@@ -278,11 +283,6 @@ class DirectiveEditForm(
       } } &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> htmlId_save) } &
-      "#clone" #> SHtml.ajaxButton( 
-            { Text("Clone") },
-            { () =>  clone() },
-            ("class", "autoWidthButton"),("type", "button")
-          ) &
       "#notifications *" #> updateAndDisplayNotifications(formTracker) &
       "#isSingle *" #> showIsSingle// &
       //"#editForm [id]" #> htmlId_policyConf
@@ -645,17 +645,11 @@ class DirectiveEditForm(
     
   private[this] def newCreationPopup(
     technique:Technique, activeTechnique:ActiveTechnique) : NodeSeq = {
-    
-    val callBackSuccess = { (directive : Directive) =>
-          updateCf3PolicyDraftInstanceSettingFormComponent(
-              technique, activeTechnique, directive, true)
-          Replace(htmlId_policyConf, showDirectiveDetails) &
-          JsRaw("""scrollToElement('%s')""".format(htmlId_policyConf))}
-    
+
     val popup = new CreateCloneDirectivePopup(
       technique.name, technique.description, 
       technique.id.version, directive,
-      onSuccessCallback = { callBackSuccess })
+      onSuccessCallback =  onSuccessCallback)
     
     popup.popupContent
   }
