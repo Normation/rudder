@@ -59,11 +59,11 @@ import com.normation.utils.HashcodeCaching
  * were "..." is the parameter to lookup.
  * 
  * We handle 2 kinds of parameterizations:
- * 1/ ${CONFIG_RULE_ID.ACCESSOR}
+ * 1/ ${rudder.CONFIG_RULE_ID.ACCESSOR}
  *    where:
  *    - CONFIG_RULE_ID is a valid id of a rule in the system
  *    - ACCESSOR is an accessor for that rule, explained below.
- * 2/ ${node.ACCESSOR}
+ * 2/ ${rudder.node.ACCESSOR}
  *    where: 
  *    - "node" is a keyword ;
  *    - ACCESSOR is an accessor for that node, explained below.
@@ -73,17 +73,17 @@ import com.normation.utils.HashcodeCaching
  *
  * Accessors for node
  * ------------------
- *   ${node.id} : internal ID of the node (generally an UUID)
- *   ${node.hostname} : hostname of the node
- *   ${node.admin} : login (or username) of the node administrator, or root, or at least 
+ *   ${rudder.node.id} : internal ID of the node (generally an UUID)
+ *   ${rudder.node.hostname} : hostname of the node
+ *   ${rudder.node.admin} : login (or username) of the node administrator, or root, or at least 
  *                   the login to use to run the agent
- *   ${node.policyserver.ACCESSOR} : information about the policyserver of the node.
- *                                    ACCESSORs are the same than for ${node}
+ *   ${rudder.node.policyserver.ACCESSOR} : information about the policyserver of the node.
+ *                                    ACCESSORs are the same than for ${rudder.node}
  * 
  * Accessors for rule
  * --------------------------------
  * Accessor for rule are of two forms:
- * - ${CONFIG_RULE_ID.VAR_NAME}
+ * - ${rudder.CONFIG_RULE_ID.VAR_NAME}
  *   where VAR_NAME is the name of a variable of the technique implemented
  *   by the directive referenced by the given rule ;
  *   The following constraint are applied on a VAR_NAME accessor:
@@ -95,7 +95,7 @@ import com.normation.utils.HashcodeCaching
  *     on the target **BUT** if other members of the group don't have the same
  *     cardinality than the result of the lookup, you will have problems. 
  *   
- * - ${CONFIG_RULE_ID.target.ACCESSOR}
+ * - ${rudder.CONFIG_RULE_ID.target.ACCESSOR}
  *   - where "target" is an accessor which change the context of following
  *     accessors to the target of the rule (group, etc)
  *     Target Accessor are the same as node accessors, but are multivalued.
@@ -112,7 +112,7 @@ import com.normation.utils.HashcodeCaching
 trait ParameterizedValueLookupService {
 
   /**
-   * Replace all parameterization of the form ${node.XXX} 
+   * Replace all parameterization of the form ${rudder.node.XXX} 
    * by their values
    * 
    * We are in the context of a node, given by the id.
@@ -123,7 +123,7 @@ trait ParameterizedValueLookupService {
 
   /**
    * Replace all parameterization of the form
-   * ${CONFGIGURATION_RULE_ID.XXX} by their values
+   * ${rudder.CONFIGURATION_RULE_ID.XXX} by their values
    * 
    * TODO: handle cache !!
    * 
@@ -151,25 +151,25 @@ trait ParameterizedValueLookupService {
 
   abstract class NodePsParametrization extends Parametrization 
   object NodePsParametrization {
-    def r = """\$\{node\.policyserver\..*\}""".r
+    def r = """\$\{rudder\.node\.policyserver\..*\}""".r
   }
   case object ParamNodeId extends NodeParametrization {
-    def r = """\$\{node\.id\}""".r
+    def r = """\$\{rudder\.node\.id\}""".r
   }
   case object ParamNodeHostname extends NodeParametrization {
-    def r = """\$\{node\.hostname\}""".r
+    def r = """\$\{rudder\.node\.hostname\}""".r
   }
   case object ParamNodeAdmin extends NodeParametrization {
-    def r = """\$\{node\.admin\}""".r
+    def r = """\$\{rudder\.node\.admin\}""".r
   }
   case object ParamNodePsId extends NodeParametrization {
-    def r = """\$\{node\.policyserver\.id\}""".r
+    def r = """\$\{rudder\.node\.policyserver\.id\}""".r
   }
   case object ParamNodePsHostname extends NodeParametrization {
-    def r = """\$\{node\.policyserver\.hostname\}""".r
+    def r = """\$\{rudder\.node\.policyserver\.hostname\}""".r
   }
   case object ParamNodePsAdmin extends NodeParametrization {
-    def r = """\$\{node\.policyserver\.admin\}""".r
+    def r = """\$\{rudder\.node\.policyserver\.admin\}""".r
   }
   
   case object NodeParam extends NodeParametrization
@@ -180,17 +180,17 @@ trait ParameterizedValueLookupService {
   case class CrVarParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching 
   case class CrTargetParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching 
   object CrTargetParametrization {
-    def r = """\$\{([\-_a-zA-Z0-9]+)\.target\.([\-_a-zA-Z0-9]+)\}""".r
+    def r = """\$\{rudder\.([\-_a-zA-Z0-9]+)\.target\.([\-_a-zA-Z0-9]+)\}""".r
   }
 
   
 
   object Parametrization {
-    def r = """\$\{(.*)\}""".r
+    def r = """\$\{rudder\.(.*)\}""".r
   }  
   
   object CrParametrization {
-    def r = """\$\{([\-_a-zA-Z0-9]+)\.([\-_a-zA-Z0-9]+)\}""".r
+    def r = """\$\{rudder\.([\-_a-zA-Z0-9]+)\.([\-_a-zA-Z0-9]+)\}""".r
     
     def unapply(value:String) : Option[Parametrization] = {
         //start by the most specific and go up
@@ -205,7 +205,7 @@ trait ParameterizedValueLookupService {
   }
   
   object NodeParametrization {
-    def r = """\$\{node\..*\}""".r
+    def r = """\$\{rudder\.node\..*\}""".r
     
     def unapply(value:String) : Option[Parametrization] = {
         //start by the most specific and go up
@@ -399,7 +399,7 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
   }
   
   private[this] def containsParameterizedValue(values:Seq[String]) : Boolean = {
-    val regex = """\$\{*\}""".r
+    val regex = """\$\{rudder\.*\}""".r
     values.foreach { 
       case regex() => return true
       case _ => //continue
