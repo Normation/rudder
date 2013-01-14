@@ -190,10 +190,22 @@ class LDAPDirectiveRepository(
                         }
                      }
       // We have to keep the old rootSection to generate the event log
-      oldDirective       <- getDirective(directive.id)
-      oldActiveTechnique <- getActiveTechnique(directive.id)
-      oldTechniqueId     =  TechniqueId(oldActiveTechnique.techniqueName,oldDirective.techniqueVersion)
-      oldRootSection     =  techniqueRepository.get(oldTechniqueId).map(_.rootSection)
+      oldRootSection     =  {
+        getDirective(directive.id) match {
+          case Full(oldDirective) => getActiveTechnique(directive.id) match {
+            case Full(oldActiveTechnique) =>
+              val oldTechniqueId     =  TechniqueId(oldActiveTechnique.techniqueName,oldDirective.techniqueVersion)
+              techniqueRepository.get(oldTechniqueId).map(_.rootSection)
+            case eb:EmptyBox =>
+              // Directory did not exist before, this is a Rule addition. but this should not happen So reporting an error
+              logger.error("The rule did not existe before")
+              None
+          }
+          case eb:EmptyBox =>
+            // Directory did not exist before, this is a Rule addition.
+            None
+        }
+      }
       nameIsAvailable    <- if (directiveNameExists(con, directive.name, directive.id))
                               Failure("Cannot set directive with name \"%s\" : this name is already in use.".format(directive.name))
                             else
