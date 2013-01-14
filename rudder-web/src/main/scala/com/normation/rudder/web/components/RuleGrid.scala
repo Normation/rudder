@@ -197,7 +197,7 @@ class RuleGrid(
     case class ErrorLine(
         rule:Rule,
         trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]],
-        targets:Set[RuleTargetInfo]
+        targets:Box[Set[RuleTargetInfo]]
     ) extends Line with HashcodeCaching 
        
     sealed trait ApplicationStatus
@@ -445,18 +445,18 @@ class RuleGrid(
           }
         }
      
-      val targetsInfo = rule.targets
-        .map(target => targetInfoService.getTargetInfo(target))
-        .flatMap(x => x)
+      val targetsInfo = sequence(rule.targets.toSeq) { target =>
+        targetInfoService.getTargetInfo(target)
+      }.map(x => x.toSet)
       
       (trackerVariables, targetsInfo) match {
-        case (Full(seq), targetsInfo) => 
-          val compliance = isApplied(rule, seq, targetsInfo) match {
+        case (Full(seq), Full(targets)) => 
+          val compliance = isApplied(rule, seq, targets) match {
             case _:NotAppliedStatus => None
             case _ =>  computeCompliance(rule)
           }
           
-          OKLine(rule, compliance, seq, targetsInfo)
+          OKLine(rule, compliance, seq, targets)
         case (x,y) =>
           //the Rule has some error, try to disactivate it
           ruleRepository.update(rule.copy(isEnabledStatus=false), RudderEventActor, 
@@ -515,7 +515,7 @@ class RuleGrid(
           <td style="text-align:right;">{ //  COMPLIANCE
             buildComplianceChart(line.compliance, line.rule, linkCompliancePopup)
           }</td>
-          <td class="complianceTd">{ //  COMPLIANCE
+          <td class="complianceTd">{ //  DETAIL
               detailsCallbackLink match {
       case None => Text("No details")
       case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { 
@@ -544,24 +544,36 @@ class RuleGrid(
           <td>{ // NAME 
             if(popup) <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a> else detailsLink(line.rule, line.rule.name)
           }</td>
-          <td>{ // DESCRIPTION
-            detailsLink(line.rule, line.rule.shortDescription)
-          }</td>
           <td>{ // OWN STATUS
             "N/A"
           }</td>
-          <td>{ // EFFECTIVE STATUS
-            "N/A"
-          }</td>
-          <td style="text-align:right;">{ //  COMPLIANCE
+          <td>{ // DEPLOYMENT STATUS
             "N/A"
           }</td>
           <td>{ //  Directive: <not defined> or PIName [(disabled)]
             line.trackerVariables.map(displayPis(popup,_)).getOrElse("ERROR")
            }</td>
           <td>{ //  TARGET NODE GROUP
-            // TODO line.targets.map(displayTarget(_)).getOrElse("ERROR")
+            line.targets.map(displayTargets(_)).getOrElse("ERROR")
           }</td>
+          <td style="text-align:right;">{ //  COMPLIANCE
+            "N/A"
+          }</td>
+          <td class="complianceTd">{ //  DETAIL
+              detailsCallbackLink match {
+      case None => Text("No details")
+      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { 
+                      () =>  callback(line.rule,"showForm")
+                    }, ("class", "smallButton")) }
+          }</td>
+          <td class="parametersTd">{ 
+              detailsCallbackLink match {
+      case None => Text("No parameters")
+      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icTools.jpg"/>, { 
+                      () =>  callback(line.rule,"showEditForm")
+                    }, ("class", "smallButton")) }
+          }</td>
+
           { // CHECKBOX 
             if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty 
           }
