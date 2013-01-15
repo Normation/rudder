@@ -164,15 +164,15 @@ techniqueVersion: 0:1.0
 isEnabled: TRUE
 isSystem: TRUE
 directivePriority: 0
-directiveVariable: OWNER[0]:${node.admin}
-directiveVariable: UUID[0]:${node.id}
+directiveVariable: OWNER[0]:${rudder.node.admin}
+directiveVariable: UUID[0]:${rudder.node.id}
 directiveVariable: POLICYSERVER[0]:%%POLICY_SERVER_HOSTNAME%%
 directiveVariable: POLICYSERVER_ID[0]:root
 directiveVariable: POLICYSERVER_ADMIN[0]:root
 directiveVariable: ALLOWEDNETWORK[0]:%%POLICY_SERVER_ALLOWED_NETWORKS%%
-directiveVariable: POLICYCHILDREN[0]:${hasPolicyServer-root.target.hostname}
-directiveVariable: ADMIN[0]:${hasPolicyServer-root.target.admin}
-directiveVariable: CHILDRENID[0]:${hasPolicyServer-root.target.id}
+directiveVariable: POLICYCHILDREN[0]:${rudder.hasPolicyServer-root.target.hostname}
+directiveVariable: ADMIN[0]:${rudder.hasPolicyServer-root.target.admin}
+directiveVariable: CHILDRENID[0]:${rudder.hasPolicyServer-root.target.id}
 
 
 #######################################################################################################################
