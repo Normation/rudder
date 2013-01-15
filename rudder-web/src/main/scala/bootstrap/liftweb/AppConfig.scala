@@ -981,6 +981,7 @@ class AppConfig extends Loggable {
       , ldapEntityMapper
       , ldapNodeGroupRepository
       , nodeConfigurationService
+      , nodeInfoService
       , ldapFullInventoryRepository
       , logRepository
       , nodeReadWriteMutex)
