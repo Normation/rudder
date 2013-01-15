@@ -62,6 +62,7 @@ import com.normation.rudder.domain.queries.DitQueryData
 import com.normation.rudder.domain.queries.And
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.rudder.domain.queries.CriterionLine
+import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 
 /**
  * Create a group or a category
@@ -90,7 +91,7 @@ class CreateCategoryOrGroupPopup(
   private[this] val nodeGroupRepository = inject[NodeGroupRepository]
 	private[this] val groupCategoryRepository = inject[GroupCategoryRepository]
   private[this] val nodeInfoService = inject[NodeInfoService]
-  private[this] val categories = groupCategoryRepository.getCategoryHierarchy
+  private[this] val categoryHierarchyDisplayer = inject[CategoryHierarchyDisplayer]
   private[this] val uuidGen = inject[StringUuidGenerator]
   
   var createContainer = false //issue #1190 always create a group by default
@@ -167,7 +168,7 @@ class CreateCategoryOrGroupPopup(
   }
 
   private[this] val piContainer = new WBSelectField("Parent category: ",
-			(categories.map { case (id, name) => (id.value -> name)}),
+			(categoryHierarchyDisplayer.getCategoriesHierarchy().map { case (id, name) => (id.value -> name)}),
 			"") {
     override def className = "twoCol"
   }

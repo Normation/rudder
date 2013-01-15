@@ -38,6 +38,20 @@ import com.normation.rudder.domain.nodes._
 import net.liftweb.common._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.PolicyInstanceTarget
+import scala.collection.immutable.SortedMap
+import com.normation.utils.Utils
+
+/**
+ * Here is the ordering for a List[NodeGroupCategoryId]
+ * MUST start by the root !
+ */
+object GroupCategoryRepositoryOrdering extends Ordering[List[NodeGroupCategoryId]] {
+  type ID = NodeGroupCategoryId
+  override def compare(x:List[ID],y:List[ID]) = {
+    Utils.recTreeStringOrderingCompare(x.map( _.value ), y.map( _.value ))
+
+  }
+}
 
 trait GroupCategoryRepository {
 
@@ -47,15 +61,18 @@ trait GroupCategoryRepository {
   def getRootCategory() : NodeGroupCategory
 
   /**
-   * Get the category hierarchy
-   * Returns a Seq of NodeGroupCategoryId, String
-   * The String are in the form
-   * Root of the group and group categories
-   * └─Server roles
-   *   └─Server role child
-   * The Seq if ordered by Category name name at each level
+   * Get all pairs of (categoryid, category)
+   * in a map in which keys are the parent category of the
+   * the template. The map is sorted by categories:
+   * SortedMap {
+   *   "/"           -> [root]
+   *   "/cat1"       -> [cat1_details]
+   *   "/cat1/cat11" -> [/cat1/cat11]
+   *   "/cat2"       -> [/cat2_details]
+   *   ... 
    */
-  def getCategoryHierarchy() : Seq[(NodeGroupCategoryId, String)]
+  def getCategoryHierarchy(includeSystem:Boolean = false) : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] 
+
   
   /**
    * retrieve the hierarchy of group category/group containing the selected node
