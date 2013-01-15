@@ -302,19 +302,6 @@ class LDAPGroupCategoryRepository(
   }
   
   /**
-   * Get the category hierarchy
-   * Returns a Seq of NodeGroupCategoryId, String
-   * The String are in the form
-   * Root of the group and group categories
-   * └─Server roles
-   *   └─Server role child
-   * The Seq if ordered by Category name name at each level
-   */
-  def getCategoryHierarchy() : Seq[(NodeGroupCategoryId, String)] = {
-    computeHierarchy(getRootCategory(), 0)    
-  }
-
-  /**
    * Get all pairs of (categoryid, category)
    * in a map in which keys are the parent category of the
    * the template. The map is sorted by categories:
@@ -341,37 +328,6 @@ class LDAPGroupCategoryRepository(
       implicit val ordering = GroupCategoryRepositoryOrdering
       SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]() ++ catsWithUPs
     }
-  }
-   
-  /**
-   * Get a the hierarchy of categories, from a starting point and a level
-   * The level is the depth in the hierarchy
-   */
-  private[this] def computeHierarchy(
-        nodeGroupCategory : NodeGroupCategory
-      , level : Int
-      ) : Seq[(NodeGroupCategoryId, String)]= {
-    // Make the current Category line
-    val current = level match {
-      case 0 => (nodeGroupCategory.id, nodeGroupCategory.name)
-      case 1 => (nodeGroupCategory.id, "\u2514"+"\u2500" + nodeGroupCategory.name)
-      case level =>  (nodeGroupCategory.id, ("\u00a0\u00a0\u00a0\u00a0\u00a0"*(level-1) + "\u2514"+"\u2500" + nodeGroupCategory.name))
-    }
-    
-    // Make the lines for all sub-category
-    val children = nodeGroupCategory.children.
-        flatMap(x => getGroupCategory(x)).
-        filter(! _.isSystem).
-        sortBy(x => x.name)
-    
-    val childrenCategories = 
-      for {
-        child <- children
-        entries <- computeHierarchy(child, level+1)
-      } yield {
-        entries
-      }
-    current +: (childrenCategories.toSeq)  
   }
   
   /**
