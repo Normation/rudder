@@ -936,7 +936,7 @@ table.searchNodes tbody td.last {
 fieldset.searchNodes {
   padding:5px;
   margin:5px;
-  width: 555px;
+  width: 545px;
   clear: both;
 }
 
@@ -1026,11 +1026,6 @@ table#serverGrid tbody td {
 
 .dataTables_scrollBody table {
   margin:0px;
-}
-
-.serverGrid_pagination {
-  width: 545px;
-  margin:10px 0 0 5px;
 }
 
 #serverGrid_paginate_area {
@@ -1154,7 +1149,7 @@ a:focus {
 structure
 **************************************/
 .subContainerReasonField {
-    width: 99%;    
+    padding: 0 4px 0 4px;    
 }
 
 div#prelude {
@@ -2059,7 +2054,7 @@ hr.spacer {
 .threeCol {
     float:left;
     width:30%; 
-    margin-right: 2px;
+    margin-right: 4px;
 }
 
 .threeColReason {
