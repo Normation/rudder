@@ -1135,6 +1135,13 @@ body {
    font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
    background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
 }
+
+html, body {
+   margin:0;
+   padding:0;
+   height:100%;
+}
+
 img {
    border: none;
 }
@@ -1155,7 +1162,15 @@ div#prelude {
 }
 div#container {
    background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
+/*       padding:10px; */
+   padding-bottom:40px;   /* Height of the footer */
 }
+
+#bodyContainer {
+  min-height:100%;
+  position:relative;
+}
+
 div#contenuInfos {
    overflow: hidden;
    Background-color: #2E2D2D;
@@ -1990,18 +2005,21 @@ footer - bas de page
 **************************************/
 
 div#footer {
-   padding: 5px 5px 5px 30px;
-   height: 30px;
+   padding: 0px 5px 0px 30px;
+   height: 40px;
    color: #999;
    font-size: 1.3em;
    background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
+   position:absolute;
+   bottom:0;
+   width:100%;
 }
 #footer a {
    color: #999;
 }
 
 #footer p {
-    padding-top: 2px
+    padding-top: 11px
 }
 /**************************************
 classes annexes
