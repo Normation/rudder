@@ -270,17 +270,11 @@ class ConfigurationRuleEditForm(
   private[this] def removeButton : Elem = {
     def removeCr() : JsCmd = {
       JsRaw("$.modal.close();") & 
-      { 
-        (for {
-          save <- configurationRuleRepository.delete(configurationRule.id, CurrentUser.getActor)
-          deploy <- {
+      {
+        configurationRuleRepository.delete(configurationRule.id, CurrentUser.getActor) match {
+          case Full(x) =>
+            // There is a delete diff, deploy
             asyncDeploymentAgent ! StartDeployment(RudderEventActor)
-            Full("Deployment request sent")
-          }
-        } yield {
-          save 
-        }) match {
-          case Full(x) => 
             onSuccessCallback() & 
             SetHtml(htmlId_configurationRule, <div id={htmlId_configurationRule}>Configuration rule successfully deleted</div> ) & 
             //show success popup
@@ -398,24 +392,22 @@ class ConfigurationRuleEditForm(
   }
   
   private[this] def saveAndDeployConfigurationRule(cr:ConfigurationRule) : JsCmd = {
-      (for {
-        save <- configurationRuleRepository.update(cr, CurrentUser.getActor)
-        deploy <- {
-          asyncDeploymentAgent ! StartDeployment(RudderEventActor)
-          Full("Deployment request sent")
+
+    configurationRuleRepository.update(cr, CurrentUser.getActor) match {
+      case Full(optDiff) =>
+        optDiff match {
+          case Some(_) => // There is a modification diff, launch a deployment.
+            asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+            case None => // No change, don't launch a deployment
         }
-      } yield {
-        save 
-      }) match {
-        case Full(x) => 
-          onSuccess
-        case Empty => //arg. 
-          formTracker.addFormError(error("An error occurred while saving the configuration rule"))
-          onFailure
-        case f:Failure =>
-          formTracker.addFormError(error("An error occurred while saving the configuration rule: " + f.messageChain))
-          onFailure
-      }      
+        onSuccess
+      case Empty => //arg.
+        formTracker.addFormError(error("An error occurred while saving the configuration rule"))
+        onFailure
+      case f:Failure =>
+        formTracker.addFormError(error("An error occurred while saving the configuration rule: " + f.messageChain))
+        onFailure
+    }
   }
   
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
