@@ -1101,6 +1101,7 @@ class AppConfig extends Loggable {
         ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository, uuidGen) //new CheckDirectiveBusinessRules()
     , new CheckMigrationEventLog2_3(eventLogsMigration_2_3_Management)
     , new CheckInitXmlExport(itemArchiveManager, personIdentService, uuidGen)
+    , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(ldapDirectiveRepository, uuidGen)
   )
 
   
