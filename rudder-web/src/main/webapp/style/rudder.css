@@ -185,6 +185,10 @@ form input {
    border: 1px solid #b4b3a8;
 }
 
+td.directiveVarValue > input {
+  width: 500px;
+}
+
 form input[type=checkbox] {
    width:auto;
    padding:0px;
