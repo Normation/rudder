@@ -36,13 +36,13 @@ package com.normation.inventory.provisioning
 package fusion
 
 import com.normation.inventory.domain.InventoryReport
-
 import net.liftweb.common._
 import scala.xml.NodeSeq
 import com.normation.utils.Control.{pipeline,bestEffort}
 import com.normation.inventory.services.provisioning._
+import scala.xml.Elem
 
-class PostUnmarshallCheckConsistency extends PostUnmarshall {
+class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
   override val name = "post_process_inventory:check_consistency"  
 
   /**
@@ -55,7 +55,7 @@ class PostUnmarshallCheckConsistency extends PostUnmarshall {
    * 
    * If any of these variable are not set, just abort
    */
-  override def apply(report:InventoryReport) : Box[InventoryReport] = {
+  override def apply(report:NodeSeq) : Box[NodeSeq] = {
     val checks = 
       checkId _ ::
       checkHostname _ ::
@@ -63,6 +63,7 @@ class PostUnmarshallCheckConsistency extends PostUnmarshall {
       checkPolicyServer _ ::
       checkOS _ ::
       checkAgent _ ::
+      checkMachineId _ ::
       Nil
       
     pipeline(checks, report) { (check,currentReport) =>
@@ -92,68 +93,79 @@ class PostUnmarshallCheckConsistency extends PostUnmarshall {
     }
   }
     
-  private[this] def checkId(report:InventoryReport): Box[InventoryReport] = {
+  private[this] def checkId(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "UUID"
     for {
-      tagHere <- checkNodeSeq(report.sourceReport, tag, true) ?~! "Missing node ID attribute '%s' in report. This attribute is mandatory and must contains node ID.".format(tag)
-      idHere <- if(report.node.main.id.value == tagHere) Full("OK") 
-                else Failure("Node ID is not correctly set (but tag '%s' is present with value '%s')".format(tag, tagHere))
+      tagHere <- checkNodeSeq(report, tag, true) ?~! "Missing node ID attribute '%s' in report. This attribute is mandatory and must contains node ID.".format(tag)
     } yield {
       report
     }
   }
     
-  private[this] def checkHostname(report:InventoryReport): Box[InventoryReport] = {
+  private[this] def checkHostname(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "HOSTNAME"
     for {
-      tagHere <- checkNodeSeq(report.sourceReport, tag) ?~! "Missing '%s' attribute in report. This attribute is mandatory and must contains node hostname.".format(tag)
-      idHere <- if(report.node.main.hostname == tagHere) Full("OK")
-                else Failure("Hostname is not correctly set (but tag '%s' is present with value '%s'".format(tag, tagHere) )
+      tagHere <- checkNodeSeq(report, tag) ?~! "Missing '%s' attribute in report. This attribute is mandatory and must contains node hostname.".format(tag)
     } yield {
       report
     }
   }
   
-  private[this] def checkRoot(report:InventoryReport): Box[InventoryReport] = {
+  private[this] def checkRoot(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "USER"
     for {
-      tagHere <- checkNodeSeq(report.sourceReport, tag, true) ?~! "Missing administrator attribute '%s' in report. This attribute is mandatory and must contains node local administrator login.".format(tag)
-      idHere <- if(report.node.main.rootUser == tagHere) Full("OK")
-                else Failure("Node administrator login is not correctly set (but tag '%s' is present with value '%s'".format(tag, tagHere))
+      tagHere <- checkNodeSeq(report, tag, true) ?~! "Missing administrator attribute '%s' in report. This attribute is mandatory and must contains node local administrator login.".format(tag)
     } yield {
       report
     }
   }  
     
-  private[this] def checkPolicyServer(report:InventoryReport): Box[InventoryReport] = {
+  private[this] def checkPolicyServer(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "POLICY_SERVER"
     for {
-      tagHere <- checkNodeSeq(report.sourceReport, tag) ?~! "Missing rudder policy server attribute '%s' in report. This attribute is mandatory and must contains the policy server ID that the node must contact.".format(tag)
-      idHere <- if(report.node.main.policyServerId.value == tagHere) Full("OK")
-                else Failure("Rudder policy server is not correctly set (but tag '%s' is present with value '%s'".format(tag, tagHere) )
+      tagHere <- checkNodeSeq(report, tag) ?~! "Missing rudder policy server attribute '%s' in report. This attribute is mandatory and must contains the policy server ID that the node must contact.".format(tag)
     } yield {
       report
     }
   }
    
-  private[this] def checkOS(report:InventoryReport): Box[InventoryReport] = {
+  private[this] def checkOS(report:NodeSeq) : Box[NodeSeq] = {
     val tags = "FULL_NAME" :: "KERNEL_NAME" :: "KERNEL_VERSION" :: "NAME" :: "VERSION" :: Nil   
     for {
       tagHere <- bestEffort(tags) { tag => 
-                   checkNodeSeq(report.sourceReport, "OPERATINGSYSTEM", false, Some(tag)) ?~! "Missing '%s' name attribute in report. This attribute is mandatory.".format(tag)
+                   checkNodeSeq(report, "OPERATINGSYSTEM", false, Some(tag)) ?~! "Missing '%s' name attribute in report. This attribute is mandatory.".format(tag)
                  }
     } yield {
       report
     }
   }
   
-  private[this] def checkAgent(report:InventoryReport): Box[InventoryReport] = {
+  private[this] def checkAgent(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "AGENTNAME"
     for {
-      tagHere <- checkNodeSeq(report.sourceReport, tag) ?~! "Missing agent name attribute in report. This attribute is mandatory and must contains (at least one of) the agent deployed on the node.".format(tag)
-      idHere <- Box(report.node.agentNames.headOption) ?~! "Agent name is not correctly set (but tag '%s' is present with value '%s'".format(tag, tagHere)
+      tagHere <- checkNodeSeq(report, tag) ?~! "Missing agent name attribute in report. This attribute is mandatory and must contains (at least one of) the agent deployed on the node.".format(tag)
     } yield {
       report
+    }
+  }
+  
+  /**
+   * That one is special: we don't fail on a missing
+   * machine id, we just add an empty one. 
+   */
+  private[this] def checkMachineId(report:NodeSeq) : Box[NodeSeq] = {
+    (report \ "MACHINEID") match {
+      case NodeSeq.Empty => //missing machine id tag, add an empty one
+        logger.warn("Missing MACHINEID tag, adding an empty one for consistency")
+        
+        report match {
+          case Elem(prefix, label, attribs, scope, children @ _*) =>
+            val newChildren = children ++ <MACHINEID></MACHINEID>
+            Full(Elem(prefix, label, attribs, scope, newChildren : _*))
+          case _ => Failure("The given report does not seems to have an uniq root element and so can not be handled")
+        }
+        
+      case _ => Full(report)
     }
   }
 }

@@ -42,6 +42,6 @@ package com.normation.inventory.services.provisioning
  *
  */
 class DefaultReportUnmarshaller(
-    override val reportUnmarshaller: ReportUnmarshaller,
-    override val postUnmarshallPipeline: Seq[PostUnmarshall]
+    override val reportUnmarshaller: ParsedReportUnmarshaller,
+    override val preUnmarshallPipeline: Seq[PreUnmarshall]
 ) extends PipelinedReportUnmarshaller 
