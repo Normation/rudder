@@ -62,7 +62,7 @@ class FusionReportUnmarshaller(
     swapUnit : String = "Mo",
     fsSpaceUnit : String = "Mo",
     lastLoggedUserDatetimeFormat : String = "EEE MMM dd HH:mm"
-) extends ReportUnmarshaller with Loggable {
+) extends ParsedReportUnmarshaller with Loggable {
   
   val userLoginDateTimeFormat = DateTimeFormat.forPattern(lastLoggedUserDatetimeFormat).withLocale(Locale.ENGLISH)
   val biosDateTimeFormat = DateTimeFormat.forPattern(biosDateFormat).withLocale(Locale.ENGLISH)
@@ -87,19 +87,8 @@ class FusionReportUnmarshaller(
       None
   } }
 
-  override def fromXml(reportName:String,is : InputStream) : Box[InventoryReport] = {
+  override def fromXmlDoc(reportName:String, doc:NodeSeq) : Box[InventoryReport] = {
     
-    val doc:NodeSeq = (try {
-      Full(XML.load(is))
-    } catch {
-      case e:SAXParseException => Failure("Cannot parse uploaded file as an XML Fusion Inventory report",Full(e),Empty)
-    }) match {
-      case f@Failure(m,e,c) => return f
-      case Full(doc) if(doc.isEmpty) => return Failure("Fusion Inventory report seem's to be empty")
-      case Empty => return Failure("Fusion Inventory report seem's to be empty")
-      case Full(x) => x //ok, continue
-    }
-
      var report =  {
       /*
        * Fusion Inventory gives a device id, but we don't exactly understand
