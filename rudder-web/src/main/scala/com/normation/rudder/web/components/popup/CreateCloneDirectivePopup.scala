@@ -50,6 +50,9 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import CreateCloneDirectivePopup._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.domain.{TechniqueVersion,TechniqueName}
+import com.normation.rudder.web.services.UserPropertyService
+import com.normation.rudder.repository.DirectiveRepository
+import com.normation.rudder.web.model.CurrentUser
 
 
 
@@ -70,6 +73,8 @@ object CreateCloneDirectivePopup {
       <div id="itemName">Here come the Directive name</div>
       <hr class="spacer"/>
       <div id="itemDescription">Here come the short description</div>
+      <hr class="spacer"/>
+      <div id="itemReason">Here come the reason field</div>
       <hr class="spacer"/>
     </div>
     <div class="simplemodal-bottom">
@@ -95,6 +100,8 @@ class CreateCloneDirectivePopup(
 ) extends DispatchSnippet with Loggable {
   
   private[this] val uuidGen = inject[StringUuidGenerator]
+  private[this] val userPropertyService = inject[UserPropertyService]
+  private[this] val directiveRepository = inject[DirectiveRepository]
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }
@@ -107,6 +114,14 @@ class CreateCloneDirectivePopup(
       "#techniqueName" #> techniqueName &
       "#itemName" #> directiveName.toForm_! &
       "#itemDescription" #> directiveShortDescription.toForm_! &
+      "#itemReason" #> { reason.map { f =>
+        <div>
+          <div style="margin:10px 0px 5px 0px; color:#444">
+            {userPropertyService.reasonsFieldExplanation}
+          </div>
+          {f.toForm_!}
+        </div>
+      } } &
       "#notifications" #> updateAndDisplayNotifications() &
       "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"))&
       "#save" #> (SHtml.ajaxSubmit("Configure", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3"))
@@ -115,6 +130,31 @@ class CreateCloneDirectivePopup(
   }
 
   ///////////// fields for category settings ///////////////////
+
+  private[this] val reason = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+
+  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
+    new WBTextAreaField("Message", "") {
+      override def setFilter = notNull _ :: trim _ :: Nil
+      override def inputField = super.inputField  % ("style" -> "height:5em;") % ("tabindex" -> "3")
+      override def errorClassName = ""
+      override def validations() = {
+        if(mandatory){
+          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+        } else {
+          Nil
+        }
+      }
+    }
+  }
+
   private[this] val directiveName = new WBTextField("Name", "Copy of <%s>".format(directive.name)) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = ""
@@ -161,8 +201,24 @@ class CreateCloneDirectivePopup(
         shortDescription = directiveShortDescription.is,
         isEnabled = directive.isEnabled
       )
-
-      closePopup() & onSuccessCallback(cloneDirective)
+      directiveRepository.getActiveTechnique(directive.id) match {
+        case Full(activeTechnique) =>
+          directiveRepository.saveDirective(activeTechnique.id, cloneDirective, CurrentUser.getActor, reason.map(_.is)) match {
+            case Full(directive) => {
+               closePopup() & onSuccessCallback(cloneDirective)
+            }
+            case eb:EmptyBox =>
+              val failure = eb ?~! "An error occurred while saving the new clones Directive %s".format(cloneDirective.name)
+              logger.error(failure)
+              formTracker.addFormError(error(failure.messageChain))
+              onFailure & onFailureCallback()
+          }
+        case eb:EmptyBox =>
+          val failure = eb ?~! "An error occurred while fetching the active Technique of the new cloned Directive %s".format(cloneDirective.name)
+          logger.error(failure)
+          formTracker.addFormError(error(failure.messageChain))
+          onFailure & onFailureCallback()
+      }
     }
   }
 
