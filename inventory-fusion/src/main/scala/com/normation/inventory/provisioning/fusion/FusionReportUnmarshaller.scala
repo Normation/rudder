@@ -200,15 +200,19 @@ class FusionReportUnmarshaller(
   }
   
   /**
-   * This method look into all alist of components to search for duplicates and remove
-   * them, updating the "quantity" field accordingly
+   * This method look into all list of components to search for duplicates and remove
+   * them, updating the "quantity" field accordingly.
+   * 
+   * The processing of memories is a little special. In place of adjusting the quantity,
+   * it updates the slotNumber (two memories can not share the same slot), setting position
+   * in the list as key. And yes, that may be unstable from one inventory to the next one.
    */
   private[this] def demux(report:InventoryReport) : InventoryReport = {
     //how can that be better ?
     var r = report 
     r = r.copy(machine = r.machine.copy( bios = report.machine.bios.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( controllers = report.machine.controllers.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( memories = report.machine.memories.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    r = r.copy(machine = r.machine.copy( memories = report.machine.memories.groupBy( _.slotNumber).flatMap { case (_,seq) => seq.zipWithIndex.map { case (x,i) => x.copy(slotNumber = (i+1).toString) } }.toSeq ) )
     r = r.copy(machine = r.machine.copy( ports = report.machine.ports.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( processors = report.machine.processors.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( slots = report.machine.slots.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
@@ -412,11 +416,18 @@ class FusionReportUnmarshaller(
     
   }
   
+  /**
+   * The key used to identify filesystem is in order:
+   * - the mount_point describe in TYPE (yes...), for Linux system, for example "/home", etc
+   * - the volume letter for Windows ("A", etc)
+   * - the volumn, if nothing else is available
+   */
   def processFileSystem(d: NodeSeq) : Option[FileSystem] = {
     val mount_point = optText(d\"TYPE")
     val letter = optText(d\"LETTER")
+    val volume = optText(d\"VOLUMN")
     //volum or letter is mandatory
-    letter.orElse(mount_point) match {
+    letter.orElse(mount_point).orElse(volume) match {
       case None =>
         logger.debug("Ignoring FileSystem entry because missing tag TYPE and LETTER")
         logger.debug(d)
@@ -442,7 +453,13 @@ class FusionReportUnmarshaller(
       } yield a 
     }.toSeq
     
-    optText(n\"DESCRIPTION") match {
+    /*
+     * Normally, Fusion put in DESCRIPTION the interface name (eth0, etc). 
+     * This is missing for Android, so we are going to use the TYPE
+     * (wifi, ethernet, etc) as an identifier in that case. 
+     */
+    
+    optText(n\"DESCRIPTION").orElse(optText(n\"TYPE")) match {
       case None =>
         logger.debug("Ignoring entry Network because tag DESCRIPTION is empty")
         logger.debug(n)
@@ -514,14 +531,22 @@ class FusionReportUnmarshaller(
     }
   }
   
+  /**
+   * For memory, the numslot is used for key. 
+   * On several embeded devices (Android especially), there is no
+   * such information, so we use a false numslot, that will be
+   * change after the full processing of the inventory.
+   */
   def processMemory(m : NodeSeq) : Option[MemorySlot] = {
     //add memory. Add all slots, but add capacity other than numSlot only for full slot
-    optText(m\"NUMSLOTS") match { 
+    val slot = optText(m\"NUMSLOTS") match { 
       case None =>
-        logger.debug("Ignoring entry Memory because tag NUSLOTS is emtpy")
+        logger.debug("Memory is missing tag NUSLOTS, assigning slot '1'")
         logger.debug(m)
-        None
-      case Some(slot) =>  
+        "1"
+      case Some(slot) =>  slot
+    }
+    
         (m\"CAPACITY").text.toLowerCase match {
           case "" | "no" => 
             Some(MemorySlot(slot))
@@ -536,7 +561,6 @@ class FusionReportUnmarshaller(
               , memType = optText(m\"TYPE")
             ) )
         }
-    }
   }  
 
   def processPort(p : NodeSeq) : Option[Port] = {
@@ -657,10 +681,13 @@ class FusionReportUnmarshaller(
   }
   
   /**
-   * Process the Video. Return None if there are no name, Some(video) otherwise
+   * Process the Video. 
+   * The name is used by default for the key. 
+   * If there is no name but one resolution, we use that for the key.
+   * Return None in other case. 
    */
   def processVideo(v : NodeSeq) : Option[Video] = {
-    optText(v\"NAME") match {
+    optText(v\"NAME").orElse(optText(v\"RESOLUTION")) match {
       case None => 
         logger.debug("Ignoring entry Video because tag NAME is empty")
         logger.debug(v)
@@ -674,6 +701,7 @@ class FusionReportUnmarshaller(
         ) )
     }
   }
+  
   def processCpu(c : NodeSeq) : Option[Processor] = {
     optText(c\"NAME") match{
       case None =>
