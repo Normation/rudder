@@ -212,7 +212,7 @@ class FusionReportUnmarshaller(
     var r = report 
     r = r.copy(machine = r.machine.copy( bios = report.machine.bios.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( controllers = report.machine.controllers.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
-    r = r.copy(machine = r.machine.copy( memories = report.machine.memories.groupBy( _.slotNumber).flatMap { case (_,seq) => seq.zipWithIndex.map { case (x,i) => x.copy(slotNumber = (i+1).toString) } }.toSeq ) )
+    r = r.copy(machine = r.machine.copy( memories = demuxMemories(report.machine.memories) ) )
     r = r.copy(machine = r.machine.copy( ports = report.machine.ports.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( processors = report.machine.processors.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( slots = report.machine.slots.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
@@ -221,6 +221,21 @@ class FusionReportUnmarshaller(
     r = r.copy(machine = r.machine.copy( videos = report.machine.videos.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(applications = report.applications.groupBy( app => (app.name, app.version)).map { case (x,seq) => seq.head }.toSeq ) //seq.head is ok since its the result of groupBy
     r
+  }
+  
+  private[this] def demuxMemories(memories:Seq[com.normation.inventory.domain.MemorySlot]) : Seq[com.normation.inventory.domain.MemorySlot] = {
+    val duplicatedSlotsAndMemory = memories.groupBy( _.slotNumber).filter { case(x,seq) => x != DUMMY_MEM_SLOT_NUMBER && seq.size > 1 }
+    val nonValideSlotNumber = memories.filter(mem => mem.slotNumber == DUMMY_MEM_SLOT_NUMBER)
+    val validSlotNumbers = memories.filter(mem => 
+                                mem.slotNumber != DUMMY_MEM_SLOT_NUMBER 
+                             && !duplicatedSlotsAndMemory.exists { case (i,_) => mem.slotNumber == i }
+                           )
+    
+    //set negative slotNumbers for duplicated and non valid
+    val getNegative = (duplicatedSlotsAndMemory.flatMap( _._2) ++ nonValideSlotNumber).zipWithIndex.map { 
+      case(mem,i) => mem.copy(slotNumber = (-i-1).toString )
+    }
+    validSlotNumbers++getNegative
   }
   
   
@@ -531,6 +546,8 @@ class FusionReportUnmarshaller(
     }
   }
   
+  private[this] val DUMMY_MEM_SLOT_NUMBER = "DUMMY"
+  
   /**
    * For memory, the numslot is used for key. 
    * On several embeded devices (Android especially), there is no
@@ -541,9 +558,9 @@ class FusionReportUnmarshaller(
     //add memory. Add all slots, but add capacity other than numSlot only for full slot
     val slot = optText(m\"NUMSLOTS") match { 
       case None =>
-        logger.debug("Memory is missing tag NUSLOTS, assigning slot '1'")
+        logger.debug("Memory is missing tag NUMSLOTS, assigning a negative value for num slot")
         logger.debug(m)
-        "1"
+        DUMMY_MEM_SLOT_NUMBER
       case Some(slot) =>  slot
     }
     
