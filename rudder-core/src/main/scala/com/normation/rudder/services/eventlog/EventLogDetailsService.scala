@@ -106,7 +106,7 @@ trait EventLogDetailsService {
   
   def getRefuseNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]
     
-  def getDeleteNodeLogDetails(xml:NodeSeq) : Box[NodeLogDetails]
+  def getDeleteNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]
   
   ///// other /////
   
@@ -484,8 +484,8 @@ class EventLogDetailsServiceImpl(
   }
   
   
-  def getDeleteNodeLogDetails(xml:NodeSeq) : Box[NodeLogDetails] = {
-    getNodeLogDetails(xml, "delete")
+  def getDeleteNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails] = {
+    getInventoryLogDetails(xml, "delete")
   }
 
  /**
@@ -523,23 +523,22 @@ class EventLogDetailsServiceImpl(
       
     } yield {
       val agentsNames =  com.normation.utils.Control.boxSequence[AgentType](boxedAgentsName)
-      
       NodeLogDetails(node = NodeInfo(
-          id            = NodeId(nodeId)
-        , name          = name
-        , description   = description
-        , hostname      = hostname
-        , os            = os
-        , ips           = ips.toList
-        , inventoryDate = ISODateTimeFormat.dateTimeParser.parseDateTime(inventoryDate)
-        , publicKey     = publicKey
-        , agentsName    = agentsNames.openOr(Seq())
-        , policyServerId= NodeId(policyServerId)
-        , localAdministratorAccountName= localAdministratorAccountName
-        , creationDate  = ISODateTimeFormat.dateTimeParser.parseDateTime(creationDate)
-        , isBroken      = isBroken
-        , isSystem      =isSystem
-        , isPolicyServer=isPolicyServer
+          id             = NodeId(nodeId)
+        , name           = name
+        , description    = description
+        , hostname       = hostname
+        , os             = os
+        , ips            = ips.toList
+        , inventoryDate  = ISODateTimeFormat.dateTimeParser.parseDateTime(inventoryDate)
+        , publicKey      = publicKey
+        , agentsName     = agentsNames.openOr(Seq())
+        , policyServerId = NodeId(policyServerId)
+        , localAdministratorAccountName = localAdministratorAccountName
+        , creationDate   = ISODateTimeFormat.dateTimeParser.parseDateTime(creationDate)
+        , isBroken       = isBroken
+        , isSystem       = isSystem
+        , isPolicyServer = isPolicyServer
       ))
     }
   }

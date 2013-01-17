@@ -959,9 +959,9 @@ class EventListDisplayer(
   )( 
     <ul class="evlogviewpad">
       <li><b>Node ID: </b><value id="nodeID"/></li>
-      <li><b>name: </b><value id="nodeName"/></li>
+      <li><b>Name: </b><value id="nodeName"/></li>
       <li><b>Operating System: </b><value id="os"/></li>
-      <li><b>Inventory Version: </b><value id="version"/></li>
+      <li><b>Date inventory last received: </b><value id="version"/></li>
     </ul>
   )
   
