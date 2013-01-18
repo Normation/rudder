@@ -29,6 +29,7 @@ import com.unboundid.ldap.sdk.{
 
 package object sdk {
   
+  import scala.language.implicitConversions
   
   /**
    * Alias Unboundid.ldap.sdk.Entry and LDAPConnection to UnboundXXX so that the main
