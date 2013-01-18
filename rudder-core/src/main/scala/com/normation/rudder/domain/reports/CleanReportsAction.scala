@@ -6,36 +6,45 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.common._
 import com.normation.rudder.services.system.DatabaseManager
+import com.normation.rudder.batch._
 
 
 /*
  * Clean action definition, this can be used for more usage in the future
  */
-case class CleanReportAction(name:String,past:String,continue:String,act:DateTime => Box[Int]) {
-  val logger = ReportLogger
-  def cleanReports(date:DateTime) : JsCmd = {
-    logger.info("%s all reports before %s".format(continue,date))
-    try {
-      act(date) match {
-
-        case eb:EmptyBox =>
-          val e = eb ?~! "An error occured while %s reports".format(continue.toLowerCase)
-          val eToPrint = e.failureChain.map( _.msg ).mkString("", ": ", "")
-          logger.error(eToPrint)
-          Alert(eToPrint)
-
-        case Full(result) =>
-          logger.info("Correctly %s %d reports".format(past.toLowerCase,result))
-          Alert("Correctly %s %d reports".format(past.toLowerCase,result))
-
-      }
-    } catch {
-      case e: Exception => logger.error("Could not %s reports".format(name.toLowerCase), e)
-        Alert("An error occured while %s reports".format(continue.toLowerCase))
+abstract class CleanReportAction {
+  def name     : String
+  def past     : String
+  def continue : String
+  def actor    : DatabaseCleanerActor
+  def actorIsIdle : Boolean  = actor.isIdle
+  def progress : String = if (actor.isIdle) "idle" else "in progress"
+  def act (date : DateTime) : Box[Int]
+  // This method ask for a cleaning
+  def ask (date : DateTime) : String = {
+    if (actorIsIdle) {
+      actor ! ManualLaunch(date)
+      "The %s process has started and is in progress".format(name)
     }
+   else
+     "The %s process is already in progress, and so was not relaunched".format(name)
   }
+
+  val logger = ReportLogger
 }
 
-case class ArchiveAction(dbManager:DatabaseManager) extends CleanReportAction("Archive","Archived","Archiving",dbManager.archiveEntries _)
+case class ArchiveAction(dbManager:DatabaseManager,dbCleaner : AutomaticReportsCleaning) extends CleanReportAction {
+  val name = "Archive"
+  val past = "Archived"
+  val continue = "Archiving"
+  def act(date:DateTime) = dbManager.archiveEntries(date)
+  val actor = dbCleaner.archiver
+}
 
-case class DeleteAction(dbManager:DatabaseManager) extends CleanReportAction("Delete","Deleted","Deleting",dbManager.deleteEntries _)
+case class DeleteAction(dbManager:DatabaseManager,dbCleaner : AutomaticReportsCleaning) extends CleanReportAction {
+  val name = "Delete"
+  val past = "Deleted"
+  val continue = "Deleting"
+  def act(date:DateTime) = dbManager.deleteEntries(date)
+  val actor = dbCleaner.deleter
+}
