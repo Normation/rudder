@@ -100,12 +100,12 @@ object AcceptNodeEventLog extends EventLogFilter {
 
   
   def fromInventoryLogDetails(
-      id              : Option[Int] = None
-    , principal       : EventActor
-    , inventoryDetails: InventoryLogDetails
-    , creationDate    : DateTime = DateTime.now()
-    , severity        : Int = 100
-    , description     : Option[String] = None
+      id               : Option[Int] = None
+    , principal        : EventActor
+    , inventoryDetails : InventoryLogDetails
+    , creationDate     : DateTime = DateTime.now()
+    , severity         : Int = 100
+    , description      : Option[String] = None
   ) : AcceptNodeEventLog = {
     val details = EventLog.withContent(InventoryEventLog.toXml(
       inventoryDetails, "accept"
@@ -130,12 +130,12 @@ object RefuseNodeEventLog extends EventLogFilter {
 
   
   def fromInventoryLogDetails(
-      id              : Option[Int] = None
-    , principal       : EventActor
-    , inventoryDetails: InventoryLogDetails
-    , creationDate    : DateTime = DateTime.now()
-    , severity        : Int = 100         
-    , description     : Option[String] = None
+      id               : Option[Int] = None
+    , principal        : EventActor
+    , inventoryDetails : InventoryLogDetails
+    , creationDate     : DateTime = DateTime.now()
+    , severity         : Int = 100
+    , description      : Option[String] = None
   ) : RefuseNodeEventLog = {
     val details = EventLog.withContent(InventoryEventLog.toXml(
       inventoryDetails, "refuse"
@@ -180,6 +180,7 @@ object NodeEventLog {
         <creationDate>{node.creationDate}</creationDate>
         <isBroken>{node.isBroken}</isBroken>
         <isSystem>{node.isSystem}</isSystem>
+        <isPolicyServer>{node.id.value=="root"}</isPolicyServer>
       </node>
     )
   }
@@ -188,7 +189,7 @@ object NodeEventLog {
 
 final case class DeleteNodeEventLog (
     override val eventDetails : EventLogDetails
-) extends NodeEventLog with HashcodeCaching {
+) extends InventoryEventLog with HashcodeCaching {
   override val eventType = DeleteNodeEventLog.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
@@ -201,16 +202,16 @@ object DeleteNodeEventLog extends EventLogFilter {
 
   
   
-  def fromNodeLogDetails(
-      id              : Option[Int] = None
-    , principal       : EventActor
-    , node            : NodeInfo
-    , creationDate    : DateTime = DateTime.now()
-    , severity        : Int = 100
-    , description     : Option[String] = None
+  def fromInventoryLogDetails(
+      id               : Option[Int] = None
+    , principal        : EventActor
+    , inventoryDetails : InventoryLogDetails
+    , creationDate     : DateTime = DateTime.now()
+    , severity         : Int = 100
+    , description      : Option[String] = None
   ) : DeleteNodeEventLog = {
-    val details = EventLog.withContent(NodeEventLog.toXml(
-      node, "delete"
+    val details = EventLog.withContent(InventoryEventLog.toXml(
+      inventoryDetails, "delete"
     ) )
     
     DeleteNodeEventLog(EventLogDetails(id,None,principal,creationDate, None, severity, description, details)) 

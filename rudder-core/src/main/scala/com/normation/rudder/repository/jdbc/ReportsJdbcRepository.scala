@@ -286,8 +286,8 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
        )
 
       logger.debug("""Archiving report with SQL query: [[
-                   | insert into %s (id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)
-                   | (select id, executionDate, nodeId, policyInstanceId, configurationRuleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from %s
+                   | insert into %s (id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)    
+                   | (select id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from %s
                    | where executionTimeStamp < '%s')
                    |]]""".stripMargin.format(archiveTable,reportsTable,date.toString("yyyy-MM-dd")))
 

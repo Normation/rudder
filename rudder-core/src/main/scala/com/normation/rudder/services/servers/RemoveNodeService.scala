@@ -22,6 +22,8 @@ import com.normation.inventory.services.core.MachineRepository
 import com.normation.inventory.services.core.WriteOnlyMachineRepository
 import com.normation.inventory.services.core.ReadOnlyMachineRepository
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
+import com.normation.inventory.ldap.core.InventoryDit
 
 
 trait RemoveNodeService {
@@ -46,6 +48,7 @@ class RemoveNodeServiceImpl(
     , ldapEntityMapper          : LDAPEntityMapper
     , nodeGroupRepository       : NodeGroupRepository
     , nodeConfigurationService  : NodeConfigurationService
+    , nodeInfoService           : NodeInfoService
     , fullNodeRepo              : LDAPFullInventoryRepository
     , actionLogger              : EventLogRepository
     , groupLibMutex             : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
@@ -67,8 +70,24 @@ class RemoveNodeServiceImpl(
       case "root" => Failure("The root node cannot be deleted from the nodes list.")
       case _ => {
         for {
-          moved <- groupLibMutex.writeLock { atomicDelete(nodeId, modId, actor) } ?~! 
+          nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+
+          moved <- groupLibMutex.writeLock {atomicDelete(nodeId, modId, actor) } ?~! 
                    "Error when archiving a node"
+
+          eventLogged <- {
+            val invLogDetails = InventoryLogDetails(
+                            nodeId           = nodeInfo.id
+                          , inventoryVersion = nodeInfo.inventoryDate
+                          , hostname         = nodeInfo.hostname
+                          , fullOsName       = nodeInfo.os
+                          , actorIp          = actor.name
+                        )
+            val eventlog = DeleteNodeEventLog.fromInventoryLogDetails(
+                principal = actor
+              , inventoryDetails = invLogDetails )
+            actionLogger.saveEventLog(modId, eventlog)
+          }
         } yield {
           moved
         }
