@@ -295,16 +295,10 @@ class NodeGroupForm(
     def removeCr() : JsCmd = {
       JsRaw("$.modal.close();") &
       {
-        (for {
-          deleted <- dependencyService.cascadeDeleteTarget(target, CurrentUser.getActor)
-          deploy <- {
-            asyncDeploymentAgent ! StartDeployment(RudderEventActor)
-            Full("Deployment request sent")
-          }
-        } yield {
-          deploy
-        }) match {
+        dependencyService.cascadeDeleteTarget(target, CurrentUser.getActor) match {
           case Full(x) =>
+            // the node group was deleted, deploy
+            asyncDeploymentAgent ! StartDeployment(RudderEventActor)
             onSuccessCallback() &
             SetHtml(htmlIdCategory, NodeSeq.Empty ) &
             //show success popup
@@ -488,14 +482,20 @@ class NodeGroupForm(
     (for {
       moved <- nodeGroupRepository.move(originalNodeGroup, NodeGroupCategoryId(container), CurrentUser.getActor) ?~! "Error when moving NodeGroup %s ('%s') to '%s'".format(originalNodeGroup.id, originalNodeGroup.name, container)
       saved <- nodeGroupRepository.update(newNodeGroup, CurrentUser.getActor) ?~! "Error when updating the group %s".format(originalNodeGroup.id)
-      deploy <- {
-        asyncDeploymentAgent ! StartDeployment(RudderEventActor)
-        Full("Deployment request sent")
-      }
     } yield {
-      saved
+      (moved,saved)
     }) match {
-        case Full(x) =>
+        case Full((moved,saved)) =>
+          moved match {
+            case None => // OK! move should always be None
+            case Some(change) =>
+              logger.warn("moving a group should not produce a change, which is %s".format(change))
+          }
+          saved match {
+            case Some(change) => // There is a modification diff, launch a deployment.
+              asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+            case None => // No change, do not deploy
+          }
           _nodeGroup = Some(newNodeGroup)
 
           setNodeGroupCategoryForm

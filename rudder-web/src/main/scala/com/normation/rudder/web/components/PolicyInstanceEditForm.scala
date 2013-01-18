@@ -250,20 +250,14 @@ class PolicyInstanceEditForm(
                 //show success popup
                 successPopup
             } else {
-              (for {
-                deleted <- dependencyService.cascadeDeletePolicyInstance(pi.id, CurrentUser.getActor)
-                deploy <- {
-                  asyncDeploymentAgent ! StartDeployment(RudderEventActor)
-                  Full("Deployment request sent")
-                }
-              } yield {
-                deploy
-              }) match {
+              dependencyService.cascadeDeletePolicyInstance(pi.id, CurrentUser.getActor) match {
                 case Full(x) =>
+                  // the policy instance was deleted, deploy
+                  asyncDeploymentAgent ! StartDeployment(RudderEventActor)
                   onSuccessCallback() &
-                    SetHtml(htmlId_policyConf, <div id={ htmlId_policyConf }>Policy instance successfully deleted</div>) &
-                    //show success popup
-                    successPopup
+                  SetHtml(htmlId_policyConf, <div id={ htmlId_policyConf }>Policy instance successfully deleted</div>) &
+                  //show success popup
+                  successPopup
                 case Empty => //arg.
                   formTracker.addFormError(error("An error occurred while deleting the policy instance (no more information)"))
                   onFailure
@@ -415,16 +409,14 @@ to avoid that last case.<br/>
   }
 
   private[this] def saveAndDeployPolicyInstance(pi: PolicyInstance): JsCmd = {
-    (for {
-      saved <- policyInstanceRepository.savePolicyInstance(userPolicyTemplate.id, pi, CurrentUser.getActor)
-      deploy <- {
-        asyncDeploymentAgent ! StartDeployment(RudderEventActor)
-        Full("Deployment request sent")
-      }
-    } yield {
-      deploy
-    }) match {
-      case Full(x) => onSuccess
+    policyInstanceRepository.savePolicyInstance(userPolicyTemplate.id, pi, CurrentUser.getActor) match {
+      case Full(optChanges) =>
+        optChanges match {
+          case Some(_) => // There is a modification diff, launch a deployment.
+            asyncDeploymentAgent ! StartDeployment(RudderEventActor)
+          case None => // No change, don't launch a deployment
+        }
+        onSuccess
       case Empty => //arg.
         formTracker.addFormError(error("An error occurred while saving the policy instance"))
         onFailure
