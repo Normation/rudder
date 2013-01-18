@@ -312,7 +312,7 @@ class LDAPGroupCategoryRepository(
    *   "/cat2"       -> [/cat2_details]
    *   ... 
    */
-  def getCategoryHierarchy(includeSystem:Boolean = false) : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
+  def getCategoryHierarchy() : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
     for {
       allCats      <- getAllNonSystemCategories()
       val rootCat  = getRootCategory
