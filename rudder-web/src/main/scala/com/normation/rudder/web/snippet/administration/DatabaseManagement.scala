@@ -161,7 +161,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
           }
       <span style="margin-left:10px">
           {
-            SHtml.ajaxButton("%se reports".format(action.name), { () => val askResult = action.ask(date)
+            SHtml.ajaxButton("%s reports".format(action.name.capitalize), { () => val askResult = action.ask(date)
              JsRaw("""$('#cleanResultText').text('%s, you can see more details in the webapp log file (/var/log/rudder/core/rudder-webapp.log)');
                  $('#cleanResult').show();""".format(askResult)) & cancel & updateValue
             } )
