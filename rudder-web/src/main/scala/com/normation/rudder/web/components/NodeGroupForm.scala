@@ -63,7 +63,7 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.nodes.NodeInfoService
 import NodeGroupForm._
 import com.normation.rudder.web.model.CurrentUser
-
+import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 
 
 object NodeGroupForm {
@@ -127,7 +127,7 @@ class NodeGroupForm(
   private[this] val dependencyService = inject[DependencyAndDeletionService]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
   
-  val categories = groupCategoryRepository.getAllNonSystemCategories
+  private[this] val categoryHierarchyDisplayer = inject[CategoryHierarchyDisplayer]
 
 
   var parentCategory = Option.empty[Box[NodeGroupCategory]]
@@ -362,7 +362,7 @@ class NodeGroupForm(
   }
   
   private[this] val piContainer = new WBSelectField("Group container: ", 
-      (categories.open_!.map(x => (x.id.value -> x.name))),
+      (categoryHierarchyDisplayer.getCategoriesHierarchy().map { case (id, name) => (id.value -> name)}),
       parentCategoryId) {
   }
   
