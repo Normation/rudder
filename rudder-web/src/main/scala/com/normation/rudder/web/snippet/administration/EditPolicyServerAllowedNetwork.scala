@@ -97,7 +97,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     val error = b ?~! "Error when processing allowed network"
     logger.debug(error.messageChain, b)
     
-    "#allowedNetworksForm *" #> { x =>
+    "#allowedNetworksForm *" #> { (x:NodeSeq) =>
       <div class="error">
       <p>An error occured when trying to get the list of existing allowed networks</p>
       {
@@ -168,7 +168,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     }
     
     //process the list of networks
-    "#allowNetworkFields *" #> { xml =>
+    "#allowNetworkFields *" #> { (xml:NodeSeq) =>
       allowedNetworks.flatMap { case VH(i,net) =>
         val id = "network_"+ i
         

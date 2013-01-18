@@ -93,48 +93,48 @@ trait DeploymentService extends Loggable {
     val initialTime = DateTime.now().getMillis
     val result = for {
       rules <- findDependantRules ?~! "Could not find dependant rules"
-      val log1 = logger.debug("rules dependency solved in %d millisec, start to build RuleVals".format((DateTime.now().getMillis - initialTime)))
+      log1 = logger.debug("rules dependency solved in %d millisec, start to build RuleVals".format((DateTime.now().getMillis - initialTime)))
       
-      val historizeTime = DateTime.now().getMillis
+      historizeTime = DateTime.now().getMillis
       
-      val historize = historizeData()
-      val log1_5 = logger.debug("Historization of name done in %d millisec".format((DateTime.now().getMillis - historizeTime)))
+      historize = historizeData()
+      log1_5 = logger.debug("Historization of name done in %d millisec".format((DateTime.now().getMillis - historizeTime)))
       
-      val crValTime = DateTime.now().getMillis
+      crValTime = DateTime.now().getMillis
       ruleVals <- buildRuleVals(rules) ?~! "Cannot build Rule vals"
-      val log2 = logger.debug("RuleVals built in %d millisec, start to build targetNodeConfiguration".format((DateTime.now().getMillis - crValTime)))
+      log2 = logger.debug("RuleVals built in %d millisec, start to build targetNodeConfiguration".format((DateTime.now().getMillis - crValTime)))
 
-      val targetNodeTime = DateTime.now().getMillis
+      targetNodeTime = DateTime.now().getMillis
       targetNodeConfigurations <- buildtargetNodeConfigurations(ruleVals) ?~! "Cannot build target configuration node"
-      val log3 = logger.debug("targetNodeConfiguration built in %d millisec, start to update whose needed to be updated.".format((DateTime.now().getMillis - targetNodeTime)))
+      log3 = logger.debug("targetNodeConfiguration built in %d millisec, start to update whose needed to be updated.".format((DateTime.now().getMillis - targetNodeTime)))
 
-      val updateConfNodeTime = DateTime.now().getMillis
+      updateConfNodeTime = DateTime.now().getMillis
       updatedNodeConfigs <- updatetargetNodeConfigurations(targetNodeConfigurations) ?~! "Cannot set target configuration node"
-      val log4 = logger.debug("RuleVals updated in %d millisec, detect changes.".format((DateTime.now().getMillis - updateConfNodeTime)))
+      log4 = logger.debug("RuleVals updated in %d millisec, detect changes.".format((DateTime.now().getMillis - updateConfNodeTime)))
       
-      val beginTime = DateTime.now().getMillis
+      beginTime = DateTime.now().getMillis
       
       (updatedCrs, deletedCrs) <- detectUpdates(updatedNodeConfigs)?~! "Cannot detect the updates in the NodeConfiguration"
-      val log6 = logger.debug("Detected the changes in the NodeConfiguration to trigger change in CR in %d millisec. Update the SN in the nodes".format((DateTime.now().getMillis - beginTime)))
+      log6 = logger.debug("Detected the changes in the NodeConfiguration to trigger change in CR in %d millisec. Update the SN in the nodes".format((DateTime.now().getMillis - beginTime)))
       
-      val updateTime = DateTime.now().getMillis
+      updateTime = DateTime.now().getMillis
       
       serialedNodes <- updateSerialNumber(updatedNodeConfigs, updatedCrs) ?~! "Cannot update the serial number of the CR in the nodes"
-      val log7 = logger.debug("Serial number updated in the nodes in %d millisec. Update information in crval.".format((DateTime.now().getMillis - updateTime)))
+      log7 = logger.debug("Serial number updated in the nodes in %d millisec. Update information in crval.".format((DateTime.now().getMillis - updateTime)))
       
-      val updateTime2 = DateTime.now().getMillis
+      updateTime2 = DateTime.now().getMillis
       
       updatedRuleVals <- updateRuleVal(ruleVals, updatedCrs) ?~! "Cannot update the serials in the CRVal" 
-      val log8 = logger.debug("Updated serial in crval in %d millisec. Write promisses.".format((DateTime.now().getMillis - updateTime2)))
+      log8 = logger.debug("Updated serial in crval in %d millisec. Write promisses.".format((DateTime.now().getMillis - updateTime2)))
       
-      val writeTime = DateTime.now().getMillis
+      writeTime = DateTime.now().getMillis
       
       writtenNodeConfigs <- writeNodeConfigurations(serialedNodes.map(config => NodeId( config.id ) )) ?~! "Cannot write  configuration node"
-      val log9 = logger.debug("rules deployed in %d millisec, process report information".format((DateTime.now().getMillis - writeTime)))
+      log9 = logger.debug("rules deployed in %d millisec, process report information".format((DateTime.now().getMillis - writeTime)))
       
-      val reportTime = DateTime.now().getMillis
+      reportTime = DateTime.now().getMillis
       expectedReports <- setExpectedReports(updatedRuleVals, deletedCrs)  ?~! "Cannot build expected reports"
-      val log10 =logger.debug("Reports updated in %d millisec".format((DateTime.now().getMillis - reportTime)))
+      log10 = logger.debug("Reports updated in %d millisec".format((DateTime.now().getMillis - reportTime)))
       
     } yield writtenNodeConfigs
     logger.debug("Deployment completed in %d millisec".format((DateTime.now().getMillis - initialTime)))
@@ -566,7 +566,6 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
          return f
      }
      }
-     case f : EmptyBox => return f
    }
    
    }

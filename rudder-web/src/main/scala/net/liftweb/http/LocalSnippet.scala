@@ -35,6 +35,7 @@
 package net.liftweb.http
 
 import net.liftweb.common._
+import scala.reflect.ClassTag
 
 /**
  * That class allow to load and register a snippet for the context of
@@ -100,10 +101,10 @@ import net.liftweb.common._
  * </pre>
  * 
  */
-class LocalSnippet[T <: DispatchSnippet](implicit m: ClassManifest[T]) {
+class LocalSnippet[T <: DispatchSnippet](implicit m: ClassTag[T]) {
   private[this] var _snippet : Box[T]= Empty
   
-  val name = m.erasure.getSimpleName
+  val name = m.runtimeClass.getSimpleName
   
   def is = _snippet
   

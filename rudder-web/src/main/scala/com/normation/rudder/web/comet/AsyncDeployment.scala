@@ -166,7 +166,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                 <span>{error.split("rudder>").map(x => Text(x) ++ {<br/>})}<br/></span>
               </fieldset>
             case _ => <span>{failure.messageChain.split("<-").map(x => Text("=> " + x) ++ {<br/>})}</span> 
-          } })(errorPopup)
+          } }).apply(errorPopup)
         }
     }
   }
@@ -237,7 +237,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   private[this] def createInnerPopup(events:Seq[EventLog]) : NodeSeq = {
     (
         ".popupContent *" #> eventList.display(events, gridName)
-    )(pendingPopup)
+    ).apply(pendingPopup)
   }
   
   

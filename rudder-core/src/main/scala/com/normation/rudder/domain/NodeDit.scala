@@ -47,9 +47,9 @@ class NodeDit(val BASE_DN:DN) extends AbstractDit {
   dit => 
   implicit val DIT = dit
   
-  val NODES = new OU("Nodes", BASE_DN) { 
+  object NODES extends OU("Nodes", BASE_DN) { 
     nodes => 
-      val NODE = new ENTRY1(A_NODE_UUID) {
+      object NODE extends ENTRY1(A_NODE_UUID) {
         node =>
         
         //get id from dn
@@ -71,6 +71,5 @@ class NodeDit(val BASE_DN:DN) extends AbstractDit {
             mod
         }
       }
-    
   }
 }

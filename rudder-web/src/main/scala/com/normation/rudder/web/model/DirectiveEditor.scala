@@ -104,8 +104,8 @@ trait DirectiveField extends BaseField with SectionChildField {
   def manifest: Manifest[ValueType]
   override def required_? = true
 
-  @SuppressWarnings(Array("deprecation")) //ok we do know that
-  def get = is
+  // deprecated but has to be defined
+  def is = get
 
   /* parseClient / toClient : get and set value from/to
    * web ui. 

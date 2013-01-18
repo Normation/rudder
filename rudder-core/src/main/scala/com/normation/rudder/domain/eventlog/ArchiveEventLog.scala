@@ -59,8 +59,9 @@ object ImportExportEventLog {
     EventLog.withContent(new Elem(
         prefix = null
       , label = tagName
-      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_CURRENT_FILE_FORMAT.toString)), Null)
+      , attributes1 = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_CURRENT_FILE_FORMAT.toString)), Null)
       , scope = TopScope
+      , minimizeEmpty = false
       , child = (  
           <path>{gitArchiveId.path.value}</path>
           <commit>{gitArchiveId.commit.value}</commit>
@@ -73,8 +74,9 @@ object ImportExportEventLog {
     EventLog.withContent(new Elem(
         prefix = null
       , label = tagName
-      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_CURRENT_FILE_FORMAT.toString)), Null)
+      , attributes1 = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_CURRENT_FILE_FORMAT.toString)), Null)
       , scope = TopScope
+      , minimizeEmpty = false
       , child = (  
           <commit>{gitCommitId.value}</commit>
         ):_*
@@ -308,8 +310,9 @@ object Rollback extends EventLogFilter {
       EventLog.withContent(new Elem(
         prefix = null
       , label = "rollbackedEvents"
-      , attributes = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_CURRENT_FILE_FORMAT.toString)), Null)
+      , attributes1 = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_CURRENT_FILE_FORMAT.toString)), Null)
       , scope = TopScope
+      , minimizeEmpty = false
       , child =  (rollbackedEvents.map(ev =>
         <rollbackedEvent>
           <id>{ev.id.get}</id>

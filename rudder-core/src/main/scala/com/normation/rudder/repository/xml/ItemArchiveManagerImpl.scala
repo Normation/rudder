@@ -90,7 +90,7 @@ class ItemArchiveManagerImpl(
       saveCrs     <- exportRulesAndDeploy(commiter, modId, actor, reason, includeSystem, false)
       saveUserLib <- exportTechniqueLibraryAndDeploy(commiter, modId, actor, reason, includeSystem, false)
       saveGroups  <- exportGroupLibraryAndDeploy(commiter, modId, actor, reason, includeSystem, false)
-      val msg     =  (  FULL_ARCHIVE_TAG 
+      msg         =  (  FULL_ARCHIVE_TAG 
                       + " Archive and tag groups, technique library and rules" 
                       + (reason match {
                           case None => ""

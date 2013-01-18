@@ -87,7 +87,7 @@ object ClasspathTemplates extends Loggable {
     
     //copy&pasted from net.liftwebhttp.Templates.findRawTemplate
     val lrCache = LiftRules.templateCache
-    val cache = if (lrCache.isDefined) lrCache.open_! else NoCache
+    val cache = lrCache.getOrElse(NoCache)
     val key = (locale, places)
     val tr = cache.get(key)
     
@@ -119,27 +119,30 @@ object ClasspathTemplates extends Loggable {
             
         case e: ValidationException => Empty
       }
-      if (xmlb.isDefined) {
-        Full(cache(key) = xmlb.open_!)
-      } else if (xmlb.isInstanceOf[Failure] && 
-                (Props.devMode | Props.testMode)) {
-        val msg = xmlb.asInstanceOf[Failure].msg
-        val e = xmlb.asInstanceOf[Failure].exception
-        val xml = Helpers.errorDiv(<div>Error locating template: <b>{name}</b><br/>Message: <b>{msg}</b><br/>{
-          {
-            e match {
-            case Full(e) =>
-            <pre>{e.toString}{e.getStackTrace.map(_.toString).mkString("\n")}</pre>
-            case _ => NodeSeq.Empty
-            }
-          }}
+      
+      xmlb match {
+        case Full(x) => 
+          cache(key) = x
+          Full(x)
+        case f:Failure if(Props.devMode | Props.testMode) =>
+          val msg = xmlb.asInstanceOf[Failure].msg
+          val e = xmlb.asInstanceOf[Failure].exception
+          val xml = Helpers.errorDiv(<div>Error locating template: <b>{name}</b><br/>Message: <b>{msg}</b><br/>{
+            {
+              e match {
+              case Full(e) =>
+              <pre>{e.toString}{e.getStackTrace.map(_.toString).mkString("\n")}</pre>
+              case _ => NodeSeq.Empty
+              }
+            }}
           </div>)
+  
+          logger.error("Error was:" + msg)
+          
+          xml
 
-        logger.error("Error was:" + msg)
-        
-        return xml
-        
-      } else Failure("Not found")
+        case _ => Failure("Not found")
+      }
     }
   }
 }

@@ -56,7 +56,7 @@ class PluginManagement extends DispatchSnippet with Loggable {
       ".portlet *" #> LiftSpringApplicationContext.springContext.getBeansOfType(classOf[RudderPluginDef]).map { case(name,pluginDef) =>
         displayPlugin(pluginDef) _
       }
-    )(xml)
+    ).apply(xml)
   }
    
   private[this] def displayPlugin(p:RudderPluginDef)(xml:NodeSeq) : NodeSeq = {

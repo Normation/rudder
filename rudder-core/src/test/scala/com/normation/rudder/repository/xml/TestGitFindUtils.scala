@@ -108,7 +108,7 @@ class TestGitFindUtils extends Specification with Loggable {
   }
   val git = new Git(db)
   git.add.addFilepattern(".").call
-  val id = GitFindUtils.findRevTreeFromRevString(db, git.commit.setMessage("initial commit").call.name).open_!
+  val id = GitFindUtils.findRevTreeFromRevString(db, git.commit.setMessage("initial commit").call.name).openOrThrowException("For tests")
 
   def list(rootDirectories:List[String], endPaths: List[String]) = 
     GitFindUtils.listFiles(db, id, rootDirectories, endPaths)
