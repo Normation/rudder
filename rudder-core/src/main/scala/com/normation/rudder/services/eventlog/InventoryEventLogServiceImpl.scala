@@ -49,7 +49,7 @@ class InventoryEventLogServiceImpl(
    * @return
    */
   def getInventoryEventLogs() : Box[Seq[InventoryEventLog]] = {
-    repository.getEventLogByCriteria(Some(" eventType in ('AcceptNode', 'RefuseNode')")) match {
+    repository.getEventLogByCriteria(Some(" eventType in ('AcceptNode', 'RefuseNode', 'DeleteNode')")) match {
       case Full(seq) => 
         val result = scala.collection.mutable.Buffer[InventoryEventLog]()
         for (log <- seq) {
