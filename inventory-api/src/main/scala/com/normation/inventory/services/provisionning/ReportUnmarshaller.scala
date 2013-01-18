@@ -37,7 +37,8 @@ package com.normation.inventory.services.provisioning
 import com.normation.inventory.domain.InventoryReport
 import com.normation.utils.Control.pipeline
 import java.io.InputStream
-import net.liftweb.common.{Box, EmptyBox, Full}
+import net.liftweb.common._
+import scala.xml._
 
 
 /**
@@ -72,25 +73,47 @@ trait ReportUnmarshaller {
 }
 
 /**
+ * A version of the ReportUnmarshaller that take care of the parsing
+ * of the input stream into an XML doc. 
+ */
+trait ParsedReportUnmarshaller extends ReportUnmarshaller {
+
+  override def fromXml(reportName:String,is:InputStream) : Box[InventoryReport] = {
+    (try {
+      Full(XML.load(is))
+    } catch {
+      case e:SAXParseException => Failure("Cannot parse uploaded file as an XML Fusion Inventory report",Full(e),Empty)
+    }) match {
+      case f@Failure(m,e,c) => f
+      case Full(doc) if(doc.isEmpty) => Failure("Fusion Inventory report seem's to be empty")
+      case Empty => Failure("Fusion Inventory report seem's to be empty")
+      case Full(x) => this.fromXmlDoc(reportName, x)
+    }    
+  }
+  
+  def fromXmlDoc(reportName:String, xml:NodeSeq) : Box[InventoryReport] 
+}
+  
+/**
  * A pipelined default implementation of the ReportUnmarshaller that 
  * allows to add PostMarshall processor to manage non default datas. 
  */
-trait PipelinedReportUnmarshaller extends ReportUnmarshaller {
+trait PipelinedReportUnmarshaller extends ParsedReportUnmarshaller {
   
-  val reportUnmarshaller : ReportUnmarshaller
-  val postUnmarshallPipeline : Seq[PostUnmarshall]
+  def preUnmarshallPipeline : Seq[PreUnmarshall]
+  def reportUnmarshaller : ParsedReportUnmarshaller
   
-  override def fromXml(reportName:String,s:InputStream) : Box[InventoryReport] = {
+  override def fromXmlDoc(reportName:String, xml:NodeSeq) : Box[InventoryReport] = {
     //init pipeline with the data structure initialized by the configured reportUnmarshaller
     for {
-      reportParsed <- reportUnmarshaller.fromXml(reportName:String, s) ?~! "Can not parse the given report, abort"
        //run each post processor of the pipeline sequentially, stop on the first which
        //return an empty result
-      postProcessingOk <- pipeline(postUnmarshallPipeline,reportParsed) { case (postUnmarshall,report) =>
-        postUnmarshall(report) ?~! "Error when post processing report with '%s', abort".format(postUnmarshall.name)
+      preProcessingOk <- pipeline(preUnmarshallPipeline,xml) { case (preUnmarshall,report) =>
+        preUnmarshall(report) ?~! "Error when post processing report with '%s', abort".format(preUnmarshall.name)
       }
+      reportParsed <- reportUnmarshaller.fromXmlDoc(reportName, preProcessingOk) ?~! "Can not parse the given report, abort"
     } yield {
-      postProcessingOk
+      reportParsed
     }
   }
 }

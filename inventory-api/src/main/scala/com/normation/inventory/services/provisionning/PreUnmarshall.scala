@@ -34,16 +34,16 @@
 
 package com.normation.inventory.services.provisioning
 
-import com.normation.inventory.domain.InventoryReport
 import net.liftweb.common.Box
+import scala.xml.NodeSeq
 
 /**
- * This traits allows to post process report to manage specific data
+ * This traits allows to pre process report to manage specific data
  */
-trait PostUnmarshall {
+trait PreUnmarshall {
   
   def name : String
   
-  def apply(report:InventoryReport) : Box[InventoryReport]
+  def apply(report:NodeSeq) : Box[NodeSeq]
 }
 
