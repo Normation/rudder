@@ -648,7 +648,7 @@ class ReportDisplayer(
 
       if (reports.size >0){
           ( "#reportLine" #> reports.flatMap(showMissingReport(_) )
-          ) (missingGridXml ) ++
+          ).apply(missingGridXml ) ++
             Script( JsRaw("""
              var oTable%1$s = $('#%2$s').dataTable({
                "asStripeClasses": [ 'color1', 'color2' ],
@@ -735,7 +735,7 @@ class ReportDisplayer(
         techniqueComponentsReports }
        if (reports.size >0){
          ( "#reportLine" #> reports.flatMap(showUnexpectedReport(_) )
-         ) (unexpectedGridXml ) ++
+         ).apply(unexpectedGridXml ) ++
             Script( JsRaw("""
              var oTable%1$s = $('#%2$s').dataTable({
                "asStripeClasses": [ 'color1', 'color2' ],

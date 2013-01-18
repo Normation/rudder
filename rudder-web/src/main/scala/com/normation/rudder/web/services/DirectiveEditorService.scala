@@ -94,8 +94,8 @@ class DirectiveEditorServiceImpl(
     for {
       //start by checking Directive existence
       pol <- techniqueRepository.get(policyName) ?~! ("Error when retrieving Directive details for " + policyName)
-      val allVars = pol.rootSection.getAllVariables
-      val vars = getVars(allVars, withVarValues)
+      allVars = pol.rootSection.getAllVariables
+      vars = getVars(allVars, withVarValues)
       pe <- section2FieldService.initDirectiveEditor(pol, directiveId, vars)
     } yield pe
   }

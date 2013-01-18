@@ -135,7 +135,7 @@ class TechniqueCategoryEditForm(
 
         val xml = (
             ("#deleteCategoryMsg") #> <span class="error" id="deleteCategoryMsg">Error when deleting the categoy</span>
-        )(showForm)
+        ).apply(showForm)
           
         Replace(htmlId_form, xml) 
     }      

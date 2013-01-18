@@ -64,11 +64,11 @@ trait ScalaApplicationContext[C <: ApplicationContext]{
    * only one concrete implementation exists in the Spring bean registry.
    */
   def inject[T](implicit m: Manifest[T]) : T = {
-    val beanId = cache.getOrElseUpdate(m.erasure.getSimpleName(),
-      springContext.getBeanNamesForType(m.erasure.asInstanceOf[Class[T]]) match {
+    val beanId = cache.getOrElseUpdate(m.runtimeClass.getSimpleName(),
+      springContext.getBeanNamesForType(m.runtimeClass.asInstanceOf[Class[T]]) match {
         case list if list.size == 1 => list(0)
-        case list if list.size > 1 => throw new BeanDefinitionStoreException("Multiple beans match this type %s".format(m.erasure.asInstanceOf[Class[T]]))
-        case list if list.size == 0 => throw new NoSuchBeanDefinitionException("No beans match this type %s".format(m.erasure.asInstanceOf[Class[T]]))
+        case list if list.size > 1 => throw new BeanDefinitionStoreException("Multiple beans match this type %s".format(m.runtimeClass.asInstanceOf[Class[T]]))
+        case list if list.size == 0 => throw new NoSuchBeanDefinitionException("No beans match this type %s".format(m.runtimeClass.asInstanceOf[Class[T]]))
       })
     inject(beanId)(m)
   }
@@ -78,7 +78,7 @@ trait ScalaApplicationContext[C <: ApplicationContext]{
    * Should be avoided when possible, as strings are
    * brittle when refactoring. 
    */
-  def inject[T](id:String)(implicit m: Manifest[T]) : T = springContext.getBean(id, m.erasure.asInstanceOf[Class[T]])
+  def inject[T](id:String)(implicit m: Manifest[T]) : T = springContext.getBean(id, m.runtimeClass.asInstanceOf[Class[T]])
 
 }
 

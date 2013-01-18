@@ -286,7 +286,7 @@ class RuleGrid(
             { 
               (
                 "span" #> seq.map { case(directive,activeTechnique,technique) => "#link" #> <tr><td>{piLink(directive)}</td><td>{technique.name}</td></tr> }
-              )(<span id="link"/>
+              ).apply(<span id="link"/>
               )
             }
               </tbody>
@@ -381,7 +381,7 @@ class RuleGrid(
               (
                 "span" #> targets.map { target => "#link" #> 
                 <tr><td>{groupLink(target)}</td><td>{target.description}</td></tr> }
-              )(<span id="link"/>
+              ).apply(<span id="link"/>
               )
             }
               </tbody>
@@ -647,7 +647,7 @@ class RuleGrid(
                    }
               }
     }}
-    )(reportsGridXml)
+    ).apply(reportsGridXml)
     }
 
 
@@ -739,7 +739,7 @@ class RuleGrid(
 
 }
 
-trait ComplianceLevel 
+sealed trait ComplianceLevel 
 
 
 case object Applying extends ComplianceLevel
