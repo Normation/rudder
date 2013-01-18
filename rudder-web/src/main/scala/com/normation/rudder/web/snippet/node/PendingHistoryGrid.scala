@@ -50,12 +50,9 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.components.DateFormaterService
-
 import org.joda.time.DateTime
 import org.joda.time.format._
 import org.slf4j.LoggerFactory
-
-//lift std import
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -65,10 +62,10 @@ import net.liftweb.http.js._
 import JsCmds._ // For implicits
 import JE._
 import net.liftweb.http.SHtml._
-
 import net.liftweb.json._
 import JsonDSL._
 import com.normation.exceptions.TechnicalException
+import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
 
 
 
@@ -87,8 +84,9 @@ object PendingHistoryGrid extends Loggable {
   
   def displayAndInit() : NodeSeq = {    
     logService.getInventoryEventLogs() match {
-      case Empty => display(Seq[InventoryEventLog]()) ++ Script(initJs)
-      case Full(x) => display(x) ++ Script(initJs)
+      case Empty => display(Seq[InventoryEventLog]()) ++ Script(initJs())
+      case Full(x) => val (deleted,entries) = x.partition((t:InventoryEventLog) => t.isInstanceOf[DeleteNodeEventLog])
+      display(entries) ++ Script(initJs(deleted))
       case _ => NodeSeq.Empty
     }
     
@@ -96,7 +94,7 @@ object PendingHistoryGrid extends Loggable {
   
   def jsVarNameForId() = "pendingNodeHistoryTable"
   
-  def initJs() : JsCmd = {
+  def initJs(entries : Seq[EventLog] = Seq()) : JsCmd = {
     JsRaw("""
         var #table_var#;
         /* Formating function for row details */ 
@@ -121,7 +119,7 @@ object PendingHistoryGrid extends Loggable {
           });
           $('.dataTables_filter input').attr("placeholder", "Search");            
           """.replaceAll("#table_var#",jsVarNameForId)
-        ) & initJsCallBack
+        ) & initJsCallBack(entries)
        )
   }
   def display(entries : Seq[EventLog]) : NodeSeq = {
@@ -132,9 +130,9 @@ object PendingHistoryGrid extends Loggable {
          case  x : RefuseNodeEventLog =>  
            logDetailsService.getRefuseNodeLogDetails(x.details) match {
              case Full(details) =>
-               <tr class= "curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} 
+               <tr class= "curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} kind="refused"
                      inventory={details.inventoryVersion.toString()}>
-                 <td>{DateFormaterService.getFormatedDate(x.creationDate)}</td>
+                 <td><span class="listopen">{DateFormaterService.getFormatedDate(x.creationDate)}</span></td>
                  <td name="serverName">
                    {
                        details.hostname
@@ -149,12 +147,12 @@ object PendingHistoryGrid extends Loggable {
                logger.debug(error.messageChain, e)
                NodeSeq.Empty
            }
-         case x : AcceptNodeEventLog =>  
+           case x : AcceptNodeEventLog =>
            logDetailsService.getAcceptNodeLogDetails(x.details) match {
              case Full(details) =>
-               <tr class="curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} 
+               <tr class="curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} kind="accepted"
                      inventory={details.inventoryVersion.toString()}>
-                 <td><span class="listopen"></span>{DateFormaterService.getFormatedDate(x.creationDate)}</td>
+                 <td><span class="listopen">{DateFormaterService.getFormatedDate(x.creationDate)}</span></td>
                  <td name="serverName">
                    {
                        details.hostname
@@ -181,13 +179,18 @@ object PendingHistoryGrid extends Loggable {
    * You will have to do that for line added after table
    * initialization.
    */
-  def initJsCallBack() : JsCmd = {
+  def initJsCallBack(entries : Seq[EventLog]) : JsCmd = {
+    val eventWithDetails = entries.flatMap(event => logDetailsService.getDeleteNodeLogDetails(event.details).map((event,_)))
+    // Group the events by node id, then drop the event details. Set default Map value to an empty Seq
+    val deletedNodes = eventWithDetails.groupBy(_._2.nodeId).mapValues(_.map(_._1)).withDefaultValue(Seq())
+
       JsRaw("""
           $(#table_var#.fnGetNodes()).each( function () {
                  $(this).click( function () {
                     var id = $(this).attr("serveruuid");
                     var inventory = $(this).attr("inventory");
                     var jsuuid = $(this).attr("jsuuid");
+                    var kind = $(this).attr("kind");
                     var opened = $(this).prop("open");
 
                     if (opened && opened.match("opened")) {
@@ -197,36 +200,56 @@ object PendingHistoryGrid extends Loggable {
                     } else {
                       $(this).prop("open", "opened");
                       $(this).find("span.listopen").removeClass("listopen").addClass("listclose");
-                      var ajaxParam = jsuuid + "|" + id + "|" + inventory;
+                      var ajaxParam = jsuuid + "|" + id + "|" + inventory + "|" + kind;
                       #table_var#.fnOpen( this, fnFormatDetails(jsuuid), 'displayPastInventory' );
                       %s;
                     }
                   } );
                 })
           """.format(
-          SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory _)._2.toJsCmd).replaceAll("#table_var#",
+          SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory(deletedNodes) _)._2.toJsCmd).replaceAll("#table_var#",
               jsVarNameForId))
   }
   
   
-  def displayPastInventory(s : String) : JsCmd = {
+  def displayPastInventory(deletedNodes : Map[NodeId,Seq[EventLog]])(s : String) : JsCmd = {
+
     val arr = s.split("\\|")
-    if (arr.length != 3) {
+    if (arr.length != 4) {
       Alert("Called ID is not valid: %s".format(s))
     } else {
       val jsuuid = arr(0)
       val id = NodeId(arr(1))
       val version = ISODateTimeFormat.dateTimeParser.parseDateTime(arr(2))
+      val isAcceptLine = arr(3) == "accepted"
       history.get(id, version) match {
         case Failure(m,_,_) => Alert("Error while trying to display node history. Error message:" + m)
         case Empty => Alert("No history was retrieved for the chosen date")
         case Full(sm) => 
           SetHtml(
             jsuuid,
+            ( if (isAcceptLine)
+                displayIfDeleted(id,version,deletedNodes)
+              else
+                NodeSeq.Empty
+            ) ++
             DisplayNode.showPannedContent(sm.data, "hist")) & 
             DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs"))
       }
     }
   }
-  
+
+  def displayIfDeleted (id:NodeId,lastInventoryDate:DateTime, deletedNodes : Map[NodeId,Seq[EventLog]]) = {
+    // only take events that could have delete that inventory, as we set the default value to an empty sequence, there's no null here with the apply on the map
+    val effectiveEvents = deletedNodes(id).filter(_.creationDate.isAfter(lastInventoryDate))
+    // sort those events by date, to take the closer deletion date from the inventory date (head of the list)
+    effectiveEvents.sortWith( (ev1,ev2) => ev1.creationDate.isBefore(ev2.creationDate)).headOption match {
+      case Some(deleted) =>
+        <div style="padding: 10px 15px 0">
+          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon" style="float :left; margin-right:9px; margin-top:-9px"/>
+          <h3> {"This node was deleted on %s by %s".format(DateFormaterService.getFormatedDate(deleted.creationDate),deleted.principal.name)}</h3>
+        </div>
+      case None => NodeSeq.Empty
+  }
+  }
 }
