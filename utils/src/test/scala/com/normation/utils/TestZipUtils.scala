@@ -52,8 +52,11 @@ class TestZipUtils extends Specification with Loggable {
     //intersting files
     val root = new File(directory, "some-dir")
     val foo = new File(root, "foo.txt")
-    val sub = new File(root, "subdirectory")
-    val pdf = new File(sub, "a-file.pdf")
+    val bar = new File(root, "bar.txt")
+    val a_sub = new File(root, "a-subdirectory")
+    val b_sub = new File(root, "b-subdirectory")
+    val a_pdf = new File(b_sub, "a-file.pdf")
+    val b_pdf = new File(b_sub, "b-file.pdf")
     
     "correctly execute" in {
       ZipUtils.unzip(zip, directory) match {
@@ -71,18 +74,27 @@ class TestZipUtils extends Specification with Loggable {
     "...which contains the file 'foo.txt'" in {
       foo.exists() must beTrue
     }
+    "...which contains the file 'bar.txt'" in {
+      bar.exists() must beTrue
+    }
     
     "...whith size of 24kB" in {
       foo.length must beEqualTo(23L)
     }
-    "have a subdirectory named 'subdirectory'" in {
-      (sub.exists must beTrue) and (sub.isDirectory must beTrue)
+    "have a subdirectory named 'a-subdirectory'" in {
+      (a_sub.exists must beTrue) and (a_sub.isDirectory must beTrue)
+    }
+    "have a subdirectory named 'b-subdirectory'" in {
+      (b_sub.exists must beTrue) and (b_sub.isDirectory must beTrue)
     }
     "have a binary file named 'a-file.pdf'" in {
-      pdf.exists must beTrue
+      a_pdf.exists must beTrue
+    }
+    "have a binary file named 'b-file.pdf'" in {
+      b_pdf.exists must beTrue
     }
     "... with size of 8442" in {
-      pdf.length must beEqualTo(8442L)
+      a_pdf.length must beEqualTo(8442L)
     }
   }
     
@@ -91,15 +103,18 @@ class TestZipUtils extends Specification with Loggable {
     val zippable = ZipUtils.toZippable(new File(directory, "some-dir"))
     
     "create a list whith size of all elements" in {
-      zippable must haveSize(4)
+      zippable must haveSize(7)
     }
     
     "create the list of names in order" in {
       zippable.toList match {
         case Zippable("some-dir/", _) :: 
+             Zippable("some-dir/bar.txt", _) ::
              Zippable("some-dir/foo.txt", _) ::
-             Zippable("some-dir/subdirectory/", _) ::
-             Zippable("some-dir/subdirectory/a-file.pdf", _) ::
+             Zippable("some-dir/a-subdirectory/", _) ::
+             Zippable("some-dir/b-subdirectory/", _) ::
+             Zippable("some-dir/b-subdirectory/a-file.pdf", _) ::
+             Zippable("some-dir/b-subdirectory/b-file.pdf", _) ::
              Nil => success
         case _ => failure("Bad content : " + zippable)
       }
@@ -113,20 +128,21 @@ class TestZipUtils extends Specification with Loggable {
     ZipUtils.zip(new FileOutputStream(dest), zippable)
     val zip2 = new ZipFile(dest)
 
-    "have 4 entries" in {
-      zip2.size must beEqualTo(4)
+    "have 7 entries" in {
+      zip2.size must beEqualTo(7)
     }
     
-    "with names 'some-dir/', 'some-dir/foo.txt', 'some-dir/subdirectory/', 'some-dir/subdirectory/a-file.pdf'" in {
+    "with names 'some-dir/', 'some-dir/bar.txt', 'some-dir/foo.txt', 'some-dir/a-subdirectory/'\n,"+
+    "'some-dir/b-subdirectory/', 'some-dir/b-subdirectory/a-file.pdf, 'some-dir/b-subdirectory/b-file.pdf'" in {
       val l = zip2.entries.toList
-      l.map( _.getName ) must haveTheSameElementsAs(List("some-dir/", "some-dir/foo.txt", "some-dir/subdirectory/", "some-dir/subdirectory/a-file.pdf"))
+      l.map( _.getName ) must haveTheSameElementsAs(List("some-dir/", "some-dir/bar.txt", "some-dir/foo.txt", "some-dir/a-subdirectory/", "some-dir/b-subdirectory/", "some-dir/b-subdirectory/a-file.pdf", "some-dir/b-subdirectory/b-file.pdf"))
     }
     
-    "'some-dir/subdirectory/a-file.pdf' has size 8442" in {
-      zip2.getEntry("some-dir/subdirectory/a-file.pdf").getSize must beEqualTo(8442L)
+    "'some-dir/b-subdirectory/a-file.pdf' has size 8442" in {
+      zip2.getEntry("some-dir/b-subdirectory/a-file.pdf").getSize must beEqualTo(8442L)
     }
 
-    "'some-dir/subdirectory/a-file.pdf' has size 8442" in {
+    "'some-dir/foo.pdf' has size 23" in {
       zip2.getEntry("some-dir/foo.txt").getSize must beEqualTo(23L)
     }
   }
