@@ -240,12 +240,18 @@ case object IdleCleaner extends CleanerState
 // An update is currently cleaning the databases.
 case object ActiveCleaner extends CleanerState
 
+sealed trait DatabaseCleanerMessage
 // Messages the cleaner can receive.
 // Ask to clean database (need to be in active state).
-case class CleanDatabase
+case object CleanDatabase extends DatabaseCleanerMessage
 // Ask to check if cleaning has to be launched (need to be in idle state).
-case class CheckLaunch
+case object CheckLaunch extends DatabaseCleanerMessage
 
+case class ManualLaunch(date:DateTime) extends DatabaseCleanerMessage
+
+trait DatabaseCleanerActor extends LiftActor {
+  def isIdle : Boolean
+}
 /**
  *  A class that periodically check if the Database has to be cleaned.
  *
@@ -255,45 +261,70 @@ case class CheckLaunch
  *  Archive action doesn't run if its TTL is more than Delete TTL.
  */
 case class AutomaticReportsCleaning(
-  dbManager      : DatabaseManager
+    dbManager      : DatabaseManager
   , deletettl      : Int // in days
   , archivettl     : Int // in days
   , freq : CleanFrequency
 ) extends Loggable {
   val reportLogger = ReportLogger
+
   // Check if automatic reports archiving has to be started
-  if(archivettl < 1) {
+  val archiver:DatabaseCleanerActor = if(archivettl < 1) {
     val propertyName = "rudder.batch.reportsCleaner.archive.TTL"
     reportLogger.info("Disable automatic database archive sinces property %s is 0 or negative".format(propertyName))
+    new LADatabaseCleaner(ArchiveAction(dbManager,this),-1)
   } else {
     // Don't launch automatic report archiving if reports would have already been deleted by automatic reports deleting
     if ((archivettl < deletettl ) && (deletettl > 0)) {
       logger.trace("***** starting Automatic Archive Reports batch *****")
-      (new LADatabaseCleaner(ArchiveAction(dbManager),archivettl)) ! CheckLaunch
+      new LADatabaseCleaner(ArchiveAction(dbManager,this),archivettl)
     }
     else
       reportLogger.info("Disable automatic archive since archive maximum age is older than delete maximum age")
+      new LADatabaseCleaner(ArchiveAction(dbManager,this),-1)
   }
+  archiver ! CheckLaunch
 
-  if(deletettl < 1) {
+  val deleter:DatabaseCleanerActor = if(deletettl < 1) {
     val propertyName = "rudder.batch.reportsCleaner.delete.TTL"
     reportLogger.info("Disable automatic database deletion sinces property %s is 0 or negative".format(propertyName))
+    new LADatabaseCleaner(DeleteAction(dbManager,this),-1)
   } else {
     logger.trace("***** starting Automatic Delete Reports batch *****")
-    (new LADatabaseCleaner(DeleteAction(dbManager),deletettl)) ! CheckLaunch
+    new LADatabaseCleaner(DeleteAction(dbManager,this),deletettl)
   }
-
+  deleter ! CheckLaunch
 
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////
   ////////////////////////////////////////////////////////////////
 
-  private class LADatabaseCleaner(cleanaction:CleanReportAction,ttl:Int) extends LiftActor with Loggable {
+  private case class LADatabaseCleaner(cleanaction:CleanReportAction,ttl:Int) extends DatabaseCleanerActor with Loggable {
     updateManager =>
 
     private[this] val reportLogger = ReportLogger
+    private[this] val automatic = ttl > 0
     private[this] var currentState: CleanerState = IdleCleaner
     private[this] var lastRun: DateTime = DateTime.now()
+
+    def isIdle : Boolean = currentState == IdleCleaner
+
+    private[this] def activeCleaning(date : DateTime, message : DatabaseCleanerMessage) : Unit = {
+      cleanaction.act(date) match {
+        case eb:EmptyBox =>
+          // Error while cleaning, should launch again
+          reportLogger.error("Error while processing database %s, cause is : %s ".format(cleanaction.continue.toLowerCase(),eb))
+          reportLogger.error("Relaunching %s process".format(cleanaction.continue.toLowerCase()))
+          (this) ! message
+        case Full(res) =>
+          if (res==0)
+            reportLogger.info("reports %s has nothing to do".format(cleanaction.name.toLowerCase()))
+          else
+            reportLogger.info("reports %s has %s %d reports".format(cleanaction.name.toLowerCase(),cleanaction.past.toLowerCase(),res))
+          lastRun=DateTime.now
+          currentState = IdleCleaner
+      }
+    }
 
     override protected def messageHandler = {
       /*
@@ -302,8 +333,9 @@ case class AutomaticReportsCleaning(
        * If active => do nothing
        * always register to LAPinger
        */
-      case CheckLaunch =>
+      case CheckLaunch => {
         // Schedule next check, every minute
+        if(automatic)
         LAPinger.schedule(this, CheckLaunch, 1000L*60)
         currentState match {
 
@@ -315,45 +347,45 @@ case class AutomaticReportsCleaning(
               currentState = ActiveCleaner
               (this) ! CleanDatabase
             }
-
-          case ActiveCleaner => ()
+         else
+           logger.trace("***** Database %s is not automatic, it will not schedule its next launch *****".format(cleanaction.name))
+       case ActiveCleaner => ()
 
         }
+      }
       /*
        * Ask to clean Database
        * If idle   => do nothing
        * If active => clean database
        */
-      case CleanDatabase =>
+      case CleanDatabase => {
         currentState match {
 
           case ActiveCleaner =>
             val now = DateTime.now
             logger.trace("***** %s Database *****".format(cleanaction.name))
             reportLogger.info("Automatic start %s".format(cleanaction.continue.toLowerCase()))
-            val res = cleanaction.act(now.minusDays(ttl))
-            res match {
-              case eb:EmptyBox =>
-                // Error while cleaning, should launch again
-                reportLogger.error("Error while processing database %s, cause is : %s ".format(cleanaction.continue.toLowerCase(),eb))
-                reportLogger.error("Relaunching automatic %s process".format(cleanaction.continue.toLowerCase()))
-                (this) ! CleanDatabase
-              case Full(res) =>
-                if (res==0)
-                  reportLogger.info("Automatic reports %s has nothing to do".format(cleanaction.name.toLowerCase()))
-                else
-                  reportLogger.info("Automatic reports %s has %s %d reports".format(cleanaction.name.toLowerCase(),cleanaction.past.toLowerCase(),res))
-                lastRun=DateTime.now
-                currentState = IdleCleaner
-            }
-
+            activeCleaning(now.minusDays(ttl),CleanDatabase)
 
           case IdleCleaner => ()
         }
+      }
 
+      case ManualLaunch(date) => {
+
+        logger.trace("***** Ask to launch manual database %s  *****".format(cleanaction.name))
+        currentState match {
+        case IdleCleaner =>
+              currentState = ActiveCleaner
+              logger.trace("***** Start manual %s database *****".format(cleanaction.name))
+              reportLogger.info("start manual %s".format(cleanaction.continue.toLowerCase()))
+              activeCleaning(date,ManualLaunch(date))
+
+        case ActiveCleaner => reportLogger.info("A database cleaning is already running, please try later")
+        }
+      }
       case _ =>
         reportLogger.error("Wrong message for automatic reports %s ".format(cleanaction.name.toLowerCase()))
-
     }
   }
 }

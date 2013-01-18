@@ -58,7 +58,9 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
   private[this] val databaseManager = inject[DatabaseManager]
   private[this] val dbCleaner = inject[AutomaticReportsCleaning]
   private[this] var from : String = ""
-  private[this] var action : CleanReportAction = ArchiveAction(databaseManager)
+  val archiveAction = ArchiveAction(databaseManager,dbCleaner)
+  val deleteAction  = DeleteAction(databaseManager,dbCleaner)
+  private[this] var action : CleanReportAction = archiveAction
 
   val DATETIME_FORMAT = "yyyy-MM-dd"
   val DATETIME_PARSER = DateTimeFormat.forPattern(DATETIME_FORMAT)
@@ -71,8 +73,8 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
 
      ("#modeSelector" #> <ul style="float:left">{SHtml.radio(Seq("Archive", "Delete"), Full("Archive")
           , {value:String => action = value match {
-            case "Archive" => ArchiveAction(databaseManager)
-            case "Delete"  => DeleteAction(databaseManager)
+            case "Archive" => archiveAction
+            case "Delete"  => deleteAction
           } }
           , ("class", "radio") ).flatMap(e =>
             <li>
@@ -117,6 +119,8 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     SetHtml("newestArchivedEntry", displayDate(archivedReportsInterval.map( x => x._2 ))) &
     SetHtml("archiveSize", databaseManager.getArchiveSize().map(x =>
       Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database"))) &
+    SetHtml("archiveProgress", Text(archiveAction.progress)) &
+    SetHtml("deleteProgress", Text(deleteAction.progress)) &
       updateAutomaticCleaner
   }
 
@@ -157,7 +161,10 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
           }
       <span style="margin-left:10px">
           {
-            SHtml.ajaxButton("%se reports".format(action.name), { () => action.cleanReports(date) & cancel & updateValue } )
+            SHtml.ajaxButton("%se reports".format(action.name), { () => val askResult = action.ask(date)
+             JsRaw("""$('#cleanResultText').text('%s, you can see more details in the webapp log file (/var/log/rudder/core/rudder-webapp.log)');
+                 $('#cleanResult').show();""".format(askResult)) & cancel & updateValue
+            } )
           }
         </span>
       </span>
@@ -167,6 +174,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
       SetHtml("confirm", dialog) &
       JsRaw(""" $('#archiveReports').hide();
                 $('#cleanParam').hide();
+                $('#cleanResult').hide();
                 correctButtons();
                 $('#confirm').stop(true, true).slideDown(1000); """)
     }
