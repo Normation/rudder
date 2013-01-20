@@ -98,6 +98,17 @@ object ZipUtils {
    * If it's a directory, all children are added recursively, 
    * and there name are relative to the root.
    * For a file, only its basename is added. 
+   * 
+   * The returned Zippable are ordered from root to children (deep first),
+   * and all path must be relative to root like that:
+   * root/
+   * root/file-a
+   * root/file-b
+   * root/dir-a/
+   * root/dir-b/
+   * root/dir-b/file-a
+   * root/dir-b/file-b
+   * etc
    */
   def toZippable(file:File) : Seq[Zippable] = {
     if(file.getParent == null) {
@@ -107,9 +118,22 @@ object ZipUtils {
     def getPath(f:File) = base.relativize(f.toURI).getPath
     
     def recZippable(f:File, existing:Seq[Zippable]) : Seq[Zippable] = {
+      //sort accordingly to the required convention
+      def sortFile(files: Array[java.io.File]) : Array[java.io.File] = {
+        files.sortWith { case(file1, file2) => 
+          (file1.isDirectory, file2.isDirectory) match {
+            case (true, true) | (false, false) => file1.getName.compareTo(file2.getName) <= 0
+            case (true, false) => false
+            case (false, true) => true
+          }
+        }
+      }
+      
       if(f.isDirectory) {
         val c = existing :+ Zippable(getPath(f), None)
-        (c /: f.listFiles) { (seq,ff) =>
+        
+        
+        (c /: sortFile(f.listFiles)) { (seq,ff) =>
           recZippable(ff,seq)
         }
       } else {
