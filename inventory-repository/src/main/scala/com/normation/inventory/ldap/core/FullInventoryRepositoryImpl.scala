@@ -52,7 +52,7 @@ trait LDAPFullInventoryRepository extends FullInventoryRepository[Seq[LDIFChange
 class FullInventoryRepositoryImpl(
     inventoryDitService:InventoryDitService,
     mapper:InventoryMapper,
-    ldap:LDAPConnectionProvider
+    ldap:LDAPConnectionProvider[RwLDAPConnection]
 ) extends MachineRepository[Seq[LDIFChangeRecord]] with LDAPFullInventoryRepository with Loggable {
 
 
@@ -214,7 +214,7 @@ class FullInventoryRepositoryImpl(
   }
 
   override def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
-    def moveMachine(con:LDAPConnection) : Box[Seq[LDIFChangeRecord]] = {
+    def moveMachine(con:RwLDAPConnection) : Box[Seq[LDIFChangeRecord]] = {
       //given the sequence of the move (start with node, then machine)
       //when that method is called, the node is already in "into" branch
       getMachineId(id, into) match {
