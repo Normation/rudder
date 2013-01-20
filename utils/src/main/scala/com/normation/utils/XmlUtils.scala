@@ -39,8 +39,8 @@ object XmlUtils {
    */
   def getUniqueNode(root:Node, nodeName:String, subtree:Boolean = false) : Box[Node] = {
     def checkCardinality(nodes:NodeSeq) : Box[Node] = {
-      if(nodes.size < 1) Failure("No node found for name %s in %s children with scope %s".format(nodeName, root, if(subtree) "subtree" else "one level"))
-      else if(nodes.size > 1 ) Failure("More than one node found for name %s in %s children with scope %s".format(nodeName, root, if(subtree) "subtree" else "one level"))
+      if(nodes.size < 1) Failure(s"No node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}")
+      else if(nodes.size > 1 ) Failure(s"More than one node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}")
       else Full(nodes.head)
     }
     
@@ -79,12 +79,12 @@ object XmlUtils {
                Full(XML.load(is))
              } catch {
                case e: SAXParseException =>0
-                 Failure("Unexpected issue with the XML file %s: %s".format(name, e.getMessage), Full(e), Empty)
+                 Failure(s"Unexpected issue with the XML file ${name}: ${e.getMessage}", Full(e), Empty)
                case e: java.net.MalformedURLException =>
                  Failure("XML file not found: " + name, Full(e), Empty)
              }
       nonEmpty <- if (doc.isEmpty) { 
-                    Failure("Error when parsing XML file: '%s': the parsed document is empty".format(name))
+                    Failure(s"Error when parsing XML file: '${name}': the parsed document is empty")
                   } else {
                     Full("ok")
                   }

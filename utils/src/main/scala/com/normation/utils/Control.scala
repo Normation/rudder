@@ -34,7 +34,7 @@ object Control {
    * Transform a TraversableOnce[Box] into a Box[Iterable]
    * note: I don't how to say T<:TravesableOnce , T[Box[U]] => Box[T[U]]
    */ 
-  implicit def boxSequence[U](seq:Seq[Box[U]]) : Box[Seq[U]] = {
+  def boxSequence[U](seq:Seq[Box[U]]) : Box[Seq[U]] = {
     val buf = scala.collection.mutable.Buffer[U]()
     seq.foreach {
       case Full(u) => buf += u
@@ -79,7 +79,7 @@ object Control {
     var errors = Option.empty[Failure]
     seq.foreach { u => f(u) match {
       case e:EmptyBox => 
-        val msg = "Error processing %s".format(u)
+        val msg = s"Error processing ${u}"
         errors match {
           case None => errors = Some(e ?~! msg)
           case Some(f) => errors = Some(Failure(msg, Empty, Full(f)))
@@ -98,7 +98,7 @@ object Control {
    * 
    * for {
    *   processingOk <- pipeline(processors, initialReport) { case(processor, report) =>
-   *     processor(report) ?~! "Error when processing report with processor '%s'".format(processor.id)
+   *     processor(report) ?~! s"Error when processing report with processor '${processor.id}'"
    *   }
    * } yield { processingOk } //match on Failure / Full(report)
    */

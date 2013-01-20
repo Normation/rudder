@@ -59,14 +59,14 @@ object Utils extends Loggable {
         if(directory.isDirectory) {
           if(directory.canWrite) {
             Full(directory)
-          } else Failure("The directory '%s' has no write permission, please use another directory".format(directory.getPath))
+          } else Failure(s"The directory '${directory.getPath}' has no write permission, please use another directory")
         } else Failure("File at '%s' is not a directory, please change configuration".format(directory.getPath))
       } else if(directory.mkdirs) {
-        logger.debug("Creating missing directory '%s'".format(directory.getPath))
+        logger.debug(s"Creating missing directory '${directory.getPath}'")
         Full(directory)
-      } else Failure("Directory '%s' does not exists and can not be created, please use another directory".format(directory.getPath))
+      } else Failure(s"Directory '${directory.getPath}' does not exists and can not be created, please use another directory")
     } catch {
-      case ioe:IOException => Failure("Exception when checking directory '%s': '%s'".format(directory.getPath,ioe.getMessage))
+      case ioe:IOException => Failure(s"Exception when checking directory '${directory.getPath}': '${ioe.getMessage}'")
     }
   }
   

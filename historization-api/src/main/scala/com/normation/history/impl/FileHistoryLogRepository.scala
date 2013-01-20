@@ -81,7 +81,7 @@ class FileHistoryLogRepository[ID,T](
   private def root() : Box[File] = {
     for {
       dir <- tryo(new File(rootDir))
-      isValid <-  if(dir.exists && !dir.isDirectory) Failure("'%s' exists and is not a directory".format(dir.getAbsolutePath)) else Full("OK")
+      isValid <-  if(dir.exists && !dir.isDirectory) Failure(s"'${dir.getAbsolutePath}' exists and is not a directory") else Full("OK")
       isCreated <- if(!dir.exists) tryo(dir.mkdirs) else Full("OK")
     } yield {
       dir
@@ -93,7 +93,7 @@ class FileHistoryLogRepository[ID,T](
     for {
       r <- root
       dir <- tryo(new File(r, converter.idToFilename(id)))
-      isValid <- if(dir.exists && !dir.isDirectory) Failure("'%s' exists and is not a directory".format(dir.getAbsolutePath)) else Full("OK")
+      isValid <- if(dir.exists && !dir.isDirectory) Failure(s"'${dir.getAbsolutePath}' and is not a directory") else Full("OK")
       isCreated <- if(!dir.exists) tryo(dir.mkdirs) else Full("OK")
     } yield {
       dir
@@ -119,7 +119,7 @@ class FileHistoryLogRepository[ID,T](
       case null | "" => 
         Failure("History log name can not be null nor empty")
       case s if(s.contains(System.getProperty("file.separator"))) =>
-        Failure("UUID can not contains the char '%s'".format(System.getProperty("file.separator")))
+        Failure(s"UUID can not contains the char '${System.getProperty("file.separator")}'")
       case s => 
         val hlog = DefaultHLog(id,datetime,data)
         

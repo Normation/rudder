@@ -62,7 +62,7 @@ class TestZipUtils extends Specification with Loggable {
       ZipUtils.unzip(zip, directory) match {
         case Full(_) => success
         case eb:EmptyBox => 
-          val e = (eb ?~! "Error when unzipping file into '%s'".format(directory.getPath))
+          val e = (eb ?~! s"Error when unzipping file into '${directory.getPath}'")
           logger.debug(e)
           failure(e.messageChain)
       }
