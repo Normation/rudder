@@ -63,6 +63,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
       <version>${rudder-version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-actors</artifactId>
+      <version>${scala-version}</version>
+    </dependency>
+
     <!-- Compile dependencies -->
     <dependency>
       <groupId>commons-fileupload</groupId>

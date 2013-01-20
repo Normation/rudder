@@ -104,7 +104,7 @@ class InventoryMapper(
       releaseDate = e.getAsGTime(A_RELEASE_DATE) map { _.dateTime }
       editor      = e(A_EDITOR) map { x => new SoftwareEditor(x) }
       //licence
-      val lic = e(A_LICENSE_NAME) map { name =>
+      lic = e(A_LICENSE_NAME) map { name =>
         License(
             name
           , description    = e(A_LICENSE_DESC)

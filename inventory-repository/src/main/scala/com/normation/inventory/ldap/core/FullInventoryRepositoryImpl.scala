@@ -88,7 +88,7 @@ class FullInventoryRepositoryImpl(
   override def getNodes(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[Seq[NodeId]] = {
     val entries = (for {
       con <- ldap
-      val entries = con.searchOne(nodeDn(inventoryStatus), EQ(A_CONTAINER_DN, dn(id, inventoryStatus).toString()), A_NODE_UUID)
+      entries = con.searchOne(nodeDn(inventoryStatus), EQ(A_CONTAINER_DN, dn(id, inventoryStatus).toString()), A_NODE_UUID)
     } yield {
       entries
     })
