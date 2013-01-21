@@ -38,7 +38,6 @@ package ldap
 import com.normation.rudder.domain.nodes._
 import com.normation.utils.Control._
 import net.liftweb.common._
-
 import com.normation.ldap.sdk._
 import com.unboundid.ldap.sdk.{DN, LDAPException,ResultCode}
 import com.normation.ldap.sdk.{LDAPConnectionProvider,LDAPConnection,LDAPEntry,BuildFilter}
@@ -48,6 +47,7 @@ import com.normation.rudder.domain.{RudderDit,RudderLDAPConstants}
 import RudderLDAPConstants._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.PolicyInstanceTarget
+import scala.collection.immutable.SortedMap
 
 
 class LDAPGroupCategoryRepository(
@@ -182,6 +182,20 @@ class LDAPGroupCategoryRepository(
      }
   }
 
+  /**
+   * Return the list of parents for that category, the nearest parent
+   * first, until the root of the library.
+   * The the last parent is not the root of the library, return a Failure.
+   * Also return a failure if the path to top is broken in any way.
+   */
+  def getParentsForCategory(id:NodeGroupCategoryId, root: NodeGroupCategory) : Box[List[NodeGroupCategory]] = {
+    //TODO : LDAPify that, we can have the list of all DN from id to root at the begining
+    if(id == root.id) Full(Nil)
+    else getParentGroupCategory(id) match {
+        case Full(parent) => getParentsForCategory(parent.id, root).map(parents => parent :: parents)
+        case e:EmptyBox => e
+    }
+  }
 
 
   /**
@@ -287,6 +301,34 @@ class LDAPGroupCategoryRepository(
     }
   }
   
+  /**
+   * Get all pairs of (categoryid, category)
+   * in a map in which keys are the parent category of the
+   * the template. The map is sorted by categories:
+   * SortedMap {
+   *   "/"           -> [root]
+   *   "/cat1"       -> [cat1_details]
+   *   "/cat1/cat11" -> [/cat1/cat11]
+   *   "/cat2"       -> [/cat2_details]
+   *   ... 
+   */
+  def getCategoryHierarchy() : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
+    for {
+      allCats      <- getAllNonSystemCategories()
+      val rootCat  = getRootCategory
+      catsWithUPs  <- sequence(allCats) { ligthCat =>
+                        for {
+                          category <- getGroupCategory(ligthCat.id)
+                          parents  <- getParentsForCategory(ligthCat.id, rootCat)
+                        } yield {
+                          ( (category.id :: parents.map(_.id)).reverse, category )
+                        }
+                      }
+    } yield {
+      implicit val ordering = GroupCategoryRepositoryOrdering
+      SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]() ++ catsWithUPs
+    }
+  }
   
   /**
    * Delete the category with the given id.
