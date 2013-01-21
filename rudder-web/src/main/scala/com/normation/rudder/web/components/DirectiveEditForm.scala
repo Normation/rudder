@@ -413,21 +413,10 @@ class DirectiveEditForm(
             successPopup
           } else {
             val modId = ModificationId(uuidGen.newUuid)
-            (for {
-              deleted <- dependencyService.cascadeDeleteDirective(
-                             directive.id
-                           , modId
-                           , CurrentUser.getActor
-                           , crReasons.map(_.is)
-                         )
-              deploy  <- {
-                           asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
-                           Full("Deployment request sent")
-                         }
-            } yield {
-              deploy
-            }) match {
+            dependencyService.cascadeDeleteDirective(directive.id, modId, CurrentUser.getActor, crReasons.map(_.is)) match {
               case Full(x) =>
+                asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+                Full("Deployment request sent")
                 val nSeq = <div id={ htmlId_policyConf }>Directive successfully deleted</div>
                 onRemoveSuccessCallback() & SetHtml(htmlId_policyConf, nSeq) & successPopup
               case Empty => //arg.
@@ -667,16 +656,14 @@ class DirectiveEditForm(
 
   private[this] def saveAndDeployDirective(directive: Directive, why:Option[String]): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
-    (for {
-      saved <- directiveRepository.saveDirective(activeTechnique.id, directive, modId, CurrentUser.getActor, why)
-      deploy <- {
-        asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
-        Full("Deployment request sent")
-      }
-    } yield {
-      deploy
-    }) match {
-      case Full(x) => onSuccess(directive)
+     directiveRepository.saveDirective(activeTechnique.id, directive, modId, CurrentUser.getActor, why) match {
+      case Full(optChanges) =>
+        optChanges match {
+          case Some(_) => // There is a modification diff, launch a deployment.
+            asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+          case None => // No change, don't launch a deployment
+        }
+        onSuccess(directive)
       case Empty => 
         formTracker.addFormError(error("An error occurred while saving the Directive"))
         onFailure
