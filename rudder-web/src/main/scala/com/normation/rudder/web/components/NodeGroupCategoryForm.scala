@@ -51,6 +51,7 @@ import com.normation.rudder.repository._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
+import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 
 /**
  * The form that deals with updating the server group category
@@ -69,9 +70,11 @@ class NodeGroupCategoryForm(
   var _nodeGroupCategory = nodeGroupCategory.copy()
 
   val groupCategoryRepository = inject[NodeGroupCategoryRepository]
+  
   private[this] val uuidGen = inject[StringUuidGenerator]
+  
+  private[this] val categoryHierarchyDisplayer = inject[CategoryHierarchyDisplayer]
 
-  val categories = groupCategoryRepository.getAllNonSystemCategories.open_!.filter(x => x.id != _nodeGroupCategory.id)
   val parentCategory = groupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id )
   
   val parentCategoryId = parentCategory match {
@@ -220,7 +223,7 @@ class NodeGroupCategoryForm(
    */
   private[this] val piContainer = parentCategory match {
     case x:EmptyBox => 
-      new WBSelectField("Parent category", 
+      new WBSelectField("Parent category: ", 
         Seq(_nodeGroupCategory.id.value -> _nodeGroupCategory.name), 
         _nodeGroupCategory.id .value, 
         Seq("disabled"->"true")
@@ -229,9 +232,10 @@ class NodeGroupCategoryForm(
       }
     case Full(category) => 
       new WBSelectField(
-        "Parent category", 
-        categories.map(x => (x.id.value -> x.name)), 
-        parentCategoryId) {
+        "Parent category" 
+      , categoryHierarchyDisplayer.getCategoriesHierarchy().
+            map { case (id, name) => (id.value -> name)}
+      , parentCategoryId)  {
           override def className = "rudderBaseFieldSelectClassName"
       }    
   }
