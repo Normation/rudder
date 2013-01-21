@@ -952,7 +952,7 @@ class AppConfig extends Loggable {
   def logDisplayer: LogDisplayer = new com.normation.rudder.web.services.LogDisplayer(reportsRepository, ldapDirectiveRepository, ldapRuleRepository)
 
   @Bean
-  def categoryHierarchyDisplayer: CategoryHierarchyDisplayer = new com.normation.rudder.web.services.CategoryHierarchyDisplayer(ldapGroupCategoryRepository)
+  def categoryHierarchyDisplayer: CategoryHierarchyDisplayer = new com.normation.rudder.web.services.CategoryHierarchyDisplayer(ldapNodeGroupCategoryRepository)
   
   @Bean
   def dyngroupUpdaterBatch: UpdateDynamicGroups = new UpdateDynamicGroups(
