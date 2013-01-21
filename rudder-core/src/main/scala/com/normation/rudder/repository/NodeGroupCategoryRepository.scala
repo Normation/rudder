@@ -40,6 +40,19 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.utils.Utils
 import com.normation.eventlog.EventActor
+import scala.collection.immutable.SortedMap
+
+/**
+ * Here is the ordering for a List[NodeGroupCategoryId]
+ * MUST start by the root !
+ */
+object GroupCategoryRepositoryOrdering extends Ordering[List[NodeGroupCategoryId]] {
+  type ID = NodeGroupCategoryId
+  override def compare(x:List[ID],y:List[ID]) = {
+    Utils.recTreeStringOrderingCompare(x.map( _.value ), y.map( _.value ))
+
+  }
+}
 
 
 /**
@@ -60,6 +73,20 @@ trait NodeGroupCategoryRepository {
    */
   def getRootCategory() : NodeGroupCategory
 
+  /**
+   * Get all pairs of (categoryid, category)
+   * in a map in which keys are the parent category of the
+   * the template. The map is sorted by categories:
+   * SortedMap {
+   *   "/"           -> [root]
+   *   "/cat1"       -> [cat1_details]
+   *   "/cat1/cat11" -> [/cat1/cat11]
+   *   "/cat2"       -> [/cat2_details]
+   *   ... 
+   */
+  def getCategoryHierarchy : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]]
+
+  
   /**
    * retrieve the hierarchy of group category/group containing the selected node
    * From a category id (should start from root) return Empty if no children nor items contains the targets, Full(category) otherwise, with both

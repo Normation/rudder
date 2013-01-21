@@ -371,17 +371,10 @@ class DirectiveEditForm(
             onRemoveSuccessCallback() & SetHtml(htmlId_policyConf, nSeq) &
             successPopup
           } else {
-            (for {
-              deleted <- dependencyService
-                .cascadeDeleteDirective(directive.id, CurrentUser.getActor, crReasons.map(_.is))
-              deploy <- {
+            dependencyService.cascadeDeleteDirective(directive.id, CurrentUser.getActor, crReasons.map(_.is)) match {
+              case Full(x) =>
                 asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
                 Full("Deployment request sent")
-              }
-            } yield {
-              deploy
-            }) match {
-              case Full(x) =>
                 val nSeq = <div id={ htmlId_policyConf }>Directive successfully deleted</div>
                 onRemoveSuccessCallback() & SetHtml(htmlId_policyConf, nSeq) & successPopup
               case Empty => //arg.
@@ -608,17 +601,14 @@ class DirectiveEditForm(
   }
 
   private[this] def saveAndDeployDirective(directive: Directive, why:Option[String]): JsCmd = {
-    (for {
-      saved <- directiveRepository
-                 .saveDirective(activeTechnique.id, directive, CurrentUser.getActor, why)
-      deploy <- {
-        asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
-        Full("Deployment request sent")
-      }
-    } yield {
-      deploy
-    }) match {
-      case Full(x) => onSuccess(directive)
+     directiveRepository.saveDirective(activeTechnique.id, directive, CurrentUser.getActor, why) match {
+      case Full(optChanges) =>
+        optChanges match {
+          case Some(_) => // There is a modification diff, launch a deployment.
+            asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
+          case None => // No change, don't launch a deployment
+        }
+        onSuccess(directive)
       case Empty => 
         formTracker.addFormError(error("An error occurred while saving the Directive"))
         onFailure
