@@ -66,6 +66,7 @@ import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
 import com.normation.utils.HashcodeCaching
 import com.normation.plugins.SpringExtendableSnippet
 import com.normation.plugins.SnippetExtensionKey
+import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 
 object NodeGroupForm {
   
@@ -144,11 +145,13 @@ class NodeGroupForm(
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
   private[this] val userPropertyService = inject[UserPropertyService]
   
-  val categories = groupCategoryRepository.getAllNonSystemCategories
   
   //the current nodeGroupCategoryForm component
   private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm] 
   
+  private[this] val categoryHierarchyDisplayer = inject[CategoryHierarchyDisplayer]
+
+
   var parentCategory = Option.empty[Box[NodeGroupCategory]]
 
   var parentCategoryId = ""
@@ -334,32 +337,24 @@ class NodeGroupForm(
         onFailureRemovePopup
       } else {
         JsRaw("$.modal.close();") &
-        {
-          (for {
-            deleted <- dependencyService.cascadeDeleteTarget(target, CurrentUser.getActor, crReasonsRemovePopup.map(_.is))
-            deploy <- {
-              asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
-              Full("Deployment request sent")
-            }
-          } yield {
-            deploy
-          }) match {
-            case Full(x) =>
-              onSuccessCallback(x) &
-              SetHtml(htmlIdCategory, NodeSeq.Empty ) &
-              //show success popup
-              successPopup &
-              initJs
-            case Empty => //arg.
-              formTrackerRemovePopup.addFormError(error("An error occurred while deleting the group (no more information)"))
-              onFailure
-            case f@Failure(m,_,_) =>
-              val msg = "An error occurred while saving the group: "
-              logger.debug( f ?~! "An error occurred while saving the group: " , f)
-              formTrackerRemovePopup.addFormError(error(m))
-              onFailure
-          }
-        }
+        { dependencyService.cascadeDeleteTarget(target, CurrentUser.getActor, crReasonsRemovePopup.map(_.is)) match {
+          case Full(x) =>
+            // the node group was deleted, deploy
+            asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
+            onSuccessCallback("The deployment has been requested") &
+            SetHtml(htmlIdCategory, NodeSeq.Empty ) &
+            //show success popup
+            successPopup &
+            initJs
+          case Empty => //arg.
+            formTracker.addFormError(error("An error occurred while deleting the group (no more information)"))
+            onFailure
+          case f@Failure(m,_,_) =>
+            val msg = "An error occurred while saving the group: "
+            logger.debug( f ?~! "An error occurred while saving the group: " , f)
+            formTracker.addFormError(error(msg + m))
+            onFailure
+        } }
       }
     }
 
@@ -430,7 +425,7 @@ class NodeGroupForm(
   }
   
   private[this] val piContainer = new WBSelectField("Group container", 
-      (categories.open_!.map(x => (x.id.value -> x.name))),
+      (categoryHierarchyDisplayer.getCategoriesHierarchy().map { case (id, name) => (id.value -> name)}),
       parentCategoryId) {
   }
   
@@ -619,14 +614,20 @@ class NodeGroupForm(
                "Error when moving NodeGroup %s ('%s') to '%s'".format(originalNodeGroup.id, originalNodeGroup.name, container)
       saved <- nodeGroupRepository.update(newNodeGroup, CurrentUser.getActor, crReasons.map(_.is)) ?~! 
                "Error when updating the group %s".format(originalNodeGroup.id)
-      deploy <- {
-        asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
-        Full("Deployment request sent")
-      }
     } yield {
-      saved
+      (moved,saved)
     }) match {
-        case Full(x) =>
+        case Full((moved,saved)) =>
+          moved match {
+            case None => // OK! move should always be None
+            case Some(change) =>
+              logger.warn("moving a group should not produce a change, which is %s".format(change))
+          }
+          saved match {
+            case Some(change) => // There is a modification diff, launch a deployment.
+              asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
+            case None => // No change, do not deploy
+          }
           _nodeGroup = Some(newNodeGroup)
 
           setNodeGroupCategoryForm

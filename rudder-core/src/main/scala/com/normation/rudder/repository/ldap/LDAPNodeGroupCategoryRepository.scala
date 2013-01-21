@@ -63,20 +63,13 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.repository.GitNodeGroupCategoryArchiver
 import com.normation.rudder.repository.NodeGroupCategoryRepository
 import com.normation.utils.Control._
-import com.unboundid.ldap.sdk.DN
-import com.unboundid.ldap.sdk.LDAPException
-import com.unboundid.ldap.sdk.ResultCode
-import net.liftweb.common.Box
-import net.liftweb.common.Empty
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
+import com.unboundid.ldap.sdk._
+import net.liftweb.common._
 import com.normation.utils.ScalaReadWriteLock
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog.EventActor
-
+import scala.collection.immutable.SortedMap
 
 class LDAPNodeGroupCategoryRepository(
     rudderDit         : RudderDit
@@ -218,6 +211,20 @@ class LDAPNodeGroupCategoryRepository(
      }
   }
 
+  /**
+   * Return the list of parents for that category, the nearest parent
+   * first, until the root of the library.
+   * The the last parent is not the root of the library, return a Failure.
+   * Also return a failure if the path to top is broken in any way.
+   */
+  def getParentsForCategory(id:NodeGroupCategoryId, root: NodeGroupCategory) : Box[List[NodeGroupCategory]] = {
+    //TODO : LDAPify that, we can have the list of all DN from id to root at the begining
+    if(id == root.id) Full(Nil)
+    else getParentGroupCategory(id) match {
+        case Full(parent) => getParentsForCategory(parent.id, root).map(parents => parent :: parents)
+        case e:EmptyBox => e
+    }
+  }
 
 
   /**
@@ -370,6 +377,34 @@ class LDAPNodeGroupCategoryRepository(
     } }
   }
   
+  /**
+   * Get all pairs of (categoryid, category)
+   * in a map in which keys are the parent category of the
+   * the template. The map is sorted by categories:
+   * SortedMap {
+   *   "/"           -> [root]
+   *   "/cat1"       -> [cat1_details]
+   *   "/cat1/cat11" -> [/cat1/cat11]
+   *   "/cat2"       -> [/cat2_details]
+   *   ... 
+   */
+  def getCategoryHierarchy : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
+    for {
+      allCats      <- getAllNonSystemCategories()
+      val rootCat  = getRootCategory
+      catsWithUPs  <- sequence(allCats) { ligthCat =>
+                        for {
+                          category <- getGroupCategory(ligthCat.id)
+                          parents  <- getParentsForCategory(ligthCat.id, rootCat)
+                        } yield {
+                          ( (category.id :: parents.map(_.id)).reverse, category )
+                        }
+                      }
+    } yield {
+      implicit val ordering = GroupCategoryRepositoryOrdering
+      SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]() ++ catsWithUPs
+    }
+  }
   
   /**
    * Delete the category with the given id.

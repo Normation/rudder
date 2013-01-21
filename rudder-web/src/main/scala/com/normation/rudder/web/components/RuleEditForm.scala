@@ -412,18 +412,11 @@ class RuleEditForm(
         onFailureRemovePopup
       } else {
         JsRaw("$.modal.close();") & 
-        { 
-          (for {
-            save   <- ruleRepository.delete(rule.id, CurrentUser.getActor, 
-                        crReasonsRemovePopup.map( _.is))
-            deploy <- {
-              asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
-              Full("Deployment request sent")
-            }
-          } yield {
-            save 
-          }) match {
-            case Full(x) => 
+        { ruleRepository.delete(rule.id, CurrentUser.getActor, 
+                        crReasonsRemovePopup.map( _.is)) match { 
+            case Full(x) =>
+            // There is a delete diff, deploy
+            asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
               onSuccessCallback() & 
               SetHtml("editRuleZone",
                 <div id="editRuleZone">Rule successfully deleted</div>
@@ -632,25 +625,22 @@ class RuleEditForm(
   }
   
   private[this] def saveAndDeployRule(rule:Rule, reason: Option[String]) : JsCmd = {
-      (for {
-        save <- ruleRepository.update(rule, CurrentUser.getActor, reason)
-        deploy <- {
-          asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
-          Full("Deployment request sent")
+    ruleRepository.update(rule, CurrentUser.getActor, reason) match {
+      case Full(optDiff) =>
+        optDiff match {
+          case Some(_) => // There is a modification diff, launch a deployment.
+            asyncDeploymentAgent ! AutomaticStartDeployment(RudderEventActor)
+          case None => // No change, don't launch a deployment
         }
-      } yield {
-        save 
-      }) match {
-        case Full(x) => 
-          this.rule = rule;
-          onSuccess
-        case Empty => //arg. 
-          formTracker.addFormError(error("An error occurred while saving the Rule"))
-          onFailure
-        case f:Failure =>
-          formTracker.addFormError(error(f.messageChain))
-          onFailure
-      }      
+        this.rule = rule;
+        onSuccess
+      case Empty => //arg. 
+        formTracker.addFormError(error("An error occurred while saving the Rule"))
+        onFailure
+      case f:Failure =>
+        formTracker.addFormError(error(f.messageChain))
+        onFailure
+      }     
   }
   
   private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
