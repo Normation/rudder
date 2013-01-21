@@ -46,7 +46,7 @@ class CategoryHierarchyDisplayer(
     ) {
 
   def getCategoriesHierarchy() : Seq[(NodeGroupCategoryId, String)] = {
-    groupCategoryRepository.getCategoryHierarchy(false) match {
+    groupCategoryRepository.getCategoryHierarchy match {
       case Full(categories) => categories.toSeq.map {
         case (list, nodeGroupCategory) => 
           list.size match {

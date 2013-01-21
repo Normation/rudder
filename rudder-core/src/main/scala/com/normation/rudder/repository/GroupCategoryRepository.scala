@@ -71,7 +71,7 @@ trait GroupCategoryRepository {
    *   "/cat2"       -> [/cat2_details]
    *   ... 
    */
-  def getCategoryHierarchy() : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] 
+  def getCategoryHierarchy : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]]
 
   
   /**
