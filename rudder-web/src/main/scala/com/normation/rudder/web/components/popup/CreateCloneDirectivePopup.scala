@@ -82,7 +82,7 @@ object CreateCloneDirectivePopup {
       <div class="popupButton">
         <span>
           <button id="cancel" class="simplemodal-close">Cancel</button>
-          <button id="save">Configure</button>
+          <button id="save">Clone</button>
         </span>
      </div>
    </div>
@@ -124,7 +124,7 @@ class CreateCloneDirectivePopup(
       } } &
       "#notifications" #> updateAndDisplayNotifications() &
       "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"))&
-      "#save" #> (SHtml.ajaxSubmit("Configure", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3"))
+      "#save" #> (SHtml.ajaxSubmit("Clone", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3"))
     )(html ++ Script(OnLoad(JsRaw("correctButtons();"))))
     
   }
