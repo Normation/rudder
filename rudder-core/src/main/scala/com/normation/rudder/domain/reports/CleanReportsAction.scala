@@ -34,17 +34,17 @@ abstract class CleanReportAction {
 }
 
 case class ArchiveAction(dbManager:DatabaseManager,dbCleaner : AutomaticReportsCleaning) extends CleanReportAction {
-  val name = "Archive"
-  val past = "Archived"
-  val continue = "Archiving"
+  val name = "archive"
+  val past = "archived"
+  val continue = "archiving"
   def act(date:DateTime) = dbManager.archiveEntries(date)
   val actor = dbCleaner.archiver
 }
 
 case class DeleteAction(dbManager:DatabaseManager,dbCleaner : AutomaticReportsCleaning) extends CleanReportAction {
-  val name = "Delete"
-  val past = "Deleted"
-  val continue = "Deleting"
+  val name = "delete"
+  val past = "deleted"
+  val continue = "deleting"
   def act(date:DateTime) = dbManager.deleteEntries(date)
   val actor = dbCleaner.deleter
 }
