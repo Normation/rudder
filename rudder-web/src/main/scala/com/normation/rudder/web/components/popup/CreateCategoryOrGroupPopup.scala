@@ -65,6 +65,7 @@ import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 
 /**
  * Create a group or a category
@@ -93,9 +94,12 @@ class CreateCategoryOrGroupPopup(
   private[this] val nodeGroupRepository = inject[NodeGroupRepository]
   private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
   private[this] val nodeInfoService = inject[NodeInfoService]
-  private[this] val categories = groupCategoryRepository.getAllNonSystemCategories
+  private[this] val categoryHierarchyDisplayer = inject[CategoryHierarchyDisplayer]
   private[this] val uuidGen = inject[StringUuidGenerator]
   private[this] val userPropertyService = inject[UserPropertyService]
+  
+  var createContainer = false //issue #1190 always create a group by default
+
   
   def dispatch = {
     case "popupContent" => { _ => popupContent }
@@ -200,7 +204,7 @@ class CreateCategoryOrGroupPopup(
   }
 
   private[this] val piContainer = new WBSelectField("Parent category",
-      (categories.open_!.map(x => (x.id.value -> x.name))),
+      (categoryHierarchyDisplayer.getCategoriesHierarchy().map { case (id, name) => (id.value -> name)}),
       "") {
     override def errorClassName = "threeColErrors"
     override def className = "rudderBaseFieldSelectClassName"
