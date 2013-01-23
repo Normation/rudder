@@ -374,6 +374,27 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
         Failure("Could not fetch last hundred reports in the database. Reason is : %s".format(e.getMessage()))
       }
   }
+
+  def getReportsWithLowestId : Box[Option[(Reports,Int)]] = {
+    jdbcTemplate.query(s"${idQuery} order by id asc limit 1",
+          ReportsWithIdMapper).toSeq match {
+      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
+      case seq => Full(seq.headOption)
+
+    }
+  }
+
+  def getReportsfromId(id : Int, endDate : DateTime) : Box[Seq[(Reports,Int)]] = {
+    val query = s"${idQuery} and id > ${id} and executionTimeStamp <= '${endDate.toString("yyyy-MM-dd")}' order by executionTimeStamp asc"
+      try {
+        Full(jdbcTemplate.query(query,ReportsWithIdMapper).toSeq)
+      } catch {
+        case e:DataAccessException =>
+        logger.error("Could not fetch last hundred reports in the database. Reason is : %s".format(e.getMessage()))
+        Failure("Could not fetch last hundred reports in the database. Reason is : %s".format(e.getMessage()))
+      }
+  }
+
   def getErrorReportsBeetween(lower : Int, upper:Int,kinds:List[String]) : Box[Seq[Reports]] = {
     if (lower>=upper)
       Empty
