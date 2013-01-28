@@ -1125,7 +1125,6 @@ class RuleEditForm(
                     val severity = ReportType.getSeverityFromStatus(directiveStatus.directiveReportType)
                     ( "#status [class+]" #> severity.replaceAll(" ", "") &
                       "#status *" #> <center>{severity}</center> &
-                      "#plus *" #> <center><img src="/images/details_open.png"/></center> &
                       "#details *" #> components &
                       "#directive [class+]" #> "listopen" &
                       "#directive *" #>{
@@ -1604,11 +1603,14 @@ class RuleEditForm(
             case Full(nodeInfo)  => {
               val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(nodeReport._2.map(_._4)))
               ( "#node *" #>
-                <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeReport._1.value)}>
-                  <span class="curspoint noexpand">
-                    {nodeInfo.hostname}
-                  </span>
-                </a>  &
+                <span class="unfoldable"> {nodeInfo.hostname}
+                  { val xml = <img   src="/images/icDetails.png" style="margin-bottom:-3px" class="noexpand"/>
+                    SHtml.a( {()=> RedirectTo("""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeReport._1.value))}
+                           , xml
+                           , ("style","padding-left:4px")
+                           , ("class","noexpand"))
+                  }
+                 </span> &
                 "#status *" #>  <center>{status}</center> &
                 "#status [class+]" #>  status.replaceAll(" ","") &
                 "#details *" #> showComponentReport(nodeReport._2)
@@ -1636,7 +1638,6 @@ class RuleEditForm(
               valueReports.flatMap{ report =>
                  val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(report._2.map(_._3)))
                 ( "#component *" #> report._1 &
-                  "#componentPlus *" #> <center><img src="/images/details_open.png"/></center> &
                   "#status *" #>  <center>{status}</center> &
                   "#status [class+]" #>  status.replaceAll(" ","") &
                   "#details *" #>  showValueReport(report._2)
