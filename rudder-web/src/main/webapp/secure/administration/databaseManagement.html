@@ -1,7 +1,7 @@
 <lift:surround with="menu/menu-administration" at="content">
 
 <head>
-  <title>Rudder - Database Management</title>
+  <title>Rudder - Reports database</title>
   <script type="text/javascript">
     // <![CDATA[
     var initReportDatepickler = function(selector) {
@@ -19,7 +19,7 @@
 </head>
 
   <div class="portlet">
-    <div class="portlet-header">Database management</div>
+    <div class="portlet-header">Reports database</div>
     <div class="portlet-content">
 
       <div class="intro">
@@ -174,11 +174,6 @@
                 <td colspan="2">
                   <form class="lift:form.ajax">
                     <div>
-                    <div id="cleanResult" style="display:none">
-                      <img src="/images/icWarn.png" alt="Warning!" height="25" width="25" class="warnicon"
-                      style="vertical-align: middle; padding: 0px 0px 2px 0px;"/>
-                      <b id="cleanResultText"></b>
-                    </div>
                     <span id="cleanParam">
                       <span id="modeSelector"/> all reports older than: <input
                         id="reportFromDate" value="" />
@@ -190,6 +185,12 @@
                       <lift:error_msg class="error" />
                     </lift:Msgs>
                   </form>
+                  <br/>
+                <div id="cleanResult" style="display:none; float:left">
+                  <img src="/images/icValid.jpg" alt="Warning!" height="25" width="25" class="warnicon"
+                    style="vertical-align: middle; padding: 0px 0px 2px 0px;"/>
+                  <b id="cleanResultText"></b>
+                </div>
                 </td>
               </tr>
             </table>

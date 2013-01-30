@@ -309,18 +309,21 @@ case class AutomaticReportsCleaning(
 
     def isIdle : Boolean = currentState == IdleCleaner
 
-    private[this] def activeCleaning(date : DateTime, message : DatabaseCleanerMessage) : Unit = {
+    private[this] def formatDate(date:DateTime) : String = date.toString("yyyy-MM-dd HH:mm")
+
+    private[this] def activeCleaning(date : DateTime, message : DatabaseCleanerMessage, kind:String) : Unit = {
+      val formattedDate = formatDate(date)
       cleanaction.act(date) match {
         case eb:EmptyBox =>
           // Error while cleaning, should launch again
-          reportLogger.error("Error while processing database %s, cause is : %s ".format(cleanaction.continue.toLowerCase(),eb))
-          reportLogger.error("Relaunching %s process".format(cleanaction.continue.toLowerCase()))
+          reportLogger.error("Reports database: Error while processing database %s, cause is: %s ".format(cleanaction.continue.toLowerCase(),eb))
+          reportLogger.error("Reports database: Relaunching %s %s process for all reports before %s".format(kind.toLowerCase,cleanaction.continue.toLowerCase(), formattedDate))
           (this) ! message
         case Full(res) =>
           if (res==0)
-            reportLogger.info("reports %s has nothing to do".format(cleanaction.name.toLowerCase()))
+            reportLogger.info("Reports database: %s %s completed for all reports before %s, no reports to %s".format(kind,cleanaction.name.toLowerCase(), formattedDate,cleanaction.name.toLowerCase()))
           else
-            reportLogger.info("reports %s has %s %d reports".format(cleanaction.name.toLowerCase(),cleanaction.past.toLowerCase(),res))
+            reportLogger.info("Reports database: %s %s completed for all reports before %s, %d reports %s".format(kind,cleanaction.name.toLowerCase(),formattedDate,res,cleanaction.past.toLowerCase()))
           lastRun=DateTime.now
           currentState = IdleCleaner
       }
@@ -363,25 +366,27 @@ case class AutomaticReportsCleaning(
 
           case ActiveCleaner =>
             val now = DateTime.now
+            val target = now.minusDays(ttl)
+            val formattedDate = formatDate(target)
             logger.trace("***** %s Database *****".format(cleanaction.name))
-            reportLogger.info("Automatic start %s".format(cleanaction.continue.toLowerCase()))
-            activeCleaning(now.minusDays(ttl),CleanDatabase)
+            reportLogger.info("Reports database: Automatic %s started for all reports before %s".format(cleanaction.name.toLowerCase(),formattedDate))
+            activeCleaning(target,CleanDatabase,"automatic")
 
           case IdleCleaner => ()
         }
       }
 
       case ManualLaunch(date) => {
-
+        val formattedDate = formatDate(date)
         logger.trace("***** Ask to launch manual database %s  *****".format(cleanaction.name))
         currentState match {
         case IdleCleaner =>
               currentState = ActiveCleaner
               logger.trace("***** Start manual %s database *****".format(cleanaction.name))
-              reportLogger.info("start manual %s".format(cleanaction.continue.toLowerCase()))
-              activeCleaning(date,ManualLaunch(date))
+              reportLogger.info("Reports database: Manual %s started for all reports before %s ".format(cleanaction.name.toLowerCase(), formattedDate))
+              activeCleaning(date,ManualLaunch(date),"Manual")
 
-        case ActiveCleaner => reportLogger.info("A database cleaning is already running, please try later")
+        case ActiveCleaner => reportLogger.info("Reports database: A database cleaning is already running, please try later")
         }
       }
       case _ =>
