@@ -142,7 +142,7 @@ class ReportDisplayer(
           <th class="emptyTd"><span/></th>
           <th >Directive<span/></th>
           <th >Status<span/></th>
-          <th style="border-left:0;" ></th>
+          <th ></th>
         </tr>
       </thead>
       <tbody>{ directives.flatMap { directive =>
@@ -189,7 +189,7 @@ class ReportDisplayer(
        <th class="emptyTd"><span/></th>
        <th >Component<span/></th>
        <th >Status<span/></th>
-       <th style="border-left:0;" ></th>
+       <th ></th>
      </tr>
     </thead>
     <tbody>{
@@ -215,7 +215,6 @@ class ReportDisplayer(
           <th >Value<span/></th>
           <th >Message<span/></th>
           <th >Status<span/></th>
-          <th style="border-left:0;" ></th>
         </tr>
       </thead>
       <tbody>{
@@ -332,8 +331,9 @@ class ReportDisplayer(
             var i = $.inArray( nTr, anOpen );
            if ( i === -1 ) {
              $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
-            var nDetailsRow = Otable3.fnOpen( nTr, fnFormatDetails(Otable3, nTr), 'details' );
-          $('div.innerDetails table', nDetailsRow).dataTable({
+            var details = fnFormatDetails(Otable3, nTr);
+            var nDetailsRow = Otable3.fnOpen( nTr, details, 'details' );
+            $('div.innerDetails table:first', nDetailsRow).dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" : false,
@@ -347,8 +347,7 @@ class ReportDisplayer(
               { "sWidth": "65px", "bSortable": false },
               { "sWidth": "75px" },
               { "sWidth": "345px" },
-              { "sWidth": "100px" },
-              { "sWidth": "10px" , "bSortable": false  , "bVisible":false}
+              { "sWidth": "100px" }
             ]
           });
           $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
@@ -386,7 +385,7 @@ class ReportDisplayer(
         if ( i === -1 ) {
           $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
           var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
-          var Otable3 = $('div.innerDetails table', nDetailsRow).dataTable({
+          var Otable3 = $('div.innerDetails table:first', nDetailsRow).dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" : false,
@@ -444,7 +443,7 @@ class ReportDisplayer(
          if ( i === -1 ) {
            $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
            var nDetailsRow = oTable.fnOpen( nTr, fnFormatDetails(oTable, nTr), 'details' );
-             var Otable2 =  $('div.innerDetails table:first', nDetailsRow).dataTable({
+             var Otable2 = $('div.innerDetails table:first', nDetailsRow).dataTable({
              "asStripeClasses": [ 'color1', 'color2' ],
              "bAutoWidth": false,
              "bFilter" : false,
@@ -549,7 +548,7 @@ class ReportDisplayer(
         <tr class="head tablewidth">
           <th>Rule</th>
           <th>Status<span/></th>
-		  <th style="border-left:0;" ></th>
+		  <th ></th>
         </tr>
       </thead>
       <tbody>
@@ -590,7 +589,6 @@ class ReportDisplayer(
       <td id="componentValue" class="firstTd"></td>
       <td id="message"></td>
       <td id="valueStatus" class="firstTd"></td>
-      <td/>
     </tr>
   }
 
