@@ -332,7 +332,7 @@ class UpdatePiOnActiveTechniqueEvent(
         optDirectiveArchived =  (for {
                                   directive  <- directiveRepository.getDirective(directiveId) ?~! "Can not find directive with id '%s' in repository".format(directiveId.value)
                                   technique  <- Box(techniqeRepository.get(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion))) ?~! "Can not find Technique '%s:%s'".format(activeTechnique.techniqueName.value, directive.techniqueVersion)
-                                  archivedPi <- gitDirectiveArchiver.archiveDirective(directive, technique.id.name, parents, technique.rootSection, None)
+                                  archivedPi <- gitDirectiveArchiver.archiveDirective(directive, technique.id.name, parents, technique.rootSection, gitCommit)
                                 } yield {
                                   archivedPi
                                 }) match {
@@ -390,7 +390,7 @@ class GitActiveTechniqueArchiverImpl(
       //strategy for callbaack:
       //if at least one callback is in error, we don't execute the others and the full ActiveTechnique is in error.
       //if none is in error, we are going to next step             
-      callbacks <- sequence(uptModificationCallback) { _.onArchive(activeTechnique, parents, None) }
+      callbacks <- sequence(uptModificationCallback) { _.onArchive(activeTechnique, parents, gitCommit) }
       commit    <- gitCommit match {
                      case Some((commiter, reason)) => commitAddFile(commiter, gitPath, "Archive of technique library template for technique name '%s'%s".format(activeTechnique.techniqueName.value, GET(reason)))
                      case None => Full("ok")
@@ -445,7 +445,7 @@ class GitActiveTechniqueArchiverImpl(
                            if(oldActiveTechniqueDirectory.exists) FileUtils.forceDelete(oldActiveTechniqueDirectory)
                            else "ok"
                          }
-      archived        <- archiveActiveTechnique(activeTechnique, newParents, None)
+      archived        <- archiveActiveTechnique(activeTechnique, newParents, gitCommit)
       commited        <- gitCommit match {
                            case Some((commiter, reason)) => 
                              commitMvDirectory(
