@@ -87,7 +87,7 @@ trait GitArchiverUtils extends Loggable {
    */
   def commitAddFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
     tryo {
-           logger.info("begin commit")
+      logger.debug("Add file %s from configuration repository".format(gitPath))
       gitRepo.git.add.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
       //for debugging
@@ -96,8 +96,8 @@ trait GitArchiverUtils extends Loggable {
       }
       val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
       val commit = GitCommitId(rev.getName)
-            logger.info(commit)
-      logger.info(gitModificationRepository.addCommit(commit, modId))
+      logger.debug("file %s was added in commit %s".format(gitPath,rev.getName))
+      gitModificationRepository.addCommit(commit, modId)
       commit
     }
   }
@@ -108,14 +108,15 @@ trait GitArchiverUtils extends Loggable {
    */
   def commitRmFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
     tryo {
+      logger.debug("remove file %s from configuration repository".format(gitPath))
       gitRepo.git.rm.addFilepattern(gitPath).call
       val status = gitRepo.git.status.call
       if(!status.getRemoved.contains(gitPath)) {
         logger.warn("Auto-archive git failure: not found in git removed files: '%s'. You can safelly ignore that warning if the file was already existing in Git and was not modified by that archive.".format(gitPath))
       }
       val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-      GitCommitId(rev.getName)
       val commit = GitCommitId(rev.getName)
+      logger.debug("file %s was removed in commit %s".format(gitPath,rev.getName))
       gitModificationRepository.addCommit(commit, modId)
       commit
     }
@@ -131,7 +132,7 @@ trait GitArchiverUtils extends Loggable {
   def commitMvDirectory(modId : ModificationId, commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
     
     tryo {
-      logger.info("begin commit")
+      logger.debug("move file %s from configuration repository to %s".format(oldGitPath,newGitPath))
       gitRepo.git.rm.addFilepattern(oldGitPath).call
       gitRepo.git.add.addFilepattern(newGitPath).call
       gitRepo.git.add.setUpdate(true).addFilepattern(newGitPath).call //if some files were removed from dest dir
@@ -140,9 +141,8 @@ trait GitArchiverUtils extends Loggable {
         logger.warn("Auto-archive git failure when moving directory (not found in added file): '%s'. You can safelly ignore that warning if the file was already existing in Git and was not modified by that archive.".format(newGitPath))
       }
       val rev = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-      GitCommitId(rev.getName)
       val commit = GitCommitId(rev.getName)
-      logger.info(commit)
+      logger.debug("file %s was moved to %s in commit %s".format(oldGitPath,newGitPath,rev.getName))
       gitModificationRepository.addCommit(commit, modId)
       commit
     }
