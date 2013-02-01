@@ -210,7 +210,7 @@ class Boot extends Loggable {
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed(Write("administration"),"/secure/administration/eventLogs") )
 
-        , Menu("databaseManagement", <span>Database Management</span>) / 
+        , Menu("databaseManagement", <span>Reports Database</span>) /
             "secure" / "administration" / "databaseManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed(Write("administration"),"/secure/administration/eventLogs") )
