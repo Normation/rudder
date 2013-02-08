@@ -269,6 +269,10 @@ class NodeConfigurationServiceImpl(
                       ),
                   targetSystemVariables = target.nodeContext
                )
+            
+            case Full(otherNodeType:NodeConfiguration) => 
+              LOGGER.error("Found a not supported nodeConfiguration type, neither simple nor root one: ", otherNodeType)
+              otherNodeType
              
           }
           

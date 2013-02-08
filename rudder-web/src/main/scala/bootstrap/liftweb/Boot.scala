@@ -42,7 +42,7 @@ import net.liftweb.sitemap._
 import net.liftweb.sitemap.Loc._
 import Helpers._
 import net.liftweb.http.js.jquery.JQuery14Artifacts
-import net.liftweb.widgets.autocomplete.AutoComplete
+import net.liftmodules.widgets.autocomplete.AutoComplete
 import javax.servlet.UnavailableException
 import LiftSpringApplicationContext.inject
 import com.normation.plugins.RudderPluginDef
@@ -69,13 +69,12 @@ class Boot extends Loggable {
     checks.checks()
     
     LiftRules.early.append( {req: provider.HTTPRequest => req.setCharacterEncoding("UTF-8")})
-    LiftRules.jsArtifacts = JQuery14Artifacts
     LiftRules.ajaxStart = Full(() => LiftRules.jsArtifacts.show("ajax-loader").cmd)
     LiftRules.ajaxEnd = Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)
     LiftRules.ajaxPostTimeout = 30000
 
     // We don't want to reload the page 
-    LiftRules.redirectAjaxOnSessionLoss = false;
+    LiftRules.redirectAsyncOnSessionLoss = false;
     //we don't want to retry on ajax timeout, as it may have big consequence
     //when it's (for example) a deploy
     LiftRules.ajaxRetryCount = Full(1)
@@ -84,12 +83,12 @@ class Boot extends Loggable {
     LiftRules.addToPackages("com.normation.rudder.web")
     
     // REST API
-    LiftRules.statelessDispatchTable.append(RestStatus)
-    LiftRules.statelessDispatchTable.append(inject[RestDeploy])
-    LiftRules.statelessDispatchTable.append(inject[RestDyngroupReload])
-    LiftRules.statelessDispatchTable.append(inject[RestTechniqueReload])
-    LiftRules.statelessDispatchTable.append(inject[RestArchiving])
-    LiftRules.statelessDispatchTable.append(inject[RestGetGitCommitAsZip])
+    LiftRules.statelessDispatch.append(RestStatus)
+    LiftRules.statelessDispatch.append(inject[RestDeploy])
+    LiftRules.statelessDispatch.append(inject[RestDyngroupReload])
+    LiftRules.statelessDispatch.append(inject[RestTechniqueReload])
+    LiftRules.statelessDispatch.append(inject[RestArchiving])
+    LiftRules.statelessDispatch.append(inject[RestGetGitCommitAsZip])
   
     // URL rewrites
     LiftRules.statefulRewrite.append {

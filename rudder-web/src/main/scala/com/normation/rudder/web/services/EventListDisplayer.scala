@@ -110,7 +110,7 @@ class EventListDisplayer(
         ".logType *" #> S.?("rudder.log.eventType.names." + event.eventType.serialize) &
         ".logDescription *" #> displayDescription(event) 
       })
-     )(dataTableXml(gridName)) 
+     ).apply(dataTableXml(gridName)) 
   }
   
   
@@ -449,9 +449,12 @@ class EventListDisplayer(
     }
                 
     (event match {
-    
+    /*
+     * bug in scalac : https://issues.scala-lang.org/browse/SI-6897
+     * A workaround is to type with a Nodeseq
+     */
       case add:AddRule =>
-        "*" #> (logDetailsService.getRuleAddDetails(add.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getRuleAddDetails(add.details) match {
           case Full(addDiff) => 
             <div class="evloglmargin">
               { addRestoreAction }
@@ -461,10 +464,12 @@ class EventListDisplayer(
             </div>
           case Failure(m,_,_) => <p>{m}</p>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml
+        }
       
       case del:DeleteRule =>
-        "*" #> (logDetailsService.getRuleDeleteDetails(del.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getRuleDeleteDetails(del.details) match {
           case Full(delDiff) =>
             <div class="evloglmargin">
               { addRestoreAction }
@@ -473,10 +478,11 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
       case mod:ModifyRule =>
-        "*" #> (logDetailsService.getRuleModifyDetails(mod.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getRuleModifyDetails(mod.details) match {
           case Full(modDiff) =>            
             <div class="evloglmargin">
               { addRestoreAction }
@@ -511,12 +517,13 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
 
       ///////// Directive /////////
         
       case x:ModifyDirective =>   
-        "*" #> (logDetailsService.getDirectiveModifyDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getDirectiveModifyDetails(x.details) match {
           case Full(modDiff) =>
             <div class="evloglmargin">
               { addRestoreAction }
@@ -546,11 +553,12 @@ class EventListDisplayer(
             </div>
           case Failure(m, _, _) => <p>{m}</p>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
     
       case x:AddDirective =>   
-        "*" #> (logDetailsService.getDirectiveAddDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getDirectiveAddDetails(x.details) match {
           case Full((diff,sectionVal)) =>
             <div class="evloglmargin">
               { addRestoreAction }
@@ -560,11 +568,12 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml}
         
     
       case x:DeleteDirective =>   
-        "*" #> (logDetailsService.getDirectiveDeleteDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getDirectiveDeleteDetails(x.details) match {
           case Full((diff,sectionVal)) =>
             <div class="evloglmargin">
               { addRestoreAction }
@@ -574,12 +583,13 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
       ///////// Node Group /////////
         
       case x:ModifyNodeGroup =>   
-        "*" #> (logDetailsService.getNodeGroupModifyDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getNodeGroupModifyDetails(x.details) match {
           case Full(modDiff) => 
             <div class="evloglmargin">
               { addRestoreAction }
@@ -619,11 +629,12 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
     
       case x:AddNodeGroup =>   
-        "*" #> (logDetailsService.getNodeGroupAddDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getNodeGroupAddDetails(x.details) match {
           case Full(diff) =>
             <div class="evloglmargin">
               { addRestoreAction }
@@ -632,11 +643,13 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
+        
         
     
       case x:DeleteNodeGroup =>   
-        "*" #> (logDetailsService.getNodeGroupDeleteDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getNodeGroupDeleteDetails(x.details) match {
           case Full(diff) =>
             <div class="evloglmargin">
             { addRestoreAction }
@@ -645,12 +658,13 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
       ///////// Node Group /////////
         
       case x:AcceptNodeEventLog =>   
-        "*" #> (logDetailsService.getAcceptNodeLogDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getAcceptNodeLogDetails(x.details) match {
           case Full(details) =>
             <div class="evloglmargin">
               { addRestoreAction }
@@ -660,10 +674,11 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
       case x:RefuseNodeEventLog =>   
-        "*" #> (logDetailsService.getRefuseNodeLogDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getRefuseNodeLogDetails(x.details) match {
           case Full(details) =>
             <div class="evloglmargin">
               { addRestoreAction }
@@ -673,10 +688,11 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
       case x:DeleteNodeEventLog =>   
-        "*" #> (logDetailsService.getDeleteNodeLogDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getDeleteNodeLogDetails(x.details) match {
           case Full(details) =>
             <div class="evloglmargin">
               { addRestoreAction }
@@ -686,11 +702,12 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
       ////////// deployment //////////
       case x:SuccessfulDeployment => 
-        "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getDeploymentStatusDetails(x.details) match {
           case Full(SuccessStatus(id,started,ended,_)) =>
             <div class="evloglmargin">
               { addRestoreAction }
@@ -705,10 +722,11 @@ class EventListDisplayer(
             </div>
           case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
       case x:FailedDeployment => 
-        "*" #> (logDetailsService.getDeploymentStatusDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getDeploymentStatusDetails(x.details) match {
           case Full(ErrorStatus(id,started,ended,failure)) =>
             <div class="evloglmargin">
               { addRestoreAction }
@@ -724,7 +742,8 @@ class EventListDisplayer(
             </div>
           case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
       case x:AutomaticStartDeployement => 
         "*" #> 
@@ -736,7 +755,7 @@ class EventListDisplayer(
       ////////// change authorized networks //////////
       
       case x:UpdatePolicyServer =>
-        "*" #> (logDetailsService.getUpdatePolicyServerDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getUpdatePolicyServerDetails(x.details) match {
           case Full(details) => 
             
             def networksToXML(nets:Seq[String]) = {
@@ -754,12 +773,13 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
       
       // Technique library reloaded
       
       case x:ReloadTechniqueLibrary =>
-        "*" #> (logDetailsService.getTechniqueLibraryReloadDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getTechniqueLibraryReloadDetails(x.details) match {
           case Full(details) => 
               <div class="evloglmargin">
                 { addRestoreAction }
@@ -772,11 +792,12 @@ class EventListDisplayer(
               </div>
             
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
       // Technique modified
       case x:ModifyTechnique =>
-        "*" #> (logDetailsService.getTechniqueModifyDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getTechniqueModifyDetails(x.details) match {
           case Full(modDiff) =>            
             <div class="evloglmargin">
               { addRestoreAction }
@@ -787,17 +808,18 @@ class EventListDisplayer(
               </ul>
               {(
                 "#isEnabled *" #> mapSimpleDiff(modDiff.modIsEnabled)
-              )(liModDetailsXML("isEnabled", "Activation status"))
+              ).apply(liModDetailsXML("isEnabled", "Activation status"))
               }
               { reasonHtml }
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
       // Technique modified
       case x:DeleteTechnique =>
-        "*" #> (logDetailsService.getTechniqueDeleteDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getTechniqueDeleteDetails(x.details) match {
           case Full(techDiff) =>
             <div class="evloglmargin">
               { addRestoreAction }
@@ -806,34 +828,38 @@ class EventListDisplayer(
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
         
       // archiving & restoring 
         
       case x:ExportEventLog => 
-        "*" #> (logDetailsService.getNewArchiveDetails(x.details, x) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getNewArchiveDetails(x.details, x) match {
           case Full(gitArchiveId) =>
               addRestoreAction ++
               displayExportArchiveDetails(gitArchiveId, xmlParameters(event.id))
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
 
        case x:Rollback =>
-        "*" #> (logDetailsService.getRollbackDetails(x.details) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getRollbackDetails(x.details) match {
           case Full(eventLogs) =>
                addRestoreAction ++
                displayRollbackDetails(eventLogs,event.id.get)
           case e:EmptyBox => logger.warn(e)
           errorMessage(e)
-        })
+        }
+        xml }
 
       case x:ImportEventLog => 
-        "*" #> (logDetailsService.getRestoreArchiveDetails(x.details, x) match {
+        "*" #> { val xml : NodeSeq = logDetailsService.getRestoreArchiveDetails(x.details, x) match {
           case Full(gitArchiveId) =>
                addRestoreAction ++
                displayImportArchiveDetails(gitArchiveId, xmlParameters(event.id))
           case e:EmptyBox => errorMessage(e)
-        })
+        }
+        xml }
 
       // other case: do not display details at all
       case _ => "*" #> ""
@@ -926,8 +952,8 @@ class EventListDisplayer(
 
   private[this] def displayDiff(tag:String)(xml:NodeSeq) = 
       "From value '%s' to value '%s'".format(
-          ("from ^*" #> "X" & "* *" #> (x => x))(xml) 
-        , ("to ^*" #> "X" & "* *" #> (x => x))(xml)
+          ("from ^*" #> "X" & "* *" #> ( (x:NodeSeq) => x))(xml) 
+        , ("to ^*" #> "X" & "* *" #> ( (x:NodeSeq) => x))(xml)
       )
 
   private[this] def groupNodeSeqLink(id: NodeGroupId): NodeSeq = {
@@ -957,7 +983,7 @@ class EventListDisplayer(
     }
     (
       ".groupSeparator" #> ", "
-    )(res)
+    ).apply(res)
   }
   
   private[this] def nodeNodeSeqLink(id: NodeId): NodeSeq = {
@@ -981,7 +1007,7 @@ class EventListDisplayer(
     }
     (
       ".groupSeparator" #> ", "
-    )(res)
+    ).apply(res)
   }
   
   private[this] def directiveTargetDetails(set: Set[DirectiveId]): NodeSeq = {
@@ -1007,7 +1033,7 @@ class EventListDisplayer(
           }
           (
             ".groupSeparator" #> ", "
-          )(res)
+          ).apply(res)
       }
     }
   }

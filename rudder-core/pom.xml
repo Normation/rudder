@@ -78,7 +78,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
 
     <dependency>
       <groupId>org.squeryl</groupId>
-      <artifactId>squeryl_${scala-version}</artifactId>
+      <artifactId>squeryl_${scala-binary-version}</artifactId>
       <version>${squeryl-version}</version>
     </dependency>
     
@@ -90,7 +90,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
         
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-webkit_${scala-lift-version}</artifactId>
+      <artifactId>lift-webkit_${scala-binary-version}</artifactId>
       <version>${lift-version}</version>
       <exclusions>
         <exclusion>

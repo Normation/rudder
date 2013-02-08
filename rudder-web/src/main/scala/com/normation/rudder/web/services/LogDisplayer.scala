@@ -122,7 +122,7 @@ class LogDisplayer(
            </tr>
         }
      
-    ("tbody *" #> lines)(content)
+    ("tbody *" #> lines).apply(content)
     
   }
 

@@ -168,7 +168,7 @@ class HistorizationServiceImpl(
                                     false
                           }
               }.
-              map(x =>( x._1 -> x._2.openTheBox)). // shoud not fail if a PT is deleted
+              map(x =>( x._1 -> x._2.openOrThrowException("That should not fail if a Technique is deleted"))). 
               map { case (directive, userPT) => 
                 (directive, userPT, techniqueRepository.get(new TechniqueId(userPT.techniqueName, directive.techniqueVersion)))
               }.filter { case (directive, userPt, policyPackage) => 

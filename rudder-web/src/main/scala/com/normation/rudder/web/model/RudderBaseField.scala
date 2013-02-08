@@ -89,7 +89,7 @@ class FormTracker(private[this] var _fields : List[RudderBaseField] = Nil) exten
   
   def register(field:RudderBaseField) : Unit = _fields ::= field
   
-  def fieldErrors : Map[RudderBaseField, List[FieldError]] = _fields.map { f => (f -> f.errors) } toMap 
+  def fieldErrors : Map[RudderBaseField, List[FieldError]] = _fields.map { f => (f -> f.errors) }.toMap 
   
   def formErrors : List[FormError] = _formErrors
   

@@ -132,7 +132,7 @@ CREATE TEMP TABLE EventLog (
   "Event Logs" should {
     
     "be all found" in {          
-      val logs = migration.findAllEventLogs.open_!
+      val logs = migration.findAllEventLogs.openOrThrowException("For tests")
       
       logs.size must beEqualTo(logs10WithId.size) and
       forallWhen(logs) {
@@ -246,7 +246,7 @@ CREATE TEMP TABLE EventLog (
   "Event Logs" should {
     
     "be all found" in {          
-      val logs = migration.findAllEventLogs.open_!
+      val logs = migration.findAllEventLogs.openOrThrowException("For tests")
       
       logs.size must beEqualTo(logs2WithId.size) and
       forallWhen(logs) {
@@ -369,8 +369,8 @@ CREATE TEMP TABLE EventLog (
   "Event Logs" should {
     
     "be all found" in {          
-      val logs = migration.findAllEventLogs.open_!
-      val parentlogs = migration.eventLogsMigration_10_2.findAllEventLogs.open_!
+      val logs = migration.findAllEventLogs.openOrThrowException("For tests")
+      val parentlogs = migration.eventLogsMigration_10_2.findAllEventLogs.openOrThrowException("For tests")
       logs.size+parentlogs.size must beEqualTo(logs10WithId.size) and
       forallWhen(logs) {
         case MigrationEventLog(id, eventType, data) => 

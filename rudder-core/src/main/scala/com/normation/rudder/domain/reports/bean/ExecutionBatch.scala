@@ -132,18 +132,18 @@ class ConfigurationExecutionBatch(
     nodeStatus.getOrElseUpdate("nodeStatus", 
       (for {
         nodeId <- expectedNodeIds
-        val nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
+        nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
        
-        val directiveStatusReports  = for {
+        directiveStatusReports  = for {
           expectedDirective <- directiveExpectedReports
-          val directiveFilteredReports = nodeFilteredReports.filter(x => x.directiveId == expectedDirective.directiveId)
+          directiveFilteredReports = nodeFilteredReports.filter(x => x.directiveId == expectedDirective.directiveId)
           
           // look for each component
-          val componentsStatus = for {
+          componentsStatus = for {
             expectedComponent <- expectedDirective.components
-            val componentFilteredReports = directiveFilteredReports.filter(x => x.component == expectedComponent.componentName)
+            componentFilteredReports = directiveFilteredReports.filter(x => x.component == expectedComponent.componentName)
             
-            val componentStatusReport = checkExpectedComponentWithReports(
+            componentStatusReport = checkExpectedComponentWithReports(
                     expectedComponent
                   , componentFilteredReports
                   , nodeId
@@ -152,7 +152,7 @@ class ConfigurationExecutionBatch(
             componentStatusReport
           }
           
-          val directiveStatusReport = DirectiveStatusReport(
+          directiveStatusReport = DirectiveStatusReport(
               expectedDirective.directiveId
             , componentsStatus
             , ReportType.getWorseType(componentsStatus.map(x => x.componentReportType))
@@ -163,7 +163,7 @@ class ConfigurationExecutionBatch(
           directiveStatusReport
         }
         
-        val nodeStatusReport = NodeStatusReport(
+        nodeStatusReport = NodeStatusReport(
             nodeId
           , ruleId
           , directiveStatusReports
@@ -214,7 +214,7 @@ class ConfigurationExecutionBatch(
 
         val components = for {
             componentValue <- unescapedComponentValues
-            val (status,message) = checkExpectedComponentStatus(
+            (status,message) = checkExpectedComponentStatus(
                               componentValue
                             , purgedReports
                             , unescapedComponentValues

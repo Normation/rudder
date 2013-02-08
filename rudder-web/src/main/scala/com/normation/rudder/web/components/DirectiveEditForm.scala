@@ -286,7 +286,7 @@ class DirectiveEditForm(
     (
       "#editForm *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
-      ".topLevelAction" #> ( xml =>  
+      ".topLevelAction" #> ( (xml:NodeSeq) =>  
         if (directiveCurrentStatusCreationStatus) NodeSeq.Empty 
         else xml ) andThen
       ClearClearable &

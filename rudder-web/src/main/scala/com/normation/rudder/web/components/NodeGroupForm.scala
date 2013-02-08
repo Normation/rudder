@@ -277,7 +277,10 @@ class NodeGroupForm(
       "description" -> piDescription.toForm_!,
       "container" -> piContainer.toForm_!,
       "static" -> piStatic.toForm_!,
-      "showGroup" -> searchNodeComponent.is.open_!.buildQuery,
+      "showGroup" -> (searchNodeComponent.is match {
+                       case Full(req) => req.buildQuery
+                       case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
+      }),
       "explanation" -> crReasons.map {
         f => <div>{userPropertyService.reasonsFieldExplanation}</div>
       },       
@@ -521,10 +524,17 @@ class NodeGroupForm(
   
   private[this] def onSubmit() : JsCmd = {
     // Since we are doing the submit from the component, it ought to exist 
-    query = searchNodeComponent.is.open_!.getQuery
-    srvList = searchNodeComponent.is.open_!.getSrvList
+    
+    searchNodeComponent.is match {
+      case Full(req) =>
+        query = req.getQuery
+        srvList = req.getSrvList
+      case eb:EmptyBox =>
+        val f = eb ?~! "Error when trying to retrieve the current search state"
+        logger.error(f.messageChain)
+    }
+    
     if(formTracker.hasErrors) {
-      
       onFailure & onFailureCallback()
     } else {
       val name = piName.is

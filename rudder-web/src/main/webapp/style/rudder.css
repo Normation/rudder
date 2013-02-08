@@ -1420,7 +1420,7 @@ div#slickbox {
    height: 20px;
    background: #585757 url(../images/puceFlecheHoverNiv1.jpg) no-repeat right center;
 }
-#slickbox .menuOff {
+#slickbox span :not(.niv1) {
    padding: 10px 0 10px 24px;
    color: #fff;
    font-size: 1.2em;
