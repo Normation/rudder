@@ -65,7 +65,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
 
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-json_${scala-lift-version}</artifactId>
+      <artifactId>lift-json_${scala-binary-version}</artifactId>
       <version>${lift-version}</version>
     </dependency>
   </dependencies>

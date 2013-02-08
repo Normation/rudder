@@ -108,7 +108,7 @@ case class EnvironmentVariable (
 
 object InetAddressUtils {
   
-  implicit def getAddressByName(a:String) : Option[InetAddress] = 
+  def getAddressByName(a:String) : Option[InetAddress] = 
     try {
       Some(InetAddress.getByName(a))
     } catch {

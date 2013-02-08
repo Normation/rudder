@@ -128,8 +128,8 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
   
   implicit val DIT = dit
     
-  val SOFTWARE = new OU("Software", SOFTWARE_BASE_DN) { software =>
-    val SOFT = new UUID_ENTRY[SoftwareUuid](OC_SOFTWARE, A_SOFTWARE_UUID, software.dn) {
+  object SOFTWARE extends OU("Software", SOFTWARE_BASE_DN) { software =>
+    object SOFT extends UUID_ENTRY[SoftwareUuid](OC_SOFTWARE, A_SOFTWARE_UUID, software.dn) {
       
         def idFromDN(dn:DN) : Box[SoftwareUuid] = {
           if(dn.getParent == software.dn) {
@@ -144,9 +144,9 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
     }
   }
   
-  val NODES = new OU("Nodes", BASE_DN) { servers =>
+  object NODES extends OU("Nodes", BASE_DN) { servers =>
 
-    val NODE = new UUID_ENTRY[NodeId](OC_NODE, A_NODE_UUID, servers.dn) {
+    object NODE extends UUID_ENTRY[NodeId](OC_NODE, A_NODE_UUID, servers.dn) {
 
       def genericModel(id:NodeId) : LDAPEntry = {
         val mod = model(id)
@@ -159,6 +159,7 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
         mod += (A_OC,OC.objectClassNames(OC_LINUX_NODE).toSeq:_*)
         mod
       }
+      
       def windowsModel(id:NodeId) : LDAPEntry = {
         val mod = model(id)
         mod += (A_OC,OC.objectClassNames(OC_WINDOWS_NODE).toSeq:_*)
@@ -166,7 +167,8 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
       }
 
       def dn(uuid:String) = new DN(this.rdn(uuid), servers.dn) 
-        def idFromDN(dn:DN) : Box[NodeId] = {
+      
+      def idFromDN(dn:DN) : Box[NodeId] = {
           if(dn.getParent == servers.dn) {
             val rdn = dn.getRDN
             if(!rdn.isMultiValued && rdn.getAttributeNames()(0) == A_NODE_UUID) {
@@ -175,16 +177,16 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
               Failure("Unexpected RDN for a node ID")
             }
           } else Failure("DN %s does not belong to server inventories DN %s".format(dn,servers.dn))
-        }
+      }
     }
 
-    val NETWORK = new NODE_ELT(NODE,OC_NET_IF,A_NETWORK_NAME, NODE)
-    val FILESYSTEM = new NODE_ELT(NODE,OC_FS,A_MOUNT_POINT, NODE)
-    val VM = new NODE_ELT(NODE,OC_VM_INFO,A_VM_ID, NODE)
+    object NETWORK extends NODE_ELT(NODE,OC_NET_IF,A_NETWORK_NAME, NODE)
+    object FILESYSTEM extends NODE_ELT(NODE,OC_FS,A_MOUNT_POINT, NODE)
+    object VM extends NODE_ELT(NODE,OC_VM_INFO,A_VM_ID, NODE)
   }
   
-  val MACHINES = new OU("Machines", BASE_DN) { machines =>  
-    val MACHINE = new UUID_ENTRY[MachineUuid](OC_MACHINE,A_MACHINE_UUID,machines.dn) {
+  object MACHINES extends OU("Machines", BASE_DN) { machines =>  
+    object MACHINE extends UUID_ENTRY[MachineUuid](OC_MACHINE,A_MACHINE_UUID,machines.dn) {
       
         def idFromDN(dn:DN) : Box[MachineUuid] = {
           if(dn.getParent == machines.dn) {
@@ -198,15 +200,15 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
         }
     }
     
-    val BIOS = new MACHINE_ELT(MACHINE,OC_BIOS,A_BIOS_NAME, MACHINE)
-    val CONTROLLER = new MACHINE_ELT(MACHINE,OC_CONTROLLER,A_CONTROLLER_NAME, MACHINE)
-    val CPU = new MACHINE_ELT(MACHINE,OC_PROCESSOR,A_PROCESSOR_NAME, MACHINE)
-    val MEMORY = new MACHINE_ELT(MACHINE,OC_MEMORY,A_MEMORY_SLOT_NUMBER, MACHINE)
-    val PORT = new MACHINE_ELT(MACHINE,OC_PORT,A_PORT_NAME, MACHINE)
-    val SLOT = new MACHINE_ELT(MACHINE,OC_SLOT,A_SLOT_NAME, MACHINE)
-    val SOUND = new MACHINE_ELT(MACHINE,OC_SOUND,A_SOUND_NAME, MACHINE)
-    val STORAGE = new MACHINE_ELT(MACHINE,OC_STORAGE,A_STORAGE_NAME, MACHINE)
-    val VIDEO = new MACHINE_ELT(MACHINE,OC_VIDEO,A_VIDEO_NAME, MACHINE)
+    object BIOS extends MACHINE_ELT(MACHINE,OC_BIOS,A_BIOS_NAME, MACHINE)
+    object CONTROLLER extends MACHINE_ELT(MACHINE,OC_CONTROLLER,A_CONTROLLER_NAME, MACHINE)
+    object CPU extends MACHINE_ELT(MACHINE,OC_PROCESSOR,A_PROCESSOR_NAME, MACHINE)
+    object MEMORY extends MACHINE_ELT(MACHINE,OC_MEMORY,A_MEMORY_SLOT_NUMBER, MACHINE)
+    object PORT extends MACHINE_ELT(MACHINE,OC_PORT,A_PORT_NAME, MACHINE)
+    object SLOT extends MACHINE_ELT(MACHINE,OC_SLOT,A_SLOT_NAME, MACHINE)
+    object SOUND extends MACHINE_ELT(MACHINE,OC_SOUND,A_SOUND_NAME, MACHINE)
+    object STORAGE extends MACHINE_ELT(MACHINE,OC_STORAGE,A_STORAGE_NAME, MACHINE)
+    object VIDEO extends MACHINE_ELT(MACHINE,OC_VIDEO,A_VIDEO_NAME, MACHINE)
 
   }
 

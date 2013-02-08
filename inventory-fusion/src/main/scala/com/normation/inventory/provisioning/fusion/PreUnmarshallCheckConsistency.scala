@@ -161,7 +161,7 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
         report match {
           case Elem(prefix, label, attribs, scope, children @ _*) =>
             val newChildren = children ++ <MACHINEID></MACHINEID>
-            Full(Elem(prefix, label, attribs, scope, newChildren : _*))
+            Full(Elem(prefix, label, attribs, scope, false, newChildren : _*))
           case _ => Failure("The given report does not seems to have an uniq root element and so can not be handled")
         }
         
