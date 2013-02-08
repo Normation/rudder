@@ -151,15 +151,15 @@ class LDAPNodeGroupCategoryRepository(
     } }
     
     list match {
-      case Full(entries) => var result : Box[List[NodeGroupCategory]] = Full(Nil)
+      case Full(entries) => var result : List[NodeGroupCategory] = Nil
                             for (entry <- entries) {
                               entry match {
-                                case Full(x) => result = Full(x :: result.open_!)
+                                case Full(x) => result = x :: result
                                 case Empty => return Empty
                                 case x : Failure => return x
                               }
                             }
-                            result
+                            Full(result)
       case Empty => Empty
       case x : Failure => x
     }
@@ -287,7 +287,7 @@ class LDAPNodeGroupCategoryRepository(
                           else Full("OK")
       result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       updated          <- getGroupCategory(category.id)
-      autoArchive      <- if(autoExportOnModify && !updated.isInstanceOf[LDIFNoopChangeRecord]) {
+      autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                             for {
                               parents  <- this.getParents_NodeGroupCategory(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -392,7 +392,7 @@ class LDAPNodeGroupCategoryRepository(
   def getCategoryHierarchy : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
     for {
       allCats      <- getAllNonSystemCategories()
-      val rootCat  = getRootCategory
+      rootCat      = getRootCategory
       catsWithUPs  <- sequence(allCats) { ligthCat =>
                         for {
                           category <- getGroupCategory(ligthCat.id)

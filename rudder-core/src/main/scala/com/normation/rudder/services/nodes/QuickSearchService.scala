@@ -124,7 +124,7 @@ class QuickSearchServiceImpl(
                                 nodeDit.NODES.NODE.idFromDn(e.dn).map(id => (id,e)) 
                               } }.map( _.toMap )
         //now, map to node info
-        val allNodePairs   =  nodePairs ++ missingNodePairs
+        allNodePairs       =  nodePairs ++ missingNodePairs
 
         nodeInfos          <- matchNodeInfoPairs( serverPairs, allNodePairs )
       } yield {

@@ -287,9 +287,10 @@ class LDAPNodeConfigurationMapper(
     serverEntry +=!(A_SERVER_IS_MODIFIED, server.isModified.toLDAPString)
     //serverEntry +=!(A_LAST_UPDATE_DATE, GeneralizedTime( Utils.??(server.modificationDate).getOrElse(DateTime.now) ).toString)
 
-    if (server.writtenDate != None)
-      serverEntry +=!(A_WRITTEN_DATE, GeneralizedTime( server.writtenDate.open_! ).toString)
-
+    server.writtenDate.foreach { v =>
+      serverEntry +=!(A_WRITTEN_DATE, GeneralizedTime( v ).toString)
+    }
+  
     serverEntry +=!(A_NAME, server.currentMinimalNodeConfig.name)
     serverEntry +=!(A_HOSTNAME, server.currentMinimalNodeConfig.hostname)
     serverEntry +=!(A_NODE_POLICY_SERVER, server.currentMinimalNodeConfig.policyServerId)

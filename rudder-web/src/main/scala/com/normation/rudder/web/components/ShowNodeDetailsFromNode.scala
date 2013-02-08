@@ -62,7 +62,7 @@ import Helpers._
 import net.liftweb.http.js._
 import JsCmds._ // For implicits
 import JE._
-import net.liftweb.widgets.autocomplete._
+import net.liftmodules.widgets.autocomplete._
 
 
 
@@ -182,7 +182,7 @@ class ShowNodeDetailsFromNode(
             seq) match {
           case Empty => <div>This node is not contained in any group</div>
           case f:Failure => <div class="error">{f.messageChain}</div>
-          case Full(category) => category.toXml
+          case Full(category) => categoryToJsTreeNode(category).toXml
       }
       case Empty => <div>This node is not contained in any group</div>
       case f:Failure => <div class="error">{f.messageChain}</div>
@@ -204,7 +204,7 @@ class ShowNodeDetailsFromNode(
     """buildGroupTree('#%s', '%s')""".format(htmlId,S.contextPath)
   )
   
-  private implicit def categoryToJsTreeNode(category:NodeGroupCategory) : JsTreeNode = new JsTreeNode {
+  private[this] def categoryToJsTreeNode(category:NodeGroupCategory) : JsTreeNode = new JsTreeNode {
     override def body = {
         <a><span class="treeGroupCategoryName tooltipable" title="" tooltipid={category.id.value.replaceAll("/", "")} >{category.name}</span></a>
         <div class="tooltipContent" id={category.id.value.replaceAll("/", "")}><h3>{category.name}</h3><div>{category.description}</div></div>
@@ -216,22 +216,19 @@ class ShowNodeDetailsFromNode(
       ( "class" -> "" ) ::
       Nil
     
-    override def children =
-      category.children.map(x =>  groupCategoryRepository.findGroupHierarchy(
-            x, targets)).filter(x => x match {
-                  case Full(foo) => true
-                  case _ => false
-                      }).map(x => (x.open_!) : JsTreeNode) ++
-      category.items.map(x => x:JsTreeNode)
+    override def children = (
+      category.children.map(x =>  groupCategoryRepository.findGroupHierarchy(x, targets)).collect { case Full(x) => categoryToJsTreeNode(x) }
+      ++ category.items.map(x => policyTargetInfoToJsTreeNode(x) )
+    )
   }
 
 
   //fetch server group id and transform it to a tree node
-  private implicit def policyTargetInfoToJsTreeNode(targetInfo:RuleTargetInfo) : JsTreeNode = {
+  private[this] def policyTargetInfoToJsTreeNode(targetInfo:RuleTargetInfo) : JsTreeNode = {
     targetInfo.target match {
       case GroupTarget(id) =>
         nodeGroupRepository.getNodeGroup(id) match {
-          case Full(group) => group
+          case Full(group) => nodeGroupToJsTreeNode(group)
           case _ => new JsTreeNode {
             override def body = <span class="error">Can not find node {id.value}</span>
             override def children = Nil
@@ -250,7 +247,7 @@ class ShowNodeDetailsFromNode(
   /**
    * Transform a WBNodeGroup into a JsTree leaf.
    */
-  private implicit def nodeGroupToJsTreeNode(group : NodeGroup) : JsTreeNode = new JsTreeNode {
+  private[this] def nodeGroupToJsTreeNode(group : NodeGroup) : JsTreeNode = new JsTreeNode {
 
     override def body = <a href="#"><span class="treeGroupName">{List(group.name,group.isDynamic?"dynamic"|"static").mkString(": ")}</span></a>
     override def children = Nil

@@ -209,7 +209,7 @@ trait RuleTargetService_findTargets extends RuleTargetService {
         k,
         m0.get(k).getOrElse(Set()) ++ m1.get(k).getOrElse(Set()) 
       )      
-    }) toMap
+    }).toMap
     
   }
   

@@ -184,22 +184,25 @@ class RuleEditForm(
   )
 
   private[this] def showForm(tab :Int = 0) : NodeSeq = {
-    val form = if (CurrentUser.checkRights(Read("rule"))) {
-    ("#details" #> showRuleDetails())(
-    if (CurrentUser.checkRights(Edit("rule"))) { (
-
-      "#editForm" #> showCrForm() &
-      "#removeActionDialog" #> showRemovePopupForm() &
-      "#disactivateActionDialog" #> showDisactivatePopupForm()
-      )(body (tab))
-    }
-    else (
-      "#editForm" #>  <div>You have no rights to see rules details, please contact your administrator</div>
-      ) (body()))
-    }
-    else {
+    
+    val form:NodeSeq = if(CurrentUser.checkRights(Read("rule"))) {
+      val content = if (CurrentUser.checkRights(Edit("rule"))) {
+        (
+          "#editForm" #> showCrForm() &
+          "#removeActionDialog" #> showRemovePopupForm() &
+          "#disactivateActionDialog" #> showDisactivatePopupForm()
+        ).apply(body (tab))
+      } else {
+        (
+          "#editForm" #>  <div>You have no rights to see rules details, please contact your administrator</div>
+        ).apply(body())
+      }
+      
+      ("#details" #> showRuleDetails()).apply(content)
+    } else {
       <div>You have no rights to see rules details, please contact your administrator</div>
     } 
+    
     form ++  Script(OnLoad(JsRaw("""$( "#editRuleZone" ).tabs();
           $( "#editRuleZone" ).tabs('select', %s);""".format(tab)) )&
           JsRaw("""
@@ -1139,16 +1142,19 @@ class RuleEditForm(
                       "#details *" #> components &
                       "#directive [class+]" #> "listopen" &
                       "#directive *" #>{
-                        <b>{directive.name}</b>
-                        <span class="tooltipable" tooltipid={tooltipid} title="">
-                          <img   src="/images/icInfo.png" style="padding-left:4px"/>
-                        </span>++{val xml = <img   src="/images/icTools.png" style="padding-left:4px" class="noexpand"/>
-                          SHtml.a( {()=> RedirectTo("""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value))},xml,("style","padding-left:4px"),("class","noexpand"))}++
-                        <span/>
-                        <div class="tooltipContent" id={tooltipid}>
-                          Directive <b>{directive.name}</b> is based on technique
-                          <b>{tech}</b> (version {techversion})
-                        </div> }&
+                        <span>
+                          <b>{directive.name}</b>
+                          <span class="tooltipable" tooltipid={tooltipid} title="">
+                            <img   src="/images/icInfo.png" style="padding-left:4px"/>
+                          </span>
+                          { val xml = <img   src="/images/icTools.png" style="padding-left:4px" class="noexpand"/>
+                            SHtml.a( {()=> RedirectTo("""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value))},xml,("style","padding-left:4px"),("class","noexpand"))
+                          }
+                          <div class="tooltipContent" id={tooltipid}>
+                            Directive <b>{directive.name}</b> is based on technique
+                            <b>{tech}</b> (version {techversion})
+                          </div>
+                        </span> }&
                       "#severity *" #> buildComplianceChart(directiveStatus)
                     ) (reportsLineXml)
                   }
@@ -1211,7 +1217,7 @@ class RuleEditForm(
           ) (
             if (component.componentValues.forall( x => x.componentValue =="None")) {
               // only None, we won't show the details, we don't need the plus and that td should not be clickable
-              ("* [class+]" #> "noexpand") (componentDetails)
+              ("* [class+]" #> "noexpand").apply(componentDetails)
             } else {
               // standard  display that can be expanded
               val tooltipid = Helpers.nextFuncName
@@ -1439,7 +1445,7 @@ class RuleEditForm(
         val components:Seq[String] = reports.map(_.component).distinct
         val missingreports = components.flatMap(component => reports.filter(_.component==component).map(report => (component,report.value))).distinct
           ( "#reportLine" #> missingreports.flatMap(showMissingReport(_) )
-          ) (missingGridXml(gridId) ) ++
+          ).apply(missingGridXml(gridId) ) ++
             Script( JsRaw("""
              var oTable%1$s = $('#%2$s').dataTable({
                "asStripeClasses": [ 'color1', 'color2' ],
@@ -1522,7 +1528,7 @@ class RuleEditForm(
 
        if (reports.size >0){
          ( "#reportLine" #> reports.flatMap(showUnexpectedReport(_) )
-         ) (unexpectedGridXml(gridId) ) ++
+         ).apply(unexpectedGridXml(gridId) ) ++
             Script( JsRaw("""
              var oTable%1$s = $('#%2$s').dataTable({
                "asStripeClasses": [ 'color1', 'color2' ],
@@ -1771,7 +1777,7 @@ class RuleEditForm(
                 }
           } );} );""".format(tabid,gridId+"Grid",S.contextPath,innerJsFun)
             ( "#reportLine" #> datas.flatMap(showNodeReport(_) )
-            ) (reportsGridXml(gridId,message) ) ++
+            ).apply(reportsGridXml(gridId,message) ) ++
             /*Sorry about the Javascript
              * but we need to have dynamic definition of those datatables
              * As we need to have several dynamic datables, we have to add a specific identifier, the tabid

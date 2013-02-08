@@ -57,7 +57,7 @@ import Helpers._
 import net.liftweb.http.js._
 import JsCmds._
 import JE._
-import net.liftweb.widgets.autocomplete._
+import net.liftmodules.widgets.autocomplete._
 import com.normation.exceptions.TechnicalException
 import com.normation.inventory.ldap.core.LDAPConstants.OC_NODE
 import com.normation.rudder.domain.queries.Or
@@ -261,12 +261,14 @@ class SearchNodes extends StatefulSnippet with Loggable {
   }
   
   private[this] def showPopup() : JsCmd = {
-    setCreationPopup(searchNodeComponent.is.open_!.getQuery(),
-                     searchNodeComponent.is.open_!.getSrvList() )
-    //update UI
-    SetHtml("createGroupContainer", createPopup) &
-    JsRaw( """ createPopup("createGroupPopup",300,400) """)
+    searchNodeComponent.is match {
+      case Full(r) => setCreationPopup(r.getQuery, r.getSrvList)
+        //update UI
+        SetHtml("createGroupContainer", createPopup) &
+        JsRaw( """ createPopup("createGroupPopup",300,400) """)
 
+      case eb:EmptyBox => Alert("Error when trying to retrieve the resquest, please try again")
+    }
   }
   
   
