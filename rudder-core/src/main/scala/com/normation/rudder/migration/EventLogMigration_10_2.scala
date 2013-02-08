@@ -58,8 +58,7 @@ import com.normation.utils.XmlUtils
 import com.normation.rudder.domain.logger._
 
 import net.liftweb.common._
-import net.liftweb.util.Helpers.strToCssBindPromoter
-import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Helpers._
 import net.liftweb.util.IterableFunc.itNodeSeq
 import net.liftweb.util.StringPromotable.intToStrPromo
 
@@ -130,7 +129,7 @@ class MigrationEventLogRepository(squerylConnectionProvider : SquerylConnectionP
     squerylConnectionProvider.ourTransaction {
       val q = from(MigrationEventLogTable.migrationEventLog)(line => 
         select(line)
-        orderBy(line.id desc)
+        orderBy(line.id.desc)
       )
       
       q.page(0,1).toList.headOption
@@ -654,7 +653,7 @@ class XmlMigration_10_2 {
       fileFormatOK <- TestFileFormat(xml, Constants.XML_FILE_FORMAT_1_0)
       migrated     <- TestIsElem((
                         "node [fileFormat]" #> Constants.XML_FILE_FORMAT_2
-                      )(xml)) 
+                      ).apply(xml)) 
     } yield {
       migrated
     }

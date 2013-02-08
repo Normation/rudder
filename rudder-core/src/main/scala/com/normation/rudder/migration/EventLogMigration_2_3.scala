@@ -441,7 +441,7 @@ class XmlMigration_2_3 {
       migrated     <- TestIsElem(( 
                         //here we use the hypothesis that no other element than the entity type has an attribute fileformat to 2
                         "fileFormat=2 [fileFormat]" #> Constants.XML_FILE_FORMAT_3
-                      )(xml)) 
+                      ).apply(xml)) 
     } yield {
       migrated
     }

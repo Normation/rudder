@@ -131,7 +131,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   
   
   //here, we can't use activeTechniqueCategory because we want a subclass
-  val ACTIVE_TECHNIQUES_LIB = new CATEGORY(
+  object ACTIVE_TECHNIQUES_LIB extends CATEGORY(
       uuid = "Active Techniques",
       parentDN = BASE_DN,
       name = "Root of active techniques' library",
@@ -194,7 +194,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     
   }
   
-  val RULES = new OU("Rules", BASE_DN) {
+  object RULES extends OU("Rules", BASE_DN) {
     rules =>
     //check for the presence of that entry at bootstrap
     dit.register(rules.model)
@@ -220,7 +220,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   }
   
   
-  val GROUP = new CATEGORY(
+  object GROUP extends CATEGORY(
       uuid = "GroupRoot",
       parentDN = BASE_DN,
       name = "Root of the group and group categories",
@@ -277,7 +277,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     /**
      * Group for system targets
      */
-    val SYSTEM = new CATEGORY(
+    object SYSTEM extends CATEGORY(
       uuid = "SystemGroups",
       parentDN = group.dn,
       name = "Category for system groups and targets",
@@ -303,14 +303,14 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   /**
    * That branch contains definition for Rudder server type.
    */
-  val NODE_CONFIGS = new OU("Nodes Configuration", BASE_DN) {
+  object NODE_CONFIGS extends OU("Nodes Configuration", BASE_DN) {
     servers =>
  
     /**
      * There is two actual implementations of Rudder server, which 
      * differ only slightly in their identification.
      */  
-    val NODE_CONFIG = new ENTRY1(A_NODE_UUID) {
+    object NODE_CONFIG extends ENTRY1(A_NODE_UUID) {
       server => 
       
       //get id from dn
@@ -337,7 +337,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
        * There is both current and target Directives,
        * they only differ on the objectType
        */
-      val CF3POLICYDRAFT = new ENTRY1(A_DIRECTIVE_UUID) {
+      object CF3POLICYDRAFT extends ENTRY1(A_DIRECTIVE_UUID) {
         def dn(uuid:String,nodeConfigurationDN:DN) : DN = {
           require(nonEmpty(uuid), "A CF3 Policy Draft ID can not be empty")
           require( !nodeConfigurationDN.isNullDN , "Can not use a null DN for the Cf3 Policy Draft's node configuration")
@@ -351,7 +351,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
         }     
       } //end CF3POLICYDRAFT
       
-      val TARGET_CF3POLICYDRAFT = new ENTRY1(A_TARGET_DIRECTIVE_UUID) {
+      object TARGET_CF3POLICYDRAFT extends ENTRY1(A_TARGET_DIRECTIVE_UUID) {
         def dn(uuid:String,serverDN:DN) : DN = {
           require(nonEmpty(uuid), "A CF3 Policy Draft ID can not be empty")
           require( !serverDN.isNullDN , "Can not use a null DN for the Cf3 Policy Draft's node configuration")
@@ -370,7 +370,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     
   } //end NODE_CONFIGS
   
-  val ARCHIVES = new OU("Archives", BASE_DN) {
+  object ARCHIVES extends OU("Archives", BASE_DN) {
     archives =>
     //check for the presence of that entry at bootstrap
     dit.register(archives.model)

@@ -99,8 +99,8 @@ object DisplayNode extends Loggable {
     //id is not used anymore ?
     (for {
       seq <- getSoftwareService.getSoftware(softIds)
-      val gridDataId = htmlId(jsId,"soft_grid_data_")
-      val gridId = htmlId(jsId,"soft_grid_")
+      gridDataId = htmlId(jsId,"soft_grid_data_")
+      gridId = htmlId(jsId,"soft_grid_")
     } yield SetExp(JsVar(gridDataId),JsArray(seq.map { x => JsArray(
         Str(x.name.getOrElse("")),
         Str(x.version.map(_.value).getOrElse("")),

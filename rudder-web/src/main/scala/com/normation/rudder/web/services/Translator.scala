@@ -128,7 +128,7 @@ class Translators {
 
   def get[T](implicit m: Manifest[T]): Option[Translator[T]] = {
     reg.get(m) match {
-      case Some(t: Translator[_]) => Some[Translator[T]](t)
+      case Some(t: Translator[T]) => Some[Translator[T]](t)
       case _ => None
     }
   }

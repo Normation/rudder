@@ -331,7 +331,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         techniqueRepository.getTechniqueVersions(activeTechnique.techniqueName).toSeq.size > 1 
       }
       .map { form =>
-        "form" #> { xml => 
+        "form" #> { (xml:NodeSeq) => 
           val options = techniqueRepository
             .getTechniqueVersions(activeTechnique.techniqueName)
             .toSeq

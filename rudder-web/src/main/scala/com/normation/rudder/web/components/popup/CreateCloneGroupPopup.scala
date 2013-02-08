@@ -238,7 +238,7 @@ class CreateCloneGroupPopup(
   }
 
   private[this] val piContainer = new WBSelectField("Parent category",
-      (categories.open_!.map(x => (x.id.value -> x.name))),
+      (categories.getOrElse(Seq()).map(x => (x.id.value -> x.name))),
       parentCategoryId) {
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
     override def className = "rudderBaseFieldSelectClassName"

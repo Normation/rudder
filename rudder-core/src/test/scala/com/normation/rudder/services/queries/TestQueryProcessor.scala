@@ -125,7 +125,7 @@ class TestQueryProcessor extends Loggable {
       {  "select":"node", "where":[
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"exists" }
       ] }  
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s)
       
     /** find back server 1 and 5 by id */
@@ -136,7 +136,7 @@ class TestQueryProcessor extends Loggable {
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" }
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node5" }
       ] }  
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(1) :: s(5) :: Nil)
    
     /** find back neither server 1 and 5 by id because of the and */
@@ -147,7 +147,7 @@ class TestQueryProcessor extends Loggable {
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" }
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node5" }
       ] }  
-      """).open_!,
+      """).openOrThrowException("For tests"),
       Nil)
     
     testQueries( q0 :: q1 :: q2 :: Nil)
@@ -162,7 +162,7 @@ class TestQueryProcessor extends Loggable {
       {  "select":"node", "where":[
         { "objectType":"node", "attribute":"ram", "comparator":"gt", "value":"1" }
       ] } 
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(1) :: Nil)
   
     val q2_1 = TestQuery(
@@ -171,7 +171,7 @@ class TestQueryProcessor extends Loggable {
       {  "select":"node", "where":[
         { "objectType":"node", "attribute":"ram", "comparator":"gteq", "value":"1" }
       ] }  
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(1) :: s(2) :: Nil)
       
   
@@ -181,7 +181,7 @@ class TestQueryProcessor extends Loggable {
       {  "select":"node", "where":[
         { "objectType":"node", "attribute":"ram", "comparator":"lteq", "value":"1" }
       ] }  
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(2) :: Nil)
 
     testQueries(q2_2 :: q2_1 :: q2_0 :: Nil)
@@ -195,7 +195,7 @@ class TestQueryProcessor extends Loggable {
       { "select":"node", "where":[
       { "objectType":"biosPhysicalElement", "attribute":"softwareVersion", "comparator":"eq", "value":"6.00" }
       ] } 
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(6) :: s(7) :: Nil)
       
     testQueries(q3 :: Nil)
@@ -209,7 +209,7 @@ class TestQueryProcessor extends Loggable {
       { "select":"node", "where":[
         { "objectType":"software", "attribute":"softwareVersion", "comparator":"eq", "value":"1.0.0" }
       ] } 
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(2) :: s(7) :: Nil)
   
     val q2 = TestQuery(
@@ -218,7 +218,7 @@ class TestQueryProcessor extends Loggable {
       { "select":"node", "where":[
         { "objectType":"software", "attribute":"softwareVersion", "comparator":"eq", "value":"2.0-rc" }
       ] } 
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(2) :: Nil)
       
       
@@ -233,7 +233,7 @@ class TestQueryProcessor extends Loggable {
       { "select":"node", "where":[
         { "objectType":"fileSystemLogicalElement", "attribute":"fileSystemFreeSpace", "comparator":"gteq", "value":"1" }
       ] }
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(3) :: s(7) :: Nil)
   
     val q2 = TestQuery(
@@ -242,7 +242,7 @@ class TestQueryProcessor extends Loggable {
       { "select":"node", "where":[
         { "objectType":"fileSystemLogicalElement", "attribute":"fileSystemFreeSpace", "comparator":"gteq", "value":"100" }
       ] } 
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(3) :: Nil)
       
       
@@ -260,7 +260,7 @@ class TestQueryProcessor extends Loggable {
         , { "objectType":"node" , "attribute":"osKernelVersion" , "comparator":"regex", "value":"[0-9.-]+-(gen)eric" }
         , { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[01]" }
       ] }  
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(1) :: Nil)
       
     //on node software, machine, machine element, node element
@@ -274,7 +274,7 @@ class TestQueryProcessor extends Loggable {
         , { "objectType":"fileSystemLogicalElement", "attribute":"fileSystemFreeSpace", "comparator":"regex", "value":"[01]{2}" }
         , { "objectType":"biosPhysicalElement", "attribute":"softwareVersion", "comparator":"regex", "value":"[6.0]+" }
       ] }  
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(7) :: Nil)
 
     //on node and or for regex
@@ -285,7 +285,7 @@ class TestQueryProcessor extends Loggable {
           { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[01]" }
         , { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[12]" }
       ] }  
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(0) :: s(1) :: s(2) :: Nil)
       
     //same as q4 with and
@@ -296,7 +296,7 @@ class TestQueryProcessor extends Loggable {
           { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[01]" }
         , { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[12]" }
       ] }  
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(1) :: Nil)
       
       testQueries(q1 :: q2 :: q3 :: q4 :: Nil)
@@ -312,7 +312,7 @@ class TestQueryProcessor extends Loggable {
         { "objectType":"machine", "attribute":"cn", "comparator":"exists"  },
         { "objectType":"node"   , "attribute":"ram"  , "comparator":"gt", "value":"1000" }
       ] }  
-      """).open_!,
+      """).openOrThrowException("For tests"),
       Nil)
   
       testQueries(q1 :: Nil)
@@ -327,7 +327,7 @@ class TestQueryProcessor extends Loggable {
   }
   
   private def testQueryResultProcessor(name:String,query:Query, ids:Seq[NodeId]) = {
-      val found = queryProcessor.process(query).open_!.map { nodeInfo =>
+      val found = queryProcessor.process(query).openOrThrowException("For tests").map { nodeInfo =>
         nodeInfo.id
       }
       //also test with requiring only the expected node to check consistancy 
@@ -340,7 +340,7 @@ class TestQueryProcessor extends Loggable {
       assertTrue("[%s]Entries differ between awaited and found entry set (process)\n Found: %s\n Wants: %s".
           format(name,found,ids),found.forall { f => ids.exists( f == _) })
           
-      val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, serverUuids = Some(ids)).open_!.map { entry =>
+      val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, serverUuids = Some(ids)).openOrThrowException("For tests").map { entry =>
         NodeId(entry("nodeId").get)
       }).distinct
       assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected enrties (process)\n Found: %s\n Wants: %s".
@@ -348,7 +348,7 @@ class TestQueryProcessor extends Loggable {
   }
   
 //  private def testQueryResultChecker(name:String,query:Query, ids:Seq[NodeId]) = {
-//      val checked = queryProcessor.check(query,s).open_!
+//      val checked = queryProcessor.check(query,s).openOrThrowException("For tests")
 //      
 //      assertEquals("[%s]Size differ between awaited and found entry set (check)\n Found: %s\n Wants: %s".
 //          format(name,checked,ids),ids.size,checked.size)

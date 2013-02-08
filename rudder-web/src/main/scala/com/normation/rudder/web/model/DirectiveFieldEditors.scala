@@ -58,7 +58,7 @@ class TextField(val id: String) extends DirectiveField {
   type ValueType = String
   protected var _x: String = getDefaultValue
 
-  def is = _x
+  def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
   def toForm() = Full(SHtml.text(toClient, { x => parseClient(x) }))
   def manifest = manifestOf[String]
@@ -135,7 +135,7 @@ class SelectField(val id: String, items: Seq[ValueLabel]) extends DirectiveField
   type ValueType = Seq[String]
   private var values: ValueType = getDefaultValue
 
-  def is = values
+  def get = values
   def set(x: ValueType) = { values = x; values }
 
   def toForm() = {
@@ -176,7 +176,7 @@ class SelectOneField(val id: String, valueslabels: Seq[ValueLabel]) extends Dire
   type ValueType = String
   private var _x: String = getDefaultValue
 
-  def is = _x
+  def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
   def toForm() = {
     if (valueslabels.size <= 3)
@@ -235,7 +235,7 @@ class UploadedFileField(basePath: String)(val id: String) extends DirectiveField
   private var f: File = getDefaultValue
   private var errors = List[FieldError]()
 
-  def is = f
+  def get = f
   def set(x: File) = {
     errors = List[FieldError]()
     if (null == x) f = null
@@ -284,7 +284,7 @@ class DateField(format: DateTimeFormatter)(val id: String) extends DirectiveFiel
 
   private var _x: ValueType = getDefaultValue
   private var errors: List[FieldError] = Nil
-  def is = _x
+  def get = _x
   def set(x: ValueType) = { _x = x; _x }
   def manifest = manifestOf[LocalDate]
 
@@ -325,7 +325,7 @@ class TimeField(format: DateTimeFormatter)(val id: String) extends DirectiveFiel
 
   private var _x: ValueType = getDefaultValue
   private var errors: List[FieldError] = Nil
-  def is = _x
+  def get = _x
   def set(x: ValueType) = { _x = x; _x }
   def manifest = manifestOf[LocalTime]
 
@@ -370,7 +370,7 @@ class PeriodField(
 
   private var _x: ValueType = getDefaultValue
   private var errors: List[FieldError] = Nil
-  def is = _x
+  def get = _x
   def set(x: ValueType) = { _x = x; _x }
   def manifest = manifestOf[Period]
 
@@ -436,7 +436,7 @@ class FilePermsField(val id: String) extends DirectiveField {
   private val _x: ValueType = getDefaultValue
   private var errors: List[FieldError] = Nil
 
-  def is = _x
+  def get = _x
   def set(x: ValueType) = { _x.set(x); _x }
   def manifest = manifestOf[FilePerms]
 
@@ -481,13 +481,13 @@ class FilePermsField(val id: String) extends DirectiveField {
 
 class CheckboxField(val id: String) extends DirectiveField {
   type ValueType = String // yes, this is truly a String
-
+  
   private var _x: String = getDefaultValue
   private var description: String = ""
   override def displayName = description
   override def displayName_=(s: String): Unit = description = s
 
-  def is = _x
+  def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
   def manifest = manifestOf[String]
 

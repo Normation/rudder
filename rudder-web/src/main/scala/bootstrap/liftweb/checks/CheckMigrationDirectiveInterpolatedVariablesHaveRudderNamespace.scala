@@ -80,7 +80,7 @@ class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
 ) extends BootstrapChecks {
   
 
-  private[this] val logger = new Logger {
+  private[this] object logger extends Logger {
     override protected def _logger = LoggerFactory.getLogger("migration")
     val defaultErrorLogger : Failure => Unit = { f =>
       _logger.error(f.messageChain)
