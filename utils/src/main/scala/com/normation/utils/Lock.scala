@@ -54,6 +54,7 @@ trait ScalaReadWriteLock {
 
 object ScalaLock {
   import java.util.concurrent.locks.Lock
+  import language.implicitConversions
   
   implicit def java2ScalaLock(javaLock:Lock) : ScalaLock = new ScalaLock {
     override def lock() = javaLock.lock()

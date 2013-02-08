@@ -51,9 +51,9 @@ object ZipUtils {
         }
         Full({})
       } catch {
-        case e:Exception => Failure("Error while unzipping file '%s'".format(zip.getName), Full(e), Empty)
+        case e:Exception => Failure(s"Error while unzipping file '${zip.getName}'", Full(e), Empty)
       }
-    } else Failure("Directory '%s' is not a valid directory to unzip file: please, check permission and existence".format(intoDir.getPath))
+    } else Failure(s"Directory '${intoDir.getPath}' is not a valid directory to unzip file: please, check permission and existence")
   }
   
   

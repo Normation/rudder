@@ -27,7 +27,7 @@ limitations under the License.
   <dependencies>
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-util_${scala-lift-version}</artifactId>
+      <artifactId>lift-util_${scala-binary-version}</artifactId>
       <version>${lift-version}</version>
       <exclusions>
         <exclusion>

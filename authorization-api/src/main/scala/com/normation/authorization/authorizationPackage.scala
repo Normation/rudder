@@ -20,6 +20,8 @@
 
 package com.normation
 
+import language.implicitConversions
+
 package object authorization {
   
   /**
