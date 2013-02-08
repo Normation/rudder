@@ -23,7 +23,6 @@ package com.normation.ldap.sdk
 import com.unboundid.ldap.sdk.{DN,Attribute}
 import com.unboundid.ldap.sdk.schema.Schema
 import com.normation.exceptions.TechnicalException
-import scala.collection.JavaConversions.asSet
 import com.normation.utils.HashcodeCaching
 
 /**

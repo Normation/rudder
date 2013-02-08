@@ -23,6 +23,8 @@ package com.normation.ldap.sdk
 import com.unboundid.ldap.sdk.Filter
 
 package object schema {
+  import scala.language.implicitConversions
+
   //implicits conversion between our ObjectClass object and an LDAP filter
   //that require that this objectclass is present
   implicit def objectClass2Filter(oc:LDAPObjectClass) : Filter = BuildFilter.EQ("objectClass",oc.name)

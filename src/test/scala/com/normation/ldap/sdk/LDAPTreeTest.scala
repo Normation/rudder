@@ -42,7 +42,7 @@ class LDAPTreeTest {
   @Test
   def testAddSubChild() {
     
-    val tree = new LDAPTree() {
+    object tree extends LDAPTree {
       top =>
       override val root = LDAPEntry(dn1)
       
