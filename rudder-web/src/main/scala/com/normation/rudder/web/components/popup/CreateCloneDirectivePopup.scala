@@ -51,9 +51,10 @@ import CreateCloneDirectivePopup._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.domain.{TechniqueVersion,TechniqueName}
 import com.normation.rudder.web.services.UserPropertyService
-import com.normation.rudder.repository.DirectiveRepository
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.WoDirectiveRepository
 
 
 object CreateCloneDirectivePopup {
@@ -101,7 +102,8 @@ class CreateCloneDirectivePopup(
 
   private[this] val uuidGen = inject[StringUuidGenerator]
   private[this] val userPropertyService = inject[UserPropertyService]
-  private[this] val directiveRepository = inject[DirectiveRepository]
+  private[this] val roDirectiveRepository = inject[RoDirectiveRepository]
+  private[this] val woDirectiveRepository = inject[WoDirectiveRepository]
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }
@@ -201,9 +203,9 @@ class CreateCloneDirectivePopup(
         shortDescription = directiveShortDescription.is,
         isEnabled = directive.isEnabled
       )
-      directiveRepository.getActiveTechnique(directive.id) match {
+      roDirectiveRepository.getActiveTechnique(directive.id) match {
         case Full(activeTechnique) =>
-          directiveRepository.saveDirective(activeTechnique.id, cloneDirective, ModificationId(uuidGen.newUuid), CurrentUser.getActor, reason.map(_.is)) match {
+          woDirectiveRepository.saveDirective(activeTechnique.id, cloneDirective, ModificationId(uuidGen.newUuid), CurrentUser.getActor, reason.map(_.is)) match {
             case Full(directive) => {
                closePopup() & onSuccessCallback(cloneDirective)
             }

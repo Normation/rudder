@@ -58,8 +58,8 @@ object StartAutomaticReporting
 class AutomaticReportLogger(
     propertyRepository    : RudderPropertiesRepository
   , reportsRepository   : ReportsRepository
-  , ruleRepository      : RuleRepository
-  , directiveRepository : DirectiveRepository
+  , ruleRepository      : RoRuleRepository
+  , directiveRepository : RoDirectiveRepository
   , nodeInfoService     : NodeInfoService
   , reportLogInterval   : Int
 ) extends Loggable {

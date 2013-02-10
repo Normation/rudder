@@ -153,25 +153,23 @@ class RuleEditForm(
 
   private[this] val htmlId_save = htmlId_rule + "Save"
   private[this] val htmlId_EditZone = "editRuleZone"
-  private[this] val ruleRepository = inject[RuleRepository]
+  private[this] val roRuleRepository = inject[RoRuleRepository]
+  private[this] val woRuleRepository = inject[WoRuleRepository]
   private[this] val targetInfoService = inject[RuleTargetService]
-  private[this] val directiveRepository = inject[DirectiveRepository]
-  private[this] val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
-  private[this] val activeTechniqueRepository = inject[ActiveTechniqueRepository]
+  private[this] val directiveRepository = inject[RoDirectiveRepository]
   private[this] val techniqueRepository = inject[TechniqueRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
-    private[this] val reportingService = inject[ReportingService]
+  private[this] val reportingService = inject[ReportingService]
   private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] var crCurrentStatusIsActivated = rule.isEnabledStatus
 
   private[this] var selectedTargets = rule.targets
   private[this] var selectedDirectiveIds = rule.directiveIds
 
-  private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
-  private[this] val nodeGroupRepository = inject[NodeGroupRepository]
+  private[this] val nodeGroupRepository = inject[RoNodeGroupRepository]
 
-  private[this] val rootCategoryId = groupCategoryRepository.getRootCategory.id
+  private[this] val rootCategoryId = nodeGroupRepository.getRootCategory.id
   private[this] val treeUtilService = inject[JsTreeUtilService]
   private[this] val userPropertyService = inject[UserPropertyService]
 
@@ -242,7 +240,7 @@ class RuleEditForm(
   }
 
   private[this] def  showRuleDetails() : NodeSeq = {
-    val updatedrule = ruleRepository.get(rule.id)
+    val updatedrule = roRuleRepository.get(rule.id)
     (
       "#details *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
       "#nameField" #>    <div>{crName.displayNameHtml.getOrElse("Could not fetch rule name")} {updatedrule.map(_.name).openOr("could not fetch rule name")} </div> &
@@ -285,7 +283,7 @@ class RuleEditForm(
       } } &
       "#selectPiField" #> {
         <div id={htmlId_activeTechniquesTree}>{
-          activeTechniqueCategoryRepository.getActiveTechniqueLibrary match {
+          directiveRepository.getActiveTechniqueLibrary match {
             case eb:EmptyBox =>
               val f = eb ?~! "Error when trying to get the root category of Active Techniques"
               logger.error(f.messageChain)
@@ -303,7 +301,7 @@ class RuleEditForm(
       "#selectGroupField" #> {
         <div id={htmlId_groupTree}>
           <ul>
-            {nodeGroupCategoryToJsTreeNode(groupCategoryRepository.getRootCategory).toXml}
+            {nodeGroupCategoryToJsTreeNode(nodeGroupRepository.getRootCategory).toXml}
           </ul>
         </div> } &
       "#save" #> saveButton &
@@ -425,7 +423,7 @@ class RuleEditForm(
       } else {
         JsRaw("$.modal.close();") &
         { val modId = ModificationId(uuidGen.newUuid)
-          ruleRepository.delete(rule.id, modId, CurrentUser.getActor,
+          woRuleRepository.delete(rule.id, modId, CurrentUser.getActor, 
                         crReasonsRemovePopup.map( _.is)) match {
             case Full(x) =>
             // There is a delete diff, deploy
@@ -639,7 +637,7 @@ class RuleEditForm(
 
   private[this] def saveAndDeployRule(rule:Rule, reason: Option[String]) : JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
-    ruleRepository.update(rule, modId, CurrentUser.getActor, reason) match {
+    woRuleRepository.update(rule, modId, CurrentUser.getActor, reason) match {
       case Full(optDiff) =>
         optDiff match {
           case Some(_) => // There is a modification diff, launch a deployment.
@@ -724,7 +722,7 @@ class RuleEditForm(
 
   //fetch node group category id and transform it to a tree node
   private def nodeGroupCategoryIdToJsTreeNode(id:NodeGroupCategoryId) : Box[JsTreeNode] = {
-    groupCategoryRepository.getGroupCategory(id) match {
+    nodeGroupRepository.getGroupCategory(id) match {
       //remove sytem category
       case Full(category) => category.isSystem match {
         case true => Empty
@@ -898,7 +896,7 @@ class RuleEditForm(
         }
       }
 
-      activeTechniqueRepository.getActiveTechnique(id) match {
+      directiveRepository.getActiveTechnique(id) match {
         case Full(activeTechnique) =>
           techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
             case Some(refPt) if activeTechnique.directives.size>0 =>
@@ -926,7 +924,7 @@ class RuleEditForm(
     def activeTechniqueCategoryIdToJsTreeNode(id:ActiveTechniqueCategoryId) :
       Box[(JsTreeNode,ActiveTechniqueCategory)] = {
 
-      activeTechniqueCategoryRepository.getActiveTechniqueCategory(id) match {
+      directiveRepository.getActiveTechniqueCategory(id) match {
         //remove sytem category
         case Full(cat) => cat.isSystem match {
           case true => Empty
@@ -972,7 +970,7 @@ class RuleEditForm(
         val sortedCat = {
           category.children
             .filter { categoryId =>
-              activeTechniqueCategoryRepository.containsDirective(categoryId)
+              directiveRepository.containsDirective(categoryId)
             }
             .flatMap(x => activeTechniqueCategoryIdToJsTreeNode(x))
             .toList

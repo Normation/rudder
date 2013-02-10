@@ -146,8 +146,8 @@ class NodeGroupForm(
 
   var _nodeGroup = nodeGroup.map(x => x.copy())
 
-  private[this] val nodeGroupRepository     = inject[NodeGroupRepository]
-  private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
+  private[this] val roNodeGroupRepository     = inject[RoNodeGroupRepository]
+  private[this] val woNodeGroupRepository     = inject[WoNodeGroupRepository]
   private[this] val nodeInfoService         = inject[NodeInfoService]
   private[this] val dependencyService       = inject[DependencyAndDeletionService]
   private[this] val asyncDeploymentAgent    = inject[AsyncDeploymentAgent]
@@ -675,7 +675,7 @@ class NodeGroupForm(
    * @return
    */
   private def createGroup(name : String, description : String, query : Query, isDynamic : Boolean, nodeList : List[NodeId], container: String ) : JsCmd = {
-    val createGroup = nodeGroupRepository.createNodeGroup(
+    val createGroup = woNodeGroupRepository.createNodeGroup(
                           name
                         , description
                         , Some(query)
@@ -722,9 +722,9 @@ class NodeGroupForm(
     val newNodeGroup = new NodeGroup(originalNodeGroup.id, name, description, Some(query), isDynamic, nodeList.toSet, isEnabled, originalNodeGroup.isSystem)
     val modId = ModificationId(uuidGen.newUuid)
     (for {
-      moved <- nodeGroupRepository.move(originalNodeGroup, NodeGroupCategoryId(container), modId, CurrentUser.getActor, crReasons.map(_.is)) ?~!
+      moved <- woNodeGroupRepository.move(originalNodeGroup, NodeGroupCategoryId(container), modId, CurrentUser.getActor, crReasons.map(_.is)) ?~! 
                "Error when moving NodeGroup %s ('%s') to '%s'".format(originalNodeGroup.id, originalNodeGroup.name, container)
-      saved <- nodeGroupRepository.update(newNodeGroup, modId, CurrentUser.getActor, crReasons.map(_.is)) ?~!
+      saved <- woNodeGroupRepository.update(newNodeGroup, modId, CurrentUser.getActor, crReasons.map(_.is)) ?~! 
                "Error when updating the group %s".format(originalNodeGroup.id)
     } yield {
       (moved,saved)
@@ -774,7 +774,7 @@ class NodeGroupForm(
 
 
   private[this] def updateLocalParentCategory() : Unit = {
-    parentCategory = _nodeGroup.map(x => nodeGroupRepository.getParentGroupCategory(x.id))
+    parentCategory = _nodeGroup.map(x => roNodeGroupRepository.getParentGroupCategory(x.id))
 
     parentCategoryId = parentCategory match {
       case Some(x) =>  x match {

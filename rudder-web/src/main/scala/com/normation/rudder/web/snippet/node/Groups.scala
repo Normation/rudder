@@ -57,12 +57,10 @@ import JE._
 import net.liftweb.http.SHtml._
 import net.liftweb.json._
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.repository.NodeGroupCategoryRepository
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleTargetInfo
 import com.normation.utils.HashcodeCaching
-import com.normation.rudder.repository.NodeGroupRepository
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.plugins.ExtendableSnippet
@@ -90,8 +88,8 @@ object Groups {
 class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with Loggable {
   import Groups._
 
-  private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
-  private[this] val nodeGroupRepository     = inject[NodeGroupRepository]
+  private[this] val roNodeGroupRepository   = inject[RoNodeGroupRepository]
+  private[this] val woNodeGroupRepository   = inject[WoNodeGroupRepository]
   private[this] val uuidGen                 = inject[StringUuidGenerator]
 
   def mainDispatch =  Map(
@@ -112,7 +110,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   //the popup component
   private[this] val creationPopup = new LocalSnippet[CreateCategoryOrGroupPopup]
 
-  private[this] val rootCategoryId = groupCategoryRepository.getRootCategory.id
+  private[this] val rootCategoryId = roNodeGroupRepository.getRootCategory.id
 
   /**
    * Head of the portlet, nothing much yet
@@ -163,7 +161,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
    */
   private[this] def parseJsArg() : JsCmd = {
     def displayDetails(groupId:String) = {
-      nodeGroupRepository.getNodeGroup(new NodeGroupId(groupId)) match {
+      roNodeGroupRepository.getNodeGroup(new NodeGroupId(groupId)) match {
         case t: EmptyBox => Noop
         case Full(nodeGroup) =>
           refreshTree(htmlTreeNodeId(groupId)) &
@@ -232,7 +230,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   private[this] def buildGroupTree(selectedNode:String) : NodeSeq = {
     (
       <div id={htmlId_groupTree}>
-        <ul>{ nodeGroupCategoryToJsTreeNode(groupCategoryRepository.getRootCategory).toXml }</ul>
+        <ul>{ nodeGroupCategoryToJsTreeNode(roNodeGroupRepository.getRootCategory).toXml }</ul>
       </div>
     ) ++ Script(OnLoad(
       //build jstree and
@@ -303,9 +301,9 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
        }) match {
         case (sourceGroupId, destCatId) :: Nil =>
           (for {
-            group <- nodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId)) ?~! "Error while trying to find group with requested id %s".format(sourceGroupId)
-            result <- nodeGroupRepository.move(group, NodeGroupCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Group moved by user"))?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
-            newGroup <- nodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId))
+            group <- roNodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId)) ?~! "Error while trying to find group with requested id %s".format(sourceGroupId)
+            result <- woNodeGroupRepository.move(group, NodeGroupCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Group moved by user"))?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
+            newGroup <- roNodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId))
           } yield {
             newGroup
           }) match {
@@ -333,8 +331,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
        }) match {
         case (sourceCatId, destCatId) :: Nil =>
           (for {
-            group <- groupCategoryRepository.getGroupCategory(NodeGroupCategoryId(sourceCatId)) ?~! "Error while trying to find category with requested id %s".format(sourceCatId)
-            result <- groupCategoryRepository.saveGroupCategory(
+            group <- roNodeGroupRepository.getGroupCategory(NodeGroupCategoryId(sourceCatId)) ?~! "Error while trying to find category with requested id %s".format(sourceCatId)
+            result <- woNodeGroupRepository.saveGroupCategory(
                           group
                         , NodeGroupCategoryId(destCatId)
                         , ModificationId(uuidGen.newUuid)
@@ -404,7 +402,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
 
   //fetch server group category id and transform it to a tree node
   private[this] def nodeGroupCategoryIdToJsTreeNode(id:NodeGroupCategoryId) : Box[JsTreeNode] = {
-    groupCategoryRepository.getGroupCategory(id) match {
+    roNodeGroupRepository.getGroupCategory(id) match {
       //remove sytem category
       case Full(group) => group.isSystem match {
         case true => Empty
@@ -421,7 +419,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   private[this] def policyTargetInfoToJsTreeNode(targetInfo:RuleTargetInfo) : JsTreeNode = {
     targetInfo.target match {
       case GroupTarget(id) =>
-        nodeGroupRepository.getNodeGroup(id) match {
+        roNodeGroupRepository.getNodeGroup(id) match {
           case Full(group) => nodeGroupToJsTreeNode(group)
           case _ => new JsTreeNode {
             override def body = <span class="error">Can not find node {id.value}</span>

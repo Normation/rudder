@@ -37,6 +37,7 @@ package bootstrap.liftweb
 import com.normation.inventory.domain._
 import com.normation.inventory.services.core._
 import com.normation.inventory.ldap.core._
+import com.normation.inventory.services._
 import com.normation.rudder.batch._
 import com.normation.rudder.services.policies.ParameterizedValueLookupServiceImpl
 import com.normation.rudder.services.nodes._
@@ -59,8 +60,6 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.core.io.ClassPathResource
 import com.normation.spring.ScalaApplicationContext
 import com.normation.ldap.sdk._
-import com.normation.inventory.ldap.core._
-import com.normation.inventory.services._
 import com.normation.rudder.domain._
 import com.normation.rudder.web.services._
 import com.normation.rudder.web.model._
@@ -96,7 +95,6 @@ import com.normation.rudder.migration.XmlMigration_2_3
 import com.normation.rudder.web.services.UserPropertyService
 import java.lang.IllegalArgumentException
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.repository.ldap.LDAPNodeGroupRepository
 import logger.MigrationLogger
 import com.normation.rudder.migration.ControlEventLogsMigration_10_2
 import com.normation.rudder.migration.EventLogsMigration_10_2
@@ -263,20 +261,34 @@ class AppConfig extends Loggable {
 
   val rulesDirectoryName = "rules"
 
-  @Bean
-  def userPropertyService = {
-    val opt = new ReasonsMessageInfo(reasonFieldEnabled, reasonFieldMandatory,
-        reasonFieldExplanation)
-    new UserPropertyServiceImpl(opt)
-  }
 
-  // metadata.xml parser
-  @Bean
-  def techniqueParser = {
-    val variableSpecParser = new VariableSpecParser()
-    new TechniqueParser(variableSpecParser,new SectionSpecParser(variableSpecParser),new Cf3PromisesFileTemplateParser,systemVariableSpecService)
-  }
+  ////////////////////////////////////  
+  //  pure services / No I/O at all //
+  ////////////////////////////////////
+    //actually, we tolerate I/O during 
+    //service set-up (ex: read a config file)
 
+  @Bean
+  def acceptedNodesDit: InventoryDit = new InventoryDit(ACCEPTED_INVENTORIES_DN, SOFTWARE_INVENTORIES_DN, "Accepted inventories")
+
+  @Bean
+  def pendingNodesDit: InventoryDit = new InventoryDit(PENDING_INVENTORIES_DN, SOFTWARE_INVENTORIES_DN, "Pending inventories")
+
+  @Bean
+  def removedNodesDit = new InventoryDit(REMOVED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Removed Servers")
+
+  @Bean
+  def rudderDit: RudderDit = new RudderDit(RUDDER_DN)
+
+  @Bean
+  def nodeDit: NodeDit = new NodeDit(NODE_DN)
+
+  @Bean
+  def inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDit, acceptedNodesDit,removedNodesDit)
+
+  @Bean
+  def uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
+  
   @Bean
   def systemVariableSpecService = new SystemVariableSpecServiceImpl()
 
@@ -286,12 +298,8 @@ class AppConfig extends Loggable {
   @Bean
   def ldapEntityMapper = new LDAPEntityMapper(rudderDit, nodeDit, acceptedNodesDit, queryParser)
 
-  @Bean
-  def ldapNodeConfigurationMapper = new LDAPNodeConfigurationMapper(rudderDit, acceptedNodesDit, systemVariableSpecService, techniqueRepository, variableBuilderService, ldap)
-
-  @Bean
-  def ldapNodeConfigurationRepository = new LDAPNodeConfigurationRepository(ldap, rudderDit, ldapNodeConfigurationMapper)
-
+  
+  
   ///// items serializer - service that transforms items to XML /////
 
   @Bean
@@ -321,6 +329,122 @@ class AppConfig extends Loggable {
   @Bean
   def deploymentStatusSerialisation : DeploymentStatusSerialisation =
     new DeploymentStatusSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
+
+
+  @Bean
+  def eventLogFactory = new EventLogFactoryImpl(
+    ruleSerialisation,
+    directiveSerialisation, 
+    nodeGroupSerialisation, 
+    activeTechniqueSerialisation)
+  
+  @Bean
+  def pathComputer = new PathComputerImpl(
+    ldapNodeConfigurationRepository,
+    backupFolder)
+  
+  @Bean
+  def baseUrlService: GetBaseUrlService = new DefaultBaseUrlService(BASE_URL)
+
+  /*
+   * For now, we don't want to query server other
+   * than the accepted ones. 
+   */
+  @Bean
+  def ditQueryData = new DitQueryData(acceptedNodesDit)
+
+  @Bean
+  def queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
+    override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryData.criteriaMap
+  }
+
+  @Bean
+  def inventoryMapper: InventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDit, acceptedNodesDit, removedNodesDit)
+
+  @Bean
+  def fullInventoryFromLdapEntries: FullInventoryFromLdapEntries = new FullInventoryFromLdapEntriesImpl(inventoryDitService, inventoryMapper)
+    
+  @Bean
+  def srvGrid = new SrvGrid
+  
+  @Bean 
+  def ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryParser)
+
+  
+
+  @Bean 
+  def activeTechniqueCategoryUnserialisation = new ActiveTechniqueCategoryUnserialisationImpl
+
+  @Bean
+  def activeTechniqueUnserialisation = new ActiveTechniqueUnserialisationImpl
+  
+  @Bean
+  def directiveUnserialisation = new DirectiveUnserialisationImpl
+  
+  @Bean
+  def nodeGroupCategoryUnserialisation = new NodeGroupCategoryUnserialisationImpl
+    
+  @Bean
+  def nodeGroupUnserialisation = new NodeGroupUnserialisationImpl(queryParser)
+  
+  @Bean
+  def ruleUnserialisation = new RuleUnserialisationImpl
+ 
+  @Bean
+  def deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
+
+  @Bean
+  def xmlMigration_2_3 = new XmlMigration_2_3()
+  
+  @Bean
+  def xmlMigration_10_2 = new XmlMigration_10_2()
+  
+  @Bean
+  def entityMigration = new DefaultXmlEventLogMigration(xmlMigration_10_2, xmlMigration_2_3)
+  
+  
+  @Bean 
+  def eventLogDetailsService : EventLogDetailsService = new EventLogDetailsServiceImpl(
+      queryParser
+    , new DirectiveUnserialisationImpl
+    , new NodeGroupUnserialisationImpl(queryParser)
+    , new RuleUnserialisationImpl
+    , new ActiveTechniqueUnserialisationImpl
+    , new DeploymentStatusUnserialisationImpl
+  )
+  
+  //////////////////////////////////////////////////////////
+  //  non pure services that could perhaps be
+  //////////////////////////////////////////////////////////
+
+  // => rwLdap is only used to repair an error, that could be repaired elsewhere. 
+  @Bean
+  def ldapNodeConfigurationMapper = new LDAPNodeConfigurationMapper(rudderDit, acceptedNodesDit, systemVariableSpecService, techniqueRepository, variableBuilderService, rwLdap)
+
+  // => because of systemVariableSpecService
+  // metadata.xml parser
+  @Bean
+  def techniqueParser = {
+    val variableSpecParser = new VariableSpecParser()
+    new TechniqueParser(variableSpecParser,new SectionSpecParser(variableSpecParser),new Cf3PromisesFileTemplateParser,systemVariableSpecService)
+  }
+  
+  
+  
+  
+  ////////////////////////////////////  
+  //  non pure services 
+  ////////////////////////////////////  
+
+  @Bean
+  def userPropertyService = {
+    val opt = new ReasonsMessageInfo(reasonFieldEnabled, reasonFieldMandatory, 
+        reasonFieldExplanation)
+    new UserPropertyServiceImpl(opt)
+  }
+
+  @Bean
+  def ldapNodeConfigurationRepository = new LDAPNodeConfigurationRepository(rwLdap, rudderDit, ldapNodeConfigurationMapper)
 
 
   ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
@@ -368,9 +492,10 @@ class AppConfig extends Loggable {
   )
 
   @Bean
-  def gitNodeGroupCategoryArchiver: GitNodeGroupCategoryArchiver = new GitNodeGroupCategoryArchiverImpl(
+  def gitNodeGroupArchiver: GitNodeGroupArchiver = new GitNodeGroupArchiverImpl(
       gitRepo
     , new File(gitRoot)
+    , nodeGroupSerialisation
     , nodeGroupCategorySerialisation
     , groupLibraryDirectoryName
     , prettyPrinter
@@ -378,26 +503,16 @@ class AppConfig extends Loggable {
   )
 
   @Bean
-  def gitNodeGroupArchiver: GitNodeGroupArchiver = new GitNodeGroupArchiverImpl(
-      gitRepo
-    , new File(gitRoot)
-    , nodeGroupSerialisation
-    , groupLibraryDirectoryName
-    , prettyPrinter
-    , gitModificationRepository
-  )
-
-  @Bean
   def itemArchiveManager = new ItemArchiveManagerImpl(
-      ldapRuleRepository
-    , ldapActiveTechniqueRepository
-    , ldapNodeGroupRepository
+      roLdapRuleRepository
+    , rwLdapRuleRepository
+    , roLdapDirectiveRepository
+    , roLdapNodeGroupRepository
     , gitRepo
     , gitRevisionProvider
     , gitRuleArchiver
     , gitActiveTechniqueCategoryArchiver
     , gitActiveTechniqueArchiver
-    , gitNodeGroupCategoryArchiver
     , gitNodeGroupArchiver
     , parseRules
     , ParseActiveTechniqueLibrary
@@ -412,13 +527,6 @@ class AppConfig extends Loggable {
   ///// end /////
 
   @Bean
-  def eventLogFactory = new EventLogFactoryImpl(
-    ruleSerialisation,
-    directiveSerialisation,
-    nodeGroupSerialisation,
-    activeTechniqueSerialisation)
-
-  @Bean
   def logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
 
   @Bean
@@ -428,15 +536,10 @@ class AppConfig extends Loggable {
   def licenseRepository = new LicenseRepositoryXML(licensesFolder + "/" + licensesConfiguration)
 
   @Bean
-  def pathComputer = new PathComputerImpl(
-    ldapNodeConfigurationRepository,
-    backupFolder)
-
-  @Bean
   def gitRepo = new GitRepositoryProviderImpl(gitRoot)
 
   @Bean
-  def gitRevisionProvider = new LDAPGitRevisionProvider(ldap, rudderDit, gitRepo, ptRefsPath)
+  def gitRevisionProvider = new LDAPGitRevisionProvider(rwLdap, rudderDit, gitRepo, ptRefsPath)
 
   @Bean
   def techniqueReader: TechniqueReader = {
@@ -462,7 +565,7 @@ class AppConfig extends Loggable {
     , new ParameterizedValueLookupServiceImpl(
         nodeInfoService
       , ruleTargetService
-      , ldapRuleRepository
+      , roLdapRuleRepository
       , ruleValService
       )
     , systemVariableSpecService
@@ -494,15 +597,17 @@ class AppConfig extends Loggable {
     novaCheckPromises)
 
   //must be here because of cirular dependency if in techniqueRepository
-  @Bean def techniqueAcceptationDatetimeUpdater: TechniquesLibraryUpdateNotification =
-    new TechniqueAcceptationDatetimeUpdater("UpdatePTAcceptationDatetime", ldapActiveTechniqueRepository)
-
+  @Bean def techniqueAcceptationDatetimeUpdater: TechniquesLibraryUpdateNotification = {
+    val callback = new TechniqueAcceptationDatetimeUpdater("UpdatePTAcceptationDatetime", roLdapDirectiveRepository, rwLdapDirectiveRepository)
+    techniqueRepository.registerCallback(callback)
+    callback
+  }
 
   @Bean
   def techniqueRepository = {
     val service = new TechniqueRepositoryImpl(
         techniqueReader
-      , Seq(techniqueAcceptationDatetimeUpdater)
+      , Seq()
       , uuidGen
     )
     service.registerCallback(new LogEventOnTechniqueReloadCallback("LogEventOnPTLibUpdate", logRepository))
@@ -545,94 +650,63 @@ class AppConfig extends Loggable {
   def historizationJdbcRepository = new HistorizationJdbcRepository(squerylDatasourceProvider)
 
   @Bean
-  def baseUrlService: GetBaseUrlService = new DefaultBaseUrlService(BASE_URL)
-
-  @Bean
   def startStopOrchestrator: StartStopOrchestrator = {
     if (!(new File(startStopBinPath)).exists)
       ApplicationLogger.error("The 'red button' program is not present at: '%s'. You will experience error when trying to use that functionnality".format(startStopBinPath))
     new SystemStartStopOrchestrator(startStopBinPath)
   }
 
-  @Bean
-  def acceptedNodesDit: InventoryDit = new InventoryDit(ACCEPTED_INVENTORIES_DN, SOFTWARE_INVENTORIES_DN, "Accepted inventories")
 
   @Bean
-  def pendingNodesDit: InventoryDit = new InventoryDit(PENDING_INVENTORIES_DN, SOFTWARE_INVENTORIES_DN, "Pending inventories")
-
-  @Bean
-  def removedNodesDit = new InventoryDit(REMOVED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Removed Servers")
-
-  @Bean
-  def rudderDit: RudderDit = new RudderDit(RUDDER_DN)
-
-  @Bean
-  def nodeDit: NodeDit = new NodeDit(NODE_DN)
-
-  @Bean
-  def inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDit, acceptedNodesDit,removedNodesDit)
-
-  @Bean
-  def uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
-
-  @Bean
-  def ldap =
-    new PooledSimpleAuthConnectionProvider(
+  def roLdap =
+    new ROPooledSimpleAuthConnectionProvider(
       host = SERVER,
       port = PORT,
       authDn = AUTH_DN,
       authPw = AUTH_PW,
-      poolSize = 5)
+      poolSize = 2)
 
-  ////////// LDAP Processing related thing //////////
-  /*
-   * For now, we don't want to query server other
-   * than the accepted ones.
-   */
   @Bean
-  def ditQueryData = new DitQueryData(acceptedNodesDit)
+  def rwLdap =
+    new RWPooledSimpleAuthConnectionProvider(
+      host = SERVER,
+      port = PORT,
+      authDn = AUTH_DN,
+      authPw = AUTH_PW,
+      poolSize = 2)
+
   //query processor for accepted nodes
   @Bean
   def queryProcessor = new AccepetedNodesLDAPQueryProcessor(
     nodeDit,
-    new InternalLDAPQueryProcessor(ldap, acceptedNodesDit, ditQueryData, ldapEntityMapper))
+    new InternalLDAPQueryProcessor(roLdap, acceptedNodesDit, ditQueryData, ldapEntityMapper))
 
-  //onoy a LDAP query checker for nodes in pending
+  //we need a roLdap query checker for nodes in pending
   @Bean
-  def inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(ldap, pendingNodesDit, new DitQueryData(pendingNodesDit), ldapEntityMapper))
-
-  @Bean
-  def queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
-    override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryData.criteriaMap
-  }
+  def inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(roLdap, pendingNodesDit, new DitQueryData(pendingNodesDit), ldapEntityMapper))
 
   @Bean
-  def dynGroupService: DynGroupService = new DynGroupServiceImpl(rudderDit, ldap, ldapEntityMapper, inventoryQueryChecker)
+  def dynGroupService: DynGroupService = new DynGroupServiceImpl(rudderDit, roLdap, ldapEntityMapper, inventoryQueryChecker)
 
   @Bean
   def ruleTargetService: RuleTargetService = new RuleTargetServiceImpl(
-    ldapNodeGroupRepository, nodeInfoService,
+    roLdapNodeGroupRepository, nodeInfoService,
     Seq(
       new SpecialAllTargetUpits: UnitRuleTargetService,
       new SpecialAllTargetExceptPolicyServersTargetUpits(nodeInfoService),
       new PolicyServerTargetUpits(nodeInfoService),
-      new GroupTargetUpits(ldapNodeGroupRepository)),
-    ldap,
+      new GroupTargetUpits(roLdapNodeGroupRepository)),
+    roLdap,
     rudderDit,
     ldapEntityMapper)
 
   @Bean
-  def inventoryMapper: InventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDit, acceptedNodesDit, removedNodesDit)
-
-  @Bean
-  def ldapFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, ldap)
-  @Bean
-  def fullInventoryFromLdapEntries: FullInventoryFromLdapEntries = new FullInventoryFromLdapEntriesImpl(inventoryDitService, inventoryMapper)
-
+  def ldapFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, rwLdap)
+  
   @Bean
   def unitRefuseGroup: UnitRefuseInventory = new RefuseGroups(
     "refuse_node:delete_id_in_groups",
-    ldapNodeGroupRepository)
+    roLdapNodeGroupRepository, rwLdapNodeGroupRepository)
 
   @Bean
   def acceptInventory: UnitAcceptInventory with UnitRefuseInventory = new AcceptInventory(
@@ -645,7 +719,7 @@ class AppConfig extends Loggable {
   def acceptNodeAndMachineInNodeOu: UnitAcceptInventory with UnitRefuseInventory = new AcceptFullInventoryInNodeOu(
     "accept_new_server:ou=node",
     nodeDit,
-    ldap,
+    rwLdap,
     ldapEntityMapper,
     PendingInventory)
 
@@ -653,7 +727,8 @@ class AppConfig extends Loggable {
   def acceptNodeRule: UnitAcceptInventory with UnitRefuseInventory = new AcceptNodeRule(
     "accept_new_server:add_system_configuration_rules",
     asyncDeploymentAgent,
-    ldapNodeGroupRepository,
+    roLdapNodeGroupRepository,
+    rwLdapNodeGroupRepository,
     ldapNodeConfigurationRepository,
     AcceptedInventory)
 
@@ -668,7 +743,8 @@ class AppConfig extends Loggable {
   @Bean
   def addNodeToDynGroup: UnitAcceptInventory with UnitRefuseInventory = new AddNodeToDynGroup(
     "add_server_to_dyngroup",
-    ldapNodeGroupRepository,
+    roLdapNodeGroupRepository,
+    rwLdapNodeGroupRepository,
     dynGroupService,
     PendingInventory)
 
@@ -682,33 +758,34 @@ class AppConfig extends Loggable {
 
   @Bean
   def ruleValService: RuleValService = new RuleValServiceImpl(
-    ldapRuleRepository,
-    ldapDirectiveRepository,
+    roLdapRuleRepository,
+    roLdapDirectiveRepository,
     techniqueRepository,
     variableBuilderService)
 
   @Bean
   def psMngtService: PolicyServerManagementService = new PolicyServerManagementServiceImpl(
-    ldapDirectiveRepository, asyncDeploymentAgent)
+    roLdapDirectiveRepository, rwLdapDirectiveRepository, asyncDeploymentAgent)
 
   @Bean
   def historizationService = new HistorizationServiceImpl(
     historizationJdbcRepository,
     nodeInfoService,
-    ldapNodeGroupRepository,
-    ldapDirectiveRepository,
+    roLdapNodeGroupRepository,
+    roLdapDirectiveRepository,
     techniqueRepository,
-    ldapRuleRepository)
+    roLdapRuleRepository)
 
   @Bean
   def asyncDeploymentAgent: AsyncDeploymentAgent = {
     val agent = new AsyncDeploymentAgent(new DeploymentServiceImpl(
-          ldapRuleRepository,
+          roLdapRuleRepository,
+          rwLdapRuleRepository,
           ruleValService,
           new ParameterizedValueLookupServiceImpl(
             nodeInfoService,
             ruleTargetService,
-            ldapRuleRepository,
+            roLdapRuleRepository,
             ruleValService),
           systemVariableService,
           ruleTargetService,
@@ -729,7 +806,7 @@ class AppConfig extends Loggable {
   @Bean
   def newNodeManager: NewNodeManager =
     new NewNodeManagerImpl(
-      ldap,
+      roLdap,
       pendingNodesDit, acceptedNodesDit,
       serverSummaryService,
       ldapFullInventoryRepository,
@@ -751,18 +828,16 @@ class AppConfig extends Loggable {
   )
 
   @Bean
-  def nodeConfigurationChangeDetectService = new NodeConfigurationChangeDetectServiceImpl(ldapActiveTechniqueRepository)
+  def nodeConfigurationChangeDetectService = new NodeConfigurationChangeDetectServiceImpl(roLdapDirectiveRepository)
 
   @Bean
   def serverGrid = new NodeGrid(ldapFullInventoryRepository)
 
-  @Bean
-  def srvGrid = new SrvGrid
 
   @Bean
   def modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManager,uuidGen)
   @Bean
-  def eventListDisplayer = new EventListDisplayer(eventLogDetailsService, logRepository, ldapNodeGroupRepository, ldapDirectiveRepository, nodeInfoService,modificationService,personIdentService)
+  def eventListDisplayer = new EventListDisplayer(eventLogDetailsService, logRepository, roLdapNodeGroupRepository, roLdapDirectiveRepository, nodeInfoService,modificationService,personIdentService)
 
   @Bean
   def fileManager = new FileManager(UPLOAD_ROOT_DIRECTORY)
@@ -771,10 +846,10 @@ class AppConfig extends Loggable {
   def databaseManager = new DatabaseManagerImpl(reportsRepository)
 
   @Bean
-  def softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, ldap, inventoryMapper)
+  def softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
 
   @Bean
-  def serverSummaryService = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, ldap)
+  def serverSummaryService = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
 
   @Bean
   def diffRepos: InventoryHistoryLogRepository =
@@ -783,14 +858,10 @@ class AppConfig extends Loggable {
   @Bean
   def serverPolicyDiffService = new NodeConfigurationDiffService
 
-  @Bean
-  def ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryParser)
-
-
   @Bean //trivial definition of the person ident service
   def personIdentService = new TrivialPersonIdentService
 
-  ////////////// MUTEX FOR LDAP REPOS //////////////
+  ////////////// MUTEX FOR Ldap REPOS //////////////
 
   val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
 
@@ -798,105 +869,67 @@ class AppConfig extends Loggable {
 
   val nodeReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
 
-  @Bean
-  def ldapActiveTechniqueCategoryRepository:LDAPActiveTechniqueCategoryRepository = new LDAPActiveTechniqueCategoryRepository(
-      rudderDit, ldap, ldapEntityMapper
-    , gitActiveTechniqueCategoryArchiver
-    , personIdentService
-    , autoArchiveItems
-    , uptLibReadWriteMutex
-  )
+
 
   @Bean
-  def ldapActiveTechniqueRepository = new LDAPActiveTechniqueRepository(
-      rudderDit, ldap, ldapEntityMapper
-    , ldapDiffMapper
-    , uuidGen
-    , ldapActiveTechniqueCategoryRepository
-    , logRepository
-    , gitActiveTechniqueArchiver
-    , personIdentService
-    , autoArchiveItems
-    , uptLibReadWriteMutex
-  )
+  def roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
+        rudderDit, roLdap, ldapEntityMapper, techniqueRepository, uptLibReadWriteMutex)
 
   @Bean
-  def ldapDirectiveRepository = {
-
-    val repo = new LDAPDirectiveRepository(
-        rudderDit, ldap, ldapEntityMapper, ldapDiffMapper
-      , ldapActiveTechniqueRepository
-      , techniqueRepository,logRepository
+  def rwLdapDirectiveRepository = {
+    val repo = new WoLDAPDirectiveRepository(
+        roLdapDirectiveRepository
+      , rwLdap
+      , ldapDiffMapper
+      , logRepository
+      , uuidGen
       , gitDirectiveArchiver
+      , gitActiveTechniqueArchiver
+      , gitActiveTechniqueCategoryArchiver
       , personIdentService
       , autoArchiveItems
-      , uptLibReadWriteMutex
     )
 
     gitActiveTechniqueArchiver.uptModificationCallback += new UpdatePiOnActiveTechniqueEvent(
         gitDirectiveArchiver
       , techniqueRepository
-      , repo
+      , roLdapDirectiveRepository
     )
 
     repo
   }
 
   @Bean
-  def ldapRuleRepository: RuleRepository = new LDAPRuleRepository(
-    rudderDit, nodeDit, ldap, ldapEntityMapper, ldapDiffMapper,
-    ldapNodeGroupRepository,
-    techniqueRepository,logRepository,
-    gitRuleArchiver,
-    personIdentService,
-    autoArchiveItems
-  )
+  def roLdapRuleRepository = new RoLDAPRuleRepository(rudderDit, roLdap, ldapEntityMapper)
 
   @Bean
-  def ldapNodeGroupCategoryRepository = new LDAPNodeGroupCategoryRepository(
-      rudderDit, ldap, ldapEntityMapper
-    , gitNodeGroupCategoryArchiver
+  def rwLdapRuleRepository: WoRuleRepository = new WoLDAPRuleRepository(
+      roLdapRuleRepository
+    , rwLdap
+    , ldapDiffMapper
+    , roLdapNodeGroupRepository
+    , logRepository
+    , gitRuleArchiver
     , personIdentService
     , autoArchiveItems
-    , groupLibReadWriteMutex
   )
 
   @Bean
-  def ldapNodeGroupRepository = new LDAPNodeGroupRepository(
-      rudderDit, ldap, ldapEntityMapper
+  def roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
+      rudderDit, roLdap, ldapEntityMapper, groupLibReadWriteMutex
+  )
+
+  @Bean
+  def rwLdapNodeGroupRepository = new WoLDAPNodeGroupRepository(
+      roLdapNodeGroupRepository
+    , rwLdap 
     , ldapDiffMapper
-    , ldapNodeGroupCategoryRepository
     , uuidGen
     , logRepository
     , gitNodeGroupArchiver
     , personIdentService
     , autoArchiveItems
-    , groupLibReadWriteMutex
   )
-
-  @Bean
-  def activeTechniqueCategoryUnserialisation = new ActiveTechniqueCategoryUnserialisationImpl
-
-  @Bean
-  def activeTechniqueUnserialisation = new ActiveTechniqueUnserialisationImpl
-
-  @Bean
-  def directiveUnserialisation = new DirectiveUnserialisationImpl
-
-  @Bean
-  def nodeGroupCategoryUnserialisation = new NodeGroupCategoryUnserialisationImpl
-
-  @Bean
-  def nodeGroupUnserialisation = new NodeGroupUnserialisationImpl(queryParser)
-
-  @Bean
-  def ruleUnserialisation = new RuleUnserialisationImpl
-
-  @Bean
-  def deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
-
-  @Bean
-  def entityMigration = new DefaultXmlEventLogMigration(xmlMigration_10_2, xmlMigration_2_3)
 
   @Bean
   def parseRules : ParseRules = new GitParseRules(
@@ -919,7 +952,7 @@ class AppConfig extends Loggable {
   @Bean
   def importTechniqueLibrary : ImportTechniqueLibrary = new ImportTechniqueLibraryImpl(
      rudderDit
-   , ldap
+   , rwLdap
    , ldapEntityMapper
    , uptLibReadWriteMutex
   )
@@ -936,42 +969,32 @@ class AppConfig extends Loggable {
   @Bean
   def importGroupLibrary : ImportGroupLibrary = new ImportGroupLibraryImpl(
      rudderDit
-   , ldap
+   , rwLdap
    , ldapEntityMapper
    , groupLibReadWriteMutex
-  )
-
-  @Bean
-  def eventLogDetailsService : EventLogDetailsService = new EventLogDetailsServiceImpl(
-      queryParser
-    , new DirectiveUnserialisationImpl
-    , new NodeGroupUnserialisationImpl(queryParser)
-    , new RuleUnserialisationImpl
-    , new ActiveTechniqueUnserialisationImpl
-    , new DeploymentStatusUnserialisationImpl
   )
 
   @Bean
   def eventLogDeploymentService = new EventLogDeploymentService(logRepository, eventLogDetailsService)
 
   @Bean
-  def nodeInfoService: NodeInfoService = new NodeInfoServiceImpl(nodeDit, rudderDit, acceptedNodesDit, ldap, ldapEntityMapper)
+  def nodeInfoService: NodeInfoService = new NodeInfoServiceImpl(nodeDit, rudderDit, acceptedNodesDit, roLdap, ldapEntityMapper)
 
   @Bean
   def dependencyAndDeletionService: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
-        ldap
+        roLdap
       , rudderDit
-      , ldapDirectiveRepository
-      , ldapActiveTechniqueRepository
-      , ldapRuleRepository
-      , ldapNodeGroupRepository
+      , roLdapDirectiveRepository
+      , rwLdapDirectiveRepository
+      , rwLdapRuleRepository
+      , rwLdapNodeGroupRepository
       , ldapEntityMapper
       , ruleTargetService
   )
 
   @Bean
   def quickSearchService: QuickSearchService = new QuickSearchServiceImpl(
-    ldap, nodeDit, acceptedNodesDit, ldapEntityMapper,
+    roLdap, nodeDit, acceptedNodesDit, ldapEntityMapper,
     //nodeAttributes
     Seq(LDAPConstants.A_NAME, LDAPConstants.A_NODE_UUID),
     //serverAttributes
@@ -986,15 +1009,15 @@ class AppConfig extends Loggable {
     ))
 
   @Bean
-  def logDisplayer: LogDisplayer = new com.normation.rudder.web.services.LogDisplayer(reportsRepository, ldapDirectiveRepository, ldapRuleRepository)
+  def logDisplayer: LogDisplayer = new LogDisplayer(reportsRepository, roLdapDirectiveRepository, roLdapRuleRepository)
 
   @Bean
-  def categoryHierarchyDisplayer: CategoryHierarchyDisplayer = new com.normation.rudder.web.services.CategoryHierarchyDisplayer(ldapNodeGroupCategoryRepository)
+  def categoryHierarchyDisplayer: CategoryHierarchyDisplayer = new CategoryHierarchyDisplayer(roLdapNodeGroupRepository)
 
   @Bean
   def dyngroupUpdaterBatch: UpdateDynamicGroups = new UpdateDynamicGroups(
       dynGroupService
-    , new DynGroupUpdaterServiceImpl(ldapNodeGroupRepository, queryProcessor)
+    , new DynGroupUpdaterServiceImpl(roLdapNodeGroupRepository, rwLdapNodeGroupRepository, queryProcessor)
     , asyncDeploymentAgent
     , uuidGen
     , dyngroupUpdateInterval
@@ -1002,24 +1025,26 @@ class AppConfig extends Loggable {
 
 
   @Bean
-  def cleanFrequency = AutomaticReportsCleaning.buildFrequency(
-      reportCleanerFrequency
-    , reportCleanerRuntimeMinute
-    , reportCleanerRuntimeHour
-    , reportCleanerRuntimeDay) match {
-    case Full(freq) => freq
-    case eb:EmptyBox => val fail = eb ?~! "automatic reports cleaner is not correct"
-      val exceptionMsg = "configuration file (/opt/rudder/etc/rudder-webapp.conf) is not correctly set, cause is %s".format(fail.msg)
-      throw new RuntimeException(exceptionMsg)
-  }
-
-  @Bean
-  def dbCleaner: AutomaticReportsCleaning = new AutomaticReportsCleaning(
+  def dbCleaner: AutomaticReportsCleaning = {
+    val cleanFrequency = AutomaticReportsCleaning.buildFrequency(
+        reportCleanerFrequency
+      , reportCleanerRuntimeMinute
+      , reportCleanerRuntimeHour
+      , reportCleanerRuntimeDay) match {
+      case Full(freq) => freq
+      case eb:EmptyBox => val fail = eb ?~! "automatic reports cleaner is not correct"
+        val exceptionMsg = "configuration file (/opt/rudder/etc/rudder-webapp.conf) is not correctly set, cause is %s".format(fail.msg)
+        throw new RuntimeException(exceptionMsg)
+    }
+    
+    new AutomaticReportsCleaning(
       databaseManager
     , reportCleanerDeleteTTL
     , reportCleanerArchiveTTL
     , cleanFrequency
-  )
+  )}
+    
+    
   @Bean
   def ptLibCron = new CheckTechniqueLibrary(
       techniqueRepository
@@ -1032,16 +1057,16 @@ class AppConfig extends Loggable {
   def userSessionLogEvent = new UserSessionLogEvent(logRepository, uuidGen)
 
   @Bean
-  def jsTreeUtilService = new JsTreeUtilService(
-    ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository, ldapDirectiveRepository, techniqueRepository)
+  def jsTreeUtilService = new JsTreeUtilService(roLdapDirectiveRepository, techniqueRepository)
 
   @Bean
   def removeNodeService = new RemoveNodeServiceImpl(
         nodeDit
       , rudderDit
-      , ldap
+      , rwLdap
       , ldapEntityMapper
-      , ldapNodeGroupRepository
+      , roLdapNodeGroupRepository
+      , rwLdapNodeGroupRepository
       , nodeConfigurationService
       , nodeInfoService
       , ldapFullInventoryRepository
@@ -1052,11 +1077,7 @@ class AppConfig extends Loggable {
    * Event log migration
    */
 
-  @Bean
-  def xmlMigration_2_3 = new XmlMigration_2_3()
 
-  @Bean
-  def xmlMigration_10_2 = new XmlMigration_10_2()
 
   @Bean
   def eventLogsMigration_10_2 = new EventLogsMigration_10_2(
@@ -1097,15 +1118,15 @@ class AppConfig extends Loggable {
    */
   @Bean
   def allChecks = new SequentialImmediateBootStrapChecks(
-      new CheckDIT(pendingNodesDit, acceptedNodesDit, removedNodesDit, rudderDit, ldap)
+      new CheckDIT(pendingNodesDit, acceptedNodesDit, removedNodesDit, rudderDit, rwLdap)
     , new CheckRootNodeUnicity(ldapNodeConfigurationRepository)
-    , new CheckSystemDirectives(rudderDit, ldapRuleRepository)
+    , new CheckSystemDirectives(rudderDit, roLdapRuleRepository)
     , new CheckInitUserTemplateLibrary(
-        rudderDit, ldap, techniqueRepository,
-        ldapActiveTechniqueCategoryRepository, ldapActiveTechniqueRepository, uuidGen) //new CheckDirectiveBusinessRules()
+        rudderDit, rwLdap, techniqueRepository,
+        roLdapDirectiveRepository, rwLdapDirectiveRepository, uuidGen) //new CheckDirectiveBusinessRules()
     , new CheckMigrationEventLog2_3(eventLogsMigration_2_3_Management)
     , new CheckInitXmlExport(itemArchiveManager, personIdentService, uuidGen)
-    , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(ldapDirectiveRepository, uuidGen)
+    , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(roLdapDirectiveRepository, rwLdapDirectiveRepository, uuidGen)
   )
 
 
@@ -1189,8 +1210,8 @@ class AppConfig extends Loggable {
 
   @Bean
   def reportDisplayer = new ReportDisplayer(
-      ldapRuleRepository
-    , ldapDirectiveRepository
+      roLdapRuleRepository
+    , roLdapDirectiveRepository
     , reportingService
     , techniqueRepository)
 
@@ -1203,8 +1224,8 @@ class AppConfig extends Loggable {
   def automaticReportLogger = new AutomaticReportLogger(
       propertyRepository
     , reportsRepository
-    , ldapRuleRepository
-    , ldapDirectiveRepository
+    , roLdapRuleRepository
+    , roLdapDirectiveRepository
     , nodeInfoService
     , reportLogInterval )
 

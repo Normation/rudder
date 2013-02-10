@@ -142,7 +142,7 @@ class DirectiveEditForm(
 
   val currentDirectiveSettingForm = new LocalSnippet[DirectiveEditForm]
 
-  private[this] val directiveRepository    = inject[DirectiveRepository]
+  private[this] val directiveRepository    = inject[WoDirectiveRepository]
   private[this] val dependencyService      = inject[DependencyAndDeletionService]
   private[this] val directiveEditorService = inject[DirectiveEditorService]
   private[this] val asyncDeploymentAgent   = inject[AsyncDeploymentAgent]

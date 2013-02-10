@@ -69,8 +69,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   import DirectiveManagement._
 
   val techniqueRepository = inject[TechniqueRepository]
-  val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
-  val directiveRepository = inject[DirectiveRepository]
+  val directiveRepository = inject[RoDirectiveRepository]
   val uuidGen = inject[StringUuidGenerator]
   val treeUtilService = inject[JsTreeUtilService]
 
@@ -142,7 +141,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   def userLibrary(): NodeSeq = {
     (
       <div id={htmlId_activeTechniquesTree} class="nodisplay">{
-          activeTechniqueCategoryRepository.getActiveTechniqueLibrary match {
+          directiveRepository.getActiveTechniqueLibrary match {
             case eb:EmptyBox =>
               val f = eb ?~! "Error when trying to get the root category of Active Techniques"
               logger.error(f.messageChain)
