@@ -34,24 +34,25 @@
 
 package bootstrap.liftweb
 
-
-// spring boilerplate //
-import org.springframework.context.annotation.{Bean,Configuration,Import,ImportResource}
-import org.springframework.core.io.{Resource,ClassPathResource,FileSystemResource}
-import org.springframework.context.annotation.Lazy
-import org.springframework.security.authentication.AuthenticationProvider
-import org.springframework.security.authentication.encoding._
-import org.springframework.security.core.userdetails.memory.{InMemoryDaoImpl,UserMap}
-import org.springframework.security.core.userdetails.UserDetails
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider
-import org.springframework.security.core.GrantedAuthority
-import scala.collection.JavaConversions._
-import net.liftweb.common._
 import java.io.File
-import com.normation.utils.HashcodeCaching
-import com.normation.authorization._
-import com.normation.rudder.authorization._
+
+import scala.collection.JavaConversions.seqAsJavaList
+
+import org.springframework.context.annotation.{ Bean, Configuration, Import, ImportResource }
+import org.springframework.core.io.{ ClassPathResource, FileSystemResource, Resource }
+import org.springframework.security.authentication.AuthenticationProvider
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider
+import org.springframework.security.authentication.encoding._
+import org.springframework.security.core.GrantedAuthority
+import org.springframework.security.core.userdetails.{ UserDetails, UserDetailsService, UsernameNotFoundException }
+
+import com.normation.authorization.Rights
+import com.normation.rudder.authorization.{ AuthzToRights, NoRights }
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.utils.HashcodeCaching
+
+import bootstrap.liftweb._
+import net.liftweb.common.Loggable
 
 /**
  * Spring configuration for user authentication.
@@ -93,12 +94,10 @@ class AppConfigAuth extends Loggable {
     //try to read and parse the file for users
     parseUsers(resource) match {
       case Some(config) =>
-        val userDetails = new InMemoryDaoImpl()
-        val userMap = new UserMap
-        config.users.foreach { case (login,pass,roles) =>
-          userMap.addUser(RudderUserDetail(login,pass,roles))
-        }
-        userDetails.setUserMap(userMap)
+        val userDetails = new RudderInMemoryUserDetailsService(config.users.map { case (login,pass,roles) =>
+          RudderUserDetail(login,pass,roles)
+        }.toSet)
+
         val provider = new DaoAuthenticationProvider()
         provider.setUserDetailsService(userDetails)
         provider.setPasswordEncoder(config.encoder)
@@ -110,6 +109,19 @@ class AppConfigAuth extends Loggable {
   }
 }
 
+/**
+ *  A trivial, immutable implementation of UserDetailsService for RudderUser
+ */    
+class RudderInMemoryUserDetailsService(private[this] val initialUsers:Set[RudderUserDetail]) extends UserDetailsService {
+  private[this] val users = Map[String,RudderUserDetail](initialUsers.map(u => (u.login,u)).toSeq:_*)
+  
+  @throws(classOf[UsernameNotFoundException])
+  override def loadUserByUsername(username:String) : RudderUserDetail = {
+    users.getOrElse(username, throw new UsernameNotFoundException(s"User with username '%{username}' was not found"))
+  }
+}
+  
+  
 /**
  * For now, we don't use at all Spring Authority to implements
  * our authorizations. 
