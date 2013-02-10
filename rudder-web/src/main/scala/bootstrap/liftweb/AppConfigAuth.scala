@@ -52,7 +52,6 @@ import com.normation.utils.HashcodeCaching
 import com.normation.authorization._
 import com.normation.rudder.authorization._
 import com.normation.rudder.domain.logger.ApplicationLogger
-import org.springframework.security.provisioning.InMemoryUserDetailsManager
 
 /**
  * Spring configuration for user authentication.
@@ -94,7 +93,12 @@ class AppConfigAuth extends Loggable {
     //try to read and parse the file for users
     parseUsers(resource) match {
       case Some(config) =>
-        val userDetails = new InMemoryUserDetailsManager(config.users.map{case (login,pass,roles) =>RudderUserDetail(login,pass,roles)})
+        val userDetails = new InMemoryDaoImpl()
+        val userMap = new UserMap
+        config.users.foreach { case (login,pass,roles) =>
+          userMap.addUser(RudderUserDetail(login,pass,roles))
+        }
+        userDetails.setUserMap(userMap)
         val provider = new DaoAuthenticationProvider()
         provider.setUserDetailsService(userDetails)
         provider.setPasswordEncoder(config.encoder)
