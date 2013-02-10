@@ -36,7 +36,7 @@ package com.normation.rudder.web.services
 
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.repository.RuleRepository
+import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleVal
 import com.normation.rudder.services.servers.NodeSummaryService
@@ -57,7 +57,7 @@ import JE._
 import net.liftweb.http.SHtml._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import net.liftweb.http.Templates
-import com.normation.rudder.repository.DirectiveRepository
+import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.cfclerk.services.TechniqueRepository
 
 /**
@@ -69,8 +69,8 @@ import com.normation.cfclerk.services.TechniqueRepository
  *
  */
 class ReportDisplayer(
-    ruleRepository      : RuleRepository
-  , directiveRepository : DirectiveRepository
+    ruleRepository      : RoRuleRepository
+  , directiveRepository : RoDirectiveRepository 
   , reportingService    : ReportingService
   , techniqueRepository : TechniqueRepository) {
 

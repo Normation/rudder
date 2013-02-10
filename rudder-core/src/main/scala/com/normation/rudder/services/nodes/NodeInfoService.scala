@@ -98,7 +98,7 @@ class NodeInfoServiceImpl(
     nodeDit : NodeDit,
     rudderDit:RudderDit,
     inventoryDit:InventoryDit,
-    ldap:LDAPConnectionProvider,
+    ldap:LDAPConnectionProvider[RoLDAPConnection],
     ldapMapper:LDAPEntityMapper
 ) extends NodeInfoService with Loggable {
   import NodeInfoServiceImpl._

@@ -63,7 +63,7 @@ import com.normation.utils.ScalaReadWriteLock
 import com.unboundid.ldap.sdk.DN
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.ldap.sdk.LDAPConnection
+import com.normation.ldap.sdk.RwLDAPConnection
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.RudderLDAPConstants._
@@ -73,7 +73,7 @@ import com.normation.ldap.sdk.GeneralizedTime
 
 class ImportTechniqueLibraryImpl(
     rudderDit   : RudderDit
-  , ldap        : LDAPConnectionProvider
+  , ldap        : LDAPConnectionProvider[RwLDAPConnection]
   , mapper      : LDAPEntityMapper
   , userLibMutex: ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends ImportTechniqueLibrary with LDAPImportLibraryUtil {
@@ -109,7 +109,7 @@ class ImportTechniqueLibraryImpl(
     def atomicSwap(userLib:ActiveTechniqueCategoryContent) : Box[ActiveTechniqueLibraryArchiveId] = {
       //save the new one
       //we need to keep the git commit id
-      def saveUserLib(con:LDAPConnection, userLib:ActiveTechniqueCategoryContent, gitId:Option[String]) : Box[Unit] = {
+      def saveUserLib(con:RwLDAPConnection, userLib:ActiveTechniqueCategoryContent, gitId:Option[String]) : Box[Unit] = {
         def recSaveUserLib(parentDN:DN, content:ActiveTechniqueCategoryContent, isRoot:Boolean = false) : Box[Unit] = {
           //start with the category
           //then with technique/directive for that category

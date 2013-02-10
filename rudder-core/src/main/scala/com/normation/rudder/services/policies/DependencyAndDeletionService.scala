@@ -46,13 +46,14 @@ import com.normation.rudder.domain.policies.{ActiveTechniqueId, RuleId, Directiv
 import com.normation.rudder.domain.{RudderLDAPConstants, RudderDit}
 import RudderLDAPConstants._
 import com.normation.utils.Control.sequence
-import com.normation.ldap.sdk.{ReadOnlyLDAPConnection, BuildFilter, LDAPConnectionProvider}
+import com.normation.ldap.sdk.{BuildFilter, LDAPConnectionProvider}
 import BuildFilter._
 import com.normation.rudder.repository._
 import com.normation.eventlog.EventActor
 import com.normation.utils.HashcodeCaching
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
+import com.normation.ldap.sdk.RoLDAPConnection
 
 
 /**
@@ -165,14 +166,14 @@ trait DependencyAndDeletionService {
 ///////////////////////////////// default implementation /////////////////////////////////
 
 class DependencyAndDeletionServiceImpl(
-    ldap               : LDAPConnectionProvider
-  , rudderDit          : RudderDit
-  , directiveRepository: DirectiveRepository
-  , techniqueRepository: ActiveTechniqueRepository
-  , ruleRepository     : RuleRepository
-  , groupRepository    : NodeGroupRepository
-  , mapper             : LDAPEntityMapper
-  , targetService      : RuleTargetService
+    ldap                 : LDAPConnectionProvider[RoLDAPConnection]
+  , rudderDit            : RudderDit
+  , roDirectiveRepository: RoDirectiveRepository
+  , woDirectiveRepository: WoDirectiveRepository
+  , woRuleRepository     : WoRuleRepository
+  , woGroupRepository    : WoNodeGroupRepository
+  , mapper               : LDAPEntityMapper
+  , targetService        : RuleTargetService
 ) extends DependencyAndDeletionService with Loggable {
 
   /**
@@ -180,7 +181,7 @@ class DependencyAndDeletionServiceImpl(
    * Some rules may be omited
    */
   private[this] def searchRules(
-      con:ReadOnlyLDAPConnection
+      con:RoLDAPConnection
     , id:DirectiveId
   ):Box[Seq[Rule]] = {
     sequence(con.searchOne(rudderDit.RULES.dn, EQ(A_DIRECTIVE_UUID, id.value))) { entry =>
@@ -255,7 +256,7 @@ class DependencyAndDeletionServiceImpl(
       updatedRules <- sequence(configRules) { rule =>
                         //check that target is actually "target", and remove it
                         if(rule.directiveIds.exists(i => id == i)) {
-                          ruleRepository.update(rule.copy(directiveIds = rule.directiveIds - id), modId, actor, reason) ?~!
+                          woRuleRepository.update(rule.copy(directiveIds = rule.directiveIds - id), modId, actor, reason) ?~!
                             "Can not update rule with ID %s. %s".format(rule.id, {
                                val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
                                if(alreadyUpdated.isEmpty) ""
@@ -266,7 +267,7 @@ class DependencyAndDeletionServiceImpl(
                           None
                         }
       }
-      diff         <- directiveRepository.delete(id, modId, actor, reason) ?~!
+      diff         <- woDirectiveRepository.delete(id, modId, actor, reason) ?~! 
                       "Error when deleting policy instanc with ID %s. All dependent rules where deleted %s.".format(
                           id, configRules.map( _.id.value ).mkString(" (", ", ", ")"))
     } yield {
@@ -289,7 +290,7 @@ class DependencyAndDeletionServiceImpl(
   def techniqueDependencies(id:ActiveTechniqueId, onlyForState:ModificationStatus = DontCare) : Box[TechniqueDependencies] = {
     for {
       con <- ldap
-      directives <- directiveRepository.getDirectives(id)
+      directives <- roDirectiveRepository.getDirectives(id)
       //if we are asked only for enable directives, remove disabled ones
       filteredPis = onlyForState match {
         case DontCare => directives
@@ -331,12 +332,12 @@ class DependencyAndDeletionServiceImpl(
   def cascadeDeleteTechnique(id:ActiveTechniqueId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[TechniqueDependencies] = {
     for {
       con <- ldap
-      directives <- directiveRepository.getDirectives(id)
+      directives <- roDirectiveRepository.getDirectives(id)
       piMap = directives.map(directive => (directive.id, directive) ).toMap
       deletedPis <- sequence(directives) { directive =>
         cascadeDeleteDirective(directive.id, modId, actor, reason = reason)
       }
-      deletedActiveTechnique <- techniqueRepository.delete(id, modId, actor, reason)
+      deletedActiveTechnique <- woDirectiveRepository.delete(id, modId, actor, reason)
     } yield {
       val allCrs = scala.collection.mutable.Map[RuleId,Rule]()
       val directives = deletedPis.map { case DirectiveDependencies(directiveId,seqCrs) =>
@@ -353,7 +354,7 @@ class DependencyAndDeletionServiceImpl(
   ////////////////////////////// Target dependencies //////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////
 
-  private[this] def searchRules(con:ReadOnlyLDAPConnection, target:RuleTarget) : Box[Seq[Rule]] = {
+  private[this] def searchRules(con:RoLDAPConnection, target:RuleTarget) : Box[Seq[Rule]] = {
     sequence(con.searchOne(rudderDit.RULES.dn, EQ(A_RULE_TARGET, target.target))) { entry =>
       mapper.entry2Rule(entry)
     }
@@ -378,8 +379,8 @@ class DependencyAndDeletionServiceImpl(
         //group by target, and check if target is enable
         (sequence(enabledCr.groupBy { case (rule,id) => id }.toSeq) { case (id, seq) =>
           for {
-            directive <- directiveRepository.getDirective(id)
-            activeTechnique <- directiveRepository.getActiveTechnique(id)
+            directive <- roDirectiveRepository.getDirective(id)
+            activeTechnique <- roDirectiveRepository.getActiveTechnique(id)
           } yield {
             if(directive.isEnabled && activeTechnique.isEnabled) {
               seq.map { case(id,_) => id }
@@ -412,7 +413,7 @@ class DependencyAndDeletionServiceImpl(
           updatedRules  <- sequence(configRules) { rule =>
                              //check that target is actually "target", and remove it
                              if (rule.targets.contains(target)) {
-                                 ruleRepository.update(rule.copy(targets = rule.targets - target), modId, actor, reason) ?~!
+                                 woRuleRepository.update(rule.copy(targets = rule.targets - target), modId, actor, reason) ?~! 
                                    "Can not remove target '%s' from rule with Dd '%s'. %s".format(
                                        target.target, rule.id.value, {
                                          val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
@@ -426,7 +427,7 @@ class DependencyAndDeletionServiceImpl(
                                 Full(None)
                              }
                            }
-          deletedTarget <- groupRepository.delete(groupId, modId, actor, reason) ?~!
+          deletedTarget <- woGroupRepository.delete(groupId, modId, actor, reason) ?~!
                             "Error when deleting target %s. All dependent rules where updated %s".format(
                               target, configRules.map( _.id.value ).mkString("(", ", ", ")" ))
         } yield {

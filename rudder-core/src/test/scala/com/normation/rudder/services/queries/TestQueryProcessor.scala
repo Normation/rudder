@@ -78,7 +78,7 @@ class TestQueryProcessor extends Loggable {
   val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
      this.getClass.getClassLoader.getResource(name).getPath
   }
-  val ldap = InMemoryDsConnectionProvider(
+  val ldap = InMemoryDsConnectionProvider[RoLDAPConnection](
       baseDNs = "cn=rudder-configuration" :: Nil
     , schemaLDIFPaths = schemaLDIFs
     , bootstrapLDIFPaths = bootstrapLDIFs

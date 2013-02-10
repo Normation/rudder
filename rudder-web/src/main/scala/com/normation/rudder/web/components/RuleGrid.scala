@@ -82,8 +82,9 @@ class RuleGrid(
 ) extends DispatchSnippet with Loggable {
 
   private[this] val targetInfoService = inject[RuleTargetService]
-  private[this] val directiveRepository = inject[DirectiveRepository]
-  private[this] val ruleRepository = inject[RuleRepository]
+  private[this] val directiveRepository = inject[RoDirectiveRepository]
+  private[this] val roRuleRepository = inject[RoRuleRepository]
+  private[this] val woRuleRepository = inject[WoRuleRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
 
   private[this] val reportingService = inject[ReportingService]
@@ -461,7 +462,7 @@ class RuleGrid(
           OKLine(rule, compliance, seq, targets)
         case (x,y) =>
           //the Rule has some error, try to disactivate it
-          ruleRepository.update(rule.copy(isEnabledStatus=false), ModificationId(uuidGen.newUuid), RudderEventActor,
+          woRuleRepository.update(rule.copy(isEnabledStatus=false), ModificationId(uuidGen.newUuid), RudderEventActor, 
             Some("Rule automatically disabled because it contains error (bad target or bad directives)"))
           ErrorLine(rule, x, y)
       }

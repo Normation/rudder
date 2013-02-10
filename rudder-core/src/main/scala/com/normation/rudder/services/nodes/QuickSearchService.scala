@@ -79,7 +79,7 @@ trait QuickSearchService {
 }
 
 class QuickSearchServiceImpl(
-    ldap            : LDAPConnectionProvider //manage LDAP connection
+    ldap            : LDAPConnectionProvider[RoLDAPConnection] //manage LDAP connection
   , nodeDit         : NodeDit                //LDAP structure of nodes branch
   , inventoryDit    : InventoryDit           //LDAP structure of inventory branch
   , mapper          : LDAPEntityMapper       //map LDAP entries to domain object
@@ -167,7 +167,7 @@ def matchNodeInfoPairs( serverPairs:Map[NodeId,LDAPEntry], allNodePairs:Map[Node
    * effort. If the answer is not sufficiently precise, the user will just have to write some
    * more text.
    */
-  private[this] def search(con:LDAPConnection, baseDN:DN, sizeLimit:Int, filter:Filter, attrs:Seq[String]) : Box[Seq[LDAPEntry]] = {
+  private[this] def search(con:RoLDAPConnection, baseDN:DN, sizeLimit:Int, filter:Filter, attrs:Seq[String]) : Box[Seq[LDAPEntry]] = {
     def handleException(e:LDAPSearchException) : Box[Seq[LDAPEntry]] = {
         e.getSearchEntries match {
           case null => Failure("Exception when processing quick search query", Full(e), Empty)

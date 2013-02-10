@@ -70,14 +70,11 @@ class TechniqueTree(
 
   //find Technique
   val techniqueRepository = inject[TechniqueRepository]
-  //find & create user categories
-  val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
-  //find & create Active Techniques
-  val activeTechniqueRepository = inject[ActiveTechniqueRepository]
+  val activeTechniqueRepository = inject[RoDirectiveRepository]
 
   val dependencyService = inject[DependencyAndDeletionService]
 
-  val ruleRepository = inject[RuleRepository]
+  val ruleRepository = inject[RoRuleRepository]
 
   def dispatch = {
     case "tree" => { _ => tree }

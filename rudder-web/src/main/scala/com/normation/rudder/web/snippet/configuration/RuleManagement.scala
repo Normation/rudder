@@ -70,7 +70,7 @@ import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
 class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleManagement] with Loggable {
   import RuleManagement._
 
-  private[this] val ruleRepository = inject[RuleRepository]
+  private[this] val ruleRepository = inject[RoRuleRepository]
   private[this] val targetInfoService = inject[RuleTargetService]
   private[this] val uuidGen = inject[StringUuidGenerator]
 
