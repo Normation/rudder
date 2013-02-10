@@ -70,7 +70,12 @@ class UserInformation extends DispatchSnippet with Loggable {
   def userCredentials = {
     CurrentUser.get match {
       case Some(u) =>  "#openerAccount" #> u.getUsername 
-      case None => "#infosUser *" #> <p class="error">Error when trying to fetch user details.</p>
+      case None => 
+        S.session.foreach { session =>
+          SecurityContextHolder.clearContext()
+          session.destroySession()
+        }
+        "#infosUser *" #> <p class="error">Error when trying to fetch user details.</p>
     }    
   }
   
