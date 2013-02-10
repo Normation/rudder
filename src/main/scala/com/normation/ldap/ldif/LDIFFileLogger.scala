@@ -120,7 +120,7 @@ trait Slf4jLDIFLogger extends LDIFFileLogger {
   }
 
   private def errorMessage(e:Exception,filename:String) : Unit =
-    logE("Exception when loggin LDIF trace in %s (ignored)".format(filename),e)
+    logE(s"Exception when loggin LDIF trace in ${filename} (ignored)",e)
 
 
   private def writeRecord(ldifWriter:LDIFWriter,LDIFRecord:LDIFRecord,comment:Option[String] = None) {

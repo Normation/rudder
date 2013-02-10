@@ -293,7 +293,7 @@ object LDAPEntry {
   def apply(dn:DN, attributes:Iterable[Attribute]):LDAPEntry = LDAPEntry(new UnboundidEntry(dn,attributes))
   def apply(rdnAttribute:String,rdnValue:String,parentDn:String, attributes:Attribute*) : LDAPEntry = {
     require(rdnValue != null && rdnValue.length > 0)
-    apply(new DN("%s=%s,%s".format(rdnAttribute, rdnValue, parentDn)),attributes)
+    apply(new DN(s"${rdnAttribute}=${rdnValue},${parentDn}"),attributes)
   }
 
   def apply(dn:Option[DN],attributes:Attribute*):LDAPEntry = {
