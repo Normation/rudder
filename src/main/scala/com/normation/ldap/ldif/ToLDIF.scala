@@ -35,10 +35,10 @@ import java.lang.StringBuilder
 trait ToLDIFString {
 
   /**
-   * Add the LDIF string representation of the object 
+   * Add the LDIF string representation of the object
    * to the given StringBuild
    */
-  def toLDIFString(sb:StringBuilder) : Unit 
+  def toLDIFString(sb:StringBuilder) : Unit
 
   /**
    * Get the LDIF string representation of the object
@@ -47,7 +47,7 @@ trait ToLDIFString {
     val sb = new StringBuilder
     this.toLDIFString(sb)
     sb.toString
-  }  
+  }
 }
 
 trait ToLDIFRecord {
@@ -58,16 +58,16 @@ trait ToLDIFRecord {
 }
 
 trait ToLDIFRecords extends ToLDIFString {
-  
+
   /**
    * Get the object as list of LDIFRecords
    */
   def toLDIFRecords(): Seq[LDIFRecord]
-  
+
   override def toLDIFString(sb:StringBuilder) : Unit = {
-    this.toLDIFRecords.foreach { r => 
+    this.toLDIFRecords.foreach { r =>
       r.toLDIFString(sb)
     }
   }
-  
+
 }

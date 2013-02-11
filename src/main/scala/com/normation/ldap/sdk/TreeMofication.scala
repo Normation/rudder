@@ -25,11 +25,11 @@ import com.normation.utils.HashcodeCaching
 
 
 /**
- * DataType that represent modification made to 
- * a tree. 
+ * DataType that represent modification made to
+ * a tree.
  */
 sealed abstract class TreeModification
 case object NoMod extends TreeModification
-case class Add(tree:LDAPTree) extends TreeModification with HashcodeCaching 
-case class Delete(tree:Tree[DN]) extends TreeModification with HashcodeCaching 
-case class Replace(mods:(DN,Seq[Modification])) extends TreeModification with HashcodeCaching 
+case class Add(tree:LDAPTree) extends TreeModification with HashcodeCaching
+case class Delete(tree:Tree[DN]) extends TreeModification with HashcodeCaching
+case class Replace(mods:(DN,Seq[Modification])) extends TreeModification with HashcodeCaching

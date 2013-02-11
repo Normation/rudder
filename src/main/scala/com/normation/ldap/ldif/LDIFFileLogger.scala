@@ -20,7 +20,7 @@
 
 package com.normation.ldap.ldif
 
-import com.unboundid.ldif._ 
+import com.unboundid.ldif._
 import com.unboundid.ldap.sdk.{DN,Entry}
 import com.normation.ldap.sdk.LDAPTree
 import org.slf4j.{Logger, LoggerFactory}
@@ -28,11 +28,11 @@ import java.io.File
 
 /**
  * A service that allows to log LDAP objects into
- * files if a trace log level is enable for the 
+ * files if a trace log level is enable for the
  * log unit "loggerName".
- * 
- * Be careful, enabling that logger may be 
- * extremely heavy in log size. 
+ *
+ * Be careful, enabling that logger may be
+ * extremely heavy in log size.
  */
 trait LDIFFileLogger {
 
@@ -41,23 +41,23 @@ trait LDIFFileLogger {
    * to enable LDIF output.
    */
   def loggerName : String
-  
+
   /**
-   * Root directory for LDIF traces. 
+   * Root directory for LDIF traces.
    */
   def ldifTraceRootDir : String
 
   /**
    * Write the given tree as a set of LDIF records in
-   * the trace directory. 
+   * the trace directory.
    */
   def tree(tree:LDAPTree) : Unit
 
   /**
-   * Write the given record in the trace directory. 
+   * Write the given record in the trace directory.
    */
   def record(LDIFRecord: => LDIFRecord,comment:Option[String] = None) : Unit
-  
+
   def records(LDIFRecords: => Seq[LDIFRecord]) : Unit
 }
 
@@ -77,7 +77,7 @@ class DummyLDIFFileLogger extends LDIFFileLogger {
  * only use to log.
  */
 object DefaultLDIFFileLogger {
-  val defaultTraceDir = System.getProperty("java.io.tmpdir") + 
+  val defaultTraceDir = System.getProperty("java.io.tmpdir") +
     System.getProperty("file.separator") + "ldifTrace"
   val defaultLoggerName = "trace.ldif.in.file"
 }
@@ -94,42 +94,42 @@ class DefaultLDIFFileLogger(
 }
 
 /**
- * A trait that let the log level be specified, 
+ * A trait that let the log level be specified,
  * even if the idea is only to use a trace level.
  */
 trait Slf4jLDIFLogger extends LDIFFileLogger {
   def isLogLevel : Boolean
   def log(s:String) : Unit
   def logE(s:String,e:Exception): Unit
-  
+
   val logger = LoggerFactory.getLogger(loggerName)
-  
+
   def rootDir() = {
     val dir = new File(ldifTraceRootDir)
-    if(!dir.exists()) dir.mkdirs    
+    if(!dir.exists()) dir.mkdirs
     dir
   }
-  
+
   protected def traceFileName(dn:DN, opType:String) : String = {
     val fileName = dn.getRDNStrings().map( _.replaceAll(File.separator, "|")).reverse.mkString("/")
     fileName + "-" + System.currentTimeMillis.toString + "-" + opType + ".ldif"
   }
-  
+
   protected def createTraceFile(fileName:String) : File = {
     new File(rootDir, fileName)
   }
-  
-  private def errorMessage(e:Exception,filename:String) : Unit = 
+
+  private def errorMessage(e:Exception,filename:String) : Unit =
     logE("Exception when loggin LDIF trace in %s (ignored)".format(filename),e)
 
-    
+
   private def writeRecord(ldifWriter:LDIFWriter,LDIFRecord:LDIFRecord,comment:Option[String] = None) {
     comment match {
       case None => ldifWriter.writeLDIFRecord(LDIFRecord)
       case Some(c) => ldifWriter.writeLDIFRecord(LDIFRecord,c)
     }
   }
-    
+
   override def tree(tree:LDAPTree) {
     if(isLogLevel) {
       val filename = traceFileName(tree.root.dn, "CONTENT")
@@ -162,7 +162,7 @@ trait Slf4jLDIFLogger extends LDIFFileLogger {
         case _ => "UNKNOWN_OP"
       }
       val filename = traceFileName(record.getParsedDN,opType)
-      
+
       try {
         val ldif = createTraceFile(filename)
         log("Printing LDIF trace of unitary operation on record in : " + ldif.getAbsolutePath)
@@ -175,7 +175,7 @@ trait Slf4jLDIFLogger extends LDIFFileLogger {
       }
     }
   }
-  
+
   override def records(records: => Seq[LDIFRecord]) {
     if(isLogLevel) {
       var writer:LDIFWriter = null

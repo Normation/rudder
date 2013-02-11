@@ -28,14 +28,14 @@ package object schema {
   //implicits conversion between our ObjectClass object and an LDAP filter
   //that require that this objectclass is present
   implicit def objectClass2Filter(oc:LDAPObjectClass) : Filter = BuildFilter.EQ("objectClass",oc.name)
-  
+
   //implicits conversion between our ObjectClasses object and an LDAP filter
   //that requires that all objectClasses are present
-  implicit def objectClasses2Filter(oc:LDAPObjectClasses) : Filter = 
+  implicit def objectClasses2Filter(oc:LDAPObjectClasses) : Filter =
     BuildFilter.AND(oc.names.map(n => BuildFilter.EQ("objectClass",n)).toSeq:_*)
 
-  implicit def setObjectClass2ObjectClasses(ocs:Set[LDAPObjectClass]) = new LDAPObjectClasses(ocs)  
-  
+  implicit def setObjectClass2ObjectClasses(ocs:Set[LDAPObjectClass]) = new LDAPObjectClasses(ocs)
+
   implicit def string2objectClass(name:String)(implicit schema: LDAPSchema) : LDAPObjectClass = schema(name)
-  
+
 }

@@ -21,16 +21,16 @@
 package com.normation.ldap.sdk
 
 /**
- * Base class for SearchScope datatype. 
- * 
+ * Base class for SearchScope datatype.
+ *
  */
-sealed abstract class SearchScope 
+sealed abstract class SearchScope
 
 /*
  * Instance of all available search scope
  */
 case object One extends SearchScope
-case object Base extends SearchScope 
+case object Base extends SearchScope
 case object Sub extends SearchScope
 case object SubordinateSubtree extends SearchScope
 

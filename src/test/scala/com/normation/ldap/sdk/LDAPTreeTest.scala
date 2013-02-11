@@ -38,38 +38,38 @@ class LDAPTreeTest {
   val dn2 = new DN(rdn2,dn1)
   val rdn3 = new RDN("cn=child")
   val dn3 = new DN(rdn3, dn2)
-  
+
   @Test
   def testAddSubChild() {
-    
+
     object tree extends LDAPTree {
       top =>
       override val root = LDAPEntry(dn1)
-      
+
       val c1 = new LDAPTree() {
         tree_c1 =>
         override val root = LDAPEntry(dn2)
-        
+
         top.addChild(tree_c1)
       }
-        
+
       lazy val c1children = top._children(rdn2)
-      
+
     }
-    
+
     assertEquals(dn1,tree.root.dn)
     assertEquals(dn2,tree.c1.root.dn)
     println("tree: " + tree)
     tree.c1children.addChild(LDAPTree(LDAPEntry(dn3)))
-    
+
     println("add1 " + tree.toLDIFString())
     tree.c1children.addChild(LDAPTree(LDAPEntry(dn3)))
     println("add2 " + tree.toLDIFString())
-    
+
   }
-  
-  
-  @Test 
+
+
+  @Test
   def buildTreeFromEntries() {
     val rdn4 = new RDN("cn=child2")
     val entries = Seq(
@@ -78,7 +78,7 @@ class LDAPTreeTest {
         LDAPEntry(dn3),
         LDAPEntry(new DN(rdn4,dn2))
     )
-    
+
     val optTree = LDAPTree(entries)
     assertTrue(optTree.isDefined)
     val tree = optTree.get

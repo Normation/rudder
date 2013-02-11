@@ -25,7 +25,7 @@ import com.unboundid.ldap.sdk.RDN
 /*
  * A simple non variant tree structure to map LDAP
  * directory (that why children keys are RDNs and not only comparable)
- * root is immutable. 
+ * root is immutable.
  * chidren are mutable
  * TODO : look in scala.collection.interfaces.TraversableMethods
  * to see interesting methods to implements here
@@ -33,17 +33,17 @@ import com.unboundid.ldap.sdk.RDN
 trait Tree[A] {
 
   def root() : A
-  
+
   /*
    * Children of the root.
    */
   def children : Map[RDN,Tree[A]]
-  
+
   def hasChildren = children.nonEmpty
-  
-  
+
+
   def addChild(rdn:RDN,child:Tree[A]) : Unit
-  
+
   /*  ********
    * Traversable methods
    */
@@ -51,10 +51,10 @@ trait Tree[A] {
     f(root)
     children.foreach(c => c._2.foreach(f) )
   }
-  
-  def map[B](f:A => B) : Tree[B] = 
+
+  def map[B](f:A => B) : Tree[B] =
     Tree(f(root), children.map(e => (e._1, e._2.map(f))) )
-  
+
 //  def flatMap[B](f:A => Option[B]) : Option[Tree[B]] = f(root) match {
 //    case None => None
 //    case Some(r) =>  {
@@ -68,21 +68,21 @@ trait Tree[A] {
 //      Some(Tree(r, m.asInstanceOf[Map[RDN,Tree[B]]]))
 //    }
 //  }
-  
+
   def toSeq() : Seq[A] = Seq(root) ++ children.flatMap(e => e._2.toSeq)
 }
-  
+
 object Tree {
   def apply[X](r:X,c:Traversable[(RDN,Tree[X])]) : Tree[X] = new Tree[X] {
     require(null != r, "root of a tree can't be null")
     require(null != c, "children map of a tree can't be null")
-    
+
     val root = r
     var children = Map[RDN,Tree[X]]() ++ c
-    
+
     override def addChild(rdn:RDN,child:Tree[X]) : Unit = children += ((rdn,child))
   }
-  
+
   def apply[X](r:X) : Tree[X] = apply(r,Seq[(RDN,Tree[X])]())
-  
+
 }

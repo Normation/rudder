@@ -27,11 +27,11 @@ import org.joda.time.DateTime
 /**
  * Wrapping class around DateTime that
  * print/parse GeneralizedTime format
- * as described in 
+ * as described in
  * http://www.ietf.org/rfc/rfc4517.txt
  * (it's an ISO 8601 but with a missing 'T'
  * http://en.wikipedia.org/wiki/ISO_8601)
- * 
+ *
  */
 import GeneralizedTime._
 case class GeneralizedTime(val dateTime:DateTime) {
@@ -40,25 +40,25 @@ case class GeneralizedTime(val dateTime:DateTime) {
    */
   override def toString() = StaticUtils.encodeGeneralizedTime(dateTime.toDate)
 }
-        
+
 object GeneralizedTime {
   /**
    * Try to parse the given string into a GeneralizedTime.
-   * 
+   *
    * @return
    */
   @throws(classOf[ParseException])
   def apply(s:String) : GeneralizedTime = {
     new GeneralizedTime(new DateTime(StaticUtils.decodeGeneralizedTime(s)))
   }
-  
+
   /**
    * Parse the given string into a generalized time.
-   * Return None if the string is not a well-formed 
+   * Return None if the string is not a well-formed
    * generalized time.
    * @param s
    *    The string to parse as a generalize time
-   *    
+   *
    */
   def parse(s:String) : Option[GeneralizedTime] = {
     try {
