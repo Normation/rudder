@@ -37,16 +37,16 @@ import java.io.FileOutputStream
 
 @RunWith(classOf[JUnitRunner])
 class TestZipUtils extends Specification with Loggable {
-  
+
   // prepare data
   val directory = new File(System.getProperty("java.io.tmpdir"), "test-zip/"+ DateTime.now.toString(ISODateTimeFormat.dateTime))
-  
+
   directory.mkdirs()
-  
+
   logger.debug("Unzipping test in directory: " + directory.getPath())
-  
+
   val zip = new ZipFile(new File("src/test/resources/test.zip"))
-  
+
 
   "When we dezip the test file 'test.zip', we" should {
     //intersting files
@@ -57,11 +57,11 @@ class TestZipUtils extends Specification with Loggable {
     val b_sub = new File(root, "b-subdirectory")
     val a_pdf = new File(b_sub, "a-file.pdf")
     val b_pdf = new File(b_sub, "b-file.pdf")
-    
+
     "correctly execute" in {
       ZipUtils.unzip(zip, directory) match {
         case Full(_) => success
-        case eb:EmptyBox => 
+        case eb:EmptyBox =>
           val e = (eb ?~! s"Error when unzipping file into '${directory.getPath}'")
           logger.debug(e)
           failure(e.messageChain)
@@ -70,14 +70,14 @@ class TestZipUtils extends Specification with Loggable {
     "have a directory named some-dir" in {
       root.exists() must beTrue
     }
-    
+
     "...which contains the file 'foo.txt'" in {
       foo.exists() must beTrue
     }
     "...which contains the file 'bar.txt'" in {
       bar.exists() must beTrue
     }
-    
+
     "...whith size of 24kB" in {
       foo.length must beEqualTo(23L)
     }
@@ -97,18 +97,18 @@ class TestZipUtils extends Specification with Loggable {
       a_pdf.length must beEqualTo(8442L)
     }
   }
-    
+
   "Building zippable from a directory" should {
     ZipUtils.unzip(zip, directory)
     val zippable = ZipUtils.toZippable(new File(directory, "some-dir"))
-    
+
     "create a list whith size of all elements" in {
       zippable must haveSize(7)
     }
-    
+
     "create the list of names in order" in {
       zippable.toList match {
-        case Zippable("some-dir/", _) :: 
+        case Zippable("some-dir/", _) ::
              Zippable("some-dir/bar.txt", _) ::
              Zippable("some-dir/foo.txt", _) ::
              Zippable("some-dir/a-subdirectory/", _) ::
@@ -120,7 +120,7 @@ class TestZipUtils extends Specification with Loggable {
       }
     }
   }
-  
+
   "When we zip a file, it" should {
     ZipUtils.unzip(zip, directory)
     val zippable = ZipUtils.toZippable(new File(directory, "some-dir"))
@@ -131,13 +131,13 @@ class TestZipUtils extends Specification with Loggable {
     "have 7 entries" in {
       zip2.size must beEqualTo(7)
     }
-    
+
     "with names 'some-dir/', 'some-dir/bar.txt', 'some-dir/foo.txt', 'some-dir/a-subdirectory/'\n,"+
     "'some-dir/b-subdirectory/', 'some-dir/b-subdirectory/a-file.pdf, 'some-dir/b-subdirectory/b-file.pdf'" in {
       val l = zip2.entries.toList
       l.map( _.getName ) must haveTheSameElementsAs(List("some-dir/", "some-dir/bar.txt", "some-dir/foo.txt", "some-dir/a-subdirectory/", "some-dir/b-subdirectory/", "some-dir/b-subdirectory/a-file.pdf", "some-dir/b-subdirectory/b-file.pdf"))
     }
-    
+
     "'some-dir/b-subdirectory/a-file.pdf' has size 8442" in {
       zip2.getEntry("some-dir/b-subdirectory/a-file.pdf").getSize must beEqualTo(8442L)
     }
@@ -146,5 +146,5 @@ class TestZipUtils extends Specification with Loggable {
       zip2.getEntry("some-dir/foo.txt").getSize must beEqualTo(23L)
     }
   }
-  
+
 }

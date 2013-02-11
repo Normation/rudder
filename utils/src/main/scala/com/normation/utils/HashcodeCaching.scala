@@ -21,17 +21,17 @@
 package com.normation.utils
 
 /**
- * This is a trait that allows immutable data structure, 
- * especially Case Class, to cache their hashCode. 
- * 
+ * This is a trait that allows immutable data structure,
+ * especially Case Class, to cache their hashCode.
+ *
  * All immutable case class should extend that trait.
- * 
- * WRNING: do not use that on mutable structure. 
+ *
+ * WRNING: do not use that on mutable structure.
  */
-trait HashcodeCaching { 
-  self: Product => 
-    
-  override lazy val hashCode: Int = { 
-    scala.runtime.ScalaRunTime._hashCode(this) 
+trait HashcodeCaching {
+  self: Product =>
+
+  override lazy val hashCode: Int = {
+    scala.runtime.ScalaRunTime._hashCode(this)
   }
 }

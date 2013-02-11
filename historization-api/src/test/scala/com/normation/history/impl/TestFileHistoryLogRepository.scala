@@ -52,24 +52,24 @@ import TestFileHistoryLogRepository._
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestFileHistoryLogRepository {
-  
+
   val repos = new FileHistoryLogRepository(rootDir, StringMarshaller,StringId)
-  
+
   @Test def basicTest {
     val id1 = "data1"
     assertEquals(Full(List()), repos.getIds.map(_.toList))
     assertEquals( _:EmptyBox, repos.versions(id1))
-    
+
     val data1 = "Some data 1\nwith multiple lines"
-    
+
     //save first revision
     val data1time1 = DateTime.now()
     assertEquals(Full(DefaultHLog(id1, data1time1,data1)), repos.save(id1, data1, data1time1))
-    
+
     //now we have exaclty one id, with one revision, equals to data1time1
     assertEquals(Full(List(id1)), repos.getIds.map(_.toList))
     assertEquals(Full(List(data1time1)), repos.versions(id1).map(_.toList))
-    
+
     //save second revision
     val data1time2 = DateTime.now()
     assertEquals(Full(DefaultHLog(id1, data1time2, data1)), repos.save(id1, data1, data1time2))
@@ -77,18 +77,18 @@ class TestFileHistoryLogRepository {
     //now we have exaclty one id1, with two revisions, and head is data1time2
     assertEquals(Full(List(id1)), repos.getIds.map(_.toList))
     assertEquals(Full(data1time2 :: data1time1 :: Nil), repos.versions(id1).map(_.toList))
-    
+
   }
 }
 
 object TestFileHistoryLogRepository {
   val rootDir = System.getProperty("java.io.tmpdir") + "/testFileHistoryLogRepo"
-  
+
   def clean {
     FileUtils.deleteDirectory(new File(rootDir))
   }
-  
+
   @BeforeClass def before = clean
   @AfterClass def after = clean
-  
+
 }

@@ -23,15 +23,15 @@ package com.normation.utils
 import sun.net.util.IPAddressUtil
 
 /**
- * 
+ *
  * Some methods to deals with IP and networks
  *
  */
 object NetUtils {
 
-  
+
   /**
-   * Check if the given string is a network address, 
+   * Check if the given string is a network address,
    * i.e if it on the form IP(v4 or v6)/mask.
    * A single IP address will be accepted by the test.
    */
@@ -39,11 +39,11 @@ object NetUtils {
 
     val parts = net.split("/")
     if(parts.size == 1) {
-       IPAddressUtil.isIPv6LiteralAddress(parts(0)) || 
+       IPAddressUtil.isIPv6LiteralAddress(parts(0)) ||
        IPAddressUtil.isIPv4LiteralAddress(parts(0))
     } else if(parts.size == 2) {
       (
-       IPAddressUtil.isIPv6LiteralAddress(parts(0)) || 
+       IPAddressUtil.isIPv6LiteralAddress(parts(0)) ||
        IPAddressUtil.isIPv4LiteralAddress(parts(0))
       ) && (
         try {
@@ -55,5 +55,5 @@ object NetUtils {
       )
     } else false
   }
-  
+
 }

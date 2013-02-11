@@ -31,14 +31,14 @@ import Utils._
 class TestUtils {
 
   // String isEmpty
-  
+
   @Test def nullIsEmpty() { assert(isEmpty(null)) }
   @Test def emptyIsEmpty() { assert(isEmpty("")) }
   @Test def somethingIsNotEmpty() { assert(!isEmpty("foo")) }
 
 
-  //dereferincing 
-  
+  //dereferincing
+
   class Deref {
     def some : Deref = new Deref
     def none : Deref = null
@@ -46,28 +46,28 @@ class TestUtils {
     def f = false
     def npe = throw new NullPointerException("Don't catch me!")
   }
-  
+
   @Test
   def safeDeref1() {
-    val a = new Deref 
+    val a = new Deref
     assert(null == ?(a.none.some))
   }
-  
+
   @Test
   def safeDeref2() {
-    val a = new Deref 
+    val a = new Deref
     assert(null == ?(a.some.none.some))
   }
 
   @Test
   def safeDeref1_1() {
-    val a = new Deref 
+    val a = new Deref
     assert(null != ?(a.some.some))
   }
-  
+
   @Test
   def safeDeref2_1() {
-    val a = new Deref 
+    val a = new Deref
     assert(null != ?(a.some.some.some))
   }
 
@@ -76,20 +76,20 @@ class TestUtils {
     val n = new Deref
     ?(n.npe)
   }
-  
+
   /*
    * Dereferencing in method parameter
    */
-  
-  
+
+
   @Test
   def assignementToNull() {
-    
+
     val a : String = ?(new String((new Deref).none.toString))
     assert(a == null)
   }
-  
-  
+
+
   /*
    * deref option
    */
@@ -98,7 +98,7 @@ class TestUtils {
     val a = new Deref
     assert(None != ??(a.some.some))
   }
-  
+
   @Test
   def safeNoneDeref() {
     val a = new Deref

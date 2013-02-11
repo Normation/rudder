@@ -33,7 +33,7 @@ trait StringUuidGenerator {
    * @return the non null, non empty UUID as a string
    */
   def newUuid : String
-  
+
 }
 
 
