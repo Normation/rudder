@@ -127,18 +127,17 @@ CREATE TEMP TABLE EventLog (
     }).toSeq
   }
   
-  
+  sequential
   //actual tests
   "Event Logs" should {
     
     "be all found" in {          
       val logs = migration.findAllEventLogs.openOrThrowException("For tests")
-      
+
       logs.size must beEqualTo(logs10WithId.size) and
       forallWhen(logs) {
         case MigrationEventLog(id, eventType, data) => 
           val l = logs10WithId.values.find(x => x.id.get == id).get
-          
           l.data must be_==/(data) and
           l.eventType === eventType
       }
@@ -241,7 +240,7 @@ CREATE TEMP TABLE EventLog (
     }).toSeq
   }
   
-  
+  sequential
   //actual tests
   "Event Logs" should {
     
@@ -364,7 +363,7 @@ CREATE TEMP TABLE EventLog (
     }).toSeq
   }
   
-  
+  sequential
   //actual tests
   "Event Logs" should {
     
@@ -510,7 +509,7 @@ CREATE TEMP TABLE MigrationEventLog(
       log.copy( id = Some(logs10WithId(k).id.get ) ) //actually get so that an exception is throw if there is no ID set
     }).toSeq
   }
-
+  sequential
   //actual tests
   "Event Logs" should {
 

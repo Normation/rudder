@@ -142,6 +142,7 @@ CREATE TEMP TABLE MigrationEventLog(
     res
   }
   
+  sequential
   //actual tests
   "Migration of event logs from fileformat 1.0 to 2" should {
 
@@ -282,6 +283,7 @@ CREATE TEMP TABLE MigrationEventLog(
     res
   }
   
+  sequential
   //actual tests
   "Migration of event logs from fileformat 2 to 3" should {
 
