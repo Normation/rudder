@@ -54,11 +54,11 @@ import com.normation.exceptions.TechnicalException
 object EmergencyStop {
   def templatePath = List("templates-hidden", "emergency_stop")
   def template =  Templates(templatePath) match {
-    case Empty | Failure(_,_,_) => 
+    case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for 'emergency stop' not found. I was looking for %s.html".format(templatePath.mkString("/")))
     case Full(n) => n
   }
-  
+
   def panelTemplate = chooseTemplate("emergency","panel",template)
 }
 
@@ -66,19 +66,19 @@ import EmergencyStop._
 
 class EmergencyStop {
   val orchestrator =  inject[StartStopOrchestrator]("startStopOrchestrator")
-  
+
   def render(html:NodeSeq) : NodeSeq = {
-    
+
     def stop() = {
       orchestrator.stop
-    
+
       S.redirectTo(S.uri)
     }
     def start() = {
       orchestrator.start
       S.redirectTo(S.uri)
     }
-    
+
     orchestrator.status match {
       case ButtonReleased => //show the emergency stop
         bind("emergency",panelTemplate,
@@ -90,13 +90,13 @@ class EmergencyStop {
       case ButtonActivated => //show the restart button
         bind("emergency",panelTemplate,
             "button" -> SHtml.submit("Start", start,
-                      ("id", "emergencyStartButton"), 
+                      ("id", "emergencyStartButton"),
                       ("class", "emergencyButton"),
                       ("title","Unlock and restart the orchestrator")),
             "body" -> <h2>Restart the Rudder Infrastructure.</h2>,
             "img" -> <img src="/images/btnAccept.jpg"/>,
             "title" -> Text("Unlock and restart the orchestrator"))
-        
+
     }
   }
 

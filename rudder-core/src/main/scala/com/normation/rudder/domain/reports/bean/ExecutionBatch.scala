@@ -60,19 +60,19 @@ import com.normation.inventory.domain.NodeId
 trait ExecutionBatch {
   val ruleId : RuleId
   val serial : Int // the serial of the rule
-  
+
   val executionTime : DateTime // this is the time of the batch
-  
+
   val directiveExpectedReports : Seq[DirectiveExpectedReports] // the list of policies, list of component and cardinality
-  
+
   val executionReports : Seq[Reports]
-  
+
   val expectedNodeIds : Seq[NodeId]
-  
+
   def getNodeStatus() : Seq[NodeStatusReport]
-  
+
   def getRuleStatus() : Seq[DirectiveRuleStatusReport]
-  
+
   def getSuccessReports() : Seq[Reports] = {
     executionReports.filter(x => x.isInstanceOf[ResultSuccessReport])
   }
@@ -80,13 +80,13 @@ trait ExecutionBatch {
   def getRepairedReports() : Seq[Reports] = {
     executionReports.filter(x => x.isInstanceOf[ResultRepairedReport])
   }
-  
+
   /* Warn is temporarly unused*/
   /*
   def getWarnReports() : Seq[Reports] = {
     executionReports.filter(x => x.isInstanceOf[WarnReport])
   }*/
-  
+
   def getErrorReports() : Seq[Reports] = {
     executionReports.filter(x => x.isInstanceOf[ResultErrorReport])
   }
@@ -104,9 +104,9 @@ object ConfigurationExecutionBatch {
 
 /**
  * The execution batch for a rule, still a lot of intelligence to add within
- * 
+ *
  */
-class ConfigurationExecutionBatch( 
+class ConfigurationExecutionBatch(
     val ruleId                  : RuleId
   , val directiveExpectedReports: Seq[DirectiveExpectedReports]
   , val serial                  : Int
@@ -115,13 +115,13 @@ class ConfigurationExecutionBatch(
   , val expectedNodeIds         : Seq[NodeId]
   , val beginDate               : DateTime
   , val endDate                 : Option[DateTime]
-) extends ExecutionBatch {  
-  
+) extends ExecutionBatch {
+
   // A cache of the already computed values
   val cache = scala.collection.mutable.Map[String, Seq[NodeId]]()
-   
+
   val nodeStatus = scala.collection.mutable.Map[String, Seq[NodeStatusReport]]()
-  
+
   /**
    * This is the main entry point to get the detailed reporting
    * It returns a Sequence of NodeStatusReport which gives, for
@@ -129,20 +129,20 @@ class ConfigurationExecutionBatch(
    *
    */
   def getNodeStatus() : Seq[NodeStatusReport] = {
-    nodeStatus.getOrElseUpdate("nodeStatus", 
+    nodeStatus.getOrElseUpdate("nodeStatus",
       (for {
         nodeId <- expectedNodeIds
         nodeFilteredReports = executionReports.filter(x => (x.nodeId==nodeId))
-       
+
         directiveStatusReports  = for {
           expectedDirective <- directiveExpectedReports
           directiveFilteredReports = nodeFilteredReports.filter(x => x.directiveId == expectedDirective.directiveId)
-          
+
           // look for each component
           componentsStatus = for {
             expectedComponent <- expectedDirective.components
             componentFilteredReports = directiveFilteredReports.filter(x => x.component == expectedComponent.componentName)
-            
+
             componentStatusReport = checkExpectedComponentWithReports(
                     expectedComponent
                   , componentFilteredReports
@@ -151,18 +151,18 @@ class ConfigurationExecutionBatch(
           } yield {
             componentStatusReport
           }
-          
+
           directiveStatusReport = DirectiveStatusReport(
               expectedDirective.directiveId
             , componentsStatus
             , ReportType.getWorseType(componentsStatus.map(x => x.componentReportType))
             , Seq()
           )
-          
+
         } yield {
           directiveStatusReport
         }
-        
+
         nodeStatusReport = NodeStatusReport(
             nodeId
           , ruleId
@@ -175,16 +175,16 @@ class ConfigurationExecutionBatch(
       })
     )
   }
-  
+
   protected[bean] def checkExpectedComponentWithReports(
       expectedComponent : ReportComponent
     , filteredReports   : Seq[Reports]
     , nodeId            : NodeId
   ) : ComponentStatusReport = {
-    
+
     // easy case : No Reports mean no answer
     filteredReports.size match {
-      case 0 => 
+      case 0 =>
         val components = for {
           component <- expectedComponent.componentsValues
         } yield {
@@ -193,7 +193,7 @@ class ConfigurationExecutionBatch(
             , getNoAnswerOrPending()
             , Nil
             , nodeId
-          ) 
+          )
         }
         ComponentStatusReport(
             expectedComponent.componentName
@@ -202,10 +202,10 @@ class ConfigurationExecutionBatch(
           , Nil
           , Seq()
         )
-      case _ => 
+      case _ =>
         // First, filter out all the not interesting reports
-        val purgedReports = filteredReports.filter(x => x.isInstanceOf[ResultErrorReport] 
-                               || x.isInstanceOf[ResultRepairedReport]  
+        val purgedReports = filteredReports.filter(x => x.isInstanceOf[ResultErrorReport]
+                               || x.isInstanceOf[ResultRepairedReport]
                                || x.isInstanceOf[ResultSuccessReport]
                                || x.isInstanceOf[UnknownReport])
 
@@ -226,7 +226,7 @@ class ConfigurationExecutionBatch(
               , message
               , nodeId)
         }
-        
+
         // must fetch extra entries
         val unexpectedReports = getUnexpectedReports(
             unescapedComponentValues.toList
@@ -240,7 +240,7 @@ class ConfigurationExecutionBatch(
               , components
               , ReportType.getWorseType(components.map(x => x.cptValueReportType))
               , purgedReports.map(_.message).toList
-              , Seq() 
+              , Seq()
             )
 
           case _ => // some bad report
@@ -272,10 +272,10 @@ class ConfigurationExecutionBatch(
               , cpvalue
             )
         }
-      
+
     }
   }
-  
+
 
   private[this] def returnWorseStatus(
       reports : Seq[Reports]
@@ -297,13 +297,13 @@ class ConfigurationExecutionBatch(
         }
       }
     }
-    
+
   }
-  
-  
+
+
   /*
    * An utility method that fetch the proper status and messages
-   * of a component key. 
+   * of a component key.
    * Parameters :
    * expectedComponent : the expected component (obviously)
    * currentValue : the current keyValue processes
@@ -341,7 +341,7 @@ class ConfigurationExecutionBatch(
       val filteredReports = purgedReports.filter( x => x.keyValue == currentValue)
       getComponentStatus(filteredReports)
 
-      case matchCFEngineVars(_) => 
+      case matchCFEngineVars(_) =>
         // convert the entry to regexp, and match what can be matched
          val matchableExpected = currentValue.replaceAll(replaceCFEngineVars, ".*")
          val matchedReports = purgedReports.filter( x => x.keyValue.matches(matchableExpected))
@@ -363,8 +363,8 @@ class ConfigurationExecutionBatch(
          }
 
 
-      case _: String => 
-          // for a given component, if the key is not "None", then we are 
+      case _: String =>
+          // for a given component, if the key is not "None", then we are
           // checking that what is have is what we wish
           // we can have more reports that what we expected, because of
           // name collision, but it would be resolved by the total number
@@ -372,7 +372,7 @@ class ConfigurationExecutionBatch(
         getComponentStatus(keyReports)
     }
   }
-  
+
   /**
    * Retrieve all the reports that should not be there (due to
    * keyValue not present)
@@ -397,7 +397,7 @@ class ConfigurationExecutionBatch(
         }
     }
   }
-  
+
   /**
    * Utility method to determine if we are in the pending time, or if the node hasn't answered for a long time
    */
@@ -540,7 +540,7 @@ case class NodeReport (
 )
 
 sealed trait RuleStatusReport {
-  
+
   def nodesreport  : Seq[NodeReport]
 
   def computeCompliance : Option[Int] = {
@@ -565,7 +565,7 @@ case class ComponentValueRuleStatusReport(
   , cptValueReportType  : ReportType
   , reports             : Seq[NodeReport]
 ) extends RuleStatusReport {
-  
+
   override val nodesreport = reports
 
   def processMessageReport(filter: NodeReport => Boolean):Seq[MessageReport] ={
@@ -579,9 +579,9 @@ case class ComponentRuleStatusReport (
   , componentValues     : Seq[ComponentValueRuleStatusReport]
   , componentReportType : ReportType
 ) extends RuleStatusReport {
-  
+
   override val nodesreport = componentValues.flatMap(_.nodesreport)
-  
+
   override def computeCompliance =
    if (componentValues.size>0){
      Some((componentValues.map(_.computeCompliance.getOrElse(0))
@@ -596,9 +596,9 @@ case class DirectiveRuleStatusReport(
   , components           : Seq[ComponentRuleStatusReport]
   , directiveReportType  : ReportType
 ) extends RuleStatusReport {
-  
+
   override val nodesreport = components.flatMap(_.nodesreport)
-  
+
   override def computeCompliance =
    if (components.size>0){
      Some((components.map(_.computeCompliance.getOrElse(0))

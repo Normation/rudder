@@ -76,7 +76,7 @@ class TextField(val id: String) extends DirectiveField {
 }
 
 /**
- * A textarea field, with a css class 
+ * A textarea field, with a css class
  * "textareaField"
  *
  */
@@ -86,7 +86,7 @@ class TextareaField(override val id: String) extends TextField(id) {
   override def toForm() = Full {
     SHtml.textarea(toClient, { x => parseClient(x) }) % ("class" -> "textareaField") % ("COLS" -> "80")
   }
-  
+
 }
 
 class InputSizeField(override val id: String, val expectedUnit: String = "b") extends TextField(id) {
@@ -110,7 +110,7 @@ class InputSizeField(override val id: String, val expectedUnit: String = "b") ex
       case "tb" => oneBD * 1024 * 1024 * 1024 * 1024
     }
   }
-  
+
   def computeValue() = {
     _x = (value * unitBytes(selectedUnit) / unitBytes(expectedUnit)).toString
     _x
@@ -186,7 +186,7 @@ class SelectOneField(val id: String, valueslabels: Seq[ValueLabel]) extends Dire
   }
 
   def radios = {
-    // 
+    //
     val labels = valueslabels.map(_.label)
     val choiceHolder: ChoiceHolder[String] = SHtml.radio(valueslabels.map(_.value), Full(toClient), { x => parseClient(x) })
     Full(<div>{
@@ -481,7 +481,7 @@ class FilePermsField(val id: String) extends DirectiveField {
 
 class CheckboxField(val id: String) extends DirectiveField {
   type ValueType = String // yes, this is truly a String
-  
+
   private var _x: String = getDefaultValue
   private var description: String = ""
   override def displayName = description

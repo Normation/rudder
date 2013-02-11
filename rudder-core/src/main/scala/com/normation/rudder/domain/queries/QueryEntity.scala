@@ -39,7 +39,7 @@ import com.normation.inventory.ldap.core._
 import com.unboundid.ldap.sdk.DN
 import com.normation.utils.HashcodeCaching
 
-case class QueryUuid(val value:String) extends Uuid with HashcodeCaching 
+case class QueryUuid(val value:String) extends Uuid with HashcodeCaching
 //  val attrName = A_QUERY_UUID
 
 //case class QueryId(override val uuid:QueryUuid, override val parentDn:DN) extends UuidValueDnId(uuid,parentDn)
@@ -48,4 +48,4 @@ case class QueryEntity(
   val uuid:Option[QueryUuid],
   val description:Option[String],
   val query:Option[Query]
-) extends HashcodeCaching 
+) extends HashcodeCaching

@@ -69,7 +69,7 @@ import com.normation.rudder.domain.Constants._
 
 
 class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
-  
+
   override def parseSectionVal(xml:NodeSeq) : Box[SectionVal] = {
     def recValParseSection(elt:XNode) : Box[(String, SectionVal)] = {
       if(elt.label != "section") Failure("Bad XML, awaiting a <section> and get: " + elt)
@@ -78,7 +78,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
           name <- (elt \ "@name").headOption ?~! ("Missing required attribute 'name' for <section>: " + elt)
           // Seq( (var name , var value ) )
           vars <- sequence( elt \ "var" ) { xmlVar =>
-            for { 
+            for {
               n <- (xmlVar \ "@name").headOption ?~! ("Missing required attribute 'name' for <var>: " + xmlVar)
             } yield {
               (n.text , xmlVar.text)
@@ -94,7 +94,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
         }
       }
     }
-    
+
     for {
       root <- (xml \ "section").toList match {
         case Nil => Failure("Missing required tag <section> in: " + xml)
@@ -106,7 +106,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
       sectionVal
     }
   }
-  
+
   override def unserialise(xml:XNode) : Box[(TechniqueName, Directive, SectionVal)] = {
     for {
       directive             <- {
@@ -141,13 +141,13 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
           )
         , sectionVal
       )
-    }   
+    }
   }
 }
 
 
 class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisation {
-  
+
   def unserialise(entry:XNode): Box[NodeGroupCategory] = {
     for {
       category         <- {
@@ -168,12 +168,12 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
         , children = Nil
         , isSystem = isSystem
       )
-    }    
+    }
   }
 }
 
 
-class NodeGroupUnserialisationImpl(    
+class NodeGroupUnserialisationImpl(
     cmdbQueryParser: CmdbQueryParser
 ) extends NodeGroupUnserialisation {
   def unserialise(entry:XNode) : Box[NodeGroup] = {
@@ -188,7 +188,7 @@ class NodeGroupUnserialisationImpl(
       description     <- (group \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type nodeGroup : " + entry)
       query           <- (group \ "query").headOption match {
                             case None => Full(None)
-                            case Some(s) => 
+                            case Some(s) =>
                               if(s.text.size == 0) Full(None)
                               else cmdbQueryParser(s.text).map( Some(_) )
                           }
@@ -207,7 +207,7 @@ class NodeGroupUnserialisationImpl(
         , isEnabled = isEnabled
         , isSystem = isSystem
       )
-    }    
+    }
   }
 }
 
@@ -220,21 +220,21 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
                             else Failure("Entry type is not a <%s>: %s".format(XML_TAG_RULE, entry))
                           }
       fileFormatOk     <- TestFileFormat(rule)
-      id               <- (rule \ "id").headOption.map( _.text ) ?~! 
+      id               <- (rule \ "id").headOption.map( _.text ) ?~!
                           ("Missing attribute 'id' in entry type rule: " + entry)
-      name             <- (rule \ "displayName").headOption.map( _.text ) ?~! 
+      name             <- (rule \ "displayName").headOption.map( _.text ) ?~!
                           ("Missing attribute 'displayName' in entry type rule: " + entry)
-      serial           <- (rule \ "serial").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! 
+      serial           <- (rule \ "serial").headOption.flatMap(s => tryo { s.text.toInt } ) ?~!
                           ("Missing or bad attribute 'serial' in entry type rule: " + entry)
-      shortDescription <- (rule \ "shortDescription").headOption.map( _.text ) ?~! 
+      shortDescription <- (rule \ "shortDescription").headOption.map( _.text ) ?~!
                           ("Missing attribute 'shortDescription' in entry type rule: " + entry)
-      longDescription  <- (rule \ "longDescription").headOption.map( _.text ) ?~! 
+      longDescription  <- (rule \ "longDescription").headOption.map( _.text ) ?~!
                            ("Missing attribute 'longDescription' in entry type rule: " + entry)
-      isEnabled        <- (rule \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! 
+      isEnabled        <- (rule \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~!
                           ("Missing attribute 'isEnabled' in entry type rule: " + entry)
-      isSystem         <- (rule \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! 
+      isSystem         <- (rule \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~!
                           ("Missing attribute 'isSystem' in entry type rule: " + entry)
-      targets          <- sequence((rule \ "targets" \ "target")) { t => RuleTarget.unser(t.text) } ?~! 
+      targets          <- sequence((rule \ "targets" \ "target")) { t => RuleTarget.unser(t.text) } ?~!
                           ("Invalid attribute in 'target' entry: " + entry)
       directiveIds     = (rule \ "directiveIds" \ "id" ).map( n => DirectiveId( n.text ) ).toSet
     } yield {
@@ -249,12 +249,12 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
         , isEnabledStatus = isEnabled
         , isSystem = isSystem
       )
-    }    
+    }
   }
 }
 
 class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategoryUnserialisation {
-  
+
   def unserialise(entry:XNode): Box[ActiveTechniqueCategory] = {
     for {
       uptc             <- {
@@ -275,15 +275,15 @@ class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategory
         , children = Nil
         , isSystem = isSystem
       )
-    }    
+    }
   }
 }
 
 class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation {
-  
+
   //we expect acceptation date to be in ISO-8601 format
   private[this] val dateFormatter = ISODateTimeFormat.dateTime
-  
+
   def unserialise(entry:XNode): Box[ActiveTechnique] = {
     for {
       activeTechnique  <- {
@@ -295,7 +295,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
       ptName           <- (activeTechnique \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type policyLibraryTemplate : " + entry)
       isSystem         <- (activeTechnique \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type policyLibraryTemplate : " + entry)
       isEnabled        <- (activeTechnique \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type policyLibraryTemplate : " + entry)
-      acceptationDates <- sequence(activeTechnique \ "versions" \ "version" ) { version => 
+      acceptationDates <- sequence(activeTechnique \ "versions" \ "version" ) { version =>
                             for {
                               ptVersionName   <- version.attribute("name").map( _.text) ?~! "Missing attribute 'name' for acceptation date in PT '%s' (%s): '%s'".format(ptName, id, version)
                               ptVersion       <- tryo { TechniqueVersion(ptVersionName) }
@@ -318,7 +318,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
         , isEnabled = isEnabled
         , isSystem = isSystem
       )
-    }    
+    }
   }
 }
 
@@ -337,7 +337,7 @@ class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisatio
       ended            <- (depStatus \ "ended").headOption.flatMap(s => tryo { ISODateTimeFormat.dateTimeParser.parseDateTime(s.text) } ) ?~! ("Missing or bad attribute 'ended' in entry type deploymentStatus : " + entry)
       errorMessage     <- (depStatus \ "errorMessage").headOption match {
                             case None => Full(None)
-                            case Some(s) => 
+                            case Some(s) =>
                               if(s.text.size == 0) Full(None)
                               else Full(Some(s.text))
                   }
@@ -349,5 +349,5 @@ class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisatio
       }
     }
   }
-  
+
 }

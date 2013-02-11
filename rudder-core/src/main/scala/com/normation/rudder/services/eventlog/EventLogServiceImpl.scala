@@ -48,20 +48,20 @@ import com.normation.rudder.batch.CurrentDeploymentStatus
 class EventLogDeploymentService(
     val repository             : EventLogRepository
   , val eventLogDetailsService : EventLogDetailsService
-) {  
+) {
   /**
    * Fetch the last deployment (may it be failure or success)
    */
   def getLastDeployement() : Box[CurrentDeploymentStatus] = {
     repository.getEventLogByCriteria(Some("eventtype in ('" + SuccessfulDeploymentEventType.serialize +"', '"+FailedDeploymentEventType.serialize +"')"), Some(1), Some("creationdate desc") ) match {
       case Full(seq) if seq.size > 1 => Failure("Too many answer from last deployment")
-      case Full(seq) if seq.size == 1 => 
+      case Full(seq) if seq.size == 1 =>
         eventLogDetailsService.getDeploymentStatusDetails(seq.head.details)
       case Full(seq) if seq.size == 0 => Empty
       case f: EmptyBox => f
     }
   }
-  
+
   /**
    * Fetch the last successful deployment (which may be empty)
    */
@@ -73,15 +73,15 @@ class EventLogDeploymentService(
       case f: EmptyBox => f
     }
   }
-  
+
   /**
    * Return the list of event corresponding at a modification since last successful deployement
-   * 
+   *
    */
   def getListOfModificationEvents(lastSuccess : EventLog) = {
     val eventList = ModificationWatchList.events.map("'"+_.serialize+"'").mkString(",")
-    
+
     repository.getEventLogByCriteria(Some("eventtype in (" +eventList+ ") and id > " +lastSuccess.id.getOrElse(0) ), None, Some("id DESC") )
   }
-  
+
 }

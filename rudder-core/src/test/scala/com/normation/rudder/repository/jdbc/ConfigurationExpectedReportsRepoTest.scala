@@ -47,9 +47,9 @@ import org.joda.time.DateTime
 class RuleExpectedReportsRepoTest  extends Specification  {
 
    val service = new RuleExpectedReportsJdbcRepository(null)
-  
+
    val beginDate = DateTime.now()
-   
+
    private val uniqueMapping = Seq(ExpectedConfRuleMapping(1,
        1,
        new RuleId("cr1"),
@@ -59,7 +59,7 @@ class RuleExpectedReportsRepoTest  extends Specification  {
        2,
        Seq("None", "None"),
        beginDate))
-       
+
     private val secondMapping = Seq(ExpectedConfRuleMapping(1,
        1,
        new RuleId("cr1"),
@@ -69,14 +69,14 @@ class RuleExpectedReportsRepoTest  extends Specification  {
        2,
        Seq("None", "None"),
        beginDate))
- 
+
    private val equaledUniqueMapping = new RuleExpectedReports(
        new RuleId("cr1"),
        Seq(new DirectiveExpectedReports(new DirectiveId("pi1"),
                        Seq(new ReportComponent("component", 2, Seq("None", "None") ))
                  )),
        11,
-       1, 
+       1,
        Seq(),
        beginDate
    )
@@ -84,29 +84,29 @@ class RuleExpectedReportsRepoTest  extends Specification  {
    private val multiComponent =   buildExpectedConfRule("cr3", Seq("pi3"), "comp1") ++
                                    buildExpectedConfRule("cr3", Seq("pi3"), "comp2") ++
                                    buildExpectedConfRule("cr3", Seq("pi3"), "comp3")
-                                   
+
    private val multiPiComponent =   buildExpectedConfRule("cr3", Seq("pi1", "pi2"), "comp1") ++
-                                   buildExpectedConfRule("cr3", Seq("pi1", "pi4"), "comp2") 
-                                   
-   
-   
+                                   buildExpectedConfRule("cr3", Seq("pi1", "pi4"), "comp2")
+
+
+
    private def buildExpectedConfRule(ruleId : String, directiveId : Seq[String], component : String) : Seq[ExpectedConfRuleMapping] = {
      directiveId.map(id => new ExpectedConfRuleMapping(1, 1, new RuleId(ruleId), 11, new DirectiveId(id), component,1, Seq("None"), beginDate))
    }
-   
-   
+
+
    "a simple line in db" should {
      "generate only one RuleExpectedReports" in {
        service.toRuleExpectedReports(uniqueMapping) === Seq(equaledUniqueMapping)
      }
    }
-   
+
    "two lines with differents serial in db" should {
      "generate two RuleExpectedReports" in {
        service.toRuleExpectedReports(uniqueMapping ++ secondMapping) must have size(2)
      }
    }
-    
+
    "two simple lines in db, one CR, two PI, one component" should {
      val mapping = service.toRuleExpectedReports(multiLine)
      "generate only one RuleExpectedReports" in {
@@ -120,10 +120,10 @@ class RuleExpectedReportsRepoTest  extends Specification  {
      }
      "have the expected PI" in {
        mapping.head.directiveExpectedReports.map(x => x.directiveId) === Seq(new DirectiveId("pi1"), new DirectiveId("pi2"))
-     }    
-     
+     }
+
    }
-   
+
    "three simple lines in db, one CR, one PI, three component" should {
      val mapping = service.toRuleExpectedReports(multiComponent)
      "generate only one RuleExpectedReports" in {
@@ -137,10 +137,10 @@ class RuleExpectedReportsRepoTest  extends Specification  {
      }
      "have three component" in {
        mapping.head.directiveExpectedReports.head.components.size == 3
-     }    
-     
+     }
+
    }
-   
+
    "four lines in db, one CR, three PI, two component" should {
      val mapping = service.toRuleExpectedReports(multiPiComponent)
      "generate only one RuleExpectedReports" in {
@@ -154,15 +154,15 @@ class RuleExpectedReportsRepoTest  extends Specification  {
      }
      "have pi1 with two components" in {
        mapping.head.directiveExpectedReports.find(x => x.directiveId == new DirectiveId("pi1")).get.components.size == 2
-     }  
+     }
      "have pi2 with one component" in {
        mapping.head.directiveExpectedReports.find(x => x.directiveId == new DirectiveId("pi2")).get.components.size == 1
-     } 
+     }
      "have pi4 with one component" in {
        mapping.head.directiveExpectedReports.find(x => x.directiveId == new DirectiveId("pi4")).get.components.size == 1
-     } 
-     
+     }
+
    }
-   
-       
+
+
 }

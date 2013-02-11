@@ -45,7 +45,7 @@ object Migration_3_DATA_EventLogs {
   }
 
   def e(xml:Elem) = <entry>{xml}</entry>
-  
+
   val data_3 = Map(
       "rule_add"    -> MigrationTestLog(
             eventType = "RuleAdded"
@@ -96,15 +96,15 @@ object Migration_3_DATA_EventLogs {
           , data      = e(GroupXml.nodeGroup_delete_3)
           )
   )
-  
+
 }
 
- 
+
 
 
 
 object Migration_3_DATA_Other {
-    
+
      val addPendingDeployment_3 =
     <addPendingDeployement alreadyPending="false" fileFormat="3"></addPendingDeployement>
 
@@ -117,9 +117,9 @@ object Migration_3_DATA_Other {
       <fullOsName>Centos</fullOsName>
       <actorIp>127.0.0.1</actorIp>
     </node>
-    
-    
-  val node_refuse_3 = 
+
+
+  val node_refuse_3 =
     <node fileFormat="3" action="accept">
       <id>248c8e3d-1bf6-4bc1-9398-f8890b015a50</id>
       <inventoryVersion>2011-10-13T11:43:52.907+02:00</inventoryVersion>
@@ -127,12 +127,12 @@ object Migration_3_DATA_Other {
       <fullOsName>Centos</fullOsName>
       <actorIp>127.0.0.1</actorIp>
     </node>
-    
+
 }
 
 object Migration_3_DATA_Rule {
-  
-    
+
+
     val rule_add_3 =
     <rule fileFormat="3" changeType="add">
       <id>e7c21276-d2b5-4fff-9924-96b67db9bd1c</id>
@@ -186,8 +186,8 @@ object Migration_3_DATA_Rule {
         <from>false</from>
         <to>true</to>
       </isEnabled>
-    </rule>    
-  
+    </rule>
+
 
   val rule_delete_3 =
     <rule fileFormat="3" changeType="delete">
@@ -209,9 +209,9 @@ object Migration_3_DATA_Rule {
 
 object Migration_3_DATA_Directive {
 
-    
 
-    val directive_add_3 = 
+
+    val directive_add_3 =
     <directive fileFormat="3" changeType="add">
       <id>2fd5dd7e-c83b-4610-96ad-02002024c2f1</id>
       <displayName>Name resolution 1</displayName>

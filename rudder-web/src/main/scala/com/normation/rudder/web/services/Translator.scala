@@ -92,12 +92,12 @@ class Unserializer[T](techniques: (String, String => Box[T])*) {
 /*
  * A register of all methods available for
  * the given type to transform it to a string.
- * 
+ *
  * For example, a Translator[File] may have
- * an entry "filename" in its register 
- * that gives a function that transform 
+ * an entry "filename" in its register
+ * that gives a function that transform
  * file in its filename.
- * The returned method is always of the 
+ * The returned method is always of the
  * type T => String (we only know how
  * to transform complex object to string)
  */
@@ -136,7 +136,7 @@ class Translators {
 
 /*
  * Common translator implementations
- * 
+ *
  */
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormatter

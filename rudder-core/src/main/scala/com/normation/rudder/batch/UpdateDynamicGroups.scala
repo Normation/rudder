@@ -50,28 +50,28 @@ case object StartUpdate
 case object ManualStartUpdate
 
 //a container to hold the list of dynamic group to update
-case class GroupsToUpdate(ids:Seq[NodeGroupId]) extends HashcodeCaching 
+case class GroupsToUpdate(ids:Seq[NodeGroupId]) extends HashcodeCaching
 
 
 sealed trait UpdaterStates //states into wich the updater process can be
 //the process is idle
 case object IdleUdater extends UpdaterStates
 //an update is currently running for the given nodes
-case class StartProcessing(id:Long, modId:ModificationId, started: DateTime, groupIds:GroupsToUpdate) extends UpdaterStates with HashcodeCaching 
+case class StartProcessing(id:Long, modId:ModificationId, started: DateTime, groupIds:GroupsToUpdate) extends UpdaterStates with HashcodeCaching
 //the process gave a result
-case class UpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends UpdaterStates with HashcodeCaching 
+case class UpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends UpdaterStates with HashcodeCaching
 
-  
+
 
 
 /**
  * A class that periodically update all dynamic groups to see if
  * they need some update (add / remove nodes)
- * 
+ *
  * updateInterval has a special semantic:
  * - for 0 or a negative value, does not start the updater
  * - for updateInterval between 1 and a minimum value, use the minimum value
- * - else, use the given value. 
+ * - else, use the given value.
  */
 class UpdateDynamicGroups(
     dynGroupService       : DynGroupService
@@ -80,9 +80,9 @@ class UpdateDynamicGroups(
   , uuidGen               : StringUuidGenerator
   , updateInterval        : Int // in minutes
 ) extends Loggable {
-  
+
   private val propertyName = "rudder.batch.dyngroup.updateInterval"
-    
+
   private val laUpdateDyngroupManager = new LAUpdateDyngroupManager
   //start batch
   if(updateInterval < 1) {
@@ -91,12 +91,12 @@ class UpdateDynamicGroups(
     logger.trace("***** starting Dynamic Group Update batch *****")
     laUpdateDyngroupManager ! StartUpdate
   }
-  
-  
+
+
   def startManualUpdate : Unit = {
     laUpdateDyngroupManager ! ManualStartUpdate
   }
-  
+
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////
   ////////////////////////////////////////////////////////////////
@@ -104,12 +104,12 @@ class UpdateDynamicGroups(
   /*
    * Two actor utility class: one that manage the status (respond to ping,
    * to status command, etc)
-   * one that actually process update. 
+   * one that actually process update.
    */
-  
+
   private class LAUpdateDyngroupManager extends LiftActor with Loggable {
-    updateManager => 
-    
+    updateManager =>
+
     private var updateId = 0L
     private var currentState: UpdaterStates = IdleUdater
     private var onePending = false
@@ -123,38 +123,38 @@ class UpdateDynamicGroups(
         updateInterval
       }
     }
-    
+
     private[this] def processUpdate = {
         logger.trace("***** Start a new update")
         currentState match {
-          case IdleUdater => 
+          case IdleUdater =>
             dynGroupService.getAllDynGroups match {
-              case Full(groupIds) => 
+              case Full(groupIds) =>
                 updateId = updateId + 1
                 LAUpdateDyngroup ! StartProcessing(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groupIds))
-              case e:EmptyBox => 
+              case e:EmptyBox =>
                 val error = (e?~! "Errro when trying to get the list of dynamic group to update")
-                
+
             }
           case _:StartProcessing if(!onePending) => onePending = true
-          case _ => 
+          case _ =>
             logger.error("Ignoring start update dynamic group request because one other update still processing".format())
         }
     }
-    
+
     override protected def messageHandler = {
-     
+
       //
       //Ask for a new dynamic group update
       //
-      case StartUpdate => 
+      case StartUpdate =>
         //schedule next update, in minutes
         LAPinger.schedule(this, StartUpdate, realUpdateInterval*1000L*60)
         processUpdate
-      
-      case ManualStartUpdate => 
+
+      case ManualStartUpdate =>
         processUpdate
-        
+
       //
       //Process a dynamic group update response
       //
@@ -163,13 +163,13 @@ class UpdateDynamicGroups(
 
         currentState = IdleUdater
         //if one update is pending, immediatly start one other
-        
+
         if(onePending) {
           onePending = false
           logger.debug("Immediatly start an other update process: pending request")
           this ! StartUpdate
         }
-      
+
         //log some information
         val format = "yyyy/MM/dd HH:mm:ss"
         logger.debug("Dynamic group update started at %s, ended at %s".format(start.toString(format), end.toString(format)))
@@ -177,10 +177,10 @@ class UpdateDynamicGroups(
           (id,boxRes) <- results
         } {
           boxRes match {
-            case e:EmptyBox => 
+            case e:EmptyBox =>
               val error = (e ?~! "Error when updating dynamic group %s:".format(id))
               logger.error(error.messageChain)
-            case Full(diff) => 
+            case Full(diff) =>
               logger.debug("Group %s: adding [%s], removing [%s]".format(id,diff.added.map(_.value), diff.removed.map(_.value)))
               //if the diff is not empty, start a new deploy
               if(diff.added.nonEmpty || diff.removed.nonEmpty) {
@@ -189,19 +189,19 @@ class UpdateDynamicGroups(
               }
           }
         }
-        
+
       //
       //Unexpected messages
       //
       case x => logger.debug("Don't know how to process message: '%s'".format(x))
     }
 
-    
+
     private[this] object LAUpdateDyngroup extends LiftActor {
-      
+
       override protected def messageHandler = {
         //
-        //Process a dynamic group update 
+        //Process a dynamic group update
         //
         case StartProcessing(processId, modId, startTime, GroupsToUpdate(dynGroupIds)) => {
           logger.trace("***** Start a new update, id: " + processId)
@@ -217,13 +217,13 @@ class UpdateDynamicGroups(
                   dynGroupIds.map(id => (id,Failure("Exception caught during update process.",Full(e), Empty))).toMap)
           }
         }
-     
+
         //
         //Unexpected messages
         //
         case x => logger.debug("Don't know how to process message: '%s'".format(x))
       }
-    }     
-    
+    }
+
   }
 }

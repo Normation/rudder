@@ -40,6 +40,6 @@ import org.springframework.web.context.WebApplicationContext
 trait SecurityFilter extends DelegatingFilterProxy {
 
   def webApplicationContext : WebApplicationContext
-  
+
   override def findWebApplicationContext() = webApplicationContext
 }

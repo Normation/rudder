@@ -44,7 +44,7 @@ import org.joda.time._
 
 trait RuleExpectedReportsRepository {
 
-  
+
   /**
    * Return all the expected reports for this ruleId between the two date
    * @param ruleId
@@ -52,7 +52,7 @@ trait RuleExpectedReportsRepository {
    */
   def findExpectedReports(ruleId : RuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[RuleExpectedReports]
 
-  
+
   /**
    * Return all the expected reports for this server between the two date
    * @param directiveId
@@ -64,9 +64,9 @@ trait RuleExpectedReportsRepository {
    * Return all the expected reports between the two dates
    * @return
    */
-  def findExpectedReports(beginDate : DateTime, endDate : DateTime) : Seq[RuleExpectedReports] 
+  def findExpectedReports(beginDate : DateTime, endDate : DateTime) : Seq[RuleExpectedReports]
 
-    
+
   /**
    * Return current expectedreports (the one still pending) for this Rule
    * @param rule
@@ -87,26 +87,26 @@ trait RuleExpectedReportsRepository {
    * It is only used to know which conf expected report we should close
    */
   def findAllCurrentExpectedReportsAndSerial(): scala.collection.Map[RuleId, Int]
- 
-  
+
+
   /**
    *  Return current expectedreports (the one still pending) for this policyIsntance
    * @param directiveId
    * @return
    */
 //  def findCurrentExpectedReports(directiveId : Cf3PolicyDraftId) : Option[RuleExpectedReports]
-  
+
   /**
    * Return currents expectedreports (the one still pending) for this server
    * @param nodeId
    * @return
    */
   def findCurrentExpectedReportsByNode(nodeId : NodeId) : Seq[RuleExpectedReports]
-  
-   
+
+
  /**
    * Simply set the endDate for the expected report for this conf rule
-   * @param ruleId 
+   * @param ruleId
    */
   def closeExpectedReport(ruleId : RuleId) : Unit
 
@@ -115,7 +115,7 @@ trait RuleExpectedReportsRepository {
    * I'm not really happy with this API
    * @param ruleId : the id of the rule (the main id)
    * @param directiveId : the id of the directive (secondary id, used to check for the changes)
-   * @param nodes : the nodes that are expected to be the target of this rule 
+   * @param nodes : the nodes that are expected to be the target of this rule
    * @param cardinality : the cardinality of the expected reports
    * @return
    */

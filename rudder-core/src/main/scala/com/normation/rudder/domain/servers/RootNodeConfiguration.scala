@@ -76,27 +76,27 @@ case class RootNodeConfiguration(
     targetRulePolicyDrafts.get(ruleWithCf3PolicyDraft.cf3PolicyDraft.id) match {
       case None =>
         // we first need to fetch all the policies in a mutable map to modify them
-        val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]() 
-        __targetRulePolicyDrafts.foreach { ruleWithCf3PolicyDraft => 
+        val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]()
+        __targetRulePolicyDrafts.foreach { ruleWithCf3PolicyDraft =>
             newRulePolicyDrafts += ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id ->ruleWithCf3PolicyDraft.copy()) }
-        
-        
-  
+
+
+
         updateAllUniqueVariables(ruleWithCf3PolicyDraft.cf3PolicyDraft,newRulePolicyDrafts)
         newRulePolicyDrafts += (ruleWithCf3PolicyDraft.cf3PolicyDraft.id -> ruleWithCf3PolicyDraft.copy())
-        
-        
+
+
         Full(copy(__targetRulePolicyDrafts = newRulePolicyDrafts.values.toSeq))
       case Some(x) => Failure("An instance of the ruleWithCf3PolicyDraft with the same identifier %s already exists".format(ruleWithCf3PolicyDraft.cf3PolicyDraft.id.value))
     }
   }
- 
+
   def setSerial(rules : Seq[(RuleId,Int)]) : RootNodeConfiguration = {
-    val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]() 
-        __targetRulePolicyDrafts.foreach { ruleWithCf3PolicyDraft => 
+    val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]()
+        __targetRulePolicyDrafts.foreach { ruleWithCf3PolicyDraft =>
             newRulePolicyDrafts += ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id ->ruleWithCf3PolicyDraft.copy()) }
-        
-    
+
+
     for ((id,serial) <- rules) {
       newRulePolicyDrafts ++= newRulePolicyDrafts.
             filter(x => x._2.ruleId == id).
@@ -104,21 +104,21 @@ case class RootNodeConfiguration(
     }
     copy(__targetRulePolicyDrafts = newRulePolicyDrafts.values.toSeq)
   }
-  
+
   /**
    * Called when we have written the promesses, to say that the current configuration is indeed the target one
    * @return nothing
    */
   def commitModification() : RootNodeConfiguration = {
     logger.debug("Commiting server " + this);
-    
+
     copy(__currentRulePolicyDrafts = this.__targetRulePolicyDrafts,
         currentMinimalNodeConfig = this.targetMinimalNodeConfig,
         currentSystemVariables = this.targetSystemVariables,
         writtenDate = Some(DateTime.now()))
-    
+
   }
-  
+
   /**
    * Called when we want to rollback modification, to say that the target configuration is the current one
    * @return nothing
@@ -126,12 +126,12 @@ case class RootNodeConfiguration(
   def rollbackModification() : RootNodeConfiguration = {
     copy(__targetRulePolicyDrafts = this.__currentRulePolicyDrafts,
         targetMinimalNodeConfig = this.currentMinimalNodeConfig,
-        targetSystemVariables = this.currentSystemVariables 
+        targetSystemVariables = this.currentSystemVariables
         )
-    
+
   }
- 
-  
+
+
   override def clone() : RootNodeConfiguration = {
     val returned = new RootNodeConfiguration(
          this.id,
@@ -143,25 +143,25 @@ case class RootNodeConfiguration(
       writtenDate,
       currentSystemVariables,
       targetSystemVariables
-    )        
+    )
 
     returned
   }
-  
+
 }
 
 object RootNodeConfiguration {
   def apply(server:NodeConfiguration) : RootNodeConfiguration = {
     val root = new RootNodeConfiguration(server.id,
-        server.getCurrentDirectives.valuesIterator.toSeq, 
-        server.getDirectives.valuesIterator.toSeq, 
+        server.getCurrentDirectives.valuesIterator.toSeq,
+        server.getDirectives.valuesIterator.toSeq,
         server.isPolicyServer,
         server.currentMinimalNodeConfig,
         server.targetMinimalNodeConfig,
         server.writtenDate,
         server.currentSystemVariables,
         server.targetSystemVariables)
-  
+
     root
   }
 }

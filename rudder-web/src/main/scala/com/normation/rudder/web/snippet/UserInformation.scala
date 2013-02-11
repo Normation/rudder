@@ -59,26 +59,26 @@ class UserInformation extends DispatchSnippet with Loggable {
 
   private[this] val eventLogger = inject[EventLogRepository]
   private[this] val uuidGen     = inject[StringUuidGenerator]
-  
-  def dispatch = { 
+
+  def dispatch = {
     case "userCredentials" =>  userCredentials
     case "logout" => logout
   }
-  
-  
-  
+
+
+
   def userCredentials = {
     CurrentUser.get match {
-      case Some(u) =>  "#openerAccount" #> u.getUsername 
-      case None => 
+      case Some(u) =>  "#openerAccount" #> u.getUsername
+      case None =>
         S.session.foreach { session =>
           SecurityContextHolder.clearContext()
           session.destroySession()
         }
         "#infosUser *" #> <p class="error">Error when trying to fetch user details.</p>
-    }    
+    }
   }
-  
+
   def logout = {
     "*" #> SHtml.ajaxButton(<span class="red userinfowidth">Logout</span>, { () =>
       S.session match {
@@ -111,5 +111,5 @@ class UserInformation extends DispatchSnippet with Loggable {
       JsCmds.RedirectTo("/")
     })
   }
-  
+
 }

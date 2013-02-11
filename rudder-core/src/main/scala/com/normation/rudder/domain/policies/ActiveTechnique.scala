@@ -44,22 +44,22 @@ case class ActiveTechniqueId(value:String) extends HashcodeCaching
 /**
  * An active technique is a technique from the technique library
  * that Rudder administrator choose to mark as "can be used to
- * derive directive from". 
+ * derive directive from".
  * Non activated techniques are not available to build
  * directives.
- * 
- * ActiveTechniques are grouped in the "Active Techniques" set, 
- * organized in categories. 
- * 
- * An active technique keep metadatas about when the technique was 
+ *
+ * ActiveTechniques are grouped in the "Active Techniques" set,
+ * organized in categories.
+ *
+ * An active technique keep metadatas about when the technique was
  * activated, what version of the technique are activated, what
- * directives use it. 
+ * directives use it.
  */
 case class ActiveTechnique(
     id                  : ActiveTechniqueId
   , techniqueName       : TechniqueName
   , acceptationDatetimes: Map[TechniqueVersion, DateTime]
-    //TODO: remove directives ids, they DON'T have to be here. 
+    //TODO: remove directives ids, they DON'T have to be here.
   , directives          : List[DirectiveId] = Nil
   , isEnabled           : Boolean = true
   , isSystem            : Boolean = false

@@ -68,7 +68,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     , directiveId: DirectiveId
     , vars            : Seq[Variable]
   ): Box[DirectiveEditor] = {
-    
+
     val valuesByName = vars.map(v => (v.spec.name, v.values)).toMap
     val variableSpecs = vars.map(v => (v.spec.name -> v.spec)).toMap
     val sections = policy.rootSection.copyWithoutSystemVars
@@ -77,19 +77,19 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     //Don't forget that we may have empty saved value.
     val isNewPolicy = valuesByName.size < 1 || valuesByName.forall { case (n,vals) => vals.size < 1 }
     logger.debug("Is it a new directive ? " + isNewPolicy)
-    
+
     val sectionField = createSectionField(sections, valuesByName, isNewPolicy)
 
     Full(DirectiveEditor(policy.id, directiveId, policy.name, policy.description, sectionField, variableSpecs))
   }
-  
+
   // --------------------------------------------
   // description of the state machine
   // --------------------------------------------
 
   /*
-   * 
-   * 
+   *
+   *
    *          ----<--root----->--------
    *   ___   /        |           ___  \
    *  | variable  sectionType1  |   multiSection
@@ -97,18 +97,18 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
    *   `-----<-----<------'-----<---'      |     /     |
    *                            \         sectionType2 |
    *                             `----<------'   `-->--'
-   *                             
+   *
    * sectionType1: a section that may have a multi-section for children
    * sectionType2: a section that may only have simple sub section
    */
-  
+
   // --------------------------------------------
   // implementation : TODO: implement above state
   // machine for real, not with a copy&paste for
   // createSingleSectionFieldForMultisec
   // --------------------------------------------
-  
-  
+
+
   def createSectionField(section: SectionSpec, valuesByName:Map[String,Seq[String]], isNewPolicy:Boolean): SectionField = {
     val seqOfSectionMap = {
       if (isNewPolicy) Seq(createDefaultMap(section))
@@ -117,19 +117,19 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
         if(all.size < 1) Seq(createDefaultMap(section)) else all
       }
     }
-    
+
 
     if (section.isMultivalued) {
       val sectionFields = for (sectionMap <- seqOfSectionMap) yield createSingleSectionFieldForMultisec(section,sectionMap, isNewPolicy)
       MultivaluedSectionField(sectionFields, () => {
-        //here, valuesByName is empty, we are creating a new map. 
+        //here, valuesByName is empty, we are creating a new map.
         createSingleSectionField(section,Map(),createDefaultMap(section), true)
       } )
     } else {
       createSingleSectionField(section, valuesByName, seqOfSectionMap.head, isNewPolicy)
     }
   }
-  
+
   private[this] def createSingleSectionField(sectionSpec:SectionSpec, valuesByName:Map[String,Seq[String]], sectionMap: Map[String, Option[String]], isNewPolicy:Boolean): SectionFieldImp = {
     // only variables of the current section
     var varMappings = Map[String, () => String]()
@@ -160,18 +160,18 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
       field.optional = varSpec.constraint.mayBeEmpty
       field
     }
-    
+
     val children = for (child <- sectionSpec.children) yield {
       child match {
         case varSpec: SectionVariableSpec => createVarField(varSpec, sectionMap(varSpec.name))
         case sectSpec: SectionSpec => createSectionField(sectSpec, valuesByName, isNewPolicy)
       }
     }
-    
+
     //actually create the SectionField for createSingleSectionField
     SectionFieldImp(sectionSpec.name, children, varMappings)
   }
-  
+
   private[this] def createSingleSectionFieldForMultisec(sectionSpec:SectionSpec, sectionMap: Map[String, Option[String]], isNewPolicy:Boolean): SectionFieldImp = {
     // only variables of the current section
     var varMappings = Map[String, () => String]()
@@ -202,22 +202,22 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
       field.optional = varSpec.constraint.mayBeEmpty
       field
     }
-    
+
     val children = for (child <- sectionSpec.children) yield {
       child match {
         case varSpec: SectionVariableSpec => createVarField(varSpec, sectionMap.getOrElse(varSpec.name,None))
-        case sectSpec: SectionSpec => 
+        case sectSpec: SectionSpec =>
           val subSectionMap = if(isNewPolicy) createDefaultMap(sectSpec) else sectionMap
           createSingleSectionFieldForMultisec(sectSpec, subSectionMap, isNewPolicy)
       }
     }
-    
+
     //actually create the SectionField for createSingleSectionField
     SectionFieldImp(sectionSpec.name, children, varMappings)
   }
-  
-  
-  // transforms 
+
+
+  // transforms
   // Map(A -> Seq("A1", "A2"), B -> Seq("B1", "b2"))
   // to
   // Seq( Map((A -> "A1"), (B -> "B1")),
@@ -225,7 +225,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
   //If there is no value, a None is returned
   private def createMapForEachSubSection(section: SectionSpec, valuesByName:Map[String,Seq[String]]): Seq[Map[String, Option[String]]] = {
     // values represent all the values we have for the same name of variable
-    case class NameValuesVar(name: String, values: Array[String]) extends HashcodeCaching 
+    case class NameValuesVar(name: String, values: Array[String]) extends HashcodeCaching
 
     // seq of variable values with same name correctly ordered
     val seqOfNameValues: Seq[NameValuesVar] = for (varSpec <- section.getAllVariables)

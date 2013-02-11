@@ -61,33 +61,33 @@ trait NodeInfoService {
    * @return
    */
   def getNodeInfo(nodeId: NodeId) : Box[NodeInfo]
-  
+
   /**
-   * Return a seq of NodeInfo from a seq of NodeId. 
+   * Return a seq of NodeInfo from a seq of NodeId.
    * If any of them fails, then we return Failure
    * @param nodeId
    * @return
    */
   def find(nodeIds: Seq[NodeId]) : Box[Seq[NodeInfo]]
-  
-  
+
+
   /**
    * Get all node ids
    */
   def getAllIds() : Box[Seq[NodeId]]
-  
+
   /**
-   * Get all "simple" node ids (i.e, all user nodes, 
+   * Get all "simple" node ids (i.e, all user nodes,
    * for example, NOT policy servers)
    */
   def getAllUserNodeIds() : Box[Seq[NodeId]]
-  
+
   /**
-   * Get all systen node ids, for example 
-   * policy server node ids. 
+   * Get all systen node ids, for example
+   * policy server node ids.
    * @return
    */
-  def getAllSystemNodeIds() : Box[Seq[NodeId]]  
+  def getAllSystemNodeIds() : Box[Seq[NodeId]]
 }
 
 object NodeInfoServiceImpl {
@@ -118,14 +118,14 @@ class NodeInfoServiceImpl(
       nodeInfo
     }
   }
-  
-  
+
+
   def find(nodeIds: Seq[NodeId]) : Box[Seq[NodeInfo]] = {
     sequence(nodeIds) { nodeId =>
       getNodeInfo(nodeId)
     }
   }
-  
+
   /**
    * Get all node ids
    */
@@ -139,9 +139,9 @@ class NodeInfoServiceImpl(
       nodeIds
     }
   }
-  
+
   /**
-   * Get all "simple" node ids (i.e, all user nodes, 
+   * Get all "simple" node ids (i.e, all user nodes,
    * for example, NOT policy servers)
    */
   def getAllUserNodeIds() : Box[Seq[NodeId]] = {
@@ -154,10 +154,10 @@ class NodeInfoServiceImpl(
       nodeIds
     }
   }
-  
+
   /**
-   * Get all systen node ids, for example 
-   * policy server node ids. 
+   * Get all systen node ids, for example
+   * policy server node ids.
    * @return
    */
   def getAllSystemNodeIds() : Box[Seq[NodeId]] = {

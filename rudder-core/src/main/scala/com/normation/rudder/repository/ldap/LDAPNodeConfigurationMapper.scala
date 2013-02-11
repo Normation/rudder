@@ -67,8 +67,8 @@ class LDAPNodeConfigurationMapper(
   , variableBuilderService    : VariableBuilderService
   , ldap                      : LDAPConnectionProvider
 ) extends Loggable {
-  
-  
+
+
   private def setSystemVariable(variableMap : Map[String,Seq[String]]) : Map[String, Variable] = {
     var returnedMap = scala.collection.mutable.Map[String, Variable]()
     for ((variableName, values) <- variableMap) {
@@ -77,13 +77,13 @@ class LDAPNodeConfigurationMapper(
         settedVariable.values = values
         returnedMap += (settedVariable.spec.name -> settedVariable)
       } catch {
-        case e: Exception => logger.error("Could not fetch spec for system variable %s".format(variableName)) 
+        case e: Exception => logger.error("Could not fetch spec for system variable %s".format(variableName))
       }
     }
     returnedMap.toMap
   }
-  
-  
+
+
       //////////////////////////////    Cf3PolicyDraft    //////////////////////////////
 
     /**
@@ -123,15 +123,15 @@ class LDAPNodeConfigurationMapper(
             vared.get(policyPackage.trackerVariableSpec.name).map(x => x.asInstanceOf[TrackerVariable]).getOrElse(policyPackage.trackerVariableSpec.toVariable()),
             priority,
             serial))
-        
+
       } yield (directive, e.isA(OC_TARGET_RULE_WITH_CF3POLICYDRAFT))
     }
 
-    
+
         //////////////////////////////    CFCNode (NodeConfiguration ?)    //////////////////////////////
 
-    
-    
+
+
   /**
    * Create a server from an LDAPTree
    * The root entry of the tree must be of type OC_NODE_CONFIGURATION
@@ -143,8 +143,8 @@ class LDAPNodeConfigurationMapper(
       Failure("Unknow server type, or bad root for LDAPEntry tree: " + tree.root)
     } else {
       //ok, we actually have a server, start to find its directives (current and target)
-      
-      //For a directive in error, log the error, and delete it. It's just a cache, 
+
+      //For a directive in error, log the error, and delete it. It's just a cache,
       //it will be regenerated next time (can not be much worse than completly blocking
       //deployment
 
@@ -162,18 +162,18 @@ class LDAPNodeConfigurationMapper(
                 case e:Exception => logger.error("Can not remove the faulty node configuration's directive with DN: '%s': ", e)
               }
               None
-          }          
+          }
         } else {
           None
         }
       }.toSeq
-            
+
       val currentPIs = nodeDirectives.collect { case(directive, false) => directive }
       val targetPIs  = nodeDirectives.collect { case(directive, true)  => directive }
-          
+
       //map server datas - all mandatories
       def E_MSG(attr:String, dn:DN) = "Error, missing attribute '%s' for server %s which is mandatory".format(attr,dn)
-      
+
       // Cannot fail, the current may be empty, so return an empty value
       def getCurrentMinimalNodeConfig(e: LDAPEntry) : MinimalNodeConfig = {
           new MinimalNodeConfig(
@@ -186,7 +186,7 @@ class LDAPNodeConfigurationMapper(
               e(A_ROOT_USER).openOr("")
           )
       }
-      
+
       def getTargetMinimalNodeConfig(e: LDAPEntry) : Box[MinimalNodeConfig] = {
         for {
           name <- e(A_TARGET_NAME) ?~! E_MSG(A_TARGET_NAME,e.dn)
@@ -198,7 +198,7 @@ class LDAPNodeConfigurationMapper(
           localAdministratorAccountName <- e(A_TARGET_ROOT_USER) ?~! E_MSG(A_TARGET_ROOT_USER,e.dn)
         } yield {
           new MinimalNodeConfig(
-             name, 
+             name,
              hostname,
              agentsName,
              policyServerId,
@@ -206,7 +206,7 @@ class LDAPNodeConfigurationMapper(
           )
         }
       }
-      
+
       for {
         id <- tree.root()(A_NODE_UUID) ?~! E_MSG(A_NODE_UUID,tree.root.dn)
       //  modDate <- tree.root.getAsGTime(A_LAST_UPDATE_DATE) ?~! E_MSG(A_LAST_UPDATE_DATE,tree.root.dn)
@@ -214,24 +214,24 @@ class LDAPNodeConfigurationMapper(
         targetNodeConfig <- getTargetMinimalNodeConfig(tree.root()) ?~! "Missing target node minimal configuration"
       } yield {
         if(tree.root.isA(OC_ROOT_POLICY_SERVER)) {
-          val server = new RootNodeConfiguration(id, currentPIs,targetPIs, true, 
+          val server = new RootNodeConfiguration(id, currentPIs,targetPIs, true,
                 getCurrentMinimalNodeConfig(tree.root()),
                 targetNodeConfig,
                 writtenDate.map(_.dateTime),
                 setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_SYSTEM_VARIABLE).toSeq)),
                 setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE).toSeq))
                 )
- 
+
           server
         } else {
-          val server = new SimpleNodeConfiguration(id, currentPIs,targetPIs, tree.root().getAsBoolean(A_IS_POLICY_SERVER).getOrElse(false), 
-              getCurrentMinimalNodeConfig(tree.root()), 
-              targetNodeConfig, 
+          val server = new SimpleNodeConfiguration(id, currentPIs,targetPIs, tree.root().getAsBoolean(A_IS_POLICY_SERVER).getOrElse(false),
+              getCurrentMinimalNodeConfig(tree.root()),
+              targetNodeConfig,
               writtenDate.map(_.dateTime),
               setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_SYSTEM_VARIABLE).toSeq)),
-              setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE).toSeq))          
+              setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE).toSeq))
           )
- 
+
           server
         }
       }
@@ -240,26 +240,26 @@ class LDAPNodeConfigurationMapper(
   }
 
   /**
-   * Map a node to a list of LDAPEntries. 
+   * Map a node to a list of LDAPEntries.
    * These entries may be latter persisted.
-   * 
-   * Be careful to cleanly specialize objectType if 
+   *
+   * Be careful to cleanly specialize objectType if
    * the node is a root server
    */
   def fromNodeConfiguration(server:NodeConfiguration) : LDAPTree = {
-    
+
     /**
      * Create directive entries in the context of a server entry.
-     * Note that contrary to Roles, directives could be 
+     * Note that contrary to Roles, directives could be
      * split from a server (it is only used to build the parent dn
      * of these entries)
      */
     def fromDirective(identifiable:RuleWithCf3PolicyDraft,  serverEntry:LDAPEntry, isCurrent:Boolean) : LDAPEntry = {
-      
+
       val entry =
         if(isCurrent) rudderDit.NODE_CONFIGS.NODE_CONFIG.CF3POLICYDRAFT.model(identifiable.cf3PolicyDraft.id.value, serverEntry.dn)
         else rudderDit.NODE_CONFIGS.NODE_CONFIG.TARGET_CF3POLICYDRAFT.model(identifiable.cf3PolicyDraft.id.value, serverEntry.dn)
-      
+
       val vars = identifiable.cf3PolicyDraft.getVariables().values.toSeq :+ identifiable.cf3PolicyDraft.trackerVariable
       entry +=! (A_RULE_UUID, identifiable.ruleId.value)
 
@@ -275,10 +275,10 @@ class LDAPNodeConfigurationMapper(
       entry +=! (A_PRIORITY, identifiable.cf3PolicyDraft.priority.toString)
       entry
     }
-    
+
     //if server id is null or empty, throw an error here
     val id = NodeId(Utils.??!(server.id).getOrElse(throw new BusinessException("NodeConfiguration UUID can not be null nor emtpy")))
-    
+
     //Build the server entry and its children (role an directives)
     val serverEntry : LDAPEntry = server match {
       case rootNodeConfiguration:RootNodeConfiguration => rudderDit.NODE_CONFIGS.NODE_CONFIG.rootPolicyServerModel(id)
@@ -290,7 +290,7 @@ class LDAPNodeConfigurationMapper(
     server.writtenDate.foreach { v =>
       serverEntry +=!(A_WRITTEN_DATE, GeneralizedTime( v ).toString)
     }
-  
+
     serverEntry +=!(A_NAME, server.currentMinimalNodeConfig.name)
     serverEntry +=!(A_HOSTNAME, server.currentMinimalNodeConfig.hostname)
     serverEntry +=!(A_NODE_POLICY_SERVER, server.currentMinimalNodeConfig.policyServerId)
@@ -304,11 +304,11 @@ class LDAPNodeConfigurationMapper(
     serverEntry +=!(A_TARGET_AGENTS_NAME, server.targetMinimalNodeConfig.agentsName.map( _.toString ):_*)
 
     serverEntry +=!(A_IS_POLICY_SERVER, server.isPolicyServer.toLDAPString )
-    
+
     // Add the system variable
     serverEntry +=!(A_NODE_CONFIGURATION_SYSTEM_VARIABLE, variableToSeq(server.getCurrentSystemVariables().values.toSeq):_*)
     serverEntry +=!(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE, variableToSeq(server.getTargetSystemVariables().values.toSeq):_*)
-    
+
     //should be ok, that's why we use an exception
     LDAPTree(
       Seq(serverEntry) ++  //server root entry
@@ -316,11 +316,11 @@ class LDAPNodeConfigurationMapper(
       { server.getDirectives.map( directive => fromDirective(directive._2, serverEntry, false)) }
     ) match {
       case Full(tree) => tree
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         val msg = "Can not build a tree of LDAPEntries for server %s".format(server.id)
         logger.error(msg, e)
         throw new TechnicalException(msg)
     }
   }
-    
+
 }

@@ -68,10 +68,10 @@ class LDAPDirectiveRepository(
   , autoExportOnModify            : Boolean
   , userLibMutex                  : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends DirectiveRepository with Loggable {
-    
+
   import scala.collection.mutable.{Map => MutMap}
   import scala.xml.Text
-  
+
   /**
    * Retrieve the directive entry for the given ID, with the given connection
    */
@@ -83,10 +83,10 @@ class LDAPDirectiveRepository(
       case _ => Failure("Error, the directory contains multiple occurrence of directive with id %s. DN: %s".format(id, piEntries.map( _.dn).mkString("; ")))
     }
   }
-  
-  
+
+
   private[this] def policyFilter(includeSystem:Boolean = false) = if(includeSystem) IS(OC_DIRECTIVE) else AND(IS(OC_DIRECTIVE), EQ(A_IS_SYSTEM,false.toLDAPString))
-  
+
   /**
    * Try to find the directive with the given ID.
    * Empty: no directive with such ID
@@ -96,14 +96,14 @@ class LDAPDirectiveRepository(
   override def getDirective(id:DirectiveId) : Box[Directive] = {
     for {
       locked    <- userLibMutex.readLock
-      con       <- ldap 
+      con       <- ldap
       piEntry   <- getDirectiveEntry(con, id) ?~! "Can not find directive with id %s".format(id)
       directive <- mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, piEntry)
     } yield {
       directive
     }
   }
-  
+
   override def getDirectiveWithContext(directiveId:DirectiveId) : Box[(Technique, ActiveTechnique, Directive)] = {
     for {
       directive         <- this.getDirective(directiveId) ?~! "No user Directive with ID=%s.".format(directiveId)
@@ -115,40 +115,40 @@ class LDAPDirectiveRepository(
     }
   }
 
-  
+
   override def getAll(includeSystem:Boolean = false) : Box[Seq[Directive]] = {
     for {
       locked     <- userLibMutex.readLock
       con        <- ldap
       //for each directive entry, map it. if one fails, all fails
-      directives <- sequence(con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn,  policyFilter(includeSystem))) { piEntry => 
+      directives <- sequence(con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn,  policyFilter(includeSystem))) { piEntry =>
                       mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive. Entry: %s".format(piEntry)
                     }
     } yield {
       directives
-    } 
+    }
   }
 
-  
+
   /**
    * Find the active technique for which the given policy
-   * instance is an instance. 
-   * 
-   * Return empty if no such directive is known, 
+   * instance is an instance.
+   *
+   * Return empty if no such directive is known,
    * fails if no active technique match the directive.
    */
   override def getActiveTechnique(id:DirectiveId) : Box[ActiveTechnique] = {
     for {
       locked          <- userLibMutex.readLock
-      con             <- ldap 
+      con             <- ldap
       piEntry         <- getDirectiveEntry(con, id, "1.1") ?~! "Can not find directive with id %s".format(id)
       activeTechnique <- ldapActiveTechniqueRepository.getActiveTechnique(mapper.dn2ActiveTechniqueId(piEntry.dn.getParent))
     } yield {
       activeTechnique
     }
   }
-  
-  
+
+
   /**
    * Get directives for given technique.
    * A not known technique id is a failure.
@@ -156,16 +156,16 @@ class LDAPDirectiveRepository(
   override def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : Box[Seq[Directive]] = {
     for {
       locked     <- userLibMutex.readLock
-      con        <- ldap 
+      con        <- ldap
       ptEntry    <- ldapActiveTechniqueRepository.getUPTEntry(con, activeTechniqueId, "1.1")
-      directives <- sequence(con.searchOne(ptEntry.dn, policyFilter(includeSystem))) { piEntry => 
+      directives <- sequence(con.searchOne(ptEntry.dn, policyFilter(includeSystem))) { piEntry =>
                       mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive. Entry: %s".format(piEntry)
                     }
     } yield {
       directives
     }
   }
-  
+
   /**
    * Save the given directive into given active technique
    * If the directive is already present in the system but not
@@ -173,7 +173,7 @@ class LDAPDirectiveRepository(
    * If the directive is already in the given technique,
    * update the directive.
    * If the directive is not in the system, add it.
-   * 
+   *
    * Returned the saved WBUserDirective
    */
   override def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]] = {
@@ -184,7 +184,7 @@ class LDAPDirectiveRepository(
                         getDirectiveEntry(con, directive.id) match {
                           case f:Failure => f
                           case Empty => Full(None)
-                          case Full(otherPi) => 
+                          case Full(otherPi) =>
                             if(otherPi.dn.getParent == uptEntry.dn) Full(Some(otherPi))
 
                             else Failure("An other directive with the id %s exists in an other category that the one with id %s : %s".format(directive.id, inActiveTechniqueId, otherPi.dn))
@@ -227,7 +227,7 @@ class LDAPDirectiveRepository(
                                ) ?~! "Error when processing saved modification to log them"
       eventLogged <- optDiff match {
                        case None => Full("OK")
-                       case Some(diff:AddDirectiveDiff) => 
+                       case Some(diff:AddDirectiveDiff) =>
                          actionLogger.saveAddDirective(
                              modId
                            , principal = actor
@@ -235,7 +235,7 @@ class LDAPDirectiveRepository(
                            , varsRootSectionSpec = technique.rootSection
                            , reason = reason
                          )
-                       case Some(diff:ModifyDirectiveDiff) => 
+                       case Some(diff:ModifyDirectiveDiff) =>
                          actionLogger.saveModifyDirective(
                              modId
                            , principal = actor
@@ -254,7 +254,7 @@ class LDAPDirectiveRepository(
       optDiff
     }
   }
-  
+
   private[this] def directiveNameExists(con:LDAPConnection, name : String, id:DirectiveId) : Boolean = {
     val filter = AND(AND(IS(OC_DIRECTIVE), EQ(A_NAME,name), NOT(EQ(A_DIRECTIVE_UUID, id.value))))
     con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter).size match {

@@ -65,19 +65,19 @@ case class Srv(
   , status      : InventoryStatus
   , hostname    : String
   , osType      : String
-  , osName      : String 
+  , osName      : String
   , osFullName  : String
   , ips         : List[String]
   , creationDate: DateTime
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 
 object Srv {
   import com.normation.inventory.ldap.core.LDAPConstants._
 
   /**
-   * List of attributes needed to be able to map a Srv. 
-   * There must be at least all required attributes for a node. 
+   * List of attributes needed to be able to map a Srv.
+   * There must be at least all required attributes for a node.
    */
   val ldapAttributes = Seq(
      A_OC

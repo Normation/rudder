@@ -48,16 +48,16 @@ class CheckSystemDirectives(
   rudderDit:RudderDit,
   ldapRuleService:RuleRepository
 ) extends BootstrapChecks with Loggable {
-  
+
   @throws(classOf[ UnavailableException ])
   override def checks() : Unit = {
-    
-    //TODO : validation of system Rules 
+
+    //TODO : validation of system Rules
     /*
      * Check for Rudder internal Techniques, Directives and
-     * Rules. 
+     * Rules.
      */
-    
+
   }
 
 }

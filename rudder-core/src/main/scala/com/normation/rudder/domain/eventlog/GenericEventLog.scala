@@ -56,8 +56,8 @@ final case class ApplicationStarted(
 
 object ApplicationStarted extends EventLogFilter {
   override val eventType = ApplicationStartedEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ApplicationStarted = ApplicationStarted(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ApplicationStarted = ApplicationStarted(x._2)
 }
 /**
  * Red buton part
@@ -65,7 +65,7 @@ object ApplicationStarted extends EventLogFilter {
 final case class ActivateRedButton(
     override val eventDetails : EventLogDetails
 ) extends EventLog with HashcodeCaching {
-  
+
   override val eventType = ActivateRedButton.eventType
   override def details = EventLog.emptyDetails
   override val eventLogCategory = RedButtonLogCategory
@@ -75,14 +75,14 @@ final case class ActivateRedButton(
 
 object ActivateRedButton extends EventLogFilter {
   override val eventType = ActivateRedButtonEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ActivateRedButton = ActivateRedButton(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ActivateRedButton = ActivateRedButton(x._2)
 }
 
 final case class ReleaseRedButton(
     override val eventDetails : EventLogDetails
 ) extends EventLog with HashcodeCaching {
-  
+
   override val eventType = ReleaseRedButton.eventType
   override def details= EventLog.emptyDetails
   override val eventLogCategory = RedButtonLogCategory
@@ -92,8 +92,8 @@ final case class ReleaseRedButton(
 
 object ReleaseRedButton extends EventLogFilter {
   override val eventType = ReleaseRedButtonEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ReleaseRedButton = ReleaseRedButton(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ReleaseRedButton = ReleaseRedButton(x._2)
 }
 
 /**
@@ -102,7 +102,7 @@ object ReleaseRedButton extends EventLogFilter {
 final case class ClearCacheEventLog(
    override val eventDetails : EventLogDetails
 ) extends EventLog with HashcodeCaching {
-  
+
   override val eventType = ClearCacheEventLog.eventType
   override def details = EventLog.emptyDetails
   override val eventLogCategory = RudderApplicationLogCategory
@@ -112,15 +112,15 @@ final case class ClearCacheEventLog(
 
 object ClearCacheEventLog extends EventLogFilter {
   override val eventType = ClearCacheEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ClearCacheEventLog = ClearCacheEventLog(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ClearCacheEventLog = ClearCacheEventLog(x._2)
 }
 
 
 object GenericEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      ApplicationStarted 
-    , ActivateRedButton 
+      ApplicationStarted
+    , ActivateRedButton
     , ReleaseRedButton
     , ClearCacheEventLog
     )

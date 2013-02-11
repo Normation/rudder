@@ -70,18 +70,18 @@ import com.normation.eventlog.ModificationId
 
 /**
  * Snippet for managing the System and User Technique libraries.
- * 
+ *
  * It allow to see what Techniques are available in the
- * system library, choose and configure which one to use in 
- * the user private library. 
- * 
- * Techniques are classify by categories in a tree. 
+ * system library, choose and configure which one to use in
+ * the user private library.
+ *
+ * Techniques are classify by categories in a tree.
  *
  */
 class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   import TechniqueLibraryManagement._
- 
+
   //find Technique
   val techniqueRepository = inject[TechniqueRepository]
   //find Technique
@@ -98,15 +98,15 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   //the popup component to create user technique category
   private[this] val creationPopup = new LocalSnippet[CreateActiveTechniqueCategoryPopup]
-  
-  // the popup component to give reason when moving techniques from Reference 
+
+  // the popup component to give reason when moving techniques from Reference
   // Technique Library to Active Technique Library
   private[this] val giveReasonPopup = new LocalSnippet[GiveReasonPopup]
-  
+
   private[this] val userPropertyService = inject[UserPropertyService]
 
 
-  def dispatch = { 
+  def dispatch = {
     case "head" => { _ => head }
     case "systemLibrary" => { _ => systemLibrary }
     case "userLibrary" => { _ => userLibrary }
@@ -115,17 +115,17 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     case "reloadTechniqueLibrary" => reloadTechniqueLibrary
   }
 
-  
+
   //current states for the page - they will be kept only for the duration
   //of one request and its followng Ajax requests
-  
+
   private[this] val rootCategoryId = activeTechniqueCategoryRepository.getActiveTechniqueLibrary.map( _.id )
-  
+
   private[this] val currentTechniqueDetails = new LocalSnippet[TechniqueEditForm]
   private[this] var currentTechniqueCategoryDetails = new LocalSnippet[TechniqueCategoryEditForm]
-  
+
   private[this] val techniqueId: Box[String] = S.param("techniqueId")
-    
+
   //create a new Technique edit form and update currentTechniqueDetails
   private[this] def updateCurrentTechniqueDetails(technique:Technique) = {
     currentTechniqueDetails.set(Full(new TechniqueEditForm(
@@ -133,29 +133,29 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         technique,
         currentTechniqueCategoryDetails.is.map( _.getCategory ),
         { () => Replace(htmlId_activeTechniquesTree, userLibrary) }
-        //we don't need/want an error callback here - the error is managed in the form. 
+        //we don't need/want an error callback here - the error is managed in the form.
     )))
   }
-  
+
   //create a new Technique edit form and update currentTechniqueDetails
   private[this] def updateCurrentTechniqueCategoryDetails(category:ActiveTechniqueCategory) = {
     currentTechniqueCategoryDetails.set(
-        rootCategoryId.map { rootCategoryId => 
+        rootCategoryId.map { rootCategoryId =>
           new TechniqueCategoryEditForm(
               htmlId_bottomPanel,
               category,
               rootCategoryId,
-              { () => Replace(htmlId_activeTechniquesTree, userLibrary) } 
+              { () => Replace(htmlId_activeTechniquesTree, userLibrary) }
           )
         }
       )
   }
-  
+
   /**
    * Head information (JsTree dependencies,...)
    */
   def head() : NodeSeq = {
-    TechniqueEditForm.staticInit ++ 
+    TechniqueEditForm.staticInit ++
     {
       <head>
         <script type="text/javascript" src="/javascript/jstree/jquery.jstree.js" id="jstree"></script>
@@ -163,12 +163,12 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       </head>
     }
   }
-  
+
   private[this] def setCreationPopup : Unit = {
          creationPopup.set(Full(new CreateActiveTechniqueCategoryPopup(
             onSuccessCallback = { () => refreshTree })))
   }
-  
+
   private[this] def setGiveReasonPopup(s : ActiveTechniqueId, d : ActiveTechniqueCategoryId) : Unit = {
     giveReasonPopup.set(Full(new GiveReasonPopup(
         onSuccessCallback = { onSuccessReasonPopup }
@@ -178,7 +178,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       , destCatId = d)
     ))
   }
-  
+
   /**
    * Create the popup
    */
@@ -189,7 +189,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       case Full(popup) => popup.popupContent(NodeSeq.Empty)
     }
   }
-  
+
   /**
    * Create the reason popup
    */
@@ -201,19 +201,19 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  ////////////////////   
+  ////////////////////
   /**
-   * Display the Technique system library, which is 
-   * what Technique are known by the system. 
+   * Display the Technique system library, which is
+   * what Technique are known by the system.
    * Technique are classified by category, one technique
-   * belonging at most to one category. 
-   * Categories are ordered in trees of subcategories. 
+   * belonging at most to one category.
+   * Categories are ordered in trees of subcategories.
    */
   def systemLibrary() : NodeSeq = {
     <div id={htmlId_techniqueLibraryTree}>
       <ul>{jsTreeNodeOf_ptCategory(techniqueRepository.getTechniqueLibrary).toXml}</ul>
       {Script(OnLoad(buildReferenceLibraryJsTree))}
-    </div>  
+    </div>
   }
 
   /**
@@ -222,13 +222,13 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   def userLibraryAction() : NodeSeq = {
     <div>{SHtml.ajaxButton("Create a new category", () => showCreateActiveTechniqueCategoryPopup(), ("class", "autoWidthButton"))}</div>
   }
-  
+
   /**
    *  Display the Technique user library, which is
    * what Technique are configurable as Directive.
    * Technique are classified by category, one technique
-   * belonging at most to one category. 
-   * Categories are ordered in trees of subcategories. 
+   * belonging at most to one category.
+   * Categories are ordered in trees of subcategories.
    */
   def userLibrary() : NodeSeq = {
     <div id={htmlId_activeTechniquesTree}>{
@@ -237,7 +237,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           case eb:EmptyBox =>
             val f = eb ?~! "Error when trying to get the root category of Active Techniques"
             logger.error(f.messageChain)
-            f.rootExceptionCause.foreach { ex => 
+            f.rootExceptionCause.foreach { ex =>
               logger.error("Exception causing the error was:" , ex)
             }
             <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
@@ -245,8 +245,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             <ul>{ jsTreeNodeOf_uptCategory(activeTechLib).toXml }</ul>
         }
       }
-      
-      xml ++ { 
+
+      xml ++ {
         Script(OnLoad(
           buildUserLibraryJsTree &
           //init bind callback to move
@@ -271,7 +271,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 } else if( sourceCatId ) {
                   var arg = JSON.stringify({ 'sourceCatId' : sourceCatId, 'destCatId' : destCatId });
                   %4$s;
-                } else {  
+                } else {
                   alert("Can not move that kind of object");
                   $.jstree.rollback(data.rlbk);
                 }
@@ -289,7 +289,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                     return false;
                   }
                   fromUser = true;
-                
+
                   $('#%5$s').jstree("select_node", target , true , null );
                 }
             });
@@ -308,22 +308,22 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
             });
           """.format(
-            // %1$s 
-            htmlId_activeTechniquesTree , 
+            // %1$s
+            htmlId_activeTechniquesTree ,
             // %2$s
             SHtml.ajaxCall(JsVar("arg"), bindTechnique _ )._2.toJsCmd,
             // %3$s
             SHtml.ajaxCall(JsVar("arg"), moveTechnique _ )._2.toJsCmd,
             // %4$s
             SHtml.ajaxCall(JsVar("arg"), moveCategory _)._2.toJsCmd,
-            
+
             htmlId_techniqueLibraryTree
           )))
         )
       }
     }</div>
   }
-  
+
   def showBottomPanel : NodeSeq = {
     (for {
       ptName <- techniqueId
@@ -331,10 +331,10 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     } yield {
       technique
     }) match {
-      case Full(technique) => 
+      case Full(technique) =>
         updateCurrentTechniqueDetails(technique)
         showTechniqueDetails()
-      case _ => 
+      case _ =>
         <div id={htmlId_bottomPanel}>
           <div  class="centertext">
           Click on a Technique or a category from user library to
@@ -342,21 +342,21 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         </div>
     }
   }
-  
+
   /**
    * Configure a Rudder internal Technique to be usable in the
-   * user Technique (private) library. 
+   * user Technique (private) library.
    */
   def showTechniqueDetails() : NodeSeq = {
     currentTechniqueDetails.is match {
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         <div id={htmlId_bottomPanel}>
         <fieldset class="techniqueDetailsFieldset"><legend>Technique details</legend>
           <p>Click on a Technique to display its details</p>
         </fieldset></div>
       case Full(form) => form.showForm
     }
-  }  
+  }
 
   def showUserCategoryDetails() : NodeSeq = {
     currentTechniqueCategoryDetails.is  match {
@@ -365,16 +365,16 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  
+
   ///////////////////// Callback function for Drag'n'drop in the tree /////////////////////
-  
+
   private[this] def moveTechnique(arg: String) : JsCmd = {
     //parse arg, which have to  be json object with sourceactiveTechniqueId, destCatId
     try {
-      (for { 
+      (for {
          JObject(child) <- JsonParser.parse(arg)
-         JField("sourceactiveTechniqueId", JString(sourceactiveTechniqueId)) <- child 
-         JField("destCatId", JString(destCatId)) <- child 
+         JField("sourceactiveTechniqueId", JString(sourceactiveTechniqueId)) <- child
+         JField("destCatId", JString(destCatId)) <- child
        } yield {
          (sourceactiveTechniqueId, destCatId)
        }) match {
@@ -385,25 +385,25 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           } yield {
             result
           }) match {
-            case Full(res) => 
-              refreshTree() & JsRaw("""setTimeout(function() { $("[activeTechniqueId=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceactiveTechniqueId)) & refreshBottomPanel(res) 
+            case Full(res) =>
+              refreshTree() & JsRaw("""setTimeout(function() { $("[activeTechniqueId=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceactiveTechniqueId)) & refreshBottomPanel(res)
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move Active Technique with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceactiveTechniqueId,destCatId))
           }
         case _ => Alert("Error while trying to move Active Technique: bad client parameters")
-      }      
+      }
     } catch {
       case e:Exception => Alert("Error while trying to move Active Technique")
     }
   }
-   
+
   private[this] def moveCategory(arg: String) : JsCmd = {
     //parse arg, which have to  be json object with sourceactiveTechniqueId, destCatId
     try {
-      (for { 
+      (for {
          JObject(child) <- JsonParser.parse(arg)
-         JField("sourceCatId", JString(sourceCatId)) <- child 
-         JField("destCatId", JString(destCatId)) <- child 
+         JField("sourceCatId", JString(sourceCatId)) <- child
+         JField("destCatId", JString(destCatId)) <- child
        } yield {
          (sourceCatId, destCatId)
        }) match {
@@ -418,34 +418,34 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           } yield {
             result
           }) match {
-            case Full(res) => 
-              refreshTree() & 
+            case Full(res) =>
+              refreshTree() &
               OnLoad(JsRaw("""setTimeout(function() { $("[catid=%s]").effect("highlight", {}, 2000);}, 100)"""
-                  .format(sourceCatId)))  
+                  .format(sourceCatId)))
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move category with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceCatId,destCatId))
           }
         case _ => Alert("Error while trying to move category: bad client parameters")
-      }      
+      }
     } catch {
       case e:Exception => Alert("Error while trying to move category")
-    } 
+    }
   }
 
-  
+
   private[this] def bindTechnique(arg: String) : JsCmd = {
     //parse arg, which have to be json object with sourceactiveTechniqueId, destCatId
     try {
-      (for { 
+      (for {
          JObject(child) <- JsonParser.parse(arg)
-         JField("sourceactiveTechniqueId", JString(sourceactiveTechniqueId)) <- child 
-         JField("destCatId", JString(destCatId)) <- child 
+         JField("sourceactiveTechniqueId", JString(sourceactiveTechniqueId)) <- child
+         JField("destCatId", JString(destCatId)) <- child
        } yield {
          (sourceactiveTechniqueId, destCatId)
        }) match {
         case (sourceactiveTechniqueId, destCatId) :: Nil =>
           if(userPropertyService.reasonsFieldBehavior != Disabled) {
-            showGiveReasonPopup(ActiveTechniqueId(sourceactiveTechniqueId), 
+            showGiveReasonPopup(ActiveTechniqueId(sourceactiveTechniqueId),
                 ActiveTechniqueCategoryId(destCatId))
           } else {
             val ptName = TechniqueName(sourceactiveTechniqueId)
@@ -454,34 +454,34 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 (for {
                   result <- (activeTechniqueRepository
                       .addTechniqueInUserLibrary(
-                          ActiveTechniqueCategoryId(destCatId), 
-                          ptName, 
-                          techniqueRepository.getTechniqueVersions(ptName).toSeq, 
+                          ActiveTechniqueCategoryId(destCatId),
+                          ptName,
+                          techniqueRepository.getTechniqueVersions(ptName).toSeq,
                           ModificationId(uuidGen.newUuid),
-                          CurrentUser.getActor, 
+                          CurrentUser.getActor,
                           Some("Active Technique added by user from UI")
-                       ) 
+                       )
                       ?~! errorMess.format(sourceactiveTechniqueId,destCatId)
                    )
                 } yield {
                   result
                 }) match {
-                case Full(res) => 
+                case Full(res) =>
                   val jsString = """setTimeout(function() { $("[activeTechniqueId=%s]")
                     .effect("highlight", {}, 2000)}, 100)"""
                 refreshTree() & JsRaw(jsString
-                    .format(sourceactiveTechniqueId)) & 
-                    refreshBottomPanel(res.id) 
+                    .format(sourceactiveTechniqueId)) &
+                    refreshBottomPanel(res.id)
                 case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
-                case Empty => 
+                case Empty =>
                   val errorMess = "Error while trying to move Active Technique with " +
                   "requested id '%s' to category id '%s'\nPlease reload the page."
                   Alert(errorMess.format(sourceactiveTechniqueId, destCatId))
             }
           }
-        case _ => 
+        case _ =>
           Alert("Error while trying to move Active Technique: bad client parameters")
-      }      
+      }
     } catch {
       case e:Exception => Alert("Error while trying to move Active Technique")
     }
@@ -490,10 +490,10 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private[this] def onSuccessReasonPopup(id : ActiveTechniqueId) : JsCmd =  {
     val jsStr = """setTimeout(function() { $("[activeTechniqueId=%s]")
       .effect("highlight", {}, 2000)}, 100)"""
-    refreshTree() & 
-    JsRaw(jsStr) & refreshBottomPanel(id) 
+    refreshTree() &
+    JsRaw(jsStr) & refreshBottomPanel(id)
   }
-  
+
  def onFailureReasonPopup(srcActiveTechId : String, destCatId : String) : JsCmd = {
    val errorMessage = "Error while trying to move Active Technique with " +
    		"requested id '%s' to category id '%s'\nPlease reload the page."
@@ -505,23 +505,23 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     Replace(htmlId_activeTechniquesTree, userLibrary) &
     OnLoad(After(TimeSpan(100), JsRaw("""createTooltip();""")))
   }
-  
+
   private[this] def refreshActiveTreeLibrary() : JsCmd =  {
     Replace(htmlId_activeTechniquesTree, userLibrary)
   }
-  
+
   private[this] def refreshBottomPanel(id:ActiveTechniqueId) : JsCmd = {
     for {
       activeTechnique <- activeTechniqueRepository.getActiveTechnique(id)
       technique <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
     } { //TODO : check errors
       updateCurrentTechniqueDetails(technique)
-    }        
+    }
     SetHtml(htmlId_bottomPanel, showTechniqueDetails() )
   }
 
-  
-  //////////////// display trees ////////////////////////  
+
+  //////////////// display trees ////////////////////////
 
   /**
    * Javascript to initialize the reference library tree
@@ -534,7 +534,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       }
     }, S.contextPath)
   )
-    
+
   /**
    * Javascript to initialize the user library tree
    */
@@ -542,26 +542,26 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     """buildActiveTechniqueTree('#%s', '%s', %s ,'%s')""".format(htmlId_activeTechniquesTree, htmlId_techniqueLibraryTree, CurrentUser.checkRights(Write("technique")), S.contextPath)
   )
 
-    
-  
-    
+
+
+
   //ajax function that update the bottom of the page when a Technique is clicked
   private[this] def onClickTemplateNode(technique : Technique): JsCmd = {
     updateCurrentTechniqueDetails(technique)
-      
+
     //update UI
     SetHtml(htmlId_bottomPanel, showTechniqueDetails() )
   }
 
-  
 
-  
+
+
   /**
    * Transform a WBTechniqueCategory into category JsTree node in reference library:
    * - contains:
    *   - other categories
    *   - Techniques
-   * - no action can be done with such node. 
+   * - no action can be done with such node.
    */
   private[this] def jsTreeNodeOf_ptCategory(category:TechniqueCategory) : JsTreeNode = {
 
@@ -571,14 +571,14 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         val tooltipid = Helpers.nextFuncName
         SHtml.a(
             { () => onClickTemplateNode(technique) },
-            <span class="treeTechniqueName tooltipable" tooltipid={tooltipid} title={technique.description}>{technique.name}</span> 
+            <span class="treeTechniqueName tooltipable" tooltipid={tooltipid} title={technique.description}>{technique.name}</span>
             <div class="tooltipContent" id={tooltipid}><h3>{technique.name}</h3><div>{technique.description}</div></div>
         )
       }
       override def children = Nil
       override val attrs = ( "rel" -> "template") :: ( "id" -> ("ref-technique-"+technique.id.name.value) ) :: ( "activeTechniqueId" -> technique.id.name.value ) :: Nil
     }
-    
+
     new JsTreeNode {
       //actually transform a technique category to jsTree nodes:
       override def body = {
@@ -591,30 +591,30 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             </div>
         </a>
       }
-      override def children = 
+      override def children =
         category.subCategoryIds.flatMap(x => treeUtilService.getPtCategory(x,logger) ).
           toList.sortWith( treeUtilService.sortPtCategory( _ , _ ) ).
           map(jsTreeNodeOf_ptCategory(_)
-        ) ++ 
+        ) ++
         category.packageIds.map( _.name ).
           flatMap(x => treeUtilService.getPt(x,logger)).toList.
           sortWith( treeUtilService.sortPt( _ , _ ) ).map(jsTreeNodeOf_pt( _ ) )
-      
-      override val attrs = ( "rel" -> "category" ) :: Nil   
+
+      override val attrs = ( "rel" -> "category" ) :: Nil
     }
-  }  
-  
+  }
+
   /**
    * Transform ActiveTechniqueCategory into category JsTree nodes in User Library:
-   * - contains 
+   * - contains
    *   - other user categories
    *   - Active Techniques
    * - are clickable
    *   - on the left (triangle) : open contents
    *   - on the name : update zones
    *     - "add a subcategory here"
-   *     - "add the current Technique which is not yet in the User Library here" 
-   *   
+   *     - "add the current Technique which is not yet in the User Library here"
+   *
    * @param category
    * @return
    */
@@ -634,7 +634,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       override def children = Nil
       override val attrs = ( "rel" -> "template") :: ( "activeTechniqueId" -> technique.id.name.value ) :: Nil ::: (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
     }
-    
+
     def onClickUserCategory() : JsCmd = {
       updateCurrentTechniqueCategoryDetails(category)
       //update UI
@@ -643,41 +643,41 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         currentTechniqueDetails.is match {
           case Full(form) =>
             updateCurrentTechniqueDetails(form.technique)
-            
+
             //update UI
-            SetHtml(htmlId_bottomPanel, showTechniqueDetails() )   
+            SetHtml(htmlId_bottomPanel, showTechniqueDetails() )
           case _ => Noop
         }
       ) &
       SetHtml(htmlId_bottomPanel, showUserCategoryDetails() )
     }
-    
+
     //the actual mapping activeTechnique category to jsTree nodes:
     new JsTreeNode {
-      override val attrs = 
+      override val attrs =
         ( "rel" -> { if(Full(category.id) == rootCategoryId) "root-category" else "category" } ) ::
-        ( "catId" -> category.id.value ) ::      
-        Nil   
+        ( "catId" -> category.id.value ) ::
+        Nil
       override def body = {
         val tooltipid = Helpers.nextFuncName
-        SHtml.a(onClickUserCategory _, 
+        SHtml.a(onClickUserCategory _,
           <span class="treeActiveTechniqueCategoryName tooltipable" tooltipid={tooltipid}  title={category.description}>{category.name}</span>
           <div class="tooltipContent" id={tooltipid}><h3>{category.name}</h3><div>{category.description}</div></div>
         )
       }
-      override def children = 
+      override def children =
         category.children.flatMap(x => treeUtilService.getActiveTechniqueCategory(x,logger)).
           toList.sortWith { treeUtilService.sortActiveTechniqueCategory( _,_ ) }.
-          map(jsTreeNodeOf_uptCategory(_) ) ++ 
+          map(jsTreeNodeOf_uptCategory(_) ) ++
         category.items.flatMap(x => treeUtilService.getActiveTechnique(x,logger)).
           toList.sortWith( (x,y) => treeUtilService.sortPt( x._2 , y._2) ).
           map { case (activeTechnique,technique) => jsTreeNodeOf_upt(activeTechnique,technique) }
-    } 
+    }
   }
 
   ///////////// success pop-up ///////////////
     private[this] def successPopup : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)     
+    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)
     """)
   }
 
@@ -690,22 +690,22 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
      """)
 
   }
-  
+
   private[this] def showGiveReasonPopup(
       sourceActiveTechniqueId : ActiveTechniqueId, destCatId : ActiveTechniqueCategoryId) : JsCmd = {
-    
+
     setGiveReasonPopup(sourceActiveTechniqueId, destCatId)
     //update UI
-    
+
     SetHtml("createActiveTechniquesContainer", createReasonPopup) &
     JsRaw( """createPopup("createActiveTechniquePopup", 200, 350)
      """)
   }
-  
+
   private[this] def reloadTechniqueLibrary : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
       def process = {
         updatePTLibService.update(ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Technique library reloaded by user")) match {
-          case Full(x) => 
+          case Full(x) =>
             S.notice("updateLib", "The Technique library was successfully reloaded")
           case e:EmptyBox =>
             val error = e ?~! "An error occured when updating the Technique library from file system"
@@ -714,12 +714,12 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         }
         Replace("reloadTechniqueLibForm",outerXml.applyAgain) & refreshTree
       }
-      
-      
+
+
       //fill the template
-      ":submit" #> (SHtml.ajaxSubmit("Reload", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """))))      
+      ":submit" #> (SHtml.ajaxSubmit("Reload", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """))))
   }
-  
+
 }
 
 

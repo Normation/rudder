@@ -77,7 +77,7 @@ trait NewNodeManager {
    * List all pending node
    */
   def listNewNodes : Box[Seq[Srv]]
-  
+
   /**
    * Accept a pending node in Rudder
    */
@@ -96,18 +96,18 @@ trait NewNodeManager {
 
 
 /**
- * Default implementation: a new server manager composed with a sequence of 
- * "unit" accept, one by main goals of what it means to accept a server; 
+ * Default implementation: a new server manager composed with a sequence of
+ * "unit" accept, one by main goals of what it means to accept a server;
  * Each unit accept provides its main logic of accepting a server, optionnaly
  * a global post accept task, and a rollback mechanism.
- * Rollback is always a "best effort" task. 
+ * Rollback is always a "best effort" task.
  */
 class NewNodeManagerImpl(
-    override val ldap:LDAPConnectionProvider, 
+    override val ldap:LDAPConnectionProvider,
     override val pendingNodesDit:InventoryDit,
     override val acceptedNodesDit:InventoryDit,
     override val serverSummaryService:NodeSummaryServiceImpl,
-    override val smRepo:LDAPFullInventoryRepository, 
+    override val smRepo:LDAPFullInventoryRepository,
     override val unitAcceptors:Seq[UnitAcceptInventory],
     override val unitRefusors:Seq[UnitRefuseInventory]
 ) extends NewNodeManager with ListNewNode with ComposedNewNodeManager
@@ -120,13 +120,13 @@ trait ListNewNode extends NewNodeManager with Loggable {
   def ldap:LDAPConnectionProvider
   def serverSummaryService:NodeSummaryServiceImpl
   def pendingNodesDit:InventoryDit
-  
+
   override def listNewNodes : Box[Seq[Srv]] = {
-    ldap map { con => 
-      con.searchOne(pendingNodesDit.NODES.dn,ALL,Srv.ldapAttributes:_*).map { e => 
+    ldap map { con =>
+      con.searchOne(pendingNodesDit.NODES.dn,ALL,Srv.ldapAttributes:_*).map { e =>
         serverSummaryService.makeSrv(e) match {
           case Full(x) => Some(x)
-          case b:EmptyBox => 
+          case b:EmptyBox =>
             val error = b ?~! "Error when mapping a pending node entry to a node object: %s".format(e.dn)
             logger.debug(error.messageChain)
             None
@@ -138,14 +138,14 @@ trait ListNewNode extends NewNodeManager with Loggable {
 
 
 trait UnitRefuseInventory {
-  
+
   def name : String
-  
-  def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv]    
+
+  def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv]
 }
 
 trait UnitAcceptInventory {
-  
+
   /**
    * A name to describe the role of that acceptor
    */
@@ -155,24 +155,24 @@ trait UnitAcceptInventory {
    * The status of the inventory before that action
    */
   def fromInventoryStatus : InventoryStatus
-  
+
   /**
    * The status of the inventory after that action
    */
   def toInventoryStatus : InventoryStatus
-  
+
   /**
    * What to do ?
    */
   def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory]
-  
+
   /**
-   * An action to execute before the whole batch 
+   * An action to execute before the whole batch
    */
   def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]]
 
   /**
-   * An action to execute after the whole batch 
+   * An action to execute after the whole batch
    */
   def postAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]]
 
@@ -180,16 +180,16 @@ trait UnitAcceptInventory {
    * Execute a rollback for the given inventory
    */
   def rollback(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit
-  
+
   def rollbackErrorMsg(e:EmptyBox, id:String) : String = {
     val msg = "Error when rollbacking server node id %s in process '%s', you should delete it by hand. ".format(id, this.name)
-    
+
     e match {
       case Empty => msg + "No error message was left."
       case f:Failure => msg + "Error messages: " + f.messageChain
     }
   }
-  
+
 }
 
 trait ComposedNewNodeManager extends NewNodeManager with Loggable {
@@ -201,11 +201,11 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
   def serverSummaryService:NodeSummaryService
   def unitAcceptors:Seq[UnitAcceptInventory]
   def unitRefusors:Seq[UnitRefuseInventory]
- 
+
   ////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////// Refuse //////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////
-  
+
   /**
    * Refuse one server
    */
@@ -224,7 +224,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
             logger.trace("Refuse %s: step %s ok".format(srv.id, refusor.name))
         }
       } catch {
-        case e:Exception => 
+        case e:Exception =>
           val msg = "Error when trying to executre the step %s, when refusing inventory %".format(refusor.name, srv.id)
           errors match {
             case None => errors = Some(Failure(msg, Full(e),Empty))
@@ -235,22 +235,22 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
     errors match {
       case Some(f) => f
       case None => Full(srv)
-    } 
+    }
   }
-  
+
   override def refuse(ids:Seq[NodeId], modId: ModificationId, actor:EventActor) : Seq[Box[Srv]] = {
-    ids.flatMap { id => serverSummaryService.find(pendingNodesDit, id).openOr(Seq()) }.map { srv => 
+    ids.flatMap { id => serverSummaryService.find(pendingNodesDit, id).openOr(Seq()) }.map { srv =>
       refuseOne(srv, modId, actor)
     }
   }
-  
+
   ////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////// Accept //////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////
 
   private[this] def rollback(unitAcceptors:Seq[UnitAcceptInventory], rollbackOn:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit = {
     logger.debug("\n*****************************************************\nRollbaking\n*****************************************************")
-    
+
     for{
       toRollback <- unitAcceptors.reverse
     } {
@@ -262,16 +262,16 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
       }
     }
   }
-  
-  
+
+
   /**
-   * Accept one server. 
-   * Accepting mean that the server went to all unitAccept items and that all of them 
-   * succeeded. 
+   * Accept one server.
+   * Accepting mean that the server went to all unitAccept items and that all of them
+   * succeeded.
    * If one fails, all already passed are to be rollbacked (and the reverse order the
    * were executed)
 
-   * 
+   *
    */
   private[this] def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
     (sequence(unitAcceptors) { unitAcceptor =>
@@ -291,8 +291,8 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
         e
     }
   }
-  
-  
+
+
   override def accept(ids:Seq[NodeId], modId: ModificationId, actor:EventActor) : Seq[Box[NodeId]] = {
     //
     // start by retrieving all sms
@@ -306,8 +306,8 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
       } yield {
         (id,sm)
       }
-    }).flatten   
-    
+    }).flatten
+
     //
     //execute pre-accept phase for all unit acceptor
     // stop here in case of any error
@@ -322,12 +322,12 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
           return Seq(e)
       }
     }
-    
-    
+
+
     //
     //now, execute unit acceptor
-    //  
-    
+    //
+
     //only keep the actually accpeted nodes
     val accepted = (for {
       (id,sm) <- sms
@@ -339,20 +339,20 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
         (accepted,id)
       }
     })
-    
+
     //log
-    accepted.foreach { 
+    accepted.foreach {
       case Full((sm, nodeId)) => logger.debug("Unit acceptors ok for %s".format(nodeId))
       case e:EmptyBox => logger.error((e ?~! "Unit acceptor error for a node").messageChain)
     }
-    
-    
+
+
     val acceptedSMs = accepted.flatten.map( _._1)
     val accpetedDNs = accepted.map(b => b.map(_._2))
-    
+
     //
     //now, execute global post process
-    //  
+    //
     (sequence(unitAcceptors) { unit =>
       try {
         unit.postAccept(acceptedSMs, modId, actor)
@@ -378,7 +378,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
 /**
  * Unit acceptor for the inventory part.
  * Essentially: move FullInventory information
- * where they belongs. 
+ * where they belongs.
  *
  */
 class AcceptInventory(
@@ -387,21 +387,21 @@ class AcceptInventory(
     acceptedNodesDit:InventoryDit,
     smRepo:LDAPFullInventoryRepository
 ) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
- 
+
   override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
   override def postAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
- 
+
   override val fromInventoryStatus = PendingInventory
-  
+
   override val toInventoryStatus = AcceptedInventory
-  
+
   def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
     smRepo.move(sm.node.main.id, fromInventoryStatus, toInventoryStatus).map { _ => sm }
   }
-  
+
   def rollback(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit  = {
-    sms.foreach { sm => 
+    sms.foreach { sm =>
       //rollback from accepted
       (for {
         result <- smRepo.move(sm.node.main.id, toInventoryStatus, fromInventoryStatus)
@@ -413,13 +413,13 @@ class AcceptInventory(
       }
     }
   }
-  
-  //////////// refuse //////////// 
+
+  //////////// refuse ////////////
   override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
     //refuse an inventory: delete it
     smRepo.delete(srv.id, fromInventoryStatus).map( _ => srv)
   }
-  
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -436,27 +436,27 @@ class AcceptFullInventoryInNodeOu(
   ldapEntityMapper: LDAPEntityMapper,
   inventoryStatus:InventoryStatus //expected inventory status of nodes for that processor
 ) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
-  
-  
+
+
   override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
   override def postAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
   override val fromInventoryStatus = inventoryStatus
-  
+
   override val toInventoryStatus = inventoryStatus
-  
+
   /**
    * Add a node entry in ou=Nodes
    */
   def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
     val name = sm.node.name.getOrElse(sm.node.main.id.value)
     val description = sm.node.description.getOrElse("")
-    
+
     //naive test to find is the node is the master policy server.
     //TODO: that can not handle relay server
     val isPolicyServer = sm.node.main.id == sm.node.main.policyServerId
-    
+
     val node = Node(sm.node.main.id, name, description, false, false, isPolicyServer)
     val entry = ldapEntityMapper.nodeToEntry(node)
     for {
@@ -466,12 +466,12 @@ class AcceptFullInventoryInNodeOu(
       sm
     }
   }
-  
+
   /**
    * Just remove the node entry
    */
   def rollback(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit = {
-    sms.foreach { sm => 
+    sms.foreach { sm =>
       (for {
         con <- ldap
         dn = nodeDit.NODES.NODE.dn(sm.node.main.id.value)
@@ -484,9 +484,9 @@ class AcceptFullInventoryInNodeOu(
       }
     }
   }
-  
-  
-  //////////// refuse //////////// 
+
+
+  //////////// refuse ////////////
   override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
     //refuse ou=nodes: delete it
     for {
@@ -497,7 +497,7 @@ class AcceptFullInventoryInNodeOu(
       srv
     }
   }
-  
+
 }
 
 
@@ -515,11 +515,11 @@ class AddNodeToDynGroup(
 ) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
 
   var dynGroupIdByNode : Map[NodeId,Seq[NodeGroupId]] = Map()
-  
+
   override val fromInventoryStatus = inventoryStatus
-  
+
   override val toInventoryStatus = inventoryStatus
-  
+
   /**
    * In the pre-accept phase, we list for all node the list of dyn group id it belongs to, and then
    * add that node in them
@@ -537,7 +537,7 @@ class AddNodeToDynGroup(
 
   /**
    * Add the server node id to dyn groups it belongs to
-   * if the map does not have the node id, it just mean 
+   * if the map does not have the node id, it just mean
    * that that node does not match any dyngroup
    */
   def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
@@ -549,21 +549,21 @@ class AddNodeToDynGroup(
           msg = Some("Automatic update of system group due to acceptation of node "+ sm.node.main.id.value)
           saved <- groupRepo.update(updatedGroup, modId, actor, msg) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
         } yield {
-          saved 
+          saved
         }
       }
     } yield {
       sm
     }
   }
-  
-  
+
+
   /**
    * Rollback server: remove it from the policy server group it belongs to.
-   * TODO: remove its node configuration, redeploy policies, etc. 
+   * TODO: remove its node configuration, redeploy policies, etc.
    */
   def rollback(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit = {
-    sms.foreach { sm => 
+    sms.foreach { sm =>
       (for {
         updatetGroup <- sequence(dynGroupIdByNode.getOrElse(sm.node.main.id, Seq())) { groupId =>
           for {
@@ -572,7 +572,7 @@ class AddNodeToDynGroup(
             msg = Some("Automatic update of system group due to rollback of acceptation of node "+ sm.node.main.id.value)
             saved <- groupRepo.update(updatedGroup, modId, actor, msg) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
           } yield {
-            saved 
+            saved
           }
         }
       } yield {
@@ -583,11 +583,11 @@ class AddNodeToDynGroup(
       }
     }
   }
-  
+
   override def postAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms)
 
-    
-  //////////// refuse //////////// 
+
+  //////////// refuse ////////////
   override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
     //nothing, special processing for all groups
     Full(srv)
@@ -598,8 +598,8 @@ class RefuseGroups(
   override val name:String,
   groupRepo: NodeGroupRepository
 ) extends UnitRefuseInventory with Loggable {
-  
-  //////////// refuse //////////// 
+
+  //////////// refuse ////////////
   override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
     //remove server id in all groups
     for {
@@ -617,9 +617,9 @@ class RefuseGroups(
     } yield {
       srv
     }
-  }  
+  }
 }
-  
+
 /**
  * A unit acceptor in charge to update rules
  */
@@ -630,13 +630,13 @@ class AcceptNodeRule(
     nodeConfigRepo:NodeConfigurationRepository,
     inventoryStatus: InventoryStatus
 ) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
-  
+
   override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
   override val fromInventoryStatus = inventoryStatus
-  
+
   override val toInventoryStatus = inventoryStatus
-  
+
   /**
    * Only add the server to the list of children of the policy server
    */
@@ -645,14 +645,14 @@ class AcceptNodeRule(
       addedToPolicyServer <- addNodeToPolicyServerGroup(sm,sm.node.main.id, modId, actor)
     } yield {
       sm
-    } 
+    }
   }
-  
+
   /**
    * add the server to the list of children of the policy server
    */
   private[this] def addNodeToPolicyServerGroup(sm:FullInventory, nodeId:NodeId, modId: ModificationId, actor:EventActor) : Box[NodeId] = {
-    val hasPolicyServerNodeGroup = buildHasPolicyServerGroupId(sm.node.main.policyServerId) 
+    val hasPolicyServerNodeGroup = buildHasPolicyServerGroupId(sm.node.main.policyServerId)
     for {
       group <- groupRepo.getNodeGroup(hasPolicyServerNodeGroup) ?~! "Technical group with ID '%s' was not found".format(hasPolicyServerNodeGroup)
       updatedGroup = group.copy( serverList = group.serverList + nodeId )
@@ -660,15 +660,15 @@ class AcceptNodeRule(
       saved<- groupRepo.update(updatedGroup, modId, actor, msg) ?~! "Could not update the technical group with ID '%s'".format(updatedGroup.id )
     } yield {
       nodeId
-    } 
+    }
   }
-  
+
   /**
    * Rollback server: remove it from the policy server group it belongs to.
-   * TODO: remove its node configuration, redeploy policies, etc. 
+   * TODO: remove its node configuration, redeploy policies, etc.
    */
   def rollback(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit = {
-    sms.foreach { sm => 
+    sms.foreach { sm =>
       (for {
         group <- groupRepo.getNodeGroup(buildHasPolicyServerGroupId(sm.node.main.policyServerId)) ?~! "Can not find group with id: %s".format(sm.node.main.policyServerId)
         updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
@@ -681,16 +681,16 @@ class AcceptNodeRule(
         case e:EmptyBox => logger.error((e ?~! "Error when rollbacking server %s".format(sm.node.main.id.value)).messageChain)
       }
     }
-  }  
-  
+  }
+
   override def postAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = {
     asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
     logger.debug("Successfully sent deployment request")
     Full(sms)
   }
- 
-  
-  //////////// refuse //////////// 
+
+
+  //////////// refuse ////////////
   override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
     //remove node rule
     for {
@@ -698,13 +698,13 @@ class AcceptNodeRule(
     } yield {
       srv
     }
-  }   
+  }
 }
 
 /**
  * We don't want to have node with the same hostname.
- * That means don't accept two nodes with the same hostname, and don't 
- * accept a node with a hostname already existing in database. 
+ * That means don't accept two nodes with the same hostname, and don't
+ * accept a node with a hostname already existing in database.
  */
 class AcceptHostnameAndIp(
     override val name: String
@@ -712,25 +712,25 @@ class AcceptHostnameAndIp(
   , queryProcessor   : QueryProcessor
   , ditQueryData     : DitQueryData
 ) extends UnitAcceptInventory {
-  
-  
 
-  
-  
+
+
+
+
   //return the list of ducplicated hostname from user input - we want that to be empty
   private[this] def checkDuplicateString(attributes:Seq[String], attributeName:String) : Box[Unit]= {
     val duplicates = attributes.groupBy( x => x ).collect { case (k,v) if v.size > 1 => v.head }.toSeq.sorted
     if(duplicates.isEmpty) Full({})
     else Failure("You can not accept two nodes with the same %s: %s".format(attributeName,duplicates.mkString("'", "', ", "'")))
   }
-  
+
   //some constant data for the query about hostname on node
   private[this] val objectType = ditQueryData.criteriaMap(OC_NODE)
   private[this] val hostnameCriteria = objectType.criteria.find(c => c.name == A_HOSTNAME).
     getOrElse(throw new IllegalArgumentException("Data model inconsistency: missing '%s' criterion in object type '%s'".format(A_HOSTNAME, OC_NODE) ))
   private[this] val ipCriteria = objectType.criteria.find(c => c.name == A_LIST_OF_IP).
     getOrElse(throw new IllegalArgumentException("Data model inconsistency: missing '%s' criterion in object type '%s'".format(A_LIST_OF_IP, OC_NODE) ))
-    
+
   /*
    * search in database nodes having the same hostname as one provided.
    * Only return existing hostname (and so again, we want that to be empty)
@@ -739,7 +739,7 @@ class AcceptHostnameAndIp(
     def failure(duplicates:Seq[String], name:String) = {
       Failure("There is already a node with %s %s in database. You can not add it again.".format(name, duplicates.mkString("'", "' or '", "'")))
     }
-      
+
     val hostnameCriterion = hostnames.map { h =>
       CriterionLine(
           objectType = objectType
@@ -748,7 +748,7 @@ class AcceptHostnameAndIp(
         , value      = h
       )
     }
-    
+
 
 
     val ipCriterion = ips.map(ip =>
@@ -757,57 +757,57 @@ class AcceptHostnameAndIp(
         , attribute  = ipCriteria
         , comparator = Equals
         , value      = ip
-      )      
+      )
     )
-    
+
     for {
-      duplicatesH    <- queryProcessor.process(Query(NodeReturnType,Or,hostnameCriterion)).map { nodesInfo => 
+      duplicatesH    <- queryProcessor.process(Query(NodeReturnType,Or,hostnameCriterion)).map { nodesInfo =>
                           //here, all nodes found are duplicate-in-being. They should be unique, but
                           //if not, we will don't group them that the duplicate appears in the list
                           nodesInfo.map( ni => ni.hostname)
-                        } 
+                        }
       noDuplicatesH  <- if(duplicatesH.isEmpty) Full({})
                         else failure(duplicatesH, "Hostname")
-      duplicatesIP   <- queryProcessor.process(Query(NodeReturnType,Or,ipCriterion)).map { nodesInfo => 
+      duplicatesIP   <- queryProcessor.process(Query(NodeReturnType,Or,ipCriterion)).map { nodesInfo =>
                           nodesInfo.map( ni => ni.ips.filter(ip1 => ips.exists(ip2 => ip2 == ip1))).flatten
-                        } 
+                        }
       noDuplicatesIP <- if(duplicatesIP.isEmpty) Full({})
                         else failure(duplicatesIP , "IP")
     } yield {
       {}
     }
   }
-  
-  
+
+
   override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = {
-    
+
     val hostnames = sms.map( _.node.main.hostname)
     val ips = sms.map( _.node.serverIps).flatten.filter( InetAddressUtils.getAddressByName(_) match {
       case None => false
       //we don't want to check for duplicate loopback and the like - we expect them to be duplicated
       case Some(ip) => !(ip.isAnyLocalAddress || ip.isLoopbackAddress || ip.isMulticastAddress )
     })
-    
+
     for {
       noDuplicateHostnames <- checkDuplicateString(hostnames, "hostname")
       noDuplicateIPs       <- checkDuplicateString(ips, "IP")
       noDuplicateInDB      <- queryForDuplicateHostnameAndIp(hostnames,ips)
     } yield {
       sms
-    }    
+    }
   }
-  
+
   override val fromInventoryStatus = inventoryStatus
-  
-  override val toInventoryStatus = inventoryStatus  
-    
+
+  override val toInventoryStatus = inventoryStatus
+
   /**
    * Only add the server to the list of children of the policy server
    */
   def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory] = Full(sm)
-  
+
   /**
-   * An action to execute after the whole batch 
+   * An action to execute after the whole batch
    */
   def postAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms)
 
@@ -818,9 +818,9 @@ class AcceptHostnameAndIp(
 }
 
 /**
- * A unit acceptor in charge to historize the 
+ * A unit acceptor in charge to historize the
  * state of the Inventory so that we can keep it
- * forever. 
+ * forever.
  * That acceptor should be call before node
  * is actually deleted or accepted
  */
@@ -830,29 +830,29 @@ class HistorizeNodeStateOnChoice(
   , historyRepos     : InventoryHistoryLogRepository
   , inventoryStatus  : InventoryStatus //expected inventory status of nodes for that processor
 ) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
-  
+
   override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
   override def postAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
   override val fromInventoryStatus = inventoryStatus
-  
+
   override val toInventoryStatus = inventoryStatus
-  
+
   /**
    * Add a node entry in ou=Nodes
    */
   def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
     historyRepos.save(sm.node.main.id, sm).map( _ => sm)
   }
-  
+
   /**
    * Does nothing - we don't have the "id" of the historized
    * inventory to remove
    */
   def rollback(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit = {}
-  
-  //////////// refuse //////////// 
+
+  //////////// refuse ////////////
   override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
     //refuse ou=nodes: delete it
     for {

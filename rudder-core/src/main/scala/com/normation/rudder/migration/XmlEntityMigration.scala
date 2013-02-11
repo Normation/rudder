@@ -6,9 +6,9 @@ import net.liftweb.common._
 
 /**
  * A service able to migrate raw XML eventLog
- * of entity (rules, groups, directives) 
- * up to the current file format. 
- * 
+ * of entity (rules, groups, directives)
+ * up to the current file format.
+ *
  * We only support these elements:
  * - directive related:
  *   - activeTechniqueCategory (policyLibraryCategory)
@@ -17,11 +17,11 @@ import net.liftweb.common._
  * - rules related:
  *   - rule (configurationRule)
  * - groups related:
- *   - nodeGroupCategory 
+ *   - nodeGroupCategory
  *   - nodeGroup
  */
 trait XmlEntityMigration {
-  
+
   def getUpToDateXml(entity:Elem) : Box[Elem]
 
 }
@@ -34,9 +34,9 @@ class DefaultXmlEventLogMigration(
     xmlMigration_1_2: XmlMigration_10_2
   , xmlMigration_2_3: XmlMigration_2_3
 ) extends XmlEntityMigration {
-  
+
   def getUpToDateXml(entity:Elem) : Box[Elem] = {
-    
+
     for {
       versionT <- Box(entity.attribute("fileFormat").map( _.text )) ?~! "Can not migrate element with unknow fileFormat: %s".format(entity)
       version  <- try { Full(versionT.toFloat.toInt) } catch { case e:Exception => Failure("Bad version (expecting an integer or a float: '%s'".format(versionT))}
@@ -50,7 +50,7 @@ class DefaultXmlEventLogMigration(
       migrate
     }
   }
-  
+
   private[this] def migrate1_2(xml:Elem) : Box[Elem] = {
     xml.label match {
       case "configurationRule" => xmlMigration_1_2.rule(xml)
@@ -60,14 +60,14 @@ class DefaultXmlEventLogMigration(
       case "nodeGroup" => xmlMigration_1_2.nodeGroup(xml)
     }
   }
-  
+
   private[this] def migrate2_3(xml:Elem) : Box[Elem] = {
     xml.label match {
       case "rule" => xmlMigration_2_3.rule(xml)
       case _ => xmlMigration_2_3.other(xml)
     }
   }
-  
+
   private[this] def migrate1_3(xml:Elem) : Box[Elem] = {
     for {
       a <- migrate1_2(xml)

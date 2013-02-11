@@ -47,7 +47,7 @@ import com.normation.rudder.domain.queries.NodeReturnType
 
 /*
  * Test query parsing.
- * 
+ *
  * These test doesn't test JSON syntax error, as we rely on
  * a JSON parser for that part.
  */
@@ -56,141 +56,141 @@ import com.normation.rudder.domain.queries.NodeReturnType
 class TestJsonQueryLexing {
 
   val lexer = new JsonQueryLexer() {}
-  
-  val valid1_0 = 
+
+  val valid1_0 =
 """
 {  "select":"node", "composition":"or", "where":[
   { "objectType":"processor", "attribute":"speed", "comparator":"gteq"   , "value":"2000" },
   { "objectType":"node"   , "attribute":"ram"  , "comparator":"exists" }
-]}  
-"""  
+]}
+"""
 
   val valid1_1 = //order is irrelevant
 """
 {  "where":[
   { "objectType":"processor", "attribute":"speed", "comparator":"gteq"   , "value":"2000" },
   { "objectType":"node"   , "attribute":"ram"  , "comparator":"exists" }
-], "select":"node", "composition":"or"}  
-"""  
-    
+], "select":"node", "composition":"or"}
+"""
+
   val valid2_0 = //get all server
 """
-{  "select":"node", "composition":"or", "where":[] }  
-"""  
-  
+{  "select":"node", "composition":"or", "where":[] }
+"""
+
   val valid2_1 = //get all server
 """
-{  "select":"node", "composition":"or" }  
-"""  
-    
+{  "select":"node", "composition":"or" }
+"""
+
   val valid3_0 = //composition may be empty, and if so is considered not defined
 """
-{  "select":"node", "composition":"", "where":[ 
+{  "select":"node", "composition":"", "where":[
   { "objectType":"processor", "attribute":"speed", "comparator":"gteq"   , "value":"2000" },
   { "objectType":"node"   , "attribute":"ram"  , "comparator":"exists" }
-] }  
-"""  
+] }
+"""
   val valid3_1 = //get all server
 """
 {  "select":"node", "where":[
   { "objectType":"processor", "attribute":"speed", "comparator":"gteq"   , "value":"2000" },
   { "objectType":"node"   , "attribute":"ram"  , "comparator":"exists" }
-] }  
-"""  
+] }
+"""
   val valid4_0 = //get all server
 """
-{  "select":"node", "where":[] }  
-"""  
-    
+{  "select":"node", "where":[] }
+"""
+
   val valid4_1 = //get all server
 """
-{  "select":"node" }  
-"""  
-    
-  val errorMissing1 = 
+{  "select":"node" }
+"""
+
+  val errorMissing1 =
 """
 {  "composition":"or", "where":[
   { "objectType":"processor", "attribute":"speed", "comparator":"gteq"   , "value":"2000" },
   { "objectType":"node"   , "attribute":"ram"  , "comparator":"exists" }
-]}  
-"""  
-    
-  val errorMissing2_0 = 
+]}
+"""
+
+  val errorMissing2_0 =
 """
 {  "select":"node", "composition":"or", "where":[
   { "attribute":"speed", "comparator":"gteq"   , "value":"2000" }
-]}  
-"""  
-    
-  val errorMissing2_1 = 
+]}
+"""
+
+  val errorMissing2_1 =
 """
 {  "select":"node", "composition":"or", "where":[
   { "objectType":"processor", "comparator":"gteq"   , "value":"2000" }
 ]}
-"""  
-    
-  val errorMissing2_2 = 
+"""
+
+  val errorMissing2_2 =
 """
 {  "select":"node", "composition":"or", "where":[
   { "objectType":"processor", "attribute":"speed", "value":"2000" }
-]}  
-"""  
-    
-  val errorEmpty1 = 
+]}
+"""
+
+  val errorEmpty1 =
 """
 {  "select":"", "composition":"or", "where":[
   { "objectType":"processor", "attribute":"speed", "comparator":"gteq"   , "value":"2000" },
   { "objectType":"node"   , "attribute":"ram"  , "comparator":"exists" }
-]}  
-"""  
-  val errorEmpty2_0 = 
+]}
+"""
+  val errorEmpty2_0 =
 """
 {  "select":"node", "composition":"or", "where":[
   { "objectType":"processor", "attribute":"speed", "comparator":"gteq"   , "value":"2000" },
   { "objectType":""   , "attribute":"ram"  , "comparator":"exists" }
-]}  
-"""  
-  val errorEmpty2_1 = 
+]}
+"""
+  val errorEmpty2_1 =
 """
 {  "select":"node", "composition":"or", "where":[
   { "objectType":"processor", "":"speed", "comparator":"gteq"   , "value":"2000" },
   { "objectType":"node"   , "attribute":"ram"  , "comparator":"exists" }
-]}  
-"""  
-  val errorEmpty2_2 = 
+]}
+"""
+  val errorEmpty2_2 =
 """
 {  "select":"node", "composition":"or", "where":[
   { "objectType":"processor", "attribute":"speed", "comparator":"gteq"   , "value":"2000" },
   { "objectType":"node"   , "attribute":"ram"  , "comparator":"" }
-]}  
-"""  
-    
+]}
+"""
+
   @Test
   def basicLexing() {
     val where = Seq(
         StringCriterionLine("processor", "speed", "gteq", Some("2000")),
         StringCriterionLine("node", "ram", "exists")
       )
-      
+
     val query = StringQuery(NodeReturnType,Some("or"), where)
-      
+
     assertEquals(Full(query), lexer.lex(valid1_0))
     assertEquals(Full(query), lexer.lex(valid1_1))
-    
+
     assertEquals(Full(StringQuery(NodeReturnType,Some("or"), Seq())), lexer.lex(valid2_0) )
     assertEquals(Full(StringQuery(NodeReturnType,Some("or"), Seq())), lexer.lex(valid2_1) )
-    
+
     assertEquals(Full(StringQuery(NodeReturnType,None, where)), lexer.lex(valid3_0) )
     assertEquals(Full(StringQuery(NodeReturnType,None, where)), lexer.lex(valid3_1) )
-    
+
     assertEquals(Full(StringQuery(NodeReturnType,None, Seq())), lexer.lex(valid4_0) )
     assertEquals(Full(StringQuery(NodeReturnType,None, Seq())), lexer.lex(valid4_1) )
-    
+
     assertFalse(lexer.lex(errorMissing1).isDefined)
     assertFalse(lexer.lex(errorMissing2_0).isDefined)
     assertFalse(lexer.lex(errorMissing2_1).isDefined)
     assertFalse(lexer.lex(errorMissing2_2).isDefined)
-    
+
     assertFalse(lexer.lex(errorEmpty1).isDefined)
     assertFalse(lexer.lex(errorEmpty2_0).isDefined)
     assertFalse(lexer.lex(errorEmpty2_1).isDefined)

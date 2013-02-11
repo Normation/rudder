@@ -47,7 +47,7 @@ case class PluginVersion(
   , prefix : String = ""
   , suffix : String = ""
 )  extends HashcodeCaching {
-  
+
   override def toString = prefix + major + "." + minor + "." + micro + (if(nonEmpty(suffix)) "~" + suffix else "")
 }
 
@@ -62,55 +62,55 @@ case class PluginName(value:String) extends HashcodeCaching {
  * Definition of a rudder plugins
  */
 trait RudderPluginDef {
-  
+
   /**
    * The name of the plugin, used as the plugin
-   * key for plugin resolution. 
+   * key for plugin resolution.
    * Two different plugin may have the same key
-   * to allow overriding or redefinition. 
+   * to allow overriding or redefinition.
    * The fully qualified name of the plugin definition
    * class will be used as an id (not that one).
    */
   def name : PluginName
-  
+
   def displayName : String = name.value
-  
+
   /**
-   * The id of the plugin. It uniquely identify a 
-   * plugin for rudder. 
-   * The fully qualified name of the plugin if used 
-   * for that. 
+   * The id of the plugin. It uniquely identify a
+   * plugin for rudder.
+   * The fully qualified name of the plugin if used
+   * for that.
    */
   final lazy val id = this.getClass.getName
-  
+
   /**
    * A description of the module, expected to be displayed to
-   * end user. 
+   * end user.
    */
   def description : NodeSeq
 
   /**
-   * Version of the plugin. 
+   * Version of the plugin.
    */
   def version : PluginVersion
-  
+
 
   /**
    * The init method of the plugin. It will be called
    * at each at start of the application, so do not put
    * one-time-ever init on here.
-   * 
+   *
    * On the other hand, snippet registration
-   * and the like should go here. 
+   * and the like should go here.
    */
   def init : Unit
-  
+
   /**
    * Provide a sitemap mutator to add that
    * plugin entries in the menu
    */
   def updateSiteMap(menus:List[Menu]) : List[Menu] = menus
-  
-  def basePackage : String 
+
+  def basePackage : String
 
 }

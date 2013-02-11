@@ -72,58 +72,58 @@ import org.joda.time.DateTime
 trait EventLogDetailsService {
 
   /**
-   * From a given nodeSeq, retrieve the real details, that should be in a <entry/> tag. 
-   * The result, if Full, is trimed so that pattern matching can be made without 
-   * taking care of empty texts. 
+   * From a given nodeSeq, retrieve the real details, that should be in a <entry/> tag.
+   * The result, if Full, is trimed so that pattern matching can be made without
+   * taking care of empty texts.
    */
   def getEntryContent(xml:NodeSeq) : Box[Elem]
 
   ///// rule /////
-  
+
   def getRuleAddDetails(xml:NodeSeq) : Box[AddRuleDiff]
-  
+
   def getRuleDeleteDetails(xml:NodeSeq) : Box[DeleteRuleDiff]
-  
+
   def getRuleModifyDetails(xml:NodeSeq) : Box[ModifyRuleDiff]
-  
+
   ///// directive /////
-  
+
   def getDirectiveAddDetails(xml:NodeSeq) : Box[(AddDirectiveDiff, SectionVal)]
-  
+
   def getDirectiveDeleteDetails(xml:NodeSeq) : Box[(DeleteDirectiveDiff, SectionVal)]
-  
+
   def getDirectiveModifyDetails(xml:NodeSeq) : Box[ModifyDirectiveDiff]
 
   ///// node group /////
-  
+
   def getNodeGroupAddDetails(xml:NodeSeq) : Box[AddNodeGroupDiff]
-  
+
   def getNodeGroupDeleteDetails(xml:NodeSeq) : Box[DeleteNodeGroupDiff]
-  
+
   def getNodeGroupModifyDetails(xml:NodeSeq) : Box[ModifyNodeGroupDiff]
-  
+
   ///// node /////
-  
+
   def getAcceptNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]
-  
+
   def getRefuseNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]
-    
+
   def getDeleteNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails]
-  
+
   ///// other /////
-  
+
   def getDeploymentStatusDetails(xml:NodeSeq) : Box[CurrentDeploymentStatus]
 
   def getUpdatePolicyServerDetails(xml:NodeSeq) : Box[AuthorizedNetworkModification]
 
   def getTechniqueLibraryReloadDetails(xml:NodeSeq) : Box[Seq[TechniqueId]]
-  
+
   def getTechniqueModifyDetails(xml: NodeSeq): Box[ModifyTechniqueDiff]
-  
-  def getTechniqueDeleteDetails(xml:NodeSeq) : Box[DeleteTechniqueDiff] 
-  
+
+  def getTechniqueDeleteDetails(xml:NodeSeq) : Box[DeleteTechniqueDiff]
+
   ///// archiving & restoration /////
-  
+
   def getNewArchiveDetails[T <: ExportEventLog](xml:NodeSeq, archive:T) : Box[GitArchiveId]
 
   def getRestoreArchiveDetails[T <: ImportEventLog](xml:NodeSeq, archive:T) : Box[GitCommitId]
@@ -144,17 +144,17 @@ class EventLogDetailsServiceImpl(
   , deploymentStatusUnserialisation : DeploymentStatusUnserialisation
 ) extends EventLogDetailsService {
 
-  
- 
+
+
 
   /**
    * An utility method that is able the parse a <X<from>....</from><to>...</to></X>
-   * attribute and extract it into a SimpleDiff class. 
+   * attribute and extract it into a SimpleDiff class.
    */
   private[this] def getFromTo[T](opt:Option[NodeSeq], f:NodeSeq => Box[T] ) : Box[Option[SimpleDiff[T]]] = {
     opt match {
       case None => Full(None)
-      case Some(x) => 
+      case Some(x) =>
         for {
           fromS <- (x \ "from").headOption ?~! ("Missing required tag 'from'")
           toS   <- (x \ "to").headOption ?~! ("Missing required tag 'to'")
@@ -167,11 +167,11 @@ class EventLogDetailsServiceImpl(
   }
 
   /**
-   * Special case of getFromTo for strings. 
+   * Special case of getFromTo for strings.
    */
   private[this] def getFromToString(opt:Option[NodeSeq]) = getFromTo[String](opt,(s:NodeSeq) => Full(s.text))
 
-    
+
   def getEntryContent(xml:NodeSeq) : Box[Elem] = {
     if(xml.size == 1) {
       val node = Utility.trim(xml.head)
@@ -182,8 +182,8 @@ class EventLogDetailsServiceImpl(
     } else {
       Failure("Bad details format. We were expected an unique node <entry/>, and we get: " + xml.toString)
     }
-  }  
-  
+  }
+
   /**
    * Version 2:
      <rule changeType="add" fileFormat="2">
@@ -192,7 +192,7 @@ class EventLogDetailsServiceImpl(
         <serial>{rule.serial}</serial>
         <target>{ rule.target.map( _.target).getOrElse("") }</target>
         <directiveIds>{
-          rule.directiveIds.map { id => <id>{id.value}</id> } 
+          rule.directiveIds.map { id => <id>{id.value}</id> }
         }</directiveIds>
         <shortDescription>{rule.shortDescription}</shortDescription>
         <longDescription>{rule.longDescription}</longDescription>
@@ -205,7 +205,7 @@ class EventLogDetailsServiceImpl(
       AddRuleDiff(rule)
     }
   }
-  
+
   /**
    * Version 2:
      <rule changeType="delete" fileFormat="2">
@@ -214,7 +214,7 @@ class EventLogDetailsServiceImpl(
         <serial>{rule.serial}</serial>
         <target>{ rule.target.map( _.target).getOrElse("") }</target>
         <directiveIds>{
-          rule.directiveIds.map { id => <id>{id.value}</id> } 
+          rule.directiveIds.map { id => <id>{id.value}</id> }
         }</directiveIds>
         <shortDescription>{rule.shortDescription}</shortDescription>
         <longDescription>{rule.longDescription}</longDescription>
@@ -227,7 +227,7 @@ class EventLogDetailsServiceImpl(
       DeleteRuleDiff(rule)
     }
   }
-  
+
   /**
    * <rule changeType="modify">
      <id>012f3064-d392-43a3-bec9-b0f75950a7ea</id>
@@ -244,33 +244,33 @@ class EventLogDetailsServiceImpl(
       entry             <- getEntryContent(xml)
       rule              <- (entry \ "rule").headOption ?~! ("Entry type is not rule : " + entry)
       changeTypeAddOk   <- {
-                             if(rule.attribute("changeType").map( _.text ) == Some("modify")) 
+                             if(rule.attribute("changeType").map( _.text ) == Some("modify"))
                                Full("OK")
-                             else 
+                             else
                                Failure("Rule attribute does not have changeType=modify: " + entry)
                            }
       fileFormatOk      <- TestFileFormat(rule)
-      id                <- (rule \ "id").headOption.map( _.text ) ?~! 
+      id                <- (rule \ "id").headOption.map( _.text ) ?~!
                            ("Missing attribute 'id' in entry type rule : " + entry)
-      displayName       <- (rule \ "displayName").headOption.map( _.text ) ?~! 
+      displayName       <- (rule \ "displayName").headOption.map( _.text ) ?~!
                            ("Missing attribute 'displayName' in entry type rule : " + entry)
       name              <- getFromToString((rule \ "name").headOption)
-      serial            <- getFromTo[Int]((rule \ "serial").headOption, 
+      serial            <- getFromTo[Int]((rule \ "serial").headOption,
                              { x => tryo(x.text.toInt) } )
-      targets           <- getFromTo[Set[RuleTarget]]((rule \ "targets").headOption, 
-                            { x:NodeSeq => 
-                                Full((x \ "target").toSet.flatMap{ y: NodeSeq  => 
+      targets           <- getFromTo[Set[RuleTarget]]((rule \ "targets").headOption,
+                            { x:NodeSeq =>
+                                Full((x \ "target").toSet.flatMap{ y: NodeSeq  =>
                                   RuleTarget.unser(y.text )})
                            })
       shortDescription  <- getFromToString((rule \ "shortDescription").headOption)
       longDescription   <- getFromToString((rule \ "longDescription").headOption)
-      isEnabled         <- getFromTo[Boolean]((rule \ "isEnabled").headOption, 
-                             { s => tryo { s.text.toBoolean } } ) 
-      isSystem          <- getFromTo[Boolean]((rule \ "isSystem").headOption, 
+      isEnabled         <- getFromTo[Boolean]((rule \ "isEnabled").headOption,
                              { s => tryo { s.text.toBoolean } } )
-      directiveIds      <- getFromTo[Set[DirectiveId]]((rule \ "directiveIds").headOption, 
-                             { x:NodeSeq => 
-                               Full((x \ "id").toSet.map( (y:NodeSeq) => 
+      isSystem          <- getFromTo[Boolean]((rule \ "isSystem").headOption,
+                             { s => tryo { s.text.toBoolean } } )
+      directiveIds      <- getFromTo[Set[DirectiveId]]((rule \ "directiveIds").headOption,
+                             { x:NodeSeq =>
+                               Full((x \ "id").toSet.map( (y:NodeSeq) =>
                                  DirectiveId( y.text )))
                            } )
     } yield {
@@ -288,11 +288,11 @@ class EventLogDetailsServiceImpl(
       )
     }
   }
-  
+
   /**
    * Map XML into a rule
    */
-  private[this] def getRuleFromXML(xml:NodeSeq, changeType:String) : Box[Rule] = {  
+  private[this] def getRuleFromXML(xml:NodeSeq, changeType:String) : Box[Rule] = {
     for {
       entry           <- getEntryContent(xml)
       crXml           <- (entry \ "rule").headOption ?~! ("Entry type is not a rule: " + entry)
@@ -305,15 +305,15 @@ class EventLogDetailsServiceImpl(
       rule
     }
   }
-  
-  
+
+
   ///// directives /////
-  
-  
+
+
   /**
    * Map XML into a directive
    */
-  private[this] def getDirectiveFromXML(xml:NodeSeq, changeType:String) : Box[(TechniqueName, Directive, SectionVal)] = {  
+  private[this] def getDirectiveFromXML(xml:NodeSeq, changeType:String) : Box[(TechniqueName, Directive, SectionVal)] = {
     for {
       entry                 <- getEntryContent(xml)
       piXml                 <- (entry \ "directive").headOption ?~! ("Entry type is not a directive: " + entry)
@@ -326,20 +326,20 @@ class EventLogDetailsServiceImpl(
       ptPiSectionVals
     }
   }
-  
+
 
   def getDirectiveAddDetails(xml:NodeSeq) : Box[(AddDirectiveDiff, SectionVal)] = {
     getDirectiveFromXML(xml, "add").map { case (ptName, directive,sectionVal) =>
       (AddDirectiveDiff(ptName, directive),sectionVal)
     }
   }
-  
+
   def getDirectiveDeleteDetails(xml:NodeSeq) : Box[(DeleteDirectiveDiff, SectionVal)] = {
     getDirectiveFromXML(xml, "delete").map { case(ptName, directive,sectionVal) =>
       (DeleteDirectiveDiff(ptName, directive),sectionVal)
     }
   }
-  
+
   def getDirectiveModifyDetails(xml:NodeSeq) : Box[ModifyDirectiveDiff] = {
     for {
       entry <- getEntryContent(xml)
@@ -362,7 +362,7 @@ class EventLogDetailsServiceImpl(
       shortDescription      <- getFromToString((directive \ "shortDescription").headOption)
       longDescription       <- getFromToString((directive \ "longDescription").headOption)
       priority              <- getFromTo[Int]((directive \ "priority").headOption, { x => tryo(x.text.toInt) } )
-      isEnabled           <- getFromTo[Boolean]((directive \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } ) 
+      isEnabled           <- getFromTo[Boolean]((directive \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } )
       isSystem              <- getFromTo[Boolean]((directive \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
     } yield {
       ModifyDirectiveDiff(
@@ -380,21 +380,21 @@ class EventLogDetailsServiceImpl(
       )
     }
   }
-  
+
   ///// node group /////
-  
+
   override def getNodeGroupAddDetails(xml:NodeSeq) : Box[AddNodeGroupDiff] = {
     getNodeGroupFromXML(xml, "add").map { group =>
       AddNodeGroupDiff(group)
     }
   }
-  
+
   override def getNodeGroupDeleteDetails(xml:NodeSeq) : Box[DeleteNodeGroupDiff] = {
     getNodeGroupFromXML(xml, "delete").map { group =>
       DeleteNodeGroupDiff(group)
     }
   }
-  
+
   override def getNodeGroupModifyDetails(xml:NodeSeq) : Box[ModifyNodeGroupDiff] = {
     for {
       entry           <- getEntryContent(xml)
@@ -408,16 +408,16 @@ class EventLogDetailsServiceImpl(
       displayName     <- (group \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry)
       name            <- getFromToString((group \ "name").headOption)
       description     <- getFromToString((group \ "description").headOption)
-      query           <- getFromTo[Option[Query]]((group \ "query").headOption, {s => 
+      query           <- getFromTo[Option[Query]]((group \ "query").headOption, {s =>
                           //check for <from><none></none></from> or the same with <to>, <none/>, etc
                           if( (s \ "none").isEmpty) cmdbQueryParser(s.text).map( Some(_) )
                           else Full(None)
                         } )
-      isDynamic       <- getFromTo[Boolean]((group \ "isDynamic").headOption, { s => tryo { s.text.toBoolean } } ) 
-      serverList      <- getFromTo[Set[NodeId]]((group \ "nodeIds").headOption, { x:NodeSeq => 
+      isDynamic       <- getFromTo[Boolean]((group \ "isDynamic").headOption, { s => tryo { s.text.toBoolean } } )
+      serverList      <- getFromTo[Set[NodeId]]((group \ "nodeIds").headOption, { x:NodeSeq =>
                             Full((x \ "id").toSet.map( (y:NodeSeq) => NodeId( y.text ) ))
                           } )
-      isEnabled     <- getFromTo[Boolean]((group \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } ) 
+      isEnabled     <- getFromTo[Boolean]((group \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } )
       isSystem        <- getFromTo[Boolean]((group \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
     } yield {
       ModifyNodeGroupDiff(
@@ -437,7 +437,7 @@ class EventLogDetailsServiceImpl(
   /**
    * Map XML into a node group
    */
-  private[this] def getNodeGroupFromXML(xml:NodeSeq, changeType:String) : Box[NodeGroup] = {  
+  private[this] def getNodeGroupFromXML(xml:NodeSeq, changeType:String) : Box[NodeGroup] = {
     for {
       entry           <- getEntryContent(xml)
       groupXml        <- (entry \ "nodeGroup").headOption ?~! ("Entry type is not a nodeGroup: " + entry)
@@ -450,16 +450,16 @@ class EventLogDetailsServiceImpl(
       group
     }
   }
-  
-  
+
+
   def getAcceptNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails] = {
     getInventoryLogDetails(xml, "accept")
   }
-  
+
   def getRefuseNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails] = {
     getInventoryLogDetails(xml, "refuse")
   }
-  
+
   /**
    * Get inventory details
    */
@@ -476,7 +476,7 @@ class EventLogDetailsServiceImpl(
       version      <- (details \ "inventoryVersion").headOption.map( _.text ) ?~! ("Missing attribute 'inventoryVersion' in entry type node : " + entry)
       hostname     <- (details \ "hostname").headOption.map( _.text ) ?~! ("Missing attribute 'hostname' in entry type node : " + entry)
       os           <- (details \ "fullOsName").headOption.map( _.text ) ?~! ("Missing attribute 'fullOsName' in entry type node : " + entry)
-      actorIp      <- (details \ "actorIp").headOption.map( _.text ) ?~! ("Missing attribute 'actorIp' in entry type node : " + entry)      
+      actorIp      <- (details \ "actorIp").headOption.map( _.text ) ?~! ("Missing attribute 'actorIp' in entry type node : " + entry)
     } yield {
       InventoryLogDetails(
           nodeId           = NodeId(nodeId)
@@ -487,15 +487,15 @@ class EventLogDetailsServiceImpl(
       )
     }
   }
-  
-  
+
+
   def getDeleteNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails] = {
     getInventoryLogDetails(xml, "delete")
   }
 
  /**
   * Get node details
-  */   
+  */
   private[this] def getNodeLogDetails(xml:NodeSeq, action:String) : Box[NodeLogDetails] = {
     for {
       entry          <- getEntryContent(xml)
@@ -514,7 +514,7 @@ class EventLogDetailsServiceImpl(
                         }?~! ("Missing attribute 'ips' in entry type node : " + entry)
       os             <- (details \ "os").headOption.map( _.text ) ?~! ("Missing attribute 'os' in entry type node : " + entry)
       boxedAgentsName<- (details \ "agentsName").headOption.map  {
-                              case x:NodeSeq => 
+                              case x:NodeSeq =>
                               (x \ "agentName").toSeq.map( (y:NodeSeq) => AgentType.fromValue(y.text) )
                             } ?~! ("Missing attribute 'agentsName' in entry type node : " + entry)
       inventoryDate  <- (details \ "inventoryDate").headOption.map( _.text ) ?~! ("Missing attribute 'inventoryDate' in entry type node : " + entry)
@@ -522,10 +522,10 @@ class EventLogDetailsServiceImpl(
       policyServerId <- (details \ "policyServerId").headOption.map( _.text ) ?~! ("Missing attribute 'policyServerId' in entry type node : " + entry)
       localAdministratorAccountName  <- (details \ "localAdministratorAccountName").headOption.map( _.text ) ?~! ("Missing attribute 'localAdministratorAccountName' in entry type node : " + entry)
       creationDate   <- (details \ "creationDate").headOption.map( _.text ) ?~! ("Missing attribute 'creationDate' in entry type node : " + entry)
-      isBroken       <- (details \ "isBroken").headOption.map(_.text.toBoolean ) 
-      isSystem       <- (details \ "isSystem").headOption.map(_.text.toBoolean ) 
+      isBroken       <- (details \ "isBroken").headOption.map(_.text.toBoolean )
+      isSystem       <- (details \ "isSystem").headOption.map(_.text.toBoolean )
       isPolicyServer <- (details \ "isPolicyServer").headOption.map(_.text.toBoolean )
-      
+
     } yield {
       val agentsNames =  com.normation.utils.Control.boxSequence[AgentType](boxedAgentsName)
       NodeLogDetails(node = NodeInfo(
@@ -547,9 +547,9 @@ class EventLogDetailsServiceImpl(
       ))
     }
   }
-  
-  
-  
+
+
+
   def getDeploymentStatusDetails(xml:NodeSeq) : Box[CurrentDeploymentStatus] = {
     for {
       entry        <- getEntryContent(xml)
@@ -559,7 +559,7 @@ class EventLogDetailsServiceImpl(
         deploymentStatus
     }
   }
-  
+
   /**
    *  <changeAuthorizedNetworks fileFormat="2">
    *  <oldAuthorizedNetworks>
@@ -587,8 +587,8 @@ class EventLogDetailsServiceImpl(
       )
     }
   }
-  
-  
+
+
   /**
    * <techniqueReloaded fileFormat="2">
        <modifiedTechnique>
@@ -620,18 +620,18 @@ class EventLogDetailsServiceImpl(
       activeTechniqueIds
     }
   }
-  
+
   def getTechniqueModifyDetails(xml: NodeSeq): Box[ModifyTechniqueDiff] = {
     for {
       entry              <- getEntryContent(xml)
-      technique            <- (entry \ "activeTechnique").headOption ?~! 
+      technique            <- (entry \ "activeTechnique").headOption ?~!
                             ("Entry type is not a technique: " + entry)
-      id                <- (technique \ "id").headOption.map( _.text ) ?~! 
+      id                <- (technique \ "id").headOption.map( _.text ) ?~!
                            ("Missing attribute 'id' in entry type technique : " + entry)
-      displayName       <- (technique \ "techniqueName").headOption.map( _.text ) ?~! 
+      displayName       <- (technique \ "techniqueName").headOption.map( _.text ) ?~!
                            ("Missing attribute 'displayName' in entry type rule : " + entry)
-      isEnabled         <- getFromTo[Boolean]((technique \ "isEnabled").headOption, 
-                             { s => tryo { s.text.toBoolean } } ) 
+      isEnabled         <- getFromTo[Boolean]((technique \ "isEnabled").headOption,
+                             { s => tryo { s.text.toBoolean } } )
       fileFormatOk       <- TestFileFormat(technique)
     } yield {
       ModifyTechniqueDiff(
@@ -641,30 +641,30 @@ class EventLogDetailsServiceImpl(
       )
     }
   }
-  
+
   override def getTechniqueDeleteDetails(xml:NodeSeq) : Box[DeleteTechniqueDiff] = {
     getTechniqueFromXML(xml, "delete").map { technique =>
       DeleteTechniqueDiff(technique)
     }
   }
-  
+
   /**
    * Map XML into a technique
    */
-  private[this] def getTechniqueFromXML(xml:NodeSeq, changeType:String) : Box[ActiveTechnique] = {  
+  private[this] def getTechniqueFromXML(xml:NodeSeq, changeType:String) : Box[ActiveTechnique] = {
     for {
       entry           <- getEntryContent(xml)
       techniqueXml    <- (entry \ "activeTechnique").headOption ?~! ("Entry type is not a technique: " + entry)
-      changeTypeAddOk <- if(techniqueXml.attribute("changeType").map( _.text ) == Some(changeType)) 
+      changeTypeAddOk <- if(techniqueXml.attribute("changeType").map( _.text ) == Some(changeType))
                            Full("OK")
-                         else 
+                         else
                            Failure("Technique attribute does not have changeType=%s: ".format(changeType) + entry)
       technique       <- techniqueUnserialiser.unserialise(techniqueXml)
     } yield {
       technique
     }
   }
-  
+
   def getNewArchiveDetails[T <: ExportEventLog](xml:NodeSeq, archive:T) : Box[GitArchiveId] = {
     def getCommitInfo(xml:NodeSeq, tagName:String) = {
       for {
@@ -679,7 +679,7 @@ class EventLogDetailsServiceImpl(
         GitArchiveId(GitPath(path), GitCommitId(commitId), new PersonIdent(name, email))
       }
     }
-    
+
     archive match {
       case x:ExportGroupsArchive => getCommitInfo(xml, ExportGroupsArchive.tagName)
       case x:ExportTechniqueLibraryArchive => getCommitInfo(xml, ExportTechniqueLibraryArchive.tagName)
@@ -687,7 +687,7 @@ class EventLogDetailsServiceImpl(
       case x:ExportFullArchive => getCommitInfo(xml, ExportFullArchive.tagName)
     }
   }
-  
+
   def getRestoreArchiveDetails[T <: ImportEventLog](xml:NodeSeq, archive:T) : Box[GitCommitId] = {
     def getCommitInfo(xml:NodeSeq, tagName:String) = {
       for {
@@ -699,7 +699,7 @@ class EventLogDetailsServiceImpl(
         GitCommitId(commitId)
       }
     }
-    
+
     archive match {
       case x:ImportGroupsArchive => getCommitInfo(xml, ImportGroupsArchive.tagName)
       case x:ImportTechniqueLibraryArchive => getCommitInfo(xml, ImportTechniqueLibraryArchive.tagName)

@@ -83,14 +83,14 @@ class LDAPActiveTechniqueCategoryRepository(
   , mapper            : LDAPEntityMapper
   , gitArchiver       : GitActiveTechniqueCategoryArchiver
   , personIdentService: PersonIdentService
-  , autoExportOnModify: Boolean  
+  , autoExportOnModify: Boolean
   , userLibMutex      : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends ActiveTechniqueCategoryRepository {
- 
+
   /**
-   * Find sub entries (children categories and active techniques for 
+   * Find sub entries (children categories and active techniques for
    * the given category which MUST be mapped to an entry with the given
-   * DN in the LDAP backend, accessible with the given connection. 
+   * DN in the LDAP backend, accessible with the given connection.
    */
   private[this] def addSubEntries(category:ActiveTechniqueCategory, dn:DN, con:LDAPConnection) : ActiveTechniqueCategory = {
     val subEntries = con.searchOne(dn, OR(EQ(A_OC, OC_TECHNIQUE_CATEGORY),EQ(A_OC, OC_ACTIVE_TECHNIQUE)), "objectClass").partition(e => e.isA(OC_TECHNIQUE_CATEGORY))
@@ -99,7 +99,7 @@ class LDAPActiveTechniqueCategoryRepository(
       items = subEntries._2.map(e => mapper.dn2ActiveTechniqueId(e.dn)).toList
     )
   }
-   
+
   /**
    * Retrieve the category entry for the given ID, with the given connection
    */
@@ -110,13 +110,13 @@ class LDAPActiveTechniqueCategoryRepository(
         case 0 => Empty
         case 1 => Full(categoryEntries(0))
         case _ => Failure("Error, the directory contains multiple occurrence of category with id %s. DN: %s".format(id, categoryEntries.map( _.dn).mkString("; ")))
-      } 
+      }
     }
   }
-  
+
   /**
-   * Return true if at least one directive exists in this category (or a sub category 
-   * of this category) 
+   * Return true if at least one directive exists in this category (or a sub category
+   * of this category)
    */
   def containsDirective(id: ActiveTechniqueCategoryId) : Boolean = {
     (for {
@@ -131,7 +131,7 @@ class LDAPActiveTechniqueCategoryRepository(
       case _ => false
     }
   }
-  
+
   /**
    * Root user categories
    */
@@ -178,8 +178,8 @@ class LDAPActiveTechniqueCategoryRepository(
       addSubEntries(category,categoryEntry.dn, con)
     }
   }
-  
-  
+
+
   /**
    * Check if the given parent category has a child with the given name (exact) and
    * an id different from given id
@@ -189,15 +189,15 @@ class LDAPActiveTechniqueCategoryRepository(
       con.searchOne(parentDN, AND(EQ(A_NAME,subCategoryName),NOT(EQ(A_TECHNIQUE_CATEGORY_UUID,notId))), "1.1" ).nonEmpty
     }
   }
-  
+
   /**
    * Add the given category into the given parent category in the
-   * user library. 
+   * user library.
    * Fails if the parent category does not exists in user lib or
    * if it already contains that category, or a category of the
    * same name (name must be unique for a given level)
-   * 
-   * return the modified parent category. 
+   *
+   * return the modified parent category.
    */
   def addActiveTechniqueCategory(
       that:ActiveTechniqueCategory
@@ -207,7 +207,7 @@ class LDAPActiveTechniqueCategoryRepository(
     , reason: Option[String]
   ) : Box[ActiveTechniqueCategory] = {
     for {
-      con                 <- ldap 
+      con                 <- ldap
       parentCategoryEntry <- getCategoryEntry(con, into.id, "1.1") ?~! "The parent category '%s' was not found, can not add".format(into.id)
       categoryEntry       =  mapper.activeTechniqueCategory2ldap(that,parentCategoryEntry.dn)
       canAddByName        <- if(existsByName(con,parentCategoryEntry.dn, that.name, that.id.value)) {
@@ -227,14 +227,14 @@ class LDAPActiveTechniqueCategoryRepository(
       addSubEntries(into, parentCategoryEntry.dn, con)
     }
   }
-  
+
   /**
    * Update an existing technique category
    * Return the updated policy category
    */
   def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, modId : ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategory] = {
     for {
-      con              <- ldap 
+      con              <- ldap
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
       categoryEntry    =  mapper.activeTechniqueCategory2ldap(category,oldCategoryEntry.dn.getParent)
       canAddByName     <- if(categoryEntry.dn != rudderDit.ACTIVE_TECHNIQUES_LIB.dn && existsByName(con,categoryEntry.dn.getParent, category.name, category.id.value)) {
@@ -255,7 +255,7 @@ class LDAPActiveTechniqueCategoryRepository(
       updated
     }
   }
-  
+
   /**
    * Get the direct parent of the given category.
    * Return empty for root of the hierarchy, fails if the category
@@ -272,7 +272,7 @@ class LDAPActiveTechniqueCategoryRepository(
       addSubEntries(parentCategory, parentCategoryEntry.dn, con)
     }
   }
-  
+
   /**
    * Return the list of parents for that category, the nearest parent
    * first, until the root of the library.
@@ -282,7 +282,7 @@ class LDAPActiveTechniqueCategoryRepository(
   def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[List[ActiveTechniqueCategory]] = {
     userLibMutex.readLock {
       //TODO : LDAPify that, we can have the list of all DN from id to root at the begining (just dn.getParent until rudderDit.ACTIVE_TECHNIQUES_LIB.dn)
-      getActiveTechniqueLibrary.flatMap { root => 
+      getActiveTechniqueLibrary.flatMap { root =>
         if(id == root.id) Full(Nil)
         else getParentActiveTechniqueCategory(id) match {
           case Full(parent) => getParentsForActiveTechniqueCategory(parent.id).map(parents => parent :: parents)
@@ -291,7 +291,7 @@ class LDAPActiveTechniqueCategoryRepository(
       }
     }
   }
-  
+
   def getParentsForActiveTechnique(id:ActiveTechniqueId) : Box[ActiveTechniqueCategory] = {
     userLibMutex.readLock { for {
       con <- ldap
@@ -305,14 +305,14 @@ class LDAPActiveTechniqueCategoryRepository(
     } yield {
       category
     } }
-  } 
-  
+  }
+
   def delete(id:ActiveTechniqueCategoryId, modId : ModificationId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId] = {
     for {
       con <-ldap
       deleted <- {
         getCategoryEntry(con, id, "1.1") match {
-          case Full(entry) => 
+          case Full(entry) =>
             for {
               parents     <- if(autoExportOnModify) {
                                this.getParentsForActiveTechniqueCategory(id)
@@ -342,11 +342,11 @@ class LDAPActiveTechniqueCategoryRepository(
       deleted
     }
   }
-  
+
   /**
    * Move an existing category into a new one.
    * Both category to move and destination have to exists, else it is a failure.
-   * The destination category can not be a child of the category to move. 
+   * The destination category can not be a child of the category to move.
    */
   def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, modId : ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategoryId] = {
       for {
@@ -360,7 +360,7 @@ class LDAPActiveTechniqueCategoryRepository(
                             Failure("Can not move a category to itself or one of its children")
                           } else Full("Succes")
         canAddByName   <- (categoryEntry(A_TECHNIQUE_CATEGORY_UUID) , categoryEntry(A_NAME)) match {
-                            case (Some(id),Some(name)) => 
+                            case (Some(id),Some(name)) =>
                               if(existsByName(con, newParentEntry.dn, name, id)) {
                                 Failure("A category with that name already exists in that category: category names must be unique for a given level")
                               } else {
@@ -383,5 +383,5 @@ class LDAPActiveTechniqueCategoryRepository(
         categoryId
       }
   }
- 
+
 }

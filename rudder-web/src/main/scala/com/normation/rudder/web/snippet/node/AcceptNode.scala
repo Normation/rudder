@@ -75,9 +75,9 @@ import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 
 /**
- * Check for server in the pending repository and propose to 
+ * Check for server in the pending repository and propose to
  * accept or refuse them.
- * 
+ *
  */
 class AcceptNode {
   val logger               = LoggerFactory.getLogger(classOf[AcceptNode])
@@ -91,7 +91,7 @@ class AcceptNode {
   val acceptedNodesDit     = inject[InventoryDit]("acceptedNodesDit")
   val pendingNodeDit       = inject[InventoryDit]("pendingNodesDit")
   val uuidGen              = inject[StringUuidGenerator]
-  
+
   val gridHtmlId = "acceptNodeGrid"
 
   val authedUser = {
@@ -101,29 +101,29 @@ class AcceptNode {
                 EventActor("Unknown user")
      }
   }
-     
+
   def acceptTemplatePath = List("templates-hidden", "Popup", "accept_new_server")
   def template() =  Templates(acceptTemplatePath) match {
-    case Empty | Failure(_,_,_) => 
+    case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for server grid not found. I was looking for %s.html".format(acceptTemplatePath.mkString("/")))
     case Full(n) => n
   }
-  
+
   def acceptTemplate = chooseTemplate("accept_new_server","template",template)
-  
-  
+
+
   def refuseTemplatePath = List("templates-hidden", "Popup", "refuse_new_server")
   def templateRefuse() =  Templates(refuseTemplatePath) match {
-    case Empty | Failure(_,_,_) => 
+    case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for server grid not found. I was looking for %s.html".format(refuseTemplatePath.mkString("/")))
     case Full(n) => n
   }
 
   def refuseTemplate = chooseTemplate("refuse_new_server","template",templateRefuse)
-  
-  
-  def head() : NodeSeq = 
-    <head>{ 
+
+
+  def head() : NodeSeq =
+    <head>{
       serverGrid.head ++ Script(OnLoad(JsRaw("""
           $("button", ".bottomButton").button();
       """) ) )
@@ -132,19 +132,19 @@ class AcceptNode {
   /*
    * List all server that have there isAccpeted tag to pending.
    * For all servers, provides an Accept / Refuse link.
-   * 
+   *
    * On refuse, the server is banned (isAccepted = refused )
    * and it's moved to the Banned Node branch.
    * On accept, isAccepted = accepted
    */
   def list(html:NodeSeq) :  NodeSeq =  {
     var errors : Option[String] = None
-    
+
     // Retrieve the list of selected server when submiting
     def nodeIdsFromClient() : Seq[NodeId] = {
       S.params("serverids").map(x => NodeId(x))
     }
-    
+
     /**
      * Retrieve the last inventory for the selected server
      */
@@ -154,29 +154,29 @@ class AcceptNode {
         case _ => None
       }
     }
-     
+
     def addNodes(listNode : Seq[NodeId]) : Unit = {
       val modId = ModificationId(uuidGen.newUuid)
       //TODO : manage error message
       S.clearCurrentNotices
       newNodeManager.accept(listNode, modId, CurrentUser.getActor).zip(listNode).foreach { case (box,id) => box match {
-        case f:Failure => 
+        case f:Failure =>
           S.error(
             <span class="error">
               {f.messageChain}
             </span>
           )
-        case e:EmptyBox => 
+        case e:EmptyBox =>
           logger.error("Add new node '%s' lead to Failure.".format(id.value.toString), e)
           S.error(<span class="error">Error while accepting node(s).</span>)
-        case Full(srvId) => 
+        case Full(srvId) =>
           // TODO : this will probably move to the NewNodeManager, when we'll know
           // how we handle the user
           val version = retrieveLastVersions(id)
           version match {
-            case Some(x) => 
+            case Some(x) =>
               serverSummaryService.find(acceptedNodesDit,srvId) match {
-                case Full(srvs) if (srvs.size==1) =>  
+                case Full(srvs) if (srvs.size==1) =>
                     val srv = srvs.head
                     val entry = AcceptNodeEventLog.fromInventoryLogDetails(
                         principal        = authedUser
@@ -188,30 +188,30 @@ class AcceptNode {
                           , actorIp          = S.containerRequest.map(_.remoteAddress).openOr("Unknown IP")
                         )
                     )
-                    
+
                     logRepository.saveEventLog(modId, entry) match {
                         case Full(_) => logger.debug("Successfully added node '%s'".format(id.value.toString))
                         case _ => logger.warn("Node '%s'added, but the action couldn't be logged".format(id.value.toString))
                     }
-                
+
                 case _ => logger.error("Something bad happened while searching for node %s to log the acceptation, search %s".format(id.value.toString, srvId.value))
               }
-           
+
             case None => logger.warn("Node '%s'added, but couldn't find it's inventory %s".format(id.value.toString, srvId.value))
           }
       } }
-      
+
     }
-     
+
     def refuseNodes(listNode : Seq[NodeId]) : Unit = {
-      //TODO : manage error message    
+      //TODO : manage error message
       S.clearCurrentNotices
       val modId = ModificationId(uuidGen.newUuid)
       newNodeManager.refuse(listNode, modId, CurrentUser.getActor).zip(listNode).foreach {case (box,id) =>  box match {
-        case e:EmptyBox => 
+        case e:EmptyBox =>
           logger.error("Refuse node '%s' lead to Failure.".format(id.value.toString), e)
           S.error(<span class="error">Error while refusing node(s).</span>)
-        case Full(srv) => 
+        case Full(srv) =>
           // TODO : this will probably move to the NewNodeManager, when we'll know
           // how we handle the user
           val version = retrieveLastVersions(srv.id)
@@ -227,18 +227,18 @@ class AcceptNode {
                     , actorIp          = S.containerRequest.map(_.remoteAddress).openOr("Unknown IP")
                   )
               )
-            
+
               logRepository.saveEventLog(modId, entry) match {
                 case Full(_) => logger.debug("Successfully refused node '%s'".format(id.value.toString))
                 case _ => logger.warn("Node '%refused, but the action couldn't be logged".format(id.value.toString))
               }
-            
+
             case None => logger.warn("Node '%s' refused, but couldn't find it's inventory %s".format(id.value.toString, id.value))
           }
         }
-      }      
+      }
     }
-  
+
     /**
      * Display the details of the server to confirm the accept/refuse
      * s : the javascript selected list
@@ -248,9 +248,9 @@ class AcceptNode {
     def details(jsonArrayOfIds:String, template : NodeSeq, popupId : String) : JsCmd = {
       implicit val formats = DefaultFormats
       val serverList = parse(jsonArrayOfIds).extract[List[String]].map(x => NodeId(x))
-      
+
       if (serverList.size == 0) {
-        Alert("You didn't select any nodes") 
+        Alert("You didn't select any nodes")
       } else {
         SetHtml("manageNewNode", listNode(serverList, template))  & OnLoad(
           JsRaw("""
@@ -263,7 +263,7 @@ class AcceptNode {
               "bPaginate": false,
               "bJQueryUI": false,
               "aaSorting": [[ 0, "asc" ]],
-              "aoColumns": [ 
+              "aoColumns": [
                 { "sWidth": "180px" },
                 { "sWidth": "300px" }
               ]
@@ -274,83 +274,83 @@ class AcceptNode {
           )
       }
     }
-    
+
     /**
      * Display the list of selected server, and the accept/refuse button
      */
     def listNode(listNode : Seq[NodeId], template : NodeSeq) : NodeSeq = {
         serverSummaryService.find(pendingNodeDit,listNode:_*) match {
-          case Full(servers) => 
-            bind("servergrid",template, 
+          case Full(servers) =>
+            bind("servergrid",template,
               "lines" -> servers.flatMap { case s@Srv(id,status, hostname,ostype, osname, fullos, ips, _) =>
                  bind("line",chooseTemplate("servergrid","lines",template),
                     "os" -> fullos,
                     "hostname" -> hostname,
                     "ips" -> (ips.flatMap{ ip => <div class="ip">{ip}</div> })  // TODO : enhance this
-                  ) 
+                  )
               },
-              "accept" -> SHtml.submit("Accept", { 
+              "accept" -> SHtml.submit("Accept", {
                 () => { addNodes(listNode) }
                 S.redirectTo(S.uri)
               })
               ,
-              "refuse" -> SHtml.submit("Refuse", { 
+              "refuse" -> SHtml.submit("Refuse", {
                 () => refuseNodes(listNode)
                  S.redirectTo(S.uri)
               }, ("class", "red")),
-              "close" ->SHtml.ajaxButton("Cancel", { 
+              "close" ->SHtml.ajaxButton("Cancel", {
                 () => JsRaw(" $.modal.close();") : JsCmd
-              }) 
+              })
             )
-          case e:EmptyBox => 
+          case e:EmptyBox =>
             val error = e ?~! "An error occured when trying to get server details for displaying them in the popup"
             logger.debug(error.messageChain, e)
             NodeSeq.Empty
         }
     }
-  
+
   /**
    * retrieve the list of all checked servers with JS
-   * and then show the popup 
+   * and then show the popup
    */
   def showConfirmPopup(template : NodeSeq, popupId : String) = {
     net.liftweb.http.js.JE.JsRaw("""
         var selectedNode = JSON.stringify($('input[name="serverids"]:checkbox:checked').map(function() {
           return $(this).val();
         }).get())
-      """) &  SHtml.ajaxCall(JsVar("selectedNode"), details(_,template, popupId))._2 
+      """) &  SHtml.ajaxCall(JsVar("selectedNode"), details(_,template, popupId))._2
   }
-  
+
   /**
    * Display the expected Directives for a machine
    */
   def showExpectedPolicyPopup(nodeId : NodeId) = {
-    
-    SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", nodeId)).display ) & 
+
+    SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", nodeId)).display ) &
     OnLoad(JsRaw("""createPopup("expectedPolicyPopup",300,660)
       """) )
   }
-  
+
     newNodeManager.listNewNodes match {
       case Empty => <div>Error, no server found</div>
       case f@Failure(_,_,_) => <div>Error while retriving server to confirm</div>
       case Full(seq) => bind("pending",html,
       "servers" -> serverGrid.displayAndInit(seq,"acceptNodeGrid",
-        Seq( 
+        Seq(
             (Text("Since"),
                    {e => Text(DateFormaterService.getFormatedDate(e.creationDate))}),
-            (Text("Directive"), 
-                  { e => SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { 
+            (Text("Directive"),
+                  { e => SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, {
                       () =>  showExpectedPolicyPopup(e.id)
                     }, ("class", "smallButton")
                    )
                   }
                ),
-              (Text(""), { e => 
-                  <input type="checkbox" name="serverids" value={e.id.value.toString}/> 
+              (Text(""), { e =>
+                  <input type="checkbox" name="serverids" value={e.id.value.toString}/>
                 })
-              
-        ),         
+
+        ),
         """,{ "sWidth": "60px" },{ "sWidth": "70px", "bSortable":false },{ "sWidth": "15px", "bSortable":false }"""
         ,true
       ),
@@ -368,9 +368,9 @@ class AcceptNode {
       )
     }
   }
-  
+
   /**
-   * 
+   *
    * @return
    */
   val selectAll : NodeSeq =

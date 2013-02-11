@@ -77,33 +77,33 @@ class ImportTechniqueLibraryImpl(
   , mapper      : LDAPEntityMapper
   , userLibMutex: ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends ImportTechniqueLibrary with LDAPImportLibraryUtil {
-  
-  
+
+
   /**
    * That method swap an existing active technique library in LDAP
-   * to a new one. 
-   * 
-   * In case of error, we try to restore the old technique library. 
+   * to a new one.
+   *
+   * In case of error, we try to restore the old technique library.
    */
   def swapActiveTechniqueLibrary(rootCategory:ActiveTechniqueCategoryContent, includeSystem:Boolean = false) : Box[Unit] = {
     /*
      * Hight level behaviour:
      * - check that User Library respects global rules
      *   (at most one UPT for each PT, no two categories with the same name, etc)
-     *   If not, remove duplicates with error logs (because perhaps they are no duplicate, 
+     *   If not, remove duplicates with error logs (because perhaps they are no duplicate,
      *   user will want to know)
-     * - move current user lib elsewhere in the LDAP 
+     * - move current user lib elsewhere in the LDAP
      *   (with the root and the system)
      * - create back the root, with
      *   - initTimeStamp to now
      *   - the same techniqueLibraryVersion
-     * - copy back system if kept 
+     * - copy back system if kept
      * - save all categories, PT, PIs
-     * - if everything goes well, delete the old User Lob 
+     * - if everything goes well, delete the old User Lob
      * - else, rollback: delete new User lib, move back old user lib
-     * 
-     */    
-    
+     *
+     */
+
     //as far atomic as we can :)
     //don't bother with system and consistency here, it is taken into account elsewhere
     def atomicSwap(userLib:ActiveTechniqueCategoryContent) : Box[ActiveTechniqueLibraryArchiveId] = {
@@ -120,14 +120,14 @@ class ImportTechniqueLibraryImpl(
             categoryEntry +=! (A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
             gitId.foreach { x => categoryEntry +=! (A_TECHNIQUE_LIB_VERSION, x) }
           }
-          
+
           for {
             category      <- con.save(categoryEntry) ?~! "Error when persisting category with DN '%s' in LDAP".format(categoryEntry.dn)
-            techniques           <- sequence(content.templates.toSeq) { case ActiveTechniqueContent(activeTechnique, directives) => 
+            techniques           <- sequence(content.templates.toSeq) { case ActiveTechniqueContent(activeTechnique, directives) =>
                                val uptEntry = mapper.activeTechnique2Entry(activeTechnique, categoryEntry.dn)
                                for {
                                  uptSaved <- con.save(uptEntry) ?~! "Error when persisting User Policy entry with DN '%s' in LDAP".format(uptEntry.dn)
-                                 pisSaved <- sequence(directives.toSeq) { directive => 
+                                 pisSaved <- sequence(directives.toSeq) { directive =>
                                                val piEntry = mapper.userDirective2Entry(directive, uptEntry.dn)
                                                con.save(piEntry,true) ?~! "Error when persisting directive entry with DN '%s' in LDAP".format(piEntry.dn)
                                              }
@@ -135,51 +135,51 @@ class ImportTechniqueLibraryImpl(
                                  "OK"
                                }
                              }
-            subCategories <- sequence(content.categories.toSeq) { cat => 
+            subCategories <- sequence(content.categories.toSeq) { cat =>
                                recSaveUserLib(categoryEntry.dn, cat)
                              }
           } yield {
             () // unit is expected
           }
         }
-        
+
         recSaveUserLib(rudderDit.ACTIVE_TECHNIQUES_LIB.dn.getParent,userLib, isRoot = true)
       }
-      
-      
+
+
       val archiveId = ActiveTechniqueLibraryArchiveId(DateTime.now().toString(ISODateTimeFormat.dateTime))
       val targetArchiveDN = rudderDit.ARCHIVES.userLibDN(archiveId)
-      
+
       //the sequence of operation to actually perform the swap with rollback
       for {
         con      <- ldap
-        gitId    <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, OC_ACTIVE_TECHNIQUE_LIB_VERSION).map { entry => 
+        gitId    <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, OC_ACTIVE_TECHNIQUE_LIB_VERSION).map { entry =>
                       entry(OC_ACTIVE_TECHNIQUE_LIB_VERSION)
                     } ?~! "Error when looking for the root entry of the Active Technique Library when trying to check for an existing revision number"
         ok       <- moveToArchive(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN)
         finished <- {
                       (for {
                         saved  <- saveUserLib(con, userLib, gitId)
-                        system <-if(includeSystem) Full("OK") 
+                        system <-if(includeSystem) Full("OK")
                                    else copyBackSystemEntrie(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN) ?~! "Error when copying back system entries in the imported technique library"
                       } yield {
                         system
                       }) match {
                            case Full(unit)  => Full(unit)
-                           case eb:EmptyBox => 
+                           case eb:EmptyBox =>
                              logger.error("Error when trying to load archived active technique library. Rollbaching to previous one.")
                              restoreArchive(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN) match {
                                case eb2: EmptyBox => eb ?~! "Error when trying to restore archive with ID '%s' for the active technique library".format(archiveId.value)
                                case Full(_) => eb ?~! "Error when trying to load archived active technique library. A rollback to previous state was executed"
                              }
-                             
+
                       }
                     }
       } yield {
         archiveId
       }
     }
-    
+
     /**
      * Check that the user lib match our global rules:
      * - two UPT can't referenced the same PT (arbitrary skip the second one)
@@ -194,7 +194,7 @@ class ImportTechniqueLibraryImpl(
       val uactiveTechniqueIds = Set[ActiveTechniqueId]()
       val categoryIds = Set[ActiveTechniqueCategoryId]()
       val categoryNames = Map[String, ActiveTechniqueCategoryId]()
-      
+
       def sanitizeUPT(uptContent:ActiveTechniqueContent) : Option[ActiveTechniqueContent] = {
         val activeTechnique = uptContent.activeTechnique
         if(activeTechnique.isSystem && includeSystem == false) None
@@ -218,14 +218,14 @@ class ImportTechniqueLibraryImpl(
                 Some(directive)
               }
             }
-            
+
             Some(uptContent.copy(
                 activeTechnique = activeTechnique.copy(directives = sanitizedPis.toList.map( _.id ))
               , directives = sanitizedPis
             ))
         }
       }
-      
+
       def recSanitizeCategory(content:ActiveTechniqueCategoryContent, isRoot:Boolean = false) : Option[ActiveTechniqueCategoryContent] = {
         val cat = content.category
         if( !isRoot && content.category.isSystem && includeSystem == false) None
@@ -244,10 +244,10 @@ class ImportTechniqueLibraryImpl(
           case None => //OK, process PT and sub categories !
             categoryIds += cat.id
             categoryNames += (cat.name -> cat.id)
-            
+
             val subCategories = content.categories.flatMap( recSanitizeCategory(_) )
             val subUPTs = content.templates.flatMap( sanitizeUPT(_) )
-            
+
             Some(content.copy(
                 category  = cat.copy(
                                 children = subCategories.toList.map( _.category.id )
@@ -258,10 +258,10 @@ class ImportTechniqueLibraryImpl(
             ))
         }
       }
-      
+
       Box(recSanitizeCategory(userLib, true)) ?~! "Error when trying to sanitize serialised user library for consistency errors"
     }
-        
+
     //all the logic for a library swap.
     for {
       cleanLib <- checkUserLibConsistance(rootCategory)
@@ -275,12 +275,12 @@ class ImportTechniqueLibraryImpl(
       } yield {
         deleted
       }) match {
-        case eb:EmptyBox => 
+        case eb:EmptyBox =>
           logger.warn("Error when deleting archived library in LDAP with DN '%s'".format(dn))
         case _ => //
       }
       () // unit is expected
     }
-    
+
   }
 }

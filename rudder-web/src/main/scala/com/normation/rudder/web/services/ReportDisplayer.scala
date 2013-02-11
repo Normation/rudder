@@ -63,45 +63,45 @@ import com.normation.cfclerk.services.TechniqueRepository
 /**
  * Display the last reports of a server
  * Based on template : templates-hidden/reports_server
- * 
- * 
+ *
+ *
  * @author Nicolas CHARLES
  *
  */
 class ReportDisplayer(
     ruleRepository      : RuleRepository
-  , directiveRepository : DirectiveRepository 
+  , directiveRepository : DirectiveRepository
   , reportingService    : ReportingService
   , techniqueRepository : TechniqueRepository) {
-  
-  
-  
+
+
+
   private[this] val templateByNodePath = List("templates-hidden", "reports_server")
   private def templateByNode() =  Templates(templateByNodePath) match {
-    case Empty | Failure(_,_,_) => 
+    case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for execution batch history not found. I was looking for %s.html".format(templateByNodePath.mkString("/")))
     case Full(n) => n
   }
-  
-  
+
+
 
   def reportByNodeTemplate = chooseTemplate("batches", "list", templateByNode)
   def directiveDetails = chooseTemplate("directive", "foreach", templateByNode)
-  
- 
-  
+
+
+
   def jsVarNameForId(tableId:String) = "oTable" + tableId
- 
+
   var staticReportsSeq : Seq[ExecutionBatch] = Seq[ExecutionBatch]()
- 
+
   def display(reportsSeq : Seq[ExecutionBatch], tableId:String): NodeSeq = {
-    
+
     staticReportsSeq = reportsSeq.filter( x => ruleRepository.get(x.ruleId).isDefined  )
     bind("lastReportGrid",reportByNodeTemplate,
-           "intro" ->  (staticReportsSeq.filter(x => ( 
+           "intro" ->  (staticReportsSeq.filter(x => (
                                (x.getNodeStatus().exists(x => x.nodeReportType == ErrorReportType)) ||
                                (x.getNodeStatus().exists(x => x.nodeReportType == RepairedReportType)) ||
-                               (x.getNodeStatus().exists(x => x.nodeReportType == NoAnswerReportType)) 
+                               (x.getNodeStatus().exists(x => x.nodeReportType == NoAnswerReportType))
                         )
                                 ).toList match {
              case x if (x.size > 0) => <div>There are {x.size} out of {staticReportsSeq.size} reports that require our attention</div>
@@ -131,10 +131,10 @@ class ReportDisplayer(
            case _ => <div>Could not find rule {reportStatus.ruleId} </div>
          }
      }
-    )(reportsGridXml) 
-    
+    )(reportsGridXml)
+
   }
-  
+
   def showDirectivesReport(directives : Seq[DirectiveStatusReport], id :String) : NodeSeq = {
        <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth ">
       <thead>
@@ -205,7 +205,7 @@ class ReportDisplayer(
       </tbody>
     </table>
   }
-  
+
  def showComponentValueReport(values : Seq[ComponentValueStatusReport],directiveSeverity:String) : NodeSeq = {
     val worstseverity= ReportType.getSeverityFromStatus(ReportType.getWorseType(values.map(_.cptValueReportType))).replaceAll(" ", "")
     <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth ">
@@ -229,7 +229,7 @@ class ReportDisplayer(
       </tbody>
     </table>
   }
-  
+
   def getSeverityFromStatus(status : ReportType) : String = {
     status match {
       case SuccessReportType => "Success"
@@ -240,8 +240,8 @@ class ReportDisplayer(
       case _ => "Unknown"
     }
   }
-  
-  def asyncDisplay(node : NodeInfo) : NodeSeq = { 
+
+  def asyncDisplay(node : NodeInfo) : NodeSeq = {
       Script(OnLoad(JsRaw("""
               | $("#%s").bind( "show", function(event, ui) {
               | if(ui.panel.id== '%s') { %s; }
@@ -252,24 +252,24 @@ class ReportDisplayer(
        )))
       )
   }
-  
+
   def displayReports(node : NodeInfo) : NodeSeq = {
     display(reportingService.findImmediateReportsByNode(node.id), "reportsGrid")
   }
-  
+
   /**
    * show the execution batches of a unique server
    * Ought to be the last execution of a server, so that all Directiveinstance are unique
-   * otherwise the result might be unpredictable 
+   * otherwise the result might be unpredictable
    * @param batches
    * @return
    */
   def displayBatches(batches :Seq[ExecutionBatch]) : NodeSeq = {
    display(batches, "reportsGrid") ++
-    Script(initJs("reportsGrid")) 
+    Script(initJs("reportsGrid"))
   }
-  
-  
+
+
    /*
    * Init Javascript for the table with ID
    * 'tableId'
@@ -432,7 +432,7 @@ class ReportDisplayer(
            $(nTr).next().find("table").dataTable().fnDraw();
          }
      } );
-     
+
      plusTd.each( function () {
        $(this).unbind();
        $(this).click( function (e) {
@@ -461,7 +461,7 @@ class ReportDisplayer(
              ],
               "fnDrawCallback" : function( oSettings ) {%2$s}
            } );
-    
+
            $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
            $('div.innerDetails table:first', nDetailsRow).attr("style","");
            $('div.innerDetails', nDetailsRow).slideDown(300);
@@ -476,7 +476,7 @@ class ReportDisplayer(
          }
    } );} );""".format(S.contextPath,componentClickJSFunction)
    }
-  
+
    /**
    * Initialize JS callback bound to the servername item
    * You will have to do that for line added after table
@@ -495,7 +495,7 @@ class ReportDisplayer(
 //            } else {
 //              jQuery(nTr).prop("open", "opened");
 //              var aPos = #table_var#.fnGetPosition( this );
-//            
+//
 //              var aData = jQuery(#table_var#.fnGetData( aPos[0] ));
 //              var node = jQuery(aData[aPos[1]]);
 //              var id = node.attr("ruleId");
@@ -510,15 +510,15 @@ class ReportDisplayer(
 //          SHtml.ajaxCall(JsVar("ajaxParam"), details _)._2.toJsCmd).replaceAll("#table_var#",
 //              jsVarNameForId(tableId))
 //     )
-//  }  
+//  }
 
 
-  
-  
+
+
   private def showBatchDetail(batch:ExecutionBatch) : NodeSeq = {
     batch match {
-      
-      case conf : ConfigurationExecutionBatch => 
+
+      case conf : ConfigurationExecutionBatch =>
         <div class="reportsGroup">Configuration valid {conf.endDate match {
             case None => Text("since " + conf.beginDate)
             case Some(date) => Text("from " + conf.beginDate + " until " +date)
@@ -529,10 +529,10 @@ class ReportDisplayer(
         </div>
     }
   }
-  
-  
 
-  
+
+
+
   /**
    * Display the report in the html form
    */
@@ -573,7 +573,7 @@ class ReportDisplayer(
       <td id="details" ></td>
     </tr>
   }
-  
+
   def componentDetails : NodeSeq = {
     <tr id="componentLine" class="detailedReportLine severity cursor" >
       <td id="first" class="emptyTd"/>

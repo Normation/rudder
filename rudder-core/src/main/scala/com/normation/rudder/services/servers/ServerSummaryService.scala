@@ -45,7 +45,7 @@ import Box._
 import com.normation.rudder.domain.servers.Srv
 
 trait NodeSummaryService {
-  
+
   /**
    * Retrieve minimal information about the server
    */
@@ -61,29 +61,29 @@ import org.joda.time.DateTime
 
 
 class NodeSummaryServiceImpl(
-    inventoryDitService:InventoryDitService, 
+    inventoryDitService:InventoryDitService,
     inventoryMapper:InventoryMapper,
     ldap:LDAPConnectionProvider
 ) extends NodeSummaryService with Loggable {
-  
+
   /**
    * build a Srv from an LDAP Entry, using a node inventory
    * for the mapping part
    */
   def makeSrv(e:LDAPEntry) : Box[Srv] = {
-    
+
     for {
       node <- inventoryMapper.nodeFromEntry(e)
     } yield {
       // fetch the creation datetime of the object
       val dateTime =  {e(A_OBJECT_CREATION_DATE) match {
-        case None => DateTime.now() 
+        case None => DateTime.now()
         case Some(date) => GeneralizedTime.parse(date) match {
-          case Some(value) => value.dateTime 
-          case None => DateTime.now() 
+          case Some(value) => value.dateTime
+          case None => DateTime.now()
         }
       }}
-      
+
       Srv(
           id           = node.main.id
         , status       = node.main.status
@@ -94,15 +94,15 @@ class NodeSummaryServiceImpl(
         , ips          = node.serverIps.toList
         , creationDate = dateTime
       )
-    }    
+    }
   }
-  
-  
-  override def find(filter:Filter,dit:InventoryDit) : Box[Seq[Srv]] = ldap map { con => 
+
+
+  override def find(filter:Filter,dit:InventoryDit) : Box[Seq[Srv]] = ldap map { con =>
     con.searchOne(dit.NODES.dn, filter, Srv.ldapAttributes:_*).flatMap { makeSrv(_) }.toSeq
   }
 
-  override def find(dit:InventoryDit,ids:NodeId*) : Box[Seq[Srv]] = 
+  override def find(dit:InventoryDit,ids:NodeId*) : Box[Seq[Srv]] =
     for {
       con  <- ldap
       srvs =  ids map { id => con.get(dit.NODES.NODE.dn(id),Srv.ldapAttributes.toSeq:_*) } collect { case Full(se) => makeSrv(se) }

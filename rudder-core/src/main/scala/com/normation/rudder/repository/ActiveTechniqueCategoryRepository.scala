@@ -55,7 +55,7 @@ object ActiveTechniqueCategoryOrdering extends Ordering[List[ActiveTechniqueCate
 }
 
 /**
- * 
+ *
  * Several repositories, more like simple DAOs, to manage category like
  * structures (in LDAP, things like "ou")
  *
@@ -78,16 +78,16 @@ trait ActiveTechniqueCategoryRepository {
    * Get an active technique by its ID
    */
   def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[ActiveTechniqueCategory]
-  
-  
+
+
   /**
    * Add the given category into the given parent category in the
-   * user library. 
+   * user library.
    * Fails if the parent category does not exists in active technique library
    * or if it already contains that category, or a category of the
    * same name (name must be unique for a given level)
-   * 
-   * return the modified parent category. 
+   *
+   * return the modified parent category.
    */
   def addActiveTechniqueCategory(
       that : ActiveTechniqueCategory
@@ -95,32 +95,32 @@ trait ActiveTechniqueCategoryRepository {
     , modificationId: ModificationId
     , actor: EventActor
     , reason: Option[String]
-  ) : Box[ActiveTechniqueCategory] 
-  
+  ) : Box[ActiveTechniqueCategory]
+
   /**
    * Update an existing active technique category
    * Fail if the parent already contains a category of the
    * same name (name must be unique for a given level)
    */
-  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, modificationId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategory]  
-  
+  def saveActiveTechniqueCategory(category:ActiveTechniqueCategory, modificationId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategory]
+
   /**
    * Get the direct parent of the given category.
    * Return empty for root of the hierarchy, fails if the category
    * is not in the repository
    */
   def getParentActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[ActiveTechniqueCategory]
-  
+
   /**
    * Return the list of parents for that category, the nearest parent
    * first, until the root of the library.
    * The the last parent is not the root of the library, return a Failure.
    * Also return a failure if the path to top is broken in any way.
    */
-  def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[List[ActiveTechniqueCategory]] 
-  
+  def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[List[ActiveTechniqueCategory]]
+
   def getParentsForActiveTechnique(id:ActiveTechniqueId) : Box[ActiveTechniqueCategory]
-  
+
   /**
    * Delete the category with the given id.
    * If no category with such id exists, it is a success.
@@ -128,24 +128,24 @@ trait ActiveTechniqueCategoryRepository {
    * the category is empty (else, category and children are deleted).
    * @param id
    * @param checkEmtpy
-   * @return 
+   * @return
    *  - Full(category id) for a success
-   *  - Failure(with error message) iif an error happened. 
+   *  - Failure(with error message) iif an error happened.
    */
   def delete(id:ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[ActiveTechniqueCategoryId]
-  
+
   /**
    * Move an existing category into a new one.
    * Both category to move and destination have to exists, else it is a failure.
-   * The destination category can not be a child of the category to move. 
+   * The destination category can not be a child of the category to move.
    * Fail if the parent already contains a category of the
    * same name (name must be unique for a given level)
    */
   def move(categoryId:ActiveTechniqueCategoryId, intoParent:ActiveTechniqueCategoryId, modificationId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueCategoryId]
-  
+
   /**
-   * Return true if at least one directive exists in this category (or a sub category 
-   * of this category) 
+   * Return true if at least one directive exists in this category (or a sub category
+   * of this category)
    */
   def containsDirective(id: ActiveTechniqueCategoryId) : Boolean
 }

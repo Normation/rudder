@@ -40,12 +40,12 @@ import net.liftweb.http.rest._
 
 /**
  * A rest api that handle url /api/status
- * and just return "ok" in plain text. 
+ * and just return "ok" in plain text.
  */
 object RestStatus extends RestHelper {
-  
+
   serve {
     case Get("api" :: "status" :: Nil, req) => PlainTextResponse("OK")
   }
-  
+
 }

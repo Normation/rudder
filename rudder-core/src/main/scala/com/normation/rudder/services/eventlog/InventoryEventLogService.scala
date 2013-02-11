@@ -38,11 +38,11 @@ import net.liftweb.common.Box
 import com.normation.rudder.domain.eventlog.InventoryEventLog
 
 trait InventoryEventLogService {
-  
+
   /**
    * Returns all the inventory related event log
    * @return
    */
   def getInventoryEventLogs() : Box[Seq[InventoryEventLog]]
-  
+
 }

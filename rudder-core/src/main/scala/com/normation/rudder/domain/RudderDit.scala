@@ -51,20 +51,20 @@ import net.liftweb.common._
 import net.liftweb.json._
 import JsonDSL._
 import com.normation.cfclerk.domain._
-import org.joda.time.DateTime 
+import org.joda.time.DateTime
 import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
 import com.normation.rudder.repository.NodeGroupLibraryArchiveId
 
 class CATEGORY(
     uuid: String,
-    parentDN : DN, 
+    parentDN : DN,
     name : String = "",
     description : String = "",
     isSystem : Boolean = false,
     objectClass : String,
     objectClassUuid : String
 )(implicit dit:AbstractDit) extends ENTRY1(objectClassUuid, uuid) {
-    
+
   lazy val rdn : RDN = this.rdn(this.rdnValue._1)
   lazy val dn = new DN(rdn, parentDN)
   def model() : LDAPEntry = {
@@ -80,9 +80,9 @@ class CATEGORY(
 
 
 /**
- * 
+ *
  * Store the DIT (LDAP tree structure) for Rudder information.
- * 
+ *
  * That allows mainly :
  * - to access the DIT programmatically, and so to now what is where for
  *   the mains branches ;
@@ -91,9 +91,9 @@ class CATEGORY(
  *
  */
 class RudderDit(val BASE_DN:DN) extends AbstractDit {
-  dit => 
+  dit =>
   implicit val DIT = dit
-  
+
   /**
    * Create a new category for the active technique library
    */
@@ -112,7 +112,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       , objectClassUuid = A_TECHNIQUE_CATEGORY_UUID
     )
   }
-  
+
   def groupCategory(
       uuid       : String
     , parentDN   : DN
@@ -128,8 +128,8 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       , objectClassUuid = A_GROUP_CATEGORY_UUID
     )
   }
-  
-  
+
+
   //here, we can't use activeTechniqueCategory because we want a subclass
   object ACTIVE_TECHNIQUES_LIB extends CATEGORY(
       uuid = "Active Techniques",
@@ -140,31 +140,31 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       objectClass = OC_TECHNIQUE_CATEGORY,
       objectClassUuid = A_TECHNIQUE_CATEGORY_UUID
   ) {
-    activeTechniques => 
-    
+    activeTechniques =>
+
     //check for the presence of that entry at bootstrap
     dit.register(activeTechniques.model)
 
-    
-     
+
+
     /**
      * From a DN of a category, return the value of the rdn (uuid)
      */
     def getCategoryIdValue(dn:DN) = singleRdnValue(dn,activeTechniques.rdnAttribute._1)
-    
+
     /**
      * From a DN of an active technique, return the value of the rdn (uuid)
      */
     def getActiveTechniqueId(dn:DN) : Box[String] = singleRdnValue(dn,A_ACTIVE_TECHNIQUE_UUID)
-    
-    
+
+
     def getLDAPRuleID(dn:DN) : Box[String] = singleRdnValue(dn,A_DIRECTIVE_UUID)
-    
+
     /**
-     * Return a new sub category 
+     * Return a new sub category
      */
     def activeTechniqueCategoryModel(uuid:String, parentDN:DN) : LDAPEntry = activeTechniqueCategory(uuid, parentDN).model
-    
+
     /**
      * Create a new active technique entry
      */
@@ -184,23 +184,23 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       mod +=! (A_ACCEPTATION_DATETIME, Printer.compact(JsonAST.render(acceptationDateTimes)))
       mod
     }
-    
+
     def directiveModel(uuid:String, techniqueVersion:TechniqueVersion, parentDN:DN) : LDAPEntry = {
       val mod = LDAPEntry(new DN(new RDN(A_DIRECTIVE_UUID,uuid),parentDN))
       mod +=! (A_TECHNIQUE_VERSION, techniqueVersion.toString)
       mod +=! (A_OC, OC.objectClassNames(OC_DIRECTIVE).toSeq:_*)
       mod
     }
-    
+
   }
-  
+
   object RULES extends OU("Rules", BASE_DN) {
     rules =>
     //check for the presence of that entry at bootstrap
     dit.register(rules.model)
-    
+
     def getRuleId(dn:DN) : Box[String] = singleRdnValue(dn,A_RULE_UUID)
-    
+
     def configRuleDN(uuid:String) = new DN(new RDN(A_RULE_UUID, uuid), rules.dn)
 
     def ruleModel(
@@ -216,10 +216,10 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
       mod
     }
-    
+
   }
-  
-  
+
+
   object GROUP extends CATEGORY(
       uuid = "GroupRoot",
       parentDN = BASE_DN,
@@ -229,30 +229,30 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       objectClass = OC_GROUP_CATEGORY,
       objectClassUuid = A_GROUP_CATEGORY_UUID
   ) {
-    group => 
-    
+    group =>
+
     //check for the presence of that entry at bootstrap
     dit.register(group.model)
 
-    
-     
+
+
     /**
      * From a DN of a category, return the value of the rdn (uuid)
      */
     def getCategoryIdValue(dn:DN) = singleRdnValue(dn,group.rdnAttribute._1)
-    
+
     /**
      * From a DN of a group, return the value of the rdn (uuid)
      */
     def getGroupId(dn:DN) : Box[String] = singleRdnValue(dn,A_NODE_GROUP_UUID)
-    
+
     /**
-     * Return a new sub category 
+     * Return a new sub category
      */
     def groupCategoryModel(uuid:String, parentDN:DN) : LDAPEntry = groupCategory(uuid, parentDN).model
-    
-    def groupDN(groupId:String, parentDN:DN) : DN = new DN(new RDN(A_NODE_GROUP_UUID,groupId),parentDN)   
-      
+
+    def groupDN(groupId:String, parentDN:DN) : DN = new DN(new RDN(A_NODE_GROUP_UUID,groupId),parentDN)
+
     /**
      * Create a new group entry
      */
@@ -273,7 +273,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       }
       mod
     }
-    
+
     /**
      * Group for system targets
      */
@@ -287,51 +287,51 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       objectClassUuid = A_GROUP_CATEGORY_UUID
   ) {
       system =>
-      
+
       //check for the presence of that entry at bootstrap
       dit.register(system.model)
-      
+
       def targetDN(target:RuleTarget) : DN = target match {
         case GroupTarget(groupId) => group.groupDN(groupId.value, system.dn)
         case t => new DN(new RDN(A_RULE_TARGET, target.target), system.dn)
       }
-        
-      
+
+
     }
   }
-  
+
   /**
    * That branch contains definition for Rudder server type.
    */
   object NODE_CONFIGS extends OU("Nodes Configuration", BASE_DN) {
     servers =>
- 
+
     /**
-     * There is two actual implementations of Rudder server, which 
+     * There is two actual implementations of Rudder server, which
      * differ only slightly in their identification.
-     */  
+     */
     object NODE_CONFIG extends ENTRY1(A_NODE_UUID) {
-      server => 
-      
+      server =>
+
       //get id from dn
       def idFromDn(dn:DN) : Option[NodeId] = buildId(dn,servers.dn,{x:String => NodeId(x)})
-      
+
       //build the dn from an UUID
       def dn(uuid:String) = new DN(this.rdn(uuid),servers.dn)
-      
+
       def rootPolicyServerModel(uuid:NodeId) : LDAPEntry = {
         val mod = LDAPEntry(this.dn(uuid.value))
         mod +=! (A_OC, OC.objectClassNames(OC_ROOT_POLICY_SERVER).toSeq:_*)
         mod
       }
-      
+
       def nodeConfigurationModel(uuid:NodeId) : LDAPEntry = {
         val mod = LDAPEntry(this.dn(uuid.value))
         mod +=! (A_OC, OC.objectClassNames(OC_NODE_CONFIGURATION).toSeq:_*)
         mod
-      }     
-     
-     
+      }
+
+
       /**
        * Directives for a server.
        * There is both current and target Directives,
@@ -343,51 +343,51 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
           require( !nodeConfigurationDN.isNullDN , "Can not use a null DN for the Cf3 Policy Draft's node configuration")
           new DN(this.rdn(uuid),nodeConfigurationDN)
         }
-        
+
         def model(directiveUUID:String,serverDN:DN) : LDAPEntry = {
           val mod = LDAPEntry(this.dn(directiveUUID,serverDN))
           mod +=! (A_OC, OC.objectClassNames(OC_RULE_WITH_CF3POLICYDRAFT).toSeq:_*)
           mod
-        }     
+        }
       } //end CF3POLICYDRAFT
-      
+
       object TARGET_CF3POLICYDRAFT extends ENTRY1(A_TARGET_DIRECTIVE_UUID) {
         def dn(uuid:String,serverDN:DN) : DN = {
           require(nonEmpty(uuid), "A CF3 Policy Draft ID can not be empty")
           require( !serverDN.isNullDN , "Can not use a null DN for the Cf3 Policy Draft's node configuration")
           new DN(this.rdn(uuid),serverDN)
         }
-        
+
        def model(directiveUUID:String,serverDN:DN) : LDAPEntry = {
           val mod = LDAPEntry(this.dn(directiveUUID,serverDN))
           mod +=! (A_OC, OC.objectClassNames(OC_TARGET_RULE_WITH_CF3POLICYDRAFT).toSeq:_*)
           mod
         }
-        
+
       } //end TARGET_CF3POLICYDRAFT
-      
+
     } //end NODE_CONFIG
-    
+
   } //end NODE_CONFIGS
-  
+
   object ARCHIVES extends OU("Archives", BASE_DN) {
     archives =>
     //check for the presence of that entry at bootstrap
     dit.register(archives.model)
-    
+
     def ruleModel(
       crArchiveId : RuleArchiveId
     ) : LDAPEntry = {
       (new OU("Rules-" + crArchiveId.value, archives.dn)).model
     }
-    
+
     def userLibDN(id:ActiveTechniqueLibraryArchiveId) : DN = {
       activeTechniqueCategory(
           uuid     = "ActiveTechniqueLibrary-" + id.value
         , parentDN = archives.dn
       ).model.dn
     }
-  
+
     def groupLibDN(id:NodeGroupLibraryArchiveId) : DN = {
       groupCategory(
           uuid     = "GroupLibrary-" + id.value
@@ -395,15 +395,15 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       ).model.dn
     }
   }
-  
-  
+
+
   private def singleRdnValue(dn:DN, expectedAttributeName:String) : Box[String] = {
       val rdn = dn.getRDN
       if(rdn.isMultiValued) Failure("The given RDN is multivalued, what is not expected for it: %s".format(rdn))
       else if(rdn.hasAttribute(expectedAttributeName)) {
         Full(rdn.getAttributeValues()(0))
       } else {
-        Failure("The given DN does not seems to be a valid one for a category. Was expecting RDN attribute name '%s' and got '%s'".format(expectedAttributeName, rdn.getAttributeNames()(0))) 
+        Failure("The given DN does not seems to be a valid one for a category. Was expecting RDN attribute name '%s' and got '%s'".format(expectedAttributeName, rdn.getAttributeNames()(0)))
       }
     }
 

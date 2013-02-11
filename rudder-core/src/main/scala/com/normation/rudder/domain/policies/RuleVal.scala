@@ -44,7 +44,7 @@ import com.normation.rudder.domain._
 import com.normation.utils.HashcodeCaching
 
 /*
- * Immutable bridge between cfclerk and rudder 
+ * Immutable bridge between cfclerk and rudder
  */
 
 /**
@@ -58,7 +58,7 @@ case class DirectiveVal(
   , priority         : Int
   , trackerVariable  : TrackerVariable
   , variables        : Map[String, Variable]
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 case class RuleVal(
   ruleId       : RuleId,
@@ -66,8 +66,8 @@ case class RuleVal(
   directiveVals: Seq[DirectiveVal],
   serial       : Int // the generation serial of the Rule
 ) extends HashcodeCaching {
-  
-  def toRuleWithCf3PolicyDraft : Seq[RuleWithCf3PolicyDraft] = 
+
+  def toRuleWithCf3PolicyDraft : Seq[RuleWithCf3PolicyDraft] =
     directiveVals.map ( pol => RuleWithCf3PolicyDraft(ruleId,
         new Cf3PolicyDraft(Cf3PolicyDraftId(ruleId.value + "@@" + pol.directiveId.value),
             pol.techniqueId, __variableMap = pol.variables, pol.trackerVariable,
@@ -80,6 +80,6 @@ case class RuleVal(
 case class RuleWithCf3PolicyDraft (
     ruleId        : RuleId
   , cf3PolicyDraft: Cf3PolicyDraft
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 

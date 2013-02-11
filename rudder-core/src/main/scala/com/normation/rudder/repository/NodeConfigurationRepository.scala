@@ -45,16 +45,16 @@ import com.normation.cfclerk.domain.{TechniqueId}
 
 trait NodeConfigurationRepository {
 
-  
+
   def getRootNodeConfiguration() : Box[RootNodeConfiguration]
-  
+
    /**
    * Add the root server to the repo
    * @param server
    * @return
    */
   def addRootNodeConfiguration(server : RootNodeConfiguration) : Box[RootNodeConfiguration]
-  
+
   /**
    * Search a server by its uuid
    * @param uuid
@@ -68,22 +68,22 @@ trait NodeConfigurationRepository {
    * @return
    */
   def getMultipleNodeConfigurations(nodeId : Seq[NodeId]) : Box[Set[NodeConfiguration]]
-  
+
   /**
    * Save a server in the repo
    * @param server
    * @return
    */
   def saveNodeConfiguration(server:NodeConfiguration) : Box[NodeConfiguration]
-  
-  
+
+
   /**
    * Save several servers in the repo
    * @param server
    * @return
    */
   def saveMultipleNodeConfigurations(server: Seq[NodeConfiguration]) : Box[Seq[NodeConfiguration]]
-  
+
   /**
    * Delete a server. It will first clean its roles, and keep the consistencies of data
    * @param server
@@ -99,7 +99,7 @@ trait NodeConfigurationRepository {
    * Delete all node configurations
    */
   def deleteAllNodeConfigurations : Box[Set[NodeId]]
-  
+
   /**
    * Return all servers
    * @return
@@ -108,27 +108,27 @@ trait NodeConfigurationRepository {
 
 
   /**
-   * Look for all server which have the given directive ID in 
+   * Look for all server which have the given directive ID in
    * their CURRENT directives.
    */
-  def findNodeConfigurationByCurrentRuleId(uuid:RuleId) : Box[Seq[NodeConfiguration]] 
-  
+  def findNodeConfigurationByCurrentRuleId(uuid:RuleId) : Box[Seq[NodeConfiguration]]
+
   /**
-   * Look for all server which have the given policy name (however 
-   * TARGET directives of that policy they have, as long 
+   * Look for all server which have the given policy name (however
+   * TARGET directives of that policy they have, as long
    * as they have at least one)
    */
-  def findNodeConfigurationByTargetPolicyName(policyName:TechniqueId) : Box[Seq[NodeConfiguration]] 
-  
+  def findNodeConfigurationByTargetPolicyName(policyName:TechniqueId) : Box[Seq[NodeConfiguration]]
+
   /**
    * Return all the server that need to be commited
    * Meaning, all servers that have a difference between the current and target directive
-   * 
-   * TODO: perhaps it should be a method of BridgeToCfclerkService, 
+   *
+   * TODO: perhaps it should be a method of BridgeToCfclerkService,
    * and then NodeConfigurationService will be able to find all servers with
    * theses directives
    */
   def findUncommitedNodeConfigurations() : Box[Seq[NodeConfiguration]]
-  
-  
+
+
 }

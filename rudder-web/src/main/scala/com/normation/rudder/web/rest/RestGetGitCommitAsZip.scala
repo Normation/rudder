@@ -43,48 +43,48 @@ import net.liftweb.common._
 
 /**
  * A rest api that allows to deploy promises.
- * 
+ *
  */
 class RestGetGitCommitAsZip(
    repo : GitRepositoryProvider
 ) extends RestHelper {
-  
+
   serve {
     case Get("api" :: "archives" :: "zip" :: "groups"     :: commitId :: Nil, req) =>
       getZip(commitId, List("groups"))
-      
+
     case Get("api" :: "archives" :: "zip" :: "directives" :: commitId :: Nil, req) =>
       getZip(commitId, List("directives"))
-      
+
     case Get("api" :: "archives" :: "zip" :: "rules"      :: commitId :: Nil, req) =>
       getZip(commitId, List("rules"))
-      
+
     case Get("api" :: "archives" :: "zip" :: "all"        :: commitId :: Nil, req) =>
       getZip(commitId, List("groups", "directives", "rules"))
-      
-      
+
+
     /*
      * same archives methods for the authenticated part only. That is needed until
-     * we have a fully authenticated (cli available) version of our REST API, 
+     * we have a fully authenticated (cli available) version of our REST API,
      * because else, user who whish to use API from scripts tends to make the
      * API not authenticated but restricted to localhost.
      * See http://www.rudder-project.org/redmine/issues/2990
      */
     case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "groups"     :: commitId :: Nil, req) =>
       getZip(commitId, List("groups"))
-      
+
     case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "directives" :: commitId :: Nil, req) =>
       getZip(commitId, List("directives"))
-      
+
     case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "rules"      :: commitId :: Nil, req) =>
       getZip(commitId, List("rules"))
-      
+
     case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "all"        :: commitId :: Nil, req) =>
       getZip(commitId, List("groups", "directives", "rules"))
-      
-      
+
+
   }
-  
+
   private[this] def getZip(commitId:String, paths:List[String]) = {
       (for {
         treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, commitId)
@@ -93,16 +93,16 @@ class RestGetGitCommitAsZip(
         bytes
       }) match {
         case eb:EmptyBox => PlainTextResponse("Error when trying to get archive as a Zip", 500)
-        case Full(bytes) => 
+        case Full(bytes) =>
           InMemoryResponse(
               bytes
-            , ("Content-Type" -> "application/zip") :: 
+            , ("Content-Type" -> "application/zip") ::
               ("Content-Disposition","""attachment;filename="rudder-configuration-archive-id_%s.zip"""".format(commitId)) ::
               Nil
            , Nil
            , 200
          )
       }
-  } 
-  
+  }
+
 }

@@ -64,11 +64,11 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
 
   val DATETIME_FORMAT = "yyyy-MM-dd"
   val DATETIME_PARSER = DateTimeFormat.forPattern(DATETIME_FORMAT)
-  
+
   def dispatch = {
     case "display" => display
   }
-  
+
   def display(xml:NodeSeq) : NodeSeq = {
 
      ("#modeSelector" #> <ul style="float:left">{SHtml.radio(Seq("Archive", "Delete"), Full("Archive")
@@ -82,14 +82,14 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
             </li>) }
         </ul> &
       "#archiveReports" #> SHtml.ajaxSubmit("Clean reports", process _) &
-      "#reportFromDate" #> SHtml.text(from, {x => from = x } ) 
-      
+      "#reportFromDate" #> SHtml.text(from, {x => from = x } )
+
     )(xml) ++ Script(OnLoad(JsRaw("""initReportDatepickler("#reportFromDate"); correctButtons(); """)& updateValue))
   }
-  
+
   def process(): JsCmd = {
     S.clearCurrentNotices
-    
+
     (for {
       fromDate <- tryo { DATETIME_PARSER.parseDateTime(from) } ?~! "Bad date format for 'Archive all reports older than' field"
     } yield {
@@ -181,7 +181,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
 
     showDialog
   }
-  
+
   private[this] def displayDate( entry : Box[Option[DateTime]]) : NodeSeq= {
     entry match {
       case Full(dateOption) => dateOption match {

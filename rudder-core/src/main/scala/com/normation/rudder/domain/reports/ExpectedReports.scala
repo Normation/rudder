@@ -45,7 +45,7 @@ import com.normation.utils.HashcodeCaching
 
 /**
  * The representation of the database object for the expected reports for a rule
- * 
+ *
  * @author Nicolas CHARLES
  *
  */
@@ -58,21 +58,21 @@ case class RuleExpectedReports(
   // the period where the configuration is applied to the servers
   , beginDate               : DateTime = DateTime.now()
   , endDate                 : Option[DateTime] = None
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 /**
- * The Cardinality is per Component 
+ * The Cardinality is per Component
  */
 case class ReportComponent(
     componentName   : String
   , cardinality     : Int
   , componentsValues: Seq[String]
-) extends HashcodeCaching 
-    
+) extends HashcodeCaching
+
 /**
  * A Directive may have several components
  */
 case class DirectiveExpectedReports (
     directiveId: DirectiveId
   , components : Seq[ReportComponent]
-) extends HashcodeCaching 
+) extends HashcodeCaching

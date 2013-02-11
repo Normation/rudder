@@ -98,22 +98,22 @@ object DirectiveEditForm {
     } yield {
       chooseTemplate("component", "popupDependentUpdateForm", xml)
     }) openOr Nil
-    
+
   private def popupRemoveForm =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "popupRemoveForm", xml)
     }) openOr Nil
-    
-  private def popupDisactivateForm = 
+
+  private def popupDisactivateForm =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "popupDisactivateForm", xml)
     }) openOr Nil
-    
-  private def crForm = 
+
+  private def crForm =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
     } yield {
@@ -124,7 +124,7 @@ object DirectiveEditForm {
 /**
  * The form that handles Directive edition (not creation)
  * - update name, description, parameters
- * 
+ *
  * Parameters can not be null.
  */
 class DirectiveEditForm(
@@ -135,21 +135,21 @@ class DirectiveEditForm(
   onSuccessCallback: (Directive) => JsCmd = { (Directive) => Noop },
   onRemoveSuccessCallback: () => JsCmd = { () => Noop },
   onFailureCallback: () => JsCmd = { () => Noop },
-  isADirectiveCreation: Boolean = false 
+  isADirectiveCreation: Boolean = false
 ) extends DispatchSnippet with Loggable {
-  
+
   import DirectiveEditForm._
-  
+
   val currentDirectiveSettingForm = new LocalSnippet[DirectiveEditForm]
 
   private[this] val directiveRepository    = inject[DirectiveRepository]
   private[this] val dependencyService      = inject[DependencyAndDeletionService]
   private[this] val directiveEditorService = inject[DirectiveEditorService]
-  private[this] val asyncDeploymentAgent   = inject[AsyncDeploymentAgent]  
+  private[this] val asyncDeploymentAgent   = inject[AsyncDeploymentAgent]
   private[this] val userPropertyService    = inject[UserPropertyService]
   private[this] val uuidGen                = inject[StringUuidGenerator]
-  
-  
+
+
   private[this] val htmlId_save = htmlId_policyConf + "Save"
   private[this] val parameterEditor = {
     directiveEditorService.get(technique.id, directive.id, directive.parameters) match {
@@ -168,7 +168,7 @@ class DirectiveEditForm(
   }
   private[this] var piCurrentStatusIsActivated = directive.isEnabled
   private[this] var directiveCurrentStatusCreationStatus = isADirectiveCreation
-  
+
   lazy val dependentRules =  dependencyService.directiveDependencies(directive.id).map(_.rules)
 
   // pop-up: their content should be retrieve lazily
@@ -177,7 +177,7 @@ class DirectiveEditForm(
       NodeSeq.Empty
     } else {
       dependentRules match {
-        case e: EmptyBox => 
+        case e: EmptyBox =>
           <div class="error">An error occurred while trying to find dependent item</div>
         case Full(rules) => {
           val cmp = new RuleGrid("remove_popup_grid", rules, None, false)
@@ -186,7 +186,7 @@ class DirectiveEditForm(
       }
     }
   }
-  
+
   // popup for the list of dependent rules when updating the directives
   lazy val updatePopupGridXml = {
     if (directiveCurrentStatusCreationStatus) {
@@ -203,10 +203,10 @@ class DirectiveEditForm(
     }
   }
 
-  // if directive current inherited status is "activated", the two pop-up (disable and 
+  // if directive current inherited status is "activated", the two pop-up (disable and
   // remove) show the same content. Else, we have to build two different pop-up
   val switchStatusFilter = if (directive.isEnabled) OnlyDisableable else OnlyEnableable
-  
+
   lazy val disablePopupGridXml = {
     if (directiveCurrentStatusCreationStatus) {
       NodeSeq.Empty
@@ -214,7 +214,7 @@ class DirectiveEditForm(
       dependencyService
         .directiveDependencies(directive.id, switchStatusFilter)
         .map(_.rules) match {
-          case e: EmptyBox => 
+          case e: EmptyBox =>
             <div class="error">An error occurred while trying to find dependent item</div>
           case Full(rules) => {
             val cmp = new RuleGrid("disable_popup_grid", rules, None, false)
@@ -223,20 +223,20 @@ class DirectiveEditForm(
         }
     }
   }
-  
+
   def dispatch = {
     case "showForm" => { _ => showForm }
   }
-  
+
   def showForm(): NodeSeq = {
-    ( 
+    (
       "#container [id]" #> htmlId_policyConf &
       "#editForm" #> showDirectiveForm() &
       "#removeActionDialog" #> showRemovePopupForm() &
       "#disableActionDialog" #> showDisactivatePopupForm()
     )(body)
   }
-  
+
   def showRemovePopupForm() : NodeSeq = {
     (
        "#removeActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
@@ -249,10 +249,10 @@ class DirectiveEditForm(
          "#reasonsField" #> f.toForm_!
        } } &
         "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerRemovePopup) }
-    )(popupRemoveForm) 
+    )(popupRemoveForm)
   }
-  
-  def showDisactivatePopupForm() : NodeSeq = {    
+
+  def showDisactivatePopupForm() : NodeSeq = {
     (
       "#disableActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
       "#dialogDisableTitle" #> { dialogDisableTitle } &
@@ -262,11 +262,11 @@ class DirectiveEditForm(
       "#disableItemDependencies" #> {
         (ClearClearable & "#itemDependenciesGrid" #> disablePopupGridXml)(itemDependencies)
       } &
-      ".reasonsFieldsetPopup" #> { 
+      ".reasonsFieldsetPopup" #> {
         crReasonsDisactivatePopup.map { f =>
           "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
           "#reasonsField" #> f.toForm_!
-        } 
+        }
       } &
       "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerDisactivatePopup) }
     )(popupDisactivateForm)
@@ -286,13 +286,13 @@ class DirectiveEditForm(
     (
       "#editForm *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
-      ".topLevelAction" #> ( (xml:NodeSeq) =>  
-        if (directiveCurrentStatusCreationStatus) NodeSeq.Empty 
+      ".topLevelAction" #> ( (xml:NodeSeq) =>
+        if (directiveCurrentStatusCreationStatus) NodeSeq.Empty
         else xml ) andThen
       ClearClearable &
       //activation button: show disactivate if activated
-      "#disactivateButtonLabel" #> { 
-        if (piCurrentStatusIsActivated) "Disable" else "Enable" 
+      "#disactivateButtonLabel" #> {
+        if (piCurrentStatusIsActivated) "Disable" else "Enable"
        } &
        "#removeAction *" #> {
          SHtml.ajaxSubmit("Delete", () => createPopup("removeActionDialog",140,850))
@@ -307,8 +307,8 @@ class DirectiveEditForm(
             ("class", "autoWidthButton twoColumns twoColumnsRight"),("type", "button")
        ) &
        //form and form fields
-      "#techniqueName" #> 
-        <a href={ "/secure/configurationManager/techniqueLibraryManagement/" + 
+      "#techniqueName" #>
+        <a href={ "/secure/configurationManager/techniqueLibraryManagement/" +
           technique.id.name.value }>
           { technique.name }
         </a> &
@@ -327,7 +327,7 @@ class DirectiveEditForm(
       "#notifications *" #> updateAndDisplayNotifications(formTracker) &
       "#isSingle *" #> showIsSingle// &
       //"#editForm [id]" #> htmlId_policyConf
-    )(crForm) ++ 
+    )(crForm) ++
     Script(OnLoad(
       JsRaw("""activateButtonOnFormChange("%s", "%s");  """
         .format(htmlId_policyConf, htmlId_save)) &
@@ -341,14 +341,14 @@ class DirectiveEditForm(
           """.format(htmlId_save)))
     )
   }
-  
+
   private[this] def clone(): JsCmd = {
-    SetHtml(CreateCloneDirectivePopup.htmlId_popup, 
+    SetHtml(CreateCloneDirectivePopup.htmlId_popup,
         newCreationPopup(technique, activeTechnique)) &
     JsRaw(""" createPopup("%s",300,400) """
         .format(CreateCloneDirectivePopup.htmlId_popup))
   }
-  
+
   ////////////// Callbacks //////////////
 
   private[this] def onSuccess(directive: Directive): JsCmd = {
@@ -358,46 +358,46 @@ class DirectiveEditForm(
 
   private[this] def onFailure(): JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them."))
-    onFailureCallback() & SetHtml(htmlId_policyConf, showDirectiveForm) & 
+    onFailureCallback() & SetHtml(htmlId_policyConf, showDirectiveForm) &
     JsRaw("""scrollToElement("notifications");""")
   }
-  
+
   private[this] def onFailureRemovePopup() : JsCmd = {
     val elemError = error("The form contains some errors, please correct them")
     formTrackerRemovePopup.addFormError(elemError)
-    updateRemoveFormClientSide() & 
+    updateRemoveFormClientSide() &
     onFailureCallback()
   }
-  
+
   private[this] def onFailureDisablePopup() : JsCmd = {
     val elemError = error("The form contains some errors, please correct them")
     formTrackerDisactivatePopup.addFormError(elemError)
-    onFailureCallback() & 
+    onFailureCallback() &
     updateDisableFormClientSide()
   }
-  
+
   private[this] def updateRemoveFormClientSide() : JsCmd = {
     val jsDisplayRemoveDiv = JsRaw("""$("#removeActionDialog").removeClass('nodisplay')""")
-    Replace("removeActionDialog", this.showRemovePopupForm()) & 
+    Replace("removeActionDialog", this.showRemovePopupForm()) &
     jsDisplayRemoveDiv &
     initJs
   }
-  
+
   private[this] def updateDisableFormClientSide() : JsCmd = {
     val jsDisplayDisableDiv = JsRaw("""$("#disableActionDialog").removeClass('nodisplay')""")
-    Replace("disableActionDialog", this.showDisactivatePopupForm()) & 
+    Replace("disableActionDialog", this.showDisactivatePopupForm()) &
     jsDisplayDisableDiv &
     initJs
   }
-  
+
   def createPopup(name:String,height:Int,width:Int) :JsCmd = {
     JsRaw("""createPopup("%s",%s,%s);""".format(name,height,width))
   }
-  
+
   def initJs : JsCmd = {
     JsRaw("correctButtons();")
   }
-  
+
   ///////////// Remove /////////////
 
   private[this] def removeButton: Elem = {
@@ -440,7 +440,7 @@ class DirectiveEditForm(
   ///////////// Enable / disable /////////////
 
   private[this] def disableButton: Elem = {
-    def switchActivation(status: Boolean)(): JsCmd = {      
+    def switchActivation(status: Boolean)(): JsCmd = {
       if(formTrackerDisactivatePopup.hasErrors) {
         onFailureDisablePopup
       } else {
@@ -451,7 +451,7 @@ class DirectiveEditForm(
           } else {
             val changeStatus= if(status) "enabled" else "disabled"
             val defaultReason = Some("Directive %s by user".format(changeStatus))
-            val reason = crReasonsDisactivatePopup.map( _.is).orElse(defaultReason) 
+            val reason = crReasonsDisactivatePopup.map( _.is).orElse(defaultReason)
             saveAndDeployDirective(directive.copy(isEnabled = status), reason)
           }
         }
@@ -464,7 +464,7 @@ class DirectiveEditForm(
       SHtml.ajaxSubmit("Enable", switchActivation(true) _)
     }
   }
-  
+
   private[this] def dialogDisableTitle : String = {
     if (piCurrentStatusIsActivated) {
       "Disable"
@@ -485,10 +485,10 @@ class DirectiveEditForm(
     <span>
       {
         if (technique.isMultiInstance) {
-          { <b>Multi instance</b> } ++ 
+          { <b>Multi instance</b> } ++
           Text(": several Directives derived from that template can be deployed on a given node")
         } else {
-          { <b>Unique</b> } ++ 
+          { <b>Unique</b> } ++
           Text(": an unique Directive derived from that template can be deployed on a given node")
         }
       }
@@ -523,21 +523,21 @@ class DirectiveEditForm(
   private[this] val piPriority = new WBSelectObjField("Priority:",
     (0 to 10).map(i => (i, i.toString)),
     defaultValue = directive.priority) {
-    override val displayHtml = 
+    override val displayHtml =
       <span class="tooltipable greytooltip" title="" tooltipid="priorityId">
         <b>Priority:</b>
         <div class="tooltipContent" id="priorityId">
-          If a node is configured with several Directive derived from that template, 
-          the one with the higher priority will be applied first. If several Directives 
-          have the same priority, the application order between these two will be random. 
-          If the template is unique, only one Directive derived from it may be used at 
-          a given time onone given node. The one with the highest priority is chosen. 
-          If several Directives have the same priority, one of them will be applied at 
+          If a node is configured with several Directive derived from that template,
+          the one with the higher priority will be applied first. If several Directives
+          have the same priority, the application order between these two will be random.
+          If the template is unique, only one Directive derived from it may be used at
+          a given time onone given node. The one with the highest priority is chosen.
+          If several Directives have the same priority, one of them will be applied at
           random. You should always try to avoid that last case.<br/>
           The highest priority is 0.
         </div>
       </span>
-      
+
     override def className = "twoCol"
 
   }
@@ -550,7 +550,7 @@ class DirectiveEditForm(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-  
+
   private[this] val crReasonsRemovePopup = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
@@ -559,7 +559,7 @@ class DirectiveEditForm(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-  
+
   private[this] val crReasonsDisactivatePopup = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
@@ -568,11 +568,11 @@ class DirectiveEditForm(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-  
+
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
     new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  % 
+      override def inputField = super.inputField  %
         ("style" -> "height:8em;")
       override def subContainerClassName = containerClass
       override def validations() = {
@@ -584,17 +584,17 @@ class DirectiveEditForm(
       }
     }
   }
-  
+
   private[this] val formTracker = {
     val l = List(piName, piShortDescription, piLongDescription) ++ crReasons
     new FormTracker(l)
   }
-  
-  private[this] val formTrackerRemovePopup = 
-    new FormTracker(crReasonsRemovePopup.toList) 
-  
-  private[this] val formTrackerDisactivatePopup = 
-    new FormTracker(crReasonsDisactivatePopup.toList) 
+
+  private[this] val formTrackerRemovePopup =
+    new FormTracker(crReasonsRemovePopup.toList)
+
+  private[this] val formTrackerDisactivatePopup =
+    new FormTracker(crReasonsDisactivatePopup.toList)
 
   private[this] def error(msg: String) = <span class="error">{ msg }</span>
 
@@ -609,7 +609,7 @@ class DirectiveEditForm(
       }
     }
   }
-  
+
   private[this] def onSubmit(): JsCmd = {
     parameterEditor.removeDuplicateSections
 
@@ -643,7 +643,7 @@ class DirectiveEditForm(
         case Full(rules) if rules.size == 0 => saveAndDeployDirective(newDirective, crReasons.map(_.is))
         case _ => displayDependenciesPopup(newDirective, crReasons.map(_.is))
       }
-      
+
     }
   }
 
@@ -664,7 +664,7 @@ class DirectiveEditForm(
           case None => // No change, don't launch a deployment
         }
         onSuccess(directive)
-      case Empty => 
+      case Empty =>
         formTracker.addFormError(error("An error occurred while saving the Directive"))
         onFailure
       case Failure(m, _, _) =>
@@ -672,12 +672,12 @@ class DirectiveEditForm(
         onFailure
     }
   }
-  
+
   private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
-    
+
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
-   
+
     if(notifications.isEmpty) {
       NodeSeq.Empty
     }
@@ -687,37 +687,37 @@ class DirectiveEditForm(
       </div>
     }
   }
-    
+
   private[this] def newCreationPopup(
     technique:Technique, activeTechnique:ActiveTechnique) : NodeSeq = {
 
     val popup = new CreateCloneDirectivePopup(
-      technique.name, technique.description, 
+      technique.name, technique.description,
       technique.id.version, directive,
       onSuccessCallback =  onSuccessCallback)
-    
+
     popup.popupContent
   }
-  
+
   private[this] def updateCf3PolicyDraftInstanceSettingFormComponent(
-    technique:Technique, activeTechnique:ActiveTechnique, directive:Directive, 
+    technique:Technique, activeTechnique:ActiveTechnique, directive:Directive,
     isADirectiveCreation : Boolean = false) : Unit = {
-    
+
     val dirEditForm = new DirectiveEditForm(
       DirectiveManagement.htmlId_policyConf, technique, activeTechnique,
-      directive, onSuccessCallback = onSuccessCallback, 
+      directive, onSuccessCallback = onSuccessCallback,
       onRemoveSuccessCallback = onRemoveSuccessCallback,
       isADirectiveCreation = isADirectiveCreation
     )
-    
+
     currentDirectiveSettingForm.set(Full(dirEditForm))
   }
-  
+
   private[this] def showDirectiveDetails() : NodeSeq = {
     currentDirectiveSettingForm.is match {
-      case Failure(m, _, _) => 
+      case Failure(m, _, _) =>
         <div id={DirectiveManagement.htmlId_policyConf} class="error">
-          An error happened when trying to load Directive configuration. 
+          An error happened when trying to load Directive configuration.
           Error message was: {m}
         </div>
       case Empty => <div id={DirectiveManagement.htmlId_policyConf}></div>
@@ -726,10 +726,10 @@ class DirectiveEditForm(
   }
 
   ///////////// success pop-up ///////////////
-  
+
   private[this] def successPopup : JsCmd = {
     JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350) """)
   }
 
 }
-  
+

@@ -55,8 +55,8 @@ final case class AddDirective(
 
 object AddDirective extends EventLogFilter {
   override val eventType = AddDirectiveEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : AddDirective = AddDirective(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : AddDirective = AddDirective(x._2)
 }
 
 final case class DeleteDirective(
@@ -69,8 +69,8 @@ final case class DeleteDirective(
 
 object DeleteDirective extends EventLogFilter {
   override val eventType = DeleteDirectiveEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : DeleteDirective = DeleteDirective(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : DeleteDirective = DeleteDirective(x._2)
 }
 
 final case class ModifyDirective(
@@ -83,14 +83,14 @@ final case class ModifyDirective(
 
 object ModifyDirective extends EventLogFilter {
   override val eventType = ModifyDirectiveEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyDirective = ModifyDirective(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyDirective = ModifyDirective(x._2)
 }
 
 object DirectiveEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      AddDirective 
-    , DeleteDirective 
+      AddDirective
+    , DeleteDirective
     , ModifyDirective
     )
 }

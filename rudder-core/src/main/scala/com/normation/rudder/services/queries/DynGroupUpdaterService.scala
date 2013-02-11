@@ -54,21 +54,21 @@ import com.normation.eventlog.ModificationId
 
 /**
  * A container for a dynamic group update.
- * members are the list of members post-update, 
+ * members are the list of members post-update,
  * removed/added members are compared with the
- * state pre-update. 
+ * state pre-update.
  */
 case class DynGroupDiff(
     members:Seq[NodeId],
     removed:Seq[NodeId],
     added:Seq[NodeId]
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 
 trait DynGroupUpdaterService {
   /**
    * Update the given dynamic group, returning the diff
-   * from the pre-update. 
+   * from the pre-update.
    * @return
    */
   def update(dynGroupId:NodeGroupId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff]
@@ -77,11 +77,11 @@ trait DynGroupUpdaterService {
 
 class DynGroupUpdaterServiceImpl(
   nodeGroupRepository: NodeGroupRepository,
-  queryProcessor     : QueryProcessor  
+  queryProcessor     : QueryProcessor
 ) extends DynGroupUpdaterService with Loggable {
-  
-  
-  
+
+
+
   override def update(dynGroupId:NodeGroupId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff] = {
     for {
       group <- nodeGroupRepository.getNodeGroup(dynGroupId)
@@ -97,5 +97,5 @@ class DynGroupUpdaterServiceImpl(
       DynGroupDiff(newMemberIdsSet.toSeq, minus.toSeq, plus.toSeq)
     }
   }
-  
+
 }

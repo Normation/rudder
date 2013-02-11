@@ -41,5 +41,5 @@ import com.normation.spring.SecurityFilter
  * the Spring Application context is accessed
  */
 class LiftSpringSecurityFilter extends SecurityFilter {
-  override def webApplicationContext = LiftSpringApplicationContext.springContext  
+  override def webApplicationContext = LiftSpringApplicationContext.springContext
 }

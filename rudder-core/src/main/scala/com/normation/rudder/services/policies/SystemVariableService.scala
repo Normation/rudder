@@ -78,7 +78,7 @@ class SystemVariableServiceImpl(
 
   val varWebdavPassword = SystemVariable(systemVariableSpecService.get("DAVPASSWORD"))
   varWebdavPassword.saveValue(webdavPassword)
-  
+
   val varSharedFilesFolder = SystemVariable(systemVariableSpecService.get("SHARED_FILES_FOLDER"))
   varSharedFilesFolder.saveValue(sharedFilesFolder)
 
@@ -93,7 +93,7 @@ class SystemVariableServiceImpl(
 
     // Set the roles of the nodes
     val nodeConfigurationRoles = mutable.Set[String]()
-    
+
     if(nodeInfo.isPolicyServer) {
       nodeConfigurationRoles.add("policy_server")
       if (nodeInfo.id == nodeInfo.policyServerId) {
@@ -108,7 +108,7 @@ class SystemVariableServiceImpl(
     } else {
       varNodeRole.saveValue("# This node doesn't have any specific role")
     }
-    
+
     // Set the licences for the Nova
     val varLicensesPaid = SystemVariable(systemVariableSpecService.get("LICENSESPAID"))
     if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
@@ -152,7 +152,7 @@ class SystemVariableServiceImpl(
     }
 
     varAllowConnect.saveValues(allowConnect.toSeq)
-    
+
     logger.debug("System variables for server %s done".format(nodeInfo.id.value))
 
     Full(Map(

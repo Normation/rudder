@@ -41,7 +41,7 @@ import com.unboundid.ldap.sdk.DN
 import com.normation.utils.HashcodeCaching
 
 
-case class GroupCategoryUuid(val value:String) extends Uuid with HashcodeCaching 
+case class GroupCategoryUuid(val value:String) extends Uuid with HashcodeCaching
 //  val attrName = A_GROUP_CATEGORY_UUID
 
 
@@ -53,5 +53,5 @@ case class GroupCategory(
   , children   : List[GroupCategoryUuid]
   , items      : List[QueryUuid]
   //val technical : Boolean = false
-) extends HashcodeCaching 
+) extends HashcodeCaching
 

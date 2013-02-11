@@ -36,52 +36,52 @@ package com.normation.rudder.web.model
 
 
 /**
- * Description of Unix file permissions 
+ * Description of Unix file permissions
  * for "user", "group" and "other" (whitout setuid,
  * setgid and sticky bit).
- * 
+ *
  * The goal of these classes is to make their
- * use as near as possible as Unix chmod in 
+ * use as near as possible as Unix chmod in
  * Scala.
- * 
+ *
  * ## First, Perm objects: simple
  * immutable permission objects with a nice
  * toString and an octal representation:
  * % val p:Perm = w
  * % w.toString // "-w-"
  * % w.octal // 2
- * 
+ *
  * You can combine permission to obtain new permissions:
  * % w+r  // rw-
  * % rwx-w // r-w
- * 
+ *
  * ## Second, FilePerms objects: a group of
  * three mutable permissions.
- * 
+ *
  * You can create a new File permission object
  * from octal values:
- * % val perms = FilePerms(777) 
+ * % val perms = FilePerms(777)
  * Or from Perm object:
  * % val perms = FilePerms(rw,rw,r)
- * 
+ *
  * Like Perm, they have nice string and octal
  * reprsentation:
- * % val perms = FilePerms(777) 
+ * % val perms = FilePerms(777)
  * % perms.toString //rwxrwxrwx
  * % perms.octal // 777
- * 
+ *
  * Missing values are initialized to "no permission":
  * % val perms = FilePerms(77) //rwxrwx---
  * % val perms = FilePerms(rw) //rw-------
- * 
+ *
  * And of course, you can change permissions:
  * % val perms = FilePerms(77) //rwxrwx---
  * % perms.g-wx  // rwxr----
  * % perms.ugo+x // rwxr-x--x
  * % perms.a-wx  // r--r-----
- * 
- * The use of such objects with Java IO to set 
- * actual file permission is let as an exercise 
+ *
+ * The use of such objects with Java IO to set
+ * actual file permission is let as an exercise
  * for the reader ;)
  */
 
@@ -99,48 +99,48 @@ trait Perm {
     case Some(p) => this+(p)
     case None => this
   }
-  
-  def -(p:Perm) : Perm = Perm(bits &~ p.bits) 
+
+  def -(p:Perm) : Perm = Perm(bits &~ p.bits)
   def -(o:Byte) : Perm = Perm(o) match {
     case Some(p) => this-(p)
     case None => this
   }
-  
+
   def read = bits(2)
   def write = bits(1)
   def exec = bits(0)
 }
 
-case object none extends Perm { 
-  val bits = BitSet() 
+case object none extends Perm {
+  val bits = BitSet()
   override def toString() = "---"
 }
-case object r extends Perm { 
-  val bits = BitSet(2) 
+case object r extends Perm {
+  val bits = BitSet(2)
   override def toString() = "r--"
 }
-case object w extends Perm { 
-  val bits = BitSet(1)  
+case object w extends Perm {
+  val bits = BitSet(1)
   override def toString() = "-w-"
 }
-case object x extends Perm { 
+case object x extends Perm {
   val bits = BitSet(0)
   override def toString() = "--x"
 }
-case object rw extends Perm { 
-  val bits = BitSet(2,1)  
+case object rw extends Perm {
+  val bits = BitSet(2,1)
   override def toString() = "rw-"
 }
-case object rx extends Perm { 
+case object rx extends Perm {
   val bits = BitSet(2,0)
   override def toString() = "r-x"
 }
-case object wx extends Perm { 
+case object wx extends Perm {
   val bits = BitSet(1,0)
   override def toString() = "-wx"
 }
-case object rwx extends Perm { 
-  val bits = BitSet(2,1,0)  
+case object rwx extends Perm {
+  val bits = BitSet(2,1,0)
   override def toString() = "rwx"
 }
 
@@ -148,7 +148,7 @@ object Perm {
   //utility methods to see the bitset as an int
   //unknown result for bs.size > 31
   private def bitSetToInt(bs:BitSet) : Int = (0 /: bs){ (o,j) =>  o | 1 << j }
-  
+
   def apply(o:Byte) = o match {
     case 0 => Some(none)
     case 1 => Some(x)
@@ -160,7 +160,7 @@ object Perm {
     case 7 => Some(rwx)
     case _ => None
   }
-  
+
   //match order: read / write / exec
   def apply(bits:BitSet) = (bits(2),bits(1),bits(0)) match {
     case (true,false,false) => r
@@ -172,10 +172,10 @@ object Perm {
     case (true,true,true) => rwx
     case _ => none
   }
-  
+
   def unapply(s:String) : Option[Perm] = {
     try {
-      apply(s.toByte) 
+      apply(s.toByte)
     } catch {
       case e:NumberFormatException =>
         s.toLowerCase match {
@@ -191,33 +191,33 @@ object Perm {
         }
       case e:Exception => None
     }
-  } 
-  
+  }
+
   def unapply(c:Char) : Option[Perm] = unapply(c.toString)
-  
+
   def allPerms = Set(none,r,w,x,rw,rx,wx,rwx)
 }
 
 case class PermSet(file:FilePerms,perms:(Perm => Unit, () => Perm)* )  extends HashcodeCaching {
-  
+
   /*
    * Add to all perms the given rights
    */
-  def +(p:Perm) : FilePerms = { 
+  def +(p:Perm) : FilePerms = {
     perms foreach { case(set,get) =>
       set(get() + p)
     }
-    file 
+    file
   }
   def +(o:Byte) : FilePerms = Perm(o) match {
-    case Some(p) => this.+(p) 
+    case Some(p) => this.+(p)
     case None => file
   }
-  
+
   /*
    * Remove to all perms the given rights
    */
-  def -(p:Perm) : FilePerms = { 
+  def -(p:Perm) : FilePerms = {
     perms foreach { case(set,get) =>
       set(get() - p)
     }
@@ -227,9 +227,9 @@ case class PermSet(file:FilePerms,perms:(Perm => Unit, () => Perm)* )  extends H
     case Some(p) => this.-(p)
     case None => file
   }
-  
+
   def octal:String = ("" /: perms ) { (s,p) => s + p._2().octal.toString }
-  
+
   //simule erad/write/exec vars
   def read = (true /: perms){ (b,p) => b & p._2().read }
   def read_=(b:Boolean) { if(b) this+(r) else this-(r) }
@@ -237,7 +237,7 @@ case class PermSet(file:FilePerms,perms:(Perm => Unit, () => Perm)* )  extends H
   def write_=(b:Boolean) { if(b) this+(w) else this-(w) }
   def exec = (true /: perms){ (b,p) => b & p._2().exec }
   def exec_=(b:Boolean) { if(b) this+(x) else this-(x) }
-  
+
 }
 
 object PermSet {
@@ -256,7 +256,7 @@ class FilePerms( //special bits have to be explicitly set
   var _g:Perm=none,
   var _o:Perm=none
 ) {
-  
+
   val u = PermSet.u(this)
   val g = PermSet.g(this)
   val o = PermSet.o(this)
@@ -265,11 +265,11 @@ class FilePerms( //special bits have to be explicitly set
   val go = PermSet.go(this)
   val ugo = PermSet.ugo(this)
   val a = PermSet.a(this)
-  
+
   def octal:String = "%s%s%s".format(_u.octal.toString,_g.octal.toString,_o.octal.toString)
-  
+
   override def toString = "%s%s%s".format(_u.toString,_g.toString,_o.toString)
-  
+
   def set(that:FilePerms) = {
     this._u = that._u
     this._g = that._g
@@ -286,7 +286,7 @@ class FilePerms( //special bits have to be explicitly set
     case that:FilePerms => this._u == that._u && this._g == that._g && this._o == that._o
     case _ => false
   }
-  
+
   override def hashCode() = this._u.hashCode + this._g.hashCode * 7 + this._o.hashCode * 31
 }
 
@@ -294,16 +294,16 @@ object FilePerms {
   def apply(perms:String) : Option[FilePerms] = { //only understand one to three char
     if(isEmpty(perms)) None
     else perms.toList match {
-      case Perm(x) :: Nil => Some(FilePerms(x)) 
+      case Perm(x) :: Nil => Some(FilePerms(x))
       case Perm(x) :: Perm(y) :: Nil  => Some(FilePerms(x,y))
       case Perm(x) :: Perm(y) :: Perm(z) :: Nil  => Some(FilePerms(x,y,z))
       case _ => None
     }
-    
+
   }
-  
+
   def apply(perms:Int) : Option[FilePerms] = apply(perms.toString)
-  
+
   def apply(u:Perm=none,g:Perm=none,o:Perm=none) = new FilePerms(u,g,o)
   def unapply(perm:FilePerms) : Option[(Perm,Perm,Perm)] = {
     Some((perm._u,perm._g,perm._o))
@@ -314,14 +314,14 @@ object FilePerms {
       case _ => None
     }
   }
-  
+
   def allPerms : Set[FilePerms] = for {
     u <- Perm.allPerms
     g <- Perm.allPerms
     o <- Perm.allPerms
   } yield FilePerms(u,g,o)
 
-  
+
   /*
    * Used like: chmod( ugo(_)+rw, file)
    * [so bad for the (_)]

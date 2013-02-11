@@ -50,18 +50,18 @@ class NovaLicenseServiceImpl(licenseRepository : LicenseRepository, nodeConfigur
 
   val logger = LoggerFactory.getLogger(classOf[NovaLicenseServiceImpl])
 
-  def findLicenseForNode(server: String): Option[NovaLicense] = { 
+  def findLicenseForNode(server: String): Option[NovaLicense] = {
     licenseRepository.findLicense(server)
   }
 
-  def saveLicenseFile(uuid: String, licenseNumber: Int, expirationDate: DateTime, file: String): Unit = {  
-    
+  def saveLicenseFile(uuid: String, licenseNumber: Int, expirationDate: DateTime, file: String): Unit = {
+
     val sourceFile = new File(file)
     if (!sourceFile.exists) {
       logger.error("Trying to add a non-existing license file: {}", file)
       throw new FileNotFoundException("Cannot find the license file " + file)
     }
-    
+
     nodeConfigurationRepository.findNodeConfiguration(NodeId(uuid)) match {
       case Full(server) =>
         val destFile = FilenameUtils.normalize(licensesPath + "/" + uuid +"/" + "license.dat")
@@ -69,7 +69,7 @@ class NovaLicenseServiceImpl(licenseRepository : LicenseRepository, nodeConfigur
         val novaLicense = new NovaLicense(uuid, licenseNumber, expirationDate, destFile)
         licenseRepository.addLicense(novaLicense)
         () // unit is expected
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         val msg = "Error when trying to add a license to server with uuid %s.".format(uuid)
         logger.error(msg,e)
         throw new BusinessException(msg)

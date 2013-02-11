@@ -71,10 +71,10 @@ class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
         <displayName>{rule.name}</displayName>
         <serial>{rule.serial}</serial>
         <targets>{
-          rule.targets.map { target => <target>{target.target}</target> } 
+          rule.targets.map { target => <target>{target.target}</target> }
         }</targets>
         <directiveIds>{
-          rule.directiveIds.map { id => <id>{id.value}</id> } 
+          rule.directiveIds.map { id => <id>{id.value}</id> }
         }</directiveIds>
         <shortDescription>{rule.shortDescription}</shortDescription>
         <longDescription>{rule.longDescription}</longDescription>
@@ -85,8 +85,8 @@ class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
 }
 
 /**
- * That trait allow to serialise 
- * active techniques categories to an XML file. 
+ * That trait allow to serialise
+ * active techniques categories to an XML file.
  */
 class ActiveTechniqueCategorySerialisationImpl(xmlVersion:String) extends ActiveTechniqueCategorySerialisation {
 
@@ -101,8 +101,8 @@ class ActiveTechniqueCategorySerialisationImpl(xmlVersion:String) extends Active
 }
 
 /**
- * That trait allows to serialise 
- * active techniques to an XML file. 
+ * That trait allows to serialise
+ * active techniques to an XML file.
  */
 class ActiveTechniqueSerialisationImpl(xmlVersion:String) extends ActiveTechniqueSerialisation {
 
@@ -120,11 +120,11 @@ class ActiveTechniqueSerialisationImpl(xmlVersion:String) extends ActiveTechniqu
 }
 
 /**
- * That trait allows to serialise 
- * directives an XML file. 
+ * That trait allows to serialise
+ * directives an XML file.
  */
 class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisation {
-  
+
   def serialise(
       ptName             : TechniqueName
     , variableRootSection: SectionSpec
@@ -147,8 +147,8 @@ class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisati
 }
 
 /**
- * That trait allows to serialise 
- * Node group categories to an XML file. 
+ * That trait allows to serialise
+ * Node group categories to an XML file.
  */
 class NodeGroupCategorySerialisationImpl(xmlVersion:String) extends NodeGroupCategorySerialisation {
 
@@ -171,7 +171,7 @@ class NodeGroupSerialisationImpl(xmlVersion:String) extends NodeGroupSerialisati
         <query>{ group.query.map( _.toJSONString ).getOrElse("") }</query>
         <isDynamic>{group.isDynamic}</isDynamic>
         <nodeIds>{
-          group.serverList.map { id => <id>{id.value}</id> } 
+          group.serverList.map { id => <id>{id.value}</id> }
         }</nodeIds>
         <isEnabled>{group.isEnabled}</isEnabled>
         <isSystem>{group.isSystem}</isSystem>

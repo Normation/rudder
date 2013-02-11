@@ -207,7 +207,7 @@ object ModificationWatchList {
     , ImportFullArchiveEventType
     , RollbackEventType
   )
-  
+
 }
 
 
@@ -217,37 +217,37 @@ object EventTypeFactory {
     , ManualStartDeployementEventType
     , SuccessfulDeploymentEventType
     , FailedDeploymentEventType
-    
+
     , LoginEventType
     , BadCredentialsEventType
     , LogoutEventType
-    
+
     , AddNodeGroupEventType
     , DeleteNodeGroupEventType
     , ModifyNodeGroupEventType
-    
+
     , AddDirectiveEventType
     , DeleteDirectiveEventType
     , ModifyDirectiveEventType
-    
+
     , ApplicationStartedEventType
     , ActivateRedButtonEventType
     , ReleaseRedButtonEventType
-    , ReloadTechniqueLibraryType 
+    , ReloadTechniqueLibraryType
     , ModifyTechniqueEventType
     , DeleteTechniqueEventType
-      
+
     , AddRuleEventType
     , DeleteRuleEventType
     , ModifyRuleEventType
-      
+
     , AcceptNodeEventType
     , RefuseNodeEventType
     , DeleteNodeEventType
-      
+
     , ClearCacheEventType
     , UpdatePolicyServerEventType
-      
+
     , ExportGroupsEventType
     , ImportGroupsEventType
     , ExportTechniqueLibraryEventType
@@ -258,11 +258,11 @@ object EventTypeFactory {
     , ImportFullArchiveEventType
     , RollbackEventType
   )
-      
+
   def apply(s:String) : EventLogType = {
     eventTypes.find {
       pf => pf.isDefinedAt(s)
     }.getOrElse(UnknownEventLogType)
-    
+
   }
 }

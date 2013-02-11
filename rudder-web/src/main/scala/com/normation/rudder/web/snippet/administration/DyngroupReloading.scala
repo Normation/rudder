@@ -56,14 +56,14 @@ import com.normation.rudder.batch.UpdateDynamicGroups
 class DyngroupReloading extends DispatchSnippet with Loggable {
 
   private[this] val updateDynamicGroups = inject[UpdateDynamicGroups]
-  
+
   def dispatch = {
     case "render" => reload
   }
-  
-  
+
+
   def reload : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
-    
+
     // our process method returns a
     // JsCmd which will be sent back to the browser
     // as part of the response
@@ -72,15 +72,15 @@ class DyngroupReloading extends DispatchSnippet with Loggable {
       S.clearCurrentNotices
 
       updateDynamicGroups.startManualUpdate
-      
+
       S.notice("dyngroupReloadingNotice", "Dynamic group reloading started")
-      
-      Replace("dyngroupReloadingForm", outerXml.applyAgain) 
+
+      Replace("dyngroupReloadingForm", outerXml.applyAgain)
     }
-    
+
     //process the list of networks
-    "#dyngroupReloadingButton" #> { 
+    "#dyngroupReloadingButton" #> {
       SHtml.ajaxSubmit("Reload dynamic groups", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
     }
-  }  
+  }
 }
