@@ -55,21 +55,21 @@ import org.slf4j.LoggerFactory
 
 /*
  * This file contains post commit action to
- * weave in with the report saver. 
+ * weave in with the report saver.
  */
 
 
 /**
  * Post-commit: Accept a machine in Pending Branch if
- * a server whose container is that machine already is in 
+ * a server whose container is that machine already is in
  * accepted branch.
  */
 class AcceptPendingMachineIfServerIsAccepted(
     writeOnlyMachineRepository:WriteOnlyMachineRepository[Seq[LDIFChangeRecord]]
 ) extends PostCommit[Seq[LDIFChangeRecord]] with Loggable {
-  
+
   override val name = "post_commit_inventory:accept_pending_machine_for_accepted_server"
-  
+
   override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : Box[Seq[LDIFChangeRecord]] = {
     (report.node.main.status, report.machine.status ) match {
       case (AcceptedInventory,  PendingInventory) =>
@@ -87,15 +87,15 @@ class AcceptPendingMachineIfServerIsAccepted(
 }
 
 /**
- * Post-commit: Move a node from Deleted Branch to Pending 
+ * Post-commit: Move a node from Deleted Branch to Pending
  * if a new inventory arrives from this node
  */
 class PendingNodeIfNodeWasRemoved(
     writeOnlyFullInventoryRepository  : WriteOnlyFullInventoryRepository[Seq[LDIFChangeRecord]]
 ) extends PostCommit[Seq[LDIFChangeRecord]] with Loggable {
-  
+
   override val name = "post_commit_inventory:pending_node_for_deleted_server"
-  
+
   override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : Box[Seq[LDIFChangeRecord]] = {
     (report.node.main.status, report.machine.status ) match {
       case (RemovedInventory,  RemovedInventory) =>
@@ -125,9 +125,9 @@ class PendingNodeIfNodeWasRemoved(
  * modification actually done in the directory
  */
 class PostCommitLogger(log:LDIFReportLogger) extends PostCommit[Seq[LDIFChangeRecord]] {
-  
+
   override val name = "post_commit_inventory:log_inventory"
-  
+
   override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : Box[Seq[LDIFChangeRecord]] = {
     log.log(
         report.name,
@@ -140,31 +140,31 @@ class PostCommitLogger(log:LDIFReportLogger) extends PostCommit[Seq[LDIFChangeRe
 
 
 /**
- * Historize the state of the inventory just saved. 
- * We don't historize softwares, only server and machine data. 
- * 
- * We use the server DN as id for the history log. 
- * 
+ * Historize the state of the inventory just saved.
+ * We don't historize softwares, only server and machine data.
+ *
+ * We use the server DN as id for the history log.
+ *
  * We don't historize if the only modification is the inventory date
  * (or more preciselly, any attributes in the ignoreModificationOnAttributes list)
  */
 class InventoryHistorizationPostCommit(
-    historyRepos:InventoryHistoryLogRepository, 
+    historyRepos:InventoryHistoryLogRepository,
     repos:ReadOnlyFullInventoryRepository,
     ignoreModificationOnAttributes: String*
 ) extends PostCommit[Seq[LDIFChangeRecord]] with Loggable {
 
   override val name = "post_commit_inventory:historize_inventory"
-  
+
   private[this] val ignore = ignoreModificationOnAttributes.map( _.toLowerCase).toSet
-    
+
   override def apply(report:InventoryReport,records:Seq[LDIFChangeRecord]) : Box[Seq[LDIFChangeRecord]] = {
     //don't historize if all modification are on ignorable attributes
-    if( records.find{ 
+    if( records.find{
       //historize if at least one modification is done on a non-ignorable attribute
-      case mod:com.unboundid.ldif.LDIFModifyChangeRecord => 
-        mod.getModifications.find { m => 
-          !ignore.contains(m.getAttributeName.toLowerCase) 
+      case mod:com.unboundid.ldif.LDIFModifyChangeRecord =>
+        mod.getModifications.find { m =>
+          !ignore.contains(m.getAttributeName.toLowerCase)
         }.isDefined
       //historize on all other modification type
       case _ => true
@@ -184,9 +184,9 @@ class InventoryHistorizationPostCommit(
     } else {
       logger.debug("Not historizing inventory with id %s because only modification were ignorable".format(report.node.main.id.value))
     }
-    
+
     //whatever happened, don't block the process
-    Full(records) 
+    Full(records)
   }
-  
+
 }

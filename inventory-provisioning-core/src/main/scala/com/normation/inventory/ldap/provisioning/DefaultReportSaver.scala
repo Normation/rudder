@@ -49,7 +49,7 @@ import net.liftweb.common.Loggable
 /**
  * Post-commit convention:
  * - Post-commit can't modify InventoryReport
- * - if succed, they can enhanced the list of ChangeRecords, 
+ * - if succed, they can enhanced the list of ChangeRecords,
  *   but at least must forward existing LDIFChangeRecords
  * - a post commit which returns Failure or Empty stop the post-commit pipeline
  *
@@ -58,30 +58,30 @@ import net.liftweb.common.Loggable
 class DefaultReportSaver(
   ldapConnectionProvider:LDAPConnectionProvider,
   dit:InventoryDit,
-  mapper:InventoryMapper, 
+  mapper:InventoryMapper,
   override val preCommitPipeline:Seq[PreCommit],
   override val postCommitPipeline:Seq[PostCommit[Seq[LDIFChangeRecord]]]
 ) extends PipelinedReportSaver[Seq[LDIFChangeRecord]] with Loggable {
 
   def commitChange(report:InventoryReport) : Box[Seq[LDIFChangeRecord]] = {
-    
+
     /*
      * we are saving with one connection by type of object so
      * that an LDAPException in one don't stop the
      * other to be saved
      */
     var results = List[Box[Seq[LDIFChangeRecord]]]()
-    
+
     //we really want to save each software, and not the software tree as a whole - just think about the diff...
     report.applications foreach { x =>
       results = {
         for {
           con <- ldapConnectionProvider
           res <- con.save(mapper.entryFromSoftware(x))
-        } yield { Seq(res) }  
-      } :: results 
+        } yield { Seq(res) }
+      } :: results
     }
-    
+
     results = {
       for {
         con <- ldapConnectionProvider
@@ -89,7 +89,7 @@ class DefaultReportSaver(
       } yield { res }
     } :: results
 
-    
+
     results = {
       for {
         con <- ldapConnectionProvider
@@ -98,7 +98,7 @@ class DefaultReportSaver(
       } yield {
         res }
     } :: results
-    
+
     //finally, vms
     report.vms foreach { x =>
        results = { for {
@@ -107,13 +107,13 @@ class DefaultReportSaver(
         } yield { res }
       } :: results
     }
-    
+
     /*
-     * TODO : what to do when there is a mix a failure/success ? 
-     * LDAP does not have transaction, so... Try to restore, 
-     * redo, what else ? 
-     * 
-     * For now, even on partial failure (means: not all fail), 
+     * TODO : what to do when there is a mix a failure/success ?
+     * LDAP does not have transaction, so... Try to restore,
+     * redo, what else ?
+     *
+     * For now, even on partial failure (means: not all fail),
      * we consider it as a success and forward to post process
      */
     if(results.forall( _.isEmpty )) {
@@ -123,21 +123,21 @@ class DefaultReportSaver(
         case _ => fail
       } }
     } else { //ok, so at least one non error. Log errors, merge non error, and post-process it
-      
+
       val changes : Seq[LDIFChangeRecord] = (Seq[LDIFChangeRecord]() /: results){ (records,r) => r match {
-        case f:Failure => 
+        case f:Failure =>
           logger.error("Report processing will be incomplete, found error: %s".format(f.messageChain))
-          f.rootExceptionCause.foreach { ex => 
+          f.rootExceptionCause.foreach { ex =>
             logger.error("Error was caused by exception: %s".format(ex.getMessage))
           }
           records
-        case Empty => records //can't log anything relevant ? 
+        case Empty => records //can't log anything relevant ?
         case Full(seq) => records ++ seq
       } }
-      
+
       //we don't want to avoid post-processing, so always return changes
       Full(changes)
-      
+
     }
   }
 }

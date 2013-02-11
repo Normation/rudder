@@ -42,44 +42,44 @@ import org.junit.runners.BlockJUnit4ClassRunner
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestKeyNormalizer {
-  
+
   val sanitizer = new PrintedKeyNormalizer
-  
+
   val reference = "MIIBCAKCAQEA50tCDX1wBHy3mQ1d15OI6K83Ep5PRWVBjRePrbReskmsVdniWIaU 4ijA6+yfJD90hB53D/lXcCj673kQaB0b+BXsyl58TGmz5dZmqVB576/78ch13/TW lixZ8IR9dMTNhEJXwveOEosae1Jazxq4Y0GWX9eP1xJrDRefErzwmMLnx0m3yzbb Eiygs2Y8xALmlW+uubu/A3o0Z4/IDEwbruepkB7Ug510UUvTW/E2CzPWXk22Lvok aUZJllqAHB/xL7XOhowBykQHRU5yk/Q6fZJ8XxdMbW++4jq6N45UXhie32bNdSn8 ZcGU20mwvP365CGj9vVRdI+vrPrOsStYjwIBIw=="
   val rsa_oneline = "-----BEGIN RSA PUBLIC KEY----- MIIBCAKCAQEA50tCDX1wBHy3mQ1d15OI6K83Ep5PRWVBjRePrbReskmsVdniWIaU 4ijA6+yfJD90hB53D/lXcCj673kQaB0b+BXsyl58TGmz5dZmqVB576/78ch13/TW lixZ8IR9dMTNhEJXwveOEosae1Jazxq4Y0GWX9eP1xJrDRefErzwmMLnx0m3yzbb Eiygs2Y8xALmlW+uubu/A3o0Z4/IDEwbruepkB7Ug510UUvTW/E2CzPWXk22Lvok aUZJllqAHB/xL7XOhowBykQHRU5yk/Q6fZJ8XxdMbW++4jq6N45UXhie32bNdSn8 ZcGU20mwvP365CGj9vVRdI+vrPrOsStYjwIBIw== -----END RSA PUBLIC KEY-----"
   val rsa_72col = """
-            -----BEGIN RSA PUBLIC KEY----- 
+            -----BEGIN RSA PUBLIC KEY-----
 MIIBCAKCAQEA50tCDX1wBHy3mQ1d15OI6K83Ep5PRWVBjRePrbReskmsVdniWIaU 4ijA6+
 yfJD90hB53D/lXcCj673kQaB0b+BXsyl58TGmz5dZmqVB576/78ch13/TW lixZ8IR9dMTN
 hEJXwveOEosae1Jazxq4Y0GWX9eP1xJrDRefErzwmMLnx0m3yzbb Eiygs2Y8xALmlW+uub
 u/A3o0Z4/IDEwbruepkB7Ug510UUvTW/E2CzPWXk22Lvok aUZJllqAHB/xL7XOhowBykQH
 RU5yk/Q6fZJ8XxdMbW++4jq6N45UXhie32bNdSn8 ZcGU20mwvP365CGj9vVRdI+vrPrOsS
-tYjwIBIw== 
+tYjwIBIw==
             -----END RSA PUBLIC KEY-----"""
 
   val pem_oneline = "-----BEGIN PEM----- MIIBCAKCAQEA50tCDX1wBHy3mQ1d15OI6K83Ep5PRWVBjRePrbReskmsVdniWIaU 4ijA6+yfJD90hB53D/lXcCj673kQaB0b+BXsyl58TGmz5dZmqVB576/78ch13/TW lixZ8IR9dMTNhEJXwveOEosae1Jazxq4Y0GWX9eP1xJrDRefErzwmMLnx0m3yzbb Eiygs2Y8xALmlW+uubu/A3o0Z4/IDEwbruepkB7Ug510UUvTW/E2CzPWXk22Lvok aUZJllqAHB/xL7XOhowBykQHRU5yk/Q6fZJ8XxdMbW++4jq6N45UXhie32bNdSn8 ZcGU20mwvP365CGj9vVRdI+vrPrOsStYjwIBIw== -----END PEM-----"
   val pem_72col = """
-            -----BEGIN PEM----- 
+            -----BEGIN PEM-----
 MIIBCAKCAQEA50tCDX1wBHy3mQ1d15OI6K83Ep5PRWVBjRePrbReskmsVdniWIaU 4ijA6+
 yfJD90hB53D/lXcCj673kQaB0b+BXsyl58TGmz5dZmqVB576/78ch13/TW lixZ8IR9dMTN
 hEJXwveOEosae1Jazxq4Y0GWX9eP1xJrDRefErzwmMLnx0m3yzbb Eiygs2Y8xALmlW+uub
 u/A3o0Z4/IDEwbruepkB7Ug510UUvTW/E2CzPWXk22Lvok aUZJllqAHB/xL7XOhowBykQH
 RU5yk/Q6fZJ8XxdMbW++4jq6N45UXhie32bNdSn8 ZcGU20mwvP365CGj9vVRdI+vrPrOsS
-tYjwIBIw== 
+tYjwIBIw==
             -----END PEM-----"""
 
   val foo_oneline = "-----begin foo----- MIIBCAKCAQEA50tCDX1wBHy3mQ1d15OI6K83Ep5PRWVBjRePrbReskmsVdniWIaU 4ijA6+yfJD90hB53D/lXcCj673kQaB0b+BXsyl58TGmz5dZmqVB576/78ch13/TW lixZ8IR9dMTNhEJXwveOEosae1Jazxq4Y0GWX9eP1xJrDRefErzwmMLnx0m3yzbb Eiygs2Y8xALmlW+uubu/A3o0Z4/IDEwbruepkB7Ug510UUvTW/E2CzPWXk22Lvok aUZJllqAHB/xL7XOhowBykQHRU5yk/Q6fZJ8XxdMbW++4jq6N45UXhie32bNdSn8 ZcGU20mwvP365CGj9vVRdI+vrPrOsStYjwIBIw== -----end foo-----"
   val foo_80col = """
-            -----BEGIN foo----- 
+            -----BEGIN foo-----
 MIIBCAKCAQEA50tCDX1wBHy3mQ1d15OI6K83Ep5PRWVBjRePrbReskmsVdniWIaU 4ijA6+yfJD90hB
 53D/lXcCj673kQaB0b+BXsyl58TGmz5dZmqVB576/78ch13/TW lixZ8IR9dMTNhEJXwveOEosae1Ja
 zxq4Y0GWX9eP1xJrDRefErzwmMLnx0m3yzbb Eiygs2Y8xALmlW+uubu/A3o0Z4/IDEwbruepkB7Ug5
 10UUvTW/E2CzPWXk22Lvok aUZJllqAHB/xL7XOhowBykQHRU5yk/Q6fZJ8XxdMbW++4jq6N45UXhie
-32bNdSn8 ZcGU20mwvP365CGj9vVRdI+vrPrOsStYjwIBIw== 
+32bNdSn8 ZcGU20mwvP365CGj9vVRdI+vrPrOsStYjwIBIw==
             -----END foo-----"""
 
 
-         
+
 
   @Test
   def testSanitize() {

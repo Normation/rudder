@@ -42,21 +42,21 @@ import java.io.File
 /**
  * A context loader listener for initializing Spring webapp context
  * and logging.
- * 
+ *
  * Spring application context is initialized here because:
  * - Java Annotation based web application context can ONLY be initialized thanks to a context param
  *   of filter (no comment on that...), see:
  *   http://static.springsource.org/spring/docs/3.0.x/spring-framework-reference/htmlsingle/spring-framework-reference.html#beans-java-instantiating-container-web
- * - Its one of the first thing to be done on servlet loading, and it can access ServletContext, 
+ * - Its one of the first thing to be done on servlet loading, and it can access ServletContext,
  *   which is necessary to be able to call WebApplicationContextUtils.getWebApplicationContext
- *   
+ *
  */
 class LogbackContextInitListener extends ServletContextListener {
-  
+
   //choose what Logback.xml file to use
   val JVM_CONFIG_FILE_KEY = "logback.configurationFile"
   val DEFAULT_CONFIG_FILE_NAME = "logback.xml"
-  
+
   val logbackFile = System.getProperty(JVM_CONFIG_FILE_KEY) match {
     case null | "" => //use default location in classpath
       val path = new ClassPathResource(DEFAULT_CONFIG_FILE_NAME).getURL
@@ -72,15 +72,15 @@ class LogbackContextInitListener extends ServletContextListener {
         throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
       }
     }
-    
+
   override def contextInitialized(sce:ServletContextEvent) : Unit = {
-        
+
     Logback.withFile(logbackFile)()
-    
+
   }
-    
+
   override def contextDestroyed(sce:ServletContextEvent) : Unit = {
     //nothing special to do for us
   }
-  
+
 }

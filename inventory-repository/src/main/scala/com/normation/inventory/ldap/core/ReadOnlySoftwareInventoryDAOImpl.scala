@@ -45,7 +45,7 @@ import Box._
 import com.normation.utils.Control.sequence
 
 class ReadOnlySoftwareDAOImpl(
-  inventoryDitService:InventoryDitService, 
+  inventoryDitService:InventoryDitService,
   ldap:LDAPConnectionProvider,
   mapper:InventoryMapper
 ) extends ReadOnlySoftwareDAO {
@@ -61,7 +61,7 @@ class ReadOnlySoftwareDAOImpl(
       softs
     }
   }
-  
+
   override def getSoftware(id:NodeId, inventoryStatus:InventoryStatus) : Box[Seq[Software]] = {
     val server = inventoryDitService.getDit(inventoryStatus).NODES.NODE
     for {

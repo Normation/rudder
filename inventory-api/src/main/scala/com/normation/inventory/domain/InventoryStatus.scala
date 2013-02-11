@@ -37,7 +37,7 @@ package com.normation.inventory.domain
 import com.normation.utils.HashcodeCaching
 
 /**
- * Defined the status of a machine or 
+ * Defined the status of a machine or
  * server.
  * For now, we only have three:
  * - accepted

@@ -47,7 +47,7 @@ import com.normation.inventory.domain._
 import net.liftweb.common._
 
 trait NodeInventoryDNFinder extends NodeInventoryDNFinderAction
-                      
+
 /**
  * Find the UUID in the whole LDAP and find if the uuid is already use
  *
@@ -69,11 +69,11 @@ class UseExistingNodeIdFinder(inventoryDitService:InventoryDitService, ldap:LDAP
  * Retrieve the id from the cfengine public key
  */
 class ComparePublicKeyIdFinder(
-    ldapConnectionProvider:LDAPConnectionProvider, 
+    ldapConnectionProvider:LDAPConnectionProvider,
     dit:InventoryDit,
     ditService:InventoryDitService
 ) extends NodeInventoryDNFinder with Loggable {
-  
+
   override def tryWith(entity:NodeInventory) : Box[(NodeId,InventoryStatus)] = {
     val keys = entity.publicKeys
     if(keys.size > 0) {
@@ -81,7 +81,7 @@ class ComparePublicKeyIdFinder(
 
       ldapConnectionProvider flatMap { con =>
         val entries = con.searchOne(dit.NODES.dn, keysFilter, A_NODE_UUID)
-        
+
         if(entries.size >= 1) {
           if(entries.size > 1) {
             /*
@@ -100,7 +100,7 @@ class ComparePublicKeyIdFinder(
             //Issue #553
             //Full(NodeId(entries(0)(A_SERVER_UUID).get),dit)
             val existingNodeId = NodeId(entries(0)(A_NODE_UUID).get)
-            if(entity.main.id != existingNodeId) { 
+            if(entity.main.id != existingNodeId) {
                 logger.error("Found two nodes which share at least one key. Isn't that a pending security issue ?\nNodes ids: '%s' and '%s'\nKeys fingerprint: \n==> %s"format(entity.main.id, existingNodeId, keys.map(_.key).mkString("\n==> ")))
                 Empty
             } else {

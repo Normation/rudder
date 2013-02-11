@@ -58,15 +58,15 @@ import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
 @Configuration
 @Import(Array(classOf[PropertyPlaceholderConfig]))
 class AppConfig {
-      
+
   val logger = LoggerFactory.getLogger(classOf[AppConfig])
-  
+
   @Value("${ldap.host}")
   var SERVER = ""
-    
+
   @Value("${ldap.port}")
   var PORT = 389
-  
+
   @Value("${ldap.authdn}")
   var AUTH_DN = ""
   @Value("${ldap.authpw}")
@@ -74,44 +74,44 @@ class AppConfig {
 
   @Value("${ldif.tracelog.rootdir}")
   var LDIF_TRACELOG_ROOT_DIR = ""
-    
+
   @Value("${history.inventories.enable}")
   var INVENTORIES_HISTORY_ENABLED = false
-  
+
   @Value("${history.inventories.rootdir}")
   var INVENTORIES_HISTORY_ROOT_DIR = ""
-    
+
   @Value("${ldap.inventories.accepted.basedn}")
   var ACCEPTED_INVENTORIES_DN = ""
-    
+
   @Value("${ldap.inventories.pending.basedn}")
   var PENDING_INVENTORIES_DN = ""
-  
+
   @Value("${ldap.inventories.removed.basedn}")
   var REMOVED_INVENTORIES_DN = ""
 
   @Value("${ldap.inventories.software.basedn}")
   var SOFTWARE_INVENTORIES_DN = ""
-  
-  //TODO: only have a root DN here !  
-    
-    
+
+  //TODO: only have a root DN here !
+
+
   @Bean
   def acceptedNodesDit = new InventoryDit(ACCEPTED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Accepted Servers")
-  
+
   @Bean
   def pendingNodesDit = new InventoryDit(PENDING_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Pending Servers")
 
   @Bean
   def removedNodesDit = new InventoryDit(REMOVED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Removed Servers")
 
-  
+
   @Bean
   def inventoryDitService = new InventoryDitServiceImpl(pendingNodesDit,acceptedNodesDit, removedNodesDit)
-  
-  @Bean 
+
+  @Bean
   def inventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDit, acceptedNodesDit, removedNodesDit)
-  
+
   /*
    * Implementation of thePipelined report unmarshaller
    */
@@ -123,22 +123,22 @@ class AppConfig {
           uuidGenerator
         , rootParsingExtensions = (
             RudderNodeIdParsing ::
-            RudderPolicyServerParsing :: 
-            RudderMachineIdParsing :: 
+            RudderPolicyServerParsing ::
+            RudderMachineIdParsing ::
             RudderCpuParsing ::
             new RudderPublicKeyParsing(keyNorm) ::
-            RudderRootUserParsing :: 
-            RudderAgentNameParsing :: 
+            RudderRootUserParsing ::
+            RudderAgentNameParsing ::
             RudderHostnameParsing ::
             Nil
         )
         , contentParsingExtensions = (
             RudderUserListParsing ::
             Nil
-        ) 
+        )
       )
     }
-        
+
     new DefaultReportUnmarshaller(
      fusionReportParser,
      Seq(
@@ -146,7 +146,7 @@ class AppConfig {
      )
     )
   }
-  
+
   @Bean
   def ldapConnectionProvider = new PooledSimpleAuthConnectionProvider(
       authDn = AUTH_DN
@@ -155,16 +155,16 @@ class AppConfig {
     , port = PORT
     , ldifFileLogger = new DefaultLDIFFileLogger(ldifTraceRootDir = LDIF_TRACELOG_ROOT_DIR)
   )
-  
+
   @Bean
   def uuidGenerator : StringUuidGenerator = new StringUuidGeneratorImpl
-  
+
   @Bean
   def ldifReportLogger = new DefaultLDIFReportLogger(LDIF_TRACELOG_ROOT_DIR)
-  
+
   @Bean
   def preCommitLogReport = new LogReportPreCommit(inventoryMapper,ldifReportLogger)
-  
+
   @Bean
   def inventoryHistoryLogRepository = new InventoryHistoryLogRepository(
       INVENTORIES_HISTORY_ROOT_DIR,
@@ -173,42 +173,42 @@ class AppConfig {
         , inventoryMapper
       )
   )
-  
+
   @Bean
   def fullInventoryRepository = new FullInventoryRepositoryImpl(
       inventoryDitService
     , inventoryMapper
     , ldapConnectionProvider
   )
-    
+
   @Bean
   def inventoryHistorizationPostCommit = new InventoryHistorizationPostCommit(
       inventoryHistoryLogRepository, fullInventoryRepository, LDAPConstants.A_INVENTORY_DATE
   )
-  
-  @Bean 
+
+  @Bean
   def postCommitLogger = new PostCommitLogger(ldifReportLogger)
-  
+
   @Bean
   def acceptPendingMachineIfServerIsAccepted = new AcceptPendingMachineIfServerIsAccepted(
       fullInventoryRepository
   )
-  
+
   @Bean
   def pendingNodeIfNodeWasRemoved = new PendingNodeIfNodeWasRemoved(
       fullInventoryRepository
   )
-  
+
   @Bean
   def serverFinder() : NodeInventoryDNFinderAction =
     new NodeInventoryDNFinderService(Seq(
         //start by trying to use an already given UUID
         NamedNodeInventoryDNFinderAction("use_existing_id", new UseExistingNodeIdFinder(inventoryDitService,ldapConnectionProvider,acceptedNodesDit.BASE_DN.getParent))
     ))
-  
-  
+
+
   @Bean
-  def machineFinder() : MachineDNFinderAction = 
+  def machineFinder() : MachineDNFinderAction =
     new MachineDNFinderService(Seq(
         //start by trying to use an already given UUID
         NamedMachineDNFinderAction("use_existing_id", new UseExistingMachineIdFinder(inventoryDitService,ldapConnectionProvider,acceptedNodesDit.BASE_DN.getParent))
@@ -219,15 +219,15 @@ class AppConfig {
         //see if it's in the "removed" branch
       , NamedMachineDNFinderAction("check_mother_board_uuid_removed", new FromMotherBoardUuidIdFinder(ldapConnectionProvider,removedNodesDit,inventoryDitService))
     ))
-  
+
   @Bean
-  def softwareFinder() : SoftwareDNFinderAction = 
+  def softwareFinder() : SoftwareDNFinderAction =
     new SoftwareDNFinderService(Seq(
       NamedSoftwareDNFinderAction(
         "check_name_and_version",
         new NameAndVersionIdFinder(ldapConnectionProvider,inventoryMapper,acceptedNodesDit)
     )))
-  
+
   @Bean
   def automaticMerger() : PreCommit = new UuidMergerPreCommit(
       uuidGenerator
@@ -247,7 +247,7 @@ class AppConfig {
     preCommitLogReport ::
     Nil
   )
-  
+
   lazy val postCommitPipeline : Seq[PostCommit[Seq[LDIFChangeRecord]]]= (
     (
       pendingNodeIfNodeWasRemoved ::
@@ -264,7 +264,7 @@ class AppConfig {
       }
     )
   )
-  
+
   @Bean
   def reportSaver = new DefaultReportSaver(
       ldapConnectionProvider
@@ -273,12 +273,12 @@ class AppConfig {
     , preCommitPipeline
     , postCommitPipeline
   )
-  
+
 
   /*
    * configure the file handler
    */
-  @Bean 
+  @Bean
   def multipartResolver() = {
     val c = new CommonsMultipartResolver()
     c.setMaxUploadSize(10000000)
@@ -287,7 +287,7 @@ class AppConfig {
 
 
   /*
-   * The REST end point where OCSi report are 
+   * The REST end point where OCSi report are
    * uploaded
    */
   @Bean

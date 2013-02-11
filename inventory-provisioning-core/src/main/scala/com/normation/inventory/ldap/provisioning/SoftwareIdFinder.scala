@@ -62,7 +62,7 @@ class NameAndVersionIdFinder(
     mapper:InventoryMapper,
     dit:InventoryDit
 ) extends SoftwareDNFinderAction {
-  
+
   //the onlyTypes is an AND filter
   override def tryWith(entity:Software) : Box[SoftwareUuid] = {
     //create filter for software name and version
@@ -70,14 +70,14 @@ class NameAndVersionIdFinder(
       case None => NOT(HAS(A_NAME))
       case Some(x) => EQ(A_NAME,x)
     }
-    
+
     val versionFilter = entity.version match {
       case None => NOT(HAS(A_SOFT_VERSION))
       case Some(x) => EQ(A_SOFT_VERSION,x.value)
     }
 
     val filter = AND(nameFilter,versionFilter)
-    
+
 
     ldapConnectionProvider.flatMap { con =>
       //get potential entries, and only get the one with a A_SOFTWARE_UUID
@@ -95,7 +95,7 @@ class NameAndVersionIdFinder(
           for(e <- entries) {
             logger.info("-> {}",e )
           }
-        } 
+        }
         Full(SoftwareUuid(entries.head))
       } else Empty
     }

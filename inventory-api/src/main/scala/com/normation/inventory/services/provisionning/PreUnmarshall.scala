@@ -41,9 +41,9 @@ import scala.xml.NodeSeq
  * This traits allows to pre process report to manage specific data
  */
 trait PreUnmarshall {
-  
+
   def name : String
-  
+
   def apply(report:NodeSeq) : Box[NodeSeq]
 }
 

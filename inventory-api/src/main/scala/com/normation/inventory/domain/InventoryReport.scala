@@ -41,23 +41,23 @@ import com.normation.utils.HashcodeCaching
 
 /**
  * Define what an inventory report can contain
- * A report is done for one operating system (the server), 
+ * A report is done for one operating system (the server),
  * on at most one container (the underlying machine, physical or virtual).
  * These object may be link too some software and other virtual machine
  * (hosted on the server)
- * 
+ *
  * The first returned value (the String) is the Device_id.
  * It is a sequel of OCSi/Fusion reports, and perhaps should be removed.
- * 
+ *
  * The OperatingSystem is an {@code OperatingSystem} object with as much information
  * that we gathered
- * 
+ *
  * The third returned value holds the (perhaps multiple) containers of that server.
  * At this point, we don't really now if they are bare machine or Virtual ones.
- * 
+ *
  * The last returned values holds the VMs that are running atop this OS. They may
  * (of course) be empty.
- * 
+ *
  */
 case class InventoryReport(
   val name:String, //an id for that report (ex: name of the file received)
@@ -67,7 +67,7 @@ case class InventoryReport(
   val version:Option[Version],
   //maybe a list of hosted vms
   val vms : Seq[MachineInventory],
-  
+
   //a list of software
   val applications : Seq[Software],
   //other not specified managed element

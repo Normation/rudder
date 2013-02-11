@@ -42,13 +42,13 @@ import com.unboundid.ldap.sdk.DN
 /**
  * A service that finds on which DIT
  * an object belongs from its ID.
- * If no DIT are configured to keep object 
- * with such ID, None is returned. 
+ * If no DIT are configured to keep object
+ * with such ID, None is returned.
  */
 trait InventoryDitService {
   /**
    * It is mandatory that all inventory status
-   * leads to a dit  
+   * leads to a dit
    */
   def getDit(status:InventoryStatus) : InventoryDit
 
@@ -59,6 +59,6 @@ trait InventoryDitService {
   def getInventoryStatus(dit : InventoryDit) : InventoryStatus
 
   def getDit(dn:DN) : Box[InventoryDit]
-  
+
   def getSoftwareBaseDN : DN
 }

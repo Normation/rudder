@@ -39,7 +39,7 @@ import com.normation.inventory.domain.InventoryReport
 
 /**
  * A parsing extension is a partial function that
- * parse a tag and transform the report from that. 
+ * parse a tag and transform the report from that.
  */
 abstract class FusionReportParsingExtension extends PartialFunction[(Node,InventoryReport) , InventoryReport] {
   /*
@@ -51,6 +51,6 @@ abstract class FusionReportParsingExtension extends PartialFunction[(Node,Invent
   def optText(n:NodeSeq) = n.text match {
     case null | "" => None
     case s => Some(s.trim().replaceAll("""[\p{Blank}]+"""," "))
-  }  
-  
+  }
+
 }

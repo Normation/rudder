@@ -40,27 +40,27 @@ import net.liftweb.common.Box
 /**
  * Generic interface to the service that try
  * to find an existing ID for a given entity
- * 
- * the entity may be lacking some of its properties 
+ *
+ * the entity may be lacking some of its properties
  */
 trait NodeInventoryDNFinderAction {
-  
+
   //black list / white list ?
-  
+
   def tryWith(entity:NodeInventory) : Box[(NodeId, InventoryStatus)]
 }
 
 trait MachineDNFinderAction {
-  
+
   //black list / white list ?
-  
+
   def tryWith(entity:MachineInventory) : Box[(MachineUuid, InventoryStatus)]
 }
 
 trait SoftwareDNFinderAction {
-  
+
   //black list / white list ?
-  
+
   def tryWith(entity:Software) : Box[SoftwareUuid]
 }
 

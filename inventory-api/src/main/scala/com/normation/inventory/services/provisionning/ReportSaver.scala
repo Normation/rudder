@@ -39,10 +39,10 @@ import com.normation.utils.Control.pipeline
 import net.liftweb.common.{Box,Full,Empty,EmptyBox,Failure}
 
 /**
- * 
+ *
  * This service is in charge to persist
- * parsed and merged reports. 
- * 
+ * parsed and merged reports.
+ *
  * In particular, this service has to deal with
  * consistency problems (no transaction on
  * LDAP backends...)
@@ -51,11 +51,11 @@ import net.liftweb.common.{Box,Full,Empty,EmptyBox,Failure}
  * have to be pipelined so that pre-, post-,
  * deffered- and triggered- action may be performed
  * (logging comes to mind)
- * 
- * The R parameter is the return type of the back-end. 
- * Ideally, it should be only diff actually applied to the back-end, 
+ *
+ * The R parameter is the return type of the back-end.
+ * Ideally, it should be only diff actually applied to the back-end,
  * but it could be the new entity is the store can not provide
- * better information (LDAP can). 
+ * better information (LDAP can).
  */
 trait ReportSaver[R] {
 
@@ -71,26 +71,26 @@ trait ReportSaver[R] {
  */
 
 
-  
+
 trait PipelinedReportSaver[R] extends ReportSaver[R] {
-  
+
   val preCommitPipeline:Seq[PreCommit]
   val postCommitPipeline:Seq[PostCommit[R]]
-  
+
   /**
    * Here comes the logic to actually save change in the Directory
    * @param report
    * @return
    */
   def commitChange(report:InventoryReport) : Box[R]
-  
+
   override def save(report:InventoryReport) : Box[R] = {
     for {
       /*
        * Firstly, we let the chance to third part contributor to
-       * modify the report to be save, make additional synchro, 
-       * etc. 
-       * 
+       * modify the report to be save, make additional synchro,
+       * etc.
+       *
        * An error here leads to the stop of the report saving
        * process, so be *really* careful about your error management
        */
@@ -113,18 +113,18 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] {
       /*
        * now, post process report with third-party actions
        */
-      postPostCommitReport <- pipeline(postCommitPipeline, commitedChange) { (postCommit,currentChanges) => 
+      postPostCommitReport <- pipeline(postCommitPipeline, commitedChange) { (postCommit,currentChanges) =>
         try {
           postCommit(postPreCommitReport, currentChanges) ?~! "Error in postCommit pipeline with processor '%s'. The commit was done, we may be in a inconsistent state.".format(postCommit.name)
         } catch {
           case ex:Exception => Failure("Exception in postCommit pipeline with processor '%s'. The commit was done, we may be in a inconsistent state,".format(postCommit.name), Full(ex), Empty)
         }
-      } 
+      }
     } yield {
       postPostCommitReport
     }
-    
+
   }
-   
+
 }
 

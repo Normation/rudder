@@ -49,4 +49,3 @@ case class MachineUuid(val value:String) extends Uuid with HashcodeCaching
 case class SoftwareUuid(val value:String) extends Uuid with HashcodeCaching
 
 case class MotherBoardUuid(val value:String) extends Uuid with HashcodeCaching
- 

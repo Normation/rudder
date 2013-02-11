@@ -63,10 +63,10 @@ class FusionReportUnmarshaller(
     fsSpaceUnit : String = "Mo",
     lastLoggedUserDatetimeFormat : String = "EEE MMM dd HH:mm"
 ) extends ParsedReportUnmarshaller with Loggable {
-  
+
   val userLoginDateTimeFormat = DateTimeFormat.forPattern(lastLoggedUserDatetimeFormat).withLocale(Locale.ENGLISH)
   val biosDateTimeFormat = DateTimeFormat.forPattern(biosDateFormat).withLocale(Locale.ENGLISH)
-    
+
   /*
    * A method that retrieve the text value of an XML and
    * clean it:
@@ -88,7 +88,7 @@ class FusionReportUnmarshaller(
   } }
 
   override def fromXmlDoc(reportName:String, doc:NodeSeq) : Box[InventoryReport] = {
-    
+
      var report =  {
       /*
        * Fusion Inventory gives a device id, but we don't exactly understand
@@ -99,10 +99,10 @@ class FusionReportUnmarshaller(
       val deviceId = optText(doc \ "DEVICEID").getOrElse {
         return Failure("The XML does not seems to be a Fusion Inventory report (no device id found)")
       }
-  
+
       //init a node inventory
       /*
-       * It is not the role of the report parsing to assign UUID to node 
+       * It is not the role of the report parsing to assign UUID to node
        * and machine, we have special rules for that:
        * - node id is handled in RudderNodeIdParsing
        * - policy server is handled in RudderPolicyServerParsing
@@ -114,17 +114,17 @@ class FusionReportUnmarshaller(
           UnknownOS(),
           NodeId("dummy-policy-server")
       ) )
-      
+
       //create a machine used as a template to modify - used a fake UUID that will be change latter
       val machine = MachineInventory(MachineUuid("dummy-machine-id"), PendingInventory, PhysicalMachineType)
-      
+
       //idems for VMs and applications
       val vms = List[MachineInventory]()
       val applications =  List[Software]()
       val version= processVersion(doc\\("Request")\("VERSIONCLIENT"));
      InventoryReport(
         reportName,
-        deviceId, 
+        deviceId,
         node,
         machine,
         version,
@@ -133,7 +133,7 @@ class FusionReportUnmarshaller(
         doc
       )
     }
-     
+
 
 
     /*
@@ -177,28 +177,28 @@ class FusionReportUnmarshaller(
           report = pf(e,report)
         }
     } }
-    
+
     val demuxed = demux(report)
     val fullReport = demuxed.copy(
        //add all VMs and software ids to node
-      node = demuxed.node.copy( 
-          softwareIds = demuxed.applications.map( _.id ) 
+      node = demuxed.node.copy(
+          softwareIds = demuxed.applications.map( _.id )
       )
     )
     Full(fullReport)
   }
-  
+
   /**
    * This method look into all list of components to search for duplicates and remove
    * them, updating the "quantity" field accordingly.
-   * 
+   *
    * The processing of memories is a little special. In place of adjusting the quantity,
    * it updates the slotNumber (two memories can not share the same slot), setting position
    * in the list as key. And yes, that may be unstable from one inventory to the next one.
    */
   private[this] def demux(report:InventoryReport) : InventoryReport = {
     //how can that be better ?
-    var r = report 
+    var r = report
     r = r.copy(machine = r.machine.copy( bios = report.machine.bios.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( controllers = report.machine.controllers.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( memories = demuxMemories(report.machine.memories) ) )
@@ -211,78 +211,78 @@ class FusionReportUnmarshaller(
     r = r.copy(applications = report.applications.groupBy( app => (app.name, app.version)).map { case (x,seq) => seq.head }.toSeq ) //seq.head is ok since its the result of groupBy
     r
   }
-  
+
   private[this] def demuxMemories(memories:Seq[com.normation.inventory.domain.MemorySlot]) : Seq[com.normation.inventory.domain.MemorySlot] = {
     val duplicatedSlotsAndMemory = memories.groupBy( _.slotNumber).filter { case(x,seq) => x != DUMMY_MEM_SLOT_NUMBER && seq.size > 1 }
     val nonValideSlotNumber = memories.filter(mem => mem.slotNumber == DUMMY_MEM_SLOT_NUMBER)
-    val validSlotNumbers = memories.filter(mem => 
-                                mem.slotNumber != DUMMY_MEM_SLOT_NUMBER 
+    val validSlotNumbers = memories.filter(mem =>
+                                mem.slotNumber != DUMMY_MEM_SLOT_NUMBER
                              && !duplicatedSlotsAndMemory.exists { case (i,_) => mem.slotNumber == i }
                            )
-    
+
     //set negative slotNumbers for duplicated and non valid
-    val getNegative = (duplicatedSlotsAndMemory.flatMap( _._2) ++ nonValideSlotNumber).zipWithIndex.map { 
+    val getNegative = (duplicatedSlotsAndMemory.flatMap( _._2) ++ nonValideSlotNumber).zipWithIndex.map {
       case(mem,i) => mem.copy(slotNumber = (-i-1).toString )
     }
     validSlotNumbers++getNegative
   }
-  
-  
+
+
   // ******************************************** //
   // parsing implementation details for each tags //
   // ******************************************** //
 
   def processHardware(xml:NodeSeq, report:InventoryReport) : Option[(NodeInventory,MachineInventory)] = {
       /*
-       * 
+       *
        * *** Operating System infos ***
-       * ARCHNAME : architecture type. 
+       * ARCHNAME : architecture type.
        *      Ex: "x86_64-linux-gnu-thread-multi"
        * VMSYSTEM : The virtualization technologie used if the machine is a virtual machine.
        *      Can be: Physical (default), Xen, VirtualBox, Virtual Machine, VMware, QEMU, SolarisZone
-       *      
+       *
        * MEMORY : RAM for that OS
        *      Ex: "512"
        * SWAP : The swap space in MB.
        *      Ex: "512"
-       *      
+       *
        * *** user last login ***
        * LASTLOGGEDUSER : The login of the last logged user.
        *      Ex: "jdoe"
-       * DATELASTLOGGEDUSER : date of last user login. 
+       * DATELASTLOGGEDUSER : date of last user login.
        *      Ex: "Wed Mar 30 12:39"
-       *      
+       *
        * *** ip/networking ***
        * DEFAULTGATEWAY : default gateway
        *      Ex: "88.190.19.1"
-       * DNS 
+       * DNS
        *      Ex: "88.190.254.14"
        * IPADDR : ip addresses, separated by "/"
        *      Ex: "88.190.19.131/10.94.94.46"
        * NAME : short version of the hostname (without domain)
        *      Ex: "dedibox-2" (when hostname is "dedibox-2.normation.com"
-       * 
+       *
        * *** diverse ***
        * ETIME : The time needed to run the inventory on the agent side. (Unit ?)
-       *      Ex: "3" 
-       * TYPE : 
+       *      Ex: "3"
+       * TYPE :
        * DESCRIPTION : ???
        *      Ex: x86_64/00-00-00 00:47:51
        * UUID : mother board UUID (system id) - DO NOT EVER USE THAT ! Not reliable !
        *      Ex: "4454C4C-4D00-104B-8047-C2C04F30354A"
-       *      We don't use that as it is not reliable, and rely on a our MACHINEID extension 
+       *      We don't use that as it is not reliable, and rely on a our MACHINEID extension
        *      to get the mother board UUID. See RudderMachineIdParsing class.
-       *      
+       *
        * *** Windows only ***
        * ==> processed by OsDetails
-       * WINOWNER  
+       * WINOWNER
        * WINPRODID
        * WINPRODKEY
        * WINCOMPANY
        * WINLANG
-       * 
+       *
        * Ignored / deprecated
-       * 
+       *
        * version : OS version => in <OPERATINGSYSTEM>
        *      Ex: 2.6.32-5-amd64
        * OSCOMMENTS : Service Pack on Windows, kernel build date on Linux => in <OPERATINGSYSTEM>
@@ -291,19 +291,19 @@ class FusionReportUnmarshaller(
        *      Ex: "Debian GNU/Linux 6.0.1 (squeeze)"
        * WORKGROUP : Windows workgroup or Linux host (or resolv.conf ?) => in <OPERATINGSYSTEM>
        *      Ex: "normation.com"
-       *      
-       * USERID : The current user list, '/' is the delemiter. This field is 
+       *
+       * USERID : The current user list, '/' is the delemiter. This field is
        *          deprecated, you should use the USERS section instead.
-       *          
+       *
        * PROCESSORT : processor description. Deprecated, OCS only.
-       * PROCESSORN : number of processor. Deprecated. 
+       * PROCESSORN : number of processor. Deprecated.
        * PROCESSORS : The processor speed in MHz. Deprecated, see CPUS instead.
        * CHECKSUM : Deprecated, OCS only.
        * USERDOMAIN : This field is deprecated, you should use the USERS section instead.
-       * 
+       *
        */
 
-    
+
     //update machine VM type
     val newMachine = optText(xml\\"VMSYSTEM") match {
       case None => report.machine
@@ -318,7 +318,7 @@ class FusionReportUnmarshaller(
         case _ => report.machine.copy(machineType = VirtualMachineType(UnknownVmType) )
       }
     }
-        
+
      //    s.name((h\"NAME") text) // what to do with that ?
     val newNode = report.node.copy(
         description = optText(xml\\"OSCOMMENTS")
@@ -330,7 +330,7 @@ class FusionReportUnmarshaller(
       , lastLoggedUserTime = try {
           optText(xml\\"DATELASTLOGGEDUSER").map(date => userLoginDateTimeFormat.parseDateTime(date) )
         } catch {
-          case e:IllegalArgumentException => 
+          case e:IllegalArgumentException =>
             logger.warn("Error when parsing date for last user loggin. Awaited format is %s, found: %s".format(lastLoggedUserDatetimeFormat,(xml\\"DATELASTLOGGEDUSER").text))
             None
         }
@@ -356,7 +356,7 @@ class FusionReportUnmarshaller(
     val osDetail:OsDetails = {
       val osType = optText(xml\\"KERNEL_NAME").getOrElse("").toLowerCase
       val osName = optText(xml\\"NAME").getOrElse("").toLowerCase
-      
+
       val fullName = optText(xml\\"FULL_NAME").getOrElse("")
       val kernelVersion = new Version(optText(xml\\"KERNEL_VERSION").getOrElse("N/A"))
       val servicePack = optText(xml\\"SERVICE_PACK")
@@ -364,7 +364,7 @@ class FusionReportUnmarshaller(
 
       //find os type, and name
       val detectedOs : OsType = (osType, osName) match {
-        case ("mswin32", _ ) => 
+        case ("mswin32", _ ) =>
           val x = fullName.toLowerCase
           //in windows, relevant information are in the fullName string
           if     (x contains  "xp"     )   WindowsXP
@@ -376,7 +376,7 @@ class FusionReportUnmarshaller(
           else if(x contains  "2008"   )   Windows2008
           else                             UnknownWindowsType
 
-        case ("linux"  , x ) => 
+        case ("linux"  , x ) =>
           if     (x contains "debian" ) Debian
           else if(x contains "ubuntu" ) Ubuntu
           else if(x contains "redhat" ) Redhat
@@ -387,10 +387,10 @@ class FusionReportUnmarshaller(
           else                          UnknownOSType
         case _  => UnknownOSType
       }
-    
+
       detectedOs match {
         case w:WindowsType =>
-          
+
           Windows(
               os = w
             , fullName = fullName
@@ -402,7 +402,7 @@ class FusionReportUnmarshaller(
             , productId = optText(contentNode\\"WINPRODID")
             , productKey = optText(contentNode\\"WINPRODKEY")
           )
-          
+
         case distrib:LinuxType =>
           Linux(
               os = distrib
@@ -411,15 +411,15 @@ class FusionReportUnmarshaller(
             , servicePack = servicePack
             , kernelVersion = kernelVersion
           )
-        
+
         case _  => UnknownOS(fullName, version, servicePack, kernelVersion)
       }
     }
-    
+
     report.copy( node = report.node.copyWithMain(m => m.copy (osDetails = osDetail ) ) )
-    
+
   }
-  
+
   /**
    * The key used to identify filesystem is in order:
    * - the mount_point describe in TYPE (yes...), for Linux system, for example "/home", etc
@@ -436,7 +436,7 @@ class FusionReportUnmarshaller(
         logger.debug("Ignoring FileSystem entry because missing tag TYPE and LETTER")
         logger.debug(d)
         None
-      case Some(mountPoint) => 
+      case Some(mountPoint) =>
         Some(FileSystem(
             mountPoint = mountPoint
           , name = optText(d\"FILESYSTEM")
@@ -445,7 +445,7 @@ class FusionReportUnmarshaller(
           , fileCount = optText(d\"NUMFILES").map(n => n.toInt)
         ) )
     }
-  }  
+  }
 
   def processNetworks(n : NodeSeq) : Option[Network] = {
     import InetAddressUtils._
@@ -454,15 +454,15 @@ class FusionReportUnmarshaller(
       for {
         addr <- addressString.split(",")
         a <- InetAddressUtils.getAddressByName(addr)
-      } yield a 
+      } yield a
     }.toSeq
-    
+
     /*
-     * Normally, Fusion put in DESCRIPTION the interface name (eth0, etc). 
+     * Normally, Fusion put in DESCRIPTION the interface name (eth0, etc).
      * This is missing for Android, so we are going to use the TYPE
-     * (wifi, ethernet, etc) as an identifier in that case. 
+     * (wifi, ethernet, etc) as an identifier in that case.
      */
-    
+
     optText(n\"DESCRIPTION").orElse(optText(n\"TYPE")) match {
       case None =>
         logger.debug("Ignoring entry Network because tag DESCRIPTION is empty")
@@ -487,7 +487,7 @@ class FusionReportUnmarshaller(
         ) )
     }
   }
-  
+
   def processSoftware(s : NodeSeq) : Software = Software(
         id = SoftwareUuid(uuidGen.newUuid)
       , name = optText(s\"NAME")
@@ -497,7 +497,7 @@ class FusionReportUnmarshaller(
     )
 
   def processBios(b : NodeSeq) : Option[Bios] = {
-    optText(b\"SMODEL") match { 
+    optText(b\"SMODEL") match {
       case None =>
         logger.debug("Ignoring entry Bios because SMODEL is empty")
         logger.debug(b)
@@ -506,12 +506,12 @@ class FusionReportUnmarshaller(
         val date = try {
           optText(b\"BDATE").map(d => biosDateTimeFormat.parseDateTime(d))
         } catch {
-          case e:IllegalArgumentException => 
+          case e:IllegalArgumentException =>
             logger.warn("Error when parsing date for Bios. Awaited format is %s, found: %s".format(biosDateFormat,(b\"BDATE").text))
             None
         }
-        
-        Some( Bios( 
+
+        Some( Bios(
             name = model
           , releaseDate = date
           , editor = optText(b\"BMANUFACTURER").map(s => new SoftwareEditor(s))
@@ -519,10 +519,10 @@ class FusionReportUnmarshaller(
         ))
     }
   }
-  
+
   def processController(c: NodeSeq) : Option[Controller] = {
-    optText(c\"NAME") match { 
-      case None => 
+    optText(c\"NAME") match {
+      case None =>
         logger.debug("Ignoring entry Controller because tag NAME is empty")
         logger.debug(c)
         None
@@ -534,27 +534,27 @@ class FusionReportUnmarshaller(
         ) )
     }
   }
-  
+
   private[this] val DUMMY_MEM_SLOT_NUMBER = "DUMMY"
-  
+
   /**
-   * For memory, the numslot is used for key. 
+   * For memory, the numslot is used for key.
    * On several embeded devices (Android especially), there is no
    * such information, so we use a false numslot, that will be
    * change after the full processing of the inventory.
    */
   def processMemory(m : NodeSeq) : Option[MemorySlot] = {
     //add memory. Add all slots, but add capacity other than numSlot only for full slot
-    val slot = optText(m\"NUMSLOTS") match { 
+    val slot = optText(m\"NUMSLOTS") match {
       case None =>
         logger.debug("Memory is missing tag NUMSLOTS, assigning a negative value for num slot")
         logger.debug(m)
         DUMMY_MEM_SLOT_NUMBER
       case Some(slot) =>  slot
     }
-    
+
         (m\"CAPACITY").text.toLowerCase match {
-          case "" | "no" => 
+          case "" | "no" =>
             Some(MemorySlot(slot))
           case c =>
             Some( MemorySlot(
@@ -567,10 +567,10 @@ class FusionReportUnmarshaller(
               , memType = optText(m\"TYPE")
             ) )
         }
-  }  
+  }
 
   def processPort(p : NodeSeq) : Option[Port] = {
-    optText(p\"NAME") match { 
+    optText(p\"NAME") match {
       case None =>
         logger.debug("Ignoring entry Port because tag NAME is empty")
         logger.debug(p)
@@ -589,15 +589,15 @@ class FusionReportUnmarshaller(
           case x::t => x
           case _ => None
         }
-        
+
         /*
-         * Name may be not empty, but equals to "Not Specified". 
+         * Name may be not empty, but equals to "Not Specified".
          * In such a case, we append "(TYPE)" to allows to have
          * 'Not Specified (USB)', 'Not Specified (SATA)', etc.
          */
         val ptype = optText(p\"TYPE")
         val realName = {
-              if(name.toLowerCase.trim == "not specified") 
+              if(name.toLowerCase.trim == "not specified")
                 name + ptype.map(" (" + _ +")").getOrElse("")
               else name
             }
@@ -608,13 +608,13 @@ class FusionReportUnmarshaller(
         ) )
     }
   }
-  
+
   def processSlot(s : NodeSeq) : Option[Slot] = {
     /*
      * Depending if we are on a vm, windows, linux,
-     * other things, the identifier may be 
+     * other things, the identifier may be
      * NAME or DESIGNATION
-     * So we take the one defined if only one is, 
+     * So we take the one defined if only one is,
      * or concatenate the two
      */
     val name = (optText(s\"NAME")::optText(s\"DESIGNATION")::Nil).filter(_.isDefined) match {
@@ -622,13 +622,13 @@ class FusionReportUnmarshaller(
       case Some(x)::_ => Some(x)
       case _ => None
     }
-  
-    name match { 
+
+    name match {
       case None =>
         logger.debug("Ignoring entry Slot because tags NAME and DESIGNATION are empty")
         logger.debug(s)
         None
-      case Some(sl) => 
+      case Some(sl) =>
         Some( Slot (
             name = sl
           , description = optText(s\"DESCRIPTION")
@@ -647,27 +647,27 @@ class FusionReportUnmarshaller(
       case Some(x)::_ => Some(x)
       case _ => None
     }
-    
-    name match { 
+
+    name match {
       case None =>
         logger.debug("Ignoring entry Sound because tags NAME and MANUFACTURER are empty")
         logger.debug(s)
         None
-      case Some(so) => 
+      case Some(so) =>
         Some( Sound (
             name = so
           , description = optText(s\"DESCRIPTION")
         ) )
     }
   }
-  
+
   def processStorage(s : NodeSeq) : Option[Storage] = {
     /*
      * It seems that the only things mostly
      * stable between windows/linux/vm
      * is the model
      */
-    optText(s\"NAME") match { 
+    optText(s\"NAME") match {
       case None =>
         logger.debug("Ignoring entry Storage because tag NAME is empty")
         logger.debug(s)
@@ -685,19 +685,19 @@ class FusionReportUnmarshaller(
         ) )
     }
   }
-  
+
   /**
-   * Process the Video. 
-   * The name is used by default for the key. 
+   * Process the Video.
+   * The name is used by default for the key.
    * If there is no name but one resolution, we use that for the key.
-   * Return None in other case. 
+   * Return None in other case.
    */
   def processVideo(v : NodeSeq) : Option[Video] = {
     optText(v\"NAME").orElse(optText(v\"RESOLUTION")) match {
-      case None => 
+      case None =>
         logger.debug("Ignoring entry Video because tag NAME is empty")
         logger.debug(v)
-        None 
+        None
       case Some(name) => Some( Video(
           name        = name
         , description = None
@@ -707,7 +707,7 @@ class FusionReportUnmarshaller(
         ) )
     }
   }
-  
+
   def processCpu(c : NodeSeq) : Option[Processor] = {
     optText(c\"NAME") match{
       case None =>

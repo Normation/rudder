@@ -39,11 +39,11 @@ import com.normation.utils.Utils._
 import com.normation.utils.HashcodeCaching
 
 /**
- * A file that contains all the simple data types, like Version, 
+ * A file that contains all the simple data types, like Version,
  * MemorySize, Manufacturer, etc.
  */
- 
- 
+
+
 /**
  * A simple class to denote a manufacturer
  * TODO : Should be merge with SoftwareEditor
@@ -60,24 +60,24 @@ final case class SoftwareEditor(val name:String) extends HashcodeCaching { asser
  */
 final case class PublicKey(val key : String) extends HashcodeCaching { assert(!isEmpty(key)) }
 
-  
+
 /**
  * A simple class to denote version
- * Sub-class may be done to be specialized, like for 
- * example "linux kernel version", "debian package version", 
+ * Sub-class may be done to be specialized, like for
+ * example "linux kernel version", "debian package version",
  * "ms patch version", etc.
- * 
+ *
  * Comparison are really important in Version
  */
 final class Version(val value:String) extends Comparable[Version] {
   require(nonEmpty(value))
-  
+
   override def compareTo(other:Version) = this.value.compareTo(other.value)
   override def toString() = "[%s]".format(value)
-  
+
   //subclass have to override that
   def canEqual(other:Any) = other.isInstanceOf[Version]
-  
+
   override def hashCode() = 31 * value.hashCode
 
   override def equals(other:Any) = other match {

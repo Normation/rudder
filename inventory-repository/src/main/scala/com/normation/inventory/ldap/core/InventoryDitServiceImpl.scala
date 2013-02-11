@@ -40,8 +40,8 @@ import com.unboundid.ldap.sdk.DN
 
 
 /**
- * Example of a DIT service in a configuration where there is 
- * three types of inventories: accepted, pending and removed ones (we 
+ * Example of a DIT service in a configuration where there is
+ * three types of inventories: accepted, pending and removed ones (we
  * could imagine that in that configuration scheme, refused
  * inventories are simply erased to save space).
  */
@@ -50,7 +50,7 @@ class InventoryDitServiceImpl(
    , accepted:InventoryDit
    , removed:InventoryDit) extends InventoryDitService {
   /*
-   * Sort dit by their base dn. If two base_dn share a common root, 
+   * Sort dit by their base dn. If two base_dn share a common root,
    * the longer one comes first, for ex:
    * rootDns = [  "dc=test,dc=com" , "dc=test", "dc=bar" ]
    */
@@ -59,27 +59,27 @@ class InventoryDitServiceImpl(
     sortWith{ (x,y) => x._1.compareTo(y._1) >= 0 }
 
   override def getDit(dn:DN) : Box[InventoryDit] = {
-    ( (Empty:Box[InventoryDit]) /: baseDns ) { 
+    ( (Empty:Box[InventoryDit]) /: baseDns ) {
       case (f:Full[_], _) => f
       case (_, (baseDn,dit) ) if(baseDn.isAncestorOf(dn,true)) => Full(dit)
       case _ => Empty
     }
   }
 
-  
+
   def getDit(status:InventoryStatus) : InventoryDit = status match {
     case PendingInventory => pending
     case AcceptedInventory => accepted
     case RemovedInventory => removed
   }
-  
+
   def getInventoryStatus(dit : InventoryDit) : InventoryStatus = {
     if(dit == pending) PendingInventory
     else if(dit == accepted) AcceptedInventory
     else if(dit == removed) RemovedInventory
     else throw new IllegalArgumentException("DIT with name '%s' is not associated with any inventory status".format(dit.name))
-  } 
-  
+  }
+
   def getSoftwareBaseDN : DN = accepted.SOFTWARE.dn
 
 }

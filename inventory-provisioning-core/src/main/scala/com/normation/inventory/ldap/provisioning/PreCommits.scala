@@ -42,16 +42,16 @@ import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.InventoryMapper
 
 /**
- * Check OS Type. 
+ * Check OS Type.
  * We can not handle "UnknownOsType", we just don't know what
  * to do with them
  */
 object CheckOsType extends PreCommit {
-  
+
   override val name = "pre_commit_inventory:check_os_type_is_known"
-    
+
   override def apply(report:InventoryReport) : Box[InventoryReport] = {
-    
+
     report.node.main.osDetails.os match {
       case UnknownOSType =>
         val xml = report.sourceReport\\"OPERATINGSYSTEM"
@@ -61,7 +61,7 @@ object CheckOsType extends PreCommit {
       ))
       case _ => Full(report)
     }
-    
+
   }
 }
 
@@ -71,7 +71,7 @@ object CheckOsType extends PreCommit {
  * They are mandatory, but not always provided
  */
 object CheckMachineName extends PreCommit {
-  
+
   private[this] def checkName(machine:MachineInventory) : MachineInventory = {
     //machine cn is mandatory, if not set we use the uuid
     if(!machine.name.isDefined) {
@@ -80,9 +80,9 @@ object CheckMachineName extends PreCommit {
       machine
     }
   }
-  
+
   override val name = "pre_commit_inventory:check_machine_cn"
-    
+
   override def apply(report:InventoryReport) : Box[InventoryReport] = {
     //machine are in FullMachine and VMs
     Full(report.copy(
@@ -94,7 +94,7 @@ object CheckMachineName extends PreCommit {
 
 
 /**
- * Log the report to save 
+ * Log the report to save
  */
 class LogReportPreCommit(
   mapper:InventoryMapper,
@@ -106,9 +106,9 @@ class LogReportPreCommit(
     report.vms.flatMap( vm => mapper.treeFromMachine( vm ).toLDIFRecords ) ++
     report.applications.map( s => mapper.entryFromSoftware( s ).toLDIFRecord )
   }
-  
+
   override val name = "pre_commit_inventory:log_inventory"
-  
+
   override def apply(report:InventoryReport) : Box[InventoryReport] = {
     ldifLogger.log(
         report.name,
@@ -117,7 +117,7 @@ class LogReportPreCommit(
         reportToLdif(report))
     Full(report)
   }
-  
+
 }
 
 
@@ -126,12 +126,12 @@ class LogReportPreCommit(
  */
 class LastInventoryDate() extends PreCommit {
   import org.joda.time.DateTime
-  
+
   override val name = "pre_commit_inventory:set_last_inventory_date"
-    
+
   override def apply(report:InventoryReport) : Box[InventoryReport] = {
     val now = DateTime.now()
-    
+
     Full(report.copy (
       node = report.node.copy( receiveDate = Some(now) ),
       machine = report.machine.copy( receiveDate = Some(now) )
@@ -144,15 +144,15 @@ class LastInventoryDate() extends PreCommit {
  * Set the ip values in the server object, from the networks data
  */
 object AddIpValues extends PreCommit {
-  
+
   override val name = "pre_commit_inventory:add_ip_values"
-  
+
   override def apply(report:InventoryReport) : Box[InventoryReport] = {
 
     val ips = report.node.networks.flatMap(x => x.ifAddresses).map(x => x.getHostAddress() )
-    
+
     Full(report.copy( node = report.node.copy( serverIps = ips ) ) )
 
-    
+
   }
 }

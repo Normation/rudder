@@ -43,13 +43,13 @@ class FullInventoryFromLdapEntriesImpl(
     inventoryDitService:InventoryDitService,
     mapper:InventoryMapper
 ) extends FullInventoryFromLdapEntries with Loggable {
-  
-  
+
+
   //a dit without base dn
   override def fromLdapEntries(entries:Seq[LDAPEntry]) : Box[FullInventory] = {
     val serverElts = Buffer[LDAPEntry]()
     val machineElts = Buffer[LDAPEntry]()
-    
+
     for {
       entry <- entries
       dit <- inventoryDitService.getDit(entry.dn)
@@ -72,8 +72,8 @@ class FullInventoryFromLdapEntriesImpl(
     } yield {
       FullInventory(node, optMachine)
     }
-    
-    
+
+
   }
 }
 
