@@ -74,30 +74,30 @@ object PendingHistoryGrid extends Loggable {
   val history           = inject[InventoryHistoryLogRepository]
   val logService        = inject[InventoryEventLogService]
   val logDetailsService = inject[EventLogDetailsService]
-  
+
   def pendingHistoryTemplatePath = List("templates-hidden", "pending_history_grid")
   def template() =  Templates(pendingHistoryTemplatePath) match {
-    case Empty | Failure(_,_,_) => 
+    case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for pending history not found. I was looking for %s.html".format(pendingHistoryTemplatePath.mkString("/")))
     case Full(n) => n
   }
-  
-  def displayAndInit() : NodeSeq = {    
+
+  def displayAndInit() : NodeSeq = {
     logService.getInventoryEventLogs() match {
       case Empty => display(Seq[InventoryEventLog]()) ++ Script(initJs())
       case Full(x) => val (deleted,entries) = x.partition((t:InventoryEventLog) => t.isInstanceOf[DeleteNodeEventLog])
       display(entries) ++ Script(initJs(deleted))
       case _ => NodeSeq.Empty
     }
-    
+
   }
-  
+
   def jsVarNameForId() = "pendingNodeHistoryTable"
-  
+
   def initJs(entries : Seq[EventLog] = Seq()) : JsCmd = {
     JsRaw("""
         var #table_var#;
-        /* Formating function for row details */ 
+        /* Formating function for row details */
         function fnFormatDetails ( id ) {
           var sOut = '<span id="'+id+'" class="sgridbph"/>';
           return sOut;
@@ -117,17 +117,17 @@ object PendingHistoryGrid extends Loggable {
             "sPaginationType": "full_numbers",
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
-          $('.dataTables_filter input').attr("placeholder", "Search");            
+          $('.dataTables_filter input').attr("placeholder", "Search");
           """.replaceAll("#table_var#",jsVarNameForId)
         ) & initJsCallBack(entries)
        )
   }
   def display(entries : Seq[EventLog]) : NodeSeq = {
     bind("pending_history", template,
-       "lines" -> entries.flatMap{ x => 
+       "lines" -> entries.flatMap{ x =>
          val jsuuid = Helpers.nextFuncName
          x match {
-         case  x : RefuseNodeEventLog =>  
+         case  x : RefuseNodeEventLog =>
            logDetailsService.getRefuseNodeLogDetails(x.details) match {
              case Full(details) =>
                <tr class= "curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} kind="refused"
@@ -142,7 +142,7 @@ object PendingHistoryGrid extends Loggable {
                  <td>Refused</td>
                  <td>{x.principal.name}</td>
                </tr>
-             case e:EmptyBox => 
+             case e:EmptyBox =>
                val error = (e ?~! "Error when getting refuse node details")
                logger.debug(error.messageChain, e)
                NodeSeq.Empty
@@ -162,20 +162,20 @@ object PendingHistoryGrid extends Loggable {
                  <td>Accepted</td>
                  <td>{x.principal.name}</td>
                </tr>
-             case e:EmptyBox => 
+             case e:EmptyBox =>
                val error = (e ?~! "Error when getting refuse node details")
                logger.debug(error.messageChain, e)
                NodeSeq.Empty
            }
-         case x => 
+         case x =>
            logger.error("I wanted a refuse node or accept node event, and got: " + x)
            NodeSeq.Empty
        }  }
     )
   }
-  
+
    /**
-   * Initialize JS callback bound to the server name 
+   * Initialize JS callback bound to the server name
    * You will have to do that for line added after table
    * initialization.
    */
@@ -210,8 +210,8 @@ object PendingHistoryGrid extends Loggable {
           SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory(deletedNodes) _)._2.toJsCmd).replaceAll("#table_var#",
               jsVarNameForId))
   }
-  
-  
+
+
   def displayPastInventory(deletedNodes : Map[NodeId,Seq[EventLog]])(s : String) : JsCmd = {
 
     val arr = s.split("\\|")
@@ -225,7 +225,7 @@ object PendingHistoryGrid extends Loggable {
       history.get(id, version) match {
         case Failure(m,_,_) => Alert("Error while trying to display node history. Error message:" + m)
         case Empty => Alert("No history was retrieved for the chosen date")
-        case Full(sm) => 
+        case Full(sm) =>
           SetHtml(
             jsuuid,
             ( if (isAcceptLine)
@@ -233,7 +233,7 @@ object PendingHistoryGrid extends Loggable {
               else
                 NodeSeq.Empty
             ) ++
-            DisplayNode.showPannedContent(sm.data, "hist")) & 
+            DisplayNode.showPannedContent(sm.data, "hist")) &
             DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs"))
       }
     }

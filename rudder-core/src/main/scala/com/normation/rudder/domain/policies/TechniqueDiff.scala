@@ -50,6 +50,6 @@ final case class DeleteTechniqueDiff(
 
 final case class ModifyTechniqueDiff(
     id                  : ActiveTechniqueId
-  , name                : TechniqueName 
+  , name                : TechniqueName
   , modIsEnabled: Option[SimpleDiff[Boolean]] = None
 ) extends TechniqueDiff with HashcodeCaching

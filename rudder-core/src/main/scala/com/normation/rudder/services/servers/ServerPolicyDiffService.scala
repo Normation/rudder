@@ -37,15 +37,15 @@ package com.normation.rudder.services.servers
 import com.normation.rudder.domain.servers.{ModifiedPolicy,ModifiedVariable,DeletedPolicy,AddedPolicy,NodeConfigurationDiff,NodeConfiguration}
 
 class NodeConfigurationDiffService {
-  
-  
+
+
   def getDiff(server:NodeConfiguration) : Seq[NodeConfigurationDiff] = {
     val buffer = scala.collection.mutable.Buffer[NodeConfigurationDiff]()
     val cps = server.getCurrentDirectives.keySet
     val tps = server.getDirectives.keySet
     //added
     buffer ++= (tps -- cps).map(AddedPolicy(_))
-    //deleted 
+    //deleted
     buffer ++= (cps -- tps) map(DeletedPolicy(_))
     //check for modified
     for( cp <- (cps & tps) ) {
@@ -63,7 +63,7 @@ class NodeConfigurationDiffService {
       }
       if(modVars.nonEmpty) buffer += ModifiedPolicy(cp,modVars.toList)
     }
-    
+
     buffer.toSeq
   }
 }

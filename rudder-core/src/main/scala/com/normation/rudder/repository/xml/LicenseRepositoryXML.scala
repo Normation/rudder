@@ -48,11 +48,11 @@ import java.io.FileNotFoundException
 class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
 
   val logger = LoggerFactory.getLogger(classOf[LicenseRepositoryXML])
-  
+
   val licenseMap = mutable.Map[String, NovaLicense]()
-  
-    
-  def findLicense(uuid: String): Option[NovaLicense] = { 
+
+
+  def findLicense(uuid: String): Option[NovaLicense] = {
     licenseMap.get(uuid)
   }
 
@@ -60,20 +60,20 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
     licenseMap.map(x => x._2).toSeq
   }
 
-    def addLicense(license: NovaLicense): Option[NovaLicense] = { 
+    def addLicense(license: NovaLicense): Option[NovaLicense] = {
       logger.debug("Adding a license {}", license)
       licenseMap.put(license.uuid, license)
       saveLicenseFile()
       findLicense(license.uuid)
     }
-    
 
-  def loadLicenses(): Unit = {  
+
+  def loadLicenses(): Unit = {
     licenseMap.clear
-      
+
     logger.debug("Loading document {}", licenseFile)
     val doc = loadLicenseFile()
-    
+
     for (elt <- (doc \\"licenses" \ "license")) {
       logger.debug("Loading License")
       val license = NovaLicense.parseXml(elt)
@@ -85,9 +85,9 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
    * Load the license file
    * @return The xml element representation of the file
    */
-  
+
   private def loadLicenseFile() : Elem = {
-    val doc = 
+    val doc =
       try {
         XML.loadFile(licenseFile)
       } catch {
@@ -102,15 +102,15 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
 
     doc
   }
-  
-  
+
+
   private def saveLicenseFile() = {
     FileUtils.writeStringToFile(new File(licenseFile), this.toXml.toString)
   }
-  
-  
-  def toXml = 
-    <licenses> 
-      {licenseMap.iterator.map( license => license._2 .toXml)} 
+
+
+  def toXml =
+    <licenses>
+      {licenseMap.iterator.map( license => license._2 .toXml)}
     </licenses>
 }

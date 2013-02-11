@@ -76,24 +76,24 @@ object Groups {
   val htmlId_groupTree = "groupTree"
   val htmlId_item = "ajaxItemContainer"
   val htmlId_updateContainerForm = "updateContainerForm"
-    
-    
+
+
   private sealed trait RightPanel
   private case object NoPanel extends RightPanel
-  private case class GroupForm(group:NodeGroup) extends RightPanel with HashcodeCaching 
-  private case class CategoryForm(category:NodeGroupCategory) extends RightPanel with HashcodeCaching 
-  
+  private case class GroupForm(group:NodeGroup) extends RightPanel with HashcodeCaching
+  private case class CategoryForm(category:NodeGroupCategory) extends RightPanel with HashcodeCaching
+
 }
 
 
 
 class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with Loggable {
   import Groups._
-  
+
   private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
   private[this] val nodeGroupRepository     = inject[NodeGroupRepository]
   private[this] val uuidGen                 = inject[StringUuidGenerator]
-  
+
   def mainDispatch =  Map(
       "head" -> head _ ,
      "groupHierarchy" ->  groupHierarchy() ,
@@ -102,18 +102,18 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     )
 
   def extendsAt = SnippetExtensionKey(classOf[Groups].getSimpleName)
-  
+
   //the current nodeGroupCategoryForm component
-  private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm] 
+  private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm]
 
   //the current nodeGroupForm component
-  private[this] val nodeGroupForm = new LocalSnippet[NodeGroupForm] 
+  private[this] val nodeGroupForm = new LocalSnippet[NodeGroupForm]
 
   //the popup component
   private[this] val creationPopup = new LocalSnippet[CreateCategoryOrGroupPopup]
 
   private[this] val rootCategoryId = groupCategoryRepository.getRootCategory.id
-     
+
   /**
    * Head of the portlet, nothing much yet
    * @param html
@@ -128,8 +128,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       <script type="text/javascript" src="/javascript/json2.js" id="json2"></script>
     </head>} ++ NodeGroupForm.staticInit
    }
-   
-   
+
+
   /**
    * Display the Groups hierarchy fieldset, with the JS tree
    * @param html
@@ -145,7 +145,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       { SHtml.ajaxButton("Create a new item", () => showPopup()) }
     </div>
   }
-  
+
   /**
    * Does the init part (showing the right component and highlighting
    * the tree if necessary)
@@ -157,8 +157,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
 
   /**
    * If a query is passed as argument, try to dejoniffy-it, in a best effort
-   * way - just don't take of errors. 
-   * 
+   * way - just don't take of errors.
+   *
    * We want to look for #{ "groupId":"XXXXXXXXXXXX" }
    */
   private[this] def parseJsArg() : JsCmd = {
@@ -167,11 +167,11 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
         case t: EmptyBox => Noop
         case Full(nodeGroup) =>
           refreshTree(htmlTreeNodeId(groupId)) &
-          refreshRightPanel(GroupForm(nodeGroup)) & 
+          refreshRightPanel(GroupForm(nodeGroup)) &
           JsRaw("createTooltip()")
       }
     }
-    
+
     JsRaw("""
         var groupId = null;
         try {
@@ -179,18 +179,18 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
         } catch(e) {
           groupId = null
         }
-        if( groupId != null && groupId.length > 0) { 
+        if( groupId != null && groupId.length > 0) {
           %s;
         }
     """.format(SHtml.ajaxCall(JsVar("groupId"), displayDetails _ )._2.toJsCmd)
-    )    
+    )
   }
 
-  
+
   ////////////////////////////////////////////////////////////////////////////////////
-  
+
   private[this] def htmlTreeNodeId(id:String) = "jsTree-" + id
-  
+
   /**
    *  Manage the state of what should be displayed on the right panel.
    * It could be nothing, a group edit form, or a category edit form.
@@ -208,23 +208,23 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
         nodeGroupCategoryForm.set(Full(form))
         form.showForm()
     }
-  }  
-    
+  }
+
   //utility to refresh right panel
   private[this] def refreshRightPanel(panel:RightPanel) : JsCmd = SetHtml(htmlId_item, setAndShowRightPanel(panel))
-  
-  
+
+
   private[this] def setCreationPopup : Unit = {
     creationPopup.set(Full(new CreateCategoryOrGroupPopup(
       onSuccessCategory = displayACategory,
       onSuccessGroup = showGroupSection,
       onSuccessCallback = onSuccessCallback())))
   }
-  
+
   private[this] def onSuccessCallback() = {
     (id: String) => refreshTree(htmlTreeNodeId(id))
   }
-  
+
 
   /**
    * build the tree of categories and group and init its JS
@@ -250,7 +250,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
             } else if(  sourceCatId ) {
               var arg = JSON.stringify({ 'sourceCatId' : sourceCatId, 'destCatId' : destCatId });
               %3$s;
-            } else {  
+            } else {
               alert("Can not move that kind of object");
               $.jstree.rollback(data.rlbk);
             }
@@ -260,8 +260,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
           }
         });
       """.format(
-        // %1$s 
-        htmlId_groupTree , 
+        // %1$s
+        htmlId_groupTree ,
         // %2$s
         SHtml.ajaxCall(JsVar("arg"), moveGroup _)._2.toJsCmd,
         // %3$s
@@ -276,9 +276,9 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
         }
  */
       )))
-    ) 
+    )
   }
-  
+
   /**
    * Create the popup
    */
@@ -289,15 +289,15 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       case Full(popup) => popup.popupContent()
     }
   }
-  
+
   ///////////////////// Callback function for Drag'n'drop in the tree /////////////////////
   private[this] def moveGroup(arg: String) : JsCmd = {
     //parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
-      (for { 
+      (for {
          JObject(child) <- JsonParser.parse(arg)
-         JField("sourceGroupId", JString(sourceGroupId)) <- child 
-         JField("destCatId", JString(destCatId)) <- child 
+         JField("sourceGroupId", JString(sourceGroupId)) <- child
+         JField("destCatId", JString(destCatId)) <- child
        } yield {
          (sourceGroupId, destCatId)
        }) match {
@@ -309,25 +309,25 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
           } yield {
             newGroup
           }) match {
-            case Full(res) => 
-              refreshTree(htmlTreeNodeId(res.id.value)) & JsRaw("""setTimeout(function() { $("[groupid=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceGroupId)) & refreshRightPanel(GroupForm(res)) 
+            case Full(res) =>
+              refreshTree(htmlTreeNodeId(res.id.value)) & JsRaw("""setTimeout(function() { $("[groupid=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceGroupId)) & refreshRightPanel(GroupForm(res))
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move group with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceGroupId,destCatId))
           }
         case _ => Alert("Error while trying to move group: bad client parameters")
-      }      
+      }
     } catch {
       case e:Exception => Alert("Error while trying to move group")
     }
   }
-   
+
   private[this] def moveCategory(arg: String) : JsCmd = {
     //parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
-      (for { 
+      (for {
          JObject(child) <- JsonParser.parse(arg)
-         JField("sourceCatId", JString(sourceCatId)) <- child 
-         JField("destCatId", JString(destCatId)) <- child 
+         JField("sourceCatId", JString(sourceCatId)) <- child
+         JField("destCatId", JString(destCatId)) <- child
        } yield {
          (sourceCatId, destCatId)
        }) match {
@@ -343,35 +343,35 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
           } yield {
             (group,result)
           }) match {
-            case Full((group,res)) => 
-              refreshTree(htmlTreeNodeId(group.id.value)) & OnLoad(JsRaw("""setTimeout(function() { $("[catid=%s]").effect("highlight", {}, 2000);}, 100)""".format(sourceCatId))) & refreshRightPanel(CategoryForm(res)) 
+            case Full((group,res)) =>
+              refreshTree(htmlTreeNodeId(group.id.value)) & OnLoad(JsRaw("""setTimeout(function() { $("[catid=%s]").effect("highlight", {}, 2000);}, 100)""".format(sourceCatId))) & refreshRightPanel(CategoryForm(res))
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move category with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceCatId,destCatId))
           }
         case _ => Alert("Error while trying to move group: bad client parameters")
-      }      
+      }
     } catch {
       case e:Exception => Alert("Error while trying to move group")
-    } 
+    }
   }
-  
-  //////////////////// 
-  
+
+  ////////////////////
+
   private[this] def refreshTree(selectedNode:String) : JsCmd =  {
     Replace(htmlId_groupTree, buildGroupTree(selectedNode:String)) &
     OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();""")))
   }
-  
+
  /********************************************
-  * Utilitary methods for JS 
+  * Utilitary methods for JS
   ********************************************/
-   
+
   /**
    * Transform a NodeGroupCategory into category JsTree node :
    * - contains:
    *   - other categories
    *   - groups
-   * - 
+   * -
    */
   private[this] def nodeGroupCategoryToJsTreeNode(category:NodeGroupCategory) : JsTreeNode = new JsTreeNode {
     def onClickCategory(category:NodeGroupCategory) : JsCmd = {
@@ -379,7 +379,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     }
     override def body = {
       val tooltipId = Helpers.nextFuncName
-      
+
       SHtml.a(
           {() => onClickCategory(category)}
         , (
@@ -389,10 +389,10 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       )
     }
     override def children = category.children.flatMap(x => nodeGroupCategoryIdToJsTreeNode(x)) ++ category.items.map(x => policyTargetInfoToJsTreeNode(x))
-    override val attrs = 
-      ( "rel" -> { if(category.id == rootCategoryId) "root-category" else "category" } ) :: 
+    override val attrs =
+      ( "rel" -> { if(category.id == rootCategoryId) "root-category" else "category" } ) ::
       ( "catId" -> category.id.value ) ::
-      ( "class" -> "" ) :: 
+      ( "class" -> "" ) ::
       Nil
   }
 
@@ -410,17 +410,17 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
         case true => Empty
         case false => Full(nodeGroupCategoryToJsTreeNode(group))
       }
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         val f = e ?~! "Error while fetching Technique category %s".format(id)
         logger.error(f.messageChain)
         f
     }
   }
-  
+
   //fetch server group id and transform it to a tree node
   private[this] def policyTargetInfoToJsTreeNode(targetInfo:RuleTargetInfo) : JsTreeNode = {
     targetInfo.target match {
-      case GroupTarget(id) => 
+      case GroupTarget(id) =>
         nodeGroupRepository.getNodeGroup(id) match {
           case Full(group) => nodeGroupToJsTreeNode(group)
           case _ => new JsTreeNode {
@@ -429,11 +429,11 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
           }
         }
       case x => new JsTreeNode {
-         override def body =  { 
+         override def body =  {
            val tooltipId = Helpers.nextFuncName
-           
+
            (
-             <span class="treeGroupName tooltipable" title="" tooltipid={tooltipId} >{targetInfo.name} 
+             <span class="treeGroupName tooltipable" title="" tooltipid={tooltipId} >{targetInfo.name}
                <span class="greyscala">(special)</span>
              </span>
              <div class="tooltipContent" id={tooltipId}>{
@@ -446,8 +446,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       }
     }
   }
-  
-  
+
+
   /**
    * Transform a WBNodeGroup into a JsTree leaf.
    */
@@ -456,11 +456,11 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     def onClickNode() : JsCmd = {
       showGroupSection(group)
     }
-    
+
     override def body = {
       val tooltupId = Helpers.nextFuncName
       SHtml.a(
-        onClickNode _,  
+        onClickNode _,
         (
           <span class="treeGroupName tooltipable" title="" tooltipid={tooltupId}>{List(group.name,group.isDynamic?"dynamic"|"static").mkString(": ")}</span>
           <div class="tooltipContent" id={tooltupId}>{
@@ -469,17 +469,17 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
         )
       )
     }
-    
+
     override def children = Nil
-    override val attrs = 
-      ( "rel" -> "group" ) :: 
+    override val attrs =
+      ( "rel" -> "group" ) ::
       ( "groupId" -> group.id.value ) ::
       ( "id" -> ("jsTree-" + group.id.value) ) ::
       Nil
   }
-  
+
   /**
-   * Show the group component. 
+   * Show the group component.
    * @param sg
    * @return
    */
@@ -488,10 +488,10 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     refreshRightPanel(GroupForm(sg))&
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'groupId':'%s'})""".format(sg.id.value))
   }
-  
+
   private[this] def showPopup() : JsCmd = {
     setCreationPopup
-    
+
     //update UI
     SetHtml("createGroupContainer", createPopup) &
     JsRaw( """ createPopup("createGroupPopup",300,400)

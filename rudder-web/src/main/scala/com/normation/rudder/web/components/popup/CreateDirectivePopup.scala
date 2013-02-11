@@ -56,7 +56,7 @@ import com.normation.cfclerk.domain.{TechniqueVersion,TechniqueName}
 object CreateDirectivePopup {
   val htmlId_popupContainer = "createDirectiveContainer"
   val htmlId_popup = "createDirectivePopup"
-    
+
   val html =  SHtml.ajaxForm(
   <div id="createDirectiveContainer">
     <div class="simplemodal-title">
@@ -92,7 +92,7 @@ class CreateDirectivePopup(
   onSuccessCallback : (Directive) => JsCmd = { (directive : Directive) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
-  
+
   private[this] val uuidGen = inject[StringUuidGenerator]
 
   def dispatch = {
@@ -110,7 +110,7 @@ class CreateDirectivePopup(
       "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"))&
       "#save" #> (SHtml.ajaxSubmit("Configure", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3"))
     )(html ++ Script(OnLoad(JsRaw("correctButtons();"))))
-    
+
   }
 
   ///////////// fields for category settings ///////////////////
@@ -148,7 +148,7 @@ class CreateDirectivePopup(
   }
 
   private[this] def onSubmit() : JsCmd = {
-    
+
     if(formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
@@ -167,7 +167,7 @@ class CreateDirectivePopup(
 
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
-    updateFormClientSide() 
+    updateFormClientSide()
   }
 
 

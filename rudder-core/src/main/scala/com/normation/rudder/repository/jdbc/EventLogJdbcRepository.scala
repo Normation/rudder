@@ -61,7 +61,7 @@ import com.normation.rudder.domain.eventlog._
 /**
  * The EventLog repository
  * Save in an SQL table the EventLog, and retrieve unspecialized version of the eventlog
- * Usually, the EventLog won't be created with an id nor a cause id (nor a principal), that why they can be passed 
+ * Usually, the EventLog won't be created with an id nor a cause id (nor a principal), that why they can be passed
  * in parameters
  * @author Nicolas CHARLES
  *
@@ -72,13 +72,13 @@ class EventLogJdbcRepository(
 ) extends EventLogRepository {
 
    val logger = LoggerFactory.getLogger(classOf[EventLogRepository])
-  
+
    //reason: column 7
    //causeId: column 8
    val INSERT_SQL = "insert into EventLog (creationDate, modificationId, principal, eventType, severity, data %s %s) values (?, ?, ?, ?, ?, ? %s %s)"
- 
+
    val SELECT_SQL = "SELECT id, creationDate, modificationId, principal, eventType, severity, data, reason, causeId FROM EventLog where 1=1 "
-   
+
   /**
    * Save an eventLog
    * Optionnal : the user. At least one of the eventLog user or user must be defined
@@ -93,31 +93,31 @@ class EventLogJdbcRepository(
            def createPreparedStatement(connection : Connection) : PreparedStatement = {
              val sqlXml = connection.createSQLXML()
              sqlXml.setString(eventLog.details.toString)
-             
+
              var i = 6
              val (reasonCol, reasonVal) = eventLog.eventDetails.reason match {
                case None => ("", "")
-               case Some(r) => 
+               case Some(r) =>
                  i = i + 1
                  (", reason", ", ?") //#7
              }
-             
+
              val (causeCol, causeVal) = eventLog.cause match {
                case None => ("","")
-               case Some(id) => 
+               case Some(id) =>
                  i = i + 1
                  (", causeId", ", ?") //#8
              }
-             
+
              val ps = connection.prepareStatement(INSERT_SQL.format(reasonCol, causeCol, reasonVal, causeVal), Seq[String]("id").toArray[String]);
-             
+
              ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
              ps.setString(2, modId.value)
              ps.setString(3, eventLog.principal.name)
              ps.setString(4, eventLog.eventType.serialize)
              ps.setInt(5, eventLog.severity)
              ps.setSQLXML(6, sqlXml) // have a look at the SQLXML
-             
+
              eventLog.eventDetails.reason.foreach( x => ps.setString(7, x) )
              eventLog.cause foreach( x => ps.setInt(i, x)  )
 
@@ -125,15 +125,15 @@ class EventLogJdbcRepository(
            }
          },
          keyHolder)
-     
+
          getEventLog(keyHolder.getKey().intValue)
      } catch {
        case e:Exception => logger.error(e.getMessage)
        Failure("Exception caught while trying to save an eventlog : %s".format(e.getMessage),Full(e), Empty)
      }
   }
-  
-  
+
+
   def getEventLog(id : Int) : Box[EventLog] = {
     val list = jdbcTemplate.query(SELECT_SQL + " and id = ?" ,
         Array[AnyRef](id.asInstanceOf[AnyRef]),
@@ -144,15 +144,15 @@ class EventLogJdbcRepository(
       case _ => Failure("Too many event log for this id")
     }
   }
-  
+
   def getEventLogByCriteria(criteria : Option[String], limit:Option[Int] = None, orderBy:Option[String]) : Box[Seq[EventLog]] = {
-    val select = SELECT_SQL + 
-        criteria.map( c => " and " + c).getOrElse("") + 
+    val select = SELECT_SQL +
+        criteria.map( c => " and " + c).getOrElse("") +
         orderBy.map(o => " order by " + o).getOrElse("") +
         limit.map( l => " limit " + l).getOrElse("")
-    
+
     val list = jdbcTemplate.query(select, EventLogReportsMapper)
-    
+
     list.size match {
       case 0 => Empty
       case _ => Full(Seq[EventLog]() ++ list)
@@ -161,7 +161,7 @@ class EventLogJdbcRepository(
 }
 
 object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
-    
+
   def mapRow(rs : ResultSet, rowNum: Int) : EventLog = {
     val eventLogDetails = EventLogDetails(
         id             = Some(rs.getInt("id"))
@@ -169,7 +169,7 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
           val modId = rs.getString("modificationId")
           if (modId != null && modId.size > 0)
             Some(ModificationId(rs.getString("modificationId")))
-          else 
+          else
             None
         }
       , principal      = EventActor(rs.getString("principal"))
@@ -188,22 +188,22 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
                       }
       , details     = XML.load(rs.getSQLXML("data").getBinaryStream() )
     )
-    
+
     mapEventLog(
         eventType = EventTypeFactory(rs.getString("eventType"))
-      , eventLogDetails 
+      , eventLogDetails
     ) match {
       case Full(e) => e
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         logger.warn("Error when trying to get the event type, recorded type was: " + rs.getString("eventType"), e)
         UnspecializedEventLog(
             eventLogDetails
         )
       }
   }
-  
-  private[this] val logFilters = 
-        AssetsEventLogsFilter.eventList ::: 
+
+  private[this] val logFilters =
+        AssetsEventLogsFilter.eventList :::
         RuleEventLogsFilter.eventList :::
         GenericEventLogsFilter.eventList :::
         ImportExportEventLogsFilter.eventList :::
@@ -213,9 +213,9 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
         PromisesEventLogsFilter.eventList :::
         UserEventLogsFilter.eventList :::
         TechniqueEventLogsFilter.eventList
-        
-    
-  
+
+
+
   private[this] def mapEventLog(
       eventType     : EventLogType
     , eventLogDetails  : EventLogDetails
@@ -241,16 +241,16 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
     }
     returnedValue
   }
-  
+
    private def customDetailsParsing(elt : NodeSeq) : Map[String, List[String]] = {
     val returnedMap = scala.collection.mutable.Map[String, List[String]]()
     for (entry <- elt\"entry") {
       returnedMap += ((entry\"name").text -> ((entry\"values")\"value").map(x => x.text).toList)
-      
+
     }
     returnedMap.toMap
    }
-   
-   
-  
+
+
+
 }

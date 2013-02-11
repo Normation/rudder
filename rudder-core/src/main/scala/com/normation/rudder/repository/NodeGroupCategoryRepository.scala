@@ -82,11 +82,11 @@ trait NodeGroupCategoryRepository {
    *   "/cat1"       -> [cat1_details]
    *   "/cat1/cat11" -> [/cat1/cat11]
    *   "/cat2"       -> [/cat2_details]
-   *   ... 
+   *   ...
    */
   def getCategoryHierarchy : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]]
 
-  
+
   /**
    * retrieve the hierarchy of group category/group containing the selected node
    * From a category id (should start from root) return Empty if no children nor items contains the targets, Full(category) otherwise, with both
@@ -101,19 +101,19 @@ trait NodeGroupCategoryRepository {
    * @return
    */
   def getAllGroupCategories(includeSystem: Boolean = false) : Box[List[NodeGroupCategory]]
-  
+
   /**
    * Get a group category by its id
    * @param id
    * @return
    */
   def getGroupCategory(id: NodeGroupCategoryId) : Box[NodeGroupCategory]
-  
+
   /**
    * Add that group categoy into the given parent category
    * Fails if the parent category does not exists or
-   * if it already contains that category. 
-   * 
+   * if it already contains that category.
+   *
    * return the new category.
    */
   def addGroupCategorytoCategory(
@@ -121,12 +121,12 @@ trait NodeGroupCategoryRepository {
     , into:NodeGroupCategoryId //parent category
     , modificationId: ModificationId
     , actor:EventActor, reason: Option[String]
-  ) : Box[NodeGroupCategory] 
-  
+  ) : Box[NodeGroupCategory]
+
   /**
    * Update an existing group category
    */
-  def saveGroupCategory(category:NodeGroupCategory, modificationId: ModificationId, actor:EventActor, reason: Option[String]) : Box[NodeGroupCategory]  
+  def saveGroupCategory(category:NodeGroupCategory, modificationId: ModificationId, actor:EventActor, reason: Option[String]) : Box[NodeGroupCategory]
 
   /**
     * Update/move an existing group category
@@ -146,15 +146,15 @@ trait NodeGroupCategoryRepository {
    * first, until the root of the library.
    * The the last parent is not the root of the library, return a Failure.
    * Also return a failure if the path to top is broken in any way.
-   */  
-  def getParents_NodeGroupCategory(id:NodeGroupCategoryId) : Box[List[NodeGroupCategory]] 
+   */
+  def getParents_NodeGroupCategory(id:NodeGroupCategoryId) : Box[List[NodeGroupCategory]]
 
   /**
    * Returns all non system categories + the root category
    * Caution, they are "lightweight" group categories (no children)
    */
   def getAllNonSystemCategories() : Box[Seq[NodeGroupCategory]]
-  
+
   /**
    * Delete the category with the given id.
    * If no category with such id exists, it is a success.
@@ -162,10 +162,10 @@ trait NodeGroupCategoryRepository {
    * the category is empty (else, category and children are deleted).
    * @param id
    * @param checkEmtpy
-   * @return 
+   * @return
    *  - Full(category id) for a success
-   *  - Failure(with error message) iif an error happened. 
+   *  - Failure(with error message) iif an error happened.
    */
   def delete(id:NodeGroupCategoryId, modificationId: ModificationId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[NodeGroupCategoryId]
-  
+
 }

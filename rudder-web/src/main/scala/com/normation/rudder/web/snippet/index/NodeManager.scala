@@ -47,7 +47,7 @@ import JE._
 import net.liftweb.http.SHtml._
 
 /**
- * Manage redirection for NodeManager 
+ * Manage redirection for NodeManager
  * home page
  */
 class NodeManager {

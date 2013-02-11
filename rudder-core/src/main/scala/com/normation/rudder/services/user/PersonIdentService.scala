@@ -42,7 +42,7 @@ import net.liftweb.common.Full
  * from an user name
  */
 trait PersonIdentService {
-  
+
   /**
    * Retrieve PersonIdent from a user name.
    * The contract for that service is to return an

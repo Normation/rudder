@@ -62,21 +62,21 @@ import com.normation.utils.StringUuidGenerator
 class Archives extends DispatchSnippet with Loggable {
 
   private[this] val DL_NAME = "Download as zip"
-    
+
   private[this] val itemArchiver        = inject[ItemArchiveManager]
   private[this] val personIdentService  = inject[PersonIdentService]
   private[this] val gitRevisionProvider = inject[GitRevisionProvider]
   private[this] val uuidGen             = inject[StringUuidGenerator]
-  
+
   private[this] val noElements = NotArchivedElements(Seq(),Seq(),Seq())
-  
+
   def dispatch = {
-    case "allForm" => allForm 
+    case "allForm" => allForm
     case "rulesForm" => rulesForm
     case "groupLibraryForm" => groupLibraryForm
     case "directiveLibraryForm" => directiveLibraryForm
   }
-  
+
   /**
    * Export all items (CR, Active Techniques library, groups)
    * Advertise on success and error
@@ -101,7 +101,7 @@ class Archives extends DispatchSnippet with Loggable {
       , downloadRestAction        = "all"
     )
   }
-  
+
   private[this] def rulesForm = {
     actionFormBuilder(
         formName                  = "rulesForm"
@@ -121,7 +121,7 @@ class Archives extends DispatchSnippet with Loggable {
       , downloadButtonName        = DL_NAME
       , downloadRestAction        = "rules"
     )
-  }  
+  }
 
   private[this] def directiveLibraryForm = {
     actionFormBuilder(
@@ -143,7 +143,7 @@ class Archives extends DispatchSnippet with Loggable {
       , downloadRestAction        = "directives"
     )
   }
-  
+
   private[this] def groupLibraryForm =  {
     actionFormBuilder(
         formName                  = "groupLibraryForm"
@@ -163,9 +163,9 @@ class Archives extends DispatchSnippet with Loggable {
       , downloadButtonName        = DL_NAME
       , downloadRestAction        = "groups"
     )
-  
+
   }
-  
+
   /**
    * Create a form with a validation button for an export or an import
    */
@@ -188,11 +188,11 @@ class Archives extends DispatchSnippet with Loggable {
     , downloadRestAction        : String               //the specific action for the REST api, i.e the %s in: /api/archives/zip/%s
   ) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
 
-    
+
     val noticeId = formName + "Notice"
-    
+
     var selectedCommitId = Option.empty[GitCommitId]
-        
+
     def error(eb:EmptyBox, msg:String) = {
       val e = eb ?~! msg
       logger.error(e.messageChain)
@@ -200,33 +200,33 @@ class Archives extends DispatchSnippet with Loggable {
       S.error(noticeId, msg)
       Replace(formName, outerXml.applyAgain)
     }
-    
+
     def success[T](msg:String, elements:NotArchivedElements) = {
           logger.debug( msg )
-          
+
           if(!elements.isEmpty) {
             val cats = elements.categories.map { case CategoryNotArchived(catId, f) => "Error when archiving Category with id '%s': %s".format(catId.value, f.messageChain) }
             val ats = elements.activeTechniques.map { case ActiveTechniqueNotArchived(atId, f) => "Error when rchiving Active Technique with id '%s': %s".format(atId.value, f.messageChain) }
             val dirs = elements.directives.map { case DirectiveNotArchived(dirId, f) => "Error when archiving Directive with id '%s': %s".format(dirId.value, f.messageChain) }
-            
+
             val all = cats ++ ats ++ dirs
-            
+
             all.foreach( logger.warn( _ ) )
-            
+
             val error = <div>
                 <b>The archive was created but some element have not been archived:</b>
                 <ul>
                   {all.map(msg => <li>{msg}</li>)}
                 </ul>
               </div>
-            
+
             S.warning(noticeId, error)
           }
-          
+
           Replace(formName, outerXml.applyAgain) &
           successPopup
     }
-    
+
     // our process method returns a
     // JsCmd which will be sent back to the browser
     // as part of the response
@@ -242,7 +242,7 @@ class Archives extends DispatchSnippet with Loggable {
         case Full((aid, notArchiveElements))   => success(archiveSuccessDebugMessage(aid.commit.value), notArchiveElements)
       }
     }
-    
+
     def restore(): JsCmd = {
       S.clearCurrentNotices
       selectedCommitId match {
@@ -258,23 +258,23 @@ class Archives extends DispatchSnippet with Loggable {
         }
       }
     }
-    
+
     def download() : JsCmd = {
       S.clearCurrentNotices
       selectedCommitId match {
         case None    => error(Empty, "A valid archive must be chosen")
-        case Some(commit) => 
+        case Some(commit) =>
           S.redirectTo("/secure/administration/archiveManagement/zip/%s/%s".format(downloadRestAction, commit.value))
       }
-      
+
     }
-    
+
     def buildCommitIdList : List[(Option[GitCommitId], String )] = {
-      val baseOptions: List[(Option[GitCommitId], String )] = 
+      val baseOptions: List[(Option[GitCommitId], String )] =
         ( None, "Choose an archive to restore...") ::
         ( Some(GitCommitId("HEAD")) , "Latest Git commit") ::
         Nil
-      
+
       //and perhaps we have also some dates/rev tags
       val tagOptions: List[(Option[GitCommitId], String )] = archiveListFunction() match {
         case Empty =>
@@ -283,40 +283,40 @@ class Archives extends DispatchSnippet with Loggable {
         case f:Failure =>
           logger.error(f ?~! "Error when looking for archives from tags")
           Nil
-          
-        case Full(m) => 
-          m.toList.sortWith { 
-            case ( (d1,_), (d2,_) ) => d1.isAfter(d2) 
+
+        case Full(m) =>
+          m.toList.sortWith {
+            case ( (d1,_), (d2,_) ) => d1.isAfter(d2)
           }.map { case (date,revTag) =>
             ( Some(revTag.commit), DateFormaterService.getFormatedDate(date) )
           }
       }
       baseOptions ::: tagOptions
     }
-    
+
     ////////// Template filling //////////
-    
-    ("#"+archiveButtonId) #> { 
+
+    ("#"+archiveButtonId) #> {
       SHtml.ajaxSubmit(archiveButtonName, archive _ , ("id" -> archiveButtonId)) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
     } &
     ("#"+archiveDateSelectId) #> {
       //we have at least "Choose an archive to restore..." and "get archive from current Git HEAD"
       SHtml.selectObj[Option[GitCommitId]](buildCommitIdList, Full(selectedCommitId), { id => selectedCommitId = id}, ("id" -> archiveDateSelectId) )
     } &
-    ("#"+restoreButtonId) #> { 
+    ("#"+restoreButtonId) #> {
       SHtml.ajaxSubmit(restoreButtonName, restore _, ("id" -> restoreButtonId)) ++
       Script(OnLoad(JsRaw(""" correctButtons(); enableIfNonEmpty("%s", "%s");
           $("#%s").prop("disabled",true);""".format(archiveDateSelectId, restoreButtonId, restoreButtonId))))
     } &
-    ("#"+downloadButtonId) #> { 
+    ("#"+downloadButtonId) #> {
       SHtml.ajaxSubmit(downloadButtonName, download _, ("id" -> downloadButtonId) ) ++
       Script(OnLoad(JsRaw(""" correctButtons(); enableIfNonEmpty("%s", "%s");
           $("#%s").prop("disabled",true);""".format(archiveDateSelectId, downloadButtonId, downloadButtonId))))
-    } 
+    }
   }
-  
+
   ///////////// success pop-up ///////////////
   private[this] def successPopup : JsCmd = {
     JsRaw("""callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)""")
-  }  
+  }
 }

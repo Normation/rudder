@@ -64,12 +64,12 @@ class UploadedFiles {
 
   def list(html:NodeSeq) : NodeSeq = {
     def deleteFiles() : Unit = {
-      S.params("filesToDelete").foreach { name => 
+      S.params("filesToDelete").foreach { name =>
         fileManager.getFiles.filter( _.getName == name).foreach(_.delete)
       }
       S.redirectTo(S.uri)
     }
-    
+
     bind("files",html,
       "delete" -> SHtml.submit("Delete", deleteFiles),
       "lines" -> (fileManager.getFiles.flatMap { f =>
@@ -81,9 +81,9 @@ class UploadedFiles {
               "delete" -> <input type="checkbox" name="filesToDelete" value={f.getName} />
             )
           } ++ Script(OnLoad(JsRaw(""" $('#uploaded_files_grid').dataTable({
-              "bJQueryUI": false, "bPaginate": false, "bInfo":false,   
+              "bJQueryUI": false, "bPaginate": false, "bInfo":false,
               "bAutoWidth": false, "asStripeClasses": [ 'color1', 'color2' ],
-              "aoColumns": [ 
+              "aoColumns": [
                 { "sWidth": "500px" },
                 { "sWidth": "150px" },
                 { "sWidth": "150px" },
@@ -93,11 +93,11 @@ class UploadedFiles {
         )
       )
     )
-  }  
-  
+  }
+
   def upload(html:NodeSeq) : NodeSeq = {
     var fileHolder : Box[FileParamHolder] = Empty
-    
+
     def uploadFiles() : Unit = {
       fileHolder match {
         case Full(fh) => fileManager.copyFileToRootDir(fh)
@@ -105,10 +105,10 @@ class UploadedFiles {
       }
       S.redirectTo(S.uri)
     }
-    
+
     bind("files",html,
       "select" -> SHtml.fileUpload(x => fileHolder = Full(x)),
       "upload" -> SHtml.submit("Upload", uploadFiles)
     )
-  } 
+  }
 }

@@ -57,33 +57,33 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 /**
  * A component to display a tree based on a
  * Technique.
- * 
+ *
  * The tree show all parent of the Technique
  * and dependent Rules.
- * 
+ *
  */
 class TechniqueTree(
-  htmlId_activeTechniquesTree:String, 
+  htmlId_activeTechniquesTree:String,
   techniqueId:ActiveTechniqueId,
-  switchStatusFilter : ModificationStatus 
+  switchStatusFilter : ModificationStatus
 ) extends DispatchSnippet with Loggable {
-  
+
   //find Technique
   val techniqueRepository = inject[TechniqueRepository]
   //find & create user categories
   val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
   //find & create Active Techniques
   val activeTechniqueRepository = inject[ActiveTechniqueRepository]
-  
+
   val dependencyService = inject[DependencyAndDeletionService]
-  
+
   val ruleRepository = inject[RuleRepository]
-  
-  def dispatch = { 
+
+  def dispatch = {
     case "tree" => { _ => tree }
   }
-  
-  
+
+
   def tree() : NodeSeq = {
 
     (for {
@@ -101,7 +101,7 @@ class TechniqueTree(
       case Full(treeNode) => {<ul>{treeNode.toXml}</ul>} ++ Script(OnLoad(JsRaw(
           """buildTechniqueDependencyTree('#%s'); createTooltip();""".format(htmlId_activeTechniquesTree)
       )))
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         val msg = "Can not build tree of dependencies for Technique %s".format(techniqueId)
         logger.error(msg,e)
         (new JsTreeNode {
@@ -110,8 +110,8 @@ class TechniqueTree(
         }).toXml
     }
   }
-  
-  
+
+
   private[this] def categoryNode(
       category:ActiveTechniqueCategory,
       subCat: List[ActiveTechniqueCategory],
@@ -119,30 +119,30 @@ class TechniqueTree(
       technique: Technique,
       activeTechnique:ActiveTechnique
   ) : JsTreeNode = new JsTreeNode {
-    override val attrs = ( "rel" -> "category" ) :: Nil   
+    override val attrs = ( "rel" -> "category" ) :: Nil
     override def body = { <a href="#"><span class="treeActiveTechniqueCategoryName tooltipable" tooltipid={category.id.value.replaceAll("/", "")}  title={category.description}>{category.name}</span></a><div class="tooltipContent" id={category.id.value.replaceAll("/", "")}><h3>{category.name}</h3><div>{category.description}</div></div> }
-    override def children = subCat match { 
+    override def children = subCat match {
       case Nil => techniqueNode(dep, technique, activeTechnique) :: Nil
       case h::tail => categoryNode(h, tail, dep, technique,activeTechnique) :: Nil
     }
   }
-  
+
   private[this] def techniqueNode(dep: TechniqueDependencies, technique:Technique, activeTechnique:ActiveTechnique) : JsTreeNode = new JsTreeNode {
     override def body = {  <a href="#"><span class="treeTechniqueName tooltipable" tooltipid={activeTechnique.techniqueName.value} title={technique.description}>{technique.name}</span></a><div class="tooltipContent" id={activeTechnique.techniqueName.value}><h3>{technique.name}</h3><div>{technique.description}</div></div> }
     override def children = dep.directives.keySet.toList.map {  directiveId => directiveNode(dep,directiveId) }
     override val attrs = ( "rel" -> "template") :: Nil ::: (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
   }
-  
+
   private[this] def directiveNode(dep: TechniqueDependencies, id:DirectiveId) : JsTreeNode = {
     val (directive, ruleIds) = dep.directives(id)
-    
+
     new JsTreeNode {
       override val attrs = ( "rel" -> "directive") :: Nil ::: (if(!directive.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
       override def body = {  <a href="#"><span class="treeDirective tooltipable" tooltipid={directive.id.value} title={directive.shortDescription}>{directive.name}</span></a><div class="tooltipContent" id={directive.id.value}><h3>{directive.name}</h3><div>{directive.shortDescription}</div></div> }
       override def children = ruleIds.map ( k => ruleNode(k) ).toList
     }
   }
-  
+
   private[this] def ruleNode(id:RuleId) : JsTreeNode = {
     ruleRepository.get(id) match {
       case Full(rule) => new JsTreeNode {
@@ -150,15 +150,15 @@ class TechniqueTree(
         override def body = { <a href="#"><span class="treeRuleName tooltipable" tooltipid={id.value} title={rule.shortDescription}>{rule.name}</span></a><div class="tooltipContent" id={id.value}><h3>{rule.name}</h3><div>{rule.shortDescription}</div></div> }
         override def children = Nil
       }
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         val msg = "Can not build tree of dependencies for Technique %s".format(techniqueId)
         logger.error(msg, e)
-        
+
         new JsTreeNode {
           override def body = <span class="error">Can not find Rule details for id {id}. <span class="errorDetails">{(e?~!msg)}</span></span>
           override def children = Nil
         }
     }
   }
-  
+
 }

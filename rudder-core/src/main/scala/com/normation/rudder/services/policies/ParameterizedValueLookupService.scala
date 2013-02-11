@@ -47,39 +47,39 @@ import com.normation.utils.HashcodeCaching
 
 /**
  * A service that handle parameterized value of
- * directive variables. 
- * 
+ * directive variables.
+ *
  * The parameterization is to be taken in the context of
  * a rule (i.e, a directive applied to
  * a target), and in the scope of one node of the target
  * (as if you were processing one node at a time).
- * 
+ *
  * The general parameterized value are of the form:
  * ${...}
  * were "..." is the parameter to lookup.
- * 
+ *
  * We handle 2 kinds of parameterizations:
  * 1/ ${rudder.CONFIG_RULE_ID.ACCESSOR}
  *    where:
  *    - CONFIG_RULE_ID is a valid id of a rule in the system
  *    - ACCESSOR is an accessor for that rule, explained below.
  * 2/ ${rudder.node.ACCESSOR}
- *    where: 
+ *    where:
  *    - "node" is a keyword ;
  *    - ACCESSOR is an accessor for that node, explained below.
  *
- * Accessor are keywords which allows to reach value in a context, exactly like 
- * properties in object oriented programming. 
+ * Accessor are keywords which allows to reach value in a context, exactly like
+ * properties in object oriented programming.
  *
  * Accessors for node
  * ------------------
  *   ${rudder.node.id} : internal ID of the node (generally an UUID)
  *   ${rudder.node.hostname} : hostname of the node
- *   ${rudder.node.admin} : login (or username) of the node administrator, or root, or at least 
+ *   ${rudder.node.admin} : login (or username) of the node administrator, or root, or at least
  *                   the login to use to run the agent
  *   ${rudder.node.policyserver.ACCESSOR} : information about the policyserver of the node.
  *                                    ACCESSORs are the same than for ${rudder.node}
- * 
+ *
  * Accessors for rule
  * --------------------------------
  * Accessor for rule are of two forms:
@@ -87,69 +87,69 @@ import com.normation.utils.HashcodeCaching
  *   where VAR_NAME is the name of a variable of the technique implemented
  *   by the directive referenced by the given rule ;
  *   The following constraint are applied on a VAR_NAME accessor:
- *   - if the variable is monovalued, the targeted variable must have only one value 
+ *   - if the variable is monovalued, the targeted variable must have only one value
  *     (the target variable may be multivalued with exaclty one value) ;
- *   - if the variable is multivalued and is not part of a group, 
+ *   - if the variable is multivalued and is not part of a group,
  *     there is no constraints on the target ;
  *   - if the variable is mutlivalued and is part of group, there is no constraints
  *     on the target **BUT** if other members of the group don't have the same
- *     cardinality than the result of the lookup, you will have problems. 
- *   
+ *     cardinality than the result of the lookup, you will have problems.
+ *
  * - ${rudder.CONFIG_RULE_ID.target.ACCESSOR}
  *   - where "target" is an accessor which change the context of following
  *     accessors to the target of the rule (group, etc)
  *     Target Accessor are the same as node accessors, but are multivalued.
- * 
+ *
  * Important notice:
  * -----------------
- * For a given rule, ALL parameterized value are processed in the 
+ * For a given rule, ALL parameterized value are processed in the
  * same order, and order is kept.
- * 
+ *
  * That means  (for example) that if a parameterized value references two target accessors,
  * information regarding the same node will be put at the same index.
- * 
+ *
  */
 trait ParameterizedValueLookupService {
 
   /**
-   * Replace all parameterization of the form ${rudder.node.XXX} 
+   * Replace all parameterization of the form ${rudder.node.XXX}
    * by their values
-   * 
+   *
    * We are in the context of a node, given by the id.
    * We can provide a NodeInfo as cache for the node.
-   * 
+   *
    */
   def lookupNodeParameterization(nodeId:NodeId, variables:Seq[Variable]) : Box[Seq[Variable]]
 
   /**
    * Replace all parameterization of the form
    * ${rudder.CONFIGURATION_RULE_ID.XXX} by their values
-   * 
+   *
    * TODO: handle cache !!
-   * 
+   *
    */
   def lookupRuleParameterization(variables:Seq[Variable]) : Box[Seq[Variable]]
-  
-  
-  
+
+
+
   sealed abstract class AccessorName(val value:String)
   case object ID extends AccessorName("id")
   case object HOSTNAME extends AccessorName("hostname")
   case object ADMIN extends AccessorName("admin")
-  
+
   def isValidAccessorName(accessor:String) : Boolean = accessor.toLowerCase match {
     case ID.value | HOSTNAME.value | ADMIN.value => true
     case _ => false
   }
 
-  
-  sealed trait Parametrization 
 
-  case class BadParametrization(value:String) extends Parametrization with HashcodeCaching 
-  
+  sealed trait Parametrization
+
+  case class BadParametrization(value:String) extends Parametrization with HashcodeCaching
+
   abstract class NodeParametrization extends Parametrization
 
-  abstract class NodePsParametrization extends Parametrization 
+  abstract class NodePsParametrization extends Parametrization
   object NodePsParametrization {
     def r = """\$\{rudder\.node\.policyserver\..*\}""".r
   }
@@ -171,27 +171,27 @@ trait ParameterizedValueLookupService {
   case object ParamNodePsAdmin extends NodeParametrization {
     def r = """\$\{rudder\.node\.policyserver\.admin\}""".r
   }
-  
+
   case object NodeParam extends NodeParametrization
-  case class BadNodeParam(value:String) extends NodeParametrization with HashcodeCaching 
+  case class BadNodeParam(value:String) extends NodeParametrization with HashcodeCaching
 
-  abstract class CrParametrization extends Parametrization 
+  abstract class CrParametrization extends Parametrization
 
-  case class CrVarParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching 
-  case class CrTargetParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching 
+  case class CrVarParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching
+  case class CrTargetParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching
   object CrTargetParametrization {
     def r = """\$\{rudder\.([\-_a-zA-Z0-9]+)\.target\.([\-_a-zA-Z0-9]+)\}""".r
   }
 
-  
+
 
   object Parametrization {
     def r = """\$\{rudder\.(.*)\}""".r
-  }  
-  
+  }
+
   object CrParametrization {
     def r = """\$\{rudder\.([\-_a-zA-Z0-9]+)\.([\-_a-zA-Z0-9]+)\}""".r
-    
+
     def unapply(value:String) : Option[Parametrization] = {
         //start by the most specific and go up
         value.toLowerCase match {
@@ -203,10 +203,10 @@ trait ParameterizedValueLookupService {
         }
     }
   }
-  
+
   object NodeParametrization {
     def r = """\$\{rudder\.node\..*\}""".r
-    
+
     def unapply(value:String) : Option[Parametrization] = {
         //start by the most specific and go up
         value.toLowerCase match {
@@ -229,9 +229,9 @@ class ParameterizedValueLookupServiceImpl(
     override val directiveTargetService : RuleTargetService,
     override val ruleRepo : RuleRepository,
     override val ruleValService : RuleValService
-) extends ParameterizedValueLookupService with 
-  ParameterizedValueLookupService_lookupNodeParameterization with 
-  ParameterizedValueLookupService_lookupRuleParameterization 
+) extends ParameterizedValueLookupService with
+  ParameterizedValueLookupService_lookupNodeParameterization with
+  ParameterizedValueLookupService_lookupRuleParameterization
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -239,7 +239,7 @@ class ParameterizedValueLookupServiceImpl(
 trait ParameterizedValueLookupService_lookupNodeParameterization extends ParameterizedValueLookupService {
 
   def nodeInfoService : NodeInfoService
-  
+
   private[this] def lookupNodeVariable(nodeInfo : NodeInfo, policyServerInfo: => Box[NodeInfo], value:String) : Box[String] = {
     value match {
       case NodeParametrization(ParamNodeId) => Full(nodeInfo.id.value)
@@ -251,9 +251,9 @@ trait ParameterizedValueLookupService_lookupNodeParameterization extends Paramet
       case NodeParametrization(BadParametrization(value)) => Failure("Unknow parameterized value: ${%s}".format(value))
       case _ => Full(value) //nothing to replace
     }
-  }   
-  
-  
+  }
+
+
   override def lookupNodeParameterization(nodeId:NodeId, variables:Seq[Variable]) : Box[Seq[Variable]] = {
     for {
       nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
@@ -272,13 +272,13 @@ trait ParameterizedValueLookupService_lookupNodeParameterization extends Paramet
 
 
 trait ParameterizedValueLookupService_lookupRuleParameterization extends ParameterizedValueLookupService with Loggable {
-  
-   
+
+
   def directiveTargetService : RuleTargetService
   def nodeInfoService : NodeInfoService
   def ruleRepo : RuleRepository
   def ruleValService : RuleValService
-  
+
   /**
    * Replace all parameterization of the form
    * ${CONFGIGURATION_RULE_ID.XXX} by their values
@@ -306,10 +306,10 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
        ).map {seq => logger.debug("setted variable values are %s %s".format(variable.spec.name, seq.flatten));Variable.matchCopy(variable, seq.flatten) }
      }
   }
-  
-  
 
- 
+
+
+
    /**
     * Lookup the variable with name varName in RuleVal.id in crv.
     * Try to first lookup the values in cache, and if it is not yet present,
@@ -322,10 +322,10 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
     * @return
     */
   private[this] def lookupTargetParameter(
-    sourceVariableSpec:VariableSpec, 
-    targetConfiguRuleId:RuleId, 
+    sourceVariableSpec:VariableSpec,
+    targetConfiguRuleId:RuleId,
     targetAccessorName:String) : Box[Seq[String]] = {
-    
+
     if(isValidAccessorName(targetAccessorName)) {
       for {
         rule <- ruleRepo.get(targetConfiguRuleId)
@@ -342,8 +342,8 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
           nodeInfoService.getNodeInfo(nodeId)
         }
         cf2 = logger.trace("Fetched nodes infos : %s".format(nodeInfos))
-        cardinalityOk <- { 
-          if(!sourceVariableSpec.multivalued && nodeInfos.size != 1) 
+        cardinalityOk <- {
+          if(!sourceVariableSpec.multivalued && nodeInfos.size != 1)
             Failure("The parameterized value returned a list value not compatible with variable spec for %s (monovalued)"
                 .format(sourceVariableSpec.name))
           else Full("OK")
@@ -360,8 +360,8 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
       Failure("Unknown accessor name: %s".format(targetAccessorName))
     }
   }
-   
-  
+
+
 
    /**
     * Lookup the variable with name varName in RuleVal.id in crv.
@@ -381,26 +381,26 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
        exists <- {
          if(variables.size == 0) Failure("Can not lookup variable %s for rule %s.".format(
                                                       varAccessorName, crv.ruleId))
-         else Full("OK")   
+         else Full("OK")
        }
-       values <- Full(variables.flatten(x => x.values)) 
-       
+       values <- Full(variables.flatten(x => x.values))
+
        okMonovalued <- {
          if(!sourceVariableSpec.multivalued && values.size != 1) Failure("More than one value looked-up for parameterized variable %s".format(sourceVariableSpec.name))
          else Full("OK")
        }
        okNoParameterizedVariables <- {
          if(containsParameterizedValue(values)) Failure("A parameterized value for variable %s in rule %s is parameterized and is used as a target of another rule. That is not supported".format(sourceVariableSpec.name, crv.ruleId))
-         else Full("OK") 
+         else Full("OK")
        }
      } yield {
        values
      }
   }
-  
+
   private[this] def containsParameterizedValue(values:Seq[String]) : Boolean = {
     val regex = """\$\{rudder\.*\}""".r
-    values.foreach { 
+    values.foreach {
       case regex() => return true
       case _ => //continue
     }

@@ -56,7 +56,7 @@ class GitParseRules(
   , xmlMigration       : XmlEntityMigration
   , rulesRootDirectory : String //relative name to git root file
 ) extends ParseRules with Loggable {
-  
+
   def getArchive(archiveId:GitCommitId) = {
     for {
       treeId  <- GitFindUtils.findRevTreeFromRevString(repo.db, archiveId.value)
@@ -67,14 +67,14 @@ class GitParseRules(
   }
 
   private[this] def getArchiveForRevTreeId(revTreeId:ObjectId) = {
-    
+
     val root = {
       val p = rulesRootDirectory.trim
       if(p.size == 0) ""
       else if(p.endsWith("/")) p.substring(0, p.size-1)
       else p
     }
-    
+
     val directoryPath = root + "/"
 
     //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
@@ -85,7 +85,7 @@ class GitParseRules(
                    UuidRegex.isValid(p.substring(directoryPath.size,p.size - 4))
                  }
 
-    
+
     for {
       xmls    <- sequence(paths.toSeq) { crPath =>
                    GitFindUtils.getFileContent(repo.db, revTreeId, crPath){ inputStream =>
@@ -98,10 +98,10 @@ class GitParseRules(
                        rule    <- ruleUnserialisation.unserialise(xml)
                      } yield {
                        rule
-                     }                   
+                     }
                  }
     } yield {
       rules
     }
-  }        
+  }
 }

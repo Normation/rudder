@@ -41,10 +41,10 @@ import net.liftweb.common._
 
 /**
  * A service that try to build  variables from a list of VariableSpec and
- * a context (list of values to try to put in variable). 
- * 
+ * a context (list of values to try to put in variable).
+ *
  * Different implementation may be more or less strict about how they handle
- * mismatch between context and variable specs. 
+ * mismatch between context and variable specs.
  */
 trait VariableBuilderService {
   /**
@@ -56,14 +56,14 @@ trait VariableBuilderService {
       variableSpecs : Seq[VariableSpec]
     , context:Map[String, Seq[String]]
   ) : Box[Map[String, Variable]]
-  
+
 }
 
 /**
- * A default implementation that not strict at all. 
+ * A default implementation that not strict at all.
  * It try to do it's best, defaulting to empty values
  * when no parameter are found in the context for a given
- * variableSpec. 
+ * variableSpec.
  */
 class VariableBuilderServiceImpl extends VariableBuilderService with Loggable {
 
@@ -71,25 +71,25 @@ class VariableBuilderServiceImpl extends VariableBuilderService with Loggable {
       variableSpecs : Seq[VariableSpec]
     , context:Map[String, Seq[String]]
   ) : Box[Map[String, Variable]] = {
-    
+
     Full(
       variableSpecs.map { spec =>
         context.get(spec.name) match {
           case None => (spec.name, spec.toVariable())
-          case Some(seqValues) => 
+          case Some(seqValues) =>
             try {
                 val newVar = spec.toVariable(seqValues)
                 assert(seqValues.toSet == newVar.values.toSet)
                 (spec.name -> newVar)
             } catch {
-              case ex: VariableException => 
+              case ex: VariableException =>
                 logger.error("Error when trying to set values for variable '%s', use a default value for that variable. Erroneous values was: %s".format(spec.name, seqValues.mkString("[", " ; ", "]")))
                 (spec.name, spec.toVariable())
             }
         }
       }.toMap
     )
-  }  
+  }
 }
 
 // For memories: here come the historical version which was much more strict about what to allow
@@ -102,25 +102,25 @@ class VariableBuilderServiceImpl extends VariableBuilderService with Loggable {
 //  override def buildVariables(allVariables : Set[VariableSpec],
 //        parameters:Map[String, Seq[String]]) : Box[Map[String, Variable]] = {
 //      val invalidVariable = scala.collection.mutable.Map[String, Seq[String]]()
-//      
+//
 //      val variableResult =  scala.collection.mutable.Map[String, Variable]()
-//      
+//
 //      //check if parameters has more variables than expected by the policy
 //      val overflowVariables = (parameters.keySet -- allVariables.map(_.name).toSet)
 //      if(overflowVariables.nonEmpty) {
 //         return ParamFailure[Map[String,Seq[String]]]("Found configured variable(s) in directive that are not expected", Empty, Empty, overflowVariables.map(n => (n -> parameters(n))).toMap)
 //      }
-//          
+//
 //      for (variableSpec <- allVariables) {
 //         // TODO : IS THAT TRUE ?
 //         if (variableSpec.systemVar) { // a system var doesn't have value in the PI ?
 //            variableResult += (variableSpec.name -> variableSpec.toVariable())
 //         } else {
-//            variableSpec match {  
-//              case x : VariableSpec => 
+//            variableSpec match {
+//              case x : VariableSpec =>
 //                parameters.get(variableSpec.name) match {
 //                  case None =>  invalidVariable += (variableSpec.name -> Seq[String]()) // this is an expected variable that is not present
-//                  case Some(setValues) => 
+//                  case Some(setValues) =>
 //                    try {
 //                        val newVar = x.toVariable(setValues)
 //                        assert(setValues.toSet == newVar.values.toSet)
@@ -128,12 +128,12 @@ class VariableBuilderServiceImpl extends VariableBuilderService with Loggable {
 //                    } catch {
 //                      case ex: VariableException => invalidVariable += (variableSpec.name -> setValues)
 //                    }
-//                }   
+//                }
 //            }
 //          }
 //      }
-//          
-//          
+//
+//
 //    if (invalidVariable.size > 0) {
 //      ParamFailure[scala.collection.Map[String, Seq[String]]]("Some variables are not set/correct", Full(new VariableException("Some variables are not set/correct")), Empty, invalidVariable)
 //    } else {

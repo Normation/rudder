@@ -55,11 +55,11 @@ class LDAPNodeConfigurationRepository(
     rudderDit:RudderDit,
     mapper:LDAPNodeConfigurationMapper
 ) extends NodeConfigurationRepository with Loggable {
-  
- 
-  
+
+
+
   def addRootNodeConfiguration(rootNodeConfiguration : RootNodeConfiguration) : Box[RootNodeConfiguration] = saveNodeConfiguration(rootNodeConfiguration).map(_ => rootNodeConfiguration)
-  
+
   /**
    * An utility class that finds all root NodeConfigurations UUID among servers.
    * It should alway return a full seq of exactly one server
@@ -71,7 +71,7 @@ class LDAPNodeConfigurationRepository(
       }
     }
   }
-  
+
   /**
    * retrieve server object from a set of dn of server Entries.
    * It checks that the dn is actually a dn for a server entry
@@ -84,7 +84,7 @@ class LDAPNodeConfigurationRepository(
    * @return
    */
   private def findNodeConfigurationFromNodeConfigurationEntryDN(con:LDAPConnection, dns:Set[DN]) : Box[List[NodeConfiguration]] = {
-    ( (Full(List[NodeConfiguration]()):Box[List[NodeConfiguration]]) /: dns  ) { 
+    ( (Full(List[NodeConfiguration]()):Box[List[NodeConfiguration]]) /: dns  ) {
       case (e:EmptyBox,_) => e
       case (Full(list),dn) =>
         if(!dn.getRDN.isMultiValued && dn.getRDN.hasAttribute(rudderDit.NODE_CONFIGS.NODE_CONFIG.rdnAttribute._1)) {
@@ -98,11 +98,11 @@ class LDAPNodeConfigurationRepository(
         } else Full(list)
     }
   }
-  
+
   def getRootNodeConfiguration() : Box[RootNodeConfiguration] = {
     ldap.flatMap { con =>
       val seq = con.searchOne(rudderDit.NODE_CONFIGS.dn, IS(OC_ROOT_POLICY_SERVER), "1:1" )
-      
+
       if(seq.size == 1) {
         findNodeConfigurationFromNodeConfigurationEntryDN(con,Set(seq(0).dn)) match {
           case Full(seq2) => seq2.toList match {
@@ -112,13 +112,13 @@ class LDAPNodeConfigurationRepository(
           }
           case e:EmptyBox => e
         }
-      } else if(seq.size < 1) 
+      } else if(seq.size < 1)
         Failure("Exactly one policy server must be configured, found 0")
       else Failure("Exactly one policy server must be configured, found %s (%s)".format(seq.size, seq.map(_.dn).mkString(",")))
     }
   }
 
-  
+
   /**
    * Search a server by its id
    * @param id
@@ -127,8 +127,8 @@ class LDAPNodeConfigurationRepository(
   def findNodeConfiguration(id : NodeId) : Box[NodeConfiguration] = {
       for {
         con <- ldap
-        tree <- con.getTree(rudderDit.NODE_CONFIGS.NODE_CONFIG.dn(id.value)) 
-        server <- mapper.toNodeConfiguration(tree) ?~! "Mapping from LDAP representation to NodeConfiguration failed" 
+        tree <- con.getTree(rudderDit.NODE_CONFIGS.NODE_CONFIG.dn(id.value))
+        server <- mapper.toNodeConfiguration(tree) ?~! "Mapping from LDAP representation to NodeConfiguration failed"
       } yield server
   }
 
@@ -140,17 +140,17 @@ class LDAPNodeConfigurationRepository(
    * @return
    */
   def getMultipleNodeConfigurations(ids : Seq[NodeId]) : Box[Set[NodeConfiguration]] = {
-    ldap.flatMap { con => 
+    ldap.flatMap { con =>
       findNodeConfigurationFromNodeConfigurationEntryDN(con,
         con.searchOne(
-          rudderDit.NODE_CONFIGS.dn, 
+          rudderDit.NODE_CONFIGS.dn,
           OR(ids.toSet[NodeId].map(id => EQ(rudderDit.NODE_CONFIGS.NODE_CONFIG.rdnAttribute._1,id.value)).toSeq:_*),
           "1:1"
         ).map(_.dn).toSet
       ).map(_.toSet)
     }
   }
-  
+
   /**
    * Save a server in the repo
    * @param server
@@ -162,8 +162,8 @@ class LDAPNodeConfigurationRepository(
       con.saveTree(tree, true)
     }).map( _ => server)
   }
-  
-  
+
+
   /**
    * Save several servers in the repo
    * @param server
@@ -178,15 +178,15 @@ class LDAPNodeConfigurationRepository(
      }
    }
   }
-    
+
   /**
    * Delete a server. It will first clean its roles, and keep the consistencies of data
    * @param server
    */
   def deleteNodeConfiguration(server:NodeConfiguration) : Box[String] = deleteNodeConfiguration(server.id)
-  
+
   /**
-   * Delete a node configuration. 
+   * Delete a node configuration.
    * Does not check the consistency of anything
    * @param server
    */
@@ -206,72 +206,72 @@ class LDAPNodeConfigurationRepository(
     for {
       con           <- ldap
       nodeConfigDns <- Full(con.searchOne(rudderDit.NODE_CONFIGS.dn, ALL, "1:1").map(_.dn))
-      deleted       <- bestEffort(nodeConfigDns) { dn => 
+      deleted       <- bestEffort(nodeConfigDns) { dn =>
                          con.delete(dn, recurse = true )
                        }
     } yield {
-      nodeConfigDns.flatMap { dn => 
+      nodeConfigDns.flatMap { dn =>
         rudderDit.NODE_CONFIGS.NODE_CONFIG.idFromDn(dn)
       }.toSet
     }
   }
 
-    
+
   /**
    * Return all servers
    * @return
    */
   def getAll() : Box[Map[String, NodeConfiguration]] = {
-    ldap.flatMap { con => 
+    ldap.flatMap { con =>
       findNodeConfigurationFromNodeConfigurationEntryDN(con, con.searchOne(rudderDit.NODE_CONFIGS.dn, ALL, "1:1").map(_.dn).toSet)
     }.map { seq => seq.map(s => (s.id,s)).toMap }
   }
-  
+
    /**
    * Look for all server which have the given directive ID.
    */
   def findNodeConfigurationByCurrentRuleId(id:RuleId) : Box[Seq[NodeConfiguration]] = {
     ldap.flatMap { con =>
-      findNodeConfigurationFromNodeConfigurationEntryDN(con, 
+      findNodeConfigurationFromNodeConfigurationEntryDN(con,
         con.searchSub(
-          rudderDit.NODE_CONFIGS.dn, 
+          rudderDit.NODE_CONFIGS.dn,
           AND(IS(OC_NODE_CONFIGURATION),EQ(A_DIRECTIVE_UUID,id.value)),
           "1:1"
         ).map { e => e.dn.getParent }.toSet
       )
     }
   }
-  
+
   /**
    * Look for all server which have the given policy name (however directive
    * of that policy they, as long as they have at least one)
    */
   def findNodeConfigurationByTargetPolicyName(techniqueId:TechniqueId) : Box[Seq[NodeConfiguration]]  = {
     ldap.flatMap { con =>
-      findNodeConfigurationFromNodeConfigurationEntryDN(con, 
+      findNodeConfigurationFromNodeConfigurationEntryDN(con,
         con.searchSub(
-          rudderDit.NODE_CONFIGS.dn, 
-          AND(IS(OC_TARGET_RULE_WITH_CF3POLICYDRAFT),EQ(A_NAME,techniqueId.name.value),EQ(A_TECHNIQUE_VERSION,techniqueId.version.toString)), 
+          rudderDit.NODE_CONFIGS.dn,
+          AND(IS(OC_TARGET_RULE_WITH_CF3POLICYDRAFT),EQ(A_NAME,techniqueId.name.value),EQ(A_TECHNIQUE_VERSION,techniqueId.version.toString)),
           "1:1"
         ).map { e => e.dn.getParent }.toSet
       )
     }
   }
 
-  
+
   /**
    * Return all the server that need to be commited
    * Meaning, all servers that have a difference between the current and target directive
-   * 
-   * TODO: perhaps it should be a method of BridgeToCfclerkService, 
+   *
+   * TODO: perhaps it should be a method of BridgeToCfclerkService,
    * and then NodeConfigurationService will be able to find all servers with
    * theses directives
    */
   def findUncommitedNodeConfigurations() : Box[Seq[NodeConfiguration]] = {
     ldap.flatMap { con =>
-      findNodeConfigurationFromNodeConfigurationEntryDN(con, 
+      findNodeConfigurationFromNodeConfigurationEntryDN(con,
         con.searchOne(
-          rudderDit.NODE_CONFIGS.dn, 
+          rudderDit.NODE_CONFIGS.dn,
           AND(IS(OC_NODE_CONFIGURATION),EQ(A_SERVER_IS_MODIFIED,true.toLDAPString)),
           "1:1"
         ).map(_.dn).toSet

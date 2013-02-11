@@ -42,7 +42,7 @@ import net.liftweb.common.Box
 import scala.collection.Seq
 
 trait QueryProcessor {
-  
+
    /**
    * Process a query and (hopefully) return the list of entry that match it.
    * @param query - the query to process
@@ -50,7 +50,7 @@ trait QueryProcessor {
    * @return
    */
   def process(query:Query) : Box[Seq[NodeInfo]]
- 
+
 }
 
 
@@ -58,16 +58,16 @@ trait QueryChecker {
 
   /**
    * Each server denoted by its id is tested against query to see if it
-   * matches. Return the list of matching server ids. 
+   * matches. Return the list of matching server ids.
    * @param Query
-   *    the query to test 
+   *    the query to test
    * @param Seq[NodeId]
-   *    list of server which have to be tested for query   
+   *    list of server which have to be tested for query
    * @return
-   *   Empty or Failure in case of a error during the process 
+   *   Empty or Failure in case of a error during the process
    *   Full(seq) with seq being the list of nodeId which verify
    *   query.
    */
   def check(query:Query, nodeIds:Seq[NodeId]) : Box[Seq[NodeId]]
-  
+
 }

@@ -71,16 +71,16 @@ import net.liftweb.util.StringPromotable.intToStrPromo
  */
 object LogMigrationEventLog_10_2 {
   val logger = Logger("migration-2.3-2.4-eventlog-xml-format-1.0-2")
-  
-  val defaultErrorLogger : Failure => Unit = { f => 
+
+  val defaultErrorLogger : Failure => Unit = { f =>
     logger.error(f.messageChain)
-    f.rootExceptionCause.foreach { ex => 
+    f.rootExceptionCause.foreach { ex =>
       logger.error("Root exception was:", ex)
     }
   }
   val defaultSuccessLogger : Seq[MigrationEventLog] => Unit = { seq =>
     if(logger.isDebugEnabled) {
-      seq.foreach { log => 
+      seq.foreach { log =>
         logger.debug("Migrating eventlog to format 2, id: " + log.id)
       }
     }
@@ -96,10 +96,10 @@ object LogMigrationEventLog_10_2 {
 object MigrationEventLogTable extends Schema {
 
   val migrationEventLog = table[SerializedMigrationEventLog]("migrationeventlog")
-    
+
   on(migrationEventLog)(t => declare(
       t.id.is(autoIncremented("migrationeventlogid"), primaryKey))
-  )  
+  )
 }
 
 case class SerializedMigrationEventLog(
@@ -109,11 +109,11 @@ case class SerializedMigrationEventLog(
   , @Column("migrationendtime")    migrationEndTime   : Option[Timestamp]
   , @Column("migrationfileformat") migrationFileFormat: Option[Long]
   , @Column("description")         description        : Option[String]
-) extends KeyedEntity[Long] { 
-  
-  @Column("id") 
-  val id = 0L 
-  
+) extends KeyedEntity[Long] {
+
+  @Column("id")
+  val id = 0L
+
   //for squery to know about option type
   def this() = this(new Timestamp(System.currentTimeMillis), 0, Some(new Timestamp(System.currentTimeMillis)), Some(new Timestamp(System.currentTimeMillis)), Some(0L), Some(""))
 }
@@ -122,20 +122,20 @@ class MigrationEventLogRepository(squerylConnectionProvider : SquerylConnectionP
 
   /**
    * Retrieve the last version of the EventLog fileFormat as seen by the
-   * the SQL script. 
+   * the SQL script.
    * If the database does not exist or no line are present, retrun none.
    */
   def getLastDetectionLine: Option[SerializedMigrationEventLog] = {
     squerylConnectionProvider.ourTransaction {
-      val q = from(MigrationEventLogTable.migrationEventLog)(line => 
+      val q = from(MigrationEventLogTable.migrationEventLog)(line =>
         select(line)
         orderBy(line.id.desc)
       )
-      
+
       q.page(0,1).toList.headOption
-    }    
+    }
   }
-  
+
   /**
    * Update the corresponding detection line with
    * the starting time of the migration (from Rudder)
@@ -148,9 +148,9 @@ class MigrationEventLogRepository(squerylConnectionProvider : SquerylConnectionP
       )
     }
   }
-  
+
   /**
-   * Update the corresponding detection line with the new, 
+   * Update the corresponding detection line with the new,
    * up-to-date file format.
    */
   def setMigrationFileFormat(id: Long, fileFormat:Long, endTime:Timestamp) : Int = {
@@ -162,9 +162,9 @@ class MigrationEventLogRepository(squerylConnectionProvider : SquerylConnectionP
           , l.migrationFileFormat := Some(fileFormat)
         )
       )
-    }    
+    }
   }
-  
+
   /**
    * create a new status line with a timestamp of now and the given
    * detectedFileFormat.
@@ -172,7 +172,7 @@ class MigrationEventLogRepository(squerylConnectionProvider : SquerylConnectionP
   def createNewStatusLine(fileFormat:Long, description:Option[String] = None) : SerializedMigrationEventLog = {
     squerylConnectionProvider.ourTransaction {
       MigrationEventLogTable.migrationEventLog.insert(
-         SerializedMigrationEventLog(new Timestamp(Calendar.getInstance.getTime.getTime), fileFormat, None, None, None, description) 
+         SerializedMigrationEventLog(new Timestamp(Calendar.getInstance.getTime.getTime), fileFormat, None, None, None, description)
       )
     }
   }
@@ -182,7 +182,7 @@ case class MigrationEventLog(
     id           : Long
   , eventType    : String
   , data         : Elem
-) 
+)
 
 object MigrationEventLogMapper extends RowMapper[MigrationEventLog] {
   override def mapRow(rs : ResultSet, rowNum: Int) : MigrationEventLog = {
@@ -202,7 +202,7 @@ final case class MigrationSuccess(migrated:Int) extends MigrationStatus
 /**
  * This class manage the hight level migration process: read if a
  * migration is required in the MigrationEventLog datatable, launch
- * the migration process, write migration result. 
+ * the migration process, write migration result.
  * The actual migration of event logs is delegated to EventLogsMigration_10_2
  */
 class ControlEventLogsMigration_10_2(
@@ -211,18 +211,18 @@ class ControlEventLogsMigration_10_2(
 
 ) {
  def logger = MigrationLogger(2)
-  
+
   def migrate() : Box[MigrationStatus] = {
     /*
      * test is we have to migrate, and execute migration
      */
     migrationEventLogRepository.getLastDetectionLine match {
-      case None => 
+      case None =>
         logger.debug("No migration detected by migration script (table '%s' is empty or does not exists)".
             format(MigrationEventLogTable.migrationEventLog.name)
         )
         Full(NoMigrationRequested)
-        
+
       /*
        * we only have to deal with the migration if:
        * - fileFormat is < 2 AND (
@@ -230,7 +230,7 @@ class ControlEventLogsMigration_10_2(
        *   - migrationFileFormat < 2
        * )
        */
-        
+
       //new migration
       case Some(status@SerializedMigrationEventLog(
           _
@@ -247,7 +247,7 @@ class ControlEventLogsMigration_10_2(
         if(migrationStartTime.isEmpty) {
           migrationEventLogRepository.setMigrationStartTime(status.id, new Timestamp(Calendar.getInstance.getTime.getTime))
         }
-        
+
         logger.info("Start migration of EventLog from format '1.0' to '2'")
 
         eventLogsMigration_10_2.processEventLogs() match {
@@ -255,8 +255,8 @@ class ControlEventLogsMigration_10_2(
             logger.info("Migration from EventLog fileFormat from '1.0' to '2' done, %s EventLogs migrated".format(i))
             migrationEventLogRepository.setMigrationFileFormat(status.id, 2, new Timestamp(Calendar.getInstance.getTime.getTime))
             Full(MigrationSuccess(i))
-            
-          case eb:EmptyBox => 
+
+          case eb:EmptyBox =>
             val e = (eb ?~! "Could not correctly finish the migration from EventLog fileFormat from '1.0' to '2'. Check logs for errors. The process can be trigger by restarting the application")
             logger.error(e)
             e
@@ -275,21 +275,21 @@ class ControlEventLogsMigration_10_2(
         //and a description to say why we recurse
         migrationEventLogRepository.createNewStatusLine(migrationFileFormat, Some("Found a post-migration fileFormat='%s': update".format(migrationFileFormat)))
         this.migrate()
-        
+
       //other case: does nothing
-      case Some(x) => 
+      case Some(x) =>
         logger.debug("Migration of EventLog from format '1.0' to '2': nothing to do")
         Full(MigrationVersionNotHandledHere)
     }
   }
-  
+
 }
 
 /**
  * The class that handle the processing of the list of all event logs
  * logic.
  * Each individual eventlog is processed in EventLogMigration_10_2
- * 
+ *
  */
 class EventLogsMigration_10_2(
     jdbcTemplate               : JdbcTemplate
@@ -299,42 +299,42 @@ class EventLogsMigration_10_2(
   , batchSize                  : Int = 1000
 ) {
  def logger = MigrationLogger(2)
-  
- 
+
+
   /**
-   * retrieve all event log to migrate. 
+   * retrieve all event log to migrate.
    */
   def findAllEventLogs : Box[Seq[MigrationEventLog]] = {
-    
+
     //check if the event must be migrated
     def needMigration(xml:NodeSeq) : Boolean = (
-         (xml \ "addPending" ).size > 0 
+         (xml \ "addPending" ).size > 0
       || (try {
            (xml \\ "@fileFormat" exists { _.text.toFloat == 1 })
          } catch {
            case e:NumberFormatException => false
          })
     )
-    
-    val SELECT_SQL_ALL_EVENTLOGS = 
+
+    val SELECT_SQL_ALL_EVENTLOGS =
       """
       |SELECT id, eventType, data FROM eventlog
       |""".stripMargin
-      
+
     tryo(
         jdbcTemplate.query(SELECT_SQL_ALL_EVENTLOGS, MigrationEventLogMapper).asScala
        .filter(log => needMigration(log.data))
     )
   }
-  
+
   private[this] def saveEventLogs(logs:Seq[MigrationEventLog]) : Box[Seq[MigrationEventLog]] = {
     val UPDATE_SQL = "UPDATE EventLog set eventType = ?, data = ? where id = ?"
-      
+
     val ilogs = logs match {
       case x:IndexedSeq[_] => logs
       case seq => seq.toIndexedSeq
     }
-      
+
     tryo { jdbcTemplate.batchUpdate(
                UPDATE_SQL
              , new BatchPreparedStatementSetter() {
@@ -350,16 +350,16 @@ class EventLogsMigration_10_2(
                }
     ) }.map( _ => ilogs )
   }
-  
-  
-    
-    
+
+
+
+
   /**
-   * General algorithm: get all event logs to migrate, 
+   * General algorithm: get all event logs to migrate,
    * then process and save them.
    * Return the number of event log migrated
    */
-  def processEventLogs() : Box[Int] = {    
+  def processEventLogs() : Box[Int] = {
     for {
       logs     <- findAllEventLogs
       migrated <- saveResults(
@@ -372,7 +372,7 @@ class EventLogsMigration_10_2(
       migrated
     }
   }
-  
+
 
   private[this] def migrate(
       logs         : Seq[MigrationEventLog]
@@ -387,8 +387,8 @@ class EventLogsMigration_10_2(
   }
 
   /**
-   * Actually save the logs in DB by batch of batchSize. 
-   * The final result is a failure if any batch were in failure. 
+   * Actually save the logs in DB by batch of batchSize.
+   * The final result is a failure if any batch were in failure.
    */
   private[this] def saveResults(
       logs          : Seq[MigrationEventLog]
@@ -408,7 +408,7 @@ class EventLogsMigration_10_2(
 
 /**
  * ////////////////////////////////////////
- * XML 
+ * XML
  * ////////////////////////////////////////
  */
 
@@ -422,11 +422,11 @@ object TestLabel {
 
 
 object TestIsElem {
-  
-  private[this] def failBadElemType(xml:NodeSeq) = { 
+
+  private[this] def failBadElemType(xml:NodeSeq) = {
     Failure("Not expected type of NodeSeq (wish it was an Elem): " + xml)
   }
-  
+
   def apply(xml:NodeSeq) : Box[Elem] = {
     xml match {
       case seq if(seq.size == 1) => seq.head match {
@@ -435,7 +435,7 @@ object TestIsElem {
       }
       case x => failBadElemType(x)
     }
-  }  
+  }
 }
 
 
@@ -494,54 +494,54 @@ case class Encapsulate(label:String) extends Function1[NodeSeq, Option[NodeSeq]]
 
 /**
  * Migrate an event log from fileFormat 1.0 to 2
- * Also take care of categories, etc. 
+ * Also take care of categories, etc.
  */
 class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
  def logger = MigrationLogger(2)
-  
+
   def migrate(eventLog:MigrationEventLog) : Box[MigrationEventLog] = {
     /*
-     * We don't use values from 
+     * We don't use values from
      * com.normation.rudder.domain.eventlog.*EventType
      * so that if they change in the future, the migration
-     * from 2.3 to 2.4 is still OK. 
+     * from 2.3 to 2.4 is still OK.
      */
     val MigrationEventLog(id,eventType,data) = eventLog
-    
+
     //utility to factor common code
     def create(optElem:Box[Elem], name:String) = {
        optElem.map { xml => MigrationEventLog(id, name, <entry>{xml}</entry>) }
     }
-    
+
     for {
       xml      <- TestIsEntry(data)
       migrated <- eventType.toLowerCase match {
                     case "acceptnode" => create(xmlMigration.node(xml), "AcceptNode")
                     case "refusenode" => create(xmlMigration.node(xml), "RefuseNode")
-                    
+
                     case "configurationruleadded"    => create(xmlMigration.rule(xml), "RuleAdded")
                     case "configurationruledeleted"  => create(xmlMigration.rule(xml), "RuleDeleted")
                     case "configurationrulemodified" => create(xmlMigration.rule(xml), "RuleModified")
-              
+
                     case "nodegroupadded"    => create(xmlMigration.nodeGroup(xml), "NodeGroupAdded")
                     case "nodegroupdeleted"  => create(xmlMigration.nodeGroup(xml), "NodeGroupDeleted")
                     case "nodegroupmodified" => create(xmlMigration.nodeGroup(xml), "NodeGroupModified")
-              
+
                     case "policyinstanceadded"    => create(xmlMigration.directive(xml), "DirectiveAdded")
                     case "policyinstancedeleted"  => create(xmlMigration.directive(xml), "DirectiveDeleted")
                     case "policyinstancemodified" => create(xmlMigration.directive(xml), "DirectiveModified")
-                      
+
                     //migrate all start deployment to automatic one
                     case "startdeployement" =>  create(xmlMigration.addPendingDeployment(xml), "AutomaticStartDeployement")
-                      
+
                     /*
                      * nothing to do for these ones:
                      * - ApplicationStarted
                      * - ActivateRedButton, ReleaseRedButton
                      * - UserLogin, BadCredentials, UserLogout
-                     */ 
-                      
-                    case _ => 
+                     */
+
+                    case _ =>
                       val msg = "Not migrating eventLog with [id: %s] [type: %s]: no handler for that type.".format(eventLog.id, eventLog.eventType)
                       Failure(msg)
                   }
@@ -554,12 +554,12 @@ class EventLogMigration_10_2(xmlMigration:XmlMigration_10_2) {
 
 /**
  * That class handle migration of XML eventLog file
- * from a 1.0 format to a 2 one. 
+ * from a 1.0 format to a 2 one.
  */
 class XmlMigration_10_2 {
-  
 
-  
+
+
   def rule(xml:Elem) : Box[Elem] = {
     for {
       labelOK      <- TestLabel(xml, "configurationRule")
@@ -569,12 +569,12 @@ class XmlMigration_10_2 {
                         "rule [fileFormat]" #> Constants.XML_FILE_FORMAT_2 andThen
                         "policyInstanceIds" #> ChangeLabel("directiveIds") &
                         "isActivated" #> ChangeLabel("isEnabled")
-                      )(xml)) 
+                      )(xml))
     } yield {
       migrated
     }
   }
-  
+
   def directive(xml:Elem) : Box[Elem] = {
     for {
       labelOK      <- TestLabel(xml, "policyInstance")
@@ -585,12 +585,12 @@ class XmlMigration_10_2 {
                         "policyTemplateName" #> ChangeLabel("techniqueName") &
                         "policyTemplateVersion" #> ChangeLabel("techniqueVersion") &
                         "isActivated" #> ChangeLabel("isEnabled")
-                      )(xml)) 
+                      )(xml))
     } yield {
       migrated
     }
   }
-  
+
   def activeTechniqueCategory(xml:Elem) : Box[Elem] = {
     for {
       labelOK      <- TestLabel(xml, "policyLibraryCategory")
@@ -598,12 +598,12 @@ class XmlMigration_10_2 {
       migrated     <- TestIsElem((
                         "policyLibraryCategory" #> ChangeLabel("activeTechniqueCategory") andThen
                         "activeTechniqueCategory [fileFormat]" #> Constants.XML_FILE_FORMAT_2
-                      )(xml)) 
+                      )(xml))
     } yield {
       migrated
     }
   }
-    
+
   def activeTechnique(xml:Elem) : Box[Elem] = {
     for {
       labelOK      <- TestLabel(xml, "policyLibraryTemplate")
@@ -613,12 +613,12 @@ class XmlMigration_10_2 {
                         "activeTechnique [fileFormat]" #> Constants.XML_FILE_FORMAT_2 andThen
                         "policyTemplateName" #> ChangeLabel("techniqueName") &
                         "isActivated" #> ChangeLabel("isEnabled")
-                      )(xml)) 
+                      )(xml))
     } yield {
       migrated
     }
   }
-  
+
   def nodeGroup(xml:Elem) : Box[Elem] = {
     for {
       labelOK      <- TestLabel(xml, "nodeGroup")
@@ -626,12 +626,12 @@ class XmlMigration_10_2 {
       migrated     <- TestIsElem((
                         "nodeGroup [fileFormat]" #> Constants.XML_FILE_FORMAT_2 andThen
                         "isActivated" #> ChangeLabel("isEnabled")
-                      )(xml)) 
+                      )(xml))
     } yield {
       migrated
     }
   }
-  
+
 
   def addPendingDeployment(xml:Elem) : Box[Elem] = {
     for {
@@ -640,12 +640,12 @@ class XmlMigration_10_2 {
       migrated     <- TestIsElem((
                         "addPending" #> ChangeLabel("addPendingDeployement") andThen
                         "addPendingDeployement [fileFormat]" #> Constants.XML_FILE_FORMAT_2
-                      )(xml)) 
+                      )(xml))
     } yield {
       migrated
     }
   }
-  
+
 
   def node(xml:Elem) : Box[Elem] = {
     for {
@@ -653,7 +653,7 @@ class XmlMigration_10_2 {
       fileFormatOK <- TestFileFormat(xml, Constants.XML_FILE_FORMAT_1_0)
       migrated     <- TestIsElem((
                         "node [fileFormat]" #> Constants.XML_FILE_FORMAT_2
-                      ).apply(xml)) 
+                      ).apply(xml))
     } yield {
       migrated
     }

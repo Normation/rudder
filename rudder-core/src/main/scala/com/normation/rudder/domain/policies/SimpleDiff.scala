@@ -38,7 +38,7 @@ import com.normation.utils.HashcodeCaching
 import scala.xml._
 
 /**
- * Define a "simple diff value holder", a container for the 
+ * Define a "simple diff value holder", a container for the
  * old and new value of something.
  */
 
@@ -46,11 +46,11 @@ final case class SimpleDiff[T](oldValue:T, newValue:T) extends HashcodeCaching
 
 final object SimpleDiff {
   def toXml[T](eltTag:Elem, diff:SimpleDiff[T])(serialize:T => NodeSeq) : NodeSeq = {
-    eltTag.copy ( 
+    eltTag.copy (
       child = <from>{serialize(diff.oldValue)}</from><to>{serialize(diff.newValue)}</to>
     )
   }
-  
+
   def stringToXml(eltTag:Elem, diff:SimpleDiff[String]) = toXml[String](eltTag,diff)( s => Text(s))
   def booleanToXml(eltTag:Elem, diff:SimpleDiff[Boolean]) = toXml[Boolean](eltTag,diff)( s => Text(s.toString))
   def intToXml(eltTag:Elem, diff:SimpleDiff[Int]) = toXml[Int](eltTag,diff)( s => Text(s.toString))

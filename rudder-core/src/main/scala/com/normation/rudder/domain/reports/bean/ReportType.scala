@@ -56,12 +56,12 @@ case object NoAnswerReportType extends ReportType
 case object PendingReportType extends ReportType
 
 object ReportType {
-  
+
   def getWorseType(reportTypes : Seq[ReportType]) : ReportType = {
     if (reportTypes.isEmpty) {
       NoAnswerReportType
     } else {
-      ( reportTypes :\ (SuccessReportType : ReportType) ) { 
+      ( reportTypes :\ (SuccessReportType : ReportType) ) {
         case (_, UnknownReportType) | (UnknownReportType, _) => UnknownReportType
         case (_, ErrorReportType) | (ErrorReportType, _) => ErrorReportType
         case (_, RepairedReportType) | (RepairedReportType, _) => RepairedReportType
@@ -70,7 +70,7 @@ object ReportType {
         case (_, SuccessReportType) | (SuccessReportType, _) => SuccessReportType
         case _ => UnknownReportType
       }
-    } 
+    }
   }
 
   def getSeverityFromStatus(status : ReportType) : String = {

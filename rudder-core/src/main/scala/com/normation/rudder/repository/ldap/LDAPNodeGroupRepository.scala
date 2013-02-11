@@ -68,18 +68,18 @@ class LDAPNodeGroupRepository(
   , actionLogger      : EventLogRepository
   , gitArchiver       : GitNodeGroupArchiver
   , personIdentService: PersonIdentService
-  , autoExportOnModify: Boolean 
+  , autoExportOnModify: Boolean
   , groupLibMutex     : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends NodeGroupRepository with Loggable {
-  
+
   /**
-   * Look in the group subtree 
-   * for and entry with the given id. 
+   * Look in the group subtree
+   * for and entry with the given id.
    * We expect at most one result, more is a Failure
    */
   private[this] def getSGEntry[ID](
-      con:LDAPConnection, 
-      id:ID, 
+      con:LDAPConnection,
+      id:ID,
       filter: ID => Filter,
       attributes:String*) : Box[LDAPEntry] = {
     val srvEntries = con.searchSub(rudderDit.GROUP.dn, filter(id), attributes:_*)
@@ -87,17 +87,17 @@ class LDAPNodeGroupRepository(
       case 0 => Empty
       case 1 => Full(srvEntries(0))
       case _ => Failure("Error, the directory contains multiple occurrence of the server group with ID %s. DNs involved: %s".format(id, srvEntries.map( _.dn).mkString("; ")))
-    }     
+    }
   }
-  
+
   def getSGEntry(con:LDAPConnection, id:NodeGroupId, attributes:String*) : Box[LDAPEntry] = {
     this.getSGEntry[NodeGroupId](con, id, { id => EQ(A_NODE_GROUP_UUID, id.value) } )
   }
-  
 
-  private[this] def getNodeGroup[ID](id: ID, filter: ID => Filter): Box[NodeGroup] = { 
+
+  private[this] def getNodeGroup[ID](id: ID, filter: ID => Filter): Box[NodeGroup] = {
     for {
-      con     <- ldap 
+      con     <- ldap
       sgEntry <- getSGEntry(con, id, filter) ?~! "Error when retrieving the entry for NodeGroup '%s'".format(id)
       sg      <- mapper.entry2NodeGroup(sgEntry) ?~! "Error when mapping server group entry to its entity. Entry: %s".format(sgEntry)
     } yield {
@@ -140,10 +140,10 @@ class LDAPNodeGroupRepository(
       case 0 => Empty
       case 1 => Full(categoryEntries(0))
       case _ => Failure("Error, the directory contains multiple occurrence of group category with id %s. DN: %s".format(id, categoryEntries.map( _.dn).mkString("; ")))
-    } 
+    }
   }
-  
-  
+
+
   def getGroupsByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = {
     groupLibMutex.readLock { for {
       allCats        <- categoryRepo.getAllGroupCategories(includeSystem)
@@ -156,7 +156,7 @@ class LDAPNodeGroupRepository(
                                           //just ignore other target type
                                           case _ => Full(None)
                                         } }).map( _.flatten )
-                            
+
                           } yield {
                             ( (category.id :: parents.map(_.id)).reverse, CategoryAndNodeGroup(category, groups.toSet))
                           }
@@ -166,8 +166,8 @@ class LDAPNodeGroupRepository(
       SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]() ++ catsWithGroups
     } }
   }
-  
-  def getNodeGroup(id: NodeGroupId): Box[NodeGroup] = { 
+
+  def getNodeGroup(id: NodeGroupId): Box[NodeGroup] = {
       groupLibMutex.readLock { this.getNodeGroup[NodeGroupId](id, { id => EQ(A_NODE_GROUP_UUID, id.value) } ) }
   }
 
@@ -199,9 +199,9 @@ class LDAPNodeGroupRepository(
                        } else Full("ok")
     } yield {
       diff
-    } 
+    }
   }
-  
+
   def update(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
     for {
       con          <- ldap
@@ -234,7 +234,7 @@ class LDAPNodeGroupRepository(
                       } else Full("ok")
     } yield {
       optDiff
-    } 
+    }
   }
 
   def move(nodeGroup:NodeGroup, containerId : NodeGroupCategoryId, modId: ModificationId, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
@@ -272,14 +272,14 @@ class LDAPNodeGroupRepository(
       optDiff
     }
   }
-  
+
   /**
    * Fetch the parent category of the NodeGroup
    * Caution, its a lightweight version of the entry (no children nor item)
    * @param id
    * @return
    */
-  def getParentGroupCategory(id: NodeGroupId): Box[NodeGroupCategory] = { 
+  def getParentGroupCategory(id: NodeGroupId): Box[NodeGroupCategory] = {
     groupLibMutex.readLock { for {
       con <- ldap
       groupEntry <- getSGEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
@@ -289,19 +289,19 @@ class LDAPNodeGroupRepository(
       parentCategory
     } }
   }
-  
+
   def getAll : Box[Seq[NodeGroup]] = {
     groupLibMutex.readLock { for {
       con <- ldap
       //for each directive entry, map it. if one fails, all fails
-      groups <- sequence(con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP))) { groupEntry => 
+      groups <- sequence(con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP))) { groupEntry =>
         mapper.entry2NodeGroup(groupEntry) ?~! "Error when transforming LDAP entry into a Group instance. Entry: %s".format(groupEntry)
       }
     } yield {
       groups
     } }
   }
-  
+
   private[this] def getContainerDn(con : LDAPConnection, id: NodeGroupCategoryId) : Box[DN] = {
     groupLibMutex.readLock { con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_GROUP_CATEGORY), EQ(A_GROUP_CATEGORY_UUID, id.value)), A_GROUP_CATEGORY_UUID).toList match {
       case Nil => Empty
@@ -310,11 +310,11 @@ class LDAPNodeGroupRepository(
                 Failure("Too many NodeGroupCategory found with this id %s".format(id.value))
     } }
   }
-  
-  
+
+
   /**
-   * Delete the given nodeGroup. 
-   * If no nodegroup has such id in the directory, return a success. 
+   * Delete the given nodeGroup.
+   * If no nodegroup has such id in the directory, return a success.
    * @param id
    * @return
    */
@@ -343,7 +343,7 @@ class LDAPNodeGroupRepository(
                           case Empty => Full(id)
                           case f:Failure => f
                         }
-                      } 
+                      }
       diff         =  DeleteNodeGroupDiff(oldGroup)
       loggedAction <- actionLogger.saveDeleteNodeGroup(modId, principal = actor, deleteDiff = diff, reason = reason ) ?~! "Error when saving user event log for node deletion"
       autoArchive  <- if(autoExportOnModify) {
@@ -358,8 +358,8 @@ class LDAPNodeGroupRepository(
       diff
     }
   }
- 
-  
+
+
   private[this] def findGroupWithFilter(filter:Filter) : Box[Seq[NodeGroupId]] = {
     groupLibMutex.readLock { for {
       con <- ldap
@@ -370,7 +370,7 @@ class LDAPNodeGroupRepository(
       groupIds.map(id => NodeGroupId(id))
     } }
   }
-  
+
   /**
    * Retrieve all groups that have at least one of the given
    * node ID in there member list.
@@ -384,7 +384,7 @@ class LDAPNodeGroupRepository(
     )
     findGroupWithFilter(filter)
   }
-  
+
   /**
    * Retrieve all groups that have ALL given node ID in their
    * member list.
@@ -398,5 +398,5 @@ class LDAPNodeGroupRepository(
     )
     findGroupWithFilter(filter)
   }
-  
+
 }

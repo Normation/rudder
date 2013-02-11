@@ -16,7 +16,7 @@ import com.normation.rudder.domain.Constants
  * Update the policy server
  */
 
-sealed trait PolicyServerEventLog extends EventLog 
+sealed trait PolicyServerEventLog extends EventLog
 
 
 final case class UpdatePolicyServer(
@@ -30,14 +30,14 @@ final case class UpdatePolicyServer(
 
 final case class AuthorizedNetworkModification(
    oldNetworks: Seq[String]
- , newNetworks: Seq[String] 
+ , newNetworks: Seq[String]
 )
 
 object UpdatePolicyServer extends EventLogFilter {
   override val eventType = UpdatePolicyServerEventType
- 
+
   override def apply(x : (EventLogType, EventLogDetails)) : UpdatePolicyServer = UpdatePolicyServer(x._2)
-  
+
   def buildDetails(modification: AuthorizedNetworkModification) : NodeSeq = {
     EventLog.withContent {
       <changeAuthorizedNetworks fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
@@ -50,11 +50,11 @@ object UpdatePolicyServer extends EventLogFilter {
       </changeAuthorizedNetworks>
     }
   }
-  
+
 }
 
 object PolicyServerEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      UpdatePolicyServer 
+      UpdatePolicyServer
     )
 }

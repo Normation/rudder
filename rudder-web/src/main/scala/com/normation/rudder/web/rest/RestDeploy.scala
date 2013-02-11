@@ -44,17 +44,17 @@ import com.normation.eventlog.ModificationId
 
 /**
  * A rest api that allows to deploy promises.
- * 
+ *
  */
 class RestDeploy(
     asyncDeploymentAgent: AsyncDeploymentAgent
   , uuidGen             : StringUuidGenerator
 ) extends RestHelper {
-  
+
   serve {
     case Get("api" :: "deploy" :: "reload" :: Nil, req) =>
       asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), "Regeneration asked by REST request")
       PlainTextResponse("OK")
   }
-  
+
 }

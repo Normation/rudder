@@ -64,14 +64,14 @@ class ClearCache extends DispatchSnippet with Loggable {
   private[this] val asyncDeploymentAgent     = inject[AsyncDeploymentAgent]
   private[this] val eventLogRepository       = inject[EventLogRepository]
   private[this] val uuidGen                  = inject[StringUuidGenerator]
-  
+
   def dispatch = {
     case "render" => clearCache
   }
 
-  
+
   def clearCache : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
-    
+
     // our process method returns a
     // JsCmd which will be sent back to the browser
     // as part of the response
@@ -81,10 +81,10 @@ class ClearCache extends DispatchSnippet with Loggable {
 
       val modId = ModificationId(uuidGen.newUuid)
       nodeConfigurationService.deleteAllNodeConfigurations match {
-        case empty:EmptyBox => 
+        case empty:EmptyBox =>
           val e = empty ?~! "Error when clearing caches"
           S.error(e.messageChain)
-        case Full(set) => 
+        case Full(set) =>
           eventLogRepository.saveEventLog(modId,
               ClearCacheEventLog(
                 EventLogDetails(
@@ -92,7 +92,7 @@ class ClearCache extends DispatchSnippet with Loggable {
                   , principal = CurrentUser.getActor
                   , details = EventLog.emptyDetails
                   , reason = None))) match {
-            case eb:EmptyBox => 
+            case eb:EmptyBox =>
               val e = eb ?~! "Error when logging the cache event"
               logger.error(e.messageChain)
               logger.debug(e.exceptionChain)
@@ -102,13 +102,13 @@ class ClearCache extends DispatchSnippet with Loggable {
           asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
           S.notice("clearCacheNotice","Caches were correctly cleaned")
       }
-      
-      Replace("clearCacheForm", outerXml.applyAgain) 
+
+      Replace("clearCacheForm", outerXml.applyAgain)
     }
-    
+
     //process the list of networks
-    "#clearCacheButton" #> { 
+    "#clearCacheButton" #> {
       SHtml.ajaxSubmit("Clear Caches", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
     }
-  }  
+  }
 }

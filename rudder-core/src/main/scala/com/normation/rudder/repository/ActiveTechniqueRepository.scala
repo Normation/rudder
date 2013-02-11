@@ -45,18 +45,18 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 
 /**
- * A simple container for a category 
+ * A simple container for a category
  * and its direct children ActiveTechniques
  */
 final case class CategoryWithActiveTechniques(
     category : ActiveTechniqueCategory
   , templates: Set[ActiveTechnique]
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 
 /**
  * Define action on active technique with the
- * back-end : save them, retrieve them, etc. 
+ * back-end : save them, retrieve them, etc.
  */
 trait ActiveTechniqueRepository {
 
@@ -69,37 +69,37 @@ trait ActiveTechniqueRepository {
    *   "/cat1"       -> [cat1_details, Set(UPT3)]
    *   "/cat1/cat11" -> [/cat1/cat11_details, Set(UPT4)]
    *   "/cat2"       -> [/cat2_details, Set(UPT5)]
-   *   ... 
+   *   ...
    */
   def getActiveTechniqueByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]]
-    
+
   /**
-   * Find back an active technique thanks to its id. 
-   * Return Empty if the active technique is not found, 
+   * Find back an active technique thanks to its id.
+   * Return Empty if the active technique is not found,
    * Fails on error.
    */
   def getActiveTechnique(id:ActiveTechniqueId) : Box[ActiveTechnique]
-  
-  
+
+
   /**
    * Find back an active technique thanks to the id of its referenced
    * Technique.
-   * Return Empty if the active technique is not found, 
+   * Return Empty if the active technique is not found,
    * Fails on error.
    */
   def getActiveTechnique(techniqueName:TechniqueName) : Box[ActiveTechnique]
-  
-  
+
+
   /**
    * Create an active technique from the parameter WBTechnique
    * and add it in the given ActiveTechniqueCategory
-   * 
+   *
    * Returned the freshly created ActiveTechnique
-   * 
-   * Fails if 
-   *   - the active technique id refer to no technique, 
+   *
+   * Fails if
+   *   - the active technique id refer to no technique,
    *   - the category id does not exists,
-   *   - the technique is already in the active technique 
+   *   - the technique is already in the active technique
    *     library
    */
   def addTechniqueInUserLibrary(
@@ -109,44 +109,44 @@ trait ActiveTechniqueRepository {
     , modId        : ModificationId
     , actor        : EventActor
     , reason       : Option[String]
-  ) : Box[ActiveTechnique] 
+  ) : Box[ActiveTechnique]
 
-  
+
   /**
    * Move an active technique to a new category.
    * Failure if the given active technique or category
-   * does not exists. 
-   * 
+   * does not exists.
+   *
    */
-  def move(id:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] 
-  
+  def move(id:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId]
+
   /**
    * Set the status of the active technique to the new value
    */
-  def changeStatus(id:ActiveTechniqueId, status:Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] 
-  
+  def changeStatus(id:ActiveTechniqueId, status:Boolean, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId]
+
   /**
-   * Add new (version,acceptation datetime) to existing 
+   * Add new (version,acceptation datetime) to existing
    * acceptation datetimes by the new one.
-   * 
+   *
    * Return empty if the active technique not in the repos,
-   * Failure if an error happened, 
+   * Failure if an error happened,
    * Full(id) when success
    */
   def setAcceptationDatetimes(id:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId]
-  
+
   /**
    * Delete the active technique in the active tehcnique library.
    * If no such element exists, it is a success.
    */
-  def delete(id:ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] 
-  
+  def delete(id:ActiveTechniqueId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId]
+
   /**
-   * Retrieve the list of parents for the given active technique, 
+   * Retrieve the list of parents for the given active technique,
    * till the root of technique library.
    * Return empty if the path can not be build
    * (missing technique, missing category, etc)
    */
   def activeTechniqueBreadCrump(id:ActiveTechniqueId) : Box[List[ActiveTechniqueCategory]]
-  
+
 }

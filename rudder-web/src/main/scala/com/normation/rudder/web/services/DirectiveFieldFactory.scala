@@ -40,7 +40,7 @@ import model.DirectiveField
 
 import com.normation.cfclerk.domain.VariableSpec
 
-/* 
+/*
  * A register that look-up field type to field
  * factories
  */
@@ -48,10 +48,10 @@ trait DirectiveFieldFactory {
 
   /*
    * return a field for the given type, with the given id
-   * should be never null. 
+   * should be never null.
    * If the required type is not known, return a default field
    */
   def forType(fieldType:VariableSpec,id:String) : DirectiveField
-  
+
   def default(id:String) : DirectiveField
 }

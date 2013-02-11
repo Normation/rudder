@@ -44,14 +44,14 @@ import org.springframework.core.io.ClassPathResource
 
 /**
  * That class is mostly a copy&paste of net.liftweb.http.Templates,
- * but adapted to work for templates in classpath. 
+ * but adapted to work for templates in classpath.
  *
  */
 object ClasspathTemplates extends Loggable {
 
   /**
    * Given a list of paths (e.g. List("foo", "index")),
-   * find the template in the classpath.  
+   * find the template in the classpath.
    * This method runs checkForContentId
    * on any found templates.  To get the raw template,
    * use findRawTemplate
@@ -59,13 +59,13 @@ object ClasspathTemplates extends Loggable {
    *
    * @return the template if it can be found
    */
-  def apply(places: List[String]): Box[NodeSeq] = 
+  def apply(places: List[String]): Box[NodeSeq] =
     apply(places, S.locale)
 
 
   /**
    * Given a list of paths (e.g. List("foo", "index")),
-   * find the template in the classpath.  
+   * find the template in the classpath.
    * This method runs checkForContentId
    * on any found templates.  To get the raw template,
    * use findRawTemplate
@@ -74,23 +74,23 @@ object ClasspathTemplates extends Loggable {
    *
    * @return the template if it can be found
    */
-  def apply(places: List[String], locale: Locale): Box[NodeSeq] = 
+  def apply(places: List[String], locale: Locale): Box[NodeSeq] =
     findRawTemplate(places, locale).map(Templates.checkForContentId)
-  
+
     /**
    * location is awaited in the format: "com" :: "normation" :: "foo" :: "template"
-   * for a template "template.html" in package com/normation/foo 
+   * for a template "template.html" in package com/normation/foo
    */
   def findRawTemplate(places: List[String], locale: Locale = S.locale) : Box[NodeSeq] = {
     val parserFunction: InputStream => Box[NodeSeq] = S.htmlProperties.htmlParser
     val name = places.mkString("/") + ".html"
-    
+
     //copy&pasted from net.liftwebhttp.Templates.findRawTemplate
     val lrCache = LiftRules.templateCache
     val cache = lrCache.getOrElse(NoCache)
     val key = (locale, places)
     val tr = cache.get(key)
-    
+
     if (tr.isDefined) tr
     else {
       import scala.xml.dtd.ValidationException
@@ -103,7 +103,7 @@ object ClasspathTemplates extends Loggable {
           else Failure("Input stream for resource '%s' is null".format(name))
         } finally {
           if(null != is) is.close
-        }   
+        }
       } catch {
         case e: ValidationException if Props.devMode | Props.testMode =>
           val msg = Helpers.errorDiv(<div>Error locating template: <b>{name}</b><br/>
@@ -112,16 +112,16 @@ object ClasspathTemplates extends Loggable {
               <pre>{e.toString}{e.getStackTrace.map(_.toString).mkString("\n")}</pre>
             }
             </div>)
-            
+
           logger.error("Error was: " + e.getMessage)
-            
+
           return msg
-            
+
         case e: ValidationException => Empty
       }
-      
+
       xmlb match {
-        case Full(x) => 
+        case Full(x) =>
           cache(key) = x
           Full(x)
         case f:Failure if(Props.devMode | Props.testMode) =>
@@ -136,9 +136,9 @@ object ClasspathTemplates extends Loggable {
               }
             }}
           </div>)
-  
+
           logger.error("Error was:" + msg)
-          
+
           xml
 
         case _ => Failure("Not found")

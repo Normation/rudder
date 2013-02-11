@@ -97,10 +97,10 @@ class CreateCategoryOrGroupPopup(
   private[this] val categoryHierarchyDisplayer = inject[CategoryHierarchyDisplayer]
   private[this] val uuidGen = inject[StringUuidGenerator]
   private[this] val userPropertyService = inject[UserPropertyService]
-  
+
   var createContainer = false //issue #1190 always create a group by default
 
-  
+
   def dispatch = {
     case "popupContent" => { _ => popupContent }
   }
@@ -111,15 +111,15 @@ class CreateCategoryOrGroupPopup(
  private[this] def initJs : JsCmd = {
     JsRaw("""
         correctButtons();
-        
+
         $('#createGroupHiddable').removeClass('nodisplay');
-        
+
         $('input[value="Group"]').click(
           function() {
             $('#createGroupHiddable').removeClass('nodisplay');
           }
         );
-        
+
         $('input[value="Category"]').click(
           function() {
             $('#createGroupHiddable').addClass('nodisplay');
@@ -130,11 +130,11 @@ class CreateCategoryOrGroupPopup(
 
   def popupContent() : NodeSeq = {
     SHtml.ajaxForm(bind("item", popupTemplate,
-      "itemType" -> { 
+      "itemType" -> {
          groupGenerator match {
            case None => piItemType.toForm_!
            case Some(x) => NodeSeq.Empty
-         } 
+         }
       },
       "itemName" -> piName.toForm_!,
       "itemContainer" -> piContainer.toForm_!,
@@ -142,16 +142,16 @@ class CreateCategoryOrGroupPopup(
       "notifications" -> updateAndDisplayNotifications(),
       "groupType" -> piStatic.toForm_!,
       "itemReason" -> { piReasons.map { f =>
-        <div> 
+        <div>
           <div style="margin:10px 0px 5px 0px; color:#444">
             {userPropertyService.reasonsFieldExplanation}
-          </div> 
+          </div>
           {f.toForm_!}
         </div>
       } },
       "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","6"),
       "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createCOGSaveButton") % ("tabindex","5")
-    )) ++ Script(OnLoad(initJs)) 
+    )) ++ Script(OnLoad(initJs))
   }
 
   ///////////// fields for category settings ///////////////////
@@ -173,11 +173,11 @@ class CreateCategoryOrGroupPopup(
 
   private[this] val piStatic = new WBRadioField("Group type", Seq("static", "dynamic"), "static", {
     //how to display label ? Capitalize, and with a tooltip
-    case "static" => 
+    case "static" =>
       <span title="The list of member nodes is defined at creation and will not change automatically.">
         Static
       </span>
-    case "dynamic" => 
+    case "dynamic" =>
       <span title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
   },Some(5)) {
     override def setFilter = notNull _ :: trim _ :: Nil
@@ -185,15 +185,15 @@ class CreateCategoryOrGroupPopup(
     override def errorClassName = "threeColErrors"
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')")
   }
-  
+
   private[this] val piItemType = {
     new WBRadioField(
-      "Item to create", 
-      Seq("Group", "Category"), 
-      "Group", 
-      {case "Group" => 
+      "Item to create",
+      Seq("Group", "Category"),
+      "Group",
+      {case "Group" =>
          <span id="textGroupRadio">Group</span>
-       case "Category" => 
+       case "Category" =>
          <span id="textCategoryRadio">Category</span>
       }, Some(1)) {
       override def setFilter = notNull _ :: trim _ :: Nil
@@ -208,8 +208,8 @@ class CreateCategoryOrGroupPopup(
       "") {
     override def errorClassName = "threeColErrors"
     override def className = "rudderBaseFieldSelectClassName"
-    override def inputField = 
-      super.inputField % ("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % 
+    override def inputField =
+      super.inputField % ("onkeydown" , "return processKey(event , 'createCOGSaveButton')") %
       ("tabindex","3")
   }
 
@@ -234,9 +234,9 @@ class CreateCategoryOrGroupPopup(
     if(formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
-      val createCategory = piItemType.is match { 
+      val createCategory = piItemType.is match {
         case "Group" => false
-        case "Category" => true 
+        case "Category" => true
       }
       if (createCategory) {
         groupCategoryRepository.addGroupCategorytoCategory(
@@ -286,7 +286,7 @@ class CreateCategoryOrGroupPopup(
           piReasons.map(_.is)
         ) match {
           case Full(x) =>
-            closePopup() & 
+            closePopup() &
             onSuccessCallback(x.group.id.value) & onSuccessGroup(x.group)
           case Empty =>
             logger.error("An error occurred while saving the group")
@@ -300,8 +300,8 @@ class CreateCategoryOrGroupPopup(
       }
     }
   }
-  
-  
+
+
   private[this] val piReasons = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
@@ -310,11 +310,11 @@ class CreateCategoryOrGroupPopup(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-  
+
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
     new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  % 
+      override def inputField = super.inputField  %
         ("style" -> "height:5em;")
       override def errorClassName = ""
       override def validations() = {
@@ -326,7 +326,7 @@ class CreateCategoryOrGroupPopup(
       }
     }
   }
-  
+
 
   private[this] def onCreateSuccess : JsCmd = {
     notifications ::=  <span class="greenscala">The group was successfully created</span>

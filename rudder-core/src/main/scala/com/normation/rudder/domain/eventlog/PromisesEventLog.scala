@@ -50,8 +50,8 @@ final case class AutomaticStartDeployement(
 
 object AutomaticStartDeployement extends EventLogFilter {
   override val eventType = AutomaticStartDeployementEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : AutomaticStartDeployement = AutomaticStartDeployement(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : AutomaticStartDeployement = AutomaticStartDeployement(x._2)
 }
 
 final case class ManualStartDeployement(
@@ -63,8 +63,8 @@ final case class ManualStartDeployement(
 
 object ManualStartDeployement extends EventLogFilter {
   override val eventType = ManualStartDeployementEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ManualStartDeployement = ManualStartDeployement(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ManualStartDeployement = ManualStartDeployement(x._2)
 }
 
 final case class SuccessfulDeployment (
@@ -76,8 +76,8 @@ final case class SuccessfulDeployment (
 
 object SuccessfulDeployment extends EventLogFilter {
   override val eventType = SuccessfulDeploymentEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : SuccessfulDeployment = SuccessfulDeployment(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : SuccessfulDeployment = SuccessfulDeployment(x._2)
 }
 
 final case class FailedDeployment (
@@ -89,8 +89,8 @@ final case class FailedDeployment (
 
 object FailedDeployment extends EventLogFilter {
   override val eventType = FailedDeploymentEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : FailedDeployment = FailedDeployment(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : FailedDeployment = FailedDeployment(x._2)
 }
 
 object PromisesEventLogsFilter {

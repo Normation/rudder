@@ -67,28 +67,28 @@ import Helpers._
  * submits automatically when an entry is selected
  */
 object AutoCompleteAutoSubmit {
- def apply(start: String, 
+ def apply(start: String,
             options: (String, Int) => Seq[String],
-            onSubmit: String => JsCmd, 
+            onSubmit: String => JsCmd,
             attrs: (String, String)*) = new AutoCompleteAutoSubmit().render(start, options, onSubmit, attrs:_*)
-  
-  def apply(start: String, 
+
+  def apply(start: String,
             options: (String, Int) => Seq[String],
-            onSubmit: String => JsCmd, 
+            onSubmit: String => JsCmd,
             jsonOptions: List[(String,String)],
             attrs: (String, String)*) = new AutoCompleteAutoSubmit().render(start, options, onSubmit, jsonOptions ,attrs:_*)
 
-  def autocompleteObj[T](options: Seq[(T, String)], 
+  def autocompleteObj[T](options: Seq[(T, String)],
                          default: Box[T],
                          onSubmit: T => JsCmd): Elem = new AutoCompleteAutoSubmit().autocompleteObj(options, default, onSubmit)
 
-  def autocompleteObj[T](options: Seq[(T, String)], 
+  def autocompleteObj[T](options: Seq[(T, String)],
                           default: Box[T],
                           jsonOptions: List[(String,String)],
                           onSubmit: T => JsCmd): Elem = new AutoCompleteAutoSubmit().autocompleteObj(options, default, jsonOptions, onSubmit)
 
-    
-    
+
+
   /**
    * register the resources with lift (typically in boot)
    */
@@ -104,21 +104,21 @@ object AutoCompleteAutoSubmit {
 
 
 class AutoCompleteAutoSubmit {
-  
+
   /**
    * Create an autocomplete form based on a sequence.
    */
-  def autocompleteObj[T](options: Seq[(T, String)], 
+  def autocompleteObj[T](options: Seq[(T, String)],
                          default: Box[T],
                          onSubmit: T => JsCmd): Elem = {
      val jsonOptions :List[(String,String)] = List()
      autocompleteObj(options, default, jsonOptions, onSubmit)
   }
-  
+
   /**
    * Create an autocomplete form based on a sequence.
    */
-   def autocompleteObj[T](options: Seq[(T, String)], 
+   def autocompleteObj[T](options: Seq[(T, String)],
                           default: Box[T],
                           jsonOptions: List[(String,String)],
                           onSubmit: T => JsCmd): Elem = {
@@ -133,11 +133,11 @@ class AutoCompleteAutoSubmit {
     val id = Helpers.nextFuncName
 
     fmapFunc(onSubmit){hidden =>
-      
-      val data = JsArray(options.map { 
+
+      val data = JsArray(options.map {
         case (nonce, name) => JsObj("name" -> name, "nonce" -> nonce)
       } :_*)
-      
+
     /* merge the options that the user wants */
       val jqOptions =  ("minChars","0") ::
                        ("matchContains","true") ::
@@ -165,7 +165,7 @@ class AutoCompleteAutoSubmit {
       </span>
      }
   }
-  
+
   private def secureOptions[T](options: Seq[(T, String)], default: Box[T],
                                      onSubmit: T => JsCmd): (Seq[(String, String)], Box[String], AFuncHolder) = {
     val secure = options.map{case (obj, txt) => (obj, randomString(20), txt)}
@@ -174,39 +174,39 @@ class AutoCompleteAutoSubmit {
     def process(nonce: String): Unit = secure.find(_._2 == nonce).map(x => onSubmit(x._1))
     (nonces, defaultNonce, SFuncHolder(process))
   }
-  
-  
+
+
   /**
    * Render a text field with Ajax autocomplete support
-   * 
+   *
    * @param start - the initial input string
    * @param option - the function to be called when user is typing text. The text and th options limit is provided to this functions
-   * @param attrs - the attributes that can be added to the input text field 
+   * @param attrs - the attributes that can be added to the input text field
    */
-  def render(start: String, 
-             options: (String, Int) => Seq[String], 
-             onSubmit: String => JsCmd, 
+  def render(start: String,
+             options: (String, Int) => Seq[String],
+             onSubmit: String => JsCmd,
              attrs: (String, String)*): Elem = {
-    
+
     val jsonOptions :List[(String,String)] = List()
     render(start, options, onSubmit, jsonOptions, attrs:_*)
-    
+
   }
-  
+
   /**
    * Render a text field with Ajax autocomplete support
-   * 
+   *
    * @param start - the initial input string
    * @param option - the function to be called when user is typing text. The text and th options limit is provided to this functions
-   * @param attrs - the attributes that can be added to the input text field 
+   * @param attrs - the attributes that can be added to the input text field
    * @param jsonOptions - a list of pairs that will be send along to the jQuery().AutoComplete call (for customization purposes)
    */
-   def render(start: String, 
-              options: (String, Int) => Seq[String], 
-              onSubmit: String => JsCmd, 
-              jsonOptions: List[(String,String)], 
+   def render(start: String,
+              options: (String, Int) => Seq[String],
+              onSubmit: String => JsCmd,
+              jsonOptions: List[(String,String)],
               attrs: (String, String)*): Elem = {
-    
+
     val f = (ignore: String) => {
       val q = S.param("q").openOr("")
       val limit = S.param("limit").flatMap(asInt).openOr(10)
@@ -226,7 +226,7 @@ class AutoCompleteAutoSubmit {
                        Nil ::: jsonOptions
       val json = jqOptions.map(t => t._1 + ":" + t._2).mkString("{", ",", "}")
       val autocompleteOptions = JsRaw(json)
-    
+
       val onLoad = JsRaw("""
       jQuery(document).ready(function(){
         var data = """+what.encJs+""";

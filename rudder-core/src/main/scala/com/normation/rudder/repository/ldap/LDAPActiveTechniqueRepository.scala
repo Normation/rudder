@@ -58,8 +58,8 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 
 /**
- * Implementation of the repository for active techniques in 
- * LDAP. 
+ * Implementation of the repository for active techniques in
+ * LDAP.
  *
  */
 class LDAPActiveTechniqueRepository(
@@ -78,12 +78,12 @@ class LDAPActiveTechniqueRepository(
 
   /**
    * Look in the subtree with root=active technique library
-   * for and entry with the given id. 
+   * for and entry with the given id.
    * We expect at most one result, more is a Failure
    */
   private[this] def getUPTEntry[ID](
-      con:LDAPConnection, 
-      id:ID, 
+      con:LDAPConnection,
+      id:ID,
       filter: ID => Filter,
       attributes:String*) : Box[LDAPEntry] = {
     val uptEntries = con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter(id), attributes:_*)
@@ -91,16 +91,16 @@ class LDAPActiveTechniqueRepository(
       case 0 => Empty
       case 1 => Full(uptEntries(0))
       case _ => Failure("Error, the directory contains multiple occurrence of active technique with ID %s. DNs involved: %s".format(id, uptEntries.map( _.dn).mkString("; ")))
-    }     
+    }
   }
-  
+
   def getUPTEntry(con:LDAPConnection, id:ActiveTechniqueId, attributes:String*) : Box[LDAPEntry] = {
     userLibMutex.readLock {
       this.getUPTEntry[ActiveTechniqueId](con, id, { id => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) }, attributes:_*)
     }
   }
 
-  private[this] def getActiveTechnique[ID](id: ID, filter: ID => Filter): Box[ActiveTechnique] = { 
+  private[this] def getActiveTechnique[ID](id: ID, filter: ID => Filter): Box[ActiveTechnique] = {
     for {
       con <- ldap
       uptEntry <- getUPTEntry(con, id, filter) ?~! "Can not find user policy entry in LDAP based on filter %s".format(filter(id))
@@ -109,7 +109,7 @@ class LDAPActiveTechniqueRepository(
       addDirectives(activeTechnique,uptEntry.dn,con)
     }
   }
-  
+
   /**
    * Add directives ids for the given active technique which must
    * be mapped to the given dn in LDAP directory accessible by con
@@ -120,8 +120,8 @@ class LDAPActiveTechniqueRepository(
       directives = piEntries.map(e => mapper.dn2LDAPRuleID(e.dn)).toList
     )
   }
-  
-    
+
+
   def getActiveTechniqueByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = {
     for {
       locked       <- userLibMutex.readLock
@@ -141,13 +141,13 @@ class LDAPActiveTechniqueRepository(
     }
   }
 
-  def getActiveTechnique(id: ActiveTechniqueId): Box[ActiveTechnique] = { 
+  def getActiveTechnique(id: ActiveTechniqueId): Box[ActiveTechnique] = {
     userLibMutex.readLock {
       this.getActiveTechnique[ActiveTechniqueId](id, { id => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) } )
     }
   }
 
-  def getActiveTechnique(name: TechniqueName): Box[ActiveTechnique] = { 
+  def getActiveTechnique(name: TechniqueName): Box[ActiveTechnique] = {
     userLibMutex.readLock {
       this.getActiveTechnique[TechniqueName](name, { name => EQ(A_TECHNIQUE_UUID, name.value) } )
     }
@@ -157,17 +157,17 @@ class LDAPActiveTechniqueRepository(
       categoryId   : ActiveTechniqueCategoryId
     , techniqueName: TechniqueName
     , versions     : Seq[TechniqueVersion]
-    , modId        : ModificationId 
+    , modId        : ModificationId
     , actor        : EventActor
     , reason: Option[String]
-  ): Box[ActiveTechnique] = { 
+  ): Box[ActiveTechnique] = {
     //check if the technique is already in user lib, and if the category exists
     for {
       con                <- ldap
       noActiveTechnique  <- { //check that there is not already defined activeTechnique with such ref id
                               getUPTEntry[TechniqueName](
-                                con, techniqueName, 
-                                { name => EQ(A_TECHNIQUE_UUID, name.value) }, 
+                                con, techniqueName,
+                                { name => EQ(A_TECHNIQUE_UUID, name.value) },
                                 "1.1") match {
                                   case Empty => Full("ok")
                                   case Full(uptEntry) => Failure("Can not add a technique with id %s in user library. active technique %s is already defined with such a reference technique.".format(techniqueName,uptEntry.dn))
@@ -190,7 +190,7 @@ class LDAPActiveTechniqueRepository(
     }
   }
 
-  def activeTechniqueBreadCrump(id: ActiveTechniqueId): Box[List[ActiveTechniqueCategory]] = { 
+  def activeTechniqueBreadCrump(id: ActiveTechniqueId): Box[List[ActiveTechniqueCategory]] = {
     //find the active technique entry for that id, and from that, build the parent bread crump
     userLibMutex.readLock { for {
       cat  <- userCategoryRepo.getParentsForActiveTechnique(id)
@@ -200,12 +200,12 @@ class LDAPActiveTechniqueRepository(
     } }
   }
 
-  
+
   /**
    * Move a technique to a new category.
    * Failure if the given technique or category
-   * does not exists. 
-   * 
+   * does not exists.
+   *
    */
   def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
      for {
@@ -228,9 +228,9 @@ class LDAPActiveTechniqueRepository(
                       } else Full("ok") ) ?~! "Error when trying to archive automatically the technique move"
     } yield {
       uactiveTechniqueId
-    }   
+    }
   }
-  
+
   /**
    * Set the status of the technique to the new value
    */
@@ -243,7 +243,7 @@ class LDAPActiveTechniqueRepository(
                            activeTechnique +=! (A_IS_ENABLED, status.toLDAPString)
                            userLibMutex.writeLock { con.save(activeTechnique) }
                          }
-      optDiff         <- diffMapper.modChangeRecords2TechniqueDiff(oldTechnique, saved) ?~! 
+      optDiff         <- diffMapper.modChangeRecords2TechniqueDiff(oldTechnique, saved) ?~!
                            "Error when mapping technique '%s' update to an diff: %s".
                              format(uactiveTechniqueId.value, saved)
       loggedAction    <- optDiff match {
@@ -262,7 +262,7 @@ class LDAPActiveTechniqueRepository(
       uactiveTechniqueId
     }
   }
-  
+
   def setAcceptationDatetimes(uactiveTechniqueId:ActiveTechniqueId, datetimes: Map[TechniqueVersion,DateTime], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
     for {
       con             <- ldap
@@ -286,7 +286,7 @@ class LDAPActiveTechniqueRepository(
     }
   }
 
-  
+
   /**
    * Delete the technique in user library.
    * If no such element exists, it is a success.
@@ -312,6 +312,6 @@ class LDAPActiveTechniqueRepository(
                               } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
     } yield {
       uactiveTechniqueId
-    }   
+    }
   }
 }

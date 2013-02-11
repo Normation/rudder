@@ -37,26 +37,26 @@ package bootstrap.liftweb
 import javax.servlet.UnavailableException
 
 /**
- * 
- * Interface of the pipeline for action to execute 
+ *
+ * Interface of the pipeline for action to execute
  * at bootstrap.
- * 
- * 
+ *
+ *
  * Implementation may really be executed when the application
  * is launched, so be careful with the time taken by them.
- * 
- * On the other hand, for async bootstraps checks, don't expect 
- * order in there execution. 
+ *
+ * On the other hand, for async bootstraps checks, don't expect
+ * order in there execution.
  */
 trait BootstrapChecks {
 
   @throws(classOf[ UnavailableException ])
   def checks() : Unit
-  
+
 }
 
 class SequentialImmediateBootStrapChecks(checkActions:BootstrapChecks*) extends BootstrapChecks {
-  
+
   @throws(classOf[ UnavailableException ])
   override def checks() : Unit = checkActions.foreach { _.checks }
 

@@ -48,18 +48,18 @@ import com.normation.utils.StringUuidGenerator
  */
 class RestTechniqueReload(
     updatePTLibService : UpdateTechniqueLibrary
-  , uuidGen            : StringUuidGenerator  
+  , uuidGen            : StringUuidGenerator
 ) extends RestHelper with Loggable {
-  
+
   serve {
     case Get("api" :: "techniqueLibrary" :: "reload" :: Nil, req) =>
       updatePTLibService.update(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), Some("Technique library reloaded from REST API")) match {
         case Full(x) => PlainTextResponse("OK")
-        case eb:EmptyBox => 
+        case eb:EmptyBox =>
           val e = eb ?~! "An error occured when updating the Technique library from file system"
           logger.debug(e.messageChain, e)
           PlainTextResponse("Error: " + e.messageChain.mkString("\n","\ncause:","\n"), 500)
       }
   }
-  
+
 }

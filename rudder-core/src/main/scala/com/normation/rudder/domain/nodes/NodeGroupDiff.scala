@@ -40,12 +40,12 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.utils.HashcodeCaching
 
 /**
- * That file defines "diff" objects for NodeGroups (groups, etc). 
+ * That file defines "diff" objects for NodeGroups (groups, etc).
  */
-sealed trait NodeGroupDiff 
+sealed trait NodeGroupDiff
 
 
-final case class DeleteNodeGroupDiff(group:NodeGroup) extends 
+final case class DeleteNodeGroupDiff(group:NodeGroup) extends
   NodeGroupDiff with HashcodeCaching
 
 final case class AddNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with HashcodeCaching

@@ -53,25 +53,25 @@ class FileManager(rootPath:String) {
       if(!root.mkdirs) throw new TechnicalException("Can't create upload direcorty %s. Check rights".format(rootPath))
     }
     if(!root.isDirectory) throw new TechnicalException("File %s is not a directory. Please choose an other directory path")
-    
+
     if(!root.canWrite) throw new TechnicalException("Directory %s is not writable. Please check rigths")
-    
+
     root
   }
 
   //only list files under rootDirectory
-  def getFiles() : Seq[File] = 
+  def getFiles() : Seq[File] =
     rootDirectory.listFiles.filter(_.isFile)
-    
+
   def copyFileToRootDir(src:FileParamHolder) : Unit = {
     val in = src.fileStream
     val fout = new File(rootDirectory, src.fileName)
     logger.debug("Saving {} to {}", src.name, fout.getAbsolutePath)
     val out = new FileOutputStream(fout)
-    // Transfer bytes from in to out 
+    // Transfer bytes from in to out
     val buf = new Array[Byte](1024)
     var len = 0
-    while ({len = in.read(buf) ; len} > 0) { out.write(buf, 0, len) } 
+    while ({len = in.read(buf) ; len} > 0) { out.write(buf, 0, len) }
     in.close
     out.close
     ()

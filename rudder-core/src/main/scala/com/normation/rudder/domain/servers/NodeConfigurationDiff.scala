@@ -34,7 +34,7 @@
 
 package com.normation.rudder.domain.servers
 
-  
+
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
 import com.normation.utils.HashcodeCaching
@@ -47,11 +47,10 @@ import com.normation.utils.HashcodeCaching
  * - or some of its variables are modified
  */
 
-sealed case class ModifiedVariable(currentVar:Variable,newValue:Seq[String]) extends HashcodeCaching 
+sealed case class ModifiedVariable(currentVar:Variable,newValue:Seq[String]) extends HashcodeCaching
 
 sealed abstract class NodeConfigurationDiff
-case class AddedPolicy(directiveId:Cf3PolicyDraftId) extends NodeConfigurationDiff with HashcodeCaching 
-case class DeletedPolicy(directiveId:Cf3PolicyDraftId) extends NodeConfigurationDiff with HashcodeCaching 
+case class AddedPolicy(directiveId:Cf3PolicyDraftId) extends NodeConfigurationDiff with HashcodeCaching
+case class DeletedPolicy(directiveId:Cf3PolicyDraftId) extends NodeConfigurationDiff with HashcodeCaching
 //modifiedVars are pair of (variableName, value)
-case class ModifiedPolicy(directiveId:Cf3PolicyDraftId,modifiedVars:List[ModifiedVariable]) extends NodeConfigurationDiff with HashcodeCaching 
-  
+case class ModifiedPolicy(directiveId:Cf3PolicyDraftId,modifiedVars:List[ModifiedVariable]) extends NodeConfigurationDiff with HashcodeCaching

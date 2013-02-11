@@ -55,7 +55,7 @@ import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 
 /**
  * The form that deals with updating the server group category
- * 
+ *
  * @author Nicolas CHARLES
  *
  */
@@ -70,26 +70,26 @@ class NodeGroupCategoryForm(
   var _nodeGroupCategory = nodeGroupCategory.copy()
 
   val groupCategoryRepository = inject[NodeGroupCategoryRepository]
-  
+
   private[this] val uuidGen = inject[StringUuidGenerator]
-  
+
   private[this] val categoryHierarchyDisplayer = inject[CategoryHierarchyDisplayer]
 
   val parentCategory = groupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id )
-  
+
   val parentCategoryId = parentCategory match {
     case Full(x) =>  x.id.value
     case _ => ""
   }
-  
-  def dispatch = { 
+
+  def dispatch = {
     case "showForm" => { _ => showForm }
   }
-  
+
   def initJs : JsCmd = {
     JsRaw("correctButtons();")
   }
-     
+
   def showForm() : NodeSeq = {
     val html = SHtml.ajaxForm(
       <div class="inner-portlet groupCategoryUpdateComponent">
@@ -141,10 +141,10 @@ class NodeGroupCategoryForm(
       )
     }
    }
-   
+
 
   ///////////// delete management /////////////
-  
+
   /**
    * Delete button is only enabled is that category
    * has zero child
@@ -159,7 +159,7 @@ class NodeGroupCategoryForm(
             <h1>Delete a group category</h1>
             <hr/>
           </div>
-          <div class="simplemodal-content">    
+          <div class="simplemodal-content">
             <div>
               <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
               <h3>Are you sure that you want to completely delete this category ?</h3>
@@ -188,82 +188,82 @@ class NodeGroupCategoryForm(
       <div class="note"><b>Note: </b>Only empty and non root categories can be deleted.</div>
     }
   }
-  
+
   private[this] def onDelete() : JsCmd = {
     groupCategoryRepository.delete(_nodeGroupCategory.id, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Node Group category deleted by user from UI")) match {
-      case Full(id) => 
+      case Full(id) =>
         JsRaw("""$.modal.close();""") &
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
         onSuccessCallback(nodeGroupCategory.id.value) &
         successPopup
-      case e:EmptyBox =>    
+      case e:EmptyBox =>
         val m = (e ?~! "Error when trying to delete the category").messageChain
         formTracker.addFormError(error(m))
         updateFormClientSide & onFailureCallback()
-    } 
+    }
   }
-  
-  
+
+
   ///////////// fields for category settings ///////////////////
   private[this] val piName = new WBTextField("Category name", _nodeGroupCategory.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def validations = 
+    override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
-  
+
   private[this] val piDescription = new WBTextAreaField("Category description", _nodeGroupCategory.description.toString) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:10em")
     override def validations =  Nil
     override def errorClassName = "field_errors paddscala"
   }
-  
+
   /**
    * If there is no parent, it is its own parent
    */
   private[this] val piContainer = parentCategory match {
-    case x:EmptyBox => 
-      new WBSelectField("Parent category: ", 
-        Seq(_nodeGroupCategory.id.value -> _nodeGroupCategory.name), 
-        _nodeGroupCategory.id .value, 
+    case x:EmptyBox =>
+      new WBSelectField("Parent category: ",
+        Seq(_nodeGroupCategory.id.value -> _nodeGroupCategory.name),
+        _nodeGroupCategory.id .value,
         Seq("disabled"->"true")
       ) {
         override def className = "rudderBaseFieldSelectClassName"
       }
-    case Full(category) => 
+    case Full(category) =>
       new WBSelectField(
-        "Parent category" 
+        "Parent category"
       , categoryHierarchyDisplayer.getCategoriesHierarchy().
             map { case (id, name) => (id.value -> name)}
       , parentCategoryId)  {
           override def className = "rudderBaseFieldSelectClassName"
-      }    
+      }
   }
-  
-  
+
+
   private[this] val formTracker = new FormTracker(piName,piDescription,piContainer)
-  
+
   private[this] var notifications = List.empty[NodeSeq]
-  
+
   private[this] def updateFormClientSide : JsCmd = {
     SetHtml(htmlIdCategory, showForm()) &
     initJs
   }
-  
+
   private[this] def error(msg:String) = <span class="error">{msg}</span>
-  
-  
+
+
   private[this] def onSuccess : JsCmd = {
-      
+
     notifications ::=  <span class="greenscala">Category was correctly updated</span>
     updateFormClientSide
   }
-  
+
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them."))
     updateFormClientSide & JsRaw("""scrollToElement("notifications");""")
   }
-  
+
   private[this] def onSubmit() : JsCmd = {
     if(formTracker.hasErrors) {
       onFailure & onFailureCallback()
@@ -301,17 +301,17 @@ class NodeGroupCategoryForm(
 
     }
   }
-  
+
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
-    
+
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
-   
+
     if(notifications.isEmpty) {
       NodeSeq.Empty
     }
     else {
-      val html = 
+      val html =
         <div id="notifications" class="notify">
           <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
         </div>

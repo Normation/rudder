@@ -66,18 +66,18 @@ class Util {
    * and a 'clear' link
    * The clear link targets redirectRoot
    * When submitted, the form redirect to
-   * redirectRoot/input_value if input_value is 
+   * redirectRoot/input_value if input_value is
    * not empty
    * More over, the initial value of the field is taken
    * from the request, in the variable reqvarName
    * (or use "" if no such variable is set in request)
    */
   def redirectInput(xhtml:NodeSeq) : NodeSeq = {
-    
+
     //default redirect root
     var redirectRoot = "/"
     var reqvarName = "filter"
-      
+
     xhtml.filter(e => e.prefix =="param") foreach { e =>
       e.label match {
         case "root" => redirectRoot = e.text
@@ -85,15 +85,15 @@ class Util {
         case x =>  Util.logger.warn("Given parameter '{}' of snippet Util.redirectInput is not recognized (knows 'root' and 'reqvar'). Check Spelling.",x) //nothing
       }
     }
-    
-      
+
+
     var filter = S.param(reqvarName).getOrElse("")
-      
+
     def processFilter () {
       if(filter == "") S.redirectTo(redirectRoot)
       else S.redirectTo(redirectRoot+ "/" + filter)
     }
-    
+
     <xml:group>{SHtml.text(filter, f => filter = f, "maxlength" -> "40"
       )} {SHtml.submit("Filter", processFilter
       )} <a href={redirectRoot}>Clear</a></xml:group>

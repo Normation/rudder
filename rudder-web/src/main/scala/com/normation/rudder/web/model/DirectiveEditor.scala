@@ -79,14 +79,14 @@ sealed trait SectionChildField extends DisplayableField with Loggable {
   }
 
   /*
-   * Convention: displayHtml is a "read only" 
-   * version of toFormNodeSeq 
+   * Convention: displayHtml is a "read only"
+   * version of toFormNodeSeq
    */
   def displayHtml: Text
-  
+
   /**
    * Remove duplicate section of that section.
-   * Only mutlivalued section actually have something 
+   * Only mutlivalued section actually have something
    * to do here
    */
   final def removeDuplicateSections : Unit = this match {
@@ -108,11 +108,11 @@ trait DirectiveField extends BaseField with SectionChildField {
   def is = get
 
   /* parseClient / toClient : get and set value from/to
-   * web ui. 
-   * 
+   * web ui.
+   *
    * this.is should be invariant with
    * parseClient(toClient).
-   * 
+   *
    */
 
   //Set value from a client value.
@@ -155,8 +155,8 @@ trait DirectiveField extends BaseField with SectionChildField {
         logger.error(errorMess.format(displayName, m))
         NodeSeq.Empty
       case Empty =>
-        val errorMess = "Can not map field %s to an input, " + 
-          "form representation of the field was empty" 
+        val errorMess = "Can not map field %s to an input, " +
+          "form representation of the field was empty"
         logger.error(errorMess.format(displayName))
         NodeSeq.Empty
       case Full(form) if tooltip == "" =>
@@ -236,7 +236,7 @@ case class SectionFieldImp(
   val name: String,
   val childFields: Seq[SectionChildField],
   // Only variables of the current section have entries in the values map
-  // the key of type String is the id (variable name), 
+  // the key of type String is the id (variable name),
   // the value is a function which should be called at validation time
   val values: Map[String, () => String]) extends SectionField with HashcodeCaching {
 
@@ -245,12 +245,12 @@ case class SectionFieldImp(
 
   def mapValueSeq: Map[String, Seq[String]] = values.map { case (k, v) => (k, Seq(v())) }
 
-  // If a section is empty, we want to hide it. 
-  
+  // If a section is empty, we want to hide it.
+
   override def toFormNodeSeq: NodeSeq = {
     val childrenXml = childFields map (f => f.toFormNodeSeq)
     if(childrenXml.isEmpty) NodeSeq.Empty
-    else 
+    else
       <tr><td colspan="2">
         <fieldset class="sectionFieldset">
         <legend>Section: { name }</legend>
@@ -264,7 +264,7 @@ case class SectionFieldImp(
   override def toHtmlNodeSeq = {
     val childrenXml = childFields map (f => f.toHtmlNodeSeq)
     if(childrenXml.isEmpty) NodeSeq.Empty
-    else 
+    else
       <tr><td colspan="2">
         <fieldset>
         <legend>Section: { name }</legend>
@@ -282,12 +282,12 @@ case class MultivaluedSectionField(
   val sections: Seq[SectionField],
   private val newSection: () => SectionField) extends SectionField with HashcodeCaching {
   require(!sections.isEmpty)
-  
+
   val name: String = sections.head.name
-  
+
   def childFields: Seq[SectionChildField] = allSections.foldLeft(Seq[SectionChildField]())((seq, section) => seq ++ section.childFields)
   def values: Map[String, () => String] = allSections.foldLeft(Map[String, () => String]())((map, child) => map ++ child.values)
-  
+
   private val htmlId = Helpers.nextFuncName
 
   private def logError(box: Box[_]): Unit = box match {
@@ -324,18 +324,18 @@ case class MultivaluedSectionField(
       }
     }
   }
-  
+
   def doRemoveDuplicateSections : Unit = {
     val sects = allSections.map{ sect => sect.getAllSectionFields.map { _.mapValueSeq } }.zipWithIndex
-        
+
     //find duplicates: set of ids to remove
     val toRemove  = sects.map { case (s, i) =>
       sects.collect { case(s2, i2) if i2 > i && s == s2 => i2 }
     }.flatten.toSet
-    
+
     //section to keep
     val toKeep = sects.collect { case (_,i) if(!toRemove.contains(i)) => allSections(i) }
-    
+
     //ok, remove duplicate: swap current section with toKeep
     synchronized {
       allSections.clear
@@ -463,9 +463,9 @@ case class DirectiveEditor(
   val sectionField: SectionField,
   val variableSpecs: Map[String, VariableSpec])  extends HashcodeCaching {
 
-  
+
   def removeDuplicateSections : Unit = sectionField.removeDuplicateSections
-  
+
   /**
    * Get the map of (varname, list(values)),
    * as awaited by LDAPRuleID
@@ -480,12 +480,12 @@ case class DirectiveEditor(
       }
       res.toMap
     }
-    
-    sectionField.getAllSectionFields.foldLeft(Map[String, Seq[String]]()) { (map, sect) =>      
+
+    sectionField.getAllSectionFields.foldLeft(Map[String, Seq[String]]()) { (map, sect) =>
       mergeMap(map, sect.mapValueSeq)
     }
   }
-  
+
   def toFormNodeSeq: NodeSeq = {
     <div class="variableDefinition">
       <table class="directiveVarDef">

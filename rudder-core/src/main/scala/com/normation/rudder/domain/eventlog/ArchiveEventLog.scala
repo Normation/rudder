@@ -54,15 +54,15 @@ sealed trait ImportEventLog  extends ImportExportEventLog
 sealed trait ExportEventLog  extends ImportExportEventLog
 
 object ImportExportEventLog {
-  
-  def buildCommonExportDetails(tagName:String, gitArchiveId: GitArchiveId) : Elem = 
+
+  def buildCommonExportDetails(tagName:String, gitArchiveId: GitArchiveId) : Elem =
     EventLog.withContent(new Elem(
         prefix = null
       , label = tagName
       , attributes1 = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_CURRENT_FILE_FORMAT.toString)), Null)
       , scope = TopScope
       , minimizeEmpty = false
-      , child = (  
+      , child = (
           <path>{gitArchiveId.path.value}</path>
           <commit>{gitArchiveId.commit.value}</commit>
           <commiterName>{gitArchiveId.commiter.getName}</commiterName>
@@ -77,12 +77,12 @@ object ImportExportEventLog {
       , attributes1 = new UnprefixedAttribute("fileFormat", Seq(Text(Constants.XML_CURRENT_FILE_FORMAT.toString)), Null)
       , scope = TopScope
       , minimizeEmpty = false
-      , child = (  
+      , child = (
           <commit>{gitCommitId.value}</commit>
         ):_*
     ) )
   )
-  
+
 }
 
 final case class ExportGroupsArchive(
@@ -101,12 +101,12 @@ final case class ExportGroupsArchive(
 
 object ExportGroupsArchive extends EventLogFilter {
   override val eventType = ExportGroupsEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ExportGroupsArchive = ExportGroupsArchive(x._2) 
-  
-  def buildDetails(gitArchiveId:GitArchiveId) = 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ExportGroupsArchive = ExportGroupsArchive(x._2)
+
+  def buildDetails(gitArchiveId:GitArchiveId) =
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
-    
+
   val tagName = "newGroupsArchive"
 }
 
@@ -126,9 +126,9 @@ final case class ImportGroupsArchive(
 
 object ImportGroupsArchive extends EventLogFilter {
   override val eventType = ImportGroupsEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ImportGroupsArchive = ImportGroupsArchive(x._2) 
-  
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ImportGroupsArchive = ImportGroupsArchive(x._2)
+
   def buildDetails(gitCommitId:GitCommitId) =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
 
@@ -151,12 +151,12 @@ final case class ExportTechniqueLibraryArchive(
 
 object ExportTechniqueLibraryArchive extends EventLogFilter {
   override val eventType = ExportTechniqueLibraryEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ExportTechniqueLibraryArchive = ExportTechniqueLibraryArchive(x._2) 
-  
-  def buildDetails(gitArchiveId:GitArchiveId) = 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ExportTechniqueLibraryArchive = ExportTechniqueLibraryArchive(x._2)
+
+  def buildDetails(gitArchiveId:GitArchiveId) =
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
-    
+
   val tagName = "newDirectivesArchive"
 }
 
@@ -176,12 +176,12 @@ final case class ImportTechniqueLibraryArchive(
 
 object ImportTechniqueLibraryArchive extends EventLogFilter {
   override val eventType = ImportTechniqueLibraryEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ImportTechniqueLibraryArchive = ImportTechniqueLibraryArchive(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ImportTechniqueLibraryArchive = ImportTechniqueLibraryArchive(x._2)
 
   def buildDetails(gitCommitId:GitCommitId) =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
-  
+
   val tagName = "restoreDirectivesArchive"
 }
 
@@ -202,12 +202,12 @@ final case class ExportRulesArchive(
 
 object ExportRulesArchive extends EventLogFilter {
   override val eventType = ExportRulesEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ExportRulesArchive = ExportRulesArchive(x._2) 
 
-  def buildDetails(gitArchiveId:GitArchiveId) = 
+  override def apply(x : (EventLogType, EventLogDetails)) : ExportRulesArchive = ExportRulesArchive(x._2)
+
+  def buildDetails(gitArchiveId:GitArchiveId) =
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
-    
+
   val tagName = "newRulesArchive"
 }
 
@@ -227,8 +227,8 @@ final case class ImportRulesArchive(
 
 object ImportRulesArchive extends EventLogFilter {
   override val eventType = ImportRulesEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ImportRulesArchive = ImportRulesArchive(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ImportRulesArchive = ImportRulesArchive(x._2)
 
   def buildDetails(gitCommitId:GitCommitId) =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
@@ -252,12 +252,12 @@ final case class ExportFullArchive(
 
 object ExportFullArchive extends EventLogFilter {
   override val eventType = ExportFullArchiveEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ExportFullArchive = ExportFullArchive(x._2) 
 
-  def buildDetails(gitArchiveId:GitArchiveId) = 
+  override def apply(x : (EventLogType, EventLogDetails)) : ExportFullArchive = ExportFullArchive(x._2)
+
+  def buildDetails(gitArchiveId:GitArchiveId) =
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
-    
+
   val tagName = "newFullArchive"
 }
 
@@ -277,8 +277,8 @@ final case class ImportFullArchive(
 
 object ImportFullArchive extends EventLogFilter {
   override val eventType = ImportFullArchiveEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ImportFullArchive = ImportFullArchive(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ImportFullArchive = ImportFullArchive(x._2)
 
   def buildDetails(gitCommitId:GitCommitId) =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
@@ -333,11 +333,11 @@ object Rollback extends EventLogFilter {
 
 object ImportExportEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      ExportGroupsArchive 
+      ExportGroupsArchive
     , ExportTechniqueLibraryArchive
     , ExportRulesArchive
     , ExportFullArchive
-    , ImportGroupsArchive 
+    , ImportGroupsArchive
     , ImportTechniqueLibraryArchive
     , ImportRulesArchive
     , ImportFullArchive

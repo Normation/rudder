@@ -32,16 +32,16 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.model  
+package com.normation.rudder.web.model
 
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
-  
+
 
 /**
  * An utility class which gives an valid Js Id
  * from a NodeId and an optionnal salt.
- * Use toString to get the id. 
+ * Use toString to get the id.
  */
 sealed case class JsNodeId(
     nodeId: NodeId,
@@ -49,6 +49,6 @@ sealed case class JsNodeId(
 )  extends HashcodeCaching {
   override val toString = {
     val uuid = nodeId.value.replaceAll("-","")
-    salt + uuid.substring(0,java.lang.Math.min(uuid.length,6)) 
+    salt + uuid.substring(0,java.lang.Math.min(uuid.length,6))
   }
 }
