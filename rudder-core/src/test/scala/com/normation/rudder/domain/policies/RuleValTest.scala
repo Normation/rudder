@@ -84,7 +84,7 @@ class RuleValTest {
       Set(new GroupTarget(new NodeGroupId("target"))),
       Seq(container),
       0)
-    
+
     //TODO: what that test actually tests ?
     //return Unit
     ()

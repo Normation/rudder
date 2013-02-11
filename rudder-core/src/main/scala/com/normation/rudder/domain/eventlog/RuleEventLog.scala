@@ -54,8 +54,8 @@ final case class AddRule(
 
 object AddRule extends EventLogFilter {
   override val eventType = AddRuleEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : AddRule = AddRule(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : AddRule = AddRule(x._2)
 }
 
 
@@ -68,8 +68,8 @@ final case class DeleteRule(
 
 object DeleteRule extends EventLogFilter {
   override val eventType = DeleteRuleEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : DeleteRule = DeleteRule(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : DeleteRule = DeleteRule(x._2)
 }
 
 
@@ -82,14 +82,14 @@ final case class ModifyRule(
 
 object ModifyRule extends EventLogFilter {
   override val eventType = ModifyRuleEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyRule = ModifyRule(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyRule = ModifyRule(x._2)
 }
 
 object RuleEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      AddRule 
-    , DeleteRule 
+      AddRule
+    , DeleteRule
     , ModifyRule
     )
 }

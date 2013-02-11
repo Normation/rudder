@@ -34,21 +34,21 @@ class CreateCloneGroupPopup(
   onSuccessCategory : (NodeGroupCategory) => JsCmd,
   onSuccessGroup : (NodeGroup) => JsCmd,
   onSuccessCallback : (String) => JsCmd = { (String) => Noop },
-  onFailureCallback : () => JsCmd = { () => Noop } ) 
+  onFailureCallback : () => JsCmd = { () => Noop } )
   extends DispatchSnippet with Loggable {
-  
+
   private[this] val nodeGroupRepository = inject[NodeGroupRepository]
   private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
   private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] val categories = groupCategoryRepository.getAllNonSystemCategories
   private[this] val uuidGen = inject[StringUuidGenerator]
   private[this] val userPropertyService = inject[UserPropertyService]
-  
+
   // Fetch the parent category, if any
   private[this] val parentCategoryId = nodeGroup.flatMap(x => nodeGroupRepository.getParentGroupCategory(x.id)).map(_.id.value).getOrElse("")
-  
-  var createContainer = false 
-  
+
+  var createContainer = false
+
   def dispatch = {
     case "popupContent" => { _ => popupContent }
   }
@@ -60,10 +60,10 @@ class CreateCloneGroupPopup(
       "itemDescription" -> piDescription.toForm_!,
       "groupType" -> piStatic.toForm_!,
       "itemReason" -> { piReasons.map { f =>
-        <div> 
+        <div>
           <div style="margin:10px 0px 5px 0px; color:#444">
             {userPropertyService.reasonsFieldExplanation}
-          </div> 
+          </div>
           {f.toForm_!}
         </div>
       } },
@@ -72,33 +72,33 @@ class CreateCloneGroupPopup(
       "save" -> SHtml.ajaxSubmit( "Save", onSubmit _ ) % ( "id", "createCOGSaveButton" ) % ( "tabindex", "5" )
     ) ) ++ Script( OnLoad( initJs ) )
   }
-  
+
   def templatePath = List("templates-hidden", "Popup", "createCloneGroupPopup")
-  
+
   def template() =  Templates(templatePath) match {
      case Empty | Failure(_,_,_) =>
        error("Template for creation popup not found. I was looking for %s.html"
          .format(templatePath.mkString("/")))
      case Full(n) => n
   }
-    
+
   def popupTemplate = chooseTemplate("groups", "createCloneGroupPopup", template)
-  
+
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $.modal.close();""")
   }
-  
+
   private[this] def onFailure() : JsCmd = {
-    onFailureCallback() & 
+    onFailureCallback() &
     updateFormClientSide()
   }
 //    private[this] def onFailure : JsCmd = {
 //    formTracker.addFormError(error("The form contains some errors, please correct them"))
 //    updateFormClientSide()
 //  }
-  
+
   private[this] def error(msg:String) = <span class="error">{msg}</span>
-  
+
   private[this] def onSubmit() : JsCmd = {
     if(formTracker.hasErrors) {
       onFailure()
@@ -142,9 +142,9 @@ class CreateCloneGroupPopup(
           CurrentUser.getActor,
           piReasons.map(_.is)
         ) match {
-          case Full(x) => 
-            closePopup() & 
-            onSuccessCallback(x.group.id.value) & 
+          case Full(x) =>
+            closePopup() &
+            onSuccessCallback(x.group.id.value) &
             onSuccessGroup(x.group)
           case Empty =>
             logger.error("An error occurred while saving the group")
@@ -153,32 +153,32 @@ class CreateCloneGroupPopup(
           case Failure(m,_,_) =>
             logger.error("An error occurred while saving the group:" + m)
             formTracker.addFormError(error(m))
-            onFailure 
+            onFailure
         }
       }
     }
   }
-  
+
   private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
-    
+
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
-   
+
     if(notifications.isEmpty) {
       NodeSeq.Empty
     }
     else {
-      val html = 
+      val html =
         <div id="notifications" class="notify">
           <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
         </div>
       html
     }
   }
-  
+
   ///////////// fields for category settings ///////////////////
-  
-  
+
+
   private[this] val piReasons = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
@@ -187,11 +187,11 @@ class CreateCloneGroupPopup(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-  
+
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
     new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  % 
+      override def inputField = super.inputField  %
         ("style" -> "height:5em;")
       override def errorClassName = ""
       override def validations() = {
@@ -203,9 +203,9 @@ class CreateCloneGroupPopup(
       }
     }
   }
-  
+
   private[this] val piName = {
-      new WBTextField("Name", 
+      new WBTextField("Name",
         nodeGroup.map(x => "Copy of <%s>".format(x.name)).getOrElse("")) {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def errorClassName = ""
@@ -215,7 +215,7 @@ class CreateCloneGroupPopup(
     }
   }
 
-  private[this] val piDescription = new WBTextAreaField("Description", 
+  private[this] val piDescription = new WBTextAreaField("Description",
       nodeGroup.map(x => x.description).getOrElse("") ) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:5em") % ("tabindex","3")
@@ -223,12 +223,12 @@ class CreateCloneGroupPopup(
     override def validations =  Nil
   }
 
-  private[this] val piStatic = 
-    new WBRadioField("Group type", Seq("static", "dynamic"),  
+  private[this] val piStatic =
+    new WBRadioField("Group type", Seq("static", "dynamic"),
         ((nodeGroup.map(x => x.isDynamic).getOrElse(false)) ? "dynamic" | "static"), {
-    case "static" => 
+    case "static" =>
       <span title="The list of member nodes is defined at creation and will not change automatically.">Static</span>
-    case "dynamic" => 
+    case "dynamic" =>
       <span title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
   }, Some(4)) {
     override def className = "rudderBaseFieldSelectClassName"
@@ -243,10 +243,10 @@ class CreateCloneGroupPopup(
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
     override def className = "rudderBaseFieldSelectClassName"
   }
-  
+
   private[this] def initJs : JsCmd = {
-    JsRaw("correctButtons();") & 
-    JsShowId("createGroupHiddable") & 
+    JsRaw("correctButtons();") &
+    JsShowId("createGroupHiddable") &
     {
       if (groupGenerator != None) {
         JsHideId("itemCreation")
@@ -255,12 +255,12 @@ class CreateCloneGroupPopup(
       }
     }
   }
-  
+
   private[this] val formTracker = {
     new FormTracker(piName, piDescription, piContainer, piStatic)
   }
-    
-  
+
+
   private[this] def updateFormClientSide() : JsCmd = {
     SetHtml("createCloneGroupContainer", popupContent())
   }

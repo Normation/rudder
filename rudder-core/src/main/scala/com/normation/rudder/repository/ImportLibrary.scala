@@ -44,8 +44,8 @@ import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.Rule
 
 /**
- * A category of the technique library. 
- * 
+ * A category of the technique library.
+ *
  */
 case class ActiveTechniqueCategoryContent(
     category  : ActiveTechniqueCategory
@@ -66,34 +66,34 @@ case class ActiveTechniqueLibraryArchiveId(value:String)
 /**
  * That trait allows to manage the import of active techniques library
  * (categories, templates, directives) from the File System into
- * the LDAP. 
+ * the LDAP.
  */
 
 trait ParseActiveTechniqueLibrary {
 
   /**
    * That method parse rules from the
-   * file system for an archive with the given ID. 
+   * file system for an archive with the given ID.
    */
   def getArchive(archiveId:GitCommitId) : Box[ActiveTechniqueCategoryContent]
 }
 
 /**
  * That trait allows to manage the import of rules
- * from the File System into the LDAP. 
+ * from the File System into the LDAP.
  * That part read the last CR archive.
  */
 trait ParseRules {
 
   /**
    * That method parse rules from the
-   * file system for an archive with the given ID. 
+   * file system for an archive with the given ID.
    */
   def getArchive(archiveId:GitCommitId) : Box[Seq[Rule]]
 }
 
 /**
- * A category of the group library. 
+ * A category of the group library.
  */
 case class NodeGroupCategoryContent(
     category  : NodeGroupCategory
@@ -110,31 +110,31 @@ trait ParseGroupLibrary {
 
   /**
    * That method parse a group library from the
-   * file system for an archive with the given ID. 
+   * file system for an archive with the given ID.
    */
   def getArchive(archiveId:GitCommitId) : Box[NodeGroupCategoryContent]
 }
 
 
 
-trait ImportTechniqueLibrary {  
+trait ImportTechniqueLibrary {
   /**
    * That method swap an existing active technique library in LDAP
-   * to a new one. 
-   * 
-   * In case of error, we try to restore the old technique library. 
+   * to a new one.
+   *
+   * In case of error, we try to restore the old technique library.
    */
   def swapActiveTechniqueLibrary(rootCategory: ActiveTechniqueCategoryContent, includeSystem: Boolean = false) : Box[Unit]
 }
 
 
 
-trait ImportGroupLibrary {  
+trait ImportGroupLibrary {
   /**
    * That method swap an existing active technique library in LDAP
-   * to a new one. 
-   * 
-   * In case of error, we try to restore the old technique library. 
+   * to a new one.
+   *
+   * In case of error, we try to restore the old technique library.
    */
   def swapGroupLibrary(rootCategory: NodeGroupCategoryContent, includeSystem: Boolean = false) : Box[Unit]
 }

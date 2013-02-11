@@ -40,21 +40,21 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
 
 /**
- * That class helps user to create valide JS initialisation context 
- * links for pages that support them (search, Directive, 
- * Rule). 
+ * That class helps user to create valide JS initialisation context
+ * links for pages that support them (search, Directive,
+ * Rule).
  */
 object JsInitContextLinkUtil {
 
-  def groupLink(id:NodeGroupId) = 
+  def groupLink(id:NodeGroupId) =
     """/secure/nodeManager/groups#{"groupId":"%s"}""".format(id.value)
-  
-  def ruleLink(id:RuleId) = 
+
+  def ruleLink(id:RuleId) =
     """/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(id.value)
-  
-  def directiveLink(id:DirectiveId) = 
+
+  def directiveLink(id:DirectiveId) =
     """/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(id.value)
-    
-  def nodeLink(id:NodeId) = 
+
+  def nodeLink(id:NodeId) =
     """/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(id.value)
 }

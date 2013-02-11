@@ -69,47 +69,47 @@ object NodeGrid {
  * a case class used to pass the JSON that contains id of
  * the node we want args for
  */
-case class JsonArg(jsid:String, id:String, status:String) extends HashcodeCaching 
+case class JsonArg(jsid:String, id:String, status:String) extends HashcodeCaching
 
 /**
- * Present a grid of server in a jQuery Datatable 
- * widget. 
+ * Present a grid of server in a jQuery Datatable
+ * widget.
  *
  * To use it:
  * - add the need js/css dependencies by adding the result
  *   of head() in the calling template head
- * - call the display(servers) method  
+ * - call the display(servers) method
  */
 class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
-  
+
   private def templatePath = List("templates-hidden", "server_grid")
   private def template() =  Templates(templatePath) match {
-    case Empty | Failure(_,_,_) => 
+    case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for server grid not found. I was looking for %s.html".format(templatePath.mkString("/")))
     case Full(n) => n
   }
-  
+
   private def headTemplate = chooseTemplate("servergrid","head",template)
   private def tableTemplate = chooseTemplate("servergrid","table",template)
-  
+
   /*
    * All JS/CSS needed to have datatable working
    */
   def head() : NodeSeq = headTemplate ++ DisplayNode.head
-  
-  
+
+
   def displayAndInit(
-      servers:Seq[Srv], 
-      tableId:String, 
-      columns:Seq[(Node,Srv => NodeSeq)]=Seq(), 
-      aoColumns:String ="", 
-      searchable : Boolean = true, 
+      servers:Seq[Srv],
+      tableId:String,
+      columns:Seq[(Node,Srv => NodeSeq)]=Seq(),
+      aoColumns:String ="",
+      searchable : Boolean = true,
       paginate : Boolean = true
    ) : NodeSeq = {
     display(servers, tableId, columns, aoColumns) ++
-    Script(initJs(tableId, columns, aoColumns, searchable, paginate))    
+    Script(initJs(tableId, columns, aoColumns, searchable, paginate))
   }
-  
+
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 
   /*
@@ -117,7 +117,7 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
    * 'tableId'
    */
   def initJs(tableId:String, columns:Seq[(Node,Srv => NodeSeq)]=Seq(), aoColumns:String ="", searchable : Boolean, paginate : Boolean) : JsCmd = {
-      
+
     JsRaw("""
         var #table_var#;
         /* Formating function for row details */
@@ -127,7 +127,7 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
         }
       """.replaceAll("#table_var#",jsVarNameForId(tableId))
     ) & OnLoad(
-        
+
         JsRaw("""
           /* Event handler function */
           #table_var# = $('#%s').dataTable({
@@ -142,7 +142,7 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
             "oLanguage": {
               "sSearch": ""
             },
-            "aoColumns": [ 
+            "aoColumns": [
               { "sWidth": "180px" },
               { "sWidth": "190px" },
               { "sWidth": "100px" } %s
@@ -151,12 +151,12 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
           });
             """.format(tableId,searchable,paginate,aoColumns).replaceAll("#table_var#",jsVarNameForId(tableId))
         ) &
-        
+
         initJsCallBack(tableId)
     )
-        
+
    }
-  
+
   /**
    * Initialize JS callback bound to the servername item
    * You will have to do that for line added after table
@@ -190,22 +190,22 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
               jsVarNameForId(tableId))
      )
   }
-  
+
   /**
    * Build the HTML grid of server, with all its row
    * initilialized.
    * This method does not initialize grid's Javascript,
    * use <code>displayAndInit</code> for that.
-   * 
-   * @parameter : servers 
+   *
+   * @parameter : servers
    *    the list of servers to display
    * @parameter : columns
-   *    a list of supplementary column to add in the grid, 
+   *    a list of supplementary column to add in the grid,
    *    where the _1 is the header, and the (server => NodeSeq)
    *    is the content of the column
    * @parameter aoColumns : the javascript for the datatable
    */
-  
+
   def display(servers:Seq[Srv], tableId:String, columns:Seq[(Node,Srv => NodeSeq)]=Seq(), aoColumns:String ="") : NodeSeq = {
     //bind the table
     <table id={tableId} class="fixedlayout" cellspacing="0">{
@@ -213,7 +213,7 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
       "header" -> (columns flatMap { c => <th>{c._1}<span/></th> }),
       "lines" -> ( servers.flatMap { case s@Srv(id,status, hostname,ostype,osname,osFullName,ips,creationDate) =>
         //build all table lines
-        
+
         (".hostname *" #> {(if(isEmpty(hostname)) "(Missing host name) " + id.value else hostname)} &
          ".fullos *" #> osFullName &
          ".ips *" #> (ips.flatMap{ ip => <div class="ip">{ip}</div> }) & // TODO : enhance this
@@ -223,7 +223,7 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
          ".nodetr [nodestatus]" #> {status.name}
          )(datatableXml)
       })
-    )}</table>  
+    )}</table>
   }
   private[this] val datatableXml = {
     <tr class="nodetr curspoint" jsuuid="id" nodeid="nodeid" nodestatus="status">
@@ -242,17 +242,17 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
   private def details(jsonArg:String) : JsCmd = {
     import Box._
     implicit val formats = DefaultFormats
-   
+
     ( for {
       json <- tryo(parse(jsonArg)) ?~! "Error when trying to parse argument for node"
       arg <- tryo(json.extract[JsonArg])
       status <- Box(InventoryStatus(arg.status))
       sm <- getNodeAndMachine.get(NodeId(arg.id),status)
     } yield (sm,arg.jsid) ) match {
-      case Full((sm,jsid)) => 
+      case Full((sm,jsid)) =>
         SetHtml(jsid, DisplayNode.showPannedContent(sm)) &
         DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "", Some("node_tabs"))
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         logger.debug((e ?~! "error").messageChain)
         Alert("Called id is not valid: %s".format(jsonArg))
     }

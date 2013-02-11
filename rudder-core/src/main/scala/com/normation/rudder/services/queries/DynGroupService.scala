@@ -52,37 +52,37 @@ import net.liftweb.common._
 
 
 /**
- * A service used to manage dynamic groups : find 
- * dynGroup to which belongs nodes, updates them, 
+ * A service used to manage dynamic groups : find
+ * dynGroup to which belongs nodes, updates them,
  * etc
  */
 trait DynGroupService {
 
   /**
-   * Retrieve the list of all dynamic groups. 
+   * Retrieve the list of all dynamic groups.
    */
   def getAllDynGroups() : Box[Seq[NodeGroupId]]
 
   /**
    * For each node in the list, find
    * the list of dynamic group they belongs to.
-   * 
+   *
    * A node ID which does not belong to any dyn group
    * won't be in the resulting map.
    */
   def findDynGroups(nodeIds:Seq[NodeId]) : Box[Map[NodeId,Seq[NodeGroupId]]]
-  
+
 }
 
 
 class DynGroupServiceImpl(
-  rudderDit: RudderDit, 
-  ldap:LDAPConnectionProvider, 
+  rudderDit: RudderDit,
+  ldap:LDAPConnectionProvider,
   mapper:LDAPEntityMapper,
   queryChecker: PendingNodesLDAPQueryChecker
 ) extends DynGroupService with Loggable {
 
-  /** 
+  /**
    * Get all dyn groups
    */
   private[this] val dynGroupFilter = AND(
@@ -93,11 +93,11 @@ class DynGroupServiceImpl(
 
   /**
    * don't get back
-   * the list of members (we don't need them)     
+   * the list of members (we don't need them)
    */
   private[this] def dynGroupAttrs = (LDAPConstants.OC(OC_RUDDER_NODE_GROUP).attributes - LDAPConstants.A_NODE_UUID).toSeq
-  
-  
+
+
   override def getAllDynGroups() : Box[Seq[NodeGroupId]] = {
     for {
       con <- ldap
@@ -109,16 +109,16 @@ class DynGroupServiceImpl(
     }
   }
 
-  
+
   /**
    * Default algorithm, not expected to be performant:
    * - get all dynamic groups
    * - for each query, test if the groups match or not.
    *   For that, use the LdapQueryProcessor on "pending"
    *   branch, limiting queries to the argument list of nodes
-   * 
-   * If any error is encountered during the sequence of tests, 
-   * the whole process is in error. 
+   *
+   * If any error is encountered during the sequence of tests,
+   * the whole process is in error.
    */
   override def findDynGroups(nodeIds:Seq[NodeId]) : Box[Map[NodeId,Seq[NodeGroupId]]] = {
     for {
@@ -145,8 +145,8 @@ class DynGroupServiceImpl(
       swapMap(mapGroupAndNodes)
     }
   }
-  
-  
+
+
   /**
    * Transform the map of (groupid => seq(nodeids) into a map of
    * (nodeid => seq(groupids)
@@ -157,7 +157,7 @@ class DynGroupServiceImpl(
       (gid, seqNodeIds) <- source
       nodeId <- seqNodeIds
     } {
-      dest(nodeId) = gid :: dest.getOrElse(nodeId,Nil) 
+      dest(nodeId) = gid :: dest.getOrElse(nodeId,Nil)
     }
     dest.toMap
   }

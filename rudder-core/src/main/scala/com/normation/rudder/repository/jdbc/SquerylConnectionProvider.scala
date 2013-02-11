@@ -43,23 +43,23 @@ import java.sql.SQLException
 import org.apache.commons.dbcp.BasicDataSource
 
 /**
- * A wrapper around the Squeryl default implementation to allow for several 
+ * A wrapper around the Squeryl default implementation to allow for several
  * databases connections, and still offer the multi-threading capabilities
  */
 class SquerylConnectionProvider(
     dataSource : DataSource) extends Loggable {
-  
+
 
    def getConnection() : java.sql.Connection = {
      dataSource.getConnection()
-   } 
-   
-   
+   }
+
+
   def ourTransaction[A](a : => A) : A = {
     val c = getConnection
     val s = Session.create(c, new PostgreSqlAdapter)
-    
-  
+
+
     if(c.getAutoCommit)
       c.setAutoCommit(false)
 
@@ -68,12 +68,12 @@ class SquerylConnectionProvider(
       val res =try {
         s.bindToCurrentThread
         a
-        
+
       }
       finally {
         s.unbindFromCurrentThread
         s.cleanup
-      } 
+      }
 
       txOk = true
       res
@@ -87,7 +87,7 @@ class SquerylConnectionProvider(
       }
       catch {
         case e:SQLException => {
-          if(txOk) throw e // if an exception occured b4 the commit/rollback we don't want to obscure the original exception 
+          if(txOk) throw e // if an exception occured b4 the commit/rollback we don't want to obscure the original exception
         }
       }
       try{c.close}
@@ -98,5 +98,5 @@ class SquerylConnectionProvider(
       }
     }
   }
-   
+
 }

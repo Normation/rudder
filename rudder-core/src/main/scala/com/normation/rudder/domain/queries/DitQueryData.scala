@@ -46,8 +46,8 @@ import com.normation.utils.HashcodeCaching
 
 /*
  * Here we define all data needed logic by the to create the search
- * form. 
- * 
+ * form.
+ *
  * The search form is organized in 4 levels :
  * - ObjectCriterion, which is a container for criterion definition
  *   ex: Node (for criterion on node LDAP attribute)
@@ -55,8 +55,8 @@ import com.normation.utils.HashcodeCaching
  *   ex: Criterion on attribute "A_SERIAL_NUMBER" in peObjectCriterion use a StringComparator
  * - Comparator, which have two fields: the comparator type, and optionally a value to compare to
  *   ex: StringComparator has four comparators (exists, not exists, equals, not equals), the
- *       last two taking an argument. 
- * 
+ *       last two taking an argument.
+ *
  */
 
 
@@ -69,7 +69,7 @@ case object QueryMachineDn extends DnType
 case object QueryNodeDn extends DnType
 case object QuerySoftwareDn extends DnType
 
-class DitQueryData(dit:InventoryDit) {      
+class DitQueryData(dit:InventoryDit) {
   private val peObjectCriterion = ObjectCriterion(OC_PE, Seq(
 // Criterion(A_MACHINE_UUID, StringComparator),
 // Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that
@@ -89,14 +89,14 @@ class DitQueryData(dit:InventoryDit) {
 // Criterion(A_NAME, StringComparator),
     Criterion(A_DESCRIPTION, StringComparator)
   ))
-  
+
   private val licenseObjectCriterion = ObjectCriterion("licence", Seq(
     Criterion(A_LICENSE_EXP, DateComparator),
     Criterion(A_LICENSE_NAME, StringComparator),
     Criterion(A_LICENSE_PRODUCT_ID, StringComparator),
     Criterion(A_LICENSE_PRODUCT_KEY, StringComparator)
   ));
-  
+
   protected val criteriaSet = Set(
     ObjectCriterion(OC_MACHINE, Seq(
       Criterion(A_MACHINE_UUID, StringComparator),
@@ -226,32 +226,32 @@ ObjectCriterion(OC_GROUP_OF_DNS,Seq(
 Criterion(A_NAME,GroupOfDnsComparator)
 ))*/ // Hidding a code difficult to import
   )
-    
+
   val criteriaMap : SortedMap[String,ObjectCriterion] = SortedMap[String,ObjectCriterion]() ++ (criteriaSet map { crit => (crit.objectType,crit) })
 
-  /* 
+  /*
    * Mapping datas for LDAP query processor
-   * 
-   * Here, we store what are the LDAP URL for each type, 
+   *
+   * Here, we store what are the LDAP URL for each type,
    * how join are made between them, etc.
-   * 
+   *
    */
 
   val A_DN ="1.1"
 
   /**
    * selectAttribute is the attribute that will be used in the
-   * returned entry to do the Join. 
+   * returned entry to do the Join.
    * It has two roles:
    * - added to the filter to request less attributes
    * - used for the join
    */
-  sealed  abstract class LDAPJoinElement(val selectAttribute:String) 
-  final case class AttributeJoin(override val selectAttribute:String) extends LDAPJoinElement(selectAttribute) with HashcodeCaching 
-  final case object DNJoin extends LDAPJoinElement(A_DN) with HashcodeCaching 
-  final case object ParentDNJoin extends LDAPJoinElement(A_DN) with HashcodeCaching 
+  sealed  abstract class LDAPJoinElement(val selectAttribute:String)
+  final case class AttributeJoin(override val selectAttribute:String) extends LDAPJoinElement(selectAttribute) with HashcodeCaching
+  final case object DNJoin extends LDAPJoinElement(A_DN) with HashcodeCaching
+  final case object ParentDNJoin extends LDAPJoinElement(A_DN) with HashcodeCaching
 //  case class QueryJoin(query:Query) extends LDAPJoinElement
-  
+
 
 /*
  * * "baseDn" of the object type to search for
@@ -261,11 +261,11 @@ Criterion(A_NAME,GroupOfDnsComparator)
  */
 case class LDAPObjectType(
     baseDn        : DN
-  , scope         : SearchScope 
+  , scope         : SearchScope
   , filter        : Filter
   , join          : LDAPJoinElement
   , specialFilters: Set[(CriterionComposition, SpecialFilter)] = Set()
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
   //template query for each object type
   def objectTypes = Map(
@@ -289,7 +289,7 @@ case class LDAPObjectType(
     "videoCardPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, IS(OC_VIDEO), ParentDNJoin)
     //,"groupOfDns" -> LDAPObjectType(dit.GROUPS.dn, Sub, EQ(A_OC,OC_GROUP_OF_DNS), A_DN)
   )
-  
+
   //"kind" of each object type
   val objectDnTypes = Map(
     "software" -> QuerySoftwareDn,

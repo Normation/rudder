@@ -65,26 +65,26 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
 
 
 object ExpectedPolicyPopup {
-   
+
   def expectedTechniquePath = List("templates-hidden", "Popup", "expected_policy_popup")
   def template() =  Templates(expectedTechniquePath) match {
-    case Empty | Failure(_,_,_) => 
+    case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for server grid not found. I was looking for %s.html".format(expectedTechniquePath.mkString("/")))
     case Full(n) => n
   }
-  
+
   def expectedTechnique = chooseTemplate("expectedPolicyPopup","template",template)
-  
-  def jsVarNameForId(tableId:String) = "oTable" + tableId 
-  
+
+  def jsVarNameForId(tableId:String) = "oTable" + tableId
+
 }
 
 class ExpectedPolicyPopup(
-  htmlId_popup:String, 
+  htmlId_popup:String,
   nodeId : NodeId
 ) extends DispatchSnippet with Loggable {
   import ExpectedPolicyPopup._
-  
+
   private[this] val serverSummaryService = inject[NodeSummaryService]
   private[this] val dependenciesServices = inject[DependencyAndDeletionService]
   private[this] val dynGroupService = inject[DynGroupService]
@@ -98,53 +98,53 @@ class ExpectedPolicyPopup(
 
 
   def display : NodeSeq = {
-    
+
     //find the list of dyn groups on which that server would be and from that, the Rules
     val rulesGrid : NodeSeq = rules match {
-      case Full(seq) => 
+      case Full(seq) =>
         (new RuleGrid("dependentRulesGrid", seq, None, false)).rulesGrid(popup = true,false)
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         val msg = "Error when trying to find dependencies for that group"
         logger.error(msg, e)
         <div class="error">{msg}</div>
     }
-        
+
     (
-        ClearClearable & 
-        "#dependentRulesGrid" #> rulesGrid 
-    )(bind("expectedPolicyPopup",expectedTechnique, 
-      "node" -> displayNode(nodeId), 
+        ClearClearable &
+        "#dependentRulesGrid" #> rulesGrid
+    )(bind("expectedPolicyPopup",expectedTechnique,
+      "node" -> displayNode(nodeId),
       "close" -> <button onClick="$.modal.close(); return false;">Close</button>
-    ) ) 
+    ) )
   }
-  
-  
+
+
   private[this] val rules:Box[Seq[Rule]] = {
     for {
       groupMap <- dynGroupService.findDynGroups(Seq(nodeId)) ?~! "Error when building the map of dynamic group to update by node"
       seqNodeGroupId = groupMap.get(nodeId).getOrElse(Seq())
-      seqTargetDeps <- sequence(seqNodeGroupId) { groupId => 
+      seqTargetDeps <- sequence(seqNodeGroupId) { groupId =>
         dependenciesServices.targetDependencies(GroupTarget(groupId)) ?~! "Error when building the list of Rules depending on group %s".format(groupId)
       }
     } yield {
       seqTargetDeps.flatMap { case TargetDependencies(target, rules) => rules }.distinct
     }
   }
-    
-  
+
+
   private[this] def displayNode(nodeId : NodeId) : NodeSeq = {
     serverSummaryService.find(pendingNodesDit,nodeId) match {
-      case Full(srv) => 
+      case Full(srv) =>
         srv.toList match {
           case Nil => <div>Node not found</div>
           case head::Nil => Text(head.hostname + " - " +head.osFullName)
-          case _ => logger.error("Too many nodes returned while searching server %s".format(nodeId.value)) 
+          case _ => logger.error("Too many nodes returned while searching server %s".format(nodeId.value))
                   <p class="error">ERROR - Too many nodes</p>
         }
       case _ => <div>No node found</div>
     }
-    
+
   }
-  
-  
+
+
 }

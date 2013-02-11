@@ -52,7 +52,7 @@ object RudderLDAPConstants extends Loggable {
   val A_ACTIVE_TECHNIQUE_UUID = "activeTechniqueId"
   val A_NODE_GROUP_UUID = "nodeGroupId"
   val A_RULE_UUID = "ruleId"
-    
+
   /* other things */
   val A_TECHNIQUE_LIB_VERSION = "techniqueLibraryVersion"
   val A_TECHNIQUE_VERSION = "techniqueVersion"
@@ -67,7 +67,7 @@ object RudderLDAPConstants extends Loggable {
    * accepted in the active technique library (either the
    * time it was created (initialization) or the
    * last time the reference Technique library
-   * was updated and then modification were accepted. 
+   * was updated and then modification were accepted.
    */
   val A_ACCEPTATION_DATETIME = "acceptationTimestamp"
 
@@ -84,7 +84,7 @@ object RudderLDAPConstants extends Loggable {
   val A_PRIORITY = "directivePriority"
   val A_LONG_DESCRIPTION = "longDescription"
   val A_SERIAL = "serial"
-    
+
   val A_NODE_CONFIGURATION_SYSTEM_VARIABLE = "systemVariable"
   val A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE = "targetSystemVariable"
 
@@ -94,13 +94,13 @@ object RudderLDAPConstants extends Loggable {
   val A_TARGET_HOSTNAME = "targetNodeHostname"
   val A_TARGET_AGENTS_NAME = "targetAgentName"
   val A_TARGET_ROOT_USER = "targetLocalAdministratorAccountName"
- 
+
 
   // Creation date of an object
   // it's an operational attribute of OpenLDAP
   val A_OBJECT_CREATION_DATE = "createTimestamp"
 
-   
+
   //
   // Object Classe names
   //
@@ -112,7 +112,7 @@ object RudderLDAPConstants extends Loggable {
   val OC_SPECIAL_TARGET = "specialRuleTarget"
   val OC_ROOT_POLICY_SERVER = "rootPolicyServerNodeConfiguration"
   val OC_ACTIVE_TECHNIQUE = "activeTechnique"
-  val OC_DIRECTIVE = "directive" 
+  val OC_DIRECTIVE = "directive"
   val OC_RULE = "rule"
   val OC_ACTIVE_TECHNIQUE_LIB_VERSION = "activeTechniqueLibraryVersion"
   val OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT = "abstractDirectiveNodeConfiguration"
@@ -227,10 +227,10 @@ object RudderLDAPConstants extends Loggable {
           //Here, seq is sequence of (varName,index,value)
           /*
          * Normally, all varName in the seq are the same (and the same as k), given the groupBy.
-         * Now, we want to create a seq the size of the higher index+1, and put values to the 
+         * Now, we want to create a seq the size of the higher index+1, and put values to the
          * good index.
-         * 
-         * We initialize the seq with empty Strings. 
+         *
+         * We initialize the seq with empty Strings.
          */
           val size = seq.map { case (_, i, _) => i }.sortWith(_ > _).head + 1
           val values = Array.fill[String](size)("")

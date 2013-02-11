@@ -73,8 +73,8 @@ class LDAPRuleRepository(
   , personIdentService  : PersonIdentService
   , autoExportOnModify  : Boolean
 ) extends RuleRepository with Loggable {
-  repo => 
-  
+  repo =>
+
   /**
    * Try to find the rule with the given ID.
    * Empty: no directive with such ID
@@ -83,8 +83,8 @@ class LDAPRuleRepository(
    */
   def get(id:RuleId) : Box[Rule]  = {
     for {
-      con     <- ldap 
-      crEntry <- con.get(rudderDit.RULES.configRuleDN(id.value)) 
+      con     <- ldap
+      crEntry <- con.get(rudderDit.RULES.configRuleDN(id.value))
       rule    <- mapper.entry2Rule(crEntry) ?~! "Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, crEntry)
     } yield {
       rule
@@ -113,7 +113,7 @@ class LDAPRuleRepository(
     }
   }
 
-  
+
   def getAll(includeSystem:Boolean = false) : Box[Seq[Rule]] = {
     val filter = if(includeSystem) IS(OC_RULE) else AND(IS(OC_RULE), EQ(A_IS_SYSTEM,false.toLDAPString))
     for {
@@ -125,19 +125,19 @@ class LDAPRuleRepository(
       rules
     }
   }
-  
-  
+
+
   def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[AddRuleDiff] = {
     repo.synchronized { for {
       con             <- ldap
       idDoesntExist   <- if(con.exists(rudderDit.RULES.configRuleDN(rule.id.value))) {
                            Failure("Cannot create a rule with id %s : there is already a rule with the same id".format(rule.id))
-                         } else { 
-                           Full(Unit) 
+                         } else {
+                           Full(Unit)
                          }
       nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id)) Failure("Cannot create a rule with name %s : there is already a rule with the same name".format(rule.name))
                          else Full(Unit)
-      crEntry         =  mapper.rule2Entry(rule) 
+      crEntry         =  mapper.rule2Entry(rule)
       result          <- {
                            crEntry +=! (A_SERIAL, "0") //serial must be set to 0
                            con.save(crEntry) ?~! "Error when saving rule entry in repository: %s".format(crEntry)
@@ -157,12 +157,12 @@ class LDAPRuleRepository(
     } }
   }
 
-  
+
   def update(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]] = {
     repo.synchronized { for {
       con             <- ldap
       existingEntry   <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)) ?~! "Cannot update rule with id %s : there is no rule with that id".format(rule.id.value)
-      nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id)) 
+      nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id))
                            Failure("Cannot update rule with name \"%s\" : this name is already in use.".format(rule.name))
                          else Full(Unit)
       crEntry         =  mapper.rule2Entry(rule)
@@ -184,9 +184,9 @@ class LDAPRuleRepository(
       optDiff
     } }
   }
-  
+
   def incrementSerial(id:RuleId) : Box[Int] = {
-    repo.synchronized { 
+    repo.synchronized {
       for {
         con             <- ldap
         entryWithSerial <-  con.get(rudderDit.RULES.configRuleDN(id.value), A_SERIAL)
@@ -197,16 +197,16 @@ class LDAPRuleRepository(
                         }
       } yield {
         serial + 1
-      } 
+      }
     }
   }
 
   /**
    * Return all activated rule.
-   * A rule is activated if 
+   * A rule is activated if
    * - its attribute "isEnabled" is set to true ;
    * - its referenced group is defined and Activated, or it reference a special target
-   * - its referenced directive is defined and activated (what means that the 
+   * - its referenced directive is defined and activated (what means that the
    *   referenced active technique is activated)
    * @return
    */
@@ -220,9 +220,9 @@ class LDAPRuleRepository(
                           rudderDit.GROUP.getGroupId(entry.dn)
                         }
       } yield {
-        groupIds 
+        groupIds
       })
-    
+
     logger.debug("Activated groups are %s".format(groupsId.mkString(";")))
     (for {
       con                <- ldap
@@ -233,7 +233,7 @@ class LDAPRuleRepository(
       activatedPI_ids    <- sequence(activatedPI_DNs) { dn =>
                               rudderDit.ACTIVE_TECHNIQUES_LIB.getLDAPRuleID(dn)
                             }
-     configRules         <- sequence(con.searchSub(rudderDit.RULES.dn, 
+     configRules         <- sequence(con.searchSub(rudderDit.RULES.dn,
                              //group is activated and directive is activated and config rule is activated !
                              AND(IS(OC_RULE),
                                EQ(A_IS_ENABLED, true.toLDAPString),
@@ -241,15 +241,15 @@ class LDAPRuleRepository(
                                HAS(A_DIRECTIVE_UUID),
                                OR(activatedPI_ids.map(id =>  EQ(A_DIRECTIVE_UUID, id)):_*)
                              )
-                           )) { entry => 
-                             mapper.entry2Rule(entry) 
+                           )) { entry =>
+                             mapper.entry2Rule(entry)
                            }
     } yield {
       configRules
     } ) match {
       case Full(list) =>
         // a config rule activated point to an activated group, or to a special target
-        Full(list.filter{ rule => 
+        Full(list.filter{ rule =>
           rule.isEnabled &&
           ((rule.targets, rule.directiveIds) match {
             case (targets, directives) if !directives.isEmpty && !targets.isEmpty => //should be the case, given the request
@@ -268,21 +268,21 @@ class LDAPRuleRepository(
   }
 
   /**
-   * Implementation logic: 
+   * Implementation logic:
    * - lock LDAP for other writes (more precisely, only that repos, with
-   *   synchronized method), 
+   *   synchronized method),
    * - create a ou=Rules-YYYY-MM-DD_HH-mm in the "archive" branche
    * - move ALL (included system) current rules in the previous 'ou'
    * - save newCr, filtering out system ones if includeSystem is false
    * - if includeSystem is false, copy back save system CR into rule branch
    * - release lock
-   * 
-   * If something goes wrong, try to restore. 
+   *
+   * If something goes wrong, try to restore.
    */
   def swapRules(newCrs:Seq[Rule], includeSystem:Boolean = false) : Box[RuleArchiveId] = {
     //merge imported rules and existing one, taking care of serial value
     def mergeCrs(importedCrs:Seq[Rule], existingCrs:Seq[Rule]) = {
-      importedCrs.map { rule => 
+      importedCrs.map { rule =>
         existingCrs.find(other => other.id == rule.id) match {
           //keep and increment serial
           case Some(existingCr) => rule.copy(serial = existingCr.serial + 1)
@@ -302,23 +302,23 @@ class LDAPRuleRepository(
     def restore(con:LDAPConnection, previousCRs:Seq[Rule], includeSystem:Boolean) = {
       for {
         deleteCR  <- con.delete(rudderDit.RULES.dn)
-        savedBack <- sequence(previousCRs) { rule => 
+        savedBack <- sequence(previousCRs) { rule =>
                        saveCR(con,rule)
                      }
       } yield {
         savedBack
       }
     }
-    
+
     ///// actual code for swapRules /////
-    
+
     val id = RuleArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
     val ou = rudderDit.ARCHIVES.ruleModel(id)
-    //filter systemCr if they are not included, so that merge does not have to deal with that. 
+    //filter systemCr if they are not included, so that merge does not have to deal with that.
     val importedCrs = if(includeSystem) newCrs else newCrs.filter( rule => !rule.isSystem)
-    
+
     repo.synchronized {
-      
+
       for {
         existingCrs <- repo.getAll(true)
         crToImport  =  mergeCrs(importedCrs, existingCrs)
@@ -329,7 +329,7 @@ class LDAPRuleRepository(
                          renamed     <- con.move(rudderDit.RULES.dn, ou.dn.getParent, Some(ou.dn.getRDN))
                          //now, create back config rule branch and save rules
                          crOu        <- con.save(rudderDit.RULES.model)
-                         savedCrs    <- sequence(newCrs) { rule => 
+                         savedCrs    <- sequence(newCrs) { rule =>
                                         saveCR(con, rule)
                                      }
                          //if include system is false, copy back system rule
@@ -348,10 +348,10 @@ class LDAPRuleRepository(
                            val e = eb ?~! "Error when importing CRs, trying to restore old CR"
                            logger.error(eb)
                            restore(con, existingCrs, includeSystem) match {
-                             case _:Full[_] => 
+                             case _:Full[_] =>
                                logger.info("Rollback rules")
                                eb ?~! "Rollbacked imported rules to previous state"
-                             case x:EmptyBox => 
+                             case x:EmptyBox =>
                                val m = "Error when rollbacking corrupted import for rules, expect other errors. Archive ID: '%s'".format(id.value)
                                eb ?~! m
                            }
@@ -362,7 +362,7 @@ class LDAPRuleRepository(
       }
     }
   }
-  
+
   def deleteSavedRuleArchiveId(archiveId:RuleArchiveId) : Box[Unit] = {
     repo.synchronized {
       for {
@@ -373,9 +373,9 @@ class LDAPRuleRepository(
       }
     }
   }
-    
-    
-    
+
+
+
   /**
    * Check if a configuration exist with the given name, and another id
    */

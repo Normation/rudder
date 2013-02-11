@@ -53,8 +53,8 @@ import com.normation.eventlog.ModificationId
 
 /**
  * A class used to log user session creation/destruction events.
- * This linked to Spring Security, and so to Spring to. 
- * That creates a hard reference from/to spring for our app, 
+ * This linked to Spring Security, and so to Spring to.
+ * That creates a hard reference from/to spring for our app,
  * hopefully a simple one to break.
  */
 class UserSessionLogEvent(
@@ -64,13 +64,13 @@ class UserSessionLogEvent(
 
   def onApplicationEvent(event : ApplicationEvent):Unit = {
     event match {
-      case login:AuthenticationSuccessEvent => 
+      case login:AuthenticationSuccessEvent =>
         login.getAuthentication.getPrincipal match {
-          case u:UserDetails => 
+          case u:UserDetails =>
             repository.saveEventLog(
                 ModificationId(uuidGen.newUuid)
               , LoginEventLog(
-                    EventLogDetails( 
+                    EventLogDetails(
                         modificationId = None
                       , principal = EventActor(u.getUsername)
                       , details = EventLog.emptyDetails
@@ -78,7 +78,7 @@ class UserSessionLogEvent(
                     )
                 )
             )
-          case x => 
+          case x =>
             logger.warn("The application received an Authentication 'success' event with a parameter that is neither a principal nor some user details. I don't know how to log that event in database. Event parameter was: " +x)
         }
 
@@ -88,7 +88,7 @@ class UserSessionLogEvent(
             repository.saveEventLog(
                 ModificationId(uuidGen.newUuid)
               , BadCredentialsEventLog(
-                    EventLogDetails( 
+                    EventLogDetails(
                         modificationId = None
                       , principal = EventActor(u)
                       , details = EventLog.emptyDetails
@@ -101,14 +101,14 @@ class UserSessionLogEvent(
         }
 
 //  these events don't seem to work :/
-//      case sessionCreation:SessionCreationEvent => 
+//      case sessionCreation:SessionCreationEvent =>
 //        println("Session creation " + sessionCreation.getSource.toString)
 //      case sessionDestruction:SessionDestroyedEvent =>
 //        println("Session destruction " + sessionDestruction.getSecurityContext().getAuthentication)
 //
       case x => //ignore
     }
-    
+
   }
 }
 

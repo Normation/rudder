@@ -43,8 +43,8 @@ import com.normation.eventlog.ModificationId
 
 
 /**
- * The directive repository. 
- * 
+ * The directive repository.
+ *
  * directive are instance of technique
  * (a technique + values for its parameters)
  *
@@ -58,28 +58,28 @@ trait DirectiveRepository {
    * Failure => an error happened.
    */
   def getDirective(directiveId:DirectiveId) : Box[Directive]
-  
+
   /**
-   * retrieve a Directive with its parent Technique and the 
+   * retrieve a Directive with its parent Technique and the
    * binding Active Technique
    */
   def getDirectiveWithContext(directiveId:DirectiveId) : Box[(Technique, ActiveTechnique, Directive)]
 
-  
+
   /**
-   * Find the active technique for which the given directive is an instance. 
-   * 
-   * Return empty if no such directive is known, 
+   * Find the active technique for which the given directive is an instance.
+   *
+   * Return empty if no such directive is known,
    * fails if no active technique match the directive.
    */
-  def getActiveTechnique(id:DirectiveId) : Box[ActiveTechnique]  
-  
+  def getActiveTechnique(id:DirectiveId) : Box[ActiveTechnique]
+
   /**
    * Get directives for given technique.
    * A not known technique id is a failure.
    */
   def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : Box[Seq[Directive]]
-  
+
   /**
    * Save the given directive into given active technique
    * If the directive is already present in the system but not
@@ -87,11 +87,11 @@ trait DirectiveRepository {
    * If the directive is already in the given technique,
    * update the directive.
    * If the directive is not in the system, add it.
-   * 
+   *
    * Returned the saved UserDirective
    */
   def saveDirective(inActiveTechniqueId:ActiveTechniqueId, directive:Directive, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]]
- 
+
   /**
    * Get all directives defined in that repository
    */
@@ -102,7 +102,7 @@ trait DirectiveRepository {
    * No dependency check are done, and so you will have to
    * delete dependent rule (or other items) by
    * hand if you want.
-   * 
+   *
    * If the given directiveId does not exists, it leads to a
    * failure.
    */

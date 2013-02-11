@@ -50,111 +50,111 @@ import org.eclipse.jgit.lib.PersonIdent
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
-  
+
 /**
  * A rest api that allows to deploy promises.
- * 
+ *
  */
 class RestArchiving(
     itemArchiveManager: ItemArchiveManager
   , personIdentService: PersonIdentService
   , uuidGen           : StringUuidGenerator
 ) extends RestHelper {
- 
+
   //  List archives: /api/archives/list
   serve {
-    case Get("api" :: "archives" :: "list" :: "groups" :: Nil, _) => 
+    case Get("api" :: "archives" :: "list" :: "groups" :: Nil, _) =>
       listTags(itemArchiveManager.getGroupLibraryTags _, "groups")
 
-    case Get("api" :: "archives" :: "list" :: "directives" :: Nil, _) => 
+    case Get("api" :: "archives" :: "list" :: "directives" :: Nil, _) =>
       listTags(itemArchiveManager.getTechniqueLibraryTags _, "technique library")
 
-    case Get("api" :: "archives" :: "list" :: "rules" :: Nil, _) => 
+    case Get("api" :: "archives" :: "list" :: "rules" :: Nil, _) =>
       listTags(itemArchiveManager.getRulesTags _, "rules")
 
-    case Get("api" :: "archives" :: "list" :: "full" :: Nil, _) => 
+    case Get("api" :: "archives" :: "list" :: "full" :: Nil, _) =>
       listTags(itemArchiveManager.getFullArchiveTags _, "full archive")
   }
-  
+
   // restore last archive /api/archives/restore/{groups,..}/latestArchive
   serve {
-    case Get("api" :: "archives" :: "restore" :: "groups" :: "latestArchive" :: Nil, req) => 
+    case Get("api" :: "archives" :: "restore" :: "groups" :: "latestArchive" :: Nil, req) =>
       restoreLatestArchive(req, itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, "groups")
 
     case Get("api" :: "archives" :: "restore" :: "directives" :: "latestArchive" :: Nil, req) =>
       restoreLatestArchive(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, "technique library")
 
-    case Get("api" :: "archives" :: "restore" :: "rules" :: "latestArchive" :: Nil, req) => 
+    case Get("api" :: "archives" :: "restore" :: "rules" :: "latestArchive" :: Nil, req) =>
       restoreLatestArchive(req, itemArchiveManager.getRulesTags _, itemArchiveManager.importRules, "rules")
 
-    case Get("api" :: "archives" :: "restore" :: "full" :: "latestArchive" :: Nil, req) => 
+    case Get("api" :: "archives" :: "restore" :: "full" :: "latestArchive" :: Nil, req) =>
       restoreLatestArchive(req, itemArchiveManager.getFullArchiveTags _, itemArchiveManager.importAll, "full archive")
   }
 
   // restore from Git HEAD /api/archives/restore/{groups,..}/latestCommit
   serve {
-    case Get("api" :: "archives" :: "restore" :: "groups" :: "latestCommit" :: Nil, req) => 
+    case Get("api" :: "archives" :: "restore" :: "groups" :: "latestCommit" :: Nil, req) =>
       restoreLatestCommit(req, itemArchiveManager.importHeadGroupLibrary, "groups")
 
     case Get("api" :: "archives" :: "restore" :: "directives" :: "latestCommit" :: Nil, req) =>
       restoreLatestCommit(req, itemArchiveManager.importHeadTechniqueLibrary, "technique library")
 
-    case Get("api" :: "archives" :: "restore" :: "rules" :: "latestCommit" :: Nil, req) => 
+    case Get("api" :: "archives" :: "restore" :: "rules" :: "latestCommit" :: Nil, req) =>
       restoreLatestCommit(req, itemArchiveManager.importHeadRules, "rules")
 
-    case Get("api" :: "archives" :: "restore" :: "full" :: "latestCommit" :: Nil, req) => 
+    case Get("api" :: "archives" :: "restore" :: "full" :: "latestCommit" :: Nil, req) =>
       restoreLatestCommit(req, itemArchiveManager.importHeadAll, "full archive")
   }
-  
+
   // archive /api/archives/archive/{groups, ...}
   serve {
-    case Get("api" :: "archives" :: "archive" :: "groups" :: Nil, req) => 
+    case Get("api" :: "archives" :: "archive" :: "groups" :: Nil, req) =>
       archive(req, itemArchiveManager.exportGroupLibrary _, "groups")
 
     case Get("api" :: "archives" :: "archive" :: "directives" :: Nil, req) =>
       archive(req, ((a,b,c,d,e) => itemArchiveManager.exportTechniqueLibrary(a,b,c,d,e).map( _._1)), "technique library")
 
-    case Get("api" :: "archives" :: "archive" :: "rules" :: Nil, req) => 
+    case Get("api" :: "archives" :: "archive" :: "rules" :: Nil, req) =>
       archive(req, itemArchiveManager.exportRules _, "rules")
 
-    case Get("api" :: "archives" :: "archive" :: "full" :: Nil, req) => 
+    case Get("api" :: "archives" :: "archive" :: "full" :: Nil, req) =>
       archive(req,  ((a,b,c,d,e) => itemArchiveManager.exportAll(a,b,c,d,e).map( _._1)), "full archive")
   }
-  
+
   //restore a given archive
   // restore last archive /api/archives/restore/{groups,..}/latest
   serve {
-    case Get("api" :: "archives" :: "restore" :: "groups" :: "datetime" :: datetime :: Nil, req) => 
+    case Get("api" :: "archives" :: "restore" :: "groups" :: "datetime" :: datetime :: Nil, req) =>
       restoreByDatetime(req, itemArchiveManager.getGroupLibraryTags _, itemArchiveManager.importGroupLibrary, datetime, "groups")
 
     case Get("api" :: "archives" :: "restore" :: "directives" :: "datetime" :: datetime :: Nil, req) =>
       restoreByDatetime(req, itemArchiveManager.getTechniqueLibraryTags _, itemArchiveManager.importTechniqueLibrary, datetime, "technique library")
 
-    case Get("api" :: "archives" :: "restore" :: "rules" :: "datetime" :: datetime :: Nil, req) => 
+    case Get("api" :: "archives" :: "restore" :: "rules" :: "datetime" :: datetime :: Nil, req) =>
       restoreByDatetime(req, itemArchiveManager.getRulesTags _, itemArchiveManager.importRules, datetime, "rules")
 
-    case Get("api" :: "archives" :: "restore" :: "full" :: "datetime" :: datetime :: Nil, req) => 
+    case Get("api" :: "archives" :: "restore" :: "full" :: "datetime" :: datetime :: Nil, req) =>
       restoreByDatetime(req, itemArchiveManager.getFullArchiveTags _, itemArchiveManager.importAll, datetime, "full archive")
   }
-  
 
-  
-  
-  //////////////////////////////////////////////////////////// 
+
+
+
+  ////////////////////////////////////////////////////////////
   ////////////////// implementation details //////////////////
-  //////////////////////////////////////////////////////////// 
-  
-  
+  ////////////////////////////////////////////////////////////
+
+
   private[this] def listTags(list:() => Box[Map[DateTime, GitArchiveId]], archiveType:String) = {
       list() match {
-        case eb : EmptyBox => 
+        case eb : EmptyBox =>
           val e = eb ?~! "Error when trying to list available archives for %s".format(archiveType)
           PlainTextResponse(e.messageChain, 503)
-        case Full(map) => 
+        case Full(map) =>
           JsonResponse(formatList("groupArchives", map))
       }
   }
-  
+
   private[this] def newModId = ModificationId(uuidGen.newUuid)
 
   /**
@@ -164,20 +164,20 @@ class RestArchiving(
    */
   private[this] def formatList(archiveType:String, availableArvhives: Map[DateTime, GitArchiveId]) : JValue = {
     case class JsonArchive(id:String, date:String, commiter:String, gitPath:String)
-    val ordered = availableArvhives.toList.sortWith { 
-                    case ( (d1,_), (d2,_) ) => d1.isAfter(d2) 
+    val ordered = availableArvhives.toList.sortWith {
+                    case ( (d1,_), (d2,_) ) => d1.isAfter(d2)
                   }.map {
-                    case (date,tag) => 
+                    case (date,tag) =>
                         val id = date.toString(GitTagDateTimeFormatter)
                         val datetime = "%s at %s".format(date.toString("YYYY-MM-DD"), date.toString("HH:mm:ss"))
                         //json
                         ("id" -> id) ~ ("date" -> datetime) ~ ("commiter" -> tag.commiter.getName) ~ ("gitCommit" -> tag.commit.value)
                   }
-                  
+
     JField(archiveType,  ordered)
   }
 
-  
+
   private[this] def restoreLatestArchive(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
     (for {
       archives   <- list()
@@ -194,7 +194,7 @@ class RestArchiving(
         PlainTextResponse("OK")
     }
   }
-  
+
   private[this] def restoreLatestCommit(req:Req, restore: (PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitCommitId], archiveType:String) = {
     (for {
       commiter  <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
@@ -209,7 +209,7 @@ class RestArchiving(
         PlainTextResponse("OK")
     }
   }
-  
+
   private[this] def restoreByDatetime(req:Req, list:() => Box[Map[DateTime, GitArchiveId]], restore:(GitCommitId,PersonIdent,ModificationId,EventActor,Option[String],Boolean) => Box[GitCommitId], datetime:String, archiveType:String) = {
     (for {
       valideDate <- tryo { GitTagDateTimeFormatter.parseDateTime(datetime) } ?~! "The given archive id is not a valid archive tag: %s".format(datetime)

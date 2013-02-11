@@ -56,17 +56,17 @@ final case class InventoryLogDetails(
   , hostname        : String
   , fullOsName      : String
   , actorIp         : String
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 sealed trait AssetEventLog extends EventLog { override final val eventLogCategory = AssetLogCategory }
 
-sealed trait InventoryEventLog extends AssetEventLog 
+sealed trait InventoryEventLog extends AssetEventLog
 
 object InventoryEventLog {
-      
+
   /**
    * Print to XML an inventory details, used
-   * for "accept" and "refuse" actions. 
+   * for "accept" and "refuse" actions.
    */
   def toXml(
       logDetails: InventoryLogDetails
@@ -88,17 +88,17 @@ object InventoryEventLog {
 final case class AcceptNodeEventLog (
     override val eventDetails : EventLogDetails
 ) extends InventoryEventLog with HashcodeCaching {
-  
+
   override val eventType = AcceptNodeEventLog.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object AcceptNodeEventLog extends EventLogFilter {
   override val eventType = AcceptNodeEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : AcceptNodeEventLog = AcceptNodeEventLog(x._2) 
 
-  
+  override def apply(x : (EventLogType, EventLogDetails)) : AcceptNodeEventLog = AcceptNodeEventLog(x._2)
+
+
   def fromInventoryLogDetails(
       id               : Option[Int] = None
     , principal        : EventActor
@@ -110,8 +110,8 @@ object AcceptNodeEventLog extends EventLogFilter {
     val details = EventLog.withContent(InventoryEventLog.toXml(
       inventoryDetails, "accept"
     ) )
-    
-    AcceptNodeEventLog(EventLogDetails(id,None,principal,creationDate, None, severity, description, details)) 
+
+    AcceptNodeEventLog(EventLogDetails(id,None,principal,creationDate, None, severity, description, details))
   }
 }
 
@@ -123,12 +123,12 @@ final case class RefuseNodeEventLog (
 }
 
 object RefuseNodeEventLog extends EventLogFilter {
-  
-  override val eventType = RefuseNodeEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : RefuseNodeEventLog = RefuseNodeEventLog(x._2) 
 
-  
+  override val eventType = RefuseNodeEventType
+
+  override def apply(x : (EventLogType, EventLogDetails)) : RefuseNodeEventLog = RefuseNodeEventLog(x._2)
+
+
   def fromInventoryLogDetails(
       id               : Option[Int] = None
     , principal        : EventActor
@@ -140,8 +140,8 @@ object RefuseNodeEventLog extends EventLogFilter {
     val details = EventLog.withContent(InventoryEventLog.toXml(
       inventoryDetails, "refuse"
     ) )
-    
-    RefuseNodeEventLog(EventLogDetails(id,None,principal,creationDate, None, severity, description, details)) 
+
+    RefuseNodeEventLog(EventLogDetails(id,None,principal,creationDate, None, severity, description, details))
   }
 }
 
@@ -151,12 +151,12 @@ object RefuseNodeEventLog extends EventLogFilter {
 
 final case class NodeLogDetails(
     node: NodeInfo
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 sealed trait NodeEventLog extends AssetEventLog
 
 object NodeEventLog {
-      
+
   /**
    * Print to XML a node detail
    */
@@ -172,9 +172,9 @@ object NodeEventLog {
         <description>{node.description}</description>
         <os>{node.os}</os>
         <ips>{node.ips.map(ip => <ip>{ip}</ip>)}</ips>
-        <inventoryDate>{node.inventoryDate}</inventoryDate>        
+        <inventoryDate>{node.inventoryDate}</inventoryDate>
         <publicKey>{node.publicKey}</publicKey>
-        <agentsName>{node.agentsName.map(agentName => <agentName>{agentName}</agentName>)}</agentsName>        
+        <agentsName>{node.agentsName.map(agentName => <agentName>{agentName}</agentName>)}</agentsName>
         <policyServerId>{node.policyServerId}</policyServerId>
         <localAdministratorAccountName>{node.localAdministratorAccountName}</localAdministratorAccountName>
         <creationDate>{node.creationDate}</creationDate>
@@ -197,11 +197,11 @@ final case class DeleteNodeEventLog (
 
 object DeleteNodeEventLog extends EventLogFilter {
   override val eventType = DeleteNodeEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : DeleteNodeEventLog = DeleteNodeEventLog(x._2) 
 
-  
-  
+  override def apply(x : (EventLogType, EventLogDetails)) : DeleteNodeEventLog = DeleteNodeEventLog(x._2)
+
+
+
   def fromInventoryLogDetails(
       id               : Option[Int] = None
     , principal        : EventActor
@@ -213,15 +213,15 @@ object DeleteNodeEventLog extends EventLogFilter {
     val details = EventLog.withContent(InventoryEventLog.toXml(
       inventoryDetails, "delete"
     ) )
-    
-    DeleteNodeEventLog(EventLogDetails(id,None,principal,creationDate, None, severity, description, details)) 
+
+    DeleteNodeEventLog(EventLogDetails(id,None,principal,creationDate, None, severity, description, details))
   }
 }
 
 object AssetsEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      AcceptNodeEventLog 
-    , RefuseNodeEventLog 
+      AcceptNodeEventLog
+    , RefuseNodeEventLog
     , DeleteNodeEventLog
     )
 }

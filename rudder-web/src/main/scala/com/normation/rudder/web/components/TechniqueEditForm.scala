@@ -64,47 +64,47 @@ import org.joda.time.DateTime
 import com.normation.eventlog.ModificationId
 
 object TechniqueEditForm {
-  
+
   /**
    * This is part of component static initialization.
    * Any page which contains (or may contains after an ajax request)
    * that component have to add the result of that method in it.
    */
-  def staticInit:NodeSeq = 
+  def staticInit:NodeSeq =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "staticInit", xml)
     }) openOr Nil
-    
-  private def body = 
+
+  private def body =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "body", xml)
     }) openOr Nil
-    
-  private def popupRemoveForm = 
+
+  private def popupRemoveForm =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "popupRemoveForm", xml)
     }) openOr Nil
-    
-  private def popupDisactivateForm = 
+
+  private def popupDisactivateForm =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "popupDisactivateForm", xml)
     }) openOr Nil
-    
-  private def crForm = 
+
+  private def crForm =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "form", xml)
     }) openOr Nil
-  
+
   val htmlId_techniqueConf = "techniqueConfiguration"
   val htmlId_addPopup = "addPopup"
   val htmlId_addToActiveTechniques = "addToActiveTechniques"
@@ -125,7 +125,7 @@ class TechniqueEditForm(
   onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
   import TechniqueEditForm._
-  
+
 
   //find Technique
   private[this] val techniqueRepository = inject[TechniqueRepository]
@@ -142,24 +142,24 @@ class TechniqueEditForm(
   private[this] val userPropertyService = inject[UserPropertyService]
 
 
-  
+
 //  private[this] val directives = directiveRepository.getAll() match {
 //    case Full(seq) => seq
 //    case Empty => throw new ComponentInitializationException(Failure("Error while getting the list of available Directives"))
 //    case f:Failure => throw new ComponentInitializationException(f)
 //  }
-    
-  
+
+
   private[this] var currentActiveTechnique = activeTechniqueRepository.getActiveTechnique(technique.id.name)
   private[this] var uptCurrentStatusIsActivated = currentActiveTechnique.map( _.isEnabled)
-  
- 
+
+
   //////////////////////////// public methods ////////////////////////////
 
-  def dispatch = { 
+  def dispatch = {
     case "showForm" => { _:NodeSeq => showForm }
   }
-  
+
   def showForm() : NodeSeq = {
     (
       "#editForm" #> showCrForm() &
@@ -167,11 +167,11 @@ class TechniqueEditForm(
       "#disactivateActionDialog" #> showDisactivatePopupForm()
     )(body)
   }
-  
-  def showRemovePopupForm() : NodeSeq = {    
+
+  def showRemovePopupForm() : NodeSeq = {
         currentActiveTechnique match {
           case e:EmptyBox => NodeSeq.Empty
-          case Full(activeTechnique) => 
+          case Full(activeTechnique) =>
     (
           "#deleteActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
           "#dialogDeleteButton" #> { deleteButton(activeTechnique.id) % ("id", "deleteButton") } &
@@ -184,28 +184,28 @@ class TechniqueEditForm(
       )(popupRemoveForm)
         }
   }
-  
-  def showDisactivatePopupForm() : NodeSeq = {    
+
+  def showDisactivatePopupForm() : NodeSeq = {
         currentActiveTechnique match {
           case e:EmptyBox => NodeSeq.Empty
-          case Full(activeTechnique) => 
+          case Full(activeTechnique) =>
     (
           "#disableActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
           "#dialogDisableButton" #> { disableButton(activeTechnique) % ("id", "disableButton") } &
           "#dialogDisableTitle" #> { if(activeTechnique.isEnabled) "Disable" else "Enable" } &
           "#dialogDisableLabel" #> { if(activeTechnique.isEnabled) "disable" else "enable" } &
-          "#disableItemDependencies *" #> dialogDisableTree("disableItemDependencies", activeTechnique) & 
+          "#disableItemDependencies *" #> dialogDisableTree("disableItemDependencies", activeTechnique) &
           ".reasonsFieldset" #> { crReasonsDisablePopup.map { f =>
             "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
             "#reasonsField" #> f.toForm_!
           } } &
           "#time" #> <div>{ DateTime.now } </div>&
           "#errorDisplay" #> { updateAndDisplayNotifications(formTrackerDisactivatePopup) }
-      )(popupDisactivateForm)  
+      )(popupDisactivateForm)
   }
   }
-    
-  def showCrForm() : NodeSeq = {    
+
+  def showCrForm() : NodeSeq = {
     (
       ClearClearable &
       //all the top level action are displayed only if the template is on the user library
@@ -220,7 +220,7 @@ class TechniqueEditForm(
           ".reasonsFieldset" #> { crReasons.map { f =>
             "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
             "#reasonsField" #> f.toForm_!
-          } } 
+          } }
         )(xml)
       } } &
       "#techniqueName" #> technique.name &
@@ -232,10 +232,10 @@ class TechniqueEditForm(
       "#templateParameters" #> showParameters() &
       "#isSingle *" #> showIsSingle &
       "#editForm [id]" #> htmlId_technique
-    )(crForm) ++ 
+    )(crForm) ++
     Script(OnLoad(JsRaw("""
       correctButtons();
-      
+
       $('#deleteButton').click(function() {
         createPopup("deleteActionDialog",140,400);
         return false;
@@ -247,7 +247,7 @@ class TechniqueEditForm(
       });
     """)))
   }
-  
+
   private[this] val crReasons = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
@@ -256,7 +256,7 @@ class TechniqueEditForm(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-  
+
   private[this] val crReasonsRemovePopup = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
@@ -265,7 +265,7 @@ class TechniqueEditForm(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-  
+
   private[this] val crReasonsDisablePopup = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
@@ -274,12 +274,12 @@ class TechniqueEditForm(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-    
-  
+
+
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
     new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  % 
+      override def inputField = super.inputField  %
         ("style" -> "height:8em;")
       override def subContainerClassName = containerClass
       override def validations() = {
@@ -291,81 +291,81 @@ class TechniqueEditForm(
       }
     }
   }
-    
+
   private[this] val formTracker = {
-    new FormTracker(crReasons.toList) 
+    new FormTracker(crReasons.toList)
   }
-  
+
   private[this] val formTrackerRemovePopup = {
-    new FormTracker(crReasonsRemovePopup.toList) 
+    new FormTracker(crReasonsRemovePopup.toList)
   }
-  
+
   private[this] val formTrackerDisactivatePopup = {
-    new FormTracker(crReasonsDisablePopup.toList) 
+    new FormTracker(crReasonsDisablePopup.toList)
   }
-  
+
   ////////////// Callbacks //////////////
-  
+
   private[this] def onSuccess() : JsCmd = {
     //MUST BE THIS WAY, because the parent may change some reference to JsNode
     //and so, our AJAX could be broken
     cleanTrackers
-    onSuccessCallback() & updateFormClientSide() & 
+    onSuccessCallback() & updateFormClientSide() &
     //show success popup
     successPopup
   }
-  
+
   private[this] def cleanTrackers() {
     formTracker.clean
     formTrackerRemovePopup.clean
     formTrackerDisactivatePopup.clean
   }
-  
+
   private[this] def onFailure() : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
     updateFormClientSide()
   }
-  
+
   private[this] def onFailureRemovePopup() : JsCmd = {
     val elemError = error("The form contains some errors, please correct them")
     formTrackerRemovePopup.addFormError(elemError)
     updateRemoveFormClientSide()
   }
-  
+
   private[this] def onFailureDisablePopup() : JsCmd = {
     val elemError = error("The form contains some errors, please correct them")
     formTrackerDisactivatePopup.addFormError(elemError)
     updateDisableFormClientSide()
   }
-  
+
   private[this] def updateRemoveFormClientSide() : JsCmd = {
     val jsDisplayRemoveDiv = JsRaw("""$("#deleteActionDialog").removeClass('nodisplay')""")
-    Replace("deleteActionDialog", this.showRemovePopupForm()) & 
+    Replace("deleteActionDialog", this.showRemovePopupForm()) &
     jsDisplayRemoveDiv &
     initJs
   }
-  
+
   private[this] def updateDisableFormClientSide() : JsCmd = {
     val jsDisplayDisableDiv = JsRaw("""$("#disableActionDialog").removeClass('nodisplay')""")
-    Replace("disableActionDialog", this.showDisactivatePopupForm()) & 
+    Replace("disableActionDialog", this.showDisactivatePopupForm()) &
     jsDisplayDisableDiv &
     initJs
   }
-  
+
   def initJs : JsCmd = {
     JsRaw("correctButtons();")
   }
-  
-  ///////////// Delete ///////////// 
-    
+
+  ///////////// Delete /////////////
+
   private[this] def deleteButton(id:ActiveTechniqueId) : Elem = {
-    
+
     def deleteActiveTechnique() : JsCmd = {
       if(formTrackerRemovePopup.hasErrors) {
         onFailureRemovePopup
       } else {
-        JsRaw("$.modal.close();") & 
-        { 
+        JsRaw("$.modal.close();") &
+        {
           val modId = ModificationId(uuidGen.newUuid)
           (for {
             deleted <- dependencyService.cascadeDeleteTechnique(id, modId, CurrentUser.getActor, crReasonsRemovePopup.map (_.is))
@@ -374,15 +374,15 @@ class TechniqueEditForm(
               Full("Deployment request sent")
             }
           } yield {
-            deploy 
+            deploy
           }) match {
-            case Full(x) => 
+            case Full(x) =>
               formTrackerRemovePopup.clean
-              onSuccessCallback() & 
-              SetHtml(htmlId_technique, <div id={htmlId_technique}>Technique successfully deleted</div> ) & 
+              onSuccessCallback() &
+              SetHtml(htmlId_technique, <div id={htmlId_technique}>Technique successfully deleted</div> ) &
               //show success popup
-              successPopup 
-            case Empty => //arg. 
+              successPopup
+            case Empty => //arg.
               formTrackerRemovePopup.addFormError(error("An error occurred while deleting the Technique."))
               onFailure
             case Failure(m,_,_) =>
@@ -392,14 +392,14 @@ class TechniqueEditForm(
         }
       }
     }
-    
+
     SHtml.ajaxSubmit("Delete", deleteActiveTechnique _ )
   }
-  
+
   private[this] def dialogDeleteTree(htmlId:String,activeTechnique:ActiveTechnique) : NodeSeq = {
     (new TechniqueTree(htmlId,activeTechnique.id, DontCare)).tree
-  }  
-  
+  }
+
   ///////////// Enable / disable /////////////
 
   private[this] def disableButton(activeTechnique:ActiveTechnique) : Elem = {
@@ -407,20 +407,20 @@ class TechniqueEditForm(
       if(formTrackerDisactivatePopup.hasErrors) {
         onFailureDisablePopup
       } else {
-        currentActiveTechnique = currentActiveTechnique.map( 
+        currentActiveTechnique = currentActiveTechnique.map(
             activeTechnique => activeTechnique.copy(isEnabled = status))
-        JsRaw("$.modal.close();") & 
+        JsRaw("$.modal.close();") &
         statusAndDeployTechnique(activeTechnique.id, status)
       }
     }
-    
+
     if(activeTechnique.isEnabled) {
       SHtml.ajaxSubmit("Disable", switchActivation(false) _ )
     } else {
       SHtml.ajaxSubmit("Enable", switchActivation(true) _ )
     }
   }
- 
+
 
   private[this] def dialogDisableWarning(activeTechnique:ActiveTechnique) : NodeSeq = {
     if(activeTechnique.isEnabled) {
@@ -434,31 +434,31 @@ class TechniqueEditForm(
     val switchFilterStatus = if(activeTechnique.isEnabled) OnlyDisableable else OnlyEnableable
     (new TechniqueTree(htmlId,activeTechnique.id,switchFilterStatus)).tree
   }
- 
-  
+
+
   /////////////////////////////////////////////////////////////////////////
 
 
   def showReferenceLibBreadcrump() : NodeSeq = {
-    <ul class="inlinenotop">{findBreadCrump(technique).map { cat => 
+    <ul class="inlinenotop">{findBreadCrump(technique).map { cat =>
       <li class="inlineml">&#187; {cat.name}</li> } }
     </ul>
   }
-  
+
   /**
    * Display user library category information in the details of a Technique.
-   * That detail has its own snippet because it is multi-stated and state are 
+   * That detail has its own snippet because it is multi-stated and state are
    * updated by ajax:
    * - display the category breadcrump if Technique is already in user lib;
    * - display a "click on a category" message if not set in user lib and no category previously chosen
    * - else display an add button to add in the current category
    */
   def showTechniqueUserCategory() : NodeSeq = {
-    <div id={htmlId_addToActiveTechniques}>Client category: { 
+    <div id={htmlId_addToActiveTechniques}>Client category: {
         findUserBreadCrump(technique) match {
-          case Some(listCat) => 
+          case Some(listCat) =>
             <ul class="inlinenotop">
-                {listCat.map { cat => <li class="inlineml">&#187; {cat.name}</li> } } 
+                {listCat.map { cat => <li class="inlineml">&#187; {cat.name}</li> } }
             </ul>
           case None => //display the add button if a user lib category is defined
             userCategoryLibrary match {
@@ -479,13 +479,13 @@ class TechniqueEditForm(
                     , ModificationId(uuidGen.newUuid)
                     , CurrentUser.getActor
                     , Some("User added a technique from UI")
-                  ) 
-                  
+                  )
+
                   //update UI
                   Replace(htmlId_addToActiveTechniques, showTechniqueUserCategory() ) &
                   onSuccessCallback()
                 }
-  
+
                 SHtml.ajaxButton(
                    Text("Add this Technique to user library category ")++ <b>{category.name}</b>,
                    onClickAddTechniqueToCategory _
@@ -495,17 +495,17 @@ class TechniqueEditForm(
           }
     }</div>
   }
-  
+
   private[this] def showParameters() : NodeSeq = {
     directiveEditorService.get(technique.id, DirectiveId("just-for-read-only")) match {
       case Full(pe) => pe.toHtmlNodeSeq
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         val msg = "Error when fetching parameter of Technique."
         logger.error(msg, e)
         <span class="error">{msg}</span>
-    }    
+    }
   }
-  
+
   private[this] def showIsSingle() : NodeSeq = {
     <span>
       {
@@ -517,14 +517,14 @@ class TechniqueEditForm(
       }
     </span>
   }
-  
+
   /**
    * Display details about a Technique.
-   * A Technique is in the context of a reference library (it's an error if the Directive 
+   * A Technique is in the context of a reference library (it's an error if the Directive
    * template is not in it) and an user Library (it may not be in it)
    */
 //  private def showTechnique(
-//      technique : Technique, 
+//      technique : Technique,
 //      referenceLib:TechniqueCategory,
 //      userLib:ActiveTechniqueCategory
 //  ) : NodeSeq = {
@@ -535,12 +535,12 @@ class TechniqueEditForm(
 //
 //    <fieldset><legend>Category</legend>
 //      <div>Reference category: <a href="#" onclick="alert('TODO:goto node in tree');return false">
-//        <ul class="inline">{findBreadCrump(technique).map { cat => 
+//        <ul class="inline">{findBreadCrump(technique).map { cat =>
 //          <li class="inlineml">&#187; {cat.name}</li> } }
-//        </ul>       
+//        </ul>
 //      </a></div>
 //      <lift:configuration.TechniqueLibraryManagement.showTechniqueUserCategory />
-//    </fieldset>  
+//    </fieldset>
 //
 //    <fieldset><legend>Parameters</legend>
 //    {
@@ -548,58 +548,58 @@ class TechniqueEditForm(
 //        case Full(pe) => pe.toHtml
 //        case _ => <span class="error">TODO</span>
 //      }
-//          
+//
 //    }
 //    </fieldset>
 //
 //    <span>{<input type="checkbox" name="Single" disabled="disabled" /> % {if(technique.isMultiInstance) Null else ("checked" -> "checked") } }
-//      Single</span>  
+//      Single</span>
 //
 //    <fieldset><legend>Actions</legend>
 //      <input type="submit" value="Delete from user library"/>
 //    </fieldset>
 //    </div>
 //  }
-  
+
 
   /**
    * Build the breadcrump of categories that leads to given target Technique in the context
    * of given root Technique library.
-   * The template must be in the library. 
-   * @throws 
+   * The template must be in the library.
+   * @throws
    *   RuntimeException if the library does not contain the Technique
    */
   @throws(classOf[RuntimeException])
   private def findBreadCrump(target:Technique) : Seq[TechniqueCategory] = {
     techniqueRepository.getTechniqueCategoriesBreadCrump(target.id) match {
       case Full(b) => b
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         logger.debug("Bread crumb error: %s".format(e) )
         throw new RuntimeException("The reference Technique category does not hold target node %s".format(target.name))
     }
   }
-  
+
   /**
    * Build the breadcrump of categories that leads to given target Technique in the context
    * of given root Active Technique library.
-   * The template may not be present in the library. 
+   * The template may not be present in the library.
    */
   private def findUserBreadCrump(target:Technique) : Option[List[ActiveTechniqueCategory]] = {
     //find the potential WBUsreTechnique for given WBTechnique
     ( for {
-      activeTechnique <- activeTechniqueRepository.getActiveTechnique(target.id.name) 
-      crump <- activeTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id) 
+      activeTechnique <- activeTechniqueRepository.getActiveTechnique(target.id.name)
+      crump <- activeTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)
     } yield {
       crump.reverse
     } ) match {
       case Full(b) => Some(b)
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         logger.debug("User bread crumb error: %s".format(e) )
         None
     }
   }
-  
-     
+
+
   /////////////////////////////////////////////////////////////////////////
   /////////////////////////////// Edit form ///////////////////////////////
   /////////////////////////////////////////////////////////////////////////
@@ -608,32 +608,32 @@ class TechniqueEditForm(
   private[this] def updateFormClientSide() : JsCmd = {
     SetHtml(htmlId_technique, this.showCrForm )
   }
-  
+
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
-  
+
   private[this] def statusAndDeployTechnique(uactiveTechniqueId:ActiveTechniqueId, status:Boolean) : JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
     (for {
-      save <- activeTechniqueRepository.changeStatus(uactiveTechniqueId, status, 
+      save <- activeTechniqueRepository.changeStatus(uactiveTechniqueId, status,
                 modId, CurrentUser.getActor, crReasonsDisablePopup.map(_.is))
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
         Full("Deployment request sent")
       }
     } yield {
-      save 
+      save
     }) match {
       case Full(x) => onSuccess
-      case Empty => 
+      case Empty =>
         formTracker.addFormError(error("An error occurred while saving the Technique"))
         onFailure
       case f:Failure =>
         formTracker.addFormError(error("An error occurred while saving the Technique: " + f.messageChain))
         onFailure
-    }      
+    }
   }
-  
+
   private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
@@ -646,16 +646,16 @@ class TechniqueEditForm(
       html
     }
   }
- 
-  
+
+
   ///////////// success pop-up ///////////////
     private[this] def successPopup : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)     
+    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)
     """)
   }
-    
-  
+
+
 }
-  
-  
-  
+
+
+

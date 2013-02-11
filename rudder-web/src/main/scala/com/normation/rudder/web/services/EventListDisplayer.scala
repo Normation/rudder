@@ -67,7 +67,7 @@ import com.normation.rudder.services.eventlog.RollbackInfo
 import com.normation.rudder.services.eventlog.RollbackedEvent
 
 /**
- * Used to display the event list, in the pending modification (AsyncDeployment), 
+ * Used to display the event list, in the pending modification (AsyncDeployment),
  * or in the administration EventLogsViewer
  */
 class EventListDisplayer(
@@ -79,41 +79,41 @@ class EventListDisplayer(
     , modificationService : ModificationService
     , personIdentService  : PersonIdentService
 ) extends Loggable {
-  
+
   private[this] var rollbackAction:RollBackAction = RollbackTo
   private[this] var gridname:String = "eventLogsGrid"
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
  // private[this] val gridName = "eventLogsGrid"
  // private[this] val jsGridName = "oTable" + gridName
-  
+
   def display(events:Seq[EventLog], gridName:String) : NodeSeq  = {
     gridname = gridName
     (
-      "tbody *" #> ("tr" #> events.map { event => 
+      "tbody *" #> ("tr" #> events.map { event =>
         ".eventLine [jsuuid]" #> Text(gridName + "-" + event.id.getOrElse(0).toString) &
         ".eventLine [id]" #> event.id.getOrElse(0).toString &
         ".eventLine [class]" #> {
-          if (event.details != <entry></entry> ) 
+          if (event.details != <entry></entry> )
             Text("curspoint")
           else
             NodeSeq.Empty
         } &
         ".logId [class]" #> {
-          if (event.details != <entry></entry> ) 
+          if (event.details != <entry></entry> )
             Text("listopen")
           else
             Text("listEmpty")
         } &
         ".logId *" #> event.id.getOrElse(0).toString &
         ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
-        ".logActor *" #> event.principal.name & 
+        ".logActor *" #> event.principal.name &
         ".logType *" #> S.?("rudder.log.eventType.names." + event.eventType.serialize) &
-        ".logDescription *" #> displayDescription(event) 
+        ".logDescription *" #> displayDescription(event)
       })
-     ).apply(dataTableXml(gridName)) 
+     ).apply(dataTableXml(gridName))
   }
-  
-  
+
+
   def initJs(gridName : String) : JsCmd = {
     val jsGridName = "oTable" + gridName
     JsRaw("var %s;".format(jsGridName)) &
@@ -143,16 +143,16 @@ class EventListDisplayer(
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           })
-          $('.dataTables_filter input').attr("placeholder", "Search"); 
+          $('.dataTables_filter input').attr("placeholder", "Search");
           """.format(gridName,gridName).replaceAll("#table_var#",jsGridName)
         )  &
         JsRaw("""
-        /* Formating function for row details */          
+        /* Formating function for row details */
           function fnFormatDetails(id) {
             var sOut = '<span id="'+id+'" class="sgridbph"/>';
             return sOut;
           };
-          
+
           $(#table_var#.fnGetNodes() ).each( function () {
             $(this).click( function () {
               var jTr = $(this);
@@ -176,20 +176,20 @@ class EventListDisplayer(
               }
             } );
           })
-            
+
           function showParameters(){
             document.getElementById("show_parameters_info").style.display = "block";
           }
-            
+
       """.format(
           SHtml.ajaxCall(JsVar("jsid"), details _)._2.toJsCmd).replaceAll("#table_var#",
              jsGridName)
      )
-    )    
+    )
   }
-  
+
   /*
-   * Expect something like gridName-eventId 
+   * Expect something like gridName-eventId
    */
   private def details(jsid:String) : JsCmd = {
     val arr = jsid.split("-")
@@ -198,7 +198,7 @@ class EventListDisplayer(
     } else {
       val eventId = arr(1).toInt
       repos.getEventLog(eventId) match {
-        case Full(event) => 
+        case Full(event) =>
           SetHtml(jsid,displayDetails(event))
         case e:EmptyBox =>
           logger.debug((e ?~! "error").messageChain)
@@ -206,8 +206,8 @@ class EventListDisplayer(
       }
     }
   }
-  
-  
+
+
   private[this] def dataTableXml(gridName:String) = {
     <div>
       <table id={gridName} class="display" cellspacing="0">
@@ -220,7 +220,7 @@ class EventListDisplayer(
             <th>Description</th>
           </tr>
         </thead>
-    
+
         <tbody>
           <tr class="eventLine" jsuuid="id">
             <td class="logId">[ID of event]</td>
@@ -231,18 +231,18 @@ class EventListDisplayer(
           </tr>
         </tbody>
       </table>
-      
+
       <div id="logsGrid_paginate_area" class="paginate"></div>
-    
-    </div>   
-     
+
+    </div>
+
   }
-  
-  
+
+
     //////////////////// Display description/details of ////////////////////
-  
+
   //convention: "X" means "ignore"
-  
+
   def displayDescription(event:EventLog) = {
     def crDesc(x:EventLog, actionName: NodeSeq) = {
         val id = (x.details \ "rule" \ "id").text
@@ -252,7 +252,7 @@ class EventListDisplayer(
           else <a href={ruleLink(RuleId(id))}>{name}</a> ++ actionName
         }
     }
-    
+
     def piDesc(x:EventLog, actionName: NodeSeq) = {
         val id = (x.details \ "directive" \ "id").text
         val name = (x.details \ "directive" \ "displayName").text
@@ -261,7 +261,7 @@ class EventListDisplayer(
           else <a href={directiveLink(DirectiveId(id))}>{name}</a> ++ actionName
         }
     }
-    
+
     def groupDesc(x:EventLog, actionName: NodeSeq) = {
         val id = (x.details \ "nodeGroup" \ "id").text
         val name = (x.details \ "nodeGroup" \ "displayName").text
@@ -270,7 +270,7 @@ class EventListDisplayer(
           else <a href={groupLink(NodeGroupId(id))}>{name}</a> ++ actionName
         }
     }
-    
+
     def nodeDesc(x:EventLog, actionName: NodeSeq) = {
         val id = (x.details \ "node" \ "id").text
         val name = (x.details \ "node" \ "hostname").text
@@ -279,12 +279,12 @@ class EventListDisplayer(
           else <a href={nodeLink(NodeId(id))}>{name}</a> ++ actionName
         }
     }
-    
+
     def techniqueDesc(x:EventLog, actionName: NodeSeq) = {
         val name = (x.details \ "activeTechnique" \ "techniqueName").text
         Text("Technique %s".format(name)) ++ actionName
     }
-    
+
     event match {
       case x:ActivateRedButton => Text("Stop Rudder agents on all nodes")
       case x:ReleaseRedButton => Text("Start again Rudder agents on all nodes")
@@ -323,7 +323,7 @@ class EventListDisplayer(
       case x:ImportFullArchive => Text("Restoring full archive")
       case _:Rollback          => Text("Restore a previous state of configuration policy")
       case _ => Text("Unknow event type")
-      
+
     }
   }
 
@@ -432,22 +432,22 @@ class EventListDisplayer(
     }
 
     val reasonHtml = {
-      val r = event.eventDetails.reason.getOrElse("")  
-      if(r == "") NodeSeq.Empty 
+      val r = event.eventDetails.reason.getOrElse("")
+      if(r == "") NodeSeq.Empty
       else <div style="margin-top:2px;"><b>Reason: </b>{r}</div>
     }
-    
+
     def errorMessage(e:EmptyBox) = {
       logger.debug(e ?~! "Error when parsing details.", e)
       <xml:group>
         <div class="evloglmargin">
-          <h4>Details for that node were not in a recognized format. 
+          <h4>Details for that node were not in a recognized format.
             Raw data are displayed next:</h4>
           <pre style="display:none;width:200px;">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
         </div>
       </xml:group>
     }
-                
+
     (event match {
     /*
      * bug in scalac : https://issues.scala-lang.org/browse/SI-6897
@@ -455,7 +455,7 @@ class EventListDisplayer(
      */
       case add:AddRule =>
         "*" #> { val xml : NodeSeq = logDetailsService.getRuleAddDetails(add.details) match {
-          case Full(addDiff) => 
+          case Full(addDiff) =>
             <div class="evloglmargin">
               { addRestoreAction }
               { ruleDetails(crDetailsXML, addDiff.rule)}
@@ -467,7 +467,7 @@ class EventListDisplayer(
         }
         xml
         }
-      
+
       case del:DeleteRule =>
         "*" #> { val xml : NodeSeq = logDetailsService.getRuleDeleteDetails(del.details) match {
           case Full(delDiff) =>
@@ -480,16 +480,16 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
+
       case mod:ModifyRule =>
         "*" #> { val xml : NodeSeq = logDetailsService.getRuleModifyDetails(mod.details) match {
-          case Full(modDiff) =>            
+          case Full(modDiff) =>
             <div class="evloglmargin">
               { addRestoreAction }
               <h4>Rule overview:</h4>
               <ul class="evlogviewpad">
                 <li><b>Rule ID:</b> { modDiff.id.value.toUpperCase }</li>
-                <li><b>Name:</b> { 
+                <li><b>Name:</b> {
                   modDiff.modName.map(diff => diff.newValue).getOrElse(modDiff.name)
                }</li>
               </ul>
@@ -521,8 +521,8 @@ class EventListDisplayer(
         xml }
 
       ///////// Directive /////////
-        
-      case x:ModifyDirective =>   
+
+      case x:ModifyDirective =>
         "*" #> { val xml : NodeSeq = logDetailsService.getDirectiveModifyDetails(x.details) match {
           case Full(modDiff) =>
             <div class="evloglmargin">
@@ -544,9 +544,9 @@ class EventListDisplayer(
                 "#ptVersion *" #> mapSimpleDiff(modDiff.modTechniqueVersion) &
                 "#parameters" #> (
                   modDiff.modParameters.map { diff =>
-                    "#diff" #> displaydirectiveInnerFormDiff(diff, event.id) 
+                    "#diff" #> displaydirectiveInnerFormDiff(diff, event.id)
                   }
-                ) 
+                )
               )(piModDirectiveDetailsXML)}
               { reasonHtml }
               { xmlParameters(event.id) }
@@ -555,14 +555,14 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
-    
-      case x:AddDirective =>   
+
+
+      case x:AddDirective =>
         "*" #> { val xml : NodeSeq = logDetailsService.getDirectiveAddDetails(x.details) match {
           case Full((diff,sectionVal)) =>
             <div class="evloglmargin">
               { addRestoreAction }
-              { directiveDetails(piDetailsXML, diff.techniqueName, 
+              { directiveDetails(piDetailsXML, diff.techniqueName,
                   diff.directive, sectionVal) }
               { reasonHtml }
               { xmlParameters(event.id) }
@@ -570,14 +570,14 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml}
-        
-    
-      case x:DeleteDirective =>   
+
+
+      case x:DeleteDirective =>
         "*" #> { val xml : NodeSeq = logDetailsService.getDirectiveDeleteDetails(x.details) match {
           case Full((diff,sectionVal)) =>
             <div class="evloglmargin">
               { addRestoreAction }
-              { directiveDetails(piDetailsXML, diff.techniqueName, 
+              { directiveDetails(piDetailsXML, diff.techniqueName,
                   diff.directive, sectionVal) }
               { reasonHtml }
               { xmlParameters(event.id) }
@@ -585,12 +585,12 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
+
       ///////// Node Group /////////
-        
-      case x:ModifyNodeGroup =>   
+
+      case x:ModifyNodeGroup =>
         "*" #> { val xml : NodeSeq = logDetailsService.getNodeGroupModifyDetails(x.details) match {
-          case Full(modDiff) => 
+          case Full(modDiff) =>
             <div class="evloglmargin">
               { addRestoreAction }
               <h4>Group overview:</h4>
@@ -613,7 +613,7 @@ class EventListDisplayer(
                         case None => Text("None")
                         case Some(q) => Text(q.toJSONString)
                       }
-                      
+
                      ".diffOldValue *" #> mapOptionQuery(diff.oldValue) &
                      ".diffNewValue *" #> mapOptionQuery(diff.newValue)
                     }
@@ -623,7 +623,7 @@ class EventListDisplayer(
                      ".diffOldValue *" #> nodeGroupDetails(diff.oldValue) &
                      ".diffNewValue *" #> nodeGroupDetails(diff.newValue)
                    }
-                ) 
+                )
               )(groupModDetailsXML)}
               { reasonHtml }
               { xmlParameters(event.id) }
@@ -631,9 +631,9 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
-    
-      case x:AddNodeGroup =>   
+
+
+      case x:AddNodeGroup =>
         "*" #> { val xml : NodeSeq = logDetailsService.getNodeGroupAddDetails(x.details) match {
           case Full(diff) =>
             <div class="evloglmargin">
@@ -645,10 +645,10 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
-        
-    
-      case x:DeleteNodeGroup =>   
+
+
+
+      case x:DeleteNodeGroup =>
         "*" #> { val xml : NodeSeq = logDetailsService.getNodeGroupDeleteDetails(x.details) match {
           case Full(diff) =>
             <div class="evloglmargin">
@@ -660,10 +660,10 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
+
       ///////// Node Group /////////
-        
-      case x:AcceptNodeEventLog =>   
+
+      case x:AcceptNodeEventLog =>
         "*" #> { val xml : NodeSeq = logDetailsService.getAcceptNodeLogDetails(x.details) match {
           case Full(details) =>
             <div class="evloglmargin">
@@ -676,8 +676,8 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
-      case x:RefuseNodeEventLog =>   
+
+      case x:RefuseNodeEventLog =>
         "*" #> { val xml : NodeSeq = logDetailsService.getRefuseNodeLogDetails(x.details) match {
           case Full(details) =>
             <div class="evloglmargin">
@@ -690,8 +690,8 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
-      case x:DeleteNodeEventLog =>   
+
+      case x:DeleteNodeEventLog =>
         "*" #> { val xml : NodeSeq = logDetailsService.getDeleteNodeLogDetails(x.details) match {
           case Full(details) =>
             <div class="evloglmargin">
@@ -704,9 +704,9 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
+
       ////////// deployment //////////
-      case x:SuccessfulDeployment => 
+      case x:SuccessfulDeployment =>
         "*" #> { val xml : NodeSeq = logDetailsService.getDeploymentStatusDetails(x.details) match {
           case Full(SuccessStatus(id,started,ended,_)) =>
             <div class="evloglmargin">
@@ -724,8 +724,8 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
-      case x:FailedDeployment => 
+
+      case x:FailedDeployment =>
         "*" #> { val xml : NodeSeq = logDetailsService.getDeploymentStatusDetails(x.details) match {
           case Full(ErrorStatus(id,started,ended,failure)) =>
             <div class="evloglmargin">
@@ -744,24 +744,24 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
-      case x:AutomaticStartDeployement => 
-        "*" #> 
+
+      case x:AutomaticStartDeployement =>
+        "*" #>
             <div class="evloglmargin">
               { addRestoreAction }
               { xmlParameters(event.id) }
             </div>
-        
+
       ////////// change authorized networks //////////
-      
+
       case x:UpdatePolicyServer =>
         "*" #> { val xml : NodeSeq = logDetailsService.getUpdatePolicyServerDetails(x.details) match {
-          case Full(details) => 
-            
+          case Full(details) =>
+
             def networksToXML(nets:Seq[String]) = {
               <ul>{ nets.map { n => <li class="eventLogUpdatePolicy">{n}</li> } }</ul>
             }
-            
+
             <div class="evloglmargin">
               { addRestoreAction }{
               (
@@ -775,30 +775,30 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-      
+
       // Technique library reloaded
-      
+
       case x:ReloadTechniqueLibrary =>
         "*" #> { val xml : NodeSeq = logDetailsService.getTechniqueLibraryReloadDetails(x.details) match {
-          case Full(details) => 
+          case Full(details) =>
               <div class="evloglmargin">
                 { addRestoreAction }
                 <b>The Technique library was reloaded and following Techniques were updated:</b>
-                <ul>{ details.map {technique => 
+                <ul>{ details.map {technique =>
                   <li class="eventLogUpdatePolicy">{ "%s (version %s)".format(technique.name.value, technique.version.toString)}</li>
                 } }</ul>
                 { reasonHtml }
               { xmlParameters(event.id) }
               </div>
-            
+
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
+
       // Technique modified
       case x:ModifyTechnique =>
         "*" #> { val xml : NodeSeq = logDetailsService.getTechniqueModifyDetails(x.details) match {
-          case Full(modDiff) =>            
+          case Full(modDiff) =>
             <div class="evloglmargin">
               { addRestoreAction }
               <h4>Technique overview:</h4>
@@ -816,7 +816,7 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
+
       // Technique modified
       case x:DeleteTechnique =>
         "*" #> { val xml : NodeSeq = logDetailsService.getTechniqueDeleteDetails(x.details) match {
@@ -830,10 +830,10 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-        
-      // archiving & restoring 
-        
-      case x:ExportEventLog => 
+
+      // archiving & restoring
+
+      case x:ExportEventLog =>
         "*" #> { val xml : NodeSeq = logDetailsService.getNewArchiveDetails(x.details, x) match {
           case Full(gitArchiveId) =>
               addRestoreAction ++
@@ -852,7 +852,7 @@ class EventListDisplayer(
         }
         xml }
 
-      case x:ImportEventLog => 
+      case x:ImportEventLog =>
         "*" #> { val xml : NodeSeq = logDetailsService.getRestoreArchiveDetails(x.details, x) match {
           case Full(gitArchiveId) =>
                addRestoreAction ++
@@ -863,39 +863,39 @@ class EventListDisplayer(
 
       // other case: do not display details at all
       case _ => "*" #> ""
-    
+
     })(event.details)++Script(JsRaw("correctButtons();"))
   }
-  
-  
+
+
   private[this] def displaydirectiveInnerFormDiff(diff: SimpleDiff[SectionVal], eventId: Option[Int]): NodeSeq = {
       eventId match {
         case None => NodeSeq.Empty
         case Some(id) =>
         (
-          <pre style="width:200px;" id={"before" + id} 
+          <pre style="width:200px;" id={"before" + id}
             class="nodisplay">{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre>
-          <pre style="width:200px;" id={"after" + id} 
+          <pre style="width:200px;" id={"after" + id}
             class="nodisplay">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
           <pre id={"result" + id} ></pre>
         ) ++ Script(OnLoad(JsRaw("""
-            
+
             var eventId = '%s';
             var a = $('#before' + eventId);
             var b = $('#after' + eventId);
             var result = $('#result' + eventId);
-            
+
             function changed() {
               var diff = JsDiff.diffLines(a.text(), b.text());
               var fragment = document.createDocumentFragment();
               for (var i=0; i < diff.length; i++) {
-            
+
                 if (diff[i].added && diff[i + 1] && diff[i + 1].removed) {
                   var swap = diff[i];
                   diff[i] = diff[i + 1];
                   diff[i + 1] = swap;
                 }
-            
+
                 var node;
                 if (diff[i].removed) {
                   node = document.createElement('del');
@@ -908,11 +908,11 @@ class EventListDisplayer(
                 }
                 fragment.appendChild(node);
               }
-            
+
               result.text('');
               result.append(fragment);
             }
-            
+
             function appendLines(c, s) {
               var res = s.replace(/\n/g, "\n" + c);
               res = c+res;
@@ -920,16 +920,16 @@ class EventListDisplayer(
                 res = res.substring(0, res.length - 1);
               return res;
             }
-            
+
             changed();
-            
-            """ 
-            .format(id)   
+
+            """
+            .format(id)
             )))
       }
   }
-    
-  private[this] def displayExportArchiveDetails(gitArchiveId: GitArchiveId, rawData: NodeSeq) = 
+
+  private[this] def displayExportArchiveDetails(gitArchiveId: GitArchiveId, rawData: NodeSeq) =
     <div class="evloglmargin">
       <h4>Details of the new archive:</h4>
       <ul class="evlogviewpad">
@@ -940,8 +940,8 @@ class EventListDisplayer(
       </ul>
       {rawData}
     </div>
-        
-  private[this] def displayImportArchiveDetails(gitCommitId: GitCommitId, rawData: NodeSeq) = 
+
+  private[this] def displayImportArchiveDetails(gitCommitId: GitCommitId, rawData: NodeSeq) =
     <div class="evloglmargin">
       <h4>Details of the restored archive:</h4>
       <ul class="evlogviewpad">
@@ -950,21 +950,21 @@ class EventListDisplayer(
       {rawData}
     </div>
 
-  private[this] def displayDiff(tag:String)(xml:NodeSeq) = 
+  private[this] def displayDiff(tag:String)(xml:NodeSeq) =
       "From value '%s' to value '%s'".format(
-          ("from ^*" #> "X" & "* *" #> ( (x:NodeSeq) => x))(xml) 
+          ("from ^*" #> "X" & "* *" #> ( (x:NodeSeq) => x))(xml)
         , ("to ^*" #> "X" & "* *" #> ( (x:NodeSeq) => x))(xml)
       )
 
   private[this] def groupNodeSeqLink(id: NodeGroupId): NodeSeq = {
     nodeGroupRepository.getNodeGroup(id) match {
-      case t: EmptyBox => 
+      case t: EmptyBox =>
         <span>Group (Rudder ID: {id.value.toUpperCase})</span>
-      case Full(nodeGroup) => 
+      case Full(nodeGroup) =>
         <span>Group "<a href={groupLink(id)}>{nodeGroup.name}</a>" (Rudder ID: {id.value.toUpperCase})</span>
     }
   }
-  
+
   private[this] def groupTargetDetails(targets: Set[RuleTarget]): NodeSeq = {
     val res = targets.toSeq match {
       case Seq() => NodeSeq.Empty
@@ -973,9 +973,9 @@ class EventListDisplayer(
         .toSeq
         .map { target =>
           target match {
-            case GroupTarget(id@NodeGroupId(g)) => 
+            case GroupTarget(id@NodeGroupId(g)) =>
               groupNodeSeqLink(id)
-            case x => 
+            case x =>
               <span>{Text("Special group (" + x.toString + ")")}</span>
           }
         }
@@ -985,16 +985,16 @@ class EventListDisplayer(
       ".groupSeparator" #> ", "
     ).apply(res)
   }
-  
+
   private[this] def nodeNodeSeqLink(id: NodeId): NodeSeq = {
     nodeInfoService.getNodeInfo(id) match {
-      case t: EmptyBox => 
+      case t: EmptyBox =>
         <span>Node (Rudder ID: {id.value.toUpperCase})</span>
-      case Full(node) => 
+      case Full(node) =>
         <span>Node "<a href={nodeLink(id)}>{node.hostname}</a>" (Rudder ID: {id.value.toUpperCase})</span>
     }
   }
-  
+
   private[this] def nodeGroupDetails(nodes: Set[NodeId]): NodeSeq = {
     val res = nodes.toSeq match {
       case Seq() => NodeSeq.Empty
@@ -1009,11 +1009,11 @@ class EventListDisplayer(
       ".groupSeparator" #> ", "
     ).apply(res)
   }
-  
+
   private[this] def directiveTargetDetails(set: Set[DirectiveId]): NodeSeq = {
-    if(set.size < 1) 
+    if(set.size < 1)
       Text("None")
-    else { 
+    else {
       set match {
         case Seq() => NodeSeq.Empty
         case _ =>
@@ -1023,9 +1023,9 @@ class EventListDisplayer(
               .sortWith( _.value < _.value )
               .map { id =>
                 directiveRepository.getDirective(id) match {
-                  case t: EmptyBox => 
+                  case t: EmptyBox =>
                     <span>Directive (Rudder ID: {id.value.toUpperCase})</span>
-                  case Full(directive) => 
+                  case Full(directive) =>
                     <span>Directive "<a href={directiveLink(id)}>{directive.name}</a>" (Rudder ID: {id.value.toUpperCase})</span>
                 }
               }
@@ -1037,7 +1037,7 @@ class EventListDisplayer(
       }
     }
   }
-  
+
   private[this] def ruleDetails(xml:NodeSeq, rule:Rule) = (
       "#ruleID" #> rule.id.value.toUpperCase &
       "#ruleName" #> rule.name &
@@ -1048,7 +1048,7 @@ class EventListDisplayer(
       "#shortDescription" #> rule.shortDescription &
       "#longDescription" #> rule.longDescription
   )(xml)
-  
+
   private[this] def directiveDetails(xml:NodeSeq, ptName: TechniqueName, directive:Directive, sectionVal:SectionVal) = (
       "#directiveID" #> directive.id.value.toUpperCase &
       "#directiveName" #> directive.name &
@@ -1062,7 +1062,7 @@ class EventListDisplayer(
       "#shortDescription" #> directive.shortDescription &
       "#longDescription" #> directive.longDescription
   )(xml)
-  
+
   private[this] def groupDetails(xml:NodeSeq, group: NodeGroup) = (
       "#groupID" #> group.id.value.toUpperCase &
       "#groupName" #> group.name &
@@ -1073,7 +1073,7 @@ class EventListDisplayer(
         case Some(q) => Text(q.toJSONString)
       } ) &
       "#isDynamic" #> group.isDynamic &
-      "#nodes" #>( 
+      "#nodes" #>(
                    {
                      val l = group.serverList.toList
                        l match {
@@ -1087,31 +1087,31 @@ class EventListDisplayer(
       "#isEnabled" #> group.isEnabled &
       "#isSystem" #> group.isSystem
   )(xml)
-  
+
   private[this] def techniqueDetails(xml: NodeSeq, technique: ActiveTechnique) = (
       "#techniqueID" #> technique.id.value &
       "#techniqueName" #> technique.techniqueName.value &
       "#isEnabled" #> technique.isEnabled &
       "#isSystem" #> technique.isSystem
   )(xml)
-  
+
  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]]) = opt.map { diff =>
    ".diffOldValue *" #> diff.oldValue.toString &
    ".diffNewValue *" #> diff.newValue.toString
-  }  
-  
+  }
+
  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]], id: DirectiveId) = opt.map { diff =>
    ".diffOldValue *" #> diff.oldValue.toString &
    ".diffNewValue *" #> diff.newValue.toString &
    "#directiveID" #> id.value.toUpperCase
-  }  
-  
+  }
+
   private[this] def nodeDetails(details:InventoryLogDetails) = (
      "#nodeID" #> details.nodeId.value.toUpperCase &
      "#nodeName" #> details.hostname &
      "#os" #> details.fullOsName &
      "#version" #> DateFormaterService.getFormatedDate(details.inventoryVersion)
-  )( 
+  )(
     <ul class="evlogviewpad">
       <li><b>Node ID: </b><value id="nodeID"/></li>
       <li><b>Name: </b><value id="nodeName"/></li>
@@ -1119,7 +1119,7 @@ class EventListDisplayer(
       <li><b>Date inventory last received: </b><value id="version"/></li>
     </ul>
   )
-  
+
   private[this] def nodeDetails(details:NodeLogDetails) = (
      "#id" #> details.node.id.value.toUpperCase &
      "#name" #> details.node.name &
@@ -1136,8 +1136,8 @@ class EventListDisplayer(
      "#isSystem" #> details.node.isSystem &
      "#creationDate" #> DateFormaterService.getFormatedDate(details.node.creationDate)
   )(nodeDetailsXML)
-  
-  private[this] val crDetailsXML = 
+
+  private[this] val crDetailsXML =
     <div>
       <h4>Rule overview:</h4>
       <ul class="evlogviewpad">
@@ -1151,8 +1151,8 @@ class EventListDisplayer(
         <li><b>Details:&nbsp;</b><value id="longDescription"/></li>
       </ul>
     </div>
-      
-  private[this] val piDetailsXML = 
+
+  private[this] val piDetailsXML =
     <div>
       <h4>Directive overview:</h4>
       <ul class="evlogviewpad">
@@ -1167,8 +1167,8 @@ class EventListDisplayer(
         <li><b>Details:&nbsp;</b><value id="longDescription"/></li>
       </ul>
     </div>
-    
-  private[this] val groupDetailsXML = 
+
+  private[this] val groupDetailsXML =
     <div>
       <h4>Group overview:</h4>
       <ul class="evlogviewpad">
@@ -1182,8 +1182,8 @@ class EventListDisplayer(
         <li><b>Node list: </b><value id="nodes"/></li>
       </ul>
     </div>
-  
-  private[this] val nodeDetailsXML = 
+
+  private[this] val nodeDetailsXML =
     <div>
       <h4>Node overview:</h4>
       <ul class="evlogviewpad">
@@ -1201,8 +1201,8 @@ class EventListDisplayer(
         <li><b>System: </b><value id="isSystem"/></li>
       </ul>
     </div>
-    
-  private[this] val techniqueDetailsXML = 
+
+  private[this] val techniqueDetailsXML =
     <div>
       <h4>Technique overview:</h4>
       <ul class="evlogviewpad">
@@ -1212,9 +1212,9 @@ class EventListDisplayer(
         <li><b>System:&nbsp;</b><value id="isSystem"/></li>
       </ul>
     </div>
-      
-    
-    
+
+
+
   private[this] def liModDetailsXML(id:String, name:String) = (
       <div id={id}>
         <b>{name} changed:</b>
@@ -1224,7 +1224,7 @@ class EventListDisplayer(
         </ul>
       </div>
   )
-  
+
   private[this] def liModDirectiveDetailsXML(id:String, name:String) = (
     <div id={id}>
       <b>{name} changed:</b>
@@ -1233,8 +1233,8 @@ class EventListDisplayer(
       </ul>
     </div>
   )
-  
-  private[this] val groupModDetailsXML = 
+
+  private[this] val groupModDetailsXML =
     <xml:group>
       {liModDetailsXML("name", "Name")}
       {liModDetailsXML("shortDescription", "Description")}
@@ -1243,9 +1243,9 @@ class EventListDisplayer(
       {liModDetailsXML("isDynamic", "Dynamic group")}
       {liModDetailsXML("isEnabled", "Activation status")}
       {liModDetailsXML("isSystem", "System")}
-    </xml:group>      
+    </xml:group>
 
-  private[this] val crModDetailsXML = 
+  private[this] val crModDetailsXML =
     <xml:group>
       {liModDetailsXML("name", "Name")}
       {liModDetailsXML("shortDescription", "Description")}
@@ -1255,8 +1255,8 @@ class EventListDisplayer(
       {liModDetailsXML("isEnabled", "Activation status")}
       {liModDetailsXML("isSystem", "System")}
     </xml:group>
-      
-  private[this] val piModDetailsXML = 
+
+  private[this] val piModDetailsXML =
     <xml:group>
       {liModDetailsXML("name", "Name")}
       {liModDetailsXML("shortDescription", "Description")}
@@ -1267,8 +1267,8 @@ class EventListDisplayer(
       {liModDetailsXML("isEnabled", "Activation status")}
       {liModDetailsXML("isSystem", "System")}
     </xml:group>
-    
-  private[this] val piModDirectiveDetailsXML = 
+
+  private[this] val piModDirectiveDetailsXML =
     <xml:group>
       {liModDetailsXML("name", "Name")}
       {liModDetailsXML("shortDescription", "Description")}
@@ -1395,13 +1395,13 @@ trait RollBackAction {
 case object RollbackTo extends RollBackAction{
   val name = "after"
   val op   = ">"
-  def action = modificationService.restoreToEventLog _ 
+  def action = modificationService.restoreToEventLog _
 }
 
 case object RollbackBefore extends RollBackAction{
   val name = "before"
   val op   = ">="
-  def action = modificationService.restoreBeforeEventLog _ 
+  def action = modificationService.restoreBeforeEventLog _
 }
 
 }

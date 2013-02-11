@@ -46,15 +46,15 @@ import com.normation.eventlog.ModificationId
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory
-  
-  
+
+
   /**
    * Save an eventLog
    * Optionnal : the user. At least one of the eventLog user or user must be defined
    * Return the unspecialized event log with its serialization number
    */
   def saveEventLog(modId: ModificationId, eventLog : EventLog) : Box[EventLog]
-                         
+
   def saveAddRule(modId: ModificationId, principal: EventActor, addDiff: AddRuleDiff, reason:Option[String]) = {
     saveEventLog(
         modId
@@ -65,7 +65,7 @@ trait EventLogRepository {
       )
     )
   }
-  
+
   def saveDeleteRule(modId: ModificationId, principal: EventActor, deleteDiff: DeleteRuleDiff, reason:Option[String]) = {
     saveEventLog(
         modId
@@ -99,7 +99,7 @@ trait EventLogRepository {
       )
     )
   }
-  
+
   def saveDeleteDirective(modId: ModificationId, principal : EventActor, deleteDiff:DeleteDirectiveDiff, varsRootSectionSpec: SectionSpec, reason:Option[String]) = {
     saveEventLog(
         modId
@@ -122,7 +122,7 @@ trait EventLogRepository {
       )
     )
   }
-  
+
   def saveAddNodeGroup(modId: ModificationId, principal: EventActor, addDiff: AddNodeGroupDiff, reason:Option[String]) = {
     saveEventLog(
         modId
@@ -133,7 +133,7 @@ trait EventLogRepository {
       )
     )
   }
-  
+
   def saveDeleteNodeGroup(modId: ModificationId, principal : EventActor, deleteDiff:DeleteNodeGroupDiff, reason:Option[String]) = {
     saveEventLog(
         modId
@@ -154,8 +154,8 @@ trait EventLogRepository {
         , reason = reason
       )
     )
-  } 
-  
+  }
+
   def saveModifyTechnique(modId: ModificationId, principal: EventActor, modifyDiff: ModifyTechniqueDiff, reason:Option[String]) = {
     saveEventLog(
         modId
@@ -177,16 +177,16 @@ trait EventLogRepository {
       )
     )
   }
-  
+
   /**
    * Get an EventLog by its entry
    */
   def getEventLog(id : Int) : Box[EventLog]
-  
+
   /**
    * Returns eventlog matching criteria
    * For the moment it only a string, it should be something else in the future
    */
   def getEventLogByCriteria(criteria : Option[String], limit:Option[Int] = None, orderBy:Option[String] = None) : Box[Seq[EventLog]]
-    
+
 }

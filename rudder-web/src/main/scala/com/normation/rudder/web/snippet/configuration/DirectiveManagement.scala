@@ -57,25 +57,25 @@ import com.normation.rudder.web.services.JsTreeUtilService
 
 /**
  * Snippet for managing the System and Active Technique libraries.
- * 
+ *
  * It allow to see what Techniques are available in the
- * system library, choose and configure which one to use in 
- * the user private library. 
- * 
- * Techniques are classify by categories in a tree. 
+ * system library, choose and configure which one to use in
+ * the user private library.
+ *
+ * Techniques are classify by categories in a tree.
  *
  */
-class DirectiveManagement extends DispatchSnippet with Loggable {  
+class DirectiveManagement extends DispatchSnippet with Loggable {
   import DirectiveManagement._
-  
+
   val techniqueRepository = inject[TechniqueRepository]
   val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
   val directiveRepository = inject[DirectiveRepository]
   val uuidGen = inject[StringUuidGenerator]
   val treeUtilService = inject[JsTreeUtilService]
-  
-  
-  def dispatch = { 
+
+
+  def dispatch = {
     case "head" => { _ => head }
     case "userLibrary" => { _ => userLibrary }
     case "showDirectiveDetails" => { _ => initDirectiveDetails }
@@ -84,22 +84,22 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       techniqueDetails.apply(xml)
     }
   }
-  
+
   //must be initialized on first call of "techniqueDetails"
   private[this] var techniqueDetails: MemoizeTransform = null
-  
+
   //the current DirectiveEditForm component
   val currentDirectiveSettingForm = new LocalSnippet[DirectiveEditForm]
 
   var currentTechnique = Option.empty[(Technique,ActiveTechnique)]
-  
+
   private[this] val directiveId: Box[String] = S.param("directiveId")
-  
+
   /**
    * Head information (JsTree dependencies,...)
    */
   def head() : NodeSeq = {
-    DirectiveEditForm.staticInit ++ 
+    DirectiveEditForm.staticInit ++
     (
       <head>
         <script type="text/javascript" src="/javascript/jstree/jquery.jstree.js" id="jstree">
@@ -110,17 +110,17 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       </head>
     )
   }
-    
+
   /**
    * If a query is passed as argument, try to dejoniffy-it, in a best effort
-   * way - just don't take of errors. 
-   * 
+   * way - just don't take of errors.
+   *
    * We want to look for #{ "directiveId":"XXXXXXXXXXXX" }
    */
   private[this] def parseJsArg(): JsCmd = {
-    
+
     def displayDetails(directiveId:String) = displayDirectiveDetails(DirectiveId(directiveId))
-    
+
     JsRaw("""
         var directiveId = null;
         try {
@@ -128,13 +128,13 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         } catch(e) {
           directiveId = null;
         }
-        if( directiveId != null && directiveId.length > 0) { 
+        if( directiveId != null && directiveId.length > 0) {
           %s;
         }
     """.format(SHtml.ajaxCall(JsVar("directiveId"), displayDetails _ )._2.toJsCmd)
     )
   }
-  
+
   /**
    * Almost same as Technique/activeTechniquesTree
    * TODO : factor out that part
@@ -146,74 +146,74 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             case eb:EmptyBox =>
               val f = eb ?~! "Error when trying to get the root category of Active Techniques"
               logger.error(f.messageChain)
-              f.rootExceptionCause.foreach { ex => 
+              f.rootExceptionCause.foreach { ex =>
                 logger.error("Exception causing the error was:" , ex)
               }
               <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
             case Full(activeTechLib) =>
-              <ul>{ 
+              <ul>{
                 jsTreeNodeOf_uptCategory(activeTechLib, "jstn_0").toXml
               }</ul>
           }
       }</div>
     ) ++ Script(OnLoad(buildJsTree()))
   }
-  
+
 
   private[this] def buildJsTree() : JsCmd = {
-    
+
     def isDirectiveIdValid(directiveId: String): JsCmd = {
       directiveRepository.getDirectiveWithContext(DirectiveId(directiveId)) match {
-        case Full((technique, activeTechnique, directive)) => 
+        case Full((technique, activeTechnique, directive)) =>
           JsRaw(""" buildDirectiveTree('#%s', '%s', '%s') """
             .format(htmlId_activeTechniquesTree, "jsTree-" + directive.id.value, S.contextPath))
-        case e:EmptyBox => 
+        case e:EmptyBox =>
           JsRaw(""" buildDirectiveTree('#%s', '', '%s') """.format(htmlId_activeTechniquesTree, S.contextPath))
       }
     }
-    
+
     JsRaw("""
         var directiveId = null;
         try {
           directiveId = JSON.parse(window.location.hash.substring(1)).directiveId ;
-        } catch(e) { 
-          directiveId = null; 
+        } catch(e) {
+          directiveId = null;
         }
-        
+
         %s;
-        
-    """.format(SHtml.ajaxCall(JsVar("directiveId"), isDirectiveIdValid _ )._2.toJsCmd, 
+
+    """.format(SHtml.ajaxCall(JsVar("directiveId"), isDirectiveIdValid _ )._2.toJsCmd,
          htmlId_activeTechniquesTree))
   }
-  
+
   def initDirectiveDetails(): NodeSeq = directiveId match {
-    case Full(id) => <div id={ htmlId_policyConf } /> ++ 
-      //Here, we MUST add a Noop because of a Lift bug that add a comment on the last JsLine. 
+    case Full(id) => <div id={ htmlId_policyConf } /> ++
+      //Here, we MUST add a Noop because of a Lift bug that add a comment on the last JsLine.
       Script(OnLoad(displayDirectiveDetails(DirectiveId(id)) & Noop))
     case _ =>  <div id={ htmlId_policyConf }></div>
   }
-  
-  
-  
+
+
+
   def initTechniqueDetails : MemoizeTransform = SHtml.memoize {
 
-    "#techniqueDetails *" #> ( currentTechnique match { 
+    "#techniqueDetails *" #> ( currentTechnique match {
       case None => "*" #> {
         <div class="deca">
-          <p><em>Directives</em> are displayed in the tree of 
+          <p><em>Directives</em> are displayed in the tree of
           <a href="/secure/configurationManager/techniqueLibraryManagement">
             <em>Active Techniques</em>
-          </a>, 
+          </a>,
           grouped by categories.</p>
           <ul>
             <li>Fold/unfold category folders;</li>
             <li>Click on the name of a <em>Technique</em> to see its description;</li>
             <li>
-              Click on the name of a <em>Directive</em> to see its configuration items. 
+              Click on the name of a <em>Directive</em> to see its configuration items.
               Details of the <em>Technique</em> it's based on will also be displayed.
             </li>
           </ul>
-          <p>Additional <em>Techniques</em> may be available through the 
+          <p>Additional <em>Techniques</em> may be available through the
             <a href="/secure/configurationManager/techniqueLibraryManagement">
               Techniques screen
             </a>.
@@ -221,7 +221,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         </div>
       }
       case Some((technique, activeTechnique)) =>
-        "#detailFieldsetId *" #> { 
+        "#detailFieldsetId *" #> {
           if(currentDirectiveSettingForm.is.isDefined) {
             "Directive's template"
           } else {
@@ -235,7 +235,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         } &
         "#techniqueName" #> technique.name &
         "#compatibility" #> {
-          if (!technique.compatible.isEmpty) technique.compatible.head.toHtml 
+          if (!technique.compatible.isEmpty) technique.compatible.head.toHtml
           else NodeSeq.Empty
         } &
         "#techniqueDescription" #>  technique.description &
@@ -243,9 +243,9 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         "#isSingle *" #> showIsSingle(technique) &
         "#techniqueVersions" #> showVersions(activeTechnique) &
         "#migrate" #> showMigration(technique, activeTechnique) &
-        "#addButton" #> SHtml.ajaxButton( 
+        "#addButton" #> SHtml.ajaxButton(
           { Text("Create a new Directive based on technique ") ++ <b>{technique.name}</b> },
-          { () =>  SetHtml(CreateDirectivePopup.htmlId_popup, 
+          { () =>  SetHtml(CreateDirectivePopup.htmlId_popup,
                      newCreationPopup(technique, activeTechnique)) &
                    JsRaw( """ createPopup("%s",300,400) """
                      .format(CreateDirectivePopup.htmlId_popup) ) },
@@ -258,22 +258,22 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     <span>
       {
         if(technique.isMultiInstance) {
-          {<b>Multi instance</b>} ++ 
+          {<b>Multi instance</b>} ++
           Text(": several Directives derived from that template can be deployed on a given server")
         } else {
-          {<b>Unique</b>} ++ 
+          {<b>Unique</b>} ++
           Text(": an unique Directive derived from that template can be deployed on a given server")
         }
       }
     </span>
   }
-    
+
   private[this] def showVersions(activeTechnique:ActiveTechnique) : NodeSeq = {
     //if we are on a Policy Server, add a "in use" after the currently used version
-    val directiveVersion = currentDirectiveSettingForm.is.map { 
-      form => form.directive.techniqueVersion 
+    val directiveVersion = currentDirectiveSettingForm.is.map {
+      form => form.directive.techniqueVersion
     }
-    
+
     techniqueRepository
       .getTechniqueVersions(activeTechnique.techniqueName)
       .toSeq
@@ -303,13 +303,13 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         }
      }
   }
-  
+
   /**
-   * If there is only zero or one version, display nothing. 
+   * If there is only zero or one version, display nothing.
    * Else, build an ajax form with the migration logic
    */
   private[this] def showMigration(technique:Technique, activeTechnique:ActiveTechnique) = {
-    
+
     def onSubmitMigration(v:TechniqueVersion, directive:Directive, activeTechnique:ActiveTechnique) = {
       val id = TechniqueId(activeTechnique.techniqueName, v)
       (for {
@@ -318,20 +318,20 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       } yield {
         technique
       }) match {
-        case Full(technique) => 
+        case Full(technique) =>
           currentTechnique = Some((technique,activeTechnique))
-          updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, 
+          updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique,
               directive.copy(techniqueVersion = v))
         case e:EmptyBox => currentDirectiveSettingForm.set(e)
       }
     }
-    
+
     "*" #> currentDirectiveSettingForm.is
-      .filter { x => 
-        techniqueRepository.getTechniqueVersions(activeTechnique.techniqueName).toSeq.size > 1 
+      .filter { x =>
+        techniqueRepository.getTechniqueVersions(activeTechnique.techniqueName).toSeq.size > 1
       }
       .map { form =>
-        "form" #> { (xml:NodeSeq) => 
+        "form" #> { (xml:NodeSeq) =>
           val options = techniqueRepository
             .getTechniqueVersions(activeTechnique.techniqueName)
             .toSeq
@@ -341,41 +341,41 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           val onSubmit =  { (v:TechniqueVersion) =>
             onSubmitMigration(v, form.directive,activeTechnique)
           }
-          val jsFunc = { () => 
+          val jsFunc = { () =>
             //update UI: Directive details
             Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
             setRightPanelHeader(false) &
-            Replace(htmlId_policyConf, showDirectiveDetails) & 
+            Replace(htmlId_policyConf, showDirectiveDetails) &
             displayFinishMigrationPopup
           }
           (
-            "select" #> (SHtml.selectObj(options, default = Empty, onSubmit) % 
+            "select" #> (SHtml.selectObj(options, default = Empty, onSubmit) %
               ("style", "width:60px;")) &
             ":submit" #> SHtml.ajaxSubmit("Migrate", jsFunc)
           ) (SHtml.ajaxForm(xml))
         }
       }
   }
-  
+
   private[this] def setRightPanelHeader(isDirective:Boolean) : JsCmd = {
     val title = if (isDirective) "About this Directive" else "About this Technique"
     SetHtml("detailsPortletTitle", Text(title))
   }
-  
+
   ///////////// finish migration pop-up ///////////////
   private[this] def displayFinishMigrationPopup : JsCmd = {
     JsRaw(""" callPopupWithTimeout(200,"finishMigrationPopup",100,350) """)
   }
-  
+
   /**
    * Configure a Rudder internal Technique to be usable in the
-   * user Technique (private) library. 
+   * user Technique (private) library.
    */
   private[this] def showDirectiveDetails() : NodeSeq = {
     currentDirectiveSettingForm.is match {
-      case Failure(m,_,_) => 
+      case Failure(m,_,_) =>
         <div id={htmlId_policyConf} class="error">
-          An error happened when trying to load Directive configuration. 
+          An error happened when trying to load Directive configuration.
           Error message was: {m}
         </div>
       case Empty => <div id={htmlId_policyConf}></div>
@@ -383,14 +383,14 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       //strangely, and if so, after an form save, clicking on tree node does nothing
       // (or more exactly, the call to "onclicknode" is correct, the currentDirectiveSettingForm
       // has the good Directive, but the <lift:DirectiveEditForm.showForm /> is called on
-      // an other component (the one which did the submit). Strange. 
+      // an other component (the one which did the submit). Strange.
       case Full(formComponent) => formComponent.showForm()
     }
   }
-  
+
   private[this] def newCreationPopup(technique:Technique, activeTechnique:ActiveTechnique) : NodeSeq = {
     new CreateDirectivePopup(
-        technique.name, technique.description, technique.id.version, 
+        technique.name, technique.description, technique.id.version,
         onSuccessCallback = { (directive : Directive) =>
           updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, directive, true)
           //Update UI
@@ -399,17 +399,17 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         }
     ).popupContent
   }
-   
+
   private[this] def displayDirectiveDetails(directiveId: DirectiveId): JsCmd = {
     //Set current Directive edition component to the given value
     directiveRepository.getDirectiveWithContext(directiveId) match {
-      case Full((technique,activeTechnique,directive)) => 
+      case Full((technique,activeTechnique,directive)) =>
         Replace(htmlId_activeTechniquesTree, userLibrary)
         currentTechnique = Some((technique,activeTechnique))
         updateCf3PolicyDraftInstanceSettingFormComponent(technique,activeTechnique,directive)
       case e:EmptyBox => currentDirectiveSettingForm.set(e)
     }
-    
+
     //update UI: Directive details
     Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
     setRightPanelHeader(true) &
@@ -418,23 +418,23 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         .format(directiveId.value)) &
     JsRaw("""scrollToElement('%s')""".format(htmlId_policyConf))
   }
-  
+
   private[this] def updateCf3PolicyDraftInstanceSettingFormComponent(
       technique:Technique,
       activeTechnique:ActiveTechnique,
-      directive:Directive, 
+      directive:Directive,
       isADirectiveCreation : Boolean = false) : Unit = {
-    
+
     val dirEditForm = new DirectiveEditForm(
       htmlId_policyConf, technique, activeTechnique, directive,
       onSuccessCallback = directiveEditFormSuccessCallBack,
       onRemoveSuccessCallback = onRemoveSuccessCallBack,
       isADirectiveCreation = isADirectiveCreation
     )
-    
+
     currentDirectiveSettingForm.set(Full(dirEditForm))
   }
-  
+
   private[this] def directiveEditFormSuccessCallBack(dir: Directive): JsCmd = {
     directiveRepository.getDirectiveWithContext(dir.id) match {
       case Full((technique, activeTechnique, directive)) => {
@@ -449,24 +449,24 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         		"technique context for displaying in Directive Management edit form."
         val e = eb ?~! errMsg.format(dir.name, dir.id)
         logger.error(e.messageChain)
-        e.rootExceptionCause.foreach { ex => 
+        e.rootExceptionCause.foreach { ex =>
           logger.error("Root exception was: ", ex)
         }
         Alert("Error when trying to get display the page. Please, try again")
       }
     }
   }
-  
+
   private[this] def onRemoveSuccessCallBack(): JsCmd = {
     Replace(htmlId_policyConf, showDirectiveDetails) &
     Replace(htmlId_activeTechniquesTree, userLibrary)
   }
-   
-  //////////////// display trees ////////////////////////    
-  
+
+  //////////////// display trees ////////////////////////
+
   /**
    * Transform ActiveTechniqueCategory into category JsTree nodes in User Library:
-   * - contains 
+   * - contains
    *   - other user categories
    *   - Active Techniques
    */
@@ -474,38 +474,38 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     /*
      * Transform a Directive into a JsTree node
      */
-    def jsTreeNodeOf_upt(activeTechnique : ActiveTechnique, technique:Technique) : JsTreeNode = {    
+    def jsTreeNodeOf_upt(activeTechnique : ActiveTechnique, technique:Technique) : JsTreeNode = {
       // now, actually map activeTechnique to JsTreeNode
       new JsTreeNode {
         def onClickNode() : JsCmd = {
             currentTechnique = Some((technique,activeTechnique))
-              
+
             currentDirectiveSettingForm.set(Empty)
-              
+
             //Update UI
             Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
             setRightPanelHeader(false) &
-            Replace(htmlId_policyConf, showDirectiveDetails) & 
+            Replace(htmlId_policyConf, showDirectiveDetails) &
             JsRaw("""correctButtons();""")
         }
-            
+
         override val attrs = {
-          ( "rel" -> "template") :: Nil ::: 
+          ( "rel" -> "template") :: Nil :::
           (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
         }
-        
+
         override def body = {
           val tooltipid = Helpers.nextFuncName
           SHtml.a(
-            onClickNode _,  
+            onClickNode _,
             <span class="treeActiveTechniqueName tooltipable" title="" tooltipid={tooltipid}>
               {technique.name}
             </span>
             <div class="tooltipContent" id={tooltipid}>
               {technique.description}
             </div>)
-        } 
-            
+        }
+
         override def children = {
           activeTechnique.directives
             .flatMap( treeUtilService.getPi(_,logger) )
@@ -515,7 +515,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         }
       }
     }
-    
+
     /*
      * Transform a Directive into a JsTree leaf
      */
@@ -525,7 +525,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         def onClickNode() : JsCmd = {
           displayDirectiveDetails(directive.id)
         }
-        
+
         override def body = {
           val tooltipid = Helpers.nextFuncName
           val nSeq = {
@@ -542,23 +542,23 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             </div>
           }
           SHtml.a(onClickNode _, nSeq)
-        } 
-        
+        }
+
         override def children = Nil
-        
+
         override val attrs = {
-          ( "rel" -> "directive") :: 
-          ( "id" -> ("jsTree-"+directive.id.value)) :: Nil ::: 
+          ( "rel" -> "directive") ::
+          ( "id" -> ("jsTree-"+directive.id.value)) :: Nil :::
           (if(!directive.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
         }
       }
     }
-    
+
     /*
      * Transform a Technique category into a JsTree node
      */
     new JsTreeNode {
-      override def body = { 
+      override def body = {
         val tooltipid = Helpers.nextFuncName
         ( <a href="#">
             <span class="treeActiveTechniqueCategoryName tooltipable" title="" tooltipid={tooltipid}>
@@ -572,10 +572,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                 case f => {f}
               }
             }
-          </div>  
+          </div>
         )
       }
-      
+
       override def children = {
         category.children
           .flatMap(treeUtilService.getActiveTechniqueCategory( _,logger ))
@@ -583,13 +583,13 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           .sortWith( treeUtilService.sortActiveTechniqueCategory( _,_ ) )
           .zipWithIndex.map{ case (node, i) =>
               jsTreeNodeOf_uptCategory(node, nodeId + "_" + i)
-          } ++ 
+          } ++
         category.items
           .flatMap( treeUtilService.getActiveTechnique(_,logger))
           .toList.sortWith( _._2.name < _._2.name)
           .map { case(activeTechnique, technique) => jsTreeNodeOf_upt(activeTechnique, technique) }
       }
-            
+
       override val attrs = ( "rel" -> "category") :: ( "id" -> nodeId) :: Nil
     }
   }
@@ -597,14 +597,14 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
 
 object DirectiveManagement {
-  
+
   /*
    * HTML id for zones with Ajax / snippet output
    */
   val htmlId_activeTechniquesTree = "activeTechniquesTree"
   val htmlId_policyConf = "policyConfiguration"
   val htmlId_currentActiveTechniqueActions = "currentActiveTechniqueActions"
-  val html_addPiInActiveTechnique = "addNewDirective" 
+  val html_addPiInActiveTechnique = "addNewDirective"
   val html_techniqueDetails = "techniqueDetails"
 }
 

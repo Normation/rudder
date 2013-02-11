@@ -50,7 +50,7 @@ trait NovaLicenseService {
    * @return
    */
   def findLicenseForNode(server: String) : Option[NovaLicense]
-  
+
   /**
    * Add a license file
    * @param uuid : the policy server that holds this license
@@ -58,7 +58,7 @@ trait NovaLicenseService {
    * @param expirationDate : expiration date of the licence
    * @param file : path to the licence file
    */
-  def saveLicenseFile(uuid : String, licenseNumber : Int, expirationDate : DateTime, file : String) 
-  
-  
+  def saveLicenseFile(uuid : String, licenseNumber : Int, expirationDate : DateTime, file : String)
+
+
 }

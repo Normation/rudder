@@ -76,7 +76,7 @@ class DirectiveEditorServiceImpl(
   import scala.util.control.Breaks._
 
   /*
-   * We exactly set the variable values to varValues, 
+   * We exactly set the variable values to varValues,
    * so a missing variable key actually set the value
    * to Seq()
    */

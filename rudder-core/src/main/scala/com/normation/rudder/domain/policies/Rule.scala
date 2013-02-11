@@ -35,19 +35,19 @@
 package com.normation.rudder.domain.policies
 import com.normation.utils.HashcodeCaching
 
-case class RuleId(value:String) extends HashcodeCaching 
+case class RuleId(value:String) extends HashcodeCaching
 
-case class SerialedRuleId(ruleId : RuleId, serial : Int) extends HashcodeCaching 
+case class SerialedRuleId(ruleId : RuleId, serial : Int) extends HashcodeCaching
 
 /**
  * A rule is a binding between a set of directives
- * and some target (group of node, etc) on which applying 
- * these directives. 
- * 
+ * and some target (group of node, etc) on which applying
+ * these directives.
+ *
  * A rule may be stored in a pending state, for
- * example if it is not fully initialized. 
+ * example if it is not fully initialized.
  * In that case, it *MUST* be considered desactivated, whatever
- * the isEnabledField say. 
+ * the isEnabledField say.
  */
 case class Rule(
   id: RuleId,

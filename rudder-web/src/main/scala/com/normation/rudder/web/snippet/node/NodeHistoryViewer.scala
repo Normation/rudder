@@ -44,7 +44,7 @@ import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.ldap.sdk._
 import BuildFilter._
 
-import bootstrap.liftweb.LiftSpringApplicationContext.inject 
+import bootstrap.liftweb.LiftSpringApplicationContext.inject
 
 
 import org.joda.time.DateTime
@@ -70,37 +70,37 @@ import net.liftweb.http.SHtml._
  */
 class NodeHistoryViewer extends StatefulSnippet {
   lazy val diffRepos = inject[InventoryHistoryLogRepository]
-  
+
   var uuid : NodeId = null
   var selectedDate : DateTime = null
   var dates : Seq[(DateTime,String)] = Seq()
   //id of html element to update
   var hid = ""
-  
+
   var dispatch : DispatchIt = {
     case "render" => render _
   }
-  
+
   def render(xml:NodeSeq) : NodeSeq = {
     S.attr("uuid") match {
       case Full(s) => //new id of id change, init for that id
         initState(s)
-        
+
         <div>
           <p>{SHtml.ajaxSelectObj[DateTime](dates, Full(selectedDate), onSelect _)}</p>
           { diffRepos.get(uuid, selectedDate) match {
               case Failure(m,_,_) => <div class="error">Error while trying to display node history. Error message: {m}</div>
               case Empty => <div class="error">No history was retrieved for the chosen date</div>
-              case Full(sm) => 
+              case Full(sm) =>
                 <div id={hid}>{DisplayNode.showPannedContent(sm.data, "hist") ++ Script(DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs")))}</div>
           } }
         </div>
-        
+
       case _ => <div class="error">Missing node ID information: can not display history information</div>
     }
   }
-  
-  
+
+
   private def initState(suuid:String) : Unit = {
     val newUuid = NodeId(suuid)
     if(newUuid != this.uuid) {
@@ -110,7 +110,7 @@ class NodeHistoryViewer extends StatefulSnippet {
         map(d => (d, d.toString()))
       if(dates.nonEmpty) { selectedDate = dates.head._1 }
     }
-    
+
     //if a version is available, try to use it
     for {
       version <- S.attr("version")
@@ -118,16 +118,16 @@ class NodeHistoryViewer extends StatefulSnippet {
     } {
       selectedDate = date
     }
-    
+
   }
-  
+
   private def onSelect(date:DateTime) : JsCmd = {
     diffRepos.get(uuid, date) match {
       case Failure(m,_,_) => Alert("Error while trying to display node history. Error message:" + m)
       case Empty => Alert("No history was retrieved for the chosen date")
-      case Full(sm) => 
+      case Full(sm) =>
         SetHtml(hid,
-          DisplayNode.showPannedContent(sm.data, "hist")) & 
+          DisplayNode.showPannedContent(sm.data, "hist")) &
           DisplayNode.jsInit(sm.data.node.main.id, sm.data.node.softwareIds,"hist", Some("node_tabs")
         )
     }

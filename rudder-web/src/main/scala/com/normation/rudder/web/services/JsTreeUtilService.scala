@@ -46,8 +46,8 @@ import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 
 /**
- * An utility service for Directive* trees. 
- * 
+ * An utility service for Directive* trees.
+ *
  * Allow to find node with logging, sorts nodes, etc
  *
  */
@@ -63,49 +63,49 @@ class JsTreeUtilService(
       activeTechniqueCategoryRepository.getActiveTechniqueCategory(id) match {
         //remove sytem category
         case Full(cat) => if(cat.isSystem) None else Some(cat)
-        case e:EmptyBox => 
+        case e:EmptyBox =>
           logger.error("Error when displaying category", e ?~! "Error while fetching Active Technique category %s".format(id))
           None
       }
     }
-    
+
     // get the Active Technique, loqg on error
     def getActiveTechnique(id : ActiveTechniqueId,logger:Logger) : Option[(ActiveTechnique,Technique)] = {
       (for {
         activeTechnique <- activeTechniqueRepository.getActiveTechnique(id) ?~! "Error while fetching Active Technique %s".format(id)
-        technique <- Box(techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)) ?~! 
+        technique <- Box(techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)) ?~!
               "Can not find referenced Technique '%s' in reference library".format(activeTechnique.techniqueName.value)
       } yield {
         (activeTechnique,technique)
       }) match {
         case Full(pair) => Some(pair)
-        case e:EmptyBox => 
+        case e:EmptyBox =>
           val f = e ?~! "Error when trying to display Active Technique with id '%s' as a tree node".format(id)
           logger.error(f.messageChain)
           None
       }
     }
-    
+
     // get the Directive, log on error
     def getPi(id:DirectiveId,logger:Logger) : Option[Directive] = directiveRepository.getDirective(id) match {
       case Full(directive) => Some(directive)
-      case e:EmptyBox => 
+      case e:EmptyBox =>
         logger.error("Error while fetching node %s".format(id), e?~! "Error message was:")
         None
     }
-  
+
 
     def getPtCategory(id:TechniqueCategoryId,logger:Logger) : Option[TechniqueCategory] = {
       techniqueRepository.getTechniqueCategory(id) match {
         //remove sytem category
         case Full(cat) => if(cat.isSystem) None else Some(cat)
-        case e:EmptyBox => 
+        case e:EmptyBox =>
           val f = e ?~! "Error while fetching Technique category %s".format(id)
           logger.error(f.messageChain)
           None
       }
     }
-    
+
     //check Technique existence and transform it to a tree node
     def getPt(name : TechniqueName,logger:Logger) : Option[Technique] = {
       techniqueRepository.getLastTechniqueByName(name).orElse {
@@ -113,20 +113,20 @@ class JsTreeUtilService(
         None
       }
     }
-    
-    
+
+
     //
     // Different sorting
     //
-    
+
     def sortPtCategory(x:TechniqueCategory,y:TechniqueCategory) : Boolean = {
       sort(x.name , y.name)
     }
-    
+
     def sortActiveTechniqueCategory(x:ActiveTechniqueCategory,y:ActiveTechniqueCategory) : Boolean = {
       sort(x.name , y.name)
     }
-    
+
     def sortPt(x:Technique,y:Technique) : Boolean = {
       sort(x.name , y.name)
     }
@@ -134,7 +134,7 @@ class JsTreeUtilService(
     def sortPi(x:Directive,y:Directive) : Boolean = {
       sort(x.name , y.name)
     }
-    
+
     private[this] def sort(x:String,y:String) : Boolean = {
       if(String.CASE_INSENSITIVE_ORDER.compare(x,y) > 0) false else true
     }

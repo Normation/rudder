@@ -27,11 +27,11 @@ import com.normation.inventory.ldap.core.InventoryDit
 
 
 trait RemoveNodeService {
-  
+
   /**
    * Remove a node from the Rudder
-   * For the moment, it really deletes it, later it would be useful to actually move it 
-   * What it does : 
+   * For the moment, it really deletes it, later it would be useful to actually move it
+   * What it does :
    * - clean the ou=Nodes
    * - clean the ou=Nodesconfiguration
    * - clean the groups
@@ -53,8 +53,8 @@ class RemoveNodeServiceImpl(
     , actionLogger              : EventLogRepository
     , groupLibMutex             : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends RemoveNodeService with Loggable {
-  
-  
+
+
   /**
    * the removal of a node is a multi-step system
    * First, fetch the node, then remove it from groups, and clear all node configurations
@@ -62,7 +62,7 @@ class RemoveNodeServiceImpl(
    * Then find its container, to see if it has others nodes on it
    *        if so, copy the container to the removed inventory
    *        if not, move the container to the removed inventory
-   * 
+   *
    */
   def removeNode(nodeId : NodeId, modId: ModificationId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
     logger.debug("Trying to remove node %s from the LDAP".format(nodeId.value))
@@ -72,7 +72,7 @@ class RemoveNodeServiceImpl(
         for {
           nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
 
-          moved <- groupLibMutex.writeLock {atomicDelete(nodeId, modId, actor) } ?~! 
+          moved <- groupLibMutex.writeLock {atomicDelete(nodeId, modId, actor) } ?~!
                    "Error when archiving a node"
 
           eventLogged <- {
@@ -94,8 +94,8 @@ class RemoveNodeServiceImpl(
       }
     }
   }
-  
-  
+
+
   private[this] def atomicDelete(nodeId : NodeId, modId: ModificationId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
     for {
       cleanGroup            <- deleteFromGroups(nodeId, modId, actor) ?~! "Could not remove the node '%s' from the groups".format(nodeId.value)
@@ -106,7 +106,7 @@ class RemoveNodeServiceImpl(
       cleanNode ++ moveNodeInventory
     }
   }
-   
+
   /**
    * Deletes from ou=Node
    */
@@ -132,7 +132,7 @@ class RemoveNodeServiceImpl(
       () // unit is expected
     }
   }
-  
+
   /**
    * Look for the groups containing this node in their nodes list, and remove the node
    * from the list
@@ -153,6 +153,6 @@ class RemoveNodeServiceImpl(
       }).flatten
     }
   }
-  
-  
+
+
 }

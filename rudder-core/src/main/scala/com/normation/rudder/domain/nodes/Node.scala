@@ -39,7 +39,7 @@ import com.normation.utils.HashcodeCaching
 
 
 /**
- * The Node is a basic object, the entry point for the application 
+ * The Node is a basic object, the entry point for the application
  * @author Nicolas CHARLES
  *
  */

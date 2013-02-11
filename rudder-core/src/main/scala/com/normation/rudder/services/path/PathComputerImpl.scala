@@ -50,7 +50,7 @@ import com.normation.exceptions.BusinessException
 
 /**
  * Utilitary tool to compute the path of a machine promises (and others information) on the rootMachine
- * 
+ *
  * @author nicolas
  *
  */
@@ -59,12 +59,12 @@ class PathComputerImpl(
          ,  backupFolder        : String // /var/rudder/backup/
 ) extends PathComputer with Loggable {
 
-  
+
   private[this] val promisesPrefix = "rules/"
-    
+
   private[this] val baseFolder = Constants.NODE_PROMISES_PARENT_DIR_BASE
   private[this] val relativeShareFolder = Constants.NODE_PROMISES_PARENT_DIR
-  
+
   /**
    * Compute the base path for a machine, i.e. the full path on the root server to the data
    * the searched machine will fetch, and the backup folder
@@ -73,7 +73,7 @@ class PathComputerImpl(
    * Ex : /var/rudder/share/uuid-a/share/uuid-b, /var/rudder/backup/uuid-a/share/uuid-b
    * @param searchedNodeConfiguration : the machine we search
    * @return
-   */  
+   */
   def computeBaseNodePath(searchedNode : NodeConfiguration) :  (String, String) = {
     val root = nodeConfigurationRepository.getRootNodeConfiguration match {
       case Full(s) => s
@@ -85,7 +85,7 @@ class PathComputerImpl(
     val path = recurseComputePath(root, searchedNode, "/"  + searchedNode.id)
     return (FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path) , FilenameUtils.normalize(backupFolder + path))
   }
-  
+
   /**
    * Return the path of the promises for the root (we directly write its promises in its path)
    * @param agent
@@ -93,13 +93,13 @@ class PathComputerImpl(
    */
   def getRootPath(agentType : AgentType) : String = {
     agentType match {
-        case NOVA_AGENT => Constants.CFENGINE_NOVA_PROMISES_PATH 
+        case NOVA_AGENT => Constants.CFENGINE_NOVA_PROMISES_PATH
         case COMMUNITY_AGENT => Constants.CFENGINE_COMMUNITY_PROMISES_PATH
         case x => throw new BusinessException("Unrecognized agent type: %s".format(x))
     }
   }
-  
-  
+
+
   /**
    * Return the path from a machine to another, excluding the top rootNode
    * If we have the hierarchy Root, A, B :
@@ -114,9 +114,9 @@ class PathComputerImpl(
   private def recurseComputePath(fromNode : NodeConfiguration, toNode : NodeConfiguration, path : String) : String = {
     if (fromNode == toNode)
       return path
-    
+
     nodeConfigurationRepository.findNodeConfiguration(NodeId(toNode.targetMinimalNodeConfig.policyServerId)) match {
-      case Full(root : RootNodeConfiguration) => 
+      case Full(root : RootNodeConfiguration) =>
           recurseComputePath(fromNode, root, path)
       case Full(policyParent) =>
           recurseComputePath(fromNode, policyParent, policyParent.id + "/" + relativeShareFolder + "/" + path)

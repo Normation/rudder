@@ -39,75 +39,75 @@ import scala.reflect.ClassTag
 
 /**
  * That class allow to load and register a snippet for the context of
- * a Lift request. 
- * 
- * 
+ * a Lift request.
+ *
+ *
  * Such snippet should not be reachable directly from the application,
  * and so should not be placed in the "snippet" package.
- * 
+ *
  * We could call these local snippets "components".
- * 
+ *
  * This is useful to split a big page into sub part, especially when some of
  * these part are (complex) forms based on some user action on other part of
- * the page (and so, forms are contextualized). 
- * 
- * 
+ * the page (and so, forms are contextualized).
+ *
+ *
  * How to use it:
- * 
+ *
  * <pre>
  * MyPage.scala
- * 
- * class MyPage extends DispatchSnippet { 
- *   
+ *
+ * class MyPage extends DispatchSnippet {
+ *
  *   val myComponentHolder : LocalSnippet[MyComponent] = new LocalSnippet[MyComponent]
- *   
+ *
  *   def dispatch = {
  *     case "myComponent" => displayComponent _
  *   }
- *   
+ *
  *   def displayComponent(xml:NodeSeq) : NodeSeq = {
  *     myComponentHolder.is match {
- *       case Failure(m,_,_) => 
+ *       case Failure(m,_,_) =>
  *           //error with the component loading or update, display an error message
  *           //here, <lift:MyComponent.renderComponent /> will lead to Lift saying it does not know that class
  *           <span class="error">Error: {m}</span>
- *       case Empty => 
+ *       case Empty =>
  *           //the component was not initialize for that request, show an error message or a way to initialize it (by ajax)
  *           //here too, <lift:MyComponent.renderComponent /> will lead to Lift saying it does not know that class
  *           <span><a href="#" ...>Please click here to init the component</a></span>
- *       case Full(myComponent) => 
+ *       case Full(myComponent) =>
  *           //render component, as it is now registered
  *           <lift:MyComponent.renderComponent />
  *     }
  *   }
- *   
+ *
  *   //to register the component, you just have to set a value to LocalSnippet
  *   def initComponent : Unit = {
  *     myComponentHolder.set(  new MyComponent(context, param, for, that, component)  )
  *   }
  * }
- * 
+ *
  * MyComponent.scala
- * 
+ *
  * class MyComponent(some:Context, param:For, that:Componenent) extends DispatchSnippet {
- * 
+ *
  *   def dispatch = {
  *     case "renderComponent" => renderComponent _
  *   }
- *   
+ *
  *   def renderComponent(xml:NodeSeq) : NodeSeq = { // render component }
  * }
- *   
+ *
  * </pre>
- * 
+ *
  */
 class LocalSnippet[T <: DispatchSnippet](implicit m: ClassTag[T]) {
   private[this] var _snippet : Box[T]= Empty
-  
+
   val name = m.runtimeClass.getSimpleName
-  
+
   def is = _snippet
-  
+
   def set(snippet:Box[T]) : Unit = {
     _snippet = snippet
     snippet match {

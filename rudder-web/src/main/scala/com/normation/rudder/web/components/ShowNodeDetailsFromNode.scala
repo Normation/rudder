@@ -67,7 +67,7 @@ import net.liftmodules.widgets.autocomplete._
 
 
 object ShowNodeDetailsFromNode {
-  
+
   /**
    * All pages that use that component should include the result of that
    * method
@@ -78,13 +78,13 @@ object ShowNodeDetailsFromNode {
       <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
     </head>
   }
-  
-  
+
+
   private val htmlId_crTree = "crTree"
-    
+
   private def serverPortletPath = List("templates-hidden", "server", "server_details")
   private def serverPortletTemplateFile() =  Templates(serverPortletPath) match {
-    case Empty | Failure(_,_,_) => 
+    case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for node details not found. I was looking for %s.html".format(serverPortletPath.mkString("/")))
     case Full(n) => n
   }
@@ -92,10 +92,10 @@ object ShowNodeDetailsFromNode {
 }
 
 class ShowNodeDetailsFromNode(
-  nodeId:NodeId  
+  nodeId:NodeId
 ) extends DispatchSnippet with Loggable {
   import ShowNodeDetailsFromNode._
-  
+
   private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] val serverAndMachineRepo = inject[LDAPFullInventoryRepository]
   private[this] val acceptedInventoryDit = inject[InventoryDit]("acceptedNodesDit")
@@ -106,19 +106,19 @@ class ShowNodeDetailsFromNode(
   private[this] val nodeGroupRepository = inject[NodeGroupRepository]
   private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
   private[this] val targetService = inject[RuleTargetService]
-  private[this] val dependencyService = inject[DependencyAndDeletionService]  
-  
+  private[this] val dependencyService = inject[DependencyAndDeletionService]
+
   def dispatch = {
     case "display" => { _ => display(false) }
   }
-  
-  
+
+
   def display(withinPopup : Boolean = false) : NodeSeq = {
     nodeInfoService.getNodeInfo(nodeId) match {
-      case Empty => 
+      case Empty =>
         <div class="error">Node with id {nodeId.value} was not found</div>
-      case f@Failure(_,_,_) => 
-        logger.debug("Root exception:", f) 
+      case f@Failure(_,_,_) =>
+        logger.debug("Root exception:", f)
         <div class="error">
           <p>Node with id {nodeId.value} was not found</p>
           <p>Error message was: {f.messageChain}</p>
@@ -126,10 +126,10 @@ class ShowNodeDetailsFromNode(
       case Full(server) => // currentSelectedNode = Some(server)
         serverAndMachineRepo.get(server.id,AcceptedInventory) match {
           case Full(sm) =>
-            bindNode(server, sm, withinPopup) ++ Script(OnLoad(  
+            bindNode(server, sm, withinPopup) ++ Script(OnLoad(
               DisplayNode.jsInit(server.id, sm.node.softwareIds, "", Some("node_tabs")) &
               //reportDisplayer.initJs("reportsGrid") &
-              OnLoad(buildJsTree(htmlId_crTree))             
+              OnLoad(buildJsTree(htmlId_crTree))
             ))
           case e:EmptyBox =>
             val msg = "Can not find inventory details for node with ID %s".format(server.id.value)
@@ -138,7 +138,7 @@ class ShowNodeDetailsFromNode(
         }
     }
   }
-  
+
   /**
    * Show the content of a node in the portlet
    * @param server
@@ -163,7 +163,7 @@ class ShowNodeDetailsFromNode(
               "logs" -> logDisplayer.asyncDisplay(node.id, withinPopup)
             )
   }
-    
+
   private def findTargets(node : NodeInfo): Box[Seq[RuleTarget]] = {
     for {
       allTargets <- targetService.findTargets(Seq(node.id)) //allTargets: Map[NodeId, Set[RuleTarget]]
@@ -197,25 +197,25 @@ class ShowNodeDetailsFromNode(
   private[this] var targets :  Seq[RuleTarget] = Seq()
 
   /**
-   * Javascript to initialize a tree. 
+   * Javascript to initialize a tree.
    * htmlId is the id of the div enclosing tree datas
    */
   private def buildJsTree(htmlId:String) : JsExp = JsRaw(
     """buildGroupTree('#%s', '%s')""".format(htmlId,S.contextPath)
   )
-  
+
   private[this] def categoryToJsTreeNode(category:NodeGroupCategory) : JsTreeNode = new JsTreeNode {
     override def body = {
         <a><span class="treeGroupCategoryName tooltipable" title="" tooltipid={category.id.value.replaceAll("/", "")} >{category.name}</span></a>
         <div class="tooltipContent" id={category.id.value.replaceAll("/", "")}><h3>{category.name}</h3><div>{category.description}</div></div>
     }
-  
+
     override val attrs =
       ( "rel" -> { if(category.id == rootCategoryId) "root-category" else "category" } ) ::
       ( "catId" -> category.id.value ) ::
       ( "class" -> "" ) ::
       Nil
-    
+
     override def children = (
       category.children.map(x =>  groupCategoryRepository.findGroupHierarchy(x, targets)).collect { case Full(x) => categoryToJsTreeNode(x) }
       ++ category.items.map(x => policyTargetInfoToJsTreeNode(x) )
@@ -243,7 +243,7 @@ class ShowNodeDetailsFromNode(
       }
     }
   }
-  
+
   /**
    * Transform a WBNodeGroup into a JsTree leaf.
    */

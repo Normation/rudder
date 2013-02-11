@@ -66,8 +66,8 @@ import com.normation.eventlog.EventLog
 
 
 /**
- * Container for a Git Path. 
- * Notice: a GIT path should be well formed 
+ * Container for a Git Path.
+ * Notice: a GIT path should be well formed
  * (never starts with a "/", not heading nor trailing
  * empty characters), but this is not enforce by that class.
  */
@@ -75,17 +75,17 @@ final case class GitPath(value: String) extends HashcodeCaching
 
 /**
  * A git commit string character, the SHA-1 hash that can be
- * use in git command line with git checkout, git show, etc. 
+ * use in git command line with git checkout, git show, etc.
  */
 final case class GitCommitId(value: String) extends HashcodeCaching
 
 
 /**
- * A Git archive ID is a couple of the path on witch the archive was made, 
- * and the commit that reference the tag. 
+ * A Git archive ID is a couple of the path on witch the archive was made,
+ * and the commit that reference the tag.
  * Note that the commit ID is stable in time, but the path is just an
  * indication, especially if its 'master' (a branch path is more likely to be
- * a little more stable). 
+ * a little more stable).
  */
 final case class GitArchiveId(path: GitPath, commit: GitCommitId, commiter: PersonIdent) extends HashcodeCaching
 
@@ -102,11 +102,11 @@ final case class DirectiveNotArchived(
 
 final case class CategoryNotArchived(
     categoryId: ActiveTechniqueCategoryId
-  , cause     : Failure 
+  , cause     : Failure
 )
 
 final case class NotArchivedElements(
-    categories      : Seq[CategoryNotArchived] 
+    categories      : Seq[CategoryNotArchived]
   , activeTechniques: Seq[ActiveTechniqueNotArchived]
   , directives      : Seq[DirectiveNotArchived]
 ) {
@@ -117,57 +117,57 @@ final case class NotArchivedElements(
 
 /**
  * This trait allow to manage archives of technique library, rules
- * and groupes. 
- * 
- * Archive can be done in one shot, partially updated, or read back. 
+ * and groupes.
+ *
+ * Archive can be done in one shot, partially updated, or read back.
  */
 trait ItemArchiveManager {
-  
+
   /**
-   * Save all items handled by that archive manager 
-   * and return an ID for the archive on success. 
+   * Save all items handled by that archive manager
+   * and return an ID for the archive on success.
    */
   def exportAll(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[(GitArchiveId, NotArchivedElements)]
-  
+
   def exportRules(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
-  
+
   /**
-   * Export the technique library. 
+   * Export the technique library.
    * The strategy in case some directive are in error is to ignore them, keeping error message so that they can be logged/displayed
-   * at the end of the process. 
+   * at the end of the process.
    */
   def exportTechniqueLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[(GitArchiveId, NotArchivedElements)]
-  
+
   def exportGroupLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
-  
+
   /**
-   * Import the archive with the given ID in Rudder. 
+   * Import the archive with the given ID in Rudder.
    * If anything goes bad, implementation of that method
    * should take all the care to let Rudder in the state
-   * where it was just before the (unsuccessful) import 
-   * was required. 
-   * 
+   * where it was just before the (unsuccessful) import
+   * was required.
+   *
    */
   def importAll(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
 
   def importRules(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
-  
+
   def importTechniqueLibrary(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
-  
+
   def importGroupLibrary(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
-  
+
 
   /**
    * Import the item archive from HEAD (corresponding to last commit)
    */
   def importHeadAll(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
-  
+
   def importHeadRules(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
-  
+
   def importHeadTechniqueLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
-  
+
   def importHeadGroupLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
-  
+
   /**
    * Rollback method
    */
@@ -176,13 +176,13 @@ trait ItemArchiveManager {
    * Get the list of tags for the archive type
    */
   def getFullArchiveTags : Box[Map[DateTime,GitArchiveId]]
-  
+
   def getGroupLibraryTags : Box[Map[DateTime,GitArchiveId]]
-  
+
   def getTechniqueLibraryTags : Box[Map[DateTime,GitArchiveId]]
-  
+
   def getRulesTags : Box[Map[DateTime,GitArchiveId]]
-    
+
 }
 
 
@@ -192,36 +192,36 @@ trait ItemArchiveManager {
 trait GitRuleArchiver {
   /**
    * Archive a rule in a file system
-   * managed by git. 
+   * managed by git.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
-   * 
-   * reason is an optional commit message to add to the standard one. 
+   *
+   * reason is an optional commit message to add to the standard one.
    */
   def archiveRule(rule:Rule, gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
-  
+
   /**
    * Commit modification done in the Git repository for any
    * rules.
-   * Also add a tag with the given return GitPath. 
-   * The returned commit hash is the one for the tag. 
-   * Return the git commit id. 
-   * 
-   * reason is an optional commit message to add to the standard one. 
+   * Also add a tag with the given return GitPath.
+   * The returned commit hash is the one for the tag.
+   * Return the git commit id.
+   *
+   * reason is an optional commit message to add to the standard one.
    */
   def commitRules(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
-  
+
   def getTags() : Box[Map[DateTime,GitArchiveId]]
-  
+
   /**
-   * Delete an archived rule. 
+   * Delete an archived rule.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
-   * 
-   * reason is an optional commit message to add to the standard one. 
+   *
+   * reason is an optional commit message to add to the standard one.
    */
   def deleteRule(ruleId:RuleId, gitCommitCr:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
-  
+
   /**
    * Get the root directory where rules are saved
    */
@@ -237,41 +237,41 @@ trait GitRuleArchiver {
  * A specific trait to create archive of an active technique category.
  */
 trait GitActiveTechniqueCategoryArchiver {
-  
+
   /**
    * Archive an active technique category in a file system
-   * managed by git. 
+   * managed by git.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
   def archiveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
-    
+
   /**
-   * Delete an archived active technique category. 
+   * Delete an archived active technique category.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
   def deleteActiveTechniqueCategory(uptcId:ActiveTechniqueCategoryId, getParents:List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
-  
+
   /**
-   * Move an archived technique category from a 
-   * parent category to an other. 
+   * Move an archived technique category from a
+   * parent category to an other.
    */
   def moveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
 
   /**
    * Get the root directory where active technique categories are saved.
    */
-  def getRootDirectory : File  
-  
+  def getRootDirectory : File
+
   /**
    * Commit modification done in the Git repository for any
    * category, technique and directive in the
    * active technique library.
-   * Return the git commit id. 
+   * Return the git commit id.
    */
   def commitActiveTechniqueLibrary(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
-  
+
   def getTags() : Box[Map[DateTime,GitArchiveId]]
 }
 
@@ -279,40 +279,40 @@ trait GitActiveTechniqueCategoryArchiver {
  * A specific trait to create archive of an active technique category.
  */
 trait GitActiveTechniqueArchiver {
-  
+
   /**
    * Archive an active technique in a file system
-   * managed by git. 
+   * managed by git.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
-   * 
+   *
    * The archiving will archive as many things as it can, and won't stop
-   * to the first error if other part could be archivied. 
-   * For example, a failing directive won't fail the whole archive, 
-   * but the list of failed directive will be stored. 
-   * 
-   * If an error at the ActiveTechnique happens, the whole archive step is 
+   * to the first error if other part could be archivied.
+   * For example, a failing directive won't fail the whole archive,
+   * but the list of failed directive will be stored.
+   *
+   * If an error at the ActiveTechnique happens, the whole archive step is
    * in error.
    */
   def archiveActiveTechnique(activeTechnique:ActiveTechnique, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[(GitPath, Seq[DirectiveNotArchived])]
-    
+
   /**
-   * Delete an archived active technique. 
+   * Delete an archived active technique.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
   def deleteActiveTechnique(ptName:TechniqueName, parents:List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
-  
+
   /**
-   * Move an archived technique from a 
-   * parent category to an other. 
+   * Move an archived technique from a
+   * parent category to an other.
    */
   def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[(GitPath, Seq[DirectiveNotArchived])]
 
   /**
    * Get the root directory where active technique categories are saved.
    */
-  def getRootDirectory : File  
+  def getRootDirectory : File
 }
 
 /**
@@ -321,7 +321,7 @@ trait GitActiveTechniqueArchiver {
 trait GitDirectiveArchiver {
   /**
    * Archive a directive in a file system
-   * managed by git. 
+   * managed by git.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
@@ -332,9 +332,9 @@ trait GitDirectiveArchiver {
     , variableRootSection: SectionSpec
     , gitCommit          : Option[(ModificationId, PersonIdent,Option[String])]
   ) : Box[GitPath]
-    
+
   /**
-   * Delete an archived directive. 
+   * Delete an archived directive.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
@@ -344,13 +344,13 @@ trait GitDirectiveArchiver {
     , catIds     : List[ActiveTechniqueCategoryId]
     , gitCommit  : Option[(ModificationId, PersonIdent,Option[String])]
   ) : Box[GitPath]
-  
+
   /**
    * Get the root directory where directive are saved.
    * A directive won't be directly under that directory, but
    * will be on the sub-directories matching the category on which they are.
    */
-  def getRootDirectory : File  
+  def getRootDirectory : File
 }
 
 
@@ -361,40 +361,40 @@ trait GitDirectiveArchiver {
  * A specific trait to create archive of an active technique category.
  */
 trait GitNodeGroupCategoryArchiver {
-  
+
   /**
    * Archive a node group category in a file system
-   * managed by git. 
+   * managed by git.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
   def archiveNodeGroupCategory(groupCat:NodeGroupCategory, getParents:List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
-    
+
   /**
-   * Delete an archived node group category. 
+   * Delete an archived node group category.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
   def deleteNodeGroupCategory(groupCatId:NodeGroupCategoryId, getParents:List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
-  
+
   /**
-   * Move an archived node group category from a 
-   * parent category to an other. 
+   * Move an archived node group category from a
+   * parent category to an other.
    */
   def moveNodeGroupCategory(groupCat:NodeGroupCategory, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
 
   /**
    * Get the root directory where node group categories are saved.
    */
-  def getRootDirectory : File  
-  
+  def getRootDirectory : File
+
   /**
    * Commit modification done in the Git repository for any
-   * category and groups. 
-   * Return the git commit id. 
+   * category and groups.
+   * Return the git commit id.
    */
   def commitGroupLibrary(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
-  
+
   def getTags() : Box[Map[DateTime,GitArchiveId]]
 }
 
@@ -402,30 +402,30 @@ trait GitNodeGroupCategoryArchiver {
  * A specific trait to create archive of an user node group.
  */
 trait GitNodeGroupArchiver {
-  
+
   /**
    * Archive an active technique in a file system
-   * managed by git. 
+   * managed by git.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
   def archiveNodeGroup(nodeGroup:NodeGroup, parents:List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
-    
+
   /**
-   * Delete an archived active technique. 
+   * Delete an archived active technique.
    * If gitCommit is true, the modification is
    * saved in git. Else, no modification in git are saved.
    */
   def deleteNodeGroup(nodeGroup:NodeGroupId, parents:List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
-  
+
   /**
-   * Move an archived technique from a 
-   * parent category to an other. 
+   * Move an archived technique from a
+   * parent category to an other.
    */
   def moveNodeGroup(nodeGroup:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
 
   /**
    * Get the root directory where active technique categories are saved.
    */
-  def getRootDirectory : File  
+  def getRootDirectory : File
 }

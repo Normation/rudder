@@ -47,22 +47,22 @@ class TechniqueAcceptationDatetimeUpdater(
     override val name:String
   , activeTechniqueRepo : ActiveTechniqueRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
-  
+
     override def updatedTechniques(TechniqueIds:Seq[TechniqueId], modId: ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
-      val byNames = TechniqueIds.groupBy( _.name ).map { case (name,ids) => 
-                      (name, ids.map( _.version )) 
+      val byNames = TechniqueIds.groupBy( _.name ).map { case (name,ids) =>
+                      (name, ids.map( _.version ))
                     }.toMap
       val acceptationDatetime = DateTime.now()
-                    
+
       byNames.foreach { case( name, versions ) =>
         activeTechniqueRepo.getActiveTechnique(name) match {
-          case e:EmptyBox => 
+          case e:EmptyBox =>
             //OK, that policy package is not in the Active Technique Library, do nothing
             //log in case it was a real problem
             val error = e ?~! ("The Technique with name '%s' has been marked as updated in the Technique Library ".format(name) +
                 "but was not found in the Active Technique Library - it's expected if the technique was not added (or was removed) from Active Technique Library")
             logger.debug(error.messageChain)
-          case Full(activeTechnique) => 
+          case Full(activeTechnique) =>
             logger.debug("Update acceptation datetime for: " + activeTechnique.techniqueName)
             val versionsMap = versions.map( v => (v,acceptationDatetime)).toMap
             activeTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap, modId, actor, reason) match {

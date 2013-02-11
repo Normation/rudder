@@ -47,23 +47,23 @@ trait DatabaseManager {
    * Get the older entry in the report database, and the newest
    */
   def getReportsInterval() : Box[(Option[DateTime], Option[DateTime])]
-  
+
   /**
    * Get the older entry in the archived report database, and the newest
    */
   def getArchivedReportsInterval() : Box[(Option[DateTime], Option[DateTime])]
-  
+
 
   /**
    * Return the reports database size
    */
   def getDatabaseSize() : Box[Long]
-  
+
   /**
    * Return the archive reports database size
    */
   def getArchiveSize() : Box[Long]
-  
+
   /**
    * Archive reports older than target date in archived reports database
    * and delete them from reports database
@@ -79,7 +79,7 @@ trait DatabaseManager {
 class DatabaseManagerImpl(
     reportsRepository : ReportsRepository
   )  extends DatabaseManager with  Loggable {
-  
+
   def getReportsInterval() : Box[(Option[DateTime], Option[DateTime])] = {
     try {
       for {
@@ -94,7 +94,7 @@ class DatabaseManagerImpl(
         Failure(e.getMessage())
     }
   }
-  
+
   def getArchivedReportsInterval() : Box[(Option[DateTime], Option[DateTime])] = {
     try {
       for {
@@ -109,11 +109,11 @@ class DatabaseManagerImpl(
         Failure(e.getMessage())
     }
   }
-  
+
    def getDatabaseSize() : Box[Long] = {
      reportsRepository.getDatabaseSize(reportsRepository.reportsTable)
    }
-   
+
    def getArchiveSize() : Box[Long] = {
      reportsRepository.getDatabaseSize(reportsRepository.archiveTable)
    }

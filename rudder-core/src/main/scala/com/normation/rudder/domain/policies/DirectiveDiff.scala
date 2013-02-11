@@ -51,7 +51,7 @@ final case class DeleteDirectiveDiff(
 ) extends DirectiveDiff with HashcodeCaching
 
 // add and modify are put together
-sealed trait DirectiveSaveDiff extends DirectiveDiff 
+sealed trait DirectiveSaveDiff extends DirectiveDiff
 
 final case class AddDirectiveDiff(
     techniqueName: TechniqueName

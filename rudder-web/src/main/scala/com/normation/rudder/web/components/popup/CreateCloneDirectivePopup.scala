@@ -59,7 +59,7 @@ import com.normation.eventlog.ModificationId
 object CreateCloneDirectivePopup {
   val htmlId_popupContainer = "createCloneDirectiveContainer"
   val htmlId_popup = "createCloneDirectivePopup"
-    
+
   val html =  SHtml.ajaxForm(
   <div id="createCloneDirectiveContainer">
     <div class="simplemodal-title">
@@ -98,7 +98,7 @@ class CreateCloneDirectivePopup(
   onSuccessCallback : (Directive) => JsCmd = { (directive : Directive) => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
-  
+
   private[this] val uuidGen = inject[StringUuidGenerator]
   private[this] val userPropertyService = inject[UserPropertyService]
   private[this] val directiveRepository = inject[DirectiveRepository]
@@ -126,7 +126,7 @@ class CreateCloneDirectivePopup(
       "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"))&
       "#save" #> (SHtml.ajaxSubmit("Clone", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3"))
     )(html ++ Script(OnLoad(JsRaw("correctButtons();"))))
-    
+
   }
 
   ///////////// fields for category settings ///////////////////
@@ -163,7 +163,7 @@ class CreateCloneDirectivePopup(
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val directiveShortDescription = 
+  private[this] val directiveShortDescription =
     new WBTextAreaField("Short description", directive.shortDescription) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
@@ -189,7 +189,7 @@ class CreateCloneDirectivePopup(
   }
 
   private[this] def onSubmit() : JsCmd = {
-    
+
     if(formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
@@ -224,7 +224,7 @@ class CreateCloneDirectivePopup(
 
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
-    updateFormClientSide() 
+    updateFormClientSide()
   }
 
 

@@ -51,16 +51,16 @@ import com.normation.rudder.authorization.NoRights
 
 class Authz extends DispatchSnippet with Loggable {
 
-  
+
   def dispatch = {
     case "render" => testRight
   }
 
-  
-  def testRight(xml:NodeSeq):NodeSeq = 
+
+  def testRight(xml:NodeSeq):NodeSeq =
    S.attr("role") match {
-    
-    case Full(role) if (CurrentUser.checkRights(AuthzToRights.parseAuthz(role).headOption.getOrElse(NoRights))) => xml 
+
+    case Full(role) if (CurrentUser.checkRights(AuthzToRights.parseAuthz(role).headOption.getOrElse(NoRights))) => xml
     case _ => (NodeSeq.Empty)
   }
 }

@@ -43,7 +43,7 @@ import scala.xml._
 
 class NovaLicense(val uuid : String, val licenseNumber : Int, val expirationDate : DateTime, val file : String) {
 
-  def toXml = 
+  def toXml =
     <license>
       <uuid>{uuid}</uuid>
       <licenseNumber>{licenseNumber}</licenseNumber>
@@ -53,9 +53,9 @@ class NovaLicense(val uuid : String, val licenseNumber : Int, val expirationDate
 }
 
 object NovaLicense {
-  
+
   val LOGGER = LoggerFactory.getLogger(classOf[NovaLicense])
-  
+
   def parseXml(node: NodeSeq) : NovaLicense  = {
     LOGGER.info("Reading license of machine {} ", (node\"uuid").text);
     new NovaLicense((node\"uuid").text, (node\"licenseNumber").text.toInt, ISODateTimeFormat.dateTimeParser.parseDateTime((node\"expirationDate").text), (node\"file").text)

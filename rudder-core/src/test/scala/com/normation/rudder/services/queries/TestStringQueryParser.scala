@@ -50,12 +50,12 @@ import com.normation.rudder.services.queries._
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestStringQueryParser {
 
-  
+
   /*
    * our data store:
    * two criteria
-   * 
-   * 
+   *
+   *
    */
   val c1 = Criterion("name", BareComparator(Exists,Greater))
   val c2 = Criterion("id", BareComparator(Equals))
@@ -63,27 +63,27 @@ class TestStringQueryParser {
 
   val oc1 = ObjectCriterion("node", Seq(c1,c2))
   val oc2 = ObjectCriterion("machine", Seq(c3))
-  
+
   val criteria = Map(
     "node" -> oc1,
     "machine" -> oc2
   )
-  
+
   val parser = new DefaultStringQueryParser() {
     override val criterionObjects = criteria
   }
-  
-  
+
+
   val valid1_0 = StringQuery(NodeReturnType, Some("and"), Seq(
       StringCriterionLine("node","name","exists"),
       StringCriterionLine("machine","name","gt",Some("plop")),
       StringCriterionLine("node","id","eq",Some("foo"))
   ))
-  
+
   val valid1_1 = StringQuery(NodeReturnType, Some("and"), Seq())
   val valid1_2 = StringQuery(NodeReturnType, Some("or"), Seq())
   val valid1_3 = StringQuery(NodeReturnType, None, Seq()) //default to and
-  
+
 
   val unvalidComp = StringQuery(NodeReturnType, Some("foo"), Seq())
   val unknowObjectType = StringQuery(NodeReturnType, None, Seq(
@@ -98,11 +98,11 @@ class TestStringQueryParser {
   val missingRequiredValue = StringQuery(NodeReturnType, None, Seq(
       StringCriterionLine("node","name","eq")
   ))
-  
-  
+
+
   @Test
   def basicParsing() {
-    
+
     assertEquals(
       Full(Query(NodeReturnType, And, Seq(
           CriterionLine(oc1,c1,Exists),
@@ -111,7 +111,7 @@ class TestStringQueryParser {
       ))),
       parser.parse(valid1_0)
     )
-  
+
     assertEquals(
       Full(Query(NodeReturnType, And, Seq())),
       parser.parse(valid1_1)
@@ -124,12 +124,12 @@ class TestStringQueryParser {
       Full(Query(NodeReturnType, And, Seq())),
       parser.parse(valid1_3)
     )
-    
+
     assertFalse(parser.parse(unvalidComp).isDefined)
     assertFalse(parser.parse(unknowObjectType).isDefined)
     assertFalse(parser.parse(unknowAttribute).isDefined)
     assertFalse(parser.parse(unknowComparator).isDefined)
     assertFalse(parser.parse(missingRequiredValue).isDefined)
-    
+
   }
 }

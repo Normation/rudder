@@ -58,9 +58,9 @@ class GitParseActiveTechniqueLibrary(
   , xmlMigration        : XmlEntityMigration
   , libRootDirectory    : String //relative name to git root file
   , uptcFileName        : String = "category.xml"
-  , uptFileName         : String = "activeTechniqueSettings.xml"    
+  , uptFileName         : String = "activeTechniqueSettings.xml"
 ) extends ParseActiveTechniqueLibrary {
-  
+
   def getArchive(archiveId:GitCommitId) = {
     for {
       treeId  <- GitFindUtils.findRevTreeFromRevString(repo.db, archiveId.value)
@@ -69,20 +69,20 @@ class GitParseActiveTechniqueLibrary(
       archive
     }
   }
-  
+
 
   private[this] def getArchiveForRevTreeId(revTreeId:ObjectId) = {
 
     val root = {
       val p = libRootDirectory.trim
       if(p.size == 0) ""
-      else if(p.endsWith("/")) p 
-      else p + "/" 
+      else if(p.endsWith("/")) p
+      else p + "/"
     }
 
     //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
     val paths = GitFindUtils.listFiles(repo.db, revTreeId, List(root.substring(0, root.size-1)), Nil)
-        
+
     //directoryPath must end with "/"
     def recParseDirectory(directoryPath:String) : Box[Either[ActiveTechniqueCategoryContent, ActiveTechniqueContent]] = {
 
@@ -94,7 +94,7 @@ class GitParseActiveTechniqueLibrary(
         case (false, false) => Failure("The directory '%s' does not contain '%s' or '%s' and should not have been considered".format(directoryPath,category,template))
         case (true, true) => Failure("The directory '%s' contains both '%s' and '%s' descriptor file. Only one of them is authorized".format(directoryPath, uptcFileName, uptFileName))
         case (true, false) =>
-          // that's the directory of an ActiveTechniqueCategory. 
+          // that's the directory of an ActiveTechniqueCategory.
           // ignore files other than uptcFileName (parsed as an ActiveTechniqueCategory), recurse on sub-directories
           // don't forget to sub-categories and UPT and UPTC
           for {
@@ -121,16 +121,16 @@ class GitParseActiveTechniqueLibrary(
           } yield {
             val subCats = subItems.collect { case Left(x) => x }.toSet
             val upts = subItems.collect { case Right(x) => x }.toSet
-            
+
             val category = uptc.copy(
                 children = subCats.map { case ActiveTechniqueCategoryContent(cat, _, _) => cat.id }.toList
               , items = upts.map { case ActiveTechniqueContent(activeTechnique, _) => activeTechnique.id}.toList
             )
-            
+
             Left(ActiveTechniqueCategoryContent(category, subCats, upts))
           }
-          
-        case (false, true) => 
+
+        case (false, true) =>
           // that's the directory of an ActiveTechnique
           // ignore sub-directories, parse uptFileName as an ActiveTechnique, parse UUID.xml as PI
           // don't forget to add PI ids to UPT
@@ -142,7 +142,7 @@ class GitParseActiveTechniqueLibrary(
             activeTechnique     <- uptUnserialiser.unserialise(uptXml) ?~! "Error when unserializing template for file '%s'".format(template)
             piFiles =  {
                          paths.filter { p =>
-                           p.size > directoryPath.size && 
+                           p.size > directoryPath.size &&
                            p.startsWith(directoryPath) &&
                            p.endsWith(".xml") &&
                            UuidRegex.isValid(p.substring(directoryPath.size, p.size - 4))
@@ -168,18 +168,18 @@ class GitParseActiveTechniqueLibrary(
           }
       }
     }
-    
+
     recParseDirectory(root) match {
       case Full(Left(x)) => Full(x)
-      
-      case Full(Right(x)) => 
+
+      case Full(Right(x)) =>
         Failure("We found an Active Technique where we were expected the root of active techniques library, and so a category. Path: '%s'; found: '%s'".format(
             root, x.activeTechnique))
-      
+
       case Empty => Failure("Error when parsing the root directory for technique library '%s'. Perhaps the '%s' file is missing in that directory, or the saved technique library was not correctly exported".format(
                       root, uptcFileName
                     ) )
-                    
+
       case f:Failure => f
     }
   }

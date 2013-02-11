@@ -44,14 +44,14 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException
 
 /**
  * An utility classes that gives access to the
- * Spring bean registry in a more scala-ish way. 
- * 
+ * Spring bean registry in a more scala-ish way.
+ *
  * See https://www.assembla.com/wiki/show/liftweb/Dependency_Injection
  * to see if it could be better integrated with idiomatic Lift
- * 
+ *
  */
 trait ScalaApplicationContext[C <: ApplicationContext]{
-  
+
   def springContext:C
 
   /**
@@ -60,7 +60,7 @@ trait ScalaApplicationContext[C <: ApplicationContext]{
   val cache = scala.collection.mutable.Map[String, String]()
   /**
    * Inject the service only based on its type.
-   * It is the default operation, but only work for services for which 
+   * It is the default operation, but only work for services for which
    * only one concrete implementation exists in the Spring bean registry.
    */
   def inject[T](implicit m: Manifest[T]) : T = {
@@ -76,7 +76,7 @@ trait ScalaApplicationContext[C <: ApplicationContext]{
   /**
    * Inject the service based on its type and id.
    * Should be avoided when possible, as strings are
-   * brittle when refactoring. 
+   * brittle when refactoring.
    */
   def inject[T](id:String)(implicit m: Manifest[T]) : T = springContext.getBean(id, m.runtimeClass.asInstanceOf[Class[T]])
 
@@ -85,24 +85,24 @@ trait ScalaApplicationContext[C <: ApplicationContext]{
 
 trait ScalaAnnotationConfigApplicationContext extends ScalaApplicationContext[AnnotationConfigApplicationContext] {
   private var _springContext:Option[AnnotationConfigApplicationContext] = None
-  
+
   override def springContext = _springContext.getOrElse(sys.error("No application context has been defined yet"))
-  
+
   def setToNewContext(basePackages: String*) : Unit = {
     _springContext = Some(new AnnotationConfigApplicationContext(basePackages:_*))
   }
-  
+
   def setToNewContext(annotatedClasses:Class[_]) : Unit = {
     _springContext = Some(new AnnotationConfigApplicationContext(annotatedClasses))
   }
 }
 
 trait ScalaWebApplicationContext extends ScalaApplicationContext[WebApplicationContext] {
- 
+
   private var _springContext:Option[WebApplicationContext] = None
-  
+
   override def springContext = _springContext.getOrElse(sys.error("No application context has been defined yet"))
-  
+
   def setToNewContext(webContext:WebApplicationContext) : Unit = {
     webContext match {
       case null => sys.error("Error when getting the application context from the web context. Missing ContextLoaderListener.")

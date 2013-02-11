@@ -75,14 +75,14 @@ class LDAPEntityMapper(
   , inventoryDit   : InventoryDit
   , cmdbQueryParser: CmdbQueryParser
 ) extends Loggable {
-  
-  
+
+
     //////////////////////////////    Node    //////////////////////////////
 
-  
-  
+
+
   def nodeToEntry(node:Node) : LDAPEntry = {
-    val entry = 
+    val entry =
       if(node.isPolicyServer) {
         nodeDit.NODES.NODE.policyServerNodeModel(node.id)
       } else {
@@ -95,26 +95,26 @@ class LDAPEntityMapper(
     entry
   }
 
-  
+
     //////////////////////////////    NodeInfo    //////////////////////////////
 
   val nodeInfoAttributes = Seq(A_OC, A_NODE_UUID, A_HOSTNAME, A_OS_FULL_NAME, A_NAME, A_POLICY_SERVER_UUID, A_LIST_OF_IP, A_OBJECT_CREATION_DATE,A_AGENTS_NAME,A_PKEYS, A_ROOT_USER)
-  
+
   /**
    * From a nodeEntry and an inventoryEntry, create a NodeInfo
-   * 
+   *
    * @param nodeEntry
    * @param inventoryEntry
    * @return
    */
   def convertEntriesToNodeInfos(nodeEntry:LDAPEntry, inventoryEntry:LDAPEntry) : Box[NodeInfo] = {
-    //why not using InventoryMapper ? Some required things for node are not 
+    //why not using InventoryMapper ? Some required things for node are not
     // wanted here ?
-    
+
     for {
       checkIsANode <- if(nodeEntry.isA(OC_RUDDER_NODE)) Full("ok") else Failure("Bad object class, need %s and found %s".format(OC_RUDDER_NODE,nodeEntry.valuesFor(A_OC)))
       checkIsANode <- if(inventoryEntry.isA(OC_NODE)) Full("Ok") else Failure("Bad object class, need %s and found %s".format(OC_NODE,inventoryEntry.valuesFor(A_OC)))
-      checkSameID <- 
+      checkSameID <-
         if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) Full("Ok")
         else Failure("Mismatch id for the node %s and the inventory %s".format(nodeEntry(A_NODE_UUID), inventoryEntry(A_NODE_UUID)))
       id <- nodeDit.NODES.NODE.idFromDn(nodeEntry.dn) ?~! "Bad DN found for a Node: %s".format(nodeEntry.dn)
@@ -131,10 +131,10 @@ class LDAPEntityMapper(
     } yield {
       // fetch the inventory datetime of the object
       val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) match {
-        case None => DateTime.now() 
-        case Some(date) => date.dateTime 
+        case None => DateTime.now()
+        case Some(date) => date.dateTime
       }
-  
+
       NodeInfo(
           id,
           nodeEntry(A_NAME).getOrElse(""),
@@ -142,7 +142,7 @@ class LDAPEntityMapper(
           inventoryEntry(A_HOSTNAME).getOrElse(""),
           //OsType.osTypeFromObjectClasses(inventoryEntry.valuesFor(A_OC)).map(_.toString).getOrElse(""),
           inventoryEntry(A_OS_FULL_NAME).getOrElse(""),
-          inventoryEntry.valuesFor(A_LIST_OF_IP).toList, 
+          inventoryEntry.valuesFor(A_LIST_OF_IP).toList,
           dateTime,
           inventoryEntry(A_PKEYS).getOrElse(""),
           scala.collection.mutable.Seq() ++ agentsName,
@@ -156,8 +156,8 @@ class LDAPEntityMapper(
       )
     }
   }
-  
-  
+
+
   /**
    * Build the ActiveTechniqueCategoryId from the given DN
    */
@@ -167,14 +167,14 @@ class LDAPEntityMapper(
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Active Technique Category ID. Error was: %s".format(dn,e.toString))
     }
   }
-  
+
   def dn2ActiveTechniqueId(dn:DN) : ActiveTechniqueId = {
     rudderDit.ACTIVE_TECHNIQUES_LIB.getActiveTechniqueId(dn) match {
       case Full(value) => ActiveTechniqueId(value)
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Active Technique ID. Error was: %s".format(dn,e.toString))
     }
   }
-  
+
   /**
    * Build the Group Category Id from the given DN
    */
@@ -199,9 +199,9 @@ class LDAPEntityMapper(
     rudderDit.ACTIVE_TECHNIQUES_LIB.getLDAPRuleID(dn) match {
       case Full(value) => DirectiveId(value)
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Directive ID. Error was: %s".format(dn,e.toString))
-    }    
+    }
   }
-  
+
   def dn2RuleId(dn:DN) : RuleId = {
     rudderDit.RULES.getRuleId(dn) match {
       case Full(value) => RuleId(value)
@@ -209,17 +209,17 @@ class LDAPEntityMapper(
     }
   }
 
-  
+
   def nodeDn2OptNodeId(dn:DN) : Box[NodeId] = {
     val rdn = dn.getRDN
     if(!rdn.isMultiValued && rdn.hasAttribute(A_NODE_UUID)) {
       Full(NodeId(rdn.getAttributeValues()(0)))
     } else Failure("Bad RDN for a node, expecting attribute name '%s', got: %s".format(A_NODE_UUID,rdn))
   }
-  
+
   //////////////////////////////    ActiveTechniqueCategory    //////////////////////////////
-  
-  
+
+
   /**
    * children and items are left empty
    */
@@ -230,13 +230,13 @@ class LDAPEntityMapper(
         id <- e(A_TECHNIQUE_CATEGORY_UUID) ?~! "Missing required id (attribute name %s) in entry %s".format(A_TECHNIQUE_CATEGORY_UUID, e)
         name <- e(A_NAME) ?~! "Missing required name (attribute name %s) in entry %s".format(A_NAME, e)
         description = e(A_DESCRIPTION).getOrElse("")
-        isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false) 
+        isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
       } yield {
          ActiveTechniqueCategory(ActiveTechniqueCategoryId(id), name, description, Nil, Nil, isSystem)
       }
     } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_TECHNIQUE_CATEGORY, e))
   }
-  
+
   /**
    * children and items are ignored
    */
@@ -247,31 +247,31 @@ class LDAPEntityMapper(
     entry +=! (A_IS_SYSTEM, category.isSystem.toLDAPString)
     entry
   }
-  
+
   //////////////////////////////    ActiveTechnique    //////////////////////////////
 
   //two utilities to serialize / deserialize Map[TechniqueVersion,DateTime]
   def unserializeAcceptations(value:String):Map[TechniqueVersion, DateTime] = {
     import net.liftweb.json.JsonParser._
     import net.liftweb.json.JsonAST.{JField,JString}
-    
+
     parse(value) match {
       case JObject(fields) =>
-        fields.collect { case JField(version, JString(date)) => 
-          (TechniqueVersion(version) -> GeneralizedTime(date).dateTime) 
+        fields.collect { case JField(version, JString(date)) =>
+          (TechniqueVersion(version) -> GeneralizedTime(date).dateTime)
         }.toMap
       case _ => Map()
     }
   }
-  
+
   def serializeAcceptations(dates:Map[TechniqueVersion,DateTime]) : JObject = {
     import net.liftweb.json.JsonDSL._
-    ( JObject(List()) /: dates) { case (js, (version, date)) => 
+    ( JObject(List()) /: dates) { case (js, (version, date)) =>
       js ~ (version.toString -> GeneralizedTime(date).toString)
     }
   }
-  
-  
+
+
   /**
    * Build a ActiveTechnique from and LDAPEntry.
    * children directives are left empty
@@ -290,10 +290,10 @@ class LDAPEntityMapper(
       }
     } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_TECHNIQUE_CATEGORY, e))
   }
-  
+
   def activeTechnique2Entry(activeTechnique:ActiveTechnique, parentDN:DN) : LDAPEntry = {
     val entry = rudderDit.ACTIVE_TECHNIQUES_LIB.activeTechniqueModel(
-        activeTechnique.id.value, 
+        activeTechnique.id.value,
         parentDN,
         activeTechnique.techniqueName,
         serializeAcceptations(activeTechnique.acceptationDatetimes),
@@ -302,10 +302,10 @@ class LDAPEntityMapper(
     )
     entry
   }
-  
+
    //////////////////////////////    NodeGroupCategory    //////////////////////////////
-  
-  
+
+
   /**
    * children and items are left empty
    */
@@ -322,7 +322,7 @@ class LDAPEntityMapper(
       }
     } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(A_GROUP_CATEGORY_UUID, e))
   }
-  
+
   /**
    * children and items are ignored
    */
@@ -333,13 +333,13 @@ class LDAPEntityMapper(
     entry +=! (A_IS_SYSTEM, category.isSystem.toLDAPString)
     entry
   }
-  
+
   ////////////////////////////////// Node Group //////////////////////////////////
-  
+
    /**
    * Build a ActiveTechnique from and LDAPEntry.
    */
-  def entry2NodeGroup(e:LDAPEntry) : Box[NodeGroup] = {   
+  def entry2NodeGroup(e:LDAPEntry) : Box[NodeGroup] = {
     if(e.isA(OC_RUDDER_NODE_GROUP)) {
       //OK, translate
       for {
@@ -351,7 +351,7 @@ class LDAPEntityMapper(
           case None => Full(None)
           case Some(q) => cmdbQueryParser(q) match {
             case Full(x) => Full(Some(x))
-            case eb:EmptyBox => 
+            case eb:EmptyBox =>
               val error = eb ?~! "Error when parsing query for node group persisted at DN '%s' (name: '%s'), that seems to be an inconsistency. You should modify that group".format(
                   e.dn, name
               )
@@ -368,8 +368,8 @@ class LDAPEntityMapper(
       }
     } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_TECHNIQUE_CATEGORY, e))
   }
-  
-  
+
+
   //////////////////////////////    Special Policy target info    //////////////////////////////
 
   def entry2RuleTargetInfo(e:LDAPEntry) : Box[RuleTargetInfo] = {
@@ -399,7 +399,7 @@ class LDAPEntityMapper(
   //////////////////////////////    Directive    //////////////////////////////
 
   def entry2Directive(e:LDAPEntry) : Box[Directive] = {
-    
+
     if(e.isA(OC_DIRECTIVE)) {
       //OK, translate
       for {
@@ -415,20 +415,20 @@ class LDAPEntityMapper(
         isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
       } yield {
         Directive(
-            DirectiveId(id), version, params, name, 
+            DirectiveId(id), version, params, name,
             shortDescription,longDescription,priority, isEnabled, isSystem
         )
       }
     } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_DIRECTIVE, e))
   }
-  
+
   def userDirective2Entry(directive:Directive, parentDN:DN) : LDAPEntry = {
     val entry = rudderDit.ACTIVE_TECHNIQUES_LIB.directiveModel(
-        directive.id.value, 
+        directive.id.value,
         directive.techniqueVersion,
         parentDN
     )
-    
+
     entry +=! (A_DIRECTIVE_VARIABLES, policyVariableToSeq(directive.parameters):_*)
     entry +=! (A_NAME, directive.name)
     entry +=! (A_DESCRIPTION, directive.shortDescription)
@@ -437,8 +437,8 @@ class LDAPEntityMapper(
     entry +=! (A_IS_ENABLED, directive.isEnabled.toLDAPString)
     entry +=! (A_IS_SYSTEM, directive.isSystem.toLDAPString)
     entry
-  }  
-  
+  }
+
   //////////////////////////////    Rule    //////////////////////////////
   def entry2OptTarget(optValue:Option[String]) : Box[Option[RuleTarget]] = {
     (for {
@@ -452,19 +452,19 @@ class LDAPEntityMapper(
       case f:Failure => f
     }
   }
-  
+
   def entry2Rule(e:LDAPEntry) : Box[Rule] = {
-    
+
     if(e.isA(OC_RULE)) {
       for {
-        id     <- e(A_RULE_UUID) ?~! 
+        id     <- e(A_RULE_UUID) ?~!
                   "Missing required attribute %s in entry %s".format(A_RULE_UUID, e)
-        serial <- e.getAsInt(A_SERIAL) ?~! 
+        serial <- e.getAsInt(A_SERIAL) ?~!
                   "Missing required attribute %s in entry %s".format(A_SERIAL, e)
       } yield {
         val targets = for {
           target <- e.valuesFor(A_RULE_TARGET)
-          optionRuleTarget <- entry2OptTarget(Some(target)) ?~! 
+          optionRuleTarget <- entry2OptTarget(Some(target)) ?~!
             "Invalid attribute %s for entry %s.".format(target, A_RULE_TARGET)
           ruleTarget <- optionRuleTarget
         } yield {
@@ -476,7 +476,7 @@ class LDAPEntityMapper(
         val longDescription = e(A_LONG_DESCRIPTION).getOrElse("")
         val isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         val isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-        
+
         Rule(
             RuleId(id), name, serial, targets, directiveIds,
             shortDescription, longDescription, isEnabled, isSystem
@@ -487,25 +487,25 @@ class LDAPEntityMapper(
           .format(OC_RULE, e))
     }
   }
-  
-  
+
+
   /**
    * Map a rule to an LDAP Entry.
-   * WARN: serial is NEVER mapped. 
+   * WARN: serial is NEVER mapped.
    */
   def rule2Entry(rule:Rule) : LDAPEntry = {
     val entry = rudderDit.RULES.ruleModel(
-        rule.id.value, 
+        rule.id.value,
         rule.name,
         rule.isEnabledStatus,
         rule.isSystem
     )
-    
+
     entry +=! (A_RULE_TARGET, rule.targets.map( _.target).toSeq :_* )
     entry +=! (A_DIRECTIVE_UUID, rule.directiveIds.map( _.value).toSeq :_* )
     entry +=! (A_DESCRIPTION, rule.shortDescription)
     entry +=! (A_LONG_DESCRIPTION, rule.longDescription.toString)
     entry
-  }  
-  
+  }
+
 }

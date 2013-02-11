@@ -48,13 +48,13 @@ class CategoryHierarchyDisplayer(
   def getCategoriesHierarchy() : Seq[(NodeGroupCategoryId, String)] = {
     groupCategoryRepository.getCategoryHierarchy match {
       case Full(categories) => categories.toSeq.map {
-        case (list, nodeGroupCategory) => 
+        case (list, nodeGroupCategory) =>
           list.size match {
             case level if level<=1  => (nodeGroupCategory.id, nodeGroupCategory.name)
             case level => (nodeGroupCategory.id, ("\u00a0\u00a0\u00a0\u00a0\u00a0"*(level-2) + "\u2514"+"\u2500 " + nodeGroupCategory.name))
           }
         }
       case e:EmptyBox => Seq()
-    } 
+    }
   }
 }

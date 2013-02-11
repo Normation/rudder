@@ -47,13 +47,13 @@ import com.normation.rudder.domain.logger.ApplicationLogger
  */
 @Configuration
 class PropertyPlaceholderConfig {
-  
-  
+
+
   val JVM_CONFIG_FILE_KEY = "rudder.configFile"
   val DEFAULT_CONFIG_FILE_NAME = "configuration.properties"
-  
+
   val logger = LoggerFactory.getLogger(classOf[PropertyPlaceholderConfig])
-  
+
   @Bean def propertyConfigurer : PropertyPlaceholderConfigurer = {
     val configurer = new PropertyPlaceholderConfigurer()
     configurer.setIgnoreUnresolvablePlaceholders(true)
@@ -71,7 +71,7 @@ class PropertyPlaceholderConfig {
           throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
         }
     }
-    
+
     configurer
   }
 }

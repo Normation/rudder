@@ -42,15 +42,15 @@ import net.liftweb.common._
 class InventoryEventLogServiceImpl(
     repository : EventLogRepository
 ) extends InventoryEventLogService {
-  
-  
+
+
   /**
    * Returns all the inventory related event log
    * @return
    */
   def getInventoryEventLogs() : Box[Seq[InventoryEventLog]] = {
     repository.getEventLogByCriteria(Some(" eventType in ('AcceptNode', 'RefuseNode', 'DeleteNode')")) match {
-      case Full(seq) => 
+      case Full(seq) =>
         val result = scala.collection.mutable.Buffer[InventoryEventLog]()
         for (log <- seq) {
           log match {

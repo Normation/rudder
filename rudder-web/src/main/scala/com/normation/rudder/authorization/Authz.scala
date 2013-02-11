@@ -36,9 +36,9 @@ package com.normation.rudder.authorization
 import com.normation.authorization._
 
 /**
- * That file describe the UI available roles and bounded authorization. 
- * For now, they are kind of ad-hoc, but some of the logic 
- * could be generalized to build a full 
+ * That file describe the UI available roles and bounded authorization.
+ * For now, they are kind of ad-hoc, but some of the logic
+ * could be generalized to build a full
  */
 
 // list of know rights
@@ -89,7 +89,7 @@ object AuthzToRights {
       case role => parseAuthz(role)
     }): _*)
   }
-    
+
   def parseAuthz(role : String) : List[AuthorizationType] = {
 	  val authz = """(.*)_(.*)""".r
      role.toLowerCase() match {

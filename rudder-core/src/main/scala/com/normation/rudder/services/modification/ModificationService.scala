@@ -23,20 +23,20 @@ class ModificationService(
       }
     }
   }
-  
+
   def restoreToEventLog(eventLog:EventLog, commiter:PersonIdent, rollbackedEvents:Seq[EventLog], target:EventLog) = {
     for {
-      commit   <-  getCommitsfromEventLog(eventLog) 
+      commit   <-  getCommitsfromEventLog(eventLog)
       rollback <- itemArchiveManager.rollback(commit, commiter, ModificationId(uuidGen.newUuid), eventLog.principal, None, rollbackedEvents, target, "after", false)
     } yield {
       rollback
     }
-  
+
   }
-  
+
   def restoreBeforeEventLog(eventLog:EventLog, commiter:PersonIdent, rollbackedEvents:Seq[EventLog], target:EventLog) = {
     for {
-      commit   <-  getCommitsfromEventLog(eventLog) 
+      commit   <-  getCommitsfromEventLog(eventLog)
       parentCommit = GitCommitId(commit.value+"^")
       rollback <- itemArchiveManager.rollback(parentCommit, commiter, ModificationId(uuidGen.newUuid), eventLog.principal, None, rollbackedEvents, target, "before", false)
     } yield { val parentCommit = GitCommitId(commit.value+"^")

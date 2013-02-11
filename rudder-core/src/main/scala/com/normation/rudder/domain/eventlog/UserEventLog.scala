@@ -51,15 +51,15 @@ sealed trait UserEventLog extends EventLog {
 final case class LoginEventLog(
     override val eventDetails : EventLogDetails
 ) extends UserEventLog with HashcodeCaching {
-  
+
   override val eventType = LoginEventLog.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object LoginEventLog extends EventLogFilter {
   override val eventType = LoginEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : LoginEventLog = LoginEventLog(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : LoginEventLog = LoginEventLog(x._2)
 }
 
 final case class BadCredentialsEventLog(
@@ -72,23 +72,23 @@ final case class BadCredentialsEventLog(
 
 object BadCredentialsEventLog extends EventLogFilter {
   override val eventType = BadCredentialsEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : BadCredentialsEventLog = BadCredentialsEventLog(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : BadCredentialsEventLog = BadCredentialsEventLog(x._2)
 }
 
 
 final case class LogoutEventLog(
     override val eventDetails : EventLogDetails
 ) extends UserEventLog with HashcodeCaching {
-  
+
   override val eventType = LogoutEventLog.eventType
   override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object LogoutEventLog extends EventLogFilter {
   override val eventType = LogoutEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : LogoutEventLog = LogoutEventLog(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : LogoutEventLog = LogoutEventLog(x._2)
 }
 
 

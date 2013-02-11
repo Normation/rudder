@@ -44,15 +44,15 @@ import com.normation.eventlog.ModificationId
 
 
 /**
- * 
- * When the application is first initialized, we want to set the 
- * content of configuration-repository file to a consistant state, 
+ *
+ * When the application is first initialized, we want to set the
+ * content of configuration-repository file to a consistant state,
  * especially for directives/rules/groups, where we want to have
  * all system categories and entities saved (else, we are going
- * to have some surprise on the first import). 
- * 
- * So, if a full export wasn't done until know, just do one. 
- * 
+ * to have some surprise on the first import).
+ *
+ * So, if a full export wasn't done until know, just do one.
+ *
  */
 class CheckInitXmlExport(
     itemArchiveManager: ItemArchiveManager
@@ -85,7 +85,7 @@ class CheckInitXmlExport(
         fail.rootExceptionCause.foreach { t =>
           logger.error("Root exception was:", t)
         }
-        
+
       case Full(Full(_)) =>
         logger.info("First full archive of configuration-repository items done")
     }

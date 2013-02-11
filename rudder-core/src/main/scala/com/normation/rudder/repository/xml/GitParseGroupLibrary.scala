@@ -61,7 +61,7 @@ class GitParseGroupLibrary(
   , libRootDirectory    : String //relative name to git root file
   , categoryFileName    : String = "category.xml"
 ) extends ParseGroupLibrary {
-  
+
   def getArchive(archiveId:GitCommitId) = {
     for {
       treeId  <- GitFindUtils.findRevTreeFromRevString(repo.db, archiveId.value)
@@ -76,21 +76,21 @@ class GitParseGroupLibrary(
     val root = {
       val p = libRootDirectory.trim
       if(p.size == 0) ""
-      else if(p.endsWith("/")) p 
-      else p + "/" 
+      else if(p.endsWith("/")) p
+      else p + "/"
     }
-        
+
     //// BE CAREFUL: GIT DOES NOT LIST DIRECTORIES
     val paths = GitFindUtils.listFiles(repo.db, revTreeId, List(root.substring(0, root.size-1)), Nil)
-    
+
     //directoryPath must end with "/"
     def recParseDirectory(directoryPath:String) : Box[NodeGroupCategoryContent] = {
-      
+
       val categoryPath = directoryPath + categoryFileName
 
-      // that's the directory of an NodeGroupCategory. 
+      // that's the directory of an NodeGroupCategory.
       // ignore files other than NodeGroup (UUID.xml) and directories
-      // don't forget to recurse sub-categories 
+      // don't forget to recurse sub-categories
       for {
         xml          <- GitFindUtils.getFileContent(repo.db, revTreeId, categoryPath){ inputStream =>
                           XmlUtils.parseXml(inputStream, Some(categoryPath)) ?~! "Error when parsing file '%s' as a category".format(categoryPath)
@@ -133,10 +133,10 @@ class GitParseGroupLibrary(
       } yield {
         val s = subCats.toSet
         val g = groups.toSet
-        
+
         val cat = category.copy(
             children = s.map { _.category.id }.toList
-          , items = g.map { x => 
+          , items = g.map { x =>
                       RuleTargetInfo(
                           target      = GroupTarget(x.id)
                         , name        = x.name
@@ -146,11 +146,11 @@ class GitParseGroupLibrary(
                       )
                     }.toList
         )
-        
+
         NodeGroupCategoryContent(cat, s, g)
       }
     }
-    
+
     recParseDirectory(root)
   }
 }

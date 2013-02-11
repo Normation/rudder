@@ -85,7 +85,7 @@ class LogDisplayer(
   private val gridName = "logsGrid"
 
 
-  def asyncDisplay(nodeId : NodeId, withinPopup : Boolean) : NodeSeq = { 
+  def asyncDisplay(nodeId : NodeId, withinPopup : Boolean) : NodeSeq = {
       Script(OnLoad(JsRaw("""
               | $("#%s").bind( "show", function(event, ui) {
               | if(ui.panel.id== '%s') { %s; }
@@ -96,7 +96,7 @@ class LogDisplayer(
        )))
       )
   }
-    
+
   def display(nodeId : NodeId) : NodeSeq = {
     val PIMap = mutable.Map[DirectiveId, String]()
     val CRMap = mutable.Map[RuleId, String]()
@@ -104,11 +104,11 @@ class LogDisplayer(
     def getPIName(directiveId : DirectiveId) : String = {
       PIMap.get(directiveId).getOrElse({val result = directiveRepository.getDirective(directiveId).map(_.name).openOr(directiveId.value); PIMap += ( directiveId -> result); result } )
     }
-  
+
     def getCRName(ruleId : RuleId) : String = {
       CRMap.get(ruleId).getOrElse({val result = ruleRepository.get(ruleId).map(x => x.name).openOr(ruleId.value); CRMap += ( ruleId -> result); result } )
     }
-  
+
     val lines = reportRepository.findReportsByNode(nodeId, None, None, None, None).flatMap {
           case Reports(executionDate, ruleId, directiveId, nodeId, serial, component, keyValue, executionTimestamp, severity, message) =>
            <tr>
@@ -121,9 +121,9 @@ class LogDisplayer(
             <td>{message}</td>
            </tr>
         }
-     
+
     ("tbody *" #> lines).apply(content)
-    
+
   }
 
   /**
@@ -160,7 +160,7 @@ class LogDisplayer(
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
-            $('.dataTables_filter input').attr("placeholder", "Search"); 
+            $('.dataTables_filter input').attr("placeholder", "Search");
             """.format(gridName,extension, gridName).replaceAll("#table_var#",jsVarNameForId(gridName))
         )
     )

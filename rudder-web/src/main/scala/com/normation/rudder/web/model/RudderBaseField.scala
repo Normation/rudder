@@ -51,7 +51,7 @@ import JsCmds._
 //ignore for now
 //class ErrorHolder extends Bindable with FieldContainer {
 //  type GlobalError = NodeSeq
-//  
+//
 //  private val errorHtml =
 //   <div class="errors">
 //      <errors:header/>
@@ -63,38 +63,38 @@ import JsCmds._
 //        </div>
 //      </errors:globalErrors>
 //    </div>
-//  
-//  private[this] val fields = Buffer[BaseField]()  
+//
+//  private[this] val fields = Buffer[BaseField]()
 //  private[this] val _validations = Buffer[Seq[BaseField] => List[GlobalError]]
-//  
+//
 //  def registerField(field:BaseField) : Unit = fields += field
-//  
+//
 //  def registerValidation(validation:Seq[BaseField] => List[GlobalError]) : Unit = _validations += validation
 //}
 
 
 /**
  * A simple class that allows to register error information
- * about a form and its fields 
+ * about a form and its fields
  */
 class FormTracker(private[this] var _fields : List[RudderBaseField] = Nil) extends FieldContainer {
-  
+
   def this(fields:RudderBaseField*) = this(fields.toList)
-  
+
   type FormError = NodeSeq
-  
+
   private[this] var _formErrors = List.empty[FormError]
-  
+
   override def allFields = _fields.toList
-  
+
   def register(field:RudderBaseField) : Unit = _fields ::= field
-  
-  def fieldErrors : Map[RudderBaseField, List[FieldError]] = _fields.map { f => (f -> f.errors) }.toMap 
-  
+
+  def fieldErrors : Map[RudderBaseField, List[FieldError]] = _fields.map { f => (f -> f.errors) }.toMap
+
   def formErrors : List[FormError] = _formErrors
-  
+
   def addFormError(error:FormError) = _formErrors ::= error
-  
+
   /**
    * A form has error if it has global error or one of the registered
    * fields has error
@@ -102,7 +102,7 @@ class FormTracker(private[this] var _fields : List[RudderBaseField] = Nil) exten
   def hasErrors = {
     _formErrors.nonEmpty || _fields.exists( _.hasErrors )
   }
-  
+
   /**
    * Clean errors on the tracker and each fields
    */
@@ -110,7 +110,7 @@ class FormTracker(private[this] var _fields : List[RudderBaseField] = Nil) exten
     _formErrors = Nil
     _fields.foreach { _.cleanErrors }
   }
-  
+
   /**
    * Reinit the formTracker and all its registered field
    */
@@ -118,14 +118,14 @@ class FormTracker(private[this] var _fields : List[RudderBaseField] = Nil) exten
     _formErrors = Nil
     _fields.foreach { _.cleanErrors }
   }
-  
+
 }
 
 
 /**
  * An abstract field that allows to generate form elements and
  * manage/display errors for them.
- * 
+ *
  * Concrete field instance must gives:
  * - a ValueType
  * - a name (display name) for the field
@@ -149,7 +149,7 @@ abstract class RudderBaseField extends BaseField {
   protected var value = defaultValue
   override def is = value
   override def set(in:ValueType) : ValueType = {
-    value = (in /: setFilter)( (currentVal,currentFilter) => currentFilter(currentVal) ) 
+    value = (in /: setFilter)( (currentVal,currentFilter) => currentFilter(currentVal) )
     validate
     value
   }
@@ -158,8 +158,8 @@ abstract class RudderBaseField extends BaseField {
   protected var _errors = List.empty[FieldError]
   def errors = _errors
   def hasErrors = _errors.nonEmpty
-  def cleanErrors : Unit = _errors = Nil  
-  
+  def cleanErrors : Unit = _errors = Nil
+
   //The human readable name for the field
   def name : String
   //The actual input field - do not set its ID, it's given
@@ -171,23 +171,23 @@ abstract class RudderBaseField extends BaseField {
   def labelClassName : String = "threeCol"
   def errorClassName : String = "threeColErrors"
   ///////// method to optionnaly override //////////
-  
+
   // add some HTLM to help the user to fill that field
   override def helpAsHtml: Box[NodeSeq] = Empty
   // override the field name look
   override def displayNameHtml: Box[NodeSeq] = {
     validations match {
-      case Nil => Some(<b>{displayName}:</b>) 
-      case _ => Some(<b>{displayName}: *</b>) 
+      case Nil => Some(<b>{displayName}:</b>)
+      case _ => Some(<b>{displayName}: *</b>)
     }
   }
   //optionnaly override validate to add validation functions
   override def validations = List.empty[ValueType => List[FieldError]]
   // override to add setFilter
   override def setFilter = List.empty[ValueType => ValueType]
-  
+
   ////// other method //////
-  
+
   protected lazy val id = Helpers.nextFuncName
   override lazy val uniqueFieldId: Box[String] = Full(id)
   override lazy val fieldId : Option[NodeSeq] = Some(Text(id))
@@ -197,10 +197,10 @@ abstract class RudderBaseField extends BaseField {
     _errors
   }
   override def get = is
-  
+
   override def toForm = Full(toForm_!)
-  
-  def toForm_! = bind("field", 
+
+  def toForm_! = bind("field",
     <div class="wbBaseField">
       <label for={id} class={labelClassName + " wbBaseFieldLabel textright"}><field:label /></label>
       <div class={subContainerClassName}>
@@ -210,32 +210,32 @@ abstract class RudderBaseField extends BaseField {
       </div>
     </div>,
     "label" -> displayHtml,
-    "input" -> { 
+    "input" -> {
       errors match {
         case Nil => inputField % ( "id" -> id) % ("class" -> className)
-        case l => 
-          val c = className + " errorInput" 
-          inputField % ( "id" -> id) % ("class" -> c) 
+        case l =>
+          val c = className + " errorInput"
+          inputField % ( "id" -> id) % ("class" -> c)
       }
     },
     "infos" -> (helpAsHtml openOr NodeSeq.Empty),
     "errors" -> {
       errors match {
         case Nil => NodeSeq.Empty
-        case l => 
+        case l =>
           <span class={errorClassName}><ul class="field_errors paddscala">{
             l.map(e => <li class="field_error lopaddscala">{e.msg}</li>)
           }</ul></span>
       }
     }
-  )  
+  )
 }
 
 class WBTextField(override val name:String, override val defaultValue:String = "") extends RudderBaseField with StringValidators {
   type ValueType = String
 
   def inputField : Elem = SHtml.text(value, set _)
-  
+
   protected def valueTypeToBoxString(in: ValueType): Box[String] = Full(in)
   protected def boxStrToValType(in: Box[String]): ValueType = in openOr("")
 
@@ -246,7 +246,7 @@ class WBTextAreaField(override val name:String, override val defaultValue:String
   type ValueType = String
 
   def inputField : Elem = SHtml.textarea(value, set _)
-  
+
   protected def valueTypeToBoxString(in: ValueType): Box[String] = Full(in)
   protected def boxStrToValType(in: Box[String]): ValueType = in openOr("")
 
@@ -256,7 +256,7 @@ class WBTextAreaField(override val name:String, override val defaultValue:String
 class WBCheckboxField(override val name:String, override val defaultValue:Boolean = false, val attrs : Seq[(String, String)] = Seq()) extends RudderBaseField {
   type ValueType = Boolean
 
-  def inputField : Elem = <span>{SHtml.checkbox(value, set _, (attrs: Seq[ElemAttr]) :_*)}</span>  
+  def inputField : Elem = <span>{SHtml.checkbox(value, set _, (attrs: Seq[ElemAttr]) :_*)}</span>
 }
 
 
@@ -270,9 +270,9 @@ class WBSelectField(override val name:String, val opts : Seq[(String, String)], 
       Empty
     }
   }
-  
+
   def inputField : Elem = SHtml.select(opts, defaultVal, set _, attrs:_*)
-  
+
 //  protected def valueTypeToBoxString(in: ValueType): Box[String] = Full(in)
 //  protected def boxStrToValType(in: Box[String]): ValueType = in openOr("")
 
@@ -287,14 +287,14 @@ class WBSelectObjField[T](override val name:String, val opts : Seq[(T, String)],
     else
       Empty
   }
-  
-  def inputField : Elem = SHtml.selectObj[T](opts, defaultVal, set _, attrs:_*)  
+
+  def inputField : Elem = SHtml.selectObj[T](opts, defaultVal, set _, attrs:_*)
 }
 
 class WBRadioField(
-    override val name:String, 
-    val opts : Seq[String], 
-    override val defaultValue:String = "", 
+    override val name:String,
+    val opts : Seq[String],
+    override val defaultValue:String = "",
     val displayChoiceLabel: String => NodeSeq = {label =>Text(label) },
     val tabindex : Option[Int] = None
 ) extends RudderBaseField with StringValidators {
@@ -310,19 +310,19 @@ class WBRadioField(
     case Some(i) => ("tabindex" , i.toString) :: Nil
     case None    => Nil
   } }
-  
+
   def choiceHolder: ChoiceHolder[String] = SHtml.radio(opts, Full(value),  set _ , parameters:_*)
-  
+
   def inputField : Elem = {
     <div>
-      {choiceHolder.flatMap { c => 
+      {choiceHolder.flatMap { c =>
        <span>
          <label>{c.xhtml}<span class="radioTextLabel">{displayChoiceLabel(c.key)}</span></label>
        </span>
       }}
     </div>
   }
-  
+
   protected def valueTypeToBoxString(in: ValueType): Box[String] = Full(in)
   protected def boxStrToValType(in: Box[String]): ValueType = in openOr("")
 

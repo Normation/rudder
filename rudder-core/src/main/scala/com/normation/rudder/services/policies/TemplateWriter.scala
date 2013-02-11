@@ -56,66 +56,66 @@ trait TemplateWriter extends Loggable {
 
   /**
    * Write data specific from the roles
-   */ 
+   */
   def writeSpecificsData(nodeConfiguration : NodeConfiguration, newMachineFolder:String) : Unit = {
     /*nodeConfiguration match {
-        case CopyFile(x) => 
+        case CopyFile(x) =>
           for (fileName <- x.fileNames) {
             createSymLink(fileName, newMachineFolder)
           }
         case _ => ;
       }*/
   }
-  
-  
+
+
   def writeLicense(nodeConfiguration : NodeConfiguration, newMachineFolder:String) : Unit = {
     logger.debug("Writing licence for nodeConfiguration  " + nodeConfiguration.id);
     nodeConfiguration.isPolicyServer match {
       case true =>  copyLicenseFile(nodeConfiguration.id, newMachineFolder)
-                
-      
+
+
       case false => copyLicenseFile(nodeConfiguration.targetMinimalNodeConfig.policyServerId, newMachineFolder)
     }
   }
-  
+
   private def copyLicenseFile(nodeConfigurationid: String, newMachineFolder:String) : Unit = {
     licenseRepository.findLicense(nodeConfigurationid) match {
       case None => throw new Exception("Could not find license file")
-      case Some(license) => 
+      case Some(license) =>
         val licenseFile = new File(license.file)
         if (licenseFile.exists) {
           val destFile = FilenameUtils.normalize(newMachineFolder + "/license.dat")
           FileUtils.copyFile(licenseFile, new File(destFile) )
         } else {
           logger.error("Could not find the license file %s for server %s".format(license.file, nodeConfigurationid))
-          throw new Exception("Could not find license file " +license.file) 
+          throw new Exception("Could not find license file " +license.file)
         }
     }
   }
-  
-  
+
+
   /**
    * Create a sym link from a file to the folder of a nodeConfiguration
-   * The goal is when we want to deploy a file on several nodeConfigurations, we simply create a link 
+   * The goal is when we want to deploy a file on several nodeConfigurations, we simply create a link
    * on the server, that will get followed
    */
   private def createSymLink(fileName :  String, newMachineFolder:String) : Unit = {
     val source = FilenameUtils.normalize(getSharesFolder() + "/" + fileName)
     val dest = FilenameUtils.normalize(newMachineFolder + "/shares/" + fileName)
     FileUtils.forceMkdir( new File(FilenameUtils.normalize(newMachineFolder + "/shares/")))
-    
+
     val command = Array[String]("ln", "-fs", "source", "dest")
 
     //val exec ="ln"+" -fs "+source+" " +dest
-    
+
     val process = Runtime.getRuntime().exec(command);
 
     if (process.waitFor() != 0) {
       logger.error("Couldn't successfully create the link exec")
       throw new IOException("Couldn't link file " + source)
     }
-          
+
     logger.info("Making a link from " + source + " to " + newMachineFolder  + "/shares/" +fileName );
-    
-  }  
+
+  }
 }

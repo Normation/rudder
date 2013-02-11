@@ -49,7 +49,7 @@ import com.normation.utils.Control.sequenceEmptyable
 
 trait RuleValService {
   def findRuleVal(ruleId:RuleId) : Box[RuleVal]
-  
+
 }
 
 
@@ -59,7 +59,7 @@ class RuleValServiceImpl (
   val techniqueRepository : TechniqueRepository,
   val variableBuilderService: VariableBuilderService
 ) extends RuleValService with Loggable {
- 
+
   private[this] def getContainer(piId : DirectiveId, ruleId:RuleId) : Box[DirectiveVal]= {
     directiveRepo.getDirective(piId) match {
       case e:EmptyBox => e
@@ -77,7 +77,7 @@ class RuleValServiceImpl (
               otherVars = vared - policyPackage.trackerVariableSpec.name
               } yield {
                 logger.debug("Creating a DirectiveContainer %s from the configurationRuleId %s".format(upt.techniqueName, ruleId))
-              
+
                 DirectiveVal(
                     policyPackage.id,
                     upt.id,
@@ -89,12 +89,12 @@ class RuleValServiceImpl (
               }
         }
     }
-  } 
-  
+  }
+
   override def findRuleVal(ruleId:RuleId) : Box[RuleVal] = {
     for {
       rule         <- ruleRepo.get(ruleId)
-      targets      = rule.targets 
+      targets      = rule.targets
       directiveIds = rule.directiveIds.toSeq
       containers   <- sequenceEmptyable(directiveIds) { getContainer(_, ruleId) }
     } yield {
@@ -105,5 +105,5 @@ class RuleValServiceImpl (
         rule.serial
       )
     }
-  } 
+  }
 }

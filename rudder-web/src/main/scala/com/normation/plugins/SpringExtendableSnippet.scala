@@ -50,9 +50,9 @@ trait SpringExtendableSnippet[T] extends ExtendableSnippet[T] {
   override def beforeSnippetExtensionSeq : Seq[SnippetExtensionPoint[T]] = {
     extensionRegister.getBeforeRenderExtension(this.extendsAt)
   }
-    
+
   override def afterSnippetExtensionSeq : Seq[SnippetExtensionPoint[T]] = {
     extensionRegister.getAfterRenderExtension(this.extendsAt)
   }
-  
+
 }

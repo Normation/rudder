@@ -46,27 +46,27 @@ import com.normation.utils.HashcodeCaching
 /**
  * This trait is the general interface that
  * transform Query represented as string into
- * our internal Query object. 
- * Most of the time, the query parsing will be in 
+ * our internal Query object.
+ * Most of the time, the query parsing will be in
  * two times (lexing and parsing)
- * 
+ *
  */
 
 //only string version of the query - no domain here
-case class StringCriterionLine(objectType:String, attribute:String, comparator:String, value:Option[String]=None) extends HashcodeCaching 
-case class StringQuery(returnType:QueryReturnType,composition:Option[String],criteria:Seq[StringCriterionLine]) extends HashcodeCaching 
+case class StringCriterionLine(objectType:String, attribute:String, comparator:String, value:Option[String]=None) extends HashcodeCaching
+case class StringQuery(returnType:QueryReturnType,composition:Option[String],criteria:Seq[StringCriterionLine]) extends HashcodeCaching
 
 object CmdbQueryParser {
   //query attribute
   val TARGET = "select"
   val COMPOSITION = "composition"
   val CRITERIA = "where"
-  
+
   //criterion attribute
   val OBJECT = "objectType"
   val ATTRIBUTE = "attribute"
   val COMPARATOR = "comparator"
-  val VALUE = "value"  
+  val VALUE = "value"
 }
 
 trait QueryLexer {
@@ -90,23 +90,23 @@ trait CmdbQueryParser extends StringQueryParser with QueryLexer {
 /**
  * Some default behaviour:
  * - default composition is AND
- * 
+ *
  */
 trait DefaultStringQueryParser extends StringQueryParser {
-  
+
   def criterionObjects : Map[String,ObjectCriterion]
-  
+
   override def parse(query:StringQuery) : Box[Query] = {
-  
+
     val comp = query.composition match {
       case None => And
       case Some(s) => CriterionComposition.parse(s).getOrElse(
           return Failure("The requested composition '%s' is not know".format(query.composition))
       )
     }
-    
+
     val lines = ( (Full(List()):Box[List[CriterionLine]]) /: query.criteria.toList ){
-      (opt,x) => opt.flatMap(l => parseLine(x).map( _::l ) ) 
+      (opt,x) => opt.flatMap(l => parseLine(x).map( _::l ) )
     } match {
       case f@Failure(_,_,_) => return f
       case Empty => /* that should not happen, fail */
@@ -115,65 +115,65 @@ trait DefaultStringQueryParser extends StringQueryParser {
     }
     Full(Query(query.returnType, comp , lines))
   }
-  
+
   def parseLine(line:StringCriterionLine) : Box[CriterionLine] = {
 
-    val objectType = criterionObjects.getOrElse(line.objectType , 
+    val objectType = criterionObjects.getOrElse(line.objectType ,
       return Failure("The object type is unknown in line '%s'".format(line))
     )
-    
+
     val criterion = objectType.criterionForName(line.attribute).getOrElse {
       return Failure("The attribute is unknown for object type '%s' in line '%s'".format(line.objectType, line))
     }
-    
+
     val comparator = criterion.cType.comparatorForString(line.comparator).getOrElse {
       return Failure("The comparator is unknown for attribute '%s' in line '%s'".format(line.attribute,line))
     }
-    
+
     /*
      * Only validate the fact that if the comparator require a value, then a value is provided.
-     * Providing an error when none is required is not an error 
+     * Providing an error when none is required is not an error
      */
     val value = line.value match {
       case Some(x) => x
-      case None => 
-        if(comparator.hasValue) return Failure("Missing required value for comparator '%s' in line '%s'".format(line.comparator, line)) 
+      case None =>
+        if(comparator.hasValue) return Failure("Missing required value for comparator '%s' in line '%s'".format(line.comparator, line))
         else ""
     }
     Full(CriterionLine(objectType, criterion, comparator, value))
   }
-  
+
 }
 
 /**
  * This lexer read and valid syntax of JSON query
- * 
+ *
  */
 trait JsonQueryLexer extends QueryLexer {
-  
+
   override def lex(query:String) : Box[StringQuery] = for {
     json <- jsonLex(query)
     q <- jsonParse(json)
   } yield q
-  
+
   def jsonLex(s:String) : Box[JValue] = try {
       Full(JsonParser.parse(s))
     } catch {
-      case e:ParseException => 
+      case e:ParseException =>
         Failure("Parsing failed when processing query: "+s,Full(e),Empty)
     }
 
   def jsonParse(json:JValue) : Box[StringQuery] = {
   /*
    * Structure of the Query:
-   * var query = { 
+   * var query = {
    *   'select' : 'server' ,  //what we are looking for at the end (servers, software...)
    *   'composition' : 'and' ,  // or 'or'
-   *   'where': [ 
+   *   'where': [
    *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' } ,  //value is optionnal, other are mandatory
    *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' } ,
    *     ...
-   *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' } 
+   *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' }
    *   ]
    * }
    */
@@ -192,18 +192,18 @@ trait JsonQueryLexer extends QueryLexer {
           case Some(NodeAndPolicyServerReturnType.value) => NodeAndPolicyServerReturnType
           case Some(x) => return failureBadFormat(TARGET,x)
         }
-      
+
         //composition type
         val composition = q.values.get(COMPOSITION) match {
           case None => None
           case Some(x:String) => if(x.length > 0) Some(x) else None
           case Some(x) => return failureBadFormat(COMPOSITION,x)
         }
-        
-        //where close: array of criteria, is optional 
+
+        //where close: array of criteria, is optional
         val criteria = q.values.get(CRITERIA) match {
           case None => List[StringCriterionLine]()
-          case Some(arr:List[_]) => 
+          case Some(arr:List[_]) =>
             // try to parse all lines. On the first parsing error (parseCrtierion returns Failure),
             // stop and return a Failure
             // if all parsing are OK, return a Full(list(criterionLine)
@@ -212,7 +212,7 @@ trait JsonQueryLexer extends QueryLexer {
             } match {
               case Full(l) => l.reverse
               case f@Failure(_,_,_) => return f
-              case Empty => /* that should not happen, fail */ 
+              case Empty => /* that should not happen, fail */
                 return Failure("Parsing criteria yields an empty result, abort")
             }
           case Some(x) => return failureBadFormat(COMPOSITION,x)
@@ -225,16 +225,16 @@ trait JsonQueryLexer extends QueryLexer {
   def parseCriterion(json:Any) : Box[StringCriterionLine] = {
     def failureMissing(param:String,line:Map[String,String]) = Failure("Missing expected '%s' query parameter in criterion '%s'".format(OBJECT,line))
     def failureEmpty(param:String,line:Map[String,String]) = Failure("Parameter '%s' must be non empty in criterion '%s'".format(OBJECT,line))
-    def failureBadParam(param:String,line:Map[String,String],x:Any) = 
+    def failureBadParam(param:String,line:Map[String,String],x:Any) =
       Failure("Bad query format for '%s' parameter in line '%s'. Expecting a string, found '%s'".format(OBJECT,line,x))
-      
+
     json match {
       case l:Map[_,_] =>
         l.head match {
-          case (x:String,y:String) => 
+          case (x:String,y:String) =>
             val line = l.asInstanceOf[Map[String,String]] //is map always homogenous ?
             //First, parse the line. Then, try to bind name with object
-          
+
             //mandatory object type, attribute, comparator ; optionnal value
             //object type
             val objectType = line.get(OBJECT) match {
@@ -242,21 +242,21 @@ trait JsonQueryLexer extends QueryLexer {
               case Some(x:String) => if(x.length > 0) x else return failureEmpty(OBJECT,line)
               case Some(x) => return failureBadParam(OBJECT,line,x)
             }
-          
+
             // attribute
             val attribute = line.get(ATTRIBUTE) match {
               case None => return failureMissing(ATTRIBUTE,line)
               case Some(x:String) => if(x.length > 0) x else return failureEmpty(ATTRIBUTE,line)
               case Some(x) => return failureBadParam(ATTRIBUTE,line,x)
             }
-    
+
             // comparator
             val comparator = line.get(COMPARATOR) match {
               case None => return failureMissing(COMPARATOR,line)
               case Some(x:String) => if(x.length > 0) x else return failureEmpty(COMPARATOR,line)
               case Some(x) => return failureBadParam(COMPARATOR,line,x)
             }
-    
+
             // value
             val value = line.get(VALUE) match {
               case None => None
@@ -264,12 +264,12 @@ trait JsonQueryLexer extends QueryLexer {
               case Some(x) => return failureBadParam(VALUE,line,x)
             }
             Full(StringCriterionLine(objectType,attribute,comparator,value))
-            
+
           case _ => Failure("Bad query format for criterion line. Expecting an (string,string), found '%s'".format(l.head))
-        }        
+        }
       case x => Failure("Bad query format for criterion line. Expecting an object, found '%s'".format(x))
     }
-    
+
   }
 }
 

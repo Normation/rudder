@@ -45,13 +45,13 @@ import com.normation.eventlog.ModificationId
 
 
 /**
- * A simple container for a category 
+ * A simple container for a category
  * and its direct children ActiveTechniques
  */
 final case class CategoryAndNodeGroup(
     category: NodeGroupCategory
   , groups  : Set[NodeGroup]
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 
 trait NodeGroupRepository {
@@ -62,8 +62,8 @@ trait NodeGroupRepository {
    * @return
    */
   def getNodeGroup(id: NodeGroupId) : Box[NodeGroup]
-  
-  
+
+
   /**
    * Fetch the parent category of the NodeGroup
    * Caution, its a lightweight version of the entry (no children nor item)
@@ -71,26 +71,26 @@ trait NodeGroupRepository {
    * @return
    */
   def getParentGroupCategory(id: NodeGroupId): Box[NodeGroupCategory]
-  
+
   /**
    * Get all node groups defined in that repository
    */
   def getAll() : Box[Seq[NodeGroup]]
-  
+
   /**
    * Get all pairs of (category details, Set(node groups) )
-   * in a map in which keys are the parent category of the groups. 
+   * in a map in which keys are the parent category of the groups.
    * The map is sorted by category:
-   * 
+   *
    *   "/"           -> [/_details, Set(G1, G2)]
    *   "/cat1"       -> [cat1_details, Set(G3)]
    *   "/cat1/cat11" -> [/cat1/cat11_details, Set(G4)]
    *   "/cat2"       -> [/cat2_details, Set(G5)]
-   *   ...    * 
-   * 
+   *   ...    *
+   *
    */
   def getGroupsByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]]
-  
+
   /**
    * Retrieve all groups that have at least one of the given
    * node ID in there member list.
@@ -98,7 +98,7 @@ trait NodeGroupRepository {
    * @return
    */
   def findGroupWithAnyMember(nodeIds:Seq[NodeId]) : Box[Seq[NodeGroupId]]
-  
+
   /**
    * Retrieve all groups that have ALL given node ID in their
    * member list.
@@ -108,18 +108,18 @@ trait NodeGroupRepository {
   def findGroupWithAllMember(nodeIds:Seq[NodeId]) : Box[Seq[NodeGroupId]]
 
   //// write operations ////
-  
+
   /**
    * Add a server group into the a parent category
    * Fails if the parent category does not exists
-   * 
+   *
    * return the newly created server group
    */
   def createNodeGroup( name:String, description : String, q: Option[Query],
         isDynamic : Boolean, srvList : Set[NodeId], into: NodeGroupCategoryId,
                        isEnabled : Boolean, modId: ModificationId, actor:EventActor, why: Option[String]): Box[AddNodeGroupDiff]
-  
-  
+
+
   /**
    * Update the given existing group
    * That method does nothing at the configuration level,
@@ -131,15 +131,15 @@ trait NodeGroupRepository {
 
   /**
    * Move the given existing group to the new container.
-   * That method does nothing at the configuration level, 
+   * That method does nothing at the configuration level,
    * so you will have to manage rule deployment
    * if needed
    */
   def move(group:NodeGroup, containerId : NodeGroupCategoryId, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
-  
+
   /**
-   * Delete the given nodeGroup. 
-   * If no nodegroup has such id in the directory, return a success. 
+   * Delete the given nodeGroup.
+   * If no nodegroup has such id in the directory, return a success.
    * @param id
    * @return
    */

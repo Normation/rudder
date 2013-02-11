@@ -18,15 +18,15 @@ case class GitCommitJoin (
 
 object CommitJoin extends Schema {
   val commitTable = table[GitCommitJoin]("gitcommit")
-  
+
 }
 class GitModificationSquerylRepository(
     sessionProvider : SquerylConnectionProvider
   ) extends GitModificationRepository {
 
   import CommitJoin._
-  
-  
+
+
   def addCommit(commit:GitCommitId, modId:ModificationId) : Box[GitCommitJoin] = {
     try {
       val entry = sessionProvider.ourTransaction {
@@ -34,7 +34,7 @@ class GitModificationSquerylRepository(
       }
       Full(entry)
     } catch {
-      case e : Exception => 
+      case e : Exception =>
               Failure("could not add commit id %s with modification id %s from the database, cause is %s".format(commit.value,modId.value,e.getMessage()))
     }
   }
@@ -42,8 +42,8 @@ class GitModificationSquerylRepository(
   def getCommits(modificationId: ModificationId): Box[Option[GitCommitId]] = {
     try {
        sessionProvider.ourTransaction {
-       val q = from(commitTable)(entry => 
-      
+       val q = from(commitTable)(entry =>
+
              where(entry.ModificationId === modificationId.value)
           select(entry.id)
               )
@@ -54,7 +54,7 @@ class GitModificationSquerylRepository(
        }
      }
   } catch {
-    case e : Exception => 
+    case e : Exception =>
       Failure("could not get any commit id from the database, cause is %s".format(e.getMessage()))
   }
   }

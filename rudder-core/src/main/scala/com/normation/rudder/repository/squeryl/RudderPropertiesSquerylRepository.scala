@@ -55,7 +55,7 @@ case class RudderProperty (
 ) extends KeyedEntity[String]
 
 class RudderPropertiesSquerylRepository(
-      squerylConnectionProvider : SquerylConnectionProvider, 
+      squerylConnectionProvider : SquerylConnectionProvider,
     reportsRepository: ReportsRepository
     ) extends RudderPropertiesRepository with Loggable {
 
