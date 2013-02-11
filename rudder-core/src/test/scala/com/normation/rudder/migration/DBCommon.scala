@@ -67,7 +67,7 @@ import java.sql.Timestamp
  * state for the full example (after/before class).
  */
 trait DBCommon extends Specification with Loggable with Tags {
-  skipAllIf(System.getProperty("test.postgres", "false").toBoolean != true)  
+  skipAllIf(System.getProperty("test.postgres", "true").toBoolean != true)
   
   def sqlClean : String
   def sqlInit : String
