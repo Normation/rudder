@@ -35,15 +35,15 @@
 package com.normation.rudder.web.services
 
 trait GetBaseUrlService {
-  
+
   def baseUrl : Option[String]
 }
 
 class DefaultBaseUrlService(configUrl:String) extends GetBaseUrlService {
-  
+
   val baseUrl = configUrl match {
     case null | "" => None
     case s => Some(s)
   }
-  
+
 }

@@ -62,39 +62,39 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 
 /**
- * A service used to display details about a server 
+ * A service used to display details about a server
  * inventory with tabs like:
  * [general][software][network][file system]
- * 
- * Use it by calling: 
+ *
+ * Use it by calling:
  * # head if not yet called in that page
- * # show(nodeId) : NodeSeq 
+ * # show(nodeId) : NodeSeq
  *    where you want to display node information
  * # jsInit(nodeId) : Cmd
- *    to init javascript for it 
+ *    to init javascript for it
  */
 object DisplayNode extends Loggable {
-  
+
   private[this] val getSoftwareService   = inject[ReadOnlySoftwareDAO]
   private[this] val removeNodeService    = inject[RemoveNodeService]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
   private[this] val uuidGen              = inject[StringUuidGenerator]
-  
+
   private[this] val templatePath = List("templates-hidden", "server_details_tabs")
   private[this] def template() =  Templates(templatePath) match {
-    case Empty | Failure(_,_,_) => 
+    case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for server details not found. I was looking for %s.html".format(templatePath.mkString("/")))
     case Full(n) => n
   }
-  
-  
+
+
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
-  private[this] val successPopupHtmlId = "successPopupHtmlId"  
-    
-    
+  private[this] val successPopupHtmlId = "successPopupHtmlId"
+
+
   private[this] def content() = chooseTemplate("serverdetails","content",template)
-  
+
   private def loadSoftware(jsId:JsNodeId, softIds:Seq[SoftwareUuid])(nodeId:String):JsCmd = {
     //id is not used anymore ?
     (for {
@@ -108,7 +108,7 @@ object DisplayNode extends Loggable {
       )}:_*) ) & JsRaw("""
           $('#%s').dataTable({
             "aaData":%s,
-            "bJQueryUI": true, 
+            "bJQueryUI": true,
             "bPaginate": true,
             "bLengthChange": true,
             "sPaginationType": "full_numbers",
@@ -116,12 +116,12 @@ object DisplayNode extends Loggable {
             "oLanguage": {
               "sSearch": ""
             },
-            "bLengthChange": true, 
+            "bLengthChange": true,
             "bAutoWidth": false,
             "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
         });
-        $('.dataTables_filter input').attr("placeholder", "Search");          
+        $('.dataTables_filter input').attr("placeholder", "Search");
             """.format(gridId,gridDataId,gridId))
     ) match {
       case Empty => Alert("No software found for that server")
@@ -129,9 +129,9 @@ object DisplayNode extends Loggable {
       case Full(js) => js
     }
   }
-  
+
   def head() = chooseTemplate("serverdetails","head",template)
-  
+
 def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContainer : Option[String] = None):JsCmd = {
     val jsId = JsNodeId(nodeId,salt)
     val detailsId = htmlId(jsId,"details_")
@@ -141,7 +141,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     var eltIdswidth = List( ("process",List("50","50","50","60","120","50","100","850"),1),("var",List("200","800"),0)).map(x => (htmlId(jsId, x._1+ "_grid_"),x._2.map("""{"sWidth": "%spx"}""".format(_)),x._3))
     val eltIds = List( "vm", "fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos").
                            map(x => htmlId(jsId, x+ "_grid_"))
-      
+
     JsRaw("var "+softGridDataId +"= null") &
     OnLoad(
       JsRaw("$('#"+detailsId+"').tabs()") &
@@ -157,12 +157,12 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                 },
                 "bLengthChange": true,
                 "sPaginationType": "full_numbers",
-                "bPaginate": true, 
-                "bAutoWidth": false, 
+                "bPaginate": true,
+                "bAutoWidth": false,
                 "bInfo":true,
                 "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
               });
-              
+
               $('.dataTables_filter input').attr("placeholder", "Search");
           | """.stripMargin('|').format(i,i)):JsCmd
         }.reduceLeft( (i,acc) => acc & i )
@@ -176,13 +176,13 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                 "bFilter": true,
                 "asStripeClasses": [ 'color1', 'color2' ],
                 "bPaginate": true,
-                "aoColumns": %s , 
-                "aaSorting": [[ %s, "asc" ]], 
+                "aoColumns": %s ,
+                "aaSorting": [[ %s, "asc" ]],
                 "oLanguage": {
                   "sSearch": ""
                 },
-                "bLengthChange": true, 
-                "bAutoWidth": false, 
+                "bLengthChange": true,
+                "bAutoWidth": false,
                 "bInfo":true,
                 "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
               });
@@ -203,17 +203,17 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
       )
     )
   }
-    
+
   /**
    * Show details about the server in a tabed fashion if
-   * the server exists, display an error message if the 
+   * the server exists, display an error message if the
    * server is not found or if a problem occurred when fetching it
-   * 
+   *
    * showExtraFields : if true, then everything is shown, otherwise, the extrafileds are not in the main tabs.
    * To show then, look at showExtraHeader
-   * 
-   * Salt is a string added to every used id. 
-   * It useful only if you have several DisplayNode element on a single page. 
+   *
+   * Salt is a string added to every used id.
+   * It useful only if you have several DisplayNode element on a single page.
    */
   def show(sm:FullInventory, showExtraFields : Boolean = true, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
@@ -221,7 +221,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
  /*     { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>  else NodeSeq.Empty } ::
       { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>  else NodeSeq.Empty } ::
       { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>  else NodeSeq.Empty } ::
-      */ 
+      */
       <li><a href={htmlId_#(jsId,"sd_bios_")}>Bios</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_controllers_")}>Controllers</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_memories_")}>Memories</a></li> ::
@@ -232,8 +232,8 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
       <li><a href={htmlId_#(jsId,"sd_storages_")}>Storages</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_videos_")}>Videos</a></li> ::
       Nil
-    
-    val tabContent = 
+
+    val tabContent =
       { if (showExtraFields) displayTabFilesystems(jsId, sm) else Nil } ::
       { if (showExtraFields) displayTabNetworks(jsId, sm) else Nil } ::
       { if (showExtraFields) displayTabSoftware(jsId) else Nil } ::
@@ -248,11 +248,11 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
       displayTabStorages(jsId, sm) ::
       displayTabVideos(jsId, sm) ::
       Nil
-    
+
       <div id={htmlId(jsId,"details_")} class="sInventory">{bind("server", content,
         "tabsDefinition" -> <ul>{mainTabDeclaration}</ul>,
         "grid_tabs" -> tabContent.flatten
-    )}</div> 
+    )}</div>
   }
 
   /**
@@ -281,9 +281,9 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     displayTabProcess(jsId, sm) ++
     displayTabVM(jsId, sm) ++
     displayTabSoftware(jsId)
-    
+
   }
-  
+
   /**
    * Show the details in a panned version, with Node Summary, Inventory, Network, Software
    * Should be used with jsInit(dn:String, softIds:Seq[SoftwareUuid], salt:String="", tabContainer = Some("node_tabs"))
@@ -302,18 +302,18 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
          </div>
        </div>
        {showExtraContent(sm, salt)}
-       
+
        <div id={htmlId(jsId,"node_summary_")}>
          {showNodeDetails(sm, None, salt)}
        </div>
     </div>
   }
-  
+
   // mimic the content of server_details/ShowNodeDetailsFromNode
   def showNodeDetails(sm:FullInventory, creationDate:Option[DateTime], salt:String = "", isDisplayingInPopup:Boolean = false) : NodeSeq = {
-   
+
     { sm.node.main.status match {
-          case AcceptedInventory => 
+          case AcceptedInventory =>
             <div id={deleteNodePopupHtmlId}  class="nodisplay" />
             <div id={errorPopupHtmlId}  class="nodisplay" />
             <div id={successPopupHtmlId}  class="nodisplay" />
@@ -321,8 +321,8 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
               {
                 if(!isRootNode(sm.node.main.id)) {
                   <fieldset class="nodeIndernal"><legend>Action</legend>
-                    {SHtml.ajaxButton("Delete this node", 
-                      { () => {showConfirmationDialog(sm.node.main.id); } }, ("id", "boutonTest")) 
+                    {SHtml.ajaxButton("Delete this node",
+                      { () => {showConfirmationDialog(sm.node.main.id); } }, ("id", "boutonTest"))
                     }
                     <div id="test"></div>
                   </fieldset>
@@ -341,7 +341,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
           <b>Total physical memory (RAM):</b> {sm.node.ram.map( _.toStringMo).getOrElse("-")}<br/>
           <b>Total swap space:</b> {sm.node.swap.map( _.toStringMo).getOrElse("-")}<br/>
         </div>
-            
+
       <h4 class="tablemargin">Operating system details</h4>
         <div class="tablepadding">
           <b>Operating System:</b> {sm.node.main.osDetails.fullName}<br/>
@@ -350,7 +350,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
           <b>Operating System Version:</b> {sm.node.main.osDetails.version.value}<br/>
           <b>Operating System Service Pack:</b> {sm.node.main.osDetails.servicePack.getOrElse("None")}<br/>
         </div>
-            
+
       <h4 class="tablemargin">Rudder information</h4>
         <div class="tablepadding">
           { if(isRootNode(sm.node.main.id)) <span><b>Role: </b>Rudder root server</span><br/> }
@@ -362,27 +362,27 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
           <b>Agent name:</b> {sm.node.agentNames.map(_.fullname()).mkString(";")}<br/>
           <b>Rudder ID:</b> {sm.node.main.id.value.toUpperCase}<br/>
         </div>
-        
+
       <h4 class="tablemargin">Accounts</h4>
         <div class="tablepadding">
           <b>Administrator account:</b> {sm.node.main.rootUser}<br/>
           <b>Local account(s):</b> {displayAccounts(sm.node)}<br/>
         </div>
     </fieldset>
-  
+
 
   }
-  
+
   private def htmlId(jsId:JsNodeId, prefix:String="") : String = prefix + jsId.toString
   private def htmlId_#(jsId:JsNodeId, prefix:String="") : String = "#" + prefix + jsId.toString
-  
+
   private def ?(in:Option[String]) : NodeSeq = in.map(Text(_)).getOrElse(NodeSeq.Empty)
 
-  
+
   private def displayMachineType(opt:Option[MachineInventory]) : NodeSeq = {
     opt match {
       case None => NodeSeq.Empty
-      case Some(machine) => ( 
+      case Some(machine) => (
         machine.machineType match {
           case PhysicalMachineType => Text("Physical machine")
           case VirtualMachineType(vmType) => Text("Virtual machine (%s)".format(S.?("vm.type." + vmType.name)))
@@ -390,18 +390,18 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
       )
     }
   }
-  
+
   private def displayPublicKeys(node:NodeInventory) : NodeSeq = <b>Public Key(s): </b> ++ {if(node.publicKeys.isEmpty) {
           Text("None")
         } else <ul>{node.publicKeys.zipWithIndex.flatMap{ case (x,i) => (<b>{"[" + i + "] "}</b> ++ {Text(x.key.grouped(65).toList.mkString("\n"))})}}</ul> }
-  
+
   private def displayNodeInventoryInfo(node:NodeInventory) : NodeSeq = {
     val details : NodeSeq = node.main.osDetails match {
       case Linux(os, osFullName, osVersion, osServicePack, kernelVersion) => //display kernelVersion, distribution, distributionVersion
         (<li><b>Distribution (version): </b> {os.name} ({osVersion.value})</li>
         <li><b>Kernel version: </b> {kernelVersion.value}</li>
         <li><b>Service Pack: </b> {?(osServicePack)}</li>)
-      case Windows(os, osFullName, osVersion, osServicePack, kernelVersion, domain, company, key, id) => 
+      case Windows(os, osFullName, osVersion, osServicePack, kernelVersion, domain, company, key, id) =>
         (<li><b>Version:</b>: {osVersion.value}</li>
         <li><b>Kernel version: </b> {kernelVersion.value}</li>
         <li><b>Service Pack: </b> {?(osServicePack)}</li>
@@ -414,9 +414,9 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     <li><b>Complete name: </b> {node.main.osDetails.fullName}</li> ++
     details
   }
-  
-  //show a comma separated list with description in tooltip 
-  
+
+  //show a comma separated list with description in tooltip
+
   private def displayAccounts(node:NodeInventory) : NodeSeq = {
     Text{if(node.accounts.isEmpty) {
         "None"
@@ -433,7 +433,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         case Empty => <span>No matching components detected on this node</span>
         case Failure(m,_,_) => <span class="error">Error when trying to fetch file systems. Reported message: {m}</span>
         case Full(seq) if (seq.isEmpty && eltName != "soft") => <span>No matching components detected on this node</span>
-        case Full(seq) => 
+        case Full(seq) =>
           <table cellspacing="0" id={htmlId(jsId,eltName + "_grid_")} class="tablewidth">
           { title match {
             case None => NodeSeq.Empty
@@ -455,28 +455,28 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     }<div id={htmlId(jsId,eltName + "_grid_") + "_paginate_area"} class="paginate"/>
     </div>
   }
-  
-  
-  private def displayTabSoftware(jsId:JsNodeId) : NodeSeq = 
-    displayTabGrid(jsId)("soft", 
+
+
+  private def displayTabSoftware(jsId:JsNodeId) : NodeSeq =
+    displayTabGrid(jsId)("soft",
         //do not retrieve software here
         //getNodeInventoryService.getSoftware(id)
         Full(Seq())
     ){
-      ("Name", {x:Software => ?(x.name)} ) :: 
-      ("Version", {x:Software => ?(x.version.map(_.value)) } ) :: 
-      ("Description", {x:Software => ?(x.description) } ) :: 
+      ("Name", {x:Software => ?(x.name)} ) ::
+      ("Version", {x:Software => ?(x.version.map(_.value)) } ) ::
+      ("Description", {x:Software => ?(x.description) } ) ::
       Nil
     }
 
-  private def displayTabNetworks(jsId:JsNodeId,sm:FullInventory) : NodeSeq = 
+  private def displayTabNetworks(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("net", Full(sm.node.networks)){
-        ("Interface", {x:Network => Text(x.name)}) :: 
-        ("IP address", {x:Network => Text(x.ifAddresses.map{ _.getHostAddress }.mkString(", "))}) :: 
+        ("Interface", {x:Network => Text(x.name)}) ::
+        ("IP address", {x:Network => Text(x.ifAddresses.map{ _.getHostAddress }.mkString(", "))}) ::
         ("Mask", {x:Network => Text(x.ifMask.map{ _.getHostAddress }.mkString(", "))}) ::
         ("DHCP server", {x:Network => Text(x.ifDhcp.map{ _.getHostAddress }.mkString(", "))}) ::
-        ("MAC address", {x:Network => ?(x.macAddress)}) :: 
-        //("Gateway", {x:Network => Text(x.ifGateway.map{ _.getHostAddress }.mkString(", "))}) :: 
+        ("MAC address", {x:Network => ?(x.macAddress)}) ::
+        //("Gateway", {x:Network => Text(x.ifGateway.map{ _.getHostAddress }.mkString(", "))}) ::
         //("Network", {x:Network => Text(x.ifSubnet.map{ _.getHostAddress }.mkString(", "))}) ::
         ("Type", {x:Network => ?(x.ifType)}) ::
         //("Type-MIB", {x:Network => ?(x.typeMib)}) ::
@@ -484,17 +484,17 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         ("Status", {x:Network => ?(x.status)}) ::
         Nil
     }
-  
-  private def displayTabFilesystems(jsId:JsNodeId,sm:FullInventory) : NodeSeq = 
+
+  private def displayTabFilesystems(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("fs", Full(sm.node.fileSystems)){
         ("Mount point", {x:FileSystem => Text(x.mountPoint)}) ::
         ("Filesystem", {x:FileSystem => ?(x.name)}) ::
         ("Free space", {x:FileSystem => ?(x.freeSpace.map(_.toStringMo))}) ::
         ("Total space", {x:FileSystem => ?(x.totalSpace.map(_.toStringMo))}) ::
-        ("File count", {x:FileSystem => ?(x.fileCount.map(_.toString))}) :: 
+        ("File count", {x:FileSystem => ?(x.fileCount.map(_.toString))}) ::
         Nil
     }
-      
+
     private def displayTabVariable(jsId:JsNodeId,sm:FullInventory) : NodeSeq = {
     val title = sm.node.inventoryDate.map(date => "Environment variable status on %s".format(DateFormaterService.getFormatedDate(date)))
     displayTabGrid(jsId)("var", Full(sm.node.environmentVariables),title){
@@ -518,7 +518,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         Nil
     }
     }
-    
+
     private def displayTabVM(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("vm", Full(sm.node.vms)){
         ("Name", {x:VirtualMachine => ?(x.name)}) ::
@@ -531,26 +531,26 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         ("Memory", { x:VirtualMachine => ?(x.memory) }) ::
         Nil
     }
-    
-  private def displayTabBios(jsId:JsNodeId,sm:FullInventory) : NodeSeq = 
+
+  private def displayTabBios(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("bios", sm.machine.map(fm => fm.bios)){
         ("Name", {x:Bios => Text(x.name)}) ::
-        ("Editor", {x:Bios => ?(x.editor.map( _.name))}) :: 
-        ("Version", {x:Bios => ?(x.editor.map( _.name))}) :: 
-        ("Release Date", {x:Bios => ?(x.releaseDate.map(DateFormaterService.getFormatedDate(_)))}) :: 
+        ("Editor", {x:Bios => ?(x.editor.map( _.name))}) ::
+        ("Version", {x:Bios => ?(x.editor.map( _.name))}) ::
+        ("Release Date", {x:Bios => ?(x.releaseDate.map(DateFormaterService.getFormatedDate(_)))}) ::
         Nil
     }
 
-  private def displayTabControllers(jsId:JsNodeId,sm:FullInventory) : NodeSeq = 
+  private def displayTabControllers(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("controllers", sm.machine.map(fm => fm.controllers)){
         ("Name", {x:Controller => Text(x.name)}) ::
         ("Manufacturer", {x:Controller => ?(x.manufacturer.map( _.name))}) ::
         ("Type", {x:Controller => ?(x.cType)}) ::
-        ("Quantity", {x:Controller => Text(x.quantity.toString)}) :: 
+        ("Quantity", {x:Controller => Text(x.quantity.toString)}) ::
         Nil
     }
-  
-  private def displayTabMemories(jsId:JsNodeId,sm:FullInventory) : NodeSeq = 
+
+  private def displayTabMemories(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("memories", sm.machine.map(fm => fm.memories)){
         ("Slot", {x:MemorySlot => Text(x.slotNumber)}) ::
         ("Capacity", {x:MemorySlot => ?(x.capacity.map( _.toStringMo ))}) ::
@@ -561,16 +561,16 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         ("Quantity", {x:MemorySlot => Text(x.quantity.toString)}) ::
         Nil
     }
-    
-  private def displayTabPorts(jsId:JsNodeId,sm:FullInventory) : NodeSeq = 
+
+  private def displayTabPorts(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("ports", sm.machine.map(fm => fm.ports)){
         ("Name", {x:Port => Text(x.name)}) ::
         ("Type", {x:Port => ?(x.pType )}) ::
-        ("Description", {x:Port => ?(x.description)}) :: 
+        ("Description", {x:Port => ?(x.description)}) ::
         ("Quantity", {x:Port => Text(x.quantity.toString)}) ::
         Nil
     }
-    
+
   private def displayTabProcessors(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("processors", sm.machine.map(fm => fm.processors)){
         ("Name", {x:Processor => Text(x.name)}) ::
@@ -587,50 +587,50 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         ("Quantity", {x:Processor => Text(x.quantity.toString)}) ::
         Nil
     }
-  
-  private def displayTabSlots(jsId:JsNodeId,sm:FullInventory) : NodeSeq = 
+
+  private def displayTabSlots(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("slots", sm.machine.map(fm => fm.slots)){
-        ("Name" , {x:Slot => Text(x.name)}) :: 
-        ( "Description" , {x:Slot => ?(x.description)}) :: 
-        ( "Status" , {x:Slot => ?(x.status)}) :: 
-        ( "Quantity" , {x:Slot => Text(x.quantity.toString)}) :: 
+        ("Name" , {x:Slot => Text(x.name)}) ::
+        ( "Description" , {x:Slot => ?(x.description)}) ::
+        ( "Status" , {x:Slot => ?(x.status)}) ::
+        ( "Quantity" , {x:Slot => Text(x.quantity.toString)}) ::
         Nil
     }
-  
+
   private def displayTabSounds(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("sounds", sm.machine.map(fm => fm.sounds)){
-        ("Name" , {x:Sound => Text(x.name)}) :: 
-        ( "Description" , {x:Sound => ?(x.description)}) :: 
-        ( "Quantity" , {x:Sound => Text(x.quantity.toString)}) :: 
+        ("Name" , {x:Sound => Text(x.name)}) ::
+        ( "Description" , {x:Sound => ?(x.description)}) ::
+        ( "Quantity" , {x:Sound => Text(x.quantity.toString)}) ::
         Nil
     }
-  
-  private def displayTabStorages(jsId:JsNodeId,sm:FullInventory) : NodeSeq = 
+
+  private def displayTabStorages(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("storages", sm.machine.map(fm => fm.storages)){
-        ( "Name" , {x:Storage => Text(x.name)}) :: 
-        ( "Description" , {x:Storage => ?(x.description)}) :: 
-        ( "Size" , {x:Storage => ?(x.size.map( _.toStringMo))}) :: 
-        ( "Firmware" , {x:Storage => ?(x.firmware)}) :: 
-        ( "Manufacturer" , {x:Storage => ?(x.manufacturer.map(_.name))}) :: 
-        ( "Model" , {x:Storage => ?(x.model)}) :: 
-        ( "Serial" , {x:Storage => ?(x.serialNumber)}) :: 
-        ( "Type" , {x:Storage => ?(x.sType)}) :: 
-        ( "Quantity" , {x:Storage => Text(x.quantity.toString)}) :: 
+        ( "Name" , {x:Storage => Text(x.name)}) ::
+        ( "Description" , {x:Storage => ?(x.description)}) ::
+        ( "Size" , {x:Storage => ?(x.size.map( _.toStringMo))}) ::
+        ( "Firmware" , {x:Storage => ?(x.firmware)}) ::
+        ( "Manufacturer" , {x:Storage => ?(x.manufacturer.map(_.name))}) ::
+        ( "Model" , {x:Storage => ?(x.model)}) ::
+        ( "Serial" , {x:Storage => ?(x.serialNumber)}) ::
+        ( "Type" , {x:Storage => ?(x.sType)}) ::
+        ( "Quantity" , {x:Storage => Text(x.quantity.toString)}) ::
         Nil
     }
-  
-  private def displayTabVideos(jsId:JsNodeId,sm:FullInventory) : NodeSeq = 
+
+  private def displayTabVideos(jsId:JsNodeId,sm:FullInventory) : NodeSeq =
     displayTabGrid(jsId)("videos", sm.machine.map(fm => fm.videos)){
-        ("Name" , {x:Video => Text(x.name)}) :: 
-        ( "Chipset" , {x:Video => ?(x.chipset)}) :: 
-        ( "Memory" , {x:Video => ?(x.memory.map( _.toStringMo))}) :: 
-        ( "Resolution" , {x:Video => ?(x.resolution)}) :: 
-        ( "Quantity" , {x:Video => Text(x.quantity.toString)}) :: 
+        ("Name" , {x:Video => Text(x.name)}) ::
+        ( "Chipset" , {x:Video => ?(x.chipset)}) ::
+        ( "Memory" , {x:Video => ?(x.memory.map( _.toStringMo))}) ::
+        ( "Resolution" , {x:Video => ?(x.resolution)}) ::
+        ( "Quantity" , {x:Video => Text(x.quantity.toString)}) ::
         Nil
     }
-  
+
   private[this] def showPopup(nodeId : NodeId) : JsCmd = {
-    val popupHtml = 
+    val popupHtml =
     <div class="simplemodal-title">
       <h1>Remove a node from Rudder</h1>
       <hr/>
@@ -638,7 +638,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     <div class="simplemodal-content">
       <div>
           <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-          <h2>If you choose to remove this node from Rudder, it won't be managed anymore, and all informations about it will be removed from the application</h2>      
+          <h2>If you choose to remove this node from Rudder, it won't be managed anymore, and all informations about it will be removed from the application</h2>
       </div>
       <hr class="spacer"/>
      </div>
@@ -649,60 +649,60 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
           <button class="simplemodal-close" onClick="$.modal.close();">
           Cancel
           </button>
-          { 
+          {
             SHtml.ajaxButton("Delete this node", { () => {removeNode(nodeId) } })
-          }    
+          }
         </span>
       </div>
     </div> ;
-         
-      
-    
+
+
+
     SetHtml(deleteNodePopupHtmlId, popupHtml) &
     JsRaw( """ createPopup("%s",300,400) """.format(deleteNodePopupHtmlId))
 
   }
-  
+
   private[this] def showConfirmationDialog(nodeId : NodeId) : JsCmd = {
     def cancelDelete() : JsCmd = {
       SetHtml("test", NodeSeq.Empty) &
       JsRaw(""" $('#boutonTest').show(); """)
     }
-    
-    val dialog = 
+
+    val dialog =
     <div style="margin:5px;">
      <div>
       <div>
           <img src="/images/icWarn.png" alt="Warning!" height="25" width="25" class="warnicon"
             style="vertical-align: middle; padding: 0px 0px 2px 0px;"
           />
-          <b>Are you sure you want to delete this node?</b>      
+          <b>Are you sure you want to delete this node?</b>
       </div>
-      <div style="margin-top:7px">If you choose to remove this node from Rudder, it won't be managed anymore, 
-       and all informations about it will be removed from the application.</div>      
+      <div style="margin-top:7px">If you choose to remove this node from Rudder, it won't be managed anymore,
+       and all informations about it will be removed from the application.</div>
      </div>
     <div>
       <div style="margin-top:7px">
         <span >
-          { 
+          {
             SHtml.ajaxButton("Cancel", { () => { cancelDelete } })
-          }    
-          { 
+          }
+          {
             SHtml.ajaxButton("Delete this node", { () => {removeNode(nodeId) } })
-          }    
+          }
         </span>
       </div>
     </div>
     </div>
-    
+
     def showDialog() : JsCmd = {
       SetHtml("test", dialog) &
       JsRaw(""" $('#boutonTest').hide(); correctButtons(); $('#test').stop(true, true).slideDown(1000); """)
     }
-    
+
     showDialog
   }
-  
+
   private[this] def removeNode(nodeId: NodeId) : JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
     removeNodeService.removeNode(nodeId, modId, CurrentUser.getActor) match {
@@ -710,15 +710,15 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         logger.info("Successfully removed node %s from Rudder".format(nodeId.value))
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
         onSuccess
-      case eb:EmptyBox => 
+      case eb:EmptyBox =>
         val e = eb ?~! "Could not remove node %s from Rudder".format(nodeId.value)
         logger.error(e.messageChain)
         onFailure(nodeId)
     }
   }
-  
+
   private[this] def onFailure(nodeId: NodeId) : JsCmd = {
-    val popupHtml = 
+    val popupHtml =
     <div class="simplemodal-title">
       <h1>Error while removing a node from Rudder</h1>
       <hr/>
@@ -738,14 +738,14 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
       <br />
       </div>
     </div> ;
-    
+
     JsRaw( """$.modal.close();""") &
     SetHtml(errorPopupHtmlId, popupHtml) &
     JsRaw( """ callPopupWithTimeout(200,"%s",300,400) """.format(errorPopupHtmlId))
   }
-  
+
   private[this] def onSuccess : JsCmd = {
-    val popupHtml = 
+    val popupHtml =
       <div class="simplemodal-title">
       <h1>Success</h1>
       <hr/>
@@ -769,13 +769,13 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
       <br />
       </p>
     </div> ;
-      
+
     JsRaw( """$.modal.close();""") &
     SetHtml(successPopupHtmlId, popupHtml) &
     JsRaw( """ callPopupWithTimeout(200,"%s",300,400) """.format(successPopupHtmlId))
   }
-  
+
   private [this] def isRootNode(n: NodeId): Boolean = {
-    return n.value.equals("root"); 
+    return n.value.equals("root");
   }
 }

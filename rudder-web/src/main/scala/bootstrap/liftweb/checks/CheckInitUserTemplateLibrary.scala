@@ -52,8 +52,8 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 
 /**
- * That class add all the available reference template in 
- * the default user library 
+ * That class add all the available reference template in
+ * the default user library
  * if it wasn't already initialized.
  */
 class CheckInitUserTemplateLibrary(
@@ -65,15 +65,15 @@ class CheckInitUserTemplateLibrary(
   , uuidGen            : StringUuidGenerator
 ) extends BootstrapChecks with Loggable {
 
- 
+
   override def checks() : Unit = {
     ldap.foreach { con =>
-    
+
         con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_INIT_DATETIME, A_OC) match {
           case e:EmptyBox => ApplicationLogger.error("The root entry of the user template library was not found")
           case Full(root) => root.getAsGTime(A_INIT_DATETIME) match {
             case Some(date) => ApplicationLogger.debug("The root user template library was initialized on %s".format(date.dateTime.toString("YYYY/MM/dd HH:mm")))
-            case None => 
+            case None =>
               ApplicationLogger.info("The Active Technique library is not marked as being initialized: adding all policies from reference library...")
               copyReferenceLib(con) match {
                 case Full(x) => ApplicationLogger.info("...done")
@@ -86,7 +86,7 @@ class CheckInitUserTemplateLibrary(
               root += (A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
               root +=! (A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
               con.save(root) match {
-                case eb:EmptyBox => 
+                case eb:EmptyBox =>
                   val e = eb ?~! "Error when updating information about the LDAP root entry of technique library."
                   logger.error(e.messageChain)
                   e.rootExceptionCause.foreach { ex =>
@@ -104,7 +104,7 @@ class CheckInitUserTemplateLibrary(
    */
   private[this] def copyReferenceLib(con:LDAPConnection) : Box[AnyRef] = {
     def recCopyRef(fromCatId:TechniqueCategoryId, toParentCat:ActiveTechniqueCategory) : Box[ActiveTechniqueCategory] = {
-        
+
       for {
         fromCat <- refTemplateService.getTechniqueCategory(fromCatId)
         newUserPTCat = ActiveTechniqueCategory(
@@ -123,7 +123,7 @@ class CheckInitUserTemplateLibrary(
                                     , toParentCat
                                     , ModificationId(uuidGen.newUuid)
                                     , RudderEventActor
-                                    , reason = Some("Initialize active templates library")) ?~! 
+                                    , reason = Some("Initialize active templates library")) ?~!
                 "Error when adding category '%s' to user library parent category '%s'".format(newUserPTCat.id.value, toParentCat.id.value)
                 //now, add items and subcategories, in a "try to do the max you can" way
                 fullRes <- boxSequence(
@@ -155,16 +155,16 @@ class CheckInitUserTemplateLibrary(
     }
 
     //apply with root cat children ids
-    userCategoryService.getActiveTechniqueLibrary.flatMap { root => 
+    userCategoryService.getActiveTechniqueLibrary.flatMap { root =>
       bestEffort(refTemplateService.getTechniqueLibrary.subCategoryIds.toSeq) { id =>
         recCopyRef(id, root)
-      }    
+      }
     }
   }
-  
+
   private[this] def genUserCatId(fromCat:TechniqueCategory) : ActiveTechniqueCategoryId = {
       //for the technique ID, use the last part of the path used for the cat id.
       ActiveTechniqueCategoryId(fromCat.id.name.value)
   }
-  
+
 }

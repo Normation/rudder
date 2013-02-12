@@ -42,16 +42,16 @@ import net.liftweb.http.PlainTextResponse
 
 /**
  * A rest api that allows to deploy promises.
- * 
+ *
  */
 class RestDyngroupReload(
     updateDynamicGroups: UpdateDynamicGroups
 ) extends RestHelper {
-  
+
   serve {
     case Get("api" :: "dyngroup" :: "reload" :: Nil, req) =>
       updateDynamicGroups.startManualUpdate
       PlainTextResponse("OK")
   }
-  
+
 }

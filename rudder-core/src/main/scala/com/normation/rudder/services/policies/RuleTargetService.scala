@@ -55,60 +55,60 @@ import com.normation.utils.Control.sequence
 
 
 trait RuleTargetService {
-  
+
   /**
    * Find all target matching the given server UUID.
-   * The result should never be empty (at least 
+   * The result should never be empty (at least
    * the self target should be returned).
    * That method is not supposed to try to update anything
    * about target, especially, it is not supposed to
    * try to update Dynamic Group cache information (if
-   * implementation provides one). 
-   * The goal is to be quick. 
+   * implementation provides one).
+   * The goal is to be quick.
    */
   def findTargets(nodeIds:Seq[NodeId]) : Box[Map[NodeId,Set[RuleTarget]]]
-  
+
   /**
    * For a given target, find back its NodeIds
    */
   def getNodeIds(target:RuleTarget) : Box[Seq[NodeId]]
- 
+
   /**
    * Get all information related to the target (isEnabled, etc).
    * @param target
-   * @return Return empty is no such target exists, Failure in case of an error, 
-   *   Full(info) in case of success. 
+   * @return Return empty is no such target exists, Failure in case of an error,
+   *   Full(info) in case of success.
    */
   def getTargetInfo(target:RuleTarget) : Box[RuleTargetInfo]
-  
+
   /**
-   * Retrieve all target defined in the system. 
+   * Retrieve all target defined in the system.
    * @return
    */
   def getAllTargetInfo(includeSystem:Boolean = false) : Box[Seq[RuleTargetInfo]]
-  
+
 }
 
 
 class RuleTargetServiceImpl(
     override val groupRepository : NodeGroupRepository,
-    override val nodeInfoService : NodeInfoService, 
+    override val nodeInfoService : NodeInfoService,
     override val units: Seq[UnitRuleTargetService],
     override val ldap : LDAPConnectionProvider,
     override val rudderDit : RudderDit,
     override val mapper: LDAPEntityMapper
-) extends RuleTargetService with 
-  RuleTargetService_findTargets with 
+) extends RuleTargetService with
+  RuleTargetService_findTargets with
   TargetToNodeIds with
   TargetInfoService
 
-/////////////////////////////////////////////////////////////////////////////////////////////////  
-  
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
 trait TargetToNodeIds extends RuleTargetService {
-  
+
   def groupRepository : NodeGroupRepository
   def nodeInfoService : NodeInfoService
-  
+
   override def getNodeIds(target:RuleTarget) : Box[Seq[NodeId]] = {
     target match {
       case GroupTarget(groupId) => groupRepository.getNodeGroup(groupId).map(g => g.serverList.toSeq)
@@ -120,7 +120,7 @@ trait TargetToNodeIds extends RuleTargetService {
 }
 
 
-trait TargetInfoService extends  RuleTargetService { 
+trait TargetInfoService extends  RuleTargetService {
   def groupRepository : NodeGroupRepository
   def nodeInfoService : NodeInfoService
   //for special target
@@ -130,24 +130,24 @@ trait TargetInfoService extends  RuleTargetService {
 
   /*
    * TODO: there is no real reason to take appart Group and other
-   * targets. 
+   * targets.
    * It may be clever to a TargetId LDAP attribute type, that
-   * nodeId < targetId, and that all other targets have a 
+   * nodeId < targetId, and that all other targets have a
    * targetId defined by convention, or why not one by
-   * Ideas ex: special:all ==> targetId=all ; 
+   * Ideas ex: special:all ==> targetId=all ;
    *           policyServer:root => targetId=root ;
-   * Potential problem: 
+   * Potential problem:
    * - how to deserialize ? (one sub attribute by type ?)
-   * - overlaping ids. 
+   * - overlaping ids.
    */
-  
-  
+
+
   override def getTargetInfo(target:RuleTarget) : Box[RuleTargetInfo] = {
     //retrieve a target info from the target in LDAP directory
     //does no do any other validation than checking that the target is the actually retrieved target info
     def ldapGetTargetInfo : Box[RuleTargetInfo] = {
       for {
-        con <- ldap 
+        con <- ldap
         entry <- con.get(rudderDit.GROUP.SYSTEM.targetDN(target)) ?~! "Error when fetching for target info entry with DN: %s".format(rudderDit.GROUP.SYSTEM.targetDN(target))
         targetInfo <- mapper.entry2RuleTargetInfo(entry) ?~! "Error when mapping entry with DN '%s' into a directive target info".format(entry.dn)
         checkSameTarget <- if(target == targetInfo.target) Full("OK") else Failure("The retrieved target info does not match parameter target. Parameter target: '%s' ; retrieved target: '%s'".format(target, targetInfo.target))
@@ -155,38 +155,38 @@ trait TargetInfoService extends  RuleTargetService {
         targetInfo
       }
     }
-    
+
     target match {
-      case GroupTarget(groupId) => groupRepository.getNodeGroup(groupId).map { g => 
+      case GroupTarget(groupId) => groupRepository.getNodeGroup(groupId).map { g =>
         RuleTargetInfo(target, g.name , g.description , g.isEnabled , g.isSystem)
       }
-      case PolicyServerTarget(nodeId) => 
+      case PolicyServerTarget(nodeId) =>
         for {
           node <- nodeInfoService.getNodeInfo(nodeId) ?~! "Error when fetching for node %s".format(nodeId)
           targetInfo <- ldapGetTargetInfo
         } yield {
           targetInfo
         }
-      //other policy 
+      //other policy
       case AllTarget => ldapGetTargetInfo
       case AllTargetExceptPolicyServers => ldapGetTargetInfo
     }
   }
-  
+
   override def getAllTargetInfo(includeSystem:Boolean = false) : Box[Seq[RuleTargetInfo]] = {
     val base_filter = OR( IS(OC_RUDDER_NODE_GROUP), IS(OC_SPECIAL_TARGET))
     val filter = if(includeSystem) base_filter else AND(base_filter, EQ(A_IS_SYSTEM,false.toLDAPString))
     for {
       con <- ldap
       //for each directive entry, map it. if one fails, all fails
-      targetInfos <- sequence(con.searchSub(rudderDit.GROUP.dn,  filter, A_OC, A_NODE_GROUP_UUID, A_NAME, A_RULE_TARGET, A_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM)) { entry => 
+      targetInfos <- sequence(con.searchSub(rudderDit.GROUP.dn,  filter, A_OC, A_NODE_GROUP_UUID, A_NAME, A_RULE_TARGET, A_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM)) { entry =>
         mapper.entry2RuleTargetInfo(entry) ?~! "Error when transforming LDAP entry into a directive Target Info. Entry: %s".format(entry)
       }
     } yield {
       targetInfos
     }
   }
-  
+
 }
 
 
@@ -201,18 +201,18 @@ trait RuleTargetService_findTargets extends RuleTargetService {
     m0:Map[NodeId,Set[RuleTarget]],
     m1:Map[NodeId,Set[T]]
   ) : Map[NodeId,Set[RuleTarget]] = {
-    
+
     (for {
       k <- m0.keySet ++ m1.keySet
     } yield {
       (
         k,
-        m0.get(k).getOrElse(Set()) ++ m1.get(k).getOrElse(Set()) 
-      )      
+        m0.get(k).getOrElse(Set()) ++ m1.get(k).getOrElse(Set())
+      )
     }).toMap
-    
+
   }
-  
+
   /*
    * - Implementation strategy : all units processor need to succeed to lead to a
    *   Full(result).
@@ -236,20 +236,20 @@ trait RuleTargetService_findTargets extends RuleTargetService {
 trait UnitRuleTargetService {
   type T <: RuleTarget
   def findTargets(nodeIds:Seq[NodeId]) : Box[Map[NodeId,Set[T]]]
-  
+
 }
 
 
 ////////// Target processor for each target type //////////
 
 /**
- * Implementation of UnitRuleTargetService 
+ * Implementation of UnitRuleTargetService
  * for Special:AllTarget.
- * 
+ *
  */
-class SpecialAllTargetUpits extends UnitRuleTargetService {  
+class SpecialAllTargetUpits extends UnitRuleTargetService {
   override type T = AllTarget.type
-  
+
   /**
    * Each server has the "all" target
    */
@@ -259,16 +259,16 @@ class SpecialAllTargetUpits extends UnitRuleTargetService {
 }
 
 /**
- * Implementation of UnitRuleTargetService 
+ * Implementation of UnitRuleTargetService
  * for Special:AllTargetExceptPolicyServers
- * 
+ *
  */
 class SpecialAllTargetExceptPolicyServersTargetUpits(
   nodeInfoService:NodeInfoService
 ) extends UnitRuleTargetService {
-  
+
   override type T = AllTargetExceptPolicyServers.type
-  
+
   /**
    * Each server which is not a policy server has the AllTargetExceptPolicyServers
    */
@@ -282,16 +282,16 @@ class SpecialAllTargetExceptPolicyServersTargetUpits(
 }
 
 /**
- * Implementation of UnitRuleTargetService 
+ * Implementation of UnitRuleTargetService
  * for PolicyServerTarget
- * 
+ *
  */
 class PolicyServerTargetUpits(
   nodeInfoService:NodeInfoService
 ) extends UnitRuleTargetService {
-  
+
   override type T = PolicyServerTarget
-  
+
   /**
    * Each server which is not a policy server has the AllTargetExceptPolicyServers
    */
@@ -306,16 +306,16 @@ class PolicyServerTargetUpits(
 
 
 /**
- * Implementation of UnitRuleTargetService 
+ * Implementation of UnitRuleTargetService
  * for PolicyServerTarget
- * 
+ *
  */
 class GroupTargetUpits(
   groupRepository : NodeGroupRepository
 ) extends UnitRuleTargetService {
-  
+
   override type T = GroupTarget
-  
+
   /**
    * Each server which is not a policy server has the AllTargetExceptPolicyServers
    */

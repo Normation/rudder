@@ -48,7 +48,7 @@ import net.liftweb.http.SHtml._
 
 
 /**
- * Manage redirection for ConfigurationManager 
+ * Manage redirection for ConfigurationManager
  * home page
  */
 class ConfigurationManager {

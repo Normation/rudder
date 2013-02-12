@@ -49,36 +49,36 @@ import com.normation.rudder.domain.eventlog._
 
 /**
  * See http://www.rudder-project.org/redmine/issues/3152
- * 
+ *
  * That class checks that interpolated variable in Directive variable
  * (variable with syntax: ${some_var} ) are correctly using the "rudder"
- * namespace, so that that doesn't clash with CFEngine interpolation. 
- * 
- * The problem is that an user may have used its own interpolated 
+ * namespace, so that that doesn't clash with CFEngine interpolation.
+ *
+ * The problem is that an user may have used its own interpolated
  * variable, and so we don't have an exaustive list of directive
  * to change.
- * 
+ *
  * The check is idempotent, or almost - we have a non-atomic datastore
  * (LDAP), and so we adopt that strategy:
- * - check if system directive are migrated (i.e, their intepolated 
+ * - check if system directive are migrated (i.e, their intepolated
  *   variables use ${rudder.VAR}
  * - if the migration is done, end.
  * - else, get all directives with interpolated variable
  *   - migrate all variable non starting with ${rudder.]
- *     (here, we do make the assumption that the user never used 
+ *     (here, we do make the assumption that the user never used
  *     cfengine variables in directive values
  *   - save all non-system variables
  *   - save system variable.
- * 
+ *
  * Hence, by terminating with system variable, we are assured that
  * we don't miss any user defined variable.
- * 
+ *
  */
 class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
     repos  : DirectiveRepository
   , uuidGen: StringUuidGenerator
 ) extends BootstrapChecks {
-  
+
 
   private[this] object logger extends Logger {
     override protected def _logger = LoggerFactory.getLogger("migration")
@@ -91,26 +91,26 @@ class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
   }
 
   private[this] val variableRegex = """\$\{(.*)\}""".r
-  
+
   override def checks() : Unit = {
-      
+
     repos.getAll(includeSystem = true) match {
       case eb:EmptyBox =>
         val f = (eb ?~! "Can not check that Rudder interpolated variable in directive variables use 'rudder' namespace")
         logger.defaultErrorLogger(f)
-      
+
       case Full(directives) =>
-      
+
         val (systemDirectives, userDirectives) = directives.partition(d => d.isSystem)
 
         if(systemDirectives.exists { d => migrateDirectiveParametersToRudderNamespace(d).isDefined}) {
           //migrate everything
           val newUserDirectives = migrateDirectives(userDirectives)
           val newSystemDirectives = migrateDirectives(systemDirectives)
-          
+
           //generate a unique modification ID for the whole migration process
           val modId = ModificationId(uuidGen.newUuid)
-          
+
           logger.info("Starting migration of inline variables in Directives (i.e variables with ${XXX} syntax) to new 'rudder' namespace (i.e to syntax ${rudder.XXX})")
           (sequence(newUserDirectives ++ newSystemDirectives) { directive =>
             val message = "Migrating inline variables in Directive %s (uuid: %s) so that they use the new 'rudder' namespace".format(directive.name, directive.id.value)
@@ -125,41 +125,41 @@ class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
             case eb: EmptyBox =>
               val f = (eb ?~! "Can not finish the migration process due to an error")
               logger.defaultErrorLogger(f)
-            case Full(res) => 
+            case Full(res) =>
               logger.info("Migration of inline variables in Directives to new 'rudder' namespace succeeded")
 
           }
-          
-          
+
+
         } else {
           //OK, migration done
           logger.info("Migration of inline variables in Directives to 'rudder' namespace already done, skipping")
         }
-      
+
     }
   }
-  
+
   /**
    * Migrate a list of directive. Return only directives that actually need
-   * to be migrated. 
+   * to be migrated.
    */
   private[this] def migrateDirectives(directives:Seq[Directive]) : Seq[Directive] = {
-    directives.flatMap { case d => 
+    directives.flatMap { case d =>
       migrateDirectiveParametersToRudderNamespace(d).map { params => d.copy(parameters = params) }
     }
   }
-  
+
   /**
    * Find all directive parameters with interpolated variable that does not
-   * already use the rudder namespace. 
-   * An empty map may say that all variable are already using the namespace, 
+   * already use the rudder namespace.
+   * An empty map may say that all variable are already using the namespace,
    * or that no interpolated variable were used in that Directive.
-   * 
+   *
    * Return the map of parameter migrated, or nothing if the directive does not
    * contain any variable to migrate.
    */
   private[this] def migrateDirectiveParametersToRudderNamespace(directive:Directive) : Option[Map[String, Seq[String]]] = {
-    //try to migrate, create the resulting map of params with value => 
+    //try to migrate, create the resulting map of params with value =>
     // a list of (key, (param, wasMigrated)) where
     //is migrated say that the we had to migrate a variable.
     val migrated : Map[String, (Seq[String],Boolean)]= directive.parameters.map { case (key, params) =>
@@ -174,23 +174,23 @@ class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
       }
       //the param is migrated if any of its value was migrated
       val wasMigrated = (false /: newParams){ case (paste, (_,current)) => paste || current }
-      
+
       (key,(newParams.map(_._1),wasMigrated))
     }
-    
+
     if(migrated.exists { case (_, (_,wasMigrated)) => wasMigrated }) {
       Some(migrated.map { case (k, (params, _) ) => (k, params) } )
     } else {
       None
-    }    
+    }
   }
-  
+
   /**
-   * Return the name of the variable that is NOT in Rudder 
+   * Return the name of the variable that is NOT in Rudder
    * namespace, or nothing in case there is :
    * - it's not a variable
    * - it's a variable already migrated to rudder
-   * 
+   *
    * NOTICE than we can ONLY have one parameter, alone, and so we can not have
    * cases with """${foo.bar} ${rudder.plop}""" - that's an all or nothing choice.
    */
@@ -199,6 +199,6 @@ class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
       case variableRegex(x) if(!x.startsWith("rudder.")) => Some(x)
       case _ => None
     }
-  }  
+  }
 }
 

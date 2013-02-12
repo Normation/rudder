@@ -58,8 +58,8 @@ trait ReportsRepository {
     , beginDate: Option[DateTime]
     , endDate  : Option[DateTime]
   ) : Seq[Reports]
-  
-  
+
+
   /**
    * Return the last (really the last, serial wise, with full execution) reports for a rule
    */
@@ -68,8 +68,8 @@ trait ReportsRepository {
     , serial: Int
     , node  : Option[NodeId]
   ) : Seq[Reports]
-  
-  
+
+
   /**
    * Returns all reports for the node, between the two differents date (optionnal)
    * for a rule (optionnal) and for a specific serial of this rule (optionnal)
@@ -83,7 +83,7 @@ trait ReportsRepository {
     , beginDate: Option[DateTime]
     , endDate  : Option[DateTime]
   ) : Seq[Reports]
-  
+
   /**
    * All reports for a node and rule/serial, between two date, ordered by date
    */
@@ -94,22 +94,22 @@ trait ReportsRepository {
     , beginDate: DateTime
     , endDate  : Option[DateTime]
   ) : Seq[Reports]
-  
+
   def findExecutionTimeByNode(
       nodeId   : NodeId
     , beginDate: DateTime
     , endDate  : Option[DateTime]
   ) : Seq[DateTime]
-  
-  
+
+
   def getOldestReports() : Box[Option[Reports]]
-  
+
   def getOldestArchivedReports() : Box[Option[Reports]]
-  
+
   def getNewestReports() : Box[Option[Reports]]
-  
+
   def getNewestArchivedReports() : Box[Option[Reports]]
-  
+
   def getDatabaseSize(databaseName : String) : Box[Long]
 
   def reportsTable : String
@@ -121,7 +121,7 @@ trait ReportsRepository {
   def deleteEntries(date : DateTime) : Box[Int]
 
   def getHighestId : Box[Int]
-  
+
   def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Reports,Int)]]
 
   def getErrorReportsBeetween(lower : Int, upper:Int,kinds:List[String]) : Box[Seq[Reports]]

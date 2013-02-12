@@ -59,7 +59,7 @@ trait DeploymentStatusUnserialisation {
           <ended>{d.ended}</ended>
           <status>success</status>
      </deploymentStatus>
-     
+
      <deploymentStatus fileFormat="2">
           <id>{d.id}</id>
           <started>{d.started}</started>
@@ -69,16 +69,16 @@ trait DeploymentStatusUnserialisation {
      </deploymentStatus>
    */
   def unserialise(xml:XNode) : Box[CurrentDeploymentStatus]
-  
+
 }
 
 /**
- * That trait allow to unserialise 
- * group category from an XML file. 
- * 
- * BE CAREFUL: groups and sub-categories will 
- * always be empty here, as they are not serialized. 
- * 
+ * That trait allow to unserialise
+ * group category from an XML file.
+ *
+ * BE CAREFUL: groups and sub-categories will
+ * always be empty here, as they are not serialized.
+ *
  */
 trait NodeGroupCategoryUnserialisation {
   /**
@@ -94,8 +94,8 @@ trait NodeGroupCategoryUnserialisation {
 }
 
 /**
- * That trait allow to unserialise 
- * Node Group from an XML file. 
+ * That trait allow to unserialise
+ * Node Group from an XML file.
  */
 trait NodeGroupUnserialisation {
   /**
@@ -118,8 +118,8 @@ trait NodeGroupUnserialisation {
 }
 
 /**
- * That trait allow to unserialise 
- * rule from an XML file. 
+ * That trait allow to unserialise
+ * rule from an XML file.
  */
 trait RuleUnserialisation {
   /**
@@ -130,7 +130,7 @@ trait RuleUnserialisation {
         <serial>{rule.serial}</serial>
         <target>{ rule.target.map( _.target).getOrElse("") }</target>
         <directiveIds>{
-          rule.directiveIds.map { id => <id>{id.value}</id> } 
+          rule.directiveIds.map { id => <id>{id.value}</id> }
         }</directiveIds>
         <shortDescription>{rule.shortDescription}</shortDescription>
         <longDescription>{rule.longDescription}</longDescription>
@@ -142,12 +142,12 @@ trait RuleUnserialisation {
 }
 
 /**
- * That trait allow to unserialise 
- * active technique category from an XML file. 
- * 
- * BE CAREFUL: items and children categories will 
- * always be empty here, as they are not serialized. 
- * 
+ * That trait allow to unserialise
+ * active technique category from an XML file.
+ *
+ * BE CAREFUL: items and children categories will
+ * always be empty here, as they are not serialized.
+ *
  */
 trait ActiveTechniqueCategoryUnserialisation {
   /**
@@ -163,10 +163,10 @@ trait ActiveTechniqueCategoryUnserialisation {
 }
 
 /**
- * That trait allow to unserialise 
- * active technique from an XML file. 
- * 
- * BE CAREFUL: directive will be empty as they are not serialized. 
+ * That trait allow to unserialise
+ * active technique from an XML file.
+ *
+ * BE CAREFUL: directive will be empty as they are not serialized.
  */
 trait ActiveTechniqueUnserialisation {
   /**
@@ -187,8 +187,8 @@ trait ActiveTechniqueUnserialisation {
 }
 
 /**
- * That trait allow to unserialise 
- * directive from an XML file. 
+ * That trait allow to unserialise
+ * directive from an XML file.
  */
 trait DirectiveUnserialisation {
   /**
@@ -217,8 +217,8 @@ trait DirectiveUnserialisation {
      </directive>
    */
   def unserialise(xml:XNode) : Box[(TechniqueName, Directive, SectionVal)]
-  
-  
+
+
   /**
    * A section val look like:
    * <section name="root">
@@ -237,7 +237,7 @@ trait DirectiveUnserialisation {
          </section>
        </section>
    * </section>
-   * 
+   *
    * We await for a node that contains an unique <section>
    */
   def parseSectionVal(xml:NodeSeq) : Box[SectionVal]

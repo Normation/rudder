@@ -42,7 +42,7 @@ import com.normation.utils.HashcodeCaching
 
 
 
-case class SnippetExtensionKey(value:String) extends HashcodeCaching 
+case class SnippetExtensionKey(value:String) extends HashcodeCaching
 
 
 /**
@@ -50,38 +50,38 @@ case class SnippetExtensionKey(value:String) extends HashcodeCaching
  * one map contribution for before/after snippet dispatch.
  */
 trait SnippetExtensionPoint[T] {
-  
+
   /**
    * The key for plugin to extends that snippet.
    */
   def extendsAt : SnippetExtensionKey
-  
+
   /**
    * Here, we are rather strict on what we want : a T that is also extendable
    */
   def compose(snippet:T) : Map[String, NodeSeq => NodeSeq]
-  
+
 }
 
 /**
- * This trait allows to plugin to connect and enhance that snippet. 
- * 
+ * This trait allows to plugin to connect and enhance that snippet.
+ *
  * How plugin compose ?
- * 
- * For each render function, a new dispatch is build. 
- * BeforeRender and AfterRender applied in order, so that 
+ *
+ * For each render function, a new dispatch is build.
+ * BeforeRender and AfterRender applied in order, so that
  * these plugins will lead to:
- * 
+ *
  * P1 : before: { bfoo -> p1bfoo ; bar -> p1bbar }
  *      after : { foo -> p1afoo  ; bar -> p1abar }
  * P2 : before: { bbaz -> p2bfoo ; bar -> p2bbar }
  *      after : { bar  -> p2abar }
- * 
+ *
  * And that snippet plugDispatch is defined like:
  *  beforeRender: P1 :: P2 :: Nil
  *  afterRender : P1 :: P2 :: Nil
  *  plugDispatch: { foo -> pf ; bar -> pb }
- * 
+ *
  * The resulting dispatch will be:
  * {
  *   bfoo -> xml => (p1bfoo)(xml)
@@ -90,34 +90,34 @@ trait SnippetExtensionPoint[T] {
  *   foo -> xml => (p1afoo ʘ pf)(xml)
  *   bar -> xml => (p1bbar ʘ p2abar ʘ pb ʘ p1abar ʘ p2abar)(xml)
  * }
- * 
+ *
  */
 trait ExtendableSnippet[T] extends DispatchSnippet {
   self : T =>
 
   import ExtendableSnippet._
-  
+
   //reminder:
   //type DispatchIt = PartialFunction[String, NodeSeq => NodeSeq]
-  
+
   def extendsAt : SnippetExtensionKey
-  
+
   def mainDispatch : Map[String, NodeSeq => NodeSeq]
-  
+
   def beforeSnippetExtensionSeq : Seq[SnippetExtensionPoint[T]]
-  
+
   def afterSnippetExtensionSeq : Seq[SnippetExtensionPoint[T]]
-  
+
   def dispatch: DispatchIt = {
     (ExtendableSnippet.chached[T](extendsAt, computeDispatch))(this)
   }
-  
+
   private[this] def computeDispatch(snippet : T) : DispatchIt = {
-    val all = (beforeSnippetExtensionSeq.map( _.compose(snippet)) :+ 
-              mainDispatch) ++ 
-              afterSnippetExtensionSeq.map( _.compose(snippet) ) 
-    
-    (Map.empty[String, NodeSeq => NodeSeq] /: all){ case (previous, current) => 
+    val all = (beforeSnippetExtensionSeq.map( _.compose(snippet)) :+
+              mainDispatch) ++
+              afterSnippetExtensionSeq.map( _.compose(snippet) )
+
+    (Map.empty[String, NodeSeq => NodeSeq] /: all){ case (previous, current) =>
       previous ++ (for {
         (key, transform) <- current.iterator
       } yield {
@@ -125,7 +125,7 @@ trait ExtendableSnippet[T] extends DispatchSnippet {
         else (key , transform)
       }).toMap
     }
-  } 
+  }
 }
 
 /**
@@ -134,9 +134,9 @@ trait ExtendableSnippet[T] extends DispatchSnippet {
  */
 object ExtendableSnippet {
   type DispatchIt = PartialFunction[String, NodeSeq => NodeSeq]
- 
+
   private[this] val cache = scala.collection.mutable.Map.empty[SnippetExtensionKey , _ => DispatchIt]
-  
+
   def chached[T](forSnippet:SnippetExtensionKey, withDefault: => T => DispatchIt) : T => DispatchIt = {
     if(true) withDefault
     else cache.getOrElseUpdate(forSnippet, withDefault).asInstanceOf[(T => DispatchIt)]

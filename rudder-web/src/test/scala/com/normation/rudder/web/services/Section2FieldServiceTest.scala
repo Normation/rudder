@@ -173,7 +173,7 @@ class Section2FieldServiceTest extends Specification {
       rootSect
     }
   }
-  
+
 }
 
 @Configuration

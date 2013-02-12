@@ -68,27 +68,27 @@ import java.sql.Timestamp
  */
 trait DBCommon extends Specification with Loggable with Tags {
   skipAllIf(System.getProperty("test.postgres", "true").toBoolean != true)
-  
+
   def sqlClean : String
   def sqlInit : String
-  
+
   override def map(fs: =>Fragments) = (
-      Step(initDb) 
-    ^ fs 
-    ^ Step(cleanDb) 
-  ) 
-  
+      Step(initDb)
+    ^ fs
+    ^ Step(cleanDb)
+  )
+
   def initDb = {
     if(sqlInit.trim.size > 0) jdbcTemplate.execute(sqlInit)
   }
-  
+
   def cleanDb = {
     if(sqlClean.trim.size > 0) jdbcTemplate.execute(sqlClean)
   }
-  
+
   def now = new Timestamp(System.currentTimeMillis)
 
-  
+
   //execute something on the connection before commiting and closing it
   def withConnection[A](f:Connection => A) : A = {
     val c = dataSource.getConnection
@@ -97,11 +97,11 @@ trait DBCommon extends Specification with Loggable with Tags {
     c.close
     res
   }
-  
+
   //////////////
   // services //
   //////////////
-  
+
   lazy val properties = {
     val p = new Properties()
     val in = this.getClass.getClassLoader.getResourceAsStream("database.properties")
@@ -109,7 +109,7 @@ trait DBCommon extends Specification with Loggable with Tags {
     in.close
     p
   }
-    
+
   // init DB and repositories
   lazy val dataSource = {
     val driver = properties.getProperty("jdbc.driverClassName")
@@ -142,20 +142,20 @@ trait DBCommon extends Specification with Loggable with Tags {
       )
     }
   }
-  
+
   lazy val successLogger : Seq[MigrationEventLog] => Unit = { seq =>
     logger.debug("Log correctly migrated (id,type): " + (seq.map { case l =>
       "(%s, %s)".format(l.id, l.eventType)
     }).mkString(", ") )
   }
-  
+
   lazy val squerylConnectionProvider = new SquerylConnectionProvider(dataSource)
-  
+
   lazy val jdbcTemplate = new JdbcTemplate(dataSource)
-  
+
 
 
   lazy val migrationEventLogRepository = new MigrationEventLogRepository(squerylConnectionProvider)
 
-  
+
 }

@@ -43,13 +43,13 @@ import com.normation.rudder.domain.licenses.NovaLicense
  */
 trait LicenseRepository {
 
-  
-  def findLicense(uuid:String) : Option[NovaLicense] 
-  
+
+  def findLicense(uuid:String) : Option[NovaLicense]
+
   def getAllLicense() : Seq[NovaLicense]
-  
+
   def addLicense(license: NovaLicense) : Option[NovaLicense]
-  
+
   def loadLicenses() : Unit
-  
+
 }

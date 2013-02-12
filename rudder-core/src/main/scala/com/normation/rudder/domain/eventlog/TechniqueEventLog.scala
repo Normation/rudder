@@ -57,10 +57,10 @@ final case class ReloadTechniqueLibrary(
 
 object ReloadTechniqueLibrary extends EventLogFilter {
   override val eventType = ReloadTechniqueLibraryType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2) 
 
-  def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent { 
+  override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2)
+
+  def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent {
     <reloadTechniqueLibrary fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>{ TechniqueIds.map { case TechniqueId(name, version) =>
       <modifiedTechnique>
         <name>{name.value}</name>
@@ -87,7 +87,7 @@ final case class ModifyTechnique(
 
 object ModifyTechnique extends EventLogFilter {
   override val eventType = ModifyTechniqueEventType
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyTechnique = ModifyTechnique(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyTechnique = ModifyTechnique(x._2)
 }
 
 final case class DeleteTechnique(
@@ -100,5 +100,5 @@ final case class DeleteTechnique(
 
 object DeleteTechnique extends EventLogFilter {
   override val eventType = DeleteTechniqueEventType
-  override def apply(x : (EventLogType, EventLogDetails)) : DeleteTechnique = DeleteTechnique(x._2) 
+  override def apply(x : (EventLogType, EventLogDetails)) : DeleteTechnique = DeleteTechnique(x._2)
 }

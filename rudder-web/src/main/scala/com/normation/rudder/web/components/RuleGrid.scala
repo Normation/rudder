@@ -64,7 +64,7 @@ import com.normation.eventlog.ModificationId
 
 
 object RuleGrid {
-  def staticInit =     
+  def staticInit =
     <head>
       <script type="text/javascript" language="javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
       <style type="text/css">
@@ -76,11 +76,11 @@ object RuleGrid {
 class RuleGrid(
     htmlId_rulesGridZone : String,
     rules : Seq[Rule],
-    //JS callback to call when clicking on a line 
+    //JS callback to call when clicking on a line
     detailsCallbackLink : Option[(Rule,String) => JsCmd],
     showCheckboxColumn:Boolean = true
 ) extends DispatchSnippet with Loggable {
-  
+
   private[this] val targetInfoService = inject[RuleTargetService]
   private[this] val directiveRepository = inject[DirectiveRepository]
   private[this] val ruleRepository = inject[RuleRepository]
@@ -94,9 +94,9 @@ class RuleGrid(
   private[this] val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   private[this] val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
   private[this] val tableId_reportsPopup = "popupReportsGrid"
-  
-  private[this] val techniqueRepository = inject[TechniqueRepository] 
-   
+
+  private[this] val techniqueRepository = inject[TechniqueRepository]
+
   def templatePath = List("templates-hidden", "reports_grid")
   def template() =  Templates(templatePath) match {
     case Empty | Failure(_,_,_) =>
@@ -105,12 +105,12 @@ class RuleGrid(
   }
   def reportTemplate = chooseTemplate("reports", "report", template)
 
-  def dispatch = { 
+  def dispatch = {
     case "rulesGrid" => { _:NodeSeq => rulesGrid() }
   }
-  
+
   def jsVarNameForId(tableId:String) = "oTable" + tableId
-  
+
   def rulesGrid(popup:Boolean = false, linkCompliancePopup:Boolean = true) : NodeSeq = {
     (
         <div id={htmlId_rulesGridZone}>
@@ -130,10 +130,10 @@ class RuleGrid(
                 { if(showCheckboxColumn) <th></th> else NodeSeq.Empty }
               </tr>
             </thead>
-            <tbody>   
+            <tbody>
             {showRulesDetails(popup,rules,linkCompliancePopup)}
             </tbody>
-          </table> 
+          </table>
           <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
             <div id={htmlId_rulesGridId +"_paginate_area"}></div>
           </div>
@@ -141,10 +141,10 @@ class RuleGrid(
     ) ++ Script(
       JsRaw("""
         var #table_var#;
-      """.replaceAll("#table_var#",jsVarNameForId(htmlId_rulesGridId))) &      
+      """.replaceAll("#table_var#",jsVarNameForId(htmlId_rulesGridId))) &
       //pop-ups for multiple Directives
       JsRaw( """var openMultiPiPopup = function(popupid) {
-          createPopup(popupid,300,520);          
+          createPopup(popupid,300,520);
      }""") &
      OnLoad(JsRaw("""
       /* Event handler function */
@@ -161,20 +161,20 @@ class RuleGrid(
           "sSearch": ""
         },
         "aaSorting": [[ 0, "asc" ]],
-        "aoColumns": [ 
+        "aoColumns": [
           { "sWidth": "95px" },
           { "sWidth": "60px"  },
           { "sWidth": "115px" },
           { "sWidth": "100px" },
           { "sWidth": "120px", "sType": "html" },
-          { "sWidth": "60px"  } 
-         %2$s 
+          { "sWidth": "60px"  }
+         %2$s
          %3$s
         ],
         "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
       });
       $('.dataTables_filter input').attr("placeholder", "Search");
-         
+
       createTooltip();""".format(
           htmlId_rulesGridId
         , { if(!popup) """, { "sWidth": "20px", "bSortable" : false }, { "sWidth": "20px", "bSortable" : false }""" else "" }
@@ -185,44 +185,44 @@ class RuleGrid(
 
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  
+
   private[this] def showRulesDetails(popup:Boolean, rules:Seq[Rule],linkCompliancePopup:Boolean) : NodeSeq = {
     sealed trait Line { val rule:Rule }
-    
+
     case class OKLine(
         rule:Rule,
         compliance:Option[ComplianceLevel],
         trackerVariables: Seq[(Directive,ActiveTechnique,Technique)],
         targets:Set[RuleTargetInfo]
     ) extends Line with HashcodeCaching
-    
+
     case class ErrorLine(
         rule:Rule,
         trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]],
         targets:Box[Set[RuleTargetInfo]]
-    ) extends Line with HashcodeCaching 
-       
+    ) extends Line with HashcodeCaching
+
     sealed trait ApplicationStatus
     sealed trait NotAppliedStatus extends ApplicationStatus
     sealed trait AppliedStatus extends ApplicationStatus
-    
+
     final case object NotAppliedNoPI extends NotAppliedStatus
     final case object NotAppliedNoTarget extends NotAppliedStatus
     final case object NotAppliedCrDisabled extends NotAppliedStatus
-    
+
     final case object FullyApplied extends AppliedStatus
     final case class PartiallyApplied(disabled: Seq[(Directive, ActiveTechnique, Technique)]) extends AppliedStatus
-    
-    
+
+
     //is a cr applied for real ?
     def isApplied(
         cr:Rule,
         trackerVariables: Seq[(Directive, ActiveTechnique, Technique)],
         target:Set[RuleTargetInfo]
     ) : ApplicationStatus = {
-      
+
       if(cr.isEnabled) {
-        
+
         val isAllTargetsEnabled = target.filter(x => !x.isEnabled).isEmpty
         val nodeTargetSize = (target.flatMap(target => targetInfoService.getNodeIds(target.target).map(_.size)):\ 0)  ((res,acc) => res+acc)
         if (nodeTargetSize !=0)
@@ -246,21 +246,21 @@ class RuleGrid(
         NotAppliedCrDisabled
       }
     }
-    
+
     /*
      * For the Directive:
      * - if none defined => "None"
      * - if one define => <a href="Directive">Directive name</a>
      * - if more than one => <a href="Directive">Directive name</a>, ... + tooltip with the full list
      */
-    
+
     def displayPis(popup:Boolean, seq:Seq[(Directive,ActiveTechnique,Technique)]) : NodeSeq = {
       def piLink(directive:Directive) = if (popup) directive.name + (if (directive.isEnabled) "" else " (disabled)") else <a href={"""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value)}>{
           directive.name + (if (directive.isEnabled) "" else " (disabled)")
         }</a>
-      
+
       if(seq.size < 1) <i>None</i>
-      else { 
+      else {
         val popupId = Helpers.nextFuncName
         val tableId_listPI = Helpers.nextFuncName
         <span class={if(popup)"" else "curspoint"} onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name + (if (seq.size > 1) ", ..." else "")}</span> ++
@@ -283,7 +283,7 @@ class RuleGrid(
                 </tr>
               </thead>
               <tbody>
-            { 
+            {
               (
                 "span" #> seq.map { case(directive,activeTechnique,technique) => "#link" #> <tr><td>{piLink(directive)}</td><td>{technique.name}</td></tr> }
               ).apply(<span id="link"/>
@@ -325,34 +325,34 @@ class RuleGrid(
           });dropFilterArea('#%2$s');""".format( tableId_listPI, tableId_listPI))) )
       }
     }
-    
+
     def displayTarget(target:Option[RuleTargetInfo]) = {
        target match {
             case None => <i>None</i>
             case Some(targetInfo) => targetInfo.target match {
-              case GroupTarget(groupId) => <a href={ """/secure/nodeManager/groups#{"groupId":"%s"}""".format(groupId.value)}>{ 
-                  targetInfo.name + (if (targetInfo.isEnabled) "" else " (disabled)") 
+              case GroupTarget(groupId) => <a href={ """/secure/nodeManager/groups#{"groupId":"%s"}""".format(groupId.value)}>{
+                  targetInfo.name + (if (targetInfo.isEnabled) "" else " (disabled)")
                 }</a>
               case _ => Text({ targetInfo.name + (if (targetInfo.isEnabled) "" else " (disabled)") })
              }
           }
     }
-    
+
     def displayTargets(targets: Set[RuleTargetInfo]) = {
       def groupLink(t:RuleTargetInfo) = if(popup) t.name + (if (t.isEnabled) "" else " (disabled)") else{
         val content = {t.name + (if (t.isEnabled) "" else " (disabled)")}
         t.target match {
-          case GroupTarget(groupId) => 
+          case GroupTarget(groupId) =>
             val link = """/secure/nodeManager/groups#{"groupId":"%s"}""".format(groupId.value)
             <a href={link}>{content}</a>
           case x => {content}
         }
       }
-      
+
       if(targets.size < 1) {
         <i>None</i>
       }
-      else { 
+      else {
         val popupId = Helpers.nextFuncName
         val tableId_listPI = Helpers.nextFuncName
         <span class={if(popup)"" else "curspoint"} onclick={"openMultiPiPopup('" + popupId + "') ; return false;"}>
@@ -377,9 +377,9 @@ class RuleGrid(
                 </tr>
               </thead>
               <tbody>
-            { 
+            {
               (
-                "span" #> targets.map { target => "#link" #> 
+                "span" #> targets.map { target => "#link" #>
                 <tr><td>{groupLink(target)}</td><td>{target.description}</td></tr> }
               ).apply(<span id="link"/>
               )
@@ -420,14 +420,14 @@ class RuleGrid(
           });dropFilterArea('#%2$s');""".format( tableId_listPI, tableId_listPI))) )
       }
     }
-    
+
     {
-      
+
     }
     //for each rule, get all the required info and display them
     val lines:Seq[Line] = rules.map { rule =>
 
-      val trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]] = 
+      val trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]] =
         sequence(rule.directiveIds.toSeq) { id =>
           directiveRepository.getDirective(id) match {
             case Full(directive) => directiveRepository.getActiveTechnique(id) match {
@@ -446,27 +446,27 @@ class RuleGrid(
               error
           }
         }
-     
+
       val targetsInfo = sequence(rule.targets.toSeq) { target =>
         targetInfoService.getTargetInfo(target)
       }.map(x => x.toSet)
-      
+
       (trackerVariables, targetsInfo) match {
-        case (Full(seq), Full(targets)) => 
+        case (Full(seq), Full(targets)) =>
           val compliance = isApplied(rule, seq, targets) match {
             case _:NotAppliedStatus => None
             case _ =>  computeCompliance(rule)
           }
-          
+
           OKLine(rule, compliance, seq, targets)
         case (x,y) =>
           //the Rule has some error, try to disactivate it
-          ruleRepository.update(rule.copy(isEnabledStatus=false), ModificationId(uuidGen.newUuid), RudderEventActor, 
-            Some("Rule automatically disabled because it contains error (bad target or bad directives)")) 
+          ruleRepository.update(rule.copy(isEnabledStatus=false), ModificationId(uuidGen.newUuid), RudderEventActor,
+            Some("Rule automatically disabled because it contains error (bad target or bad directives)"))
           ErrorLine(rule, x, y)
       }
     }
-    
+
 
     //now, build html lines
     if(lines.isEmpty) {
@@ -475,7 +475,7 @@ class RuleGrid(
       lines.map { l => l match {
       case line:OKLine =>
         <tr>
-          <td>{ // NAME 
+          <td>{ // NAME
             if(popup) <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a> else detailsLink(line.rule, line.rule.name)
           }</td>
           <td>{ // OWN STATUS
@@ -484,7 +484,7 @@ class RuleGrid(
           <td><b>{ // EFFECTIVE STATUS
             isApplied(line.rule, line.trackerVariables, line.targets) match {
               case FullyApplied => Text("In application")
-              case PartiallyApplied(seq) => 
+              case PartiallyApplied(seq) =>
                   val tooltipId = Helpers.nextFuncName
                   val why = seq.map { case (pi, upt, pt) => "Policy " + pi.name + " disabled" }.mkString(", ")
 
@@ -494,16 +494,16 @@ class RuleGrid(
                 val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
                 val nodeSize = (line.targets.flatMap(targetInfo => targetInfoService.getNodeIds(targetInfo.target).map(_.size)) :\ 0) ((res,acc) => res+acc)
                 val conditions = Seq(
-                    ( line.rule.isEnabled, "rule disabled" ), 
+                    ( line.rule.isEnabled, "rule disabled" ),
                     ( line.trackerVariables.size > 0, "No policy defined"),
                     ( isAllTargetsEnabled, "Group disabled"),
                     ( nodeSize!=0, "Empty groups")
                  ) ++ line.trackerVariables.flatMap { case (pi, upt,pt) => Seq(
-                    ( pi.isEnabled, "Policy " + pi.name + " disabled") , 
-                    ( upt.isEnabled, "Technique for '" + pi.name + "' disabled") 
+                    ( pi.isEnabled, "Policy " + pi.name + " disabled") ,
+                    ( upt.isEnabled, "Technique for '" + pi.name + "' disabled")
                  )}
-               
-                val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ") 
+
+                val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ")
                 <span class="tooltip tooltipable" title="" tooltipid={line.rule.id.value}>Not applied</span>
                  <div class="tooltipContent" id={line.rule.id.value}><h3>Reason(s)</h3><div>{why}</div></div>
             }
@@ -517,13 +517,13 @@ class RuleGrid(
           <td style="text-align:right;">{ //  COMPLIANCE
             buildComplianceChart(line.compliance, line.rule, linkCompliancePopup)
           }</td>
-          { if (!popup) 
+          { if (!popup)
             <td class="complianceTd">{ //  DETAILLED COMPLIANCE
               detailsCallbackLink match {
                 case None => Text("No details")
                 case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, {
                   () =>  callback(line.rule,"showForm")
-                  }, ("class", "smallButton")) 
+                  }, ("class", "smallButton"))
                 }
               }
             </td>
@@ -536,16 +536,16 @@ class RuleGrid(
                 }
               }
             </td>
-            else NodeSeq.Empty 
+            else NodeSeq.Empty
           }
-          { // CHECKBOX 
-            if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty 
+          { // CHECKBOX
+            if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty
           }
         </tr>
-          
+
       case line:ErrorLine =>
         <tr class="error">
-          <td>{ // NAME 
+          <td>{ // NAME
             if(popup) <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a> else detailsLink(line.rule, line.rule.name)
           }</td>
           <td>{ // OWN STATUS
@@ -566,24 +566,24 @@ class RuleGrid(
           <td class="complianceTd">{ //  DETAIL
               detailsCallbackLink match {
       case None => Text("No details")
-      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { 
+      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, {
                       () =>  callback(line.rule,"showForm")
                     }, ("class", "smallButton")) }
           }</td>
-          <td class="parametersTd">{ 
+          <td class="parametersTd">{
               detailsCallbackLink match {
       case None => Text("No parameters")
-      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icTools.jpg"/>, { 
+      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icTools.jpg"/>, {
                       () =>  callback(line.rule,"showEditForm")
                     }, ("class", "smallButton")) }
           }</td>
 
-          { // CHECKBOX 
-            if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty 
+          { // CHECKBOX
+            if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty
           }
-        </tr>  
+        </tr>
       } }
-    } 
+    }
   }
 
   private[this] def computeCompliance(rule: Rule) : Option[ComplianceLevel] = {
@@ -600,8 +600,8 @@ class RuleGrid(
       case None => Text(text)
       case Some(callback) => SHtml.a( () => callback(rule,"showForm"), Text(text))
     }
-  }  
-  
+  }
+
   private[this] def buildComplianceChart(level:Option[ComplianceLevel], rule: Rule, linkCompliancePopup:Boolean) : NodeSeq = {
     level match {
       case None => Text("N/A")
@@ -641,7 +641,7 @@ class RuleGrid(
                        )(nodeLineXml)
                        xml
                      }
-                     case x:EmptyBox => 
+                     case x:EmptyBox =>
                      logger.error( (x?~! "An error occured when trying to load node %s".format(nodeStatus.nodeId.value)),x)
                      <div class="error">Node with ID "{nodeStatus.nodeId.value}" is invalid</div>
                    }
@@ -739,13 +739,13 @@ class RuleGrid(
 
 }
 
-sealed trait ComplianceLevel 
+sealed trait ComplianceLevel
 
 
 case object Applying extends ComplianceLevel
 case object NoAnswer extends ComplianceLevel
-case class Compliance(val percent:Int) extends ComplianceLevel with HashcodeCaching 
+case class Compliance(val percent:Int) extends ComplianceLevel with HashcodeCaching
 
-  
-  
+
+
 

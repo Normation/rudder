@@ -6,7 +6,7 @@ import com.normation.rudder.repository.squeryl.GitCommitJoin
 
 
 /**
- * A repository to store git commit and link them to 
+ * A repository to store git commit and link them to
  * an event log with an ID
  */
 trait GitModificationRepository {
@@ -15,6 +15,6 @@ trait GitModificationRepository {
    * Get commits linked to a modification Id
    */
   def getCommits(modificationId: ModificationId) : Box[Option[GitCommitId]]
-  
+
   def addCommit(commit:GitCommitId, modId:ModificationId) : Box[GitCommitJoin]
 }

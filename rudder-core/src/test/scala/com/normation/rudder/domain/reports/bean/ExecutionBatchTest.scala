@@ -53,9 +53,9 @@ class ExecutionBatchTest extends Specification {
   private implicit def str2nodeId(s:String) = NodeId(s)
 
   "An execution Batch, with one component, cardinality one, one node" should {
-         
+
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
-       "rule", 
+       "rule",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                    "policy",
                    Seq(new ReportComponent("component", 1, Seq("None")  )))),
@@ -68,22 +68,22 @@ class ExecutionBatchTest extends Specification {
     "have one reports when we create it with one report" in {
       uniqueExecutionBatch.executionReports.size ==1
     }
-    
-   
-    
+
+
+
     "have no error report when we create it with one success report" in {
       uniqueExecutionBatch.getErrorReports.size == 0
     }
-    
+
     "have one success report when we create it with one success report" in {
       uniqueExecutionBatch.getSuccessReports.size == 1
     }
   }
-  
+
   "An execution Batch, with one component, cardinality one, two nodes" should {
- 
+
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
-       "rule", 
+       "rule",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                    "policy",
                    Seq(new ReportComponent("component", 1, Seq("None") )))),
@@ -92,25 +92,25 @@ class ExecutionBatchTest extends Specification {
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
        Seq[NodeId]("one", "two"),
        DateTime.now(), None)
-    
+
     "have one reports when we create it with one report" in {
       multipleNodeExecutionBatch.executionReports.size ==1
     }
-    
+
     "have no warn nor error report when we create it with one success report" in {
       //multipleNodeExecutionBatch.getWarnReports.size == 0 &&
       multipleNodeExecutionBatch.getErrorReports.size == 0
     }
-  } 
-  
+  }
+
   "An execution Batch, with one component, cardinality one, two nodes" should {
     val reports = Seq[Reports](
         new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
         new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value", DateTime.now(),"message")
               )
-              
+
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
-       "rule", 
+       "rule",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                    "policy",
                    Seq(new ReportComponent("component", 1, Seq("None") )))),
@@ -119,11 +119,11 @@ class ExecutionBatchTest extends Specification {
        reports,
        Seq[NodeId]("one", "two"),
        DateTime.now(), None)
-    
+
     "have two reports when we create it with two report" in {
       multipleNodeExecutionBatch.executionReports.size == 2
     }
-    
+
     "have no warn nor error report when we create it with two success report" in {
      // multipleNodeExecutionBatch.getWarnReports.size == 0 &&
       multipleNodeExecutionBatch.getErrorReports.size == 0
@@ -131,17 +131,17 @@ class ExecutionBatchTest extends Specification {
     "have two success report when we create it with two success report" in {
       multipleNodeExecutionBatch.getSuccessReports.size == 2
     }
-        
+
   }
-  
+
   "An execution Batch, with one component, cardinality two, two nodes" should {
     val reports = Seq[Reports](
         new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
         new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value", DateTime.now(),"message")
               )
-              
+
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
-       "rule", 
+       "rule",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                    "policy",
                    Seq(new ReportComponent("component", 2, Seq("None", "None") )))),
@@ -150,12 +150,12 @@ class ExecutionBatchTest extends Specification {
        reports,
        Seq[NodeId]("one", "two"),
        DateTime.now(), None)
-    
+
     "have two reports when we create it with two report" in {
       multipleNodeExecutionBatch.executionReports.size == 2
     }
 
-     
+
     "have no warn nor error report when we create it with two success report" in {
     //  multipleNodeExecutionBatch.getWarnReports.size == 0 &&
       multipleNodeExecutionBatch.getErrorReports.size == 0
@@ -163,7 +163,7 @@ class ExecutionBatchTest extends Specification {
     "have two success report when we create it with two success report" in {
       multipleNodeExecutionBatch.getSuccessReports.size == 2
     }
-        
+
   }
 
   "An execution Batch, with one component, cardinality two, three nodes" should {
@@ -177,9 +177,9 @@ class ExecutionBatchTest extends Specification {
         new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value", DateTime.now(),"message"),
         new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value", DateTime.now(),"message")
               )
-              
+
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
-       "rule", 
+       "rule",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                    "policy",
                    Seq(new ReportComponent("component", 2, Seq("None", "None") )))),
@@ -188,7 +188,7 @@ class ExecutionBatchTest extends Specification {
        reports,
        Seq[NodeId]("one", "two", "three"),
        DateTime.now(), None)
-    
+
     "have 8 reports when we create it with 8 reports" in {
       multipleNodeExecutionBatch.executionReports.size == 8
     }
@@ -200,19 +200,19 @@ class ExecutionBatchTest extends Specification {
     "have six success reports when we create it with 6 success report" in {
       multipleNodeExecutionBatch.getSuccessReports.size == 6
     }
-        
+
   }
 
 
-  
+
   "An execution Batch, with two directive, two nodes, one component" should {
     val reports = Seq[Reports](
         new ResultSuccessReport(DateTime.now(), "rule", "policy1", "one", 12, "component1", "None",DateTime.now(), "message"),
         new ResultSuccessReport(DateTime.now(), "rule", "policy2", "one", 12, "component2", "None",DateTime.now(), "message")
               )
-              
+
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
-       "rule", 
+       "rule",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                    "policy1",
                    Seq(new ReportComponent("component1", 1, Seq("None") ))),
@@ -225,11 +225,11 @@ class ExecutionBatchTest extends Specification {
        reports,
        Seq[NodeId]("one", "two"),
        DateTime.now(), None)
-    
+
     "have two reports when we create it with two report" in {
       multipleNodeExecutionBatch.executionReports.size == 2
     }
-     
+
     "have no warn nor error report when we create it with two success report" in {
       //multipleNodeExecutionBatch.getWarnReports.size == 0 &&
       multipleNodeExecutionBatch.getErrorReports.size == 0
@@ -237,21 +237,21 @@ class ExecutionBatchTest extends Specification {
     "have two success report when we create it with two success report" in {
       multipleNodeExecutionBatch.getSuccessReports.size == 2
     }
-        
+
   }
-  
- 
+
+
 
   // Test the multiple identical keys
   "An execution Batch, with one component, one node, but the same key twices" should {
     val executionTimestamp = new DateTime()
     val reports = Seq[Reports](
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
-        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message")        
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message")
               )
-              
+
     val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
-       "cr", 
+       "cr",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                   "policy",
                   Seq(new ReportComponent("component", 2, Seq("value", "value") )))),
@@ -260,12 +260,12 @@ class ExecutionBatchTest extends Specification {
        reports,
        Seq[NodeId]("nodeId"),
        executionTimestamp, None)
-    
+
     "have 2 reports when we create it with 2 reports" in {
       sameKeyExecutionBatch.executionReports.size == 2
-    }    
+    }
   }
-  
+
   // Test the multiple identical keys
   "An execution Batch, with one component, one node, but the same key twices" should {
     val executionTimestamp = new DateTime()
@@ -274,9 +274,9 @@ class ExecutionBatchTest extends Specification {
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "value", executionTimestamp, "message")
               )
-              
+
     val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
-       "cr", 
+       "cr",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                   "policy",
                   Seq(new ReportComponent("component", 2, Seq("value", "value") )))),
@@ -285,15 +285,15 @@ class ExecutionBatchTest extends Specification {
        reports,
        Seq[NodeId]("nodeId"),
        executionTimestamp, None)
-    
+
     "have 3 reports when we create it with 3 reports" in {
       sameKeyExecutionBatch.executionReports.size == 3
     }
   }
-  
 
 
-  
+
+
   // Test the component part
   "A component, with two different keys" should {
     val executionTimestamp = new DateTime()
@@ -307,14 +307,14 @@ class ExecutionBatchTest extends Specification {
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "foo", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
               )
-              
+
     val expectedComponent = new ReportComponent(
                       "component"
                     , 2
                     , Seq("foo", "bar") )
-    
+
     val executionBatch = new ConfigurationExecutionBatch(
-       "cr", 
+       "cr",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                   "policy",
                   Seq(expectedComponent))),
@@ -323,8 +323,8 @@ class ExecutionBatchTest extends Specification {
        reports,
        Seq[NodeId]("nodeId"),
        executionTimestamp, None)
-    
-    
+
+
     "return a component globally repaired " in {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
@@ -357,7 +357,7 @@ class ExecutionBatchTest extends Specification {
         , reports
         , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").head.cptValueReportType ==  SuccessReportType
      }
-     
+
      " with bad reports return a component globally unknwon" in {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
@@ -390,9 +390,9 @@ class ExecutionBatchTest extends Specification {
         , badReports
         , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").head.cptValueReportType ==  SuccessReportType
      }
-  
+
   }
-  
+
   // Test the component part
   "A component, with a None keys" should {
     val executionTimestamp = new DateTime()
@@ -406,14 +406,14 @@ class ExecutionBatchTest extends Specification {
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message")
               )
-              
+
     val expectedComponent = new ReportComponent(
                       "component"
                     , 2
                     , Seq("None", "None") )
-    
+
     val executionBatch = new ConfigurationExecutionBatch(
-       "cr", 
+       "cr",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                   "policy",
                   Seq(expectedComponent))),
@@ -422,8 +422,8 @@ class ExecutionBatchTest extends Specification {
        reports,
        Seq[NodeId]("nodeId"),
        executionTimestamp, None)
-    
-    
+
+
     "return a component globally repaired " in {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
@@ -446,7 +446,7 @@ class ExecutionBatchTest extends Specification {
         , reports
         , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "None").forall(x => x.cptValueReportType == RepairedReportType)
     }
-    
+
     "with bad reports return a component globally unknown " in {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
@@ -470,7 +470,7 @@ class ExecutionBatchTest extends Specification {
         , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "None").forall(x => x.cptValueReportType == UnknownReportType)
     }
   }
-  
+
   // Test the component part
   "A component, with a cfengine keys" should {
     val executionTimestamp = new DateTime()
@@ -484,14 +484,14 @@ class ExecutionBatchTest extends Specification {
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")
               )
-              
+
     val expectedComponent = new ReportComponent(
                       "component"
                     , 2
                     , Seq("${sys.bla}", "${sys.foo}") )
-    
+
     val executionBatch = new ConfigurationExecutionBatch(
-       "cr", 
+       "cr",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                   "policy",
                   Seq(expectedComponent))),
@@ -500,7 +500,7 @@ class ExecutionBatchTest extends Specification {
        reports,
        Seq[NodeId]("nodeId"),
        executionTimestamp, None)
-    
+
     "return a component globally repaired " in {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
@@ -524,7 +524,7 @@ class ExecutionBatchTest extends Specification {
         , NodeId("nodeId")).componentValues.forall(x => x.cptValueReportType == RepairedReportType)
     }
   }
-  
+
   // Test the component part
   "A component, with distinguishable keys" should {
     val executionTimestamp = new DateTime()
@@ -538,14 +538,14 @@ class ExecutionBatchTest extends Specification {
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
               )
-              
+
     val expectedComponent = new ReportComponent(
                       "component"
                     , 2
                     , Seq("${sys.bla}", "bar") )
-    
+
     val executionBatch = new ConfigurationExecutionBatch(
-       "cr", 
+       "cr",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                   "policy",
                   Seq(expectedComponent))),
@@ -554,7 +554,7 @@ class ExecutionBatchTest extends Specification {
        reports,
        Seq[NodeId]("nodeId"),
        executionTimestamp, None)
-    
+
     "return a component globally repaired " in {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
@@ -620,11 +620,11 @@ class ExecutionBatchTest extends Specification {
         , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "${sys.bla}").forall(x => x.cptValueReportType == UnknownReportType)
     }
   }
-  
+
   "A detailed execution Batch, with one component, cardinality one, one node" should {
-         
+
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
-       "rule", 
+       "rule",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                    "policy",
                    Seq(new ReportComponent("component", 1, Seq("value")  )))),
@@ -637,28 +637,28 @@ class ExecutionBatchTest extends Specification {
     "have one detailed reports when we create it with one report" in {
       uniqueExecutionBatch.getNodeStatus.size ==1
     }
-    
+
     "have one detailed success node when we create it with one success report" in {
       uniqueExecutionBatch.getNodeStatus.head.nodeId == NodeId("one") &&
       uniqueExecutionBatch.getNodeStatus.head.nodeReportType == SuccessReportType
     }
-   
+
     "have no detailed repaired node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
     }
-    
+
     "have no detailed error node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
     }
-    
+
     "have no detailed unknown node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == UnknownReportType).size == 0)
     }
-    
+
     "have no detailed no answer node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == NoAnswerReportType).size == 0)
     }
-    
+
     "have no detailed no pending node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == PendingReportType).size == 0)
     }
@@ -692,11 +692,11 @@ class ExecutionBatchTest extends Specification {
       (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size == 0)
     }
   }
-  
+
   "A detailed execution Batch, with one component, cardinality one, wrong node" should {
-         
+
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
-       "rule", 
+       "rule",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                    "policy",
                    Seq(new ReportComponent("component", 1, Seq("value")  )))),
@@ -709,37 +709,37 @@ class ExecutionBatchTest extends Specification {
     "have one detailed reports when we create it with one report" in {
       uniqueExecutionBatch.getNodeStatus.size ==1
     }
-    
+
     "have a pending node when we create it with one wrong success report right now" in {
       uniqueExecutionBatch.getNodeStatus.head.nodeId == NodeId("one") &&
       uniqueExecutionBatch.getNodeStatus.head.nodeReportType == PendingReportType
     }
-   
+
     "have no detailed success node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == SuccessReportType).size == 0)
     }
-    
+
     "have no detailed repaired node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
     }
-    
+
     "have no detailed error node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
     }
-    
+
     "have no detailed unknown node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == UnknownReportType).size == 0)
     }
-    
+
     "have no detailed no answer node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == NoAnswerReportType).size == 0)
     }
   }
-  
+
   "A detailed execution Batch, with one component, cardinality one, one node" should {
-         
+
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
-       "rule", 
+       "rule",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                    "policy",
                    Seq(new ReportComponent("component", 1, Seq("value")  )))),
@@ -755,7 +755,7 @@ class ExecutionBatchTest extends Specification {
     "have one detailed reports when we create it" in {
       uniqueExecutionBatch.getNodeStatus.size ==1
     }
-    
+
     "have one unknown node when we create it with one success report" in {
       uniqueExecutionBatch.getNodeStatus.head.nodeId == NodeId("one") &&
       uniqueExecutionBatch.getNodeStatus.head.nodeReportType == UnknownReportType
@@ -785,7 +785,7 @@ class ExecutionBatchTest extends Specification {
       uniqueExecutionBatch.getRuleStatus.size ==1
     }
   }
-  
+
    "A detailed execution Batch, with one component, cardinality one, two nodes, including one not responding" should {
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
@@ -825,7 +825,7 @@ class ExecutionBatchTest extends Specification {
       (uniqueExecutionBatch.getRuleStatus.head.components.head.componentValues.head.reports.exists(x => x.node == NodeId("one") && x.reportType == SuccessReportType))
     }
   }
-   
+
   "A detailed execution Batch, with one component, cardinality one, three nodes, including one not responding" should {
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
@@ -852,7 +852,7 @@ class ExecutionBatchTest extends Specification {
       uniqueExecutionBatch.getRuleStatus.head.components.head.computeCompliance must beSome(67)
     }
   }
-  
+
   "A detailed execution Batch, with two directive, two component, cardinality one, three nodes, including one partly responding and one not responding" should {
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
@@ -881,7 +881,7 @@ class ExecutionBatchTest extends Specification {
        ),
        Seq[NodeId]("one", "two", "three"),
        DateTime.now(), None)
-    
+
     "have two detailed rule report" in {
       uniqueExecutionBatch.getRuleStatus.size must beEqualTo(2)
     }
@@ -995,9 +995,9 @@ class ExecutionBatchTest extends Specification {
   }
 
    "An execution Batch, with one component with an escaped quote in its value, cardinality one, one node" should {
-         
+
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
-       "rule", 
+       "rule",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                   "policy",
                   Seq(new ReportComponent("component", 1, Seq("""some\"text""")  )))),
@@ -1010,28 +1010,28 @@ class ExecutionBatchTest extends Specification {
     "have one reports when we create it with one report" in {
       uniqueExecutionBatch.executionReports.size ==1
     }
-    
+
     "have one detailed reports when we create it with one report" in {
       uniqueExecutionBatch.getNodeStatus.size ==1
     }
-   
+
     "have one detailed success node when we create it with one success report" in {
       uniqueExecutionBatch.getNodeStatus.head.nodeId == NodeId("one") &&
       uniqueExecutionBatch.getNodeStatus.head.nodeReportType == SuccessReportType
     }
-   
+
     "have no detailed repaired node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
     }
-    
+
     "have no detailed error node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
     }
-    
+
     "have no detailed unknown node when we create it with one success report" in {
       (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == UnknownReportType).size == 0)
     }
-    
+
     "have one success report when we create it with one success report" in {
       uniqueExecutionBatch.getSuccessReports.size == 1
     }
@@ -1063,15 +1063,15 @@ class ExecutionBatchTest extends Specification {
       (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size == 0)
     }
   }
- 
+
  "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {, and a quote as well" should {
     val executionTimestamp = new DateTime()
     val reports = Seq[Reports](
-        new ResultSuccessReport(executionTimestamp, "rule", "policy", "nodeId", 12, "component", """/var/cfengine/inputs/"test""", executionTimestamp, "message")        
+        new ResultSuccessReport(executionTimestamp, "rule", "policy", "nodeId", 12, "component", """/var/cfengine/inputs/"test""", executionTimestamp, "message")
               )
-              
+
     val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
-       "rule", 
+       "rule",
        Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
                   "policy",
                   Seq(new ReportComponent("component", 1, Seq("""${sys.workdir}/inputs/\"test""") )))),
@@ -1080,32 +1080,32 @@ class ExecutionBatchTest extends Specification {
        reports,
        Seq[NodeId]("nodeId"),
        executionTimestamp, None)
-        
+
     "have one reports when we create it with one report" in {
       sameKeyExecutionBatch.executionReports.size ==1
     }
-    
+
     "have one detailed reports when we create it with one report" in {
       sameKeyExecutionBatch.getNodeStatus.size ==1
     }
-   
+
     "have one detailed success node when we create it with one success report" in {
       sameKeyExecutionBatch.getNodeStatus.head.nodeId == NodeId("nodeId") &&
       sameKeyExecutionBatch.getNodeStatus.head.nodeReportType == SuccessReportType
     }
-   
+
     "have no detailed repaired node when we create it with one success report" in {
       (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
     }
-    
+
     "have no detailed error node when we create it with one success report" in {
       (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
     }
-    
+
     "have no detailed unknown node when we create it with one success report" in {
       (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == UnknownReportType).size == 0)
     }
-    
+
     "have one success report when we create it with one success report" in {
       sameKeyExecutionBatch.getSuccessReports.size == 1
     }

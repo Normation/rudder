@@ -69,7 +69,7 @@ class LogEventOnTechniqueReloadCallback(
       , details     = ReloadTechniqueLibrary.buildDetails(TechniqueIds)
       , reason = reason
     ))) match {
-      case eb:EmptyBox => 
+      case eb:EmptyBox =>
         val error = eb ?~! "Error when saving log related to technique reloading event"
         logger.error(error)
         logger.debug(error.exceptionChain)

@@ -58,8 +58,8 @@ final case class AddNodeGroup(
 
 object AddNodeGroup extends EventLogFilter {
   override val eventType = AddNodeGroupEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : AddNodeGroup = AddNodeGroup(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : AddNodeGroup = AddNodeGroup(x._2)
 }
 
 
@@ -73,8 +73,8 @@ final case class DeleteNodeGroup(
 
 object DeleteNodeGroup extends EventLogFilter {
   override val eventType = DeleteNodeGroupEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : DeleteNodeGroup = DeleteNodeGroup(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : DeleteNodeGroup = DeleteNodeGroup(x._2)
 }
 
 final case class ModifyNodeGroup(
@@ -87,14 +87,14 @@ final case class ModifyNodeGroup(
 
 object ModifyNodeGroup extends EventLogFilter {
   override val eventType = ModifyNodeGroupEventType
- 
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyNodeGroup = ModifyNodeGroup(x._2) 
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyNodeGroup = ModifyNodeGroup(x._2)
 }
 
 object NodeGroupEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      AddNodeGroup 
-    , DeleteNodeGroup 
+      AddNodeGroup
+    , DeleteNodeGroup
     , ModifyNodeGroup
     )
 }

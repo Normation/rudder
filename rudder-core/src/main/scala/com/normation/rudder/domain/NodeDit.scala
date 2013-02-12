@@ -44,27 +44,27 @@ import com.normation.utils.Utils.nonEmpty
 import com.normation.inventory.domain._
 
 class NodeDit(val BASE_DN:DN) extends AbstractDit {
-  dit => 
+  dit =>
   implicit val DIT = dit
-  
-  object NODES extends OU("Nodes", BASE_DN) { 
-    nodes => 
+
+  object NODES extends OU("Nodes", BASE_DN) {
+    nodes =>
       object NODE extends ENTRY1(A_NODE_UUID) {
         node =>
-        
+
         //get id from dn
         def idFromDn(dn:DN) : Option[NodeId] = buildId(dn,nodes.dn,{x:String => NodeId(x)})
-      
+
         //build the dn from an UUID
         def dn(uuid:String) = new DN(this.rdn(uuid),nodes.dn)
-        
+
         def nodeModel(uuid:NodeId) : LDAPEntry = {
             val mod = LDAPEntry(this.dn(uuid.value))
             mod +=! (A_OC, OC.objectClassNames(OC_RUDDER_NODE).toSeq:_*)
             mod
         }
-        
-        
+
+
         def policyServerNodeModel(id: NodeId) : LDAPEntry = {
             val mod = LDAPEntry(this.dn(id.value))
             mod +=! (A_OC, OC.objectClassNames(OC_POLICY_SERVER_NODE).toSeq:_*)

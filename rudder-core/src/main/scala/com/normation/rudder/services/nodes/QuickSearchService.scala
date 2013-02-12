@@ -46,7 +46,7 @@ import com.normation.inventory.domain._
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderLDAPConstants._
-import com.normation.rudder.domain.nodes.NodeInfo 
+import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.services.nodes.NodeInfoServiceImpl.nodeInfoAttributes
 
 import com.normation.rudder.domain.Constants._
@@ -61,21 +61,21 @@ import scala.collection.JavaConversions._
 /**
  * A service that allows to query for
  * nodes based on a part of some of their
- * informations, typically the id, hostname, ip, 
+ * informations, typically the id, hostname, ip,
  * etc.
- * 
- * That service is typically used in autocomplete 
- * UI inputs. 
+ *
+ * That service is typically used in autocomplete
+ * UI inputs.
  */
 trait QuickSearchService {
 
   /**
    * Try to retrieve a list of server based of the given information.
-   * The list may be empty if there is no server, or if the provided 
+   * The list may be empty if there is no server, or if the provided
    * information does not reach some lower bound (too short, only spaces, etc)
    */
   def lookup(partialInfo:String, maxResult:Int) : Box[Seq[NodeInfo]]
-  
+
 }
 
 class QuickSearchServiceImpl(
@@ -90,14 +90,14 @@ class QuickSearchServiceImpl(
 
   /**
    * Try to retrieve a list of server based of the given information.
-   * The list may be empty if there is no server, or if the provided 
+   * The list may be empty if there is no server, or if the provided
    * information does not reach some lower bound (too short, only spaces, etc)
    */
   def lookup(in:String, maxResult:Int) : Box[Seq[NodeInfo]] = {
-    
+
     if(validateInput(in))
       searchNodesInLdap(in, maxResult)
-    else 
+    else
       Full(Seq())
   }
 
@@ -106,22 +106,22 @@ class QuickSearchServiceImpl(
         con                <- ldap
 
         nodeEntries        <- search(con, nodeDit.NODES.dn, maxResult, nodeFilter(in), nodeInfoAttributes)
-        nodePairs          <- { sequence(nodeEntries) { e => 
-                                nodeDit.NODES.NODE.idFromDn(e.dn).map(id => (id,e)) 
+        nodePairs          <- { sequence(nodeEntries) { e =>
+                                nodeDit.NODES.NODE.idFromDn(e.dn).map(id => (id,e))
                               } }.map( _.toMap )
         nodeIdSet1         =  nodePairs.keySet
 
         serverEntries      <- search(con, inventoryDit.NODES.dn, maxResult, serverFilter(in, nodeIdSet1), nodeInfoAttributes)
-        serverPairs        <- { sequence(serverEntries) { e => 
-                                e(A_NODE_UUID).map(id => (NodeId(id),e)) 
+        serverPairs        <- { sequence(serverEntries) { e =>
+                                e(A_NODE_UUID).map(id => (NodeId(id),e))
                               } }.map( _.toMap )
         nodeIdSet2         =  serverPairs.keySet
 
         //now, we have to find back entries missing from nodes but in server
         filter             =  OR( (nodeIdSet2 -- nodeIdSet1).map(id => EQ(A_NODE_UUID,id.value) ).toSeq:_* )
-        missingNodeEntries <- search(con, nodeDit.NODES.dn, 0, filter, nodeInfoAttributes) 
+        missingNodeEntries <- search(con, nodeDit.NODES.dn, 0, filter, nodeInfoAttributes)
         missingNodePairs   <- { sequence(missingNodeEntries) { e =>
-                                nodeDit.NODES.NODE.idFromDn(e.dn).map(id => (id,e)) 
+                                nodeDit.NODES.NODE.idFromDn(e.dn).map(id => (id,e))
                               } }.map( _.toMap )
         //now, map to node info
         allNodePairs       =  nodePairs ++ missingNodePairs
@@ -131,10 +131,10 @@ class QuickSearchServiceImpl(
         nodeInfos
       }
   }
-  
+
 
 def matchNodeInfoPairs( serverPairs:Map[NodeId,LDAPEntry], allNodePairs:Map[NodeId,LDAPEntry] ): Box[Seq[NodeInfo]] = {
-  sequence( allNodePairs.toSeq ) { 
+  sequence( allNodePairs.toSeq ) {
     case(id,nodeEntry) =>
       for {
         serverEntry <- Box(serverPairs.get(id)) ?~! "Missing required node entry with id %s".format(id)
@@ -150,22 +150,22 @@ def matchNodeInfoPairs( serverPairs:Map[NodeId,LDAPEntry], allNodePairs:Map[Node
   private[this] def nodeFilter(in:String) = OR( nodeAttributes.map(attr =>  SUB(attr, null, Array(in), null) ) :_* )
   //filter for ou=severs in inventory based on attributes to look for in quicksearch
   private[this] def serverFilter(in:String, nodeIds:scala.collection.Set[NodeId]) = {
-    val sub = serverAttributes.map(attr =>  SUB(attr, null, Array(in), null) ) 
+    val sub = serverAttributes.map(attr =>  SUB(attr, null, Array(in), null) )
     val otherNodes = nodeIds.map(id => EQ(A_NODE_UUID,id.value))
     OR( (sub ++ otherNodes):_* )
   }
-   
+
   //search request with expected time/size limit
   private[this] def searchRequest(baseDN:DN,sizeLimit:Int,filter:Filter, attrs:Seq[String]) = new SearchRequest(
-      baseDN.toString, SearchScope.ONE, DereferencePolicy.NEVER, 
+      baseDN.toString, SearchScope.ONE, DereferencePolicy.NEVER,
       sizeLimit, timeLimit, false,
       filter, attrs:_*
-  )  
-  
+  )
+
   /*
    * We have to do some special case processing on responses here because we are just in best
    * effort. If the answer is not sufficiently precise, the user will just have to write some
-   * more text. 
+   * more text.
    */
   private[this] def search(con:LDAPConnection, baseDN:DN, sizeLimit:Int, filter:Filter, attrs:Seq[String]) : Box[Seq[LDAPEntry]] = {
     def handleException(e:LDAPSearchException) : Box[Seq[LDAPEntry]] = {
@@ -174,9 +174,9 @@ def matchNodeInfoPairs( serverPairs:Map[NodeId,LDAPEntry], allNodePairs:Map[Node
           case entries => Full(entries.map(e => LDAPEntry(e.getDN,e.getAttributes)))
         }
     }
-    
+
     val sr = new SearchRequest(
-        baseDN.toString, SearchScope.ONE, DereferencePolicy.NEVER, 
+        baseDN.toString, SearchScope.ONE, DereferencePolicy.NEVER,
         sizeLimit, timeLimit, false,
         filter, attrs:_*
     )
@@ -188,11 +188,11 @@ def matchNodeInfoPairs( serverPairs:Map[NodeId,LDAPEntry], allNodePairs:Map[Node
       case e:Exception => Failure("Error in quick search query", Full(e), Empty)
     }
   }
-  
-  
+
+
   /**
-   * Check if a new query should be started for the given input. 
-   * I query does not have to be started if there is not at least some chars, 
+   * Check if a new query should be started for the given input.
+   * I query does not have to be started if there is not at least some chars,
    * etc.
    */
   private[this] def validateInput(in:String) : Boolean = {
@@ -202,7 +202,7 @@ def matchNodeInfoPairs( serverPairs:Map[NodeId,LDAPEntry], allNodePairs:Map[Node
       case _ => true
     }
   }
-  
+
 }
 
 

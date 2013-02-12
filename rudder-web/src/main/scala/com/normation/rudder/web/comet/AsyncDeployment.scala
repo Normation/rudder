@@ -61,7 +61,7 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
-  
+
   private[this] val periodFormatter = new PeriodFormatterBuilder().
     appendDays().
     appendSuffix(" day ", " days ").
@@ -72,48 +72,48 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     appendSeconds().
     appendSuffix("s", "s")
     .toFormatter()
-  
+
   private[this] def formatPeriod(duration:Duration) : String = {
     if(duration.getMillis < 1000) "less than 1s"
     else periodFormatter.print(duration.toPeriod)
   }
-  
+
   private[this] val asyncDeploymentAgent      = inject[AsyncDeploymentAgent]
   private[this] val eventLogDeploymentService = inject[EventLogDeploymentService]
   private[this] val eventList                 = inject[EventListDisplayer]
   private[this] val uuidGen                   = inject[StringUuidGenerator]
-  
-  
+
+
   //current states of the deployment
   private[this] var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
 
   // the last deployment data
   private[this] var lastSuccessfulDeployement : Box[EventLog] = eventLogDeploymentService.getLastSuccessfulDeployement()
   private[this] var lastEventSinceDeployment : Box[Seq[EventLog]] = Empty
-    
+
   override def registerWith = asyncDeploymentAgent
-  
+
   override def lowPriority = {
     case d:DeploymentStatus => deploymentStatus = d ; computeHistoricOfChange; reRender()
   }
-  
+
   override def render = {
-    new RenderOut(( 
+    new RenderOut((
       ClearClearable &
       "#deploymentLastStatus *" #> lastStatus &
-      "#deploymentProcessing *" #> currentStatus 
+      "#deploymentProcessing *" #> currentStatus
     )(layout) , JsRaw("""$("button.deploymentButton").button(); """))
   }
-  
+
   private[this] def computeHistoricOfChange = {
     asyncDeploymentAgent.isAutoDeploy match {
-      case true => 
-      case false => 
+      case true =>
+      case false =>
         deploymentStatus.processing match {
           case IdleDeployer =>
             lastSuccessfulDeployement  = eventLogDeploymentService.getLastSuccessfulDeployement()
             lastSuccessfulDeployement match {
-              case f: EmptyBox => 
+              case f: EmptyBox =>
                 lastEventSinceDeployment = eventLogDeploymentService.getListOfModificationEvents(
                     UnspecializedEventLog(
                         EventLogDetails(
@@ -129,32 +129,32 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
               case Full(event) =>
                 lastEventSinceDeployment = eventLogDeploymentService.getListOfModificationEvents(event)
             }
-            
-            
+
+
           case _ => // if it's a deployment, nothing to do
-          
+
         }
     }
   }
-  
+
   val deployementErrorMessage = """(.*)!errormessage!(.*)""".r
-  
+
   private[this] def lastStatus : NodeSeq = {
     deploymentStatus.current match {
       case NoStatus => <span>Rules application status unavailable</span>
-      case SuccessStatus(id,start,end,configurationNodes) => 
+      case SuccessStatus(id,start,end,configurationNodes) =>
         <span class="deploymentSuccess">
           <img src="/images/icOK.png" alt="Error" height="16" width="16" class="iconscala" />
           Success: Rules applied at {DateFormaterService.getFormatedDate(start)} (took {formatPeriod(new Duration(start,end))})
         </span>
-      case ErrorStatus(id,start,end,failure) => 
+      case ErrorStatus(id,start,end,failure) =>
         {<span class="error deploymentError"><img src="/images/icfail.png" alt="Error" height="16" width="16" class="iconscala" />
           Error: Rules not applied at {DateFormaterService.getFormatedDate(start)} <br/>(took {formatPeriod(new Duration(start,end))} -
           <span class="errorscala" id="errorDetailsLink" onClick={
-            """$('#errorDetailsDialog').modal({ minHeight:140, minWidth: 300 }); 
+            """$('#errorDetailsDialog').modal({ minHeight:140, minWidth: 300 });
                $('#simplemodal-container').css('height', 'auto');
                correctButtons();
-               return false;"""}>details</span>) 
+               return false;"""}>details</span>)
         </span>} ++ {
           ("#errorDetailsMessage" #> { failure.messageChain match {
             case  deployementErrorMessage(chain, error) =>
@@ -165,12 +165,12 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
               <fieldset id="deploymentErrorMsg" style="display:none;"><legend><b>Technical details</b></legend>
                 <span>{error.split("rudder>").map(x => Text(x) ++ {<br/>})}<br/></span>
               </fieldset>
-            case _ => <span>{failure.messageChain.split("<-").map(x => Text("=> " + x) ++ {<br/>})}</span> 
+            case _ => <span>{failure.messageChain.split("<-").map(x => Text("=> " + x) ++ {<br/>})}</span>
           } }).apply(errorPopup)
         }
     }
   }
-  
+
   private[this] def currentStatus : NodeSeq = {
     deploymentStatus.processing match {
       case IdleDeployer =>
@@ -180,7 +180,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             case f: Failure => <span class="errorscala">Cannot fetch modification since last deployment</span>
             case Empty => Text("There are no modification pending")
             case Full(seq) if seq.size == 0 => Text("There are no modification pending")
-            case Full(seq) if seq.size == 1 =>  SHtml.a(Text("There is 1 modification pending"))(showPendingPopup) ++ createInnerPopup(seq) 
+            case Full(seq) if seq.size == 1 =>  SHtml.a(Text("There is 1 modification pending"))(showPendingPopup) ++ createInnerPopup(seq)
             case Full(seq) if seq.size > 1 =>  SHtml.a(Text("There are " + seq.size + " modifications pending"))(showPendingPopup) ++ createInnerPopup(seq)
             }
         } </div>
@@ -196,19 +196,19 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
           Generating Rules (started at {DateFormaterService.getFormatedDate(start)})
         </span>
-      case ProcessingAndPendingAuto(asked, Processing(id, start), actor, logId) => 
+      case ProcessingAndPendingAuto(asked, Processing(id, start), actor, logId) =>
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
           Generating Rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
         </span>
-      case ProcessingAndPendingManual(asked, Processing(id, start), actor, logId, cause) => 
+      case ProcessingAndPendingManual(asked, Processing(id, start), actor, logId, cause) =>
         <span>
           <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
           Generating Rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
         </span>
     }
   }
-  
+
   private[this] def layout = {
     <div id="deploymentStatus">
       <lift:ignore>
@@ -229,18 +229,18 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     </div>
   }
 
-    
+
   private[this] val gridName = "pendingEventLogsGrid"
   private[this] val pendingPopupHtmlId = "pendingModificationDialog"
-    
-    
+
+
   private[this] def createInnerPopup(events:Seq[EventLog]) : NodeSeq = {
     (
         ".popupContent *" #> eventList.display(events, gridName)
     ).apply(pendingPopup)
   }
-  
-  
+
+
   private[this] def pendingPopup = {
     <div id="pendingModificationDialog" class="nodisplay" style="overflow: auto; max-height:500px;">
       <div class="simplemodal-title">
@@ -262,15 +262,15 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         </span>
         </div>
       </div>
-    </div>   
+    </div>
   }
-  
+
   private[this] def showPendingPopup : JsCmd = (
     JsRaw("createPopup('%s', 150, 850)".format(pendingPopupHtmlId)) &
     eventList.initJs(gridName)
-    
+
   )
-  
+
   private[this] def errorPopup = {
     <div id="errorDetailsDialog" class="nodisplay">
       <div class="simplemodal-title">
@@ -282,7 +282,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         <div>
           <img src="/images/icfail.png" alt="Error" height="24" width="24" class="erroricon" />
           <h2>Deployment process was stopped due to an error:</h2>
-        </div>        
+        </div>
         <hr class="spacer" />
         <br />
         <p id="errorDetailsMessage">[Here come the error message]</p>
@@ -300,5 +300,5 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       </div>
     </div>
   }
-  
+
 }

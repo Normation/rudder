@@ -55,14 +55,14 @@ import com.normation.utils.XmlUtils
  */
 @RunWith(classOf[JUnitRunner])
 class TestXmlMigration_10_2 extends Specification with Loggable {
-  
+
   val migration = new XmlMigration_10_2
-  
+
   def compare(b:Box[Elem], e:Elem) = {
     val Full(x) = b
     XmlUtils.trim(x) must beEqualTo(XmlUtils.trim(e))
   }
-    
+
   "rule migration from fileFormat '1.0' to '2'" should {
     "correctly rewrite add" in {
       compare(migration.rule(rule_add_10) , rule_add_2)
@@ -74,7 +74,7 @@ class TestXmlMigration_10_2 extends Specification with Loggable {
       compare(migration.rule(rule_delete_10), rule_delete_2)
     }
   }
-    
+
   "directive migration from fileFormat '1.0' to '2'" should {
     "correctly rewrite add" in {
       compare(migration.directive(directive_add_10), directive_add_2)
@@ -86,7 +86,7 @@ class TestXmlMigration_10_2 extends Specification with Loggable {
       compare(migration.directive(directive_delete_10), directive_delete_2)
     }
   }
-  
+
   "nodeGroup migration from fileFormat '1.0' to '2'" should {
     "correctly rewrite add" in {
       compare(migration.nodeGroup(nodeGroup_add_10), nodeGroup_add_2)
@@ -98,17 +98,17 @@ class TestXmlMigration_10_2 extends Specification with Loggable {
       compare(migration.nodeGroup(nodeGroup_delete_10), nodeGroup_delete_2)
     }
   }
-  
+
   "other migration from fileFormat '1.0' to '2'" should {
     "correctly rewrite 'add deployment status'" in {
       compare(migration.addPendingDeployment(addPendingDeployment_10), addPendingDeployment_2)
     }
- 
+
 // introduced in 2.4 ?
 //    "correctly rewrite pending deployment status" in {
-//      migration.deploymentStatus(deploymentStatus_10) must beEqualTo(Full(deploymentStatus_2))      
+//      migration.deploymentStatus(deploymentStatus_10) must beEqualTo(Full(deploymentStatus_2))
 //    }
-    
+
     "correctly rewrite node acceptation status" in {
       compare(migration.node(node_accept_10), node_accept_2)
     }
@@ -120,14 +120,14 @@ class TestXmlMigration_10_2 extends Specification with Loggable {
  */
 @RunWith(classOf[JUnitRunner])
 class TestXmlMigration_2_3 extends Specification with Loggable {
-  
+
   val migration = new XmlMigration_2_3
-  
+
   def compare(b:Box[Elem], e:Elem) = {
     val Full(x) = b
     XmlUtils.trim(x) must beEqualTo(XmlUtils.trim(e))
   }
-    
+
   "rule migration from fileFormat '2' to '3'" should {
     "correctly rewrite add" in {
       compare(migration.rule(rule_add_2) , rule_add_3)
@@ -139,7 +139,7 @@ class TestXmlMigration_2_3 extends Specification with Loggable {
       compare(migration.rule(rule_delete_2), rule_delete_3)
     }
   }
-    
+
   "directive migration from fileFormat '2' to '3'" should {
     "correctly rewrite add" in {
       compare(migration.other(directive_add_2), directive_add_3)
@@ -151,7 +151,7 @@ class TestXmlMigration_2_3 extends Specification with Loggable {
       compare(migration.other(directive_delete_2), directive_delete_3)
     }
   }
-  
+
   "nodeGroup migration from fileFormat '2' to '3'" should {
     "correctly rewrite add" in {
       compare(migration.other(nodeGroup_add_2), nodeGroup_add_3)
@@ -163,17 +163,17 @@ class TestXmlMigration_2_3 extends Specification with Loggable {
       compare(migration.other(nodeGroup_delete_2), nodeGroup_delete_3)
     }
   }
-  
+
   "other migration from fileFormat '2' to '3'" should {
     "correctly rewrite 'add deployment status'" in {
       compare(migration.other(addPendingDeployment_2), addPendingDeployment_3)
     }
- 
+
 // introduced in 2.4 ?
 //    "correctly rewrite pending deployment status" in {
-//      migration.deploymentStatus(deploymentStatus_10) must beEqualTo(Full(deploymentStatus_2))      
+//      migration.deploymentStatus(deploymentStatus_10) must beEqualTo(Full(deploymentStatus_2))
 //    }
-    
+
     "correctly rewrite node acceptation status" in {
       compare(migration.other(node_accept_2), node_accept_3)
     }
@@ -185,10 +185,10 @@ class TestXmlMigration_2_3 extends Specification with Loggable {
  */
 @RunWith(classOf[JUnitRunner])
 class TestXmlMigration_10_3 extends Specification with Loggable {
-  
+
   val migration10_2 = new XmlMigration_10_2
   val migration2_3  = new XmlMigration_2_3
-  
+
   def compose(f: Elem => Box[Elem], g: Elem => Box[Elem], xml:Elem) : Box[Elem] = {
     for {
       fxml <- f(xml)
@@ -197,7 +197,7 @@ class TestXmlMigration_10_3 extends Specification with Loggable {
       gxml
     }
   }
-  
+
   def compare(b:Box[Elem], e:Elem) = {
     val Full(x) = b
     XmlUtils.trim(x) must beEqualTo(XmlUtils.trim(e))
@@ -213,10 +213,10 @@ class TestXmlMigration_10_3 extends Specification with Loggable {
     compare( compose(migration10_2.rule, migration2_3.rule, rule_delete_10), rule_delete_3)
     }
   }
-    
+
   "directive migration from fileFormat '1.0' to '3'" should {
     "correctly rewrite add" in {
-  
+
     compare( compose(migration10_2.directive, migration2_3.other, directive_add_10), directive_add_3)
     }
     "correctly rewrite modify" in {
@@ -226,7 +226,7 @@ class TestXmlMigration_10_3 extends Specification with Loggable {
     compare( compose(migration10_2.directive, migration2_3.other, directive_delete_10), directive_delete_3)
     }
   }
-  
+
   "nodeGroup migration from fileFormat '1.0' to '3'" should {
     "correctly rewrite add" in {
     compare( compose(migration10_2.nodeGroup, migration2_3.other, nodeGroup_add_10), nodeGroup_add_3)
@@ -238,17 +238,17 @@ class TestXmlMigration_10_3 extends Specification with Loggable {
     compare( compose(migration10_2.nodeGroup, migration2_3.other, nodeGroup_delete_10), nodeGroup_delete_3)
     }
   }
-  
+
   "other migration from fileFormat '1.0' to '3'" should {
     "correctly rewrite 'add deployment status'" in {
     compare( compose(migration10_2.addPendingDeployment, migration2_3.other, addPendingDeployment_10), addPendingDeployment_3)
     }
- 
+
 // introduced in 2.4 ?
 //    "correctly rewrite pending deployment status" in {
-//      migration.deploymentStatus(deploymentStatus_10) must beEqualTo(Full(deploymentStatus_2))      
+//      migration.deploymentStatus(deploymentStatus_10) must beEqualTo(Full(deploymentStatus_2))
 //    }
-    
+
     "correctly rewrite node acceptation status" in {
       compare( compose(migration10_2.node, migration2_3.other, node_accept_10), node_accept_3)
     }

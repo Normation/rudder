@@ -49,18 +49,18 @@ import com.normation.rudder.domain.servers._
 class UpdateBatch {
 
 
-  
+
   val updatedNodeConfigurations = mutable.Map[String, NodeConfiguration]()
-  
- 
-  
+
+
+
   def getNodeConfiguration(id : String) : Option[NodeConfiguration] = {
     updatedNodeConfigurations.get(id)
   }
-  
+
   def addNodeConfiguration(server : NodeConfiguration) : Unit = {
     updatedNodeConfigurations += (server.id -> server)
     () //unit is expected
   }
-  
+
 }

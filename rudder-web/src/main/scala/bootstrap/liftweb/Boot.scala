@@ -63,25 +63,25 @@ import com.normation.eventlog.ModificationId
  */
 class Boot extends Loggable {
   def boot {
-    
+
     ////////// bootstraps checks //////////
     val checks = inject[BootstrapChecks]("allChecks")
     checks.checks()
-    
+
     LiftRules.early.append( {req: provider.HTTPRequest => req.setCharacterEncoding("UTF-8")})
     LiftRules.ajaxStart = Full(() => LiftRules.jsArtifacts.show("ajax-loader").cmd)
     LiftRules.ajaxEnd = Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)
     LiftRules.ajaxPostTimeout = 30000
 
-    // We don't want to reload the page 
+    // We don't want to reload the page
     LiftRules.redirectAsyncOnSessionLoss = false;
     //we don't want to retry on ajax timeout, as it may have big consequence
     //when it's (for example) a deploy
     LiftRules.ajaxRetryCount = Full(1)
-    
+
     // where to search snippet
     LiftRules.addToPackages("com.normation.rudder.web")
-    
+
     // REST API
     LiftRules.statelessDispatch.append(RestStatus)
     LiftRules.statelessDispatch.append(inject[RestDeploy])
@@ -89,7 +89,7 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(inject[RestTechniqueReload])
     LiftRules.statelessDispatch.append(inject[RestArchiving])
     LiftRules.statelessDispatch.append(inject[RestGetGitCommitAsZip])
-  
+
     // URL rewrites
     LiftRules.statefulRewrite.append {
       case RewriteRequest(ParsePath("secure" :: "configurationManager" :: "techniqueLibraryManagement" :: activeTechniqueId :: Nil, _, _, _), GetRequest, _) =>
@@ -97,17 +97,17 @@ class Boot extends Loggable {
       case RewriteRequest(ParsePath("secure"::"nodeManager"::"searchNodes"::nodeId::Nil, _, _, _), GetRequest, _) =>
         RewriteResponse("secure"::"nodeManager"::"searchNodes"::Nil, Map("nodeId" -> nodeId))
     }
-    
+
     // Fix relative path to css resources
     LiftRules.fixCSS("style" :: "style" :: Nil, Empty)
-    
-    
+
+
     // i18n
     LiftRules.resourceNames = "default" :: "ldapObjectAndAttributes" :: "eventLogTypeNames" :: Nil
-    
+
     // Content type things : use text/html in place of application/xhtml+xml
     LiftRules.useXhtmlMimeType = false
-    
+
     /*
      * For development, we override the default local calculator
      * to allow explicit locale switch with just the addition
@@ -133,15 +133,15 @@ class Boot extends Loggable {
       }
     }}
 
-    
+
     //init autocomplete widget
     AutoComplete.init()
-    
-    
+
+
     // All the following is related to the sitemap
-    
-      
-    val nodeManagerMenu = 
+
+
+    val nodeManagerMenu =
       Menu("NodeManagerHome", <span>Node Management</span>) /
         "secure" / "nodeManager" / "index"  >> TestAccess( ()
             => userIsAllowed(Read("node")) ) submenus (
@@ -183,9 +183,9 @@ class Boot extends Loggable {
             >> LocGroup(name+"Group")
             >> TestAccess( () => userIsAllowed(Read("technique") ) )
       )
-      
-      
-    def administrationMenu = 
+
+
+    def administrationMenu =
       Menu("AdministrationHome", <span>Administration</span>) /
         "secure" / "administration" / "index" >> TestAccess ( ()
             => userIsAllowed(Read("administration")) ) submenus (
@@ -199,7 +199,7 @@ class Boot extends Loggable {
             "secure" / "administration" / "eventLogs"
             >> LocGroup("administrationGroup")
 
-        , Menu("policyServerManagement", <span>Policy Server</span>) / 
+        , Menu("policyServerManagement", <span>Policy Server</span>) /
             "secure" / "administration" / "policyServerManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed(Write("administration"),"/secure/administration/eventLogs") )
@@ -214,21 +214,21 @@ class Boot extends Loggable {
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed(Write("administration"),"/secure/administration/eventLogs") )
       )
-  
-    
+
+
     val rootMenu = List(
         Menu("Home", <span>Home</span>) / "secure" / "index"
       , Menu("Login") / "index" >> Hidden
-      , nodeManagerMenu 
-      , buildManagerMenu("configuration") 
-      , administrationMenu 
+      , nodeManagerMenu
+      , buildManagerMenu("configuration")
+      , administrationMenu
     ).map( _.toMenu )
 
-    
+
     ////////// import and init modules //////////
     val newSiteMap = initPlugins(rootMenu.map( _.toMenu ))
-    
-    
+
+
     //not sur why we are using that ?
     //SiteMap.enforceUniqueLinks = false
 
@@ -249,30 +249,30 @@ class Boot extends Loggable {
       case _ => ApplicationLogger.info("Application Rudder started")
     }
   }
-  
+
   private[this] def initPlugins(menus:List[Menu]) : List[Menu] = {
-    
+
     //LiftSpringApplicationContext.springContext.refresh
     import scala.collection.JavaConversions._
     val pluginDefs = LiftSpringApplicationContext.springContext.getBeansOfType(classOf[RudderPluginDef]).values
-      
+
     pluginDefs.foreach { plugin =>
       initPlugin(plugin)
     }
-    
+
     //return the updated siteMap
     (menus /: pluginDefs){ case (prev, mutator) => mutator.updateSiteMap(prev) }
   }
-  
+
   private[this] def initPlugin[T <: RudderPluginDef](plugin:T) : Unit = {
-    
+
     ApplicationLogger.debug("TODO: manage one time initialization for plugin: " + plugin.id)
     ApplicationLogger.info("Initializing plugin '%s' [%s]".format(plugin.name.value, plugin.id))
     plugin.init
     //add the plugin packages to Lift package to look for packages
     LiftRules.addToPackages(plugin.basePackage)
   }
-  
+
   private[this] def userIsAllowed(requiredAuthz:AuthorizationType, redirection:String = "/secure/index") : Box[LiftResponse] =  {
     if(CurrentUser.checkRights(requiredAuthz)) {
       Empty

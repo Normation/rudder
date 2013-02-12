@@ -42,16 +42,16 @@ import com.normation.utils.HashcodeCaching
  * UUId type for Node Groups, so that they
  * can be uniquely identified in our world.
  */
-case class NodeGroupId(value:String) extends HashcodeCaching 
+case class NodeGroupId(value:String) extends HashcodeCaching
 
 /**
  * This class define a node group
- * 
+ *
  * A node group contains :
  * - the name and a description
  * - a search query (optionnal)
  * - an indicator whether the group is static or dynamic
- * - a list of node id, if the group is static (or even dynamic?) 
+ * - a list of node id, if the group is static (or even dynamic?)
  *
  */
 case class NodeGroup(

@@ -48,11 +48,11 @@ case class StartLibUpdate(actor: EventActor)
 
 /**
  * A class that periodically check if the Technique Library was updated.
- * 
+ *
  * updateInterval has a special semantic:
  * - for 0 or a negative value, does not start the updater
  * - for updateInterval between 1 and a minimum value, use the minimum value
- * - else, use the given value. 
+ * - else, use the given value.
  */
 class CheckTechniqueLibrary(
     policyPackageUpdater: UpdateTechniqueLibrary
@@ -60,9 +60,9 @@ class CheckTechniqueLibrary(
   , uuidGen             : StringUuidGenerator
   , updateInterval      : Int // in minutes
 ) extends Loggable {
-  
+
   private val propertyName = "rudder.batch.techniqueLibrary.updateInterval"
-   
+
   //start batch
   if(updateInterval < 1) {
     logger.info("Disable dynamic group updates sinces property %s is 0 or negative".format(propertyName))
@@ -74,32 +74,32 @@ class CheckTechniqueLibrary(
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////
   ////////////////////////////////////////////////////////////////
-  
+
   private class LAUpdateTechLibManager extends LiftActor with Loggable {
-    updateManager => 
-        
+    updateManager =>
+
     private[this] var realUpdateInterval = {
       if(updateInterval < TECHLIB_MINIMUM_UPDATE_INTERVAL) {
         logger.warn("Value '%s' for %s is too small, using '%s'".format(
-           updateInterval, propertyName, TECHLIB_MINIMUM_UPDATE_INTERVAL 
+           updateInterval, propertyName, TECHLIB_MINIMUM_UPDATE_INTERVAL
         ))
         TECHLIB_MINIMUM_UPDATE_INTERVAL
       } else {
         updateInterval
       }
     }
-    
+
     override protected def messageHandler = {
       //
       //Ask for a new dynamic group update
       //
-      case StartLibUpdate(actor) => 
+      case StartLibUpdate(actor) =>
         //schedule next update, in minutes
-        LAPinger.schedule(this, StartLibUpdate, realUpdateInterval*1000L*60)      
+        LAPinger.schedule(this, StartLibUpdate, realUpdateInterval*1000L*60)
         logger.trace("***** Start a new update")
         policyPackageUpdater.update(ModificationId(uuidGen.newUuid), actor, Some("Automatic batch update at " + DateTime.now))
-        () //unit is expected   
-      case _ => 
+        () //unit is expected
+      case _ =>
         logger.error("Ignoring start update dynamic group request because one other update still processing".format())
     }
   }

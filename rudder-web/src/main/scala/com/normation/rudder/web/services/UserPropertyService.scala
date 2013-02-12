@@ -72,4 +72,4 @@ class UserPropertyServiceImpl( val opt : ReasonsMessageInfo ) extends UserProper
 class ReasonsMessageInfo(
   val enabled : Boolean,
   val mandatory : Boolean,
-  val explanation : String ) 
+  val explanation : String )

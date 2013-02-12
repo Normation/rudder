@@ -78,8 +78,8 @@ case class SimpleNodeConfiguration(
   , currentSystemVariables     : Map[String, Variable]
   , targetSystemVariables      : Map[String, Variable]
 ) extends NodeConfiguration with HashcodeCaching {
-    
-  
+
+
   /**
    * Add a Directive
    * @param policy
@@ -89,24 +89,24 @@ case class SimpleNodeConfiguration(
     targetRulePolicyDrafts.get(ruleWithCf3PolicyDraft.cf3PolicyDraft.id) match {
       case None =>
         // we first need to fetch all the policies in a mutable map to modify them
-        val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]() 
-        __targetRulePolicyDrafts.foreach { cf3 => 
+        val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]()
+        __targetRulePolicyDrafts.foreach { cf3 =>
             newRulePolicyDrafts += ( cf3.cf3PolicyDraft.id -> cf3.copy()) }
-  
+
         updateAllUniqueVariables(ruleWithCf3PolicyDraft.cf3PolicyDraft,newRulePolicyDrafts)
         newRulePolicyDrafts += (ruleWithCf3PolicyDraft.cf3PolicyDraft.id -> ruleWithCf3PolicyDraft.copy())
-        
+
         Full(copy(__targetRulePolicyDrafts = newRulePolicyDrafts.values.toSeq))
       case Some(x) => Failure("An instance of the policy with the same identifier %s already exists".format(ruleWithCf3PolicyDraft.cf3PolicyDraft.id.value))
     }
   }
- 
+
   def setSerial(rules : Seq[(RuleId,Int)]) : SimpleNodeConfiguration = {
-    val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]() 
-        __targetRulePolicyDrafts.foreach { ruleWithCf3PolicyDraft => 
+    val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]()
+        __targetRulePolicyDrafts.foreach { ruleWithCf3PolicyDraft =>
             newRulePolicyDrafts += ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id ->ruleWithCf3PolicyDraft.copy()) }
-        
-    
+
+
     for ( (id,serial) <- rules) {
       newRulePolicyDrafts ++= newRulePolicyDrafts.
             filter(x => x._2.ruleId == id).
@@ -114,21 +114,21 @@ case class SimpleNodeConfiguration(
     }
     copy(__targetRulePolicyDrafts = newRulePolicyDrafts.values.toSeq)
   }
-  
+
   /**
    * Called when we have written the promises, to say that the current configuration is indeed the target one
    * @return nothing
    */
   def commitModification() : SimpleNodeConfiguration = {
     logger.debug("Commiting server " + this);
-    
+
     copy(__currentRulePolicyDrafts = this.__targetRulePolicyDrafts,
         currentMinimalNodeConfig = this.targetMinimalNodeConfig,
         currentSystemVariables = this.targetSystemVariables,
         writtenDate = Some(DateTime.now()))
-    
+
   }
-  
+
   /**
    * Called when we want to rollback modification, to say that the target configuration is the current one
    * @return nothing
@@ -136,11 +136,11 @@ case class SimpleNodeConfiguration(
   def rollbackModification() : SimpleNodeConfiguration = {
     copy(__targetRulePolicyDrafts = this.__currentRulePolicyDrafts,
         targetMinimalNodeConfig = this.currentMinimalNodeConfig,
-        targetSystemVariables = this.currentSystemVariables 
+        targetSystemVariables = this.currentSystemVariables
         )
-    
+
   }
-    
+
 
   override def toString() = "%s %s".format(currentMinimalNodeConfig.name, id)
 
@@ -155,9 +155,9 @@ case class SimpleNodeConfiguration(
       writtenDate,
       currentSystemVariables,
       targetSystemVariables
-    ) 
+    )
     returnedMachine
   }
-  
+
 }
 

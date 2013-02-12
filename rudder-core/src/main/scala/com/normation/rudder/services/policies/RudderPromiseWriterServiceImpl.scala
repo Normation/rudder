@@ -79,8 +79,8 @@ class RudderCf3PromisesFileWriterServiceImpl(
   reportingService: ReportingService,
   systemVariableSpecService: SystemVariableSpecService,
   systemVariableService: SystemVariableService,
-  private val toolsFolder: String, 
-  private val sharesFolder: String, 
+  private val toolsFolder: String,
+  private val sharesFolder: String,
   cmdbEnpoint: String,
   communityPort: String,
   communityCheckPromises: String,
@@ -115,9 +115,9 @@ class RudderCf3PromisesFileWriterServiceImpl(
    * @param updateBatch : the container for the server to be updated
    */
   override def writePromisesForMachines(updateBatch: UpdateBatch): Box[Seq[PromisesFinalMoveInfo]] = {
-    // A buffer of node, promisefolder, newfolder, backupfolder 
+    // A buffer of node, promisefolder, newfolder, backupfolder
     val folders = mutable.Buffer[(NodeConfiguration, String, String, String)]()
-    // Writing the policy 
+    // Writing the policy
     for (node <- updateBatch.updatedNodeConfigurations.valuesIterator) {
       if (node.getDirectives.size == 0) {
         logger.error("Could not write the promises for server %s : No policy found on server".format(node.id))
@@ -131,7 +131,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
       val (baseNodePath, backupNodePath) = pathComputer.computeBaseNodePath(node)
 
       prepareRulesForAgents(baseNodePath, backupNodePath, node) match {
-        case Full(x) => 
+        case Full(x) =>
           folders ++= x
         case e: EmptyBox => return (e ?~! "Error when preparing rules for agents")
       }
@@ -180,7 +180,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
       for { (activeTechniqueId, preparedTemplate) <- tmls } {
         writePromisesFiles(preparedTemplate.templatesToCopy , preparedTemplate.environmentVariables , newNodeRulePath)
       }
-      
+
       writeSpecificsData(node, newNodeRulePath)
 
       agentType match {
@@ -210,7 +210,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
 
       folders += ((node, nodeRulePath, newNodePath, backupNodeRulePath))
     }
-    
+
     Full(folders)
 
   }

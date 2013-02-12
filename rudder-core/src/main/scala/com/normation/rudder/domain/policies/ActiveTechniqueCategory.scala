@@ -37,7 +37,7 @@ package com.normation.rudder.domain.policies
 import com.normation.rudder.domain.categories.ItemCategory
 import com.normation.utils.HashcodeCaching
 
-case class ActiveTechniqueCategoryId(value:String) extends HashcodeCaching 
+case class ActiveTechniqueCategoryId(value:String) extends HashcodeCaching
 
 case class ActiveTechniqueCategory(
     id         : ActiveTechniqueCategoryId

@@ -52,26 +52,26 @@ import net.liftweb.common.Full
 trait NodeConfigurationChangeDetectService {
 
   def detectChangeInNode(node : NodeConfiguration) : Set[RuleId]
-  
+
   def detectChangeInNodes(nodes : Seq[NodeConfiguration]) : Seq[RuleId]
-  
+
 }
 
 
 class NodeConfigurationChangeDetectServiceImpl(
     activeTechniqueRepository : ActiveTechniqueRepository) extends NodeConfigurationChangeDetectService with Loggable {
-  
+
   /**
    * Return true if the variables are differents
    */
   private def compareVariablesValues(one : Variable, two : Variable) : Boolean = {
     return one.values.map(x => x.trim) != two.values.map(x => x.trim)
   }
-  
+
   /**
    * Check that the two map contains the same values
    * Note : an empty variable and a non existent variable are equals, by convention
-   * 
+   *
    */
   private def detectChangeInSystemVar(currentSystemVariables : Map[String, Variable],
       targetSystemVariables : Map[String, Variable]) : Boolean = {
@@ -82,7 +82,7 @@ class NodeConfigurationChangeDetectServiceImpl(
     else if(current.keySet != target.keySet) true
     else {
       for ( (key, value )<- current ) {
-        
+
         if (compareVariablesValues(target.getOrElse(key, return true), value)) {
           val mytarget  = target.get(key).get
           return true
@@ -91,35 +91,35 @@ class NodeConfigurationChangeDetectServiceImpl(
       false
     }
   }
-  
-  
+
+
   /**
    * Fetch the acceptation date of a Technique
    */
   private def getAcceptationDate(TechniqueId : TechniqueId) : Box[DateTime] = {
-    activeTechniqueRepository.getActiveTechnique(TechniqueId.name).map(x => 
+    activeTechniqueRepository.getActiveTechnique(TechniqueId.name).map(x =>
       x.acceptationDatetimes(TechniqueId.version))
-    
+
   }
-  
+
 
   def detectChangeInNode(node : NodeConfiguration) : Set[RuleId] = {
     logger.info("Checking changes in node %s".format( node.id) )
-    
+
     // First case : a change in the minimalnodeconfig is a change of all CRs
     if (node.currentMinimalNodeConfig != node.targetMinimalNodeConfig) {
       logger.trace("A change in the minimal configuration of node %s".format( node.id) )
       return node.getCurrentDirectives.map(x => x._2.ruleId).toSet ++ node.getDirectives.map(x => x._2.ruleId).toSet
     }
-      
+
     // Second case : a change in the system variable is a change of all CRs
     if (detectChangeInSystemVar(node.getCurrentSystemVariables, node.getTargetSystemVariables)) {
       logger.trace("A change in the system variable node %s".format( node.id) )
       return node.getCurrentDirectives.map(x => x._2.ruleId).toSet ++ node.getDirectives.map(x => x._2.ruleId).toSet
     }
-      
+
     val mySet = scala.collection.mutable.Set[RuleId]()
-    
+
     val currents = node.getCurrentDirectives
     val targets  = node.getDirectives
     // Other case :
@@ -140,32 +140,32 @@ class NodeConfigurationChangeDetectServiceImpl(
           }
       }
     }
-    
+
     // Removed PI
     for ((currentCFCId, currentIdentifiable) <- currents) {
       targets.get(currentCFCId) match {
         case None => mySet += currentIdentifiable.ruleId
         case Some(x) => // Nothing to do, it has been handled previously
-      } 
+      }
     }
-    
+
     mySet ++= currents.filter(x => getAcceptationDate(x._2.cf3PolicyDraft.techniqueId) match {
-      case Full(acceptationDate) =>  
+      case Full(acceptationDate) =>
         node.writtenDate match {
           case Some(writtenDate) => acceptationDate.isAfter(writtenDate)
           case None => true
         }
       case _ => logger.warn("Could not find the acceptation date for policy package %s version %s".format(x._2.cf3PolicyDraft.techniqueId.name, x._2.cf3PolicyDraft.techniqueId.version.toString))
                 false
-      
+
     }).map(x => x._2.ruleId)
 
     mySet.toSet
-    
+
   }
-  
-  
+
+
   def detectChangeInNodes(nodes : Seq[NodeConfiguration]) = {
-    nodes.flatMap(node => detectChangeInNode(node)).toSet.toSeq 
+    nodes.flatMap(node => detectChangeInNode(node)).toSet.toSeq
   }
 }

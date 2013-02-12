@@ -59,7 +59,7 @@ import net.liftweb.http.Templates
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
- * 
+ *
  * @author Nicolas CHARLES
  *
  */
@@ -68,38 +68,38 @@ object SrvGrid {
 }
 
 /**
- * Present a grid of server in a jQuery Datatable 
- * widget. 
+ * Present a grid of server in a jQuery Datatable
+ * widget.
  *
  * To use it:
  * - add the need js/css dependencies by adding the result
  *   of head() in the calling template head
- * - call the display(servers) method  
+ * - call the display(servers) method
  */
 class SrvGrid {
-  
+
   private def templatePath = List("templates-hidden", "srv_grid")
   private def template() =  Templates(templatePath) match {
-    case Empty | Failure(_,_,_) => 
+    case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for server grid not found. I was looking for %s.html".format(templatePath.mkString("/")))
     case Full(n) => n
   }
-  
+
   private def headTemplate = chooseTemplate("servergrid","head",template)
   private def tableTemplate = chooseTemplate("servergrid","table",template)
-  
+
   /*
    * All JS/CSS needed to have datatable working
    */
   def head() : NodeSeq = headTemplate ++ DisplayNode.head
-  
+
   def jsVarNameForId(tableId:String) = "oTable" + tableId
-  
+
   /**
    * Display and init the display for the list of server
    * @param servers : a SEQ of the WBSrv to be shown
    * @param tableId : the id of the table
-   * @param columns : a list of supplementary column to add in the grid, 
+   * @param columns : a list of supplementary column to add in the grid,
    * where the _1 is the header, and the (server => NodeSeq)
    *    is the content of the column
    * @param aoColumns : the aoColumns field in the datatable for the extra columns
@@ -108,24 +108,24 @@ class SrvGrid {
    * @return
    */
   def displayAndInit(
-      servers:Seq[NodeInfo], 
-      tableId:String, 
-      columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(), 
-      aoColumns:String ="", 
-      searchable : Boolean = true, 
-      paginate : Boolean = true, 
+      servers:Seq[NodeInfo],
+      tableId:String,
+      columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(),
+      aoColumns:String ="",
+      searchable : Boolean = true,
+      paginate : Boolean = true,
       callback : String => JsCmd = x => Noop
    ) : NodeSeq = {
     display(servers, tableId, columns, aoColumns) ++
-    Script(initJs(tableId, columns, aoColumns, searchable, paginate, callback))    
+    Script(initJs(tableId, columns, aoColumns, searchable, paginate, callback))
   }
-  
+
   /*
    * Init Javascript for the table with ID 'tableId'
-   * 
+   *
    */
   def initJs(tableId:String, columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(), aoColumns:String ="", searchable : Boolean, paginate : Boolean,callback : String => JsCmd) : JsCmd = {
-      
+
     JsRaw("""
         var #table_var#;
         /* Formating function for row details */
@@ -135,7 +135,7 @@ class SrvGrid {
         }
       """.replaceAll("#table_var#",jsVarNameForId(tableId))
     ) & OnLoad(
-        
+
         JsRaw("""
           /* Event handler function */
           #table_var# = $('#%s').dataTable({
@@ -150,7 +150,7 @@ class SrvGrid {
             },
             "bJQueryUI": true,
             "aaSorting": [[ 0, "asc" ]],
-            "aoColumns": [ 
+            "aoColumns": [
               { "sWidth": "180px" },
               { "sWidth": "300px" } %s
             ],
@@ -159,12 +159,12 @@ class SrvGrid {
           $('.dataTables_filter input').attr("placeholder", "Search");
           """.format(tableId,paginate,aoColumns).replaceAll("#table_var#",jsVarNameForId(tableId))
         ) &
-        
+
         initJsCallBack(tableId, callback)
     )
-        
+
    }
-  
+
   /**
    * Initialize JS callback bound to the servername item
    * You will have to do that for line added after table
@@ -188,22 +188,22 @@ class SrvGrid {
               jsVarNameForId(tableId))
      )
   }
-  
+
   /**
    * Build the HTML grid of server, with all its row
    * initilialized.
    * This method does not initialize grid's Javascript,
    * use <code>displayAndInit</code> for that.
-   * 
-   * @parameter : servers 
+   *
+   * @parameter : servers
    *    the list of servers to display
    * @parameter : columns
-   *    a list of supplementary column to add in the grid, 
+   *    a list of supplementary column to add in the grid,
    *    where the _1 is the header, and the (server => NodeSeq)
    *    is the content of the column
    * @parameter aoColumns : the javascript for the datatable
    */
-  
+
   def display(servers:Seq[NodeInfo], tableId:String, columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(), aoColumns:String ="") : NodeSeq = {
     //bind the table
     <table id={tableId} cellspacing="0">{

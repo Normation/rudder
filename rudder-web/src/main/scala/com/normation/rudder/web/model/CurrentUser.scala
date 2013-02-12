@@ -55,19 +55,19 @@ object CurrentUser extends SessionVar[Option[RudderUserDetail]]({
       case _ => None
     }
   }
-  
+
 }) {
 
   def getRights : Rights = this.is match {
     case Some(u) => u.authz
     case None => new Rights(NoRights)
   }
-  
+
   def getActor : EventActor = this.is match {
     case Some(u) => EventActor(u.getUsername)
     case None => EventActor("unknown")
   }
-  
+
   def checkRights(auth:AuthorizationType) : Boolean = {
     val authz = getRights.authorizationTypes
     if (authz.contains(NoRights)) false
@@ -75,6 +75,6 @@ object CurrentUser extends SessionVar[Option[RudderUserDetail]]({
       case NoRights => false
       case _ =>  authz.contains(auth)
     }
-    
+
   }
 }

@@ -40,11 +40,11 @@ import com.normation.utils.HashcodeCaching
 
 
 /**
- * A target is either 
- * - a Group of Node (static or dynamic), 
+ * A target is either
+ * - a Group of Node (static or dynamic),
  * - a list of Node
  * - a special (system) target ("all", "policy server", etc)
- * - a specific node 
+ * - a specific node
  */
 sealed abstract class RuleTarget {
   def target:String
@@ -77,7 +77,7 @@ case object AllTargetExceptPolicyServers extends RuleTarget {
 
 
 object RuleTarget {
-  
+
   def unser(s:String) = {
     s match {
       case GroupTarget.r(g) => Some(GroupTarget(NodeGroupId(g)))
@@ -94,11 +94,11 @@ object RuleTarget {
 
 case class RuleTargetInfo(
   target:RuleTarget,
-  name:String, 
+  name:String,
   description:String,
   isEnabled:Boolean,
   isSystem:Boolean
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 
 

@@ -38,26 +38,26 @@ package com.normation.rudder.domain.servers
  * Class that holds the informations for the templates
  * @author Nicolas CHARLES
  *
- * 
+ *
  * Used by StringTemplate !
- * 
+ *
  */
 class NodeBean(uuid:String, hostname:String, name:String, servingIp:Option[String] = None ) {
 
   def getUuid() : String = {
     uuid
   }
-  
+
   def getHostname() : String = {
     hostname
   }
-  
+
   def getName() : String = {
     name
   }
-  
+
   def getServingIp() : String = {
     servingIp.getOrElse(throw new Exception("Invalid server type " + uuid))
   }
-  
+
 }
