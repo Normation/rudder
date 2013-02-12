@@ -26,7 +26,7 @@ import org.specs2.matcher._
 import org.specs2.runner.JUnitRunner
 import specs2.{run, arguments}
 import specs2.arguments._
-  
+
 
 @RunWith(classOf[JUnitRunner])
 class LDAPEntrySpecTest extends Specification /*with ScalaCheck*/ {

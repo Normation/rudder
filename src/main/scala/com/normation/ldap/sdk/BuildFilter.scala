@@ -24,13 +24,13 @@ import com.unboundid.ldap.sdk.Filter
 import Filter._
 
 object BuildFilter {
-  
+
   /**
    * Create a non filtering filter
    * equivalent to (objectClass=*)
    */
   val ALL : Filter = HAS("objectClass")
-  
+
 
   /**
    * Creates a new AND search filter with the provided components.
@@ -52,7 +52,7 @@ object BuildFilter {
    */
   def OR(orComponents:Filter*) = createORFilter(orComponents:_*)
 
-  
+
 
   /**
    * Creates a new NOT search filter with the provided component.
@@ -92,7 +92,7 @@ object BuildFilter {
    * A special case of EQ for object class
    */
   def IS(assertionValue:String) = createEqualityFilter("objectClass",assertionValue)
-  
+
   /**
    * Creates a new substring search filter with the provided information.  At
    * least one of the subInitial, subAny, and subFinal components must not be
@@ -107,10 +107,10 @@ object BuildFilter {
    *
    * @return  The created substring search filter.
    */
-  def SUB(attributeName:String, subInitial:String, subAny:Array[String],subFinal:String) = 
+  def SUB(attributeName:String, subInitial:String, subAny:Array[String],subFinal:String) =
     createSubstringFilter(attributeName, subInitial, subAny, subFinal)
 
-                                             
+
   /**
    * Creates a new substring search filter with the provided information.  At
    * least one of the subInitial, subAny, and subFinal components must not be
@@ -125,9 +125,9 @@ object BuildFilter {
    *
    * @return  The created substring search filter.
    */
-  def SUB(attributeName:String, subInitial:Array[Byte], subAny:Array[Array[Byte]],subFinal:Array[Byte]) = 
+  def SUB(attributeName:String, subInitial:Array[Byte], subAny:Array[Array[Byte]],subFinal:Array[Byte]) =
     createSubstringFilter(attributeName, subInitial, subAny, subFinal)
-                                             
+
 
   /**
    * Creates a new greater-or-equal search filter with the provided information.
@@ -140,7 +140,7 @@ object BuildFilter {
    * @return  The created greater-or-equal search filter.
    */
   def GTEQ(attributeName:String, assertionValue:String) = createGreaterOrEqualFilter(attributeName,assertionValue)
-                                         
+
   /**
    * Creates a new greater-or-equal search filter with the provided information.
    *
@@ -186,7 +186,7 @@ object BuildFilter {
    * @return  The created presence search filter.
    */
   def HAS(attributeName:String) = createPresenceFilter(attributeName)
-  
+
 
   /**
    * Creates a new approximate match search filter with the provided
@@ -198,9 +198,9 @@ object BuildFilter {
    *                         filter.  It must not be {@code null}.
    *
    * @return  The created approximate match search filter.
-   */                                     
+   */
   def MATCH(attributeName:String, assertionValue:String) = createApproximateMatchFilter(attributeName,assertionValue)
-                                          
+
   /**
    * Creates a new approximate match search filter with the provided
    * information.
@@ -211,7 +211,7 @@ object BuildFilter {
    *                         filter.  It must not be {@code null}.
    *
    * @return  The created approximate match search filter.
-   */                                     
+   */
   def MATCH(attributeName:String, assertionValue:Array[Byte]) = createApproximateMatchFilter(attributeName,assertionValue)
 
   /**
@@ -244,6 +244,6 @@ object BuildFilter {
    * @throws  LDAPException  If the provided string cannot be decoded as a valid
    *                         LDAP search filter.
    */
-  def apply(filterString:String) = create(filterString) 
+  def apply(filterString:String) = create(filterString)
 
 }

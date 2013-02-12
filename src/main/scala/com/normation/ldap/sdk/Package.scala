@@ -28,29 +28,29 @@ import com.unboundid.ldap.sdk.{
 }
 
 package object sdk {
-  
+
   import scala.language.implicitConversions
-  
+
   /**
    * Alias Unboundid.ldap.sdk.Entry and LDAPConnection to UnboundXXX so that the main
-   * "entry" type is our own. 
+   * "entry" type is our own.
    */
   type UnboundidEntry = UEntry
   type UnboundidLDAPConnection = ULDAPConnection
   //that seems to be needed to be able to create an object LDAPResult
   //without having naming clashes
   type LDAPResult = ULDAPResult
-  
+
   //we create an instance of RDN, used as a singleton object to access its static methods
   //val RDN = new com.unboundid.ldap.sdk.RDN("invalid=attributeName")
-  
+
   //implicit conversion between an LDAP SDK entry and our enhanced one
   implicit def unboundidEntry2ScalaEntry(e:UnboundidEntry) : LDAPEntry = LDAPEntry(e)
-  
+
   implicit def unboundidEntry2LDAPTree(e:UnboundidEntry) : LDAPTree = LDAPTree(LDAPEntry(e))
 
   implicit def string2dn(dn:String) = new DN(dn)
-  
+
   implicit def dn2listRdn(dn:DN) = dn.getRDNs.toList
   implicit def listRdn2dn(rdns:List[RDN]) = new DN(rdns.toSeq:_*)
 
@@ -63,11 +63,11 @@ package object sdk {
       case SubordinateSubtree => SUBORDINATE_SUBTREE
     }
   }
- 
+
   implicit def string2SearchScope(scope:String) : SearchScope = {
     scope.toLowerCase match {
       case "one" => One
-      case "sub" | "subtree" => Sub 
+      case "sub" | "subtree" => Sub
       case "base" => Base
       case "subordinatesubtree" => SubordinateSubtree
       case x => throw new TechnicalException("Can not recognize %s search scope. Possible values are one, sub, base, subordinateSubtree")
@@ -76,11 +76,11 @@ package object sdk {
 
   /*
    * Define the total order on DN
-   * /!\ /!\ Be careful, the comparison is meaningful only for 
-   * complete DN, base included. 
-   * 
+   * /!\ /!\ Be careful, the comparison is meaningful only for
+   * complete DN, base included.
+   *
    * The order is :
-   * empty RDN is always the smaller than any other RDN 
+   * empty RDN is always the smaller than any other RDN
    * if the two DN have different base (size does not matter)
    * - compare alphabetically the rdn attribute name, lower first
    *   i.e: o=com > dc=org
@@ -88,7 +88,7 @@ package object sdk {
    *   i.e: dc=com < dc=org
    * else :
    * - lower size first, i.e: dc=foo,dc=com < dc=bar,dc=foo,dc=com
-   * - at same depth, alphabetical order of the rdn attribute name 
+   * - at same depth, alphabetical order of the rdn attribute name
    *   (lower first), ie: ou=bar,BASE > o=plop,BASE
    * - at same rdn attribute name, alphabetical order of the value
    *   (lower first), ie: ou=foo,BASE > ou=bar,BASE
@@ -97,6 +97,6 @@ package object sdk {
   implicit val DnOrdering : Ordering[DN] = new Ordering[DN] {
     def compare(x:DN,y:DN) : Int = x.compareTo(y)
   }
-  
+
   implicit def boolean2LDAP(b:Boolean) : LDAPBoolean = LDAPBoolean(b)
 }

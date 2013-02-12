@@ -33,7 +33,7 @@ case class LDAPObjectClass(
 
   val attributes = mustAttr ++ mayAttr
   assert(null != name && name.length != 0,"Name can't be null or empty")
-  assert(attributes.forall(a => null != a && a.length != 0),"Attributes name can't be null or empty")  
+  assert(attributes.forall(a => null != a && a.length != 0),"Attributes name can't be null or empty")
 
 }
 
@@ -43,7 +43,7 @@ object LDAPObjectClass {
 
 case class LDAPObjectClasses(val all:Set[LDAPObjectClass])  extends HashcodeCaching {
   assert(!all.isEmpty,"Object classes can't be empty (it should at least contains top)")
-  
+
   val names : Set[String] = all.map(_.name)
   val attributes: Set[String]  = for { oc <- all ; x <- oc.attributes } yield x
   val may: Set[String]  = for { oc <- all ; x <- oc.mayAttr  } yield x

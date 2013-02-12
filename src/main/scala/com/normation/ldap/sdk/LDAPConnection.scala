@@ -39,15 +39,15 @@ trait ReadOnlyLDAPConnection {
 
   /**
    * Most generic search request, which allows to use controls
-   * and other advanced operation.  
+   * and other advanced operation.
    * @param sr
    *   SearchRequest object which define the search operation
    *   to send to LDAP directory
    * @return
-   *   The sequence of entries matching SearchRequest. 
+   *   The sequence of entries matching SearchRequest.
    */
-  def search(sr:SearchRequest) : Seq[LDAPEntry] 
-  
+  def search(sr:SearchRequest) : Seq[LDAPEntry]
+
   /**
    * Retrieve entry with given 'dn', optionally restricting
    * entry's attribute set to attribute with name in the
@@ -56,14 +56,14 @@ trait ReadOnlyLDAPConnection {
    *   DN of the entry to retrieve
    * @param attributes
    *   Only retrieve attributes on that list in the entry.
-   *   Let empty to retrieve all attributes. 
+   *   Let empty to retrieve all attributes.
    * @return
-   *   Full(entry) if the entry exists, 
+   *   Full(entry) if the entry exists,
    *   Empty if no such entry exists
    *   Failure(message) if something bad happened
    */
   def get(dn:DN, attributes:String*) : Box[LDAPEntry]
-  
+
   /**
    * A search with commonly used parameters
    * @param baseDn
@@ -73,25 +73,25 @@ trait ReadOnlyLDAPConnection {
    * @param filter
    *   Filter to use to decide if an entry should be returned
    * @param attributes
-   *   If non-empty, for each returned entry, only retrieve 
-   *   attributes in the list. 
+   *   If non-empty, for each returned entry, only retrieve
+   *   attributes in the list.
    *   Otherwise, retrieve all attributes of all entries.
    * @return
-   *   The sequence of entries matching search request parameters. 
+   *   The sequence of entries matching search request parameters.
    */
   def search(baseDn:DN, scope:SearchScope, filter:Filter, attributes:String*) : Seq[LDAPEntry] = {
     search(new SearchRequest(baseDn.toString, scope, filter, attributes:_*))
   }
-  
+
   /**
    * Search for one entry which is:
    * - a direct children of a base DN
    * - match the filter
-   * 
+   *
    * Only one entry is returned at max. If the
-   * filter match several entries under base DN, 
+   * filter match several entries under base DN,
    * one will be pick at random.
-   * 
+   *
    * @param baseDn
    *   Root of the search: we are looking for one of
    *   its children
@@ -99,7 +99,7 @@ trait ReadOnlyLDAPConnection {
    *   Filter to use to choose from children of base DN entry
    * @param attributes
    *   If non empty, only retrieve attribute from that list.
-   *   Else, retrieve all attributes. 
+   *   Else, retrieve all attributes.
    * @return
    *   Full(entry) if an entry matching filter is found in
    *     base DN entry's children
@@ -112,17 +112,17 @@ trait ReadOnlyLDAPConnection {
       case buf => Full(buf(0))
     }
   }
-  
+
   /**
-   * Test existence of the given entry. 
+   * Test existence of the given entry.
    * Of course, as LDAP is not a transactionnal datasource,
    * result is only valid for the time when directory
-   * gave the answer. 
-   * 
+   * gave the answer.
+   *
    * @param dn
    *   DN of the entry to test for existence
    * @return
-   *   True if the entry exists, false otherwise. 
+   *   True if the entry exists, false otherwise.
    */
   def exists(dn:DN) : Boolean = get(dn, "1.1").isDefined
 
@@ -134,14 +134,14 @@ trait ReadOnlyLDAPConnection {
    * @param filter
    *   Filter to use to decide if an entry should be returned
    * @param attributes
-   *   If non-empty, for each returned entry, only retrieve 
-   *   attributes in the list. 
+   *   If non-empty, for each returned entry, only retrieve
+   *   attributes in the list.
    *   Otherwise, retrieve all attributes of all entries.
    * @return
-   *   The sequence of entries matching search request parameters. 
+   *   The sequence of entries matching search request parameters.
    */
   def searchOne(baseDn:DN,filter:Filter, attributes:String*) : Seq[LDAPEntry] = search(baseDn,One,filter,attributes:_*)
-  
+
   /**
    * Search method restricted to scope = SubTree
    * @see search
@@ -150,61 +150,61 @@ trait ReadOnlyLDAPConnection {
    * @param filter
    *   Filter to use to decide if an entry should be returned
    * @param attributes
-   *   If non-empty, for each returned entry, only retrieve 
-   *   attributes in the list. 
+   *   If non-empty, for each returned entry, only retrieve
+   *   attributes in the list.
    *   Otherwise, retrieve all attributes of all entries.
    * @return
-   *   The sequence of entries matching search request parameters. 
+   *   The sequence of entries matching search request parameters.
    */
-  def searchSub(baseDn:DN,filter:Filter, attributes:String*) : Seq[LDAPEntry] = search(baseDn,Sub,filter,attributes:_*) 
+  def searchSub(baseDn:DN,filter:Filter, attributes:String*) : Seq[LDAPEntry] = search(baseDn,Sub,filter,attributes:_*)
 }
 
 trait WriteOnlyLDAPConnection {
-  
+
   /**
-   * Execute a plain modification. 
-   * Return the actual modification executed if success, 
-   * the error in other case. 
+   * Execute a plain modification.
+   * Return the actual modification executed if success,
+   * the error in other case.
    */
   def modify(dn:DN, modifications:Modification*) : Box[LDIFChangeRecord]
-  
+
   /**
    * Move entry with given dn to new parent.
    * @param dn
    *   Entry's DN to move
    * @param newParentDn
-   *   New parent's DN 
+   *   New parent's DN
    * @parem newRDN
    *   Optionnaly change the RDN of the entry.
    * @return
    *   Full[Seq(ldifChangeRecord)] if the operation is successful
-   *   Empty or Failure if an error occurred. 
+   *   Empty or Failure if an error occurred.
    */
   def move(dn:DN,newParentDn:DN, newRDN:Option[RDN] = None) : Box[LDIFChangeRecord]
-   
+
   /**
    * Save an LDAP entry.
    * The semantic of a save is complex:
    * - by default, it only update attributes in LDAP entry.
-   *   That means that if entry in the directory has (a,b,c) attribute, and entry has only (a,b), 
+   *   That means that if entry in the directory has (a,b,c) attribute, and entry has only (a,b),
    *   then c won't be remove nor updated in LDAP
    * - attribute with no values are removed
    *   That means that if entry has attribute 'a' with no value, attribute 'a' will be removed in LDAP directory
-   * - if "removeMissing" is set to true, then missing attribute in entry are marked to be removd (most of the time, 
+   * - if "removeMissing" is set to true, then missing attribute in entry are marked to be removd (most of the time,
    *   it's not what you want).
    *   WARNING: the RDN attribute is always ignored. You can only change it with the <code>move</move> method
    * - if "removeMissing" is set to true, you can still keep some attribute enumerated here. If removeMissing is false,
    *   that parameter is ignored.
    */
   def save(entry : LDAPEntry, removeMissingAttributes:Boolean=false, forceKeepMissingAttributes:Seq[String] = Seq()) : Box[LDIFChangeRecord]
-  
+
   /**
    * Delete entry at the given DN
    * If recurse is set to true (default), delete all entry's children before
-   * deleting entry. 
+   * deleting entry.
    * If recurse is set to false, the entry must have zero child to be
    * allowed to be deleted.
-   * 
+   *
    * If no entry has the given DN, nothing is done.
    */
   def delete(dn:DN, recurse:Boolean = true) : Box[Seq[LDIFChangeRecord]]
@@ -216,68 +216,68 @@ trait ReadOnlyTreeLDAPConnection {
    * Retrieve the full sub-tree of entries where the root
    * entry is the one with given 'dn'
    * All entries of the subtree are retrieved, and for
-   * each of them, all attributes are retrieved. 
-   * BE CAREFULL: the result may be HUGE. 
+   * each of them, all attributes are retrieved.
+   * BE CAREFULL: the result may be HUGE.
    * @param dn
    *   DN of the root entry for the sub-tree to retrieve
    * @return
    *   Full(LDAPTree) if the root entry exists and the command
    *     succeeded
    *   Empty if no entry has the given DN
-   *   Failure(message) if something goes wrong. 
+   *   Failure(message) if something goes wrong.
    */
-  def getTree(dn:DN) : Box[LDAPTree]  
+  def getTree(dn:DN) : Box[LDAPTree]
 }
 
 trait WriteOnlyTreeLDAPConnection {
   /**
-   * Save the full LDAPTree given in argument. 
-   * 
+   * Save the full LDAPTree given in argument.
+   *
    * TODO: specify behaviour.
-   * 
+   *
    * @param tree
    * @param deleteRemoved
    * @return
    */
-  def saveTree(tree:LDAPTree, deleteRemoved:Boolean=false) : Box[Seq[LDIFChangeRecord]] 
+  def saveTree(tree:LDAPTree, deleteRemoved:Boolean=false) : Box[Seq[LDIFChangeRecord]]
 }
 
 /**
  * Trait that specify that the LDAPConnection is
- * backed by an UnboundID LDAPConnection object. 
- * This object may be used to access to methods 
+ * backed by an UnboundID LDAPConnection object.
+ * This object may be used to access to methods
  * not supported by LDAPConnection Scala API
  */
 trait UnboundidBackendLDAPConnection {
   /**
-   * Access to the backed UnboundID LDAPConnection object, 
-   * if one need to do operation not covered by Scala API. 
-   * 
+   * Access to the backed UnboundID LDAPConnection object,
+   * if one need to do operation not covered by Scala API.
+   *
    * @return
    *   LDAPConnection object used in back-end.
    */
   def backed : UnboundidLDAPConnection
-  
+
   /**
    * Close that LDAPConnection
    */
   def close() : Unit = backed.close()
-  
+
 }
 
 object LDAPConnection {
   import org.slf4j.{Logger, LoggerFactory}
   import ResultCode._
-  
+
   val logger = LoggerFactory.getLogger(classOf[LDAPConnection])
 
   /**
    * Default error on which we don't want to throw an exception
-   * but only log a message for Add operation 
+   * but only log a message for Add operation
    */
   def onlyReportOnAdd(errorCode:ResultCode) : Boolean = {
     errorCode match {
-      case NO_SUCH_ATTRIBUTE | 
+      case NO_SUCH_ATTRIBUTE |
            UNDEFINED_ATTRIBUTE_TYPE |
            ATTRIBUTE_OR_VALUE_EXISTS |
            INVALID_ATTRIBUTE_SYNTAX |
@@ -288,20 +288,20 @@ object LDAPConnection {
       case _ => false
     }
   }
-  
+
   /**
    * Default error on which we don't want to throw an exception
-   * but only log a message for Delete operation 
+   * but only log a message for Delete operation
    */
   def onlyReportOnDelete(errorCode:ResultCode) : Boolean = onlyReportOnAdd(errorCode)
-  
+
   /**
    * Default error on which we don't want to throw an exception
-   * but only log a message for Modify operation 
+   * but only log a message for Modify operation
    */
   def onlyReportOnModify(errorCode:ResultCode) : Boolean = {
     errorCode match {
-      case NO_SUCH_ATTRIBUTE | 
+      case NO_SUCH_ATTRIBUTE |
            UNDEFINED_ATTRIBUTE_TYPE |
            ATTRIBUTE_OR_VALUE_EXISTS |
            INVALID_ATTRIBUTE_SYNTAX |
@@ -314,13 +314,13 @@ object LDAPConnection {
 
   /**
    * Default error on which we don't want to throw an exception
-   * but only log a message for ModifyDN operation 
+   * but only log a message for ModifyDN operation
    */
   def onlyReportOnModifyDN(errorCode:ResultCode) : Boolean = onlyReportOnModify(errorCode)
-  
+
   /**
    * Default error on which we don't want to throw an exception
-   * but only log a message for Search operation 
+   * but only log a message for Search operation
    */
   def onlyReportOnSearch(errorCode:ResultCode) : Boolean = {
     errorCode match {
@@ -334,31 +334,31 @@ object LDAPConnection {
 import LDAPConnection.logger
 
 /**
- * 
+ *
  * LDAPConnection is the media to talk with the
- * LDAP directory. 
- * 
+ * LDAP directory.
+ *
  * It's not here that connection properties and creation are
  * deals with. For that, look to <code>LDAPConnectionProvider</code>
- * 
+ *
  * Main interaction are:
- * - get : optionally retrieve an entry 
+ * - get : optionally retrieve an entry
  * - search : retrieve entries based on a search request
  * - save : modify entry attributes (not the dn/rdn one)
  * - delete : delete a tree (or only one entry)
  * - getTree : retrieve a subtree
  * - move : change the dn of an entry
- * 
+ *
  * @parameter backed
  *   UnboundID LDAPConnection to use to actually execute commands
- *   
+ *
  * @parameter onlyReportOn*
  *   Methods that decide if such an error ResultCode should
  *   throw an exception (and probably kill the connection) or
  *   if the error only has to be logged.
- *   Typically, you want to throw an exception on error like 
+ *   Typically, you want to throw an exception on error like
  *   "the directory is not available", and only get an error
- *   message (and report it to the user) on "the attribute value 
+ *   message (and report it to the user) on "the attribute value
  *   you tried to save is not valid for that entry".
  */
 class LDAPConnection(
@@ -369,39 +369,39 @@ class LDAPConnection(
   onlyReportOnModifyDN: ResultCode => Boolean = LDAPConnection.onlyReportOnModifyDN,
   onlyReportOnDelete: ResultCode => Boolean = LDAPConnection.onlyReportOnDelete,
   onlyReportOnSearch: ResultCode => Boolean = LDAPConnection.onlyReportOnSearch
-) extends 
+) extends
   UnboundidBackendLDAPConnection with
-  ReadOnlyLDAPConnection with 
-  WriteOnlyLDAPConnection with 
-  ReadOnlyTreeLDAPConnection with 
-  WriteOnlyTreeLDAPConnection 
+  ReadOnlyLDAPConnection with
+  WriteOnlyLDAPConnection with
+  ReadOnlyTreeLDAPConnection with
+  WriteOnlyTreeLDAPConnection
 {
 
   /**
    * Ask the directory if it knows how to
-   * delete full sub-tree in one command. 
+   * delete full sub-tree in one command.
    */
-  private lazy val canDeleteTree : Boolean = 
+  private lazy val canDeleteTree : Boolean =
     backed.getRootDSE.supportsControl(com.unboundid.ldap.sdk.controls.SubtreeDeleteRequestControl.SUBTREE_DELETE_REQUEST_OID)
 
   /*
    * //////////////////////////////////////////////////////////////////
-   * // Read 
+   * // Read
    * //////////////////////////////////////////////////////////////////
    */
-    
+
   override def search(sr:SearchRequest) : Seq[LDAPEntry] = {
     try {
       backed.search(sr).getSearchEntries.map(e => LDAPEntry(e.getDN,e.getAttributes))
     } catch {
-      case e:LDAPSearchException if(onlyReportOnSearch(e.getResultCode)) => 
+      case e:LDAPSearchException if(onlyReportOnSearch(e.getResultCode)) =>
         logger.error("Ignored execption (configured to be ignored)",e)
         e.getSearchEntries().map(e => LDAPEntry(e.getDN,e.getAttributes))
     }
   }
-  
+
   override def get(dn:DN, attributes:String*) : Box[LDAPEntry] = {
-    { 
+    {
       if(attributes.size == 0) backed.getEntry(dn.toString)
       else backed.getEntry(dn.toString, attributes:_*)
     } match {
@@ -409,13 +409,13 @@ class LDAPConnection(
       case r => Full(LDAPEntry(r.getDN, r.getAttributes))
     }
   }
- 
+
   /*
    * //////////////////////////////////////////////////////////////////
    * // Read Tree
    * //////////////////////////////////////////////////////////////////
    */
-  
+
   override def getTree(dn:DN) : Box[LDAPTree] = {
     try {
       val all = backed.search(dn.toString,Sub,BuildFilter.ALL)
@@ -430,7 +430,7 @@ class LDAPConnection(
       case e:LDAPException => Failure("Can not get tree '%s': %s".format(dn, e.getMessage), Full(e), Empty)
     }
   }
-  
+
   /*
    * //////////////////////////////////////////////////////////////////
    * // Write
@@ -439,7 +439,7 @@ class LDAPConnection(
 
   /**
    * Generic method that apply a sequence of modification to a directory.
-   * It can trace the full list of queries and handle result code. 
+   * It can trace the full list of queries and handle result code.
    * @parameter MOD
    *   The modification request type
    * @parameter MOD => LDIFChangeRecord
@@ -447,21 +447,21 @@ class LDAPConnection(
    *   an LDIFChangeRecord
    * @parameter MOD => LDAPResult
    *   The method to call on the backend UnboundidLDAPConnection to actually
-   *   execute the modification request. 
+   *   execute the modification request.
    * @parameter Seq[MOD]
-   *   the list of modification to apply. 
+   *   the list of modification to apply.
    */
   private def applyMods[MOD <: ReadOnlyLDAPRequest](toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult)(reqs:Seq[MOD]) : Box[Seq[LDIFChangeRecord]] = {
-    if(reqs.size < 1) Full(Seq()) 
+    if(reqs.size < 1) Full(Seq())
     else {
       ldifFileLogger.records(reqs map ( toLDIFChangeRecord (_) ))
-      
+
       sequence(reqs) { req =>
         applyMod(toLDIFChangeRecord,backendAction)(req)
       }
     }
   }
-  
+
   private def applyMod[MOD <: ReadOnlyLDAPRequest](toLDIFChangeRecord:MOD => LDIFChangeRecord, backendAction: MOD => LDAPResult)(req:MOD) : Box[LDIFChangeRecord] = {
     val record = toLDIFChangeRecord(req)
     ldifFileLogger.records(Seq(record))
@@ -470,86 +470,86 @@ class LDAPConnection(
       case LDAPResult(_,m) => Failure(m)
     }
   }
-  
-  private val deleteAction = {req:DeleteRequest => 
+
+  private val deleteAction = {req:DeleteRequest =>
         try {
-          backed.delete(req) 
+          backed.delete(req)
         } catch {
-          case e:LDAPException if(onlyReportOnDelete(e.getResultCode)) => 
-            val message = "Exception ignored (by configuration) when trying to delete entry '%s'.  Reported exception was: %s".format(req.getDN,e.getMessage) 
+          case e:LDAPException if(onlyReportOnDelete(e.getResultCode)) =>
+            val message = "Exception ignored (by configuration) when trying to delete entry '%s'.  Reported exception was: %s".format(req.getDN,e.getMessage)
             logger.error(message,e)
             new LDAPResult(-1,SUCCESS)
-        }     
+        }
       }
 
   /**
    * Specialized version of applyMods for DeleteRequest modification type
    */
   private val applyDeletes = applyMods[DeleteRequest](
-      {req:DeleteRequest => req.toLDIFChangeRecord}, 
+      {req:DeleteRequest => req.toLDIFChangeRecord},
       deleteAction
   ) _
-  
-  private val addAction = {req:AddRequest => 
+
+  private val addAction = {req:AddRequest =>
         try {
-          backed.add(req) 
+          backed.add(req)
         } catch {
-          case e:LDAPException if(onlyReportOnAdd(e.getResultCode)) => 
-            val message = "Exception ignored (by configuration) when trying to add entry '%s'.  Reported exception was: %s".format(req.getDN,e.getMessage) 
+          case e:LDAPException if(onlyReportOnAdd(e.getResultCode)) =>
+            val message = "Exception ignored (by configuration) when trying to add entry '%s'.  Reported exception was: %s".format(req.getDN,e.getMessage)
             logger.error(message,e)
             new LDAPResult(-1,SUCCESS)
-        }     
+        }
       }
-  
+
   /**
    * Specialized version of applyMods for AddRequest modification type
    */
   private val applyAdds = applyMods[AddRequest](
-      {req:AddRequest => req.toLDIFChangeRecord}, 
-      addAction
-  ) _
-  
-  private val applyAdd = applyMod[AddRequest](
-      {req:AddRequest => req.toLDIFChangeRecord}, 
+      {req:AddRequest => req.toLDIFChangeRecord},
       addAction
   ) _
 
-  val modifyAction = {req:ModifyRequest => 
+  private val applyAdd = applyMod[AddRequest](
+      {req:AddRequest => req.toLDIFChangeRecord},
+      addAction
+  ) _
+
+  val modifyAction = {req:ModifyRequest =>
         try {
-          backed.modify(req) 
+          backed.modify(req)
         } catch {
-          case e:LDAPException if(onlyReportOnModify(e.getResultCode)) => 
+          case e:LDAPException if(onlyReportOnModify(e.getResultCode)) =>
           val message ="Exception ignored (by configuration) when trying to modify entry '%s'.  Reported exception was: ".format(req.getDN,e.getMessage)
           logger.error(message,e)
           new LDAPResult(-1,SUCCESS)
         }
-      }  
+      }
 
   /**
    * Specialized version of applyMods for ModifyRequest modification type
    */
   private val applyModifies = applyMods[ModifyRequest](
-      {req:ModifyRequest => req.toLDIFChangeRecord}, 
+      {req:ModifyRequest => req.toLDIFChangeRecord},
       modifyAction
   ) _
-  
+
   private val applyModify = applyMod[ModifyRequest](
-      {req:ModifyRequest => req.toLDIFChangeRecord}, 
+      {req:ModifyRequest => req.toLDIFChangeRecord},
       modifyAction
   ) _
-  
+
   /**
-   * Execute a plain modification. 
-   * Return the actual modification executed if success, 
-   * the error in other case. 
+   * Execute a plain modification.
+   * Return the actual modification executed if success,
+   * the error in other case.
    */
-  override def modify(dn:DN, modifications:Modification*) : Box[LDIFChangeRecord] = 
+  override def modify(dn:DN, modifications:Modification*) : Box[LDIFChangeRecord] =
     try {
       applyModify(new ModifyRequest(dn.toString,modifications:_*))
     } catch {
       case e:LDAPException => Failure("Can not apply modifiction on '%s': %s".format(dn, e.getMessage), Full(e), Empty)
     }
-  
+
   override def move(dn:DN, newParentDn:DN, newRDN:Option[RDN] = None) : Box[LDIFChangeRecord] = {
     if(
         dn.getParent == newParentDn && (
@@ -562,16 +562,16 @@ class LDAPConnection(
       Full(LDIFNoopChangeRecord(dn))
     } else {
       try {
-        applyMod[ModifyDNRequest]({req:ModifyDNRequest => req.toLDIFChangeRecord}, 
-          {req:ModifyDNRequest => 
+        applyMod[ModifyDNRequest]({req:ModifyDNRequest => req.toLDIFChangeRecord},
+          {req:ModifyDNRequest =>
             try {
-              backed.modifyDN(req) 
+              backed.modifyDN(req)
             } catch {
-              case e:LDAPException if(onlyReportOnModifyDN(e.getResultCode)) => 
-                val message = "Exception ignored (by configuration) when trying to move entry '%s'.  Reported exception was: %s".format(req.getDN,e.getMessage) 
+              case e:LDAPException if(onlyReportOnModifyDN(e.getResultCode)) =>
+                val message = "Exception ignored (by configuration) when trying to move entry '%s'.  Reported exception was: %s".format(req.getDN,e.getMessage)
                 logger.error(message,e)
                 new LDAPResult(-1,SUCCESS)
-            }     
+            }
           }
         ) (new ModifyDNRequest(dn.toString, newRDN.getOrElse(dn.getRDN).toString, newRDN.isDefined, newParentDn.toString))
       } catch {
@@ -579,28 +579,28 @@ class LDAPConnection(
       }
     }
   }
-  
+
   override def save(entry : LDAPEntry, removeMissingAttributes:Boolean=false, forceKeepMissingAttributes:Seq[String] = Seq()) : Box[LDIFChangeRecord] = {
     synchronized {
       get(entry.dn) match { //TODO if remocoveMissing is false, only get attribute in entry (we don't care of others)
         case f@Failure(_,_,_) => f
-        case Empty => 
+        case Empty =>
           try {
             applyAdd(new AddRequest(entry.backed))
           } catch {
-            case e:LDAPException if(onlyReportOnAdd(e.getResultCode)) => 
-              val message = "Exception ignored when trying to add entry '%s'.  Reported exception was: %s".format(entry.dn,e.getMessage) 
+            case e:LDAPException if(onlyReportOnAdd(e.getResultCode)) =>
+              val message = "Exception ignored when trying to add entry '%s'.  Reported exception was: %s".format(entry.dn,e.getMessage)
               logger.error(message,e)
               Full(LDIFNoopChangeRecord(entry.dn)) //nothing was modified on the repos when such an error occurred
             case e:LDAPException => Failure("Can not save (add) '%s': %s".format(entry.dn, e.getMessage), Full(e), Empty)
           }
         case Full(existing) =>
           val mods = LDAPEntry.merge(existing,entry, false, removeMissingAttributes, forceKeepMissingAttributes)
-          if(!mods.isEmpty) {  
+          if(!mods.isEmpty) {
             try {
               applyModify(new ModifyRequest(entry.dn.toString,mods))
             } catch {
-              case e:LDAPException if(onlyReportOnModify(e.getResultCode)) => 
+              case e:LDAPException if(onlyReportOnModify(e.getResultCode)) =>
                 val message ="Exception ignored when trying to modify entry '%s'.  Reported exception was: ".format(entry.dn,e.getMessage)
                 logger.error(message,e)
                 Full(LDIFNoopChangeRecord(entry.dn)) //nothing was modified on the repos when such an error occurred
@@ -614,7 +614,7 @@ class LDAPConnection(
   override def delete(dn:DN, recurse:Boolean = true) : Box[Seq[LDIFChangeRecord]] = {
     try {
       if(recurse) {
-        if(canDeleteTree) { 
+        if(canDeleteTree) {
           import com.unboundid.ldap.sdk.{DeleteRequest,Control}
           import com.unboundid.ldap.sdk.controls.SubtreeDeleteRequestControl
           applyDeletes(Seq(new DeleteRequest(dn, Array(new SubtreeDeleteRequestControl()):Array[Control])))
@@ -630,20 +630,20 @@ class LDAPConnection(
       case e:LDAPException => Failure("Can not delete '%s': %s".format(dn, e.getMessage), Full(e), Empty)
     }
   }
-  
+
   /*
    * //////////////////////////////////////////////////////////////////
    * // Write Tree
    * //////////////////////////////////////////////////////////////////
    */
-  
-  protected def addTree(tree:LDAPTree) : Box[Seq[LDIFChangeRecord]] = 
+
+  protected def addTree(tree:LDAPTree) : Box[Seq[LDIFChangeRecord]] =
     try {
       applyAdds(tree.toSeq.map {e => new AddRequest(e.backed) })
     } catch {
       case e:LDAPException => Failure("Can not add tree: %s".format(tree.root().dn, e.getMessage), Full(e), Empty)
     }
-  
+
   override def saveTree(tree:LDAPTree, deleteRemoved:Boolean=false) : Box[Seq[LDIFChangeRecord]] = {
     //compose the result of unit modification
     def doSave(tree:Tree[TreeModification]) : Box[Seq[LDIFChangeRecord]] = {
@@ -652,13 +652,13 @@ class LDAPConnection(
         mod match {
           case NoMod => Full(Seq()) //OK
           case Add(tree) => addTree(tree)
-          case Delete(tree) => 
+          case Delete(tree) =>
             if(deleteRemoved) delete(tree.root.toString, true) //TODO : do we want to actually only try to delete these entry and not cut the full subtree ? likely to be error prone
             else Full(Seq())
           case Replace((dn,mods)) => sequence(mods) { mod => modify(dn,mod) }
         }
       }
-      ((Full(Seq()):Box[Seq[LDIFChangeRecord]])/:tree.toSeq) { (records,mod) => 
+      ((Full(Seq()):Box[Seq[LDIFChangeRecord]])/:tree.toSeq) { (records,mod) =>
         records match {
           case Full(seq) => applyTreeModification(mod) match {
             case f@Failure(_,_,_) => f
@@ -681,7 +681,7 @@ class LDAPConnection(
           case x => Failure("Was hopping for a Tree[TreeModification] and get a Tree with root element: " + x)
         }
       }
-    }    
+    }
   }
 
 }

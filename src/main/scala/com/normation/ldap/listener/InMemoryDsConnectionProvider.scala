@@ -26,8 +26,8 @@ import com.normation.ldap.ldif._
 import com.normation.ldap.sdk._
 
 /**
- * A class that provides a connection provider which use an 
- * UnboundID in memory directory server. 
+ * A class that provides a connection provider which use an
+ * UnboundID in memory directory server.
  * The directory instance is created and started with the class instantiation.
  */
 class InMemoryDsConnectionProvider(
@@ -38,18 +38,18 @@ class InMemoryDsConnectionProvider(
   , bootstrapLDIFPaths : Seq[String] = Seq()
   , val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger()
 ) extends LDAPConnectionProvider {
-  
+
   /**
-   * The actual In Memory server on which the connection 
-   * will lead. 
-   * It is exposed (public) to allow access to intersting 
+   * The actual In Memory server on which the connection
+   * will lead.
+   * It is exposed (public) to allow access to intersting
    * methods, like all the "assertEntry..." methods
    */
   val server = new InMemoryDirectoryServer(config)
   bootstrapLDIFPaths foreach { path => server.importFromLDIF(false, path) }
   server.startListening
-  
-  
+
+
   //////// implementation of LDAPConnectionProvider ////////
   private[this] var connection : Option[LDAPConnection] = None
   protected def getInternalConnection() : LDAPConnection = {
@@ -63,7 +63,7 @@ class InMemoryDsConnectionProvider(
       case Some(con) => if(con.backed.isConnected) con else reset
     }
   }
-  
+
   protected def releaseInternalConnection(con:LDAPConnection) : Unit = close
   protected def releaseDefuncInternalConnection(con:LDAPConnection) : Unit = close
   override def close : Unit = connection.foreach  { con => con.close() }
@@ -71,7 +71,7 @@ class InMemoryDsConnectionProvider(
 }
 
 object InMemoryDsConnectionProvider {
-  
+
   def apply(
       baseDNs:Seq[String]
       //A list of schema to use
@@ -82,13 +82,13 @@ object InMemoryDsConnectionProvider {
     /*
      * The configuration only allows one schema file. Just concatenate them all
      */
-    
+
     val schema = Schema.getSchema(schemaLDIFPaths:_*)
     val config = new InMemoryDirectoryServerConfig(baseDNs:_*)
     config.setSchema(schema)
     new InMemoryDsConnectionProvider(config,bootstrapLDIFPaths,ldifFileLogger)
   }
-  
-  
-  
+
+
+
 }

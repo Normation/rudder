@@ -21,19 +21,19 @@
 package com.normation.ldap.sdk
 
 /**
- * An utility type for Boolean format in 
- * OpenLDAP directory. 
- * It simply knows how to print itself to a 
+ * An utility type for Boolean format in
+ * OpenLDAP directory.
+ * It simply knows how to print itself to a
  * (strictly) compatible string format.
  */
 trait LDAPBoolean {
 
   /**
    * Give the correct string for
-   * LDAP. 
+   * LDAP.
    * It can be used directly in place of
    * toString for implicit conversion.
-   * For ex, use: 
+   * For ex, use:
    * true.toLDAPString
    */
   def toLDAPString : String

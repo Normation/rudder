@@ -26,32 +26,32 @@ import com.normation.exceptions.TechnicalException
 import com.normation.utils.HashcodeCaching
 
 /**
- * LDAP syntax 
+ * LDAP syntax
  *
  */
 sealed trait TypedAttribute {
   val name:String
 }
-case class BooleanAttribute(name:String,value:List[Boolean]) extends TypedAttribute with HashcodeCaching 
-case class LongAttribute(name:String,values:List[Long]) extends TypedAttribute with HashcodeCaching 
-case class DNAttribute(name:String,values: List[DN]) extends TypedAttribute with HashcodeCaching 
-case class StringAttribute(name:String,values:List[String]) extends TypedAttribute with HashcodeCaching 
-case class BinaryAttribute(name:String,values: List[Array[Byte]]) extends TypedAttribute with HashcodeCaching 
-case class GeneralizedTimeAttribute(name:String,values:List[GeneralizedTime]) extends TypedAttribute with HashcodeCaching 
+case class BooleanAttribute(name:String,value:List[Boolean]) extends TypedAttribute with HashcodeCaching
+case class LongAttribute(name:String,values:List[Long]) extends TypedAttribute with HashcodeCaching
+case class DNAttribute(name:String,values: List[DN]) extends TypedAttribute with HashcodeCaching
+case class StringAttribute(name:String,values:List[String]) extends TypedAttribute with HashcodeCaching
+case class BinaryAttribute(name:String,values: List[Array[Byte]]) extends TypedAttribute with HashcodeCaching
+case class GeneralizedTimeAttribute(name:String,values:List[GeneralizedTime]) extends TypedAttribute with HashcodeCaching
 
 
 object TypedAttribute {
-  
+
   private def toBoolean(s:String) : Boolean = s.toLowerCase match {
     case "true"  | "t" | "yes" | "y" | "on"  | "1" => true
     case "false" | "f" | "no"  | "n" | "off" | "0" => false
     case x => throw new TechnicalException("Can not interpret %s as a boolean value".format(x))
   }
-  
+
   def apply(attribute:Attribute)(implicit schema:Schema) : TypedAttribute = {
-    
+
     schema.getAttributeType(attribute.getName) match {
-      case null => 
+      case null =>
         StringAttribute(attribute.getName,attribute.getValues.toList)
       case attrDef => attrDef.getSyntaxOID(schema) match {
         case null => StringAttribute(attribute.getName,attribute.getValues.toList)
@@ -71,7 +71,7 @@ object TypedAttribute {
               GeneralizedTimeAttribute(attribute.getName,attribute.getValues.map(v => GeneralizedTime(v)).toList)
             case "1.3.6.1.4.1.1466.115.121.1.27" => // Integer
               LongAttribute(attribute.getName,attribute.getValues.map(v => v.toLong).toList)
-            case "1.3.6.1.4.1.1466.115.121.1.36" => // numeric 
+            case "1.3.6.1.4.1.1466.115.121.1.36" => // numeric
               StringAttribute(attribute.getName,attribute.getValues.toList)
             case "1.3.6.1.4.1.4203.1.1.2" | // auth password
                  "1.3.6.1.4.1.1466.115.121.1.5" | // binary

@@ -24,19 +24,19 @@ import com.normation.exceptions.TechnicalException
 
 
 /**
- * An object that stores all the object classes known 
+ * An object that stores all the object classes known
  * by  the application and gives utilities methods
  * on them, like "find parents", "find children".
- * Class name are case insensitive when used as 
- * method parameter of that class. 
- * 
+ * Class name are case insensitive when used as
+ * method parameter of that class.
+ *
  * TODO: use/connect to com.unboundid.ldap.sdk.schema.Schema
  */
 class LDAPSchema {
   type S = scala.collection.Set[LDAPObjectClass]
   import scala.collection.mutable.{Map => MutMap}
   def S = scala.collection.Set[LDAPObjectClass] _
-  
+
   /**
    * map of class name (lower case) -> object class
    */
@@ -46,23 +46,23 @@ class LDAPSchema {
    */
   private val childrenReg = MutMap[String, Set[String]]()
   private val parentsReg = MutMap[String, List[String]]("top" -> List())
-  
+
   /**
    * Get the matching ObjectClass, or throw a NoSuchElementException
    * if the key does not match any ObjectClass
    */
   def apply(className:String) = ocs.getOrElse(className.toLowerCase, throw new NoSuchElementException("Missing LDAP Object in the Schema: %s".format(className)))
-  
+
   /**
    * Optionaly get the ObjectClass whose name is className
    */
   def get(className:String) = ocs.get(className.toLowerCase)
-  
+
   /**
    * Register a new object class.
    * The sup, if different from top, must already be registered.
    * If the same object class already exists, just ignore the query.
-   * If an object class with the same name but different properties 
+   * If an object class with the same name but different properties
    * (sup, must or may) already exists, throws an error.
    */
   def +=(oc:LDAPObjectClass) : LDAPSchema = {
@@ -72,7 +72,7 @@ class LDAPSchema {
     ocs.get(pKey) match {
       case None => throw new TechnicalException("Can not register object class %s because its parent class %s is not yet registerd".format(oc.name,oc.sup.name))
       case Some(p) => ocs.get(key) match {
-        case Some(x) if(x != oc) => throw new TechnicalException("""Can not register object class %s because an other different object class with same name was already registerd. 
+        case Some(x) if(x != oc) => throw new TechnicalException("""Can not register object class %s because an other different object class with same name was already registerd.
                                      | existing: %s
                                      | new     : %s""".stripMargin('|').format(oc.name, x, oc))
         case _ => {
@@ -84,7 +84,7 @@ class LDAPSchema {
     }
     this
   }
-  
+
   /**
    * Register a new object class
    */
@@ -106,25 +106,25 @@ class LDAPSchema {
    * given object class (head of list is the direct parent)
    */
   def parents(objectClass:String) : List[String] = parentsReg(objectClass.toLowerCase)
-  
-  
+
+
   def objectClassNames(objectClass:String) : List[String] = apply(objectClass).name :: parents(objectClass)
-  
-  def objectClasses(objectClass:String) : LDAPObjectClasses = 
+
+  def objectClasses(objectClass:String) : LDAPObjectClasses =
     LDAPObjectClasses(this.objectClassNames(objectClass).map(apply(_)):_*)
 
   /**
-   * Given a set of object classes which are ALL registered, 
+   * Given a set of object classes which are ALL registered,
    * retrieve the smallest subset of independant class hierarchy.
-   * 
+   *
    * For example, if we have :
    * C sup B sup A sup top
    * D sup A sup top
    * F sup E sup top
-   * 
+   *
    * And we pass the Set(top, A,B,C,D,E,F)
    * it returns Set(C,D,F)
-   * 
+   *
    * @param name
    * @return
    */
@@ -133,7 +133,7 @@ class LDAPSchema {
     val ns : Seq[String] = names.map( _.toLowerCase).distinct;
     require(ns.forall(x => ocs.isDefinedAt(x)), "One of the given names is not registered: " + names)
     val lists:List[List[String]] = ns.map(x => x :: this.parents(x)).toList
-    
+
     //list have to be ordered from shortest to longest
     def demuxRec(names:List[List[String]], acc:List[String]) : List[String] = names match {
       case Nil => acc
@@ -141,7 +141,7 @@ class LDAPSchema {
     }
     demuxRec(lists.sortWith(_.size < _.size), Nil).map(this(_)).toSet
   }
-  
+
   def unapply(name:String) : Option[LDAPObjectClass] = ocs.get(name)
 }
 
