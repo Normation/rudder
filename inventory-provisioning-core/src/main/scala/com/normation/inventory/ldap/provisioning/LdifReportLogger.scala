@@ -37,17 +37,17 @@ package com.normation.inventory.ldap.provisioning
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType.REPLACE
 import com.normation.inventory.ldap.core._
-import com.unboundid.ldif._ 
+import com.unboundid.ldif._
 import org.joda.time.DateTime
 
 /*
  * Log given LDIF record in a file
  * with given name (a timestamp will be added)
- * File will be stored under a configured directory 
+ * File will be stored under a configured directory
  */
 trait LDIFReportLogger {
   /**
-   * 
+   *
    * @param reportName
    *  a name from witch the log id will be derived
    * @param comments
@@ -68,7 +68,7 @@ trait LDIFReportLogger {
 object DefaultLDIFReportLogger {
   import org.slf4j.LoggerFactory
   val logger = LoggerFactory.getLogger("trace.ldif.in.file")
-  val defaultLogDir = System.getProperty("java.io.tmpdir") + 
+  val defaultLogDir = System.getProperty("java.io.tmpdir") +
     System.getProperty("file.separator") + "LDIFLogReport"
 }
 
@@ -76,21 +76,21 @@ import java.io.File
 import DefaultLDIFReportLogger.logger
 
 class DefaultLDIFReportLogger(val LDIFLogDir:String = DefaultLDIFReportLogger.defaultLogDir) extends LDIFReportLogger {
-  
+
   def rootDir = {
     val dir = new File(LDIFLogDir)
     if(!dir.exists()) dir.mkdirs
     dir
   }
-  
+
   protected def fileFromName(name:String, opType:Option[String]) : File = {
     val fileName = name.replaceAll(File.separator, "|")
-    
+
     //time stamp are not that much readable, use a YYYYMMDD-HH.MM.SSS format
-    new File(rootDir, 
-        fileName + 
-        "_" + DateTime.now().toString("YYYY-MM-dd_HH.mm.ss.SS") + 
-        (opType.map("_" + _).getOrElse("")) + 
+    new File(rootDir,
+        fileName +
+        "_" + DateTime.now().toString("YYYY-MM-dd_HH.mm.ss.SS") +
+        (opType.map("_" + _).getOrElse("")) +
         ".LDIF")
   }
 
@@ -99,7 +99,7 @@ class DefaultLDIFReportLogger(val LDIFLogDir:String = DefaultLDIFReportLogger.de
       comments: Option[String],
       tag:Option[String],
       LDIFRecords: => Seq[LDIFRecord]) : String = {
-    
+
       var writer:LDIFWriter = null
       val LDIFFile = fileFromName(reportName,tag)
       try {
@@ -126,7 +126,7 @@ class DefaultLDIFReportLogger(val LDIFLogDir:String = DefaultLDIFReportLogger.de
       } finally {
         if(null != writer) writer.close
       }
-    
+
       LDIFFile.getAbsolutePath
   }
 }

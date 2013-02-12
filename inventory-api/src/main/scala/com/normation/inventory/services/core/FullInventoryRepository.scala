@@ -39,11 +39,11 @@ import net.liftweb.common.Box
 
 trait ReadOnlyMachineRepository {
   /**
-   * Retrieve a full ServerAndMachine. 
+   * Retrieve a full ServerAndMachine.
    * TODO: allows to lazy-load some heavy parts, like software, machine elements, etc.
    */
   def get(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[MachineInventory]
-  
+
 
 }
 
@@ -54,7 +54,7 @@ trait ReadOnlyMachineRepository {
  * if the store can not give better information.
  */
 trait WriteOnlyMachineRepository[R] {
-  
+
   /**
    * Save the given machine. No verification will be made upon an
    * existing machine with same id elsewhere in the repository (so
@@ -62,7 +62,7 @@ trait WriteOnlyMachineRepository[R] {
    * with a different inventoryStatus).0
    */
   def save(machine:MachineInventory) : Box[R]
-  def delete(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[R] 
+  def delete(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[R]
  // def copy(id:MachineUuid, from: InventoryStatus, into : InventoryStatus) : Box[MachineInventory]
   def move(id:MachineUuid, from: InventoryStatus, into : InventoryStatus) : Box[R]
 }
@@ -71,12 +71,12 @@ trait MachineRepository[R] extends ReadOnlyMachineRepository with WriteOnlyMachi
 
 trait ReadOnlyFullInventoryRepository {
   /**
-   * Retrieve a full ServerAndMachine. 
+   * Retrieve a full ServerAndMachine.
    * TODO: allows to lazy-load some heavy parts, like software, machine elements, etc.
    */
   def get(id:NodeId, inventoryStatus : InventoryStatus) : Box[FullInventory]
   def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : Box[(MachineUuid, InventoryStatus)]
-  
+
   /**
    * For a given machine, find all the node on it
    */
@@ -85,10 +85,10 @@ trait ReadOnlyFullInventoryRepository {
 
 trait WriteOnlyFullInventoryRepository[R] {
   def save(serverAndMachine:FullInventory, inventoryStatus : InventoryStatus) : Box[R]
-  def delete(id:NodeId, inventoryStatus : InventoryStatus) : Box[R] 
+  def delete(id:NodeId, inventoryStatus : InventoryStatus) : Box[R]
 //  def copy(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[ServerAndMachine]
   def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[R]
-  
+
   def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[R]
 }
 

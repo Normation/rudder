@@ -43,7 +43,7 @@ import com.normation.inventory.services.provisioning._
 import scala.xml.Elem
 
 class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
-  override val name = "post_process_inventory:check_consistency"  
+  override val name = "post_process_inventory:check_consistency"
 
   /**
    * There is a list of variables that MUST be set at that point:
@@ -52,11 +52,11 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
    * - an admin (root user on the node)
    * - a policy server id
    * - an OS name
-   * 
+   *
    * If any of these variable are not set, just abort
    */
   override def apply(report:NodeSeq) : Box[NodeSeq] = {
-    val checks = 
+    val checks =
       checkId _ ::
       checkHostname _ ::
       checkRoot _ ::
@@ -65,25 +65,25 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
       checkAgent _ ::
       checkMachineId _ ::
       Nil
-      
+
     pipeline(checks, report) { (check,currentReport) =>
-      check(currentReport) 
+      check(currentReport)
     }
-    
+
   }
 
-  
+
   private[this] def checkNodeSeq(xml:NodeSeq, tag:String, directChildren:Boolean = false, optChild:Option[String] = None) : Box[String] = {
     val nodes = (
       if(directChildren) (xml \ tag)
-      else (xml \\ tag) 
-    ) 
-    
-    val nodes2 = optChild match { 
+      else (xml \\ tag)
+    )
+
+    val nodes2 = optChild match {
       case None => nodes
       case Some(t) => nodes \ t
     }
-    
+
     nodes2 match {
       case NodeSeq.Empty => Failure("Missing XML element: '%s'. ".format(optChild.getOrElse(tag)))
       case x => x.head.text match {
@@ -92,7 +92,7 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
       }
     }
   }
-    
+
   private[this] def checkId(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "UUID"
     for {
@@ -101,7 +101,7 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
       report
     }
   }
-    
+
   private[this] def checkHostname(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "HOSTNAME"
     for {
@@ -110,7 +110,7 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
       report
     }
   }
-  
+
   private[this] def checkRoot(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "USER"
     for {
@@ -118,8 +118,8 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     } yield {
       report
     }
-  }  
-    
+  }
+
   private[this] def checkPolicyServer(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "POLICY_SERVER"
     for {
@@ -128,18 +128,18 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
       report
     }
   }
-   
+
   private[this] def checkOS(report:NodeSeq) : Box[NodeSeq] = {
-    val tags = "FULL_NAME" :: "KERNEL_NAME" :: "KERNEL_VERSION" :: "NAME" :: "VERSION" :: Nil   
+    val tags = "FULL_NAME" :: "KERNEL_NAME" :: "KERNEL_VERSION" :: "NAME" :: "VERSION" :: Nil
     for {
-      tagHere <- bestEffort(tags) { tag => 
+      tagHere <- bestEffort(tags) { tag =>
                    checkNodeSeq(report, "OPERATINGSYSTEM", false, Some(tag)) ?~! "Missing '%s' name attribute in report. This attribute is mandatory.".format(tag)
                  }
     } yield {
       report
     }
   }
-  
+
   private[this] def checkAgent(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "AGENTNAME"
     for {
@@ -148,23 +148,23 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
       report
     }
   }
-  
+
   /**
    * That one is special: we don't fail on a missing
-   * machine id, we just add an empty one. 
+   * machine id, we just add an empty one.
    */
   private[this] def checkMachineId(report:NodeSeq) : Box[NodeSeq] = {
     (report \ "MACHINEID") match {
       case NodeSeq.Empty => //missing machine id tag, add an empty one
         logger.warn("Missing MACHINEID tag, adding an empty one for consistency")
-        
+
         report match {
           case Elem(prefix, label, attribs, scope, children @ _*) =>
             val newChildren = children ++ <MACHINEID></MACHINEID>
             Full(Elem(prefix, label, attribs, scope, false, newChildren : _*))
           case _ => Failure("The given report does not seems to have an uniq root element and so can not be handled")
         }
-        
+
       case _ => Full(report)
     }
   }

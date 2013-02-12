@@ -45,7 +45,7 @@ import net.liftweb.common._
 /**
  * A service that write and read ServerAndMachine inventory data to/from file.
  * The file is actually an LDIF file in which each entry is serialized in its
- * LDIFEntry format. 
+ * LDIFEntry format.
  */
 class FullInventoryFileMarshalling(
     fromLdapEntries : FullInventoryFromLdapEntries,
@@ -68,9 +68,9 @@ class FullInventoryFileMarshalling(
       case e : LDIFException => Failure(e.getMessage,Full(e),Empty)
     } finally {
       if(null != reader) reader.close
-    }      
+    }
   }
-  
+
   def toFile(out:File, data: FullInventory) : Box[FullInventory] = {
     var printer:LDIFWriter = null
     try {
@@ -84,7 +84,7 @@ class FullInventoryFileMarshalling(
       case e:Exception => Failure(e.getMessage,Full(e),Empty)
     } finally {
       if(null != printer) printer.close
-    } 
+    }
   }
 }
 
@@ -94,12 +94,12 @@ object NodeIdConverter extends IdToFilenameConverter[NodeId] {
 }
 
 /**
- * History of Inventory reports (server and machine inventory, 
+ * History of Inventory reports (server and machine inventory,
  * not software inventory)
  * They are saved on filesystem in their LDIFRecord representation
  */
 class InventoryHistoryLogRepository(
-  override val rootDir:String, 
+  override val rootDir:String,
   override val marshaller:FullInventoryFileMarshalling
 ) extends FileHistoryLogRepository[NodeId,FullInventory](rootDir,marshaller,NodeIdConverter)
 

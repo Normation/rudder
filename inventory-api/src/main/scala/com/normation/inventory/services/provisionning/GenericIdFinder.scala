@@ -44,10 +44,10 @@ import com.normation.utils.HashcodeCaching
  * Implementation of IdFinderAction that is pipelinable
  * for servers
  */
-sealed case class NamedNodeInventoryDNFinderAction(val name:String,val action:NodeInventoryDNFinderAction) extends HashcodeCaching 
+sealed case class NamedNodeInventoryDNFinderAction(val name:String,val action:NodeInventoryDNFinderAction) extends HashcodeCaching
 
 class NodeInventoryDNFinderService(actions:Seq[NamedNodeInventoryDNFinderAction]) extends NodeInventoryDNFinderAction with Loggable {
-  
+
   override def tryWith(entity:NodeInventory) : Box[(NodeId, InventoryStatus)] = {
     for(a <- actions) {
       logger.debug("Processing server id finder %s".format(a.name))
@@ -65,10 +65,10 @@ class NodeInventoryDNFinderService(actions:Seq[NamedNodeInventoryDNFinderAction]
  * Implementation of IdFinderAction that is pipelinable
  * for machines
  */
-sealed case class NamedMachineDNFinderAction(val name:String,val action:MachineDNFinderAction) extends HashcodeCaching 
+sealed case class NamedMachineDNFinderAction(val name:String,val action:MachineDNFinderAction) extends HashcodeCaching
 
 class MachineDNFinderService(actions:Seq[NamedMachineDNFinderAction]) extends MachineDNFinderAction with Loggable {
-  
+
   override def tryWith(entity:MachineInventory) : Box[(MachineUuid,InventoryStatus)] = {
     for(a <- actions) {
       logger.debug("Processing machine id finder %s".format(a.name))
@@ -87,10 +87,10 @@ class MachineDNFinderService(actions:Seq[NamedMachineDNFinderAction]) extends Ma
  * for machines
  */
 
-sealed case class NamedSoftwareDNFinderAction(val name:String,val action:SoftwareDNFinderAction) extends HashcodeCaching 
+sealed case class NamedSoftwareDNFinderAction(val name:String,val action:SoftwareDNFinderAction) extends HashcodeCaching
 
 class SoftwareDNFinderService(actions:Seq[NamedSoftwareDNFinderAction]) extends SoftwareDNFinderAction with Loggable {
-  
+
   override def tryWith(entity:Software) : Box[SoftwareUuid] = {
     for(a <- actions) {
       logger.trace("Processing software id finder %s".format(a.name))

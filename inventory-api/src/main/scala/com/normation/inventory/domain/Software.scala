@@ -53,5 +53,5 @@ case class Software(
   version : Option[Version] = None,
   editor : Option[SoftwareEditor] = None,
   releaseDate : Option[DateTime] = None,
-  license : Option[License] = None 
+  license : Option[License] = None
 )extends HashcodeCaching

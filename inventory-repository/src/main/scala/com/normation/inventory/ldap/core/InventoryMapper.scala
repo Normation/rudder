@@ -76,7 +76,7 @@ class InventoryMapper(
   ////////////////////////////////////////////////////////////
 
   //software particularity : always in acceptedDit
-  
+
   def entryFromSoftware(soft:Software) : LDAPEntry = {
     val e = acceptedDit.SOFTWARE.SOFT.model(soft.id)
     e.setOpt(soft.name,        A_NAME,         {x:String => x})
@@ -84,8 +84,8 @@ class InventoryMapper(
     e.setOpt(soft.version,     A_SOFT_VERSION, {x:Version => x.value})
     e.setOpt(soft.editor,      A_EDITOR,       {x:SoftwareEditor => x.name})
     e.setOpt(soft.releaseDate, A_RELEASE_DATE, {x:DateTime => GeneralizedTime(x).toString})
-    soft.license.foreach { lic => 
-      e +=! (A_LICENSE_NAME,lic.name) 
+    soft.license.foreach { lic =>
+      e +=! (A_LICENSE_NAME,lic.name)
       e.setOpt(lic.description,    A_LICENSE_DESC,        {x:String => x})
       e.setOpt(lic.expirationDate, A_LICENSE_EXP,         {x:DateTime => x.toString()})
       e.setOpt(lic.productId,      A_LICENSE_PRODUCT_ID,  {x:String => x})
@@ -94,7 +94,7 @@ class InventoryMapper(
     }
     e
   }
-  
+
   def softwareFromEntry(e:LDAPEntry) : Box[Software] = {
     for {
       id <- acceptedDit.SOFTWARE.SOFT.idFromDN(e.dn)
@@ -119,13 +119,13 @@ class InventoryMapper(
     }
   }
 
-  
+
   ////////////////////////////////////////////////////////////////////
   ///////////////////////// Machine Elements /////////////////////////
   ////////////////////////////////////////////////////////////////////
 
   ///////////////////////// Bios /////////////////////////
-  
+
   def entryFromBios(elt:Bios,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.BIOS.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
@@ -135,7 +135,7 @@ class InventoryMapper(
     e.setOpt(elt.version,     A_SOFT_VERSION, {x:Version => x.value})
     e
   }
-  
+
   def biosFromEntry(e:LDAPEntry) : Box[Bios] = {
     for {
       name <- e(A_BIOS_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_BIOS_NAME, e)
@@ -148,9 +148,9 @@ class InventoryMapper(
       Bios( name, desc, version, editor, releaseDate, quantity )
     }
   }
-  
+
   ///////////////////////// Controller /////////////////////////
-  
+
   def entryFromController(elt:Controller,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.CONTROLLER.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
@@ -159,7 +159,7 @@ class InventoryMapper(
     e.setOpt(elt.cType, A_SME_TYPE, {x:String => x})
     e
   }
-  
+
   def controllerFromEntry(e:LDAPEntry) : Box[Controller] = {
     for {
       name <- e(A_CONTROLLER_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_CONTROLLER_NAME, e)
@@ -171,9 +171,9 @@ class InventoryMapper(
       Controller( name, desc, manufacturer, smeType, quantity )
     }
   }
-  
+
   ///////////////////////// MemorySlot /////////////////////////
-  
+
   def entryFromMemorySlot(elt:MemorySlot,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.MEMORY.model(machineId,elt.slotNumber)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
@@ -186,7 +186,7 @@ class InventoryMapper(
     e.setOpt(elt.serialNumber,A_SERIAL_NUMBER, {x:String => x})
     e
   }
-  
+
   def memorySlotFromEntry(e:LDAPEntry) : Box[MemorySlot] = {
     for {
       slotNumber <- e(A_MEMORY_SLOT_NUMBER) ?~! "Missing required attribute %s in entry: %s".format(A_MEMORY_SLOT_NUMBER, e)
@@ -206,7 +206,7 @@ class InventoryMapper(
   }
 
   ///////////////////////// Port /////////////////////////
-  
+
   def entryFromPort(elt:Port,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.PORT.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
@@ -214,7 +214,7 @@ class InventoryMapper(
     e.setOpt(elt.pType, A_SME_TYPE, {x:String => x})
     e
   }
-  
+
   def portFromEntry(e:LDAPEntry) : Box[Port] = {
     for {
       name <- e(A_PORT_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_PORT_NAME, e)
@@ -225,9 +225,9 @@ class InventoryMapper(
       Port( name, desc, smeType, quantity )
     }
   }
-  
+
   ///////////////////////// Processor /////////////////////////
-  
+
   def entryFromProcessor(elt:Processor,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.CPU.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION,    { x:String => x } )
@@ -245,7 +245,7 @@ class InventoryMapper(
     e.setOpt(elt.externalClock, A_EXTERNAL_CLOCK, {x:Float => x.toString()} )
     e
   }
-  
+
   def processorFromEntry(e:LDAPEntry) : Box[Processor] = {
     for {
       name <- e(A_PROCESSOR_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_PROCESSOR_NAME, e)
@@ -268,9 +268,9 @@ class InventoryMapper(
           , thread, cpuid, stepping, family, familyName, model, quantity )
     }
   }
-  
+
   ///////////////////////// Slot /////////////////////////
-  
+
   def entryFromSlot(elt:Slot,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.PORT.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
@@ -278,7 +278,7 @@ class InventoryMapper(
     e.setOpt(elt.status, A_STATUS, {x:String => x})
     e
   }
-  
+
   def slotFromEntry(e:LDAPEntry) : Box[Slot] = {
     for {
       name <- e(A_SLOT_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_SLOT_NAME, e)
@@ -289,16 +289,16 @@ class InventoryMapper(
       Slot( name, desc, status, quantity )
     }
   }
-  
+
   ///////////////////////// Sound /////////////////////////
-  
+
   def entryFromSound(elt:Sound,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.SOUND.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
     e +=! (A_QUANTITY, elt.quantity.toString)
     e
   }
-  
+
   def soundFromEntry(e:LDAPEntry) : Box[Sound] = {
     for {
       name <- e(A_SOUND_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_SOUND_NAME, e)
@@ -308,9 +308,9 @@ class InventoryMapper(
       Sound( name, desc, quantity )
     }
   }
-  
+
   ///////////////////////// Storage /////////////////////////
-  
+
   def entryFromStorage(elt:Storage,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.STORAGE.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
@@ -321,10 +321,10 @@ class InventoryMapper(
     e.setOpt(elt.model,A_MODEL, {x:String => x})
     e.setOpt(elt.serialNumber,A_SERIAL_NUMBER, {x:String => x})
     e.setOpt(elt.sType,A_SME_TYPE, {x:String => x})
-    
+
     e
   }
-  
+
   def storageFromEntry(e:LDAPEntry) : Box[Storage] = {
     for {
       name <- e(A_STORAGE_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_STORAGE_NAME,e)
@@ -343,8 +343,8 @@ class InventoryMapper(
   }
 
   ///////////////////////// Video /////////////////////////
-  
-  
+
+
   def entryFromVideo(elt:Video,dit:InventoryDit,machineId:MachineUuid) : LDAPEntry = {
     val e = dit.MACHINES.VIDEO.model(machineId,elt.name)
     e.setOpt(elt.description, A_DESCRIPTION, {x:String => x})
@@ -354,7 +354,7 @@ class InventoryMapper(
     e.setOpt(elt.resolution,A_VIDEO_RESOLUTION, {x:String => x})
     e
   }
-  
+
   def videoFromEntry(e:LDAPEntry) : Box[Video] = {
     for {
       name <- e(A_VIDEO_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_VIDEO_NAME, e)
@@ -367,12 +367,12 @@ class InventoryMapper(
       Video( name, desc, chipset, memory, resolution, quantity )
     }
   }
-  
+
   //////////////////// Machine ////////////////////
-  
+
   //perhaps that should be in DIT ?
   //def machineType2Filter(mt : MachineType) : Filter = BuildFilter.IS(machineType2ObjectClass(mt).name)
-  
+
   private[this] def machineType2ObjectClass(mt : MachineType) : LDAPObjectClass = {
     mt match {
       case VirtualMachineType(UnknownVmType) => OC(OC_VM)
@@ -384,7 +384,7 @@ class InventoryMapper(
       case PhysicalMachineType => OC(OC_PM)
     }
   }
-  
+
   private[this] def machineTypeFromObjectClasses(objectClassNames:Set[String]) = {
     def objectClass2MachineType(oc : LDAPObjectClass) : Option[MachineType] = {
       oc match {
@@ -402,7 +402,7 @@ class InventoryMapper(
     val types = OC.demux(machineTypes.toSeq:_*) - OC(OC_MACHINE)
     if(types.size == 1) objectClass2MachineType(types.head) else None
   }
-  
+
   def treeFromMachine(machine:MachineInventory) : LDAPTree = {
     //the root entry of the tree: the machine inventory
     val dit = ditService.getDit(machine.status)
@@ -424,14 +424,14 @@ class InventoryMapper(
     machine.sounds.foreach      { x => tree.addChild(entryFromSound(x, dit, machine.id)) }
     machine.storages.foreach    { x => tree.addChild(entryFromStorage(x, dit, machine.id)) }
     machine.videos.foreach      { x => tree.addChild(entryFromVideo(x, dit, machine.id)) }
-    
+
     //ok !
     tree
   }
-  
+
   /*
    * Utility method that do the lookup between an LDAPEntry
-   * and the matching machine elements. 
+   * and the matching machine elements.
    * It adds it to a machine, return the modified machine.
    * If the mapping goes bad or the entry type is unknown, the
    * MachineInventory is returned as it was, and the error is logged
@@ -443,7 +443,7 @@ class InventoryMapper(
       logger.error(error.messageChain)
       machine
     }
-    
+
     entry match {
       case e if(e.isA(OC_MEMORY)) => memorySlotFromEntry(e) match {
         case e:EmptyBox => log(e, "memory slot")
@@ -481,13 +481,13 @@ class InventoryMapper(
         case e:EmptyBox => log(e, "video")
         case Full(x) => machine.copy( videos = x +: machine.videos)
       }
-      case e => 
+      case e =>
         logger.error("Unknown entry type for a machine element, that entry will be ignored: %s".format(e))
         machine
     }
-    
+
   }
-  
+
   def machineFromTree(tree:LDAPTree) : Box[MachineInventory] = {
     for {
       dit <- ditService.getDit(tree.root().dn)
@@ -505,11 +505,11 @@ class InventoryMapper(
       (m /: tree.children()) { case (m,(rdn,t)) => mapAndAddMachineElement(t.root(),m) }
     }
   }
-  
+
   ///////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////// ServerInventory mapping ///////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  
+
   ///////////////////////// FileSystem /////////////////////////
 
   def entryFromFileSystem(elt:FileSystem, dit:InventoryDit, serverId:NodeId) : LDAPEntry = {
@@ -521,7 +521,7 @@ class InventoryMapper(
     e.setOpt(elt.totalSpace,  A_TOTAL_SPACE, {x:MemorySize => x.size.toString})
     e
   }
-  
+
   def fileSystemFromEntry(e:LDAPEntry) : Box[FileSystem] = {
     for {
       mountPoint <- e(A_MOUNT_POINT) ?~! "Missing required attribute %s in entry: %s".format(A_MOUNT_POINT, e)
@@ -534,7 +534,7 @@ class InventoryMapper(
       FileSystem(mountPoint, name, desc, fileCount, freeSpace, totalSpace)
     }
   }
- 
+
   ///////////////////////// Networks /////////////////////////
 
 
@@ -558,12 +558,12 @@ class InventoryMapper(
     e.setOpt(elt.typeMib,    A_NETIF_TYPE_MIB, {x:String => x})
     e
   }
-  
+
   def networkFromEntry(e:LDAPEntry) : Box[Network] = {
     for {
       name <- e(A_NETWORK_NAME) ?~! "Missing required attribute %s in entry: %s".format(A_NETWORK_NAME, e)
       desc = e(A_DESCRIPTION)
-      ifAddresses = for { 
+      ifAddresses = for {
         i <- e.valuesFor(A_NETIF_ADDRESS).toSeq
         a <- getAddressByName(i)
       } yield a
@@ -615,22 +615,22 @@ class InventoryMapper(
     }
   }
 
-  
+
   //////////////////Node/ NodeInventory /////////////////////////
-  
-    
-  
+
+
+
   // User defined properties : the regexp that the data should abide by
   // {KEY}VALUE
   private[this] val userDefinedPropertyRegex = """\{([^\}]+)\}(.+)""".r
-  
+
   def treeFromNode(server:NodeInventory) : LDAPTree = {
     val dit = ditService.getDit(server.main.status)
     //the root entry of the tree: the machine inventory
     val root = server.main.osDetails match {
       case UnknownOS(osFullName, osVersion, osServicePack, kernelVersion) =>
         dit.NODES.NODE.genericModel(server.main.id)
-      
+
       case Linux(os,osFullName,osVersion,osServicePack,kernelVersion) =>
         val linux = dit.NODES.NODE.linuxModel(server.main.id)
         os match {
@@ -644,7 +644,7 @@ class InventoryMapper(
           case _       => linux += (A_OS_NAME, A_OS_UNKNOWN_LINUX)
         }
         linux
-        
+
       case Windows(os,osFullName,osVersion,osServicePack,kernelVersion,userDomain,registrationCompany,productKey,productId) =>
         val win = dit.NODES.NODE.windowsModel(server.main.id)
         os match {
@@ -698,7 +698,7 @@ class InventoryMapper(
 
   /*
    * Utility method that do the lookup between an LDAPEntry
-   * and the matching server elements. 
+   * and the matching server elements.
    * It adds it to a server, return the modified server.
    * If the mapping goes bad or the entry type is unknown, the
    * NodeInventory is returned as it was, and the error is logged
@@ -709,7 +709,7 @@ class InventoryMapper(
       logger.error(error.messageChain)
       server
     }
-    
+
     entry match {
       case e if(e.isA(OC_NET_IF)) => networkFromEntry(e) match {
         case e:EmptyBox => log(e, "network interface")
@@ -723,15 +723,15 @@ class InventoryMapper(
         case e:EmptyBox => log(e, "virtual machine")
         case Full(x) => server.copy( vms = x +: server.vms)
       }
-      case e => 
+      case e =>
         logger.error("Unknow entry type for a server element, that entry will be ignored: %s".format(e))
         server
     }
-    
+
   }
 
   def mapSeqStringToMachineIdAndStatus(set:Set[String]) : Seq[(MachineUuid,InventoryStatus)] = {
-    set.toSeq.flatMap { x => 
+    set.toSeq.flatMap { x =>
       (for {
         dn <- try { Full(new DN(x)) } catch { case e:LDAPException => Failure("Can not parse DN %s".format(x), Full(e),Empty) }
         dit <- ditService.getDit(dn) ?~! "Can not find DIT from DN %s".format(x)
@@ -739,13 +739,13 @@ class InventoryMapper(
         st = ditService.getInventoryStatus(dit)
       } yield (uuid,st) ) match {
         case Full(st) => List(st)
-        case e:EmptyBox => 
+        case e:EmptyBox =>
           logger.error("Error when processing machine DN %s".format(x), e)
           Nil
       }
     }
-  }  
-  
+  }
+
     def nodeFromEntry(entry:LDAPEntry) : Box[NodeInventory] = {
     def missingAttr(attr:String) : String = "Missing required attribute %s".format(attr)
     def requiredAttr(attr:String) = entry(attr) ?~! missingAttr(attr)
@@ -785,7 +785,7 @@ class InventoryMapper(
           val productKey = entry(A_WIN_KEY)
           val productId = entry(A_WIN_ID)
           Full(Windows(os,osFullName,osVersion,osServicePack,kernelVersion,userDomain,registrationCompany,productKey,productId))
-          
+
         } else if(entry.isA(OC_LINUX_NODE)) {
           val os = osName match {
             case A_OS_DEBIAN  => Debian
@@ -798,7 +798,7 @@ class InventoryMapper(
             case _            => UnknownLinuxType
           }
           Full(Linux(os,osFullName,osVersion,osServicePack,kernelVersion))
-          
+
         } else if(entry.isA(OC_NODE)) {
           Full(UnknownOS(osFullName,osVersion,osServicePack,kernelVersion))
         } else Failure("Unknow OS type: %s".format(entry.valuesFor(A_OC).mkString(", ")))
@@ -809,7 +809,7 @@ class InventoryMapper(
       ram = entry(A_OS_RAM).map { x => MemorySize(x) }
       swap = entry(A_OS_SWAP).map { x => MemorySize(x) }
       arch = entry(A_ARCH)
-      
+
       lastLoggedUser = entry(A_LAST_LOGGED_USER)
       lastLoggedUserTime = entry.getAsGTime(A_LAST_LOGGED_USER_TIME).map { _.dateTime }
       publicKeys = entry.valuesFor(A_PKEYS).map(k => PublicKey(k))
@@ -864,5 +864,5 @@ class InventoryMapper(
       (node /: tree.children()) { case (m,(rdn,t)) => mapAndAddNodeElement(t.root(),m) }
     }
   }
-  
+
 }

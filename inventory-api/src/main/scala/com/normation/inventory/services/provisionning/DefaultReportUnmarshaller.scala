@@ -35,13 +35,13 @@
 package com.normation.inventory.services.provisioning
 
 /**
- * Our default report unmarshaller is just an 
- * implement of the pipelinedReportUnmarshaller 
- * that is built with a base reportUnmarshaller 
- * and a sequence of post process action. 
+ * Our default report unmarshaller is just an
+ * implement of the pipelinedReportUnmarshaller
+ * that is built with a base reportUnmarshaller
+ * and a sequence of post process action.
  *
  */
 class DefaultReportUnmarshaller(
     override val reportUnmarshaller: ParsedReportUnmarshaller,
     override val preUnmarshallPipeline: Seq[PreUnmarshall]
-) extends PipelinedReportUnmarshaller 
+) extends PipelinedReportUnmarshaller

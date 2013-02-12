@@ -61,11 +61,11 @@ class FusionReportEndpoint(
     unmarshaller:ReportUnmarshaller,
     reportSaver:ReportSaver[Seq[LDIFChangeRecord]]
 ) extends Loggable {
-  
+
   //start the report processor actor
   ReportProcessor.start
-  
-  
+
+
   /**
    * A status URL that just allow to check
    * that the endpoint is alive
@@ -75,21 +75,21 @@ class FusionReportEndpoint(
     method = Array(RequestMethod.GET)
   )
   def checkStatus() = new ResponseEntity("OK", HttpStatus.OK)
-  
+
   /**
-   * The actual endpoint. It's here that 
+   * The actual endpoint. It's here that
    * upload requests arrive
    * @param request
    * @return
    */
-  @RequestMapping( 
-    value = Array("/upload"), 
+  @RequestMapping(
+    value = Array("/upload"),
     method = Array(RequestMethod.POST)
   )
   def onSubmit(request:DefaultMultipartHttpServletRequest) = {
 
     val files = request.getFileMap.values
-    
+
     files.size match {
       case 0 => new ResponseEntity("""No report sent. You have to POST a request with exactly one file in attachment (with 'content-disposition': file)
                                      |For example, for curl, use: curl -F "file=@path/to/file"
@@ -99,7 +99,7 @@ class FusionReportEndpoint(
         //copy the session file somewhere where it won't be deleted on that method return
         logger.info("New input report: '%s'".format(reportFile.getOriginalFilename))
         //val reportFile = copyFileToTempDir(f)
-        
+
         var in : InputStream = null
         logger.trace("Start post parsing report '%s'".format(reportFile.getOriginalFilename))
         try {
@@ -107,26 +107,26 @@ class FusionReportEndpoint(
           val start = System.currentTimeMillis
 
           (unmarshaller.fromXml(reportFile.getName,in) ?~! "Can't parse the input report, aborting") match {
-            case Full(report) if(null != report) => 
+            case Full(report) if(null != report) =>
               logger.info("Report '%s' parsed in %s, sending to save engine.".format(reportFile.getOriginalFilename, printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
               //send report to asynchronous report processor
               ReportProcessor ! report
               //release connection
               new ResponseEntity("Report correctly received and sent to report processor.", HttpStatus.ACCEPTED)
-            case f@Failure(_,_,_) => 
+            case f@Failure(_,_,_) =>
               val msg = "Error when trying to parse report: %s".format(f.failureChain.map( _.msg).mkString("\n", "\ncause: ", "\n"))
               logger.error(msg)
               f.rootExceptionCause.foreach { exp => logger.error("Exception was: ", exp) }
               logger.debug("Time to error: %s".format(printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
               new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
-            case _ => 
+            case _ =>
               val msg = "The report is empty, not saving anything."
               logger.error(msg)
               logger.debug("Time to error: %s".format(printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
               new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
           }
         } catch {
-          case e:Exception => 
+          case e:Exception =>
             val msg = "Exception when processing report '%s'".format(reportFile.getOriginalFilename)
             logger.error(msg)
             logger.error("Reported exception is: ", e)
@@ -134,14 +134,14 @@ class FusionReportEndpoint(
         } finally {
           in.close
         }
-        
+
         //clean-up
 //        try {
 //          if(! new File(reportFile.getAbsolutePath).delete) {
 //            logger.error("Error when trying to delete temporary report file '%s'. You will have to delete it by hand.".format(reportFile.getAbsolutePath))
 //          }
 //        } catch {
-//          case e => 
+//          case e =>
 //            logger.error("Exception when processing report {}",reportFile.getAbsolutePath)
 //            logger.error("Reported exception is: ", e)
 //        }
@@ -150,7 +150,7 @@ class FusionReportEndpoint(
 
   import scala.actors.Actor
   import Actor._
-  
+
   /**
    * An asynchronous actor process the query
    */
@@ -170,31 +170,31 @@ class FusionReportEndpoint(
 //    val fout = File.createTempFile(src.getName+"_"+System.currentTimeMillis, ".tmp")
 //    logger.debug("Saving {} to {} for post-processing", src.getName, fout.getAbsolutePath)
 //    val out = new FileOutputStream(fout)
-//    // Transfer bytes from in to out 
+//    // Transfer bytes from in to out
 //    val buf = new Array[Byte](1024)
 //    var len = 0
-//    while ({len = in.read(buf) ; len} > 0) { out.write(buf, 0, len) } 
+//    while ({len = in.read(buf) ; len} > 0) { out.write(buf, 0, len) }
 //    in.close
 //    out.close
 //    fout
 //  }
-  
+
   private def saveReport(report:InventoryReport) : Unit = {
     logger.trace("Start post processing of report %s".format(report.name))
     try {
       val start = System.currentTimeMillis
       (reportSaver.save(report) ?~! "Can't merge inventory report in LDAP directory, aborting") match {
         case Empty => logger.error("The report is empty, not saving anything")
-        case f:Failure => 
+        case f:Failure =>
           logger.error("Error when trying to process report: %s".format(f.messageChain),f)
-        case Full(report) => 
+        case Full(report) =>
           logger.debug("Report saved.")
       }
       logger.info("Report %s processed in %s".format(report.name, printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
     } catch {
-      case e:Exception => 
+      case e:Exception =>
         logger.error("Exception when processing report %s".format(report.name))
         logger.error("Reported exception is: ", e)
-    } 
+    }
   }
 }

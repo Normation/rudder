@@ -48,11 +48,11 @@ import scala.collection.mutable.Buffer
 import net.liftweb.common._
 
 /**
- * Retrieve the ID from the LDAP directory 
+ * Retrieve the ID from the LDAP directory
  */
 class UseExistingMachineIdFinder(
-    inventoryDitService:InventoryDitService, 
-    ldap:LDAPConnectionProvider, 
+    inventoryDitService:InventoryDitService,
+    ldap:LDAPConnectionProvider,
     rootDN:DN
 ) extends MachineDNFinderAction {
   override def tryWith(entity:MachineInventory) : Box[(MachineUuid, InventoryStatus)] = {
@@ -75,7 +75,7 @@ class FromMotherBoardUuidIdFinder(
     dit:InventoryDit,
     inventoryDitService:InventoryDitService
 ) extends MachineDNFinderAction with Loggable {
-  
+
   //the onlyTypes is an AND filter
   override def tryWith(entity:MachineInventory) : Box[(MachineUuid,InventoryStatus)] = {
     entity.mbUuid match {
@@ -83,7 +83,7 @@ class FromMotherBoardUuidIdFinder(
       case Some(uuid) => {
         //build filter
         val uuidFilter = AND(HAS(A_MACHINE_UUID),EQ(A_MB_UUID,uuid.value))
-        
+
         ldapConnectionProvider.flatMap { con =>
           val entries = con.searchOne(dit.MACHINES.dn, uuidFilter, A_MACHINE_UUID)
           if(entries.size >= 1) {

@@ -40,12 +40,12 @@ import net.liftweb.common.Box
 
 trait FullInventoryFromLdapEntries {
   /**
-   * try to build a ServerAndMachine from a list of 
-   * of LdapEntries. 
+   * try to build a ServerAndMachine from a list of
+   * of LdapEntries.
    * This will not work if more than one ServerEntry is found.
    * All entries non relevant for a the found ServerEntry will
-   * be ignored. 
+   * be ignored.
    */
   def fromLdapEntries(entries:Seq[LDAPEntry]) : Box[FullInventory]
-  
+
 }

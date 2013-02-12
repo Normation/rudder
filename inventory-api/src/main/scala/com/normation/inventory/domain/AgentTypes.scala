@@ -60,7 +60,7 @@ final case object COMMUNITY_AGENT extends AgentType with HashcodeCaching {
 
 object AgentType {
   def allValues = NOVA_AGENT :: COMMUNITY_AGENT :: Nil
-  
+
   def fromValue(string : String) : Box[AgentType] = {
     string match {
       case A_NOVA_AGENT => Full(NOVA_AGENT)

@@ -44,10 +44,10 @@ import scala.xml._
 /**
  * General interface to process File report
  * and transform them into system object
- * 
+ *
  * In the future, it would be great if it was a separate jar
  * with a pluggable architecture.
- * 
+ *
  * Perhaps we would like to look at things with "transformer/connector"
  * before inventing again the wheel. Perhaps should we take a look at
  * http://camel.apache.org/component.html
@@ -56,25 +56,25 @@ trait ReportUnmarshaller {
 
   /**
    * Return the computer from the given input stream
-   * 
+   *
    * If the parsing does not succeed, we return Failure.
    * Else, we return a {@see Report} (more information about the
    * report structure on the object definition)
-   * 
-   * This method is rather lax, in the meaning that almost any value can be empty (even Ids), 
+   *
+   * This method is rather lax, in the meaning that almost any value can be empty (even Ids),
    * or not full, or partially false. We let all the sanitization / reconciliation / merging
    * problems to farther, clever part of the pipeline.
-   * 
+   *
    * In particular, we DO NOT bind os, vms and container here (what means that os#containers will
    * be empty even if the List<Container<StringId>> is not.
    */
-  def fromXml(reportName:String,s:InputStream) : Box[InventoryReport] 
-  
+  def fromXml(reportName:String,s:InputStream) : Box[InventoryReport]
+
 }
 
 /**
  * A version of the ReportUnmarshaller that take care of the parsing
- * of the input stream into an XML doc. 
+ * of the input stream into an XML doc.
  */
 trait ParsedReportUnmarshaller extends ReportUnmarshaller {
 
@@ -88,21 +88,21 @@ trait ParsedReportUnmarshaller extends ReportUnmarshaller {
       case Full(doc) if(doc.isEmpty) => Failure("Fusion Inventory report seem's to be empty")
       case Empty => Failure("Fusion Inventory report seem's to be empty")
       case Full(x) => this.fromXmlDoc(reportName, x)
-    }    
+    }
   }
-  
-  def fromXmlDoc(reportName:String, xml:NodeSeq) : Box[InventoryReport] 
+
+  def fromXmlDoc(reportName:String, xml:NodeSeq) : Box[InventoryReport]
 }
-  
+
 /**
- * A pipelined default implementation of the ReportUnmarshaller that 
- * allows to add PostMarshall processor to manage non default datas. 
+ * A pipelined default implementation of the ReportUnmarshaller that
+ * allows to add PostMarshall processor to manage non default datas.
  */
 trait PipelinedReportUnmarshaller extends ParsedReportUnmarshaller {
-  
+
   def preUnmarshallPipeline : Seq[PreUnmarshall]
   def reportUnmarshaller : ParsedReportUnmarshaller
-  
+
   override def fromXmlDoc(reportName:String, xml:NodeSeq) : Box[InventoryReport] = {
     //init pipeline with the data structure initialized by the configured reportUnmarshaller
     for {

@@ -38,20 +38,20 @@ import com.normation.inventory.domain.InventoryReport
 import net.liftweb.common.Box
 
 /**
- * Define an action that happens before than the report 
+ * Define an action that happens before than the report
  * is committed in the Directory.
- * 
+ *
  * By convention, a PreCommit which return:
- * - Full : continue the pipeline processing with the 
+ * - Full : continue the pipeline processing with the
  *          returned report
  * - Empty or Failure : interrupt pipeline processing (following
  *                      PreCommits won't happened, nor
  *                      the report will be ever save)
- * 
+ *
  */
 trait PreCommit {
-  
+
   def name : String
-  
+
   def apply(report:InventoryReport) : Box[InventoryReport]
 }

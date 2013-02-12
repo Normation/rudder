@@ -54,11 +54,11 @@ object LDAPConstants {
   val A_ROOT_USER = "localAdministratorAccountName"
   val A_DEF = "definition"
   val A_PKEYS = "publicKey"
-  val A_AGENTS_NAME = "agentName"	
+  val A_AGENTS_NAME = "agentName"
   val A_DESCRIPTION = "description"
-  val A_MODEL = "model" 
-  val A_FIRMWARE = "firmware" 
-  val A_SERIAL_NUMBER = "componentSerialNumber" 
+  val A_MODEL = "model"
+  val A_FIRMWARE = "firmware"
+  val A_SERIAL_NUMBER = "componentSerialNumber"
   val A_SME_TYPE = "smeType"
   val A_STATUS = "status"
   val A_QUANTITY = "quantity"
@@ -75,7 +75,7 @@ object LDAPConstants {
   val A_RECEIVE_DATE = "receiveDate"
   val A_EV = "environmentVariable"
   val A_PROCESS = "process"
-    
+
   val A_LIST_OF_IP = "ipHostNumber"
   val A_ARCH = "osArchitectureType"
   val A_LAST_LOGGED_USER = "lastLoggedUser"
@@ -91,14 +91,14 @@ object LDAPConstants {
   val A_OS_VERSION         = "osVersion"
   val A_OS_SERVICE_PACK    = "osServicePack"
   val A_OS_KERNEL_VERSION  = "osKernelVersion"
-    
+
   //Windows
   val A_WIN_USER_DOMAIN = "windowsUserDomain"
   val A_WIN_COMPANY = "windowsRegistrationCompany"
   val A_WIN_KEY = "windowsKey"
   val A_WIN_ID ="windowsId"
   //Linux
-    
+
   // bios
   val A_BIOS_NAME = "biosName"
   // Storage
@@ -149,7 +149,7 @@ object LDAPConstants {
   val A_NETIF_MAC = "networkInterfaceMacAddress"
   val A_NETIF_TYPE = "networkInterfaceType"
   val A_NETIF_TYPE_MIB = "networkInterfaceTypeMib"
-  // controller 
+  // controller
   val A_CONTROLLER_NAME = "controllerName"
   // port
   val A_PORT_NAME = "portName"
@@ -175,7 +175,7 @@ object LDAPConstants {
   val A_MEMBER_URL = "memberUrl"
 
   // os "distribution" or "version"
-  val A_OS_UNKNOWN_WINDOWS = "Unknown Windows version" 
+  val A_OS_UNKNOWN_WINDOWS = "Unknown Windows version"
   val A_OS_WIN_XP = "WindowsXp"
   val A_OS_WIN_VISTA = "WindowsVista"
   val A_OS_WIN_SEVEN = "WindowsSeven"
@@ -183,7 +183,7 @@ object LDAPConstants {
   val A_OS_WIN_2003 = "Windows2003"
   val A_OS_WIN_2008 = "Windows2008"
   val A_OS_WIN_2008_R2 = "Windows2008R2"
-  val A_OS_UNKNOWN_LINUX = "Unknown Linux version" 
+  val A_OS_UNKNOWN_LINUX = "Unknown Linux version"
   val A_OS_DEBIAN = "Debian"
   val A_OS_UBUNTU = "Ubuntu"
   val A_OS_REDHAT = "Redhat"
@@ -191,7 +191,7 @@ object LDAPConstants {
   val A_OS_FEDORA = "Fedora"
   val A_OS_SUZE = "Suse"
   val A_OS_ANDROID = "Android"
-    
+
   /*
    * A bunch of name, just to be sur to use variable
    * and not string all around our code
@@ -222,7 +222,7 @@ object LDAPConstants {
   val OC_VIDEO = "videoCardPhysicalElement"
   val OC_OU = "organizationalUnit"
   val OC_DYN_GROUP = "dynGroup"
-  
+
   // vm type
   val OC_VM_VIRTUALBOX = "virtualBox"
   val OC_VM_XEN = "xen"
@@ -230,9 +230,9 @@ object LDAPConstants {
   val OC_VM_SOLARIS_ZONE = "solarisZone"
   val OC_VM_QEMU = "qemu"
 
-    
+
   implicit val OC = new LDAPSchema()
-  
+
   /**
    * Machine types
    */
@@ -242,7 +242,7 @@ object LDAPConstants {
   OC +=(OC_MACHINE, sup = OC(OC_DEVICE),
       must = Set(A_MACHINE_UUID),
       may = Set(A_MB_UUID))
-      
+
   OC +=(OC_PM)
   OC +=(OC_VM)
   OC +=(OC_VM_VIRTUALBOX, OC(OC_VM))
@@ -250,7 +250,7 @@ object LDAPConstants {
   OC +=(OC_VM_VMWARE, OC(OC_VM))
   OC +=(OC_VM_SOLARIS_ZONE, OC(OC_VM))
   OC +=(OC_VM_QEMU, OC(OC_VM))
-  
+
   OC +=(OC_PE,
       must = Set(),
       may = Set(A_NAME,A_DESCRIPTION,A_MODEL,A_SERIAL_NUMBER,A_FIRMWARE,A_QUANTITY,
@@ -266,7 +266,7 @@ object LDAPConstants {
             OC_VM_SOLARIS_ZONE,
             OC_VM_QEMU
   )
-  
+
   OC +=(OC_MEMORY, sup = OC(OC_PE),
       must =  Set(A_MEMORY_SLOT_NUMBER),
       may = Set(A_MEMORY_CAPACITY,A_MEMORY_CAPTION,
@@ -286,7 +286,7 @@ object LDAPConstants {
   OC +=(OC_PORT,OC(OC_PE),
       must = Set(A_PORT_NAME)
   )
-  OC +=(OC_PROCESSOR, OC(OC_PE), 
+  OC +=(OC_PROCESSOR, OC(OC_PE),
       must = Set(A_PROCESSOR_NAME),
       may = Set(A_PROCESSOR_SPEED,A_PROCESSOR_STEPPING,A_PROCESSOR_FAMILLY))
   OC +=(OC_SLOT, OC(OC_PE),
@@ -295,30 +295,30 @@ object LDAPConstants {
   OC +=(OC_SOUND,OC(OC_PE),
       must = Set(A_SOUND_NAME)
   )
-  OC +=(OC_VIDEO, OC(OC_PE), 
+  OC +=(OC_VIDEO, OC(OC_PE),
       must = Set(A_VIDEO_NAME),
       may = Set(A_VIDEO_CHIPSET,A_MEMORY_CAPACITY,A_VIDEO_RESOLUTION) )
-      
 
-  OC +=(OC_SOFTWARE, 
+
+  OC +=(OC_SOFTWARE,
       must = Set(A_SOFTWARE_UUID),
       may = Set(A_NAME,A_SOFT_VERSION,A_DESCRIPTION,A_EDITOR, A_RELEASE_DATE,
           A_LICENSE_EXP,A_LICENSE_NAME,A_LICENSE_OEM,
           A_LICENSE_DESC,A_LICENSE_PRODUCT_ID,
           A_LICENSE_PRODUCT_KEY) )
-          
+
   /**
    * Operating system types
    */
-  OC +=(OC_NODE, sup = OC(OC_TOP), 
+  OC +=(OC_NODE, sup = OC(OC_TOP),
       must = Set(A_NODE_UUID, A_OS_NAME, A_OS_FULL_NAME, A_OS_VERSION, A_OS_KERNEL_VERSION),
       may = Set(A_NAME,A_DESCRIPTION,A_PKEYS,A_AGENTS_NAME,
           A_CONTAINER_DN,A_SOFTWARE_DN,A_ACCOUNT,A_EV , A_PROCESS ,A_ROOT_USER,A_ARCH, A_LAST_LOGGED_USER, A_LAST_LOGGED_USER_TIME,
           A_HOSTNAME,A_OS_RAM,A_OS_SWAP, A_LIST_OF_IP, A_OS_SERVICE_PACK) )
-  
+
   OC +=(OC_WINDOWS_NODE, sup = OC(OC_NODE),
       may = Set(A_WIN_USER_DOMAIN,A_WIN_COMPANY,A_WIN_KEY,A_WIN_ID) )
-      
+
   OC +=(OC_LE,
       must = Set(),
       may = Set(A_NAME,A_DESCRIPTION) )
@@ -337,31 +337,31 @@ object LDAPConstants {
       may = Set(A_VM_CPU,A_VM_MEMORY,A_VM_NAME,
           A_VM_OWNER, A_VM_STATUS, A_VM_SUBSYSTEM,
           A_VM_TYPE))
-      
+
   OC +=(OC_UNIX_NODE, sup = OC(OC_NODE))
   OC +=(OC_LINUX_NODE, sup = OC(OC_UNIX_NODE))
-  
-  OC +=(OC_OU, 
+
+  OC +=(OC_OU,
       must = Set("ou"),
-      may = Set("userPassword", "searchGuide", "seeAlso", 
-                "businessCategory", "x121Address", "registeredAddress", 
-                "destinationIndicator", "preferredDeliveryMethod", 
-                "telexNumber", "teletexTerminalIdentifier", "telephoneNumber", 
-                "internationaliSDNNumber", "facsimileTelephoneNumber", 
-                "street", "postOfficeBox", "postalCode", "postalAddress", 
+      may = Set("userPassword", "searchGuide", "seeAlso",
+                "businessCategory", "x121Address", "registeredAddress",
+                "destinationIndicator", "preferredDeliveryMethod",
+                "telexNumber", "teletexTerminalIdentifier", "telephoneNumber",
+                "internationaliSDNNumber", "facsimileTelephoneNumber",
+                "street", "postOfficeBox", "postalCode", "postalAddress",
                 "physicalDeliveryOfficeName", "st", "l", "description")
   )
-  
+
   OC +=(OC_DYN_GROUP,
       must = Set(A_MEMBER_URL),
       may = Set(A_DESCRIPTION)
   )
-  
-  
+
+
   // User defined properties : the regexp that the data should abide by
   val userDefinedPropertyRegex = """\{([^\}]+)\}(.+)""".r
-  
+
   // variable bindings variable regexp : VariableName:FieldName
   val variableBindingRegex = """(.+):(.+)""".r
-  
+
 }

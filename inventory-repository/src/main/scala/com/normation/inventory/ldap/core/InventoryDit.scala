@@ -56,20 +56,20 @@ abstract class ENTRY[T<:Product](val rdnAttribute:T, val rdnValue: T) {
    * of rdn values (for example, it won't work well with JPEG...)
    */
   protected def rdn(rdnValues:T) : RDN = new RDN(
-    rdnAttribute.productIterator.map(_.toString).toArray, 
+    rdnAttribute.productIterator.map(_.toString).toArray,
     rdnValues.productIterator.map(_.toString).toArray
   )
-  
+
   /*
    * Note: this abstract entry can not have a "parent DN" as the parent
-   * ENTRY, if exsits, may have a variable RDN. 
+   * ENTRY, if exsits, may have a variable RDN.
    * Thing for example to a group member entry whose parent entry, the
-   * group, is created at run time. 
-   * 
+   * group, is created at run time.
+   *
    * Hum. In fact, it should not be a problem, such variable entries
    * should be "def" in place of static val, and in fact should be
    * what is now called the model... and if it is done like that, we
-   * could zap model, but we loose static methods. 
+   * could zap model, but we loose static methods.
    */
 }
 
@@ -80,27 +80,27 @@ abstract class ENTRY[T<:Product](val rdnAttribute:T, val rdnValue: T) {
 trait AbstractDit {
   val BASE_DN:DN
   private[this] val ditEntries = scala.collection.mutable.Buffer[LDAPEntry]()
-  
+
   /**
    * Register an entry to be available in the default DIT structure (what means that if
    * that entry is missing from the target directory, the software won't be able to work)
    * @param entry
    */
   def register(entry: LDAPEntry) : Unit = ditEntries.append(entry)
-  
+
   /**
    * Find all required entries for that DIT structure. These entries and only
    * these entries have to be present in the LDAP directory to be able to use
    * data from that DIT.
    * Parent entries of the DIT roots are not part of the list of returned entries,
-   * specifically the entry for base DN is not returned. 
+   * specifically the entry for base DN is not returned.
    */
   def getDITEntries = ditEntries.toSeq
-  
+
   /**
-   * Build an id of type T from a dn, checking that 
+   * Build an id of type T from a dn, checking that
    * the parent dn match some other parent dn (generally defined
-   * from the position in the DIT). 
+   * from the position in the DIT).
    */
   protected def buildId[T](dn:DN, parentDn:DN, fid: String=>T) : Option[T] = {
     if(dn.getParent == parentDn) {
@@ -112,12 +112,12 @@ trait AbstractDit {
   }
 
   require(BASE_DN.getRDNs.size > 0,"The base DN of your DIT can't be empty")
-  
+
 }
 
 /**
  * An inventory DIT that represent the structure of the inventory
- * object. 
+ * object.
  * @param BASE_DN
  *   the DN under which Machine, Server, Machine elements and Server elements OUs are
  * @param SOFTWARE_BASE_DN
@@ -125,12 +125,12 @@ trait AbstractDit {
  */
 case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String) extends AbstractDit with HashcodeCaching {
   dit =>
-  
+
   implicit val DIT = dit
-    
+
   object SOFTWARE extends OU("Software", SOFTWARE_BASE_DN) { software =>
     object SOFT extends UUID_ENTRY[SoftwareUuid](OC_SOFTWARE, A_SOFTWARE_UUID, software.dn) {
-      
+
         def idFromDN(dn:DN) : Box[SoftwareUuid] = {
           if(dn.getParent == software.dn) {
             val rdn = dn.getRDN
@@ -143,7 +143,7 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
         }
     }
   }
-  
+
   object NODES extends OU("Nodes", BASE_DN) { servers =>
 
     object NODE extends UUID_ENTRY[NodeId](OC_NODE, A_NODE_UUID, servers.dn) {
@@ -159,15 +159,15 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
         mod += (A_OC,OC.objectClassNames(OC_LINUX_NODE).toSeq:_*)
         mod
       }
-      
+
       def windowsModel(id:NodeId) : LDAPEntry = {
         val mod = model(id)
         mod += (A_OC,OC.objectClassNames(OC_WINDOWS_NODE).toSeq:_*)
         mod
       }
 
-      def dn(uuid:String) = new DN(this.rdn(uuid), servers.dn) 
-      
+      def dn(uuid:String) = new DN(this.rdn(uuid), servers.dn)
+
       def idFromDN(dn:DN) : Box[NodeId] = {
           if(dn.getParent == servers.dn) {
             val rdn = dn.getRDN
@@ -184,10 +184,10 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
     object FILESYSTEM extends NODE_ELT(NODE,OC_FS,A_MOUNT_POINT, NODE)
     object VM extends NODE_ELT(NODE,OC_VM_INFO,A_VM_ID, NODE)
   }
-  
-  object MACHINES extends OU("Machines", BASE_DN) { machines =>  
+
+  object MACHINES extends OU("Machines", BASE_DN) { machines =>
     object MACHINE extends UUID_ENTRY[MachineUuid](OC_MACHINE,A_MACHINE_UUID,machines.dn) {
-      
+
         def idFromDN(dn:DN) : Box[MachineUuid] = {
           if(dn.getParent == machines.dn) {
             val rdn = dn.getRDN
@@ -199,7 +199,7 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
           } else Failure("DN %s does not belong to machine inventories DN %s".format(dn,machines.dn))
         }
     }
-    
+
     object BIOS extends MACHINE_ELT(MACHINE,OC_BIOS,A_BIOS_NAME, MACHINE)
     object CONTROLLER extends MACHINE_ELT(MACHINE,OC_CONTROLLER,A_CONTROLLER_NAME, MACHINE)
     object CPU extends MACHINE_ELT(MACHINE,OC_PROCESSOR,A_PROCESSOR_NAME, MACHINE)
@@ -228,7 +228,7 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
 abstract class ENTRY1(override val rdnAttribute:Tuple1[String],override val rdnValue:Tuple1[String] = new Tuple1("")) extends ENTRY[Tuple1[String]](rdnAttribute,rdnValue) {
   def this(rdnAttribute:String, rdnValue:String) = this(Tuple1(rdnAttribute),Tuple1(rdnValue))
   def this(rdnAttribute:String) = this(Tuple1(rdnAttribute))
-  
+
   def rdn(rdnValue:String) : RDN = super.rdn(Tuple1(rdnValue))
 }
 
@@ -243,13 +243,13 @@ abstract class ENTRY1(override val rdnAttribute:Tuple1[String],override val rdnV
  * A special vase of ENTRY whose RDN is built from one
  * attribute and that attribute is also an UUID object
  */
-class UUID_ENTRY[U <: Uuid](val entryObjectClass:String,val rdnAttributeName:String, val parentDN:DN) extends 
+class UUID_ENTRY[U <: Uuid](val entryObjectClass:String,val rdnAttributeName:String, val parentDN:DN) extends
   ENTRY1(Tuple1(rdnAttributeName),Tuple1("")) {
-  
+
   def rdn(u:U) = new RDN(rdnAttributeName,u.value)
-  
+
   def dn(u:U) = new DN(rdn(u),parentDN)
-  
+
   def model(uuid:U) : LDAPEntry = {
     val mod = LDAPEntry(dn(uuid))
     mod +=! (A_OC, OC.objectClassNames(entryObjectClass).toSeq:_*)
@@ -262,9 +262,9 @@ class UUID_ENTRY[U <: Uuid](val entryObjectClass:String,val rdnAttributeName:Str
  */
 class OU(ouName:String,parentDn:DN)(implicit dit:AbstractDit) extends ENTRY1("ou",ouName) {
   ou =>
-  
+
   dit.register(ou.model)
-  
+
   lazy val rdn : RDN = this.rdn(this.rdnValue._1)
   lazy val dn = new DN(rdn, parentDn)
   def model() : LDAPEntry = {
@@ -291,7 +291,7 @@ class ELT[U <: Uuid](eltObjectClass:String, override val rdnAttribute:Tuple1[Str
 
 class NODE_ELT(server:UUID_ENTRY[NodeId], eltObjectClass:String, val attributeName:String, nodeParentEntry:UUID_ENTRY[NodeId]) extends
   ELT[NodeId](eltObjectClass,Tuple1(attributeName), nodeParentEntry) {}
-  
+
 class MACHINE_ELT(machine:UUID_ENTRY[MachineUuid], eltObjectClass:String, val attributeName:String, machineParentEntry:UUID_ENTRY[MachineUuid]) extends
   ELT[MachineUuid](eltObjectClass,Tuple1(attributeName),machineParentEntry) {}
 

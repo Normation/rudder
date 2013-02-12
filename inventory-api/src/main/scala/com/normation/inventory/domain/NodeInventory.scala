@@ -107,8 +107,8 @@ case class EnvironmentVariable (
 ) extends NodeElement with HashcodeCaching
 
 object InetAddressUtils {
-  
-  def getAddressByName(a:String) : Option[InetAddress] = 
+
+  def getAddressByName(a:String) : Option[InetAddress] =
     try {
       Some(InetAddress.getByName(a))
     } catch {
@@ -123,9 +123,9 @@ sealed trait OsType {
   override def toString = kernelName
 }
 
-object UnknownOSType extends OsType { 
+object UnknownOSType extends OsType {
   val kernelName = "N/A"
-  val name = "N/A" 
+  val name = "N/A"
 }
 
 sealed abstract class WindowsType extends OsType {
@@ -184,7 +184,7 @@ case object Android extends LinuxType with HashcodeCaching          { val name =
 
 /**
  * The different OS type. For now, we know
- * two of them: 
+ * two of them:
  * - Linux ;
  * - Windows.
  * And a joker
@@ -198,7 +198,7 @@ sealed abstract class OsDetails(
   , val kernelVersion : Version        // "2.6.32.12-0.7-default", "N/A" for windows
 )
 
-case class UnknownOS( 
+case class UnknownOS(
     override val fullName      : String = "N/A"
   , override val version       : Version = new Version("N/A")
   , override val servicePack   : Option[String]  = None
@@ -263,7 +263,7 @@ case class NodeInventory(
   , networks             : Seq[Network]             = Seq()
   , fileSystems          : Seq[FileSystem]          = Seq()
 ) extends HashcodeCaching {
-  
+
   /**A copy of the node with the updated main.
    * Use it like:
    * val nodeCopy = node.copyWithMain { m => m.copy(id = newId }
@@ -271,5 +271,5 @@ case class NodeInventory(
   def copyWithMain(update:NodeSummary => NodeSummary) : NodeInventory = {
     this.copy(main = update(this.main))
   }
-  
+
 }

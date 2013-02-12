@@ -47,13 +47,13 @@ import org.slf4j.LoggerFactory
  */
 @Configuration
 class PropertyPlaceholderConfig {
-  
-  
+
+
   val JVM_CONFIG_FILE_KEY = "inventoryweb.configFile"
   val DEFAULT_CONFIG_FILE_NAME = "configuration.properties"
-  
+
   val logger = LoggerFactory.getLogger(classOf[PropertyPlaceholderConfig])
-  
+
   @Bean def propertyConfigurer : PropertyPlaceholderConfigurer = {
     val configurer = new PropertyPlaceholderConfigurer()
     System.getProperty(JVM_CONFIG_FILE_KEY) match {
@@ -70,7 +70,7 @@ class PropertyPlaceholderConfig {
           throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
         }
     }
-    
+
     configurer
   }
 }

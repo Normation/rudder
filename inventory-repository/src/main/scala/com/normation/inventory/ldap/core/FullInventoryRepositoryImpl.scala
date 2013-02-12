@@ -55,7 +55,7 @@ class FullInventoryRepositoryImpl(
     ldap:LDAPConnectionProvider
 ) extends MachineRepository[Seq[LDIFChangeRecord]] with LDAPFullInventoryRepository with Loggable {
 
-  
+
   /**
    * Get the expected DN of a machine from its ID and status
    */
@@ -79,9 +79,9 @@ class FullInventoryRepositoryImpl(
       machine <- mapper.machineFromTree(tree)
     } yield {
       machine
-    }   
+    }
   }
-  
+
   /**
    * For a given machine, find all the node on it
    */
@@ -94,27 +94,27 @@ class FullInventoryRepositoryImpl(
     })
     entries match {
       case e: EmptyBox => e
-      case Full(seq) => 
+      case Full(seq) =>
          com.normation.utils.Control.boxSequence(seq.map(x => inventoryDitService.getDit(inventoryStatus).NODES.NODE.idFromDN(x.dn)))
     }
   }
-  
-   
+
+
   override def save(machine:MachineInventory) : Box[Seq[LDIFChangeRecord]] = {
     for {
       con <- ldap
       res <- con.saveTree(mapper.treeFromMachine(machine))
     } yield res
   }
-  
+
   override def delete(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
     for {
        con <- ldap
        res <- con.delete(dn(id, inventoryStatus))
     } yield res
   }
-  
-    
+
+
   override def move(id:MachineUuid, from: InventoryStatus, into : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
     if(from == into ) Full(Seq())
     else {
@@ -128,7 +128,7 @@ class FullInventoryRepositoryImpl(
       }
     }
   }
-  
+
   /**
    * Note: it may happen strange things between get:ServerAndMachine and Node if there is
    * several machine for one server, and that the first retrieved is not always the same.
@@ -148,7 +148,7 @@ class FullInventoryRepositoryImpl(
       con <- ldap
       tree <- con.getTree(dn(id, inventoryStatus))
       server <- mapper.nodeFromTree(tree)
-      //now, try to add a machine 
+      //now, try to add a machine
       optMachine <- {
         server.machineId match {
           case None => Full(None)
@@ -161,9 +161,9 @@ class FullInventoryRepositoryImpl(
       }
     } yield {
       FullInventory(server, optMachine)
-    }   
+    }
   }
-  
+
   override def save(inventory:FullInventory, inventoryStatus : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
     for {
       con <- ldap
@@ -174,7 +174,7 @@ class FullInventoryRepositoryImpl(
       }
     } yield resServer ++ resMachine
   }
-  
+
   override def delete(id:NodeId, inventoryStatus : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
     for {
       con <- ldap
@@ -188,7 +188,7 @@ class FullInventoryRepositoryImpl(
         }) match {
           case Empty => Full(Seq())
           case Full((machineId, machineStatus, diff)) => Full(diff)
-          case f:Failure => 
+          case f:Failure =>
             logger.warn("Error when trying to delete machine for server with id '%s' and inventory status '%s'. Message was: %s".
                 format(id.value,inventoryStatus,f.msg))
             Full(Seq())
@@ -202,7 +202,7 @@ class FullInventoryRepositoryImpl(
 
   override def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
     if(from == into ) Full(Seq())
-    else 
+    else
       for {
         con <- ldap
         dnFrom = dn(id, from)
@@ -212,7 +212,7 @@ class FullInventoryRepositoryImpl(
         Seq(moved)
       }
   }
-  
+
   override def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
     def moveMachine(con:LDAPConnection) : Box[Seq[LDIFChangeRecord]] = {
       //given the sequence of the move (start with node, then machine)
@@ -220,7 +220,7 @@ class FullInventoryRepositoryImpl(
       getMachineId(id, into) match {
         case Empty => Full(Seq()) //the node may not have a machine, stop here
         case f:Failure => f
-        case Full((machineId, status)) => 
+        case Full((machineId, status)) =>
           if(status == into) { //the machine is already in the same place than the node, great !
             Full(Seq())
           } else {
@@ -232,7 +232,7 @@ class FullInventoryRepositoryImpl(
                   // more than one node linked to this machine, it has to be copied
                   get(machineId, status) match {
                     case e:EmptyBox => logger.error("cannot fetch machine linked to node %s, cause %s".format(id.value, e)); e
-                    case Full(entry) => 
+                    case Full(entry) =>
                       save( entry.copy(status = RemovedInventory))
                   }
                 } else {
@@ -241,7 +241,7 @@ class FullInventoryRepositoryImpl(
                     machineMoved <- move(machineId,status,into)
                     //update reference dn for that machine in node
                     updatedContainer <- con.modify(
-                        dn(id,into), 
+                        dn(id,into),
                         new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dn(machineId,into).toString)
                     )
                   } yield {
@@ -252,7 +252,7 @@ class FullInventoryRepositoryImpl(
           }
       }
     }
-    
+
     def deleteMachine(where:InventoryStatus) : Box[LDIFChangeRecord] = {
       for {
         con              <- ldap

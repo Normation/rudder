@@ -132,7 +132,7 @@ case class Video (
 
 /**
  * Specific VM subtype, like Xen or VirtualBox
- * The name is an identifier used for 
+ * The name is an identifier used for
  * (de)serialization to string, of as a key
  * for the VM type. They should be lower case only.
  */
@@ -147,7 +147,7 @@ case object Xen extends VmType("xen") with HashcodeCaching
 
 /**
  * The different machine type. For now, we know
- * two of them: 
+ * two of them:
  * - virtual machines ;
  * - physical machines.
  */

@@ -39,29 +39,29 @@ import net.liftweb.common.Box
 
 
 /**
- * Define an action that happens after than the report 
+ * Define an action that happens after than the report
  * was committed in the Directory.
  * The "records" are a list of modification which actually
- * happened when the commit was done (and so, 
+ * happened when the commit was done (and so,
  * report "-" records = what was already in the directory).
- * 
+ *
  * By convention, a PostCommit which return:
- * - Full : continue the pipeline processing. AT LEAST input 
- *          records have to be returned (kind of forward to 
+ * - Full : continue the pipeline processing. AT LEAST input
+ *          records have to be returned (kind of forward to
  *          the next postCommit)
  * - Empty or Failure : interrupt pipeline processing (following
  *                      PostCommits won't happened)
- * 
- * 
- * The R parameter is the return type of the back-end. 
- * Ideally, it should be only diff actually applied to the back-end, 
+ *
+ *
+ * The R parameter is the return type of the back-end.
+ * Ideally, it should be only diff actually applied to the back-end,
  * but it could be the new entity is the store can not provide
- * better information (LDAP can). 
- * 
+ * better information (LDAP can).
+ *
  */
 trait PostCommit[R] {
-  
+
   def name : String
-  
+
   def apply(report:InventoryReport,records:R) : Box[R]
 }
