@@ -38,15 +38,15 @@ import com.normation.utils.HashcodeCaching
 
 /**
  * A modification is some write action we want to be able to trace.
- * Typical modification are update on a rule, creation of a directive, 
+ * Typical modification are update on a rule, creation of a directive,
  * acceptation of a node, deletion of a group.
- * 
- * Modification may be initiated from a user of from some automated 
+ *
+ * Modification may be initiated from a user of from some automated
  * process, like the update of dynamic groups
  */
 
 
-final case class ModificationId(value:String) extends HashcodeCaching 
+final case class ModificationId(value:String) extends HashcodeCaching
 
 object ModificationId {
   val dummy = ModificationId("dummy-modification-id")

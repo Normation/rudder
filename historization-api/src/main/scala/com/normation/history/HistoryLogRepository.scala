@@ -32,7 +32,7 @@ trait WriteOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
    * @return
    */
   def save(id:ID,data:T,datetime:DateTime = DateTime.now) : Box[HLog]
-  
+
 }
 
 trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
@@ -41,10 +41,10 @@ trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
    * Retrieve all ids known by the repository
    */
   def getIds : Box[Seq[ID]]
-  
+
   /**
    * Get the list of record for the given ID
-   * @return 
+   * @return
    *   Failure(message) if an error happened
    *   Empty if a not specified error happened
    *   Full(seq) if that id exists. Seq may be empty
@@ -65,13 +65,13 @@ trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
    * Get the last record for the given ID and version.
    * @return
    *   Failure(message) or Empty if an error happened, or
-   *     if the id does not exists or has no such version in 
+   *     if the id does not exists or has no such version in
    *     recorded history
    *   Full(hlog) the recorded version of hlog
    */
   def get(id:ID, version:V) : Box[HLog]
 
-  
+
   /**
    * Return the list of version for ID.
    * @return
@@ -85,6 +85,6 @@ trait ReadOnlyHistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] {
   def versions(id:ID) : Box[Seq[V]]
 }
 
-trait HistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] extends 
+trait HistoryLogRepository[ID, V, T, HLog <: HistoryLog[ID,V, T]] extends
   WriteOnlyHistoryLogRepository[ID, V, T, HLog] with
   ReadOnlyHistoryLogRepository[ID, V, T, HLog] {}

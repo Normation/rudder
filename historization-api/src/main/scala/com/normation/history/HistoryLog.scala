@@ -23,34 +23,34 @@ package com.normation.history
 import org.joda.time.DateTime
 
 /**
- * Represent history data. 
- * The actual data type is let to be defined. 
+ * Represent history data.
+ * The actual data type is let to be defined.
  */
 trait HistoryLog[ID,V, T] {
-  
+
   /**
    * Id of the history log.
    * One log has seceral version for
    * only one ID (the couple (ID,version) is unique)
    */
   def id:ID
-  
+
   /**
    * Date and Time for which the data are saved
    * @return
    */
   def datetime : DateTime
-  
+
   /**
    * History type, should be linked to T
    */
   def historyType : String
-  
+
   /**
    * Version of the history
    * Version must be comparable, but du to
-   * Inconsistencies between libraries and APIs, 
-   * we are not able to provide a type constrain. 
+   * Inconsistencies between libraries and APIs,
+   * we are not able to provide a type constrain.
    * bigger are newer
    * @return
    */

@@ -42,5 +42,5 @@ case class User(val name:String) extends Principal with HashcodeCaching {
     override def getName() : String = {
     	name
     }
-    
+
 }

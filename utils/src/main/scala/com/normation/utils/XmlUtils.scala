@@ -29,8 +29,8 @@ import java.io.InputStream
 import com.normation.exceptions.TechnicalException
 
 object XmlUtils {
-  
-  
+
+
   /**
    * Retrieve exactly one element of the given name in
    * the given node children.
@@ -43,7 +43,7 @@ object XmlUtils {
       else if(nodes.size > 1 ) Failure(s"More than one node found for name ${nodeName} in ${root} children with scope ${if(subtree) "subtree" else "one level"}")
       else Full(nodes.head)
     }
-    
+
     if(subtree) {
       checkCardinality((root.child:NodeSeq) \\ nodeName)
     } else {
@@ -66,8 +66,8 @@ object XmlUtils {
     val seq = node \ ("@" + name)
     if (seq.isEmpty) default else seq.head.text
   }
-  
-  
+
+
   /**
    * Parse the file denoted by input stream (filePath is only
    * for explicit error messages)
@@ -83,7 +83,7 @@ object XmlUtils {
                case e: java.net.MalformedURLException =>
                  Failure("XML file not found: " + name, Full(e), Empty)
              }
-      nonEmpty <- if (doc.isEmpty) { 
+      nonEmpty <- if (doc.isEmpty) {
                     Failure(s"Error when parsing XML file: '${name}': the parsed document is empty")
                   } else {
                     Full("ok")
@@ -92,11 +92,11 @@ object XmlUtils {
       doc
     }
   }
-  
+
   /**
    * Trim spaces from an XML elem
    */def trim(elt:Elem) = scala.xml.Utility.trim(elt) match {
       case e:Elem => e
       case x => throw new TechnicalException("Bad returned type for xml.trim. Awaiting an Elem, got: " + x)
-    } 
+    }
 }

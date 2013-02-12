@@ -43,7 +43,7 @@ trait IdToFilenameConverter[ID] {
    * Create the filename from the id, and vice versa
    */
   def idToFilename(id:ID) : String
-  
+
   /**
    * Get the ID from a path name
    */
@@ -51,32 +51,32 @@ trait IdToFilenameConverter[ID] {
 }
 
 /**
- * An implementation of HistoryLogRepository that save datas in 
+ * An implementation of HistoryLogRepository that save datas in
  * FileSystem, using a layout like:
- * 
+ *
  *  /(d)root_dir/
- *    |- (d)history_id1 
+ *    |- (d)history_id1
  *    |   |- (f)datetime1
  *    |   |- (f)datetime2
  *    |    `...
  *    ` (d)history_name2
- *    
+ *
  * Any datas type may be used, as long as they can be read/write from
  * files
  */
 class FileHistoryLogRepository[ID,T](
-  val rootDir:String, 
+  val rootDir:String,
   val marshaller:FileMarshalling[T],
   val converter:IdToFilenameConverter[ID]
 ) extends HistoryLogRepository[ID, DateTime,  T, DefaultHLog[ID,T]] {
-  
+
   type HLog = DefaultHLog[ID,T]
-  
+
    //when the the class is instanciated, try to create the directory
   //we don't want to catch exception here
   root()
-  
-  
+
+
   //we don't want to catch exception here
   private def root() : Box[File] = {
     for {
@@ -87,7 +87,7 @@ class FileHistoryLogRepository[ID,T](
       dir
     }
   }
-  
+
   //we don't want to catch exception here
   private def idDir(id:ID) = {
     for {
@@ -99,7 +99,7 @@ class FileHistoryLogRepository[ID,T](
       dir
     }
   }
-  
+
   //we don't want to catch exception here
   private def exists(id:ID) = {
     (for{
@@ -107,7 +107,7 @@ class FileHistoryLogRepository[ID,T](
       dir <- tryo(new File(r, converter.idToFilename(id)))
     } yield dir.exists && dir.isDirectory).getOrElse(false)
   }
-  
+
   /**
    * Save a report and return the ID of the saved report, and
    * it's version
@@ -116,13 +116,13 @@ class FileHistoryLogRepository[ID,T](
    */
   def save(id:ID,data:T,datetime:DateTime = DateTime.now) : Box[HLog] = {
     converter.idToFilename(id) match {
-      case null | "" => 
+      case null | "" =>
         Failure("History log name can not be null nor empty")
       case s if(s.contains(System.getProperty("file.separator"))) =>
         Failure(s"UUID can not contains the char '${System.getProperty("file.separator")}'")
-      case s => 
+      case s =>
         val hlog = DefaultHLog(id,datetime,data)
-        
+
         for {
           i <- idDir(hlog.id)
           file <- tryo(new File(i,vToS(hlog.version)))
@@ -130,7 +130,7 @@ class FileHistoryLogRepository[ID,T](
         } yield hlog
     }
   }
- 
+
   /**
    * Retrieve all ids known by the repository
    */
@@ -142,7 +142,7 @@ class FileHistoryLogRepository[ID,T](
       res
     }
   }
- 
+
   /**
    * Get the list of all history logs for the given id.
    * If reading any logs  throws an error, the full result is a
@@ -164,11 +164,11 @@ class FileHistoryLogRepository[ID,T](
 
   /**
    * Get the list of record for the given UUID and version.
-   * If no version is specified, get the last. 
+   * If no version is specified, get the last.
    */
   def getLast(id:ID) : Box[HLog] = {
     for {
-      versions <- this.versions(id) 
+      versions <- this.versions(id)
       version <- versions.headOption
       hlog <- this.get(id,version)
     } yield hlog
@@ -176,7 +176,7 @@ class FileHistoryLogRepository[ID,T](
 
   /**
    * Get the list of record for the given UUID and version.
-   * If no version is specified, get the last. 
+   * If no version is specified, get the last.
    */
   def get(id:ID, version:DateTime) : Box[HLog] = {
     for {
@@ -186,7 +186,7 @@ class FileHistoryLogRepository[ID,T](
     }yield DefaultHLog(id,version,data)
   }
 
-  
+
   /**
    * Return the list of version for ID.
    * Full(Empty list) or Empty if no version for the given id
@@ -203,7 +203,7 @@ class FileHistoryLogRepository[ID,T](
       }
     } yield res
   }
-  
+
 }
 
 object FileHistoryLogRepository {

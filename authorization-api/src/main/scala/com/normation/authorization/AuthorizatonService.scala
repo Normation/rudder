@@ -25,7 +25,7 @@ import java.security.Principal
 
 /**
  * This class define the main method to interact with
- * authorization questions. 
+ * authorization questions.
  * Methods allow to answer to questions like:
  * "Does PRINCIPAL have RIGHTS on TARGETS"
  *
@@ -34,10 +34,10 @@ trait AuthorizationService {
 
   /**
    * Check if the given principal has all the rights in rights on the given target
-   * @param principal 
+   * @param principal
    *   the principal for whom the authorization has to be perform
    * @param rights
-   *   the set of AuthorizationType to check 
+   *   the set of AuthorizationType to check
    * @param target
    *   the target on which we want to check rights for principal
    * @return false if any AuthorizationType in rights is missing for principal on target.
@@ -45,26 +45,26 @@ trait AuthorizationService {
   def isAllowed(principal:Principal, right: AuthorizationType, target:String) : Boolean
 
   /**
-   * Check on what target from the list principal has rights. 
-   * 
-   * @param principal 
+   * Check on what target from the list principal has rights.
+   *
+   * @param principal
    *   the principal for whom the authorization has to be perform
    * @param rights
-   *   the set of AuthorizationType to check 
+   *   the set of AuthorizationType to check
    * @param target
    *   the list of targets on which we want to check rights for principal
    * @return the list of targets from targets parameter on which principal has rights, or
-   *         empty collection if principal has rights on zero target. 
+   *         empty collection if principal has rights on zero target.
    */
   def isAllowed(principal:Principal, rights: AuthorizationType, targets:String*) : Traversable[String]
 
-  
+
   /**
    * Check if the given principal has all the rights in rights on the given target
-   * @param principal 
+   * @param principal
    *   the principal for whom the authorization has to be perform
    * @param rights
-   *   the set of AuthorizationType to check 
+   *   the set of AuthorizationType to check
    * @param target
    *   the target on which we want to check rights for principal
    * @return false if any AuthorizationType in rights is missing for principal on target.
@@ -72,16 +72,16 @@ trait AuthorizationService {
   def isAllowed(principal:Principal, rights: Rights, target:String) : Boolean
 
   /**
-   * Check on what target from the list principal has rights. 
-   * 
-   * @param principal 
+   * Check on what target from the list principal has rights.
+   *
+   * @param principal
    *   the principal for whom the authorization has to be perform
    * @param rights
-   *   the set of AuthorizationType to check 
+   *   the set of AuthorizationType to check
    * @param target
    *   the list of targets on which we want to check rights for principal
    * @return the list of targets from targets parameter on which principal has rights, or
-   *         empty collection if principal has rights on zero target. 
+   *         empty collection if principal has rights on zero target.
    */
   def isAllowed(principal:Principal, rights: Rights, targets:String*) : Traversable[String]
 }

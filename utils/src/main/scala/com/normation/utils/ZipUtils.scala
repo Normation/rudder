@@ -36,11 +36,11 @@ import java.io.OutputStream
 object ZipUtils {
 
   case class Zippable(path:String, useContent:Option[(InputStream => Box[Any]) => Box[Any]])
-  
+
   def unzip(zip: ZipFile, intoDir: File) : Box[Unit] = {
     if(intoDir.exists && intoDir.isDirectory && intoDir.canWrite) {
       try {
-        zip.entries.foreach { entry => 
+        zip.entries.foreach { entry =>
           val file = new File(intoDir, entry.getName)
           if(entry.isDirectory()) {
             file.mkdirs
@@ -55,33 +55,33 @@ object ZipUtils {
       }
     } else Failure(s"Directory '${intoDir.getPath}' is not a valid directory to unzip file: please, check permission and existence")
   }
-  
-  
+
+
   /**
    * Zippable must be ordered from root to children (deep first),
-   * and all path must be relative to root. 
-   * A zippable without a file content is considered to 
+   * and all path must be relative to root.
+   * A zippable without a file content is considered to
    * be a directory
    */
   def zip(zipout:OutputStream, toAdds:Seq[Zippable]) : Box[Unit] = {
     var zout:ZipOutputStream = null
     try {
       zout = new ZipOutputStream(zipout)
-      val addToZout = (is:InputStream) => try { 
+      val addToZout = (is:InputStream) => try {
         Full(IOUtils.copy(is, zout))
       } catch {
         case e:Exception => Failure("Error when copying file", Full(e),Empty)
       }
-      
+
       toAdds.foreach { x =>
         val name = x.useContent match {
-          case None => 
+          case None =>
             if(x.path.endsWith("/")) x.path else x.path + "/"
           case Some(is) =>
             if(x.path.endsWith("/")) x.path.substring(0,x.path.size -1) else x.path
         }
         zout.putNextEntry(new ZipEntry(name))
-        x.useContent.foreach { use => 
+        x.useContent.foreach { use =>
           use(addToZout)
         }
       }
@@ -92,13 +92,13 @@ object ZipUtils {
       if(null != zout) zout.close
     }
   }
-  
+
   /**
    * Create the seq of zippable from a directory or file.
-   * If it's a directory, all children are added recursively, 
+   * If it's a directory, all children are added recursively,
    * and there name are relative to the root.
-   * For a file, only its basename is added. 
-   * 
+   * For a file, only its basename is added.
+   *
    * The returned Zippable are ordered from root to children (deep first),
    * and all path must be relative to root like that:
    * root/
@@ -116,11 +116,11 @@ object ZipUtils {
     }
     val base = file.getParentFile.toURI
     def getPath(f:File) = base.relativize(f.toURI).getPath
-    
+
     def recZippable(f:File, existing:Seq[Zippable]) : Seq[Zippable] = {
       //sort accordingly to the required convention
       def sortFile(files: Array[java.io.File]) : Array[java.io.File] = {
-        files.sortWith { case(file1, file2) => 
+        files.sortWith { case(file1, file2) =>
           (file1.isDirectory, file2.isDirectory) match {
             case (true, true) | (false, false) => file1.getName.compareTo(file2.getName) <= 0
             case (true, false) => false
@@ -128,11 +128,11 @@ object ZipUtils {
           }
         }
       }
-      
+
       if(f.isDirectory) {
         val c = existing :+ Zippable(getPath(f), None)
-        
-        
+
+
         (c /: sortFile(f.listFiles)) { (seq,ff) =>
           recZippable(ff,seq)
         }
@@ -151,7 +151,7 @@ object ZipUtils {
         existing :+ Zippable(getPath(f), Some(buildContent _))
       }
     }
-    
+
     recZippable(file, Seq())
   }
 }

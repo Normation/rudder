@@ -26,13 +26,13 @@ import com.normation.utils.HashcodeCaching
 
 /**
  * A version of history log which uses DateTime as
- * version number. 
+ * version number.
  *
  */
 trait DatedHistoryLog[ID,T] extends HistoryLog[ID, DateTime, T] {
-  
+
   def datetime = version
-  
+
 }
 
 

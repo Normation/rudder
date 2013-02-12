@@ -37,34 +37,34 @@ trait ScalaLock {
       this.unlock()
     }
   }
-  
+
   def flatMap[T](f : this.type => Option[T]) : Option[T] = map(f)
-  
+
   def foreach(f: this.type => Unit): Unit = map(f)
-  
+
   def apply[T](block: => T): T = map(_ => block)
 }
 
 trait ScalaReadWriteLock {
-  
+
   def readLock  : ScalaLock
   def writeLock : ScalaLock
-  
+
 }
 
 object ScalaLock {
   import java.util.concurrent.locks.Lock
   import language.implicitConversions
-  
+
   implicit def java2ScalaLock(javaLock:Lock) : ScalaLock = new ScalaLock {
     override def lock() = javaLock.lock()
     override def unlock() = javaLock.unlock()
   }
-  
+
   implicit def java2ScalaRWLock(lock:ReadWriteLock) : ScalaReadWriteLock = new ScalaReadWriteLock {
     override def readLock = lock.readLock
     override def writeLock = lock.writeLock
   }
-  
+
 }
 

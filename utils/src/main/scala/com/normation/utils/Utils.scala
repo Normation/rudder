@@ -27,16 +27,16 @@ import net.liftweb.common._
 /**
  * This is an utility object that
  * provides useful simple methods in a static way
- * 
- * Most methods deals with null dereferencing and 
- * null/empty Strings management. 
+ *
+ * Most methods deals with null dereferencing and
+ * null/empty Strings management.
  */
 object Utils extends Loggable {
- 
-  
+
+
   /**
    * Compare two lists of string as if they were two
-   * path in a tree (starting with the same root). 
+   * path in a tree (starting with the same root).
    */
   def recTreeStringOrderingCompare(a:List[String], b:List[String]) : Int = {
     (a,b) match {
@@ -51,7 +51,7 @@ object Utils extends Loggable {
 
   /**
    * Create directory given in argument if does not exists, checking
-   * that it is writable. 
+   * that it is writable.
    */
   def createDirectory(directory:File):Box[File] = {
     try {
@@ -69,68 +69,68 @@ object Utils extends Loggable {
       case ioe:IOException => Failure(s"Exception when checking directory '${directory.getPath}': '${ioe.getMessage}'")
     }
   }
-  
+
   /**
    * Get the manifest of the given type
    * Use like: val manifest = manifest[MY_TYPE]
    */
   def manifestOf[T](implicit m: Manifest[T]): Manifest[T] = m
-  
+
   /**
-   * Change a function: f:A => Option[B] in a 
+   * Change a function: f:A => Option[B] in a
    * partial function A => B
    */
   def toPartial[A,B](f: A => Option[B]) = new PartialFunction[A,B] {
     override def isDefinedAt(x:A) = f(x).isDefined
     override def apply(x:A) = f(x).get
   }
-  
-  
+
+
   /**
    * Rule:
-   * in entity comparison, null string and empty strings 
+   * in entity comparison, null string and empty strings
    * are the same thing.
    */
   def sameStrings(s1:String,s2:String) = {
     if(s1 == null)  s2 == null || s2 == ""
     else s1 == s2
   }
-  
+
   /**
-   * Empty test on string, return true is the String is null or "", 
+   * Empty test on string, return true is the String is null or "",
    * false otherwise
    */
   def isEmpty(s:String) = if(null == s || "" == s) true else false
   def nonEmpty(s:String) = if(null != s && s.length > 0) true else false
-  
+
   /**
    * A safe dereference method, that allows to chain property
    * access without testing each level for nullity.
    * Of course, use it wisely and each time, wonder if a safer
    * option with return value being Option is not the way to go
-   * This operator is especially useful when you depends upon 
+   * This operator is especially useful when you depends upon
    * a third party library or you are dealing with DAO-like
    * processing
-   */  
+   */
   def ?[A <: AnyRef](block: => A) : A =
-    try { 
-      block 
+    try {
+      block
     } catch {
       case e: NullPointerException => e.getStackTrace()(2).getMethodName match {
           case "$qmark" | "$qmark$qmark" | "$qmark$qmark$bang" => null.asInstanceOf[A]
           case _ => throw e
         }
     }
-  
+
   /**
-   * Safe deference with mapping to Option. 
+   * Safe deference with mapping to Option.
    * Return None if deference to null, Some(a) otherwise
    */
   def ??[A <: AnyRef](block: => A): Option[A] = ?[A](block) match {
     case null => None
     case a =>  Some(a)
   }
-  
+
   /**
    * A special case of safe dereferencing for string
    * that check that is string is not empty too

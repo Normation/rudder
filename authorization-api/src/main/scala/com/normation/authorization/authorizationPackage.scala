@@ -23,9 +23,9 @@ package com.normation
 import language.implicitConversions
 
 package object authorization {
-  
+
   /**
-   * Implicit transformation from AuthorizationType 
+   * Implicit transformation from AuthorizationType
    * (and tuple of AuthorizationType up to 7) into Rights
    */
   private[this] type AT = AuthorizationType
@@ -35,5 +35,5 @@ package object authorization {
   implicit def authzType5ToRights( t:(AT,AT,AT,AT,AT)) : Rights = new Rights(t._1, t._2, t._3, t._4, t._5)
   implicit def authzType6ToRights( t:(AT,AT,AT,AT,AT,AT)) : Rights = new Rights(t._1, t._2, t._3, t._4, t._5, t._6)
   implicit def authzType7ToRights( t:(AT,AT,AT,AT,AT,AT,AT)) : Rights = new Rights(t._1, t._2, t._3, t._4, t._5, t._6, t._7)
-  
+
 }

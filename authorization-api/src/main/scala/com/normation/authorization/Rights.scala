@@ -21,22 +21,22 @@
 package com.normation.authorization
 
 /**
- * That class represents a set of AuthorizationType that 
+ * That class represents a set of AuthorizationType that
  * HAS TO all be validated on the same time. It acts like
  * a new AuthorizationType which melt each AuthorizationType
- * that composed it. 
+ * that composed it.
  */
 class Rights(_authorizationTypes:AuthorizationType*) {
 
   require(null != _authorizationTypes && _authorizationTypes.nonEmpty, "At least one AuthorizationType must be include in a Rights object")
-  
+
   val authorizationTypes = _authorizationTypes.toSet
-  
+
   override lazy val hashCode = 23 * authorizationTypes.hashCode
-  
+
   override def equals(other:Any) = other match {
-    case that:Rights => this.authorizationTypes == that.authorizationTypes 
+    case that:Rights => this.authorizationTypes == that.authorizationTypes
     case _ => false
   }
-  
+
 }
