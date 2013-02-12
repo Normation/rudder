@@ -74,19 +74,19 @@ import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import com.normation.eventlog.ModificationId
 
 object RuleEditForm {
-  
+
   /**
    * This is part of component static initialization.
    * Any page which contains (or may contains after an ajax request)
    * that component have to add the result of that method in it.
    */
-  def staticInit:NodeSeq = 
+  def staticInit:NodeSeq =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "staticInit", xml)
     }) openOr Nil
-    
+
   private def body(tab :Int = 0) =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
@@ -94,13 +94,13 @@ object RuleEditForm {
       chooseTemplate("component", "body", xml)
     }) openOr Nil
 
-  private def crForm = 
+  private def crForm =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "form", xml)
     }) openOr Nil
-    
+
   private def details =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
@@ -108,20 +108,20 @@ object RuleEditForm {
       chooseTemplate("component", "details", xml)
     }) openOr Nil
 
-  private def popupRemoveForm = 
+  private def popupRemoveForm =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "popupRemoveForm", xml)
     }) openOr Nil
 
-  private def popupDisactivateForm = 
+  private def popupDisactivateForm =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
     } yield {
       chooseTemplate("component", "popupDisactivateForm", xml)
     }) openOr Nil
-    
+
   val htmlId_groupTree = "groupTree"
   val htmlId_activeTechniquesTree = "userPiTree"
 }
@@ -130,15 +130,15 @@ object RuleEditForm {
  * The form that handles Rule edition
  * (not creation)
  * - update name, description, etc
- * - update parameters 
+ * - update parameters
  *
  * It handle save itself (TODO: see how to interact with the component parent)
  *
- * Parameters can not be null. 
- * 
+ * Parameters can not be null.
+ *
  * Injection should not be used in components
  * ( WHY ? I will try to see...)
- * 
+ *
  */
 class RuleEditForm(
   htmlId_rule:String, //HTML id for the div around the form
@@ -150,7 +150,7 @@ class RuleEditForm(
   onCloneCallback : (Rule) => JsCmd = { (r:Rule) => Noop }
 ) extends DispatchSnippet with SpringExtendableSnippet[RuleEditForm] with Loggable {
   import RuleEditForm._
-  
+
   private[this] val htmlId_save = htmlId_rule + "Save"
   private[this] val htmlId_EditZone = "editRuleZone"
   private[this] val ruleRepository = inject[RuleRepository]
@@ -177,14 +177,14 @@ class RuleEditForm(
 
   //////////////////////////// public methods ////////////////////////////
   val extendsAt = SnippetExtensionKey(classOf[RuleEditForm].getSimpleName)
-  
+
   def mainDispatch = Map(
     "showForm" -> { _:NodeSeq => showForm() },
     "showEditForm" -> { _:NodeSeq => showForm(1) }
   )
 
   private[this] def showForm(tab :Int = 0) : NodeSeq = {
-    
+
     val form:NodeSeq = if(CurrentUser.checkRights(Read("rule"))) {
       val content = if (CurrentUser.checkRights(Edit("rule"))) {
         (
@@ -197,12 +197,12 @@ class RuleEditForm(
           "#editForm" #>  <div>You have no rights to see rules details, please contact your administrator</div>
         ).apply(body())
       }
-      
+
       ("#details" #> showRuleDetails()).apply(content)
     } else {
       <div>You have no rights to see rules details, please contact your administrator</div>
-    } 
-    
+    }
+
     form ++  Script(OnLoad(JsRaw("""$( "#editRuleZone" ).tabs();
           $( "#editRuleZone" ).tabs('select', %s);""".format(tab)) )&
           JsRaw("""
@@ -214,8 +214,8 @@ class RuleEditForm(
             SHtml.ajaxCall(JsRaw("'"+rule.id.value+"'"),(v:String) => Replace("details",showRuleDetails()))._2.toJsCmd
       )))
   }
-  
-  private[this] def showRemovePopupForm() : NodeSeq = {    
+
+  private[this] def showRemovePopupForm() : NodeSeq = {
    (
        "#removeActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
        "#dialogRemoveButton" #> { removeButton % ("id", "removeButton") } &
@@ -224,10 +224,10 @@ class RuleEditForm(
          "#reasonsField" #> f.toForm_!
        } } &
        "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerRemovePopup) }
-   )(popupRemoveForm) 
+   )(popupRemoveForm)
   }
-  
-  private[this] def showDisactivatePopupForm() : NodeSeq = {    
+
+  private[this] def showDisactivatePopupForm() : NodeSeq = {
    (
       "#desactivateActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
       "#dialogDisactivateButton" #> { disactivateButton % ("id", "disactivateButton") } &
@@ -238,7 +238,7 @@ class RuleEditForm(
          "#reasonsField" #> f.toForm_!
       } } &
       "#errorDisplay *" #> { updateAndDisplayNotifications(formTrackerDisactivatePopup) }
-   )(popupDisactivateForm) 
+   )(popupDisactivateForm)
   }
 
   private[this] def  showRuleDetails() : NodeSeq = {
@@ -256,9 +256,9 @@ class RuleEditForm(
       }}
     )(details)
   }
- 
 
-  private[this] def showCrForm() : NodeSeq = {    
+
+  private[this] def showCrForm() : NodeSeq = {
     (
       "#editForm *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
       ClearClearable &
@@ -271,7 +271,7 @@ class RuleEditForm(
          val status = crCurrentStatusIsActivated ? "Disable" | "Enable"
          SHtml.ajaxButton(   status, () => createPopup("desactivateActionDialog",100,450),("type", "button"))
        } &
-      "#clone" #> SHtml.ajaxButton( 
+      "#clone" #> SHtml.ajaxButton(
                       { Text("Clone") }
                     , { () =>  onCloneCallback(rule) }
                     , ("type", "button")
@@ -289,18 +289,18 @@ class RuleEditForm(
             case eb:EmptyBox =>
               val f = eb ?~! "Error when trying to get the root category of Active Techniques"
               logger.error(f.messageChain)
-              f.rootExceptionCause.foreach { ex => 
+              f.rootExceptionCause.foreach { ex =>
                 logger.error("Exception causing the error was:" , ex)
               }
               <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
             case Full(root) =>
               <ul>{ activeTechniqueCategoryToJsTreeNode(
                   root
-                ).toXml 
+                ).toXml
               }</ul>
-          }     
+          }
         }</div> } &
-      "#selectGroupField" #> { 
+      "#selectGroupField" #> {
         <div id={htmlId_groupTree}>
           <ul>
             {nodeGroupCategoryToJsTreeNode(groupCategoryRepository.getRootCategory).toXml}
@@ -309,23 +309,23 @@ class RuleEditForm(
       "#save" #> saveButton &
       "#notification *" #>  updateAndDisplayNotifications(formTracker) &
       "#editForm [id]" #> htmlId_rule
-    )(crForm) ++ 
+    )(crForm) ++
     Script(OnLoad(JsRaw("""
       correctButtons();
     """)))++ Script(
         //a function to update the list of currently selected PI in the tree
-        //and put the json string of ids in the hidden field. 
+        //and put the json string of ids in the hidden field.
         JsCrVar("updateSelectedPis", AnonFunc(JsRaw("""
           $('#selectedPis').val(JSON.stringify(
             $.jstree._reference('#%s').get_selected().map(function(){
               return this.id;
-            }).get()));""".format(htmlId_activeTechniquesTree) 
+            }).get()));""".format(htmlId_activeTechniquesTree)
         ))) &
         JsCrVar("updateSelectedTargets", AnonFunc(JsRaw("""
           $('#selectedTargets').val(JSON.stringify(
             $.jstree._reference('#%s').get_selected().map(function(){
               return this.id;
-            }).get()));""".format(htmlId_groupTree) 
+            }).get()));""".format(htmlId_groupTree)
         ))) &
       OnLoad(
         //build jstree and
@@ -336,7 +336,7 @@ class RuleEditForm(
             S.contextPath
         )) &
         //function to update list of PIs before submiting form
-        JsRaw("buildRulePIdepTree('#%1$s', %2$s,'%3$s');".format(  
+        JsRaw("buildRulePIdepTree('#%1$s', %2$s,'%3$s');".format(
             htmlId_activeTechniquesTree,
             serializedirectiveIds(selectedDirectiveIds.toSeq),
             S.contextPath
@@ -345,101 +345,101 @@ class RuleEditForm(
       )
     )
   }
-  
+
   /*
    * from a list of PI ids, get a string.
-   * the format is a JSON array: [ "id1", "id2", ...] 
+   * the format is a JSON array: [ "id1", "id2", ...]
    */
   private[this] def serializedirectiveIds(ids:Seq[DirectiveId]) : String = {
     implicit val formats = Serialization.formats(NoTypeHints)
     Serialization.write(ids.map( "jsTree-" + _.value ))
   }
-  
+
   private[this] def serializeTargets(targets:Seq[RuleTarget]) : String = {
     implicit val formats = Serialization.formats(NoTypeHints)
     Serialization.write(
-        targets.map { target => 
-          target match { 
+        targets.map { target =>
+          target match {
             case GroupTarget(g) => "jsTree-" + g.value
             case _ => "jsTree-" + target.target
           }
         }
     )
   }
-  
+
   /*
    * from a JSON array: [ "id1", "id2", ...], get the list of
-   * Directive Ids. 
-   * Never fails, but returned an empty list. 
+   * Directive Ids.
+   * Never fails, but returned an empty list.
    */
   private[this] def unserializedirectiveIds(ids:String) : Seq[DirectiveId] = {
-    implicit val formats = DefaultFormats 
+    implicit val formats = DefaultFormats
     parse(ids).extract[List[String]].map( x => DirectiveId(x.replace("jsTree-","")) )
   }
-  
+
   private[this] def unserializeTargets(ids:String) : Seq[RuleTarget] = {
-    implicit val formats = DefaultFormats 
-    parse(ids).extract[List[String]].map{x => 
+    implicit val formats = DefaultFormats
+    parse(ids).extract[List[String]].map{x =>
       GroupTarget(NodeGroupId(x.replace("jsTree-","")))
     }
   }
- 
-  
+
+
   def createPopup(name:String,height:Int,width:Int) :JsCmd = {
     JsRaw("""createPopup("%s",%s,%s);""".format(name,height,width))
   }
-  
+
   ////////////// Callbacks //////////////
-  
-  
+
+
   private[this] def onSuccess() : JsCmd = {
     //MUST BE THIS WAY, because the parent may change some reference to JsNode
     //and so, our AJAX could be broken
-    onSuccessCallback() & updateFormClientSide() & 
+    onSuccessCallback() & updateFormClientSide() &
     //show success popup
     successPopup
   }
-  
+
   private[this] def onFailure() : JsCmd = {
-    onFailureCallback() & 
-    updateFormClientSide() & 
+    onFailureCallback() &
+    updateFormClientSide() &
     JsRaw("""scrollToElement("notifications");""")
   }
-  
+
   private[this] def onFailureRemovePopup() : JsCmd = {
-    updateRemoveFormClientSide() & 
+    updateRemoveFormClientSide() &
     onFailureCallback()
   }
-  
+
   private[this] def onFailureDisablePopup() : JsCmd = {
-    onFailureCallback() & 
+    onFailureCallback() &
     updateDisableFormClientSide()
   }
-  
-  ///////////// Remove ///////////// 
-    
+
+  ///////////// Remove /////////////
+
   private[this] def removeButton : Elem = {
     def removeCr() : JsCmd = {
       if(formTrackerRemovePopup.hasErrors) {
         onFailureRemovePopup
       } else {
-        JsRaw("$.modal.close();") & 
+        JsRaw("$.modal.close();") &
         { val modId = ModificationId(uuidGen.newUuid)
-          ruleRepository.delete(rule.id, modId, CurrentUser.getActor, 
-                        crReasonsRemovePopup.map( _.is)) match { 
+          ruleRepository.delete(rule.id, modId, CurrentUser.getActor,
+                        crReasonsRemovePopup.map( _.is)) match {
             case Full(x) =>
             // There is a delete diff, deploy
             asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
-              onSuccessCallback() & 
+              onSuccessCallback() &
               SetHtml("editRuleZone",
                 <div id="editRuleZone">Rule successfully deleted</div>
               ) &
-              SetHtml(htmlId_rule, 
+              SetHtml(htmlId_rule,
                 <div id={htmlId_rule}>Rule successfully deleted</div>
-              ) & 
+              ) &
               //show success popup
-              successPopup 
-            case Empty => //arg. 
+              successPopup
+            case Empty => //arg.
               formTrackerRemovePopup.addFormError(
                   error("An error occurred while deleting the Rule"))
               onFailure()
@@ -451,69 +451,69 @@ class RuleEditForm(
         }
       }
     }
-    
+
     SHtml.ajaxSubmit("Delete", removeCr _ )
   }
-  
-  
-  ///////////// Activation / disactivation ///////////// 
-  
-  
+
+
+  ///////////// Activation / disactivation /////////////
+
+
   private[this] def disactivateButton : Elem = {
     def switchActivation(status:Boolean)() : JsCmd = {
       if(formTrackerDisactivatePopup.hasErrors) {
         onFailureDisablePopup
       } else {
         crCurrentStatusIsActivated = status
-        JsRaw("$.modal.close();") & 
+        JsRaw("$.modal.close();") &
         saveAndDeployRule(rule.copy(isEnabledStatus = status), crReasonsDisactivatePopup.map(_.is))
       }
     }
-    
+
     if(crCurrentStatusIsActivated) {
       SHtml.ajaxSubmit("Disable", switchActivation(false) _ )
     } else {
       SHtml.ajaxSubmit("Enable", switchActivation(true) _ )
     }
   }
-  
+
   /*
    * Create the ajax save button
    */
-  private[this] def saveButton : NodeSeq = { 
+  private[this] def saveButton : NodeSeq = {
     // add an hidden field to hold the list of selected directives
-    val save = SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> htmlId_save) 
-    // update onclick to get the list of directives and groups in the hidden 
+    val save = SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> htmlId_save)
+    // update onclick to get the list of directives and groups in the hidden
     // fields before submitting
 
-    val newOnclick = "updateSelectedPis(); updateSelectedTargets(); " + 
+    val newOnclick = "updateSelectedPis(); updateSelectedTargets(); " +
       save.attributes.asAttrMap("onclick")
 
-    SHtml.hidden( { ids => 
+    SHtml.hidden( { ids =>
         selectedDirectiveIds = unserializedirectiveIds(ids).toSet
-      }, serializedirectiveIds(selectedDirectiveIds.toSeq) 
-    ) % ( "id" -> "selectedPis") ++ 
-    SHtml.hidden( { targets => 
+      }, serializedirectiveIds(selectedDirectiveIds.toSeq)
+    ) % ( "id" -> "selectedPis") ++
+    SHtml.hidden( { targets =>
         selectedTargets = unserializeTargets(targets).toSet
-      }, serializeTargets(selectedTargets.toSeq) 
-    ) % ( "id" -> "selectedTargets") ++ 
+      }, serializeTargets(selectedTargets.toSeq)
+    ) % ( "id" -> "selectedTargets") ++
     save % ( "onclick" -> newOnclick)
   }
-  
-  
+
+
   /////////////////////////////////////////////////////////////////////////
   /////////////////////////////// Edit form ///////////////////////////////
   /////////////////////////////////////////////////////////////////////////
 
   ///////////// fields for Rule settings ///////////////////
-  
+
   private[this] val crName = new WBTextField("Name", rule.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "twoCol"
-    override def validations = 
+    override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
-  
+
   private[this] val crShortDescription = {
     new WBTextField("Short description", rule.shortDescription) {
       override def className = "twoCol"
@@ -522,11 +522,11 @@ class RuleEditForm(
       override def validations =  Nil
     }
   }
-  
+
   private[this] val crLongDescription = {
     new WBTextAreaField("Description", rule.longDescription.toString) {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  % 
+      override def inputField = super.inputField  %
         ("style" -> "height:10em")
     }
   }
@@ -539,7 +539,7 @@ class RuleEditForm(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-  
+
   private[this] val crReasonsDisactivatePopup = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
@@ -548,7 +548,7 @@ class RuleEditForm(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-  
+
   private[this] val crReasonsRemovePopup = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
@@ -557,11 +557,11 @@ class RuleEditForm(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-  
+
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
     new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  % 
+      override def inputField = super.inputField  %
         ("style" -> "height:8em;")
       override def subContainerClassName = containerClass
       override def validations() = {
@@ -579,48 +579,48 @@ class RuleEditForm(
   }
 
   private[this] val formTracker = {
-    val fields = List(crName, crShortDescription, crLongDescription) ++ 
+    val fields = List(crName, crShortDescription, crLongDescription) ++
       crReasons.toList
-    new FormTracker(fields) 
+    new FormTracker(fields)
   }
-  
+
   private[this] val formTrackerRemovePopup = {
-    new FormTracker(crReasonsRemovePopup.toList) 
+    new FormTracker(crReasonsRemovePopup.toList)
   }
-  
+
   private[this] val formTrackerDisactivatePopup = {
-    new FormTracker(crReasonsDisactivatePopup.toList) 
+    new FormTracker(crReasonsDisactivatePopup.toList)
   }
-  
+
   private[this] def activateButtonOnChange() : JsCmd = {
     JsRaw("""activateButtonOnFormChange("%s", "%s");  """.format(htmlId_rule,htmlId_save) )
   }
-  
+
   private[this] def updateFormClientSide() : JsCmd = {
     Replace(htmlId_EditZone, this.showForm(1) )
   }
 
   private[this] def updateRemoveFormClientSide() : JsCmd = {
     val jsDisplayRemoveDiv = JsRaw("""$("#removeActionDialog").removeClass('nodisplay')""")
-    Replace("removeActionDialog", this.showRemovePopupForm()) & 
+    Replace("removeActionDialog", this.showRemovePopupForm()) &
     jsDisplayRemoveDiv &
     initJs
   }
-  
+
   private[this] def updateDisableFormClientSide() : JsCmd = {
     val jsDisplayDisableDiv = JsRaw("""$("#desactivateActionDialog").removeClass('nodisplay')""")
-    Replace("desactivateActionDialog", this.showDisactivatePopupForm()) & 
+    Replace("desactivateActionDialog", this.showDisactivatePopupForm()) &
     jsDisplayDisableDiv &
     initJs
   }
-  
+
   def initJs : JsCmd = {
     JsRaw("correctButtons();")
   }
-  
+
   private[this] def error(msg:String) = <span class="error">{msg}</span>
-  
-    
+
+
   private[this] def onSubmit() : JsCmd = {
     if(formTracker.hasErrors) {
       onFailure
@@ -636,7 +636,7 @@ class RuleEditForm(
       saveAndDeployRule(newCr, crReasons.map(_.is))
     }
   }
-  
+
   private[this] def saveAndDeployRule(rule:Rule, reason: Option[String]) : JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
     ruleRepository.update(rule, modId, CurrentUser.getActor, reason) match {
@@ -648,7 +648,7 @@ class RuleEditForm(
         }
         this.rule = rule
         onSuccess
-      case Empty => //arg. 
+      case Empty => //arg.
         formTracker.addFormError(error("An error occurred while saving the Rule"))
         onFailure
       case f:Failure =>
@@ -656,30 +656,30 @@ class RuleEditForm(
         onFailure
       }
   }
-  
+
   private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
-    
+
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
-   
+
     if(notifications.isEmpty) {
       NodeSeq.Empty
     }
     else {
-      val html = 
+      val html =
         <div id="notifications" class="notify">
           <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
         </div>
       html
     }
   }
-  
+
   ///////////// success pop-up ///////////////
   private[this] def successPopup : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)     
+    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)
     """)
   }
-    
+
  /********************************************
   * Utilitary methods for JS
   ********************************************/
@@ -697,7 +697,7 @@ class RuleEditForm(
       override def body = {
         val tooltipid = Helpers.nextFuncName
           <a href="#">
-          <span class="treeGroupCategoryName tooltipable" tooltipid={tooltipid} 
+          <span class="treeGroupCategoryName tooltipable" tooltipid={tooltipid}
             title={category.description}>
             {category.name}
           </span>
@@ -707,12 +707,12 @@ class RuleEditForm(
           <div>{category.description}</div>
         </div>
       }
-  
+
       override def children = {
-        category.children.flatMap(x => nodeGroupCategoryIdToJsTreeNode(x)) ++ 
+        category.children.flatMap(x => nodeGroupCategoryIdToJsTreeNode(x)) ++
         category.items.map(x => policyTargetInfoToJsTreeNode(x))
       }
-        
+
       override val attrs =
         ( "rel" -> { if(category.id == rootCategoryId) "root-category" else "category" } ) ::
         ( "catId" -> category.id.value ) ::
@@ -752,7 +752,7 @@ class RuleEditForm(
          override def body =  {
            val tooltipid = Helpers.nextFuncName
            <span class="treeGroupName tooltipable" title="" tooltipid={tooltipid} >
-             {targetInfo.name} 
+             {targetInfo.name}
              <span title={targetInfo.description} class="greyscala">
                (special)
              </span>
@@ -762,7 +762,7 @@ class RuleEditForm(
              </div>
            </span>
          }
-                               
+
          override def children = Nil
          override val attrs = ( "rel" -> "special_target" ) :: Nil
       }
@@ -780,22 +780,22 @@ class RuleEditForm(
         addCurrentNodeGroup(group)
         Noop
       }
-  
+
       override def body = {
         val tooltipid = Helpers.nextFuncName
         SHtml.a(onClickNode _,
-          <span class="treeGroupName tooltipable" tooltipid={tooltipid} 
+          <span class="treeGroupName tooltipable" tooltipid={tooltipid}
           title={group.description}>
             {List(group.name,group.isDynamic?"dynamic"|"static").mkString(": ")}
           </span>
           <div class="tooltipContent" id={tooltipid}>
             <h3>{group.name}</h3>
             <div>{group.description}</div>
-          </div>)    
+          </div>)
       }
-      
+
       override def children = Nil
-      
+
       override val attrs =
         ( "rel" -> "group" ) ::
         ( "groupId" -> group.id.value ) ::
@@ -817,20 +817,20 @@ class RuleEditForm(
      *converts activeTechniqueId into Option[(JsTreeNode, Option[Technique])]
      *returns some(something) if the technique has some derivated directives, else returns none
      * */
-    def activeTechniqueIdToJsTreeNode(id : ActiveTechniqueId) : Option[(JsTreeNode, Option[Technique])] = { 
-      
+    def activeTechniqueIdToJsTreeNode(id : ActiveTechniqueId) : Option[(JsTreeNode, Option[Technique])] = {
+
       def activeTechniqueToJsTreeNode(activeTechnique : ActiveTechnique, technique:Technique) : JsTreeNode = {
-        
+
         //check Directive existence and transform it to a tree node
         def directiveIdToJsTreeNode(directiveId : DirectiveId) : (JsTreeNode,Option[Directive]) = {
-          
+
           directiveRepository.getDirective(directiveId) match {
             case Full(directive) =>  (
               new JsTreeNode {
                 override def body = {
                   val tooltipid = Helpers.nextFuncName
                   <a href="#">
-                    <span class="treeDirective tooltipable" tooltipid={tooltipid} 
+                    <span class="treeDirective tooltipable" tooltipid={tooltipid}
                       title={directive.shortDescription}>
                       {directive.name}
                     </span>
@@ -842,10 +842,10 @@ class RuleEditForm(
                 }
                 override def children = Nil
                 override val attrs = {
-                  ( "rel" -> "directive") :: 
-                  ( "id" -> ("jsTree-" + directive.id.value)) :: 
-                  ( if(!directive.isEnabled) 
-                      ("class" -> "disableTreeNode") :: Nil 
+                  ( "rel" -> "directive") ::
+                  ( "id" -> ("jsTree-" + directive.id.value)) ::
+                  ( if(!directive.isEnabled)
+                      ("class" -> "disableTreeNode") :: Nil
                     else Nil
                   )
                }
@@ -855,26 +855,26 @@ class RuleEditForm(
             case x =>
               logger.error("Error while fetching node %s: %s".format(directiveId, x.toString))
               (new JsTreeNode {
-                override def body = 
+                override def body =
                   <span class="error">Can not find node {directiveId.value}</span>
                 override def children = Nil
-              }, 
+              },
               None)
           }
         }
-        
-        new JsTreeNode {      
+
+        new JsTreeNode {
           override val attrs = {
-            ( "rel" -> "template") :: Nil ::: 
-            ( if(!activeTechnique.isEnabled) 
-                ("class" -> "disableTreeNode") :: Nil 
-              else Nil 
+            ( "rel" -> "template") :: Nil :::
+            ( if(!activeTechnique.isEnabled)
+                ("class" -> "disableTreeNode") :: Nil
+              else Nil
             )
           }
           override def body = {
-            val tooltipid = Helpers.nextFuncName            
+            val tooltipid = Helpers.nextFuncName
               <a href="#">
-                <span class="treeActiveTechniqueName tooltipable" 
+                <span class="treeActiveTechniqueName tooltipable"
                   tooltipid={tooltipid} title={technique.description}>
                   {technique.name}
                 </span>
@@ -884,29 +884,29 @@ class RuleEditForm(
                 </div>
               </a>
           }
-      
-          override def children = 
+
+          override def children =
             activeTechnique.directives
               .map(x => directiveIdToJsTreeNode(x)).toList
-              .sortWith { 
+              .sortWith {
                 case ( (_, None) , _  ) => true
                 case (  _ ,  (_, None)) => false
-                case ( (node1, Some(pi1)), (node2, Some(pi2)) ) => 
+                case ( (node1, Some(pi1)), (node2, Some(pi2)) ) =>
                   treeUtilService.sortPi(pi1,pi2)
               }
               .map { case (node, _) => node }
         }
       }
-      
+
       activeTechniqueRepository.getActiveTechnique(id) match {
-        case Full(activeTechnique) => 
+        case Full(activeTechnique) =>
           techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
-            case Some(refPt) if activeTechnique.directives.size>0 => 
+            case Some(refPt) if activeTechnique.directives.size>0 =>
               Some( activeTechniqueToJsTreeNode(activeTechnique,refPt), Some(refPt))
             case Some(refPt) if activeTechnique.directives.size==0 => None
-            case None => 
+            case None =>
               Some(new JsTreeNode {
-                override def body = 
+                override def body =
                   <span class="error">Can not find node {activeTechnique.techniqueName}</span>
                 override def children = Nil
               }, None)
@@ -921,11 +921,11 @@ class RuleEditForm(
         }
     }
 
-    
+
     //chech Active Technique category id and transform it to a tree node
-    def activeTechniqueCategoryIdToJsTreeNode(id:ActiveTechniqueCategoryId) : 
+    def activeTechniqueCategoryIdToJsTreeNode(id:ActiveTechniqueCategoryId) :
       Box[(JsTreeNode,ActiveTechniqueCategory)] = {
-      
+
       activeTechniqueCategoryRepository.getActiveTechniqueCategory(id) match {
         //remove sytem category
         case Full(cat) => cat.isSystem match {
@@ -943,7 +943,7 @@ class RuleEditForm(
       override def body = {
         val tooltipid = Helpers.nextFuncName
         <a href="#">
-          <span class="treeActiveTechniqueCategoryName tooltipable" 
+          <span class="treeActiveTechniqueCategoryName tooltipable"
               tooltipid={tooltipid} title={category.description}>
             {Text(category.name)}
           </span>
@@ -963,25 +963,25 @@ class RuleEditForm(
             .sortWith {
               case ( (_, None) , _ ) => true
               case ( _ , (_, None) ) => false
-              case ( (node1, Some(refPt1)) , (node2, Some(refPt2)) ) => 
+              case ( (node1, Some(refPt1)) , (node2, Some(refPt2)) ) =>
                 treeUtilService.sortPt(refPt1,refPt2)
             }
             .map { case (node,_) => node }
         }
-      
+
         val sortedCat = {
           category.children
-            .filter { categoryId => 
+            .filter { categoryId =>
               activeTechniqueCategoryRepository.containsDirective(categoryId)
             }
             .flatMap(x => activeTechniqueCategoryIdToJsTreeNode(x))
             .toList
-            .sortWith { case ( (node1, cat1) , (node2, cat2) ) => 
+            .sortWith { case ( (node1, cat1) , (node2, cat2) ) =>
               treeUtilService.sortActiveTechniqueCategory(cat1,cat2)
             }
             .map { case (node,_) => node }
         }
-                              
+
         val res = sortedActiveTechnique ++ sortedCat
         res
       }
@@ -1231,7 +1231,7 @@ class RuleEditForm(
       </tbody>
     </table>
   }
-  
+
   /*
    * Display component value details
    */
@@ -1437,7 +1437,7 @@ class RuleEditForm(
       def showMissingReport(report:(String,String)) : NodeSeq = {
               ( "#technique *" #>  "%s (%s)".format(techniqueName,techniqueVersion)&
                 "#component *" #>  report._1&
-                "#value *" #>  report._2 
+                "#value *" #>  report._2
               ) ( missingLineXml )
             }
 
@@ -1516,7 +1516,7 @@ class RuleEditForm(
                 </a> &
                 "#technique *" #>  "%s (%s)".format(techniqueName,techniqueVersion)&
                 "#component *" #>  report.component &
-                "#value *" #>  report.value & 
+                "#value *" #>  report.value &
                 "#message *" #>  <ul>{report.report.message.map(msg => <li>{msg}</li>)}</ul>
               ) ( unexpectedLineXml )
             }
@@ -1601,7 +1601,7 @@ class RuleEditForm(
     }
 
     def ShowReportsByType(report:RuleStatusReport ) : NodeSeq = {
- 
+
       /*
        * reports are displayed in cascaded dataTables
        * Parameters:
@@ -1880,7 +1880,7 @@ class RuleEditForm(
       val tab =  ShowReportsByType(directivebynode)
          xml++tab
      }
-   
+
   </div>
   <div class="simplemodal-bottom">
     <hr/>
@@ -1896,7 +1896,7 @@ class RuleEditForm(
   val htmlId_rulesGridZone = "rules_grid_zone"
   val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
-  
+
   private[this] def showPopup(directiveStatus: RuleStatusReport) : JsCmd = {
 
     val popupHtml = createPopup(directiveStatus)
@@ -1908,6 +1908,6 @@ class RuleEditForm(
     ) &
     JsRaw( """ createPopup("%s",600,900)""".format(htmlId_modalReportsPopup))
   }
-  
+
 }
-  
+

@@ -44,8 +44,8 @@ import com.normation.eventlog.ModificationId
 
 
 /**
- * The directive repository. 
- * 
+ * The directive repository.
+ *
  * directive are instance of technique
  * (a technique + values for its parameters)
  *
@@ -62,81 +62,81 @@ trait RuleRepository {
 
   /**
    * Save the given directive into given active technique
-   * If a directive with the same ID is already present in the 
+   * If a directive with the same ID is already present in the
    * system, raise an error.
    * If the directive is not in the system, add it.
-   * 
+   *
    * Returned the saved Rule
-   * 
+   *
    * NOTE: only save here, deploy is done in the DeploymentService
-   * 
+   *
    * NOTE: some parameter may be forced to a value different from the
    * one provided (typically, serial will be set to 0 whatever it's value
    * is). It is the responsability of the user to check that if he wants
-   * with the provided resulting rule. 
-   * 
-   */  
+   * with the provided resulting rule.
+   *
+   */
   def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[AddRuleDiff]
 
   /**
-   * Update the rule with the given ID with the given 
+   * Update the rule with the given ID with the given
    * parameters.
-   * 
-   * If the rule is not in the repos, the method fails. 
-   * 
-   * NOTE: the serial is *never* updated with that methods. 
+   *
+   * If the rule is not in the repos, the method fails.
+   *
+   * NOTE: the serial is *never* updated with that methods.
    */
   def update(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]]
-  
+
   /**
-   * Increment the serial of rules with given ID by one. 
-   * Return the new serial value. 
-   * The method fails if no rule has such ID. 
+   * Increment the serial of rules with given ID by one.
+   * Return the new serial value.
+   * The method fails if no rule has such ID.
    */
   def incrementSerial(id:RuleId) : Box[Int]
-  
+
   /**
-   * Delete the rule with the given ID. 
+   * Delete the rule with the given ID.
    * If no rule with such ID exists, it is an error
    * (it's the caller site responsability to decide if it's
-   * and error or not). 
+   * and error or not).
    */
   def delete(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteRuleDiff]
-  
-  def getAll(includeSytem:Boolean = false) : Box[Seq[Rule]] 
-  
+
+  def getAll(includeSytem:Boolean = false) : Box[Seq[Rule]]
+
   /**
    * Return all activated rule.
-   * A rule is activated if 
+   * A rule is activated if
    * - its attribute "isEnabled" is set to true ;
    * - its referenced group is Activated ;
-   * - its referenced directive is activated (what means that the 
+   * - its referenced directive is activated (what means that the
    *   referenced active technique is activated)
    * @return
    */
-  def getAllEnabled() : Box[Seq[Rule]] 
-  
+  def getAllEnabled() : Box[Seq[Rule]]
+
   /**
    * A (dangerous) method that replace all existing rules
-   * by the list given in parameter. 
+   * by the list given in parameter.
    * If succeed, return an identifier of the place were
    * are stored the old rules - it is the
    * responsibility of the user to delete them.
-   * 
-   * Most of the time, we don't want to change system rules. 
-   * So when "includeSystem" is false (default), swapRules 
+   *
+   * Most of the time, we don't want to change system rules.
+   * So when "includeSystem" is false (default), swapRules
    * implementation have to take care to ignore any configuration (both in
-   * newCr or in archive). 
-   * 
+   * newCr or in archive).
+   *
    * Note: a really really special care have to be taken with serial IDs:
    * - for CR which exists in both imported and existing referential, the
    *   serial ID MUST be updated (+1)
    * - for all other imported CR, the serial MUST be set to 0
    */
   def swapRules(newRules:Seq[Rule], includeSystem:Boolean = false) : Box[RuleArchiveId]
-  
+
   /**
-   * Delete a set of saved rules. 
+   * Delete a set of saved rules.
    */
   def deleteSavedRuleArchiveId(saveId:RuleArchiveId) : Box[Unit]
 }

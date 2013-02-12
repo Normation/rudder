@@ -39,18 +39,18 @@ import net.liftweb.util.Helpers._
 
 /**
  * Something that is displayable as a tree node.
- * 
+ *
  * It has basically two things:
  * - a body (nodeseq)
  * - a list of children treenodes
  */
 trait JsTreeNode {
-  
+
   val attrs = List.empty[(String,String)]
-  
+
   def body : NodeSeq
   def children : List[JsTreeNode]
-  
+
   def toXml : NodeSeq = {
     (<li>
       {body}

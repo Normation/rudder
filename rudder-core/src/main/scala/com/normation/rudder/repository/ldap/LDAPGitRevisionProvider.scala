@@ -59,7 +59,7 @@ class LDAPGitRevisionProvider(
   }
 
   private[this] var currentId = {
-    //try to read from LDAP, and if we can't, returned the last available from git 
+    //try to read from LDAP, and if we can't, returned the last available from git
     (for {
       con <- ldap
       entry <- con.get(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, A_TECHNIQUE_LIB_VERSION)
@@ -86,7 +86,7 @@ class LDAPGitRevisionProvider(
   override def getAvailableRevTreeId: ObjectId = {
     GitFindUtils.findRevTreeFromRevString(gitRepo.db, refPath) match {
       case Full(id) => id
-      case eb:EmptyBox => 
+      case eb:EmptyBox =>
         val e = eb ?~! "Error when looking for a commit tree in git"
         logger.error(e.messageChain)
         logger.debug(e.exceptionChain)

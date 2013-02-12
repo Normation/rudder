@@ -61,4 +61,4 @@ case class NodeInfo(
   , isBroken      : Boolean
   , isSystem      : Boolean
   , isPolicyServer: Boolean
-) extends HashcodeCaching 
+) extends HashcodeCaching

@@ -66,7 +66,7 @@ import net.liftweb.util.ToJsCmd
 /**
  * The Search Nodes component
  * It is used in the standard search server page, and in the group page (and probably elsewhere)
- * 
+ *
  * query and srvList are both var, because they will be manipulated by the component
  * we would have wanted to get back their value, but it seems it cannot be done
  *
@@ -81,37 +81,37 @@ class SearchNodeComponent(
     saveButtonId : String = "" // the id of the save button, that gets disabled when one change the form
 )extends DispatchSnippet {
   import SearchNodeComponent._
-  
+
   //our local copy of things we work on
   private[this] var query = _query.map(x => x.copy())
   private[this] var srvList = _srvList.map(x => Seq() ++ x)
-  
-  
+
+
   private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] val queryProcessor = inject[QueryProcessor]("queryProcessor")
 
-  
+
   // The portlet for the server detail
   private[this] def serverPortletPath = List("templates-hidden", "server", "server_details")
   private[this] def serverPortletTemplateFile() =  Templates(serverPortletPath) match {
-    case Empty | Failure(_,_,_) => 
+    case Empty | Failure(_,_,_) =>
       throw new TechnicalException("Template for server details not found. I was looking for %s.html".format(serverPortletPath.mkString("/")))
     case Full(n) => n
   }
-  
+
   private[this] def searchNodes = chooseTemplate("query","SearchNodes",serverPortletTemplateFile)
   private[this] def content = chooseTemplate("content","query",searchNodes)
 
-  
-  
+
+
   /**
    * External exposition of the current state of server list.
    * Page/component which includes SearchNodeComponent can use it.
    * @return
    */
   def getSrvList() : Box[Seq[NodeInfo]] = srvList
-  
-  
+
+
   /**
    * External exposition of the current state of query.
    * Page/component which includes SearchNodeComponent can use it.
@@ -123,12 +123,12 @@ class SearchNodeComponent(
     case "showQuery" => { _ => buildQuery }
     case "head" => { _ => head() }
   }
-  
+
   var activateSubmitButton = true
   var initUpdate = true // this is true when we arrive on the page, or when we've done an search
 
   var errors = Buffer[Box[String]]()
-  
+
   def head() : NodeSeq = {
     <head>
       {
@@ -136,15 +136,15 @@ class SearchNodeComponent(
       }
     </head>
   }
-  
-  
+
+
   def buildQuery() : NodeSeq = {
-    if(None == query) query = Some(Query(NodeReturnType,And,Seq(defaultLine))) 
+    if(None == query) query = Some(Query(NodeReturnType,And,Seq(defaultLine)))
     val lines = ArrayBuffer[CriterionLine]()
-    var composition = query.get.composition 
+    var composition = query.get.composition
     var rType = query.get.returnType //for now, don't move
 
-   
+
     def addLine(i:Int) : JsCmd = {
       lines.insert(i+1, CriterionLine(ditQueryData.criteriaMap(OC_NODE),ditQueryData.criteriaMap(OC_NODE).criteria(0),ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0)))
       query = Some(Query(rType, composition, lines.toSeq))
@@ -152,7 +152,7 @@ class SearchNodeComponent(
       initUpdate = false
       ajaxCriteriaRefresh
     }
-    
+
     def removeLine(i:Int) : JsCmd ={
       if(lines.size > i) {
         lines.remove(i)
@@ -162,7 +162,7 @@ class SearchNodeComponent(
       initUpdate = false
       ajaxCriteriaRefresh
     }
-    
+
     def processForm() : JsCmd = {
       //filter on non validate values
       errors.clear()
@@ -188,41 +188,41 @@ class SearchNodeComponent(
         ajaxCriteriaRefresh & ajaxGridRefresh
       }
     }
-    
+
     /**
      * Refresh the query parameter part
      */
     def ajaxCriteriaRefresh : JsCmd = {
           SetHtml("SearchForm", displayQuery(content))& activateButtonOnChange & JsRaw("correctButtons();")
     }
-    
+
     /**
-     * Display the query part 
+     * Display the query part
      * Caution, we pass an html different at the init part (whole content:query) or at update (update:query)
-     * 
+     *
      */
     def displayQuery(html: NodeSeq ) : NodeSeq = {
       val Query(otName,comp, criteria) = query.get
       SHtml.ajaxForm(bind("query", html,
         "typeQuery" ->  <label>Include policy servers: <span class="compositionCheckbox">{SHtml.checkbox(rType==NodeAndPolicyServerReturnType, { value:Boolean =>
-                if (value) 
-                  rType = NodeAndPolicyServerReturnType 
-                else 
+                if (value)
+                  rType = NodeAndPolicyServerReturnType
+                else
                   rType = NodeReturnType}
               )}</span></label>,
         "composition" -> SHtml.radio(Seq("AND", "OR"), Full(if(comp == Or) "OR" else "AND"), {value:String =>
           composition = CriterionComposition.parse(value).getOrElse(And) //default to AND on unknown composition string
           }, ("class", "radio")).flatMap(e => <label>{e.xhtml} <span class="radioTextLabel">{e.key.toString}</span></label>),
-        "lines" -> {(ns: NodeSeq) => 
+        "lines" -> {(ns: NodeSeq) =>
           /*
            * General remark :
          * - bind parameter of closure to lines (so that they actually get the current value of the line when evaluated)
          * - bind parameter out of closure to ot/a/c/v so that they have the current value (and not a past one)
          */
-      
+
         {
-          criteria.zipWithIndex.flatMap { case (CriterionLine(ot,a,c,v),i) => 
-          
+          criteria.zipWithIndex.flatMap { case (CriterionLine(ot,a,c,v),i) =>
+
           for(j <- lines.size to i) {
             lines.append(defaultLine)
           }
@@ -246,12 +246,12 @@ class SearchNodeComponent(
               if(!c.hasValue) form = form % Attribute("disabled",Seq(Text("disabled")),Null)
               form
             } ,
-            "error" -> { errors(i) match { 
+            "error" -> { errors(i) match {
               case Full(m) => <tr><td class="error" colspan="6">{m}</td></tr>
-              case _ => NodeSeq.Empty 
+              case _ => NodeSeq.Empty
             }}
           )
-        }:NodeSeq} ++ { if(criteria.size > 0) { 
+        }:NodeSeq} ++ { if(criteria.size > 0) {
           //add a <script> tag to init all specific Js form renderer, like Jquery datepicker for date
           var initJs = criteria(0).attribute.cType.initForm("v_0")
           for(i <- 1 until criteria.size) { initJs = initJs & criteria(i).attribute.cType.initForm("v_"+i) }
@@ -270,36 +270,36 @@ class SearchNodeComponent(
           } );
           """)))
     }
-    
+
 
     /**
      * Show the search engine and the grid
      */
     def showQueryAndGridContent() : NodeSeq = {
-      bind("content",searchNodes, 
+      bind("content",searchNodes,
         "query" -> {x:NodeSeq => displayQuery(x)},
         "gridResult" -> srvGrid.display(Seq(), "serverGrid", Seq(), "") // we need to set something, or IE moans
       )
     }
     showQueryAndGridContent()  ++ Script(OnLoad(ajaxGridRefresh))
   }
-  
+
   /**
    * Refresh the grid result
    * A small trick of the trade : since the Showing x of xx is moved out of the ajax refresh
-   * zone, it must be removed before being added again, or problems will rises 
+   * zone, it must be removed before being added again, or problems will rises
    * @return
    */
   def ajaxGridRefresh() : JsCmd = {
       val grid = gridResult
       JE.JsRaw("""$("#serverGrid_info").remove();""") &
       JE.JsRaw("""$("#serverGrid_length").remove();""") &
-      SetHtml("gridResult", grid._1) & grid._2 & activateButtonOnChange  
-      
+      SetHtml("gridResult", grid._1) & grid._2 & activateButtonOnChange
+
   }
-  
-  
-  
+
+
+
   /**
    * When we change the form, we can update the query
    * @return
@@ -308,38 +308,38 @@ class SearchNodeComponent(
     onSearchCallback(activateSubmitButton & !initUpdate) &
     JE.JsRaw("""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "%s", "%s");  """.format(activateSubmitButton, saveButtonId))
   }
-  
+
   /**
    * From the computed result, return the NodeSeq corresponding to the grid, plus the initialisation JS
    */
   def gridResult : (NodeSeq, JsCmd) = {
     // Ideally this would just check the size first ?
     srvList match {
-      case Full(seq) => 
+      case Full(seq) =>
         (srvGrid.display(seq, "serverGrid", Seq(), ""),
         srvGrid.initJs("serverGrid", Seq(), "", false, true, onClickCallback))
-      
-      case Empty => 
+
+      case Empty =>
         (srvGrid.display(Seq(), "serverGrid", Seq(), ""),
         srvGrid.initJs("serverGrid", Seq(), "", false, true, onClickCallback))
-        
-      case f@Failure(_,_,_) => (<div><h4>Error</h4>{f.messageChain}</div>, Noop)     
+
+      case f@Failure(_,_,_) => (<div><h4>Error</h4>{f.messageChain}</div>, Noop)
     }
-  }  
-  
+  }
+
 }
 
 
 /*
  * Structure of the Query:
- * var query = { 
+ * var query = {
  *   'objectType' : 'server' ,  //what we are looking for at the end (servers, software...)
  *   'composition' : 'and' ,  // or 'or'
- *   'criteria': [ 
+ *   'criteria': [
  *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' } ,  //value is optionnal, other are mandatory
  *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' } ,
  *     ...
- *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' } 
+ *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' }
  *   ]
  * }
  */
@@ -350,12 +350,12 @@ object SearchNodeComponent {
   lazy val srvGrid =  inject[SrvGrid]
 
   ////////
-  //////// All the tools to handle the Ajax logic for 
+  //////// All the tools to handle the Ajax logic for
   //////// dependent Select Box:
   //////// - passing string param between client and server (TODO : should be json)
   //////// - buildind the required JS to update the select box to its new value
   ////////
-  
+
   def parseAttrParam(s:String) : Option[(String,String,String,String,String,String,String)] = {
     //expected "newObjectTypeValue,attributeSelectEltId,oldAttrValue,comparatorSelectEltId,oldCompValue,valueSelectEltId,oldValue
     val reg = """([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)""".r
@@ -389,7 +389,7 @@ object SearchNodeComponent {
     if(e) SetExp(ElemById(valueEltId,"disabled"), JsFalse)
     else SetExp(ElemById(valueEltId,"disabled"), JsTrue)
   }
-  
+
   def updateCompAndValue(func: String => Any,ot:String,a:String,c_eltid:String,c_oldVal:String,v_eltid:String,v_old:String) : JsCmd = {
     //change input display
     val comp = ditQueryData.criteriaMap.get(ot) match {
@@ -398,15 +398,15 @@ object SearchNodeComponent {
         case None => StringComparator
         case Some(comp) => comp.cType
       }
-    }        
+    }
     val comparators = optionComparatorsFor(ot,a)
     val compNames = comparators.map(_._1)
     val selectedComp = compNames match {
       case a::_ => compNames.filter(_==c_oldVal) match {
-        case x::_ => x 
+        case x::_ => x
         case Nil => a
       }
-      case Nil => "" 
+      case Nil => ""
     }
     JsRaw("jQuery('#%s').replaceWith('%s')".format(v_eltid,comp.toForm(v_old,func,("id"->v_eltid), ("class" -> "queryInputValue")))) & comp.initForm(v_eltid) &
     JsCmds.ReplaceOptions(c_eltid,comparators,Full(selectedComp)) &
@@ -417,65 +417,65 @@ object SearchNodeComponent {
         } );
         """))
   }
-  
+
   def replaceAttributes(func: String => Any)(ajaxParam:String):JsCmd = {
     parseAttrParam(ajaxParam) match {
       case None => Alert("Can't parse for attribute: " + ajaxParam)
-      case Some((ot,a_eltid,a_oldVal,c_eltid,c_oldVal,v_eltid,v_old)) => 
+      case Some((ot,a_eltid,a_oldVal,c_eltid,c_oldVal,v_eltid,v_old)) =>
         //change attribute list
         val attributes = optionAttributesFor(ot)
         val attrNames = attributes.map(_._1)
         val selectedAttr = attrNames match {
           case a::_ => attrNames.filter(_==a_oldVal) match {
-            case x::_ => x 
+            case x::_ => x
             case Nil => a
           }
-          case Nil => "" 
+          case Nil => ""
         }
-        
+
         JsCmds.ReplaceOptions(a_eltid,attributes,Full(selectedAttr)) &
         updateCompAndValue(func,ot,selectedAttr,c_eltid,c_oldVal,v_eltid,v_old)
     }
   }
-  
-  def replaceComp(func: String => Any)(ajaxParam:String):JsCmd = { 
+
+  def replaceComp(func: String => Any)(ajaxParam:String):JsCmd = {
     parseCompParam(ajaxParam) match {
       case None => Alert("Can't parse for comparator: " + ajaxParam)
-      case Some((ot,a,c_eltid,c_oldVal,v_eltid,v_old)) => 
+      case Some((ot,a,c_eltid,c_oldVal,v_eltid,v_old)) =>
         updateCompAndValue(func,ot,a,c_eltid,c_oldVal,v_eltid,v_old)
     }
   }
-  
+
   def replaceValue(ajaxParam:String):JsCmd = {  //elementId:String, comp:String, oldValue:String) : JsCmd = {
     parseValParam(ajaxParam) match {
       case None => Alert("Can't parse for value: " + ajaxParam)
       case Some((c_val,v_eltid)) => setIsEnableFor(c_val,v_eltid)
     }
   }
-  
+
 
   //expected "newObjectTypeValue,attributeSelectEltId,oldAttrValue,comparatorSelectEltId,oldCompValue,valueSelectEltId,oldValue
   def ajaxAttr(lines: Buffer[CriterionLine], i:Int) = { SHtml.ajaxCall( //we we change the attribute, we want to reset the value, see issue #1199
-      JE.JsRaw("this.value+',at_%s,'+%s+',ct_%s,'+ %s +',v_%s,'+%s".format(i, ValById("at_"+i).toJsCmd,i,ValById("ct_"+i).toJsCmd,i,Str("").toJsCmd)), 
+      JE.JsRaw("this.value+',at_%s,'+%s+',ct_%s,'+ %s +',v_%s,'+%s".format(i, ValById("at_"+i).toJsCmd,i,ValById("ct_"+i).toJsCmd,i,Str("").toJsCmd)),
       s => After(200, replaceAttributes(x => lines(i) = lines(i).copy(value=x))(s))) }
   //expect "objectTypeValue,newAttrValue,comparatorSelectEltId,oldCompValue,valueSelectEltId
   def ajaxComp(lines: Buffer[CriterionLine], i:Int)= { SHtml.ajaxCall( //we we change the attribute, we want to reset the value, see issue #1199
-      JE.JsRaw("%s+','+this.value+',ct_%s,'+ %s +',v_%s,'+%s".format(ValById("ot_"+i).toJsCmd, i, ValById("ct_"+i).toJsCmd,i,Str("").toJsCmd)), 
+      JE.JsRaw("%s+','+this.value+',ct_%s,'+ %s +',v_%s,'+%s".format(ValById("ot_"+i).toJsCmd, i, ValById("ct_"+i).toJsCmd,i,Str("").toJsCmd)),
       s => After(200, replaceComp(x => lines(i) = lines(i).copy(value=x))(s))) }
   //expect "newCompValue,valueSelectEltId"
   def ajaxVal(lines: Buffer[CriterionLine], i:Int) = { SHtml.ajaxCall(
-      JE.JsRaw("this.value+',v_%s'".format(i)), 
+      JE.JsRaw("this.value+',v_%s'".format(i)),
       s => After(200, replaceValue(s))) }
-  
+
   ////////
   //////// Build require select box for a line
   ////////
-  
+
   //how to present the first select box
   val otOptions : List[(String,String)] = {
     val opts = Buffer[(String,String)]()
     def add(s:String, pre:String="") = opts += ((s,pre + S.?("ldap.object."+s)))
-    
+
     add(OC_NODE)
     add(OC_NET_IF, " ├─ ")
     add(OC_FS,     " ├─ ")
@@ -495,14 +495,14 @@ object SearchNodeComponent {
     add(OC_SOFTWARE)
     opts.toList
   }
-  
+
   def optionAttributesFor(objectType:String) : List[(String,String)] = {
     ditQueryData.criteriaMap.get(objectType) match {
       case None => List()
       case Some(ot) => ot.criteria.map(x => (x.name,S.?("ldap.attr."+x.name))).toList
     }
   }
-  
+
   def optionComparatorsFor(objectType:String,attribute:String) : List[(String,String)] = {
     ditQueryData.criteriaMap.get(objectType) match {
       case None => List()
@@ -512,11 +512,11 @@ object SearchNodeComponent {
       }
     }
   }
-  
+
   def objectTypeSelect(ot:ObjectCriterion,lines: Buffer[CriterionLine],i:Int) : NodeSeq = {
-    SHtml.untrustedSelect( 
+    SHtml.untrustedSelect(
       otOptions,
-      Full(ot.objectType), 
+      Full(ot.objectType),
       ({ x =>
         ditQueryData.criteriaMap.get(x) foreach { o => if(i >= 0 && i < lines.size) lines(i) = lines(i).copy(objectType=o) }
       }),
@@ -524,11 +524,11 @@ object SearchNodeComponent {
       ("onchange", ajaxAttr(lines,i)._2.toJsCmd)
     )
   }
-  
+
   def attributeNameSelect(ot:ObjectCriterion,a:Criterion,lines: Buffer[CriterionLine],i:Int) : NodeSeq =  {
-    SHtml.untrustedSelect( 
-      optionAttributesFor(ot.objectType), 
-      Full(a.name), 
+    SHtml.untrustedSelect(
+      optionAttributesFor(ot.objectType),
+      Full(a.name),
       (x => {  //check that x is really a value of ot
         if(i >= 0 && i < lines.size) lines(i).objectType.criterionForName(x) foreach { y => lines(i) = lines(i).copy(attribute=y) }
       }),
@@ -536,12 +536,12 @@ object SearchNodeComponent {
       ("onchange", ajaxComp(lines,i)._2.toJsCmd)
     )
   }
-  
+
   def comparatorSelect(ot:ObjectCriterion,a:Criterion,c:CriterionComparator,lines: Buffer[CriterionLine],i:Int) : NodeSeq =  {
-    SHtml.untrustedSelect( 
-      optionComparatorsFor(ot.objectType,a.name), 
-      Full(c.id), 
-      (x => { 
+    SHtml.untrustedSelect(
+      optionComparatorsFor(ot.objectType,a.name),
+      Full(c.id),
+      (x => {
         if(i >= 0 && i < lines.size) lines(i).attribute.cType.comparatorForString(x) foreach { y => lines(i) = lines(i).copy(comparator=y) }
       }),
       ("id","ct_"+i),
@@ -549,7 +549,7 @@ object SearchNodeComponent {
       ("class","selectComparator")
     )
   }
-  
+
   val defaultLine : CriterionLine = {
     //in case of further modification in ditQueryData
     require(ditQueryData.criteriaMap(OC_NODE).criteria(0).name == "OS", "Error in search node criterion default line, did you change DitQueryData ?")

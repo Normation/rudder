@@ -59,12 +59,12 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
-      
+
   private[this] val psService            = inject[PolicyServerManagementService]
   private[this] val eventLogService      = inject[EventLogRepository]
   private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
   private[this] val uuidGen              = inject[StringUuidGenerator]
-  
+
   /*
    * We are forced to use that class to deals with multiple request
    * not processed in order (ex: one request add an item, the second remove
@@ -78,12 +78,12 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       case _ => false
     }
   }
-  
+
   private[this] val currentNets = psService.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID)
-  
-  private[this] val allowedNetworks = Buffer() ++ 
+
+  private[this] val allowedNetworks = Buffer() ++
     currentNets.getOrElse(Nil).map(n => VH(net = n))
-  
+
   def dispatch = {
     case "render" =>
       currentNets match {
@@ -91,12 +91,12 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         case Full(_) => renderForm
       }
   }
-  
-  
+
+
   def errorMessage(b:EmptyBox) = {
     val error = b ?~! "Error when processing allowed network"
     logger.debug(error.messageChain, b)
-    
+
     "#allowedNetworksForm *" #> { (x:NodeSeq) =>
       <div class="error">
       <p>An error occured when trying to get the list of existing allowed networks</p>
@@ -105,14 +105,14 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
             case Failure(m,_,_) => <p>Error message was: {m}</p>
             case _ => <p>No error message was left</p>
           }
-         
+
         }
     </div>
     }
   }
-  
+
   def renderForm : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
-    
+
     // our process method returns a
     // JsCmd which will be sent back to the browser
     // as part of the response
@@ -120,7 +120,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       //clear errors
       S.clearCurrentNotices
       val goodNets = Buffer[String]()
-      
+
       allowedNetworks.foreach { case v@VH(i,net) =>
         if(net.trim.length != 0) {
           if(!isValidNetwork(net)) {
@@ -130,15 +130,15 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
           }
         }
       }
-      
+
       //if no errors, actually save
       if(S.errors.isEmpty) {
         val modId = ModificationId(uuidGen.newUuid)
         (for {
           currentNetworks <- psService.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID) ?~! "Error when getting the list of current authorized networks"
           changeNetwork   <- psService.setAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID, goodNets, modId, CurrentUser.getActor) ?~! "Error when saving new allowed networks"
-          modifications   =  UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(currentNetworks, goodNets)) 
-          eventSaved      <- eventLogService.saveEventLog(modId, 
+          modifications   =  UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(currentNetworks, goodNets))
+          eventSaved      <- eventLogService.saveEventLog(modId,
                                UpdatePolicyServer(EventLogDetails(
                                  modificationId = None
                                , principal = CurrentUser.getActor
@@ -146,59 +146,59 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
                                , reason = None))) ?~! "Unable to save the user event log for modification on authorized networks"
         } yield {
         }) match {
-          case Full(_) => 
+          case Full(_) =>
             asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
-            
+
             Replace("allowedNetworksForm", outerXml.applyAgain) &
-            successPopup 
+            successPopup
           case e:EmptyBox => SetHtml("allowedNetworksForm",errorMessage(e)(outerXml.applyAgain))
         }
-        
+
       } else Noop
     }
-    
+
     def delete(i:Long) : JsCmd = {
       allowedNetworks -= VH(i)
       Replace("allowedNetworksForm", outerXml.applyAgain)
     }
-    
+
     def add() : JsCmd = {
       allowedNetworks.append(VH())
       Replace("allowedNetworksForm", outerXml.applyAgain)
     }
-    
+
     //process the list of networks
     "#allowNetworkFields *" #> { (xml:NodeSeq) =>
       allowedNetworks.flatMap { case VH(i,net) =>
         val id = "network_"+ i
-        
+
         (
           ".deleteNetwork" #> SHtml.ajaxSubmit("-", () => delete(i)) &
           "errorClass=error [id]" #> ("error" + id) &
           ".networkField [name]" #> id andThen
-          ".networkField" #> SHtml.text(net,  {x => 
+          ".networkField" #> SHtml.text(net,  {x =>
             allowedNetworks.find { case VH(y,_) => y==i }.foreach{ v => v.net = x }
           },  "id" -> id)
         )(xml)
       }
-    } & 
+    } &
     "#addNetworkButton" #> SHtml.ajaxSubmit("Add a network", add _) &
-    "#submitAllowedNetwork" #> { 
+    "#submitAllowedNetwork" #> {
       SHtml.ajaxSubmit("Submit", process _,("id","submitAllowedNetwork")) ++ Script(
           OnLoad (
               JsRaw(""" correctButtons(); """) &
               JsRaw("""$(".networkField").keydown( function(event) {
             processKey(event , 'submitAllowedNetwork')
           } );
-          """) 
+          """)
           ) )
     }
   }
-  
-  
+
+
   ///////////// success pop-up ///////////////
   private[this] def successPopup : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)     
+    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)
     """)
-  }  
+  }
 }

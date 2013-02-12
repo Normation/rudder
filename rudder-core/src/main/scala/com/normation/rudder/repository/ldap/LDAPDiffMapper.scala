@@ -72,72 +72,72 @@ import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.unboundid.ldap.sdk.ModificationType.{ADD, DELETE, REPLACE}
 
 class LDAPDiffMapper(
-    mapper         : LDAPEntityMapper 
+    mapper         : LDAPEntityMapper
   , cmdbQueryParser: CmdbQueryParser
 ) extends Loggable {
   ///////////////////////////////////////////////////////////////////////////////////////
-  
+
   ///// Diff mapping /////
-  
+
   ///////////////////////////////////////////////////////////////////////////////////////
-  
-  
+
+
   ///// rule diff /////
-  
+
   def addChangeRecords2RuleDiff(crDn:DN, change:LDIFChangeRecord) : Box[AddRuleDiff] = {
     if(change.getParsedDN == crDn ) {
       change match {
-        case add:LDIFAddChangeRecord => 
+        case add:LDIFAddChangeRecord =>
           val e = LDAPEntry(add.toAddRequest().toEntry)
           for {
             rule <- mapper.entry2Rule(e)
           } yield AddRuleDiff(rule)
         case _ => Failure("Bad change record type for requested action 'add rule': %s".format(change))
       }
-        
+
     } else {
       Failure("The following change record does not belong to Rule entry '%s': %s".format(crDn,change))
     }
   }
-  
-  
+
+
   /**
    * Map a list of com.unboundid.ldif.LDIFChangeRecord into a
    * RuleDiff.
-   * 
-   * If several changes are applied on the same monovalued attribute, 
-   * it's an error. 
+   *
+   * If several changes are applied on the same monovalued attribute,
+   * it's an error.
    */
   def modChangeRecords2RuleDiff(beforeChangeEntry:LDAPEntry, change:LDIFChangeRecord) : Box[Option[ModifyRuleDiff]] = {
     if(change.getParsedDN == beforeChangeEntry.dn ) {
       change match {
-        case modify:LDIFModifyChangeRecord => 
+        case modify:LDIFModifyChangeRecord =>
           for {
             oldCr <- mapper.entry2Rule(beforeChangeEntry)
             diff <- pipeline(modify.getModifications(), ModifyRuleDiff(oldCr.id, oldCr.name)) { (mod, diff) =>
               mod.getAttributeName() match {
-                case A_SERIAL => 
+                case A_SERIAL =>
                   tryo(diff.copy(modSerial = Some(SimpleDiff(oldCr.serial, mod.getAttribute().getValueAsInteger()))))
-                case A_RULE_TARGET => 
+                case A_RULE_TARGET =>
                   mod.getModificationType match {
-                    case ADD | REPLACE | DELETE => //if there is no values, we have to put "none" 
-                      (sequence(mod.getValues()) { value => 
+                    case ADD | REPLACE | DELETE => //if there is no values, we have to put "none"
+                      (sequence(mod.getValues()) { value =>
                         RuleTarget.unser(value)
                       }).map { targets =>
                         diff.copy(modTarget = Some(SimpleDiff(oldCr.targets, targets.toSet)))
                       }
                   }
-                case A_DIRECTIVE_UUID => 
+                case A_DIRECTIVE_UUID =>
                   Full(diff.copy(modDirectiveIds = Some(SimpleDiff(oldCr.directiveIds, mod.getValues.map( DirectiveId(_) ).toSet))))
                 case A_NAME =>
                   Full(diff.copy(modName = Some(SimpleDiff(oldCr.name, mod.getAttribute().getValue))))
-                case A_DESCRIPTION => 
+                case A_DESCRIPTION =>
                   Full(diff.copy(modShortDescription = Some(SimpleDiff(oldCr.shortDescription, mod.getAttribute().getValue()))))
-                case A_LONG_DESCRIPTION => 
+                case A_LONG_DESCRIPTION =>
                   Full(diff.copy(modLongDescription = Some(SimpleDiff(oldCr.longDescription, mod.getAttribute().getValue()))))
-                case A_IS_ENABLED => 
+                case A_IS_ENABLED =>
                   tryo(diff.copy(modIsActivatedStatus = Some(SimpleDiff(oldCr.isEnabledStatus, mod.getAttribute().getValueAsBoolean))))
-                case A_IS_SYSTEM => 
+                case A_IS_SYSTEM =>
                   tryo(diff.copy(modIsSystem = Some(SimpleDiff(oldCr.isSystem,mod.getAttribute().getValueAsBoolean))))
                 case x => Failure("Unknown diff attribute: " + x)
               }
@@ -145,9 +145,9 @@ class LDAPDiffMapper(
           } yield {
             Some(diff)
           }
-        
+
         case noop:LDIFNoopChangeRecord => Full(None)
-          
+
         case _ => Failure("Bad change record type for requested action 'update rule': %s".format(change))
       }
     } else {
@@ -155,13 +155,13 @@ class LDAPDiffMapper(
     }
   }
 
-  
+
   ///// Technique diff /////
-  
+
   def modChangeRecords2TechniqueDiff(beforeChangeEntry: LDAPEntry, change: LDIFChangeRecord): Box[Option[ModifyTechniqueDiff]] = {
     if(change.getParsedDN == beforeChangeEntry.dn ) {
       change match {
-        case modify:LDIFModifyChangeRecord => 
+        case modify:LDIFModifyChangeRecord =>
           for {
             oldTechnique <- mapper.entry2ActiveTechnique(beforeChangeEntry)
             diff <- pipeline(modify.getModifications(), ModifyTechniqueDiff(oldTechnique.id, oldTechnique.techniqueName)) { (mod, diff) =>
@@ -170,20 +170,20 @@ class LDAPDiffMapper(
                   tryo(diff.copy(modIsEnabled = Some(SimpleDiff(oldTechnique.isEnabled, mod.getAttribute().getValueAsBoolean))))
                 case x => Failure("Unknown diff attribute: " + x)
               }
-            } 
+            }
           } yield {
             Some(diff)
           }
-        
+
         case noop:LDIFNoopChangeRecord => Full(None)
-          
+
         case _ => Failure("Bad change record type for requested action 'update technique': %s".format(change))
       }
     } else {
       Failure("The following change record does not belong to Technique entry '%s': %s".format(beforeChangeEntry.dn,change))
     }
   }
-    
+
   ///// directive diff /////
 
   def modChangeRecords2DirectiveSaveDiff(
@@ -196,13 +196,13 @@ class LDAPDiffMapper(
     if(change.getParsedDN == piDn ) {
       //if oldPI is None, we want and addChange, else a modifyChange
       (change, oldPiEntry) match {
-        case (add:LDIFAddChangeRecord, None) => 
+        case (add:LDIFAddChangeRecord, None) =>
           val e = LDAPEntry(add.toAddRequest().toEntry)
             for {
               directive <- mapper.entry2Directive(e)
             } yield Some(AddDirectiveDiff(ptName, directive))
 
-        case (modify:LDIFModifyChangeRecord, Some(beforeChangeEntry)) => 
+        case (modify:LDIFModifyChangeRecord, Some(beforeChangeEntry)) =>
           for {
             oldPi <- mapper.entry2Directive(beforeChangeEntry)
             diff <- pipeline(modify.getModifications(), ModifyDirectiveDiff(ptName, oldPi.id, oldPi.name)) { (mod,diff) =>
@@ -217,15 +217,15 @@ class LDAPDiffMapper(
                   )))
                 case A_NAME =>
                   Full(diff.copy(modName = Some(SimpleDiff(oldPi.name, mod.getAttribute().getValue))))
-                case A_DESCRIPTION => 
+                case A_DESCRIPTION =>
                   Full(diff.copy(modShortDescription = Some(SimpleDiff(oldPi.shortDescription, mod.getAttribute().getValue()))))
-                case A_LONG_DESCRIPTION => 
+                case A_LONG_DESCRIPTION =>
                   Full(diff.copy(modLongDescription = Some(SimpleDiff(oldPi.longDescription, mod.getAttribute().getValue()))))
-                case A_PRIORITY => 
+                case A_PRIORITY =>
                   tryo(diff.copy(modPriority = Some(SimpleDiff(oldPi.priority, mod.getAttribute().getValueAsInteger))))
-                case A_IS_ENABLED => 
+                case A_IS_ENABLED =>
                   tryo(diff.copy(modIsActivated = Some(SimpleDiff(oldPi.isEnabled, mod.getAttribute().getValueAsBoolean))))
-                case A_IS_SYSTEM => 
+                case A_IS_SYSTEM =>
                   tryo(diff.copy(modIsSystem = Some(SimpleDiff(oldPi.isSystem,mod.getAttribute().getValueAsBoolean))))
                 case x => Failure("Unknown diff attribute: " + x)
               }
@@ -233,39 +233,39 @@ class LDAPDiffMapper(
           } yield {
             Some(diff)
           }
-          
-        case (noop:LDIFNoopChangeRecord, _) => Full(None) 
-          
+
+        case (noop:LDIFNoopChangeRecord, _) => Full(None)
+
         case _ =>  Failure("Bad change record type for requested action 'save directive': %s".format(change))
       }
     } else {
       Failure("The following change record does not belong to directive entry '%s': %s".format(piDn,change))
     }
-  }  
-  
-  
+  }
+
+
   ///// Node group diff /////
 
   def addChangeRecords2NodeGroupDiff(groupDN:DN, change:LDIFChangeRecord) : Box[AddNodeGroupDiff] = {
     if(change.getParsedDN == groupDN ) {
       change match {
-        case add:LDIFAddChangeRecord => 
+        case add:LDIFAddChangeRecord =>
           val e = LDAPEntry(add.toAddRequest().toEntry)
           for {
             group<- mapper.entry2NodeGroup(e)
           } yield AddNodeGroupDiff(group)
         case _ => Failure("Bad change record type for requested action 'add node group': %s".format(change))
       }
-        
+
     } else {
       Failure("The following change record does not belong to Node Group entry '%s': %s".format(groupDN,change))
     }
   }
-  
+
 
   def modChangeRecords2NodeGroupDiff(beforeChangeEntry:LDAPEntry, change:LDIFChangeRecord) : Box[Option[ModifyNodeGroupDiff]] = {
       change match {
-        case modify:LDIFModifyChangeRecord => 
+        case modify:LDIFModifyChangeRecord =>
           for {
             oldGroup <- mapper.entry2NodeGroup(beforeChangeEntry)
             diff <- pipeline(modify.getModifications(), ModifyNodeGroupDiff(oldGroup.id, oldGroup.name)) { (mod, diff) =>
@@ -276,7 +276,7 @@ class LDAPDiffMapper(
                   Full(diff.copy(modNodeList = Some(SimpleDiff(oldGroup.serverList, mod.getValues.map(x => NodeId(x) ).toSet ) ) ) )
                 case A_QUERY_NODE_GROUP =>
                   mod.getModificationType match {
-                    case ADD | REPLACE if(mod.getAttribute.getValues.size > 0) => //if there is no values, we have to put "none" 
+                    case ADD | REPLACE if(mod.getAttribute.getValues.size > 0) => //if there is no values, we have to put "none"
                       for {
                         query <- cmdbQueryParser(mod.getAttribute().getValue)
                       } yield {
@@ -286,13 +286,13 @@ class LDAPDiffMapper(
                       Full(diff.copy(modQuery = Some(SimpleDiff(oldGroup.query, None))))
                     case _ => Failure("Bad operation type for attribute '%s' in change record '%s'".format(mod, change))
                   }
-                case A_DESCRIPTION => 
+                case A_DESCRIPTION =>
                   Full(diff.copy(modDescription = Some(SimpleDiff(oldGroup.description, mod.getAttribute().getValue))))
-                case A_IS_DYNAMIC => 
+                case A_IS_DYNAMIC =>
                   tryo(diff.copy(modIsDynamic = Some(SimpleDiff(oldGroup.isDynamic, mod.getAttribute().getValueAsBoolean))))
-                case A_IS_ENABLED => 
+                case A_IS_ENABLED =>
                   tryo(diff.copy(modIsActivated = Some(SimpleDiff(oldGroup.isEnabled, mod.getAttribute().getValueAsBoolean))))
-                case A_IS_SYSTEM => 
+                case A_IS_SYSTEM =>
                   tryo(diff.copy(modIsSystem = Some(SimpleDiff(oldGroup.isSystem,mod.getAttribute().getValueAsBoolean))))
                 case x => Failure("Unknown diff attribute: " + x)
               }
@@ -300,17 +300,17 @@ class LDAPDiffMapper(
           } yield {
             Some(diff)
           }
-          
+
         case noop:LDIFNoopChangeRecord => Full(None)
-        
+
         /*
          * We have to keep a track of moves beetween category, if not git  repository would not be synchronized with LDAP
          */
-        case move:LDIFModifyDNChangeRecord => 
+        case move:LDIFModifyDNChangeRecord =>
           logger.info("Group DN entry '%s' moved to '%s'".format(beforeChangeEntry.dn,move.getNewDN))
           val diff= mapper.entry2NodeGroup(beforeChangeEntry).map(oldGroup => ModifyNodeGroupDiff(oldGroup.id, oldGroup.name))
           Full(diff)
-          
+
         case _ => Failure("Bad change record type for requested action 'update node group': %s".format(change))
       }
   }

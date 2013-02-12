@@ -40,7 +40,7 @@ object DateFormaterService {
 
   // Default dateFormat
   private[this] val dateFormat = "yyyy-MM-dd HH:mm"
-    
+
   def getFormatedDate(date : DateTime) : String = {
     date.toString(dateFormat)
   }

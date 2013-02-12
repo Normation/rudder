@@ -46,19 +46,19 @@ import com.normation.plugins._
 
 class PluginManagement extends DispatchSnippet with Loggable {
 
-  def dispatch = { 
-    case "display" => display _ 
+  def dispatch = {
+    case "display" => display _
   }
-  
-   
+
+
   def display(xml:NodeSeq) : NodeSeq = {
-    (  
+    (
       ".portlet *" #> LiftSpringApplicationContext.springContext.getBeansOfType(classOf[RudderPluginDef]).map { case(name,pluginDef) =>
         displayPlugin(pluginDef) _
       }
     ).apply(xml)
   }
-   
+
   private[this] def displayPlugin(p:RudderPluginDef)(xml:NodeSeq) : NodeSeq = {
     (
       ".portlet-header *" #> p.displayName &

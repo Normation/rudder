@@ -64,12 +64,12 @@ import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
 /**
  * Snippet for managing Rules.
  * It allows to see what Rules are available,
- * remove or edit them, 
- * and add new ones. 
+ * remove or edit them,
+ * and add new ones.
  */
 class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleManagement] with Loggable {
   import RuleManagement._
-   
+
   private[this] val ruleRepository = inject[RuleRepository]
   private[this] val targetInfoService = inject[RuleTargetService]
   private[this] val uuidGen = inject[StringUuidGenerator]
@@ -79,7 +79,7 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
 
   val extendsAt = SnippetExtensionKey(classOf[RuleManagement].getSimpleName)
 
-  
+
   override def mainDispatch = Map(
       "head" -> { _:NodeSeq => head }
     , "editRule" -> { _:NodeSeq => editRule() }
@@ -88,11 +88,11 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
 
 
   private def setCreationPopup(ruleToClone:Option[Rule]) : Unit = {
-         creationPopup.set(Full(new CreateOrCloneRulePopup(ruleToClone, 
+         creationPopup.set(Full(new CreateOrCloneRulePopup(ruleToClone,
             onSuccessCallback = onCreateRule )))
    }
-  
-  
+
+
    /**
     * Create the popup
     */
@@ -104,11 +104,11 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
     }
   }
 
-  private[this] val currentRuleForm = new LocalSnippet[RuleEditForm] 
+  private[this] val currentRuleForm = new LocalSnippet[RuleEditForm]
 
-  
+
   def head() : NodeSeq = {
-    RuleEditForm.staticInit ++ 
+    RuleEditForm.staticInit ++
     RuleGrid.staticInit ++
     {<head>
       <script type="text/javascript" src="/javascript/jstree/jquery.jstree.js" id="jstree"></script>
@@ -134,7 +134,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
             return true;
           }
         }
-        """) & 
+        """) &
         OnLoad(JsRaw("""correctButtons();""") & parseJsArg)
       ) }
     </head>
@@ -153,13 +153,13 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
             <lift:authz role="rule_write">
               <div id="actions_zone">
                 {SHtml.ajaxButton("Add a new rule", () => showPopup(None), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))}
-              </div> 
+              </div>
             </lift:authz>
-             {ruleGrid.rulesGrid() }             
+             {ruleGrid.rulesGrid() }
            </div>
 
   }
-  
+
   def editRule(dispatch:String="showForm") : NodeSeq = {
     def errorDiv(f:Failure) = <div id={htmlId_editRuleDiv} class="error">Error in the form: {f.messageChain}</div>
 
@@ -181,22 +181,22 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     Replace(htmlId_viewAll,  viewRules()) &
     Replace(htmlId_editRuleDiv, editRule("showEditForm"))
   }
-   
+
   /**
    * If a query is passed as argument, try to dejoniffy-it, in a best effort
-   * way - just don't take of errors. 
-   * 
+   * way - just don't take of errors.
+   *
    * We want to look for #{ "ruleId":"XXXXXXXXXXXX" }
    */
   private[this] def parseJsArg(): JsCmd = {
     def displayDetails(ruleId:String) = {
       ruleRepository.get(RuleId(ruleId)) match {
-        case Full(rule) => 
+        case Full(rule) =>
           onCreateRule(rule)
         case _ => Noop
       }
     }
-    
+
     JsRaw("""
         var ruleId = null;
         try {
@@ -204,13 +204,13 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
         } catch(e) {
           ruleId = null
         }
-        if( ruleId != null && ruleId.length > 0) { 
+        if( ruleId != null && ruleId.length > 0) {
           %s;
         }
     """.format(SHtml.ajaxCall(JsVar("ruleId"), displayDetails _ )._2.toJsCmd)
     )
   }
-  
+
   private[this] def showPopup(clonedRule:Option[Rule]) : JsCmd = {
     setCreationPopup(clonedRule)
     val popupHtml = createPopup
@@ -226,21 +226,21 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
         htmlId_editRuleDiv+"Form",
         rule,
         onCloneCallback = { (updatedRule:Rule) => showPopup(Some(updatedRule)) },
-        onSuccessCallback = { () => 
+        onSuccessCallback = { () =>
           //update UI
           Replace(htmlId_viewAll,  viewRules )
         }
     )
-    currentRuleForm.set(Full(form))    
+    currentRuleForm.set(Full(form))
   }
-  
+
   private[this] def detailsCallbackLink(rule:Rule,id:String="showForm") : JsCmd = {
     updateEditComponent(rule)
     //update UI
     Replace(htmlId_editRuleDiv, editRule(id)) &
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'ruleId':'%s'})""".format(rule.id.value))
   }
-  
+
 }
 
 

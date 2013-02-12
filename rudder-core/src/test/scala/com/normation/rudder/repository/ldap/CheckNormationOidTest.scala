@@ -40,27 +40,27 @@ import org.specs2.runner._
 
 
 /**
- * A test to check that the Normation OID is not defined in 
- * rudder.schema. 
- * 
- * We let-it in that file to be able the generate derived 
- * schema (for example for UnboundID DS) from it 
+ * A test to check that the Normation OID is not defined in
+ * rudder.schema.
+ *
+ * We let-it in that file to be able the generate derived
+ * schema (for example for UnboundID DS) from it
  */
 @RunWith(classOf[JUnitRunner])
 class CheckNormationOidTest extends Specification {
-  
+
   val regex = """.*objectIdentifier NormationOID 1.3.6.1.4.1.35061.*""".r
-  
+
   val rudderSchemaFile = this.getClass.getClassLoader.getResource("ldap/rudder.schema").getPath
-  
+
   "Normation OID" should {
-    
+
     val oidLine = scala.io.Source.fromFile(rudderSchemaFile).getLines.find( l => regex.pattern.matcher(l).matches )
-    
+
     "exists in rudder.schema" in {
       oidLine.isDefined === true
     }
-    
+
     "be commented out in rudder.schema" in {
       oidLine.map( _.startsWith("#")).getOrElse(false) === true
     }

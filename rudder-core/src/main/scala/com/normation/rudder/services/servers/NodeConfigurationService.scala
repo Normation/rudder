@@ -51,7 +51,7 @@ trait NodeConfigurationService {
    * @return
    */
   def findNode(nodeId: NodeId) : Option[NodeConfiguration]
-  
+
   /**
    * Return multiple NodeConfigurations by their uuid
    * If an uuid is not existent, it is simply skipped
@@ -59,30 +59,30 @@ trait NodeConfigurationService {
    * @return
    */
   def getMultipleNodeConfigurations(uuids : Seq[NodeId]) : Set[NodeConfiguration]
-  
-  
+
+
   /**
    * Find all NodeConfigurations
    * @return
    */
   def getAllNodeConfigurations() : Map[String, NodeConfiguration]
-  
+
   /**
    * Update a node configuration using a targetNodeConfiguration :
-   * update the directives and the node context, as well as the agentsName 
+   * update the directives and the node context, as well as the agentsName
    * (well, every fields actually)
    * @param target
    * @return
    */
   def updateNodeConfiguration(target : targetNodeConfiguration) : Box[NodeConfiguration]
-  
+
     /**
    * From the list of updated rules (is it what we need) ? and the list of ALL NODES (caution, we must have 'em all)
    * update the serials, and save them
    */
   def incrementSerials(rules: Seq[(RuleId,Int)], nodes : Seq[NodeConfiguration]) : Box[Seq[NodeConfiguration]]
-  
-  
+
+
   /**
    * Create a node configuration from a target.
    * Hence, it will have empty current configuration
@@ -90,32 +90,32 @@ trait NodeConfigurationService {
    * @return
    */
   def addNodeConfiguration(target : targetNodeConfiguration) : Box[NodeConfiguration]
-  
+
   /**
    * Delete a NodeConfiguration by its uuid
    * If a NodeConfiguration is not existant, throw a NotFoundException
    */
   def deleteNodeConfiguration(nodeConfigurationUUID:String) : Box[Unit]
-  
+
   /**
    * Delete all node configurations
    */
   def deleteAllNodeConfigurations() : Box[Set[NodeId]]
-  
+
   /**
    * Return the NodeConfiguration that need to be commited (that have been updated, and
    * their promises are not yet written)
    */
   def getUpdatedNodeConfigurations() : Seq[NodeConfiguration]
-  
-  
+
+
   /**
    * Write the templates of the updated NodeConfigurations
    * All the updated NodeConfigurations must be written
    * @param uuids
    */
   def writeTemplateForUpdatedNodeConfigurations(uuids : Seq[NodeId]) : Box[Seq[NodeConfiguration]]
-  
+
   /**
    * Rollback the configuration of the updated NodeConfigurations
    * All the updated NodeConfigurations must be rollbacked in one shot
@@ -123,8 +123,8 @@ trait NodeConfigurationService {
    * @param uuids : the uuid of the updated NodeConfiguration
    */
   def rollbackNodeConfigurations(uuids : Seq[NodeId]) : Box[Unit]
-  
-  
+
+
   /**
    * Find the NodeConfigurations having all the policies name listed (it's policy name, not instance)
    */

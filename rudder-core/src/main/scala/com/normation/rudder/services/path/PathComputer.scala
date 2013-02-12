@@ -40,12 +40,12 @@ import com.normation.inventory.domain.AgentType
 
 /**
  * Utilitary tool to compute the path of a server promises (and others information) on the rootMachine
- * 
+ *
  * @author nicolas
  *
  */
 trait PathComputer {
-    
+
   /**
    * Compute the base path for a server, i.e. the full path on the root server to the data
    * the searched server will fetch, and the backup folder
@@ -53,7 +53,7 @@ trait PathComputer {
    * Ex : /opt/hive/cfserved/serverA/served/serverB, /opt/hive/backup/serverA/served/serverB
    * @param searchedNode : the server we search
    * @return
-   */  
+   */
   def computeBaseNodePath(searchedNode : NodeConfiguration) :  (String, String)
 
   /**

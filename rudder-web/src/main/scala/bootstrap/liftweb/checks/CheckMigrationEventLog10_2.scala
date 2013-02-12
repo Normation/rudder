@@ -41,8 +41,8 @@ import com.normation.rudder.domain.logger.MigrationLogger
 import com.normation.rudder.domain.logger.MigrationLogger
 
 /**
- * That class add all the available reference template in 
- * the default user library 
+ * That class add all the available reference template in
+ * the default user library
  * if it wasn't already initialized.
  */
 class CheckMigrationEventLog10_2(

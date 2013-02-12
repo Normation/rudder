@@ -40,17 +40,17 @@ import org.apache.commons.dbcp.BasicDataSource
 import net.liftweb.common.Loggable
 
 /**
- * A wrapper around the Squeryl default implementation to allow for several 
+ * A wrapper around the Squeryl default implementation to allow for several
  * databases connections, and still offer the multi-threading capabilities
  */
 class RudderDatasourceProvider(
     driver  : String
   , url     : String
   , username: String
-  , password: String    
+  , password: String
 ) extends Loggable {
 
-  
+
   lazy val datasource = try {
 
     Class.forName(driver);
@@ -60,7 +60,7 @@ class RudderDatasourceProvider(
     pool.setUrl(url)
     pool.setUsername(username)
     pool.setPassword(password)
-    
+
     //set parameters to test for dead connection
     pool.setValidationQuery("SELECT tables.table_name FROM information_schema.tables WHERE lower(table_name) = 'eventlog'")
 
@@ -75,5 +75,5 @@ class RudderDatasourceProvider(
       logger.error("Could not initialise the access to the database")
       throw e
   }
-  
+
 }

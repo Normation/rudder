@@ -141,7 +141,7 @@ class AutomaticReportLogger(
       //schedule next log, every minute
       LAPinger.schedule(this, StartAutomaticReporting, reportLogInterval*1000L*60)
       () //ok for the unit value discarded
-      
+
       case _ =>
         logger.error("Wrong message received by non compliant reports logger, do nothing")
     }

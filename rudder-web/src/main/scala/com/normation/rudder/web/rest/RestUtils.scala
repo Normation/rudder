@@ -44,7 +44,7 @@ import com.normation.eventlog.EventActor
 /**
  */
 object RestUtils {
-  
+
   /**
    * Get the rest user name, as follow:
    * - if the user is authenticated, use the provided UserName
@@ -57,10 +57,10 @@ object RestUtils {
         case eb:EmptyBox => None
         case Full(name) => Some(name)
       }
-      case Some(u) => Some(u.getUsername)    
+      case Some(u) => Some(u.getUsername)
     }
   }
-  
+
   def getActor(req:Req) : EventActor = EventActor(getUsername(req).getOrElse("UnknownRestUser"))
-  
+
 }

@@ -34,7 +34,7 @@ import scala.xml._
 import com.normation.eventlog.ModificationId
 
 trait EventLogFactory {
-  
+
   def getAddRuleFromDiff(
       id             : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -45,7 +45,7 @@ trait EventLogFactory {
     , reason         : Option[String]
   ) : AddRule
 
-  
+
   def getDeleteRuleFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -55,7 +55,7 @@ trait EventLogFactory {
     , severity    : Int = 100
     , reason      : Option[String]
   ) : DeleteRule
-  
+
   def getModifyRuleFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -65,7 +65,7 @@ trait EventLogFactory {
     , severity    : Int = 100
     , reason      : Option[String]
   ) : ModifyRule
-  
+
   def getAddDirectiveFromDiff(
       id                 : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -76,7 +76,7 @@ trait EventLogFactory {
     , severity           : Int = 100
     , reason             : Option[String]
   ) : AddDirective
-  
+
   def getDeleteDirectiveFromDiff(
       id                 : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -87,7 +87,7 @@ trait EventLogFactory {
     , severity           : Int = 100
     , reason             : Option[String]
   ) : DeleteDirective
-  
+
   def getModifyDirectiveFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -97,7 +97,7 @@ trait EventLogFactory {
     , severity    : Int = 100
     , reason      : Option[String]
   ) : ModifyDirective
-  
+
   def getAddNodeGroupFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -127,7 +127,7 @@ trait EventLogFactory {
     , severity    : Int = 100
     , reason      : Option[String]
   ) : ModifyNodeGroup
- 
+
   def getModifyTechniqueFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -137,7 +137,7 @@ trait EventLogFactory {
     , severity    : Int = 100
     , reason      : Option[String]
   ) : ModifyTechnique
-  
+
   def getDeleteTechniqueFromDiff(
       id                 : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -147,7 +147,7 @@ trait EventLogFactory {
     , severity           : Int = 100
     , reason             : Option[String]
   ) : DeleteTechnique
-  
+
 }
 
 class EventLogFactoryImpl(
@@ -156,11 +156,11 @@ class EventLogFactoryImpl(
   , groutToXml: NodeGroupSerialisation
   , techniqueToXml: ActiveTechniqueSerialisation
 ) extends EventLogFactory {
-  
-  ///// 
+
+  /////
   ///// rules /////
   /////
-  
+
   override def getAddRuleFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -181,8 +181,8 @@ class EventLogFactoryImpl(
       , severity = severity))
   }
 
-  
-  override def getDeleteRuleFromDiff(    
+
+  override def getDeleteRuleFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
     , principal   : EventActor
@@ -201,8 +201,8 @@ class EventLogFactoryImpl(
       , reason = reason
       , severity = severity))
   }
-  
-  override def getModifyRuleFromDiff(    
+
+  override def getModifyRuleFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
     , principal   : EventActor
@@ -218,23 +218,23 @@ class EventLogFactoryImpl(
           <displayName>{modifyDiff.name}</displayName>{
             modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
             modifyDiff.modSerial.map(x => SimpleDiff.intToXml(<serial/>, x ) ) ++
-            modifyDiff.modTarget.map(x => 
+            modifyDiff.modTarget.map(x =>
               SimpleDiff.toXml[Set[RuleTarget]](<targets/>, x){ targets =>
                 targets.toSeq.map { t => <target>{t.target}</target> }
               }
             ) ++
-            modifyDiff.modDirectiveIds.map(x => 
+            modifyDiff.modDirectiveIds.map(x =>
               SimpleDiff.toXml[Set[DirectiveId]](<directiveIds/>, x){ ids =>
                 ids.toSeq.map { id => <id>{id.value}</id> }
               }
             ) ++
-            modifyDiff.modShortDescription.map(x => 
+            modifyDiff.modShortDescription.map(x =>
               SimpleDiff.stringToXml(<shortDescription/>, x ) ) ++
-            modifyDiff.modLongDescription.map(x => 
+            modifyDiff.modLongDescription.map(x =>
               SimpleDiff.stringToXml(<longDescription/>, x ) ) ++
-            modifyDiff.modIsActivatedStatus.map(x => 
+            modifyDiff.modIsActivatedStatus.map(x =>
               SimpleDiff.booleanToXml(<isEnabled/>, x ) ) ++
-            modifyDiff.modIsSystem.map(x => 
+            modifyDiff.modIsSystem.map(x =>
               SimpleDiff.booleanToXml(<isSystem/>, x ) )
           }
         </rule>
@@ -249,11 +249,11 @@ class EventLogFactoryImpl(
       , reason = reason
       , severity = severity))
   }
-  
-  ///// 
+
+  /////
   ///// directive /////
   /////
-  
+
   override def getAddDirectiveFromDiff(
       id                 : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -274,7 +274,7 @@ class EventLogFactoryImpl(
       , reason = reason
       , severity = severity))
   }
-  
+
   override def getDeleteDirectiveFromDiff(
       id                 : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -293,9 +293,9 @@ class EventLogFactoryImpl(
       , details = details
       , creationDate = creationDate
       , reason = reason
-      , severity = severity))    
+      , severity = severity))
   }
-  
+
   override def getModifyDirectiveFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -334,7 +334,7 @@ class EventLogFactoryImpl(
       , details = details
       , creationDate = creationDate
       , reason = reason
-      , severity = severity))  
+      , severity = severity))
   }
 
 
@@ -417,7 +417,7 @@ class EventLogFactoryImpl(
       , reason = reason
       , severity = severity))
   }
-  
+
   override def getModifyTechniqueFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -444,8 +444,8 @@ class EventLogFactoryImpl(
       , reason = reason
       , severity = severity))
   }
-    
-  override def getDeleteTechniqueFromDiff(    
+
+  override def getDeleteTechniqueFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
     , principal   : EventActor

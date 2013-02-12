@@ -56,26 +56,26 @@ import net.liftweb.common.Loggable
 
 /**
  * Spring configuration for user authentication.
- * 
+ *
  * We are looking for an XML file with looking like:
- * 
+ *
  * <authentication hash="sha">
  *  <user name="name1" password="p1" />
  *  <user name="name2" password="p2" />
  * </authentication>
- * 
+ *
  */
 @Configuration
 @Import(Array(classOf[PropertyPlaceholderConfig]))
 @ImportResource(Array("classpath:applicationContext-security.xml"))
 class AppConfigAuth extends Loggable {
   import AppConfigAuth._
-  
+
   val JVM_AUTH_FILE_KEY = "rudder.authFile"
   val DEFAULT_AUTH_FILE_NAME = "demo-rudder-users.xml"
-  
+
   @Bean def demoAuthenticationProvider : AuthenticationProvider = {
-    
+
     val resource = System.getProperty(JVM_AUTH_FILE_KEY) match {
       case null | "" => //use default location in classpath
         ApplicationLogger.info("JVM property -D%s is not defined, use configuration file '%s' in classpath".format(JVM_AUTH_FILE_KEY, DEFAULT_AUTH_FILE_NAME))
@@ -90,7 +90,7 @@ class AppConfigAuth extends Loggable {
           throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
         }
     }
-    
+
     //try to read and parse the file for users
     parseUsers(resource) match {
       case Some(config) =>
@@ -102,7 +102,7 @@ class AppConfigAuth extends Loggable {
         provider.setUserDetailsService(userDetails)
         provider.setPasswordEncoder(config.encoder)
         provider
-      case None => 
+      case None =>
         ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
         throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
     }
@@ -111,24 +111,24 @@ class AppConfigAuth extends Loggable {
 
 /**
  *  A trivial, immutable implementation of UserDetailsService for RudderUser
- */    
+ */
 class RudderInMemoryUserDetailsService(private[this] val initialUsers:Set[RudderUserDetail]) extends UserDetailsService {
   private[this] val users = Map[String,RudderUserDetail](initialUsers.map(u => (u.login,u)).toSeq:_*)
-  
+
   @throws(classOf[UsernameNotFoundException])
   override def loadUserByUsername(username:String) : RudderUserDetail = {
     users.getOrElse(username, throw new UsernameNotFoundException(s"User with username '%{username}' was not found"))
   }
 }
-  
-  
+
+
 /**
  * For now, we don't use at all Spring Authority to implements
- * our authorizations. 
+ * our authorizations.
  * That because we want something more typed than String for
- * authority, and as a bonus, that allows to be able to switch 
+ * authority, and as a bonus, that allows to be able to switch
  * from Spring more easily
- * 
+ *
  * So we have only one Authority type known by Spring Security: ROLE_USER
  */
 case object RoleUserAuthority extends GrantedAuthority {
@@ -148,16 +148,16 @@ case class RudderUserDetail(login:String,password:String,authz:Rights) extends U
   override val isAccountNonLocked = true
   override val isCredentialsNonExpired = true
   override val isEnabled = true
-  
+
 }
 
 case class AuthConfig(
   encoder: PasswordEncoder,
   users:List[(String,String,Rights)]
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 object AppConfigAuth extends Loggable {
-  
+
   def parseUsers(resource:Resource) : Option[AuthConfig] = {
     if(resource.exists && resource.isReadable) {
       val xml = scala.xml.XML.load(resource.getInputStream)
@@ -175,25 +175,25 @@ object AppConfigAuth extends Loggable {
           case "md5" => new Md5PasswordEncoder
           case _ => new PlaintextPasswordEncoder
         }
-        
+
         //now, get users
         val users = ( (xml \ "user").toList.flatMap { node =>
          //for each node, check attribute name (mandatory), password  (mandatory) and role (optional)
-         (   node.attribute("name").map(_.toList.map(_.text)) 
-           , node.attribute("password").map(_.toList.map(_.text)) 
-           , node.attribute("role").map(_.toList.map( role => AuthzToRights.parseRole(role.text.split(",").toSeq.map(_.trim)))) 
+         (   node.attribute("name").map(_.toList.map(_.text))
+           , node.attribute("password").map(_.toList.map(_.text))
+           , node.attribute("role").map(_.toList.map( role => AuthzToRights.parseRole(role.text.split(",").toSeq.map(_.trim))))
          ) match {
            case (Some(name :: Nil) , Some(pwd :: Nil), roles ) if(name.size > 0 && pwd.size > 0) => roles match {
              case Some(roles:: Nil) => (name, pwd, roles) :: Nil
              case _ =>  (name, pwd, new Rights(NoRights)) :: Nil
            }
-           
-           case _ => 
+
+           case _ =>
              ApplicationLogger.error("Ignore user line in authentication file '%s', some required attribute is missing: %s".format(resource.getURL.toString, node.toString))
              Nil
          }
         })
-        
+
         //and now, return the list of users
         users map { user =>
         if (user._3.authorizationTypes.contains(NoRights))

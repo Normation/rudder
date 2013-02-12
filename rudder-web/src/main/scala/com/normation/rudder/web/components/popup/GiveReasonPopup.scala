@@ -78,16 +78,16 @@ class GiveReasonPopup(
   def popupTemplate = chooseTemplate("reason", "giveReasonPopup", template)
 
 
-  private[this] val activeTechniqueCategoryRepository = 
+  private[this] val activeTechniqueCategoryRepository =
     inject[ActiveTechniqueCategoryRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
   val activeTechniqueRepository = inject[ActiveTechniqueRepository]
 
-  private[this] val categories = 
+  private[this] val categories =
     activeTechniqueCategoryRepository.getAllActiveTechniqueCategories()
   private[this] val userPropertyService = inject[UserPropertyService]
   private[this] val techniqueRepository = inject[TechniqueRepository]
-  
+
   def dispatch = {
     case "popupContent" => popupContent _
   }
@@ -98,7 +98,7 @@ class GiveReasonPopup(
 
   def popupContent(html : NodeSeq) : NodeSeq = {
     SHtml.ajaxForm(bind("item", popupTemplate,
-       "reason" -> crReasons.map {f =>           
+       "reason" -> crReasons.map {f =>
          <div>
           <div style="margin-bottom:5px">
             {userPropertyService.reasonsFieldExplanation}
@@ -106,13 +106,13 @@ class GiveReasonPopup(
             {f.toForm_!}
          </div>
         },
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() & refreshActiveTreeLibrary() }) % 
+      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() & refreshActiveTreeLibrary() }) %
         ("tabindex","4"),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % 
+      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) %
         ("id","createATCSaveButton") % ("tabindex","3")
     ))
   }
-  
+
 
 ///////////// fields for category settings ///////////////////
   private[this] val crReasons = {
@@ -122,11 +122,11 @@ class GiveReasonPopup(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-  
+
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
     new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  % 
+      override def inputField = super.inputField  %
         ("style" -> "height:8em;")
       override def subContainerClassName = containerClass
       override def validations() = {
@@ -138,7 +138,7 @@ class GiveReasonPopup(
       }
     }
   }
-  
+
   private[this] val formTracker = {
     val fields = List() ++ crReasons
     new FormTracker(fields)
@@ -152,7 +152,7 @@ class GiveReasonPopup(
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $.modal.close();""")
   }
-  
+
   /**
    * Update the form when something happened
    */
@@ -173,28 +173,28 @@ class GiveReasonPopup(
             result <- (
                 activeTechniqueRepository
                   .addTechniqueInUserLibrary(
-                      ActiveTechniqueCategoryId(destCatId.value), 
-                      ptName, 
-                      techniqueRepository.getTechniqueVersions(ptName).toSeq, 
-                      ModificationId(uuidGen.newUuid), 
-                      CurrentUser.getActor, 
+                      ActiveTechniqueCategoryId(destCatId.value),
+                      ptName,
+                      techniqueRepository.getTechniqueVersions(ptName).toSeq,
+                      ModificationId(uuidGen.newUuid),
+                      CurrentUser.getActor,
                       crReasons.map (_.is)
-                   ) 
+                   )
                    ?~! errorMess.format(sourceActiveTechniqueId.value, destCatId.value)
                )
           } yield {
             result
           }) match {
-            case Full(res) => 
+            case Full(res) =>
               val jsString = """setTimeout(function() { $("[activeTechniqueId=%s]")
                 .effect("highlight", {}, 2000)}, 100)"""
                 formTracker.clean
-                closePopup() & 
+                closePopup() &
                 onSuccessCallback(res.id) &
                 JsRaw(jsString.format(sourceActiveTechniqueId.value))
-            case f:Failure => 
+            case f:Failure =>
               Alert(f.messageChain + "\nPlease reload the page")
-            case Empty => 
+            case Empty =>
               val errorMess = "Error while trying to move Active Technique with " +
               "requested id '%s' to category id '%s'\nPlease reload the page."
               Alert(errorMess.format(sourceActiveTechniqueId.value, destCatId.value))

@@ -58,40 +58,40 @@ import com.normation.eventlog.ModificationId
 
 //ask for a new deployment - automatic deployment !
 //actor: the actor who asked for the deployment
-final case class AutomaticStartDeployment(modId: ModificationId, actor:EventActor) extends HashcodeCaching 
+final case class AutomaticStartDeployment(modId: ModificationId, actor:EventActor) extends HashcodeCaching
 
 //ask for a new deployment - manual deployment (human clicked on "regenerate now"
 //actor: the actor who asked for the deployment
 final case class ManualStartDeployment(modId: ModificationId, actor:EventActor, reason:String) extends HashcodeCaching
 
 /**
- * State of the deployment agent. 
+ * State of the deployment agent.
  */
 sealed trait DeployerState
 //not currently doing anything
-final case object IdleDeployer extends DeployerState with HashcodeCaching 
+final case object IdleDeployer extends DeployerState with HashcodeCaching
 //a deployment is currently running
-final case class Processing(id:Long, started: DateTime) extends DeployerState with HashcodeCaching 
+final case class Processing(id:Long, started: DateTime) extends DeployerState with HashcodeCaching
 //a deployment is currently running and an other is queued
 final case class ProcessingAndPendingAuto(asked: DateTime, current:Processing, actor : EventActor, eventLogId : Int) extends DeployerState with HashcodeCaching
 //a deployment is currently running and a manual is queued
 final case class ProcessingAndPendingManual(asked: DateTime, current:Processing, actor : EventActor, eventLogId : Int, reason:String) extends DeployerState with HashcodeCaching
-  
+
 /**
  * Status of the last deployment process
  */
 sealed trait CurrentDeploymentStatus
 //noting was done for now
-final case object NoStatus extends CurrentDeploymentStatus with HashcodeCaching 
+final case object NoStatus extends CurrentDeploymentStatus with HashcodeCaching
 //last status - success or error
-final case class SuccessStatus(id:Long, started: DateTime, ended:DateTime, configuration:Map[NodeId,NodeConfiguration]) extends CurrentDeploymentStatus with HashcodeCaching 
-final case class ErrorStatus(id:Long, started: DateTime, ended:DateTime, failure:Failure) extends CurrentDeploymentStatus with HashcodeCaching 
+final case class SuccessStatus(id:Long, started: DateTime, ended:DateTime, configuration:Map[NodeId,NodeConfiguration]) extends CurrentDeploymentStatus with HashcodeCaching
+final case class ErrorStatus(id:Long, started: DateTime, ended:DateTime, failure:Failure) extends CurrentDeploymentStatus with HashcodeCaching
 
 
 final case class DeploymentStatus(
   current: CurrentDeploymentStatus,
   processing: DeployerState
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 /**
  * Asyn version of the deployment service.
@@ -103,24 +103,24 @@ final class AsyncDeploymentAgent(
   , deploymentStatusSerialisation : DeploymentStatusSerialisation
 ) extends LiftActor with Loggable with ListenerManager {
 
-  deploymentManager => 
+  deploymentManager =>
 
   val timeFormat = "yyyy/MM/dd HH:mm:ss"
 
   def isAutoDeploy = autoDeployOnModification
-  
+
   //message from the deployment agent to the manager
   private[this] sealed case class DeploymentResult(
       id     : Long
-    , modId  : ModificationId  
+    , modId  : ModificationId
     , start  : DateTime
     , end    : DateTime
     , results: Box[Map[NodeId, NodeConfiguration]]
     , actor  : EventActor
-    , eventLogId: Int) extends HashcodeCaching 
+    , eventLogId: Int) extends HashcodeCaching
   //message from manager to deployment agent
-  private[this] sealed case class NewDeployment(id:Long, modId:ModificationId, started: DateTime, actor : EventActor, eventLogId : Int) extends HashcodeCaching 
-  
+  private[this] sealed case class NewDeployment(id:Long, modId:ModificationId, started: DateTime, actor : EventActor, eventLogId : Int) extends HashcodeCaching
+
   private[this] var lastFinishedDeployement : CurrentDeploymentStatus = getLastFinishedDeployment
   private[this] var currentDeployerState : DeployerState = IdleDeployer
   private[this] var currentDeploymentId = lastFinishedDeployement match {
@@ -129,26 +129,26 @@ final class AsyncDeploymentAgent(
     case a : ErrorStatus => a.id
     case _ => 0L
   }
-  
-  
+
+
   def getStatus : CurrentDeploymentStatus = lastFinishedDeployement
   def getCurrentState : DeployerState = currentDeployerState
-  
+
   /**
-   * 
+   *
    */
   private[this] def getLastFinishedDeployment: CurrentDeploymentStatus = {
     eventLogger.getLastDeployement() match {
-      case Empty =>  
+      case Empty =>
         logger.debug("Could not find a last deployment")
         NoStatus
-      case m : Failure => 
+      case m : Failure =>
         logger.debug("Error when fetching the last deployement, reason %s".format(m.messageChain))
         NoStatus
-      case Full(status) => status 
+      case Full(status) => status
     }
   }
-  
+
   /**
    * Manage what we send on other listener actors
    */
@@ -162,20 +162,20 @@ final class AsyncDeploymentAgent(
       , details   = EventLog.withContent(xml)
     )
   }
-  
+
   override protected def lowPriority = {
 
-    
+
     //
-    // Start a new deployment 
+    // Start a new deployment
     //
     case AutomaticStartDeployment(modId, actor) => {
       implicit val a = actor
       logger.trace("Deployment manager: receive new automatic deployment request message")
       autoDeployOnModification match {
-        case false => 
+        case false =>
           logger.trace("Deployment manager: the automatic deployment are not permitted")
-        case true => 
+        case true =>
           currentDeployerState match {
             case IdleDeployer => //ok, start a new deployment
               currentDeploymentId += 1
@@ -186,20 +186,20 @@ final class AsyncDeploymentAgent(
                   modId, AutomaticStartDeployement(WithDetails(NodeSeq.Empty))
                 )
               DeployerAgent ! NewDeployment(newState.id, modId, newState.started, actor, event.flatMap(_.id).getOrElse(0))
-           
+
             case p@Processing(id, startTime) => //ok, add a pending deployment
               logger.trace("Deployment manager: currently deploying, add a pending deployment request")
               val event = eventLogger.repository.saveEventLog(
                   modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="false"/>))
                 )
               currentDeployerState = ProcessingAndPendingAuto(DateTime.now, p, actor, event.flatMap(_.id).getOrElse(0))
-            
+
             case p:ProcessingAndPendingAuto => //drop message, one is already pending
               eventLogger.repository.saveEventLog(
                   modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
                 )
               logger.info("One automatic deployment process is already pending, ignoring new deployment request")
-      
+
             case p:ProcessingAndPendingManual => //drop message, one is already pending
               eventLogger.repository.saveEventLog(
                   modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
@@ -211,15 +211,15 @@ final class AsyncDeploymentAgent(
       //update listeners
       updateListeners()
     }
-    
+
     case ManualStartDeployment(modId, actor, reason) => {
       implicit val a = actor
       implicit val r = Some(reason)
-      
+
       logger.trace("Deployment manager: receive new manual deployment request message")
       currentDeployerState match {
         case IdleDeployer => //ok, start a new deployment
-          currentDeploymentId += 1 
+          currentDeploymentId += 1
           val newState = Processing(currentDeploymentId, DateTime.now)
           currentDeployerState = newState
           logger.trace("Deployment manager: ask deployer agent to start a deployment")
@@ -227,20 +227,20 @@ final class AsyncDeploymentAgent(
               modId, ManualStartDeployement(WithDetails(NodeSeq.Empty))
             )
           DeployerAgent ! NewDeployment(newState.id, modId, newState.started, actor, event.flatMap(_.id).getOrElse(0))
-         
+
         case p@Processing(id, startTime) => //ok, add a pending deployment
           logger.trace("Deployment manager: currently deploying, add a pending deployment request")
           val event = eventLogger.repository.saveEventLog(
               modId, ManualStartDeployement(WithDetails(<addPending alreadyPending="false"/>))
             )
           currentDeployerState = ProcessingAndPendingManual(DateTime.now, p, actor, event.flatMap(_.id).getOrElse(0), reason)
-          
+
         case p:ProcessingAndPendingManual => //drop message, one is already pending
           eventLogger.repository.saveEventLog(
               modId, ManualStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
             )
           logger.info("One deployment process is already pending, ignoring new deployment request")
-          
+
         case p:ProcessingAndPendingAuto => //replace with manual
           val event = eventLogger.repository.saveEventLog(
               modId, ManualStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
@@ -251,12 +251,12 @@ final class AsyncDeploymentAgent(
       //update listeners
       updateListeners()
     }
-    
+
     //
     // response from the deployer
     //
     case DeploymentResult(id, modId, startTime, endTime, result, actor, deploymentEventId) => {
-      
+
       //process the result
       result match {
         case e:EmptyBox =>
@@ -271,7 +271,7 @@ final class AsyncDeploymentAgent(
             , creationDate = startTime
             , reason = None
           )))
-          
+
         case Full(nodeConfigurations) =>
           logger.info("Successful deployment %s [%s - %s]".format(id, startTime.toString(timeFormat), endTime.toString(timeFormat)))
           lastFinishedDeployement = SuccessStatus(id, startTime, endTime, nodeConfigurations)
@@ -284,7 +284,7 @@ final class AsyncDeploymentAgent(
             , reason = None
           )))
       }
-      
+
       //look if there is another process to start and update current deployer status
       currentDeployerState match {
         case IdleDeployer => //should never happen
@@ -292,38 +292,38 @@ final class AsyncDeploymentAgent(
 
         case p:Processing => //ok, come back to IdleDeployer
           currentDeployerState = IdleDeployer
-        
+
         case p:ProcessingAndPendingAuto => //come back to IdleDeployer but immediately ask for another deployment
           currentDeployerState = IdleDeployer
           this ! AutomaticStartDeployment(modId, RudderEventActor)
-          
+
         case p:ProcessingAndPendingManual => //come back to IdleDeployer but immediately ask for another deployment
           currentDeployerState = IdleDeployer
           this ! ManualStartDeployment(modId, RudderEventActor, p.reason)
-          
+
       }
       //update listeners
       updateListeners()
     }
-    
+
     //
     //Unexpected messages
     //
     case x => logger.debug("Deployment manager does not know how to process message: '%s'".format(x))
   }
-  
-  
+
+
 
   /**
-   * The internal agent that will actually do the deployment 
-   * Long time running process, I/O consuming. 
+   * The internal agent that will actually do the deployment
+   * Long time running process, I/O consuming.
    */
   private[this] object DeployerAgent extends LiftActor with Loggable {
     override protected def messageHandler = {
       //
-      // Start a new deployment 
+      // Start a new deployment
       //
-      case NewDeployment(id, modId, startTime, actor, eventId) => 
+      case NewDeployment(id, modId, startTime, actor, eventId) =>
         logger.trace("Deployer Agent: start a new deployment")
         try {
           val result = deploymentService.deploy().map { nodeConfs =>
@@ -333,11 +333,11 @@ final class AsyncDeploymentAgent(
         } catch {
           case e:Exception => deploymentManager ! DeploymentResult(id, modId, startTime, DateTime.now, Failure("Exception caught during deployment process: %s".format(e.getMessage),Full(e), Empty), actor, eventId)
         }
-          
+
       //
       //Unexpected messages
       //
-      case x => 
+      case x =>
         val msg = "Deployment agent does not know how to process message: '%s'".format(x)
         logger.error(msg)
         deploymentManager ! DeploymentResult(-1, ModificationId.dummy, DateTime.now, DateTime.now, Failure(msg), RudderEventActor, 0)

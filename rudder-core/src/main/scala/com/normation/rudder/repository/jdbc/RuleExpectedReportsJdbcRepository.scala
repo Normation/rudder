@@ -56,10 +56,10 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
     extends RuleExpectedReportsRepository {
 
   val logger = LoggerFactory.getLogger(classOf[RuleExpectedReportsJdbcRepository])
-  
+
   val TABLE_NAME = "expectedreports"
   val NODE_TABLE_NAME = "expectedreportsnodes"
-    
+
   val baseQuery = "select pkid, nodejoinkey, ruleid, serial, directiveid, component, cardinality, componentsvalues, begindate, enddate  from " + TABLE_NAME + "  where 1=1 ";
 
   def findAllCurrentExpectedReports(): scala.collection.Set[RuleId] = {
@@ -68,13 +68,13 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
           RuleIdMapper).toSet;
   }
 
-  
+
   def findAllCurrentExpectedReportsAndSerial(): scala.collection.Map[RuleId, Int] = {
     jdbcTemplate.query("select distinct ruleid, serial from "+ TABLE_NAME +
         "      where enddate is null",
           RuleIdAndSerialMapper).toMap;
   }
-    
+
   /**
    * Return current expectedreports (the one still pending) for this Rule
    * @param rule
@@ -83,21 +83,21 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
   def findCurrentExpectedReports(ruleId : RuleId) : Option[RuleExpectedReports] = {
     val list = toRuleExpectedReports(jdbcTemplate.query(baseQuery +
         "      and enddate is null and ruleid = ?",
-          Array[AnyRef](ruleId.value), 
+          Array[AnyRef](ruleId.value),
           RuleExpectedReportsMapper).toSeq)
 
-    
+
     list.size match {
        case 0 => None
        case 1 => Some(setNodes(list).head)
        case _ => throw new Exception("Inconsistency in the database")
-       
+
     }
   }
-  
+
   /**
    * Simply set the endDate for the expected report for this conf rule
-   * @param ruleId 
+   * @param ruleId
    */
   def closeExpectedReport(ruleId : RuleId) : Unit = {
     logger.info("Closing report {}", ruleId)
@@ -115,7 +115,7 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
   /**
    * TODO: change this API !
    * Save an expected reports.
-   * 
+   *
    */
   def saveExpectedReports(ruleId : RuleId, serial: Int,
               policyExpectedReports : Seq[DirectiveExpectedReports],
@@ -125,24 +125,24 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
       case Some(x) =>
           logger.error("Inconsistency in the database : cannot save an already existing expected report")
           Failure("cannot save an already existing expected report")
-          
+
       case None =>
           // Compute first the version id
           val nodeJoinKey = getNextVersionId
-          
+
           // Create the lines for the mapping
           val list = for {
             policy <- policyExpectedReports
             component <- policy.components
-            
+
           } yield {
             new ExpectedConfRuleMapping(0, nodeJoinKey, ruleId, serial,
                   policy.directiveId, component.componentName, component.cardinality, component.componentsValues, DateTime.now(), None)
           }
           "select pkid, nodejoinkey, ruleid, serial, directiveid, component, componentsvalues, cardinality, begindate, enddate  from "+ TABLE_NAME + "  where 1=1 ";
 
-          list.foreach(entry => 
-                jdbcTemplate.update("insert into "+ TABLE_NAME +" ( nodejoinkey, ruleid, serial, directiveid, component, cardinality, componentsValues, begindate) " + 
+          list.foreach(entry =>
+                jdbcTemplate.update("insert into "+ TABLE_NAME +" ( nodejoinkey, ruleid, serial, directiveid, component, cardinality, componentsValues, begindate) " +
                     " values (?,?,?,?,?,?,?,?)",
                   new java.lang.Integer(entry.nodeJoinKey), ruleId.value, new java.lang.Integer(entry.serial), entry.policyExpectedReport.value,
                   entry.component,  new java.lang.Integer(entry.cardinality), ComponentsValuesSerialiser.serializeComponents(entry.componentsValues), new Timestamp(entry.beginDate.getMillis)
@@ -152,7 +152,7 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
           findCurrentExpectedReports(ruleId)
      }
   }
-  
+
   /**
    * Return all the expected reports for this policyinstance between the two date
    * @param directiveId
@@ -161,24 +161,24 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
   def findExpectedReports(ruleId : RuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[RuleExpectedReports] = {
     var query = baseQuery + " and ruleId = ? "
     var array = mutable.Buffer[AnyRef](ruleId.value)
-    
+
     beginDate match {
-      case None => 
+      case None =>
       case Some(date) => query = query + " and coalesce(endDate, ?) >= ?"; array += new Timestamp(date.getMillis);array += new Timestamp(date.getMillis)
     }
-    
+
     endDate match {
-      case None => 
+      case None =>
       case Some(date) => query = query + " and beginDate < ?"; array += new Timestamp(date.getMillis)
     }
-    
+
     val list = toRuleExpectedReports(jdbcTemplate.query(query,
           array.toArray[AnyRef],
           RuleExpectedReportsMapper).toSeq)
     setNodes(list)
-  
+
   }
-  
+
   /**
    * Return all the expected reports between the two dates
    * @return
@@ -190,9 +190,9 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
     val list = toRuleExpectedReports(jdbcTemplate.query(query,
           array.toArray[AnyRef],
           RuleExpectedReportsMapper).toSeq)
-    setNodes(list)  
+    setNodes(list)
   }
-  
+
   /**
    * Return all the expected reports for this server between the two date
    * @param directiveId
@@ -201,28 +201,28 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
   def findExpectedReportsByNode(nodeId : NodeId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[RuleExpectedReports] = {
     var joinQuery = "select pkid, "+ TABLE_NAME +".nodejoinkey, ruleid, directiveid, serial, component, componentsvalues, cardinality, begindate, enddate  from "+ TABLE_NAME +
         " join "+ NODE_TABLE_NAME +" on "+ NODE_TABLE_NAME +".nodejoinkey = "+ TABLE_NAME +".nodejoinkey " +
-        " where nodeid = ? " 
-  
+        " where nodeid = ? "
+
     var array = mutable.Buffer[AnyRef](nodeId.value)
-    
+
     beginDate match {
-      case None => 
+      case None =>
       case Some(date) => joinQuery = joinQuery + " and coalesce(endDate, ?) >= ?"; array += new Timestamp(date.getMillis);array += new Timestamp(date.getMillis)
     }
-    
+
     endDate match {
-      case None => 
+      case None =>
       case Some(date) => joinQuery = joinQuery + " and beginDate < ?"; array += new Timestamp(date.getMillis)
     }
-    
+
     val list = toRuleExpectedReports(jdbcTemplate.query(joinQuery,
           array.toArray[AnyRef],
           RuleExpectedReportsMapper).toSeq)
     setNodes(list)
   }
 
-  
-  
+
+
   /**
    * Return currents expectedreports (the one still pending) for this server
    * @param directiveId
@@ -234,10 +234,10 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
         "      where enddate is null and  "+ NODE_TABLE_NAME +".nodeId = ?";
 
     val list = toRuleExpectedReports(jdbcTemplate.query(joinQuery,
-          Array[AnyRef](nodeId.value), 
+          Array[AnyRef](nodeId.value),
           RuleExpectedReportsMapper).toSeq)
     setNodes(list)
-    
+
   }
 
   /**
@@ -249,7 +249,7 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
     val result = mutable.Buffer[RuleExpectedReports]()
     for (entry <- list) {
       val nodesList = jdbcTemplate.queryForList("select nodeId from "+ NODE_TABLE_NAME +" where nodeJoinKey = ?",
-        Array[AnyRef](new java.lang.Integer(entry.nodeJoinKey)), 
+        Array[AnyRef](new java.lang.Integer(entry.nodeJoinKey)),
         classOf[ String ]
       )
       result += entry.copy(nodeIds = nodesList.map(x => NodeId(x)))
@@ -267,19 +267,19 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
       )
     }
   }
-  
+
   private def getNextVersionId() : Int = {
     jdbcTemplate.queryForInt("SELECT nextval('ruleVersionId')")
   }
-  
-  
+
+
   /**
    * Agregate the differents lines mapping a RuleExpectedReports
-   * Caution, can only agregate 
+   * Caution, can only agregate
    */
   def toRuleExpectedReports(mapping : Seq[ExpectedConfRuleMapping]) : Seq[RuleExpectedReports] = {
     val result = mutable.Map[SerialedRuleId, RuleExpectedReports]()
-    
+
     for (mapped <- mapping) {
       result.get(SerialedRuleId(mapped.ruleId, mapped.serial)) match {
         case None => result += (SerialedRuleId(mapped.ruleId, mapped.serial) -> new  RuleExpectedReports(
@@ -314,7 +314,7 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
     }
     result.values.toSeq
   }
-  
+
 }
 
 object RuleExpectedReportsMapper extends RowMapper[ExpectedConfRuleMapping] {
@@ -324,7 +324,7 @@ object RuleExpectedReportsMapper extends RowMapper[ExpectedConfRuleMapping] {
       rs.getInt("nodejoinkey"),
       new RuleId(rs.getString("ruleid")),
       rs.getInt("serial"),
-      DirectiveId(rs.getString("directiveid")), 
+      DirectiveId(rs.getString("directiveid")),
       rs.getString("component"),
       rs.getInt("cardinality"),
       ComponentsValuesSerialiser.unserializeComponents(rs.getString("componentsvalues")),
@@ -352,9 +352,9 @@ object RuleIdAndSerialMapper extends RowMapper[(RuleId, Int)] {
  */
 case class ExpectedConfRuleMapping(
     val pkId : Int,
-    val nodeJoinKey : Int, 
+    val nodeJoinKey : Int,
     val ruleId : RuleId,
-    val serial : Int, 
+    val serial : Int,
     val policyExpectedReport : DirectiveId,
     val component : String,
     val cardinality : Int,
@@ -362,22 +362,22 @@ case class ExpectedConfRuleMapping(
     // the period where the configuration is applied to the servers
     val beginDate : DateTime = DateTime.now(),
     val endDate : Option[DateTime] = None
-) extends HashcodeCaching 
-    
-    
+) extends HashcodeCaching
+
+
  object ComponentsValuesSerialiser {
-  
+
   def serializeComponents(ids:Seq[String]) : String = {
     implicit val formats = Serialization.formats(NoTypeHints)
     Serialization.write(ids)
   }
   /*
    * from a JSON array: [ "id1", "id2", ...], get the list of
-   * components values Ids. 
-   * Never fails, but returned an empty list. 
+   * components values Ids.
+   * Never fails, but returned an empty list.
    */
   def unserializeComponents(ids:String) : Seq[String] = {
-    implicit val formats = DefaultFormats 
+    implicit val formats = DefaultFormats
     parse(ids).extract[List[String]]
  }
 

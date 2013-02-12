@@ -49,33 +49,33 @@ import org.eclipse.jgit.api.Git
 
 @RunWith(classOf[JUnitRunner])
 class TestGitFindUtils extends Specification with Loggable {
-  
+
   ////////// set up / clean-up and utilities //////////
-  
+
   lazy val gitRoot = new File("/tmp/test-jgit/filters", System.currentTimeMillis.toString)
-  
+
   override def map(fs: => Fragments) = fs ^ Step(deleteDirectory)
 
   def deleteDirectory = {
     logger.debug("Deleting directory " + gitRoot.getAbsoluteFile)
     try {
-      FileUtils.deleteDirectory(gitRoot)   
+      FileUtils.deleteDirectory(gitRoot)
     } catch {
       case e:Exception => anError
     }
   }
-  
-  
+
+
   //create a file with context = its name, creating its parent dir if needed
   def mkfile(relativePath:String, name:String) = {
     val d = new File(gitRoot, relativePath)
     d.mkdirs
     FileUtils.writeStringToFile(new File(d,name), name)
   }
-  
+
 
   ////////// init test directory structure //////////
-  
+
   //init the file layout
   val all =
     ("a"      , "root.txt") ::
@@ -87,13 +87,13 @@ class TestGitFindUtils extends Specification with Loggable {
     ("b/a"    , "f.plop")    ::
     ("x/f.txt", "f.txt")    ::
     Nil
-  
-  
+
+
   //build
   all.foreach { case (path, file) =>
     mkfile(path, file)
   }
-  
+
   val allPaths = all.map { case(d,f) => d+"/"+f }
   val allPdf = all.collect { case(d,f) if f.endsWith(".pdf") => d+"/"+f }
   val allTxt = all.collect { case(d,f) if f.endsWith(".txt") => d+"/"+f }
@@ -101,7 +101,7 @@ class TestGitFindUtils extends Specification with Loggable {
   val allDirAA = all.collect { case(d,f) if d.startsWith("a/a") => d+"/"+f }
   val allDirB  = all.collect { case(d,f) if d.startsWith("b") => d+"/"+f }
   val allDirX  = List("x/f.txt/f.txt")
-  
+
   val db = (new FileRepositoryBuilder).setWorkTree(gitRoot).build
   if(!db.getConfig.getFile.exists) {
     db.create()
@@ -110,9 +110,9 @@ class TestGitFindUtils extends Specification with Loggable {
   git.add.addFilepattern(".").call
   val id = GitFindUtils.findRevTreeFromRevString(db, git.commit.setMessage("initial commit").call.name).openOrThrowException("For tests")
 
-  def list(rootDirectories:List[String], endPaths: List[String]) = 
+  def list(rootDirectories:List[String], endPaths: List[String]) =
     GitFindUtils.listFiles(db, id, rootDirectories, endPaths)
-    
+
   ////////// actual tests //////////
 
   "the walk" should {
@@ -131,7 +131,7 @@ class TestGitFindUtils extends Specification with Loggable {
     "return only files under a when filter for 'a'" in {
       list(List("a"),Nil) must haveTheSameElementsAs(allDirA)
     }
-    
+
     "return only files under a when filter for a/" in {
       list(List("a/"),Nil) must haveTheSameElementsAs(allDirA)
     }
@@ -163,15 +163,15 @@ class TestGitFindUtils extends Specification with Loggable {
     "return nothing" in {
       list(List("x"), List("plop")) must beEmpty
     }
-    
+
     "ignore empty path" in {
       list(List("x", ""), Nil) must haveTheSameElementsAs(allDirX)
     }
-    
+
     "ignore empty extension" in {
       list(Nil, List("txt", "")) must haveTheSameElementsAs(allTxt)
     }
-    
+
   }
 
 }

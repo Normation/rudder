@@ -46,20 +46,20 @@ import net.liftweb.http.DispatchSnippet
 class EventLogsViewer extends DispatchSnippet with Loggable {
   private[this] val repos = inject[EventLogRepository]
   private[this] val eventList = inject[EventListDisplayer]
-  
+
   private[this] val gridName = "eventLogsGrid"
-  
+
   def getLastEvents : Box[Seq[EventLog]] = {
-    repos.getEventLogByCriteria(None, Some(1000), Some("id DESC")) 
+    repos.getEventLogByCriteria(None, Some(1000), Some("id DESC"))
   }
-    
-  def dispatch = { 
+
+  def dispatch = {
     case "display" => xml => getLastEvents match {
       case Full(seq) => eventList.display(seq,gridName) ++ Script(eventList.initJs(gridName))
       case Empty => eventList.display(Seq(), gridName) ++ Script(eventList.initJs(gridName))
-      case f:Failure => 
+      case f:Failure =>
         <div class="error">Error when trying to get last event logs. Error message was: {f.msg}</div>
-    } 
-  } 
+    }
+  }
 
 }

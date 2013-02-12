@@ -43,7 +43,7 @@ import com.normation.cfclerk.domain._
 @RunWith(classOf[JUnitRunner])
 class SectionValTest extends Specification with Loggable {
 
-  
+
   "A simple section" should {
     /*
      * <section name="root">
@@ -54,10 +54,10 @@ class SectionValTest extends Specification with Loggable {
      */
     val simpleSpec = SectionSpec(
         name = "root"
-      , children = 
+      , children =
           SectionSpec(
               name = "section1"
-            , children = 
+            , children =
                 InputVariableSpec(
                     name = "var1"
                   , description = ""
@@ -66,66 +66,66 @@ class SectionValTest extends Specification with Loggable {
           ) ::
           Nil
     )
-    
+
     val sectionVal = SectionVal(
         sections = Map(
             "section1" -> Seq(
                 SectionVal(
-                  variables = Map("var1" -> "var1A")    
+                  variables = Map("var1" -> "var1A")
                 )
             )
         )
     )
-  
+
     val emptySectionVal = SectionVal(
         sections = Map(
             "section1" -> Seq(
                 SectionVal(
-                  variables = Map("var1" -> "")    
+                  variables = Map("var1" -> "")
                 )
             )
         )
     )
-    
+
     val mapOk = Map("var1" -> Seq("var1A"))
-    
+
     "be mappable from the good map" in {
       sectionVal === SectionVal.directiveValToSectionVal(simpleSpec, mapOk)
     }
-    
+
     "be idempotent starting from the map" in {
       mapOk ===  SectionVal.toMapVariables(SectionVal.directiveValToSectionVal(simpleSpec, mapOk))
     }
-    
+
     "be idempotent starting from the sectionVal" in {
       sectionVal ===  SectionVal.directiveValToSectionVal(simpleSpec, SectionVal.toMapVariables(sectionVal))
     }
-    
+
     "accept empty values for vars" in {
       SectionVal.directiveValToSectionVal(simpleSpec, Map()) === emptySectionVal
     }
-    
+
     "ignore unspecified var name in the map of values" in {
       SectionVal.directiveValToSectionVal(simpleSpec, Map("foo" -> Seq("bar"))) === emptySectionVal
     }
   }
-  
-  
+
+
   "A section with multivalued subsection" should {
-    
+
     /*
      * <section name="root">
      *   <section name="sec0">
      *     <var name="var0"/>
      *   </section>
-     *  
+     *
      *   <section name="sec1" multi="true">
      *     <var name="var1"/>
      *     <section name="sec2">
      *       <var name="var2"/>
      *     </section>
      *   </section>
-     *   
+     *
      *   <section name="sec3">
      *     <var name="var3"/>
      *     <section name="sec4" multi="true">
@@ -139,53 +139,53 @@ class SectionValTest extends Specification with Loggable {
      */
     val spec = SectionSpec(
         name = "root"
-      , children = 
+      , children =
           SectionSpec(
               name = "sec0"
-            , children = 
+            , children =
                 InputVariableSpec(name = "var0", description = "" ) ::
                 Nil
           ) ::
           SectionSpec(
               name = "sec1"
             , isMultivalued = true
-            , children = 
+            , children =
                 InputVariableSpec(name = "var1", description = "" ) ::
                 SectionSpec(
                     name = "sec2"
-                  , children = 
+                  , children =
                       InputVariableSpec(name = "var2", description = "" ) ::
                       Nil
                 ) ::
                 Nil
-              
+
           ) ::
           SectionSpec(
               name = "sec3"
-            , children = 
+            , children =
                 InputVariableSpec(name = "var3", description = "" ) ::
                 SectionSpec(
                     name = "sec4"
                   , isMultivalued = true
-                  , children = 
+                  , children =
                       InputVariableSpec(name = "var4", description = "" ) ::
                       SectionSpec(
                           name = "sec5"
-                        , children = 
+                        , children =
                             InputVariableSpec(name = "var5", description = "" ) ::
                             Nil
                       ) ::
                       Nil
                 ) ::
                 Nil
-              
+
           ) ::
           Nil
     )
-    
+
     /*
      *   sec0 : var0 -> var0A
-     *    
+     *
      *       sec1             sec3 : var3 = var3A
      *       /  \              |
      *   var1A   var1B        sec4------
@@ -202,14 +202,14 @@ class SectionValTest extends Specification with Loggable {
       , "var4" -> Seq("var4A", "var4B", "var4C")
       , "var5" -> Seq("var5A", "var5B", "var5C")
     )
-    
+
     val sectionVal = SectionVal(
         sections  = Map(
             "sec0" -> (
               SectionVal(
                   variables = Map("var0" -> "var0A")
               ) :: Nil
-            ) 
+            )
          ,  "sec1" -> (
               SectionVal(
                   variables = Map("var1" -> "var1A")
@@ -217,22 +217,22 @@ class SectionValTest extends Specification with Loggable {
                     "sec2" -> (
                       SectionVal(
                         variables = Map("var2" -> "var2A")
-                      ) :: 
+                      ) ::
                       Nil
                     )
                   )
-              ) :: 
+              ) ::
               SectionVal(
                   variables = Map("var1" -> "var1B")
                 , sections = Map(
                     "sec2" -> (
                       SectionVal(
                         variables = Map("var2" -> "var2B")
-                      ) :: 
+                      ) ::
                       Nil
                     )
                   )
-              ) :: 
+              ) ::
               Nil
             )
           , "sec3" -> (
@@ -249,7 +249,7 @@ class SectionValTest extends Specification with Loggable {
                               ) :: Nil
                             )
                           )
-                      ) :: 
+                      ) ::
                       SectionVal(
                           variables = Map("var4" -> "var4B")
                         , sections = Map(
@@ -259,7 +259,7 @@ class SectionValTest extends Specification with Loggable {
                               ) :: Nil
                             )
                           )
-                      ) :: 
+                      ) ::
                       SectionVal(
                           variables = Map("var4" -> "var4C")
                         , sections = Map(
@@ -269,7 +269,7 @@ class SectionValTest extends Specification with Loggable {
                               ) :: Nil
                             )
                           )
-                      ) :: 
+                      ) ::
                       Nil
                     )
                   )
@@ -277,10 +277,10 @@ class SectionValTest extends Specification with Loggable {
           )
        )
     )
-    
+
     "be correctly map to a SectionVal" in {
       SectionVal.directiveValToSectionVal(spec,mapOK1) === sectionVal
     }
-    
+
   }
 }

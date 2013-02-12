@@ -46,7 +46,7 @@ import com.normation.rudder.domain.logger.ApplicationLogger
  * This class check that all DIT entries needed for the application
  * to work are present in the LDAP directory.
  * If they are not, it will try to create them, and stop
- * application start if that is not possible. 
+ * application start if that is not possible.
  *
  */
 class CheckDIT(
@@ -56,39 +56,39 @@ class CheckDIT(
   , rudderDit:RudderDit
   , ldap:LDAPConnectionProvider
 ) extends BootstrapChecks {
-  
+
   @throws(classOf[ UnavailableException ])
   override def checks() : Unit = {
-    
+
     def FAIL(msg:String) = {
       ApplicationLogger.error(msg)
       throw new UnavailableException(msg)
     }
-    
+
     //start to check that an LDAP connection is up and running
-    ldap.map { con => 
+    ldap.map { con =>
       con.backed.isConnected
     } match {
       case e:EmptyBox => FAIL("Can not open LDAP connection")
       case _ => //ok
     }
-    
+
     //check that all base DN's entry are already in the LDAP
-    val baseDns = pendingNodesDit.BASE_DN :: pendingNodesDit.SOFTWARE_BASE_DN :: 
+    val baseDns = pendingNodesDit.BASE_DN :: pendingNodesDit.SOFTWARE_BASE_DN ::
       acceptedDit.BASE_DN :: acceptedDit.SOFTWARE_BASE_DN ::
       removedDit.BASE_DN :: removedDit.SOFTWARE_BASE_DN ::
       rudderDit.BASE_DN :: Nil
-    
+
     ldap.map { con =>
       (for {
-        dn <- baseDns 
+        dn <- baseDns
       } yield {
         (con.get(dn, "1:1"), dn)
       }).filter { //only keep those on error, and check if the resulting list is empty
-        case(res,dn) => res.isEmpty 
+        case(res,dn) => res.isEmpty
       } match {
         case Nil => //ok
-        case list => 
+        case list =>
           FAIL { "There is some required entries missing in the LDAP directory: %s".format(
             list.map {
               case (Failure(m,_,_), dn) => "%s (error message: %s)".format(dn.toString, m)
@@ -102,10 +102,10 @@ class CheckDIT(
       case Empty => FAIL("Error when checking for mandatory entries on the DIT. No message was left.")
       case Full(_) => //ok
     }
-      
+
     //now, check that all DIT entries are here, add missing ones
     val ditEntries = pendingNodesDit.getDITEntries ++ acceptedDit.getDITEntries ++ removedDit.getDITEntries ++ rudderDit.getDITEntries
-    
+
     ldap.map { con =>
       (for {
         e <- ditEntries.toList
@@ -118,7 +118,7 @@ class CheckDIT(
           (con.save(e), e.dn)
         }
       }).filter { //only keep those on error, and check if the resulting list is empty
-        case (result, dn) => result.isEmpty 
+        case (result, dn) => result.isEmpty
       } match {
         case Nil => //ok
         case list =>
@@ -128,14 +128,14 @@ class CheckDIT(
               case (Empty,dn) => "%s (no error message)".format(dn.toString)
               case _ => "" //strange...
             }.mkString(" | ")
-          )}        
+          )}
       }
     } match {
       case Failure(m,_,_) => FAIL("Error when checking for mandatory entries on the DIT. Message was: %s".format(m))
       case Empty => FAIL("Error when checking for mandatory entries on the DIT. No message was left.")
       case Full(_) => //ok
     }
-    
+
     ApplicationLogger.info("All the required DIT entries are present in the LDAP directory")
   }
 

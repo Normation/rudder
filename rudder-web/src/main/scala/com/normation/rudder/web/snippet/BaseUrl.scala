@@ -43,10 +43,10 @@ import com.normation.rudder.web.services.GetBaseUrlService
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 
 /**
- * 
- * This class deals with the base URL of the application. 
+ *
+ * This class deals with the base URL of the application.
  * For now, it only get the url from a property, but it
- * should also be able to deal with http/https, etc. 
+ * should also be able to deal with http/https, etc.
  */
 class BaseUrl {
 

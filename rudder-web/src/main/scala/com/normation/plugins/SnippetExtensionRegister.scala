@@ -39,11 +39,11 @@ import net.liftweb.common.Loggable
 import com.normation.rudder.domain.logger.ApplicationLogger
 
 /**
- * 
+ *
  */
 
 /**
- * A service that allow to find plugins by names or 
+ * A service that allow to find plugins by names or
  */
 trait SnippetExtensionRegister {
 
@@ -52,28 +52,28 @@ trait SnippetExtensionRegister {
    * be composed before the main class rendering
    */
   def getBeforeRenderExtension[T](plugAt:SnippetExtensionKey) : Seq[SnippetExtensionPoint[T]]
-  
+
   /**
    * Retrieve the list of classes whose dispatch method should
    * be composed after the main class rendering
    */
   def getAfterRenderExtension[T](plugAt:SnippetExtensionKey) : Seq[SnippetExtensionPoint[T]]
-  
+
   def register[T <: ExtendableSnippet[_]](extension: SnippetExtensionPoint[T]) : Unit
 
 }
 
 /**
  * Defatult implementation of the plugin register.
- * 
+ *
  * Extensions can be added at the class instanciation or
  * after, thanks to the "register" method.
- * In the future, extension should be orderable and overridable. 
+ * In the future, extension should be orderable and overridable.
  */
 class SnippetExtensionRegisterImpl extends SnippetExtensionRegister with Loggable {
-  
+
   private[this] val extendsAfter  = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[_]]]
-  
+
   /**
    * register the given extension. The extension is added
    * as the last extension to be applied (and so at
@@ -86,9 +86,9 @@ class SnippetExtensionRegisterImpl extends SnippetExtensionRegister with Loggabl
       case Some(exts) => extendsAfter += (extension.extendsAt ->  (extension +: exts) )
     }
   }
-  
+
   private[this] val extendsBefore  = scala.collection.mutable.Map.empty[SnippetExtensionKey, Seq[SnippetExtensionPoint[_]]]
-  
+
   /**
    * register the given extension. The extension is added
    * as the last extension to be applied (and so at
@@ -100,7 +100,7 @@ class SnippetExtensionRegisterImpl extends SnippetExtensionRegister with Loggabl
       case None => extendsBefore += (extension.extendsAt -> Seq(extension))
       case Some(exts) => extendsBefore += (extension.extendsAt ->  (extension +: exts) )
     }
-  }  
+  }
   /**
    * Retrieve the list of classes whose dispatch method should
    * be composed before the main class rendering
@@ -108,7 +108,7 @@ class SnippetExtensionRegisterImpl extends SnippetExtensionRegister with Loggabl
   def getBeforeRenderExtension[T](extendsAt:SnippetExtensionKey) : Seq[SnippetExtensionPoint[T]] = {
     extendsBefore.getOrElse(extendsAt, Seq()).map( x => x.asInstanceOf[SnippetExtensionPoint[T]])
   }
-  
+
   /**
    * Retrieve the list of classes whose dispatch method should
    * be composed after the main class rendering

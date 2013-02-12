@@ -52,18 +52,18 @@ import com.normation.eventlog.ModificationId
 /**
  * This service allows to manage properties linked to the root policy server,
  * like authorized network, policy server hostname, etc.
- * 
+ *
  * For now, the hypothesis that there is one and only one policy server is made.
  */
 trait PolicyServerManagementService {
 
-  
+
   /**
    * Get the list of authorized networks, i.e the list of networks such that
    * a node with an IP in it can ask for updated policies.
    */
   def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]]
-  
+
   /**
    * Update the list of authorized networks with the given list
    */
@@ -89,12 +89,12 @@ class PolicyServerManagementServiceImpl(
       allowedNetworks
     }
   }
-  
-  
+
+
   override def setAuthorizedNetworks(policyServerId:NodeId, networks:Seq[String], modId: ModificationId, actor:EventActor) : Box[Seq[String]] = {
 
     val directiveId = Constants.buildCommonDirectiveId(policyServerId)
-    
+
     //filter out bad networks
     val validNets = networks.flatMap { case net =>
       if(isValidNetwork(net)) Some(net)
@@ -103,7 +103,7 @@ class PolicyServerManagementServiceImpl(
         None
       }
     }
-    
+
     for {
       directive <- directiveRepository.getDirective(directiveId) ?~! "Error when retrieving directive with ID '%s'".format(directiveId.value)
       activeTechnique <- directiveRepository.getActiveTechnique(directiveId) ?~! "Error when getting active technique for directive with ID '%s'".format(directiveId.value)

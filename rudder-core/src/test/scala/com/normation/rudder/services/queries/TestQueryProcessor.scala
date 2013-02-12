@@ -53,7 +53,7 @@ import com.normation.utils.HashcodeCaching
 
 /*
  * Test query parsing.
- * 
+ *
  * These test doesn't test JSON syntax error, as we rely on
  * a JSON parser for that part.
  */
@@ -62,72 +62,72 @@ import com.normation.utils.HashcodeCaching
 class TestQueryProcessor extends Loggable {
 
   val ldifLogger = new DefaultLDIFFileLogger("TestQueryProcessor","/tmp/normation/rudder/ldif")
-  
+
   //init of in memory LDAP directory
   val schemaLDIFs = (
-      "00-core" :: 
-      "01-pwpolicy" :: 
-      "04-rfc2307bis" :: 
-      "05-rfc4876" :: 
-      "099-0-inventory" :: 
-      "099-1-rudder"  :: 
+      "00-core" ::
+      "01-pwpolicy" ::
+      "04-rfc2307bis" ::
+      "05-rfc4876" ::
+      "099-0-inventory" ::
+      "099-1-rudder"  ::
       Nil
   ) map { name =>
     this.getClass.getClassLoader.getResource("ldap-data/schema/" + name + ".ldif").getPath
-  } 
+  }
   val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
      this.getClass.getClassLoader.getResource(name).getPath
-  } 
+  }
   val ldap = InMemoryDsConnectionProvider(
       baseDNs = "cn=rudder-configuration" :: Nil
     , schemaLDIFPaths = schemaLDIFs
     , bootstrapLDIFPaths = bootstrapLDIFs
     , ldifLogger
-  )  
+  )
   //end inMemory ds
-  
+
   val DIT = new InventoryDit(new DN("ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"),new DN("ou=Inventories,cn=rudder-configuration"),"test")
 
   val nodeDit = new NodeDit(new DN("cn=rudder-configuration"))
-  
+
   val ditQueryData = new DitQueryData(DIT)
-  
+
   val ldapMapper = new LDAPEntityMapper(null, nodeDit, DIT, null)
   val internalLDAPQueryProcessor = new InternalLDAPQueryProcessor(ldap,DIT,ditQueryData,ldapMapper)
-    
+
   val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
       nodeDit,
       internalLDAPQueryProcessor
   )
 
-  val parser = new CmdbQueryParser with 
+  val parser = new CmdbQueryParser with
     DefaultStringQueryParser with
     JsonQueryLexer {
     override val criterionObjects = Map[String,ObjectCriterion]() ++ ditQueryData.criteriaMap
   }
-    
-  case class TestQuery(name:String,query:Query,awaited:Seq[NodeId]) extends HashcodeCaching 
+
+  case class TestQuery(name:String,query:Query,awaited:Seq[NodeId]) extends HashcodeCaching
 
   val s = Seq(
     new NodeId("node0"),new NodeId("node1"),new NodeId("node2"),
     new NodeId("node3"),new NodeId("node4"),new NodeId("node5"),
     new NodeId("node6"),new NodeId("node7")
   )
-  
-  
+
+
 
   @Test def basicQueriesOnId() {
-    
+
     /** find back all server */
     val q0 = TestQuery(
       "q0",
       parser("""
       {  "select":"node", "where":[
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"exists" }
-      ] }  
+      ] }
       """).openOrThrowException("For tests"),
       s)
-      
+
     /** find back server 1 and 5 by id */
     val q1 = TestQuery(
       "q1",
@@ -135,10 +135,10 @@ class TestQueryProcessor extends Loggable {
       { "select":"node", "composition":"or", "where":[
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" }
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node5" }
-      ] }  
+      ] }
       """).openOrThrowException("For tests"),
       s(1) :: s(5) :: Nil)
-   
+
     /** find back neither server 1 and 5 by id because of the and */
     val q2 = TestQuery(
       "q2",
@@ -146,61 +146,61 @@ class TestQueryProcessor extends Loggable {
       {  "select":"node", "composition":"and", "where":[
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" }
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node5" }
-      ] }  
+      ] }
       """).openOrThrowException("For tests"),
       Nil)
-    
+
     testQueries( q0 :: q1 :: q2 :: Nil)
   }
-  
+
   @Test def basicQueriesOnOneNodeParameter() {
     // only two servers have RAM: server1(RAM) = 10000000, server2(RAM) = 1
-    
+
     val q2_0 = TestQuery(
       "q2_0",
       parser("""
       {  "select":"node", "where":[
         { "objectType":"node", "attribute":"ram", "comparator":"gt", "value":"1" }
-      ] } 
+      ] }
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
-  
+
     val q2_1 = TestQuery(
       "q2_1",
       parser("""
       {  "select":"node", "where":[
         { "objectType":"node", "attribute":"ram", "comparator":"gteq", "value":"1" }
-      ] }  
+      ] }
       """).openOrThrowException("For tests"),
       s(1) :: s(2) :: Nil)
-      
-  
+
+
     val q2_2 = TestQuery(
       "q2_2",
       parser("""
       {  "select":"node", "where":[
         { "objectType":"node", "attribute":"ram", "comparator":"lteq", "value":"1" }
-      ] }  
+      ] }
       """).openOrThrowException("For tests"),
       s(2) :: Nil)
 
     testQueries(q2_2 :: q2_1 :: q2_0 :: Nil)
   }
-  
-  
+
+
   @Test def machineComponentQueries() {
     val q3 = TestQuery(
       "q3",
       parser("""
       { "select":"node", "where":[
       { "objectType":"biosPhysicalElement", "attribute":"softwareVersion", "comparator":"eq", "value":"6.00" }
-      ] } 
+      ] }
       """).openOrThrowException("For tests"),
       s(6) :: s(7) :: Nil)
-      
+
     testQueries(q3 :: Nil)
   }
-  
+
   @Test def softwareQueries() {
 
     val q1 = TestQuery(
@@ -208,23 +208,23 @@ class TestQueryProcessor extends Loggable {
       parser("""
       { "select":"node", "where":[
         { "objectType":"software", "attribute":"softwareVersion", "comparator":"eq", "value":"1.0.0" }
-      ] } 
+      ] }
       """).openOrThrowException("For tests"),
       s(2) :: s(7) :: Nil)
-  
+
     val q2 = TestQuery(
       "q2",
       parser("""
       { "select":"node", "where":[
         { "objectType":"software", "attribute":"softwareVersion", "comparator":"eq", "value":"2.0-rc" }
-      ] } 
+      ] }
       """).openOrThrowException("For tests"),
       s(2) :: Nil)
-      
-      
+
+
     testQueries(q1 :: q2 :: Nil)
   }
-  
+
   @Test def logicalElementQueries() {
 
     val q1 = TestQuery(
@@ -235,20 +235,20 @@ class TestQueryProcessor extends Loggable {
       ] }
       """).openOrThrowException("For tests"),
       s(3) :: s(7) :: Nil)
-  
+
     val q2 = TestQuery(
       "q2",
       parser("""
       { "select":"node", "where":[
         { "objectType":"fileSystemLogicalElement", "attribute":"fileSystemFreeSpace", "comparator":"gteq", "value":"100" }
-      ] } 
+      ] }
       """).openOrThrowException("For tests"),
       s(3) :: Nil)
-      
-      
+
+
     testQueries(q1 :: q2 :: Nil)
   }
-  
+
 
   @Test def regexQueries() {
     //on node
@@ -259,10 +259,10 @@ class TestQueryProcessor extends Loggable {
           { "objectType":"node" , "attribute":"ram"    , "comparator":"regex", "value":"[0-9]{9}" }
         , { "objectType":"node" , "attribute":"osKernelVersion" , "comparator":"regex", "value":"[0-9.-]+-(gen)eric" }
         , { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[01]" }
-      ] }  
+      ] }
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
-      
+
     //on node software, machine, machine element, node element
     val q2 = TestQuery(
       "q2",
@@ -273,7 +273,7 @@ class TestQueryProcessor extends Loggable {
         , { "objectType":"machine", "attribute":"machineId", "comparator":"regex" , "value":"machine[0-2]"  }
         , { "objectType":"fileSystemLogicalElement", "attribute":"fileSystemFreeSpace", "comparator":"regex", "value":"[01]{2}" }
         , { "objectType":"biosPhysicalElement", "attribute":"softwareVersion", "comparator":"regex", "value":"[6.0]+" }
-      ] }  
+      ] }
       """).openOrThrowException("For tests"),
       s(7) :: Nil)
 
@@ -284,10 +284,10 @@ class TestQueryProcessor extends Loggable {
       {  "select":"node",  "composition":"or", "where":[
           { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[01]" }
         , { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[12]" }
-      ] }  
+      ] }
       """).openOrThrowException("For tests"),
       s(0) :: s(1) :: s(2) :: Nil)
-      
+
     //same as q4 with and
     val q4 = TestQuery(
       "q3",
@@ -295,14 +295,14 @@ class TestQueryProcessor extends Loggable {
       {  "select":"node",  "composition":"and", "where":[
           { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[01]" }
         , { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[12]" }
-      ] }  
+      ] }
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
-      
+
       testQueries(q1 :: q2 :: q3 :: q4 :: Nil)
   }
-  
-  
+
+
   @Test def unsortedQueries() {
     val q1 = TestQuery(
       "q1",
@@ -311,51 +311,51 @@ class TestQueryProcessor extends Loggable {
         { "objectType":"software", "attribute":"cn", "comparator":"eq"   , "value":"aalib-libs.i586" },
         { "objectType":"machine", "attribute":"cn", "comparator":"exists"  },
         { "objectType":"node"   , "attribute":"ram"  , "comparator":"gt", "value":"1000" }
-      ] }  
+      ] }
       """).openOrThrowException("For tests"),
       Nil)
-  
+
       testQueries(q1 :: Nil)
   }
-  
+
   private def testQueries(queries:Seq[TestQuery]) : Unit = {
     queries foreach { q =>
       logger.debug("Processing: " + q.name)
       testQueryResultProcessor(q.name,q.query,q.awaited)
     }
-    
+
   }
-  
+
   private def testQueryResultProcessor(name:String,query:Query, ids:Seq[NodeId]) = {
       val found = queryProcessor.process(query).openOrThrowException("For tests").map { nodeInfo =>
         nodeInfo.id
       }
-      //also test with requiring only the expected node to check consistancy 
+      //also test with requiring only the expected node to check consistancy
       //(that should not change anything)
-      
+
       assertEquals("[%s]Duplicate entries in result: %s".format(name,found),
           found.size.toLong,found.distinct.size.toLong)
       assertEquals("[%s]Size differ between awaited and found entry set  (process)\n Found: %s\n Wants: %s".
           format(name,found,ids),ids.size.toLong,found.size.toLong)
       assertTrue("[%s]Entries differ between awaited and found entry set (process)\n Found: %s\n Wants: %s".
           format(name,found,ids),found.forall { f => ids.exists( f == _) })
-          
+
       val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, serverUuids = Some(ids)).openOrThrowException("For tests").map { entry =>
         NodeId(entry("nodeId").get)
       }).distinct
       assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected enrties (process)\n Found: %s\n Wants: %s".
           format(name,foundWithLimit,ids),ids.size.toLong,foundWithLimit.size.toLong)
   }
-  
+
 //  private def testQueryResultChecker(name:String,query:Query, ids:Seq[NodeId]) = {
 //      val checked = queryProcessor.check(query,s).openOrThrowException("For tests")
-//      
+//
 //      assertEquals("[%s]Size differ between awaited and found entry set (check)\n Found: %s\n Wants: %s".
 //          format(name,checked,ids),ids.size,checked.size)
 //      assertTrue("[%s]Entries differ between awaited and found entry set (check)\n Found: %s\n Wants: %s".
 //          format(name,checked,ids),checked.forall { f => ids.exists( f == _) })
 //  }
-  
+
   @After def after() {
     ldap.server.shutDown(true)
   }

@@ -56,7 +56,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
 
   val baseQuery = "select executiondate, nodeid, ruleid, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents where 1=1 ";
   val baseArchivedQuery = "select executiondate, nodeid, ruleid, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from archivedruddersysevents where 1=1 ";
-  
+
   val reportsTable = "ruddersysevents"
   val archiveTable = "archivedruddersysevents"
 
@@ -66,10 +66,10 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   // we are not looking for older request that 15 minutes for the moment
   val lastQuery = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where ruleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and executionTimeStamp > (now() - interval '15 minutes') group by nodeid"
   val lastQueryByNode = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where ruleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and nodeid = ? and executionTimeStamp > (now() - interval '15 minutes') group by nodeid"
-    
+
   val joinQuery = "select executiondate, nodeid, ruleId, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQuery +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
   val joinQueryByNode = "select executiondate, nodeid, ruleId, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQueryByNode +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
-  
+
   def findReportsByRule(
       ruleId   : RuleId
     , serial   : Option[Int]
@@ -83,22 +83,22 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
       case None => ;
       case Some(int) => query = query + " and serial = ?"; array += new java.lang.Integer(int)
     }
-    
+
     beginDate match {
-      case None => 
+      case None =>
       case Some(date) => query = query + " and executionTimeStamp > ?"; array += new Timestamp(date.getMillis)
     }
-     
+
     endDate match {
-      case None => 
+      case None =>
       case Some(date) => query = query + " and executionTimeStamp < ?"; array += new Timestamp(date.getMillis)
     }
 
-    
+
     jdbcTemplate.query(query,
           array.toArray[AnyRef],
           ReportsMapper).toSeq;
-    
+
   }
 
   def findReportsByNode(
@@ -110,9 +110,9 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   ) : Seq[Reports] = {
     var query = baseQuery + " and nodeId = ? "
     var array = mutable.Buffer[AnyRef](nodeId.value)
-    
+
     ruleId match {
-      case None => 
+      case None =>
       case Some(cr) => query = query + " and ruleId = ?"; array += cr.value
 
         // A serial makes sense only if the CR is set
@@ -121,14 +121,14 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
          case Some(int) => query = query + " and serial = ?"; array += new java.lang.Integer(int)
       }
     }
-  
+
     beginDate match {
-      case None => 
+      case None =>
       case Some(date) => query = query + " and executionDate > ?"; array += new Timestamp(date.getMillis)
     }
-     
+
     endDate match {
-      case None => 
+      case None =>
       case Some(date) => query = query + " and executionDate < ?"; array += new Timestamp(date.getMillis)
     }
 
@@ -136,10 +136,10 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     jdbcTemplate.query(query,
           array.toArray[AnyRef],
           ReportsMapper).toSeq;
-    
-    
+
+
   }
-  
+
   def findReportsByNode(
       nodeId   : NodeId
     , ruleId   : RuleId
@@ -148,14 +148,14 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     , endDate  : Option[DateTime]
   ): Seq[Reports] = {
     var query = baseQuery + " and nodeId = ?  and ruleId = ? and serial = ? and executionTimeStamp >= ?"
-    var array = mutable.Buffer[AnyRef](nodeId.value, 
-        ruleId.value, 
-        new java.lang.Integer(serial), 
+    var array = mutable.Buffer[AnyRef](nodeId.value,
+        ruleId.value,
+        new java.lang.Integer(serial),
         new Timestamp(beginDate.getMillis))
-    
-   
+
+
     endDate match {
-      case None => 
+      case None =>
       case Some(date) => query = query + " and executionTimeStamp < ?"; array += new Timestamp(date.getMillis)
     }
 
@@ -163,11 +163,11 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     jdbcTemplate.query(query,
           array.toArray[AnyRef],
           ReportsMapper).toSeq;
-    
-    
+
+
   }
 
-  
+
   /**
    * Return the last (really the last, serial wise, with full execution) reports for a rule
    */
@@ -180,51 +180,51 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     var array = mutable.Buffer[AnyRef]()
 
     node match {
-      case None => 
+      case None =>
           query += joinQuery +  " and ruleId = ? and serial = ? and executionTimeStamp > (now() - interval '15 minutes')"
           array ++= mutable.Buffer[AnyRef](ruleId.value, new java.lang.Integer(serial))
-      case Some(nodeId) => 
+      case Some(nodeId) =>
         query += joinQueryByNode +  " and ruleId = ? and serial = ? and executionTimeStamp > (now() - interval '15 minutes') and nodeId = ?"
         array ++= mutable.Buffer[AnyRef](nodeId.value, ruleId.value, new java.lang.Integer(serial), nodeId.value)
     }
-    
+
     jdbcTemplate.query(query,
           array.toArray[AnyRef],
           ReportsMapper).toSeq;
   }
-  
-  
-  
+
+
+
   def findExecutionTimeByNode(
       nodeId   : NodeId
     , beginDate: DateTime
     , endDate  : Option[DateTime]
   ) : Seq[DateTime] = {
     var query = "select distinct executiontimestamp from ruddersysevents where ruleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and nodeId = ? and executiontimestamp >= ?"
-       
+
     var array = mutable.Buffer[AnyRef](nodeId.value, new Timestamp(beginDate.getMillis))
- 
+
     endDate match {
       case None => ;
       case Some(date) => query = query + " and executiontimestamp < ?"; array += new Timestamp(date.getMillis)
     }
-    
+
     query = query + " order by executiontimestamp "
-    
+
     jdbcTemplate.query(query,
           array.toArray[AnyRef],
           ExecutionTimeMapper).toSeq;
   }
-  
+
   def getOldestReports() : Box[Option[Reports]] = {
     jdbcTemplate.query(baseQuery + " order by executionTimeStamp asc limit 1",
           ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
       case seq => Full(seq.headOption)
 
-    } 
+    }
   }
-  
+
   def getOldestArchivedReports() : Box[Option[Reports]] = {
     jdbcTemplate.query(baseArchivedQuery + " order by executionTimeStamp asc limit 1",
           ReportsMapper).toSeq match {
@@ -233,26 +233,26 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
 
     }
   }
-  
+
     def getNewestReports() : Box[Option[Reports]] = {
     jdbcTemplate.query(baseQuery + " order by executionTimeStamp desc limit 1",
           ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
       case seq => Full(seq.headOption)
-      
-    } 
+
+    }
   }
-  
+
   def getNewestArchivedReports() : Box[Option[Reports]] = {
     jdbcTemplate.query(baseArchivedQuery + " order by executionTimeStamp desc limit 1",
           ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
       case seq => Full(seq.headOption)
 
-      
-    } 
+
+    }
   }
-  
+
   def getDatabaseSize(databaseName:String) : Box[Long] = {
     try {
       jdbcTemplate.query(
@@ -265,7 +265,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
           , DatabaseSizeMapper).toSeq match {
         case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
         case seq  => seq.headOption ?~! "The query used to find database size did not return any tuple"
-      
+
        }
      } catch {
        case e: DataAccessException =>
@@ -286,7 +286,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
        )
 
       logger.debug("""Archiving report with SQL query: [[
-                   | insert into %s (id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)    
+                   | insert into %s (id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg)
                    | (select id, executionDate, nodeId, directiveId, ruleId, serial, component, keyValue, executionTimeStamp, eventType, policy, msg from %s
                    | where executionTimeStamp < '%s')
                    |]]""".stripMargin.format(archiveTable,reportsTable,date.toString("yyyy-MM-dd")))
@@ -324,7 +324,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
           delete from %s  where executionTimeStamp < '%s'
           """.format(archiveTable,date.toString("yyyy-MM-dd") )
       )
-    
+
       jdbcTemplate.execute("vacuum %s".format(reportsTable))
       jdbcTemplate.execute("vacuum full %s".format(archiveTable))
 
@@ -380,14 +380,14 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
 object ReportsMapper extends RowMapper[Reports] {
    def mapRow(rs : ResultSet, rowNum: Int) : Reports = {
         Reports.factory(new DateTime(rs.getTimestamp("executionDate")),
-                  RuleId(rs.getString("ruleId")), 
-                  DirectiveId(rs.getString("directiveId")), 
-                  NodeId(rs.getString("nodeId")), 
+                  RuleId(rs.getString("ruleId")),
+                  DirectiveId(rs.getString("directiveId")),
+                  NodeId(rs.getString("nodeId")),
                   rs.getInt("serial"),
                   rs.getString("component"),
                   rs.getString("keyValue"),
                   new DateTime(rs.getTimestamp("executionTimeStamp")),
-                  rs.getString("eventType"), 
+                  rs.getString("eventType"),
                   rs.getString("msg"))
     }
 }

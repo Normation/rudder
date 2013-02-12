@@ -48,8 +48,8 @@ import com.normation.rudder.domain.nodes.NodeGroup
 
 
 /**
- * That trait allow to serialise 
- * rule to an XML file. 
+ * That trait allow to serialise
+ * rule to an XML file.
  */
 trait RuleSerialisation {
   /**
@@ -60,7 +60,7 @@ trait RuleSerialisation {
         <serial>{rule.serial}</serial>
         <target>{ rule.target.map( _.target).getOrElse("") }</target>
         <directiveIds>{
-          rule.directiveIds.map { id => <id>{id.value}</id> } 
+          rule.directiveIds.map { id => <id>{id.value}</id> }
         }</directiveIds>
         <shortDescription>{rule.shortDescription}</shortDescription>
         <longDescription>{rule.longDescription}</longDescription>
@@ -72,8 +72,8 @@ trait RuleSerialisation {
 }
 
 /**
- * That trait allows to serialise 
- * active techniques categories to an XML file. 
+ * That trait allows to serialise
+ * active techniques categories to an XML file.
  */
 trait ActiveTechniqueCategorySerialisation {
   /**
@@ -89,8 +89,8 @@ trait ActiveTechniqueCategorySerialisation {
 }
 
 /**
- * That trait allows to serialise 
- * active techniques to an XML file. 
+ * That trait allows to serialise
+ * active techniques to an XML file.
  */
 trait ActiveTechniqueSerialisation {
   /**
@@ -111,8 +111,8 @@ trait ActiveTechniqueSerialisation {
 }
 
 /**
- * That trait allows to serialise 
- * active techniques to an XML file. 
+ * That trait allows to serialise
+ * active techniques to an XML file.
  */
 trait DirectiveSerialisation {
   /**
@@ -150,8 +150,8 @@ trait DirectiveSerialisation {
 
 
 /**
- * That trait allows to serialise 
- * Node group categories to an XML file. 
+ * That trait allows to serialise
+ * Node group categories to an XML file.
  */
 trait NodeGroupCategorySerialisation {
   /**
@@ -167,12 +167,12 @@ trait NodeGroupCategorySerialisation {
 }
 
 /**
- * That trait allows to serialise 
- * Node group to an XML file. 
+ * That trait allows to serialise
+ * Node group to an XML file.
  */
 trait NodeGroupSerialisation {
   /**
-   * Version 2: 
+   * Version 2:
      <nodeGroup fileFormat="2">
        <id>{group.id.value}</id>
        <displayName>{group.id.name}</displayName>
@@ -206,5 +206,5 @@ trait DeploymentStatusSerialisation {
   */
   def serialise(
       deploymentStatus : CurrentDeploymentStatus) : Elem
-  
+
 }

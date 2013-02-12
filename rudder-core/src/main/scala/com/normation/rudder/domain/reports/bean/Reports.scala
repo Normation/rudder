@@ -42,7 +42,7 @@ import org.slf4j.{Logger,LoggerFactory}
 import com.normation.utils.HashcodeCaching
 /**
  * Store the reports entry from the execution
- * Contains : the datetime at which it was generated, the rule/directive, 
+ * Contains : the datetime at which it was generated, the rule/directive,
  * the server on which it has been run, the severity, and the message,
  * and the serial (id of generation), the component and its key value
  * @author Nicolas CHARLES
@@ -117,7 +117,7 @@ sealed case class LogRepairedReport(
 ) extends Reports with HashcodeCaching {
   val severity = Reports.LOG_REPAIRED
 }
-  
+
 sealed case class LogWarnReport(
     executionDate      : DateTime
   , ruleId             : RuleId
@@ -189,41 +189,41 @@ sealed case class UnknownReport(
 }
 
 object Reports {
-  
+
   val logger = LoggerFactory.getLogger(classOf[Reports])
-  
+
   def factory(executionDate : DateTime, ruleId : RuleId,
       directiveId : DirectiveId, nodeId : NodeId,  serial : Int,
         component : String, keyValue : String,executionTimestamp : DateTime,
         severity : String,  message : String) : Reports = {
     severity.toLowerCase match {
-      case RESULT_ERROR => new ResultErrorReport(executionDate, ruleId, directiveId, nodeId, 
+      case RESULT_ERROR => new ResultErrorReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message )
-      case RESULT_SUCCESS => new ResultSuccessReport(executionDate, ruleId, directiveId, nodeId, 
+      case RESULT_SUCCESS => new ResultSuccessReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message )
-      case RESULT_REPAIRED => new ResultRepairedReport(executionDate, ruleId, directiveId, nodeId, 
-              serial, component, keyValue, executionTimestamp, message )
-
-      case LOG_REPAIRED => new LogRepairedReport(executionDate, ruleId, directiveId, nodeId, 
-              serial, component, keyValue, executionTimestamp, message )
-      
-      case LOG_WARN | LOG_WARNING  => new LogWarnReport(executionDate, ruleId, directiveId, nodeId, 
+      case RESULT_REPAIRED => new ResultRepairedReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message )
 
-      case LOG_INFO | LOG_INFORM => new LogInformReport(executionDate, ruleId, directiveId, nodeId, 
+      case LOG_REPAIRED => new LogRepairedReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message )
-      
-      
-      case LOG_DEBUG => new LogDebugReport(executionDate, ruleId, directiveId, nodeId, 
+
+      case LOG_WARN | LOG_WARNING  => new LogWarnReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message )
-            
-      case LOG_TRACE => new LogTraceReport(executionDate, ruleId, directiveId, nodeId, 
+
+      case LOG_INFO | LOG_INFORM => new LogInformReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message )
-            
-     
+
+
+      case LOG_DEBUG => new LogDebugReport(executionDate, ruleId, directiveId, nodeId,
+              serial, component, keyValue, executionTimestamp, message )
+
+      case LOG_TRACE => new LogTraceReport(executionDate, ruleId, directiveId, nodeId,
+              serial, component, keyValue, executionTimestamp, message )
+
+
       case _ =>
         logger.error("Invalid report type {} for directive {}", severity, directiveId)
-        new UnknownReport(executionDate, ruleId, directiveId, nodeId, 
+        new UnknownReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message)
     }
   }
@@ -246,7 +246,7 @@ object Reports {
   def unapply(report : Reports) = Some(report.executionDate, report.ruleId,
     report.directiveId, report.nodeId, report.serial, report.component, report.keyValue, report.executionTimestamp, report.severity, report.message)
 
-    
+
   val LOG_TRACE = "log_trace"
   val LOG_DEBUG = "log_debug"
   val LOG_INFO = "log_info"
@@ -254,7 +254,7 @@ object Reports {
   val LOG_WARN = "log_warn"
   val LOG_WARNING = "log_warning"
   val LOG_REPAIRED = "log_repaired"
-  
+
   val RESULT_SUCCESS = "result_success"
   val RESULT_REPAIRED = "result_repaired"
   val RESULT_ERROR = "result_error"

@@ -81,7 +81,7 @@ import com.normation.exceptions.TechnicalException
  *
  */
 class NodeConfigurationServiceImpl(
-    policyTranslator    : TemplateWriter, 
+    policyTranslator    : TemplateWriter,
     repository          : NodeConfigurationRepository,
     techniqueRepository : TechniqueRepository,
     lockFolder          : String
@@ -95,7 +95,7 @@ class NodeConfigurationServiceImpl(
   val channel = new RandomAccessFile(fileLock, "rw").getChannel();
   var lock = channel.tryLock(); // we want an early failure
   lock.release();
-  
+
   private def createLockFolder() {
     FileUtils.forceMkdir(new File(lockFolder))
   }
@@ -113,7 +113,7 @@ class NodeConfigurationServiceImpl(
       lock.release();
     }
   }
-  
+
   def findNode(nodeId: NodeId) : Option[NodeConfiguration] = {
     inLock {
       repository.findNodeConfiguration(nodeId) match {
@@ -133,7 +133,7 @@ class NodeConfigurationServiceImpl(
       }
     }
   }
-  
+
   /**
    * Find all servers
    * @return
@@ -148,10 +148,10 @@ class NodeConfigurationServiceImpl(
     }
   }
 
-  
+
   /**
    * Update a node configuration using a targetNodeConfiguration :
-   * update the directives and the node context, as well as the agentsName 
+   * update the directives and the node context, as well as the agentsName
    * (well, every fields actually)
    * @param target
    * @return
@@ -167,7 +167,7 @@ class NodeConfigurationServiceImpl(
             Seq(),
             true,
             // when creating a nodeconfiguration, there is no current
-            currentMinimalNodeConfig = new MinimalNodeConfig( 
+            currentMinimalNodeConfig = new MinimalNodeConfig(
                 "", "", Seq(), "", ""
             ),
             targetMinimalNodeConfig = new MinimalNodeConfig(
@@ -175,7 +175,7 @@ class NodeConfigurationServiceImpl(
                 target.nodeInfo.hostname,
                 target.nodeInfo.agentsName,
                 target.nodeInfo.policyServerId.value,
-                target.nodeInfo.localAdministratorAccountName                   
+                target.nodeInfo.localAdministratorAccountName
             ),
             None,
             Map(),
@@ -188,7 +188,7 @@ class NodeConfigurationServiceImpl(
             Seq(),
             false,
             // when creating a nodeconfiguration, there is no current
-            currentMinimalNodeConfig = new MinimalNodeConfig( 
+            currentMinimalNodeConfig = new MinimalNodeConfig(
                 "", "", Seq(), "", ""
             ),
             targetMinimalNodeConfig = new MinimalNodeConfig(
@@ -196,7 +196,7 @@ class NodeConfigurationServiceImpl(
                 target.nodeInfo.hostname,
                 target.nodeInfo.agentsName,
                 target.nodeInfo.policyServerId.value,
-                target.nodeInfo.localAdministratorAccountName                   
+                target.nodeInfo.localAdministratorAccountName
             ),
             None,
             Map(),
@@ -204,7 +204,7 @@ class NodeConfigurationServiceImpl(
           )
       }
     }
-    
+
     inLock {
       LOGGER.debug("Updating node configuration %s".format(target.nodeInfo.id.value) )
       if (target.identifiableCFCPIs.size == 0) {
@@ -213,37 +213,37 @@ class NodeConfigurationServiceImpl(
       }
 
       deduplicateUniqueDirectives(target.identifiableCFCPIs) match {
-        case f : EmptyBox => 
+        case f : EmptyBox =>
           LOGGER.debug( (f ?~! "An error happened when finding unique directives").messageChain )
           LOGGER.error("Could not convert directive beans")
           f
-          
+
         case Full(directives) =>
 
           /*
-           * Try to find the node configuration. If none are found (or one is found but 
-           * mapping lead to an error, create a new one. 
+           * Try to find the node configuration. If none are found (or one is found but
+           * mapping lead to an error, create a new one.
            */
           val nodeConfiguration = repository.findNodeConfiguration(target.nodeInfo.id) match {
-            case f : Failure => 
+            case f : Failure =>
               LOGGER.debug("An error occured when trying to fetch the node with id %s : %s".format(target.nodeInfo.id, f.messageChain))
-              
+
               //try to delete the bad, bad node configuration
               LOGGER.debug("We are trying to erase the node configuration and create a new one")
               repository.deleteNodeConfiguration(target.nodeInfo.id.value) match {
-                case f:Failure => 
+                case f:Failure =>
                   LOGGER.error("Can not delete the inconsistent node configuration with id: {}. The error does not seems to be corrected automatically, please contact your administrator.",target.nodeInfo.id.value)
                   return f
                 case _ => //ok
                   createNodeConfiguration()
               }
-              
+
             case Empty => //create server
               createNodeConfiguration()
-            case Full(node : SimpleNodeConfiguration) =>                             
+            case Full(node : SimpleNodeConfiguration) =>
               //update nodeconfiguration
               //server.id  = target.nodeInfo.id.value //not mutable TODO: use it in the constructor
-              
+
               node.copy(
                   __targetRulePolicyDrafts = Seq[RuleWithCf3PolicyDraft](),
                   targetMinimalNodeConfig = new MinimalNodeConfig(
@@ -256,8 +256,8 @@ class NodeConfigurationServiceImpl(
                   targetSystemVariables = target.nodeContext
               )
 
-              
-            case Full(rootServer : RootNodeConfiguration) =>                 
+
+            case Full(rootServer : RootNodeConfiguration) =>
               rootServer.copy(
                   __targetRulePolicyDrafts = Seq[RuleWithCf3PolicyDraft](),
                   targetMinimalNodeConfig = new MinimalNodeConfig(
@@ -269,13 +269,13 @@ class NodeConfigurationServiceImpl(
                       ),
                   targetSystemVariables = target.nodeContext
                )
-            
-            case Full(otherNodeType:NodeConfiguration) => 
+
+            case Full(otherNodeType:NodeConfiguration) =>
               LOGGER.error("Found a not supported nodeConfiguration type, neither simple nor root one: ", otherNodeType)
               otherNodeType
-             
+
           }
-          
+
           for {
             addDirectivesOK          <- addDirectives(nodeConfiguration, directives) ?~! "Error when adding policies for node configuration %s".format(target.nodeInfo.id.value)
             nodeConfigurationSaved <- repository.saveNodeConfiguration(addDirectivesOK) ?~! "Error when saving node configuration %s".format(target.nodeInfo.id.value)
@@ -285,16 +285,16 @@ class NodeConfigurationServiceImpl(
       }
     }
   }
-  
+
   /**
    * From the list of updated rules (is it what we need) ? and the list of ALL NODES (caution, we must have 'em all)
    * update the serials, and save them
    */
   def incrementSerials(rules: Seq[(RuleId,Int)], nodes : Seq[NodeConfiguration]) : Box[Seq[NodeConfiguration]] = {
-      repository.saveMultipleNodeConfigurations(nodes.map(x => x.setSerial(rules)))    
+      repository.saveMultipleNodeConfigurations(nodes.map(x => x.setSerial(rules)))
   }
-  
-  
+
+
   /**
    * Create a node configuration from a target.
    * Hence, it will have empty current configuration
@@ -307,7 +307,7 @@ class NodeConfigurationServiceImpl(
         LOGGER.warn("Cannot create server {} without policy", target.nodeInfo.id.value)
         return ParamFailure[Seq[RuleWithCf3PolicyDraft]]("Cannot create a server without policies", Full(new TechniqueException("Cannot create a server without any policies")), Empty, target.identifiableCFCPIs)
       }
-      
+
       val node = if(target.nodeInfo.isPolicyServer) {
           new RootNodeConfiguration(
             target.nodeInfo.id.value,
@@ -344,14 +344,14 @@ class NodeConfigurationServiceImpl(
             target.nodeContext)
       }
 
-        
-      
+
+
       deduplicateUniqueDirectives(target.identifiableCFCPIs) match {
         case f : EmptyBox => f
         case Full(directives) =>
             addDirectives(node, directives) match {
               case f: EmptyBox => return f
-              case Full(updatedNode) => 
+              case Full(updatedNode) =>
               for {
                 saved <- repository.saveNodeConfiguration(updatedNode)
                 findBack <- repository.findNodeConfiguration(NodeId(updatedNode.id))
@@ -360,7 +360,7 @@ class NodeConfigurationServiceImpl(
       }
     }
   }
- 
+
 
   /**
    * Delete a node by its id
@@ -376,12 +376,12 @@ class NodeConfigurationServiceImpl(
       //TODO: nothing is done with update batch ?
       val updateBatch = new UpdateBatch
       updateBatch.addNodeConfiguration(node.get)
-      
+
       repository.deleteNodeConfiguration(nodeId)
       Full(())
     }
   }
-  
+
   /**
    * delete all node configuration
    */
@@ -407,10 +407,10 @@ class NodeConfigurationServiceImpl(
   def writeTemplateForUpdatedNodeConfigurations(ids : Seq[NodeId]) : Box[Seq[NodeConfiguration]] = {
     inLock {
       val updatedNodeConfigurations = uncommitedNodes
-      
+
       val updateBatch = new UpdateBatch
-      
-      
+
+
       for (node <- updatedNodeConfigurations) {
         if (!ids.contains(NodeId(node.id))) {
           LOGGER.warn("Must also write the modification of node {}", node.id)
@@ -419,23 +419,23 @@ class NodeConfigurationServiceImpl(
           if (node.getDirectives.size == 0) {
             LOGGER.warn("Can't write a server without policy {}", node.id)
             return Failure("Can't write a server without policy " + node, Full(throw new TechniqueException("Can't write a server without policy ")), Empty)
-            
+
           }
         }
         updateBatch.addNodeConfiguration(node)
       }
 
-      
-      
+
+
       policyTranslator.writePromisesForMachines(updateBatch) match {
         case e: EmptyBox => return e
         case Full(f) => f;
       }
-      
+
       val writeTime = DateTime.now().getMillis
       val savedNodes = repository.saveMultipleNodeConfigurations(updateBatch.updatedNodeConfigurations.valuesIterator.map(x => x.commitModification).toSeq)
       LOGGER.debug("Written in ldap the node configuration caches in %d millisec".format((DateTime.now().getMillis - writeTime)))
-      
+
       // save this rootCause
       savedNodes
     }
@@ -451,7 +451,7 @@ class NodeConfigurationServiceImpl(
     inLock {
       val updatedNodeConfigurations = uncommitedNodes
       val updateBatch = new UpdateBatch
-      
+
       for (node <- updatedNodeConfigurations) {
         if (!ids.contains(NodeId(node.id))) {
           LOGGER.warn("Must also write the modification of server {}", node.id)
@@ -460,17 +460,17 @@ class NodeConfigurationServiceImpl(
       }
 
       for (node <- updatedNodeConfigurations) {
-        
+
         updateBatch.addNodeConfiguration(node.rollbackModification())
       }
-      
-      
+
+
       repository.saveMultipleNodeConfigurations(updateBatch.updatedNodeConfigurations.valuesIterator.toSeq)
       // save this rootCause
       Full(())
     }
   }
-  
+
   /**
    * Returns all the servers having all the technique names (it is technique name, and not directive)
    */
@@ -502,10 +502,10 @@ class NodeConfigurationServiceImpl(
    * Unique technique are kept by priority order, (a 0 has more priority than 50)
    * @param directives
    * @return
-   */  
-  private def deduplicateUniqueDirectives(directives: Seq[RuleWithCf3PolicyDraft]) : Box[Seq[RuleWithCf3PolicyDraft]] = {   
+   */
+  private def deduplicateUniqueDirectives(directives: Seq[RuleWithCf3PolicyDraft]) : Box[Seq[RuleWithCf3PolicyDraft]] = {
     val resultingDirectives = ArrayBuffer[RuleWithCf3PolicyDraft]();
-    
+
     for (directiveToAdd <- directives.sortBy(x => x.cf3PolicyDraft.priority)) {
       //Prior to add it, must check that it is not unique and not already present
       val policy = techniqueRepository.get(directiveToAdd.cf3PolicyDraft.techniqueId).getOrElse(return Failure("Error: can not find technique with name '%s'".format(directiveToAdd.cf3PolicyDraft.techniqueId)))
@@ -521,7 +521,7 @@ class NodeConfigurationServiceImpl(
     }
     Full(resultingDirectives)
   }
-  
+
   /**
    * Return all the server that need to be commited
    * Meaning, all servers that have a difference between the current and target directives */
@@ -532,36 +532,36 @@ class NodeConfigurationServiceImpl(
         throw new TechnicalException("Error when trying to find server with uncommited directive. No error message left")
       case Failure(m,_,_)=>
         throw new TechnicalException("Error when trying to find server with uncommited directive. Error message was: %s".format(m))
-    }    
+    }
   }
-  
+
 
   def uuidGenerator : StringUuidGenerator = new StringUuidGenerator() {
     override def newUuid() =  java.util.UUID.randomUUID.toString
   }
 
-  
+
 
   /**
    * Adding a directive to a node, without saving anything
    * (this is not hyper sexy)
    */
   private def addDirectives(node:NodeConfiguration, directives :  Seq[RuleWithCf3PolicyDraft]) : Box[NodeConfiguration] = {
-    
+
     var modifiedNode = node
-    
+
     for (directive <- directives) {
         // check the legit character of the policy
         if (modifiedNode.getDirective(directive.cf3PolicyDraft.id) != None) {
-          LOGGER.warn("Cannot add a directive with the same id than an already existing one {} ", 
+          LOGGER.warn("Cannot add a directive with the same id than an already existing one {} ",
               directive.cf3PolicyDraft.id)
           return ParamFailure[RuleWithCf3PolicyDraft](
-              "Duplicate directive", 
-              Full(new TechniqueException("Duplicate directive " + directive.cf3PolicyDraft.id)), 
-              Empty, 
+              "Duplicate directive",
+              Full(new TechniqueException("Duplicate directive " + directive.cf3PolicyDraft.id)),
+              Empty,
               directive)
         }
-        
+
 
         val technique = techniqueRepository.get(directive.cf3PolicyDraft.techniqueId).getOrElse(return Failure("Error: can not find policy with name '%s' with policy service".format(directive.cf3PolicyDraft.techniqueId)))
 
@@ -570,16 +570,16 @@ class NodeConfigurationServiceImpl(
         // multiinstance and that there are no existing directives based on it
         if (modifiedNode.findDirectiveByTechnique(directive.cf3PolicyDraft.techniqueId).filter(x => technique.isMultiInstance==false).size>0) {
           LOGGER.warn("Cannot add a directive from the same non duplicable technique %s than an already existing one %s ".format(directive.cf3PolicyDraft.techniqueId), modifiedNode.findDirectiveByTechnique(directive.cf3PolicyDraft.techniqueId))
-          return ParamFailure[RuleWithCf3PolicyDraft]("Duplicate unique technique", Full(new TechniqueException("Duplicate unique policy " +directive.cf3PolicyDraft.techniqueId)), Empty, directive)    
+          return ParamFailure[RuleWithCf3PolicyDraft]("Duplicate unique technique", Full(new TechniqueException("Duplicate unique policy " +directive.cf3PolicyDraft.techniqueId)), Empty, directive)
         }
         modifiedNode.addDirective(directive) match {
-          case Full(updatedNode : NodeConfiguration) => 
+          case Full(updatedNode : NodeConfiguration) =>
             modifiedNode = updatedNode
           case f:EmptyBox => return f
         }
     }
 
     return Full(modifiedNode)
-    
-  }  
+
+  }
 }

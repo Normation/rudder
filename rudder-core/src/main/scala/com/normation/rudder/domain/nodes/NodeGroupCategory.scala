@@ -39,9 +39,9 @@ import com.normation.rudder.domain.categories.ItemCategory
 import com.normation.utils.HashcodeCaching
 
 /**
- * The Id for the server group category 
+ * The Id for the server group category
  */
-case class NodeGroupCategoryId(value:String) extends HashcodeCaching 
+case class NodeGroupCategoryId(value:String) extends HashcodeCaching
 
 
 /**
@@ -59,5 +59,5 @@ case class NodeGroupCategory(
   , children    : List[NodeGroupCategoryId]
   , items       : List[RuleTargetInfo]
   , isSystem    : Boolean = false
-  
+
 ) extends ItemCategory[NodeGroupCategoryId,RuleTargetInfo] with HashcodeCaching {}

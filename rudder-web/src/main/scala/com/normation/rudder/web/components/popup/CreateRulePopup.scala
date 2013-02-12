@@ -89,10 +89,10 @@ class CreateOrCloneRulePopup(
       "itemName" -> ruleName.toForm_!,
       "itemShortDescription" -> ruleShortDescription.toForm_!,
       "itemReason" -> { reason.map { f =>
-        <div> 
+        <div>
           <div style="margin:10px 0px 5px 0px; color:#444">
             {userPropertyService.reasonsFieldExplanation}
-          </div> 
+          </div>
           {f.toForm_!}
         </div>
       } },
@@ -112,7 +112,7 @@ class CreateOrCloneRulePopup(
   }
 
   ///////////// fields for category settings ///////////////////
-  
+
   private[this] val reason = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
@@ -121,7 +121,7 @@ class CreateOrCloneRulePopup(
       case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
     }
   }
-  
+
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
     new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
@@ -189,7 +189,7 @@ class CreateOrCloneRulePopup(
 
 
       ruleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.getActor, reason.map( _.is )) match {
-          case Full(x) => 
+          case Full(x) =>
             closePopup() & onSuccessCallback(rule)
           case Empty =>
             logger.error("An error occurred while saving the Rule")
@@ -205,7 +205,7 @@ class CreateOrCloneRulePopup(
 
 
   private[this] def onFailure : JsCmd = {
-    updateFormClientSide() 
+    updateFormClientSide()
   }
 
 

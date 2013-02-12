@@ -44,7 +44,7 @@ import scala.xml.Elem
  * Note: remember to use plain text here, as
  * a failure on that test must rise wondering about
  * a global value modification that was not taken
- * into account in a migration. 
+ * into account in a migration.
  */
 object MigrationTestLog {
   //get a default TimeStamp value for that run
@@ -60,14 +60,14 @@ case class MigrationTestLog(
   , severity : Int = 100
   , data     : Elem
 ) {
-  
+
   def insertSql(c: Connection) : Long = {
     //ignore cause id
     val (row, qmark) = cause match {
       case Some(id) => ("causeId", ", ?")
       case None => ("", "")
     }
-    
+
     val INSERT_SQL = "insert into EventLog (creationDate, principal, eventType, severity, data%s) values (?, ?, ?, ?, ?)".format(row, qmark)
     val ps = c.prepareStatement(INSERT_SQL, Array("id"))
     ps.setTimestamp(1, timestamp)
@@ -77,7 +77,7 @@ case class MigrationTestLog(
     val sqlXml = c.createSQLXML()
     sqlXml.setString(data.toString)
     ps.setSQLXML(5, sqlXml)
-    cause.foreach { id => 
+    cause.foreach { id =>
       ps.setInt(6, id)
     }
     ps.executeUpdate
@@ -95,7 +95,7 @@ object Migration_10_2_DATA_EventLogs {
     , Migration_10_2_DATA_Group     => GroupXml
   }
   def e(xml:Elem) = <entry>{xml}</entry>
-  
+
   val data_10 = Map(
       "rule_add"    -> MigrationTestLog(
             eventType = "ConfigurationRuleAdded"
@@ -146,7 +146,7 @@ object Migration_10_2_DATA_EventLogs {
           , data      = e(GroupXml.nodeGroup_delete_10)
           )
   )
-  
+
   val data_2 = Map(
       "rule_add"    -> MigrationTestLog(
             eventType = "RuleAdded"
@@ -197,7 +197,7 @@ object Migration_10_2_DATA_EventLogs {
           , data      = e(GroupXml.nodeGroup_delete_2)
           )
   )
-  
+
 }
 
 
@@ -229,8 +229,8 @@ object Migration_10_2_DATA_Other {
       <fullOsName>Centos</fullOsName>
       <actorIp>127.0.0.1</actorIp>
     </node>
-    
-  val node_refuse_10 = 
+
+  val node_refuse_10 =
     <node fileFormat="1.0" action="accept">
       <id>248c8e3d-1bf6-4bc1-9398-f8890b015a50</id>
       <inventoryVersion>2011-10-13T11:43:52.907+02:00</inventoryVersion>
@@ -238,8 +238,8 @@ object Migration_10_2_DATA_Other {
       <fullOsName>Centos</fullOsName>
       <actorIp>127.0.0.1</actorIp>
     </node>
-    
-  val node_refuse_2 = 
+
+  val node_refuse_2 =
     <node fileFormat="2" action="accept">
       <id>248c8e3d-1bf6-4bc1-9398-f8890b015a50</id>
       <inventoryVersion>2011-10-13T11:43:52.907+02:00</inventoryVersion>
@@ -250,7 +250,7 @@ object Migration_10_2_DATA_Other {
 }
 
 object Migration_10_2_DATA_Rule {
-  val rule_add_10 = 
+  val rule_add_10 =
     <configurationRule fileFormat="1.0" changeType="add">
       <id>e7c21276-d2b5-4fff-9924-96b67db9bd1c</id>
       <displayName>configuration</displayName>
@@ -265,9 +265,9 @@ object Migration_10_2_DATA_Rule {
       <isActivated>true</isActivated>
       <isSystem>false</isSystem>
     </configurationRule>
-  
+
   val rule_add_2 =
-  
+
     <rule fileFormat="2" changeType="add">
       <id>e7c21276-d2b5-4fff-9924-96b67db9bd1c</id>
       <displayName>configuration</displayName>
@@ -282,7 +282,7 @@ object Migration_10_2_DATA_Rule {
       <isEnabled>true</isEnabled>
       <isSystem>false</isSystem>
     </rule>
-  
+
 
   val rule_modify_10 =
     <configurationRule fileFormat="1.0" changeType="modify">
@@ -316,7 +316,7 @@ object Migration_10_2_DATA_Rule {
         <from>false</from>
         <to>true</to>
       </isActivated>
-    </configurationRule>    
+    </configurationRule>
 
   val rule_modify_2 =
     <rule fileFormat="2" changeType="modify">
@@ -350,8 +350,8 @@ object Migration_10_2_DATA_Rule {
         <from>false</from>
         <to>true</to>
       </isEnabled>
-    </rule>    
-  
+    </rule>
+
   val rule_delete_10 =
     <configurationRule fileFormat="1.0" changeType="delete">
       <id>ad8c48f7-b278-4f0c-83d7-f9cb28e0d440</id>
@@ -419,9 +419,9 @@ object Migration_10_2_DATA_Directive {
       <priority>5</priority>
       <isActivated>true</isActivated>
       <isSystem>false</isSystem>
-    </policyInstance>    
-    
-  val directive_add_2 = 
+    </policyInstance>
+
+  val directive_add_2 =
     <directive fileFormat="2" changeType="add">
       <id>2fd5dd7e-c83b-4610-96ad-02002024c2f1</id>
       <displayName>Name resolution 1</displayName>
@@ -552,7 +552,7 @@ object Migration_10_2_DATA_Directive {
       <isActivated>true</isActivated>
       <isSystem>false</isSystem>
     </policyInstance>
-    
+
   val directive_delete_2 =
     <directive fileFormat="2" changeType="delete">
       <id>2a79eabf-9987-450c-88bf-3c86d4759eb7</id>
@@ -663,7 +663,7 @@ object Migration_10_2_DATA_Group {
       <isActivated>true</isActivated>
       <isSystem>false</isSystem>
     </nodeGroup>
-  
+
   val nodeGroup_delete_2 =
     <nodeGroup fileFormat="2" changeType="delete">
       <id>4e0e8d5e-c87a-445c-ac81-a0e7a2b9e5e6</id>

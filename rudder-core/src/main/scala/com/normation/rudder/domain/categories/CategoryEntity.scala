@@ -41,19 +41,19 @@ import com.unboundid.ldap.sdk.DN
 import com.normation.utils.HashcodeCaching
 
 /**
- * A category in the LDAP. 
- * It's a really simple class, with the same 
- * role as an ou, but even simpler. 
+ * A category in the LDAP.
+ * It's a really simple class, with the same
+ * role as an ou, but even simpler.
  *
  */
 
-case class CategoryUuid(val value:String) extends Uuid with HashcodeCaching 
+case class CategoryUuid(val value:String) extends Uuid with HashcodeCaching
 
 case class CaetgoryEntity(
   val uuid:Option[CategoryUuid],
   val description:Option[String],
   val name:Option[String]
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
 
 /**
@@ -69,7 +69,7 @@ trait ItemCategory[CAT_ID,ITEM_ID] {
   def children: List[CAT_ID]
   def items : List[ITEM_ID]
   def isSystem : Boolean
-  
+
   override def toString() = "%s(%s)".format(name, id)
 }
 

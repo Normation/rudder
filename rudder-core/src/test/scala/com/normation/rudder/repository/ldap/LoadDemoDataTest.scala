@@ -43,39 +43,39 @@ import com.normation.ldap.sdk.BuildFilter
 
 
 /**
- * A simple test class to check that the demo data file is up to date 
+ * A simple test class to check that the demo data file is up to date
  * with the schema (there may still be a desynchronization if both
  * demo-data, test data and test schema for UnboundID are not synchronized
  * with OpenLDAP Schema).
  */
 @RunWith(classOf[JUnitRunner])
 class LoadDemoDataTest extends Specification {
-  
+
   val schemaLDIFs = (
-      "00-core" :: 
-      "01-pwpolicy" :: 
-      "04-rfc2307bis" :: 
-      "05-rfc4876" :: 
-      "099-0-inventory" :: 
-      "099-1-rudder"  :: 
+      "00-core" ::
+      "01-pwpolicy" ::
+      "04-rfc2307bis" ::
+      "05-rfc4876" ::
+      "099-0-inventory" ::
+      "099-1-rudder"  ::
       Nil
   ) map { name =>
     this.getClass.getClassLoader.getResource("ldap-data/schema/" + name + ".ldif").getPath
   }
-  
+
   val baseDN = "cn=rudder-configuration"
-  
-    
+
+
   "The in memory LDAP directory" should {
     "correctly load and read back demo-entries" in {
-      
+
       var i = 0
-      
+
       val bootPaths = for (path <- "ldap/bootstrap.ldif" :: "ldap/init-policy-server.ldif" :: Nil ) yield {
         val p = this.getClass.getClassLoader.getResource(path).getPath
         val reader = new com.unboundid.ldif.LDIFReader(p)
         while(reader.readEntry != null) i += 1
-        
+
         p
       }
 
@@ -84,7 +84,7 @@ class LoadDemoDataTest extends Specification {
         , schemaLDIFPaths = schemaLDIFs
         , bootstrapLDIFPaths = bootPaths
       )
-      
+
       //add demo entries
       val inut2 = {
         val reader = new com.unboundid.ldif.LDIFReader(
@@ -102,32 +102,32 @@ class LoadDemoDataTest extends Specification {
         }
       }
 
-      
+
       ldap.server.countEntries === i
     }
-    
-    
+
+
     "correctly load and read back test-entries" in {
       val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>
         this.getClass.getClassLoader.getResource(name).getPath
-      } 
-       
-      
+      }
+
+
       val numEntries = (0 /: bootstrapLDIFs) { case (x,path) =>
         val reader = new com.unboundid.ldif.LDIFReader(path)
         var i = 0
         while(reader.readEntry != null) i += 1
         i + x
       }
-    
+
       val ldap = InMemoryDsConnectionProvider(
           baseDNs = baseDN :: Nil
         , schemaLDIFPaths = schemaLDIFs
         , bootstrapLDIFPaths = bootstrapLDIFs
       )
-    
+
       ldap.server.countEntries === numEntries
     }
 
-  }    
+  }
 }
