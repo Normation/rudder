@@ -34,7 +34,7 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.rudder.repository.RuleRepository
+import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import net.liftweb.common._
 import com.normation.rudder.domain.policies.RuleId
@@ -227,7 +227,7 @@ trait ParameterizedValueLookupService {
 class ParameterizedValueLookupServiceImpl(
     override val nodeInfoService : NodeInfoService,
     override val directiveTargetService : RuleTargetService,
-    override val ruleRepo : RuleRepository,
+    override val ruleRepo : RoRuleRepository,
     override val ruleValService : RuleValService
 ) extends ParameterizedValueLookupService with
   ParameterizedValueLookupService_lookupNodeParameterization with
@@ -276,7 +276,7 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
 
   def directiveTargetService : RuleTargetService
   def nodeInfoService : NodeInfoService
-  def ruleRepo : RuleRepository
+  def ruleRepo : RoRuleRepository
   def ruleValService : RuleValService
 
   /**

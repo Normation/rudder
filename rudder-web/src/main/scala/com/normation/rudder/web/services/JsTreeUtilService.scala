@@ -52,15 +52,13 @@ import com.normation.rudder.domain.policies.ActiveTechniqueCategory
  *
  */
 class JsTreeUtilService(
-    activeTechniqueCategoryRepository: ActiveTechniqueCategoryRepository
-  , activeTechniqueRepository:ActiveTechniqueRepository
-  , directiveRepository:DirectiveRepository
+    directiveRepository:RoDirectiveRepository
   , techniqueRepository:TechniqueRepository
 ) {
 
     // get the Active Technique category, log on error
     def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId,logger:Logger) : Option[ActiveTechniqueCategory] = {
-      activeTechniqueCategoryRepository.getActiveTechniqueCategory(id) match {
+      directiveRepository.getActiveTechniqueCategory(id) match {
         //remove sytem category
         case Full(cat) => if(cat.isSystem) None else Some(cat)
         case e:EmptyBox =>
@@ -72,7 +70,7 @@ class JsTreeUtilService(
     // get the Active Technique, loqg on error
     def getActiveTechnique(id : ActiveTechniqueId,logger:Logger) : Option[(ActiveTechnique,Technique)] = {
       (for {
-        activeTechnique <- activeTechniqueRepository.getActiveTechnique(id) ?~! "Error while fetching Active Technique %s".format(id)
+        activeTechnique <- directiveRepository.getActiveTechnique(id) ?~! "Error while fetching Active Technique %s".format(id)
         technique <- Box(techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)) ?~!
               "Can not find referenced Technique '%s' in reference library".format(activeTechnique.techniqueName.value)
       } yield {

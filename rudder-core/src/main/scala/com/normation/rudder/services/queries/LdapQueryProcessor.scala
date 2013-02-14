@@ -190,7 +190,7 @@ class PendingNodesLDAPQueryChecker(
  * accepted nodes and pending nodes)
  */
 class InternalLDAPQueryProcessor(
-  val ldap:LDAPConnectionProvider,
+  val ldap:LDAPConnectionProvider[RoLDAPConnection],
   val dit:InventoryDit,
   val ditQueryData:DitQueryData,
   val ldapMapper:LDAPEntityMapper, //for LDAP attribute for nodes

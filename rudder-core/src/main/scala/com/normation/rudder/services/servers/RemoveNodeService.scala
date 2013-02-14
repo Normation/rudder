@@ -7,7 +7,8 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.repository.NodeGroupRepository
+import com.normation.rudder.repository.WoNodeGroupRepository
+import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
@@ -24,6 +25,7 @@ import com.normation.inventory.services.core.ReadOnlyMachineRepository
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
 import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.ldap.sdk.RwLDAPConnection
 
 
 trait RemoveNodeService {
@@ -44,9 +46,10 @@ trait RemoveNodeService {
 class RemoveNodeServiceImpl(
       nodeDit                   : NodeDit
     , rudderDit                 : RudderDit
-    , ldap                      : LDAPConnectionProvider
+    , ldap                      : LDAPConnectionProvider[RwLDAPConnection]
     , ldapEntityMapper          : LDAPEntityMapper
-    , nodeGroupRepository       : NodeGroupRepository
+    , roNodeGroupRepository     : RoNodeGroupRepository
+    , woNodeGroupRepository     : WoNodeGroupRepository
     , nodeConfigurationService  : NodeConfigurationService
     , nodeInfoService           : NodeInfoService
     , fullNodeRepo              : LDAPFullInventoryRepository
@@ -140,14 +143,14 @@ class RemoveNodeServiceImpl(
   private def deleteFromGroups(nodeId: NodeId, modId: ModificationId, actor:EventActor): Box[Seq[ModifyNodeGroupDiff]]= {
     logger.debug("Trying to remove node %s from all the groups were it is referenced".format(nodeId.value))
     for {
-      nodeGroupIds <- nodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))
+      nodeGroupIds <- roNodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))
     } yield {
       (for {
-        nodeGroups   <- nodeGroupIds.map(nodeGroupId => nodeGroupRepository.getNodeGroup(nodeGroupId))
+        nodeGroups   <- nodeGroupIds.map(nodeGroupId => roNodeGroupRepository.getNodeGroup(nodeGroupId))
         nodeGroup    <- nodeGroups
         updatedGroup =  nodeGroup.copy(serverList = nodeGroup.serverList - nodeId)
         msg          =  Some("Automatic update of group due to deletion of node " + nodeId.value)
-        diff         <- nodeGroupRepository.update(updatedGroup, modId, actor, msg)  ?~! "Could not update group %s to remove node '%s'".format(nodeGroup.id.value, nodeId.value)
+        diff         <- woNodeGroupRepository.update(updatedGroup, modId, actor, msg)  ?~! "Could not update group %s to remove node '%s'".format(nodeGroup.id.value, nodeId.value)
       } yield {
         diff
       }).flatten

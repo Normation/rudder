@@ -86,10 +86,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   val techniqueRepository = inject[TechniqueRepository]
   //find Technique
   val updatePTLibService = inject[UpdateTechniqueLibrary]
-  //find & create user categories
-  val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
-  //find & create Active Techniques
-  val activeTechniqueRepository = inject[ActiveTechniqueRepository]
+  val roActiveTechniqueRepository = inject[RoDirectiveRepository]
+  val rwActiveTechniqueRepository = inject[WoDirectiveRepository]
   //generate new uuid
   val uuidGen = inject[StringUuidGenerator]
   //transform Technique variable to human viewable HTML fields
@@ -119,7 +117,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   //current states for the page - they will be kept only for the duration
   //of one request and its followng Ajax requests
 
-  private[this] val rootCategoryId = activeTechniqueCategoryRepository.getActiveTechniqueLibrary.map( _.id )
+  private[this] val rootCategoryId = roActiveTechniqueRepository.getActiveTechniqueLibrary.map( _.id )
 
   private[this] val currentTechniqueDetails = new LocalSnippet[TechniqueEditForm]
   private[this] var currentTechniqueCategoryDetails = new LocalSnippet[TechniqueCategoryEditForm]
@@ -233,7 +231,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   def userLibrary() : NodeSeq = {
     <div id={htmlId_activeTechniquesTree}>{
       val xml = {
-        activeTechniqueCategoryRepository.getActiveTechniqueLibrary match {
+        roActiveTechniqueRepository.getActiveTechniqueLibrary match {
           case eb:EmptyBox =>
             val f = eb ?~! "Error when trying to get the root category of Active Techniques"
             logger.error(f.messageChain)
@@ -380,8 +378,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
        }) match {
         case (sourceactiveTechniqueId, destCatId) :: Nil =>
           (for {
-            activeTechnique <- activeTechniqueRepository.getActiveTechnique(TechniqueName(sourceactiveTechniqueId)) ?~! "Error while trying to find Active Technique with requested id %s".format(sourceactiveTechniqueId)
-            result <- activeTechniqueRepository.move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User moved active technique from UI"))?~! "Error while trying to move Active Technique with requested id '%s' to category id '%s'".format(sourceactiveTechniqueId,destCatId)
+            activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(TechniqueName(sourceactiveTechniqueId)) ?~! "Error while trying to find Active Technique with requested id %s".format(sourceactiveTechniqueId)
+            result <- rwActiveTechniqueRepository.move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User moved active technique from UI"))?~! "Error while trying to move Active Technique with requested id '%s' to category id '%s'".format(sourceactiveTechniqueId,destCatId)
           } yield {
             result
           }) match {
@@ -409,7 +407,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
        }) match {
         case (sourceCatId, destCatId) :: Nil =>
           (for {
-            result <- activeTechniqueCategoryRepository.move(
+            result <- rwActiveTechniqueRepository.move(
                           ActiveTechniqueCategoryId(sourceCatId)
                         , ActiveTechniqueCategoryId(destCatId)
                         , ModificationId(uuidGen.newUuid)
@@ -452,7 +450,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             val errorMess= "Error while trying to add Rudder internal " +
             "Technique with requested id '%s' in user library category '%s'"
                 (for {
-                  result <- (activeTechniqueRepository
+                  result <- (rwActiveTechniqueRepository
                       .addTechniqueInUserLibrary(
                           ActiveTechniqueCategoryId(destCatId),
                           ptName,
@@ -512,7 +510,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   private[this] def refreshBottomPanel(id:ActiveTechniqueId) : JsCmd = {
     for {
-      activeTechnique <- activeTechniqueRepository.getActiveTechnique(id)
+      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(id)
       technique <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
     } { //TODO : check errors
       updateCurrentTechniqueDetails(technique)

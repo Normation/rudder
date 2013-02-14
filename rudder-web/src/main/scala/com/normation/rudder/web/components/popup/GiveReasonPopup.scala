@@ -78,13 +78,10 @@ class GiveReasonPopup(
   def popupTemplate = chooseTemplate("reason", "giveReasonPopup", template)
 
 
-  private[this] val activeTechniqueCategoryRepository =
-    inject[ActiveTechniqueCategoryRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
-  val activeTechniqueRepository = inject[ActiveTechniqueRepository]
+  private[this] val roActiveTechniqueRepository = inject[RoDirectiveRepository]
+  private[this] val rwActiveTechniqueRepository = inject[WoDirectiveRepository]
 
-  private[this] val categories =
-    activeTechniqueCategoryRepository.getAllActiveTechniqueCategories()
   private[this] val userPropertyService = inject[UserPropertyService]
   private[this] val techniqueRepository = inject[TechniqueRepository]
 
@@ -171,7 +168,7 @@ class GiveReasonPopup(
           "Technique with requested id '%s' in user library category '%s'"
           (for {
             result <- (
-                activeTechniqueRepository
+                rwActiveTechniqueRepository
                   .addTechniqueInUserLibrary(
                       ActiveTechniqueCategoryId(destCatId.value),
                       ptName,

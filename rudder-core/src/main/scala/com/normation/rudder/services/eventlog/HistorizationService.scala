@@ -39,16 +39,16 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.RuleVal
 import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.repository.HistorizationRepository
-import com.normation.rudder.repository.NodeGroupRepository
-import com.normation.rudder.repository.DirectiveRepository
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.domain.TechniqueId
-import com.normation.rudder.repository.RuleRepository
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.repository.jdbc.SerializedGroups
 import com.normation.rudder.domain.logger.HistorizationLogger
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.repository.HistorizationRepository
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.repository.RoNodeGroupRepository
 
 /**
  * At each deployment, we compare the content of the groups/PI/CR in the ldap with the content
@@ -85,10 +85,11 @@ trait HistorizationService {
 class HistorizationServiceImpl(
     historizationRepository : HistorizationRepository,
     nodeInfoService : NodeInfoService,
-    nodeGroupRepository : NodeGroupRepository,
-    directiveRepository : DirectiveRepository,
+    nodeGroupRepository : RoNodeGroupRepository,
+    directiveRepository : RoDirectiveRepository,
     techniqueRepository : TechniqueRepository,
-    ruleRepository : RuleRepository) extends HistorizationService {
+    ruleRepository      : RoRuleRepository
+) extends HistorizationService {
 
 
   def updateNodes() : Box[Unit] = {

@@ -25,8 +25,7 @@ abstract class CleanReportAction {
     if (actorIsIdle) {
       actor ! ManualLaunch(date)
       "The %s process has started and is in progress".format(name)
-    }
-   else
+    } else
      "The %s process is already in progress, and so was not relaunched".format(name)
   }
 

@@ -45,7 +45,6 @@ import com.normation.utils.Utils
 import com.normation.utils.Control.sequence
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.repository.DirectiveRepository
 import com.normation.rudder.domain.Constants.{
     CONFIGURATION_RULES_ARCHIVE_TAG
   , GROUPS_ARCHIVE_TAG
@@ -317,7 +316,7 @@ trait ActiveTechniqueModificationCallback {
 class UpdatePiOnActiveTechniqueEvent(
     gitDirectiveArchiver: GitDirectiveArchiver
   , techniqeRepository  : TechniqueRepository
-  , directiveRepository : DirectiveRepository
+  , directiveRepository : RoDirectiveRepository    
 ) extends ActiveTechniqueModificationCallback with Loggable {
   override val uptModificationCallbackName = "Update PI on UPT events"
 
@@ -562,11 +561,11 @@ class GitDirectiveArchiverImpl(
  *
  * Basically, we directly map the category tree to file-system directories,
  * with the root category being the file denoted by "nodeGroupLibrary
- *
- */
-class GitNodeGroupCategoryArchiverImpl(
+ */  
+class GitNodeGroupArchiverImpl(
     override val gitRepo          : GitRepositoryProvider
   , override val gitRootDirectory : File
+  , nodeGroupSerialisation        : NodeGroupSerialisation
   , nodeGroupCategorySerialisation: NodeGroupCategorySerialisation
   , groupLibraryRootDir           : String //relative path !
   , override val xmlPrettyPrinter : PrettyPrinter
@@ -574,12 +573,12 @@ class GitNodeGroupCategoryArchiverImpl(
   , override val encoding         : String = "UTF-8"
   , serializedCategoryName        : String = "category.xml"
 ) extends
-  GitNodeGroupCategoryArchiver with
+  GitNodeGroupArchiver with 
   Loggable with
   GitArchiverUtils with
   BuildCategoryPathName[NodeGroupCategoryId] with
-  GitArchiverFullCommitUtils
-{
+  GitArchiverFullCommitUtils {
+  
 
   override lazy val relativePath = groupLibraryRootDir
   override def  getCategoryName(categoryId:NodeGroupCategoryId) = categoryId.value
@@ -687,27 +686,7 @@ class GitNodeGroupCategoryArchiverImpl(
       , GROUPS_ARCHIVE_TAG + " Commit all modification done in Groups (git path: '%s')".format(groupLibraryRootDir)
     )
   }
-}
 
-/**
- * A specific trait to create archive of a node group.
- *
- * Basically, we directly map the category tree to file-system directories,
- * with the root category being the file denoted by "techniqueLibraryRootDir"
- *
- */
-class GitNodeGroupArchiverImpl(
-    override val gitRepo          : GitRepositoryProvider
-  , override val gitRootDirectory : File
-  , nodeGroupSerialisation        : NodeGroupSerialisation
-  , groupLibraryRootDir           : String //relative path !
-  , override val xmlPrettyPrinter : PrettyPrinter
-  , override val gitModificationRepository : GitModificationRepository
-  , override val encoding         : String = "UTF-8"
-) extends GitNodeGroupArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[NodeGroupCategoryId] {
-
-  override lazy val relativePath = groupLibraryRootDir
-  override def  getCategoryName(categoryId:NodeGroupCategoryId) = categoryId.value
 
   private[this] def newNgFile(ngId:NodeGroupId, parents: List[NodeGroupCategoryId]) = {
     parents match {

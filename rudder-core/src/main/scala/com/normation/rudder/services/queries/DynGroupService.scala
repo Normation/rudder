@@ -77,7 +77,7 @@ trait DynGroupService {
 
 class DynGroupServiceImpl(
   rudderDit: RudderDit,
-  ldap:LDAPConnectionProvider,
+  ldap:LDAPConnectionProvider[RoLDAPConnection], 
   mapper:LDAPEntityMapper,
   queryChecker: PendingNodesLDAPQueryChecker
 ) extends DynGroupService with Loggable {

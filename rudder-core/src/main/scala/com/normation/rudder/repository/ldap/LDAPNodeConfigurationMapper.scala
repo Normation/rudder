@@ -65,7 +65,7 @@ class LDAPNodeConfigurationMapper(
   , systemVariableSpecService : SystemVariableSpecService
   , techniqueRepository       : TechniqueRepository
   , variableBuilderService    : VariableBuilderService
-  , ldap                      : LDAPConnectionProvider
+  , ldap                      : LDAPConnectionProvider[RwLDAPConnection]
 ) extends Loggable {
 
 

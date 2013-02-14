@@ -39,8 +39,8 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleVal
 import net.liftweb.common._
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.repository.DirectiveRepository
-import com.normation.rudder.repository.RuleRepository
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.domain.policies.DirectiveVal
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.exceptions._
@@ -54,9 +54,9 @@ trait RuleValService {
 
 
 class RuleValServiceImpl (
-  val ruleRepo : RuleRepository,
-  val directiveRepo : DirectiveRepository,
-  val techniqueRepository : TechniqueRepository,
+  val ruleRepo              : RoRuleRepository,
+  val directiveRepo         : RoDirectiveRepository,
+  val techniqueRepository   : TechniqueRepository,
   val variableBuilderService: VariableBuilderService
 ) extends RuleValService with Loggable {
 
