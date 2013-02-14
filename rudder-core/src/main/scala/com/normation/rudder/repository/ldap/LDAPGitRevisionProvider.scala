@@ -44,6 +44,7 @@ import com.normation.inventory.ldap.core.LDAPConstants.A_OC
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.cfclerk.services.GitRepositoryProvider
 import com.normation.rudder.repository.xml.GitFindUtils
+import com.normation.ldap.sdk.RwLDAPConnection
 
 /**
  *
@@ -51,7 +52,7 @@ import com.normation.rudder.repository.xml.GitFindUtils
  * commit into LDAP
  */
 class LDAPGitRevisionProvider(
-  ldap: LDAPConnectionProvider, rudderDit: RudderDit, gitRepo: GitRepositoryProvider, refPath: String) extends GitRevisionProvider with Loggable {
+  ldap: LDAPConnectionProvider[RwLDAPConnection], rudderDit: RudderDit, gitRepo: GitRepositoryProvider, refPath: String) extends GitRevisionProvider with Loggable {
 
   if (!refPath.startsWith("refs/")) {
     logger.warn("The configured reference path for the Git repository of Active Technique Library does " +

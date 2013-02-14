@@ -50,7 +50,7 @@ import com.normation.eventlog.ModificationId
  * (a technique + values for its parameters)
  *
  */
-trait RuleRepository {
+trait RoRuleRepository {
 
   /**
    * Try to find the rule with the given ID.
@@ -60,6 +60,23 @@ trait RuleRepository {
    */
   def get(ruleId:RuleId) : Box[Rule]
 
+  def getAll(includeSytem:Boolean = false) : Box[Seq[Rule]] 
+  
+  /**
+   * Return all activated rule.
+   * A rule is activated if 
+   * - its attribute "isEnabled" is set to true ;
+   * - its referenced group is Activated ;
+   * - its referenced directive is activated (what means that the 
+   *   referenced active technique is activated)
+   * @return
+   */
+  def getAllEnabled() : Box[Seq[Rule]] 
+  
+}
+
+
+trait WoRuleRepository {
   /**
    * Save the given directive into given active technique
    * If a directive with the same ID is already present in the
@@ -102,19 +119,6 @@ trait RuleRepository {
    * and error or not).
    */
   def delete(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteRuleDiff]
-
-  def getAll(includeSytem:Boolean = false) : Box[Seq[Rule]]
-
-  /**
-   * Return all activated rule.
-   * A rule is activated if
-   * - its attribute "isEnabled" is set to true ;
-   * - its referenced group is Activated ;
-   * - its referenced directive is activated (what means that the
-   *   referenced active technique is activated)
-   * @return
-   */
-  def getAllEnabled() : Box[Seq[Rule]]
 
   /**
    * A (dangerous) method that replace all existing rules

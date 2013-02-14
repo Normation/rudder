@@ -41,7 +41,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleVal
 import com.normation.rudder.services.servers.NodeSummaryService
 import com.normation.rudder.web.model._
-import com.normation.rudder.repository.{ReportsRepository, RuleRepository}
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.bean.Reports
 import com.normation.rudder.web.components.DateFormaterService
@@ -55,19 +54,21 @@ import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import com.normation.rudder.repository.DirectiveRepository
 import scala.collection._
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.exceptions.TechnicalException
 import net.liftweb.http.Templates
+import com.normation.rudder.repository.ReportsRepository
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.RoRuleRepository
 
 /**
  * Show the reports from cfengine (raw data)
  */
 class LogDisplayer(
     reportRepository   : ReportsRepository
-  , directiveRepository: DirectiveRepository
-  , ruleRepository     : RuleRepository
+  , directiveRepository: RoDirectiveRepository
+  , ruleRepository     : RoRuleRepository
 ) {
 
 

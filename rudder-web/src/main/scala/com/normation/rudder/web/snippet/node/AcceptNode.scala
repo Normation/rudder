@@ -82,7 +82,6 @@ import com.normation.utils.StringUuidGenerator
 class AcceptNode {
   val logger               = LoggerFactory.getLogger(classOf[AcceptNode])
   val newNodeManager       = inject[NewNodeManager]
-  val ldap                 = inject[LDAPConnectionProvider]
   val rudderDit            = inject[RudderDit]
   val serverGrid           = inject[NodeGrid]
   val serverSummaryService = inject[NodeSummaryService]

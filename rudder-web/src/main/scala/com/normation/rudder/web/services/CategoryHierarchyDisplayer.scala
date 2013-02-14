@@ -33,7 +33,7 @@
 */
 
 package com.normation.rudder.web.services
-import com.normation.rudder.repository.NodeGroupCategoryRepository
+import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import net.liftweb.common._
 
@@ -42,7 +42,7 @@ import net.liftweb.common._
  * drop down in a nicely way
  */
 class CategoryHierarchyDisplayer(
-    groupCategoryRepository : NodeGroupCategoryRepository
+    groupCategoryRepository : RoNodeGroupRepository
     ) {
 
   def getCategoriesHierarchy() : Seq[(NodeGroupCategoryId, String)] = {

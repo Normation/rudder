@@ -37,15 +37,17 @@ package com.normation.rudder.services.policies
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import net.liftweb.common.Loggable
 import com.normation.cfclerk.domain.TechniqueId
-import com.normation.rudder.repository.ActiveTechniqueRepository
+import com.normation.rudder.repository.WoDirectiveRepository
 import net.liftweb.common._
 import org.joda.time.DateTime
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.repository.RoDirectiveRepository
 
 class TechniqueAcceptationDatetimeUpdater(
     override val name:String
-  , activeTechniqueRepo : ActiveTechniqueRepository
+  , roActiveTechniqueRepo : RoDirectiveRepository 
+  , rwActiveTechniqueRepo : WoDirectiveRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
     override def updatedTechniques(TechniqueIds:Seq[TechniqueId], modId: ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
@@ -55,7 +57,7 @@ class TechniqueAcceptationDatetimeUpdater(
       val acceptationDatetime = DateTime.now()
 
       byNames.foreach { case( name, versions ) =>
-        activeTechniqueRepo.getActiveTechnique(name) match {
+        roActiveTechniqueRepo.getActiveTechnique(name) match {
           case e:EmptyBox =>
             //OK, that policy package is not in the Active Technique Library, do nothing
             //log in case it was a real problem
@@ -65,7 +67,7 @@ class TechniqueAcceptationDatetimeUpdater(
           case Full(activeTechnique) =>
             logger.debug("Update acceptation datetime for: " + activeTechnique.techniqueName)
             val versionsMap = versions.map( v => (v,acceptationDatetime)).toMap
-            activeTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap, modId, actor, reason) match {
+            rwActiveTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap, modId, actor, reason) match {
               case e:EmptyBox =>
                 logger.error("Error when saving Active Technique " + activeTechnique.id, (e ?~! "Error was:"))
               case _ => //ok

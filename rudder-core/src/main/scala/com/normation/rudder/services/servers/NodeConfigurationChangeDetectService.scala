@@ -39,7 +39,7 @@ import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
 import com.normation.cfclerk.domain.Cf3PolicyDraftId
 import com.normation.cfclerk.domain.Variable
 import net.liftweb.common.Loggable
-import com.normation.rudder.repository.ActiveTechniqueRepository
+import com.normation.rudder.repository.RoDirectiveRepository
 import net.liftweb.common.Box
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.TechniqueId
@@ -59,7 +59,7 @@ trait NodeConfigurationChangeDetectService {
 
 
 class NodeConfigurationChangeDetectServiceImpl(
-    activeTechniqueRepository : ActiveTechniqueRepository) extends NodeConfigurationChangeDetectService with Loggable {
+    activeTechniqueRepository : RoDirectiveRepository) extends NodeConfigurationChangeDetectService with Loggable {
 
   /**
    * Return true if the variables are differents

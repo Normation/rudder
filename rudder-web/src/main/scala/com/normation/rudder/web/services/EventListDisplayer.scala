@@ -73,8 +73,8 @@ import com.normation.rudder.services.eventlog.RollbackedEvent
 class EventListDisplayer(
       logDetailsService   : EventLogDetailsService
     , repos               : EventLogRepository
-    , nodeGroupRepository : NodeGroupRepository
-    , directiveRepository : DirectiveRepository
+    , nodeGroupRepository : RoNodeGroupRepository
+    , directiveRepository : RoDirectiveRepository
     , nodeInfoService     : NodeInfoService
     , modificationService : ModificationService
     , personIdentService  : PersonIdentService

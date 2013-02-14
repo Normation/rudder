@@ -103,7 +103,7 @@ trait NewNodeManager {
  * Rollback is always a "best effort" task.
  */
 class NewNodeManagerImpl(
-    override val ldap:LDAPConnectionProvider,
+    override val ldap:LDAPConnectionProvider[RoLDAPConnection], 
     override val pendingNodesDit:InventoryDit,
     override val acceptedNodesDit:InventoryDit,
     override val serverSummaryService:NodeSummaryServiceImpl,
@@ -117,7 +117,7 @@ class NewNodeManagerImpl(
 
 
 trait ListNewNode extends NewNodeManager with Loggable {
-  def ldap:LDAPConnectionProvider
+  def ldap:LDAPConnectionProvider[RoLDAPConnection]
   def serverSummaryService:NodeSummaryServiceImpl
   def pendingNodesDit:InventoryDit
 
@@ -194,7 +194,7 @@ trait UnitAcceptInventory {
 
 trait ComposedNewNodeManager extends NewNodeManager with Loggable {
 
-  def ldap:LDAPConnectionProvider
+  def ldap:LDAPConnectionProvider[RoLDAPConnection]
   def pendingNodesDit:InventoryDit
   def acceptedNodesDit:InventoryDit
   def smRepo:LDAPFullInventoryRepository
@@ -432,7 +432,7 @@ class AcceptInventory(
 class AcceptFullInventoryInNodeOu(
   override val name:String,
   nodeDit:NodeDit,
-  ldap:LDAPConnectionProvider,
+  ldap:LDAPConnectionProvider[RwLDAPConnection],
   ldapEntityMapper: LDAPEntityMapper,
   inventoryStatus:InventoryStatus //expected inventory status of nodes for that processor
 ) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
@@ -509,7 +509,8 @@ class AcceptFullInventoryInNodeOu(
  */
 class AddNodeToDynGroup(
     override val name:String,
-    groupRepo: NodeGroupRepository,
+    roGroupRepo: RoNodeGroupRepository,
+    woGroupRepo: WoNodeGroupRepository,
     dynGroupService: DynGroupService,
     inventoryStatus: InventoryStatus
 ) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
@@ -544,10 +545,10 @@ class AddNodeToDynGroup(
     for {
       updatetGroup <- sequence(dynGroupIdByNode.getOrElse(sm.node.main.id, Seq())) { groupId =>
         for {
-          group <- groupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
+          group <- roGroupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
           updatedGroup = group.copy( serverList = group.serverList + sm.node.main.id )
           msg = Some("Automatic update of system group due to acceptation of node "+ sm.node.main.id.value)
-          saved <- groupRepo.update(updatedGroup, modId, actor, msg) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
+          saved <- woGroupRepo.update(updatedGroup, modId, actor, msg) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
         } yield {
           saved
         }
@@ -567,10 +568,10 @@ class AddNodeToDynGroup(
       (for {
         updatetGroup <- sequence(dynGroupIdByNode.getOrElse(sm.node.main.id, Seq())) { groupId =>
           for {
-            group <- groupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
+            group <- roGroupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
             updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
             msg = Some("Automatic update of system group due to rollback of acceptation of node "+ sm.node.main.id.value)
-            saved <- groupRepo.update(updatedGroup, modId, actor, msg) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
+            saved <- woGroupRepo.update(updatedGroup, modId, actor, msg) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
           } yield {
             saved
           }
@@ -595,21 +596,22 @@ class AddNodeToDynGroup(
 }
 
 class RefuseGroups(
-  override val name:String,
-  groupRepo: NodeGroupRepository
+    override val name:String
+  , roGroupRepo: RoNodeGroupRepository 
+  , woGroupRepo: WoNodeGroupRepository
 ) extends UnitRefuseInventory with Loggable {
 
   //////////// refuse ////////////
   override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
     //remove server id in all groups
     for {
-      groupIds <- groupRepo.findGroupWithAnyMember(Seq(srv.id))
+      groupIds <- roGroupRepo.findGroupWithAnyMember(Seq(srv.id))
       modifiedGroups <- bestEffort(groupIds) { groupId =>
         for {
-          group <- groupRepo.getNodeGroup(groupId)
+          group <- roGroupRepo.getNodeGroup(groupId)
           modGroup = group.copy( serverList = group.serverList - srv.id)
           msg = Some("Automatic update of groups due to refusal of node "+ srv.id.value)
-          saved <- groupRepo.update(modGroup, modId, actor, msg)
+          saved <- woGroupRepo.update(modGroup, modId, actor, msg)
         } yield {
           saved
         }
@@ -626,7 +628,8 @@ class RefuseGroups(
 class AcceptNodeRule(
     override val name:String,
     asyncDeploymentAgent:AsyncDeploymentAgent,
-    groupRepo: NodeGroupRepository,
+    roGroupRepo: RoNodeGroupRepository,
+    woGroupRepo: WoNodeGroupRepository,
     nodeConfigRepo:NodeConfigurationRepository,
     inventoryStatus: InventoryStatus
 ) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
@@ -654,10 +657,10 @@ class AcceptNodeRule(
   private[this] def addNodeToPolicyServerGroup(sm:FullInventory, nodeId:NodeId, modId: ModificationId, actor:EventActor) : Box[NodeId] = {
     val hasPolicyServerNodeGroup = buildHasPolicyServerGroupId(sm.node.main.policyServerId)
     for {
-      group <- groupRepo.getNodeGroup(hasPolicyServerNodeGroup) ?~! "Technical group with ID '%s' was not found".format(hasPolicyServerNodeGroup)
+      group <- roGroupRepo.getNodeGroup(hasPolicyServerNodeGroup) ?~! "Technical group with ID '%s' was not found".format(hasPolicyServerNodeGroup)
       updatedGroup = group.copy( serverList = group.serverList + nodeId )
       msg = Some("Automatic update of system group due to acceptation of node "+ sm.node.main.id.value)
-      saved<- groupRepo.update(updatedGroup, modId, actor, msg) ?~! "Could not update the technical group with ID '%s'".format(updatedGroup.id )
+      saved<- woGroupRepo.update(updatedGroup, modId, actor, msg) ?~! "Could not update the technical group with ID '%s'".format(updatedGroup.id )
     } yield {
       nodeId
     }
@@ -670,10 +673,10 @@ class AcceptNodeRule(
   def rollback(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit = {
     sms.foreach { sm =>
       (for {
-        group <- groupRepo.getNodeGroup(buildHasPolicyServerGroupId(sm.node.main.policyServerId)) ?~! "Can not find group with id: %s".format(sm.node.main.policyServerId)
+        group <- roGroupRepo.getNodeGroup(buildHasPolicyServerGroupId(sm.node.main.policyServerId)) ?~! "Can not find group with id: %s".format(sm.node.main.policyServerId)
         updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
         msg = Some("Automatic update of system group due to rollback of acceptation of node "+ sm.node.main.id.value)
-        saved<- groupRepo.update(updatedGroup, modId, actor, msg)?~! "Error when trying to update dynamic group %s with member %s".format(updatedGroup.id,sm.node.main.id.value)
+        saved<- woGroupRepo.update(updatedGroup, modId, actor, msg)?~! "Error when trying to update dynamic group %s with member %s".format(updatedGroup.id,sm.node.main.id.value)
       } yield {
         sm
       }) match {

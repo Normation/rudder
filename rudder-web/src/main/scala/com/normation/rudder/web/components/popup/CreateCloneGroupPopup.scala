@@ -37,15 +37,15 @@ class CreateCloneGroupPopup(
   onFailureCallback : () => JsCmd = { () => Noop } )
   extends DispatchSnippet with Loggable {
 
-  private[this] val nodeGroupRepository = inject[NodeGroupRepository]
-  private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
+  private[this] val roNodeGroupRepository = inject[RoNodeGroupRepository]
+  private[this] val woNodeGroupRepository = inject[WoNodeGroupRepository]
   private[this] val nodeInfoService = inject[NodeInfoService]
-  private[this] val categories = groupCategoryRepository.getAllNonSystemCategories
   private[this] val uuidGen = inject[StringUuidGenerator]
   private[this] val userPropertyService = inject[UserPropertyService]
 
+  private[this] val categories = roNodeGroupRepository.getAllNonSystemCategories
   // Fetch the parent category, if any
-  private[this] val parentCategoryId = nodeGroup.flatMap(x => nodeGroupRepository.getParentGroupCategory(x.id)).map(_.id.value).getOrElse("")
+  private[this] val parentCategoryId = nodeGroup.flatMap(x => roNodeGroupRepository.getParentGroupCategory(x.id)).map(_.id.value).getOrElse("")
 
   var createContainer = false
 
@@ -105,7 +105,7 @@ class CreateCloneGroupPopup(
     } else {
       // get the type of query :
       if (createContainer) {
-        groupCategoryRepository.addGroupCategorytoCategory(
+        woNodeGroupRepository.addGroupCategorytoCategory(
             new NodeGroupCategory(
               NodeGroupCategoryId(uuidGen.newUuid),
               piName.is,
@@ -130,7 +130,7 @@ class CreateCloneGroupPopup(
         }
       } else {
         // we are creating a group
-        nodeGroupRepository.createNodeGroup(
+        woNodeGroupRepository.createNodeGroup(
           piName.is,
           piDescription.is,
           nodeGroup.map(x => x.query).getOrElse(groupGenerator.flatMap(_.query)),

@@ -70,7 +70,8 @@ class CreateOrCloneRulePopup(
   def popupTemplate = chooseTemplate("rule", "createRulePopup", template)
 
 
-  private[this] val ruleRepository = inject[RuleRepository]
+  private[this] val roRuleRepository = inject[RoRuleRepository]
+  private[this] val woRuleRepository = inject[WoRuleRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
   private[this] val userPropertyService = inject[UserPropertyService]
 
@@ -188,7 +189,7 @@ class CreateOrCloneRulePopup(
       )
 
 
-      ruleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.getActor, reason.map( _.is )) match {
+      woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.getActor, reason.map( _.is )) match {
           case Full(x) =>
             closePopup() & onSuccessCallback(rule)
           case Empty =>

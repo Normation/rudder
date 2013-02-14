@@ -56,15 +56,15 @@ import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventLog
 
 class ItemArchiveManagerImpl(
-    ruleRepository                    : RuleRepository
-  , uptRepository                     : ActiveTechniqueRepository
-  , groupRepository                   : NodeGroupRepository
+    roRuleRepository                  : RoRuleRepository 
+  , woRuleRepository                  : WoRuleRepository
+  , uptRepository                     : RoDirectiveRepository
+  , groupRepository                   : RoNodeGroupRepository
   , override val gitRepo              : GitRepositoryProvider
   , revisionProvider                  : GitRevisionProvider
   , gitRuleArchiver                   : GitRuleArchiver
   , gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver
   , gitActiveTechniqueArchiver        : GitActiveTechniqueArchiver
-  , gitNodeGroupCategoryArchiver      : GitNodeGroupCategoryArchiver
   , gitNodeGroupArchiver              : GitNodeGroupArchiver
   , parseRules                        : ParseRules
   , parseActiveTechniqueLibrary       : ParseActiveTechniqueLibrary
@@ -73,7 +73,7 @@ class ItemArchiveManagerImpl(
   , importGroupLibrary                : ImportGroupLibrary
   , eventLogger                       : EventLogRepository
   , asyncDeploymentAgent              : AsyncDeploymentAgent
-  , gitModificationRepo         : GitModificationRepository
+  , gitModificationRepo               : GitModificationRepository
 ) extends
   ItemArchiveManager with
   Loggable with
@@ -111,7 +111,7 @@ class ItemArchiveManagerImpl(
 
   private[this] def exportRulesAndDeploy(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = {
     for {
-      rules       <- ruleRepository.getAll(false)
+      rules       <- roRuleRepository.getAll(false)
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitRuleArchiver.getRootDirectory) }
       saved       <- sequence(rules) { rule =>
                        gitRuleArchiver.archiveRule(rule, None)
@@ -201,11 +201,11 @@ class ItemArchiveManagerImpl(
                             case (categories, CategoryAndNodeGroup(cat, groups)) if(cat.isSystem == false || categories.size <= 1) =>
                               (categories, CategoryAndNodeGroup(cat, groups.filter( _.isSystem == false )))
                          }
-      cleanedRoot     <- tryo { FileUtils.cleanDirectory(gitNodeGroupCategoryArchiver.getRootDirectory) }
+      cleanedRoot     <- tryo { FileUtils.cleanDirectory(gitNodeGroupArchiver.getRootDirectory) }
       savedItems      <- sequence(okCatWithGroup.toSeq) { case (categories, CategoryAndNodeGroup(cat, groups)) =>
                            for {
                              //categories.tail is OK, as no category can have an empty path (id)
-                             savedCat    <- gitNodeGroupCategoryArchiver.archiveNodeGroupCategory(cat,categories.reverse.tail, gitCommit = None)
+                             savedCat    <- gitNodeGroupArchiver.archiveNodeGroupCategory(cat,categories.reverse.tail, gitCommit = None)
                              savedgroups <- sequence(groups.toSeq) { group =>
                                               gitNodeGroupArchiver.archiveNodeGroup(group,categories.reverse, gitCommit = None)
                                             }
@@ -213,7 +213,7 @@ class ItemArchiveManagerImpl(
                              "OK"
                            }
                          }
-      commitId        <- gitNodeGroupCategoryArchiver.commitGroupLibrary(modId, commiter, reason)
+      commitId        <- gitNodeGroupArchiver.commitGroupLibrary(modId, commiter, reason)
       eventLogged     <- eventLogger.saveEventLog(modId, new ExportGroupsArchive(actor,commitId, reason))
     } yield {
       if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
@@ -254,10 +254,10 @@ class ItemArchiveManagerImpl(
     logger.info("Importing rules archive with id '%s'".format(archiveId.value))
     for {
       parsed      <- parseRules.getArchive(archiveId)
-      imported    <- ruleRepository.swapRules(parsed)
+      imported    <- woRuleRepository.swapRules(parsed)
     } yield {
       //try to clean
-      ruleRepository.deleteSavedRuleArchiveId(imported) match {
+      woRuleRepository.deleteSavedRuleArchiveId(imported) match {
         case eb:EmptyBox =>
           val e = eb ?~! ("Error when trying to delete saved archive of old rule: " + imported)
           logger.error(e)
@@ -358,7 +358,7 @@ class ItemArchiveManagerImpl(
   override def getGroupLibraryTags : Box[Map[DateTime,GitArchiveId]] = {
     for {
       globalTags <- this.getTags()
-      groupsTags <- gitNodeGroupCategoryArchiver.getTags()
+      groupsTags <- gitNodeGroupArchiver.getTags()
     } yield {
       globalTags ++ groupsTags
     }

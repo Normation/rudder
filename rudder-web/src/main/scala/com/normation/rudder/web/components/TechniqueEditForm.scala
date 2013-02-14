@@ -129,10 +129,8 @@ class TechniqueEditForm(
 
   //find Technique
   private[this] val techniqueRepository = inject[TechniqueRepository]
-  //find & create user categories
-  private[this] val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
-  //find & create Active Techniques
-  private[this] val activeTechniqueRepository = inject[ActiveTechniqueRepository]
+  private[this] val roActiveTechniqueRepository = inject[RoDirectiveRepository]
+  private[this] val rwActiveTechniqueRepository = inject[WoDirectiveRepository]
   //generate new uuid
   private[this] val uuidGen = inject[StringUuidGenerator]
   //transform Technique variable to human viewable HTML fields
@@ -150,7 +148,7 @@ class TechniqueEditForm(
 //  }
 
 
-  private[this] var currentActiveTechnique = activeTechniqueRepository.getActiveTechnique(technique.id.name)
+  private[this] var currentActiveTechnique = roActiveTechniqueRepository.getActiveTechnique(technique.id.name)
   private[this] var uptCurrentStatusIsActivated = currentActiveTechnique.map( _.isEnabled)
 
 
@@ -472,7 +470,7 @@ class TechniqueEditForm(
                  */
                 def onClickAddTechniqueToCategory() : JsCmd = {
                   //back-end action
-                  activeTechniqueRepository.addTechniqueInUserLibrary(
+                  rwActiveTechniqueRepository.addTechniqueInUserLibrary(
                       category.id
                     , technique.id.name
                     , techniqueRepository.getTechniqueVersions(technique.id.name).toSeq
@@ -587,8 +585,8 @@ class TechniqueEditForm(
   private def findUserBreadCrump(target:Technique) : Option[List[ActiveTechniqueCategory]] = {
     //find the potential WBUsreTechnique for given WBTechnique
     ( for {
-      activeTechnique <- activeTechniqueRepository.getActiveTechnique(target.id.name)
-      crump <- activeTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)
+      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(target.id.name) 
+      crump <- roActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id) 
     } yield {
       crump.reverse
     } ) match {
@@ -615,7 +613,7 @@ class TechniqueEditForm(
   private[this] def statusAndDeployTechnique(uactiveTechniqueId:ActiveTechniqueId, status:Boolean) : JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
     (for {
-      save <- activeTechniqueRepository.changeStatus(uactiveTechniqueId, status,
+      save <- rwActiveTechniqueRepository.changeStatus(uactiveTechniqueId, status, 
                 modId, CurrentUser.getActor, crReasonsDisablePopup.map(_.is))
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)

@@ -91,8 +91,8 @@ class CreateCategoryOrGroupPopup(
   def popupTemplate = chooseTemplate("groups", "createGroupPopup", template)
 
 
-  private[this] val nodeGroupRepository = inject[NodeGroupRepository]
-  private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
+  private[this] val roNodeGroupRepository = inject[RoNodeGroupRepository]
+  private[this] val woNodeGroupRepository = inject[WoNodeGroupRepository]
   private[this] val nodeInfoService = inject[NodeInfoService]
   private[this] val categoryHierarchyDisplayer = inject[CategoryHierarchyDisplayer]
   private[this] val uuidGen = inject[StringUuidGenerator]
@@ -239,7 +239,7 @@ class CreateCategoryOrGroupPopup(
         case "Category" => true
       }
       if (createCategory) {
-        groupCategoryRepository.addGroupCategorytoCategory(
+        woNodeGroupRepository.addGroupCategorytoCategory(
             new NodeGroupCategory(
               NodeGroupCategoryId(uuidGen.newUuid),
               piName.is,
@@ -273,7 +273,7 @@ class CreateCategoryOrGroupPopup(
             )
         val query = Some(groupGenerator.flatMap(_.query).getOrElse(Query(NodeReturnType,And,Seq(defaultLine))))
 
-        nodeGroupRepository.createNodeGroup(
+        woNodeGroupRepository.createNodeGroup(
           piName.is,
           piDescription.is,
           query,

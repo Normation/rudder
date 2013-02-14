@@ -49,14 +49,14 @@ import com.normation.cfclerk.domain.TechniqueName
 import net.liftweb.common._
 import com.normation.cfclerk.domain.TechniqueVersion
 import org.joda.time.DateTime
-import com.normation.rudder.repository.ActiveTechniqueRepository
+import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import scala.collection.immutable.SortedMap
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 
 
-class DummyActiveTechniqueRepository extends ActiveTechniqueRepository {
+class DummyActiveTechniqueRepository extends RoDirectiveRepository {
 
 
   val userPtMap = Map[TechniqueName, ActiveTechnique](
@@ -95,6 +95,19 @@ class DummyActiveTechniqueRepository extends ActiveTechniqueRepository {
 
   def activeTechniqueBreadCrump(id:ActiveTechniqueId) = Failure("Can't call this")
 
+  def containsDirective(id: ActiveTechniqueCategoryId): Boolean = ???
+  def getActiveTechnique(id: DirectiveId): Box[ActiveTechnique] = ???
+  def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId): Box[ActiveTechniqueCategory] = ???
+  def getActiveTechniqueLibrary: Box[ActiveTechniqueCategory] = ???
+  def getAll(includeSystem: Boolean): Box[Seq[Directive]] = ???
+  def getAllActiveTechniqueCategories(includeSystem: Boolean):  Box[Seq[ActiveTechniqueCategory]] = ???
+  def getDirective(directiveId:  DirectiveId): Box[Directive] = ???
+  def getDirectiveWithContext(directiveId: DirectiveId): Box[(Technique, ActiveTechnique, Directive)] = ???
+  def getDirectives(activeTechniqueId: ActiveTechniqueId,includeSystem: Boolean): Box[Seq[Directive]] = ???
+  def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId): Box[ActiveTechniqueCategory] = ???
+  def getParentsForActiveTechnique(id: ActiveTechniqueId): Box[ActiveTechniqueCategory] = ???
+  def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId): Box[List[ActiveTechniqueCategory]] = ???  
+  
 }
 
 

@@ -46,7 +46,8 @@ import com.normation.utils.Control.sequence
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import net.liftweb.common._
-import com.normation.rudder.repository.NodeGroupRepository
+import com.normation.rudder.repository.WoNodeGroupRepository
+import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.eventlog.EventActor
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId
@@ -76,7 +77,8 @@ trait DynGroupUpdaterService {
 
 
 class DynGroupUpdaterServiceImpl(
-  nodeGroupRepository: NodeGroupRepository,
+  roNodeGroupRepository: RoNodeGroupRepository,
+  woNodeGroupRepository: WoNodeGroupRepository,
   queryProcessor     : QueryProcessor
 ) extends DynGroupUpdaterService with Loggable {
 
@@ -84,13 +86,13 @@ class DynGroupUpdaterServiceImpl(
 
   override def update(dynGroupId:NodeGroupId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff] = {
     for {
-      group <- nodeGroupRepository.getNodeGroup(dynGroupId)
+      group <- roNodeGroupRepository.getNodeGroup(dynGroupId)
       isDynamic <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
       query <- Box(group.query) ?~! "Can not a group if its query is not defined"
       newMembers <- queryProcessor.process(query) ?~! "Error when processing request for updating dynamic group with id %s".format(dynGroupId)
       //save
       newMemberIdsSet = newMembers.map( _.id).toSet
-      savedGroup <- nodeGroupRepository.update(group.copy(serverList = newMemberIdsSet ), modId, actor, reason) ?~! "Error when saving update for dynmic group '%s'".format(dynGroupId)
+      savedGroup <- woNodeGroupRepository.update(group.copy(serverList = newMemberIdsSet ), modId, actor, reason) ?~! "Error when saving update for dynmic group '%s'".format(dynGroupId)
     } yield {
       val plus = newMemberIdsSet -- group.serverList
       val minus = group.serverList -- newMemberIdsSet

@@ -37,7 +37,8 @@ package com.normation.rudder.services.servers
 import java.net.InetAddress
 import net.liftweb.common.Box
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.repository.DirectiveRepository
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.domain.Constants
 import com.normation.utils.Control.bestEffort
 import net.liftweb.util.Helpers._
@@ -72,8 +73,9 @@ trait PolicyServerManagementService {
 
 
 class PolicyServerManagementServiceImpl(
-    directiveRepository:DirectiveRepository
-  , asyncDeploymentAgent:AsyncDeploymentAgent
+    roDirectiveRepository: RoDirectiveRepository
+  , woDirectiveRepository: WoDirectiveRepository
+  , asyncDeploymentAgent : AsyncDeploymentAgent
 ) extends PolicyServerManagementService with Loggable {
 
   /**
@@ -83,7 +85,7 @@ class PolicyServerManagementServiceImpl(
    */
   override def getAuthorizedNetworks(policyServerId:NodeId) : Box[Seq[String]] = {
     for {
-      directive <- directiveRepository.getDirective(Constants.buildCommonDirectiveId(policyServerId))
+      directive <- roDirectiveRepository.getDirective(Constants.buildCommonDirectiveId(policyServerId))
     } yield {
       val allowedNetworks = directive.parameters.getOrElse(Constants.V_ALLOWED_NETWORK, List())
       allowedNetworks
@@ -105,11 +107,11 @@ class PolicyServerManagementServiceImpl(
     }
 
     for {
-      directive <- directiveRepository.getDirective(directiveId) ?~! "Error when retrieving directive with ID '%s'".format(directiveId.value)
-      activeTechnique <- directiveRepository.getActiveTechnique(directiveId) ?~! "Error when getting active technique for directive with ID '%s'".format(directiveId.value)
+      directive <- roDirectiveRepository.getDirective(directiveId) ?~! "Error when retrieving directive with ID '%s'".format(directiveId.value)
+      activeTechnique <- roDirectiveRepository.getActiveTechnique(directiveId) ?~! "Error when getting active technique for directive with ID '%s'".format(directiveId.value)
       newPi = directive.copy(parameters = directive.parameters + (Constants.V_ALLOWED_NETWORK -> networks.map( _.toString)))
       msg = Some("Automatic update of system directive due to modification of accepted networks ")
-      saved <- directiveRepository.saveDirective(activeTechnique.id, newPi, modId, actor, msg) ?~! "Can not save directive for Active Technique '%s'".format(activeTechnique.id.value)
+      saved <- woDirectiveRepository.saveDirective(activeTechnique.id, newPi, modId, actor, msg) ?~! "Can not save directive for Active Technique '%s'".format(activeTechnique.id.value)
     } yield {
       //ask for a new policy deployment
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)

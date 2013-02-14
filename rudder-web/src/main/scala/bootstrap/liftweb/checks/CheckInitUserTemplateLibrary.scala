@@ -58,10 +58,10 @@ import com.normation.eventlog.ModificationId
  */
 class CheckInitUserTemplateLibrary(
     rudderDit          : RudderDit
-  , ldap               : LDAPConnectionProvider
+  , ldap               : LDAPConnectionProvider[RwLDAPConnection]
   , refTemplateService : TechniqueRepository
-  , userCategoryService: ActiveTechniqueCategoryRepository
-  , userTempalteService: ActiveTechniqueRepository
+  , roDirectiveRepos   : RoDirectiveRepository
+  , woDirectiveRepos   : WoDirectiveRepository
   , uuidGen            : StringUuidGenerator
 ) extends BootstrapChecks with Loggable {
 
@@ -75,7 +75,7 @@ class CheckInitUserTemplateLibrary(
             case Some(date) => ApplicationLogger.debug("The root user template library was initialized on %s".format(date.dateTime.toString("YYYY/MM/dd HH:mm")))
             case None =>
               ApplicationLogger.info("The Active Technique library is not marked as being initialized: adding all policies from reference library...")
-              copyReferenceLib(con) match {
+              copyReferenceLib() match {
                 case Full(x) => ApplicationLogger.info("...done")
                 case eb:EmptyBox =>
                   val e = eb ?~! "Some error where encountered during the initialization of the user library"
@@ -102,7 +102,7 @@ class CheckInitUserTemplateLibrary(
   /**
    * Actually copy from reference Directive lib to user lib.
    */
-  private[this] def copyReferenceLib(con:LDAPConnection) : Box[AnyRef] = {
+  private[this] def copyReferenceLib() : Box[AnyRef] = {
     def recCopyRef(fromCatId:TechniqueCategoryId, toParentCat:ActiveTechniqueCategory) : Box[ActiveTechniqueCategory] = {
 
       for {
@@ -118,7 +118,7 @@ class CheckInitUserTemplateLibrary(
             Full(newUserPTCat)
           } else {
             for {
-              updatedParentCat <- userCategoryService.addActiveTechniqueCategory(
+              updatedParentCat <- woDirectiveRepos.addActiveTechniqueCategory(
                                       newUserPTCat
                                     , toParentCat
                                     , ModificationId(uuidGen.newUuid)
@@ -130,7 +130,7 @@ class CheckInitUserTemplateLibrary(
                   //Techniques
                   bestEffort(fromCat.packageIds.groupBy(id => id.name).toSeq) { case (name, ids) =>
                     for {
-                      activeTechnique <- userTempalteService.addTechniqueInUserLibrary(
+                      activeTechnique <- woDirectiveRepos.addTechniqueInUserLibrary(
                           newUserPTCat.id
                         , name
                         , ids.map( _.version).toSeq
@@ -155,7 +155,7 @@ class CheckInitUserTemplateLibrary(
     }
 
     //apply with root cat children ids
-    userCategoryService.getActiveTechniqueLibrary.flatMap { root =>
+    roDirectiveRepos.getActiveTechniqueLibrary.flatMap { root => 
       bestEffort(refTemplateService.getTechniqueLibrary.subCategoryIds.toSeq) { id =>
         recCopyRef(id, root)
       }

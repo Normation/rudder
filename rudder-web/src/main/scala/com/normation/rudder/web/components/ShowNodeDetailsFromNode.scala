@@ -40,7 +40,6 @@ import com.normation.inventory.domain._
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.rudder.services.nodes._
 import com.normation.rudder.domain.nodes.{NodeGroupCategory, NodeInfo, NodeGroup}
-import com.normation.rudder.repository.{NodeGroupCategoryRepository, NodeGroupRepository}
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.services.policies.{DependencyAndDeletionService, RuleTargetService}
@@ -52,17 +51,16 @@ import com.normation.rudder.domain.nodes.{NodeGroup,  NodeInfo}
 import com.normation.rudder.web.services.{LogDisplayer, ReportDisplayer, DisplayNode}
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
 import com.normation.exceptions.TechnicalException
-
-//lift std import
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftmodules.widgets.autocomplete._
+import com.normation.rudder.repository.RoNodeGroupRepository
 
 
 
@@ -103,8 +101,7 @@ class ShowNodeDetailsFromNode(
   private[this] val logDisplayer = inject[LogDisplayer]
 
   // to create the JsTree with the Group/CR
-  private[this] val nodeGroupRepository = inject[NodeGroupRepository]
-  private[this] val groupCategoryRepository = inject[NodeGroupCategoryRepository]
+  private[this] val nodeGroupRepository = inject[RoNodeGroupRepository]
   private[this] val targetService = inject[RuleTargetService]
   private[this] val dependencyService = inject[DependencyAndDeletionService]
 
@@ -177,8 +174,8 @@ class ShowNodeDetailsFromNode(
   private def buildTree(node : NodeInfo) : NodeSeq = {
     findTargets(node) match {
       case Full(seq) => targets = seq
-            groupCategoryRepository.findGroupHierarchy(
-            groupCategoryRepository.getRootCategory().id,
+            nodeGroupRepository.findGroupHierarchy(
+            nodeGroupRepository.getRootCategory().id,
             seq) match {
           case Empty => <div>This node is not contained in any group</div>
           case f:Failure => <div class="error">{f.messageChain}</div>
@@ -193,7 +190,7 @@ class ShowNodeDetailsFromNode(
  /********************************************
   * Utilitary methods for JSTree
   ********************************************/
-  private[this] val rootCategoryId = groupCategoryRepository.getRootCategory.id
+  private[this] val rootCategoryId = nodeGroupRepository.getRootCategory.id
   private[this] var targets :  Seq[RuleTarget] = Seq()
 
   /**
@@ -217,7 +214,7 @@ class ShowNodeDetailsFromNode(
       Nil
 
     override def children = (
-      category.children.map(x =>  groupCategoryRepository.findGroupHierarchy(x, targets)).collect { case Full(x) => categoryToJsTreeNode(x) }
+      category.children.map(x =>  nodeGroupRepository.findGroupHierarchy(x, targets)).collect { case Full(x) => categoryToJsTreeNode(x) }
       ++ category.items.map(x => policyTargetInfoToJsTreeNode(x) )
     )
   }

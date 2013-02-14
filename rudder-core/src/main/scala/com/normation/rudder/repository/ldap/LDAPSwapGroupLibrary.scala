@@ -61,7 +61,7 @@ import com.normation.utils.ScalaReadWriteLock
 import com.unboundid.ldap.sdk.DN
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.ldap.sdk.LDAPConnection
+import com.normation.ldap.sdk.RwLDAPConnection
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.domain.RudderLDAPConstants._
@@ -77,7 +77,7 @@ import com.normation.rudder.domain.policies.GroupTarget
 trait LDAPImportLibraryUtil extends Loggable {
 
   //move user lib to archive branch
-  def moveToArchive(connection:LDAPConnection, sourceLibraryDN:DN, targetArchiveDN:DN) : Box[Unit] = {
+  def moveToArchive(connection:RwLDAPConnection, sourceLibraryDN:DN, targetArchiveDN:DN) : Box[Unit] = {
     for {
       ok <- connection.move(sourceLibraryDN, targetArchiveDN.getParent, Some(targetArchiveDN.getRDN)) ?~! "Error when arching current Library with DN '%s' to LDAP".format(targetArchiveDN)
     } yield {
@@ -86,7 +86,7 @@ trait LDAPImportLibraryUtil extends Loggable {
   }
 
   //copy back system categories/groups if includeSystem is FALSE
-  def copyBackSystemEntrie(con:LDAPConnection, sourceLibraryDN:DN, targetArchiveDN:DN) : Box[Unit] = {
+  def copyBackSystemEntrie(con:RwLDAPConnection, sourceLibraryDN:DN, targetArchiveDN:DN) : Box[Unit] = {
     //the only hard part could be for system group in non system categories, because
     //we may miss a parent. But it should not be allowed, so we consider such cases
     //as errors
@@ -139,7 +139,7 @@ trait LDAPImportLibraryUtil extends Loggable {
   }
 
   //restore in case of error
-  def restoreArchive(con:LDAPConnection, sourceLibraryDN:DN, targetArchiveDN:DN) : Box[Unit] = {
+  def restoreArchive(con:RwLDAPConnection, sourceLibraryDN:DN, targetArchiveDN:DN) : Box[Unit] = {
     for {
       delete    <- if(con.exists(sourceLibraryDN)) {
                      con.delete(sourceLibraryDN)
@@ -154,7 +154,7 @@ trait LDAPImportLibraryUtil extends Loggable {
 
 class ImportGroupLibraryImpl(
     rudderDit    : RudderDit
-  , ldap         : LDAPConnectionProvider
+  , ldap         : LDAPConnectionProvider[RwLDAPConnection]
   , mapper       : LDAPEntityMapper
   , groupLibMutex: ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends ImportGroupLibrary with LDAPImportLibraryUtil {
@@ -188,7 +188,7 @@ class ImportGroupLibraryImpl(
     def atomicSwap(userLib:NodeGroupCategoryContent) : Box[NodeGroupLibraryArchiveId] = {
       //save the new one
       //we need to keep the git commit id
-      def saveUserLib(con:LDAPConnection, userLib:NodeGroupCategoryContent) : Box[Unit] = {
+      def saveUserLib(con:RwLDAPConnection, userLib:NodeGroupCategoryContent) : Box[Unit] = {
         def recSaveUserLib(parentDN:DN, content:NodeGroupCategoryContent) : Box[Unit] = {
           //start with the category
           //then with technique/directive for that category

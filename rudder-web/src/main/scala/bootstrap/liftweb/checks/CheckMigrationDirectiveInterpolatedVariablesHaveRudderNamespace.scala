@@ -39,13 +39,14 @@ import net.liftweb.common._
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 import net.liftweb.common.Failure
-import com.normation.rudder.repository.DirectiveRepository
+import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.domain.logger.MigrationLogger
 import com.normation.rudder.domain.policies.Directive
 import com.normation.utils.Control.sequence
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.repository.WoDirectiveRepository
 
 /**
  * See http://www.rudder-project.org/redmine/issues/3152
@@ -75,7 +76,8 @@ import com.normation.rudder.domain.eventlog._
  *
  */
 class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
-    repos  : DirectiveRepository
+    roRepos: RoDirectiveRepository
+  , rwRepos: WoDirectiveRepository
   , uuidGen: StringUuidGenerator
 ) extends BootstrapChecks {
 
@@ -94,7 +96,7 @@ class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
 
   override def checks() : Unit = {
 
-    repos.getAll(includeSystem = true) match {
+    roRepos.getAll(includeSystem = true) match {
       case eb:EmptyBox =>
         val f = (eb ?~! "Can not check that Rudder interpolated variable in directive variables use 'rudder' namespace")
         logger.defaultErrorLogger(f)
@@ -116,8 +118,8 @@ class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
             val message = "Migrating inline variables in Directive %s (uuid: %s) so that they use the new 'rudder' namespace".format(directive.name, directive.id.value)
             logger.info(message)
             for {
-              activeTechnique <- repos.getActiveTechnique(directive.id)
-              saved           <- repos.saveDirective(activeTechnique.id, directive, modId, RudderEventActor, Some(message))
+              activeTechnique <- roRepos.getActiveTechnique(directive.id)
+              saved           <- rwRepos.saveDirective(activeTechnique.id, directive, modId, RudderEventActor, Some(message))
             } yield {
               saved
             }

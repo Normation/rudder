@@ -50,6 +50,7 @@ import com.unboundid.ldap.sdk.DN
 import org.specs2.specification.Fragments
 import org.specs2.specification.Step
 import net.liftweb.common._
+import com.normation.ldap.sdk.RoLDAPConnection
 
 @RunWith(classOf[JUnitRunner])
 class TestQuickSearchService extends QuickSearchServiceSpec {
@@ -153,7 +154,7 @@ trait QuickSearchServiceSpec extends Specification with Loggable {
        this.getClass.getClassLoader.getResource(name).getPath
     }
 
-    val ldap = InMemoryDsConnectionProvider(
+    val ldap = InMemoryDsConnectionProvider.apply[RoLDAPConnection](
         baseDNs = "cn=rudder-configuration" :: Nil
       , schemaLDIFPaths = schemaLDIFs
       , bootstrapLDIFPaths = bootstrapLDIFs
