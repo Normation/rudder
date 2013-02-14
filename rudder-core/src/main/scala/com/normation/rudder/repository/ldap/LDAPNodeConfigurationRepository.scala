@@ -51,7 +51,7 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.utils.Control.bestEffort
 
 class LDAPNodeConfigurationRepository(
-    ldap:LDAPConnectionProvider,
+    ldap:LDAPConnectionProvider[RwLDAPConnection],
     rudderDit:RudderDit,
     mapper:LDAPNodeConfigurationMapper
 ) extends NodeConfigurationRepository with Loggable {
@@ -83,7 +83,7 @@ class LDAPNodeConfigurationRepository(
    * @param dns
    * @return
    */
-  private def findNodeConfigurationFromNodeConfigurationEntryDN(con:LDAPConnection, dns:Set[DN]) : Box[List[NodeConfiguration]] = {
+  private def findNodeConfigurationFromNodeConfigurationEntryDN(con:RwLDAPConnection, dns:Set[DN]) : Box[List[NodeConfiguration]] = {
     ( (Full(List[NodeConfiguration]()):Box[List[NodeConfiguration]]) /: dns  ) {
       case (e:EmptyBox,_) => e
       case (Full(list),dn) =>

@@ -36,7 +36,7 @@ package bootstrap.liftweb
 package checks
 
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.repository.RuleRepository
+import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.policies.AllTarget
 
@@ -46,7 +46,7 @@ import javax.servlet.UnavailableException
 
 class CheckSystemDirectives(
   rudderDit:RudderDit,
-  ldapRuleService:RuleRepository
+  ldapRuleService:RoRuleRepository
 ) extends BootstrapChecks with Loggable {
 
   @throws(classOf[ UnavailableException ])

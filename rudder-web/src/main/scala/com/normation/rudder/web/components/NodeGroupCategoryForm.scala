@@ -69,13 +69,25 @@ class NodeGroupCategoryForm(
 
   var _nodeGroupCategory = nodeGroupCategory.copy()
 
-  val groupCategoryRepository = inject[NodeGroupCategoryRepository]
+  val roGroupCategoryRepository = inject[RoNodeGroupRepository]
+  val woGroupCategoryRepository = inject[WoNodeGroupRepository]
 
   private[this] val uuidGen = inject[StringUuidGenerator]
 
   private[this] val categoryHierarchyDisplayer = inject[CategoryHierarchyDisplayer]
 
-  val parentCategory = groupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id )
+  val categories = roGroupCategoryRepository.getAllNonSystemCategories match {
+    case eb:EmptyBox => 
+      val f = eb  ?~! "Can not get Group root category"
+      logger.error(f.messageChain)
+      f.rootExceptionCause.foreach(ex => 
+        logger.error("Exception was:", ex)
+      )
+      Seq()
+    case Full(cats) => cats.filter(x => x.id != _nodeGroupCategory.id)
+  }
+  
+  val parentCategory = roGroupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id )
 
   val parentCategoryId = parentCategory match {
     case Full(x) =>  x.id.value
@@ -190,7 +202,7 @@ class NodeGroupCategoryForm(
   }
 
   private[this] def onDelete() : JsCmd = {
-    groupCategoryRepository.delete(_nodeGroupCategory.id, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Node Group category deleted by user from UI")) match {
+    woGroupCategoryRepository.delete(_nodeGroupCategory.id, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Node Group category deleted by user from UI")) match {
       case Full(id) =>
         JsRaw("""$.modal.close();""") &
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
@@ -279,7 +291,7 @@ class NodeGroupCategoryForm(
         _nodeGroupCategory.isSystem
       )
 
-      groupCategoryRepository.saveGroupCategory(
+      woGroupCategoryRepository.saveGroupCategory(
           newNodeGroup
         , NodeGroupCategoryId(piContainer.is)
         , ModificationId(uuidGen.newUuid)

@@ -41,8 +41,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.repository.ActiveTechniqueRepository
-import com.normation.rudder.repository.RuleRepository
+import com.normation.rudder.repository.RoRuleRepository
 import net.liftweb.common._
 import com.normation.rudder.domain.policies._
 import com.normation.inventory.domain.NodeId
@@ -59,6 +58,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.services.eventlog.HistorizationService
 import com.normation.utils.HashcodeCaching
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.rudder.repository.WoRuleRepository
 
 /**
  * TODO: ca devrait être un "target node configuration", ie
@@ -232,7 +232,8 @@ trait DeploymentService extends Loggable {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class DeploymentServiceImpl (
-    override val ruleRepo: RuleRepository,
+    override val roRuleRepo: RoRuleRepository,
+    override val woRuleRepo: WoRuleRepository,
     override val ruleValService : RuleValService,
     override val parameterizedValueLookupService : ParameterizedValueLookupService,
     override val systemVarService: SystemVariableService,
@@ -271,10 +272,10 @@ class DeploymentServiceImpl (
  *
  */
 trait DeploymentService_findDependantRules_bruteForce extends DeploymentService {
-  def ruleRepo : RuleRepository
+  def roRuleRepo : RoRuleRepository
 
   override def findDependantRules() : Box[Seq[Rule]] = {
-    ruleRepo.getAllEnabled
+    roRuleRepo.getAllEnabled
   }
 }
 
@@ -526,7 +527,9 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
 
   def nodeConfigurationChangeDetectService : NodeConfigurationChangeDetectService
 
-  def ruleRepo: RuleRepository
+  def roRuleRepo: RoRuleRepository
+  
+  def woRuleRepo: WoRuleRepository
 
    /**
    * For each CFCNodeConfiguration, look if the target node is already configured or
@@ -552,9 +555,9 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
   def detectUpdates(nodes : Seq[NodeConfiguration]) : Box[(Seq[(RuleId,Int)], Seq[RuleId])] = {
    // First, fetch the updated CRs (which are either updated or deleted)
    (( Full(Seq[(RuleId,Int)](), Seq[RuleId]()) )/:(nodeConfigurationChangeDetectService.detectChangeInNodes(nodes)) ) { case (Full((updated, deleted)), ruleId) => {
-     ruleRepo.get(ruleId) match {
+     roRuleRepo.get(ruleId) match {
        case Full(rule) =>
-         ruleRepo.incrementSerial(rule.id) match {
+         woRuleRepo.incrementSerial(rule.id) match {
            case Full(newSerial) => logger.trace("Updating rule %s to serial %d".format(rule.id.value, newSerial))
                                    Full((updated :+ (rule.id,newSerial), deleted))
            case f : EmptyBox => return f

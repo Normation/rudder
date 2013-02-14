@@ -63,7 +63,7 @@ import org.joda.time.DateTime
 class NodeSummaryServiceImpl(
     inventoryDitService:InventoryDitService,
     inventoryMapper:InventoryMapper,
-    ldap:LDAPConnectionProvider
+    ldap:LDAPConnectionProvider[RoLDAPConnection]
 ) extends NodeSummaryService with Loggable {
 
   /**

@@ -40,12 +40,11 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies._
 import com.normation.inventory.domain.NodeId
-import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.ldap.core.LDAPConstants.{A_OC, A_NAME}
 import com.unboundid.ldap.sdk.{DN,Filter}
 import com.normation.ldap.sdk._
 import BuildFilter._
-import com.normation.rudder.domain.{RudderDit,NodeDit,RudderLDAPConstants}
+import com.normation.rudder.domain.{RudderDit,RudderLDAPConstants}
 import RudderLDAPConstants._
 import net.liftweb.common._
 import com.normation.utils.Control.sequence
@@ -60,19 +59,12 @@ import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog.ModificationId
 
-class LDAPRuleRepository(
-    rudderDit           : RudderDit
-  , nodeDit             : NodeDit
-  , ldap                : LDAPConnectionProvider
-  , mapper              : LDAPEntityMapper
-  , diffMapper          : LDAPDiffMapper
-  , groupRepository     : NodeGroupRepository
-  , techniqueRepository : TechniqueRepository
-  , actionLogger        : EventLogRepository
-  , gitCrArchiver       : GitRuleArchiver
-  , personIdentService  : PersonIdentService
-  , autoExportOnModify  : Boolean
-) extends RuleRepository with Loggable {
+
+class RoLDAPRuleRepository(
+    val rudderDit: RudderDit
+  , val ldap     : LDAPConnectionProvider[RoLDAPConnection]
+  , val mapper   : LDAPEntityMapper
+) extends RoRuleRepository with Loggable {
   repo =>
 
   /**
@@ -92,6 +84,114 @@ class LDAPRuleRepository(
   }
 
 
+  /**
+   * Return all activated rule.
+   * A rule is activated if 
+   * - its attribute "isEnabled" is set to true ;
+   * - its referenced group is defined and Activated, or it reference a special target
+   * - its referenced directive is defined and activated (what means that the 
+   *   referenced active technique is activated)
+   * @return
+   */
+  def getAllEnabled() : Box[Seq[Rule]] = {
+    // First fetch the activated groups
+    val groupsId = (
+      for {
+        con             <- ldap
+        activatedGroups =  con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_RUDDER_NODE_GROUP), EQ(A_IS_ENABLED, true.toLDAPString)), "1.1")
+        groupIds        <- sequence(activatedGroups) { entry =>
+                          rudderDit.GROUP.getGroupId(entry.dn)
+                        }
+      } yield {
+        groupIds 
+      })
+    
+    logger.debug("Activated groups are %s".format(groupsId.mkString(";")))
+    (for {
+      con                <- ldap
+      activatedUPT_entry =  con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, AND(IS(OC_ACTIVE_TECHNIQUE), EQ(A_IS_ENABLED, true.toLDAPString)), "1.1")
+      activatedPI_DNs    =  activatedUPT_entry.flatMap { entry =>
+                              con.searchOne(entry.dn, AND(IS(OC_DIRECTIVE), EQ(A_IS_ENABLED, true.toLDAPString)), "1.1").map( _.dn)
+                            }
+      activatedPI_ids    <- sequence(activatedPI_DNs) { dn =>
+                              rudderDit.ACTIVE_TECHNIQUES_LIB.getLDAPRuleID(dn)
+                            }
+     configRules         <- sequence(con.searchSub(rudderDit.RULES.dn, 
+                             //group is activated and directive is activated and config rule is activated !
+                             AND(IS(OC_RULE),
+                               EQ(A_IS_ENABLED, true.toLDAPString),
+                               HAS(A_RULE_TARGET),
+                               HAS(A_DIRECTIVE_UUID),
+                               OR(activatedPI_ids.map(id =>  EQ(A_DIRECTIVE_UUID, id)):_*)
+                             )
+                           )) { entry => 
+                             mapper.entry2Rule(entry) 
+                           }
+    } yield {
+      configRules
+    } ) match {
+      case Full(list) =>
+        // a config rule activated point to an activated group, or to a special target
+        Full(list.filter{ rule => 
+          rule.isEnabled &&
+          ((rule.targets, rule.directiveIds) match {
+            case (targets, directives) if !directives.isEmpty && !targets.isEmpty => //should be the case, given the request
+              targets.exists( _ match {
+                  case GroupTarget(group) =>
+                    logger.debug("Checking activation of group %s for the target of rule %s"
+                        .format(group.value, rule.id.value))
+                    groupsId.openOr(Seq()).contains(group.value)
+                  case _ => true
+                }
+              )
+            case _ => false
+          } ) })
+      case f : EmptyBox => f
+    }
+  }
+
+  
+  def getAll(includeSystem:Boolean = false) : Box[Seq[Rule]] = {
+    val filter = if(includeSystem) IS(OC_RULE) else AND(IS(OC_RULE), EQ(A_IS_SYSTEM,false.toLDAPString))
+    for {
+      con   <- ldap
+      rules <- sequence(con.searchOne(rudderDit.RULES.dn, filter)) { crEntry =>
+                 mapper.entry2Rule(crEntry) ?~! "Error when transforming LDAP entry into a rule. Entry: %s".format(crEntry)
+               }
+    } yield {
+      rules
+    }
+  }
+      
+}
+
+class WoLDAPRuleRepository(
+    roLDAPRuleRepository: RoLDAPRuleRepository
+  , ldap                : LDAPConnectionProvider[RwLDAPConnection]
+  , diffMapper          : LDAPDiffMapper
+  , groupRepository     : RoNodeGroupRepository
+  , actionLogger        : EventLogRepository
+  , gitCrArchiver       : GitRuleArchiver
+  , personIdentService  : PersonIdentService
+  , autoExportOnModify  : Boolean
+) extends WoRuleRepository with Loggable {
+  repo => 
+    
+  
+  import roLDAPRuleRepository.{ ldap => roLdap, _ }
+
+  /**
+   * Check if a configuration exist with the given name, and another id
+   */
+  private[this] def nodeRuleNameExists(con:RoLDAPConnection, name : String, id:RuleId) : Boolean = {
+    val filter = AND(AND(IS(OC_RULE), EQ(A_NAME,name), NOT(EQ(A_RULE_UUID, id.value))))
+    con.searchSub(rudderDit.RULES.dn, filter).size match {
+      case 0 => false
+      case 1 => true
+      case _ => logger.error("More than one rule has %s name".format(name)); true
+    }
+  }
+  
   def delete(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteRuleDiff] = {
     for {
       con          <- ldap
@@ -113,18 +213,6 @@ class LDAPRuleRepository(
     }
   }
 
-
-  def getAll(includeSystem:Boolean = false) : Box[Seq[Rule]] = {
-    val filter = if(includeSystem) IS(OC_RULE) else AND(IS(OC_RULE), EQ(A_IS_SYSTEM,false.toLDAPString))
-    for {
-      con   <- ldap
-      rules <- sequence(con.searchOne(rudderDit.RULES.dn, filter)) { crEntry =>
-                 mapper.entry2Rule(crEntry) ?~! "Error when transforming LDAP entry into a rule. Entry: %s".format(crEntry)
-               }
-    } yield {
-      rules
-    }
-  }
 
 
   def create(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[AddRuleDiff] = {
@@ -202,72 +290,6 @@ class LDAPRuleRepository(
   }
 
   /**
-   * Return all activated rule.
-   * A rule is activated if
-   * - its attribute "isEnabled" is set to true ;
-   * - its referenced group is defined and Activated, or it reference a special target
-   * - its referenced directive is defined and activated (what means that the
-   *   referenced active technique is activated)
-   * @return
-   */
-  def getAllEnabled() : Box[Seq[Rule]] = {
-    // First fetch the activated groups
-    val groupsId = (
-      for {
-        con             <- ldap
-        activatedGroups =  con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_RUDDER_NODE_GROUP), EQ(A_IS_ENABLED, true.toLDAPString)), "1.1")
-        groupIds        <- sequence(activatedGroups) { entry =>
-                          rudderDit.GROUP.getGroupId(entry.dn)
-                        }
-      } yield {
-        groupIds
-      })
-
-    logger.debug("Activated groups are %s".format(groupsId.mkString(";")))
-    (for {
-      con                <- ldap
-      activatedUPT_entry =  con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, AND(IS(OC_ACTIVE_TECHNIQUE), EQ(A_IS_ENABLED, true.toLDAPString)), "1.1")
-      activatedPI_DNs    =  activatedUPT_entry.flatMap { entry =>
-                              con.searchOne(entry.dn, AND(IS(OC_DIRECTIVE), EQ(A_IS_ENABLED, true.toLDAPString)), "1.1").map( _.dn)
-                            }
-      activatedPI_ids    <- sequence(activatedPI_DNs) { dn =>
-                              rudderDit.ACTIVE_TECHNIQUES_LIB.getLDAPRuleID(dn)
-                            }
-     configRules         <- sequence(con.searchSub(rudderDit.RULES.dn,
-                             //group is activated and directive is activated and config rule is activated !
-                             AND(IS(OC_RULE),
-                               EQ(A_IS_ENABLED, true.toLDAPString),
-                               HAS(A_RULE_TARGET),
-                               HAS(A_DIRECTIVE_UUID),
-                               OR(activatedPI_ids.map(id =>  EQ(A_DIRECTIVE_UUID, id)):_*)
-                             )
-                           )) { entry =>
-                             mapper.entry2Rule(entry)
-                           }
-    } yield {
-      configRules
-    } ) match {
-      case Full(list) =>
-        // a config rule activated point to an activated group, or to a special target
-        Full(list.filter{ rule =>
-          rule.isEnabled &&
-          ((rule.targets, rule.directiveIds) match {
-            case (targets, directives) if !directives.isEmpty && !targets.isEmpty => //should be the case, given the request
-              targets.exists( _ match {
-                  case GroupTarget(group) =>
-                    logger.debug("Checking activation of group %s for the target of rule %s"
-                        .format(group.value, rule.id.value))
-                    groupsId.openOr(Seq()).contains(group.value)
-                  case _ => true
-                }
-              )
-            case _ => false
-          } ) })
-      case f : EmptyBox => f
-    }
-  }
-
-  /**
    * Implementation logic:
    * - lock LDAP for other writes (more precisely, only that repos, with
    *   synchronized method),
@@ -292,14 +314,14 @@ class LDAPRuleRepository(
       }
     }
     //save rules, taking care of serial value
-    def saveCR(con:LDAPConnection, rule:Rule) : Box[LDIFChangeRecord] = {
+    def saveCR(con:RwLDAPConnection, rule:Rule) : Box[LDIFChangeRecord] = {
       val entry = mapper.rule2Entry(rule)
       entry +=! (A_SERIAL, rule.serial.toString)
       con.save(entry)
     }
     //restore the archive in case of error
     //that method will be hard to achieve out of here due to serial
-    def restore(con:LDAPConnection, previousCRs:Seq[Rule], includeSystem:Boolean) = {
+    def restore(con:RwLDAPConnection, previousCRs:Seq[Rule], includeSystem:Boolean) = {
       for {
         deleteCR  <- con.delete(rudderDit.RULES.dn)
         savedBack <- sequence(previousCRs) { rule =>
@@ -320,7 +342,7 @@ class LDAPRuleRepository(
     repo.synchronized {
 
       for {
-        existingCrs <- repo.getAll(true)
+        existingCrs <- getAll(true)
         crToImport  =  mergeCrs(importedCrs, existingCrs)
         con         <- ldap
         //ok, now that's the dangerous part
@@ -375,17 +397,4 @@ class LDAPRuleRepository(
   }
 
 
-
-  /**
-   * Check if a configuration exist with the given name, and another id
-   */
-  private[this] def nodeRuleNameExists(con:LDAPConnection, name : String, id:RuleId) : Boolean = {
-    val filter = AND(AND(IS(OC_RULE), EQ(A_NAME,name), NOT(EQ(A_RULE_UUID, id.value))))
-    con.searchSub(rudderDit.RULES.dn, filter).size match {
-      case 0 => false
-      case 1 => true
-      case _ => logger.error("More than one rule has %s name".format(name)); true
-    }
-  }
 }
-

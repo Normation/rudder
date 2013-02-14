@@ -35,7 +35,7 @@
 package com.normation.rudder.services.policies
 
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.repository.NodeGroupRepository
+import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain._
 import RudderLDAPConstants._
@@ -91,12 +91,12 @@ trait RuleTargetService {
 
 
 class RuleTargetServiceImpl(
-    override val groupRepository : NodeGroupRepository,
+    override val groupRepository : RoNodeGroupRepository,
     override val nodeInfoService : NodeInfoService,
-    override val units: Seq[UnitRuleTargetService],
-    override val ldap : LDAPConnectionProvider,
-    override val rudderDit : RudderDit,
-    override val mapper: LDAPEntityMapper
+    override val units           : Seq[UnitRuleTargetService],
+    override val ldap            : LDAPConnectionProvider[RoLDAPConnection],
+    override val rudderDit       : RudderDit,
+    override val mapper          : LDAPEntityMapper
 ) extends RuleTargetService with
   RuleTargetService_findTargets with
   TargetToNodeIds with
@@ -106,7 +106,7 @@ class RuleTargetServiceImpl(
 
 trait TargetToNodeIds extends RuleTargetService {
 
-  def groupRepository : NodeGroupRepository
+  def groupRepository : RoNodeGroupRepository
   def nodeInfoService : NodeInfoService
 
   override def getNodeIds(target:RuleTarget) : Box[Seq[NodeId]] = {
@@ -121,10 +121,10 @@ trait TargetToNodeIds extends RuleTargetService {
 
 
 trait TargetInfoService extends  RuleTargetService {
-  def groupRepository : NodeGroupRepository
+  def groupRepository : RoNodeGroupRepository
   def nodeInfoService : NodeInfoService
   //for special target
-  def ldap : LDAPConnectionProvider
+  def ldap : LDAPConnectionProvider[RoLDAPConnection]
   def rudderDit : RudderDit
   def mapper: LDAPEntityMapper
 
@@ -311,7 +311,7 @@ class PolicyServerTargetUpits(
  *
  */
 class GroupTargetUpits(
-  groupRepository : NodeGroupRepository
+  groupRepository : RoNodeGroupRepository
 ) extends UnitRuleTargetService {
 
   override type T = GroupTarget

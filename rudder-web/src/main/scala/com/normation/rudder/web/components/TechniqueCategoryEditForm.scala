@@ -77,7 +77,7 @@ class TechniqueCategoryEditForm(
   private[this] val htmlId_addUserCategoryForm = "addUserCategoryForm"
   private[this] val htmlId_categoryDetailsForm = "categoryDetailsForm"
 
-  private[this] val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
+  private[this] val activeTechniqueCategoryRepository = inject[WoDirectiveRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
 
 

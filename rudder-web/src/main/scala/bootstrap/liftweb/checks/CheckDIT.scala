@@ -41,6 +41,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import javax.servlet.UnavailableException
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.ldap.sdk.RwLDAPConnection
 
 /**
  * This class check that all DIT entries needed for the application
@@ -54,7 +55,7 @@ class CheckDIT(
   , acceptedDit:InventoryDit
   , removedDit:InventoryDit
   , rudderDit:RudderDit
-  , ldap:LDAPConnectionProvider
+  , ldap:LDAPConnectionProvider[RwLDAPConnection]
 ) extends BootstrapChecks {
 
   @throws(classOf[ UnavailableException ])

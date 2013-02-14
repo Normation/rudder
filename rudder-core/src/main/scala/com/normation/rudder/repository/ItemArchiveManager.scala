@@ -360,7 +360,7 @@ trait GitDirectiveArchiver {
 /**
  * A specific trait to create archive of an active technique category.
  */
-trait GitNodeGroupCategoryArchiver {
+trait GitNodeGroupArchiver {
 
   /**
    * Archive a node group category in a file system
@@ -396,12 +396,6 @@ trait GitNodeGroupCategoryArchiver {
   def commitGroupLibrary(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
 
   def getTags() : Box[Map[DateTime,GitArchiveId]]
-}
-
-/**
- * A specific trait to create archive of an user node group.
- */
-trait GitNodeGroupArchiver {
 
   /**
    * Archive an active technique in a file system
@@ -424,8 +418,4 @@ trait GitNodeGroupArchiver {
    */
   def moveNodeGroup(nodeGroup:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
 
-  /**
-   * Get the root directory where active technique categories are saved.
-   */
-  def getRootDirectory : File
 }

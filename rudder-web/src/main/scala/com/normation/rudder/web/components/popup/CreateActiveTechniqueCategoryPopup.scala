@@ -67,7 +67,8 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
   def popupTemplate = chooseTemplate("technique", "createCategoryPopup", template)
 
 
-  private[this] val activeTechniqueCategoryRepository = inject[ActiveTechniqueCategoryRepository]
+  private[this] val activeTechniqueCategoryRepository = inject[RoDirectiveRepository]
+  private[this] val rwActiveTechniqueCategoryRepository = inject[WoDirectiveRepository]
   private[this] val uuidGen = inject[StringUuidGenerator]
 
   private[this] val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories()
@@ -148,7 +149,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
             formTracker.addFormError(error("An error occurred while fetching the parent category: " + m))
             onFailure & onFailureCallback()
         case Full(parent) =>
-          activeTechniqueCategoryRepository.addActiveTechniqueCategory(
+          rwActiveTechniqueCategoryRepository.addActiveTechniqueCategory(
               new ActiveTechniqueCategory(
                  ActiveTechniqueCategoryId(uuidGen.newUuid),
                  name = categoryName.is,
