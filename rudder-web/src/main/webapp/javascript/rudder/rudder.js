@@ -234,7 +234,7 @@ $(function() {
  */
 function jqCheckAll( id, name )
 {
-   $("INPUT[@name=" + name + "][type='checkbox']").prop('checked', $('#' + id).is(':checked'));
+   $("input[name=" + name + "][type='checkbox']").prop('checked', $('#' + id).is(':checked'));
 }
 
 /* popin */
