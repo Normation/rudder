@@ -52,7 +52,7 @@ import net.liftweb.common._
  */
 class UseExistingMachineIdFinder(
     inventoryDitService:InventoryDitService,
-    ldap:LDAPConnectionProvider,
+    ldap:LDAPConnectionProvider[RoLDAPConnection], 
     rootDN:DN
 ) extends MachineDNFinderAction {
   override def tryWith(entity:MachineInventory) : Box[(MachineUuid, InventoryStatus)] = {
@@ -71,7 +71,7 @@ class UseExistingMachineIdFinder(
  * Retrieve the uuid from the Mother Board Id
  */
 class FromMotherBoardUuidIdFinder(
-    ldapConnectionProvider:LDAPConnectionProvider,
+    ldapConnectionProvider:LDAPConnectionProvider[RoLDAPConnection],
     dit:InventoryDit,
     inventoryDitService:InventoryDitService
 ) extends MachineDNFinderAction with Loggable {

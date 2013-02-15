@@ -58,7 +58,7 @@ object NameAndVersionIdFinder {
  * Retrieve the id from the Mother Board Id
  */
 class NameAndVersionIdFinder(
-    ldapConnectionProvider:LDAPConnectionProvider,
+    ldapConnectionProvider:LDAPConnectionProvider[RoLDAPConnection],
     mapper:InventoryMapper,
     dit:InventoryDit
 ) extends SoftwareDNFinderAction {

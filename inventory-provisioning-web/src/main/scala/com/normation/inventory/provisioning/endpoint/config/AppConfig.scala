@@ -148,7 +148,16 @@ class AppConfig {
   }
 
   @Bean
-  def ldapConnectionProvider = new PooledSimpleAuthConnectionProvider(
+  def roLdapConnectionProvider = new ROPooledSimpleAuthConnectionProvider(
+      authDn = AUTH_DN
+    , authPw = AUTH_PW
+    , host = SERVER
+    , port = PORT
+    , ldifFileLogger = new DefaultLDIFFileLogger(ldifTraceRootDir = LDIF_TRACELOG_ROOT_DIR)
+  )
+  
+  @Bean
+  def rwLdapConnectionProvider = new RWPooledSimpleAuthConnectionProvider(
       authDn = AUTH_DN
     , authPw = AUTH_PW
     , host = SERVER
@@ -178,7 +187,7 @@ class AppConfig {
   def fullInventoryRepository = new FullInventoryRepositoryImpl(
       inventoryDitService
     , inventoryMapper
-    , ldapConnectionProvider
+    , rwLdapConnectionProvider
   )
 
   @Bean
@@ -203,7 +212,7 @@ class AppConfig {
   def serverFinder() : NodeInventoryDNFinderAction =
     new NodeInventoryDNFinderService(Seq(
         //start by trying to use an already given UUID
-        NamedNodeInventoryDNFinderAction("use_existing_id", new UseExistingNodeIdFinder(inventoryDitService,ldapConnectionProvider,acceptedNodesDit.BASE_DN.getParent))
+        NamedNodeInventoryDNFinderAction("use_existing_id", new UseExistingNodeIdFinder(inventoryDitService,roLdapConnectionProvider,acceptedNodesDit.BASE_DN.getParent))
     ))
 
 
@@ -211,13 +220,13 @@ class AppConfig {
   def machineFinder() : MachineDNFinderAction =
     new MachineDNFinderService(Seq(
         //start by trying to use an already given UUID
-        NamedMachineDNFinderAction("use_existing_id", new UseExistingMachineIdFinder(inventoryDitService,ldapConnectionProvider,acceptedNodesDit.BASE_DN.getParent))
+        NamedMachineDNFinderAction("use_existing_id", new UseExistingMachineIdFinder(inventoryDitService,roLdapConnectionProvider,acceptedNodesDit.BASE_DN.getParent))
         //look if it's in the accepted inventories
-      , NamedMachineDNFinderAction("check_mother_board_uuid_accepted", new FromMotherBoardUuidIdFinder(ldapConnectionProvider,acceptedNodesDit,inventoryDitService))
+      , NamedMachineDNFinderAction("check_mother_board_uuid_accepted", new FromMotherBoardUuidIdFinder(roLdapConnectionProvider,acceptedNodesDit,inventoryDitService))
         //see if it's in the "pending" branch
-      , NamedMachineDNFinderAction("check_mother_board_uuid_pending", new FromMotherBoardUuidIdFinder(ldapConnectionProvider,pendingNodesDit,inventoryDitService))
+      , NamedMachineDNFinderAction("check_mother_board_uuid_pending", new FromMotherBoardUuidIdFinder(roLdapConnectionProvider,pendingNodesDit,inventoryDitService))
         //see if it's in the "removed" branch
-      , NamedMachineDNFinderAction("check_mother_board_uuid_removed", new FromMotherBoardUuidIdFinder(ldapConnectionProvider,removedNodesDit,inventoryDitService))
+      , NamedMachineDNFinderAction("check_mother_board_uuid_removed", new FromMotherBoardUuidIdFinder(roLdapConnectionProvider,removedNodesDit,inventoryDitService))
     ))
 
   @Bean
@@ -225,7 +234,7 @@ class AppConfig {
     new SoftwareDNFinderService(Seq(
       NamedSoftwareDNFinderAction(
         "check_name_and_version",
-        new NameAndVersionIdFinder(ldapConnectionProvider,inventoryMapper,acceptedNodesDit)
+        new NameAndVersionIdFinder(roLdapConnectionProvider,inventoryMapper,acceptedNodesDit)
     )))
 
   @Bean
@@ -267,7 +276,7 @@ class AppConfig {
 
   @Bean
   def reportSaver = new DefaultReportSaver(
-      ldapConnectionProvider
+      rwLdapConnectionProvider
     , acceptedNodesDit
     , inventoryMapper
     , preCommitPipeline

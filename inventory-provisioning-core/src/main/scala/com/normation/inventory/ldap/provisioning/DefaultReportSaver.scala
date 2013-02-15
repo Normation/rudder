@@ -45,6 +45,7 @@ import scala.collection.mutable.Buffer
 import org.slf4j.LoggerFactory
 import com.normation.ldap.sdk.BuildFilter
 import net.liftweb.common.Loggable
+import com.normation.ldap.sdk.RwLDAPConnection
 
 /**
  * Post-commit convention:
@@ -56,7 +57,7 @@ import net.liftweb.common.Loggable
  */
 
 class DefaultReportSaver(
-  ldapConnectionProvider:LDAPConnectionProvider,
+  ldapConnectionProvider:LDAPConnectionProvider[RwLDAPConnection],
   dit:InventoryDit,
   mapper:InventoryMapper,
   override val preCommitPipeline:Seq[PreCommit],

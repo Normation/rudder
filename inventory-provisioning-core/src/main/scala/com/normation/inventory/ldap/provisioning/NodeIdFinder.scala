@@ -52,7 +52,7 @@ trait NodeInventoryDNFinder extends NodeInventoryDNFinderAction
  * Find the UUID in the whole LDAP and find if the uuid is already use
  *
  */
-class UseExistingNodeIdFinder(inventoryDitService:InventoryDitService, ldap:LDAPConnectionProvider, rootDN:DN) extends NodeInventoryDNFinder {
+class UseExistingNodeIdFinder(inventoryDitService:InventoryDitService, ldap:LDAPConnectionProvider[RoLDAPConnection], rootDN:DN) extends NodeInventoryDNFinder {
   override def tryWith(entity:NodeInventory) : Box[(NodeId,InventoryStatus)] = {
     for {
       con <- ldap
@@ -69,7 +69,7 @@ class UseExistingNodeIdFinder(inventoryDitService:InventoryDitService, ldap:LDAP
  * Retrieve the id from the cfengine public key
  */
 class ComparePublicKeyIdFinder(
-    ldapConnectionProvider:LDAPConnectionProvider,
+    ldapConnectionProvider:LDAPConnectionProvider[RoLDAPConnection], 
     dit:InventoryDit,
     ditService:InventoryDitService
 ) extends NodeInventoryDNFinder with Loggable {

@@ -46,7 +46,7 @@ import com.normation.utils.Control.sequence
 
 class ReadOnlySoftwareDAOImpl(
   inventoryDitService:InventoryDitService,
-  ldap:LDAPConnectionProvider,
+  ldap:LDAPConnectionProvider[RoLDAPConnection],
   mapper:InventoryMapper
 ) extends ReadOnlySoftwareDAO {
 
