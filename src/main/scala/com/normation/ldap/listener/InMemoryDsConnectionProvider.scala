@@ -30,14 +30,14 @@ import com.normation.ldap.sdk._
  * UnboundID in memory directory server.
  * The directory instance is created and started with the class instantiation.
  */
-class InMemoryDsConnectionProvider(
+class InMemoryDsConnectionProvider[CON <: RoLDAPConnection](
     //config to use for that server
     config: InMemoryDirectoryServerConfig
     //an optional list of path to LDIF files to load
     //for example for bootstrap datas
   , bootstrapLDIFPaths : Seq[String] = Seq()
   , val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger()
-) extends LDAPConnectionProvider {
+) extends LDAPConnectionProvider[CON] {
 
   /**
    * The actual In Memory server on which the connection
@@ -49,12 +49,13 @@ class InMemoryDsConnectionProvider(
   bootstrapLDIFPaths foreach { path => server.importFromLDIF(false, path) }
   server.startListening
 
+  def newConnection : CON = (new RwLDAPConnection(server.getConnection,ldifFileLogger)).asInstanceOf[CON]
 
   //////// implementation of LDAPConnectionProvider ////////
-  private[this] var connection : Option[LDAPConnection] = None
-  protected def getInternalConnection() : LDAPConnection = {
-    def reset : LDAPConnection = {
-      val con = new LDAPConnection(server.getConnection, ldifFileLogger)
+  private[this] var connection : Option[CON] = None
+  protected def getInternalConnection() : CON = {
+    def reset : CON = {
+      val con = newConnection
       connection = Some(con)
       con
     }
@@ -64,15 +65,15 @@ class InMemoryDsConnectionProvider(
     }
   }
 
-  protected def releaseInternalConnection(con:LDAPConnection) : Unit = close
-  protected def releaseDefuncInternalConnection(con:LDAPConnection) : Unit = close
+  protected def releaseInternalConnection(con:CON) : Unit = close
+  protected def releaseDefuncInternalConnection(con:CON) : Unit = close
   override def close : Unit = connection.foreach  { con => con.close() }
 
 }
 
 object InMemoryDsConnectionProvider {
 
-  def apply(
+  def apply[CON <: RoLDAPConnection](
       baseDNs:Seq[String]
       //A list of schema to use
     , schemaLDIFPaths : Seq[String] = Seq()
@@ -86,7 +87,7 @@ object InMemoryDsConnectionProvider {
     val schema = Schema.getSchema(schemaLDIFPaths:_*)
     val config = new InMemoryDirectoryServerConfig(baseDNs:_*)
     config.setSchema(schema)
-    new InMemoryDsConnectionProvider(config,bootstrapLDIFPaths,ldifFileLogger)
+    new InMemoryDsConnectionProvider[CON](config,bootstrapLDIFPaths,ldifFileLogger)
   }
 
 

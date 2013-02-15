@@ -45,7 +45,7 @@ object TypedAttribute {
   private def toBoolean(s:String) : Boolean = s.toLowerCase match {
     case "true"  | "t" | "yes" | "y" | "on"  | "1" => true
     case "false" | "f" | "no"  | "n" | "off" | "0" => false
-    case x => throw new TechnicalException("Can not interpret %s as a boolean value".format(x))
+    case x => throw new TechnicalException(s"Can not interpret ${x} as a boolean value")
   }
 
   def apply(attribute:Attribute)(implicit schema:Schema) : TypedAttribute = {

@@ -45,12 +45,13 @@ import net.liftweb.common._
  * } yield entry
  *
  */
-trait LDAPConnectionProvider extends Loggable {
+trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] extends Loggable {
   import com.unboundid.ldap.sdk.{LDAPSearchException,LDAPException,SearchResult}
 
-  protected def getInternalConnection() : LDAPConnection
-  protected def releaseInternalConnection(con:LDAPConnection) : Unit
-  protected def releaseDefuncInternalConnection(con:LDAPConnection) : Unit
+  protected def getInternalConnection() : LDAP
+  protected def releaseInternalConnection(con:LDAP) : Unit
+  protected def releaseDefuncInternalConnection(con:LDAP) : Unit
+  protected def newConnection : LDAP
 
   /**
    * Use the LDAP connection provider to execute a method whose
@@ -64,7 +65,7 @@ trait LDAPConnectionProvider extends Loggable {
    *   }
    * }
    */
-  def foreach(f: LDAPConnection => Unit) : Box[Nothing] = {
+  def foreach(f: LDAP => Unit) : Box[Nothing] = {
     withCon[Nothing] { con =>
       f(con)
       Empty
@@ -88,7 +89,7 @@ trait LDAPConnectionProvider extends Loggable {
    *   }
    * }
    */
-  def map[A](f: LDAPConnection => A) : Box[A] = {
+  def map[A](f: LDAP => A) : Box[A] = {
     withCon[A] { con =>
       Full(f(con))
     }
@@ -111,7 +112,7 @@ trait LDAPConnectionProvider extends Loggable {
    *   }
    * }
    */
-  def flatMap[A](f: LDAPConnection => Box[A]) : Box[A] = {
+  def flatMap[A](f: LDAP => Box[A]) : Box[A] = {
     withCon[A] { con =>
       f(con)
     }
@@ -139,7 +140,7 @@ trait LDAPConnectionProvider extends Loggable {
    *   boxed version of the user method result, with exception
    *   transformed into Failure.
    */
-  protected def withCon[A](f: LDAPConnection => Box[A]) : Box[A] = {
+  protected def withCon[A](f: LDAP => Box[A]) : Box[A] = {
     val con = try {
        getInternalConnection
     } catch {
@@ -188,7 +189,7 @@ trait AnonymousConnection extends UnboundidConnectionProvider {
     new UnboundidLDAPConnection(options,host,port)
   }
 
-  override def toConnectionString = "anonymous@ldap://%s:%s".format(host,port)
+  override def toConnectionString = s"anonymous@ldap://${host}:${port}"
 
 }
 
@@ -209,7 +210,7 @@ trait SimpleAuthConnection extends UnboundidConnectionProvider {
     new UnboundidLDAPConnection(options,host,port,authDn,authPw)
   }
 
-  override def toConnectionString = "%s:*****@ldap://%s:%s".format(authDn,host,port)
+  override def toConnectionString = s"$authDn:*****@ldap://${host}:${port}"
 }
 
 
@@ -217,21 +218,21 @@ trait SimpleAuthConnection extends UnboundidConnectionProvider {
  * Implementation of a LDAPConnectionProvider which has only one
  * connection to the server (no pool).
  */
-trait OneConnectionProvider extends LDAPConnectionProvider {
+trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProvider[LDAP] {
   self:UnboundidConnectionProvider =>
 
   def ldifFileLogger:LDIFFileLogger
 
-  private var connection : Option[LDAPConnection] = None
+  private var connection : Option[LDAP] = None
 
   override def close : Unit = this.synchronized {
     connection.foreach( _.close() )
     connection = None
   }
 
-  private def newConnection() = {
-    new LDAPConnection(self.newUnboundidConnection,ldifFileLogger)
-  }
+//  private def newConnection() = {
+//    new LDAPConnection(self.newUnboundidConnection,ldifFileLogger)
+//  }
 
   protected def getInternalConnection() = this.synchronized {
     connection match {
@@ -239,8 +240,8 @@ trait OneConnectionProvider extends LDAPConnectionProvider {
       case Some(con) => if(con.backed.isConnected) con else newConnection
     }
   }
-  protected def releaseInternalConnection(con:LDAPConnection) : Unit = {}
-  protected def releaseDefuncInternalConnection(con:LDAPConnection) : Unit = {}
+  protected def releaseInternalConnection(con:LDAP) : Unit = {}
+  protected def releaseDefuncInternalConnection(con:LDAP) : Unit = {}
 
 }
 
@@ -248,7 +249,7 @@ trait OneConnectionProvider extends LDAPConnectionProvider {
  * Implementation of a LDAPConnectionProvider which manage a
  * pool of connection to the server
  */
-trait PooledConnectionProvider extends LDAPConnectionProvider {
+trait PooledConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProvider[LDAP] {
   self:UnboundidConnectionProvider =>
 
   def poolSize : Int
@@ -260,11 +261,11 @@ trait PooledConnectionProvider extends LDAPConnectionProvider {
 
   override def close : Unit = pool.close
 
-  protected def getInternalConnection() = new LDAPConnection(pool.getConnection,ldifFileLogger)
-  protected def releaseInternalConnection(con:LDAPConnection) : Unit = {
+  protected def getInternalConnection() = newConnection //new LDAPConnection(pool.getConnection,ldifFileLogger)
+  protected def releaseInternalConnection(con:LDAP) : Unit = {
     pool.releaseConnection(con.backed)
   }
-  protected def releaseDefuncInternalConnection(con:LDAPConnection) : Unit = {
+  protected def releaseDefuncInternalConnection(con:LDAP) : Unit = {
     pool.releaseDefunctConnection(con.backed)
   }
 
@@ -275,44 +276,94 @@ trait PooledConnectionProvider extends LDAPConnectionProvider {
  * Default implementation for a anonymous connection provider,
  * with no pool management.
  */
-class AnonymousConnectionProvider(
+class ROAnonymousConnectionProvider(
+  override val host : String = "localhost",
+  override val port : Int = 389,
+  override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(), 
+  override val useSchemaInfos : Boolean = false
+) extends AnonymousConnection with OneConnectionProvider[RoLDAPConnection] {
+  def newConnection = new RoLDAPConnection(newUnboundidConnection,ldifFileLogger)
+}
+
+/**
+ * Default implementation for a anonymous connection provider,
+ * with no pool management. 
+ */
+class RWAnonymousConnectionProvider(
   override val host : String = "localhost",
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false
-) extends AnonymousConnection with OneConnectionProvider
+) extends AnonymousConnection with OneConnectionProvider[RwLDAPConnection] {
+  def newConnection = new RwLDAPConnection(newUnboundidConnection,ldifFileLogger)
+} 
+
+
+/**
+ * Pooled implementation for an anonymous 
+ * connection provider
+ */
+class ROPooledAnonymousConnectionProvider(
+  override val host : String = "localhost",
+  override val port : Int = 389,
+  override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(), 
+  override val useSchemaInfos : Boolean = false,
+  override val poolSize : Int = 2
+) extends AnonymousConnection with PooledConnectionProvider[RoLDAPConnection] {
+  def newConnection = new RoLDAPConnection(newUnboundidConnection,ldifFileLogger)
+}
 
 /**
  * Pooled implementation for an anonymous
  * connection provider
  */
-class PooledAnonymousConnectionProvider(
+class RWPooledAnonymousConnectionProvider(
   override val host : String = "localhost",
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
   override val poolSize : Int = 2
-) extends AnonymousConnection with PooledConnectionProvider
+) extends AnonymousConnection with PooledConnectionProvider[RwLDAPConnection] {
+  def newConnection = new RwLDAPConnection(newUnboundidConnection,ldifFileLogger)
+} 
 
 /**
  * Default implementation for a connection provider:
  * a simple login/pass connection, with no pool
  * management.
  */
-class SimpleAuthConnectionProvider(
+class ROSimpleAuthConnectionProvider(
   override val authDn : String,
   override val authPw : String,
   override val host : String = "localhost",
   override val port : Int = 389,
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false
-) extends SimpleAuthConnection with OneConnectionProvider
+) extends SimpleAuthConnection with OneConnectionProvider[RoLDAPConnection] {
+  def newConnection = new RoLDAPConnection(newUnboundidConnection,ldifFileLogger)
+}
+
+/**
+ * Default implementation for a connection provider:
+ * a simple login/pass connection, with no pool 
+ * management. 
+ */
+class RWSimpleAuthConnectionProvider(
+  override val authDn : String,
+  override val authPw : String,
+  override val host : String = "localhost",
+  override val port : Int = 389,
+  override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(), 
+  override val useSchemaInfos : Boolean = false
+) extends SimpleAuthConnection with OneConnectionProvider[RwLDAPConnection]{
+  def newConnection = new RwLDAPConnection(newUnboundidConnection,ldifFileLogger)
+} 
 
 /**
  * Pooled implementation for a connection provider
  * with a simple login/pass connection
  */
-class PooledSimpleAuthConnectionProvider(
+class ROPooledSimpleAuthConnectionProvider(
   override val authDn : String,
   override val authPw : String,
   override val host : String = "localhost",
@@ -320,5 +371,22 @@ class PooledSimpleAuthConnectionProvider(
   override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
   override val poolSize : Int = 2
-) extends SimpleAuthConnection with PooledConnectionProvider
+) extends SimpleAuthConnection with PooledConnectionProvider[RoLDAPConnection] {
+  def newConnection = new RoLDAPConnection(newUnboundidConnection,ldifFileLogger)
+}
 
+/**
+ * Pooled implementation for a connection provider
+ * with a simple login/pass connection
+ */
+class RWPooledSimpleAuthConnectionProvider(
+  override val authDn : String,
+  override val authPw : String,
+  override val host : String = "localhost",
+  override val port : Int = 389,
+  override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(), 
+  override val useSchemaInfos : Boolean = false,
+  override val poolSize : Int = 2
+) extends SimpleAuthConnection with PooledConnectionProvider[RwLDAPConnection]{
+  def newConnection = new RwLDAPConnection(newUnboundidConnection,ldifFileLogger)
+} 

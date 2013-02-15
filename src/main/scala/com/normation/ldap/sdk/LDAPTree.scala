@@ -92,11 +92,17 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString  {
     Seq(root.toLDIFRecord) ++ _children.valuesIterator.toSeq.flatMap( _.toLDIFRecords)
   }
 
-  override def toString() = "{%s, %s}".format(root.dn.toString,
-      {
-        if(_children.size > 0) "children:{%s}".format(_children.map{ case(k,v) => "%s -> %s".format(k.toString,v.toString) } )
-        else "no child"
-      })
+  override def toString() = {
+    val children = {
+        if(_children.size > 0) {
+          val c = _children.map{ case(k,v) => s"${k} -> ${v}" }
+          s"children:{${c}}"
+        } else {
+          "no child"
+        }
+    }
+    s"{${root.dn.toString}, ${children}}"
+  }
 
 
   //not sure it's a really good idea. Hopefully, we won't mix LDAPTrees and LDAPEntries in HashSet...
@@ -176,7 +182,9 @@ object LDAPTree {
     if(null == entries || entries.isEmpty) Empty
     //verify that there is no duplicates
     else if(entries.map(_.dn).toSet.size != entries.size) {
-      Failure("Some entries have the same dn, what is forbiden: %s".format({val s = entries.map(_.dn).toSet; entries.map(_.dn).filter(x => ! s.contains(x))}))
+      val s = entries.map(_.dn).toSet
+      val res = entries.map(_.dn).filter(x => ! s.contains(x))
+      Failure(s"Some entries have the same dn, what is forbiden: ${res}")
     } else {
       val used = Buffer[DN]()
       /*
@@ -198,7 +206,8 @@ object LDAPTree {
       val root = recBuild(LDAPTree(rootEntry), sorted.filter(e => rootEntry.dn.isAncestorOf(e.dn,false)))
 
       if(used.size < entries.size-1) {
-        Failure("Some entries have no parents: %s".format(entries.map(_.dn).filter(x => !used.contains(x))))
+        val s = entries.map(_.dn).filter(x => !used.contains(x))
+        Failure(s"Some entries have no parents: ${s}")
       } else Full(root)
     }
   }

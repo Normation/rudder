@@ -51,7 +51,7 @@ class LDAPSchema {
    * Get the matching ObjectClass, or throw a NoSuchElementException
    * if the key does not match any ObjectClass
    */
-  def apply(className:String) = ocs.getOrElse(className.toLowerCase, throw new NoSuchElementException("Missing LDAP Object in the Schema: %s".format(className)))
+  def apply(className:String) = ocs.getOrElse(className.toLowerCase, throw new NoSuchElementException(s"Missing LDAP Object in the Schema: $className"))
 
   /**
    * Optionaly get the ObjectClass whose name is className
@@ -70,11 +70,11 @@ class LDAPSchema {
     val key = oc.name.toLowerCase
     val pKey = oc.sup.name.toLowerCase
     ocs.get(pKey) match {
-      case None => throw new TechnicalException("Can not register object class %s because its parent class %s is not yet registerd".format(oc.name,oc.sup.name))
+      case None => throw new TechnicalException(s"Can not register object class ${oc.name} because its parent class ${oc.sup.name} is not yet registerd")
       case Some(p) => ocs.get(key) match {
-        case Some(x) if(x != oc) => throw new TechnicalException("""Can not register object class %s because an other different object class with same name was already registerd.
-                                     | existing: %s
-                                     | new     : %s""".stripMargin('|').format(oc.name, x, oc))
+        case Some(x) if(x != oc) => throw new TechnicalException(s"""Can not register object class '${oc.name}' because an other different object class with same name was already registerd. 
+                                     | existing: ${x}
+                                     | new     : ${oc}""".stripMargin('|'))
         case _ => {
           ocs += ((key,oc))
           childrenReg(pKey) = childrenReg.getOrElse(pKey,Set()) + key
