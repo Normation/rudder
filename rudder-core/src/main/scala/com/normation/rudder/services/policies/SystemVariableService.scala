@@ -60,7 +60,7 @@ class SystemVariableServiceImpl(
   , nodeInfoService                 : NodeInfoService
   , toolsFolder                     : String
   , cmdbEndPoint                    : String
-  , communityPort                   : String
+  , communityPort                   : Int
   , sharedFilesFolder               : String
   , webdavUser                      : String
   , webdavPassword                  : String
@@ -83,7 +83,7 @@ class SystemVariableServiceImpl(
   varSharedFilesFolder.saveValue(sharedFilesFolder)
 
   val varCommunityPort = SystemVariable(systemVariableSpecService.get("COMMUNITYPORT"))
-  varCommunityPort.saveValue(communityPort)
+  varCommunityPort.saveValue(communityPort.toString)
 
   val syslogPortConfig = SystemVariable(systemVariableSpecService.get("SYSLOGPORT"))
   syslogPortConfig.saveValue(syslogPort.toString)

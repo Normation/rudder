@@ -43,7 +43,6 @@ import JsCmds._
 import JE._
 import scala.xml.NodeSeq
 import collection.mutable.Buffer
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.utils.NetUtils.isValidNetwork
 import com.normation.rudder.domain.Constants
@@ -56,14 +55,15 @@ import com.normation.eventlog.EventLog
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
+import bootstrap.liftweb.RudderConfig
 
 
 class ClearCache extends DispatchSnippet with Loggable {
 
-  private[this] val nodeConfigurationService = inject[NodeConfigurationService]
-  private[this] val asyncDeploymentAgent     = inject[AsyncDeploymentAgent]
-  private[this] val eventLogRepository       = inject[EventLogRepository]
-  private[this] val uuidGen                  = inject[StringUuidGenerator]
+  private[this] val nodeConfigurationService = RudderConfig.nodeConfigurationService
+  private[this] val asyncDeploymentAgent     = RudderConfig.asyncDeploymentAgent
+  private[this] val eventLogRepository       = RudderConfig.eventLogRepository
+  private[this] val uuidGen                  = RudderConfig.stringUuidGenerator
 
   def dispatch = {
     case "render" => clearCache

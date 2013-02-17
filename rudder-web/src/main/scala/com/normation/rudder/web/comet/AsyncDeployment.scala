@@ -42,7 +42,6 @@ import net.liftweb.http._
 import js._
 import JE._
 import JsCmds._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.batch._
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormatterBuilder
@@ -59,6 +58,7 @@ import com.normation.rudder.web.services.EventListDisplayer
 import com.normation.eventlog.EventLogDetails
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
 
@@ -78,10 +78,10 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     else periodFormatter.print(duration.toPeriod)
   }
 
-  private[this] val asyncDeploymentAgent      = inject[AsyncDeploymentAgent]
-  private[this] val eventLogDeploymentService = inject[EventLogDeploymentService]
-  private[this] val eventList                 = inject[EventListDisplayer]
-  private[this] val uuidGen                   = inject[StringUuidGenerator]
+  private[this] val asyncDeploymentAgent      = RudderConfig.asyncDeploymentAgent
+  private[this] val eventLogDeploymentService = RudderConfig.eventLogDeploymentService
+  private[this] val eventList                 = RudderConfig.eventListDisplayer
+  private[this] val uuidGen                   = RudderConfig.stringUuidGenerator
 
 
   //current states of the deployment

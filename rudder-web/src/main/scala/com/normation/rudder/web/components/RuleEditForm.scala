@@ -51,7 +51,6 @@ import scala.xml._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
@@ -72,6 +71,7 @@ import com.normation.exceptions.TechnicalException
 import net.liftweb.http.SHtml.BasicElemAttr
 import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 object RuleEditForm {
 
@@ -153,25 +153,26 @@ class RuleEditForm(
 
   private[this] val htmlId_save = htmlId_rule + "Save"
   private[this] val htmlId_EditZone = "editRuleZone"
-  private[this] val roRuleRepository = inject[RoRuleRepository]
-  private[this] val woRuleRepository = inject[WoRuleRepository]
-  private[this] val targetInfoService = inject[RuleTargetService]
-  private[this] val directiveRepository = inject[RoDirectiveRepository]
-  private[this] val techniqueRepository = inject[TechniqueRepository]
-  private[this] val uuidGen = inject[StringUuidGenerator]
-  private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
-  private[this] val reportingService = inject[ReportingService]
-  private[this] val nodeInfoService = inject[NodeInfoService]
-  private[this] var crCurrentStatusIsActivated = rule.isEnabledStatus
+  
+  private[this] val roRuleRepository     = RudderConfig.roRuleRepository
+  private[this] val woRuleRepository     = RudderConfig.woRuleRepository
+  private[this] val targetInfoService    = RudderConfig.ruleTargetService
+  private[this] val directiveRepository  = RudderConfig.roDirectiveRepository
+  private[this] val techniqueRepository  = RudderConfig.techniqueRepository
+  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
+  private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private[this] val reportingService     = RudderConfig.reportingService
+  private[this] val nodeInfoService      = RudderConfig.nodeInfoService
+  private[this] val nodeGroupRepository  = RudderConfig.roNodeGroupRepository
+  private[this] val treeUtilService      = RudderConfig.jsTreeUtilService
+  private[this] val userPropertyService  = RudderConfig.userPropertyService
 
+  private[this] var crCurrentStatusIsActivated = rule.isEnabledStatus
   private[this] var selectedTargets = rule.targets
   private[this] var selectedDirectiveIds = rule.directiveIds
 
-  private[this] val nodeGroupRepository = inject[RoNodeGroupRepository]
 
   private[this] val rootCategoryId = nodeGroupRepository.getRootCategory.id
-  private[this] val treeUtilService = inject[JsTreeUtilService]
-  private[this] val userPropertyService = inject[UserPropertyService]
 
   //////////////////////////// public methods ////////////////////////////
   val extendsAt = SnippetExtensionKey(classOf[RuleEditForm].getSimpleName)
@@ -423,7 +424,7 @@ class RuleEditForm(
       } else {
         JsRaw("$.modal.close();") &
         { val modId = ModificationId(uuidGen.newUuid)
-          woRuleRepository.delete(rule.id, modId, CurrentUser.getActor, 
+          woRuleRepository.delete(rule.id, modId, CurrentUser.getActor,
                         crReasonsRemovePopup.map( _.is)) match {
             case Full(x) =>
             // There is a delete diff, deploy

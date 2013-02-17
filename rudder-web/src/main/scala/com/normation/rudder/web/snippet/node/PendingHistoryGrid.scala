@@ -59,21 +59,22 @@ import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
 import net.liftweb.json._
 import JsonDSL._
 import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
+import bootstrap.liftweb.RudderConfig
 
 
 
 object PendingHistoryGrid extends Loggable {
 
-  val history           = inject[InventoryHistoryLogRepository]
-  val logService        = inject[InventoryEventLogService]
-  val logDetailsService = inject[EventLogDetailsService]
+  val history           = RudderConfig.inventoryHistoryLogRepository
+  val logService        = RudderConfig.inventoryEventLogService
+  val logDetailsService = RudderConfig.eventLogDetailsService
 
   def pendingHistoryTemplatePath = List("templates-hidden", "pending_history_grid")
   def template() =  Templates(pendingHistoryTemplatePath) match {

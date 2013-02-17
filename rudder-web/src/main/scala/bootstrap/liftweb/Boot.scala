@@ -65,7 +65,7 @@ class Boot extends Loggable {
   def boot {
 
     ////////// bootstraps checks //////////
-    val checks = inject[BootstrapChecks]("allChecks")
+    val checks = RudderConfig.allBootstrapChecks
     checks.checks()
 
     LiftRules.early.append( {req: provider.HTTPRequest => req.setCharacterEncoding("UTF-8")})
@@ -84,11 +84,11 @@ class Boot extends Loggable {
 
     // REST API
     LiftRules.statelessDispatch.append(RestStatus)
-    LiftRules.statelessDispatch.append(inject[RestDeploy])
-    LiftRules.statelessDispatch.append(inject[RestDyngroupReload])
-    LiftRules.statelessDispatch.append(inject[RestTechniqueReload])
-    LiftRules.statelessDispatch.append(inject[RestArchiving])
-    LiftRules.statelessDispatch.append(inject[RestGetGitCommitAsZip])
+    LiftRules.statelessDispatch.append(RudderConfig.restDeploy)
+    LiftRules.statelessDispatch.append(RudderConfig.restDyngroupReload)
+    LiftRules.statelessDispatch.append(RudderConfig.restTechniqueReload)
+    LiftRules.statelessDispatch.append(RudderConfig.restArchiving)
+    LiftRules.statelessDispatch.append(RudderConfig.restGetGitCommitAsZip)
 
     // URL rewrites
     LiftRules.statefulRewrite.append {
@@ -234,8 +234,8 @@ class Boot extends Loggable {
 
     LiftRules.setSiteMapFunc(() => SiteMap(newSiteMap:_*))
 
-    inject[EventLogRepository].saveEventLog(
-        ModificationId(inject[StringUuidGenerator].newUuid)
+    RudderConfig.eventLogRepository.saveEventLog(
+        ModificationId(RudderConfig.stringUuidGenerator.newUuid)
       , ApplicationStarted(
             EventLogDetails(
                 modificationId = None

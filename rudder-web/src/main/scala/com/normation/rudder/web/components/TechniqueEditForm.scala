@@ -48,7 +48,6 @@ import scala.xml._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.utils.StringUuidGenerator
 import com.normation.cfclerk.domain.{
   TechniqueId,Technique,
@@ -62,6 +61,7 @@ import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
 import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 object TechniqueEditForm {
 
@@ -128,16 +128,15 @@ class TechniqueEditForm(
 
 
   //find Technique
-  private[this] val techniqueRepository = inject[TechniqueRepository]
-  private[this] val roActiveTechniqueRepository = inject[RoDirectiveRepository]
-  private[this] val rwActiveTechniqueRepository = inject[WoDirectiveRepository]
-  //generate new uuid
-  private[this] val uuidGen = inject[StringUuidGenerator]
+  private[this] val techniqueRepository         = RudderConfig.techniqueRepository
+  private[this] val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
+  private[this] val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
+  private[this] val uuidGen                     = RudderConfig.stringUuidGenerator
   //transform Technique variable to human viewable HTML fields
-  private[this] val directiveEditorService = inject[DirectiveEditorService]
-  private[this] val dependencyService = inject[DependencyAndDeletionService]
-  private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
-  private[this] val userPropertyService = inject[UserPropertyService]
+  private[this] val directiveEditorService      = RudderConfig.directiveEditorService
+  private[this] val dependencyService           = RudderConfig.dependencyAndDeletionService
+  private[this] val asyncDeploymentAgent        = RudderConfig.asyncDeploymentAgent
+  private[this] val userPropertyService         = RudderConfig.userPropertyService
 
 
 
@@ -585,8 +584,8 @@ class TechniqueEditForm(
   private def findUserBreadCrump(target:Technique) : Option[List[ActiveTechniqueCategory]] = {
     //find the potential WBUsreTechnique for given WBTechnique
     ( for {
-      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(target.id.name) 
-      crump <- roActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id) 
+      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(target.id.name)
+      crump <- roActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)
     } yield {
       crump.reverse
     } ) match {
@@ -613,7 +612,7 @@ class TechniqueEditForm(
   private[this] def statusAndDeployTechnique(uactiveTechniqueId:ActiveTechniqueId, status:Boolean) : JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
     (for {
-      save <- rwActiveTechniqueRepository.changeStatus(uactiveTechniqueId, status, 
+      save <- rwActiveTechniqueRepository.changeStatus(uactiveTechniqueId, status,
                 modId, CurrentUser.getActor, crReasonsDisablePopup.map(_.is))
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)

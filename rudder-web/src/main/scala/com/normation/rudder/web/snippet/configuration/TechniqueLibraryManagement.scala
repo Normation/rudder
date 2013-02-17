@@ -58,7 +58,6 @@ import com.normation.rudder.web.components.{
 import net.liftweb.http.LocalSnippet
 import net.liftweb.json._
 import com.normation.rudder.web.services.JsTreeUtilService
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import net.liftweb.http.IdMemoizeTransform
 import com.normation.rudder.web.components.popup.GiveReasonPopup
@@ -66,6 +65,7 @@ import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.services.ReasonBehavior._
 import com.normation.rudder.authorization.Write
 import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 
 /**
@@ -82,17 +82,15 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   import TechniqueLibraryManagement._
 
-  //find Technique
-  val techniqueRepository = inject[TechniqueRepository]
-  //find Technique
-  val updatePTLibService = inject[UpdateTechniqueLibrary]
-  val roActiveTechniqueRepository = inject[RoDirectiveRepository]
-  val rwActiveTechniqueRepository = inject[WoDirectiveRepository]
-  //generate new uuid
-  val uuidGen = inject[StringUuidGenerator]
+  private[this] val techniqueRepository         = RudderConfig.techniqueRepository
+  private[this] val updatePTLibService          = RudderConfig.updateTechniqueLibrary
+  private[this] val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
+  private[this] val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
+  private[this] val uuidGen                     = RudderConfig.stringUuidGenerator
   //transform Technique variable to human viewable HTML fields
-  val directiveEditorService = inject[DirectiveEditorService]
-  val treeUtilService = inject[JsTreeUtilService]
+  private[this] val directiveEditorService      = RudderConfig.directiveEditorService
+  private[this] val treeUtilService             = RudderConfig.jsTreeUtilService
+  private[this] val userPropertyService         = RudderConfig.userPropertyService
 
   //the popup component to create user technique category
   private[this] val creationPopup = new LocalSnippet[CreateActiveTechniqueCategoryPopup]
@@ -101,7 +99,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   // Technique Library to Active Technique Library
   private[this] val giveReasonPopup = new LocalSnippet[GiveReasonPopup]
 
-  private[this] val userPropertyService = inject[UserPropertyService]
 
 
   def dispatch = {

@@ -50,17 +50,17 @@ import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.repository.RoRuleRepository
 import JE._
 import net.liftweb.http.SHtml._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.ldap.sdk.RoLDAPConnection
+import bootstrap.liftweb.RudderConfig
 
 
 
 class HomePage extends Loggable {
 
-  private[this] val ldap = inject[LDAPConnectionProvider[RoLDAPConnection]]("roLdap")
-  private[this] val pendingNodesDit = inject[InventoryDit]("pendingNodesDit")
-  private[this] val nodeDit = inject[NodeDit]("nodeDit")
-  private[this] val ruleRepository = inject[RoRuleRepository]
+  private[this] val ldap            = RudderConfig.roLDAPConnectionProvider
+  private[this] val pendingNodesDit = RudderConfig.pendingNodesDit
+  private[this] val nodeDit         = RudderConfig.nodeDit
+  private[this] val ruleRepository  = RudderConfig.roRuleRepository
 
   private def countPendingNodes() : Box[Int] = {
     ldap.map { con =>

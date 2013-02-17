@@ -38,20 +38,17 @@ import org.slf4j.LoggerFactory
 import java.io.{FileOutputStream,File}
 import com.normation.inventory.domain.MemorySize
 import org.joda.time.DateTime
-
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.system.FileManager
-
-//lift std import
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
+import bootstrap.liftweb.RudderConfig
 
 /*
  * A simple snippet that display the content of
@@ -60,7 +57,7 @@ import net.liftweb.http.SHtml._
  */
 
 class UploadedFiles {
-  val fileManager = inject[FileManager]
+  private[this] val fileManager = RudderConfig.fileManager
 
   def list(html:NodeSeq) : NodeSeq = {
     def deleteFiles() : Unit = {
