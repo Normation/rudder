@@ -62,6 +62,7 @@ import com.normation.exceptions.TechnicalException
 import com.normation.inventory.ldap.core.LDAPConstants.OC_NODE
 import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.services.queries.CmdbQueryParser
+import bootstrap.liftweb.RudderConfig
 
 //////////////////////////////////////////////////////////////////////
 //        Actual snippet implementation
@@ -69,8 +70,8 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 
 class SearchNodes extends StatefulSnippet with Loggable {
   val lock = new Object
-  private[this] val quickSearchService = inject[QuickSearchService]
-  private[this] val queryParser = inject[CmdbQueryParser]
+  private[this] val quickSearchService = RudderConfig.quickSearchService
+  private[this] val queryParser = RudderConfig.cmdbQueryParser
 
   //the popup component to create the group
   private[this] val creationPopup = new LocalSnippet[CreateCategoryOrGroupPopup]

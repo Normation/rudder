@@ -355,49 +355,7 @@ case object EditorComparator extends CriterionType {
     )
   override def toLDAP(value:String) = Full(value)
 }
-/*
-case object GroupOfDnsComparator extends CriterionType {
-  import bootstrap.liftweb.LiftSpringApplicationContext.inject
-  import com.normation.inventory.ldap.core._
 
-  lazy val ldap = inject[LDAPConnectionProvider]
-  lazy val acceptedNodesDit = inject[Dit]("acceptedNodesDit")
-  /*
-   * Find group names from the LDAP
-   * Groups are denoted by map (name,dispayName)
-   */
-  def groups:Map[String,String] = ldap map { con =>
-    con.searchSub(acceptedNodesDit.GROUPS.dn, EQ(A_OC,OC_GROUP_OF_DNS),A_NAME).map{ e =>
-      val name = e(A_NAME).getOrElse("")
-      (name -> toDisplayName(name,e.dn))
-    }.toMap
-  } match {
-    case Failure(_,_,_) => Map()
-    case Empty => Map()
-    case Full(map) => map.filter(x => !( x._1 == ""))
-  }
-
-  private def toDisplayName(name:String,dn:DN) : String = {
-    val base : List[RDN] = acceptedNodesDit.GROUPS.dn
-    val parents = (dn.getParent:List[RDN]).filter(x => !base.contains(x)).
-      map(rdn => rdn.getAttributeValues()(0))
-    (name :: parents).reverse.mkString(" \u2192 ") // a nice ->
-  }
-
-  override val comparators = Seq(Equals)
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) =
-    if(groups.isDefinedAt(v)) Full(v) else Failure("Invalide editor : '%s'".format(v))
-  override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
-    SHtml.select(
-      groups.toSeq,
-      { if(groups.isDefinedAt(value)) Full(value) else Empty},
-      func,
-      attrs:_*
-    )
-
-  override def toLDAP(value:String) = Full(value)
-}
-*/
 case class JsonComparator(key:String,splitter:String = "",numericvalue:Boolean = false) extends TStringComparator {
   override val comparators = BaseComparators.comparators
 

@@ -40,7 +40,6 @@ import com.normation.inventory.domain._
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.rudder.services.nodes._
 import com.normation.rudder.domain.nodes.{NodeGroupCategory, NodeInfo, NodeGroup}
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.services.policies.{DependencyAndDeletionService, RuleTargetService}
 import com.normation.rudder.domain.policies.{RuleTargetInfo, GroupTarget, RuleTarget}
@@ -61,6 +60,7 @@ import JsCmds._
 import JE._
 import net.liftmodules.widgets.autocomplete._
 import com.normation.rudder.repository.RoNodeGroupRepository
+import bootstrap.liftweb.RudderConfig
 
 
 
@@ -94,16 +94,15 @@ class ShowNodeDetailsFromNode(
 ) extends DispatchSnippet with Loggable {
   import ShowNodeDetailsFromNode._
 
-  private[this] val nodeInfoService = inject[NodeInfoService]
-  private[this] val serverAndMachineRepo = inject[LDAPFullInventoryRepository]
-  private[this] val acceptedInventoryDit = inject[InventoryDit]("acceptedNodesDit")
-  private[this] val reportDisplayer = inject[ReportDisplayer]
-  private[this] val logDisplayer = inject[LogDisplayer]
-
+  private[this] val nodeInfoService      = RudderConfig.nodeInfoService
+  private[this] val serverAndMachineRepo = RudderConfig.fullInventoryRepository
+  private[this] val acceptedInventoryDit = RudderConfig.acceptedNodesDit
+  private[this] val reportDisplayer      = RudderConfig.reportDisplayer
+  private[this] val logDisplayer         = RudderConfig.logDisplayer
   // to create the JsTree with the Group/CR
-  private[this] val nodeGroupRepository = inject[RoNodeGroupRepository]
-  private[this] val targetService = inject[RuleTargetService]
-  private[this] val dependencyService = inject[DependencyAndDeletionService]
+  private[this] val nodeGroupRepository  = RudderConfig.roNodeGroupRepository
+  private[this] val targetService        = RudderConfig.ruleTargetService
+  private[this] val dependencyService    = RudderConfig.dependencyAndDeletionService
 
   def dispatch = {
     case "display" => { _ => display(false) }

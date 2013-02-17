@@ -82,7 +82,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
   private val toolsFolder: String,
   private val sharesFolder: String,
   cmdbEnpoint: String,
-  communityPort: String,
+  communityPort: Int,
   communityCheckPromises: String,
   novaCheckPromises: String
 ) extends Cf3PromisesFileWriterServiceImpl(

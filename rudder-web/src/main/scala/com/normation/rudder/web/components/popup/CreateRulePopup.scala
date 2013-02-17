@@ -47,12 +47,12 @@ import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField
 }
 import com.normation.rudder.repository._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import CreateOrCloneRulePopup._
 import com.normation.rudder.domain.eventlog.AddRule
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 class CreateOrCloneRulePopup(
   clonedRule: Option[Rule],
@@ -70,10 +70,10 @@ class CreateOrCloneRulePopup(
   def popupTemplate = chooseTemplate("rule", "createRulePopup", template)
 
 
-  private[this] val roRuleRepository = inject[RoRuleRepository]
-  private[this] val woRuleRepository = inject[WoRuleRepository]
-  private[this] val uuidGen = inject[StringUuidGenerator]
-  private[this] val userPropertyService = inject[UserPropertyService]
+  private[this] val roRuleRepository    = RudderConfig.roRuleRepository
+  private[this] val woRuleRepository    = RudderConfig.woRuleRepository
+  private[this] val uuidGen             = RudderConfig.stringUuidGenerator
+  private[this] val userPropertyService = RudderConfig.userPropertyService
 
   def dispatch = {
     case "popupContent" => _ => popupContent()

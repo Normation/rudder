@@ -57,8 +57,8 @@ import com.normation.rudder.repository._
 import net.liftweb.http.LocalSnippet
 import net.liftweb.json._
 import net.liftweb.json.JsonAST._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 
 /**
@@ -77,8 +77,8 @@ class TechniqueCategoryEditForm(
   private[this] val htmlId_addUserCategoryForm = "addUserCategoryForm"
   private[this] val htmlId_categoryDetailsForm = "categoryDetailsForm"
 
-  private[this] val activeTechniqueCategoryRepository = inject[WoDirectiveRepository]
-  private[this] val uuidGen = inject[StringUuidGenerator]
+  private[this] val activeTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
+  private[this] val uuidGen                           = RudderConfig.stringUuidGenerator
 
 
   def dispatch = {

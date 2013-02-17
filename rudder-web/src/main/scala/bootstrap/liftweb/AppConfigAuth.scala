@@ -38,8 +38,8 @@ import java.io.File
 
 import scala.collection.JavaConversions.seqAsJavaList
 
-import org.springframework.context.annotation.{ Bean, Configuration, Import, ImportResource }
-import org.springframework.core.io.{ ClassPathResource, FileSystemResource, Resource }
+import org.springframework.context.annotation.{ Bean, Configuration, ImportResource }
+import org.springframework.core.io.{ ClassPathResource => CPResource, FileSystemResource => FSResource, Resource }
 import org.springframework.security.authentication.AuthenticationProvider
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.authentication.encoding._
@@ -66,7 +66,6 @@ import net.liftweb.common.Loggable
  *
  */
 @Configuration
-@Import(Array(classOf[PropertyPlaceholderConfig]))
 @ImportResource(Array("classpath:applicationContext-security.xml"))
 class AppConfigAuth extends Loggable {
   import AppConfigAuth._
@@ -79,9 +78,9 @@ class AppConfigAuth extends Loggable {
     val resource = System.getProperty(JVM_AUTH_FILE_KEY) match {
       case null | "" => //use default location in classpath
         ApplicationLogger.info("JVM property -D%s is not defined, use configuration file '%s' in classpath".format(JVM_AUTH_FILE_KEY, DEFAULT_AUTH_FILE_NAME))
-        new ClassPathResource(DEFAULT_AUTH_FILE_NAME)
+        new CPResource(DEFAULT_AUTH_FILE_NAME)
       case x => //so, it should be a full path, check it
-        val config = new FileSystemResource(new File(x))
+        val config = new FSResource(new File(x))
         if(config.exists && config.isReadable) {
           ApplicationLogger.info("Use configuration file defined by JVM property -D%s : %s".format(JVM_AUTH_FILE_KEY, config.getPath))
           config

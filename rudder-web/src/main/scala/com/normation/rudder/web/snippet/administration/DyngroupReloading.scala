@@ -43,7 +43,6 @@ import JsCmds._
 import JE._
 import scala.xml.NodeSeq
 import collection.mutable.Buffer
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.utils.NetUtils.isValidNetwork
 import com.normation.rudder.domain.Constants
@@ -51,11 +50,12 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.services.servers.NodeConfigurationService
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import com.normation.rudder.batch.UpdateDynamicGroups
+import bootstrap.liftweb.RudderConfig
 
 
 class DyngroupReloading extends DispatchSnippet with Loggable {
 
-  private[this] val updateDynamicGroups = inject[UpdateDynamicGroups]
+  private[this] val updateDynamicGroups = RudderConfig.updateDynamicGroups
 
   def dispatch = {
     case "render" => reload

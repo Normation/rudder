@@ -106,305 +106,298 @@ import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
 import com.normation.rudder.repository.squeryl._
 import com.normation.rudder.repository._
 import com.normation.rudder.services.modification.ModificationService
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
+import scala.util.Try
+import com.normation.rudder.services.user.PersonIdentService
 
 /**
- * Spring configuration for services
+ * Define a resource for configuration.
+ * For now, config properties can only be loaded from either
+ * a file in the classpath, or a file in the file system.
  */
-@Configuration
-@Import(Array(classOf[PropertyPlaceholderConfig], classOf[AppConfigAuth]))
-class AppConfig extends Loggable {
+sealed trait ConfigResource
+final case class ClassPathResource(name: String) extends ConfigResource
+final case class FileSystemResource(file: File) extends ConfigResource
 
-  @Value("${ldap.host}")
-  var SERVER = ""
+/**
+ * User defined configuration variable
+ * (from properties file or alike)
+ */
+object RudderProperties {
 
-  @Value("${ldap.port}")
-  var PORT = 389
 
-  @Value("${ldap.authdn}")
-  var AUTH_DN = ""
-  @Value("${ldap.authpw}")
-  var AUTH_PW = ""
 
-  @Value("${ldap.inventories.accepted.basedn}")
-  var ACCEPTED_INVENTORIES_DN = ""
+  val JVM_CONFIG_FILE_KEY = "rudder.configFile"
+  val DEFAULT_CONFIG_FILE_NAME = "configuration.properties"
 
-  @Value("${ldap.inventories.pending.basedn}")
-  var PENDING_INVENTORIES_DN = ""
+  /**
+   * Where to go to look for properties
+   */
+  val configResource = System.getProperty(JVM_CONFIG_FILE_KEY) match {
+      case null | "" => //use default location in classpath
+        ApplicationLogger.info("JVM property -D%s is not defined, use configuration file in classpath".format(JVM_CONFIG_FILE_KEY))
+        ClassPathResource(DEFAULT_CONFIG_FILE_NAME)
+      case x => //so, it should be a full path, check it
+        val config = new File(x)
+        if(config.exists && config.canRead) {
+          ApplicationLogger.info("Use configuration file defined by JVM property -D%s : %s".format(JVM_CONFIG_FILE_KEY, config.getPath))
+          FileSystemResource(config)
+        } else {
+          ApplicationLogger.error("Can not find configuration file specified by JVM property %s: %s ; abort".format(JVM_CONFIG_FILE_KEY, config.getPath))
+          throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
+        }
+    }
 
-  @Value("${ldap.inventories.removed.basedn}")
-  var REMOVED_INVENTORIES_DN = ""
+  val config : Config = {
+    configResource match {
+      case ClassPathResource(name) => ConfigFactory.load(name)
+      case FileSystemResource(file) => ConfigFactory.load(ConfigFactory.parseFile(file))
+    }
+  }
+}
 
-  @Value("${ldap.inventories.software.basedn}")
-  var SOFTWARE_INVENTORIES_DN = ""
+/**
+ * Static initialization of Rudder services.
+ * This is not a cake-pattern, more an ad-hoc replacement
+ * for Spring AppConfig, which is so slow.
+ */
+object RudderConfig extends Loggable {
+  import RudderProperties.config
 
-  @Value("${ldap.rudder.base}")
-  var RUDDER_DN = ""
+  //
+  // Public properties
+  // Here, we define static nouns for all theses properties
+  //
 
-  @Value("${ldap.node.base}")
-  var NODE_DN = ""
+  private[this] val filteredPasswords = scala.collection.mutable.Buffer[String]()
 
-  @Value("${bin.emergency.stop}")
-  val startStopBinPath = ""
+  val LDAP_HOST = config.getString("ldap.host")
+  val LDAP_PORT = config.getInt("ldap.port")
+  val LDAP_AUTHDN = config.getString("ldap.authdn")
+  val LDAP_AUTHPW = config.getString("ldap.authpw") ; filteredPasswords += "ldap.authpw"
+  val LDAP_INVENTORIES_ACCEPTED_BASEDN = config.getString("ldap.inventories.accepted.basedn")
+  val LDAP_INVENTORIES_PENDING_BASEDN = config.getString("ldap.inventories.pending.basedn")
+  val LDAP_INVENTORIES_REMOVED_BASEDN = config.getString("ldap.inventories.removed.basedn")
+  val LDAP_INVENTORIES_SOFTWARE_BASEDN = config.getString("ldap.inventories.software.basedn")
+  val LDAP_RUDDER_BASE = config.getString("ldap.rudder.base")
+  val LDAP_NODE_BASE = config.getString("ldap.node.base")
+  val RUDDER_DIR_BACKUP = config.getString("rudder.dir.backup")
+  val RUDDER_DIR_DEPENDENCIES = config.getString("rudder.dir.dependencies")
+  val RUDDER_DIR_UPLOADED_FILE_SHARING = config.getString("rudder.dir.uploaded.file.sharing")
+  val RUDDER_DIR_LOCK = config.getString("rudder.dir.lock")
+  val RUDDER_DIR_SHARED_FILES_FOLDER = config.getString("rudder.dir.shared.files.folder")
+  val RUDDER_DIR_LICENSESFOLDER = config.getString("rudder.dir.licensesFolder")
+  val RUDDER_ENDPOINT_CMDB = config.getString("rudder.endpoint.cmdb")
+  val RUDDER_WEBDAV_USER = config.getString("rudder.webdav.user")
+  val RUDDER_WEBDAV_PASSWORD = config.getString("rudder.webdav.password") ; filteredPasswords += "rudder.webdav.password"
+  val RUDDER_COMMUNITY_PORT = config.getInt("rudder.community.port")
+  val RUDDER_COMMUNITY_CHECKPROMISES_COMMAND = config.getString("rudder.community.checkpromises.command")
+  val RUDDER_NOVA_CHECKPROMISES_COMMAND = config.getString("rudder.nova.checkpromises.command")
+  val RUDDER_JDBC_DRIVER = config.getString("rudder.jdbc.driver")
+  val RUDDER_JDBC_URL = config.getString("rudder.jdbc.url")
+  val RUDDER_JDBC_USERNAME = config.getString("rudder.jdbc.username")
+  val RUDDER_JDBC_PASSWORD = config.getString("rudder.jdbc.password") ; filteredPasswords += "rudder.jdbc.password"
+  val RUDDER_DIR_GITROOT = config.getString("rudder.dir.gitRoot")
+  val RUDDER_DIR_TECHNIQUES = config.getString("rudder.dir.techniques")
+  val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL = config.getInt("rudder.batch.dyngroup.updateInterval") //60 //one hour
+  val RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL = config.getInt("rudder.batch.techniqueLibrary.updateInterval") //60 * 5 //five minutes
+  val reportCleanerArchiveTTL = AutomaticReportsCleaning.defaultArchiveTTL
+  val RUDDER_BATCH__REPORTSCLEANER_DELETE_TTL = config.getInt("rudder.batch.reportscleaner.delete.TTL") //AutomaticReportsCleaning.defaultDeleteTTL
+  val RUDDER_BATCH_REPORTSCLEANER_FREQUENCY = config.getString("rudder.batch.reportscleaner.frequency") //AutomaticReportsCleaning.defaultDay
+  val RUDDER_BATCH_DATABASECLEANER_RUNTIME_HOUR = config.getInt("rudder.batch.databasecleaner.runtime.hour") //AutomaticReportsCleaning.defaultHour
+  val RUDDER_BATCH_DATABASECLEANER_RUNTIME_MINUTE = config.getInt("rudder.batch.databasecleaner.runtime.minute") //AutomaticReportsCleaning.defaultMinute
+  val RUDDER_BATCH_DATABASECLEANER_RUNTIME_DAY = config.getString("rudder.batch.databasecleaner.runtime.day") //"sunday"
+  val RUDDER_BATCH_REPORTS_LOGINTERVAL = config.getInt("rudder.batch.reports.logInterval") //1 //one minute
+  val RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH = config.getString("rudder.techniqueLibrary.git.refs.path")
+  val RUDDER_AUTOARCHIVEITEMS = config.getBoolean("rudder.autoArchiveItems") //true
+  val RUDDER_AUTODEPLOYONMODIFICATION = config.getBoolean("rudder.autoDeployOnModification") //true
+  val RUDDER_UI_CHANGEMESSAGE_ENABLED = config.getBoolean("rudder.ui.changeMessage.enabled") //false
+  val RUDDER_UI_CHANGEMESSAGE_MANDATORY = config.getBoolean("rudder.ui.changeMessage.mandatory") //false
+  val RUDDER_UI_CHANGEMESSAGE_EXPLANATION = config.getString("rudder.ui.changeMessage.explanation") //"Please enter a message explaining the reason for this change."
+  val RUDDER_SYSLOG_PORT = config.getInt("rudder.syslog.port") //514
 
-  @Value("${history.inventories.rootdir}")
-  var INVENTORIES_HISTORY_ROOT_DIR = ""
+  val BIN_EMERGENCY_STOP = config.getString("bin.emergency.stop")
+  val HISTORY_INVENTORIES_ROOTDIR = config.getString("history.inventories.rootdir")
+  val UPLOAD_ROOT_DIRECTORY = config.getString("upload.root.directory")
 
-  @Value("${upload.root.directory}")
-  var UPLOAD_ROOT_DIRECTORY = ""
-
-  @Value("${base.url}")
-  var BASE_URL = ""
-
-  @Value("${rudder.dir.backup}")
-  var backupFolder = ""
-
-  @Value("${rudder.dir.dependencies}")
-  var toolsFolder = ""
-
-  @Value("${rudder.dir.uploaded.file.sharing}")
-  var sharesFolder = ""
-
-  @Value("${rudder.dir.lock}")
-  var lockFolder = ""
-
-  @Value("${rudder.dir.shared.files.folder}")
-  var sharedFilesFolder = ""
-
-  @Value("${rudder.dir.licensesFolder}")
-  var licensesFolder = ""
-  @Value("${rudder.endpoint.cmdb}")
-  var cmdbEndpoint = ""
-  @Value("${rudder.webdav.user}")
-  var webdavUser = ""
-  @Value("${rudder.webdav.password}")
-  var webdavPassword = ""
-  @Value("${rudder.community.port}")
-  var communityPort = ""
-
-  @Value("${rudder.community.checkpromises.command}")
-  var communityCheckPromises = ""
-  @Value("${rudder.nova.checkpromises.command}")
-  var novaCheckPromises = ""
-
-  @Value("${rudder.jdbc.driver}")
-  var jdbcDriver = ""
-  @Value("${rudder.jdbc.url}")
-  var jdbcUrl = ""
-  @Value("${rudder.jdbc.username}")
-  var jdbcUsername = ""
-  @Value("${rudder.jdbc.password}")
-  var jdbcPassword = ""
-
-  @Value("${rudder.dir.gitRoot}")
-  var gitRoot = ""
-
-  @Value("${rudder.dir.techniques}")
-  var policyPackages = ""
-
-  @Value("${rudder.batch.dyngroup.updateInterval}")
-  var dyngroupUpdateInterval = 60 //one hour
-
-  @Value("${rudder.batch.techniqueLibrary.updateInterval}")
-  var ptlibUpdateInterval = 60 * 5 //five minutes
-
-  @Value("${rudder.batch.reportscleaner.archive.TTL}")
-  var reportCleanerArchiveTTL = AutomaticReportsCleaning.defaultArchiveTTL
-
-  @Value("${rudder.batch.reportscleaner.delete.TTL}")
-  var reportCleanerDeleteTTL = AutomaticReportsCleaning.defaultDeleteTTL
-
-  @Value("${rudder.batch.reportscleaner.frequency}")
-  var reportCleanerFrequency = AutomaticReportsCleaning.defaultDay
-
-  @Value("${rudder.batch.databasecleaner.runtime.hour}")
-  var reportCleanerRuntimeHour = AutomaticReportsCleaning.defaultHour
-
-  @Value("${rudder.batch.databasecleaner.runtime.minute}")
-  var reportCleanerRuntimeMinute = AutomaticReportsCleaning.defaultMinute
-
-  @Value("${rudder.batch.databasecleaner.runtime.day}")
-  var reportCleanerRuntimeDay = "sunday"
-
-  @Value("${rudder.batch.reports.logInterval}")
-  var reportLogInterval = 1 //one minute
-
-  @Value("${rudder.techniqueLibrary.git.refs.path}")
-  var ptRefsPath = ""
-
-  @Value("${rudder.autoArchiveItems}")
-  var autoArchiveItems : Boolean = true
-
-  @Value("${rudder.autoDeployOnModification}")
-  var autoDeployOnModification : Boolean = true
-
-  @Value("${rudder.ui.changeMessage.enabled}")
-  var reasonFieldEnabled = false
-
-  @Value("${rudder.ui.changeMessage.mandatory}")
-  var reasonFieldMandatory = false
-
-  @Value("${rudder.ui.changeMessage.explanation}")
-  var reasonFieldExplanation = "Please enter a message explaining the reason for this change."
-
-  @Value("${rudder.syslog.port}")
-  var syslogPort : Int = 514
+  //used in spring security "applicationContext-security.xml", be careful if you change its name
+  val RUDDER_REST_ALLOWNONAUTHENTICATEDUSER = config.getBoolean("rudder.rest.allowNonAuthenticatedUser")
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
-
   val prettyPrinter = new PrettyPrinter(120, 2)
-
-
   val userLibraryDirectoryName = "directives"
-
   val groupLibraryDirectoryName = "groups"
-
   val rulesDirectoryName = "rules"
 
+  //deprecated
+  val BASE_URL = Try(config.getString("base.url")).getOrElse("")
 
-  ////////////////////////////////////  
-  //  pure services / No I/O at all //
-  ////////////////////////////////////
-    //actually, we tolerate I/O during 
-    //service set-up (ex: read a config file)
+  //
+  // Theses services can be called from the outer worl/
+  // They must be typed with there abstract interface, as
+  // such service must not expose implementation details
+  //
 
-  @Bean
-  def acceptedNodesDit: InventoryDit = new InventoryDit(ACCEPTED_INVENTORIES_DN, SOFTWARE_INVENTORIES_DN, "Accepted inventories")
+  val pendingNodesDit: InventoryDit = pendingNodesDitImpl
+  val acceptedNodesDit: InventoryDit = acceptedNodesDitImpl
+  val nodeDit: NodeDit = nodeDitImpl
+  val rudderDit: RudderDit = rudderDitImpl
+  val roLDAPConnectionProvider: LDAPConnectionProvider[RoLDAPConnection] = roLdap
+  val roRuleRepository: RoRuleRepository = roLdapRuleRepository
+  val woRuleRepository: WoRuleRepository = woLdapRuleRepository
+  val roNodeGroupRepository: RoNodeGroupRepository = roLdapNodeGroupRepository
+  val woNodeGroupRepository: WoNodeGroupRepository = woLdapNodeGroupRepository
+  val techniqueRepository: TechniqueRepository = techniqueRepositoryImpl
+  val updateTechniqueLibrary: UpdateTechniqueLibrary = techniqueRepositoryImpl
+  val roDirectiveRepository: RoDirectiveRepository = roLdapDirectiveRepository
+  val woDirectiveRepository: WoDirectiveRepository = woLdapDirectiveRepository
+  val readOnlySoftwareDAO: ReadOnlySoftwareDAO = softwareInventoryDAO
+  val eventLogRepository: EventLogRepository = logRepository
+  val eventLogDetailsService: EventLogDetailsService = eventLogDetailsServiceImpl
+  val reportingService: ReportingService = reportingServiceImpl
+  val stringUuidGenerator: StringUuidGenerator = uuidGen
+  val quickSearchService: QuickSearchService = quickSearchServiceImpl
+  val cmdbQueryParser: CmdbQueryParser = queryParser
+  val getBaseUrlService: GetBaseUrlService = baseUrlService
+  val fileManager: FileManager = fileManagerImpl
+  val startStopOrchestrator: StartStopOrchestrator = startStopOrchestratorImpl
+  val inventoryHistoryLogRepository: InventoryHistoryLogRepository = diffRepos
+  val inventoryEventLogService: InventoryEventLogService = inventoryLogEventServiceImpl
+  val ruleTargetService: RuleTargetService = ruleTargetServiceImpl
+  val newNodeManager: NewNodeManager = newNodeManagerImpl
+  val nodeGrid: NodeGrid = nodeGridImpl
+  val nodeSummaryService: NodeSummaryService = nodeSummaryServiceImpl
+  val jsTreeUtilService: JsTreeUtilService = jsTreeUtilServiceImpl
+  val directiveEditorService: DirectiveEditorService = directiveEditorServiceImpl
+  val userPropertyService: UserPropertyService = userPropertyServiceImpl
+  val eventListDisplayer: EventListDisplayer = eventListDisplayerImpl
+  val asyncDeploymentAgent: AsyncDeploymentAgent = asyncDeploymentAgentImpl
+  val policyServerManagementService: PolicyServerManagementService = psMngtService
+  val updateDynamicGroups: UpdateDynamicGroups = dyngroupUpdaterBatch
+  val databaseManager: DatabaseManager = databaseManagerImpl
+  val automaticReportsCleaning: AutomaticReportsCleaning = dbCleaner
+  val nodeConfigurationService: NodeConfigurationService = nodeConfigurationServiceImpl
+  val removeNodeService: RemoveNodeService = removeNodeServiceImpl
+  val nodeInfoService: NodeInfoService = nodeInfoServiceImpl
+  val reportDisplayer: ReportDisplayer = reportDisplayerImpl
+  val dependencyAndDeletionService: DependencyAndDeletionService =  dependencyAndDeletionServiceImpl
+  val itemArchiveManager: ItemArchiveManager = itemArchiveManagerImpl
+  val personIdentService: PersonIdentService = personIdentServiceImpl
+  val gitRevisionProvider: GitRevisionProvider = gitRevisionProviderImpl
+  val logDisplayer: LogDisplayer  = logDisplayerImpl
+  val fullInventoryRepository: LDAPFullInventoryRepository = ldapFullInventoryRepository
+  val acceptedNodeQueryProcessor: QueryProcessor = queryProcessor
+  val categoryHierarchyDisplayer: CategoryHierarchyDisplayer = categoryHierarchyDisplayerImpl
+  val dynGroupService: DynGroupService = dynGroupServiceImpl
+  val ditQueryData: DitQueryData = ditQueryDataImpl
+  val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
+  val allBootstrapChecks : BootstrapChecks = allChecks
+  val srvGrid = new SrvGrid
 
-  @Bean
-  def pendingNodesDit: InventoryDit = new InventoryDit(PENDING_INVENTORIES_DN, SOFTWARE_INVENTORIES_DN, "Pending inventories")
 
-  @Bean
-  def removedNodesDit = new InventoryDit(REMOVED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Removed Servers")
+  //////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////// REST ///////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////
 
-  @Bean
-  def rudderDit: RudderDit = new RudderDit(RUDDER_DN)
+  val restDeploy = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)
+  val restDyngroupReload = new RestDyngroupReload(dyngroupUpdaterBatch)
+  val restTechniqueReload = new RestTechniqueReload(techniqueRepositoryImpl, uuidGen)
+  val restArchiving = new RestArchiving(itemArchiveManagerImpl,personIdentServiceImpl, uuidGen)
+  val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
 
-  @Bean
-  def nodeDit: NodeDit = new NodeDit(NODE_DN)
 
-  @Bean
-  def inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDit, acceptedNodesDit,removedNodesDit)
+  //////////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////////////////
 
-  @Bean
-  def uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
-  
-  @Bean
-  def systemVariableSpecService = new SystemVariableSpecServiceImpl()
+  /**
+   * A method to call to force initialisation of all object and services.
+   * This is a good place to check boottime things, and throws
+   * "application broken - can not start" exception
+   *
+   * Important: if that method is not called, RudderConfig will be
+   * lazy and will only be initialised on the first call to one
+   * of its (public) methods.
+   */
+  def init() : Unit = {
+    import scala.collection.JavaConverters._
+    val config = RudderProperties.config
+    if(logger.isDebugEnabled) {
+      //sort properties by key name
+      val properties = config.entrySet.asScala.toSeq.sortBy( _.getKey ).map{ x => f"${x.getKey}%60s: ${if(filteredPasswords.contains(x.getKey)) "**********" else x.getValue.render}" }
+      logger.debug("List of registered properties:" +  properties.mkString("\n"))
+    }
+  }
 
-  @Bean
-  def variableBuilderService: VariableBuilderService = new VariableBuilderServiceImpl()
 
-  @Bean
-  def ldapEntityMapper = new LDAPEntityMapper(rudderDit, nodeDit, acceptedNodesDit, queryParser)
+  //
+  // Concrete implementation.
+  // They are private to that object, and they can refer to other
+  // private implementation as long as they conform to interface.
+  //
 
-  
-  
+
+  private[this] lazy val acceptedNodesDitImpl: InventoryDit = new InventoryDit(LDAP_INVENTORIES_ACCEPTED_BASEDN, LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
+  private[this] lazy val pendingNodesDitImpl: InventoryDit = new InventoryDit(LDAP_INVENTORIES_PENDING_BASEDN, LDAP_INVENTORIES_SOFTWARE_BASEDN, "Pending inventories")
+  private[this] lazy val removedNodesDitImpl = new InventoryDit(LDAP_INVENTORIES_REMOVED_BASEDN,LDAP_INVENTORIES_SOFTWARE_BASEDN,"Removed Servers")
+  private[this] lazy val rudderDitImpl: RudderDit = new RudderDit(LDAP_RUDDER_BASE)
+  private[this] lazy val nodeDitImpl: NodeDit = new NodeDit(LDAP_NODE_BASE)
+  private[this] lazy val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl,removedNodesDitImpl)
+  private[this] lazy val uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
+  private[this] lazy val systemVariableSpecService = new SystemVariableSpecServiceImpl()
+  private[this] lazy val variableBuilderService: VariableBuilderService = new VariableBuilderServiceImpl()
+  private[this] lazy val ldapEntityMapper = new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, acceptedNodesDitImpl, queryParser)
+
   ///// items serializer - service that transforms items to XML /////
-
-  @Bean
-  def ruleSerialisation: RuleSerialisation =
-    new RuleSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
-
-  @Bean
-  def activeTechniqueCategorySerialisation: ActiveTechniqueCategorySerialisation =
+  private[this] lazy val ruleSerialisation: RuleSerialisation = new RuleSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
+  private[this] lazy val activeTechniqueCategorySerialisation: ActiveTechniqueCategorySerialisation =
     new ActiveTechniqueCategorySerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
-
-  @Bean
-  def activeTechniqueSerialisation: ActiveTechniqueSerialisation =
+  private[this] lazy val activeTechniqueSerialisation: ActiveTechniqueSerialisation =
     new ActiveTechniqueSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
-
-  @Bean
-  def directiveSerialisation: DirectiveSerialisation =
+  private[this] lazy val directiveSerialisation: DirectiveSerialisation =
     new DirectiveSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
-
-  @Bean
-  def nodeGroupCategorySerialisation: NodeGroupCategorySerialisation =
+  private[this] lazy val nodeGroupCategorySerialisation: NodeGroupCategorySerialisation =
     new NodeGroupCategorySerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
-
-  @Bean
-  def nodeGroupSerialisation: NodeGroupSerialisation =
+  private[this] lazy val nodeGroupSerialisation: NodeGroupSerialisation =
     new NodeGroupSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
-
-  @Bean
-  def deploymentStatusSerialisation : DeploymentStatusSerialisation =
+  private[this] lazy val deploymentStatusSerialisation : DeploymentStatusSerialisation =
     new DeploymentStatusSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
-
-
-  @Bean
-  def eventLogFactory = new EventLogFactoryImpl(
+  private[this] lazy val eventLogFactory = new EventLogFactoryImpl(
     ruleSerialisation,
-    directiveSerialisation, 
-    nodeGroupSerialisation, 
+    directiveSerialisation,
+    nodeGroupSerialisation,
     activeTechniqueSerialisation)
-  
-  @Bean
-  def pathComputer = new PathComputerImpl(
+  private[this] lazy val pathComputer = new PathComputerImpl(
     ldapNodeConfigurationRepository,
-    backupFolder)
-  
-  @Bean
-  def baseUrlService: GetBaseUrlService = new DefaultBaseUrlService(BASE_URL)
+    RUDDER_DIR_BACKUP)
+  private[this] lazy val baseUrlService: GetBaseUrlService = new DefaultBaseUrlService(BASE_URL)
 
   /*
    * For now, we don't want to query server other
-   * than the accepted ones. 
+   * than the accepted ones.
    */
-  @Bean
-  def ditQueryData = new DitQueryData(acceptedNodesDit)
-
-  @Bean
-  def queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
-    override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryData.criteriaMap
+  private[this] lazy val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl)
+  private[this] lazy val queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
+    override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
   }
+  private[this] lazy val inventoryMapper: InventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+  private[this] lazy val fullInventoryFromLdapEntries: FullInventoryFromLdapEntries = new FullInventoryFromLdapEntriesImpl(inventoryDitService, inventoryMapper)
+  private[this] lazy val ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryParser)
 
-  @Bean
-  def inventoryMapper: InventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDit, acceptedNodesDit, removedNodesDit)
 
-  @Bean
-  def fullInventoryFromLdapEntries: FullInventoryFromLdapEntries = new FullInventoryFromLdapEntriesImpl(inventoryDitService, inventoryMapper)
-    
-  @Bean
-  def srvGrid = new SrvGrid
-  
-  @Bean 
-  def ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryParser)
+  private[this] lazy val activeTechniqueCategoryUnserialisation = new ActiveTechniqueCategoryUnserialisationImpl
+  private[this] lazy val activeTechniqueUnserialisation = new ActiveTechniqueUnserialisationImpl
+  private[this] lazy val directiveUnserialisation = new DirectiveUnserialisationImpl
+  private[this] lazy val nodeGroupCategoryUnserialisation = new NodeGroupCategoryUnserialisationImpl
+  private[this] lazy val nodeGroupUnserialisation = new NodeGroupUnserialisationImpl(queryParser)
+  private[this] lazy val ruleUnserialisation = new RuleUnserialisationImpl
+  private[this] lazy val deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
+  private[this] lazy val xmlMigration_2_3 = new XmlMigration_2_3()
+  private[this] lazy val xmlMigration_10_2 = new XmlMigration_10_2()
+  private[this] lazy val entityMigration = new DefaultXmlEventLogMigration(xmlMigration_10_2, xmlMigration_2_3)
 
-  
-
-  @Bean 
-  def activeTechniqueCategoryUnserialisation = new ActiveTechniqueCategoryUnserialisationImpl
-
-  @Bean
-  def activeTechniqueUnserialisation = new ActiveTechniqueUnserialisationImpl
-  
-  @Bean
-  def directiveUnserialisation = new DirectiveUnserialisationImpl
-  
-  @Bean
-  def nodeGroupCategoryUnserialisation = new NodeGroupCategoryUnserialisationImpl
-    
-  @Bean
-  def nodeGroupUnserialisation = new NodeGroupUnserialisationImpl(queryParser)
-  
-  @Bean
-  def ruleUnserialisation = new RuleUnserialisationImpl
- 
-  @Bean
-  def deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
-
-  @Bean
-  def xmlMigration_2_3 = new XmlMigration_2_3()
-  
-  @Bean
-  def xmlMigration_10_2 = new XmlMigration_10_2()
-  
-  @Bean
-  def entityMigration = new DefaultXmlEventLogMigration(xmlMigration_10_2, xmlMigration_2_3)
-  
-  
-  @Bean 
-  def eventLogDetailsService : EventLogDetailsService = new EventLogDetailsServiceImpl(
+  private[this] lazy val eventLogDetailsServiceImpl = new EventLogDetailsServiceImpl(
       queryParser
     , new DirectiveUnserialisationImpl
     , new NodeGroupUnserialisationImpl(queryParser)
@@ -412,89 +405,178 @@ class AppConfig extends Loggable {
     , new ActiveTechniqueUnserialisationImpl
     , new DeploymentStatusUnserialisationImpl
   )
-  
+
   //////////////////////////////////////////////////////////
   //  non pure services that could perhaps be
   //////////////////////////////////////////////////////////
 
-  // => rwLdap is only used to repair an error, that could be repaired elsewhere. 
-  @Bean
-  def ldapNodeConfigurationMapper = new LDAPNodeConfigurationMapper(rudderDit, acceptedNodesDit, systemVariableSpecService, techniqueRepository, variableBuilderService, rwLdap)
+  // => rwLdap is only used to repair an error, that could be repaired elsewhere.
 
   // => because of systemVariableSpecService
   // metadata.xml parser
-  @Bean
-  def techniqueParser = {
+  private[this] lazy val techniqueParser = {
     val variableSpecParser = new VariableSpecParser()
     new TechniqueParser(variableSpecParser,new SectionSpecParser(variableSpecParser),new Cf3PromisesFileTemplateParser,systemVariableSpecService)
   }
-  
-  
-  
-  
-  ////////////////////////////////////  
-  //  non pure services 
-  ////////////////////////////////////  
 
-  @Bean
-  def userPropertyService = {
-    val opt = new ReasonsMessageInfo(reasonFieldEnabled, reasonFieldMandatory, 
-        reasonFieldExplanation)
+  ////////////////////////////////////
+  //  non pure services
+  ////////////////////////////////////
+  private[this] lazy val userPropertyServiceImpl = {
+    val opt = new ReasonsMessageInfo(RUDDER_UI_CHANGEMESSAGE_ENABLED, RUDDER_UI_CHANGEMESSAGE_MANDATORY, RUDDER_UI_CHANGEMESSAGE_EXPLANATION)
     new UserPropertyServiceImpl(opt)
   }
 
-  @Bean
-  def ldapNodeConfigurationRepository = new LDAPNodeConfigurationRepository(rwLdap, rudderDit, ldapNodeConfigurationMapper)
+  ///// end /////
+  private[this] lazy val logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
+  private[this] lazy val inventoryLogEventServiceImpl = new InventoryEventLogServiceImpl(logRepository)
+  private[this] lazy val licenseRepository = new LicenseRepositoryXML(RUDDER_DIR_LICENSESFOLDER + "/" + licensesConfiguration)
+  private[this] lazy val gitRepo = new GitRepositoryProviderImpl(RUDDER_DIR_GITROOT)
+  private[this] lazy val gitRevisionProviderImpl = new LDAPGitRevisionProvider(rwLdap, rudderDitImpl, gitRepo, RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH)
+  private[this] lazy val techniqueReader: TechniqueReader = {
+    //find the relative path from gitRepo to the ptlib root
+    val gitSlash = new File(RUDDER_DIR_GITROOT).getPath + "/"
+    if(!RUDDER_DIR_TECHNIQUES.startsWith(gitSlash)) {
+      ApplicationLogger.error("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(RUDDER_DIR_GITROOT, RUDDER_DIR_TECHNIQUES))
+      throw new RuntimeException("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(RUDDER_DIR_GITROOT, RUDDER_DIR_TECHNIQUES))
+    }
+    val relativePath = RUDDER_DIR_TECHNIQUES.substring(gitSlash.size, RUDDER_DIR_TECHNIQUES.size)
+    new GitTechniqueReader(
+        techniqueParser
+      , gitRevisionProviderImpl
+      , gitRepo
+      , "metadata.xml", "category.xml"
+      , Some(relativePath)
+    )
+  }
+  private[this] lazy val historizationJdbcRepository = new HistorizationJdbcRepository(squerylDatasourceProvider)
+  private[this] lazy val startStopOrchestratorImpl: StartStopOrchestrator = {
+    if (!(new File(BIN_EMERGENCY_STOP)).exists)
+      ApplicationLogger.error("The 'red button' program is not present at: '%s'. You will experience error when trying to use that functionnality".format(BIN_EMERGENCY_STOP))
+    new SystemStartStopOrchestrator(BIN_EMERGENCY_STOP)
+  }
+
+  private[this] lazy val roLdap =
+    new ROPooledSimpleAuthConnectionProvider(
+      host = LDAP_HOST,
+      port = LDAP_PORT,
+      authDn = LDAP_AUTHDN,
+      authPw = LDAP_AUTHPW,
+      poolSize = 2)
+  private[this] lazy val rwLdap =
+    new RWPooledSimpleAuthConnectionProvider(
+      host = LDAP_HOST,
+      port = LDAP_PORT,
+      authDn = LDAP_AUTHDN,
+      authPw = LDAP_AUTHPW,
+      poolSize = 2)
+
+  //query processor for accepted nodes
+  private[this] lazy val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
+    nodeDitImpl,
+    new InternalLDAPQueryProcessor(roLdap, acceptedNodesDitImpl, ditQueryDataImpl, ldapEntityMapper))
+
+  //we need a roLdap query checker for nodes in pending
+  private[this] lazy val inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(roLdap, pendingNodesDitImpl, new DitQueryData(pendingNodesDitImpl), ldapEntityMapper))
+  private[this] lazy val dynGroupServiceImpl = new DynGroupServiceImpl(rudderDitImpl, roLdap, ldapEntityMapper, inventoryQueryChecker)
+  private[this] lazy val ruleTargetServiceImpl = new RuleTargetServiceImpl(
+    roLdapNodeGroupRepository, nodeInfoServiceImpl,     Seq(
+      new SpecialAllTargetUpits: UnitRuleTargetService,      new SpecialAllTargetExceptPolicyServersTargetUpits(nodeInfoServiceImpl),      new PolicyServerTargetUpits(nodeInfoServiceImpl),      new GroupTargetUpits(roLdapNodeGroupRepository)),    roLdap,    rudderDitImpl,    ldapEntityMapper)
+  private[this] lazy val ldapFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, rwLdap)
+  private[this] lazy val unitRefuseGroup: UnitRefuseInventory = new RefuseGroups(
+    "refuse_node:delete_id_in_groups",
+    roLdapNodeGroupRepository, woLdapNodeGroupRepository)
+  private[this] lazy val acceptInventory: UnitAcceptInventory with UnitRefuseInventory = new AcceptInventory(
+    "accept_new_server:inventory",
+    pendingNodesDitImpl,
+    acceptedNodesDitImpl,
+    ldapFullInventoryRepository)
+  private[this] lazy val acceptNodeAndMachineInNodeOu: UnitAcceptInventory with UnitRefuseInventory = new AcceptFullInventoryInNodeOu(
+    "accept_new_server:ou=node",
+    nodeDitImpl,
+    rwLdap,
+    ldapEntityMapper,
+    PendingInventory)
+  private[this] lazy val acceptNodeRule: UnitAcceptInventory with UnitRefuseInventory = new AcceptNodeRule(
+    "accept_new_server:add_system_configuration_rules",
+    asyncDeploymentAgentImpl,
+    roLdapNodeGroupRepository,
+    woLdapNodeGroupRepository,
+    ldapNodeConfigurationRepository,
+    AcceptedInventory)
+  private[this] lazy val acceptHostnameAndIp: UnitAcceptInventory = new AcceptHostnameAndIp(
+    "accept_new_server:check_hostname_unicity",
+    AcceptedInventory,
+    queryProcessor,
+    ditQueryDataImpl
+  )
+  private[this] lazy val addNodeToDynGroup: UnitAcceptInventory with UnitRefuseInventory = new AddNodeToDynGroup(
+    "add_server_to_dyngroup",
+    roLdapNodeGroupRepository,
+    woLdapNodeGroupRepository,
+    dynGroupServiceImpl,
+    PendingInventory)
+  private[this] lazy val historizeNodeStateOnChoice: UnitAcceptInventory with UnitRefuseInventory = new HistorizeNodeStateOnChoice(
+      "accept_or_refuse_new_node:historize_inventory"
+    , ldapFullInventoryRepository
+    , diffRepos
+    , PendingInventory
+  )
+  private[this] lazy val nodeConfigurationChangeDetectService = new NodeConfigurationChangeDetectServiceImpl(roLdapDirectiveRepository)
+  private[this] lazy val nodeGridImpl = new NodeGrid(ldapFullInventoryRepository)
+
+  private[this] lazy val modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManagerImpl,uuidGen)
+  private[this] lazy val eventListDisplayerImpl = new EventListDisplayer(eventLogDetailsServiceImpl, logRepository, roLdapNodeGroupRepository, roLdapDirectiveRepository, nodeInfoServiceImpl, modificationService, personIdentServiceImpl)
+  private[this] lazy val fileManagerImpl = new FileManager(UPLOAD_ROOT_DIRECTORY)
+  private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepository)
+  private[this] lazy val softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
+  private[this] lazy val nodeSummaryServiceImpl = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
+  private[this] lazy val diffRepos: InventoryHistoryLogRepository =
+    new InventoryHistoryLogRepository(HISTORY_INVENTORIES_ROOTDIR, new FullInventoryFileMarshalling(fullInventoryFromLdapEntries, inventoryMapper))
+  private[this] lazy val serverPolicyDiffService = new NodeConfigurationDiffService
+
+  private[this] lazy val personIdentServiceImpl = new TrivialPersonIdentService
+  private[this] lazy val ldapNodeConfigurationMapper = new LDAPNodeConfigurationMapper(rudderDitImpl, acceptedNodesDitImpl, systemVariableSpecService, techniqueRepositoryImpl, variableBuilderService, rwLdap)
+  private[this] lazy val ldapNodeConfigurationRepository = new LDAPNodeConfigurationRepository(rwLdap, rudderDitImpl, ldapNodeConfigurationMapper)
 
 
   ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
-  @Bean
-  def gitModificationRepository = new GitModificationSquerylRepository(squerylDatasourceProvider)
-
-  @Bean
-  def gitRuleArchiver: GitRuleArchiver = new GitRuleArchiverImpl(
+  private[this] lazy val gitModificationRepository = new GitModificationSquerylRepository(squerylDatasourceProvider)
+  private[this] lazy val gitRuleArchiver: GitRuleArchiver = new GitRuleArchiverImpl(
       gitRepo
-    , new File(gitRoot)
+    , new File(RUDDER_DIR_GITROOT)
     , ruleSerialisation
     , rulesDirectoryName
     , prettyPrinter
     , gitModificationRepository
   )
-
-  @Bean
-  def gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver = new GitActiveTechniqueCategoryArchiverImpl(
+  private[this] lazy val gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver = new GitActiveTechniqueCategoryArchiverImpl(
       gitRepo
-    , new File(gitRoot)
+    , new File(RUDDER_DIR_GITROOT)
     , activeTechniqueCategorySerialisation
     , userLibraryDirectoryName
     , prettyPrinter
     , gitModificationRepository
   )
-
-  @Bean
-  def gitActiveTechniqueArchiver: GitActiveTechniqueArchiverImpl = new GitActiveTechniqueArchiverImpl(
+  private[this] lazy val gitActiveTechniqueArchiver: GitActiveTechniqueArchiverImpl = new GitActiveTechniqueArchiverImpl(
       gitRepo
-    , new File(gitRoot)
+    , new File(RUDDER_DIR_GITROOT)
     , activeTechniqueSerialisation
     , userLibraryDirectoryName
     , prettyPrinter
     , gitModificationRepository
   )
-
-  @Bean
-  def gitDirectiveArchiver: GitDirectiveArchiver = new GitDirectiveArchiverImpl(
+  private[this] lazy val gitDirectiveArchiver: GitDirectiveArchiver = new GitDirectiveArchiverImpl(
       gitRepo
-    , new File(gitRoot)
+    , new File(RUDDER_DIR_GITROOT)
     , directiveSerialisation
     , userLibraryDirectoryName
     , prettyPrinter
     , gitModificationRepository
   )
-
-  @Bean
-  def gitNodeGroupArchiver: GitNodeGroupArchiver = new GitNodeGroupArchiverImpl(
+  private[this] lazy val gitNodeGroupArchiver: GitNodeGroupArchiver = new GitNodeGroupArchiverImpl(
       gitRepo
-    , new File(gitRoot)
+    , new File(RUDDER_DIR_GITROOT)
     , nodeGroupSerialisation
     , nodeGroupCategorySerialisation
     , groupLibraryDirectoryName
@@ -502,10 +584,67 @@ class AppConfig extends Loggable {
     , gitModificationRepository
   )
 
-  @Bean
-  def itemArchiveManager = new ItemArchiveManagerImpl(
+  ////////////// MUTEX FOR rwLdap REPOS //////////////
+
+  private[this] lazy val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  private[this] lazy val groupLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  private[this] lazy val nodeReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+
+
+  private[this] lazy val roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
+        rudderDitImpl, roLdap, ldapEntityMapper, techniqueRepositoryImpl, uptLibReadWriteMutex)
+  private[this] lazy val woLdapDirectiveRepository = {{
+      val repo = new RwLDAPDirectiveRepository(
+          roLdapDirectiveRepository,
+        rwLdap,
+        ldapDiffMapper,
+        logRepository,
+        uuidGen,
+        gitDirectiveArchiver,
+        gitActiveTechniqueArchiver,
+        gitActiveTechniqueCategoryArchiver,
+        personIdentServiceImpl,
+        RUDDER_AUTOARCHIVEITEMS
+      )
+
+      gitActiveTechniqueArchiver.uptModificationCallback += new UpdatePiOnActiveTechniqueEvent(
+          gitDirectiveArchiver,
+        techniqueRepositoryImpl,
+        roLdapDirectiveRepository
+      )
+
+      repo
+    }
+  }
+  private[this] lazy val roLdapRuleRepository = new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper)
+
+  private[this] lazy val woLdapRuleRepository: WoRuleRepository = new RwLDAPRuleRepository(
       roLdapRuleRepository
-    , rwLdapRuleRepository
+    , rwLdap
+    , ldapDiffMapper
+    , roLdapNodeGroupRepository
+    , logRepository
+    , gitRuleArchiver
+    , personIdentServiceImpl
+    , RUDDER_AUTOARCHIVEITEMS
+  )
+  private[this] lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
+      rudderDitImpl, roLdap, ldapEntityMapper, groupLibReadWriteMutex
+  )
+  private[this] lazy val woLdapNodeGroupRepository = new RwLDAPNodeGroupRepository(
+      roLdapNodeGroupRepository
+    , rwLdap
+    , ldapDiffMapper
+    , uuidGen
+    , logRepository
+    , gitNodeGroupArchiver
+    , personIdentServiceImpl
+    , RUDDER_AUTOARCHIVEITEMS
+  )
+
+  private[this] lazy val itemArchiveManagerImpl = new ItemArchiveManagerImpl(
+      roLdapRuleRepository
+    , woLdapRuleRepository
     , roLdapDirectiveRepository
     , roLdapNodeGroupRepository
     , gitRepo
@@ -520,295 +659,101 @@ class AppConfig extends Loggable {
     , parseGroupLibrary
     , importGroupLibrary
     , logRepository
-    , asyncDeploymentAgent
+    , asyncDeploymentAgentImpl
     , gitModificationRepository
   )
-
-  ///// end /////
-
-  @Bean
-  def logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
-
-  @Bean
-  def inventoryLogEventService: InventoryEventLogService = new InventoryEventLogServiceImpl(logRepository)
-
-  @Bean
-  def licenseRepository = new LicenseRepositoryXML(licensesFolder + "/" + licensesConfiguration)
-
-  @Bean
-  def gitRepo = new GitRepositoryProviderImpl(gitRoot)
-
-  @Bean
-  def gitRevisionProvider = new LDAPGitRevisionProvider(rwLdap, rudderDit, gitRepo, ptRefsPath)
-
-  @Bean
-  def techniqueReader: TechniqueReader = {
-    //find the relative path from gitRepo to the ptlib root
-    val gitSlash = new File(gitRoot).getPath + "/"
-    if(!policyPackages.startsWith(gitSlash)) {
-      ApplicationLogger.error("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(gitRoot, policyPackages))
-      throw new RuntimeException("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(gitRoot, policyPackages))
-    }
-    val relativePath = policyPackages.substring(gitSlash.size, policyPackages.size)
-    new GitTechniqueReader(
-        techniqueParser
-      , gitRevisionProvider
-      , gitRepo
-      , "metadata.xml", "category.xml"
-      , Some(relativePath)
-    )
-  }
-
-  @Bean
-  def systemVariableService: SystemVariableService = new SystemVariableServiceImpl(
+  private[this] lazy val systemVariableService: SystemVariableService = new SystemVariableServiceImpl(
       licenseRepository
     , new ParameterizedValueLookupServiceImpl(
-        nodeInfoService
-      , ruleTargetService
+        nodeInfoServiceImpl
+      , ruleTargetServiceImpl
       , roLdapRuleRepository
       , ruleValService
       )
     , systemVariableSpecService
-    , nodeInfoService
-    , toolsFolder
-    , cmdbEndpoint
-    , communityPort
-    , sharedFilesFolder
-    , webdavUser
-    , webdavPassword
-    , syslogPort
+    , nodeInfoServiceImpl
+    , RUDDER_DIR_DEPENDENCIES
+    , RUDDER_ENDPOINT_CMDB
+    , RUDDER_COMMUNITY_PORT
+    , RUDDER_DIR_SHARED_FILES_FOLDER
+    , RUDDER_WEBDAV_USER
+    , RUDDER_WEBDAV_PASSWORD
+    , RUDDER_SYSLOG_PORT
   )
-
-  @Bean
-  def rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(
-    techniqueRepository,
+  private[this] lazy val rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(
+    techniqueRepositoryImpl,
     pathComputer,
     ldapNodeConfigurationRepository,
-    nodeInfoService,
+    nodeInfoServiceImpl,
     licenseRepository,
-    reportingService,
+    reportingServiceImpl,
     systemVariableSpecService,
     systemVariableService,
-    toolsFolder,
-    sharesFolder,
-    cmdbEndpoint,
-    communityPort,
-    communityCheckPromises,
-    novaCheckPromises)
-
+    RUDDER_DIR_DEPENDENCIES,
+    RUDDER_DIR_UPLOADED_FILE_SHARING,
+    RUDDER_ENDPOINT_CMDB,
+    RUDDER_COMMUNITY_PORT,
+    RUDDER_COMMUNITY_CHECKPROMISES_COMMAND,
+    RUDDER_NOVA_CHECKPROMISES_COMMAND)
   //must be here because of cirular dependency if in techniqueRepository
-  @Bean def techniqueAcceptationDatetimeUpdater: TechniquesLibraryUpdateNotification = {
-    val callback = new TechniqueAcceptationDatetimeUpdater("UpdatePTAcceptationDatetime", roLdapDirectiveRepository, rwLdapDirectiveRepository)
-    techniqueRepository.registerCallback(callback)
+  private[this] lazy val techniqueAcceptationDatetimeUpdater: TechniquesLibraryUpdateNotification = {
+    val callback = new TechniqueAcceptationDatetimeUpdater("UpdatePTAcceptationDatetime", roLdapDirectiveRepository, woLdapDirectiveRepository)
+    techniqueRepositoryImpl.registerCallback(callback)
     callback
   }
-
-  @Bean
-  def techniqueRepository = {
+  private[this] lazy val techniqueRepositoryImpl = {
     val service = new TechniqueRepositoryImpl(
-        techniqueReader
-      , Seq()
-      , uuidGen
+        techniqueReader,
+      Seq(),
+      uuidGen
     )
     service.registerCallback(new LogEventOnTechniqueReloadCallback("LogEventOnPTLibUpdate", logRepository))
     service
   }
-
-  @Bean
-  def nodeConfigurationService: NodeConfigurationService = new NodeConfigurationServiceImpl(
-    rudderCf3PromisesFileWriterService,
-    ldapNodeConfigurationRepository,
-    techniqueRepository,
-    lockFolder)
-
-  @Bean
-  def licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, licensesFolder)
-
-  @Bean
-  def reportingService: ReportingService = new ReportingServiceImpl(ruleTargetService,
-      configurationExpectedRepo, reportsRepository, techniqueRepository)
-
-  @Bean
-  def configurationExpectedRepo = new com.normation.rudder.repository.jdbc.RuleExpectedReportsJdbcRepository(jdbcTemplate)
-
-  @Bean
-  def reportsRepository = new com.normation.rudder.repository.jdbc.ReportsJdbcRepository(jdbcTemplate)
-
-  @Bean
-  def dataSourceProvider = new RudderDatasourceProvider(jdbcDriver, jdbcUrl, jdbcUsername, jdbcPassword)
-
-  @Bean
-  def squerylDatasourceProvider = new SquerylConnectionProvider(dataSourceProvider.datasource)
-
-  @Bean
-  def jdbcTemplate = {
-    val template = new org.springframework.jdbc.core.JdbcTemplate(dataSourceProvider.datasource)
-    template
-  }
-
-  @Bean
-  def historizationJdbcRepository = new HistorizationJdbcRepository(squerylDatasourceProvider)
-
-  @Bean
-  def startStopOrchestrator: StartStopOrchestrator = {
-    if (!(new File(startStopBinPath)).exists)
-      ApplicationLogger.error("The 'red button' program is not present at: '%s'. You will experience error when trying to use that functionnality".format(startStopBinPath))
-    new SystemStartStopOrchestrator(startStopBinPath)
-  }
-
-
-  @Bean
-  def roLdap =
-    new ROPooledSimpleAuthConnectionProvider(
-      host = SERVER,
-      port = PORT,
-      authDn = AUTH_DN,
-      authPw = AUTH_PW,
-      poolSize = 2)
-
-  @Bean
-  def rwLdap =
-    new RWPooledSimpleAuthConnectionProvider(
-      host = SERVER,
-      port = PORT,
-      authDn = AUTH_DN,
-      authPw = AUTH_PW,
-      poolSize = 2)
-
-  //query processor for accepted nodes
-  @Bean
-  def queryProcessor = new AccepetedNodesLDAPQueryProcessor(
-    nodeDit,
-    new InternalLDAPQueryProcessor(roLdap, acceptedNodesDit, ditQueryData, ldapEntityMapper))
-
-  //we need a roLdap query checker for nodes in pending
-  @Bean
-  def inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(roLdap, pendingNodesDit, new DitQueryData(pendingNodesDit), ldapEntityMapper))
-
-  @Bean
-  def dynGroupService: DynGroupService = new DynGroupServiceImpl(rudderDit, roLdap, ldapEntityMapper, inventoryQueryChecker)
-
-  @Bean
-  def ruleTargetService: RuleTargetService = new RuleTargetServiceImpl(
-    roLdapNodeGroupRepository, nodeInfoService,
-    Seq(
-      new SpecialAllTargetUpits: UnitRuleTargetService,
-      new SpecialAllTargetExceptPolicyServersTargetUpits(nodeInfoService),
-      new PolicyServerTargetUpits(nodeInfoService),
-      new GroupTargetUpits(roLdapNodeGroupRepository)),
-    roLdap,
-    rudderDit,
-    ldapEntityMapper)
-
-  @Bean
-  def ldapFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, rwLdap)
-  
-  @Bean
-  def unitRefuseGroup: UnitRefuseInventory = new RefuseGroups(
-    "refuse_node:delete_id_in_groups",
-    roLdapNodeGroupRepository, rwLdapNodeGroupRepository)
-
-  @Bean
-  def acceptInventory: UnitAcceptInventory with UnitRefuseInventory = new AcceptInventory(
-    "accept_new_server:inventory",
-    pendingNodesDit,
-    acceptedNodesDit,
-    ldapFullInventoryRepository)
-
-  @Bean
-  def acceptNodeAndMachineInNodeOu: UnitAcceptInventory with UnitRefuseInventory = new AcceptFullInventoryInNodeOu(
-    "accept_new_server:ou=node",
-    nodeDit,
-    rwLdap,
-    ldapEntityMapper,
-    PendingInventory)
-
-  @Bean
-  def acceptNodeRule: UnitAcceptInventory with UnitRefuseInventory = new AcceptNodeRule(
-    "accept_new_server:add_system_configuration_rules",
-    asyncDeploymentAgent,
-    roLdapNodeGroupRepository,
-    rwLdapNodeGroupRepository,
-    ldapNodeConfigurationRepository,
-    AcceptedInventory)
-
-  @Bean
-  def acceptHostnameAndIp: UnitAcceptInventory = new AcceptHostnameAndIp(
-    "accept_new_server:check_hostname_unicity",
-    AcceptedInventory,
-    queryProcessor,
-    ditQueryData
-  )
-
-  @Bean
-  def addNodeToDynGroup: UnitAcceptInventory with UnitRefuseInventory = new AddNodeToDynGroup(
-    "add_server_to_dyngroup",
-    roLdapNodeGroupRepository,
-    rwLdapNodeGroupRepository,
-    dynGroupService,
-    PendingInventory)
-
-  @Bean
-  def historizeNodeStateOnChoice: UnitAcceptInventory with UnitRefuseInventory = new HistorizeNodeStateOnChoice(
-      "accept_or_refuse_new_node:historize_inventory"
-    , ldapFullInventoryRepository
-    , diffRepos
-    , PendingInventory
-  )
-
-  @Bean
-  def ruleValService: RuleValService = new RuleValServiceImpl(
+  private[this] lazy val ruleValService: RuleValService = new RuleValServiceImpl(
     roLdapRuleRepository,
     roLdapDirectiveRepository,
-    techniqueRepository,
+    techniqueRepositoryImpl,
     variableBuilderService)
-
-  @Bean
-  def psMngtService: PolicyServerManagementService = new PolicyServerManagementServiceImpl(
-    roLdapDirectiveRepository, rwLdapDirectiveRepository, asyncDeploymentAgent)
-
-  @Bean
-  def historizationService = new HistorizationServiceImpl(
+  private[this] lazy val psMngtService: PolicyServerManagementService = new PolicyServerManagementServiceImpl(
+    roLdapDirectiveRepository, woLdapDirectiveRepository, asyncDeploymentAgentImpl)
+  private[this] lazy val historizationService = new HistorizationServiceImpl(
     historizationJdbcRepository,
-    nodeInfoService,
+    nodeInfoServiceImpl,
     roLdapNodeGroupRepository,
     roLdapDirectiveRepository,
-    techniqueRepository,
+    techniqueRepositoryImpl,
     roLdapRuleRepository)
-
-  @Bean
-  def asyncDeploymentAgent: AsyncDeploymentAgent = {
+  private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentAgent = {
     val agent = new AsyncDeploymentAgent(new DeploymentServiceImpl(
           roLdapRuleRepository,
-          rwLdapRuleRepository,
+          woLdapRuleRepository,
           ruleValService,
           new ParameterizedValueLookupServiceImpl(
-            nodeInfoService,
-            ruleTargetService,
+            nodeInfoServiceImpl,
+            ruleTargetServiceImpl,
             roLdapRuleRepository,
             ruleValService),
           systemVariableService,
-          ruleTargetService,
-          nodeConfigurationService,
-          nodeInfoService,
+          ruleTargetServiceImpl,
+          nodeConfigurationServiceImpl,
+          nodeInfoServiceImpl,
           nodeConfigurationChangeDetectService,
-          reportingService,
+          reportingServiceImpl,
           historizationService)
-      , eventLogDeploymentService
-      , autoDeployOnModification
+      , eventLogDeploymentServiceImpl
+      , RUDDER_AUTODEPLOYONMODIFICATION
       , deploymentStatusSerialisation)
-    techniqueRepository.registerCallback(
+    techniqueRepositoryImpl.registerCallback(
         new DeployOnTechniqueCallback("DeployOnPTLibUpdate", agent)
     )
     agent
   }
-
-  @Bean
-  def newNodeManager: NewNodeManager =
+  private[this] lazy val newNodeManagerImpl =
     new NewNodeManagerImpl(
       roLdap,
-      pendingNodesDit, acceptedNodesDit,
-      serverSummaryService,
+      pendingNodesDitImpl, acceptedNodesDitImpl,
+      nodeSummaryServiceImpl,
       ldapFullInventoryRepository,
       //the sequence of unit process to accept a new inventory
       historizeNodeStateOnChoice ::
@@ -826,121 +771,29 @@ class AppConfig extends Loggable {
       acceptNodeRule ::
       Nil
   )
-
-  @Bean
-  def nodeConfigurationChangeDetectService = new NodeConfigurationChangeDetectServiceImpl(roLdapDirectiveRepository)
-
-  @Bean
-  def serverGrid = new NodeGrid(ldapFullInventoryRepository)
-
-
-  @Bean
-  def modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManager,uuidGen)
-  @Bean
-  def eventListDisplayer = new EventListDisplayer(eventLogDetailsService, logRepository, roLdapNodeGroupRepository, roLdapDirectiveRepository, nodeInfoService,modificationService,personIdentService)
-
-  @Bean
-  def fileManager = new FileManager(UPLOAD_ROOT_DIRECTORY)
-
-  @Bean
-  def databaseManager = new DatabaseManagerImpl(reportsRepository)
-
-  @Bean
-  def softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
-
-  @Bean
-  def serverSummaryService = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
-
-  @Bean
-  def diffRepos: InventoryHistoryLogRepository =
-    new InventoryHistoryLogRepository(INVENTORIES_HISTORY_ROOT_DIR, new FullInventoryFileMarshalling(fullInventoryFromLdapEntries, inventoryMapper))
-
-  @Bean
-  def serverPolicyDiffService = new NodeConfigurationDiffService
-
-  @Bean //trivial definition of the person ident service
-  def personIdentService = new TrivialPersonIdentService
-
-  ////////////// MUTEX FOR Ldap REPOS //////////////
-
-  val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-
-  val groupLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-
-  val nodeReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-
-
-
-  @Bean
-  def roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
-        rudderDit, roLdap, ldapEntityMapper, techniqueRepository, uptLibReadWriteMutex)
-
-  @Bean
-  def rwLdapDirectiveRepository = {
-    val repo = new WoLDAPDirectiveRepository(
-        roLdapDirectiveRepository
-      , rwLdap
-      , ldapDiffMapper
-      , logRepository
-      , uuidGen
-      , gitDirectiveArchiver
-      , gitActiveTechniqueArchiver
-      , gitActiveTechniqueCategoryArchiver
-      , personIdentService
-      , autoArchiveItems
-    )
-
-    gitActiveTechniqueArchiver.uptModificationCallback += new UpdatePiOnActiveTechniqueEvent(
-        gitDirectiveArchiver
-      , techniqueRepository
-      , roLdapDirectiveRepository
-    )
-
-    repo
+  private[this] lazy val nodeConfigurationServiceImpl: NodeConfigurationService = new NodeConfigurationServiceImpl(
+    rudderCf3PromisesFileWriterService,
+    ldapNodeConfigurationRepository,
+    techniqueRepositoryImpl,
+    RUDDER_DIR_LOCK)
+  private[this] lazy val licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
+  private[this] lazy val reportingServiceImpl = new ReportingServiceImpl(ruleTargetServiceImpl,configurationExpectedRepo, reportsRepository, techniqueRepositoryImpl)
+  private[this] lazy val configurationExpectedRepo = new com.normation.rudder.repository.jdbc.RuleExpectedReportsJdbcRepository(jdbcTemplate)
+  private[this] lazy val reportsRepository = new com.normation.rudder.repository.jdbc.ReportsJdbcRepository(jdbcTemplate)
+  private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD)
+  private[this] lazy val squerylDatasourceProvider = new SquerylConnectionProvider(dataSourceProvider.datasource)
+  private[this] lazy val jdbcTemplate = {
+    val template = new org.springframework.jdbc.core.JdbcTemplate(dataSourceProvider.datasource)
+    template
   }
 
-  @Bean
-  def roLdapRuleRepository = new RoLDAPRuleRepository(rudderDit, roLdap, ldapEntityMapper)
-
-  @Bean
-  def rwLdapRuleRepository: WoRuleRepository = new WoLDAPRuleRepository(
-      roLdapRuleRepository
-    , rwLdap
-    , ldapDiffMapper
-    , roLdapNodeGroupRepository
-    , logRepository
-    , gitRuleArchiver
-    , personIdentService
-    , autoArchiveItems
-  )
-
-  @Bean
-  def roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
-      rudderDit, roLdap, ldapEntityMapper, groupLibReadWriteMutex
-  )
-
-  @Bean
-  def rwLdapNodeGroupRepository = new WoLDAPNodeGroupRepository(
-      roLdapNodeGroupRepository
-    , rwLdap 
-    , ldapDiffMapper
-    , uuidGen
-    , logRepository
-    , gitNodeGroupArchiver
-    , personIdentService
-    , autoArchiveItems
-  )
-
-  @Bean
-  def parseRules : ParseRules = new GitParseRules(
+  private[this] lazy val parseRules : ParseRules = new GitParseRules(
       ruleUnserialisation
     , gitRepo
     , entityMigration
     , rulesDirectoryName
   )
-
-  @Bean
-  def ParseActiveTechniqueLibrary : ParseActiveTechniqueLibrary = new GitParseActiveTechniqueLibrary(
+  private[this] lazy val ParseActiveTechniqueLibrary : ParseActiveTechniqueLibrary = new GitParseActiveTechniqueLibrary(
       activeTechniqueCategoryUnserialisation
     , activeTechniqueUnserialisation
     , directiveUnserialisation
@@ -948,53 +801,39 @@ class AppConfig extends Loggable {
     , entityMigration
     , userLibraryDirectoryName
   )
-
-  @Bean
-  def importTechniqueLibrary : ImportTechniqueLibrary = new ImportTechniqueLibraryImpl(
-     rudderDit
+  private[this] lazy val importTechniqueLibrary : ImportTechniqueLibrary = new ImportTechniqueLibraryImpl(
+     rudderDitImpl
    , rwLdap
    , ldapEntityMapper
    , uptLibReadWriteMutex
   )
-
-  @Bean
-  def parseGroupLibrary : ParseGroupLibrary = new GitParseGroupLibrary(
+  private[this] lazy val parseGroupLibrary : ParseGroupLibrary = new GitParseGroupLibrary(
       nodeGroupCategoryUnserialisation
     , nodeGroupUnserialisation
     , gitRepo
     , entityMigration
     , groupLibraryDirectoryName
   )
-
-  @Bean
-  def importGroupLibrary : ImportGroupLibrary = new ImportGroupLibraryImpl(
-     rudderDit
+  private[this] lazy val importGroupLibrary : ImportGroupLibrary = new ImportGroupLibraryImpl(
+     rudderDitImpl
    , rwLdap
    , ldapEntityMapper
    , groupLibReadWriteMutex
   )
-
-  @Bean
-  def eventLogDeploymentService = new EventLogDeploymentService(logRepository, eventLogDetailsService)
-
-  @Bean
-  def nodeInfoService: NodeInfoService = new NodeInfoServiceImpl(nodeDit, rudderDit, acceptedNodesDit, roLdap, ldapEntityMapper)
-
-  @Bean
-  def dependencyAndDeletionService: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
+  private[this] lazy val eventLogDeploymentServiceImpl = new EventLogDeploymentService(logRepository, eventLogDetailsServiceImpl)
+  private[this] lazy val nodeInfoServiceImpl: NodeInfoService = new NodeInfoServiceImpl(nodeDitImpl, rudderDitImpl, acceptedNodesDitImpl, roLdap, ldapEntityMapper)
+  private[this] lazy val dependencyAndDeletionServiceImpl: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
         roLdap
-      , rudderDit
+      , rudderDitImpl
       , roLdapDirectiveRepository
-      , rwLdapDirectiveRepository
-      , rwLdapRuleRepository
-      , rwLdapNodeGroupRepository
+      , woLdapDirectiveRepository
+      , woLdapRuleRepository
+      , woLdapNodeGroupRepository
       , ldapEntityMapper
-      , ruleTargetService
+      , ruleTargetServiceImpl
   )
-
-  @Bean
-  def quickSearchService: QuickSearchService = new QuickSearchServiceImpl(
-    roLdap, nodeDit, acceptedNodesDit, ldapEntityMapper,
+  private[this] lazy val quickSearchServiceImpl = new QuickSearchServiceImpl(
+    roLdap, nodeDitImpl, acceptedNodesDitImpl, ldapEntityMapper,
     //nodeAttributes
     Seq(LDAPConstants.A_NAME, LDAPConstants.A_NODE_UUID),
     //serverAttributes
@@ -1007,68 +846,52 @@ class AppConfig extends Loggable {
       , LDAPConstants.A_OS_SERVICE_PACK
       , LDAPConstants.A_OS_KERNEL_VERSION
     ))
-
-  @Bean
-  def logDisplayer: LogDisplayer = new LogDisplayer(reportsRepository, roLdapDirectiveRepository, roLdapRuleRepository)
-
-  @Bean
-  def categoryHierarchyDisplayer: CategoryHierarchyDisplayer = new CategoryHierarchyDisplayer(roLdapNodeGroupRepository)
-
-  @Bean
-  def dyngroupUpdaterBatch: UpdateDynamicGroups = new UpdateDynamicGroups(
-      dynGroupService
-    , new DynGroupUpdaterServiceImpl(roLdapNodeGroupRepository, rwLdapNodeGroupRepository, queryProcessor)
-    , asyncDeploymentAgent
+  private[this] lazy val logDisplayerImpl: LogDisplayer = new LogDisplayer(reportsRepository, roLdapDirectiveRepository, roLdapRuleRepository)
+  private[this] lazy val categoryHierarchyDisplayerImpl: CategoryHierarchyDisplayer = new CategoryHierarchyDisplayer(roLdapNodeGroupRepository)
+  private[this] lazy val dyngroupUpdaterBatch: UpdateDynamicGroups = new UpdateDynamicGroups(
+      dynGroupServiceImpl
+    , new DynGroupUpdaterServiceImpl(roLdapNodeGroupRepository, woLdapNodeGroupRepository, queryProcessor)
+    , asyncDeploymentAgentImpl
     , uuidGen
-    , dyngroupUpdateInterval
+    , RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL
   )
 
-
-  @Bean
-  def dbCleaner: AutomaticReportsCleaning = {
+  private[this] lazy val dbCleaner: AutomaticReportsCleaning = {
     val cleanFrequency = AutomaticReportsCleaning.buildFrequency(
-        reportCleanerFrequency
-      , reportCleanerRuntimeMinute
-      , reportCleanerRuntimeHour
-      , reportCleanerRuntimeDay) match {
+        RUDDER_BATCH_REPORTSCLEANER_FREQUENCY
+      , RUDDER_BATCH_DATABASECLEANER_RUNTIME_MINUTE
+      , RUDDER_BATCH_DATABASECLEANER_RUNTIME_HOUR
+      , RUDDER_BATCH_DATABASECLEANER_RUNTIME_DAY) match {
       case Full(freq) => freq
       case eb:EmptyBox => val fail = eb ?~! "automatic reports cleaner is not correct"
         val exceptionMsg = "configuration file (/opt/rudder/etc/rudder-webapp.conf) is not correctly set, cause is %s".format(fail.msg)
         throw new RuntimeException(exceptionMsg)
     }
-    
+
     new AutomaticReportsCleaning(
-      databaseManager
-    , reportCleanerDeleteTTL
+      databaseManagerImpl
+    , RUDDER_BATCH__REPORTSCLEANER_DELETE_TTL
     , reportCleanerArchiveTTL
     , cleanFrequency
   )}
-    
-    
-  @Bean
-  def ptLibCron = new CheckTechniqueLibrary(
-      techniqueRepository
-    , asyncDeploymentAgent
+
+  private[this] lazy val ptLibCron = new CheckTechniqueLibrary(
+      techniqueRepositoryImpl
+    , asyncDeploymentAgentImpl
     , uuidGen
-    , ptlibUpdateInterval
+    , RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
   )
-
-  @Bean
-  def userSessionLogEvent = new UserSessionLogEvent(logRepository, uuidGen)
-
-  @Bean
-  def jsTreeUtilService = new JsTreeUtilService(roLdapDirectiveRepository, techniqueRepository)
-
-  @Bean
-  def removeNodeService = new RemoveNodeServiceImpl(
-        nodeDit
-      , rudderDit
+  private[this] lazy val userSessionLogEvent = new UserSessionLogEvent(logRepository, uuidGen)
+  private[this] lazy val jsTreeUtilServiceImpl = new JsTreeUtilService(roLdapDirectiveRepository, techniqueRepositoryImpl)
+  private[this] lazy val removeNodeServiceImpl = new RemoveNodeServiceImpl(
+        nodeDitImpl
+      , rudderDitImpl
       , rwLdap
       , ldapEntityMapper
       , roLdapNodeGroupRepository
-      , rwLdapNodeGroupRepository
-      , nodeConfigurationService
-      , nodeInfoService
+      , woLdapNodeGroupRepository
+      , nodeConfigurationServiceImpl
+      , nodeInfoServiceImpl
       , ldapFullInventoryRepository
       , logRepository
       , nodeReadWriteMutex)
@@ -1078,24 +901,18 @@ class AppConfig extends Loggable {
    */
 
 
-
-  @Bean
-  def eventLogsMigration_10_2 = new EventLogsMigration_10_2(
+  private[this] lazy val eventLogsMigration_10_2 = new EventLogsMigration_10_2(
       jdbcTemplate      = jdbcTemplate
     , eventLogMigration = new EventLogMigration_10_2(xmlMigration_10_2)
     , errorLogger       = MigrationLogger(2).defaultErrorLogger
     , successLogger     = MigrationLogger(2).defaultSuccessLogger
     , batchSize         = 1000
    )
-
-  @Bean
-  def eventLogsMigration_10_2_Management = new ControlEventLogsMigration_10_2(
+  private[this] lazy val eventLogsMigration_10_2_Management = new ControlEventLogsMigration_10_2(
       migrationEventLogRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
     , eventLogsMigration_10_2
   )
-
-  @Bean
-  def eventLogsMigration_2_3 = new EventLogsMigration_2_3(
+  private[this] lazy val eventLogsMigration_2_3 = new EventLogsMigration_2_3(
       jdbcTemplate      = jdbcTemplate
     , eventLogMigration = new EventLogMigration_2_3(xmlMigration_2_3)
     , eventLogsMigration_10_2 = eventLogsMigration_10_2
@@ -1103,9 +920,7 @@ class AppConfig extends Loggable {
     , successLogger     = MigrationLogger(3).defaultSuccessLogger
     , batchSize         = 1000
    )
-
-  @Bean
-  def eventLogsMigration_2_3_Management = new ControlEventLogsMigration_2_3(
+  private[this] lazy val eventLogsMigration_2_3_Management = new ControlEventLogsMigration_2_3(
           migrationEventLogRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
         , eventLogsMigration_2_3
         , eventLogsMigration_10_2_Management
@@ -1116,39 +931,19 @@ class AppConfig extends Loggable {
    * Bootstrap check actions
    * **************************************************
    */
-  @Bean
-  def allChecks = new SequentialImmediateBootStrapChecks(
-      new CheckDIT(pendingNodesDit, acceptedNodesDit, removedNodesDit, rudderDit, rwLdap)
+  private[this] lazy val allChecks = new SequentialImmediateBootStrapChecks(
+      new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
     , new CheckRootNodeUnicity(ldapNodeConfigurationRepository)
-    , new CheckSystemDirectives(rudderDit, roLdapRuleRepository)
+    , new CheckSystemDirectives(rudderDitImpl, roLdapRuleRepository)
     , new CheckInitUserTemplateLibrary(
-        rudderDit, rwLdap, techniqueRepository,
-        roLdapDirectiveRepository, rwLdapDirectiveRepository, uuidGen) //new CheckDirectiveBusinessRules()
+        rudderDitImpl, rwLdap, techniqueRepositoryImpl,
+        roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen) //new CheckDirectiveBusinessRules()
     , new CheckMigrationEventLog2_3(eventLogsMigration_2_3_Management)
-    , new CheckInitXmlExport(itemArchiveManager, personIdentService, uuidGen)
-    , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(roLdapDirectiveRepository, rwLdapDirectiveRepository, uuidGen)
+    , new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen)
+    , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen)
   )
 
 
-  //////////////////////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////////////// REST ///////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////////////////
-
-
-  @Bean
-  def restDeploy = new RestDeploy(asyncDeploymentAgent, uuidGen)
-
-  @Bean
-  def restDyngroup = new RestDyngroupReload(dyngroupUpdaterBatch)
-
-  @Bean
-  def restDptLibReload = new RestTechniqueReload(techniqueRepository, uuidGen)
-
-  @Bean
-  def restArchiving = new RestArchiving(itemArchiveManager,personIdentService, uuidGen)
-
-  @Bean
-  def restZipArchiving = new RestGetGitCommitAsZip(gitRepo)
 
   //////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////// Directive Editor and web fields //////////////////////////////
@@ -1190,7 +985,7 @@ class AppConfig extends Loggable {
     override def default(id: String) = new TextField(id)
   }
 
-  @Bean def section2FieldService: Section2FieldService = {
+  private[this] lazy val section2FieldService: Section2FieldService = {
       def translators = {
         val t = new Translators()
         t.add(StringTranslator)
@@ -1203,31 +998,38 @@ class AppConfig extends Loggable {
       }
     new Section2FieldService(FieldFactoryImpl, translators)
   }
-
-  @Bean
-  def directiveEditorService: DirectiveEditorService =
-    new DirectiveEditorServiceImpl(techniqueRepository, section2FieldService)
-
-  @Bean
-  def reportDisplayer = new ReportDisplayer(
+  private[this] lazy val directiveEditorServiceImpl: DirectiveEditorService =
+    new DirectiveEditorServiceImpl(techniqueRepositoryImpl, section2FieldService)
+  private[this] lazy val reportDisplayerImpl = new ReportDisplayer(
       roLdapRuleRepository
     , roLdapDirectiveRepository
-    , reportingService
-    , techniqueRepository)
-
-  @Bean
-  def propertyRepository = new RudderPropertiesSquerylRepository(
+    , reportingServiceImpl
+    , techniqueRepositoryImpl)
+  private[this] lazy val propertyRepository = new RudderPropertiesSquerylRepository(
       squerylDatasourceProvider
     , reportsRepository )
-
-  @Bean
-  def automaticReportLogger = new AutomaticReportLogger(
+  private[this] lazy val automaticReportLogger = new AutomaticReportLogger(
       propertyRepository
     , reportsRepository
     , roLdapRuleRepository
     , roLdapDirectiveRepository
-    , nodeInfoService
-    , reportLogInterval )
+    , nodeInfoServiceImpl
+    , RUDDER_BATCH_REPORTS_LOGINTERVAL )
+
+//  ////////////////////// Snippet plugins & extension register //////////////////////
+//  import com.normation.plugins.{ SnippetExtensionRegister, SnippetExtensionRegisterImpl }
+//  private[this] lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
+
+}
+
+
+/**
+ * Spring configuration for services
+ */
+@Configuration
+@Import(Array(classOf[AppConfigAuth]))
+class AppConfig extends Loggable {
+
 
   ////////////////////// Snippet plugins & extension register //////////////////////
   import com.normation.plugins.{ SnippetExtensionRegister, SnippetExtensionRegisterImpl }

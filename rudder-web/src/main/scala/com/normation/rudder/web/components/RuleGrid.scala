@@ -51,7 +51,6 @@ import scala.xml._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.utils.StringUuidGenerator
 import com.normation.exceptions.TechnicalException
 import com.normation.utils.Control.sequence
@@ -61,6 +60,7 @@ import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.domain.reports.bean._
 import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 
 object RuleGrid {
@@ -81,14 +81,14 @@ class RuleGrid(
     showCheckboxColumn:Boolean = true
 ) extends DispatchSnippet with Loggable {
 
-  private[this] val targetInfoService = inject[RuleTargetService]
-  private[this] val directiveRepository = inject[RoDirectiveRepository]
-  private[this] val roRuleRepository = inject[RoRuleRepository]
-  private[this] val woRuleRepository = inject[WoRuleRepository]
-  private[this] val uuidGen = inject[StringUuidGenerator]
-
-  private[this] val reportingService = inject[ReportingService]
-  private[this] val nodeInfoService = inject[NodeInfoService]
+  private[this] val targetInfoService   = RudderConfig.ruleTargetService
+  private[this] val directiveRepository = RudderConfig.roDirectiveRepository
+  private[this] val roRuleRepository    = RudderConfig.roRuleRepository
+  private[this] val woRuleRepository    = RudderConfig.woRuleRepository
+  private[this] val uuidGen             = RudderConfig.stringUuidGenerator
+  private[this] val techniqueRepository = RudderConfig.techniqueRepository
+  private[this] val reportingService    = RudderConfig.reportingService
+  private[this] val nodeInfoService     = RudderConfig.nodeInfoService
 
   private[this] val htmlId_rulesGridId = "grid_" + htmlId_rulesGridZone
 
@@ -96,7 +96,6 @@ class RuleGrid(
   private[this] val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
   private[this] val tableId_reportsPopup = "popupReportsGrid"
 
-  private[this] val techniqueRepository = inject[TechniqueRepository]
 
   def templatePath = List("templates-hidden", "reports_grid")
   def template() =  Templates(templatePath) match {
@@ -462,7 +461,7 @@ class RuleGrid(
           OKLine(rule, compliance, seq, targets)
         case (x,y) =>
           //the Rule has some error, try to disactivate it
-          woRuleRepository.update(rule.copy(isEnabledStatus=false), ModificationId(uuidGen.newUuid), RudderEventActor, 
+          woRuleRepository.update(rule.copy(isEnabledStatus=false), ModificationId(uuidGen.newUuid), RudderEventActor,
             Some("Rule automatically disabled because it contains error (bad target or bad directives)"))
           ErrorLine(rule, x, y)
       }
