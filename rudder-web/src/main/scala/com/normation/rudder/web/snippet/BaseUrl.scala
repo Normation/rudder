@@ -40,7 +40,7 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
 import net.liftweb.util._
 import com.normation.rudder.web.services.GetBaseUrlService
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
+import bootstrap.liftweb.RudderConfig
 
 /**
  *
@@ -50,7 +50,7 @@ import bootstrap.liftweb.LiftSpringApplicationContext.inject
  */
 class BaseUrl {
 
-  val urlService = inject[GetBaseUrlService]
+  private[this] val urlService = RudderConfig.getBaseUrlService
 
   /*
    * We still need to have a base url for some javascript

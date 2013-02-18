@@ -43,7 +43,6 @@ import JsCmds._
 import JE._
 import scala.xml.NodeSeq
 import collection.mutable.Buffer
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository._
 import com.normation.rudder.services.user.PersonIdentService
@@ -58,15 +57,16 @@ import com.normation.eventlog.EventActor
 import com.normation.cfclerk.services.GitRevisionProvider
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
+import bootstrap.liftweb.RudderConfig
 
 class Archives extends DispatchSnippet with Loggable {
 
   private[this] val DL_NAME = "Download as zip"
 
-  private[this] val itemArchiver        = inject[ItemArchiveManager]
-  private[this] val personIdentService  = inject[PersonIdentService]
-  private[this] val gitRevisionProvider = inject[GitRevisionProvider]
-  private[this] val uuidGen             = inject[StringUuidGenerator]
+  private[this] val itemArchiver        = RudderConfig.itemArchiveManager
+  private[this] val personIdentService  = RudderConfig.personIdentService
+  private[this] val gitRevisionProvider = RudderConfig.gitRevisionProvider
+  private[this] val uuidGen             = RudderConfig.stringUuidGenerator
 
   private[this] val noElements = NotArchivedElements(Seq(),Seq(),Seq())
 

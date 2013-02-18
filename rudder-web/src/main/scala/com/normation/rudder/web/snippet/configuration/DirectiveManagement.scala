@@ -42,7 +42,6 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.web.components.{DirectiveEditForm,DateFormaterService}
 import com.normation.rudder.repository._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import scala.xml._
 import net.liftweb.common._
 import Box._
@@ -54,6 +53,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util._
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.rudder.web.services.JsTreeUtilService
+import bootstrap.liftweb.RudderConfig
 
 /**
  * Snippet for managing the System and Active Technique libraries.
@@ -68,10 +68,10 @@ import com.normation.rudder.web.services.JsTreeUtilService
 class DirectiveManagement extends DispatchSnippet with Loggable {
   import DirectiveManagement._
 
-  val techniqueRepository = inject[TechniqueRepository]
-  val directiveRepository = inject[RoDirectiveRepository]
-  val uuidGen = inject[StringUuidGenerator]
-  val treeUtilService = inject[JsTreeUtilService]
+  val techniqueRepository = RudderConfig.techniqueRepository
+  val directiveRepository = RudderConfig.roDirectiveRepository
+  val uuidGen             = RudderConfig.stringUuidGenerator
+  val treeUtilService     = RudderConfig.jsTreeUtilService
 
 
   def dispatch = {

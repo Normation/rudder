@@ -58,8 +58,8 @@ import com.normation.rudder.web.components.{
 import com.normation.rudder.domain.policies.{GroupTarget,Rule}
 import com.normation.rudder.repository._
 import com.normation.utils.StringUuidGenerator
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
+import bootstrap.liftweb.RudderConfig
 
 /**
  * Snippet for managing Rules.
@@ -70,9 +70,9 @@ import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
 class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleManagement] with Loggable {
   import RuleManagement._
 
-  private[this] val ruleRepository = inject[RoRuleRepository]
-  private[this] val targetInfoService = inject[RuleTargetService]
-  private[this] val uuidGen = inject[StringUuidGenerator]
+  private[this] val ruleRepository    = RudderConfig.roRuleRepository
+  private[this] val targetInfoService = RudderConfig.ruleTargetService
+  private[this] val uuidGen           = RudderConfig.stringUuidGenerator
 
   //the popup component
   private[this] val creationPopup = new LocalSnippet[CreateOrCloneRulePopup]

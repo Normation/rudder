@@ -39,7 +39,6 @@ import net.liftweb.http.DispatchSnippet
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import scala.xml._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.system.DatabaseManager
 import com.normation.rudder.web.components.DateFormaterService
 import org.joda.time.DateTime
@@ -52,11 +51,13 @@ import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.batch.AutomaticReportsCleaning
+import bootstrap.liftweb.RudderConfig
 
 class DatabaseManagement extends DispatchSnippet with Loggable {
 
-  private[this] val databaseManager = inject[DatabaseManager]
-  private[this] val dbCleaner = inject[AutomaticReportsCleaning]
+  private[this] val databaseManager = RudderConfig.databaseManager
+  private[this] val dbCleaner       = RudderConfig.automaticReportsCleaning
+
   private[this] var from : String = ""
   val archiveAction = ArchiveAction(databaseManager,dbCleaner)
   val deleteAction  = DeleteAction(databaseManager,dbCleaner)

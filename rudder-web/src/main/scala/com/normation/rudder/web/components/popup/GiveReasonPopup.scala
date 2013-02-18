@@ -54,9 +54,9 @@ import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField,WBSelectField, CurrentUser
 }
 import com.normation.rudder.repository._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 
 class GiveReasonPopup(
@@ -78,12 +78,11 @@ class GiveReasonPopup(
   def popupTemplate = chooseTemplate("reason", "giveReasonPopup", template)
 
 
-  private[this] val uuidGen = inject[StringUuidGenerator]
-  private[this] val roActiveTechniqueRepository = inject[RoDirectiveRepository]
-  private[this] val rwActiveTechniqueRepository = inject[WoDirectiveRepository]
-
-  private[this] val userPropertyService = inject[UserPropertyService]
-  private[this] val techniqueRepository = inject[TechniqueRepository]
+  private[this] val uuidGen                     = RudderConfig.stringUuidGenerator
+  private[this] val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
+  private[this] val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
+  private[this] val userPropertyService         = RudderConfig.userPropertyService
+  private[this] val techniqueRepository         = RudderConfig.techniqueRepository
 
   def dispatch = {
     case "popupContent" => popupContent _

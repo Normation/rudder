@@ -73,6 +73,7 @@ import com.normation.rudder.domain.eventlog.{
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
+import bootstrap.liftweb.RudderConfig
 
 /**
  * Check for server in the pending repository and propose to
@@ -81,15 +82,15 @@ import com.normation.utils.StringUuidGenerator
  */
 class AcceptNode {
   val logger               = LoggerFactory.getLogger(classOf[AcceptNode])
-  val newNodeManager       = inject[NewNodeManager]
-  val rudderDit            = inject[RudderDit]
-  val serverGrid           = inject[NodeGrid]
-  val serverSummaryService = inject[NodeSummaryService]
-  val diffRepos            = inject[InventoryHistoryLogRepository]
-  val logRepository        = inject[EventLogRepository]
-  val acceptedNodesDit     = inject[InventoryDit]("acceptedNodesDit")
-  val pendingNodeDit       = inject[InventoryDit]("pendingNodesDit")
-  val uuidGen              = inject[StringUuidGenerator]
+  val newNodeManager       = RudderConfig.newNodeManager
+  val rudderDit            = RudderConfig.rudderDit
+  val serverGrid           = RudderConfig.nodeGrid
+  val serverSummaryService = RudderConfig.nodeSummaryService
+  val diffRepos            = RudderConfig.inventoryHistoryLogRepository
+  val logRepository        = RudderConfig.eventLogRepository
+  val acceptedNodesDit     = RudderConfig.acceptedNodesDit
+  val pendingNodeDit       = RudderConfig.pendingNodesDit
+  val uuidGen              = RudderConfig.stringUuidGenerator
 
   val gridHtmlId = "acceptNodeGrid"
 

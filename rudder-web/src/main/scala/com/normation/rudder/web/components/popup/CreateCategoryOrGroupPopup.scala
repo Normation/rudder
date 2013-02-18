@@ -56,7 +56,6 @@ import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField, WBSelectField, WBRadioField
 }
 import com.normation.rudder.repository._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.domain.queries.DitQueryData
@@ -66,6 +65,7 @@ import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.services.CategoryHierarchyDisplayer
+import bootstrap.liftweb.RudderConfig
 
 /**
  * Create a group or a category
@@ -91,12 +91,13 @@ class CreateCategoryOrGroupPopup(
   def popupTemplate = chooseTemplate("groups", "createGroupPopup", template)
 
 
-  private[this] val roNodeGroupRepository = inject[RoNodeGroupRepository]
-  private[this] val woNodeGroupRepository = inject[WoNodeGroupRepository]
-  private[this] val nodeInfoService = inject[NodeInfoService]
-  private[this] val categoryHierarchyDisplayer = inject[CategoryHierarchyDisplayer]
-  private[this] val uuidGen = inject[StringUuidGenerator]
-  private[this] val userPropertyService = inject[UserPropertyService]
+  private[this] val roNodeGroupRepository      = RudderConfig.roNodeGroupRepository
+  private[this] val woNodeGroupRepository      = RudderConfig.woNodeGroupRepository
+  private[this] val nodeInfoService            = RudderConfig.nodeInfoService
+  private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
+  private[this] val uuidGen                    = RudderConfig.stringUuidGenerator
+  private[this] val userPropertyService        = RudderConfig.userPropertyService
+  private[this] val ditQueryData               = RudderConfig.ditQueryData
 
   var createContainer = false //issue #1190 always create a group by default
 
@@ -263,9 +264,7 @@ class CreateCategoryOrGroupPopup(
             onFailure & onFailureCallback()
         }
       } else {
-        // we are creating a group
-        lazy val ditQueryData = inject[DitQueryData]("ditQueryData")
-        val defaultLine =     CriterionLine(
+        val defaultLine = CriterionLine(
               objectType = ditQueryData.criteriaMap(OC_NODE)
             , attribute  = ditQueryData.criteriaMap(OC_NODE).criteria(0)
             , comparator = ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0)

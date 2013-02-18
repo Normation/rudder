@@ -68,6 +68,7 @@ import com.normation.plugins.SnippetExtensionKey
 import com.normation.plugins.SpringExtendableSnippet
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
+import bootstrap.liftweb.RudderConfig
 
 
 object Groups {
@@ -88,9 +89,9 @@ object Groups {
 class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with Loggable {
   import Groups._
 
-  private[this] val roNodeGroupRepository   = inject[RoNodeGroupRepository]
-  private[this] val woNodeGroupRepository   = inject[WoNodeGroupRepository]
-  private[this] val uuidGen                 = inject[StringUuidGenerator]
+  private[this] val roNodeGroupRepository = RudderConfig.roNodeGroupRepository
+  private[this] val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
+  private[this] val uuidGen               = RudderConfig.stringUuidGenerator
 
   def mainDispatch =  Map(
       "head" -> head _ ,

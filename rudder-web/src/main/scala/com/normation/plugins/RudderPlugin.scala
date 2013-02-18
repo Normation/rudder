@@ -35,10 +35,14 @@
 package com.normation.plugins
 
 import scala.xml.NodeSeq
-import net.liftweb.sitemap.Menu
-import com.normation.utils.Utils.nonEmpty
-import com.normation.utils.HashcodeCaching
+
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.utils.HashcodeCaching
+import com.normation.utils.Utils.nonEmpty
+import com.typesafe.config.{ Config, ConfigFactory }
+
+import bootstrap.liftweb.{ ClassPathResource, ConfigResource, FileSystemResource, RudderProperties }
+import net.liftweb.sitemap.Menu
 
 case class PluginVersion(
     major : Int
@@ -112,5 +116,30 @@ trait RudderPluginDef {
   def updateSiteMap(menus:List[Menu]) : List[Menu] = menus
 
   def basePackage : String
+
+  /**
+   * A list of config files to get properties from.
+   * If some properties are defined in different config files,
+   * the will be overriden (the last in the sequence win).
+   */
+  def configFiles: Seq[ConfigResource]
+
+  /**
+   * Build the map of config properties.
+   */
+  lazy val config : Config = {
+    val configs = configFiles.map {
+      case ClassPathResource(name) => ConfigFactory.load(name)
+      case FileSystemResource(file) => ConfigFactory.load(ConfigFactory.parseFile(file))
+    }
+
+    if(configs.isEmpty) {
+      RudderProperties.config
+    } else {
+      configs.reduceLeft[Config] { case (config, newConfig) =>
+        newConfig.withFallback(config)
+      }
+    }
+  }
 
 }
