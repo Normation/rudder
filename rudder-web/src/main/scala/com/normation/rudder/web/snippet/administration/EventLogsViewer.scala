@@ -37,15 +37,14 @@ package com.normation.rudder.web.snippet.administration
 import com.normation.eventlog.EventLog
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.web.services.EventListDisplayer
-
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import net.liftweb.common._
 import net.liftweb.http.js.JsCmds.Script
 import net.liftweb.http.DispatchSnippet
+import bootstrap.liftweb.RudderConfig
 
 class EventLogsViewer extends DispatchSnippet with Loggable {
-  private[this] val repos = inject[EventLogRepository]
-  private[this] val eventList = inject[EventListDisplayer]
+  private[this] val repos     = RudderConfig.eventLogRepository
+  private[this] val eventList = RudderConfig.eventListDisplayer
 
   private[this] val gridName = "eventLogsGrid"
 

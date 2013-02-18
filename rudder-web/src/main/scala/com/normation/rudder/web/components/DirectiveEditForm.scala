@@ -51,7 +51,6 @@ import scala.xml._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.web.model._
 import com.normation.rudder.repository._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.domain.eventlog._
@@ -62,6 +61,7 @@ import com.normation.rudder.web.components.popup.CreateDirectivePopup
 import com.normation.rudder.web.snippet.configuration.DirectiveManagement
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
+import bootstrap.liftweb.RudderConfig
 
 object DirectiveEditForm {
 
@@ -142,12 +142,12 @@ class DirectiveEditForm(
 
   val currentDirectiveSettingForm = new LocalSnippet[DirectiveEditForm]
 
-  private[this] val directiveRepository    = inject[WoDirectiveRepository]
-  private[this] val dependencyService      = inject[DependencyAndDeletionService]
-  private[this] val directiveEditorService = inject[DirectiveEditorService]
-  private[this] val asyncDeploymentAgent   = inject[AsyncDeploymentAgent]
-  private[this] val userPropertyService    = inject[UserPropertyService]
-  private[this] val uuidGen                = inject[StringUuidGenerator]
+  private[this] val directiveRepository    = RudderConfig.woDirectiveRepository
+  private[this] val dependencyService      = RudderConfig.dependencyAndDeletionService
+  private[this] val directiveEditorService = RudderConfig.directiveEditorService
+  private[this] val asyncDeploymentAgent   = RudderConfig.asyncDeploymentAgent
+  private[this] val userPropertyService    = RudderConfig.userPropertyService
+  private[this] val uuidGen                = RudderConfig.stringUuidGenerator
 
 
   private[this] val htmlId_save = htmlId_policyConf + "Save"

@@ -57,7 +57,6 @@ import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField,WBSelectField,WBRadioField
 }
 import com.normation.rudder.repository._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.nodes.NodeInfoService
 import NodeGroupForm._
 import com.normation.rudder.web.model.CurrentUser
@@ -69,6 +68,7 @@ import com.normation.plugins.SnippetExtensionKey
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.web.services.CategoryHierarchyDisplayer
+import bootstrap.liftweb.RudderConfig
 
 object NodeGroupForm {
 
@@ -146,19 +146,19 @@ class NodeGroupForm(
 
   var _nodeGroup = nodeGroup.map(x => x.copy())
 
-  private[this] val roNodeGroupRepository     = inject[RoNodeGroupRepository]
-  private[this] val woNodeGroupRepository     = inject[WoNodeGroupRepository]
-  private[this] val nodeInfoService         = inject[NodeInfoService]
-  private[this] val dependencyService       = inject[DependencyAndDeletionService]
-  private[this] val asyncDeploymentAgent    = inject[AsyncDeploymentAgent]
-  private[this] val userPropertyService     = inject[UserPropertyService]
-  private[this] val uuidGen                 = inject[StringUuidGenerator]
+  private[this] val roNodeGroupRepository      = RudderConfig.roNodeGroupRepository
+  private[this] val woNodeGroupRepository      = RudderConfig.woNodeGroupRepository
+  private[this] val nodeInfoService            = RudderConfig.nodeInfoService
+  private[this] val dependencyService          = RudderConfig.dependencyAndDeletionService
+  private[this] val asyncDeploymentAgent       = RudderConfig.asyncDeploymentAgent
+  private[this] val userPropertyService        = RudderConfig.userPropertyService
+  private[this] val uuidGen                    = RudderConfig.stringUuidGenerator
+  private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
 
 
   //the current nodeGroupCategoryForm component
   private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm]
 
-  private[this] val categoryHierarchyDisplayer = inject[CategoryHierarchyDisplayer]
 
 
   var parentCategory = Option.empty[Box[NodeGroupCategory]]
@@ -722,9 +722,9 @@ class NodeGroupForm(
     val newNodeGroup = new NodeGroup(originalNodeGroup.id, name, description, Some(query), isDynamic, nodeList.toSet, isEnabled, originalNodeGroup.isSystem)
     val modId = ModificationId(uuidGen.newUuid)
     (for {
-      moved <- woNodeGroupRepository.move(originalNodeGroup, NodeGroupCategoryId(container), modId, CurrentUser.getActor, crReasons.map(_.is)) ?~! 
+      moved <- woNodeGroupRepository.move(originalNodeGroup, NodeGroupCategoryId(container), modId, CurrentUser.getActor, crReasons.map(_.is)) ?~!
                "Error when moving NodeGroup %s ('%s') to '%s'".format(originalNodeGroup.id, originalNodeGroup.name, container)
-      saved <- woNodeGroupRepository.update(newNodeGroup, modId, CurrentUser.getActor, crReasons.map(_.is)) ?~! 
+      saved <- woNodeGroupRepository.update(newNodeGroup, modId, CurrentUser.getActor, crReasons.map(_.is)) ?~!
                "Error when updating the group %s".format(originalNodeGroup.id)
     } yield {
       (moved,saved)

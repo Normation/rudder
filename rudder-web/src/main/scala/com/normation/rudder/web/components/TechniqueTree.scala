@@ -46,13 +46,13 @@ import net.liftweb.http.{SHtml,S}
 import scala.xml._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 import com.normation.rudder.repository._
 import com.normation.rudder.services.policies._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
+import bootstrap.liftweb.RudderConfig
 
 /**
  * A component to display a tree based on a
@@ -69,12 +69,10 @@ class TechniqueTree(
 ) extends DispatchSnippet with Loggable {
 
   //find Technique
-  val techniqueRepository = inject[TechniqueRepository]
-  val activeTechniqueRepository = inject[RoDirectiveRepository]
-
-  val dependencyService = inject[DependencyAndDeletionService]
-
-  val ruleRepository = inject[RoRuleRepository]
+  val techniqueRepository       = RudderConfig.techniqueRepository
+  val activeTechniqueRepository = RudderConfig.roDirectiveRepository
+  val dependencyService         = RudderConfig.dependencyAndDeletionService
+  val ruleRepository            = RudderConfig.roRuleRepository
 
   def dispatch = {
     case "tree" => { _ => tree }

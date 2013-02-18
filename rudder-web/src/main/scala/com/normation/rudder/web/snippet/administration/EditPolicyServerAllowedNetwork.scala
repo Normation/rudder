@@ -43,7 +43,6 @@ import JsCmds._
 import JE._
 import scala.xml.NodeSeq
 import collection.mutable.Buffer
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.utils.NetUtils.isValidNetwork
 import com.normation.rudder.domain.Constants
@@ -57,13 +56,14 @@ import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
-  private[this] val psService            = inject[PolicyServerManagementService]
-  private[this] val eventLogService      = inject[EventLogRepository]
-  private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
-  private[this] val uuidGen              = inject[StringUuidGenerator]
+  private[this] val psService            = RudderConfig.policyServerManagementService
+  private[this] val eventLogService      = RudderConfig.eventLogRepository
+  private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
 
   /*
    * We are forced to use that class to deals with multiple request
