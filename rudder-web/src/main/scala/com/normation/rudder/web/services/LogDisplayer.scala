@@ -110,7 +110,7 @@ class LogDisplayer(
       CRMap.get(ruleId).getOrElse({val result = ruleRepository.get(ruleId).map(x => x.name).openOr(ruleId.value); CRMap += ( ruleId -> result); result } )
     }
 
-    val lines = reportRepository.findReportsByNode(nodeId, None, None, None, None).flatMap {
+    val lines : NodeSeq = reportRepository.findReportsByNode(nodeId, None, None, None, None).flatMap {
           case Reports(executionDate, ruleId, directiveId, nodeId, serial, component, keyValue, executionTimestamp, severity, message) =>
            <tr>
             <td>{DateFormaterService.getFormatedDate(executionDate)}</td>
