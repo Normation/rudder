@@ -213,11 +213,10 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
       "header" -> (columns flatMap { c => <th>{c._1}<span/></th> }),
       "lines" -> ( servers.flatMap { case s@Srv(id,status, hostname,ostype,osname,osFullName,ips,creationDate) =>
         //build all table lines
-
         (".hostname *" #> {(if(isEmpty(hostname)) "(Missing host name) " + id.value else hostname)} &
          ".fullos *" #> osFullName &
-         ".ips *" #> (ips.flatMap{ ip => <div class="ip">{ip}</div> }) & // TODO : enhance this
-         ".other" #> (columns flatMap { c => <td style="overflow:hidden">{c._2(s)}</td> }) &
+         ".ips *" #> ( (ips.flatMap{ ip => <div class="ip">{ip}</div> }):NodeSeq ) & // TODO : enhance this
+         ".other" #> ( (columns flatMap { c => <td style="overflow:hidden">{c._2(s)}</td> }):NodeSeq ) &
          ".nodetr [jsuuid]" #> {id.value.replaceAll("-","")} &
          ".nodetr [nodeid]" #> {id.value} &
          ".nodetr [nodestatus]" #> {status.name}
