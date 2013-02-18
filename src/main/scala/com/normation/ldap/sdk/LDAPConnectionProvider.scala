@@ -255,7 +255,7 @@ trait PooledConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionP
   def poolSize : Int
   def ldifFileLogger:LDIFFileLogger
 
-  private val pool = {
+  protected val pool = {
     new LDAPConnectionPool(self.newUnboundidConnection, poolSize)
   }
 
@@ -279,7 +279,7 @@ trait PooledConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionP
 class ROAnonymousConnectionProvider(
   override val host : String = "localhost",
   override val port : Int = 389,
-  override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(), 
+  override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false
 ) extends AnonymousConnection with OneConnectionProvider[RoLDAPConnection] {
   def newConnection = new RoLDAPConnection(newUnboundidConnection,ldifFileLogger)
@@ -287,7 +287,7 @@ class ROAnonymousConnectionProvider(
 
 /**
  * Default implementation for a anonymous connection provider,
- * with no pool management. 
+ * with no pool management.
  */
 class RWAnonymousConnectionProvider(
   override val host : String = "localhost",
@@ -296,21 +296,21 @@ class RWAnonymousConnectionProvider(
   override val useSchemaInfos : Boolean = false
 ) extends AnonymousConnection with OneConnectionProvider[RwLDAPConnection] {
   def newConnection = new RwLDAPConnection(newUnboundidConnection,ldifFileLogger)
-} 
+}
 
 
 /**
- * Pooled implementation for an anonymous 
+ * Pooled implementation for an anonymous
  * connection provider
  */
 class ROPooledAnonymousConnectionProvider(
   override val host : String = "localhost",
   override val port : Int = 389,
-  override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(), 
+  override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
   override val poolSize : Int = 2
 ) extends AnonymousConnection with PooledConnectionProvider[RoLDAPConnection] {
-  def newConnection = new RoLDAPConnection(newUnboundidConnection,ldifFileLogger)
+  def newConnection = new RoLDAPConnection(pool.getConnection,ldifFileLogger)
 }
 
 /**
@@ -324,8 +324,8 @@ class RWPooledAnonymousConnectionProvider(
   override val useSchemaInfos : Boolean = false,
   override val poolSize : Int = 2
 ) extends AnonymousConnection with PooledConnectionProvider[RwLDAPConnection] {
-  def newConnection = new RwLDAPConnection(newUnboundidConnection,ldifFileLogger)
-} 
+  def newConnection = new RwLDAPConnection(pool.getConnection,ldifFileLogger)
+}
 
 /**
  * Default implementation for a connection provider:
@@ -345,19 +345,19 @@ class ROSimpleAuthConnectionProvider(
 
 /**
  * Default implementation for a connection provider:
- * a simple login/pass connection, with no pool 
- * management. 
+ * a simple login/pass connection, with no pool
+ * management.
  */
 class RWSimpleAuthConnectionProvider(
   override val authDn : String,
   override val authPw : String,
   override val host : String = "localhost",
   override val port : Int = 389,
-  override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(), 
+  override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false
 ) extends SimpleAuthConnection with OneConnectionProvider[RwLDAPConnection]{
   def newConnection = new RwLDAPConnection(newUnboundidConnection,ldifFileLogger)
-} 
+}
 
 /**
  * Pooled implementation for a connection provider
@@ -372,7 +372,7 @@ class ROPooledSimpleAuthConnectionProvider(
   override val useSchemaInfos : Boolean = false,
   override val poolSize : Int = 2
 ) extends SimpleAuthConnection with PooledConnectionProvider[RoLDAPConnection] {
-  def newConnection = new RoLDAPConnection(newUnboundidConnection,ldifFileLogger)
+  def newConnection = new RoLDAPConnection(pool.getConnection,ldifFileLogger)
 }
 
 /**
@@ -384,9 +384,9 @@ class RWPooledSimpleAuthConnectionProvider(
   override val authPw : String,
   override val host : String = "localhost",
   override val port : Int = 389,
-  override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(), 
+  override val ldifFileLogger:LDIFFileLogger = new DefaultLDIFFileLogger(),
   override val useSchemaInfos : Boolean = false,
   override val poolSize : Int = 2
 ) extends SimpleAuthConnection with PooledConnectionProvider[RwLDAPConnection]{
-  def newConnection = new RwLDAPConnection(newUnboundidConnection,ldifFileLogger)
-} 
+  def newConnection = new RwLDAPConnection(pool.getConnection,ldifFileLogger)
+}
