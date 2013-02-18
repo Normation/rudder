@@ -149,14 +149,9 @@ class Section2FieldServiceTest extends Specification {
   object RootSectionField {
 
     def apply() = {
-      val appContext = new ScalaAnnotationConfigApplicationContext {}
-      appContext.setToNewContext(classOf[ConfigSection2FieldService])
 
-      import appContext._
-
-      val service = inject[Section2FieldService]
       val rootSectSpec = createRootSectionSpec
-      service.createSectionField(rootSectSpec,Map(),true)
+      ConfigSection2FieldService.section2FieldService.createSectionField(rootSectSpec,Map(),true)
     }
 
     def createRootSectionSpec = {
@@ -176,8 +171,7 @@ class Section2FieldServiceTest extends Specification {
 
 }
 
-@Configuration
-class ConfigSection2FieldService {
+object ConfigSection2FieldService {
 
   object FieldFactoryImpl extends DirectiveFieldFactory {
     //only one field
@@ -202,7 +196,6 @@ class ConfigSection2FieldService {
     override def default(id: String) = new TextField(id)
   }
 
-  @Bean
   def section2FieldService: Section2FieldService = {
       def translators = {
         val t = new Translators()

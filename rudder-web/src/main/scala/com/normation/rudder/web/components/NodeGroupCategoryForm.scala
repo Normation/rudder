@@ -48,10 +48,10 @@ import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField,WBSelectField, CurrentUser
 }
 import com.normation.rudder.repository._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.web.services.CategoryHierarchyDisplayer
+import bootstrap.liftweb.RudderConfig
 
 /**
  * The form that deals with updating the server group category
@@ -69,24 +69,22 @@ class NodeGroupCategoryForm(
 
   var _nodeGroupCategory = nodeGroupCategory.copy()
 
-  val roGroupCategoryRepository = inject[RoNodeGroupRepository]
-  val woGroupCategoryRepository = inject[WoNodeGroupRepository]
-
-  private[this] val uuidGen = inject[StringUuidGenerator]
-
-  private[this] val categoryHierarchyDisplayer = inject[CategoryHierarchyDisplayer]
+  private[this] val roGroupCategoryRepository = RudderConfig.roNodeGroupRepository
+  private[this] val woGroupCategoryRepository = RudderConfig.woNodeGroupRepository
+  private[this] val uuidGen                   = RudderConfig.stringUuidGenerator
+  private[this] val categoryHierarchyDisplayer= RudderConfig.categoryHierarchyDisplayer
 
   val categories = roGroupCategoryRepository.getAllNonSystemCategories match {
-    case eb:EmptyBox => 
+    case eb:EmptyBox =>
       val f = eb  ?~! "Can not get Group root category"
       logger.error(f.messageChain)
-      f.rootExceptionCause.foreach(ex => 
+      f.rootExceptionCause.foreach(ex =>
         logger.error("Exception was:", ex)
       )
       Seq()
     case Full(cats) => cats.filter(x => x.id != _nodeGroupCategory.id)
   }
-  
+
   val parentCategory = roGroupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id )
 
   val parentCategoryId = parentCategory match {

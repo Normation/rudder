@@ -46,10 +46,10 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField
 }
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import CreateDirectivePopup._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.domain.{TechniqueVersion,TechniqueName}
+import bootstrap.liftweb.RudderConfig
 
 
 
@@ -93,7 +93,7 @@ class CreateDirectivePopup(
   onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
-  private[this] val uuidGen = inject[StringUuidGenerator]
+  private[this] val uuidGen = RudderConfig.stringUuidGenerator
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }

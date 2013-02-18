@@ -38,7 +38,7 @@ import net.liftweb.common._
 import javax.servlet.{ServletContextEvent,ServletContextListener}
 import org.springframework.web.context.{WebApplicationContext,ContextLoaderListener}
 import org.springframework.web.context.support.WebApplicationContextUtils
-import org.springframework.core.io.{ClassPathResource,FileSystemResource}
+import org.springframework.core.io.{ClassPathResource => CPResource,FileSystemResource => FSResource}
 import java.io.File
 
 /**
@@ -61,11 +61,11 @@ class LiftInitContextListener extends ContextLoaderListener {
 
   val logbackFile = System.getProperty(JVM_CONFIG_FILE_KEY) match {
     case null | "" => //use default location in classpath
-      val path = new ClassPathResource(DEFAULT_CONFIG_FILE_NAME).getURL
+      val path = new CPResource(DEFAULT_CONFIG_FILE_NAME).getURL
       println("JVM property -D%s is not defined, use configuration file in classpath: /%s".format(JVM_CONFIG_FILE_KEY, path))
       path
     case x => //so, it should be a full path, check it
-      val config = new FileSystemResource(new File(x))
+      val config = new FSResource(new File(x))
       if(config.exists && config.isReadable) {
         println("Use configuration file defined by JVM property -D%s : %s".format(JVM_CONFIG_FILE_KEY, config.getPath))
         config.getURL
@@ -78,6 +78,12 @@ class LiftInitContextListener extends ContextLoaderListener {
   override def contextInitialized(sce:ServletContextEvent) : Unit = {
 
     Logger.setup = Full(Logback.withFile(logbackFile))
+    /// init all our non-spring services ///
+
+    val ms = System.currentTimeMillis()
+    RudderConfig.init
+    println(s"******* init RudderConfig: ${System.currentTimeMillis() - ms}ms" )
+
 
     //init Spring
 

@@ -57,11 +57,11 @@ import net.liftweb.util.Helpers._
 import com.normation.exceptions.TechnicalException
 import com.normation.rudder.web.services.SrvGrid
 import scala.collection.mutable.ArrayBuffer
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.inventory.ldap.core.LDAPConstants
 import LDAPConstants._
 import com.normation.rudder.domain.queries.OstypeComparator
 import net.liftweb.util.ToJsCmd
+import bootstrap.liftweb.RudderConfig
 
 /**
  * The Search Nodes component
@@ -87,8 +87,8 @@ class SearchNodeComponent(
   private[this] var srvList = _srvList.map(x => Seq() ++ x)
 
 
-  private[this] val nodeInfoService = inject[NodeInfoService]
-  private[this] val queryProcessor = inject[QueryProcessor]("queryProcessor")
+  private[this] val nodeInfoService = RudderConfig.nodeInfoService
+  private[this] val queryProcessor  = RudderConfig.acceptedNodeQueryProcessor
 
 
   // The portlet for the server detail
@@ -346,8 +346,8 @@ class SearchNodeComponent(
 
 //some global definition for our structure
 object SearchNodeComponent {
-  lazy val ditQueryData = inject[DitQueryData]("ditQueryData")
-  lazy val srvGrid =  inject[SrvGrid]
+  val ditQueryData = RudderConfig.ditQueryData
+  val srvGrid =  RudderConfig.srvGrid
 
   ////////
   //////// All the tools to handle the Ajax logic for

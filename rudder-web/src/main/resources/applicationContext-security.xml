@@ -60,7 +60,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
         <intercept-url pattern="/secure/**" access="isAuthenticated()" />
         
         <!--  If the ${rudder.rest.allowNonAuthenticatedUser} is true, REST API is open to anybody -->
-        <intercept-url pattern="/api/**" access="isAuthenticated() or ${rudder.rest.allowNonAuthenticatedUser}" />
+        <intercept-url pattern="/api/**" access="isAuthenticated() or T(bootstrap.liftweb.RudderConfig).RUDDER_REST_ALLOWNONAUTHENTICATEDUSER()" />
         
         <!-- End comment -->
     

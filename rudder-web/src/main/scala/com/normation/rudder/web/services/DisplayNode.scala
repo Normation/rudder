@@ -40,7 +40,6 @@ import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.unboundid.ldap.sdk.DN
 import com.normation.rudder.web.components.DateFormaterService
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import scala.xml._
 import net.liftweb.common._
@@ -60,6 +59,7 @@ import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 /**
  * A service used to display details about a server
@@ -75,10 +75,10 @@ import com.normation.eventlog.ModificationId
  */
 object DisplayNode extends Loggable {
 
-  private[this] val getSoftwareService   = inject[ReadOnlySoftwareDAO]
-  private[this] val removeNodeService    = inject[RemoveNodeService]
-  private[this] val asyncDeploymentAgent = inject[AsyncDeploymentAgent]
-  private[this] val uuidGen              = inject[StringUuidGenerator]
+  private[this] val getSoftwareService   = RudderConfig.readOnlySoftwareDAO
+  private[this] val removeNodeService    = RudderConfig.removeNodeService
+  private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
 
   private[this] val templatePath = List("templates-hidden", "server_details_tabs")
   private[this] def template() =  Templates(templatePath) match {

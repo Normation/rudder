@@ -19,7 +19,6 @@ import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField, WBSelectField, WBRadioField
 }
 import com.normation.rudder.repository._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.rudder.domain.eventlog.AddRule
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.repository._
@@ -27,6 +26,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 class CreateCloneGroupPopup(
   nodeGroup : Option[NodeGroup],
@@ -37,11 +37,11 @@ class CreateCloneGroupPopup(
   onFailureCallback : () => JsCmd = { () => Noop } )
   extends DispatchSnippet with Loggable {
 
-  private[this] val roNodeGroupRepository = inject[RoNodeGroupRepository]
-  private[this] val woNodeGroupRepository = inject[WoNodeGroupRepository]
-  private[this] val nodeInfoService = inject[NodeInfoService]
-  private[this] val uuidGen = inject[StringUuidGenerator]
-  private[this] val userPropertyService = inject[UserPropertyService]
+  private[this] val roNodeGroupRepository = RudderConfig.roNodeGroupRepository
+  private[this] val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
+  private[this] val nodeInfoService       = RudderConfig.nodeInfoService
+  private[this] val uuidGen               = RudderConfig.stringUuidGenerator
+  private[this] val userPropertyService   = RudderConfig.userPropertyService
 
   private[this] val categories = roNodeGroupRepository.getAllNonSystemCategories
   // Fetch the parent category, if any

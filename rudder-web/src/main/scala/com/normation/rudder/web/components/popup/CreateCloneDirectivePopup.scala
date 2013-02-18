@@ -46,7 +46,6 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField
 }
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import CreateCloneDirectivePopup._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.domain.{TechniqueVersion,TechniqueName}
@@ -55,6 +54,7 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
+import bootstrap.liftweb.RudderConfig
 
 
 object CreateCloneDirectivePopup {
@@ -100,10 +100,10 @@ class CreateCloneDirectivePopup(
   onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
-  private[this] val uuidGen = inject[StringUuidGenerator]
-  private[this] val userPropertyService = inject[UserPropertyService]
-  private[this] val roDirectiveRepository = inject[RoDirectiveRepository]
-  private[this] val woDirectiveRepository = inject[WoDirectiveRepository]
+  private[this] val uuidGen               = RudderConfig.stringUuidGenerator
+  private[this] val userPropertyService   = RudderConfig.userPropertyService
+  private[this] val roDirectiveRepository = RudderConfig.roDirectiveRepository
+  private[this] val woDirectiveRepository = RudderConfig.woDirectiveRepository
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }

@@ -36,19 +36,19 @@ package com.normation.rudder.web.snippet
 
 import com.normation.rudder.services.system.StartStopOrchestrator
 import com.normation.rudder.domain.system.{OrchestratorStatus,ButtonActivated,ButtonReleased}
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
-
-//lift std import
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
 import com.normation.exceptions.TechnicalException
+
+import EmergencyStop._
+import bootstrap.liftweb.RudderConfig
 
 
 object EmergencyStop {
@@ -62,10 +62,8 @@ object EmergencyStop {
   def panelTemplate = chooseTemplate("emergency","panel",template)
 }
 
-import EmergencyStop._
-
 class EmergencyStop {
-  val orchestrator =  inject[StartStopOrchestrator]("startStopOrchestrator")
+  private[this] val orchestrator =  RudderConfig.startStopOrchestrator
 
   def render(html:NodeSeq) : NodeSeq = {
 

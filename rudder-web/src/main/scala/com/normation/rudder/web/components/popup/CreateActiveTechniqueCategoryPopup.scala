@@ -49,8 +49,8 @@ import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField,WBSelectField, CurrentUser
 }
 import com.normation.rudder.repository._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
 import com.normation.eventlog.ModificationId
+import bootstrap.liftweb.RudderConfig
 
 
 class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () => Noop },
@@ -67,9 +67,9 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
   def popupTemplate = chooseTemplate("technique", "createCategoryPopup", template)
 
 
-  private[this] val activeTechniqueCategoryRepository = inject[RoDirectiveRepository]
-  private[this] val rwActiveTechniqueCategoryRepository = inject[WoDirectiveRepository]
-  private[this] val uuidGen = inject[StringUuidGenerator]
+  private[this] val activeTechniqueCategoryRepository   = RudderConfig.roDirectiveRepository
+  private[this] val rwActiveTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
+  private[this] val uuidGen                             = RudderConfig.stringUuidGenerator
 
   private[this] val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories()
 

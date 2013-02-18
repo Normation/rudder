@@ -42,26 +42,21 @@ import com.normation.rudder.services.policies._
 import com.normation.utils.Control.sequence
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.exceptions.TechnicalException
-
-//lift std import
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
-
 import org.joda.time.DateTime
-
 import org.slf4j.LoggerFactory
-
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.web.services.NodeGrid
 import com.normation.rudder.web.components.RuleGrid
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
+import bootstrap.liftweb.RudderConfig
 
 
 object ExpectedPolicyPopup {
@@ -85,10 +80,10 @@ class ExpectedPolicyPopup(
 ) extends DispatchSnippet with Loggable {
   import ExpectedPolicyPopup._
 
-  private[this] val serverSummaryService = inject[NodeSummaryService]
-  private[this] val dependenciesServices = inject[DependencyAndDeletionService]
-  private[this] val dynGroupService = inject[DynGroupService]
-  private[this] val pendingNodesDit = inject[InventoryDit]("pendingNodesDit")
+  private[this] val serverSummaryService = RudderConfig.nodeSummaryService
+  private[this] val dependenciesServices = RudderConfig.dependencyAndDeletionService
+  private[this] val dynGroupService      = RudderConfig.dynGroupService
+  private[this] val pendingNodesDit      = RudderConfig.pendingNodesDit
 
 
 
