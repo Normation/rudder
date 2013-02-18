@@ -57,7 +57,6 @@ import org.springframework.context.annotation.{ Bean, Configuration, Import, Imp
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.{ ApplicationContext, ApplicationContextAware }
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
-import org.springframework.core.io.ClassPathResource
 import com.normation.spring.ScalaApplicationContext
 import com.normation.ldap.sdk._
 import com.normation.rudder.domain._
@@ -594,7 +593,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
         rudderDitImpl, roLdap, ldapEntityMapper, techniqueRepositoryImpl, uptLibReadWriteMutex)
   private[this] lazy val woLdapDirectiveRepository = {{
-      val repo = new RwLDAPDirectiveRepository(
+      val repo = new WoLDAPDirectiveRepository(
           roLdapDirectiveRepository,
         rwLdap,
         ldapDiffMapper,
@@ -618,7 +617,7 @@ object RudderConfig extends Loggable {
   }
   private[this] lazy val roLdapRuleRepository = new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper)
 
-  private[this] lazy val woLdapRuleRepository: WoRuleRepository = new RwLDAPRuleRepository(
+  private[this] lazy val woLdapRuleRepository: WoRuleRepository = new WoLDAPRuleRepository(
       roLdapRuleRepository
     , rwLdap
     , ldapDiffMapper
@@ -631,7 +630,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
       rudderDitImpl, roLdap, ldapEntityMapper, groupLibReadWriteMutex
   )
-  private[this] lazy val woLdapNodeGroupRepository = new RwLDAPNodeGroupRepository(
+  private[this] lazy val woLdapNodeGroupRepository = new WoLDAPNodeGroupRepository(
       roLdapNodeGroupRepository
     , rwLdap
     , ldapDiffMapper
