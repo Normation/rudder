@@ -123,6 +123,16 @@ description: That category holds all the system and special target
 groupCategoryId: SystemGroups
 isSystem: TRUE
 
+dn: nodeGroupId=All-Nodes,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: nodeGroup
+objectClass: top
+cn: All Nodes
+isDynamic: TRUE
+nodeGroupId: All-Nodes
+jsonNodeGroupQuery: { "select":"nodeAndPolicyServer", "composition":"And", "where":[ {"objectType":"node","attribute":"nodeId","comparator":"exists","value":""}]}
+isEnabled: TRUE
+isSystem: FALSE
+
 dn: ruleTarget=special:all,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: specialRuleTarget
 objectClass: top
