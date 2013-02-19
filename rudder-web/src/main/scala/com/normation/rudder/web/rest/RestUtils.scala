@@ -39,6 +39,7 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.http.Req
 import com.normation.eventlog.EventActor
+import org.apache.commons.codec.binary.Base64
 
 
 /**
@@ -52,8 +53,9 @@ object RestUtils {
    * - else, return none
    */
   def getUsername(req:Req) : Option[String] = {
+    
     CurrentUser.is match {
-      case None => req.header("X-REST-USERNAME") match {
+      case None => req.header(s"X-REST-USERNAME") match {
         case eb:EmptyBox => None
         case Full(name) => Some(name)
       }
