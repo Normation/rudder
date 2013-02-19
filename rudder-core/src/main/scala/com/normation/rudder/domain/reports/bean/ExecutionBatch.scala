@@ -104,10 +104,17 @@ case class DirectivesOnNodeExpectedReport(
 
 object ConfigurationExecutionBatch {
   final val matchCFEngineVars = """.*\$(\{.+\}|\(.+\)).*""".r
-  final val replaceCFEngineVars = """\$\{.+\}|\$\(.+\)"""
+  final private val replaceCFEngineVars = """\$\{.+\}|\$\(.+\)"""
 
-  final val matchEscapedQuote = """\\""""
-  final val replaceEscapedQuote = """""""
+  /**
+   * Takes a string, that should contains a CFEngine var ( $(xxx) or ${xxx} )
+   * replace the $(xxx) (or ${xxx}) part by .*
+   * and doubles all the \ 
+   * Returns a string that is suitable for a beoing used as a regexp
+   */
+  final def replaceCFEngineVars(x : String) : String = {
+    x.replaceAll(replaceCFEngineVars, ".*").replaceAll("""\\""", """\\\\""")
+  }
 }
 
 /**
@@ -218,15 +225,13 @@ class ConfigurationExecutionBatch(
                                || x.isInstanceOf[ResultSuccessReport]
                                || x.isInstanceOf[UnknownReport])
 
-        // Replace all \" by " in the expected component value
-        val unescapedComponentValues = expectedComponent.groupedComponentValues.map(x => (x._1.replaceAll(matchEscapedQuote, replaceEscapedQuote), x._2))
-
         val components = for {
-            (componentValue, unexpandedComponentValues) <- unescapedComponentValues
+            (componentValue, unexpandedComponentValues) <- expectedComponent.groupedComponentValues
             (status,message) = checkExpectedComponentStatus(
                               componentValue
                             , purgedReports
-                            , unescapedComponentValues.map(_._1)
+                            , expectedComponent.componentsValues
+
                             )
         } yield {
           ComponentValueStatusReport(
@@ -239,7 +244,7 @@ class ConfigurationExecutionBatch(
 
         // must fetch extra entries
         val unexpectedReports = getUnexpectedReports(
-            unescapedComponentValues.map(_._1).toList
+            expectedComponent.componentsValues.toList
           , purgedReports
         )
 
@@ -354,7 +359,7 @@ class ConfigurationExecutionBatch(
 
       case matchCFEngineVars(_) =>
         // convert the entry to regexp, and match what can be matched
-         val matchableExpected = currentValue.replaceAll(replaceCFEngineVars, ".*")
+         val matchableExpected = replaceCFEngineVars(currentValue)
          val matchedReports = purgedReports.filter( x => x.keyValue.matches(matchableExpected))
 
          matchedReports.filter( x => x.isInstanceOf[ResultErrorReport]).size match {
@@ -363,7 +368,8 @@ class ConfigurationExecutionBatch(
            case _ => {
             matchedReports.size match {
               case 0 if unexepectedReports.size==0 => (getNoAnswerOrPending(),Nil)
-              case 0 => (UnknownReportType,Nil)
+              case 0 => 
+                (UnknownReportType,Nil)
               case x if x == values.filter( x => x.matches(matchableExpected)).size =>
                 (returnWorseStatus(matchedReports),matchedReports.map(_.message).toList)
               case _ => (UnknownReportType,matchedReports.map(_.message).toList)
@@ -397,7 +403,7 @@ class ConfigurationExecutionBatch(
       case head :: tail =>
         head match {
           case matchCFEngineVars(_) =>
-            val matchableExpected = head.replaceAll(replaceCFEngineVars, ".*")
+            val matchableExpected = replaceCFEngineVars(head)
             getUnexpectedReports(
                 tail
               , reports.filterNot(x => x.keyValue.matches(matchableExpected)) )
@@ -486,9 +492,7 @@ class ConfigurationExecutionBatch(
        val id = component.componentName
        val componentvalues = directive.flatMap{ nodestatus =>
          val components = nodestatus.components.filter(_.component==id)
-         // we need to unescape the quotes
-         val unescapedComponentValues = component.groupedComponentValues.map(x => (x._1.replaceAll(matchEscapedQuote, replaceEscapedQuote), x._2))
-         getComponentValuesRuleStatus(directiveid,id,unescapedComponentValues,components) ++
+         getComponentValuesRuleStatus(directiveid,id,component.groupedComponentValues,components) ++
          getUnexpectedComponentValuesRuleStatus(directiveid,id,components.flatMap(_.unexpectedCptValues))
        }
        val reportType =   if (componentvalues.map(_.cptValueReportType).contains(UnknownReportType))
