@@ -124,7 +124,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
       MultivaluedSectionField(sectionFields, () => {
         //here, valuesByName is empty, we are creating a new map.
         createSingleSectionField(section,Map(),createDefaultMap(section), true)
-      } )
+      }, priorityToVisibility(section.displayPriority) )
     } else {
       createSingleSectionField(section, valuesByName, seqOfSectionMap.head, isNewPolicy)
     }
@@ -169,7 +169,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     }
 
     //actually create the SectionField for createSingleSectionField
-    SectionFieldImp(sectionSpec.name, children, varMappings)
+    SectionFieldImp(sectionSpec.name, children, priorityToVisibility(sectionSpec.displayPriority), varMappings)
   }
 
   private[this] def createSingleSectionFieldForMultisec(sectionSpec:SectionSpec, sectionMap: Map[String, Option[String]], isNewPolicy:Boolean): SectionFieldImp = {
@@ -213,7 +213,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     }
 
     //actually create the SectionField for createSingleSectionField
-    SectionFieldImp(sectionSpec.name, children, varMappings)
+    SectionFieldImp(sectionSpec.name, children, priorityToVisibility(sectionSpec.displayPriority), varMappings)
   }
 
 
@@ -259,6 +259,20 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
       }
       case None => // can not init, no unserializer for it
         logger.debug("Can not init field %s, no translator found for property 'self'".format(currentField.name))
+    }
+  }
+  
+  /**
+   * From a priority, returns the visibility of a section
+   * For the moment, a naive approach is : 
+   * - Low priority => hidden
+   * - High priority => displayed
+   */
+  private[this] def priorityToVisibility(priority : DisplayPriority) : Boolean = {
+    priority match {
+      case LowDisplayPriority => false
+      case HighDisplayPriority => true
+      case _ => true
     }
   }
 }
