@@ -36,7 +36,6 @@ package com.normation.rudder.services.policies
 
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.inventory.domain.COMMUNITY_AGENT
-import com.normation.cfclerk.domain.{ InputVariable, InputVariableSpec}
 import com.normation.inventory.domain.NOVA_AGENT
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.services.TechniqueRepository
