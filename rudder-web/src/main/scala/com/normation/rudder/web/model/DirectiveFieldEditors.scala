@@ -506,3 +506,173 @@ class CheckboxField(val id: String) extends DirectiveField {
 
   def getDefaultValue = "false"
 }
+
+/**
+ * A password field has three parts:
+ * - a zone displaying the current "algo:hash" stored (plain text, not editable)
+ * - an input field to let the user enter a new password to hash
+ * - a checkbox "blanck password" setting the value to "" and making the other
+ *   editing part read-only if the field may be empty.
+ * - a zone displaying the algo used, either fixed, or a select list
+ *   if the algo is user defined
+ */
+class PasswordField(val id: String, blankable:Boolean, algos:Seq[HashAlgoConstraint]) extends DirectiveField {
+  self =>
+  type ValueType = String
+  def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
+  def getDefaultValue = ""
+  def manifest = manifestOf[String]
+  override val uniqueFieldId = Full(id)
+  def name = id
+  def validate = Nil
+  def validations = Nil
+  def setFilter = Nil
+
+  //the actual backend value like: sha1:XXXXXX
+  private[this] var _x: String = getDefaultValue
+
+  //the algo to use
+  private[this] var currentAlgo: Option[HashAlgoConstraint] = Some(algos.head)
+  private[this] var currentHash: String = ""
+
+  //to store the result
+  private[this] var currentValue: String = ""
+  private[this] var currentRadio: String = "keep"
+
+  private[this] var blank = false
+  private[this] var keepCurrent = true
+
+  /*
+   * find the new internal value of the hash given:
+   * - past value
+   * - blank required
+   * - new value
+   */
+  private[this] def newInternalValue(keepCurrentPwd: Boolean, blankPwd:Boolean, pastValue:String, newInput:String, chosenAlgo:HashAlgoConstraint) : String = {
+    currentValue = newInput
+
+    if(keepCurrentPwd) pastValue
+    else if(blankPwd) ""
+    else if(newInput == "") ""
+    else chosenAlgo.serialize(newInput.getBytes())
+  }
+
+
+  def parseClient(s: String): Unit = {
+    if (null == s) _x = "" else _x = s
+  }
+  def toClient: String = if (null == _x) "" else _x
+
+  def get = _x
+
+  //initialize the field
+  def set(x: String) = {
+    if (null == x || "" == x) _x = ""
+    else {
+      _x = x
+      val r = {
+          HashAlgoConstraint.unserializeIn(algos, x) match {
+            case Full((a,hash)) =>
+              //update the hash algo to use only if not specified.
+              //we don't check if previous hash and current algo matches: we only enforce
+              //that new passwords use the new specified algo
+              (Some(a),hash)
+            case eb:EmptyBox =>
+              //we don't have a password with the correct format.
+              //report an error, assume the default (first) algo
+              logger.error((eb ?~! "Error when reading stored password hash").messageChain)
+              (None, x)
+          }
+      }
+      currentAlgo = r._1
+      currentHash = r._2
+    }
+
+    //initialise what to display for "current value" the first time
+    if(null == initialPass) {
+      initialPass = (if(toClient == "") ": No password defined" else s" (${ currentAlgo match { case Some(a) => a.prefix.toUpperCase; case None => "Unknown"} } hash): ${currentHash}")
+    }
+    _x
+  }
+
+  var initialPass: String = null
+
+  def toForm() = {
+    //the radio - the default value is keep
+    val (radioKeep, radioChange, radioBlank) = {
+      val radios : ChoiceHolder[String] = SHtml.radio(Seq("keep","change", "blank"), Full(currentRadio), { s =>
+        currentRadio = s
+        s match {
+          case "keep" => blank = false ; keepCurrent = true;
+          case "blank" => blank = true ; keepCurrent = false;
+          case _ => blank = false; keepCurrent = false;
+      } }, ("style" -> "margin-right:10px") )
+
+      (radios(0),radios(1),radios(2))
+    }
+
+    val form =
+      "zone=value *" #> initialPass &
+      "zonechooseHash" #> ( (xml:NodeSeq) => if(algos.size < 1) Text(s"hash with) ${algos.head.prefix.toUpperCase}") else xml ) &
+      "name=hash" #> (if(algos.size == 1) {
+                       Text(algos.head.prefix.toUpperCase)
+                     } else {
+                       SHtml.selectObj(algos.map(a => (a, a.prefix.toUpperCase))
+                                      , Box(currentAlgo)
+                                      , { (a:HashAlgoConstraint) => currentAlgo = Some(a) }
+                       )
+                     } ) &
+      ".radioKeep" #> radioKeep &
+      ".radioChange" #> radioChange &
+      "name=password" #> S.formGroup(10) { //use formGroup because must be the last evaluated method
+                           //always "" for default value
+                           SHtml.password(
+                               currentValue
+                                // ".get" should be licit at that point, because is only when reading from LDAP
+                             , {s => parseClient(newInternalValue(keepCurrent, blank, toClient, s, currentAlgo.get)) }
+                           )
+                         } &
+      "zone=blank" #>  { (nodes:NodeSeq) =>
+                         (if(blankable) {
+                           (".radioBlank" #> { (nodes:NodeSeq) => radioBlank }).apply(nodes)
+                         } else {
+                           NodeSeq.Empty
+                         })
+      }
+
+
+    Full(form.apply(PasswordField.xml))
+
+  }
+}
+
+object PasswordField {
+  val xml =
+    <table>
+      <tr><td colspan="2"><div zone="currentValue">Current password<span zone="value">(SHA256 hash): ce94806f8020be351fe3e492808a23a5b929c28a</span></div></td></tr>
+      <tr>
+        <td>New password:</td><td><input class="radioKeep" type="radio" name="[choice]" value="[true]" checked="checked"/>Keep current value</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td>
+          <input class="radioChange" type="radio" name="[choice]" value="[true]"/>
+          <input type="text" name="password"/>
+          <span zone="chooseHash">hash with:
+            <select name="hash">
+              <option>MD5</option>
+            </select>
+          </span>
+        </td>
+      </tr>
+      <tr>
+        <td></td>
+        <td>
+          <div zone="blank">
+            <input class="radioBlank" type="radio" name="[choice]" value="[true]"/>None
+          </div>
+        </td>
+      </tr>
+    </table>
+
+}
