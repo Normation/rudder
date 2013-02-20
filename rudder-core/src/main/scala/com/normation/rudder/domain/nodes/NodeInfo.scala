@@ -50,7 +50,10 @@ case class NodeInfo(
   , name          : String
   , description   : String
   , hostname      : String
-  , os            : String
+  , osFullName    : String
+  , osType        : String
+  , osVersion     : String
+  , servicePack   : Option[String]
   , ips           : List[String]
   , inventoryDate : DateTime
   , publicKey     : String

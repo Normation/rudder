@@ -106,6 +106,8 @@ trait ReportsRepository {
 
   def getOldestArchivedReports() : Box[Option[Reports]]
 
+  def getNewestReportOnNode(nodeid:NodeId) : Box[Option[Reports]]
+
   def getNewestReports() : Box[Option[Reports]]
 
   def getNewestArchivedReports() : Box[Option[Reports]]
