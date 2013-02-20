@@ -234,6 +234,17 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     }
   }
 
+  def getNewestReportOnNode(nodeid:NodeId) : Box[Option[Reports]] = {
+    jdbcTemplate.query(baseQuery + s" and nodeid = '${nodeid.value}' order by executionDate desc limit 1",
+          ReportsMapper).toSeq match {
+      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
+      case seq => Full(seq.headOption)
+
+    }
+  }
+
+
+
     def getNewestReports() : Box[Option[Reports]] = {
     jdbcTemplate.query(baseQuery + " order by executionTimeStamp desc limit 1",
           ReportsMapper).toSeq match {

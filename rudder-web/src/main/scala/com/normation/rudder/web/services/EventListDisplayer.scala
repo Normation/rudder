@@ -1125,7 +1125,7 @@ class EventListDisplayer(
      "#name" #> details.node.name &
      "#hostname" #> details.node.hostname &
      "#description" #> details.node.description &
-     "#os" #> details.node.os &
+     "#os" #> details.node.osFullName &
      "#ips" #> details.node.ips.mkString("\n") &
      "#inventoryDate" #> DateFormaterService.getFormatedDate(details.node.inventoryDate) &
      "#publicKey" #> details.node.publicKey &
