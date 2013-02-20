@@ -292,6 +292,7 @@ object RudderConfig extends Loggable {
   val categoryHierarchyDisplayer: CategoryHierarchyDisplayer = categoryHierarchyDisplayerImpl
   val dynGroupService: DynGroupService = dynGroupServiceImpl
   val ditQueryData: DitQueryData = ditQueryDataImpl
+  val reportsRepository : ReportsRepository = reportsRepositoryImpl
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
   val allBootstrapChecks : BootstrapChecks = allChecks
   val srvGrid = new SrvGrid
@@ -474,6 +475,7 @@ object RudderConfig extends Loggable {
   //query processor for accepted nodes
   private[this] lazy val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
     nodeDitImpl,
+    acceptedNodesDitImpl,
     new InternalLDAPQueryProcessor(roLdap, acceptedNodesDitImpl, ditQueryDataImpl, ldapEntityMapper))
 
   //we need a roLdap query checker for nodes in pending
@@ -528,7 +530,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManagerImpl,uuidGen)
   private[this] lazy val eventListDisplayerImpl = new EventListDisplayer(eventLogDetailsServiceImpl, logRepository, roLdapNodeGroupRepository, roLdapDirectiveRepository, nodeInfoServiceImpl, modificationService, personIdentServiceImpl)
   private[this] lazy val fileManagerImpl = new FileManager(UPLOAD_ROOT_DIRECTORY)
-  private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepository)
+  private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl)
   private[this] lazy val softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
   private[this] lazy val nodeSummaryServiceImpl = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
   private[this] lazy val diffRepos: InventoryHistoryLogRepository =
@@ -777,9 +779,9 @@ object RudderConfig extends Loggable {
     techniqueRepositoryImpl,
     RUDDER_DIR_LOCK)
   private[this] lazy val licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
-  private[this] lazy val reportingServiceImpl = new ReportingServiceImpl(ruleTargetServiceImpl,configurationExpectedRepo, reportsRepository, techniqueRepositoryImpl)
+  private[this] lazy val reportingServiceImpl = new ReportingServiceImpl(ruleTargetServiceImpl,configurationExpectedRepo, reportsRepositoryImpl, techniqueRepositoryImpl)
   private[this] lazy val configurationExpectedRepo = new com.normation.rudder.repository.jdbc.RuleExpectedReportsJdbcRepository(jdbcTemplate)
-  private[this] lazy val reportsRepository = new com.normation.rudder.repository.jdbc.ReportsJdbcRepository(jdbcTemplate)
+  private[this] lazy val reportsRepositoryImpl = new com.normation.rudder.repository.jdbc.ReportsJdbcRepository(jdbcTemplate)
   private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD)
   private[this] lazy val squerylDatasourceProvider = new SquerylConnectionProvider(dataSourceProvider.datasource)
   private[this] lazy val jdbcTemplate = {
@@ -846,7 +848,7 @@ object RudderConfig extends Loggable {
       , LDAPConstants.A_OS_SERVICE_PACK
       , LDAPConstants.A_OS_KERNEL_VERSION
     ))
-  private[this] lazy val logDisplayerImpl: LogDisplayer = new LogDisplayer(reportsRepository, roLdapDirectiveRepository, roLdapRuleRepository)
+  private[this] lazy val logDisplayerImpl: LogDisplayer = new LogDisplayer(reportsRepositoryImpl, roLdapDirectiveRepository, roLdapRuleRepository)
   private[this] lazy val categoryHierarchyDisplayerImpl: CategoryHierarchyDisplayer = new CategoryHierarchyDisplayer(roLdapNodeGroupRepository)
   private[this] lazy val dyngroupUpdaterBatch: UpdateDynamicGroups = new UpdateDynamicGroups(
       dynGroupServiceImpl
@@ -1010,7 +1012,7 @@ object RudderConfig extends Loggable {
     , reportsRepository )
   private[this] lazy val autoReportLogger = new AutomaticReportLogger(
       propertyRepository
-    , reportsRepository
+    , reportsRepositoryImpl
     , roLdapRuleRepository
     , roLdapDirectiveRepository
     , nodeInfoServiceImpl
