@@ -138,7 +138,7 @@ def matchNodeInfoPairs( serverPairs:Map[NodeId,LDAPEntry], allNodePairs:Map[Node
     case(id,nodeEntry) =>
       for {
         serverEntry <- Box(serverPairs.get(id)) ?~! "Missing required node entry with id %s".format(id)
-        nodeInfos <- mapper.convertEntriesToNodeInfos(nodeEntry, serverEntry)
+        nodeInfos <- mapper.convertEntriesToNodeInfos(nodeEntry, serverEntry,None)
       } yield {
         nodeInfos
       }
