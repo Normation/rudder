@@ -146,9 +146,14 @@ class Boot extends Loggable {
         "secure" / "nodeManager" / "index"  >> TestAccess( ()
             => userIsAllowed(Read("node")) ) submenus (
 
-          Menu("SearchNodes", <span>Search nodes</span>) /
+          Menu("List Nodes", <span>List nodes</span>) /
+            "secure" / "nodeManager" / "nodes"
+            >> LocGroup("nodeGroup")
+
+        , Menu("SearchNodes", <span>Search nodes</span>) /
             "secure" / "nodeManager" / "searchNodes"
             >> LocGroup("nodeGroup")
+
 
         , Menu("ManageNewNode", <span>Accept new nodes</span>) /
             "secure" / "nodeManager" / "manageNewNode"
