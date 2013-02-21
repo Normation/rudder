@@ -150,6 +150,10 @@ class Boot extends Loggable {
             "secure" / "nodeManager" / "searchNodes"
             >> LocGroup("nodeGroup")
 
+        , Menu("AcceptedNodes", <span>Accepted nodes</span>) /
+            "secure" / "nodeManager" / "acceptedNodes"
+            >> LocGroup("nodeGroup")
+
         , Menu("ManageNewNode", <span>Accept new nodes</span>) /
             "secure" / "nodeManager" / "manageNewNode"
             >>  LocGroup("nodeGroup")
