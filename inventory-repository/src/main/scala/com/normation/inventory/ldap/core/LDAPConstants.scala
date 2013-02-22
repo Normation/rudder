@@ -191,7 +191,8 @@ object LDAPConstants {
   val A_OS_FEDORA = "Fedora"
   val A_OS_SUZE = "Suse"
   val A_OS_ANDROID = "Android"
-    
+  val A_OS_UNKNOWN_SOLARIS = "Unknown Solaris version"
+  val A_OS_SOLARIS = "Solaris"
   /*
    * A bunch of name, just to be sur to use variable
    * and not string all around our code
@@ -205,6 +206,7 @@ object LDAPConstants {
   val OC_WINDOWS_NODE = "windowsNode"
   val OC_UNIX_NODE = "unixNode"
   val OC_LINUX_NODE = "linuxNode"
+  val OC_SOLARIS_NODE = "solarisNode"
   val OC_MACHINE = "machine"
   val OC_PM = "physicalMachine"
   val OC_VM = "virtualMachine"

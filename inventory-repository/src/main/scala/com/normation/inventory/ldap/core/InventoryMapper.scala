@@ -644,7 +644,13 @@ class InventoryMapper(
           case _       => linux += (A_OS_NAME, A_OS_UNKNOWN_LINUX)
         }
         linux
-        
+      case Solaris(os,_,_,_,_) =>
+        val solaris = dit.NODES.NODE.solarisModel(server.main.id)
+        os match {
+          case SolarisOS  => solaris += (A_OS_NAME, A_OS_SOLARIS)
+          case _          => solaris += (A_OS_NAME, A_OS_UNKNOWN_SOLARIS)
+        }
+        solaris
       case Windows(os,osFullName,osVersion,osServicePack,kernelVersion,userDomain,registrationCompany,productKey,productId) =>
         val win = dit.NODES.NODE.windowsModel(server.main.id)
         os match {
@@ -798,7 +804,14 @@ class InventoryMapper(
             case _            => UnknownLinuxType
           }
           Full(Linux(os,osFullName,osVersion,osServicePack,kernelVersion))
-          
+
+        } else if(entry.isA(OC_SOLARIS_NODE)) {
+          val os = osName match {
+            case A_OS_SOLARIS => SolarisOS
+            case _            => UnknownSolarisType
+          }
+          Full(Solaris(os,osFullName,osVersion,osServicePack,kernelVersion))
+
         } else if(entry.isA(OC_NODE)) {
           Full(UnknownOS(osFullName,osVersion,osServicePack,kernelVersion))
         } else Failure("Unknow OS type: %s".format(entry.valuesFor(A_OC).mkString(", ")))

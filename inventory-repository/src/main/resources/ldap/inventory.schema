@@ -942,6 +942,11 @@ objectclass ( InventoryObjectClasses:17
   SUP unixNode
   STRUCTURAL )
 
+objectclass ( InventoryObjectClasses:23
+  NAME 'solarisNode'
+  DESC 'A node running with Solaris as operating system'
+  SUP node
+  STRUCTURAL )
 
 objectclass ( InventoryObjectClasses:18
   NAME 'logicalElement'
