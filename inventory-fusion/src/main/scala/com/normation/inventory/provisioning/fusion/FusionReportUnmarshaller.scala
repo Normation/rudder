@@ -385,6 +385,10 @@ class FusionReportUnmarshaller(
           else if(x contains "suse"   ) Suse
           else if(x contains "android") Android
           else                          UnknownOSType
+
+        case("solaris",x) =>
+          if (x contains  "solaris" ) SolarisOS
+          else UnknownSolarisType
         case _  => UnknownOSType
       }
     
@@ -411,7 +415,16 @@ class FusionReportUnmarshaller(
             , servicePack = servicePack
             , kernelVersion = kernelVersion
           )
-        
+
+      case solaris:SolarisType =>
+          Solaris(
+              os = solaris
+            , fullName = fullName
+            , version = version
+            , servicePack = servicePack
+            , kernelVersion = kernelVersion
+          )
+
         case _  => UnknownOS(fullName, version, servicePack, kernelVersion)
       }
     }
