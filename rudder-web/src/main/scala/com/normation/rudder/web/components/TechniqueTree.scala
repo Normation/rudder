@@ -99,7 +99,7 @@ class TechniqueTree(
       categoryNode(rootCat,subCats, dep, technique, activeTechnique)
     }) match {
       case Full(treeNode) => {<ul>{treeNode.toXml}</ul>} ++ Script(OnLoad(JsRaw(
-          """buildTechniqueDependencyTree('#%s'); createTooltip();""".format(htmlId_activeTechniquesTree)
+          s"""buildTechniqueDependencyTree('#${htmlId_activeTechniquesTree}',true, '${S.contextPath}'); createTooltip();"""
       )))
       case e:EmptyBox => 
         val msg = "Can not build tree of dependencies for Technique %s".format(techniqueId)
