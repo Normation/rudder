@@ -62,8 +62,6 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
-import java.io.InputStream
-import com.normation.cfclerk.domain.TechniqueVersion
 
 object TechniqueEditForm {
 
@@ -124,8 +122,7 @@ class TechniqueEditForm(
   //JS to execute on form success (update UI parts)
   //there are call by name to have the context matching their execution when called
   onSuccessCallback : () => JsCmd = { () => Noop },
-  onFailureCallback : () => JsCmd = { () => Noop },
-  onChangeVersionCallback: TechniqueVersion => JsCmd = { _ => Noop }
+  onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
   import TechniqueEditForm._
 
@@ -153,7 +150,6 @@ class TechniqueEditForm(
   private[this] var currentActiveTechnique = roActiveTechniqueRepository.getActiveTechnique(technique.id.name)
   private[this] var uptCurrentStatusIsActivated = currentActiveTechnique.map( _.isEnabled)
 
-  private[this] val otherVersions = techniqueRepository.getTechniqueVersions(technique.id.name) - technique.id.version
 
   //////////////////////////// public methods ////////////////////////////
 
@@ -209,18 +205,6 @@ class TechniqueEditForm(
   def showCrForm() : NodeSeq = {
     (
       ClearClearable &
-      ".metadata *" #> showMetadata() &
-      ".templates *" #> showTemplates() &
-      //change version notification
-      "#changeVersion" #> ( (xml:NodeSeq) =>
-          if(otherVersions.size < 1) NodeSeq.Empty
-          else {
-            val options = (technique.id.version, "-") +: otherVersions.map( v => (v, v.toString)).toSeq
-            (
-              "#techniqueVersionSelect" #> SHtml.ajaxSelectObj(options, Empty, ((v:TechniqueVersion) => onChangeVersionCallback(v)) )
-            ).apply(xml)
-          }
-      ) &
       //all the top level action are displayed only if the template is on the user library
       "#userTemplateAction" #> { xml:NodeSeq => currentActiveTechnique match {
         case e:EmptyBox => NodeSeq.Empty
@@ -236,7 +220,6 @@ class TechniqueEditForm(
           } }
         )(xml)
       } } &
-      "#techniqueVersion" #> technique.id.version.toString &
       "#techniqueName" #> technique.name &
       "#compatibility" #> (if (!technique.compatible.isEmpty) technique.compatible.head.toHtml else NodeSeq.Empty) &
       "#techniqueDescription" #>  technique.description &
@@ -530,28 +513,6 @@ class TechniqueEditForm(
         }
       }
     </span>
-  }
-
-  /**
-   * Display in raw format le metadata.xml
-   */
-  private[this] def showMetadata() : NodeSeq = {
-    techniqueRepository.getMetadataContent(technique.id)( fileContent("metadata.xml", _) )
-  }
-
-  private[this] def showTemplates() : NodeSeq = {
-    technique.templates.flatMap( tml => techniqueRepository.getTemplateContent(tml.id)( fileContent(tml.id.toString, _) ) )
-  }
-
-  private[this] def fileContent(filename: String, opt:Option[InputStream]) : NodeSeq = {
-    opt match {
-      case None => <span class="error">Error when reading {filename}</span>
-      case Some(is) =>
-        <div style="padding=10px">
-          <h3>{filename.capitalize} <span onclick="$(this).closest('div').find('pre').toggle();" style="text-decoration:underline; cursor:pointer">file content</span> for {technique.name}</h3>
-          <pre style="display:none; font-size:9px; overflow:scroll">{scala.io.Source.fromInputStream(is).getLines.mkString("\n") }</pre>
-        </div>
-    }
   }
 
   /**
