@@ -119,11 +119,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private[this] val currentTechniqueDetails = new LocalSnippet[TechniqueEditForm]
   private[this] var currentTechniqueCategoryDetails = new LocalSnippet[TechniqueCategoryEditForm]
 
-  private[this] val name: Box[String] = S.param("techniqueId")
-
-  //for version update
-  private[this] var newTechniqueName : Option[TechniqueName] = name.map(TechniqueName(_))
-  private[this] var newTechniqueVersion : Option[TechniqueVersion] = None
+  private[this] val techniqueId: Box[String] = S.param("techniqueId")
 
   //create a new Technique edit form and update currentTechniqueDetails
   private[this] def updateCurrentTechniqueDetails(technique:Technique) = {
@@ -131,12 +127,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         htmlId_editForm,
         technique,
         currentTechniqueCategoryDetails.is.map( _.getCategory ),
-        { () => Replace(htmlId_activeTechniquesTree, userLibrary) },
-        onChangeVersionCallback = { (v:TechniqueVersion) => {
-          newTechniqueName = Some(technique.id.name)
-          newTechniqueVersion = Some(v)
-          SetHtml(htmlId_bottomPanel, showBottomPanel )
-        } }
+        { () => Replace(htmlId_activeTechniquesTree, userLibrary) }
         //we don't need/want an error callback here - the error is managed in the form.
     )))
   }
@@ -328,17 +319,14 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }</div>
   }
 
-  def showBottomPanel() : NodeSeq = {
+  def showBottomPanel : NodeSeq = {
     (for {
-      name <- newTechniqueName
-      technique <- newTechniqueVersion match {
-                      case Some(v) => techniqueRepository.get(TechniqueId(name, v))
-                      case None    => techniqueRepository.getLastTechniqueByName(name)
-                   }
+      ptName <- techniqueId
+      technique <- techniqueRepository.getLastTechniqueByName(TechniqueName(ptName))
     } yield {
       technique
     }) match {
-      case Some(technique) =>
+      case Full(technique) =>
         updateCurrentTechniqueDetails(technique)
         showTechniqueDetails()
       case _ =>
@@ -535,7 +523,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    */
   private[this] def buildReferenceLibraryJsTree : JsExp = JsRaw(
     """buildReferenceTechniqueTree('#%s','%s','%s')""".format(htmlId_techniqueLibraryTree,{
-      name match {
+      techniqueId match {
         case Full(activeTechniqueId) => "ref-technique-"+activeTechniqueId
         case _ => ""
       }
@@ -557,8 +545,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     updateCurrentTechniqueDetails(technique)
 
     //update UI
-    SetHtml(htmlId_bottomPanel, showTechniqueDetails() ) &
-    JsRaw(s"scrollToElement('${htmlId_bottomPanel}');")
+    SetHtml(htmlId_bottomPanel, showTechniqueDetails() )
   }
 
 
