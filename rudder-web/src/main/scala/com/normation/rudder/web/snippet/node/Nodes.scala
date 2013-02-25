@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2011-2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -40,7 +40,7 @@ import bootstrap.liftweb.RudderConfig
 import scala.xml.NodeSeq
 
 
-class AcceptedNodes extends StatefulSnippet with Loggable {
+class Nodes extends StatefulSnippet with Loggable {
   private[this] val nodeInfoService = RudderConfig.nodeInfoService
   val srvGrid =  RudderConfig.srvGrid
 
@@ -61,7 +61,7 @@ class AcceptedNodes extends StatefulSnippet with Loggable {
            logger.error(fail.msg)
            Seq()
     }
-    srvGrid.displayAndInit(nodes, "acceptedNodes")
+    srvGrid.displayAndInit(nodes, "nodes")
 
 }
 
