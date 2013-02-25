@@ -166,10 +166,16 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
         mod
       }
 
+      def solarisModel(id:NodeId) : LDAPEntry = {
+        val mod = model(id)
+        mod += (A_OC,OC.objectClassNames(OC_SOLARIS_NODE).toSeq:_*)
+        mod
+      }
+      
       def dn(uuid:String) = new DN(this.rdn(uuid), servers.dn)
-
+      
       def idFromDN(dn:DN) : Box[NodeId] = {
-          if(dn.getParent == servers.dn) {
+        if(dn.getParent == servers.dn) {
             val rdn = dn.getRDN
             if(!rdn.isMultiValued && rdn.getAttributeNames()(0) == A_NODE_UUID) {
               Full(NodeId(rdn.getAttributeValues()(0)))

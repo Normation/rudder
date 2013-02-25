@@ -182,10 +182,24 @@ case object Fedora  extends LinuxType with HashcodeCaching          { val name =
 case object Suse    extends LinuxType with HashcodeCaching          { val name = "Suse"    }
 case object Android extends LinuxType with HashcodeCaching          { val name = "Android" }
 
+sealed abstract class SolarisType extends OsType {
+  val kernelName = "Solaris"
+}
+object SolarisType {
+  val allKnownTypes = (
+       SolarisOS
+    :: Nil
+  )
+}
+// Only one Solaris Type for the moment
+case object SolarisOS  extends SolarisType with HashcodeCaching          { val name = "Solaris"  }
+case object UnknownSolarisType  extends SolarisType with HashcodeCaching { val name = "Solaris"  }
+
 /**
  * The different OS type. For now, we know
- * two of them:
- * - Linux ;
+ * three of them:
+ * - Linux
+ * - Solaris
  * - Windows.
  * And a joker
  * - Unknown
@@ -207,6 +221,14 @@ case class UnknownOS(
 
 
 case class Linux(
+    override val os            : OsType
+  , override val fullName      : String
+  , override val version       : Version
+  , override val servicePack   : Option[String]
+  , override val kernelVersion : Version
+) extends OsDetails(os, fullName, version, servicePack, kernelVersion) with HashcodeCaching
+
+case class Solaris(
     override val os            : OsType
   , override val fullName      : String
   , override val version       : Version
