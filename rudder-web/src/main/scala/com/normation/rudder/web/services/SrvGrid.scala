@@ -151,10 +151,10 @@ class SrvGrid {
             "aaSorting": [[ 0, "asc" ]],
             "aoColumns": [
               { "sWidth": "200px" },
-              { "sWidth": "150px" },
-              { "sWidth": "550px" },
-              { "sWidth": "150px" },
-              { "sWidth": "200px" },
+              { "sWidth": "125px" },
+              { "sWidth": "600px" },
+              { "sWidth": "175px" },
+              { "sWidth": "300px" },
               { "sWidth": "250px" }
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
@@ -215,7 +215,7 @@ class SrvGrid {
         <th>OS type</th>
         <th>OS name</th>
         <th>OS version</th>
-        <th>Service Pack</th>
+        <th>OS service pack</th>
         <th>Last report date</th>
       </tr>
     </thead>
