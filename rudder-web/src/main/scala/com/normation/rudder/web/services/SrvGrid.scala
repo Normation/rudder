@@ -35,27 +35,26 @@
 package com.normation.rudder.web.services
 
 import com.normation.rudder.domain.nodes.NodeInfo
-
 import com.normation.utils.Utils.isEmpty
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-
 import org.slf4j.LoggerFactory
-
-//lift std import
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
 import com.normation.exceptions.TechnicalException
 import net.liftweb.http.Templates
+import com.normation.rudder.repository.ReportsRepository
+import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.web.components.DateFormaterService
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -87,6 +86,7 @@ class SrvGrid {
 
   private def headTemplate = chooseTemplate("servergrid","head",template)
   private def tableTemplate = chooseTemplate("servergrid","table",template)
+  private[this] val reportsRepo = RudderConfig.reportsRepository
 
   /*
    * All JS/CSS needed to have datatable working
@@ -111,20 +111,19 @@ class SrvGrid {
       servers:Seq[NodeInfo],
       tableId:String,
       columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(),
-      aoColumns:String ="",
       searchable : Boolean = true,
       paginate : Boolean = true,
       callback : String => JsCmd = x => Noop
    ) : NodeSeq = {
-    display(servers, tableId, columns, aoColumns) ++
-    Script(initJs(tableId, columns, aoColumns, searchable, paginate, callback))
+    display(servers, tableId, columns) ++
+    Script(initJs(tableId, columns, searchable, paginate, callback))
   }
 
   /*
    * Init Javascript for the table with ID 'tableId'
    *
    */
-  def initJs(tableId:String, columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(), aoColumns:String ="", searchable : Boolean, paginate : Boolean,callback : String => JsCmd) : JsCmd = {
+  def initJs(tableId:String, columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(), searchable : Boolean, paginate : Boolean,callback : String => JsCmd) : JsCmd = {
 
     JsRaw("""
         var #table_var#;
@@ -151,13 +150,17 @@ class SrvGrid {
             "bJQueryUI": true,
             "aaSorting": [[ 0, "asc" ]],
             "aoColumns": [
-              { "sWidth": "180px" },
-              { "sWidth": "300px" } %s
+              { "sWidth": "200px" },
+              { "sWidth": "125px" },
+              { "sWidth": "600px" },
+              { "sWidth": "175px" },
+              { "sWidth": "300px" },
+              { "sWidth": "250px" }
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
           $('.dataTables_filter input').attr("placeholder", "Search");
-          """.format(tableId,paginate,aoColumns).replaceAll("#table_var#",jsVarNameForId(tableId))
+          """.format(tableId,paginate).replaceAll("#table_var#",jsVarNameForId(tableId))
         ) &
 
         initJsCallBack(tableId, callback)
@@ -171,7 +174,7 @@ class SrvGrid {
    * initialization.
    */
   def initJsCallBack(tableId:String, callback : (String) => JsCmd) : JsCmd = {
-      JsRaw("""$('td[name="serverName"]', #table_var#.fnGetNodes() ).each( function () {
+      JsRaw("""$("#serverName", #table_var#.fnGetNodes() ).each( function () {
               var td = this;
           $(this.parentNode).click( function () {
               var aPos = #table_var#.fnGetPosition( td );
@@ -201,27 +204,51 @@ class SrvGrid {
    *    a list of supplementary column to add in the grid,
    *    where the _1 is the header, and the (server => NodeSeq)
    *    is the content of the column
-   * @parameter aoColumns : the javascript for the datatable
    */
 
-  def display(servers:Seq[NodeInfo], tableId:String, columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(), aoColumns:String ="") : NodeSeq = {
+  def display(servers:Seq[NodeInfo], tableId:String, columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq()) : NodeSeq = {
     //bind the table
-    <table id={tableId} cellspacing="0">{
-    bind("servergrid",tableTemplate,
-      "header" -> (columns flatMap { c => <th>{c._1}<span/></th> }),
-      "lines" -> ( servers.flatMap { case s@NodeInfo(id,name,description, hostname, operatingSystem, ips, inventoryDate,pkey, agentsName, policyServerId, admin, creationDate, isBroken, isSystem, isPolicyServer) =>
-        //build all table lines
-        bind("line",chooseTemplate("servergrid","lines",tableTemplate),
-          "name" -> <span class="hostnamecurs" jsuuid={id.value.replaceAll("-","")} serverid={id.value.toString} >{(if(isEmpty(name)) "(Missing name) " + id.value else hostname)}</span>,
-          "fullos" -> operatingSystem,
-          "other" -> (columns flatMap { c => <td>{c._2(s)}</td> })
-        )
-      })
-    )}</table>
+    <table id={tableId} cellspacing="0">
+    <thead>
+      <tr class="head">
+        <th>Node name</th>
+        <th>OS type</th>
+        <th>OS name</th>
+        <th>OS version</th>
+        <th>OS service pack</th>
+        <th>Last report date</th>
+      </tr>
+    </thead>
+    <tbody>
+    {servers.map { server =>
+      (("#serverName *") #> <span  class="hostnamecurs" jsuuid={server.id.value.replaceAll("-","")} serverid={server.id.value.toString} >
+                         { if (isEmpty(server.name))
+                             s"(Missing name)  ${server.id.value}"
+                           else
+                             server.hostname
+                         } </span> &
+      ("#osType *")      #> server.osType &
+      ("#osFullName *")  #> server.osFullName &
+      ("#osVersion *")   #> server.osVersion &
+      ("#servicePack *") #> server.servicePack.getOrElse("N/A") &
+      ("#lastReport *")  #> reportsRepo.getNewestReportOnNode(server.id).getOrElse(None).map(report =>  DateFormaterService.getFormatedDate(report.executionDate)).getOrElse("never")
+      )(lineXml)
+    } }
+    </tbody>
+      </table>
       <div class={tableId +"_pagination"}>
         <div id={tableId +"_paginate_area"}></div>
         <div id={tableId +"_filter_area"}></div>
       </div>
   }
 
+  private[this] val lineXml =
+    <tr>
+      <td id="serverName" />
+      <td id="osType"     />
+      <td id="osFullName" />
+      <td id="osVersion"  />
+      <td id="servicePack"/>
+      <td id="lastReport" />
+   </tr>
 }
