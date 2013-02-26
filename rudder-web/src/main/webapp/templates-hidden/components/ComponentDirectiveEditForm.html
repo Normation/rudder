@@ -87,13 +87,13 @@
 <component:form>
   <div id="editForm" class="object-details">
     <lift:authz role="directive_edit">
-    <fieldset class="topLevelAction">
+    <div class="topLevelAction">
       <p class="clearable">
         This is the zone for top level actions which does not take into account
         modifications done in the edit zone.
       </p>
 
-      <legend>Actions</legend>
+      <div class="inner-portlet-header">Actions</div>
 
       <div id="removeAction" class="twoColumns">
       </div>
@@ -104,10 +104,10 @@
         Note: A Directive's status may be Enabled, but it will be effectively disabled
         if the Technique it's based on is disabled.
        </div>
-    </fieldset>
+    </div>
 	</lift:authz>
-    <fieldset class="editZone">
-      <legend>Directive settings</legend>
+    <div class="editZone">
+      <div class="inner-portlet-header">Directive settings</div>
 
       <div id="notifications">
 <!--         <ul> -->
@@ -118,7 +118,7 @@
 
       <p>This Directive is based on the <b><span id="techniqueName"/></b> Technique.</p>
       <p id="isSingle">Unique Technique</p> 
-      <fieldset><legend>Description of the Technique</legend><span id="techniqueDescription"/></fieldset>
+      <div><div class="inner-portlet-header">Description of the Technique</div><span id="techniqueDescription"/></div>
       <br/>
       <div id="nameField">
         Here comes the name field
@@ -148,12 +148,12 @@
       </div>
       
       <hr class="spacer" />
-      <fieldset><legend>Parameters</legend>
+      <div><div class="inner-portlet-header">Parameters</div>
         <span id="parameters">Here goes the list of parameters</span>
-      </fieldset>
+      </div>
 	<lift:authz role="directive_edit">
-    <fieldset class="reasonsFieldset">
-    <legend>Change Message</legend>
+    <div class="reasonsFieldset">
+    <div class="inner-portlet-header">Change Message</div>
     
     <div id="explanationMessage">
       Here comes the explanation to reasons field
@@ -162,7 +162,7 @@
     <div id="reasonsField">
       Here comes the reasons field
     </div>
-    </fieldset>
+    </div>
     
       <div class="cpiefsave">
         <button id="save">Save</button>
@@ -170,7 +170,7 @@
       
 
       </lift:authz>
-    </fieldset>
+    </div>
   </div>
 
     <div id="createCloneDirectivePopup" class="nodisplay">
