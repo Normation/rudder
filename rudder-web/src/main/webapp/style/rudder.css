@@ -1553,6 +1553,15 @@ p img {
   padding: 5px 0 2px 5px;
 }
 
+.inner-portlet-header-lower {
+  padding: 5px 0 5px 5px;
+  font-size: 1.3em;
+  cursor: default;
+  background: none;
+  border-bottom: 1px solid #F79D10;
+  padding: 5px 0 2px 5px;
+}
+
 .inner-portlet-content {
   padding: 5px 0 2px 5px;
 }
