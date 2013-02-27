@@ -167,16 +167,13 @@ trait DirectiveField extends BaseField with SectionChildField {
           <td class="directiveVarValue">{ form }</td>
         </tr>
       case Full(form) =>
-        <tr>
+        val tooltipid = Helpers.nextFuncName
+        <tr class = "tooltipable" title="" tooltipid={tooltipid}>
           <td class="directiveVarLabel">
-              { displayName + { if (optional) " (optional)" else "" } }:
+            <div class="tooltipContent" id={tooltipid}>{tooltip}</div>
+            { displayName + { if (optional) " (optional)" else "" } }:
           </td>
           <td class="directiveVarValue">{ form }</td>
-        </tr>
-        <tr class="tooltip">
-          <td colspan="2" style="text-align:center">
-          {tooltip}
-          </td>
         </tr>
     }
   }
@@ -190,16 +187,13 @@ trait DirectiveField extends BaseField with SectionChildField {
         <td class="directiveVarValue">{ displayValue }</td>
       </tr>
     } else {
-      <tr>
+      val tooltipid = Helpers.nextFuncName
+      <tr class = "tooltipable" title="" tooltipid={tooltipid}>
         <td class="directiveVarLabel">
+      	  <div class="tooltipContent" id={tooltipid}>{tooltip}</div>
           { displayName + { if (optional) " (optional)" else "" } }
         </td>
         <td class="directiveVarValue">{ displayValue }</td>
-      </tr>
-      <tr class="tooltip">
-        <td colspan="2" style="text-align:center">
-          {tooltip}
-        </td>
       </tr>
     }
   }
