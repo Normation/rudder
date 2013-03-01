@@ -194,6 +194,12 @@ final class AsyncDeploymentAgent(
           val result = deploymentService.deploy().map { nodeConfs =>
             nodeConfs.map { conf => (NodeId(conf.id), conf) }.toMap
           }
+          result match {
+            case Full(_) => // nothing to report
+            case m: Failure => logger.error("Error when doing deployment, reason %s".format(m.messageChain))
+            case Empty => logger.error("The return status of the deployment is empty, which is invalid")
+          }
+
           deploymentManager ! DeploymentResult(id, startTime,new DateTime, result)
         } catch {
           case e:Throwable => e match {
