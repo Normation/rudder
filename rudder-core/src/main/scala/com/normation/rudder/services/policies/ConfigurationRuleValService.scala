@@ -60,32 +60,42 @@ class ConfigurationRuleValServiceImpl (
   val variableBuilderService: VariableBuilderService
 ) extends ConfigurationRuleValService with Loggable {
  
-  private[this] def getContainer(piId : PolicyInstanceId, configurationRuleId:ConfigurationRuleId) : Box[PolicyInstanceContainer]= {
+  private[this] def getContainer(piId : PolicyInstanceId, configurationRuleId:ConfigurationRuleId) : Box[Option[PolicyInstanceContainer]]= {
     policyInstanceRepo.getPolicyInstance(piId) match {
-      case e:EmptyBox => e
-      case Full(pi) if !(pi.isActivated) => Empty
+      case e:Failure => e
+      case Empty => Failure("Cannot find policy instance with id %s when building Configuration Rule %s".format(piId, configurationRuleId))
+      case Full(pi) if !(pi.isActivated) => None
       case Full(pi) if (pi.isActivated) =>
         policyInstanceRepo.getUserPolicyTemplate(piId) match {
-          case e:EmptyBox => e
-          case Full(upt) if !(upt.isActivated) => Empty
+          case e:Failure => e
+          case Empty => Failure("Cannot find the PT on which Policy Instance with id %s is based when building Configuration Rule %s".format(piId, configurationRuleId))
+          case Full(upt) if !(upt.isActivated) => Failure("We are trying to apply the Policy Instance with id %s which is based on disabled Policy Template %s".format(piId, upt.referencePolicyTemplateName))
           case Full(upt) if upt.isActivated =>
             for {
-              policyPackage <- policyPackageService.getPolicy(PolicyPackageId(upt.referencePolicyTemplateName,pi.policyTemplateVersion))
+              policyPackage <- Box(policyPackageService.getPolicy(PolicyPackageId(upt.referencePolicyTemplateName,pi.policyTemplateVersion))) ?~! "Cannot find the Policy Template %s on which Policy Instance with id %s is based when building Configuration Rule %s".format(upt.referencePolicyTemplateName, piId, configurationRuleId)
               varSpecs = policyPackage.rootSection.getAllVariables ++ policyPackage.systemVariableSpecs :+ policyPackage.trackerVariableSpec
               vared <- variableBuilderService.buildVariables(varSpecs, pi.parameters)
+              exists <- {
+                if (vared.isDefinedAt(policyPackage.trackerVariableSpec.name)) {
+                  Full("OK")
+                } else {
+                  logger.error("Cannot find key %s in Policy Instance %s when building Configration Rule %s".format(policyPackage.trackerVariableSpec.name, piId, configurationRuleId))
+                  Failure("Cannot find key %s in Policy Instance %s when building rule %s".format(policyPackage.trackerVariableSpec.name, piId, configurationRuleId))
+                }
+              }             
               trackerVariable <- vared.get(policyPackage.trackerVariableSpec.name)
               otherVars = vared - policyPackage.trackerVariableSpec.name
               } yield {
                 logger.debug("Creating a PolicyInstanceContainer %s from the configurationRuleId %s".format(upt.referencePolicyTemplateName, configurationRuleId))
               
-                PolicyInstanceContainer(
+                Some(PolicyInstanceContainer(
                     policyPackage.id,
                     upt.id,
                     pi.id,
                     pi.priority,
                     policyPackage.trackerVariableSpec.toVariable(trackerVariable.values),
                     otherVars
-                )
+                ))
               }
         }
     }
@@ -96,12 +106,12 @@ class ConfigurationRuleValServiceImpl (
       cr <- configurationRuleRepo.get(configurationRuleId)
       target <- Box(cr.target) ?~! "Can not fetch configuration rule values for configuration rule with id %s. The reference target is not defined and I can not build a ConfigurationRuleVal for a not fully defined configuration rule".format(configurationRuleId)
       pisId = cr.policyInstanceIds.toSeq
-      containers <- sequenceEmptyable(pisId) { piId => getContainer(piId, configurationRuleId) }
+      containers <- sequence(pisId) { piId => getContainer(piId, configurationRuleId) }
     } yield {
       ConfigurationRuleVal(
         cr.id,
         target,
-        containers,
+        containers.flatten,
         cr.serial
       )
     }
