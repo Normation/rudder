@@ -40,6 +40,9 @@ import net.liftweb.common.Full
 import net.liftweb.http.Req
 import com.normation.eventlog.EventActor
 import org.apache.commons.codec.binary.Base64
+import net.liftweb.json._
+import net.liftweb.http._
+import net.liftweb.json.JsonDSL._
 
 
 /**
@@ -53,7 +56,7 @@ object RestUtils {
    * - else, return none
    */
   def getUsername(req:Req) : Option[String] = {
-    
+
     CurrentUser.is match {
       case None => req.header(s"X-REST-USERNAME") match {
         case eb:EmptyBox => None
@@ -65,4 +68,30 @@ object RestUtils {
 
   def getActor(req:Req) : EventActor = EventActor(getUsername(req).getOrElse("UnknownRestUser"))
 
+
+def toJsonResponse(id:String, message:JValue, status:HttpStatus = RestOk)(implicit action : String = "rest") = {
+  JsonResponse((action ->
+    ("id" -> id) ~
+    ("status" -> status.status) ~
+    ("message" -> message)
+  ), status.code)
+
+  }
+}
+
+
+
+sealed trait HttpStatus {
+  def code : Int
+  def status : String
+}
+
+object RestOk extends HttpStatus{
+  val code = 200
+  val status = "Ok"
+}
+
+object RestError extends HttpStatus{
+  val code = 500
+  val status = "Error"
 }
