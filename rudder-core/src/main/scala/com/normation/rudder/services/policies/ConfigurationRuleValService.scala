@@ -49,7 +49,7 @@ import com.normation.utils.Control.sequenceEmptyable
 
 trait RuleValService {
   def findRuleVal(ruleId:RuleId) : Box[RuleVal]
-  
+
 }
 
 
@@ -59,51 +59,61 @@ class RuleValServiceImpl (
   val techniqueRepository : TechniqueRepository,
   val variableBuilderService: VariableBuilderService
 ) extends RuleValService with Loggable {
- 
-  private[this] def getContainer(piId : DirectiveId, ruleId:RuleId) : Box[DirectiveVal]= {
+
+  private[this] def getContainer(piId : DirectiveId, ruleId:RuleId) : Box[Option[DirectiveVal]]= {
     directiveRepo.getDirective(piId) match {
-      case e:EmptyBox => e
-      case Full(pi) if !(pi.isEnabled) => Empty
+      case e:Failure => e
+      case Empty => Failure("Cannot find Directive with id %s when building Rule %s".format(piId, ruleId))
+      case Full(pi) if !(pi.isEnabled) => None
       case Full(pi) if (pi.isEnabled) =>
         directiveRepo.getActiveTechnique(piId) match {
-          case e:EmptyBox => e
-          case Full(upt) if !(upt.isEnabled) => Empty
+          case e:Failure => e
+          case Empty => Failure("Cannot find the active Technique on which Directive with id %s is based when building Rule %s".format(piId, ruleId))
+          case Full(upt) if !(upt.isEnabled) => None
           case Full(upt) if upt.isEnabled =>
             for {
               policyPackage <- techniqueRepository.get(TechniqueId(upt.techniqueName, pi.techniqueVersion))
               varSpecs = policyPackage.rootSection.getAllVariables ++ policyPackage.systemVariableSpecs :+ policyPackage.trackerVariableSpec
               vared <- variableBuilderService.buildVariables(varSpecs, pi.parameters)
+              exists <- {
+                if (vared.isDefinedAt(policyPackage.trackerVariableSpec.name)) {
+                  Full("OK")
+                } else {
+                  logger.error("Cannot find key %s in Directive %s when building Rule %s".format(policyPackage.trackerVariableSpec.name, piId, ruleId))
+                  Failure("Cannot find key %s in Directibe %s when building Rule %s".format(policyPackage.trackerVariableSpec.name, piId, ruleId))
+                }
+              }
               trackerVariable <- vared.get(policyPackage.trackerVariableSpec.name)
               otherVars = vared - policyPackage.trackerVariableSpec.name
               } yield {
-                logger.debug("Creating a DirectiveContainer %s from the configurationRuleId %s".format(upt.techniqueName, ruleId))
-              
-                DirectiveVal(
+                logger.debug("Creating a DirectiveContainer %s from the ruleId %s".format(upt.techniqueName, ruleId))
+
+                Some(DirectiveVal(
                     policyPackage.id,
                     upt.id,
                     pi.id,
                     pi.priority,
                     policyPackage.trackerVariableSpec.toVariable(trackerVariable.values),
                     otherVars
-                )
+                ))
               }
         }
     }
-  } 
-  
+  }
+
   override def findRuleVal(ruleId:RuleId) : Box[RuleVal] = {
     for {
       rule         <- ruleRepo.get(ruleId)
-      targets      = rule.targets 
+      targets      = rule.targets
       directiveIds = rule.directiveIds.toSeq
-      containers   <- sequenceEmptyable(directiveIds) { getContainer(_, ruleId) }
+      containers   <- sequence(directiveIds) { getContainer(_, ruleId) }
     } yield {
       RuleVal(
         rule.id,
         targets,
-        containers,
+        containers.flatten,
         rule.serial
       )
     }
-  } 
+  }
 }
