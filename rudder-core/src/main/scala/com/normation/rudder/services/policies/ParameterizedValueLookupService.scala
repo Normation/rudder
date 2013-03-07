@@ -369,19 +369,22 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
     * update it with the value from RuleVal.
     * If RuleVal does not have such a variable name, fails.
     * If the looked-up variable's values contain a parameterized value, fails.
-    * @param crv
-    * @param varName
-    * @param cache
+    * @param sourceVariableSpec : the spec of the variable
+    * @param targetConfiguRuleId : the configuration rule id
+    * @param varAccessorName : the name of the searched variable, lowercase !
     * @return
     */
   private[this] def lookupVariableParameter(sourceVariableSpec:VariableSpec, targetConfiguRuleId:RuleId, varAccessorName:String) : Box[Seq[String]] = {
      for {
        crv <- ruleValService.findRuleVal(targetConfiguRuleId)
-       variables = crv.directiveVals.map(x => x.variables.get(varAccessorName)).filter(x => x != None).flatten
+       variables = crv.directiveVals.map(x => x.variables.map { case (name, variable) =>
+                       ( name.toLowerCase, variable) // need to lower the variable i'm looking for
+                     }.get(varAccessorName)).filter(x => x != None).flatten
        exists <- {
-         if(variables.size == 0) Failure("Can not lookup variable %s for rule %s.".format(
-                                                      varAccessorName, crv.ruleId))
-         else Full("OK")
+         if(variables.size == 0){
+           logger.error("Can not lookup variable %s for configuration rule %s.".format(varAccessorName, crv.ruleId))
+           Failure("Can not lookup variable %s for rule %s.".format(varAccessorName, crv.ruleId))
+         } else Full("OK")
        }
        values <- Full(variables.flatten(x => x.values))
 
