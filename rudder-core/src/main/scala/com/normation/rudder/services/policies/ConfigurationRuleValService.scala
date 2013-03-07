@@ -49,7 +49,7 @@ import com.normation.utils.Control.sequenceEmptyable
 
 trait ConfigurationRuleValService {
   def findConfigurationRuleVal(configurationRuleId:ConfigurationRuleId) : Box[ConfigurationRuleVal]
-  
+
 }
 
 
@@ -59,35 +59,38 @@ class ConfigurationRuleValServiceImpl (
   val policyPackageService : PolicyPackageService,
   val variableBuilderService: VariableBuilderService
 ) extends ConfigurationRuleValService with Loggable {
- 
+
   private[this] def getContainer(piId : PolicyInstanceId, configurationRuleId:ConfigurationRuleId) : Box[Option[PolicyInstanceContainer]]= {
     policyInstanceRepo.getPolicyInstance(piId) match {
       case e:Failure => e
-      case Empty => Failure("Cannot find policy instance with id %s when building Configuration Rule %s".format(piId, configurationRuleId))
-      case Full(pi) if !(pi.isActivated) => None
+      case Empty => Failure("Cannot find policy instance with id %s when building Configuration Rule %s".format(piId.value, configurationRuleId.value))
+      case Full(pi) if !(pi.isActivated) =>
+        logger.debug("The Policy Instance with id %s is disabled and we don't generate a container for Configuration Rule %s".format(piId.value, configurationRuleId.value))
+        Full(None)
       case Full(pi) if (pi.isActivated) =>
         policyInstanceRepo.getUserPolicyTemplate(piId) match {
           case e:Failure => e
-          case Empty => Failure("Cannot find the PT on which Policy Instance with id %s is based when building Configuration Rule %s".format(piId, configurationRuleId))
-          case Full(upt) if !(upt.isActivated) => Failure("We are trying to apply the Policy Instance with id %s which is based on disabled Policy Template %s".format(piId, upt.referencePolicyTemplateName))
+          case Empty => Failure("Cannot find the PT on which Policy Instance with id %s is based when building Configuration Rule %s".format(piId.value, configurationRuleId.value))
+          case Full(upt) if !(upt.isActivated) =>
+            Failure("We are trying to apply the Policy Instance with id %s which is based on disabled Policy Template %s".format(piId.value, upt.referencePolicyTemplateName))
           case Full(upt) if upt.isActivated =>
             for {
-              policyPackage <- Box(policyPackageService.getPolicy(PolicyPackageId(upt.referencePolicyTemplateName,pi.policyTemplateVersion))) ?~! "Cannot find the Policy Template %s on which Policy Instance with id %s is based when building Configuration Rule %s".format(upt.referencePolicyTemplateName, piId, configurationRuleId)
+              policyPackage <- Box(policyPackageService.getPolicy(PolicyPackageId(upt.referencePolicyTemplateName,pi.policyTemplateVersion))) ?~! "Cannot find the Policy Template %s on which Policy Instance with id %s is based when building Configuration Rule %s".format(upt.referencePolicyTemplateName, piId.value, configurationRuleId.value)
               varSpecs = policyPackage.rootSection.getAllVariables ++ policyPackage.systemVariableSpecs :+ policyPackage.trackerVariableSpec
               vared <- variableBuilderService.buildVariables(varSpecs, pi.parameters)
               exists <- {
                 if (vared.isDefinedAt(policyPackage.trackerVariableSpec.name)) {
                   Full("OK")
                 } else {
-                  logger.error("Cannot find key %s in Policy Instance %s when building Configration Rule %s".format(policyPackage.trackerVariableSpec.name, piId, configurationRuleId))
-                  Failure("Cannot find key %s in Policy Instance %s when building rule %s".format(policyPackage.trackerVariableSpec.name, piId, configurationRuleId))
+                  logger.error("Cannot find key %s in Policy Instance %s when building Configration Rule %s".format(policyPackage.trackerVariableSpec.name, piId.value, configurationRuleId.value))
+                  Failure("Cannot find key %s in Policy Instance %s when building rule %s".format(policyPackage.trackerVariableSpec.name, piId.value, configurationRuleId.value))
                 }
-              }             
+              }
               trackerVariable <- vared.get(policyPackage.trackerVariableSpec.name)
               otherVars = vared - policyPackage.trackerVariableSpec.name
               } yield {
-                logger.debug("Creating a PolicyInstanceContainer %s from the configurationRuleId %s".format(upt.referencePolicyTemplateName, configurationRuleId))
-              
+                logger.debug("Creating a PolicyInstanceContainer %s from the configurationRuleId %s".format(upt.referencePolicyTemplateName, configurationRuleId.value))
+
                 Some(PolicyInstanceContainer(
                     policyPackage.id,
                     upt.id,
@@ -99,12 +102,12 @@ class ConfigurationRuleValServiceImpl (
               }
         }
     }
-  } 
-  
+  }
+
   def findConfigurationRuleVal(configurationRuleId:ConfigurationRuleId) : Box[ConfigurationRuleVal] = {
     for {
       cr <- configurationRuleRepo.get(configurationRuleId)
-      target <- Box(cr.target) ?~! "Can not fetch configuration rule values for configuration rule with id %s. The reference target is not defined and I can not build a ConfigurationRuleVal for a not fully defined configuration rule".format(configurationRuleId)
+      target <- Box(cr.target) ?~! "Can not fetch configuration rule values for configuration rule with id %s. The reference target is not defined and I can not build a ConfigurationRuleVal for a not fully defined configuration rule".format(configurationRuleId.value)
       pisId = cr.policyInstanceIds.toSeq
       containers <- sequence(pisId) { piId => getContainer(piId, configurationRuleId) }
     } yield {
@@ -115,5 +118,5 @@ class ConfigurationRuleValServiceImpl (
         cr.serial
       )
     }
-  } 
+  }
 }
