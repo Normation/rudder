@@ -454,11 +454,13 @@ class RuleGrid(
       (trackerVariables, targetsInfo) match {
         case (Full(seq), Full(targets)) =>
           val compliance = isApplied(rule, seq, targets) match {
-            case _:NotAppliedStatus => None
+            case _:NotAppliedStatus => Full(None)
             case _ =>  computeCompliance(rule)
           }
-
-          OKLine(rule, compliance, seq, targets)
+          compliance match {
+            case e:EmptyBox => ErrorLine(rule, trackerVariables, targetsInfo)
+            case Full(value) =>  OKLine(rule, value, seq, targets)
+          }
         case (x,y) =>
           //the Rule has some error, try to disactivate it
           woRuleRepository.update(rule.copy(isEnabledStatus=false), ModificationId(uuidGen.newUuid), RudderEventActor,
@@ -586,12 +588,13 @@ class RuleGrid(
     }
   }
 
-  private[this] def computeCompliance(rule: Rule) : Option[ComplianceLevel] = {
+  private[this] def computeCompliance(rule: Rule) : Box[Option[ComplianceLevel]] = {
     reportingService.findImmediateReportsByRule(rule.id) match {
-      case None => Some(Applying) // when we have a rule but nothing in the database, it means that it is currentluy being deployed
-      case Some(x) if (x.expectedNodeIds.size==0) => None
-      case Some(x) if x.getNodeStatus().exists(x => x.nodeReportType == PendingReportType ) => Some(Applying)
-      case Some(x) =>  Some(new Compliance((100 * x.getNodeStatus().filter(x => x.nodeReportType == SuccessReportType).size) / x.expectedNodeIds.size))
+      case e:EmptyBox => e
+      case Full(None) => Full(Some(Applying)) // when we have a rule but nothing in the database, it means that it is currently being deployed
+      case Full(Some(x)) if (x.directivesOnNodesExpectedReports.size==0) => Full(None)
+      case Full(Some(x)) if x.getNodeStatus().exists(x => x.nodeReportType == PendingReportType ) => Full(Some(Applying))
+      case Full(Some(x)) =>  Full(Some(new Compliance((100 * x.getNodeStatus().filter(x => x.nodeReportType == SuccessReportType).size) / x.getNodeStatus().size)))
     }
   }
 
@@ -620,10 +623,11 @@ class RuleGrid(
  ************************************************/
   private[this] def createPopup(rule: Rule) : NodeSeq = {
 
-    def showReportDetail(batch : Option[ExecutionBatch]) : NodeSeq = {
+    def showReportDetail(batch : Box[Option[ExecutionBatch]]) : NodeSeq = {
     ( "#reportLine" #> {batch match {
-            case None => Text("No Reports")
-            case Some(reports) =>
+            case e:EmptyBox => <div class="error">Could not fetch reporting info from database</div>
+            case Full(None) => Text("No Reports")
+            case Full(Some(reports)) =>
               reports.getNodeStatus().map {
                 nodeStatus =>
                    nodeInfoService.getNodeInfo(nodeStatus.nodeId) match {

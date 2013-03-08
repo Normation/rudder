@@ -73,10 +73,11 @@ class RuleValTest {
   def testBasicRuleVal() {
     val container = new DirectiveVal(
       new TechniqueId(TechniqueName("id"), TechniqueVersion("1.0")),
-      new ActiveTechniqueId("id"),
+   //   new ActiveTechniqueId("id"),
       new DirectiveId("id"),
       0,
       TrackerVariableSpec().toVariable(),
+      Map(),
       Map())
 
     new RuleVal(
@@ -94,10 +95,11 @@ class RuleValTest {
   def testToRuleWithCf3PolicyDraft() {
     val container = new DirectiveVal(
       new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0")),
-      new ActiveTechniqueId("uactiveTechniqueId"),
+    //  new ActiveTechniqueId("uactiveTechniqueId"),
       new DirectiveId("directiveId"),
       2,
       TrackerVariableSpec().toVariable(),
+      Map(),
       Map())
 
     val crVal = new RuleVal(
@@ -106,7 +108,7 @@ class RuleValTest {
       Seq(container),
       1)
 
-    val beans = crVal.toRuleWithCf3PolicyDraft
+    val beans = crVal.toPolicyDrafts.map(_.toRuleWithCf3PolicyDraft)
     assert(beans.length == 1)
     assertEquals(beans.head.cf3PolicyDraft.id.value, "ruleId@@directiveId")
     assertEquals(beans.head.ruleId.value, "ruleId")
@@ -121,11 +123,12 @@ class RuleValTest {
   def testToDirectiveBeanWithVar() {
     val container = new DirectiveVal(
       new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0")),
-      new ActiveTechniqueId("uactiveTechniqueId"),
+   //   new ActiveTechniqueId("uactiveTechniqueId"),
       new DirectiveId("directiveId"),
       2,
       TrackerVariableSpec().toVariable(),
-      Map("foo" -> new InputVariable(InputVariableSpec("foo", "bar"))))
+      Map("foo" -> new InputVariable(InputVariableSpec("foo", "bar"))),
+      Map())
 
     val crVal = new RuleVal(
       new RuleId("ruleId"),
@@ -133,7 +136,7 @@ class RuleValTest {
       Seq(container),
       1)
 
-    val beans = crVal.toRuleWithCf3PolicyDraft
+    val beans = crVal.toPolicyDrafts.map(_.toRuleWithCf3PolicyDraft)
     assert(beans.length == 1)
     assertEquals(beans.head.cf3PolicyDraft.id.value, "ruleId@@directiveId")
     assertEquals(beans.head.ruleId.value, "ruleId")
