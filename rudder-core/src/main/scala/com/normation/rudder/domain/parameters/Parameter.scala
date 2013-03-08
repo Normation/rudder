@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -31,10 +31,31 @@
 *
 *************************************************************************************
 */
-
-package com.normation.rudder.domain.archives
+package com.normation.rudder.domain.parameters
 import com.normation.utils.HashcodeCaching
 
-final case class RuleArchiveId(value:String) extends HashcodeCaching
+case class ParameterName(value:String) extends HashcodeCaching
 
-final case class ParameterArchiveId(value:String) extends HashcodeCaching
+/**
+ * A Parameter is an object that has a name and a value, to store and reuse
+ * values at different places within Rudder
+ */
+sealed trait Parameter {
+  def name        : ParameterName
+  def value       : String
+  def description : String
+  def overridable : Boolean
+}
+
+/**
+ * A Global Parameter is a parameter globally defined, that may be overriden
+ */
+case class GlobalParameter(
+    override val name       : ParameterName
+  , override val value      : String
+  , override val description: String
+  , override val overridable: Boolean
+) extends Parameter {
+
+}
+

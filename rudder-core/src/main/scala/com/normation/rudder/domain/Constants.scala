@@ -101,6 +101,7 @@ object Constants {
   val GROUPS_ARCHIVE_TAG = "#groups-archive"
   val POLICY_LIBRARY_ARCHIVE_TAG = "#directives-archive"
   val FULL_ARCHIVE_TAG = "#full-archive"
+  val PARAMETERS_ARCHIVE_TAG = "#parameters-archive"
 
   ///// XML tag names for directive, categories, etc
 
@@ -112,6 +113,7 @@ object Constants {
   val XML_TAG_NODE_GROUP = "nodeGroup"
   val XML_TAG_DEPLOYMENT_STATUS = "deploymentStatus"
   val XML_TAG_CHANGE_REQUEST = "changeRequest"
+  val XML_TAG_GLOBAL_PARAMETER = "globalParameter"
 
 
 }

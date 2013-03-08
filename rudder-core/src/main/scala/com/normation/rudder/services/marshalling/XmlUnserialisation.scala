@@ -55,6 +55,7 @@ import com.normation.rudder.domain.workflows.DirectiveChanges
 import com.normation.rudder.domain.workflows.NodeGroupChanges
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.workflows.RuleChanges
+import com.normation.rudder.domain.parameters.GlobalParameter
 
 
 trait DeploymentStatusUnserialisation {
@@ -250,6 +251,22 @@ trait DirectiveUnserialisation {
   def parseSectionVal(xml:NodeSeq) : Box[SectionVal]
 }
 
+/**
+ * That trait allows to unserialize
+ * Global Parameter from an XML
+ */
+trait GlobalParameterUnserialisation {
+  /**
+   * Version 3:
+     <globalParameter fileFormat="3">
+       <name>{param.name.value}</name>
+       <value>{param.value}</value>
+       <description>{param.description}</description>
+       <overridable>{param.overridable}</overridable>
+     </globalParameter>
+   */
+  def unserialise(xml:XNode) : Box[GlobalParameter]
+}
 
 /**
  * That trait allow to unserialise change request changes from an XML file.
