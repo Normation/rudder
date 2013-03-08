@@ -71,7 +71,7 @@ import scala.util.Success
 import scala.util.{Failure => Catch}
 import com.normation.rudder.domain.eventlog.WorkflowStepChanged
 import com.normation.rudder.domain.workflows.WorkflowStepChange
-import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.domain.parameters._
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
@@ -294,6 +294,12 @@ class EventListDisplayer(
         Text("Technique %s".format(name)) ++ actionName
     }
 
+    def globalParamDesc(x:EventLog, actionName: NodeSeq) = {
+      val name = (x.details \ "globalParameter" \ "name").text
+      Text(s"Global Parameter ${name} ${actionName}")
+    }
+
+
     def changeRequestDesc(x:EventLog, actionName: NodeSeq) = {
       val name = (x.details \ "changeRequest" \ "name").text
       val idNode = (x.details \ "changeRequest" \ "id").text.trim
@@ -365,6 +371,9 @@ class EventListDisplayer(
       case _:ModifyChangeRequest           => changeRequestDesc(event,Text(" modified"))
       case _:Rollback                      => Text("Restore a previous state of configuration policy")
       case x:WorkflowStepChanged           => workflowStepDesc(x)
+      case x:AddGlobalParameter            => globalParamDesc(x, Text(" added"))
+      case x:ModifyGlobalParameter         => globalParamDesc(x, Text(" modified"))
+      case x:DeleteGlobalParameter         => globalParamDesc(x, Text(" deleted"))
       case _ => Text("Unknow event type")
 
     }
@@ -967,8 +976,62 @@ class EventListDisplayer(
           case e:EmptyBox => logger.warn(e)
           errorMessage(e)
         }
+        }
 
+      // Global parameters
 
+      case x:AddGlobalParameter =>
+        "*" #> { logDetailsService.getGlobalParameterAddDetails(x.details) match {
+        case Full(globalParamDiff) =>
+            <div class="evloglmargin">
+              { addRestoreAction }
+              { generatedByChangeRequest }
+              { globalParameterDetails(globalParamDetailsXML, globalParamDiff.parameter)}
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        }
+        }
+
+      case x:DeleteGlobalParameter =>
+        "*" #> { logDetailsService.getGlobalParameterDeleteDetails(x.details) match {
+        case Full(globalParamDiff) =>
+            <div class="evloglmargin">
+              { addRestoreAction }
+              { generatedByChangeRequest }
+              { globalParameterDetails(globalParamDetailsXML, globalParamDiff.parameter)}
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        }
+        }
+
+      case mod:ModifyGlobalParameter =>
+        "*" #> { logDetailsService.getGlobalParameterModifyDetails(mod.details) match {
+        case Full(modDiff) =>
+            <div class="evloglmargin">
+              { addRestoreAction }
+              { generatedByChangeRequest }
+              <h4>Global Parameter overview:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Global Parameter name:</b> { modDiff.name.value }</li>
+              </ul>
+              {(
+                "#value" #>  mapSimpleDiff(modDiff.modValue) &
+                "#description *" #> mapSimpleDiff(modDiff.modDescription) &
+                "#overridable *" #> mapSimpleDiff(modDiff.modOverridable)
+              )(globalParamModDetailsXML)
+              }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        }
         }
 
       // other case: do not display details at all
@@ -1156,6 +1219,13 @@ class EventListDisplayer(
       "#isSystem" #> technique.isSystem
   )(xml)
 
+  private[this] def globalParameterDetails(xml: NodeSeq, globalParameter: GlobalParameter) = (
+      "#name" #> globalParameter.name.value &
+      "#value" #> globalParameter.value &
+      "#description" #> globalParameter.description &
+      "#overridable" #> globalParameter.overridable
+  )(xml)
+
  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]]) = opt.map { diff =>
    ".diffOldValue *" #> diff.oldValue.toString &
    ".diffNewValue *" #> diff.newValue.toString
@@ -1275,6 +1345,16 @@ class EventListDisplayer(
     </div>
 
 
+   private[this] val globalParamDetailsXML =
+    <div>
+      <h4>Global Parameter overview:</h4>
+      <ul class="evlogviewpad">
+        <li><b>Name:&nbsp;</b><value id="name"/></li>
+        <li><b>Value:&nbsp;</b><value id="value"/></li>
+        <li><b>Description:&nbsp;</b><value id="description"/></li>
+        <li><b>Overridable:&nbsp;</b><value id="overridable"/></li>
+      </ul>
+    </div>
 
   private[this] def liModDetailsXML(id:String, name:String) = (
       <div id={id}>
@@ -1339,6 +1419,13 @@ class EventListDisplayer(
       {liModDetailsXML("priority", "Priority")}
       {liModDetailsXML("isEnabled", "Activation status")}
       {liModDetailsXML("isSystem", "System")}
+    </xml:group>
+
+  private[this] val globalParamModDetailsXML =
+    <xml:group>
+      {liModDetailsXML("value", "Value")}
+      {liModDetailsXML("description", "Description")}
+      {liModDetailsXML("overridable", "Overridable")}
     </xml:group>
 
   private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int, gridname: String) = {

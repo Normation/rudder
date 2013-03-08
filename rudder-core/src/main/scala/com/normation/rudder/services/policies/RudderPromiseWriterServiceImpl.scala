@@ -175,7 +175,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
         (baseNodePath, baseNodePath + newPostfix, backupNodePath, baseNodePath + newPostfix + "/rules" + agentType.toRulesPath()) // we'll want to move the root folders
       }
 
-      val tmls = prepareCf3PromisesFileTemplate(NodeConfiguration.toContainer(newNodeRulePath, node), systemVariables)
+      val tmls = prepareCf3PromisesFileTemplate(NodeConfiguration.toContainer(newNodeRulePath, node), systemVariables.toMap)
 
       logger.debug("Prepared the tml for the node %s".format(node.id))
 

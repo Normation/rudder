@@ -83,6 +83,7 @@ import com.normation.rudder.domain.workflows.RuleChangeItem
 import com.normation.rudder.domain.policies.AddRuleDiff
 import com.normation.rudder.domain.policies.DeleteRuleDiff
 import com.normation.rudder.domain.policies.ModifyToRuleDiff
+import com.normation.rudder.domain.parameters.GlobalParameter
 
 
 class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
@@ -228,6 +229,16 @@ class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentSta
   ) }
 }
 
+class GlobalParameterSerialisationImpl(xmlVersion:String) extends GlobalParameterSerialisation {
+  def serialise(param:GlobalParameter):  Elem = {
+    createTrimedElem(XML_TAG_GLOBAL_PARAMETER, xmlVersion) (
+       <name>{param.name.value}</name>
+       <value>{param.value}</value>
+       <description>{param.description}</description>
+       <overridable>{param.overridable}</overridable>
+    )
+  }
+}
 
 /**
  * That class allow to serialise change request changes to an XML data.

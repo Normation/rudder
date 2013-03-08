@@ -1,0 +1,46 @@
+
+<lift:surround with="menu/menu-configure" at="content">
+
+<head>
+<title>Rudder - Parameters Management</title>
+</head>
+
+<div class="portlet">
+  <div class="portlet-header">Global Parameters</div>
+  <div class="portlet-content">  
+    <div class="intro">
+      <div>
+         Manage <em>Global Parameters</em>
+      </div>
+    </div>
+    <hr class="spacer"/>
+    <div>
+      <div class="inner-portlet">
+        <lift:authz role="directive_read">
+          <div class="inner-portlet-header">List of Global Parameters</div>
+          <div class="inner-portlet-content">
+            <div class="lift:configuration.ParameterManagement.display"/>
+          </div>
+        </lift:authz>
+      </div>  
+    </div>
+    <hr class="spacer"/>
+    
+    <lift:authz role="directive_write">
+      <div id="globalParameterForm"/>
+    </lift:authz>
+   
+  </div>
+    <div id="createGlobalParameterPopup" class="nodisplay">
+	    <lift:ignore>
+	      This div gets the content of the CreateOrUpdateGlobalParameterPopup injected within
+	    </lift:ignore>
+	<div id="createGlobalParameterContainer"/>
+  </div>
+
+   <div id="deletionPopup" class="nodisplay"/>
+
+  <br/>
+</div>
+</lift:surround>
+
