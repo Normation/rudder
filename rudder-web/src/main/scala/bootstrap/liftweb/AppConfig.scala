@@ -245,6 +245,7 @@ object RudderConfig extends Loggable {
   val userLibraryDirectoryName = "directives"
   val groupLibraryDirectoryName = "groups"
   val rulesDirectoryName = "rules"
+  val parametersDirectoryName = "parameters"
 
   //deprecated
   val BASE_URL = Try(config.getString("base.url")).getOrElse("")
@@ -320,7 +321,6 @@ object RudderConfig extends Loggable {
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
 
-
   val roChangeRequestRepository : RoChangeRequestRepository = RUDDER_ENABLE_APPROVAL_WORKFLOWS match {
       case false =>
         inMemoryChangeRequestRepository
@@ -385,6 +385,8 @@ object RudderConfig extends Loggable {
     , RUDDER_ENABLE_APPROVAL_WORKFLOWS
   )
 
+  val roParameterService : RoParameterService = roParameterServiceImpl
+  val woParameterService : WoParameterService = woParameterServiceImpl
 
   //////////////////////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////// REST ///////////////////////////////////////////
@@ -460,6 +462,8 @@ object RudderConfig extends Loggable {
     new NodeGroupSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val deploymentStatusSerialisation : DeploymentStatusSerialisation =
     new DeploymentStatusSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
+  private[this] lazy val globalParameterSerialisation: GlobalParameterSerialisation =
+    new GlobalParameterSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val changeRequestChangesSerialisation : ChangeRequestChangesSerialisation =
     new ChangeRequestChangesSerialisationImpl(
         Constants.XML_CURRENT_FILE_FORMAT.toString
@@ -470,10 +474,12 @@ object RudderConfig extends Loggable {
       , rootSectionSerialisation
     )
   private[this] lazy val eventLogFactory = new EventLogFactoryImpl(
-    ruleSerialisation,
-    directiveSerialisation,
-    nodeGroupSerialisation,
-    activeTechniqueSerialisation)
+      ruleSerialisation
+    , directiveSerialisation
+    , nodeGroupSerialisation
+    , activeTechniqueSerialisation
+    , globalParameterSerialisation
+  )
   private[this] lazy val pathComputer = new PathComputerImpl(RUDDER_DIR_BACKUP)
   private[this] lazy val baseUrlService: GetBaseUrlService = new DefaultBaseUrlService(BASE_URL)
 
@@ -503,6 +509,7 @@ object RudderConfig extends Loggable {
     , techniqueRepository
     , sectionSpecParser
   )
+  private[this] lazy val globalParameterUnserialisation = new GlobalParameterUnserialisationImpl
   private[this] lazy val deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
   private[this] lazy val xmlMigration_2_3 = new XmlMigration_2_3()
   private[this] lazy val xmlMigration_10_2 = new XmlMigration_10_2()
@@ -515,6 +522,7 @@ object RudderConfig extends Loggable {
     , new RuleUnserialisationImpl
     , new ActiveTechniqueUnserialisationImpl
     , new DeploymentStatusUnserialisationImpl
+    , new GlobalParameterUnserialisationImpl
   )
 
   //////////////////////////////////////////////////////////
@@ -652,6 +660,8 @@ object RudderConfig extends Loggable {
   private[this] lazy val ldapNodeConfigurationMapper = new LDAPNodeConfigurationMapper(rudderDitImpl, acceptedNodesDitImpl, systemVariableSpecService, techniqueRepositoryImpl, variableBuilderService, rwLdap)
   private[this] lazy val ldapNodeConfigurationRepository = new LDAPNodeConfigurationRepository(rwLdap, rudderDitImpl, ldapNodeConfigurationMapper)
 
+  private[this] lazy val roParameterServiceImpl = new RoParameterServiceImpl(roLDAPParameterRepository)
+  private[this] lazy val woParameterServiceImpl = new WoParameterServiceImpl(roParameterServiceImpl, woLDAPParameterRepository, asyncDeploymentAgentImpl)
 
   ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
   private[this] lazy val gitModificationRepository = new GitModificationSquerylRepository(squerylDatasourceProvider)
@@ -696,12 +706,20 @@ object RudderConfig extends Loggable {
     , prettyPrinter
     , gitModificationRepository
   )
-
+  private[this] lazy val gitParameterArchiver: GitParameterArchiver = new GitParameterArchiverImpl(
+      gitRepo
+    , new File(RUDDER_DIR_GITROOT)
+    , globalParameterSerialisation
+    , parametersDirectoryName
+    , prettyPrinter
+    , gitModificationRepository
+  )
   ////////////// MUTEX FOR rwLdap REPOS //////////////
 
   private[this] lazy val uptLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
   private[this] lazy val groupLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
   private[this] lazy val nodeReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
+  private[this] lazy val parameterReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
 
 
   private[this] lazy val roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
@@ -755,19 +773,36 @@ object RudderConfig extends Loggable {
     , RUDDER_AUTOARCHIVEITEMS
   )
 
+  private[this] lazy val roLDAPParameterRepository = new RoLDAPParameterRepository(
+      rudderDitImpl, roLdap, ldapEntityMapper, parameterReadWriteMutex
+  )
+  private[this] lazy val woLDAPParameterRepository = new WoLDAPParameterRepository(
+      roLDAPParameterRepository
+    , rwLdap
+    , ldapDiffMapper
+    , logRepository
+    , gitParameterArchiver
+    , personIdentServiceImpl
+    , RUDDER_AUTOARCHIVEITEMS
+  )
+
   private[this] lazy val itemArchiveManagerImpl = new ItemArchiveManagerImpl(
       roLdapRuleRepository
     , woLdapRuleRepository
     , roLdapDirectiveRepository
     , roLdapNodeGroupRepository
+    , roLDAPParameterRepository
+    , woLDAPParameterRepository
     , gitRepo
     , gitRevisionProvider
     , gitRuleArchiver
     , gitActiveTechniqueCategoryArchiver
     , gitActiveTechniqueArchiver
     , gitNodeGroupArchiver
+    , gitParameterArchiver
     , parseRules
     , ParseActiveTechniqueLibrary
+    , parseGlobalParameter
     , importTechniqueLibrary
     , parseGroupLibrary
     , importGroupLibrary
@@ -838,8 +873,8 @@ object RudderConfig extends Loggable {
           historizationService,
           roNodeGroupRepository,
           roDirectiveRepository,
-          ruleApplicationStatusImpl
-      )
+          ruleApplicationStatusImpl,
+          roParameterServiceImpl)
       , eventLogDeploymentServiceImpl
       , deploymentStatusSerialisation)
     techniqueRepositoryImpl.registerCallback(
@@ -910,6 +945,12 @@ object RudderConfig extends Loggable {
     , gitRepo
     , entityMigration
     , groupLibraryDirectoryName
+  )
+  private[this] lazy val parseGlobalParameter : ParseGlobalParameters = new GitParseGlobalParameters(
+      globalParameterUnserialisation
+    , gitRepo
+    , entityMigration
+    , parametersDirectoryName
   )
   private[this] lazy val importGroupLibrary : ImportGroupLibrary = new ImportGroupLibraryImpl(
      rudderDitImpl

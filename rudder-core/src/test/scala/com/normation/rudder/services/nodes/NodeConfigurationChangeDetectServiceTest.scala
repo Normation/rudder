@@ -163,7 +163,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) must beTheSameAs(Set())
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) must beTheSameAs(Set())
     }
     "not have a change if the minimal are different, but there is no CR" in {
       service.detectChangeInNode(new SimpleNodeConfiguration(NodeId("id"),
@@ -174,7 +176,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf2,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) must beTheSameAs(Set())
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) must beTheSameAs(Set())
     }
   }
 
@@ -189,7 +193,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) must beTheSameAs(Set())
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) must beTheSameAs(Set())
     }
 
     "have its CR that changed if the minimal are different" in {
@@ -201,7 +207,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf2,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) === Set(new RuleId("ruleId"))
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) === Set(new RuleId("ruleId"))
     }
   }
 
@@ -215,7 +223,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) must beTheSameAs(Set())
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) must beTheSameAs(Set())
     }
 
     "have a change if a variable is not equal" in {
@@ -227,7 +237,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) === Set(new RuleId("ruleId1"))
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) === Set(new RuleId("ruleId1"))
     }
 
     "have a change if serial is not equals (but same variable)" in {
@@ -239,7 +251,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) === Set(new RuleId("ruleId1"))
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) === Set(new RuleId("ruleId1"))
     }
 
     "have a change if minimal is not equals" in {
@@ -251,7 +265,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf2,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) === Set(new RuleId("ruleId1"))
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) === Set(new RuleId("ruleId1"))
     }
 
     "have a change if minimal is not equals and serial different" in {
@@ -263,7 +279,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf2,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) === Set(new RuleId("ruleId1"))
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) === Set(new RuleId("ruleId1"))
     }
 
     "have a change if nothing is different, but previous CR is not existant" in {
@@ -275,7 +293,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) === Set(new RuleId("ruleId1"))
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) === Set(new RuleId("ruleId1"))
     }
 
     "have a change if nothing is different, but previous CR is existant and current is non existant" in {
@@ -287,7 +307,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) === Set(new RuleId("ruleId1"))
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) === Set(new RuleId("ruleId1"))
     }
 
     "have a change if min is different, previous CR is existant and current is non existant" in {
@@ -299,7 +321,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf2,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) === Set(new RuleId("ruleId1"))
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) === Set(new RuleId("ruleId1"))
     }
 
     "have a change if min is different, previous CR is non existant and current is existant" in {
@@ -311,7 +335,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
                   minNodeConf2,
                   Some(new DateTime(1)),
                   Map(),
-                  Map()), directiveLib) === Set(new RuleId("ruleId1"))
+                  Map(),
+                  Set(),
+                  Set()), directiveLib) === Set(new RuleId("ruleId1"))
     }
   }
 

@@ -44,8 +44,14 @@ import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
 import com.normation.rudder.domain.servers.NodeConfiguration
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
-
 import net.liftweb.common.Loggable
+import net.liftweb.common.Box
+import org.joda.time.DateTime
+import com.normation.cfclerk.domain.TechniqueId
+import net.liftweb.common.Full
+import com.normation.rudder.domain.parameters.Parameter
+import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.services.policies.ParameterForConfiguration
 
 
 /**
@@ -97,6 +103,15 @@ class NodeConfigurationChangeDetectServiceImpl() extends NodeConfigurationChange
     }
   }
 
+  /**
+   * Checks if two sets of parameters are identical, but doesn't care for
+   * the description or the overridable status
+   */
+  private def detectChangeInParameters(
+      currentParameters : Set[ParameterForConfiguration]
+    , targetParameters  : Set[ParameterForConfiguration]) : Boolean = {
+    currentParameters != targetParameters
+  }
 
   override def detectChangeInNode(node : NodeConfiguration, directiveLib: FullActiveTechniqueCategory) : Set[RuleId] = {
     logger.debug("Checking changes in node %s".format( node.id) )
@@ -109,6 +124,11 @@ class NodeConfigurationChangeDetectServiceImpl() extends NodeConfigurationChange
     // Second case : a change in the system variable is a change of all CRs
     } else if (detectChangeInSystemVar(node.currentSystemVariables, node.targetSystemVariables)) {
       logger.trace("A change in the system variable node %s".format( node.id) )
+      node.currentRulePolicyDrafts.map(_.ruleId).toSet ++ node.targetRulePolicyDrafts.map(_.ruleId).toSet
+
+    // Third case : a change in the parameters is a change of all CRs
+    } else if (detectChangeInParameters(node.currentParameters, node.targetParameters)) {
+      logger.trace("A change in the parameters for node %s".format( node.id ) )
       node.currentRulePolicyDrafts.map(_.ruleId).toSet ++ node.targetRulePolicyDrafts.map(_.ruleId).toSet
     } else {
 

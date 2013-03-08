@@ -62,6 +62,9 @@ import net.liftweb.common.Failure
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventLog
+import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.parameters.ParameterName
+import com.normation.rudder.domain.eventlog.ImportParametersArchive
 
 
 
@@ -140,6 +143,8 @@ trait ItemArchiveManager {
 
   def exportGroupLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
 
+  def exportParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId]
+
   /**
    * Import the archive with the given ID in Rudder.
    * If anything goes bad, implementation of that method
@@ -156,6 +161,7 @@ trait ItemArchiveManager {
 
   def importGroupLibrary(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
 
+  def importParameters(archiveId:GitCommitId, commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
 
   /**
    * Import the item archive from HEAD (corresponding to last commit)
@@ -163,19 +169,23 @@ trait ItemArchiveManager {
   private[this] def lastGitCommitId = GitCommitId("HEAD")
 
   def importHeadAll(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
-    importAll(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
+    importAll(lastGitCommitId, commiter, modId, actor, reason, includeSystem)
   }
 
   def importHeadRules(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
-    importRules(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
+    importRules(lastGitCommitId, commiter, modId, actor, reason, includeSystem)
   }
 
   def importHeadTechniqueLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
-    importTechniqueLibrary(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
+    importTechniqueLibrary(lastGitCommitId, commiter, modId, actor, reason, includeSystem)
   }
 
   def importHeadGroupLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
-    importGroupLibrary(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
+    importGroupLibrary(lastGitCommitId, commiter, modId, actor, reason, includeSystem)
+  }
+
+  def importHeadParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[GitCommitId]= {
+    importParameters(lastGitCommitId, commiter, modId, actor, reason)
   }
 
   /**
@@ -193,6 +203,7 @@ trait ItemArchiveManager {
 
   def getRulesTags : Box[Map[DateTime,GitArchiveId]]
 
+  def getParametersTags : Box[Map[DateTime,GitArchiveId]]
 }
 
 
@@ -428,4 +439,45 @@ trait GitNodeGroupArchiver {
    */
   def moveNodeGroup(nodeGroup:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
 
+}
+
+/**
+ * A specific trait to create archive of Global parameter
+ */
+trait GitParameterArchiver {
+  /**
+   * Archive a parameter in a file system managed by git.
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   *
+   * reason is an optional commit message to add to the standard one.
+   */
+  def archiveParameter(parameter:GlobalParameter, gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+
+  /**
+   * Commit modification done in the Git repository for any
+   * parameter.
+   * Also add a tag with the given return GitPath.
+   * The returned commit hash is the one for the tag.
+   * Return the git commit id.
+   *
+   * reason is an optional commit message to add to the standard one.
+   */
+  def commitParameters(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId]
+
+  def getTags() : Box[Map[DateTime,GitArchiveId]]
+
+  /**
+   * Delete an archived parameter.
+   * If gitCommit is true, the modification is
+   * saved in git. Else, no modification in git are saved.
+   *
+   * reason is an optional commit message to add to the standard one.
+   */
+  def deleteParameter(parameterName:ParameterName, gitCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath]
+
+  /**
+   * Get the root directory where parameter are saved
+   */
+  def getRootDirectory : File
 }

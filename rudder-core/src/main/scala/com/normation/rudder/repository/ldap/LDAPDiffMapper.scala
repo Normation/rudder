@@ -70,6 +70,7 @@ import com.unboundid.ldif.LDIFModifyChangeRecord
 import com.unboundid.ldif.LDIFModifyDNChangeRecord
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.unboundid.ldap.sdk.ModificationType.{ADD, DELETE, REPLACE}
+import com.normation.rudder.domain.parameters._
 
 class LDAPDiffMapper(
     mapper         : LDAPEntityMapper
@@ -315,4 +316,60 @@ class LDAPDiffMapper(
       }
   }
 
+  ///// Parameters diff /////
+  def addChangeRecords2GlobalParameterDiff(
+      parameterDN   : DN
+    , change        : LDIFChangeRecord
+  ) : Box[AddGlobalParameterDiff] = {
+    if (change.getParsedDN == parameterDN ) {
+      change match {
+        case add:LDIFAddChangeRecord =>
+          val e = LDAPEntry(add.toAddRequest().toEntry)
+          for {
+            param <- mapper.entry2Parameter(e)
+          } yield AddGlobalParameterDiff(param)
+        case _ => Failure("Bad change record type for requested action 'Add Global Parameter': %s".format(change))
+      }
+
+    } else {
+      Failure("The following change record does not belong to Parameter entry '%s': %s".format(parameterDN,change))
+    }
+  }
+  
+  def modChangeRecords2GlobalParameterDiff(
+      parameterName     : ParameterName
+    , parameterDn       : DN
+    , oldParam          : GlobalParameter
+    , change            : LDIFChangeRecord
+  ) : Box[Option[ModifyGlobalParameterDiff]] = {
+    if(change.getParsedDN == parameterDn ) {
+      //if oldParameterEntry is None, we want and addChange, else a modifyChange
+      change match {
+        case modify:LDIFModifyChangeRecord =>
+          for {
+            diff <- pipeline(modify.getModifications(), ModifyGlobalParameterDiff(parameterName)) { (mod,diff) =>
+              mod.getAttributeName() match {
+                case A_PARAMETER_VALUE =>
+                  tryo(diff.copy(modValue = Some(SimpleDiff(oldParam.value, mod.getAttribute().getValue))))
+
+                case A_DESCRIPTION =>
+                  Full(diff.copy(modDescription = Some(SimpleDiff(oldParam.description, mod.getAttribute().getValue()))))
+                  
+                case A_PARAMETER_OVERRIDABLE =>
+                  tryo(diff.copy(modOverridable = Some(SimpleDiff(oldParam.overridable, mod.getAttribute().getValueAsBoolean))))
+                case x => Failure("Unknown diff attribute: " + x)
+              }
+            }
+          } yield {
+            Some(diff)
+          }
+
+        case noop:LDIFNoopChangeRecord => Full(None)
+
+        case _ =>  Failure("Bad change record type for requested action 'save Parameter': %s".format(change))
+      }
+    } else {
+      Failure("The following change record does not belong to Parameter entry '%s': %s".format(parameterDn,change))
+    }
+  }
 }
