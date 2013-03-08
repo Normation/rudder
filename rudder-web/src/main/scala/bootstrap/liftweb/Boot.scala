@@ -211,6 +211,10 @@ class Boot extends Loggable {
             >> LocGroup(name+"Group")
             >> TestAccess( () => userIsAllowed("/secure/index",Read("directive") ) )
 
+        , Menu(name+"ParameterManagement", <span>Parameters</span>) /
+            "secure" / (name+"Manager") / "parameterManagement"
+            >> LocGroup(name+"Group")
+            >> TestAccess( () => userIsAllowed("/secure/index",Read("directive") ) )
       )
 
 

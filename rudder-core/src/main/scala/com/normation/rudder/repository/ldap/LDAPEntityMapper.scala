@@ -66,7 +66,7 @@ import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiToken
-
+import com.normation.rudder.domain.parameters._
 
 
 /**
@@ -546,5 +546,35 @@ class LDAPEntityMapper(
 
   def apiAccount2Entry(principal:ApiAccount) : LDAPEntry = {
     rudderDit.API_ACCOUNTS.API_ACCOUNT.apiAccountModel(principal)
+
+  //////////////////////////////    Parameters    //////////////////////////////
+
+  def entry2Parameter(e:LDAPEntry) : Box[GlobalParameter] = {
+    if(e.isA(OC_PARAMETER)) {
+      //OK, translate
+      for {
+        name        <- e(A_PARAMETER_NAME) ?~! "Missing required attribute %s in entry %s".format(A_PARAMETER_NAME, e)
+        value       = e(A_PARAMETER_VALUE).getOrElse("")
+        description = e(A_DESCRIPTION).getOrElse("")
+        overridable = e.getAsBoolean(A_PARAMETER_OVERRIDABLE).getOrElse(true)
+      } yield {
+        GlobalParameter(
+            ParameterName(name)
+          , value
+          , description
+          , overridable
+        )
+      }
+    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_PARAMETER, e))
+  }
+
+  def parameter2Entry(parameter: GlobalParameter) : LDAPEntry = {
+    val entry = rudderDit.PARAMETERS.parameterModel(
+        parameter.name
+    )
+    entry +=! (A_PARAMETER_VALUE, parameter.value)
+    entry +=! (A_PARAMETER_OVERRIDABLE, parameter.overridable.toLDAPString)
+    entry +=! (A_DESCRIPTION, parameter.description)
+    entry
   }
 }

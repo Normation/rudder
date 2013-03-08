@@ -51,6 +51,7 @@ final case object WorkflowLogCategory extends EventLogCategory
 final case object PolicyServerLogCategory extends EventLogCategory
 final case object ImportExportItemsLogCategory extends EventLogCategory
 
+final case object ParameterLogCategory extends EventLogCategory
 
 
 
@@ -182,6 +183,12 @@ final case object ExportRulesEventType extends NoRollbackEventLogType {
 final case object ImportRulesEventType extends RollbackEventLogType {
   def serialize = "ImportRules"
 }
+final case object ExportParametersEventType extends NoRollbackEventLogType {
+  def serialize = "ExportParameters"
+}
+final case object ImportParametersEventType extends RollbackEventLogType {
+  def serialize = "ImportParameters"
+}
 final case object ExportFullArchiveEventType extends NoRollbackEventLogType {
   def serialize = "ExportFullArchive"
 }
@@ -195,6 +202,18 @@ final case object WorkflowStepChangedEventType extends NoRollbackEventLogType {
   def serialize = "WorkflowStepChanged"
 }
 
+// Parameter event type
+final case object AddGlobalParameterEventType extends RollbackEventLogType {
+  def serialize = "GlobalParameterAdded"
+}
+
+final case object DeleteGlobalParameterEventType extends RollbackEventLogType {
+  def serialize = "GlobalParameterDeleted"
+}
+
+final case object ModifyGlobalParameterEventType extends RollbackEventLogType {
+  def serialize = "GlobalParameterModified"
+}
 
 /**
  * List of event generating a modification of promises
@@ -222,6 +241,10 @@ object ModificationWatchList {
     , ImportRulesEventType
     , ImportFullArchiveEventType
     , RollbackEventType
+
+    , AddGlobalParameterEventType
+    , DeleteGlobalParameterEventType
+    , ModifyGlobalParameterEventType
   )
 
 }
@@ -277,6 +300,10 @@ object EventTypeFactory {
     , AddChangeRequestEventType
     , ModifyChangeRequestEventType
     , WorkflowStepChangedEventType
+
+    , AddGlobalParameterEventType
+    , DeleteGlobalParameterEventType
+    , ModifyGlobalParameterEventType
   )
 
   def apply(s:String) : EventLogType = {

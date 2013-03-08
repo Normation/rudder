@@ -237,3 +237,10 @@ dn: ou=API Accounts,ou=Rudder,cn=rudder-configuration
 objectClass: organizationalUnit
 objectClass: top
 ou: API Accounts
+
+## Rudder Parameters configuration branch
+
+dn: ou=Parameters,ou=Rudder,cn=rudder-configuration
+objectClass: organizationalUnit
+objectClass: top
+ou: Parameters
