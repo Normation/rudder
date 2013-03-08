@@ -1126,10 +1126,11 @@ class RuleEditForm(
      * It displays the report Detail of a Rule
      * It displays each Directive and prepare its components detail
      */
-    def showReportDetail(batch : Option[ExecutionBatch]) : NodeSeq = {
+    def showReportDetail(batch : Box[Option[ExecutionBatch]]) : NodeSeq = {
       batch match {
-        case None => NodeSeq.Empty
-        case Some(reports) =>
+        case e: EmptyBox => <div class="error">Error while fetching report information</div>
+        case Full(None) => NodeSeq.Empty
+        case Full(Some(reports)) =>
           val directivesreport=reports.getRuleStatus().filter(dir => rule.directiveIds.contains(dir.directiveId))
           val tooltipid = Helpers.nextFuncName
           ( "#reportsGrid [class+]" #> "tablewidth" &
@@ -1254,13 +1255,26 @@ class RuleEditForm(
         </tr>
       </thead>
       <tbody>{
-        values.flatMap { value =>
+        // we need to group all the ComponentValueRuleStatusReports by unexpandedComponentValue if any, or by component value
+        // and agregate them together
+        val reportsByComponents = values.groupBy { entry => entry.unexpandedComponentValue.getOrElse(entry.componentValue)}
+        reportsByComponents.map { case (key, entries) =>
+          val severity = ReportType.getWorseType(entries.map(_.cptValueReportType))
+          ComponentValueRuleStatusReport(
+             entries.head.directiveid // can't fail because we are in a groupBy
+           , entries.head.component  // can't fail because we are in a groupBy
+           , key
+           , None // TODO : is it what we want ??
+           , severity
+           , entries.flatMap(_.reports)
+          )
+        }.flatMap { value =>
           val severity = ReportType.getSeverityFromStatus(value.cptValueReportType)
           ( "#valueStatus [class+]" #> severity.replaceAll(" ", "") &
             "#valueStatus *" #> <center>{severity}</center> &
             "#componentValue *" #>  <b>{value.componentValue}</b> &
             "#componentValue [class+]" #>  "firstTd" &
-            "#keySeverity *" #> buildComplianceChart(value)
+            "#keySeverity *" #> buildComplianceChartForComponent(value, reportsByComponents.get(value.componentValue))
          ) (componentValueDetails) } }
       </tbody>
     </table>
@@ -1322,6 +1336,22 @@ class RuleEditForm(
     }
   }
 
+  def buildComplianceChartForComponent(
+      ruleStatusReport: ComponentValueRuleStatusReport
+    , values          : Option[Seq[ComponentValueRuleStatusReport]]) : NodeSeq = {
+    ruleStatusReport.computeCompliance match {
+      case Some(percent) =>  {
+        val text = Text(percent.toString + "%")
+        val attr = BasicElemAttr("class","noexpand")
+        values match {
+          case None => SHtml.a({() => showPopup(ruleStatusReport)}, text,attr)
+          case Some(reports) => SHtml.a({() => showPopup(ruleStatusReport, reports)}, text,attr)
+        }
+      }
+      case None => Text("Not Applied")
+    }
+  }
+  
   val batch = reportingService.findImmediateReportsByRule(rule.id)
 
   <div>
@@ -1332,29 +1362,26 @@ class RuleEditForm(
 
   ///////////////// Compliance detail popup/////////////////////////
 
-  private[this] def createPopup(directivebynode: RuleStatusReport) : NodeSeq = {
-
-
-   /*
-    * Node summary, treat all top level reports
-    */
-    def nodeGridXml : NodeSeq = {
-        <table id={Helpers.nextFuncName}  cellspacing="0">
-          <thead>
-            <tr class="head">
-              <th>Node<span/></th>
-              <th >Status<span/></th>
-            </tr>
-          </thead>
-          <tbody>
-            <div id="reportLine"/>
-          </tbody>
-        </table>
-        <div class="nodeReportGrid_pagination paginatescala">
-          <div id="nodeReportGrid_paginate_area"/>
-        </div>
-        <hr class="spacer"/>
-        <br/> ++ Script(OnLoad(JsRaw("""
+  /*
+   * Node summary, treat all top level reports
+   */
+  private[this] def nodeGridXml: NodeSeq = {
+    <table id={ Helpers.nextFuncName } cellspacing="0">
+      <thead>
+        <tr class="head">
+          <th>Node<span/></th>
+          <th>Status<span/></th>
+        </tr>
+      </thead>
+      <tbody>
+        <div id="reportLine"/>
+      </tbody>
+    </table>
+    <div class="nodeReportGrid_pagination paginatescala">
+      <div id="nodeReportGrid_paginate_area"/>
+    </div>
+    <hr class="spacer"/>
+    <br/> ++ Script(OnLoad(JsRaw("""
           $('#nodeReportGrid').dataTable({
                 "asStripeClasses": [ 'color1', 'color2' ],
                 "bAutoWidth": false,
@@ -1371,88 +1398,159 @@ class RuleEditForm(
                   { "sWidth": "200px" },
                   { "sWidth": "100px" }
                 ]
-          } );""") ) )
-    }
+          } );""")))
+  }
 
-    def nodeLineXml : NodeSeq = {
-      <tr class="noexpand">
-        <td id="node"></td>
-        <td id="severity"></td>
-      </tr>
-    }
+  private[this] def nodeLineXml: NodeSeq = {
+    <tr class="noexpand">
+      <td id="node"></td>
+      <td id="severity"></td>
+    </tr>
+  }
 
-    /*
+  private[this] def missingGridXml(id: String = "reports", message: String = ""): NodeSeq = {
+
+    <h3>Missing reports</h3>
+    <div>The following reports are what Rudder expected to receive, but did not. This usually indicates a bug in the Technique being used.</div>
+    <table id={ id + "Grid" } cellspacing="0" style="clear:both">
+      <thead>
+        <tr class="head">
+          <th>Technique<span/></th>
+          <th>Component<span/></th>
+          <th>Value<span/></th>
+        </tr>
+      </thead>
+      <tbody>
+        <div id="reportLine"/>
+      </tbody>
+    </table>
+    <br/>
+  }
+
+  private[this] def missingLineXml: NodeSeq = {
+    <tr>
+      <td id="technique"></td>
+      <td id="component"></td>
+      <td id="value"></td>
+    </tr>
+  }
+
+  def unexpectedGridXml(id: String = "reports", message: String = ""): NodeSeq = {
+
+    <h3>Unexpected reports</h3>
+    <div>The following reports were received by Rudder, but did not match the reports declared by the Technique. This usually indicates a bug in the Technique being used.</div>
+    <table id={ id + "Grid" } cellspacing="0" style="clear:both">
+      <thead>
+        <tr class="head">
+          <th>Node<span/></th>
+          <th>Technique<span/></th>
+          <th>Component<span/></th>
+          <th>Value<span/></th>
+          <th>Message<span/></th>
+        </tr>
+      </thead>
+      <tbody>
+        <div id="reportLine"/>
+      </tbody>
+    </table>
+    <br/>
+  }
+
+  def unexpectedLineXml: NodeSeq = {
+    <tr>
+      <td id="node"></td>
+      <td id="technique"></td>
+      <td id="component"></td>
+      <td id="value"></td>
+      <td id="message"></td>
+    </tr>
+  }
+  /*
+     * Detailled reporting, each line is a report message
+     */
+  def reportsGridXml(id: String = "reports", message: String = ""): NodeSeq = {
+    <center><b>{ message }</b></center>
+    <table id={ id + "Grid" } cellspacing="0" style="clear:both">
+      <thead>
+        <tr class="head">
+          <th>Node<span/></th>
+          <th>Status<span/></th>
+          <th style="border-left:0;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <div id="reportLine"/>
+      </tbody>
+    </table>
+    <br/>
+  }
+
+  def reportLineXml: NodeSeq = {
+    <tr class="cursor">
+      <td id="node" class="listopen"></td>
+      <td id="status"></td>
+      <td id="details"/>
+    </tr>
+  }
+  def messageLineXml: NodeSeq = {
+    <tr class="cursor">
+      <td class="emptyTd"/>
+      <td id="component" class="listopen"></td>
+      <td id="status"></td>
+      <td id="details"></td>
+    </tr>
+  }
+  def messageValueLineXml: NodeSeq = {
+    <tr>
+      <td class="emptyTd"/>
+      <td id="value"></td>
+      <td id="message"></td>
+      <td id="status"></td>
+    </tr>
+  }
+
+
+  /*
      * Display a summary of every node
      * We only have node hostname, and it status
      */
-    def showSummary(nodeReports : Seq[NodeReport]) : NodeSeq= {
-      val nodes = nodeReports.map(_.node).distinct
-      val nodeStatuses = nodes.map(node => NodeReport(node,ReportType.getWorseType(nodeReports.filter(_.node==node).map(stat => stat.reportType)),nodeReports.filter(_.node==node).flatMap(stat => stat.message).toList))
-      nodeStatuses.toList match {
-        case Nil => NodeSeq.Empty
-        case nodeStatus :: rest =>
-          val nodeReport = nodeInfoService.getNodeInfo(nodeStatus.node) match {
-            case Full(nodeInfo) => {
-              val tooltipid = Helpers.nextFuncName
-                ("#node *" #>
-                <a class="noexpand" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.node.value)}>
-                  <span class="curspoint">
-                    {nodeInfo.hostname}
-                  </span>
-                </a> &
-                "#severity *" #> <center>{ReportType.getSeverityFromStatus(nodeStatus.reportType)}</center> &
-                "#severity [class+]" #> ReportType.getSeverityFromStatus(nodeStatus.reportType).replaceAll(" ", "")
-                )(nodeLineXml)
-            }
-            case x:EmptyBox =>
-              logger.error( (x?~! "An error occured when trying to load node %s".format(nodeStatus.node.value)),x)
-              <div class="error">Node with ID "{nodeStatus.node.value}" is invalid</div>
+  def showSummary(nodeReports: Seq[NodeReport]): NodeSeq = {
+    val nodes = nodeReports.map(_.node).distinct
+    val nodeStatuses = nodes.map(node => NodeReport(node, ReportType.getWorseType(nodeReports.filter(_.node == node).map(stat => stat.reportType)), nodeReports.filter(_.node == node).flatMap(stat => stat.message).toList))
+    nodeStatuses.toList match {
+      case Nil => NodeSeq.Empty
+      case nodeStatus :: rest =>
+        val nodeReport = nodeInfoService.getNodeInfo(nodeStatus.node) match {
+          case Full(nodeInfo) => {
+            val tooltipid = Helpers.nextFuncName
+            ("#node *" #>
+              <a class="noexpand" href={ """/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.node.value) }>
+                <span class="curspoint">
+                  { nodeInfo.hostname }
+                </span>
+              </a> &
+              "#severity *" #> <center>{ ReportType.getSeverityFromStatus(nodeStatus.reportType) }</center> &
+              "#severity [class+]" #> ReportType.getSeverityFromStatus(nodeStatus.reportType).replaceAll(" ", ""))(nodeLineXml)
           }
-          nodeReport ++ showSummary(rest)
-      }
+          case x: EmptyBox =>
+            logger.error((x ?~! "An error occured when trying to load node %s".format(nodeStatus.node.value)), x)
+            <div class="error">Node with ID "{ nodeStatus.node.value }" is invalid</div>
+        }
+        nodeReport ++ showSummary(rest)
+    }
+  }
+  def showMissingReports(reports: Seq[MessageReport], gridId: String, tabid: Int, techniqueName: String, techniqueVersion: String): NodeSeq = {
+    def showMissingReport(report: (String, String)): NodeSeq = {
+      ("#technique *" #> "%s (%s)".format(techniqueName, techniqueVersion) &
+        "#component *" #> report._1 &
+        "#value *" #> report._2)(missingLineXml)
     }
 
-   def missingGridXml(id:String = "reports",message:String="") : NodeSeq = {
-
-     <h3>Missing reports</h3>
-      <div>The following reports are what Rudder expected to receive, but did not. This usually indicates a bug in the Technique being used.</div>
-      <table id={id+"Grid"}  cellspacing="0" style="clear:both">
-        <thead>
-          <tr class="head">
-            <th>Technique<span/></th>
-            <th>Component<span/></th>
-            <th>Value<span/></th>
-          </tr>
-        </thead>
-        <tbody>
-          <div id="reportLine"/>
-        </tbody>
-      </table>
-      <br/>
-    }
-
-    def missingLineXml : NodeSeq = {
-      <tr>
-        <td id="technique"></td>
-        <td id="component"></td>
-        <td id="value"></td>
-      </tr>
-    }
-
-    def showMissingReports(reports:Seq[MessageReport],gridId:String, tabid:Int, techniqueName:String,techniqueVersion:String) : NodeSeq = {
-      def showMissingReport(report:(String,String)) : NodeSeq = {
-              ( "#technique *" #>  "%s (%s)".format(techniqueName,techniqueVersion)&
-                "#component *" #>  report._1&
-                "#value *" #>  report._2
-              ) ( missingLineXml )
-            }
-
-      if (reports.size >0){
-        val components:Seq[String] = reports.map(_.component).distinct
-        val missingreports = components.flatMap(component => reports.filter(_.component==component).map(report => (component,report.value))).distinct
-          ( "#reportLine" #> missingreports.flatMap(showMissingReport(_) )
-          ).apply(missingGridXml(gridId) ) ++
-            Script( JsRaw("""
+    if (reports.size > 0) {
+      val components: Seq[String] = reports.map(_.component).distinct
+      val missingreports = components.flatMap(component => reports.filter(_.component == component).map(report => (component, report.value))).distinct
+      ("#reportLine" #> missingreports.flatMap(showMissingReport(_))).apply(missingGridXml(gridId)) ++
+        Script(JsRaw("""
              var oTable%1$s = $('#%2$s').dataTable({
                "asStripeClasses": [ 'color1', 'color2' ],
                "bAutoWidth": false,
@@ -1472,143 +1570,12 @@ class RuleEditForm(
                  { "sWidth": "150px" }
                ]
              } );
-         """.format(tabid,gridId+"Grid") ) ) }
-        else
-          NodeSeq.Empty
-        }
+         """.format(tabid, gridId + "Grid")))
+    } else
+      NodeSeq.Empty
+  }
 
-   def unexpectedGridXml(id:String = "reports",message:String="") : NodeSeq = {
-
-     <h3>Unexpected reports</h3>
-
-     <div>The following reports were received by Rudder, but did not match the reports declared by the Technique. This usually indicates a bug in the Technique being used.</div>
-
-      <table id={id+"Grid"}  cellspacing="0" style="clear:both">
-        <thead>
-          <tr class="head">
-            <th>Node<span/></th>
-            <th>Technique<span/></th>
-            <th>Component<span/></th>
-            <th>Value<span/></th>
-            <th>Message<span/></th>
-          </tr>
-        </thead>
-        <tbody>
-          <div id="reportLine"/>
-        </tbody>
-      </table>
-      <br/>
-    }
-
-    def unexpectedLineXml : NodeSeq = {
-      <tr>
-        <td id="node"></td>
-        <td id="technique"></td>
-        <td id="component"></td>
-        <td id="value"></td>
-        <td id="message"></td>
-      </tr>
-    }
-
-    def showUnexpectedReports(reports:Seq[MessageReport],gridId:String, tabid:Int, techniqueName:String,techniqueVersion:String) : NodeSeq = {
-       def showUnexpectedReport(report:MessageReport) : NodeSeq = {
-          nodeInfoService.getNodeInfo(report.report.node) match {
-            case Full(nodeInfo)  => {
-              ( "#node *" #>
-                <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(report.report.node.value)}>
-                  <span class="curspoint noexpand">
-                    {nodeInfo.hostname}
-                  </span>
-                </a> &
-                "#technique *" #>  "%s (%s)".format(techniqueName,techniqueVersion)&
-                "#component *" #>  report.component &
-                "#value *" #>  report.value &
-                "#message *" #>  <ul>{report.report.message.map(msg => <li>{msg}</li>)}</ul>
-              ) ( unexpectedLineXml )
-            }
-            case x:EmptyBox =>
-              logger.error( (x?~! "An error occured when trying to load node %s".format(report.report.node.value)),x)
-              <div class="error">Node with ID "{report.report.node.value}" is invalid</div>
-          }
-       }
-
-       if (reports.size >0){
-         ( "#reportLine" #> reports.flatMap(showUnexpectedReport(_) )
-         ).apply(unexpectedGridXml(gridId) ) ++
-            Script( JsRaw("""
-             var oTable%1$s = $('#%2$s').dataTable({
-               "asStripeClasses": [ 'color1', 'color2' ],
-               "bAutoWidth": false,
-               "bFilter" : true,
-               "bPaginate" : true,
-               "bLengthChange": true,
-               "sPaginationType": "full_numbers",
-               "bJQueryUI": true,
-               "oLanguage": {
-                 "sSearch": ""
-               },
-               "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
-               "aaSorting": [[ 0, "asc" ]],
-               "aoColumns": [
-                 { "sWidth": "100px" },
-                 { "sWidth": "100px" },
-                 { "sWidth": "100px" },
-                 { "sWidth": "100px" },
-                 { "sWidth": "200px" }
-               ]
-             } );
-         """.format(tabid,gridId+"Grid") ) ) }
-        else
-          NodeSeq.Empty
-        }
-
-    /*
-     * Detailled reporting, each line is a report message
-     */
-    def reportsGridXml(id:String = "reports",message:String="") : NodeSeq = {
-      <center><b>{message}</b></center>
-      <table id={id+"Grid"}  cellspacing="0" style="clear:both">
-        <thead>
-          <tr class="head">
-            <th>Node<span/></th>
-            <th>Status<span/></th>
-          <th style="border-left:0;" ></th>
-          </tr>
-        </thead>
-        <tbody>
-          <div id="reportLine"/>
-        </tbody>
-      </table>
-      <br/>
-    }
-
-    def reportLineXml : NodeSeq = {
-      <tr class="cursor">
-        <td id="node" class="listopen"></td>
-        <td id="status"></td>
-        <td id="details"/>
-      </tr>
-    }
-    def messageLineXml : NodeSeq = {
-      <tr class="cursor">
-        <td class="emptyTd"/>
-        <td id="component" class="listopen"></td>
-        <td id="status"></td>
-        <td id="details"></td>
-      </tr>
-    }
-   def messageValueLineXml : NodeSeq = {
-      <tr >
-        <td class="emptyTd"/>
-        <td id="value"></td>
-        <td id="message"></td>
-        <td id="status"></td>
-      </tr>
-    }
-
-    def ShowReportsByType(report:RuleStatusReport ) : NodeSeq = {
-
-      /*
+  /*
        * reports are displayed in cascaded dataTables
        * Parameters:
        *  reports : the reports we need to show
@@ -1617,84 +1584,108 @@ class RuleEditForm(
        *  message : Message to display on top of the dataTable
        *
        */
-      def showReports (reports:Seq[MessageReport],gridId:String, tabid:Int, message:String="") : NodeSeq = {
-        /*
+  def showReports(reports: Seq[MessageReport], gridId: String, tabid: Int, message: String = ""): NodeSeq = {
+    /*
          * Show report about a node
+         * Parameters :
+         * nodeId, Seq[componentName,value, unexpandedValue,reportsMessage, reportType)
          */
-        def showNodeReport(nodeReport:(NodeId,Seq[(String,String,List[String],ReportType)])) : NodeSeq = {
-          nodeInfoService.getNodeInfo(nodeReport._1) match {
-            case Full(nodeInfo)  => {
-              val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(nodeReport._2.map(_._4)))
-              ( "#node *" #>
-                <span class="unfoldable"> {nodeInfo.hostname}
-                  { val xml = <img   src="/images/icDetails.png" style="margin-bottom:-3px" class="noexpand"/>
-                    SHtml.a( {()=> RedirectTo("""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeReport._1.value))}
-                           , xml
-                           , ("style","padding-left:4px")
-                           , ("class","noexpand"))
-                  }
-                 </span> &
-                "#status *" #>  <center>{status}</center> &
-                "#status [class+]" #>  status.replaceAll(" ","") &
-                "#details *" #> showComponentReport(nodeReport._2)
-              ) ( reportLineXml )
-            }
-            case x:EmptyBox =>
-              logger.error( (x?~! "An error occured when trying to load node %s".format(nodeReport._1.value)),x)
-              <div class="error">Node with ID "{nodeReport._1.value}" is invalid</div>
-          }
+    def showNodeReport(nodeReport: (NodeId, Seq[(String, String, Option[String], List[String], ReportType)])): NodeSeq = {
+      nodeInfoService.getNodeInfo(nodeReport._1) match {
+        case Full(nodeInfo) => {
+          val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(nodeReport._2.map(_._5)))
+          ("#node *" #>
+            <span class="unfoldable">
+              { nodeInfo.hostname }
+              {
+                val xml = <img src="/images/icDetails.png" style="margin-bottom:-3px" class="noexpand"/>
+                SHtml.a({ () => RedirectTo("""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeReport._1.value)) }, xml, ("style", "padding-left:4px"), ("class", "noexpand"))
+              }
+            </span> &
+            "#status *" #> <center>{ status }</center> &
+            "#status [class+]" #> status.replaceAll(" ", "") &
+            "#details *" #> showComponentReport(nodeReport._2))(reportLineXml)
         }
-        def showComponentReport(componentReports:(Seq[(String,String,List[String],ReportType)])) : NodeSeq = {
-          <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class=" noMarginGrid tablewidth ">
-            <thead>
-              <tr class="head tablewidth">
-                <th class="emptyTd"><span/></th>
-                <th >Component<span/></th>
-                <th >Status<span/></th>
-                <th ></th>
-              </tr>
-            </thead>
-            <tbody>{
-              val components = componentReports.map(_._1).distinct
+        case x: EmptyBox =>
+          logger.error((x ?~! "An error occured when trying to load node %s".format(nodeReport._1.value)), x)
+          <div class="error">Node with ID "{ nodeReport._1.value }" is invalid</div>
+      }
+    }
+    /*
+         * Seq[componentName,value, unexpandedValue,reportsMessage, reportType)
+         */
+    def showComponentReport(componentReports: (Seq[(String, String, Option[String], List[String], ReportType)])): NodeSeq = {
+      <table id={ Helpers.nextFuncName } cellspacing="0" style="display:none" class=" noMarginGrid tablewidth ">
+        <thead>
+          <tr class="head tablewidth">
+            <th class="emptyTd"><span/></th>
+            <th>Component<span/></th>
+            <th>Status<span/></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            val components = componentReports.map(_._1).distinct
 
-              val valueReports = components.map(tr => (tr,componentReports.filter(_._1==tr).map(rep => (rep._2,rep._3,rep._4))))
-              valueReports.flatMap{ report =>
-                 val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(report._2.map(_._3)))
-                ( "#component *" #> report._1 &
-                  "#status *" #>  <center>{status}</center> &
-                  "#status [class+]" #>  status.replaceAll(" ","") &
-                  "#details *" #>  showValueReport(report._2)
-                ) ( messageLineXml ) } }
-            </tbody>
-          </table>
-        }
-        def showValueReport(valueReport:(Seq[(String,List[String],ReportType)])) : NodeSeq = {
-          <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth ">
-            <thead>
-              <tr class="head tablewidth">
-                <th class="emptyTd"><span/></th>
-                <th >Value<span/></th>
-                <th >Message<span/></th>
-                <th >Status<span/></th>
-              </tr>
-            </thead>
-            <tbody>{
-              valueReport.flatMap{ report =>
-                val status = ReportType.getSeverityFromStatus(report._3)
-                ( "#value *" #> report._1 &
-                  "#status *" #> <center>{status}</center> &
-                  "#status [class+]" #>  status.replaceAll(" ","") &
-                  "#message *" #>  <ul>{report._2.map(msg => <li>{msg}</li>)}</ul>
-                ) ( messageValueLineXml ) } }
-            </tbody>
-          </table>
-        }
-        if (reports.size >0){
-          val nodes = reports.map(_.report.node).distinct
-          val datas = nodes.map(node => {
-            val report = reports.filter(_.report.node==node).map(report =>(report.component,report.value,report.report.message,report.report.reportType))
-            (node,report) } )
-            val innerJsFun = """
+            val valueReports = components.map(tr => (tr, componentReports.filter(_._1 == tr).map(rep => (rep._2, rep._3, rep._4, rep._5))))
+            valueReports.flatMap { report =>
+              val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(report._2.map(_._4)))
+              ("#component *" #> report._1 &
+                "#status *" #> <center>{ status }</center> &
+                "#status [class+]" #> status.replaceAll(" ", "") &
+                "#details *" #> showValueReport(report._2))(messageLineXml)
+            }
+          }
+        </tbody>
+      </table>
+    }
+    def showValueReport(valueReport: (Seq[(String, Option[String], List[String], ReportType)])): NodeSeq = {
+      <table id={ Helpers.nextFuncName } cellspacing="0" style="display:none" class="noMarginGrid tablewidth ">
+        <thead>
+          <tr class="head tablewidth">
+            <th class="emptyTd"><span/></th>
+            <th>Value<span/></th>
+            <th>Message<span/></th>
+            <th>Status<span/></th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            valueReport.flatMap { report =>
+              val status = ReportType.getSeverityFromStatus(report._4)
+              ("#value *" #> {
+                report._2 match {
+                  case None => Text(report._1)
+                  case Some(unexpanded) if unexpanded == report._1 => Text(report._1)
+                  case Some(unexpanded) =>
+                    val tooltipid = Helpers.nextFuncName
+                    <div>
+                      <span>{ report._1 }</span>
+                      <span class="tooltipable" tooltipid={ tooltipid } title="">
+                        <img src="/images/icInfo.png" style="padding-left:4px"/>
+                      </span>
+                      <div class="tooltipContent" id={ tooltipid }>
+                        Value <b>{ report._1 }</b> was expanded from the entry <b>{ unexpanded }</b>
+                      </div>
+                    </div>
+                }
+              } &
+                "#status *" #> <center>{ status }</center> &
+                "#status [class+]" #> status.replaceAll(" ", "") &
+                "#message *" #> <ul>{ report._3.map(msg => <li>{ msg }</li>) }</ul>)(messageValueLineXml)
+            }
+          }
+        </tbody>
+      </table>
+    }
+    if (reports.size > 0) {
+      val nodes = reports.map(_.report.node).distinct
+      val datas = nodes.map(node => {
+        val report = reports.filter(_.report.node == node).map(report => (report.component, report.value, report.unexpandedValue, report.report.message, report.report.reportType))
+        (node, report)
+      })
+      val innerJsFun = """
               var componentTab = $(this.fnGetNodes());
               componentTab.each( function () {
                 $(this).unbind();
@@ -1728,6 +1719,7 @@ class RuleEditForm(
                     $('div.innerDetails table', nDetailsRow).attr("style","");
                     $('div.innerDetails', nDetailsRow).slideDown(300);
                     anOpen%1$s.push( nTr );
+                    createTooltip();
                     }
                     else {
                     $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
@@ -1736,9 +1728,9 @@ class RuleEditForm(
                       anOpen%1$s.splice( i, 1 );
                     } );
                   }
-                } ); } )""".format(tabid,S.contextPath)
+                } ); } )""".format(tabid, S.contextPath)
 
-            val jsFun = """
+      val jsFun = """
             var tab = $($('#%2$s').dataTable().fnGetNodes());
             tab.each( function () {
               $(this).unbind();
@@ -1781,15 +1773,14 @@ class RuleEditForm(
                     anOpen%1$s.splice( i, 1 );
                   } );
                 }
-          } );} );""".format(tabid,gridId+"Grid",S.contextPath,innerJsFun)
-            ( "#reportLine" #> datas.flatMap(showNodeReport(_) )
-            ).apply(reportsGridXml(gridId,message) ) ++
-            /*Sorry about the Javascript
+          } );} );""".format(tabid, gridId + "Grid", S.contextPath, innerJsFun)
+      ("#reportLine" #> datas.flatMap(showNodeReport(_))).apply(reportsGridXml(gridId, message)) ++
+        /*Sorry about the Javascript
              * but we need to have dynamic definition of those datatables
              * As we need to have several dynamic datables, we have to add a specific identifier, the tabid
              * Everything is based what has been done for the previous dataTable
              */
-            Script( JsRaw("""
+        Script(JsRaw("""
             function fnFormatDetails%1$s( oTable, nTr ) {
               var fnData = oTable.fnGetData( nTr );
               var oTable2 = fnData[fnData.length-1]
@@ -1817,44 +1808,112 @@ class RuleEditForm(
                ],
                "fnDrawCallback" : function( oSettings ) {%3$s}
              } );
-                """.format(tabid,gridId+"Grid",jsFun) ) ) }
-        else
-          NodeSeq.Empty
-        }
-        def buildDisabled(toDisable:List[Int]):String = {
-          toDisable match {
-            case Nil => ""
-            case value::Nil => value.toString()
-            case value::rest => "%s, %s".format(value,buildDisabled(rest))
-        } }
+                """.format(tabid, gridId + "Grid", jsFun)))
+    } else
+      NodeSeq.Empty
+  }
 
-    val (reports,directiveId) = report match {
-      case DirectiveRuleStatusReport(directiveId,components,_) =>
-        (components.flatMap(_.componentValues),directiveId)
-      case ComponentRuleStatusReport(directiveId,component,values,_) =>
-        (values,directiveId)
-      case value : ComponentValueRuleStatusReport =>
-        (Seq(value),value.directiveid)
+  def buildDisabled(toDisable: List[Int]): String = {
+    toDisable match {
+      case Nil => ""
+      case value :: Nil => value.toString()
+      case value :: rest => "%s, %s".format(value, buildDisabled(rest))
     }
+  }
+
+  /**
+   * Unfold the report to (Seq[ComponentValueRuleStatusReport], DirectiveId) 
+   */
+  def getComponentValueRule(report: RuleStatusReport): (Seq[ComponentValueRuleStatusReport], DirectiveId) = {
+    report match {
+      case DirectiveRuleStatusReport(directiveId, components, _) =>
+        (components.flatMap(_.componentValues), directiveId)
+      case ComponentRuleStatusReport(directiveId, component, values, _) =>
+        (values, directiveId)
+      case value: ComponentValueRuleStatusReport =>
+        (Seq(value), value.directiveid)
+    }
+  }
+  
+  /**
+   * convert the componentvaluesrules to componentValueRule and Directive
+   * Checks as well that all componentvaluesrules belong to the same directive
+   */
+  def getComponentValueRule(entries: Seq[ComponentValueRuleStatusReport]): Box[(Seq[ComponentValueRuleStatusReport], DirectiveId)] = {
+    entries.map(x => x.directiveid).distinct match {
+      case seq if seq.size == 0 => Failure("Not enough ComponentValueRuleStatusReport")
+      case seq if seq.size == 1 => Full((entries, seq.head))
+      case seq => logger.error("Too many DirectiveIds fot a specific componentValueRule %s".format(seq)); Failure("Too many DirectiveIds fot a specific componentValueRule %s".format(seq))
+    }
+  }
+
+  def showReportsByType(reports: Seq[ComponentValueRuleStatusReport], directiveId : DirectiveId): NodeSeq = {
     val tech = directiveRepository.getActiveTechnique(directiveId).map(tech => techniqueRepository.getLastTechniqueByName(tech.techniqueName).map(_.name).getOrElse("Unknown Technique")).getOrElse("Unknown Technique")
     val techVersion = directiveRepository.getDirective(directiveId).map(_.techniqueVersion.toString).getOrElse("N/A")
-    val error = reports.flatMap(report => report.processMessageReport(_.reportType==ErrorReportType))
-    val missing = reports.flatMap(report => report.processMessageReport(nreport => nreport.reportType==UnknownReportType&nreport.message.size==0))
-    val unexpected = reports.flatMap(report => report.processMessageReport(nreport => nreport.reportType==UnknownReportType&nreport.message.size!=0))
-    val repaired = reports.flatMap(report => report.processMessageReport(_.reportType==RepairedReportType))
-    val success = reports.flatMap(report => report.processMessageReport(_.reportType==SuccessReportType))
+    val error = reports.flatMap(report => report.processMessageReport(_.reportType == ErrorReportType))
+    val missing = reports.flatMap(report => report.processMessageReport(nreport => nreport.reportType == UnknownReportType & nreport.message.size == 0))
+    val unexpected = reports.flatMap(report => report.processMessageReport(nreport => nreport.reportType == UnknownReportType & nreport.message.size != 0))
+    val repaired = reports.flatMap(report => report.processMessageReport(_.reportType == RepairedReportType))
+    val success = reports.flatMap(report => report.processMessageReport(_.reportType == SuccessReportType))
     val all = reports.flatMap(report => report.processMessageReport(report => true))
 
-    val xml =        showReports(all,"report",0)++showMissingReports(missing,"missing",1,tech,techVersion)++showUnexpectedReports(unexpected,"unexpected",2,tech,techVersion)
+    val xml = showReports(all, "report", 0) ++ showMissingReports(missing, "missing", 1, tech, techVersion) ++ showUnexpectedReports(unexpected, "unexpected", 2, tech, techVersion)
 
     xml
+  }
+
+  def showUnexpectedReports(reports: Seq[MessageReport], gridId: String, tabid: Int, techniqueName: String, techniqueVersion: String): NodeSeq = {
+    def showUnexpectedReport(report: MessageReport): NodeSeq = {
+      nodeInfoService.getNodeInfo(report.report.node) match {
+        case Full(nodeInfo) => {
+          ("#node *" #>
+            <a class="unfoldable" href={ """/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(report.report.node.value) }>
+              <span class="curspoint noexpand">
+                { nodeInfo.hostname }
+              </span>
+            </a> &
+            "#technique *" #> "%s (%s)".format(techniqueName, techniqueVersion) &
+            "#component *" #> report.component &
+            "#value *" #> report.value &
+            "#message *" #> <ul>{ report.report.message.map(msg => <li>{ msg }</li>) }</ul>)(unexpectedLineXml)
+        }
+        case x: EmptyBox =>
+          logger.error((x ?~! "An error occured when trying to load node %s".format(report.report.node.value)), x)
+          <div class="error">Node with ID "{ report.report.node.value }" is invalid</div>
+      }
     }
 
-   <div class="simplemodal-title">
-     <h1>Node compliance detail</h1>
-     <hr/>
-   </div>
-   <div class="simplemodal-content" style="max-height:500px;overflow-y:auto;" >{  val xml = directivebynode match {
+    if (reports.size > 0) {
+      ("#reportLine" #> reports.flatMap(showUnexpectedReport(_))).apply(unexpectedGridXml(gridId)) ++
+        Script(JsRaw("""
+             var oTable%1$s = $('#%2$s').dataTable({
+               "asStripeClasses": [ 'color1', 'color2' ],
+               "bAutoWidth": false,
+               "bFilter" : true,
+               "bPaginate" : true,
+               "bLengthChange": true,
+               "sPaginationType": "full_numbers",
+               "bJQueryUI": true,
+               "oLanguage": {
+                 "sSearch": ""
+               },
+               "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+               "aaSorting": [[ 0, "asc" ]],
+               "aoColumns": [
+                 { "sWidth": "100px" },
+                 { "sWidth": "100px" },
+                 { "sWidth": "100px" },
+                 { "sWidth": "100px" },
+                 { "sWidth": "200px" }
+               ]
+             } );
+         """.format(tabid, gridId + "Grid")))
+    } else
+      NodeSeq.Empty
+  }
+  private[this] def createPopup(directiveByNode: RuleStatusReport) : NodeSeq = {
+    (
+      "#innerContent" #> { val xml = directiveByNode match {
        case d:DirectiveRuleStatusReport =>
          val directive = directiveRepository.getDirective(d.directiveId)
          <div>
@@ -1872,7 +1931,7 @@ class RuleEditForm(
              <li><b>Component:</b> {c.component}</li>
            </ul>
          </div>
-       case ComponentValueRuleStatusReport(directiveId,component,value,_,_) =>
+       case ComponentValueRuleStatusReport(directiveId,component,value,unexpanded,_,_) =>
          val directive = directiveRepository.getDirective(directiveId)
          <div>
            <ul>
@@ -1883,29 +1942,79 @@ class RuleEditForm(
            </ul>
          </div>
        }
-      val tab =  ShowReportsByType(directivebynode)
-         xml++tab
-     }
-
-  </div>
-  <div class="simplemodal-bottom">
-    <hr/>
-    <div class="popupButton">
-      <span>
-        <button class="simplemodal-close" onClick="return false;">
-          Close
-        </button>
-      </span>
-    </div>
-  </div>
+      val (reports, directiveId) = getComponentValueRule(directiveByNode)
+      val tab = showReportsByType(reports, directiveId)
+         xml++tab}    
+    ).apply(popupXml)
   }
+
+  private[this] def createPopup(
+    componentStatus: ComponentValueRuleStatusReport, cptStatusReports: Seq[ComponentValueRuleStatusReport]): NodeSeq = {
+    (
+      "#innerContent" #> {
+        val directive = directiveRepository.getDirective(componentStatus.directiveid)
+        val xml = <div>
+                    <ul>
+                      <li><b>Rule:</b> { rule.name }</li>
+                      <li><b>Directive:</b> { directive.map(_.name).getOrElse("can't find directive name") }</li>
+                      <li><b>Component:</b> { componentStatus.component }</li>
+                      <li><b>Value:</b> { componentStatus.unexpandedComponentValue.getOrElse(componentStatus.componentValue) }</li>
+                    </ul>
+                  </div>
+        val tab = getComponentValueRule(cptStatusReports) match {
+          case e: EmptyBox => <div class="error">Could not retrieve information from reporting</div>
+          case Full((reports, directiveId)) => showReportsByType(reports, directiveId)
+        }
+        xml ++ tab
+      }).apply(popupXml)
+  }
+  val popupXml: NodeSeq = {
+    <div class="simplemodal-title">
+      <h1>Node compliance detail</h1>
+      <hr/>
+    </div>
+    <div class="simplemodal-content" style="max-height:500px;overflow-y:auto;">
+      <div id="innerContent"/>
+    </div>
+    <div class="simplemodal-bottom">
+      <hr/>
+      <div class="popupButton">
+        <span>
+          <button class="simplemodal-close" onClick="return false;">
+            Close
+          </button>
+        </span>
+      </div>
+    </div>
+  }
+
   val htmlId_rulesGridZone = "rules_grid_zone"
   val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
 
+  
+  /**
+   * Create the popup
+   */
   private[this] def showPopup(directiveStatus: RuleStatusReport) : JsCmd = {
-
     val popupHtml = createPopup(directiveStatus)
+    SetHtml(htmlId_reportsPopup, popupHtml) & OnLoad(
+        JsRaw("""
+            $('.dataTables_filter input').attr("placeholder", "Search");
+            """
+        ) //&  initJsCallBack(tableId)
+    ) &
+    JsRaw( """ createPopup("%s",600,900)""".format(htmlId_modalReportsPopup))
+  }
+  
+  /**
+   * We need to have a Popup with all the ComponentValueRuleStatusReports for
+   * cases when differents nodes have differents values
+   */
+  private[this] def showPopup(
+      componentStatus : ComponentValueRuleStatusReport
+    , cptStatusReports: Seq[ComponentValueRuleStatusReport]) : JsCmd = {
+    val popupHtml = createPopup(componentStatus, cptStatusReports)
     SetHtml(htmlId_reportsPopup, popupHtml) & OnLoad(
         JsRaw("""
             $('.dataTables_filter input').attr("placeholder", "Search");
@@ -1916,4 +2025,3 @@ class RuleEditForm(
   }
 
 }
-

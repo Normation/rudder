@@ -56,14 +56,23 @@ class ExecutionBatchTest extends Specification {
 
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                   "policy",
-                   Seq(new ReportComponent("component", 1, Seq("None")  )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(
+                 new ReportComponent("component", 1, Seq("None"), Seq()  ))
+             )
+           )
+         )
+       ),
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
-       Seq[NodeId]("one"),
-       DateTime.now(), None)
+       DateTime.now(),
+       None)
 
     "have one reports when we create it with one report" in {
       uniqueExecutionBatch.executionReports.size ==1
@@ -84,13 +93,21 @@ class ExecutionBatchTest extends Specification {
 
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                   "policy",
-                   Seq(new ReportComponent("component", 1, Seq("None") )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one", "two"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(
+                 new ReportComponent("component", 1, Seq("None"), Seq()  ))
+             )
+           )
+         )
+       ),
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
-       Seq[NodeId]("one", "two"),
        DateTime.now(), None)
 
     "have one reports when we create it with one report" in {
@@ -111,13 +128,21 @@ class ExecutionBatchTest extends Specification {
 
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                   "policy",
-                   Seq(new ReportComponent("component", 1, Seq("None") )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one", "two"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(
+                 new ReportComponent("component", 1, Seq("None"), Seq()  ))
+             )
+           )
+         )
+       ),
        DateTime.now(),
        reports,
-       Seq[NodeId]("one", "two"),
        DateTime.now(), None)
 
     "have two reports when we create it with two report" in {
@@ -142,13 +167,21 @@ class ExecutionBatchTest extends Specification {
 
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                   "policy",
-                   Seq(new ReportComponent("component", 2, Seq("None", "None") )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one", "two"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(
+                 new ReportComponent("component", 2, Seq("None", "None"), Seq()  ))
+             )
+           )
+         )
+       ),
        DateTime.now(),
        reports,
-       Seq[NodeId]("one", "two"),
        DateTime.now(), None)
 
     "have two reports when we create it with two report" in {
@@ -180,13 +213,21 @@ class ExecutionBatchTest extends Specification {
 
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                   "policy",
-                   Seq(new ReportComponent("component", 2, Seq("None", "None") )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one", "two", "three"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(
+                 new ReportComponent("component", 2, Seq("None"), Seq("None")  ))
+             )
+           )
+         )
+       ),
        DateTime.now(),
        reports,
-       Seq[NodeId]("one", "two", "three"),
        DateTime.now(), None)
 
     "have 8 reports when we create it with 8 reports" in {
@@ -204,7 +245,6 @@ class ExecutionBatchTest extends Specification {
   }
 
 
-
   "An execution Batch, with two directive, two nodes, one component" should {
     val reports = Seq[Reports](
         new ResultSuccessReport(DateTime.now(), "rule", "policy1", "one", 12, "component1", "None",DateTime.now(), "message"),
@@ -213,17 +253,23 @@ class ExecutionBatchTest extends Specification {
 
     val multipleNodeExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                   "policy1",
-                   Seq(new ReportComponent("component1", 1, Seq("None") ))),
-                   new DirectiveExpectedReports(
-                   "policy2",
-                   Seq(new ReportComponent("component2", 1, Seq("None") )))
-       ),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one", "two"),
+           Seq(
+             DirectiveExpectedReports(
+                   "policy1",
+                   Seq(ReportComponent("component1", 1, Seq("None"), Seq("None") ))),
+              DirectiveExpectedReports(
+                   "policy2",
+                    Seq(ReportComponent("component2", 1, Seq("None"), Seq("None") )))
+             
+           )
+         )
+       ),
        DateTime.now(),
        reports,
-       Seq[NodeId]("one", "two"),
        DateTime.now(), None)
 
     "have two reports when we create it with two report" in {
@@ -240,8 +286,6 @@ class ExecutionBatchTest extends Specification {
 
   }
 
-
-
   // Test the multiple identical keys
   "An execution Batch, with one component, one node, but the same key twices" should {
     val executionTimestamp = new DateTime()
@@ -252,13 +296,21 @@ class ExecutionBatchTest extends Specification {
 
     val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
        "cr",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                  "policy",
-                  Seq(new ReportComponent("component", 2, Seq("value", "value") )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("nodeId"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(
+                 new ReportComponent("component", 2, Seq("value", "value"), Seq()  ))
+             )
+           )
+         )
+       ),
        executionTimestamp,
        reports,
-       Seq[NodeId]("nodeId"),
        executionTimestamp, None)
 
     "have 2 reports when we create it with 2 reports" in {
@@ -277,13 +329,21 @@ class ExecutionBatchTest extends Specification {
 
     val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
        "cr",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                  "policy",
-                  Seq(new ReportComponent("component", 2, Seq("value", "value") )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("nodeId"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(
+                 new ReportComponent("component", 2, Seq("value", "value"), Seq()  ))
+             )
+           )
+         )
+       ),
        executionTimestamp,
        reports,
-       Seq[NodeId]("nodeId"),
        executionTimestamp, None)
 
     "have 3 reports when we create it with 3 reports" in {
@@ -311,17 +371,25 @@ class ExecutionBatchTest extends Specification {
     val expectedComponent = new ReportComponent(
                       "component"
                     , 2
-                    , Seq("foo", "bar") )
+                    , Seq("foo", "bar")
+                    , Seq("foo", "bar"))
 
     val executionBatch = new ConfigurationExecutionBatch(
        "cr",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                  "policy",
-                  Seq(expectedComponent))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("nodeId"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(expectedComponent)
+             )
+           )
+         )
+       ),
        executionTimestamp,
        reports,
-       Seq[NodeId]("nodeId"),
        executionTimestamp, None)
 
 
@@ -410,17 +478,25 @@ class ExecutionBatchTest extends Specification {
     val expectedComponent = new ReportComponent(
                       "component"
                     , 2
-                    , Seq("None", "None") )
+                    , Seq("None", "None")
+                    , Seq("None", "None"))
 
     val executionBatch = new ConfigurationExecutionBatch(
        "cr",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                  "policy",
-                  Seq(expectedComponent))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("nodeId"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(expectedComponent)
+             )
+           )
+         )
+       ),
        executionTimestamp,
        reports,
-       Seq[NodeId]("nodeId"),
        executionTimestamp, None)
 
 
@@ -488,17 +564,25 @@ class ExecutionBatchTest extends Specification {
     val expectedComponent = new ReportComponent(
                       "component"
                     , 2
-                    , Seq("${sys.bla}", "${sys.foo}") )
+                    , Seq("${sys.bla}", "${sys.foo}")
+                    , Seq("${sys.bla}", "${sys.foo}"))
 
     val executionBatch = new ConfigurationExecutionBatch(
        "cr",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                  "policy",
-                  Seq(expectedComponent))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("nodeId"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(expectedComponent)
+             )
+           )
+         )
+       ),
        executionTimestamp,
        reports,
-       Seq[NodeId]("nodeId"),
        executionTimestamp, None)
 
     "return a component globally repaired " in {
@@ -542,17 +626,25 @@ class ExecutionBatchTest extends Specification {
     val expectedComponent = new ReportComponent(
                       "component"
                     , 2
-                    , Seq("${sys.bla}", "bar") )
+                    , Seq("${sys.bla}", "bar")
+                    , Seq("${sys.bla}", "bar"))
 
     val executionBatch = new ConfigurationExecutionBatch(
        "cr",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                  "policy",
-                  Seq(expectedComponent))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("nodeId"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(expectedComponent)
+             )
+           )
+         )
+       ),
        executionTimestamp,
        reports,
-       Seq[NodeId]("nodeId"),
        executionTimestamp, None)
 
     "return a component globally repaired " in {
@@ -625,13 +717,21 @@ class ExecutionBatchTest extends Specification {
 
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                   "policy",
-                   Seq(new ReportComponent("component", 1, Seq("value")  )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(new ReportComponent("component", 1, Seq("value"), Seq() ))
+             )
+           )
+         )
+       ),
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
-       Seq[NodeId]("one"),
+
        DateTime.now(), None)
 
     "have one detailed reports when we create it with one report" in {
@@ -697,13 +797,20 @@ class ExecutionBatchTest extends Specification {
 
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                   "policy",
-                   Seq(new ReportComponent("component", 1, Seq("value")  )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(new ReportComponent("component", 1, Seq("value"), Seq() ))
+             )
+           )
+         )
+       ),
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message")),
-       Seq[NodeId]("one"),
        DateTime.now(), None)
 
     "have one detailed reports when we create it with one report" in {
@@ -740,16 +847,23 @@ class ExecutionBatchTest extends Specification {
 
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                   "policy",
-                   Seq(new ReportComponent("component", 1, Seq("value")  )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(new ReportComponent("component", 1, Seq("value"), Seq() ))
+             )
+           )
+         )
+       ),
        DateTime.now(),
        Seq[Reports](
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")
          , new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")
        ),
-       Seq[NodeId]("one"),
        DateTime.now(), None)
 
     "have one detailed reports when we create it" in {
@@ -789,13 +903,20 @@ class ExecutionBatchTest extends Specification {
    "A detailed execution Batch, with one component, cardinality one, two nodes, including one not responding" should {
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                   "policy",
-                   Seq(new ReportComponent("component", 1, Seq("value")  )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one", "two"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(new ReportComponent("component", 1, Seq("value"), Seq() ))
+             )
+           )
+         )
+       ),
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
-       Seq[NodeId]("one", "two"),
        DateTime.now(), None)
 
     "have two detailed reports when we create it" in {
@@ -829,14 +950,21 @@ class ExecutionBatchTest extends Specification {
   "A detailed execution Batch, with one component, cardinality one, three nodes, including one not responding" should {
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                   "policy",
-                   Seq(new ReportComponent("component", 1, Seq("value")  )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one", "two", "three"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(new ReportComponent("component", 1, Seq("value"), Seq() ))
+             )
+           )
+         )
+       ),
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
                     new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message")),
-       Seq[NodeId]("one", "two", "three"),
        DateTime.now(), None)
 
     "have one detailed rule report" in {
@@ -856,19 +984,26 @@ class ExecutionBatchTest extends Specification {
   "A detailed execution Batch, with two directive, two component, cardinality one, three nodes, including one partly responding and one not responding" should {
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](
-           new DirectiveExpectedReports("policy",
-                   Seq(new ReportComponent("component", 1, Seq("value")),
-                       new ReportComponent("component2", 1, Seq("value"))
-                   )
-            ),
-            new DirectiveExpectedReports("policy2",
-                   Seq(new ReportComponent("component", 1, Seq("value")),
-                       new ReportComponent("component2", 1, Seq("value"))
-                   )
-            )
-       ),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one", "two", "three"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(
+                   new ReportComponent("component", 1, Seq("value"), Seq() )
+                 , new ReportComponent("component2", 1, Seq("value"), Seq() ))
+             )
+             ,DirectiveExpectedReports(
+              "policy2",
+               Seq(
+                   new ReportComponent("component", 1, Seq("value"), Seq() )
+                 , new ReportComponent("component2", 1, Seq("value"), Seq() ))
+             ) 
+           )
+         )
+       ),
        DateTime.now(),
        Seq[Reports](
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
@@ -879,7 +1014,6 @@ class ExecutionBatchTest extends Specification {
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component2", "value",DateTime.now(), "message"),
            new ResultSuccessReport(DateTime.now(), "rule", "policy2", "two", 12, "component", "value",DateTime.now(), "message")
        ),
-       Seq[NodeId]("one", "two", "three"),
        DateTime.now(), None)
 
     "have two detailed rule report" in {
@@ -899,19 +1033,26 @@ class ExecutionBatchTest extends Specification {
   "A detailed execution Batch, with two directive, two component, cardinality three, three nodes, including two not responding" should {
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](
-           new DirectiveExpectedReports("policy",
-                   Seq(new ReportComponent("component", 1, Seq("value")),
-                       new ReportComponent("component2", 1, Seq("value"))
-                   )
-            ),
-            new DirectiveExpectedReports("policy2",
-                   Seq(new ReportComponent("component", 1, Seq("value")),
-                       new ReportComponent("component2", 1, Seq("value"))
-                   )
-            )
-       ),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one", "two", "three"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(
+                   new ReportComponent("component", 1, Seq("value"), Seq() )
+                 , new ReportComponent("component2", 1, Seq("value"), Seq() ))
+             )
+             ,DirectiveExpectedReports(
+              "policy2",
+               Seq(
+                   new ReportComponent("component", 1, Seq("value"), Seq() )
+                 , new ReportComponent("component2", 1, Seq("value"), Seq() ))
+             ) 
+           )
+         )
+       ),
        DateTime.now(),
        Seq[Reports](
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
@@ -923,7 +1064,6 @@ class ExecutionBatchTest extends Specification {
            new ResultSuccessReport(DateTime.now(), "rule", "policy2", "two", 12, "component", "value",DateTime.now(), "message"),
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value",DateTime.now(), "message")
        ),
-       Seq[NodeId]("one", "two", "three"),
        DateTime.now(), None)
 
     "have two detailed rule report" in {
@@ -952,13 +1092,18 @@ class ExecutionBatchTest extends Specification {
   "A detailed execution Batch, with two directive, two component, cardinality three, three nodes, including two not completely responding" should {
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](
-           new DirectiveExpectedReports("policy",
-                   Seq(new ReportComponent("component", 1, Seq("value","value2","value3"))
-                   )
-            )
-       ),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one", "two", "three"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(new ReportComponent("component", 1, Seq("value", "value2", "value3"), Seq() ))
+             )
+           )
+         )
+       ),
        DateTime.now(),
        Seq[Reports](
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
@@ -968,7 +1113,6 @@ class ExecutionBatchTest extends Specification {
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value2",DateTime.now(), "message"),
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value",DateTime.now(), "message")
        ),
-       Seq[NodeId]("one", "two", "three"),
        DateTime.now(), None)
 
     "have one detailed rule report" in {
@@ -998,13 +1142,20 @@ class ExecutionBatchTest extends Specification {
 
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                  "policy",
-                  Seq(new ReportComponent("component", 1, Seq("""some\"text""")  )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("one"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(new ReportComponent("component", 1, Seq("""some\"text"""), Seq("""some\text""") ))
+             )
+           )
+         )
+       ),
        new DateTime(),
        Seq[Reports](new ResultSuccessReport(new DateTime(), "rule", "policy", "one", 12, "component", """some"text""",new DateTime(), "message")),
-       Seq[NodeId]("one"),
        new DateTime(), None)
 
     "have one reports when we create it with one report" in {
@@ -1072,13 +1223,20 @@ class ExecutionBatchTest extends Specification {
 
     val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
-       Seq[DirectiveExpectedReports](new DirectiveExpectedReports(
-                  "policy",
-                  Seq(new ReportComponent("component", 1, Seq("""${sys.workdir}/inputs/\"test""") )))),
        12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("nodeId"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(new ReportComponent("component", 1, Seq("""${sys.workdir}/inputs/\"test"""), Seq() ))
+             )
+           )
+         )
+       ),
        executionTimestamp,
        reports,
-       Seq[NodeId]("nodeId"),
        executionTimestamp, None)
 
     "have one reports when we create it with one report" in {

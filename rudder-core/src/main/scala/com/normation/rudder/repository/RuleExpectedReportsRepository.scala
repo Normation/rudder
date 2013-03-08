@@ -50,7 +50,7 @@ trait RuleExpectedReportsRepository {
    * @param ruleId
    * @return
    */
-  def findExpectedReports(ruleId : RuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[RuleExpectedReports]
+  def findExpectedReports(ruleId : RuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Box[Seq[RuleExpectedReports]]
 
 
   /**
@@ -58,13 +58,13 @@ trait RuleExpectedReportsRepository {
    * @param directiveId
    * @return
    */
-  def findExpectedReportsByNode(nodeId : NodeId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[RuleExpectedReports]
+  def findExpectedReportsByNode(nodeId : NodeId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Box[Seq[RuleExpectedReports]]
 
   /**
    * Return all the expected reports between the two dates
    * @return
    */
-  def findExpectedReports(beginDate : DateTime, endDate : DateTime) : Seq[RuleExpectedReports]
+  def findExpectedReports(beginDate : DateTime, endDate : DateTime) : Box[Seq[RuleExpectedReports]]
 
 
   /**
@@ -72,8 +72,7 @@ trait RuleExpectedReportsRepository {
    * @param rule
    * @return
    */
-  def findCurrentExpectedReports(rule : RuleId) : Option[RuleExpectedReports]
-
+  def findCurrentExpectedReports(rule : RuleId) : Box[Option[RuleExpectedReports]]
 
   /**
    * Return the ruleId currently opened
@@ -101,14 +100,14 @@ trait RuleExpectedReportsRepository {
    * @param nodeId
    * @return
    */
-  def findCurrentExpectedReportsByNode(nodeId : NodeId) : Seq[RuleExpectedReports]
+  def findCurrentExpectedReportsByNode(nodeId : NodeId) : Box[Seq[RuleExpectedReports]]
 
 
  /**
    * Simply set the endDate for the expected report for this conf rule
    * @param ruleId
    */
-  def closeExpectedReport(ruleId : RuleId) : Unit
+  def closeExpectedReport(ruleId : RuleId) : Box[Unit]
 
   /**
    * Save an expected reports.
@@ -120,9 +119,11 @@ trait RuleExpectedReportsRepository {
    * @return
    */
     def saveExpectedReports(
-        ruleId  : RuleId
-      , serial						   : Int
+        ruleId               : RuleId
+      , serial               : Int
       , policyExpectedReports: Seq[DirectiveExpectedReports]
       , nodes                : Seq[NodeId]
     ) : Box[RuleExpectedReports]
+  
+
 }
