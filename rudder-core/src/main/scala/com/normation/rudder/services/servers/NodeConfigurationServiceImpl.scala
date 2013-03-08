@@ -109,7 +109,9 @@ class NodeConfigurationServiceImpl(
             ),
             None,
             Map(),
-            target.nodeContext
+            target.nodeContext,
+            Set(),
+            target.parameters
           )
       } else {
           new SimpleNodeConfiguration(
@@ -130,7 +132,9 @@ class NodeConfigurationServiceImpl(
             ),
             None,
             Map(),
-            target.nodeContext
+            target.nodeContext,
+            Set(),
+            target.parameters
           )
       }
     }
@@ -165,7 +169,9 @@ class NodeConfigurationServiceImpl(
                 target.nodeInfo.policyServerId.value,
                 target.nodeInfo.localAdministratorAccountName
                 ),
-            targetSystemVariables = target.nodeContext
+            targetSystemVariables = target.nodeContext,
+            targetParameters = target.parameters
+
         )
 
 
@@ -179,7 +185,8 @@ class NodeConfigurationServiceImpl(
                 target.nodeInfo.policyServerId.value,
                 target.nodeInfo.localAdministratorAccountName
                 ),
-            targetSystemVariables = target.nodeContext
+            targetSystemVariables = target.nodeContext,
+            targetParameters = target.parameters
          )
     }
 
