@@ -107,7 +107,7 @@ class PolicyServerManagementServiceImpl(
       pi <- policyInstanceRepository.getPolicyInstance(piId) ?~! "Error when retrieving policy instance with ID '%s'".format(piId.value)
       upt <- policyInstanceRepository.getUserPolicyTemplate(piId) ?~! "Error when getting user policy template for policy instance with ID '%s'".format(piId.value)
       newPi = pi.copy(parameters = pi.parameters + (Constants.V_ALLOWED_NETWORK -> networks.map( _.toString)))
-      saved <- policyInstanceRepository.savePolicyInstance(upt.id, newPi, actor) ?~! "Can not save policy instance for User Policy Template '%s'".format(upt.id.value)
+      saved <- policyInstanceRepository.saveSystemPolicyInstance(upt.id, newPi, actor) ?~! "Can not save policy instance for User Policy Template '%s'".format(upt.id.value)
     } yield {
       //ask for a new policy deployment
       asyncDeploymentAgent ! StartDeployment(RudderEventActor)

@@ -83,11 +83,20 @@ trait ConfigurationRuleRepository {
    * parameters.
    * 
    * If the configuration rule is not in the repos, the method fails. 
+   * If the configuration rule is a system one, the methods fails.
    * 
    * NOTE: the serial is *never* updated with that methods. 
    */
   def update(cr:ConfigurationRule, actor:EventActor) : Box[Option[ModifyConfigurationRuleDiff]]
   
+  /**
+   * Update the system configuration rule with the given ID with the given
+   * parameters.
+   *
+   * NOTE: the serial is *never* updated with that methods.
+   */
+  def updateSystem(cr:ConfigurationRule, actor:EventActor) : Box[Option[ModifyConfigurationRuleDiff]]
+
   /**
    * Increment the serial of Configuration Rules with given ID by one. 
    * Return the new serial value. 
@@ -100,6 +109,8 @@ trait ConfigurationRuleRepository {
    * If no configuration rule with such ID exists, it is an error
    * (it's the caller site responsability to decide if it's
    * and error or not). 
+   *
+   * A system rule can not be deleted.
    */
   def delete(id:ConfigurationRuleId, actor:EventActor) : Box[DeleteConfigurationRuleDiff]
   

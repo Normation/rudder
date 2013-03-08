@@ -89,6 +89,7 @@ class LDAPConfigurationRuleRepository(
       con <- ldap
       entry <- con.get(rudderDit.CONFIG_RULE.configRuleDN(id.value)) ?~! "Configuration rule with ID '%s' is not present".format(id.value)
       oldCr <- mapper.entry2ConfigurationRule(entry) ?~! "Error when transforming LDAP entry into a Configuration Rule for id %s. Entry: %s".format(id, entry)
+      isSytem <- if(oldCr.isSystem) Failure("Deleting system rule '%s (%s)' is forbiden".format(oldCr.name, oldCr.id.value)) else Full("OK")
       deleted <- con.delete(rudderDit.CONFIG_RULE.configRuleDN(id.value)) ?~! "Error when deleting configuration rule with ID %s".format(id)
       diff = DeleteConfigurationRuleDiff(oldCr)
       loggedAction <- actionLogger.saveEventLog(DeleteConfigurationRule.fromDiff(principal = actor, deleteDiff = diff))
@@ -134,10 +135,16 @@ class LDAPConfigurationRuleRepository(
   }
 
   
-  def update(cr:ConfigurationRule, actor:EventActor) : Box[Option[ModifyConfigurationRuleDiff]] = {
+  private[this] def internalUpdate(cr:ConfigurationRule, actor:EventActor, systemCall:Boolean) : Box[Option[ModifyConfigurationRuleDiff]] = {
     repo.synchronized { for {
       con <- ldap
       existingEntry <- con.get(rudderDit.CONFIG_RULE.configRuleDN(cr.id.value)) ?~! "Cannot update configuration rule with id %s : there is no configuration rule with that id".format(cr.id.value)
+      oldCr <- mapper.entry2ConfigurationRule(existingEntry) ?~! "Error when transforming LDAP entry into a Configuration Rule for id %s. Entry: %s".format(cr.id, existingEntry)
+      systemCheck <- (oldCr.isSystem, systemCall) match {
+                       case (true, false) => Failure("System rule '%s' (%s) can not be modified".format(oldCr.name, oldCr.id.value))
+                       case (false, true) => Failure("You can't modify a non-system rule with updateSystem method")
+                       case _ => Full("OK")
+                     }
       crEntry = mapper.configurationRule2Entry(cr)
       result <- con.save(crEntry, true, Seq(A_SERIAL)) ?~! "Error when saving Configuration Rule entry in repository: %s".format(crEntry)
       optDiff <- diffMapper.modChangeRecords2ConfigurationRuleDiff(existingEntry,result) ?~! "Error when mapping Configuration Rule '%s' update to an diff: %s".format(cr.id.value, result)
@@ -150,6 +157,13 @@ class LDAPConfigurationRuleRepository(
     } }
   }
         
+  def update(cr:ConfigurationRule, actor:EventActor) : Box[Option[ModifyConfigurationRuleDiff]] = {
+    internalUpdate(cr, actor, false)
+  }
+
+  def updateSystem(cr:ConfigurationRule, actor:EventActor) : Box[Option[ModifyConfigurationRuleDiff]] = {
+    internalUpdate(cr, actor, true)
+  }
   
   def incrementSerial(id:ConfigurationRuleId) : Box[Int] = {
     repo.synchronized { for {

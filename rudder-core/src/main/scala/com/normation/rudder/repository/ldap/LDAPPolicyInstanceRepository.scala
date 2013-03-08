@@ -153,7 +153,7 @@ class LDAPPolicyInstanceRepository(
    * 
    * Returned the saved WBUserPolicyInstance
    */
-  def savePolicyInstance(inUserPolicyTemplateId:UserPolicyTemplateId,pi:PolicyInstance, actor:EventActor) : Box[Option[PolicyInstanceSaveDiff]] = {
+  private[this] def internalSavePolicyInstance(inUserPolicyTemplateId:UserPolicyTemplateId,pi:PolicyInstance, actor:EventActor, systemCall:Boolean) : Box[Option[PolicyInstanceSaveDiff]] = {
     repo.synchronized { for {
       con <- ldap
       uptEntry <- ldapUserPolicyTemplateRepository.getUPTEntry(con, inUserPolicyTemplateId, "1.1") ?~! "Can not find the User Policy Entry with id %s to add Policy Instance %s".format(inUserPolicyTemplateId, pi.id)
@@ -162,7 +162,15 @@ class LDAPPolicyInstanceRepository(
           case f:Failure => f
           case Empty => Full(None)
           case Full(otherPi) => 
-            if(otherPi.dn.getParent == uptEntry.dn) Full(Some(otherPi))
+            if(otherPi.dn.getParent == uptEntry.dn) {
+              mapper.entry2PolicyInstance(otherPi).flatMap { x =>
+                (x.isSystem, systemCall) match {
+                  case (true, false) => Failure("System policy instance '%s' (%s) can't be updated".format(x.name, x.id.value))
+                  case (false, true) => Failure("Non-system policy instance can not be updated with that method")
+                  case _ => Full(Some(otherPi))
+                }
+              }
+            }
             else Failure("An other policy instance with the id %s exists in an other category that the one with id %s : %s".format(pi.id, inUserPolicyTemplateId, otherPi.dn))
         }
       }
@@ -187,6 +195,13 @@ class LDAPPolicyInstanceRepository(
     } }
   }
 
+  def savePolicyInstance(inUserPolicyTemplateId:UserPolicyTemplateId,pi:PolicyInstance, actor:EventActor) : Box[Option[PolicyInstanceSaveDiff]] = {
+    internalSavePolicyInstance(inUserPolicyTemplateId, pi, actor, false)
+  }
+
+  def saveSystemPolicyInstance(inUserPolicyTemplateId:UserPolicyTemplateId,pi:PolicyInstance, actor:EventActor) : Box[Option[PolicyInstanceSaveDiff]] = {
+    internalSavePolicyInstance(inUserPolicyTemplateId, pi, actor, true)
+  }
 
   /**
    * Delete a policy instance.
@@ -200,6 +215,7 @@ class LDAPPolicyInstanceRepository(
       entry <- getPolicyInstanceEntry(con, id)
       //for logging, before deletion
       pi <- mapper.entry2PolicyInstance(entry)
+      systemCheck <- if(pi.isSystem) Failure("System policy instance '%s' (%s) can't be deleted".format(pi.name, pi.id.value)) else Full("OK")
       upt <- this.getUserPolicyTemplate(id) ?~! "Can not find the User Policy Temple Entry for Policy Instance %s".format(id)
       pt <- policyPackageService.getPolicy(PolicyPackageId(upt.referencePolicyTemplateName,pi.policyTemplateVersion))
       //delete
