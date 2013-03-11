@@ -133,8 +133,8 @@ class TestQueryProcessor extends Loggable {
       "q1",
       parser("""
       { "select":"node", "composition":"or", "where":[
-        { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" }
-        { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node5" }
+         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" }
+       , { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node5" }
       ] }
       """).openOrThrowException("For tests"),
       s(1) :: s(5) :: Nil)
@@ -288,7 +288,19 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(0) :: s(1) :: s(2) :: Nil)
 
-    //same as q4 with and
+    //on node and or for regex, testing #3340
+    val q3_2 = TestQuery(
+      "q3_2",
+      parser("""
+      {  "select":"node",  "composition":"or", "where":[
+          { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[01]" }
+        , { "objectType":"node" , "attribute":"nodeId" , "comparator":"eq"   , "value":"node5" }
+        , { "objectType":"software", "attribute":"softwareVersion", "comparator":"eq", "value":"1.0.0" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(0) :: s(1) :: s(2) :: s(5) :: s(7) :: Nil)
+
+    //same as q3 with and
     val q4 = TestQuery(
       "q3",
       parser("""
@@ -299,7 +311,7 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
 
-      testQueries(q1 :: q2 :: q3 :: q4 :: Nil)
+      testQueries(q1 :: q2 :: q3 :: q3_2 :: q4 :: Nil)
   }
 
 
