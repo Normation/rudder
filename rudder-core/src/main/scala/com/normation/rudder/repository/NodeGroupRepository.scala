@@ -98,9 +98,15 @@ trait NodeGroupRepository {
    * That method does nothing at the configuration level,
    * so you will have to manage configuration rule deployment
    * if needed
+   *
+   * System group can not be updated with that method.
    */
   def update(group:NodeGroup, actor:EventActor) : Box[Option[ModifyNodeGroupDiff]]
 
+  /**
+   * Update the given existing system group
+   */
+  def updateSystemGroup(group:NodeGroup, actor:EventActor) : Box[Option[ModifyNodeGroupDiff]]
 
   /**
    * Move the given existing group to the new container.
