@@ -37,7 +37,7 @@ package com.normation.rudder.services.queries
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries._
-import com.unboundid.ldap.sdk._
+import com.unboundid.ldap.sdk.{ SearchScope => _, LDAPConnection => _, _ }
 import DereferencePolicy.NEVER
 import com.normation.ldap.sdk._
 import com.normation.inventory.domain._
@@ -52,7 +52,7 @@ import com.normation.rudder.domain.RudderLDAPConstants._
 import java.util.regex.Pattern
 import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
-import net.liftweb.common.EmptyBox
+
 
 
 
@@ -215,7 +215,7 @@ class InternalLDAPQueryProcessor(
    *     (donc pour nous, les serveurs)
    *     Ca nous permet d'obtenir une liste de serverDn, softwareDn,
    *     machineDn à tester.
-   *     A partir de là, on ruleée les filtres qui vont bien pour
+   *     A partir de là, on crée les filtres qui vont bien pour
    *     chaque type, à ANDer en tête de chaque autre requete.
    *     PROBLEME: on peut se retrouver avec tout l'annuaire en "et".
    * 2/  requete des différents autres types, avec les bon filter.
@@ -258,19 +258,31 @@ class InternalLDAPQueryProcessor(
     /*
      * First step: forall criteria, combined filters according to composition
      * (the result is given as an LDAPObjectType, so we have everything to process the query)
+     *
+     * We have to make separated requests for special filter,
+     * and we need to have one by filter. So these one are in separated requests.
+     *
      */
     val ldapObjectTypeSets : Map[DnType, Map[String,LDAPObjectType]] =
       normalizeQuery.objectTypesFilters map { case(dnType,mapOtFilters) =>
         (dnType, (mapOtFilters map { case (ot,setFilters) =>
           val (ldapFilters, specialFilters) = unspecialiseFilters(setFilters) match {
-            case Full((ldapFilters, specialFilters)) => normalizeQuery.composition match {
-              case And =>
-                val f = if(ldapFilters.size == 1) ldapFilters.head else AND(ldapFilters.toSeq:_*)
-                ( f, specialFilters.map( ( And:CriterionComposition , _)) )
-              case Or =>
-                val f = if(ldapFilters.size == 1) ldapFilters.head else  OR(ldapFilters.toSeq:_*)
-                ( f,  specialFilters.map( ( Or :CriterionComposition, _)) )
-            }
+            case Full((ldapFilters, specialFilters)) =>
+              val f = ldapFilters.size match {
+                case 0 => None
+                case 1 => Some(ldapFilters.head)
+                case n =>
+                  normalizeQuery.composition match {
+                    case And => Some(AND(ldapFilters.toSeq:_*))
+                    case Or  => Some(OR(ldapFilters.toSeq:_*))
+                  }
+              }
+
+              normalizeQuery.composition match {
+                case And => (f, specialFilters.map( ( And:CriterionComposition , _)) )
+                case Or  => (f, specialFilters.map( ( Or :CriterionComposition , _)) )
+              }
+
             case e:EmptyBox =>
               val error = e ?~! "Error when processing filters for object type %s".format(ot)
               logger.debug("[%s] `-> stop query due to error: %s".format(debugId,error))
@@ -278,9 +290,17 @@ class InternalLDAPQueryProcessor(
           }
 
           //for each set of filter, build the query
+          val f = ldapFilters match {
+            case None    => objectTypes(ot).filter
+            case Some(x) =>
+              objectTypes(ot).filter match {
+                case Some(y) => Some(AND(y, x))
+                case None => Some(x)
+              }
+          }
 
           (ot, objectTypes(ot).copy(
-            filter=AND(objectTypes(ot).filter, ldapFilters),
+            filter=f,
             join=joinAttributes(ot),
             specialFilters=specialFilters
           ))
@@ -293,7 +313,7 @@ class InternalLDAPQueryProcessor(
       ldapObjectTypeSets map { case(dnType,mapLot) =>
         (dnType, (mapLot map { case (ot,lot) =>
         //for each set of filter, execute the query
-          val dns = getDnsForObjectType(lot, debugId) match {
+          val dns = getDnsForObjectType(lot, normalizeQuery.composition, debugId) match {
             case eb:EmptyBox =>
               logger.debug("[%s] `-> stop query due to error: %s".format(debugId,eb))
               return eb
@@ -341,22 +361,19 @@ class InternalLDAPQueryProcessor(
           return error
 
         case Full((ldapFilters, specialFilters)) =>
-          normalizeQuery.composition match {
+          val finalLdapFilter = normalizeQuery.composition match {
             case Or  =>
-              val finalLdapFilter = OR( ((ldapFilters /: filterSeqSet)( _ union _ )).toSeq:_*)
-              (finalLdapFilter, specialFilters.map( ( Or:CriterionComposition , _)) )
+              if(ldapFilters.isEmpty) None else Some(OR( ((ldapFilters /: filterSeqSet)( _ union _ )).toSeq:_*))
             case And => //if returnFilter is None, just and other filter, else add it. TODO : may it be empty ?
               val seqFilter = ldapFilters.toSeq ++
                   filterSeqSet.map(s => if(s.size > 1) OR(s.toSeq:_*) else s.head ) //s should not be empty, since we returned earlier if it was the case
-              val finalLdapFilter = seqFilter.size match {
-                case x if x < 1 =>
-                  logger.debug("[%s] `-> stop query due to error: no filter (!?!)".format(debugId))
-                  return Failure("We don't have any filter ?") //that case should not araise
-                case 1 => seqFilter.head
-                case _ => AND( seqFilter:_* )
+              seqFilter.size match {
+                case x if x < 1 => None
+                case 1 => Some(seqFilter.head)
+                case _ => Some(AND( seqFilter:_* ))
               }
-              (finalLdapFilter, specialFilters.map( ( And:CriterionComposition , _)) )
           }
+          (finalLdapFilter, specialFilters )
         }
     }
 
@@ -367,24 +384,23 @@ class InternalLDAPQueryProcessor(
       filter = {
         serverUuids match {
           case None => finalLdapFilter
-          case Some(seq) => AND( buildOnlyDnFilters(seq), finalLdapFilter)
+          case Some(seq) if(seq.size < 1) => finalLdapFilter
+          case Some(seq) if(seq.size >= 1) =>
+            finalLdapFilter match {
+              case None => Some(buildOnlyDnFilters(seq))
+              case Some(x) => Some(AND(x , buildOnlyDnFilters(seq)))
+            }
         }
       }
     )
-
-    val sr = new SearchRequest(rt.baseDn.toString, rt.scope, NEVER,
-      limits.requestSizeLimit, limits.requestTimeLimit, false,
-      rt.filter, select ++ getAdditionnalAttributes(finalSpecialFilters.map(_._2)):_*
-    ) //return only uuid, cn, ram, swap because we are on server only
 
     logger.debug("[%s] |- %s".format(debugId, rt))
 
     val res = for {
       con      <- ldap
-      results  <- Full(con.search(sr))
-      postProc <- postProcessResults(results,finalSpecialFilters)
+      results  <- executeQuery(rt.baseDn.toString, rt.scope, rt.filter, finalSpecialFilters, select.toSet, normalizeQuery.composition, debugId)
     } yield {
-      postProc
+      results.groupBy( _.dn ).map( _._2.head ).toSeq
     }
 
     if(logger.isDebugEnabled) {
@@ -397,58 +413,143 @@ class InternalLDAPQueryProcessor(
     res
   }
 
-  private[this] def getDnsForObjectType(lot:LDAPObjectType, debugId: Long) : Box[Set[DN]] = {
+  //execute a query with special filter based on the composition
+  private[this] def executeQuery(base: DN, scope: SearchScope, filter: Option[Filter], specialFilters: Set[SpecialFilter], attributes:Set[String], composition: CriterionComposition, debugId: Long) : Box[Seq[LDAPEntry]] = {
 
+    def buildSearchRequest(addedSpecialFilters:Set[SpecialFilter]) : Box[SearchRequest] = {
+
+      //special filter can modify the filter and the attributes to get
+      val params = ( (filter,attributes) /: addedSpecialFilters) {
+            case ( (f, currentAttributes), r:RegexFilter) =>
+              val filterToApply = composition match {
+                case Or => Some(ALL)
+                case And => f.orElse(Some(ALL))             }
+
+              (filterToApply, currentAttributes ++ getAdditionnalAttributes(Set(r)))
+            case (_, sf) => return Failure("Unknow special filter, can not build a request with it: " + sf)
+      }
+
+      val finalFilter = params._1 match {
+        case None => return Failure("No filter (neither standard nor special) for request, can not process!")
+        case Some(x) => x
+      }
+
+       /*
+        * Optimization : we limit query time/size. That means that perhaps we won't have all response.
+        * That DOES not change the validity of each final answer, just we may don't find ALL valid answer.
+        * (in the case of a and, a missing result here can lead to an empty set at the end)
+        * TODO : this behaviour should be removable
+        */
+      Full(new SearchRequest(
+           base.toString
+         , scope
+         , NEVER
+         , limits.subRequestSizeLimit
+         , limits.subRequestTimeLimit
+         , false
+         , finalFilter
+         , params._2.toSeq:_*
+       ))
+    }
+
+    def baseQuery(con:RoLDAPConnection, addedSpecialFilters:Set[SpecialFilter]) : Box[Seq[LDAPEntry]] = {
+      //special filter can modify the filter and the attributes to get
+
+      for {
+        sr      <- buildSearchRequest(addedSpecialFilters)
+        _       <- { logger.debug("[%s] |--- %s".format(debugId, sr)) ; Full({}) }
+        entries <- Full(con.search(sr))
+        _       <- { logger.debug("[%s] |---- %s result(s)".format(debugId, entries.size)) ; Full({}) }
+        post    <- postProcessResults(entries, addedSpecialFilters.map( (composition,_) ), debugId)
+      } yield {
+        post
+      }
+    }
+
+    def andQuery(con:RoLDAPConnection) : Box[Seq[LDAPEntry]] = {
+      baseQuery(con, specialFilters)
+    }
+
+    /*
+     * if the composition is "OR", we have to process in two steps:
+     * - a first step to get entries thanks to "normal" LDAP filter
+     * - a second step with one request for each special filter, because
+     *   their post-processing doesn't compose. For example, the REGEX
+     *   special filter will actually perform a search that return EVERYTHING
+     *   and post-process it with regex. With only one step, only entries matching
+     *   that filter would be returned, even if they match other part of the OR.
+     */
+    def orQuery(con:RoLDAPConnection) : Box[Seq[LDAPEntry]] = {
+      //optimisation: we can group regex filter to post process them all in one pass
+
+      val sf = specialFilters.groupBy {
+        case r:RegexFilter => "regex"
+        case _ => "other"
+      }
+
+      for {
+        entries  <- filter match {
+                      case Some(f) => baseQuery(con, Set())
+                      //we are in a case of only special filter
+                      case None    => Full(Seq())
+                    }
+                 //now, each filter individually
+        _        <- { logger.debug("[%s] |-- or (base filter): %s".format(debugId, entries.size)) ; Full({}) }
+        specials <- sequence(sf.toSeq){ case (k, filters) => baseQuery(con, filters) }
+        sFlat    =  specials.flatten
+        _        <- { logger.debug("[%s] |-- or (special filter): %s".format(debugId, sFlat.size)) ; Full({}) }
+      } yield {
+        entries ++ sFlat
+      }
+    }
+
+    //actual implementation for buildSearchRequest
+
+    for {
+      con         <- ldap
+      results     <- composition match {
+                       case Or  => orQuery(con)
+                       case And => andQuery(con)
+                     }
+    } yield {
+      results
+    }
+  }
+
+  private[this] def getDnsForObjectType(lot:LDAPObjectType, composition: CriterionComposition, debugId: Long) : Box[Set[DN]] = {
     val LDAPObjectType(base,scope,ldapFilters,joinType,specialFilters) = lot
 
     //log sub-query with two "-"
     logger.debug("[%s] |-- %s".format(debugId, lot))
-
     for {
-      con         <- ldap
-      results     <- Full { /*
-                       * Optimization : we limit query time/size. That means that perhaps we won't have all response.
-                       * That DOES not change the validity of each final answer, just we may don't find ALL valid answer.
-                       * (in the case of a and, a missing result here can lead to an empty set at the end)
-                       * TODO : this behaviour should be removable
-                       */
-                       con.search(new SearchRequest(
-                           base.toString
-                         , scope
-                         , NEVER
-                         , limits.subRequestSizeLimit
-                         , limits.subRequestTimeLimit
-                         , false
-                         , ldapFilters
-                         , joinType.selectAttribute +: getAdditionnalAttributes(specialFilters.map(_._2)).toSeq:_*
-                       ))
-                     }
-      postResults <- postProcessResults(results,specialFilters)
+      results <- executeQuery(base, scope, ldapFilters, specialFilters.map( _._2), Set(joinType.selectAttribute), composition, debugId)
     } yield {
-      (postResults flatMap { e:LDAPEntry =>
+      val res = (results flatMap { e:LDAPEntry =>
         joinType match {
           case DNJoin => Some(e.dn)
           case ParentDNJoin => Some(e.dn.getParent)
           case AttributeJoin(attr) => e(attr) map {a:String => new DN(a) }  //that's why Join Attribute must be a DN
         }
       }).toSet
+      logger.debug("[%s] |-- %s sub-results".format(debugId, res.size))
+      res
     }
   }
 
 
   /**
    * That method allows to transform a list of extended filter to
-   * the corresponding list of pur LDAP filter and pur special filter.
+   * the corresponding list of pure LDAP filter and pure special filter.
    *
-   * That is particulary intersting for special filters that have to
-   * add a "false" corresponding pur LDAP filter
-   * (for example, Regex is a pur "ALL" filter + a post processing of results)
+   * That method absolutly NOT modify standard filter with added filters
+   * from special filter.
+   * Special filter are handled in their own place
    */
   private[this] def unspecialiseFilters(filters:Set[ExtendedFilter]) : Box[(Set[Filter], Set[SpecialFilter])] = {
     val start = (Set[Filter](), Set[SpecialFilter]())
     Full((start /: filters) {
       case (  (ldapFilters,specials), LDAPFilter(f) ) => (ldapFilters + f, specials)
-      case (  (ldapFilters,specials), r:RegexFilter ) => (ldapFilters + ALL, specials + r)
+      case (  (ldapFilters,specials), r:RegexFilter ) => (ldapFilters, specials + r)
       case (x, f) => return Failure("Can not handle filter type: '%s', abort".format(f))
     })
   }
@@ -466,6 +567,7 @@ class InternalLDAPQueryProcessor(
   private[this] def postProcessResults(
       results:Seq[LDAPEntry]
     , specialFilters:Set[(CriterionComposition,SpecialFilter)]
+    , debugId: Long
   ) : Box[Seq[LDAPEntry]] = {
     def applyFilter(specialFilter:SpecialFilter, entries:Seq[LDAPEntry]) : Box[Seq[LDAPEntry]] = {
       specialFilter match {
@@ -490,10 +592,13 @@ class InternalLDAPQueryProcessor(
     }
 
 
-    val filterSeq = specialFilters.toSeq
 
-    if(filterSeq.isEmpty) Full(results)
-    else {
+    if(specialFilters.isEmpty) {
+      Full(results)
+    } else {
+      val filterSeq = specialFilters.toSeq
+      logger.debug("[%s] |---- post-process with filters: %s".format(debugId, filterSeq))
+
       //we only know how to process homogeneous CriterionComposition. Different one are an error
       for {
         composition <- pipeline(filterSeq, filterSeq.head._1) {
@@ -510,6 +615,7 @@ class InternalLDAPQueryProcessor(
                              applyFilter(filter, results).map( r => (Set() ++ r ++ currentResults).toSeq)
                            }
                        }
+        _           <- { logger.debug("[%s] |---- results (post-process): %s".format(debugId, results.size)) ; Full({})}
       } yield {
         results
       }
