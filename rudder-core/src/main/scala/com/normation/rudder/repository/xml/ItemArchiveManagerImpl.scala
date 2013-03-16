@@ -60,14 +60,18 @@ class ItemArchiveManagerImpl(
   , woRuleRepository                  : WoRuleRepository
   , uptRepository                     : RoDirectiveRepository
   , groupRepository                   : RoNodeGroupRepository
+  , roParameterRepository             : RoParameterRepository
+  , woParameterRepository             : WoParameterRepository
   , override val gitRepo              : GitRepositoryProvider
   , revisionProvider                  : GitRevisionProvider
   , gitRuleArchiver                   : GitRuleArchiver
   , gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver
   , gitActiveTechniqueArchiver        : GitActiveTechniqueArchiver
   , gitNodeGroupArchiver              : GitNodeGroupArchiver
+  , gitParameterArchiver              : GitParameterArchiver
   , parseRules                        : ParseRules
   , parseActiveTechniqueLibrary       : ParseActiveTechniqueLibrary
+  , parseGlobalParameters             : ParseGlobalParameters
   , importTechniqueLibrary            : ImportTechniqueLibrary
   , parseGroupLibrary                 : ParseGroupLibrary
   , importGroupLibrary                : ImportGroupLibrary
@@ -87,11 +91,12 @@ class ItemArchiveManagerImpl(
 
   override def exportAll(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[(GitArchiveId, NotArchivedElements)] = {
     for {
-      saveCrs     <- exportRulesAndDeploy(commiter, modId, actor, reason, includeSystem, false)
-      saveUserLib <- exportTechniqueLibraryAndDeploy(commiter, modId, actor, reason, includeSystem, false)
-      saveGroups  <- exportGroupLibraryAndDeploy(commiter, modId, actor, reason, includeSystem, false)
+      saveCrs        <- exportRulesAndDeploy(commiter, modId, actor, reason, includeSystem, false)
+      saveUserLib    <- exportTechniqueLibraryAndDeploy(commiter, modId, actor, reason, includeSystem, false)
+      saveGroups     <- exportGroupLibraryAndDeploy(commiter, modId, actor, reason, includeSystem, false)
+      saveParameters <- exportParametersAndDeploy(commiter, modId, actor, reason, includeSystem, false)
       msg         =  (  FULL_ARCHIVE_TAG
-                      + " Archive and tag groups, technique library and rules"
+                      + " Archive and tag groups, technique library, rules and parameters"
                       + (reason match {
                           case None => ""
                           case Some(m) => ", reason: " + m
@@ -221,7 +226,23 @@ class ItemArchiveManagerImpl(
     }
   }
 
+  override def exportParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId] =
+    exportParametersAndDeploy(commiter, modId, actor, reason, includeSystem)
 
+  private[this] def exportParametersAndDeploy(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = {
+    for {
+      parameters  <- roParameterRepository.getAllGlobalParameters()
+      cleanedRoot <- tryo { FileUtils.cleanDirectory(gitParameterArchiver.getRootDirectory) }
+      saved       <- sequence(parameters) { param =>
+                       gitParameterArchiver.archiveParameter(param, None)
+                     }
+      commitId    <- gitParameterArchiver.commitParameters(modId, commiter, reason)
+      eventLogged <- eventLogger.saveEventLog(modId, new ExportParametersArchive(actor,commitId, reason))
+    } yield {
+      if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
+      commitId
+    }
+  }
   ////////// Import //////////
 
 
@@ -232,6 +253,7 @@ class ItemArchiveManagerImpl(
       rules       <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       userLib     <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       groupLIb    <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
+      parameters  <- importParametersAndDeploy(archiveId, modId, actor, reason, false)
       eventLogged <- eventLogger.saveEventLog(modId,new ImportFullArchive(actor,archiveId, reason))
       commit      <- restoreCommitAtHead(commiter,"User %s requested full archive restoration to commit %s".format(actor.name,archiveId.value),archiveId,FullArchive,modId)
     } yield {
@@ -292,7 +314,7 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested group archive restoration to commit %s".format(actor.name,archiveId.value)
     for {
       groupsArchiveId <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem)
-      eventLogged <- eventLogger.saveEventLog(modId, new ImportGroupsArchive(actor,archiveId, reason))
+      eventLogged     <- eventLogger.saveEventLog(modId, new ImportGroupsArchive(actor,archiveId, reason))
       commit          <- restoreCommitAtHead(commiter,commitMsg,archiveId,GroupArchive,modId)
     } yield
       archiveId
@@ -308,6 +330,34 @@ class ItemArchiveManagerImpl(
         archiveId
       }
   }
+  
+  override def importParameters(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) = {
+    val commitMsg = "User %s requested Parameters archive restoration to commit %s".format(actor.name,archiveId.value)
+    for {
+    parametersArchiveId <- importParametersAndDeploy(archiveId, modId, actor, reason, includeSystem)
+    eventLogged    <- eventLogger.saveEventLog(modId,new ImportParametersArchive(actor,archiveId, reason))
+    commit         <- restoreCommitAtHead(commiter,commitMsg,archiveId,ParameterArchive,modId)
+    } yield
+      archiveId
+  }
+
+  private[this] def importParametersAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true) : Box[GitCommitId] = {
+    logger.info("Importing Parameters archive with id '%s'".format(archiveId.value))
+    for {
+      parsed      <- parseGlobalParameters.getArchive(archiveId)
+      imported    <- woParameterRepository.swapParameters(parsed)
+    } yield {
+      //try to clean
+      woParameterRepository.deleteSavedParametersArchiveId(imported) match {
+        case eb:EmptyBox =>
+          val e = eb ?~! ("Error when trying to delete saved archive of old parameters: " + imported)
+          logger.error(e)
+        case _ => //ok
+      }
+      if(deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
+      archiveId
+    }
+  }
 
   /*
    * Rollback, it acts like a full archive restoration
@@ -321,6 +371,7 @@ class ItemArchiveManagerImpl(
       rules       <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       userLib     <- importTechniqueLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
       groupLIb    <- importGroupLibraryAndDeploy(archiveId, modId, actor, reason, includeSystem, false)
+      parameters  <- importParametersAndDeploy(archiveId, modId, actor, reason, false)
       eventLogged <- eventLogger.saveEventLog(modId,new Rollback(actor,rollbackedEvents, target, rollbackType, reason))
       commit      <- restoreCommitAtHead(commiter,"User %s requested a rollback to a previous configuration : %s".format(actor.name,archiveId.value),archiveId,FullArchive,modId)
     } yield {
@@ -348,6 +399,11 @@ class ItemArchiveManagerImpl(
   override def importHeadGroupLibrary(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
     logger.info("Importing groups archive from HEAD")
     this.importGroupLibrary(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
+  }
+
+  override def importHeadParameters(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[GitCommitId] = {
+    logger.info("Importing Global Parameters from HEAD")
+    this.importParameters(lastGitCommitId, commiter, modId, actor, reason: Option[String])
   }
 
   override def getFullArchiveTags : Box[Map[DateTime,GitArchiveId]] = this.getTags()
@@ -381,6 +437,15 @@ class ItemArchiveManagerImpl(
       globalTags ++ crTags
     }
   }
+
+  override def getParametersTags : Box[Map[DateTime,GitArchiveId]] = {
+    for {
+      globalTags <- this.getTags()
+      crTags     <- gitParameterArchiver.getTags()
+    } yield {
+      globalTags ++ crTags
+    }
+  }
 }
 
 /*
@@ -405,18 +470,23 @@ case class PartialArchive(directory:String) extends ArchiveMode {
 object GroupArchive            extends PartialArchive("groups/")
 object RuleArchive             extends PartialArchive("rules/")
 object TechniqueLibraryArchive extends PartialArchive("directives/")
+object ParameterArchive       extends PartialArchive("parameters/")
 
 case object FullArchive extends ArchiveMode {
 
   def configureRm(rmCmd:RmCommand) =
     TechniqueLibraryArchive.configureRm(
       RuleArchive.configureRm(
-        GroupArchive.configureRm(rmCmd)
+        GroupArchive.configureRm(
+          ParameterArchive.configureRm(rmCmd)
+        )
     ) )
 
   def configureCheckout(coCmd:CheckoutCommand) =
     TechniqueLibraryArchive.configureCheckout(
       RuleArchive.configureCheckout(
-        GroupArchive.configureCheckout(coCmd)
+        GroupArchive.configureCheckout(
+          ParameterArchive.configureCheckout(coCmd)
+        )
     ) )
 }

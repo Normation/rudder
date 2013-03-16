@@ -44,6 +44,7 @@ import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.parameters.GlobalParameter
 
 
 
@@ -207,4 +208,21 @@ trait DeploymentStatusSerialisation {
   def serialise(
       deploymentStatus : CurrentDeploymentStatus) : Elem
 
+}
+
+/**
+ * That trait allows to serialise
+ * Global Parameter to an XML
+ */
+trait GlobalParameterSerialisation {
+  /**
+   * Version 3:
+     <globalParameter fileFormat="3">
+       <name>{param.name.value}</name>
+       <value>{param.value}</value>
+       <description>{param.description}</description>
+       <overridable>{param.overridable}</overridable>
+     </globalParameter>
+   */
+  def serialise(param:GlobalParameter):  Elem
 }

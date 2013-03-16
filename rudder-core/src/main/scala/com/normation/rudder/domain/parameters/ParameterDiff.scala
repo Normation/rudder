@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,9 +32,20 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.archives
+package com.normation.rudder.domain.parameters
+
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain.policies.SimpleDiff
 
-final case class RuleArchiveId(value:String) extends HashcodeCaching
+sealed trait ParameterDiff
 
-final case class ParameterArchiveId(value:String) extends HashcodeCaching
+final case class AddGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with HashcodeCaching
+
+final case class DeleteGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with HashcodeCaching
+
+final case class ModifyGlobalParameterDiff(
+    name                : ParameterName
+  , modValue            : Option[SimpleDiff[String]] = None
+  , modDescription      : Option[SimpleDiff[String]] = None
+  , modOverridable      : Option[SimpleDiff[Boolean]] = None
+) extends ParameterDiff with HashcodeCaching

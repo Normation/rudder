@@ -59,6 +59,8 @@ import com.normation.rudder.services.eventlog.HistorizationService
 import com.normation.utils.HashcodeCaching
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.repository.WoRuleRepository
+import com.normation.rudder.domain.parameters.Parameter
+import com.normation.rudder.domain.parameters.ParameterName
 
 /**
  * TODO: ca devrait être un "target node configuration", ie
@@ -69,10 +71,20 @@ case class targetNodeConfiguration(
     nodeInfo:NodeInfo,
     identifiableCFCPIs: Seq[RuleWithCf3PolicyDraft],
     //environment variable for that server
-    nodeContext:Map[String, Variable]
+    nodeContext:Map[String, Variable],
+    parameters: Set[ParameterForConfiguration]
 ) extends HashcodeCaching
 
+case class ParameterForConfiguration(
+    name       : ParameterName
+  , value      : String
+) extends HashcodeCaching 
 
+case object ParameterForConfiguration {
+  def fromParameter(param: Parameter) : ParameterForConfiguration = {
+    ParameterForConfiguration(param.name, param.value)
+  }
+}
 
 /**
  * The main service which deploy modified rules and
@@ -120,7 +132,7 @@ trait DeploymentService extends Loggable {
 
       (updatedCrs, deletedCrs) <- detectUpdates(updatedNodeConfigs)?~! "Cannot detect the updates in the NodeConfiguration"
       log6 = logger.debug("Detected the changes in the NodeConfiguration to trigger change in CR in %d millisec. Update the SN in the nodes".format((DateTime.now().getMillis - beginTime)))
-
+      
       updateTime = DateTime.now().getMillis
 
       serialedNodes <- updateSerialNumber(updatedNodeConfigs, updatedCrs) ?~! "Cannot update the serial number of the CR in the nodes"
@@ -253,7 +265,9 @@ class DeploymentServiceImpl (
     override val nodeInfoService : NodeInfoService,
     override val nodeConfigurationChangeDetectService : NodeConfigurationChangeDetectService,
     override val reportingService : ReportingService,
-    override val historizationService : HistorizationService
+    override val historizationService : HistorizationService,
+    override val parameterService : RoParameterService
+    
 ) extends DeploymentService with
   DeploymentService_findDependantRules_bruteForce with
   DeploymentService_buildRuleVals with
@@ -399,6 +413,7 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
   def targetToNodeService : RuleTargetService
   def nodeInfoService : NodeInfoService
   def parameterizedValueLookupService : ParameterizedValueLookupService
+  def parameterService : RoParameterService
 
   /**
    * This object allows to construct the target node configuration
@@ -406,11 +421,13 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
   private[this] case class MutabletargetNodeConfiguration(
         nodeInfo:NodeInfo,
         //environment variable for that server
-        nodeContext: Map[String, Variable]
+        nodeContext: Map[String, Variable],
+        // parameters for this node
+        parameters : Set[ParameterForConfiguration]
   ) {
     val identifiablePolicyDrafts = scala.collection.mutable.Buffer[PolicyDraft]()
 
-    def immutable = targetNodeConfiguration(nodeInfo, identifiablePolicyDrafts.toSeq.map(_.toRuleWithCf3PolicyDraft), nodeContext)
+    def immutable = targetNodeConfiguration(nodeInfo, identifiablePolicyDrafts.toSeq.map(_.toRuleWithCf3PolicyDraft), nodeContext, parameters)
   }
 
 
@@ -436,11 +453,17 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
         targetNodeConfigMap.get(nodeId) match {
           case None => //init nodeConfig for that id
             (for {
-              nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+              nodeInfo    <- nodeInfoService.getNodeInfo(nodeId)
               nodeContext <- systemVarService.getSystemVariables(nodeInfo)
+              parameters  <- parameterService.getParametersByNode(nodeId)
             } yield {
-              val nodeConfig = MutabletargetNodeConfiguration(nodeInfo, nodeContext.toMap)
+
+              val nodeConfig = MutabletargetNodeConfiguration(
+                                  nodeInfo
+                                , nodeContext.toMap
+                                , parameters.map(ParameterForConfiguration.fromParameter(_)).toSet)
               nodeConfig.identifiablePolicyDrafts ++= ruleVal.toPolicyDrafts
+
               nodeConfig
             }) match {
               case e:EmptyBox =>
@@ -510,7 +533,7 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
     def replaceNodeContext() : Box[Map[String, Variable]] = {
       (sequence(targetNodeConfig.nodeContext.toSeq) { case (k, variable) =>
         for {
-          replacedVar <- parameterizedValueLookupService.lookupNodeParameterization(nodeId, Seq(variable))
+          replacedVar <- parameterizedValueLookupService.lookupNodeParameterization(targetNodeConfig.immutable, Seq(variable))
         } yield {
           (k, replacedVar(0))
         }
@@ -523,7 +546,7 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
     def replaceDirective(policy:PolicyDraft) : Box[PolicyDraft] = {
       ( for {
         variables <- Full(policy.__variableMap.values.toSeq)
-        replacedVars <- parameterizedValueLookupService.lookupNodeParameterization(nodeId, variables)
+        replacedVars <- parameterizedValueLookupService.lookupNodeParameterization(targetNodeConfig.immutable, variables)
       } yield {
         policy.copy(
             __variableMap = Map[String, Variable]() ++ policy.__variableMap ++ replacedVars.map(v => (v.spec.name, v) )
@@ -532,22 +555,6 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
         case e:EmptyBox => e
         case Full(x) => Full(x)
       }
-    }
-
-    def identifyModifiedVariable(originalVars : Seq[Variable], replacedVars : Seq[Variable]) : Seq[Variable] = {
-      replacedVars.map { variable =>  
-        { originalVars.filter( x => x.spec == variable.spec ) match {
-          case seq if seq.size == 0 => None
-          case seq if seq.size > 1 => logger.debug("too many replaced variable for one variable " + seq); None
-          case seq => 
-            val original = seq.head
-            if (original.values == variable.values) 
-              Some(original)
-	        else
-	          None
-	        }
-        } 
-      }.flatten
     }
     
     for {
@@ -558,7 +565,8 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
     } yield {
       val mutableNodeConfig = MutabletargetNodeConfiguration(
           targetNodeConfig.nodeInfo,
-          replacedNodeContext
+          replacedNodeContext,
+          targetNodeConfig.parameters
       )
       mutableNodeConfig.identifiablePolicyDrafts ++= replacedDirective
       mutableNodeConfig

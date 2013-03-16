@@ -62,6 +62,7 @@ import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
 import com.normation.utils.XmlUtils
 import com.normation.rudder.domain.Constants._
+import com.normation.rudder.domain.parameters.GlobalParameter
 
 
 class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
@@ -202,4 +203,15 @@ class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentSta
       case _ => throw new TechnicalException("Bad CurrentDeploymentStatus type, expected a success or an error")
     }
   ) }
+}
+
+class GlobalParameterSerialisationImpl(xmlVersion:String) extends GlobalParameterSerialisation {
+  def serialise(param:GlobalParameter):  Elem = {
+    createTrimedElem(XML_TAG_GLOBAL_PARAMETER, xmlVersion) (
+       <name>{param.name.value}</name>
+       <value>{param.value}</value>
+       <description>{param.description}</description>
+       <overridable>{param.overridable}</overridable>
+    )
+  }
 }

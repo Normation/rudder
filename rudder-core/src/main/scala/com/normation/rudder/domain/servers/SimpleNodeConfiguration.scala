@@ -44,12 +44,15 @@ import com.normation.cfclerk.domain.{TechniqueId, Cf3PolicyDraftId, Cf3PolicyDra
 import com.normation.inventory.domain.AgentType
 import org.joda.time.DateTime
 import org.joda.time.format._
-import scala.collection._
+import scala.collection.{Seq,Map}
+import scala.collection.mutable.{Map=>MutMap}
 import scala.xml._
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.policies.{Rule,RuleId}
 import net.liftweb.common._
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain.parameters.Parameter
+import com.normation.rudder.services.policies.ParameterForConfiguration
 
 case class MinimalNodeConfig(
     name                         : String
@@ -77,6 +80,8 @@ case class SimpleNodeConfiguration(
   , writtenDate                : Option[DateTime]
   , currentSystemVariables     : Map[String, Variable]
   , targetSystemVariables      : Map[String, Variable]
+  , currentParameters          : Set[ParameterForConfiguration]
+  , targetParameters           : Set[ParameterForConfiguration]
 ) extends NodeConfiguration with HashcodeCaching {
 
 
@@ -89,7 +94,7 @@ case class SimpleNodeConfiguration(
     targetRulePolicyDrafts.get(ruleWithCf3PolicyDraft.cf3PolicyDraft.id) match {
       case None =>
         // we first need to fetch all the policies in a mutable map to modify them
-        val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]()
+        val newRulePolicyDrafts =  MutMap[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]()
         __targetRulePolicyDrafts.foreach { cf3 =>
             newRulePolicyDrafts += ( cf3.cf3PolicyDraft.id -> cf3.copy()) }
 
@@ -102,7 +107,7 @@ case class SimpleNodeConfiguration(
   }
 
   def setSerial(rules : Seq[(RuleId,Int)]) : SimpleNodeConfiguration = {
-    val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]()
+    val newRulePolicyDrafts =  MutMap[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]()
         __targetRulePolicyDrafts.foreach { ruleWithCf3PolicyDraft =>
             newRulePolicyDrafts += ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id ->ruleWithCf3PolicyDraft.copy()) }
 
@@ -125,6 +130,7 @@ case class SimpleNodeConfiguration(
     copy(__currentRulePolicyDrafts = this.__targetRulePolicyDrafts,
         currentMinimalNodeConfig = this.targetMinimalNodeConfig,
         currentSystemVariables = this.targetSystemVariables,
+        currentParameters = this.targetParameters,
         writtenDate = Some(DateTime.now()))
 
   }
@@ -136,7 +142,8 @@ case class SimpleNodeConfiguration(
   def rollbackModification() : SimpleNodeConfiguration = {
     copy(__targetRulePolicyDrafts = this.__currentRulePolicyDrafts,
         targetMinimalNodeConfig = this.currentMinimalNodeConfig,
-        targetSystemVariables = this.currentSystemVariables
+        targetSystemVariables = this.currentSystemVariables,
+        targetParameters = this.currentParameters
         )
 
   }
@@ -154,7 +161,9 @@ case class SimpleNodeConfiguration(
       targetMinimalNodeConfig,
       writtenDate,
       currentSystemVariables,
-      targetSystemVariables
+      targetSystemVariables,
+      currentParameters,
+      targetParameters
     )
     returnedMachine
   }

@@ -43,6 +43,7 @@ import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.parameters._
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory
@@ -177,7 +178,53 @@ trait EventLogRepository {
       )
     )
   }
+  
+  def saveAddGlobalParameter(
+      modId    : ModificationId
+    , principal: EventActor
+    , addDiff  : AddGlobalParameterDiff
+    , reason   :Option[String]
+    ) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getAddGlobalParameterFromDiff(
+          principal           = principal
+        , addDiff             = addDiff
+        , reason = reason
+      )
+    )
+  }
 
+  def saveDeleteGlobalParameter(
+      modId     : ModificationId
+    , principal : EventActor
+    , deleteDiff: DeleteGlobalParameterDiff
+    , reason    : Option[String]
+    ) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getDeleteGlobalParameterFromDiff(
+          principal  = principal
+        , deleteDiff = deleteDiff
+        , reason     = reason
+      )
+    )
+  }
+
+  def saveModifyGlobalParameter(
+      modId: ModificationId
+    , principal: EventActor
+    , modifyDiff: ModifyGlobalParameterDiff
+    , reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getModifyGlobalParameterFromDiff(
+          principal = principal
+        , modifyDiff = modifyDiff
+        , reason = reason
+      )
+    )
+  }
   /**
    * Get an EventLog by its entry
    */

@@ -58,6 +58,8 @@ import net.liftweb.common._
 import net.liftweb.common.Box._
 import net.liftweb.util.Helpers.tryo
 import com.normation.cfclerk.services.SystemVariableSpecService
+import com.normation.rudder.domain.parameters._
+import com.normation.rudder.services.policies.ParameterForConfiguration
 
 class LDAPNodeConfigurationMapper(
     rudderDit                 : RudderDit
@@ -83,6 +85,17 @@ class LDAPNodeConfigurationMapper(
     returnedMap.toMap
   }
 
+  private def setParameters(serializedEntries : Map[String,Seq[String]]) : Set[ParameterForConfiguration] = {
+    serializedEntries.flatMap { case (name, values) => 
+      values match {
+        case seq if seq.size == 0 => Some(ParameterForConfiguration(ParameterName(name), ""))
+        case seq if seq.size == 1 => Some(ParameterForConfiguration(ParameterName(name), seq.head))
+        case _ => 
+          logger.error("Too many values serialized for parameter %s : %s".format(name, values))
+          None
+      }  
+    }.toSet
+  }
 
       //////////////////////////////    Cf3PolicyDraft    //////////////////////////////
 
@@ -219,7 +232,9 @@ class LDAPNodeConfigurationMapper(
                 targetNodeConfig,
                 writtenDate.map(_.dateTime),
                 setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_SYSTEM_VARIABLE).toSeq)),
-                setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE).toSeq))
+                setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE).toSeq)),
+                setParameters(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_PARAMETER).toSeq)),
+                setParameters(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_TARGET_PARAMETER).toSeq))
                 )
 
           server
@@ -229,7 +244,9 @@ class LDAPNodeConfigurationMapper(
               targetNodeConfig,
               writtenDate.map(_.dateTime),
               setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_SYSTEM_VARIABLE).toSeq)),
-              setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE).toSeq))
+              setSystemVariable(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE).toSeq)),
+              setParameters(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_PARAMETER).toSeq)),
+              setParameters(parsePolicyVariables(tree.root().valuesFor(A_NODE_CONFIGURATION_TARGET_PARAMETER).toSeq))
           )
 
           server
@@ -308,6 +325,10 @@ class LDAPNodeConfigurationMapper(
     // Add the system variable
     serverEntry +=!(A_NODE_CONFIGURATION_SYSTEM_VARIABLE, variableToSeq(server.getCurrentSystemVariables().values.toSeq):_*)
     serverEntry +=!(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE, variableToSeq(server.getTargetSystemVariables().values.toSeq):_*)
+
+    // add the parameters
+    serverEntry +=!(A_NODE_CONFIGURATION_PARAMETER, parametersToSeq(server.currentParameters.toSeq):_*)
+    serverEntry +=!(A_NODE_CONFIGURATION_TARGET_PARAMETER, parametersToSeq(server.targetParameters.toSeq):_*)
 
     //should be ok, that's why we use an exception
     LDAPTree(

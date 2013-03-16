@@ -38,6 +38,8 @@ import com.normation.utils.Utils
 import com.normation.inventory.ldap.core.LDAPConstants._
 import net.liftweb.common.Loggable
 import com.normation.cfclerk.domain.Variable
+import com.normation.rudder.domain.parameters.Parameter
+import com.normation.rudder.services.policies.ParameterForConfiguration
 
 object RudderLDAPConstants extends Loggable {
 
@@ -88,6 +90,8 @@ object RudderLDAPConstants extends Loggable {
   val A_NODE_CONFIGURATION_SYSTEM_VARIABLE = "systemVariable"
   val A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE = "targetSystemVariable"
 
+  val A_NODE_CONFIGURATION_PARAMETER = "parameter"
+  val A_NODE_CONFIGURATION_TARGET_PARAMETER = "targetParameter"
 
   // Details about a NodeConfiguration
   val A_TARGET_NAME = "targetName"
@@ -100,6 +104,10 @@ object RudderLDAPConstants extends Loggable {
   // it's an operational attribute of OpenLDAP
   val A_OBJECT_CREATION_DATE = "createTimestamp"
 
+  // Parameters
+  val A_PARAMETER_NAME = "parameterName"
+  val A_PARAMETER_VALUE = "parameterValue"
+  val A_PARAMETER_OVERRIDABLE = "overridable"
 
   //
   // Object Classe names
@@ -119,6 +127,7 @@ object RudderLDAPConstants extends Loggable {
   val OC_RULE_WITH_CF3POLICYDRAFT = "directiveNodeConfiguration"
   val OC_TARGET_RULE_WITH_CF3POLICYDRAFT = "targetDirectiveNodeConfiguration"
   val OC_NODE_CONFIGURATION = "nodeConfiguration" //actually a node configuration, not a "rudder server"
+  val OC_PARAMETER = "parameter"
 
   OC += (OC_SPECIAL_TARGET,
     must = Set(A_RULE_TARGET, A_NAME),
@@ -164,7 +173,8 @@ object RudderLDAPConstants extends Loggable {
     may = Set(A_DESCRIPTION, A_SERVER_IS_MODIFIED,
       A_NAME, A_HOSTNAME, A_NODE_POLICY_SERVER, A_ROOT_USER, A_AGENTS_NAME,
       A_TARGET_NAME, A_TARGET_HOSTNAME, A_TARGET_NODE_POLICY_SERVER, A_TARGET_ROOT_USER, A_TARGET_AGENTS_NAME,
-      A_NODE_CONFIGURATION_SYSTEM_VARIABLE, A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE, A_WRITTEN_DATE))
+      A_NODE_CONFIGURATION_SYSTEM_VARIABLE, A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE, A_WRITTEN_DATE,
+      A_NODE_CONFIGURATION_PARAMETER, A_NODE_CONFIGURATION_TARGET_PARAMETER))
 
   OC += (OC_ROOT_POLICY_SERVER, sup = OC(OC_NODE_CONFIGURATION))
 
@@ -181,6 +191,10 @@ object RudderLDAPConstants extends Loggable {
 
   OC += (OC_ACTIVE_TECHNIQUE_LIB_VERSION,
     may = Set(A_INIT_DATETIME))
+
+  OC += ( OC_PARAMETER,
+    must = Set(A_PARAMETER_NAME),
+    may = Set(A_PARAMETER_VALUE, A_DESCRIPTION, A_PARAMETER_OVERRIDABLE))
 
   /**
    * Serialize and unserialize variables in A_DIRECTIVE_VARIABLES
@@ -296,4 +310,13 @@ object RudderLDAPConstants extends Loggable {
       }
     }.toSeq
   }
+
+  /**
+   * Serialize the parameters into a sequence of string in
+   * the expected format for an LDAP attribute values
+   */
+  def parametersToSeq(targets: Seq[ParameterForConfiguration]): Seq[String] = {
+    targets.map { p  => policyVariableToString(p.name.value, 0, p.value, true)  }
+  }
+
 }
