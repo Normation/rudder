@@ -197,7 +197,7 @@ final class AsyncDeploymentAgent(
           result match {
             case Full(_) => // nothing to report
             case m: Failure => logger.error("Error when doing deployment, reason %s".format(m.messageChain))
-            case Empty => logger.error("The return status of the deployment is empty, which is invalid")
+            case Empty => logger.error("Error when doing deployment (no reason given)")
           }
 
           deploymentManager ! DeploymentResult(id, startTime,new DateTime, result)
