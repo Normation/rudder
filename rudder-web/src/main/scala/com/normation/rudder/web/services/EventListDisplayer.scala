@@ -233,7 +233,7 @@ class EventListDisplayer(
         val name = (x.details \ "rule" \ "displayName").text
         Text("Rule ") ++ {
           if(id.size < 1) Text(name)
-          else <a href={ruleLink(RuleId(id))}>{name}</a> ++ actionName
+          else <a href={ruleLink(RuleId(id))} onclick="noBubble(event);">{name}</a> ++ actionName
         }
     }
     
@@ -242,7 +242,7 @@ class EventListDisplayer(
         val name = (x.details \ "directive" \ "displayName").text
         Text("Directive ") ++ {
           if(id.size < 1) Text(name)
-          else <a href={directiveLink(DirectiveId(id))}>{name}</a> ++ actionName
+          else <a href={directiveLink(DirectiveId(id))} onclick="noBubble(event);">{name}</a> ++ actionName
         }
     }
     
@@ -251,7 +251,7 @@ class EventListDisplayer(
         val name = (x.details \ "nodeGroup" \ "displayName").text
         Text("Group ") ++ {
           if(id.size < 1) Text(name)
-          else <a href={groupLink(NodeGroupId(id))}>{name}</a> ++ actionName
+          else <a href={groupLink(NodeGroupId(id))} onclick="noBubble(event);">{name}</a> ++ actionName
         }
     }
     
@@ -260,7 +260,7 @@ class EventListDisplayer(
         val name = (x.details \ "node" \ "hostname").text
         Text("Node ") ++ {
           if ((id.size < 1)||(actionName==Text(" deleted"))) Text(name)
-          else <a href={nodeLink(NodeId(id))}>{name}</a> ++ actionName
+          else <a href={nodeLink(NodeId(id))} onclick="noBubble(event);">{name}</a> ++ actionName
         }
     }
     
