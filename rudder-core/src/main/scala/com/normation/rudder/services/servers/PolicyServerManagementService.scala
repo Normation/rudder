@@ -109,7 +109,7 @@ class PolicyServerManagementServiceImpl(
       activeTechnique <- directiveRepository.getActiveTechnique(directiveId) ?~! "Error when getting active technique for directive with ID '%s'".format(directiveId.value)
       newPi = directive.copy(parameters = directive.parameters + (Constants.V_ALLOWED_NETWORK -> networks.map( _.toString)))
       msg = Some("Automatic update of system directive due to modification of accepted networks ")
-      saved <- directiveRepository.saveDirective(activeTechnique.id, newPi, modId, actor, msg) ?~! "Can not save directive for Active Technique '%s'".format(activeTechnique.id.value)
+      saved <- directiveRepository.saveSystemDirective(activeTechnique.id, newPi, modId, actor, msg) ?~! "Can not save directive for Active Technique '%s'".format(activeTechnique.id.value)
     } yield {
       //ask for a new policy deployment
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
