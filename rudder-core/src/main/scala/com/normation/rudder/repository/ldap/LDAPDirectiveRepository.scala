@@ -175,7 +175,7 @@ class LDAPDirectiveRepository(
    * 
    * Returned the saved WBUserDirective
    */
-  override def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]] = {
+  private[this] def internalSaveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor, reason:Option[String], systemCall:Boolean) : Box[Option[DirectiveSaveDiff]] = { 
     for {
       con         <- ldap
       uptEntry    <- ldapActiveTechniqueRepository.getUPTEntry(con, inActiveTechniqueId, "1.1") ?~! "Can not find the User Policy Entry with id %s to add directive %s".format(inActiveTechniqueId, directive.id)
@@ -185,7 +185,16 @@ class LDAPDirectiveRepository(
                           case Empty => Full(None)
                           case Full(otherPi) => 
                             if(otherPi.dn.getParent == uptEntry.dn) Full(Some(otherPi))
-
+                            if(otherPi.dn.getParent == uptEntry.dn) {
+                              mapper.entry2Directive(otherPi).flatMap { x =>
+                                (x.isSystem, systemCall) match {
+                                  case (true, false) => Failure("System directive '%s' (%s) can't be updated".format(x.name, x.id.value))
+                                  case (false, true) => Failure("Non-system directive can not be updated with that method")
+                                  case _ => Full(Some(otherPi))
+                                }
+                              }
+                            } 
+                            
                             else Failure("An other directive with the id %s exists in an other category that the one with id %s : %s".format(directive.id, inActiveTechniqueId, otherPi.dn))
                         }
                      }
@@ -244,6 +253,15 @@ class LDAPDirectiveRepository(
       optDiff
     }
   }
+
+  override def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]] = {
+    internalSaveDirective(inActiveTechniqueId, directive, actor, reason, false)
+  }
+  
+  override def saveSystemDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]] = {
+    internalSaveDirective(inActiveTechniqueId, directive, actor, reason, true)
+  }
+
   
   private[this] def directiveNameExists(con:LDAPConnection, name : String, id:DirectiveId) : Boolean = {
     val filter = AND(AND(IS(OC_DIRECTIVE), EQ(A_NAME,name), NOT(EQ(A_DIRECTIVE_UUID, id.value))))

@@ -87,10 +87,28 @@ trait DirectiveRepository {
    * update the directive.
    * If the directive is not in the system, add it.
    * 
+
    * Returned the saved UserDirective
+   * System policy instance can't be saved with that method.
+   *
+   * Returned the saved Directive
    */
   def saveDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]]
  
+  /**
+   * Save the given system directive into given user technique
+   * If the directive is already present in the system but not
+   * in the given category, raise an error.
+   * If the directive is already in the given technique,
+   * update the directive.
+   * If the directive is not in the system, add it.
+   *
+   * Non system directive can't be saved with that method.
+   *
+   * Returned the saved Directive
+   */
+  def saveSystemDirective(inActiveTechniqueId:ActiveTechniqueId,directive:Directive, actor:EventActor, reason:Option[String]) : Box[Option[DirectiveSaveDiff]]
+
   /**
    * Get all directives defined in that repository
    */
@@ -104,6 +122,8 @@ trait DirectiveRepository {
    * 
    * If the given directiveId does not exists, it leads to a
    * failure.
+   *
+   * System policy instance can't be deleted.
    */
   def delete(id:DirectiveId, actor:EventActor, reason:Option[String]) : Box[DeleteDirectiveDiff]
 
