@@ -81,10 +81,26 @@ trait PolicyInstanceRepository {
    * update the policy instance.
    * If the policy instance is not in the system, add it.
    * 
+   * System policy instance can't be saved with that method.
+   *
    * Returned the saved UserPolicyInstance
    */
   def savePolicyInstance(inUserPolicyTemplateId:UserPolicyTemplateId,pi:PolicyInstance, actor:EventActor) : Box[Option[PolicyInstanceSaveDiff]]
  
+  /**
+   * Save the given system policy instance into given user policy template
+   * If the policy instance is already present in the system but not
+   * in the given category, raise an error.
+   * If the policy instance is already in the given policy template,
+   * update the policy instance.
+   * If the policy instance is not in the system, add it.
+   *
+   * Non system policy instance can't be saved with that method.
+   *
+   * Returned the saved UserPolicyInstance
+   */
+  def saveSystemPolicyInstance(inUserPolicyTemplateId:UserPolicyTemplateId,pi:PolicyInstance, actor:EventActor) : Box[Option[PolicyInstanceSaveDiff]]
+
   /**
    * Get all policy instances defined in that repository
    */
@@ -98,6 +114,8 @@ trait PolicyInstanceRepository {
    * 
    * If the given policyInstanceId does not exists, it leads to a
    * failure.
+   *
+   * System policy instance can't be deleted.
    */
   def delete(id:PolicyInstanceId, actor:EventActor) : Box[DeletePolicyInstanceDiff]
 

@@ -643,7 +643,7 @@ class AcceptServerConfigurationRule(
     for {
       group <- groupRepo.getNodeGroup(hasPolicyServerNodeGroup) ?~! "Technical group with ID '%s' was not found".format(hasPolicyServerNodeGroup)
       updatedGroup = group.copy( serverList = group.serverList + nodeId )
-      saved<- groupRepo.update(updatedGroup,actor) ?~! "Could not update the technical group with ID '%s'".format(updatedGroup.id )
+      saved<- groupRepo.updateSystemGroup(updatedGroup,actor) ?~! "Could not update the technical group with ID '%s'".format(updatedGroup.id )
     } yield {
       nodeId
     } 
@@ -658,7 +658,7 @@ class AcceptServerConfigurationRule(
       (for {
         group <- groupRepo.getNodeGroup(buildHasPolicyServerGroupId(sm.node.main.policyServerId)) ?~! "Can not find group with id: %s".format(sm.node.main.policyServerId)
         updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
-        saved<- groupRepo.update(updatedGroup, actor)?~! "Error when trying to update dynamic group %s with member %s".format(updatedGroup.id,sm.node.main.id.value)
+        saved<- groupRepo.updateSystemGroup(updatedGroup, actor)?~! "Error when trying to update dynamic group %s with member %s".format(updatedGroup.id,sm.node.main.id.value)
       } yield {
         sm
       }) match {
