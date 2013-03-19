@@ -82,11 +82,19 @@ trait RuleRepository {
    * parameters.
    * 
    * If the rule is not in the repos, the method fails. 
-   * 
+   * If the rule is a system one, the methods fails. 
    * NOTE: the serial is *never* updated with that methods. 
    */
   def update(rule:Rule, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]]
-  
+
+  /**
+   * Update the system configuration rule with the given ID with the given
+   * parameters.
+   *
+   * NOTE: the serial is *never* updated with that methods.
+   */
+  def updateSystem(rule:Rule, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]]
+ 
   /**
    * Increment the serial of rules with given ID by one. 
    * Return the new serial value. 
@@ -99,6 +107,7 @@ trait RuleRepository {
    * If no rule with such ID exists, it is an error
    * (it's the caller site responsability to decide if it's
    * and error or not). 
+   * A system rule can not be deleted. 
    */
   def delete(id:RuleId, actor:EventActor, reason:Option[String]) : Box[DeleteRuleDiff]
   

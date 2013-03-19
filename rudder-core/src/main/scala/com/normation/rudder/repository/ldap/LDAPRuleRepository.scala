@@ -96,6 +96,7 @@ class LDAPRuleRepository(
       con          <- ldap
       entry        <- con.get(rudderDit.RULES.configRuleDN(id.value)) ?~! "rule with ID '%s' is not present".format(id.value)
       oldCr        <- mapper.entry2Rule(entry) ?~! "Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry)
+      isSytem      <- if(oldCr.isSystem) Failure("Deleting system rule '%s (%s)' is forbiden".format(oldCr.name, oldCr.id.value)) else Full("OK") 
       deleted      <- con.delete(rudderDit.RULES.configRuleDN(id.value)) ?~! "Error when deleting rule with ID %s".format(id)
       diff         =  DeleteRuleDiff(oldCr)
       loggedAction <- actionLogger.saveDeleteRule(principal = actor, deleteDiff = diff, reason = reason)
@@ -156,11 +157,17 @@ class LDAPRuleRepository(
     } }
   }
 
-  
-  def update(rule:Rule, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]] = {
+
+  private[this] def internalUpdate(rule:Rule, actor:EventActor, reason:Option[String], systemCall:Boolean) : Box[Option[ModifyRuleDiff]] = {
     repo.synchronized { for {
       con           <- ldap
       existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)) ?~! "Cannot update rule with id %s : there is no rule with that id".format(rule.id.value)
+      oldRule       <- mapper.entry2Rule(existingEntry) ?~! "Error when transforming LDAP entry into a Rule for id %s. Entry: %s".format(rule.id, existingEntry)
+      systemCheck   <- (oldRule.isSystem, systemCall) match {
+                       case (true, false) => Failure("System rule '%s' (%s) can not be modified".format(oldRule.name, oldRule.id.value))
+                       case (false, true) => Failure("You can't modify a non-system rule with updateSystem method")
+                       case _ => Full("OK")
+                     } 
       nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id)) 
                            Failure("Cannot update rule with name \"%s\" : this name is already in use.".format(rule.name))
                          else Full(Unit)
@@ -184,6 +191,14 @@ class LDAPRuleRepository(
     } }
   }
   
+  def update(rule:Rule, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]] = {
+    internalUpdate(rule, actor, reason, false) 
+  }
+  
+  def updateSystem(rule:Rule, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]] = {
+    internalUpdate(rule, actor, reason, true)
+  }
+
   def incrementSerial(id:RuleId) : Box[Int] = {
     repo.synchronized { 
       for {

@@ -68,6 +68,10 @@ trait DynGroupUpdaterService {
   /**
    * Update the given dynamic group, returning the diff
    * from the pre-update. 
+   * 
+   * IMPORTANT NOTE: system group are not updated with 
+   * that service !
+   * 
    * @return
    */
   def update(dynGroupId:NodeGroupId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff]

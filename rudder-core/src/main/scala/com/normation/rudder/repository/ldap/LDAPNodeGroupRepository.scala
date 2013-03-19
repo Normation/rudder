@@ -201,10 +201,16 @@ class LDAPNodeGroupRepository(
     } 
   }
   
-  def update(nodeGroup:NodeGroup, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
+  private[this] def internalUpdate(nodeGroup:NodeGroup, actor:EventActor, reason:Option[String], systemCall:Boolean): Box[Option[ModifyNodeGroupDiff]] = { 
     for {
       con          <- ldap
       existing     <- getSGEntry(con, nodeGroup.id) ?~! "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id)
+      oldGroup     <- mapper.entry2NodeGroup(existing) ?~! "Error when trying to check for the group %s".format(nodeGroup.id.value)
+      systemCheck  <- (oldGroup.isSystem, systemCall) match {
+                          case (true, false) => Failure("System group '%s' (%s) can not be modified".format(oldGroup.name, oldGroup.id.value))
+                          case (false, true) => Failure("You can not modify a non system group (%s) with that method".format(oldGroup.name))
+                          case _ => Full(oldGroup)
+                        } 
       exists       <- if (nodeGroupExists(con, nodeGroup.name, nodeGroup.id)) Failure("Cannot change the group name to %s : there is already a group with the same name".format(nodeGroup.name))
                       else Full(Unit)
       entry        =  rudderDit.GROUP.groupModel(
@@ -236,6 +242,15 @@ class LDAPNodeGroupRepository(
     } 
   }
 
+    
+  def update(nodeGroup:NodeGroup, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
+    internalUpdate(nodeGroup, actor, reason, false) 
+  }
+  
+  def updateSystemGroup(nodeGroup:NodeGroup, actor:EventActor, reason:Option[String]) : Box[Option[ModifyNodeGroupDiff]] = {
+    internalUpdate(nodeGroup, actor, reason, true)
+  }
+  
   def move(nodeGroup:NodeGroup, containerId : NodeGroupCategoryId, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
     for {
       con          <- ldap
@@ -246,6 +261,9 @@ class LDAPNodeGroupRepository(
                         } yield (parent::parents).map( _.id )
                       } else Full(Nil)
       existing     <- getSGEntry(con, nodeGroup.id) ?~! "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id)
+      oldGroup     <- mapper.entry2NodeGroup(existing) ?~! "Error when trying to get the existing group with id %s".format(nodeGroup.id.value)
+      systemCheck  <- if(oldGroup.isSystem) Failure("You can not move system group") else Full("OK")
+ 
       groupRDN     <- Box(existing.rdn) ?~! "Error when retrieving RDN for an exising group - seems like a bug"
       exists       <- if (nodeGroupExists(con, nodeGroup.name, nodeGroup.id)) Failure("Cannot change the group name to %s : there is already a group with the same name".format(nodeGroup.name))
                         else Full(Unit)
