@@ -103,7 +103,7 @@ trait NewNodeManager {
  * Rollback is always a "best effort" task.
  */
 class NewNodeManagerImpl(
-    override val ldap:LDAPConnectionProvider[RoLDAPConnection], 
+    override val ldap:LDAPConnectionProvider[RoLDAPConnection],
     override val pendingNodesDit:InventoryDit,
     override val acceptedNodesDit:InventoryDit,
     override val serverSummaryService:NodeSummaryServiceImpl,
@@ -597,7 +597,7 @@ class AddNodeToDynGroup(
 
 class RefuseGroups(
     override val name:String
-  , roGroupRepo: RoNodeGroupRepository 
+  , roGroupRepo: RoNodeGroupRepository
   , woGroupRepo: WoNodeGroupRepository
 ) extends UnitRefuseInventory with Loggable {
 
@@ -660,7 +660,7 @@ class AcceptNodeRule(
       group <- roGroupRepo.getNodeGroup(hasPolicyServerNodeGroup) ?~! "Technical group with ID '%s' was not found".format(hasPolicyServerNodeGroup)
       updatedGroup = group.copy( serverList = group.serverList + nodeId )
       msg = Some("Automatic update of system group due to acceptation of node "+ sm.node.main.id.value)
-      saved<- woGroupRepo.update(updatedGroup, modId, actor, msg) ?~! "Could not update the technical group with ID '%s'".format(updatedGroup.id )
+      saved<- woGroupRepo.updateSystemGroup(updatedGroup, modId, actor, msg) ?~! "Could not update the technical group with ID '%s'".format(updatedGroup.id )
     } yield {
       nodeId
     }
@@ -676,7 +676,7 @@ class AcceptNodeRule(
         group <- roGroupRepo.getNodeGroup(buildHasPolicyServerGroupId(sm.node.main.policyServerId)) ?~! "Can not find group with id: %s".format(sm.node.main.policyServerId)
         updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
         msg = Some("Automatic update of system group due to rollback of acceptation of node "+ sm.node.main.id.value)
-        saved<- woGroupRepo.update(updatedGroup, modId, actor, msg)?~! "Error when trying to update dynamic group %s with member %s".format(updatedGroup.id,sm.node.main.id.value)
+        saved<- woGroupRepo.updateSystemGroup(updatedGroup, modId, actor, msg)?~! "Error when trying to update dynamic group %s with member %s".format(updatedGroup.id,sm.node.main.id.value)
       } yield {
         sm
       }) match {
