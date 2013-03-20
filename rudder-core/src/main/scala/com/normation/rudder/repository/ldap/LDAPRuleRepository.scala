@@ -86,10 +86,10 @@ class RoLDAPRuleRepository(
 
   /**
    * Return all activated rule.
-   * A rule is activated if 
+   * A rule is activated if
    * - its attribute "isEnabled" is set to true ;
    * - its referenced group is defined and Activated, or it reference a special target
-   * - its referenced directive is defined and activated (what means that the 
+   * - its referenced directive is defined and activated (what means that the
    *   referenced active technique is activated)
    * @return
    */
@@ -103,9 +103,9 @@ class RoLDAPRuleRepository(
                           rudderDit.GROUP.getGroupId(entry.dn)
                         }
       } yield {
-        groupIds 
+        groupIds
       })
-    
+
     logger.debug("Activated groups are %s".format(groupsId.mkString(";")))
     (for {
       con                <- ldap
@@ -116,7 +116,7 @@ class RoLDAPRuleRepository(
       activatedPI_ids    <- sequence(activatedPI_DNs) { dn =>
                               rudderDit.ACTIVE_TECHNIQUES_LIB.getLDAPRuleID(dn)
                             }
-     configRules         <- sequence(con.searchSub(rudderDit.RULES.dn, 
+     configRules         <- sequence(con.searchSub(rudderDit.RULES.dn,
                              //group is activated and directive is activated and config rule is activated !
                              AND(IS(OC_RULE),
                                EQ(A_IS_ENABLED, true.toLDAPString),
@@ -124,15 +124,15 @@ class RoLDAPRuleRepository(
                                HAS(A_DIRECTIVE_UUID),
                                OR(activatedPI_ids.map(id =>  EQ(A_DIRECTIVE_UUID, id)):_*)
                              )
-                           )) { entry => 
-                             mapper.entry2Rule(entry) 
+                           )) { entry =>
+                             mapper.entry2Rule(entry)
                            }
     } yield {
       configRules
     } ) match {
       case Full(list) =>
         // a config rule activated point to an activated group, or to a special target
-        Full(list.filter{ rule => 
+        Full(list.filter{ rule =>
           rule.isEnabled &&
           ((rule.targets, rule.directiveIds) match {
             case (targets, directives) if !directives.isEmpty && !targets.isEmpty => //should be the case, given the request
@@ -150,7 +150,7 @@ class RoLDAPRuleRepository(
     }
   }
 
-  
+
   def getAll(includeSystem:Boolean = false) : Box[Seq[Rule]] = {
     val filter = if(includeSystem) IS(OC_RULE) else AND(IS(OC_RULE), EQ(A_IS_SYSTEM,false.toLDAPString))
     for {
@@ -162,7 +162,7 @@ class RoLDAPRuleRepository(
       rules
     }
   }
-      
+
 }
 
 class WoLDAPRuleRepository(
@@ -175,9 +175,9 @@ class WoLDAPRuleRepository(
   , personIdentService  : PersonIdentService
   , autoExportOnModify  : Boolean
 ) extends WoRuleRepository with Loggable {
-  repo => 
-    
-  
+  repo =>
+
+
   import roLDAPRuleRepository.{ ldap => roLdap, _ }
 
   /**
@@ -191,12 +191,13 @@ class WoLDAPRuleRepository(
       case _ => logger.error("More than one rule has %s name".format(name)); true
     }
   }
-  
+
   def delete(id:RuleId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteRuleDiff] = {
     for {
       con          <- ldap
       entry        <- con.get(rudderDit.RULES.configRuleDN(id.value)) ?~! "rule with ID '%s' is not present".format(id.value)
       oldCr        <- mapper.entry2Rule(entry) ?~! "Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry)
+      isSytem      <- if(oldCr.isSystem) Failure("Deleting system rule '%s (%s)' is forbiden".format(oldCr.name, oldCr.id.value)) else Full("OK")
       deleted      <- con.delete(rudderDit.RULES.configRuleDN(id.value)) ?~! "Error when deleting rule with ID %s".format(id)
       diff         =  DeleteRuleDiff(oldCr)
       loggedAction <- actionLogger.saveDeleteRule(modId, principal = actor, deleteDiff = diff, reason = reason)
@@ -245,11 +246,16 @@ class WoLDAPRuleRepository(
     } }
   }
 
-
-  def update(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]] = {
+  private[this] def internalUpdate(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean) : Box[Option[ModifyRuleDiff]] = {
     repo.synchronized { for {
-      con             <- ldap
-      existingEntry   <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)) ?~! "Cannot update rule with id %s : there is no rule with that id".format(rule.id.value)
+      con           <- ldap
+      existingEntry <- con.get(rudderDit.RULES.configRuleDN(rule.id.value)) ?~! s"Cannot update rule with id ${rule.id.value} : there is no rule with that id"
+      oldRule       <- mapper.entry2Rule(existingEntry) ?~! s"Error when transforming LDAP entry into a Rule for id ${rule.id.value}. Entry: ${existingEntry}"
+      systemCheck   <- (oldRule.isSystem, systemCall) match {
+                       case (true, false) => Failure(s"System rule '${oldRule.name}' (${oldRule.id.value}) can not be modified")
+                       case (false, true) => Failure("You can't modify a non-system rule with updateSystem method")
+                       case _ => Full("OK")
+                     }
       nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id))
                            Failure("Cannot update rule with name \"%s\" : this name is already in use.".format(rule.name))
                          else Full(Unit)
@@ -271,6 +277,14 @@ class WoLDAPRuleRepository(
     } yield {
       optDiff
     } }
+  }
+
+  def update(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]] = {
+    internalUpdate(rule, modId, actor, reason, false)
+  }
+
+  def updateSystem(rule:Rule, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyRuleDiff]] = {
+    internalUpdate(rule, modId, actor, reason, true)
   }
 
   def incrementSerial(id:RuleId) : Box[Int] = {

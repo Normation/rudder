@@ -329,6 +329,12 @@ final class AsyncDeploymentAgent(
           val result = deploymentService.deploy().map { nodeConfs =>
             nodeConfs.map { conf => (NodeId(conf.id), conf) }.toMap
           }
+          result match {
+            case Full(_) => // nothing to report
+            case m: Failure => logger.error("Error when doing deployment, reason %s".format(m.messageChain))
+            case Empty => logger.error("Error when doing deployment (no reason given)")
+          }
+
           deploymentManager ! DeploymentResult(id, modId, startTime,DateTime.now, result, actor, eventId)
         } catch {
           case e:Exception => deploymentManager ! DeploymentResult(id, modId, startTime, DateTime.now, Failure("Exception caught during deployment process: %s".format(e.getMessage),Full(e), Empty), actor, eventId)

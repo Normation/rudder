@@ -93,6 +93,15 @@ function createPopup(popupName, minHeight, minWidth){
 		correctButtons();
 }
 
+/* ignore event propagation (IE compliant) */
+
+function noBubble(event){
+    if(event.stopPropagation){
+      event.stopPropagation();
+    };
+    event.cancelBubble=true;
+}
+
 /* ignore enter in a field */
 
 function refuseEnter(event)

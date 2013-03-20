@@ -100,18 +100,18 @@ class RoLDAPNodeGroupRepository(
   repo =>
 
   /**
-   * Find sub entries (children group categories and server groups for 
+   * Find sub entries (children group categories and server groups for
    * the given category which MUST be mapped to an entry with the given
-   * DN in the LDAP backend, accessible with the given connection. 
+   * DN in the LDAP backend, accessible with the given connection.
    */
   private[this] def addSubEntries(category:NodeGroupCategory, dn:DN, con:RoLDAPConnection) : NodeGroupCategory = {
-    val subEntries = con.searchOne(dn, OR(IS(OC_GROUP_CATEGORY),IS(OC_RUDDER_NODE_GROUP),IS(OC_SPECIAL_TARGET)), 
+    val subEntries = con.searchOne(dn, OR(IS(OC_GROUP_CATEGORY),IS(OC_RUDDER_NODE_GROUP),IS(OC_SPECIAL_TARGET)),
         A_OC, A_NODE_GROUP_UUID, A_NAME, A_RULE_TARGET, A_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM).partition(e => e.isA(OC_GROUP_CATEGORY))
     category.copy(
       children = subEntries._1.sortBy(e => e(A_NAME)).map(e => mapper.dn2NodeGroupCategoryId(e.dn)).toList,
       items = subEntries._2.sortBy(e => e(A_NAME)).flatMap(entry => mapper.entry2RuleTargetInfo(entry) match {
         case Full(targetInfo) => Some(targetInfo)
-        case e:EmptyBox => 
+        case e:EmptyBox =>
           logger.error((e ?~! "Error when trying to get the child of group category '%s' with DN '%s'".format(category.id, entry.dn)).messageChain)
           None
       }).toList
@@ -124,7 +124,7 @@ class RoLDAPNodeGroupRepository(
    * We expect at most one result, more is a Failure
    */
   private[this] def getSGEntry[ID](
-      con:RoLDAPConnection, 
+      con:RoLDAPConnection,
       id:ID,
       filter: ID => Filter,
       attributes:String*) : Box[LDAPEntry] = {
@@ -193,7 +193,7 @@ class RoLDAPNodeGroupRepository(
   def getNodeGroup(id: NodeGroupId): Box[NodeGroup] = {
       groupLibMutex.readLock { this.getNodeGroup[NodeGroupId](id, { id => EQ(A_NODE_GROUP_UUID, id.value) } ) }
   }
-  
+
   def getAllGroupCategories(includeSystem:Boolean = false) : Box[List[NodeGroupCategory]] = {
     val list = groupLibMutex.readLock { for {
       con <- ldap
@@ -204,7 +204,7 @@ class RoLDAPNodeGroupRepository(
     } yield {
       result
     } }
-    
+
     list match {
       case Full(entries) => var result : List[NodeGroupCategory] = Nil
                             for (entry <- entries) {
@@ -219,11 +219,11 @@ class RoLDAPNodeGroupRepository(
       case x : Failure => x
     }
   }
-  
+
   /**
    * Root group category
    */
-  def getRootCategory(): NodeGroupCategory = { 
+  def getRootCategory(): NodeGroupCategory = {
     (for {
       con <- ldap
       rootCategoryEntry <- groupLibMutex.readLock { con.get(rudderDit.GROUP.dn) ?~! "The root category of the server group category seems to be missing in LDAP directory. Please check its content" }
@@ -285,7 +285,7 @@ class RoLDAPNodeGroupRepository(
   /**
    * Get a group category by its id
    * */
-  def getGroupCategory(id: NodeGroupCategoryId): Box[NodeGroupCategory] = { 
+  def getGroupCategory(id: NodeGroupCategoryId): Box[NodeGroupCategory] = {
     for {
       con <- ldap
       categoryEntry <- groupLibMutex.readLock { getCategoryEntry(con, id) ?~! "Entry with ID '%s' was not found".format(id) }
@@ -300,7 +300,7 @@ class RoLDAPNodeGroupRepository(
    * Return empty for root of the hierarchy, fails if the category
    * is not in the repository
    */
-  def getParentGroupCategory(id: NodeGroupCategoryId): Box[NodeGroupCategory] = { 
+  def getParentGroupCategory(id: NodeGroupCategoryId): Box[NodeGroupCategory] = {
     groupLibMutex.readLock { for {
       con <- ldap
       categoryEntry <- getCategoryEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
@@ -308,19 +308,19 @@ class RoLDAPNodeGroupRepository(
       parentCategory <- mapper.entry2NodeGroupCategory(parentCategoryEntry) ?~! "Error when transforming LDAP entry %s into an active technqiue category".format(parentCategoryEntry)
     } yield {
       addSubEntries(parentCategory, parentCategoryEntry.dn, con)
-    }  }  
+    }  }
   }
 
-  
+
   def getParents_NodeGroupCategory(id:NodeGroupCategoryId) : Box[List[NodeGroupCategory]] = {
      //TODO : LDAPify that, we can have the list of all DN from id to root at the begining (just dn.getParent until rudderDit.NOE_GROUP.dn)
     if(id == getRootCategory.id) Full(Nil)
     else getParentGroupCategory(id) match {
       case Full(parent) => getParents_NodeGroupCategory(parent.id).map(parents => parent :: parents)
       case e:EmptyBox => e
-    }     
+    }
  }
-  
+
  /**
    * Returns all non system categories + the root category
    * Caution, they are "lightweight" group categories (no children)
@@ -336,7 +336,7 @@ class RoLDAPNodeGroupRepository(
       entries
     } }
   }
-  
+
   /**
    * Get all pairs of (categoryid, category)
    * in a map in which keys are the parent category of the
@@ -346,7 +346,7 @@ class RoLDAPNodeGroupRepository(
    *   "/cat1"       -> [cat1_details]
    *   "/cat1/cat11" -> [/cat1/cat11]
    *   "/cat2"       -> [/cat2_details]
-   *   ... 
+   *   ...
    */
   def getCategoryHierarchy : Box[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
     for {
@@ -364,16 +364,16 @@ class RoLDAPNodeGroupRepository(
       implicit val ordering = GroupCategoryRepositoryOrdering
       SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]() ++ catsWithUPs
     }
-  }  
+  }
 
-  
+
   /**
    * Fetch the parent category of the NodeGroup
    * Caution, its a lightweight version of the entry (no children nor item)
    * @param id
    * @return
    */
-  def getParentGroupCategory(id: NodeGroupId): Box[NodeGroupCategory] = { 
+  def getParentGroupCategory(id: NodeGroupId): Box[NodeGroupCategory] = {
     groupLibMutex.readLock { for {
       con <- ldap
       groupEntry <- getSGEntry(con, id, "1.1") ?~! "Entry with ID '%s' was not found".format(id)
@@ -383,19 +383,19 @@ class RoLDAPNodeGroupRepository(
       parentCategory
     } }
   }
-  
+
   def getAll : Box[Seq[NodeGroup]] = {
     groupLibMutex.readLock { for {
       con <- ldap
       //for each directive entry, map it. if one fails, all fails
-      groups <- sequence(con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP))) { groupEntry => 
+      groups <- sequence(con.searchSub(rudderDit.GROUP.dn,  EQ(A_OC, OC_RUDDER_NODE_GROUP))) { groupEntry =>
         mapper.entry2NodeGroup(groupEntry) ?~! "Error when transforming LDAP entry into a Group instance. Entry: %s".format(groupEntry)
       }
     } yield {
       groups
     } }
   }
-  
+
   private[this] def findGroupWithFilter(filter:Filter) : Box[Seq[NodeGroupId]] = {
     groupLibMutex.readLock { for {
       con <- ldap
@@ -406,7 +406,7 @@ class RoLDAPNodeGroupRepository(
       groupIds.map(id => NodeGroupId(id))
     } }
   }
-  
+
   /**
    * Retrieve all groups that have at least one of the given
    * node ID in there member list.
@@ -420,7 +420,7 @@ class RoLDAPNodeGroupRepository(
     )
     findGroupWithFilter(filter)
   }
-  
+
   /**
    * Retrieve all groups that have ALL given node ID in their
    * member list.
@@ -444,7 +444,7 @@ class WoLDAPNodeGroupRepository(
   , actionLogger      : EventLogRepository
   , gitArchiver       : GitNodeGroupArchiver
   , personIdentService: PersonIdentService
-  , autoExportOnModify: Boolean 
+  , autoExportOnModify: Boolean
 ) extends WoNodeGroupRepository with Loggable {
   repo =>
 
@@ -470,8 +470,8 @@ class WoLDAPNodeGroupRepository(
       case 1 => true
       case _ => logger.error("More than one nodeCategory has %s name under %s".format(name, parentDn)); true
     }
-  }  
-  
+  }
+
 
   /**
    * Check if a nodeGroup exist with the given name
@@ -495,7 +495,7 @@ class WoLDAPNodeGroupRepository(
     }
   }
 
-  
+
   private[this] def getContainerDn(con : RoLDAPConnection, id: NodeGroupCategoryId) : Box[DN] = {
     groupLibMutex.readLock { con.searchSub(rudderDit.GROUP.dn, AND(IS(OC_GROUP_CATEGORY), EQ(A_GROUP_CATEGORY_UUID, id.value)), A_GROUP_CATEGORY_UUID).toList match {
       case Nil => Empty
@@ -504,12 +504,12 @@ class WoLDAPNodeGroupRepository(
                 Failure("Too many NodeGroupCategory found with this id %s".format(id.value))
     } }
   }
-      
+
   /**
    * Add that group categoy into the given parent category
    * Fails if the parent category does not exists or
-   * if it already contains that category. 
-   * 
+   * if it already contains that category.
+   *
    * return the new category.
    */
   def addGroupCategorytoCategory(
@@ -519,9 +519,9 @@ class WoLDAPNodeGroupRepository(
     , actor:EventActor, reason: Option[String]
   ): Box[NodeGroupCategory] = {
     for {
-      con                 <- ldap 
+      con                 <- ldap
       parentCategoryEntry <- getCategoryEntry(con, into, "1.1") ?~! "The parent category '%s' was not found, can not add".format(into)
-      canAddByName        <- if (categoryExists(con, that.name, parentCategoryEntry.dn)) 
+      canAddByName        <- if (categoryExists(con, that.name, parentCategoryEntry.dn))
                                Failure("Cannot create the Node Group Category with name %s : a category with the same name exists at the same level".format(that.name))
                              else Full("OK, can add")
       categoryEntry       =  mapper.nodeGroupCategory2ldap(that,parentCategoryEntry.dn)
@@ -542,12 +542,12 @@ class WoLDAPNodeGroupRepository(
   /**
    * Update an existing group category
    */
-  def saveGroupCategory(category: NodeGroupCategory, modId : ModificationId, actor:EventActor, reason: Option[String]): Box[NodeGroupCategory] = { 
+  def saveGroupCategory(category: NodeGroupCategory, modId : ModificationId, actor:EventActor, reason: Option[String]): Box[NodeGroupCategory] = {
     repo.synchronized { for {
-      con              <- ldap 
+      con              <- ldap
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
       categoryEntry    =  mapper.nodeGroupCategory2ldap(category,oldCategoryEntry.dn.getParent)
-      canAddByName     <- if (categoryExists(con, category.name, oldCategoryEntry.dn.getParent, category.id)) 
+      canAddByName     <- if (categoryExists(con, category.name, oldCategoryEntry.dn.getParent, category.id))
                             Failure("Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name))
                           else Full("OK")
       result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
@@ -575,18 +575,18 @@ class WoLDAPNodeGroupRepository(
                           } else Full(Nil)
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! "Entry with ID '%s' was not found".format(category.id)
       newParent        <- getCategoryEntry(con, containerId, "1.1") ?~! "Parent entry with ID '%s' was not found".format(containerId)
-      canAddByName     <- if (categoryExists(con, category.name, newParent.dn, category.id)) 
+      canAddByName     <- if (categoryExists(con, category.name, newParent.dn, category.id))
                             Failure("Cannot update the Node Group Category with name %s : a category with the same name exists at the same level".format(category.name))
                           else Full("OK")
       categoryEntry    =  mapper.nodeGroupCategory2ldap(category,newParent.dn)
-      moved            <- if (newParent.dn == oldCategoryEntry.dn.getParent) {  
+      moved            <- if (newParent.dn == oldCategoryEntry.dn.getParent) {
                             Full(LDIFNoopChangeRecord(oldCategoryEntry.dn))
                           } else { groupLibMutex.writeLock { con.move(oldCategoryEntry.dn, newParent.dn) } }
       result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       updated          <- getGroupCategory(category.id)
       autoArchive      <- (moved, result) match {
                             case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => Full("OK, nothing to archive")
-                            case _ if(autoExportOnModify) => 
+                            case _ if(autoExportOnModify) =>
                               (for {
                                 parents  <- getParents_NodeGroupCategory(updated.id)
                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -601,7 +601,7 @@ class WoLDAPNodeGroupRepository(
     } }
   }
 
-  
+
   /**
    * Delete the category with the given id.
    * If no category with such id exists, it is a success.
@@ -609,16 +609,16 @@ class WoLDAPNodeGroupRepository(
    * the category is empty (else, category and children are deleted).
    * @param id
    * @param checkEmtpy
-   * @return 
+   * @return
    *  - Full(category id) for a success
-   *  - Failure(with error message) iif an error happened. 
+   *  - Failure(with error message) iif an error happened.
    */
   def delete(id:NodeGroupCategoryId, modId : ModificationId, actor:EventActor, reason: Option[String], checkEmpty:Boolean = true) : Box[NodeGroupCategoryId] = {
     for {
       con <-ldap
       deleted <- {
         getCategoryEntry(con, id, "1.1") match {
-          case Full(entry) => 
+          case Full(entry) =>
             for {
               parents     <- if(autoExportOnModify) {
                                getParents_NodeGroupCategory(id)
@@ -635,7 +635,7 @@ class WoLDAPNodeGroupRepository(
                                  archive  <- gitArchiver.deleteNodeGroupCategory(id,parents.map( _.id), Some(modId, commiter, reason))
                                } yield {
                                  archive
-                               }                              
+                               }
                              } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
             } yield {
               id
@@ -648,7 +648,7 @@ class WoLDAPNodeGroupRepository(
       deleted
     }
   }
- 
+
   def createNodeGroup(name: String, description: String, q: Option[Query], isDynamic: Boolean, srvList: Set[NodeId], into: NodeGroupCategoryId, isEnabled : Boolean, modId: ModificationId, actor:EventActor, reason:Option[String]): Box[AddNodeGroupDiff] = {
     for {
       con           <- ldap
@@ -680,10 +680,17 @@ class WoLDAPNodeGroupRepository(
     }
   }
 
-  def update(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
+
+  private[this] def internalUpdate(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean): Box[Option[ModifyNodeGroupDiff]] = {
     for {
       con          <- ldap
       existing     <- getSGEntry(con, nodeGroup.id) ?~! "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id)
+      oldGroup     <- mapper.entry2NodeGroup(existing) ?~! "Error when trying to check for the group %s".format(nodeGroup.id.value)
+      systemCheck  <- (oldGroup.isSystem, systemCall) match {
+                          case (true, false) => Failure("System group '%s' (%s) can not be modified".format(oldGroup.name, oldGroup.id.value))
+                          case (false, true) => Failure("You can not modify a non system group (%s) with that method".format(oldGroup.name))
+                          case _ => Full(oldGroup)
+                        }
       exists       <- if (nodeGroupExists(con, nodeGroup.name, nodeGroup.id)) Failure("Cannot change the group name to %s : there is already a group with the same name".format(nodeGroup.name))
                       else Full(Unit)
       entry        =  rudderDit.GROUP.groupModel(
@@ -715,7 +722,16 @@ class WoLDAPNodeGroupRepository(
     }
   }
 
+  def update(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
+    internalUpdate(nodeGroup, modId, actor, reason, false)
+  }
+
+  def updateSystemGroup(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyNodeGroupDiff]] = {
+    internalUpdate(nodeGroup, modId, actor, reason, true)
+  }
+
   def move(nodeGroup:NodeGroup, containerId : NodeGroupCategoryId, modId: ModificationId, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
+
     for {
       con          <- ldap
       oldParents   <- if(autoExportOnModify) {
@@ -725,6 +741,9 @@ class WoLDAPNodeGroupRepository(
                         } yield (parent::parents).map( _.id )
                       } else Full(Nil)
       existing     <- getSGEntry(con, nodeGroup.id) ?~! "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id)
+      oldGroup     <- mapper.entry2NodeGroup(existing) ?~! "Error when trying to get the existing group with id %s".format(nodeGroup.id.value)
+      systemCheck  <- if(oldGroup.isSystem) Failure("You can not move system group") else Full("OK")
+
       groupRDN     <- Box(existing.rdn) ?~! "Error when retrieving RDN for an exising group - seems like a bug"
       exists       <- if (nodeGroupExists(con, nodeGroup.name, nodeGroup.id)) Failure("Cannot change the group name to %s : there is already a group with the same name".format(nodeGroup.name))
                         else Full(Unit)
