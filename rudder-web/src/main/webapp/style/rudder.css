@@ -1973,8 +1973,7 @@ td.complianceTd, td.parametersTd {
   text-align:center;
 }
 .greyscala{
-  color:grey; 
-  border-bottom:1px dotted grey;
+  color:grey;
 }
 .checkbox{
   float:right;

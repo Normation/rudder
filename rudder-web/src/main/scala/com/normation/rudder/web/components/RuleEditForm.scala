@@ -153,7 +153,7 @@ class RuleEditForm(
 
   private[this] val htmlId_save = htmlId_rule + "Save"
   private[this] val htmlId_EditZone = "editRuleZone"
-  
+
   private[this] val roRuleRepository     = RudderConfig.roRuleRepository
   private[this] val woRuleRepository     = RudderConfig.woRuleRepository
   private[this] val targetInfoService    = RudderConfig.ruleTargetService
@@ -379,7 +379,8 @@ class RuleEditForm(
   private[this] def unserializeTargets(ids:String) : Seq[RuleTarget] = {
     implicit val formats = DefaultFormats
     parse(ids).extract[List[String]].map{x =>
-      GroupTarget(NodeGroupId(x.replace("jsTree-","")))
+      val id = x.replace("jsTree-","")
+      RuleTarget.unser(id).getOrElse(GroupTarget(NodeGroupId(id)))
     }
   }
 
@@ -573,8 +574,8 @@ class RuleEditForm(
     }
   }
 
-  private[this] def addCurrentNodeGroup(group : NodeGroup): Unit = {
-    selectedTargets = selectedTargets + GroupTarget(group.id)
+  private[this] def addCurrentNodeGroup(group : RuleTarget): Unit = {
+    selectedTargets = selectedTargets + group
   }
 
   private[this] val formTracker = {
@@ -713,7 +714,7 @@ class RuleEditForm(
       }
 
       override val attrs =
-        ( "rel" -> { if(category.id == rootCategoryId) "root-category" else "category" } ) ::
+        ( "rel" -> { if(category.id == rootCategoryId) "root-category" else if (category.isSystem) "system_category" else "category"  } ) ::
         ( "catId" -> category.id.value ) ::
         ( "class" -> "" ) ::
         Nil
@@ -724,20 +725,22 @@ class RuleEditForm(
   //fetch node group category id and transform it to a tree node
   private def nodeGroupCategoryIdToJsTreeNode(id:NodeGroupCategoryId) : Box[JsTreeNode] = {
     nodeGroupRepository.getGroupCategory(id) match {
-      //remove sytem category
-      case Full(category) => category.isSystem match {
-        case true => Empty
-        case false => Full(nodeGroupCategoryToJsTreeNode(category))
-      }
+      case Full(category) =>  Full(nodeGroupCategoryToJsTreeNode(category))
       case e:EmptyBox =>
-        val f = e ?~! "Error while fetching Technique category %s".format(id)
+        val f = e ?~! "Error while fetching Group category %s".format(id)
         logger.error(f.messageChain)
         f
     }
   }
-
+  //ajax function to update hidden group container
+  private[this] def onClickNode(target:RuleTarget) : JsCmd = {
+    addCurrentNodeGroup(target)
+    Noop
+  }
   //fetch node group id and transform it to a tree node
   private def policyTargetInfoToJsTreeNode(targetInfo:RuleTargetInfo) : JsTreeNode = {
+
+
     targetInfo.target match {
       case GroupTarget(id) =>
         nodeGroupRepository.getNodeGroup(id) match {
@@ -748,22 +751,27 @@ class RuleEditForm(
           }
         }
       case x => new JsTreeNode {
-         override def body =  {
-           val tooltipid = Helpers.nextFuncName
-           <span class="treeGroupName tooltipable" title="" tooltipid={tooltipid} >
-             {targetInfo.name}
-             <span title={targetInfo.description} class="greyscala">
-               (special)
-             </span>
-             <div class="tooltipContent" id={tooltipid}>
-               <h3>{targetInfo.name}</h3>
-               <div>{targetInfo.description}</div>
-             </div>
-           </span>
-         }
+        override def body =  {
+          val tooltipid = Helpers.nextFuncName
+          SHtml.a( () => onClickNode(x),
+            <span class="treeGroupName tooltipable" title="" tooltipid={tooltipid} >
+              {targetInfo.name}
+              {if (targetInfo.isSystem) <span title={targetInfo.description} class="greyscala">
+                (System)
+              </span>}
+              <div class="tooltipContent" id={tooltipid}>
+                <h3>{targetInfo.name}</h3>
+                <div>{targetInfo.description}</div>
+              </div>
+            </span>
+          )
+        }
 
-         override def children = Nil
-         override val attrs = ( "rel" -> "special_target" ) :: Nil
+        override def children = Nil
+        override val  attrs =
+          ( "rel" -> "system_target" ) ::
+          ( "groupId" -> x.target ) ::
+          ( "id" -> ("jsTree-" + x.target) ) :: Nil
       }
     }
   }
@@ -774,29 +782,28 @@ class RuleEditForm(
    */
   private def nodeGroupToJsTreeNode(group : NodeGroup) : JsTreeNode = {
     new JsTreeNode {
-      //ajax function that update the bottom
-      def onClickNode() : JsCmd = {
-        addCurrentNodeGroup(group)
-        Noop
-      }
 
       override def body = {
         val tooltipid = Helpers.nextFuncName
-        SHtml.a(onClickNode _,
-          <span class="treeGroupName tooltipable" tooltipid={tooltipid}
-          title={group.description}>
+        SHtml.a(() => onClickNode(GroupTarget(group.id)),
+          <span class="treeGroupName tooltipable" tooltipid={tooltipid} title={group.description}>
             {List(group.name,group.isDynamic?"dynamic"|"static").mkString(": ")}
+            {if (group.isSystem) <span title={group.description} class="greyscala">
+              (System)
+              </span>
+            }
           </span>
           <div class="tooltipContent" id={tooltipid}>
             <h3>{group.name}</h3>
             <div>{group.description}</div>
-          </div>)
+          </div>
+        )
       }
 
       override def children = Nil
 
       override val attrs =
-        ( "rel" -> "group" ) ::
+        ( "rel" -> { if (group.isSystem) "system_target" else "group"} ) ::
         ( "groupId" -> group.id.value ) ::
         ( "id" -> ("jsTree-" + group.id.value) ) ::
         Nil
