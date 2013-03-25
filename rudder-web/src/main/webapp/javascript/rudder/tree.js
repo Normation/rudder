@@ -284,12 +284,22 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
         	  return select_node;
           }
         },
+        "system_category" : {
+            "icon" : { "image" : appContext+"/images/tree/folder_16x16.png" },
+            "valid_children" : [ "category", "group" , "special_target" ],
+            "select_node" : function(e) {
+              this.toggle_node(e);
+              return select_node;
+            }
+          },
         "group" : {
           "icon" : { "image" : appContext+"/images/tree/server_group_16x16.gif" },
           "valid_children" : "none" 
         },
-        "special_target" : {
-          "icon" : { "image" : appContext+"/images/tree/special_target_16x16.gif" },
+        "system_target" : {
+          "icon" : { "image" : appContext+"/images/tree/server_group_16x16.gif" },
+          "select_node" : false,
+          "hover_node" : false,
           "valid_children" : "none"
         },
         "default" : {
@@ -299,10 +309,10 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
     },
     "crrm" : {
       "move" : {
-        "check_move" : function (m) { 
+        "check_move" : function (m) {
           //only accept "inside" node move (yes, comparing m.p == "inside" does not work)
-          //and into a new parent node. 
-          return (m.p != "before" && m.p != "after" && this._get_parent(m.o)[0] !== m.np[0]);
+          //and into a new parent node. refuse move to system category
+          return (m.np.attr("rel") != "system_category" && m.p != "before" && m.p != "after" && this._get_parent(m.o)[0] !== m.np[0]);
         }
       }
     },
