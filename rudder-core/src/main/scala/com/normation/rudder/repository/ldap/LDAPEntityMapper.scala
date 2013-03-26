@@ -98,7 +98,7 @@ class LDAPEntityMapper(
 
     //////////////////////////////    NodeInfo    //////////////////////////////
 
-  val nodeInfoAttributes = Seq(A_OC, A_NODE_UUID, A_HOSTNAME, A_OS_FULL_NAME, A_NAME, A_POLICY_SERVER_UUID, A_LIST_OF_IP, A_OBJECT_CREATION_DATE,A_AGENTS_NAME,A_PKEYS, A_ROOT_USER)
+  val nodeInfoAttributes = Seq(A_OC, A_NODE_UUID, A_HOSTNAME,A_OS_NAME, A_OS_FULL_NAME,A_OS_SERVICE_PACK,A_OS_VERSION, A_NAME, A_POLICY_SERVER_UUID, A_LIST_OF_IP, A_OBJECT_CREATION_DATE,A_AGENTS_NAME,A_PKEYS, A_ROOT_USER)
 
   /**
    * From a nodeEntry and an inventoryEntry, create a NodeInfo
@@ -110,49 +110,62 @@ class LDAPEntityMapper(
   def convertEntriesToNodeInfos(nodeEntry:LDAPEntry, inventoryEntry:LDAPEntry) : Box[NodeInfo] = {
     //why not using InventoryMapper ? Some required things for node are not
     // wanted here ?
-
     for {
-      checkIsANode <- if(nodeEntry.isA(OC_RUDDER_NODE)) Full("ok") else Failure("Bad object class, need %s and found %s".format(OC_RUDDER_NODE,nodeEntry.valuesFor(A_OC)))
-      checkIsANode <- if(inventoryEntry.isA(OC_NODE)) Full("Ok") else Failure("Bad object class, need %s and found %s".format(OC_NODE,inventoryEntry.valuesFor(A_OC)))
-      checkSameID <-
-        if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) Full("Ok")
-        else Failure("Mismatch id for the node %s and the inventory %s".format(nodeEntry(A_NODE_UUID), inventoryEntry(A_NODE_UUID)))
-      id <- nodeDit.NODES.NODE.idFromDn(nodeEntry.dn) ?~! "Bad DN found for a Node: %s".format(nodeEntry.dn)
+      checkIsANode <- if(nodeEntry.isA(OC_RUDDER_NODE)) Full("ok")
+                      else Failure("Bad object class, need %s and found %s".format(OC_RUDDER_NODE,nodeEntry.valuesFor(A_OC)))
+
+      checkIsANode <- if(inventoryEntry.isA(OC_NODE)) Full("Ok")
+                      else Failure("Bad object class, need %s and found %s".format(OC_NODE,inventoryEntry.valuesFor(A_OC)))
+
+      checkSameID  <- if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) Full("Ok")
+                      else Failure("Mismatch id for the node %s and the inventory %s".format(nodeEntry(A_NODE_UUID), inventoryEntry(A_NODE_UUID)))
+
+      id           <- nodeDit.NODES.NODE.idFromDn(nodeEntry.dn) ?~! "Bad DN found for a Node: %s".format(nodeEntry.dn)
       // Compute the parent policy Id
       policyServerId <- inventoryEntry.valuesFor(A_POLICY_SERVER_UUID).toList match {
-        case Nil => Failure("No policy servers for a Node: %s".format(nodeEntry.dn))
-        case x :: Nil => Full(x)
-        case _ => Failure("Too many policy servers for a Node: %s".format(nodeEntry.dn))
-      }
-      agentsName <- sequence(inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq) { x =>
-                        AgentType.fromValue(x) ?~! "Unknow value for agent type: '%s'. Authorized values are: %s".format(x, AgentType.allValues.mkString(", "))
+                          case Nil => Failure("No policy servers for a Node: %s".format(nodeEntry.dn))
+                          case x :: Nil => Full(x)
+                          case _ => Failure("Too many policy servers for a Node: %s".format(nodeEntry.dn))
+                        }
+
+      agentsName  <- sequence(inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq) { x =>
+                       AgentType.fromValue(x) ?~!
+                         "Unknow value for agent type: '%s'. Authorized values are: %s".format(x, AgentType.allValues.mkString(", "))
                      }
-      date <- nodeEntry.getAsGTime(A_OBJECT_CREATION_DATE) ?~! "Can not find mandatory attribute '%s' in entry".format(A_OBJECT_CREATION_DATE)
+      date        <- nodeEntry.getAsGTime(A_OBJECT_CREATION_DATE) ?~!
+                      "Can not find mandatory attribute '%s' in entry".format(A_OBJECT_CREATION_DATE)
+      osVersion   = inventoryEntry(A_OS_VERSION).getOrElse("N/A")
+      osName  = inventoryEntry(A_OS_NAME).getOrElse("N/A")
+      servicePack = inventoryEntry(A_OS_SERVICE_PACK)
+      osType      = if(inventoryEntry.isA(OC_WINDOWS_NODE))      "Windows"
+                    else if(inventoryEntry.isA(OC_LINUX_NODE))   "Linux"
+                    else if(inventoryEntry.isA(OC_SOLARIS_NODE)) "Solaris"
+                    else                                         "Unknown"
     } yield {
       // fetch the inventory datetime of the object
-      val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) match {
-        case None => DateTime.now()
-        case Some(date) => date.dateTime
-      }
+      val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map(_.dateTime) getOrElse(DateTime.now)
 
       NodeInfo(
-          id,
-          nodeEntry(A_NAME).getOrElse(""),
-          nodeEntry(A_DESCRIPTION).getOrElse(""),
-          inventoryEntry(A_HOSTNAME).getOrElse(""),
-          //OsType.osTypeFromObjectClasses(inventoryEntry.valuesFor(A_OC)).map(_.toString).getOrElse(""),
-          inventoryEntry(A_OS_FULL_NAME).getOrElse(""),
-          inventoryEntry.valuesFor(A_LIST_OF_IP).toList,
-          dateTime,
-          inventoryEntry(A_PKEYS).getOrElse(""),
-          scala.collection.mutable.Seq() ++ agentsName,
-          NodeId(policyServerId),
-          //nodeDit.NODES.NODE.idFromDn(policyServerDN).getOrElse(error("Bad DN found for the policy server of Node: %s".format(nodeEntry.dn))),
-          inventoryEntry(A_ROOT_USER).getOrElse(""),
-          date.dateTime,
-          nodeEntry.getAsBoolean(A_IS_BROKEN).getOrElse(false),
-          nodeEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false),
-          nodeEntry.isA(OC_POLICY_SERVER_NODE)
+          id
+        , nodeEntry(A_NAME).getOrElse("")
+        , nodeEntry(A_DESCRIPTION).getOrElse("")
+        , inventoryEntry(A_HOSTNAME).getOrElse("")
+        //OsType.osTypeFromObjectClasses(inventoryEntry.valuesFor(A_OC)).map(_.toString).getOrElse(""),
+        , osName
+        , osType
+        , osVersion
+        , servicePack
+        , inventoryEntry.valuesFor(A_LIST_OF_IP).toList
+        , dateTime
+        , inventoryEntry(A_PKEYS).getOrElse("")
+        , scala.collection.mutable.Seq() ++ agentsName
+        , NodeId(policyServerId)
+        //nodeDit.NODES.NODE.idFromDn(policyServerDN).getOrElse(error("Bad DN found for the policy server of Node: %s".format(nodeEntry.dn))),
+        , inventoryEntry(A_ROOT_USER).getOrElse("")
+        , date.dateTime
+        , nodeEntry.getAsBoolean(A_IS_BROKEN).getOrElse(false)
+        , nodeEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+        , nodeEntry.isA(OC_POLICY_SERVER_NODE)
       )
     }
   }
