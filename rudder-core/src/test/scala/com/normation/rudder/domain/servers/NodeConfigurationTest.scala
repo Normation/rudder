@@ -118,7 +118,9 @@ class NodeConfigurationTest {
         minNodeConf,
         None,
         Map(),
-        Map())
+        Map(),
+        Set(),
+        Set())
     assertEquals(newNode.isPolicyServer, false)
     assertEquals(newNode.getCurrentDirectives.size.toLong, 0L)
     assertEquals(newNode.getDirectives.size.toLong, 0L)
@@ -161,7 +163,9 @@ class NodeConfigurationTest {
         minNodeConf,
         None,
         Map(),
-        Map())
+        Map(),
+        Set(),
+        Set())
 
     assertEquals(newNode.isPolicyServer, false)
     assertEquals(newNode.getCurrentDirectives.size.toLong, 1L)

@@ -273,6 +273,39 @@ attributetype ( RudderAttributes:225
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} ) 
 
+attributetype ( RudderAttributes:226
+  NAME 'parameter'
+  DESC 'The current parameters applied to a node'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch ) 
+
+attributetype ( RudderAttributes:227
+  NAME 'targetParameter'
+  DESC 'The target parameters applied to a node'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch )
+
+attributetype ( RudderAttributes:301
+  NAME 'parameterName'
+  DESC 'Name of parameter that matches [a-zA-Z0-9_]+'
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+attributetype ( RudderAttributes:302
+  NAME 'parameterValue'
+  DESC 'Name of parameter that matches [a-zA-Z0-9_]+'
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+attributetype ( RudderAttributes:303
+  NAME 'overridable'
+  DESC 'Define if the parameter may be overriden'
+  EQUALITY booleanMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
 
 #######################################################
 ################  Object Classes ######################
@@ -402,7 +435,8 @@ objectclass ( RudderObjectClasses:101
         nodeHostname $ targetNodeHostname $ 
         policyServerId $ targetPolicyServerId $ 
         agentName $ targetAgentName $
-        systemVariable $ targetSystemVariable   ) )
+        systemVariable $ targetSystemVariable $
+        parameter $ targetParameter  ) )
 
 objectclass ( RudderObjectClasses:102
   NAME 'rootPolicyServerNodeConfiguration' 
@@ -436,4 +470,12 @@ objectclass ( RudderObjectClasses:105
   SUP abstractDirectiveNodeConfiguration
   STRUCTURAL
   MUST ( targetdirectiveId ) )
+
+objectclass ( RudderObjectClasses:120
+  NAME 'parameter'
+  DESC 'A parameter of the format key - value'
+  SUP top
+  STRUCTURAL
+  MUST ( parameterName )
+  MAY ( parameterValue $ description $ overridable ) )
 

@@ -36,7 +36,6 @@ package com.normation.rudder.services.marshalling
 
 import scala.xml.{Node => XNode}
 import scala.xml.NodeSeq
-
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -46,8 +45,8 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
-
 import net.liftweb.common.Box
+import com.normation.rudder.domain.parameters.GlobalParameter
 
 
 trait DeploymentStatusUnserialisation {
@@ -241,4 +240,21 @@ trait DirectiveUnserialisation {
    * We await for a node that contains an unique <section>
    */
   def parseSectionVal(xml:NodeSeq) : Box[SectionVal]
+}
+
+/**
+ * That trait allows to unserialize
+ * Global Parameter from an XML
+ */
+trait GlobalParameterUnserialisation {
+  /**
+   * Version 3:
+     <globalParameter fileFormat="3">
+       <name>{param.name.value}</name>
+       <value>{param.value}</value>
+       <description>{param.description}</description>
+       <overridable>{param.overridable}</overridable>
+     </globalParameter>
+   */
+  def unserialise(xml:XNode) : Box[GlobalParameter]
 }

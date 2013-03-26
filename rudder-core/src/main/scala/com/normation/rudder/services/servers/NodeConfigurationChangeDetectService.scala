@@ -44,6 +44,9 @@ import net.liftweb.common.Box
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.TechniqueId
 import net.liftweb.common.Full
+import com.normation.rudder.domain.parameters.Parameter
+import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.services.policies.ParameterForConfiguration
 
 
 /**
@@ -92,6 +95,15 @@ class NodeConfigurationChangeDetectServiceImpl(
     }
   }
 
+  /**
+   * Checks if two sets of parameters are identical, but doesn't care for
+   * the description or the overridable status
+   */
+  private def detectChangeInParameters(
+      currentParameters : Set[ParameterForConfiguration]
+    , targetParameters  : Set[ParameterForConfiguration]) : Boolean = {
+    currentParameters != targetParameters
+  }
 
   /**
    * Fetch the acceptation date of a Technique
@@ -113,8 +125,14 @@ class NodeConfigurationChangeDetectServiceImpl(
     }
 
     // Second case : a change in the system variable is a change of all CRs
-    if (detectChangeInSystemVar(node.getCurrentSystemVariables, node.getTargetSystemVariables)) {
+    if (detectChangeInSystemVar(node.getCurrentSystemVariables.toMap, node.getTargetSystemVariables.toMap)) {
       logger.trace("A change in the system variable node %s".format( node.id) )
+      return node.getCurrentDirectives.map(x => x._2.ruleId).toSet ++ node.getDirectives.map(x => x._2.ruleId).toSet
+    }
+    
+    // Third case : a change in the parameters is a change of all CRs
+    if (detectChangeInParameters(node.currentParameters, node.targetParameters)) {
+      logger.trace("A change in the parameters for node %s".format( node.id ) )
       return node.getCurrentDirectives.map(x => x._2.ruleId).toSet ++ node.getDirectives.map(x => x._2.ruleId).toSet
     }
 

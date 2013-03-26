@@ -212,7 +212,8 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
         PolicyServerEventLogsFilter.eventList :::
         PromisesEventLogsFilter.eventList :::
         UserEventLogsFilter.eventList :::
-        TechniqueEventLogsFilter.eventList
+        TechniqueEventLogsFilter.eventList :::
+        ParameterEventsLogsFilter.eventList
 
 
 

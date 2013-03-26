@@ -36,18 +36,20 @@ package com.normation.rudder.domain.servers
 
 import com.normation.cfclerk.domain.Cf3PolicyDraft
 import com.normation.rudder.domain._
-import scala.collection._
+import scala.collection.{Seq, Map}
+import scala.collection.mutable.{Map=>MutMap}
 import org.slf4j.{Logger,LoggerFactory}
 import scala.xml._
 import com.normation.cfclerk.domain.Variable
 import org.joda.time.DateTime
 import org.joda.time.format._
 import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
-import scala.collection._
 import net.liftweb.common._
 import com.normation.rudder.domain.policies.{Rule,RuleId}
 import com.normation.cfclerk.domain.{TechniqueId, Cf3PolicyDraftId,Cf3PolicyDraft, Cf3PolicyDraftContainer}
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain.parameters.Parameter
+import com.normation.rudder.services.policies.ParameterForConfiguration
 
 
 /**
@@ -65,6 +67,8 @@ case class RootNodeConfiguration(
   , writtenDate                : Option[DateTime]
   , currentSystemVariables     : Map[String, Variable]
   , targetSystemVariables      : Map[String, Variable]
+  , currentParameters          : Set[ParameterForConfiguration]
+  , targetParameters           : Set[ParameterForConfiguration]
 ) extends NodeConfiguration with HashcodeCaching {
 
    /**
@@ -76,7 +80,7 @@ case class RootNodeConfiguration(
     targetRulePolicyDrafts.get(ruleWithCf3PolicyDraft.cf3PolicyDraft.id) match {
       case None =>
         // we first need to fetch all the policies in a mutable map to modify them
-        val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]()
+        val newRulePolicyDrafts =  MutMap[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]()
         __targetRulePolicyDrafts.foreach { ruleWithCf3PolicyDraft =>
             newRulePolicyDrafts += ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id ->ruleWithCf3PolicyDraft.copy()) }
 
@@ -92,7 +96,7 @@ case class RootNodeConfiguration(
   }
 
   def setSerial(rules : Seq[(RuleId,Int)]) : RootNodeConfiguration = {
-    val newRulePolicyDrafts =  mutable.Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]()
+    val newRulePolicyDrafts =  MutMap[Cf3PolicyDraftId, RuleWithCf3PolicyDraft]()
         __targetRulePolicyDrafts.foreach { ruleWithCf3PolicyDraft =>
             newRulePolicyDrafts += ( ruleWithCf3PolicyDraft.cf3PolicyDraft.id ->ruleWithCf3PolicyDraft.copy()) }
 
@@ -115,6 +119,7 @@ case class RootNodeConfiguration(
     copy(__currentRulePolicyDrafts = this.__targetRulePolicyDrafts,
         currentMinimalNodeConfig = this.targetMinimalNodeConfig,
         currentSystemVariables = this.targetSystemVariables,
+        currentParameters = this.targetParameters,
         writtenDate = Some(DateTime.now()))
 
   }
@@ -126,7 +131,8 @@ case class RootNodeConfiguration(
   def rollbackModification() : RootNodeConfiguration = {
     copy(__targetRulePolicyDrafts = this.__currentRulePolicyDrafts,
         targetMinimalNodeConfig = this.currentMinimalNodeConfig,
-        targetSystemVariables = this.currentSystemVariables
+        targetSystemVariables = this.currentSystemVariables,
+        targetParameters = this.currentParameters
         )
 
   }
@@ -142,7 +148,9 @@ case class RootNodeConfiguration(
       targetMinimalNodeConfig,
       writtenDate,
       currentSystemVariables,
-      targetSystemVariables
+      targetSystemVariables,
+      currentParameters,
+      targetParameters
     )
 
     returned
@@ -160,7 +168,9 @@ object RootNodeConfiguration {
         server.targetMinimalNodeConfig,
         server.writtenDate,
         server.currentSystemVariables,
-        server.targetSystemVariables)
+        server.targetSystemVariables,
+        server.currentParameters,
+        server.targetParameters)
 
     root
   }

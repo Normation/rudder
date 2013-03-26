@@ -59,6 +59,7 @@ import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.domain.reports.ReportComponent
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
 import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.rudder.domain.policies.ExpandedRuleVal
 
 class ReportingServiceImpl(
     directiveTargetService: RuleTargetService
@@ -77,39 +78,37 @@ class ReportingServiceImpl(
    * @param ruleVal
    * @return
    */
-  def updateExpectedReports(ruleVals : Seq[RuleVal], deleteRules : Seq[RuleId]) : Box[Seq[RuleExpectedReports]] = {
-
-    // First we need to get the targets of each rule
-    val confAndNodes = ruleVals.map { ruleVal =>
-      (ruleVal -> ruleVal.targets.flatMap { target =>
-        directiveTargetService.getNodeIds(target).openOr(Seq())
-      }.toSeq)
-    }
-
+  def updateExpectedReports(expandedRuleVals : Seq[ExpandedRuleVal], deleteRules : Seq[RuleId]) : Box[Seq[RuleExpectedReports]] = {
     // All the rule and serial. Used to know which one are to be removed
     val currentConfigurationsToRemove =  mutable.Map[RuleId, Int]() ++
       confExpectedRepo.findAllCurrentExpectedReportsAndSerial()
 
     val confToClose = mutable.Set[RuleId]()
-    val confToAdd = mutable.Map[RuleId, (RuleVal,Seq[NodeId])]()
+    val confToCreate = mutable.Buffer[ExpandedRuleVal]()
 
     // Then we need to compare each of them with the one stored
-    for (conf@(ruleVal, nodes) <- confAndNodes) {
-      currentConfigurationsToRemove.get(ruleVal.ruleId) match {
-                    // non existant, add it
-        case None => confToAdd += (  ruleVal.ruleId -> conf)
+    for (conf@ExpandedRuleVal(ruleId, configs, newSerial) <- expandedRuleVals) {
+      currentConfigurationsToRemove.get(ruleId) match {
+        // non existant, add it
+        case None => 
+          logger.debug("New rule %s".format(ruleId))
+          confToCreate += conf
 
-        case Some(serial) if ((serial == ruleVal.serial)&&(nodes.size > 0)) => // no change if same serial
-            currentConfigurationsToRemove.remove(ruleVal.ruleId)
+        case Some(serial) if ((serial == newSerial)&&(configs.size > 0)) => 
+            // no change if same serial and some config appliable
+            logger.debug("Same serial %s for ruleId %s, and configs presents".format(serial, ruleId))
+            currentConfigurationsToRemove.remove(ruleId)
 
-        case Some(serial) if ((serial == ruleVal.serial)&&(nodes.size == 0)) => // no change if same serial
+        case Some(serial) if ((serial == newSerial)&&(configs.size == 0)) => // same serial, but no targets
             // if there is not target, then it need to be closed
+          logger.debug("Same serial, and no configs present")
 
         case Some(serial) => // not the same serial
-            confToAdd += (  ruleVal.ruleId -> conf)
-            confToClose += ruleVal.ruleId
+          logger.debug("Not same serial")
+            confToCreate += conf
+            confToClose += ruleId
 
-            currentConfigurationsToRemove.remove(ruleVal.ruleId)
+            currentConfigurationsToRemove.remove(ruleId)
       }
     }
 
@@ -123,158 +122,95 @@ class ReportingServiceImpl(
       confExpectedRepo.closeExpectedReport(closable)
     }
 
-    // compute the cardinality and save them
-    sequence(confToAdd.values.toSeq) { case(ruleVal, nodeIds) =>
-      ( for {
-        policyExpectedReports <- sequence(ruleVal.directiveVals) { policy =>
-                                   ( for {
-                                     seq <- getCardinality(policy) ?~!
-                                     "Can not get cardinality for rule %s".format(ruleVal.ruleId)
-                                    } yield {
-                                      seq.map { case(componentName, componentsValues) =>
-                                        DirectiveExpectedReports(policy.directiveId,
-                                          Seq(ReportComponent(componentName, componentsValues.size, componentsValues)))
-                                      }
-                                   } )
-                                 }
-         expectedReport <- confExpectedRepo.saveExpectedReports(
-                               ruleVal.ruleId
-                             , ruleVal.serial
-                             , policyExpectedReports.flatten
-                             , nodeIds
+    // Now I need to unfold the configuration to create, so that I get for a given
+    // set of ruleId, serial, DirectiveExpectedReports we have the list of  corresponding nodes
+    
+    sequence(confToCreate) { case ExpandedRuleVal(ruleId, configs, serial) =>
+      sequence(configs.toSeq) { case (nodeId, directives) =>
+        // each directive are converted into Seq[DirectiveExpectedReports]
+        for {
+          directiveExpected <- sequence(directives) { directive =>
+	          ( for {
+	                seq <- getCardinality(directive) ?~!
+	                    "Can not get cardinality for rule %s".format(ruleId)
+	                } yield {
+	                  seq.map { case(componentName, componentsValues, unexpandedCompValues) =>
+	                     DirectiveExpectedReports(
+	                         directive.directiveId
+	                       , Seq(
+	                           ReportComponent(
+	                               componentName
+	                             , componentsValues.size
+	                             , componentsValues
+	                             , unexpandedCompValues
+	                           )
+	                         )
+	                     )
+	                     }
+	                 } 
+	            )
+          }
+        } yield {
+          (ruleId, serial, nodeId, directiveExpected.flatten)
+        }
+      }
+
+    } match {
+      case Empty => logger.warn("I have an empty value"); Empty
+      case e:Failure => logger.warn(e.messageChain); e
+      case Full(expanded) => 
+        // we need to group by DirectiveExpectedReports, RuleId, Serial
+        val flatten = expanded.flatten.flatMap { case (ruleId, serial, nodeId, directives) =>
+          directives.map (x => (ruleId, serial, nodeId, x))  
+        }
+
+        val preparedValues = flatten.groupBy[(RuleId, Int, DirectiveExpectedReports)]{ case (ruleId, serial, nodeId, directive) => 
+          (ruleId, serial, directive) }.map { case (key, value) => (key -> value.map(x=> x._3))}.toSeq
+
+        // here we group them by rule/serial/seq of node, so that we have the list of all DirectiveExpectedReports that apply to them
+        val groupedContent = preparedValues.toSeq.map { case ((ruleId, serial, directive), nodes) => (ruleId, serial, directive, nodes) }.
+           groupBy[(RuleId, Int, Seq[NodeId])]{ case (ruleId, serial, directive, nodes) => (ruleId, serial, nodes)}.map {
+             case (key, value) => (key -> value.map(x => x._3))
+           }.toSeq
+        // now we save them
+        sequence(groupedContent) { case ((ruleId, serial, nodes), directives) =>
+          confExpectedRepo.saveExpectedReports(
+                               ruleId
+                             , serial
+                             , directives
+                             , nodes
                            )
-      } yield {
-        expectedReport
-      } )
+        }
     }
   }
-
-
-  /**
-   * Returns the reports for a rule
-   */
-  def findReportsByRule(ruleId : RuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch] = {
-    val result = mutable.Buffer[ExecutionBatch]()
-
-    // look in the configuration
-    var expectedConfigurationReports = confExpectedRepo.findExpectedReports(ruleId, beginDate, endDate)
-
-    for (expected <- expectedConfigurationReports) {
-      result ++= createBatchesFromConfigurationReports(expected, expected.beginDate, expected.endDate)
-    }
-
-    result
-
-  }
-
-
-  /**
-   * Returns the reports for a node (for all directive/CR) (and hides result from other servers)
-   */
-  def findReportsByNode(nodeId : NodeId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch] = {
-    val result = mutable.Buffer[ExecutionBatch]()
-
-    // look in the configuration
-    val expectedConfigurationReports = confExpectedRepo.
-      findExpectedReportsByNode(nodeId, beginDate, endDate).
-      map(x => x.copy(nodeIds = Seq[NodeId](nodeId)))
-
-    for (expected <- expectedConfigurationReports) {
-      result ++= createBatchesFromConfigurationReports(expected, expected.beginDate, expected.endDate)
-    }
-
-    result
-  }
-
-
 
   /**
    * Find the latest reports for a given rule (for all servers)
    * Note : if there is an expected report, and that we don't have it, we should say that it is empty
    */
-  def findImmediateReportsByRule(ruleId : RuleId) : Option[ExecutionBatch] = {
+  def findImmediateReportsByRule(ruleId : RuleId) : Box[Option[ExecutionBatch]] = {
      // look in the configuration
-    confExpectedRepo.findCurrentExpectedReports(ruleId).map(
-        expected => createLastBatchFromConfigurationReports(expected) )
+    confExpectedRepo.findCurrentExpectedReports(ruleId) match {
+      case Empty => Empty
+      case e:Failure => logger.error("Error when fetching reports for Rule %s : %s".format(ruleId.value, e.messageChain)); e
+      case Full(expected) => Full(expected.map(createLastBatchFromConfigurationReports(_))) 
+    }
   }
 
   /**
    * Find the latest (15 minutes) reports for a given node (all CR)
    * Note : if there is an expected report, and that we don't have it, we should say that it is empty
    */
-  def findImmediateReportsByNode(nodeId : NodeId) :  Seq[ExecutionBatch] = {
+  def findImmediateReportsByNode(nodeId : NodeId) :  Box[Seq[ExecutionBatch]] = {
     // look in the configuration
-    confExpectedRepo.findCurrentExpectedReportsByNode(nodeId).
-      map(x => x.copy(nodeIds = Seq[NodeId](nodeId))).
-      map(expected => createLastBatchFromConfigurationReports(expected, Some(nodeId)) )
-
-  }
-
-  /**
-   *  find the last reports for a given node, for a sequence of rules
-   *  look for each CR for the current report
-   */
-  def findImmediateReportsByNodeAndCrs(nodeId : NodeId, ruleIds : Seq[RuleId]) : Seq[ExecutionBatch] = {
-
-    //  fetch the current expected rule report
-    confExpectedRepo.findCurrentExpectedReportsByNode(nodeId).
-            filter(x => ruleIds.contains(x.ruleId)).
-            map(x => x.copy(nodeIds = Seq[NodeId](nodeId))).
-            map(expected => createLastBatchFromConfigurationReports(expected, Some(nodeId)) )
-
-  }
-
-  /**
-   *  find the reports for a given server, for the whole period of the last application
-   */
-  def findCurrentReportsByNode(nodeId : NodeId) : Seq[ExecutionBatch] = {
-    //  fetch the current expected configuration report
-    var expectedConfigurationReports = confExpectedRepo.findCurrentExpectedReportsByNode(nodeId)
-    val configuration = expectedConfigurationReports.map(x => x.copy(nodeIds = Seq[NodeId](nodeId)))
-
-    val result = mutable.Buffer[ExecutionBatch]()
-
-    for (conf <- configuration) {
-      result ++= createBatchesFromConfigurationReports(conf,conf.beginDate, conf.endDate)
+    confExpectedRepo.findCurrentExpectedReportsByNode(nodeId) match {
+      case e:EmptyBox => e
+      case Full(seq) => 
+        Full(seq.map(expected => createLastBatchFromConfigurationReports(expected, Some(nodeId))))
     }
-
-    result
   }
-
 
   /************************ Helpers functions **************************************/
-
-
-   /**
-   * From a RuleExpectedReports, create batch synthesizing these information by
-   * searching reports in the database from the beginDate to the endDate
-   * @param expectedOperationReports
-   * @param reports
-   * @return
-   */
-  private def createBatchesFromConfigurationReports(expectedConfigurationReports : RuleExpectedReports, beginDate : DateTime, endDate : Option[DateTime]) : Seq[ExecutionBatch] = {
-    val batches = mutable.Buffer[ExecutionBatch]()
-
-    // Fetch the reports corresponding to this rule, and filter them by nodes
-    val reports = reportsRepository.findReportsByRule(expectedConfigurationReports.ruleId, Some(expectedConfigurationReports.serial), Some(beginDate), endDate).filter( x =>
-            expectedConfigurationReports.nodeIds.contains(x.nodeId)  )
-
-    for {
-      (rule,date) <- reports.map(x => (x.ruleId ->  x.executionTimestamp)).toSet[(RuleId, DateTime)].toSeq
-    } yield {
-      new ConfigurationExecutionBatch(
-          rule,
-          expectedConfigurationReports.directiveExpectedReports,
-          expectedConfigurationReports.serial,
-          date,
-          reports.filter(x => x.executionTimestamp == date), // we want only those of this run
-          expectedConfigurationReports.nodeIds,
-          expectedConfigurationReports.beginDate,
-          expectedConfigurationReports.endDate)
-    }
-  }
-
-
 
   /**
    * From a RuleExpectedReports, create batch synthetizing the last run
@@ -290,29 +226,53 @@ class ReportingServiceImpl(
             expectedConfigurationReports.ruleId,
             expectedConfigurationReports.serial, nodeId)
 
+    // If we are only searching on a node, then we restrict the directivesonnode to this node
+    val directivesOnNodes = nodeId match {
+      case None => expectedConfigurationReports.directivesOnNodes.map(x => DirectivesOnNodeExpectedReport(x.nodeIds, x.directiveExpectedReports))
+      case Some(node) => 
+        expectedConfigurationReports.directivesOnNodes.filter(x => x.nodeIds.contains(node)).map(x => DirectivesOnNodeExpectedReport(Seq(node), x.directiveExpectedReports))
+    }
     new ConfigurationExecutionBatch(
           expectedConfigurationReports.ruleId,
-          expectedConfigurationReports.directiveExpectedReports,
           expectedConfigurationReports.serial,
+          directivesOnNodes,
           reports.headOption.map(x => x.executionTimestamp).getOrElse(DateTime.now()), // this is a dummy date !
           reports,
-          expectedConfigurationReports.nodeIds,
           expectedConfigurationReports.beginDate,
           expectedConfigurationReports.endDate)
   }
 
 
-  private def getCardinality(container : DirectiveVal) : Box[Seq[(String, Seq[String])]] = {
-    val getTrackingVariableCardinality : Seq[String] = {
+  /**
+   * Returns a seq of
+   * Component, ComponentValues(expanded), ComponentValues (unexpanded))
+   * 
+   */
+  private def getCardinality(container : DirectiveVal) : Box[Seq[(String, Seq[String], Seq[String])]] = {
+    // Computes the components values, and the unexpanded component values
+    val getTrackingVariableCardinality : (Seq[String], Seq[String]) = {
       val boundingVar = container.trackerVariable.spec.boundingVariable.getOrElse(container.trackerVariable.spec.name)
       // now the cardinality is the length of the boundingVariable
-      container.variables.get(boundingVar) match {
-        case None =>
+      (container.variables.get(boundingVar), container.originalVariables.get(boundingVar)) match {
+        case (None, None) =>
           logger.debug("Could not find the bounded variable %s for %s in DirectiveVal %s".format(
               boundingVar, container.trackerVariable.spec.name, container.directiveId.value))
-          Seq(DEFAULT_COMPONENT_KEY) // this is an autobounding policy
-        case Some(variable) =>
-          variable.values
+          (Seq(DEFAULT_COMPONENT_KEY),Seq()) // this is an autobounding policy
+        case (Some(variable), Some(originalVariables)) if (variable.values.size==originalVariables.values.size) =>
+          (variable.values, originalVariables.values)
+        case (Some(variable), Some(originalVariables)) =>
+          logger.warn("Expanded and unexpanded values for bounded variable %s for %s in DirectiveVal %s have not the same size : %s and %s".format(
+              boundingVar, container.trackerVariable.spec.name, container.directiveId.value,variable.values, originalVariables.values ))
+          (variable.values, originalVariables.values)        
+        case (None, Some(originalVariables)) =>
+          logger.warn("Somewhere in the expansion of variables, the bounded variable %s for %s in DirectiveVal %s was lost".format(
+              boundingVar, container.trackerVariable.spec.name, container.directiveId.value))
+          (Seq(DEFAULT_COMPONENT_KEY),originalVariables.values) // this is an autobounding policy
+        case (Some(variable), None) =>
+          logger.warn("Somewhere in the expansion of variables, the bounded variable %s for %s in DirectiveVal %s appeared, but was not originally there".format(
+              boundingVar, container.trackerVariable.spec.name, container.directiveId.value))
+          (variable.values,Seq()) // this is an autobounding policy
+   
       }
     }
 
@@ -328,11 +288,15 @@ class ReportingServiceImpl(
           section.componentKey match {
             case None =>
               //a section that is a component without componentKey variable: card=1, value="None"
-              Some((section.name, Seq(DEFAULT_COMPONENT_KEY)))
+              Some((section.name, Seq(DEFAULT_COMPONENT_KEY), Seq(DEFAULT_COMPONENT_KEY)))
             case Some(varName) =>
               //a section with a componentKey variable: card=variable card
               val values = container.variables.get(varName).map( _.values).getOrElse(Seq())
-              Some((section.name, values))
+              val unexpandedValues = container.originalVariables.get(varName).map( _.values).getOrElse(Seq())
+              if (values.size != unexpandedValues.size)
+                logger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
+                    section.componentKey, container.directiveId.value, values, unexpandedValues ))
+              Some((section.name, values, unexpandedValues))
           }
         } else {
           None
@@ -342,7 +306,8 @@ class ReportingServiceImpl(
       if(allComponents.size < 1) {
         logger.debug("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
           container.techniqueId, container.directiveId))
-        Seq((container.techniqueId.name.value, getTrackingVariableCardinality))
+          val trackingVarCard = getTrackingVariableCardinality
+        Seq((container.techniqueId.name.value, trackingVarCard._1, trackingVarCard._2))
       } else {
         allComponents
       }

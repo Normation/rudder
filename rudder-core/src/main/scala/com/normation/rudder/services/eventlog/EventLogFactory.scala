@@ -32,6 +32,8 @@ import com.normation.inventory.domain.NodeId
 import com.normation.eventlog.EventLogDetails
 import scala.xml._
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.parameters._
+import com.normation.rudder.services.marshalling.GlobalParameterSerialisation
 
 trait EventLogFactory {
 
@@ -148,6 +150,35 @@ trait EventLogFactory {
     , reason             : Option[String]
   ) : DeleteTechnique
 
+  def getAddGlobalParameterFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , addDiff            : AddGlobalParameterDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : AddGlobalParameter
+
+  def getDeleteGlobalParameterFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , deleteDiff         : DeleteGlobalParameterDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : DeleteGlobalParameter
+
+  def getModifyGlobalParameterFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , modifyDiff         : ModifyGlobalParameterDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : ModifyGlobalParameter
 }
 
 class EventLogFactoryImpl(
@@ -155,6 +186,7 @@ class EventLogFactoryImpl(
   , piToXml   : DirectiveSerialisation
   , groutToXml: NodeGroupSerialisation
   , techniqueToXml: ActiveTechniqueSerialisation
+  , parameterToXml: GlobalParameterSerialisation
 ) extends EventLogFactory {
 
   /////
@@ -456,6 +488,74 @@ class EventLogFactoryImpl(
   ) : DeleteTechnique = {
     val details = EventLog.withContent(techniqueToXml.serialise(deleteDiff.technique) % ("changeType" -> "delete"))
     DeleteTechnique(EventLogDetails(
+        id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity))
+  }
+
+  override def getAddGlobalParameterFromDiff(
+      id             : Option[Int] = None
+    , modificationId : Option[ModificationId] = None
+    , principal      : EventActor
+    , addDiff        : AddGlobalParameterDiff
+    , creationDate   : DateTime = DateTime.now()
+    , severity       : Int = 100
+    , reason         : Option[String]
+  ) : AddGlobalParameter = {
+    val details = EventLog.withContent(parameterToXml.serialise(addDiff.parameter) % ("changeType" -> "add"))
+    AddGlobalParameter(EventLogDetails(
+        id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity))
+  }
+
+  override def getDeleteGlobalParameterFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , deleteDiff         : DeleteGlobalParameterDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : DeleteGlobalParameter = {
+    val details = EventLog.withContent(parameterToXml.serialise(deleteDiff.parameter) % ("changeType" -> "delete"))
+    DeleteGlobalParameter(EventLogDetails(
+        id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity))
+  }
+
+  override def getModifyGlobalParameterFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , modifyDiff         : ModifyGlobalParameterDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : ModifyGlobalParameter = {
+    val details = EventLog.withContent{
+      scala.xml.Utility.trim(<globalParameter changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+        <name>{modifyDiff.name.value}</name>{
+          modifyDiff.modValue.map(x => SimpleDiff.stringToXml(<value/>, x) ) ++
+          modifyDiff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x ) ) ++
+          modifyDiff.modOverridable.map(x => SimpleDiff.booleanToXml(<overridable/>, x ) )
+        }
+      </globalParameter>)
+    }
+    ModifyGlobalParameter(EventLogDetails(
         id = id
       , modificationId = modificationId
       , principal = principal

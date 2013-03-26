@@ -44,6 +44,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.utils.Control.sequence
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain.parameters.Parameter
 
 /**
  * A service that handle parameterized value of
@@ -71,6 +72,9 @@ import com.normation.utils.HashcodeCaching
  * Accessor are keywords which allows to reach value in a context, exactly like
  * properties in object oriented programming.
  *
+ * Accessors for parameters
+ *    ${rudder.param.ACCESSOR} : replace by the value for the parameter with the name ACCESSOR
+ *    
  * Accessors for node
  * ------------------
  *   ${rudder.node.id} : internal ID of the node (generally an UUID)
@@ -115,11 +119,11 @@ trait ParameterizedValueLookupService {
    * Replace all parameterization of the form ${rudder.node.XXX}
    * by their values
    *
-   * We are in the context of a node, given by the id.
+   * We are in the context of a node, given by precomputed configuration and context.
    * We can provide a NodeInfo as cache for the node.
    *
    */
-  def lookupNodeParameterization(nodeId:NodeId, variables:Seq[Variable]) : Box[Seq[Variable]]
+  def lookupNodeParameterization(targetNodeConfig : targetNodeConfiguration, variables:Seq[Variable]) : Box[Seq[Variable]]
 
   /**
    * Replace all parameterization of the form
@@ -180,17 +184,20 @@ trait ParameterizedValueLookupService {
   case class CrVarParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching
   case class CrTargetParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching
   object CrTargetParametrization {
-    def r = """\$\{rudder\.([\-_a-zA-Z0-9]+)\.target\.([\-_a-zA-Z0-9]+)\}""".r
+    def r = """\$\{rudder\.(?!param)([\-_a-zA-Z0-9]+)\.target\.([\-_a-zA-Z0-9]+)\}""".r
   }
 
 
+  abstract class ParameterParametrization extends Parametrization
+  
+  case class ParameterParam(parameterName: String) extends ParameterParametrization with HashcodeCaching
 
   object Parametrization {
-    def r = """\$\{rudder\.(.*)\}""".r
+    def r = """\$\{rudder\.(?!param)(.*)\}""".r
   }
 
   object CrParametrization {
-    def r = """\$\{rudder\.([\-_a-zA-Z0-9]+)\.([\-_a-zA-Z0-9]+)\}""".r
+    def r = """\$\{rudder\.(?!param)([\-_a-zA-Z0-9]+)\.([\-_a-zA-Z0-9]+)\}""".r
 
     def unapply(value:String) : Option[Parametrization] = {
         //start by the most specific and go up
@@ -217,6 +224,18 @@ trait ParameterizedValueLookupService {
           case ParamNodePsHostname.r() => Some(ParamNodePsHostname)
           case ParamNodePsAdmin.r() => Some(ParamNodePsAdmin)
           case NodeParametrization.r() => Some(BadNodeParam(value))
+          case _ => None
+        }
+    }
+  }
+  
+  object ParameterParametrization {
+    def r = """\$\{rudder\.param\.([\-_a-zA-Z0-9]+)}""".r
+    
+    def unapply(value:String) : Option[Parametrization] = {
+        //start by the most specific and go up
+        value match {
+          case ParameterParametrization.r(parameter) => Some(ParameterParam(parameter))
           case _ => None
         }
     }
@@ -252,17 +271,35 @@ trait ParameterizedValueLookupService_lookupNodeParameterization extends Paramet
       case _ => Full(value) //nothing to replace
     }
   }
+  
+  private[this] def lookupParameterParametrization(value: String, parameters: Map[String, ParameterForConfiguration]) : Box[String] = {
+    value match {
+      case ParameterParametrization(ParameterParam(name)) =>
+        parameters.get(name) match {
+          case Some(parameter) => Full(parameter.value)
+          case _ => Failure("Unknow parametrized value : %s".format(value))
+        }
+      case _ => Full(value)
+    }
+  }
 
 
-  override def lookupNodeParameterization(nodeId:NodeId, variables:Seq[Variable]) : Box[Seq[Variable]] = {
+  override def lookupNodeParameterization(targetNodeConfig : targetNodeConfiguration, variables:Seq[Variable]) : Box[Seq[Variable]] = {
+    val policyServerOfNode = nodeInfoService.getNodeInfo(targetNodeConfig.nodeInfo.policyServerId)
+    val parametersMap = targetNodeConfig.parameters.map(x => (x.name.value -> x)).toMap
+    
     for {
-      nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
       variables <- sequence(variables) { v =>
         for {
+          // first, expand the node variables
           values <- sequence(v.values) { value =>
-            lookupNodeVariable(nodeInfo, nodeInfoService.getNodeInfo(nodeInfo.policyServerId), value)
+            lookupNodeVariable(targetNodeConfig.nodeInfo, policyServerOfNode, value)
           }
-        } yield Variable.matchCopy(v, values)
+          // then expand the parameters variables
+          paramValues <- sequence(values) { value =>
+            lookupParameterParametrization(value, parametersMap)
+          }
+        } yield Variable.matchCopy(v, paramValues)
       }
     } yield variables
   }
@@ -281,7 +318,7 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
 
   /**
    * Replace all parameterization of the form
-   * ${CONFGIGURATION_RULE_ID.XXX} by their values
+   * ${CONFIGURATION_RULE_ID.XXX} by their values
    */
   override def lookupRuleParameterization(variables:Seq[Variable]) : Box[Seq[Variable]] = {
      sequence(variables) { variable =>
@@ -402,7 +439,7 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
   }
 
   private[this] def containsParameterizedValue(values:Seq[String]) : Boolean = {
-    val regex = """\$\{rudder\.*\}""".r
+    val regex = """\$\{rudder\.(?!param).*\}""".r
     values.foreach {
       case regex() => return true
       case _ => //continue
