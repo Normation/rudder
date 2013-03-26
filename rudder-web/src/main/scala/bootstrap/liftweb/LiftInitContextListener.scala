@@ -82,7 +82,6 @@ class LiftInitContextListener extends ContextLoaderListener {
 
     val ms = System.currentTimeMillis()
     RudderConfig.init
-    println(s"******* init RudderConfig: ${System.currentTimeMillis() - ms}ms" )
 
 
     //init Spring
