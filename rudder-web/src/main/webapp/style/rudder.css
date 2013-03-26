@@ -724,6 +724,16 @@ table.noMarginGrid {
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
 }
 
+.variableDefinition span {
+  display: table-cell;
+  padding-right: 10px;
+}
+
+.variableDefinition td {
+  border-bottom:dotted 1 px lightgrey;
+  
+}
+
 .variableDefinition span,
 .variableDefinition td,
 .variableDefinition input {
@@ -763,7 +773,7 @@ table.noMarginGrid {
  **********************************/
  
 table.directiveSectionDef {
-
+  border-bottom: dotted 1px grey;
 }
 
 table.directiveSectionDisplay {
@@ -823,7 +833,7 @@ div.directiveAddGroup {
 td.directiveVarLabel {
   width:30%;
   margin-right:2px;
-  text-align: right;
+  text-align: left;
   font-size: 12px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
   vertical-align: middle;
