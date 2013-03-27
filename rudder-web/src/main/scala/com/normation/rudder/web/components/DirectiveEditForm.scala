@@ -332,7 +332,7 @@ class DirectiveEditForm(
       JsRaw("""activateButtonOnFormChange("%s", "%s");  """
         .format(htmlId_policyConf, htmlId_save)) &
       JsRaw("""
-        correctButtons();
+        correctButtons();createTooltip();
       """) &
       JsVar("""
           $("input").not("#treeSearch").keydown( function(event) {
@@ -395,7 +395,7 @@ class DirectiveEditForm(
   }
 
   def initJs : JsCmd = {
-    JsRaw("correctButtons();")
+    JsRaw("correctButtons(); createTooltip();")
   }
 
   ///////////// Remove /////////////
