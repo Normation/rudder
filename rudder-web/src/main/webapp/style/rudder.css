@@ -1883,6 +1883,12 @@ popin Alert
     padding-top: 0px;
 }
 
+.tooltipable > .directiveVarValue {
+  background-image: url("../images/icInfo.png");
+  background-repeat: no-repeat;
+  background-position: center right;
+  padding-right: 18px;
+}
 
 #tooltip {
   position: absolute;
