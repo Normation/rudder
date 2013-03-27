@@ -65,15 +65,16 @@ var #table_var#;
 function createTooltip() {
   $(".tooltipable").tooltip({
 			show: {
-				effect: "none",
-                delay: 100,
+			  effect: "none",
+              delay: 100,
             },
 			content: function() {
 		      return $("#"+$(this).attr("tooltipid")).html();
 		    },
-		    position: { my: "left top+15",
-		    			at: "right top",
-		    			collision: "flipfit" 
+		    position: { 
+		      my: "left top+15",
+		      at: "right top",
+		      collision: "flipfit" 
 		    }
   });
 }
