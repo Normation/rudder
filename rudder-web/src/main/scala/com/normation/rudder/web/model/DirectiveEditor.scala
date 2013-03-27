@@ -252,12 +252,12 @@ case class SectionFieldImp(
     if(childrenXml.isEmpty) NodeSeq.Empty
     else
       <tr><td colspan="2">
-        <fieldset class="sectionFieldset">
-        <legend>Section: { name }</legend>
+        <div class="sectionFieldset">
+        <div class="inner-portlet-header-lower">Section: { name }</div>
           <table class="directiveSectionDef">
               { childrenXml }
           </table>
-        </fieldset>
+        </div>
       </td></tr>
   }
 
@@ -266,14 +266,14 @@ case class SectionFieldImp(
     if(childrenXml.isEmpty) NodeSeq.Empty
     else
       <tr><td colspan="2">
-        <fieldset>
-        <legend>Section: { name }</legend>
+        <div>
+        <div class="inner-portlet-header-lower">Section: { name }</div>
           <table class="directiveSectionDisplay">
             <tbody>
               { childrenXml }
             </tbody>
           </table>
-        </fieldset>
+        </div>
       </td></tr>
   }
 }
@@ -381,8 +381,8 @@ case class MultivaluedSectionField(
       <div class="directiveGroup">{
         (allSections.zipWithIndex.map {
           case (section, i) =>
-            <fieldset class="groupFieldset">
-              <legend>{ "%s #%s".format(name, i + 1) }</legend>
+            <div class="groupFieldset">
+              <div class="inner-portlet-header-lower">{ "%s #%s".format(name, i + 1) }</div>
               { showFormEntry(section, i) }
               { // showAddAnother under the last element
                 if ((i + 1) == size) {
@@ -391,7 +391,7 @@ case class MultivaluedSectionField(
                   NodeSeq.Empty
                 }
               }
-            </fieldset>
+            </div>
         })
       }</div>
     </td> ++  Script(OnLoad(JsVar("""
@@ -432,14 +432,14 @@ case class MultivaluedSectionField(
     <tr><td colspan="2">
           <div class="directiveGroup">{
             (allSections.map { sect =>
-              <fieldset class="groupFieldset">
-                <legend>{ "%s".format(name) }</legend>
+              <div class="groupFieldset">
+                <div class="inner-portlet-header-lower">{ "%s".format(name) }</div>
                 <table class="directiveGroupDisplay">
                   <tbody>
                     { sect.toHtmlNodeSeq }
                   </tbody>
                 </table>
-              </fieldset>
+              </div>
             })
           }</div>
         </td></tr>
