@@ -50,7 +50,6 @@ case class NodeInfo(
   , name          : String
   , description   : String
   , hostname      : String
-  , machineType   : String
   , osFullName    : String
   , osType        : String
   , osVersion     : String
