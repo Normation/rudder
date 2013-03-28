@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2011-2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,37 +32,37 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.nodes
+package com.normation.rudder.web.snippet.node
 
-import com.normation.inventory.domain.AgentType
-import org.joda.time.DateTime
-import com.normation.inventory.domain.NodeId
-import com.normation.utils.HashcodeCaching
+import net.liftweb.http._
+import net.liftweb.common._
+import bootstrap.liftweb.RudderConfig
+import scala.xml.NodeSeq
 
-/**
- * A NodeInfo is a read only object containing the information that will be
- * always useful about a node
- * @author Nicolas CHARLES
- *
- */
-case class NodeInfo(
-    id            : NodeId
-  , name          : String
-  , description   : String
-  , hostname      : String
-  , machineType   : String
-  , osName        : String
-  , osType        : String
-  , osVersion     : String
-  , servicePack   : Option[String]
-  , ips           : List[String]
-  , inventoryDate : DateTime
-  , publicKey     : String
-  , agentsName    : Seq[AgentType]
-  , policyServerId: NodeId
-  , localAdministratorAccountName: String
-  , creationDate  : DateTime
-  , isBroken      : Boolean
-  , isSystem      : Boolean
-  , isPolicyServer: Boolean
-) extends HashcodeCaching
+
+class Nodes extends StatefulSnippet with Loggable {
+  private[this] val nodeInfoService = RudderConfig.nodeInfoService
+  val srvGrid =  RudderConfig.srvGrid
+
+  val dispatch : DispatchIt = {
+    case "table" => table _
+  }
+
+  def table(html:NodeSeq)= {
+  val nodes = nodeInfoService.getAllIds match {
+      case Full(ids) => ids.flatMap{id => val nodeInfo =   nodeInfoService.getNodeInfo(id)
+        nodeInfo match { case eb:EmptyBox => val fail = eb?~ s"could not find Node ${id}"
+        logger.error(fail.msg)
+        case _ =>
+        }
+      nodeInfo
+      }
+      case eb:EmptyBox => val fail = eb?~ s"could not find Nodes "
+           logger.error(fail.msg)
+           Seq()
+    }
+    srvGrid.displayAndInit(nodes, "nodes")
+
+}
+
+}
