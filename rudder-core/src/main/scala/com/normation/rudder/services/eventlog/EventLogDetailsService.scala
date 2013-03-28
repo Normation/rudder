@@ -514,6 +514,7 @@ class EventLogDetailsServiceImpl(
                         }?~! ("Missing attribute 'ips' in entry type node : " + entry)
       machineType    <- (details \ "machineType").headOption.map( _.text ) ?~! ("Missing attribute 'machineType' in entry type node : " + entry)
       os             <- (details \ "os").headOption.map( _.text ) ?~! ("Missing attribute 'os' in entry type node : " + entry)
+      osType         <- (details \ "osType").headOption.map( _.text ) ?~! ("Missing attribute 'os' in entry type node : " + entry)
       osVersion      <- (details \ "osVersion").headOption.map( _.text ) ?~! ("Missing attribute 'os' in entry type node : " + entry)
       servicePack    = (details \ "os").headOption.map( _.text )
       boxedAgentsName<- (details \ "agentsName").headOption.map  {
@@ -536,8 +537,8 @@ class EventLogDetailsServiceImpl(
         , name           = name
         , description    = description
         , hostname       = hostname
-        , machineType
         , os
+        , osType
         , osVersion
         , servicePack
         , ips            = ips.toList

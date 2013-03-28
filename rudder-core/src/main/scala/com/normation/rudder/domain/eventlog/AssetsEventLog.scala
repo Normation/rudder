@@ -170,7 +170,8 @@ object NodeEventLog {
         <name>{node.name}</name>
         <hostname>{node.hostname}</hostname>
         <description>{node.description}</description>
-        <os>{node.osName}</os>
+        <os>{node.osFullName}</os>
+        <osType>{node.osType}</osType>
         <osVersion>{node.osVersion}</osVersion>
         {node.servicePack.map(sp =>   <servicePack>{sp}</servicePack>)
           .getOrElse(NodeSeq.Empty)}
