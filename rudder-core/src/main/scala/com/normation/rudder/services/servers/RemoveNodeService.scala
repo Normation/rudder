@@ -83,7 +83,7 @@ class RemoveNodeServiceImpl(
                             nodeId           = nodeInfo.id
                           , inventoryVersion = nodeInfo.inventoryDate
                           , hostname         = nodeInfo.hostname
-                          , fullOsName       = nodeInfo.osFullName
+                          , fullOsName       = nodeInfo.osName
                           , actorIp          = actor.name
                         )
             val eventlog = DeleteNodeEventLog.fromInventoryLogDetails(

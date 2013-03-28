@@ -99,7 +99,7 @@ class LDAPEntityMapper(
 
     //////////////////////////////    NodeInfo    //////////////////////////////
 
-  val nodeInfoAttributes = Seq(A_OC, A_NODE_UUID, A_HOSTNAME, A_OS_FULL_NAME,A_OS_SERVICE_PACK,A_OS_VERSION, A_NAME, A_POLICY_SERVER_UUID, A_LIST_OF_IP, A_OBJECT_CREATION_DATE,A_AGENTS_NAME,A_PKEYS, A_ROOT_USER)
+  val nodeInfoAttributes = Seq(A_OC, A_NODE_UUID, A_HOSTNAME,A_OS_NAME,A_CONTAINER_DN, A_OS_FULL_NAME,A_OS_SERVICE_PACK,A_OS_VERSION, A_NAME, A_POLICY_SERVER_UUID, A_LIST_OF_IP, A_OBJECT_CREATION_DATE,A_AGENTS_NAME,A_PKEYS, A_ROOT_USER)
 
   /**
    * From a nodeEntry and an inventoryEntry, create a NodeInfo
@@ -118,6 +118,7 @@ class LDAPEntityMapper(
       checkIsANode <- if(inventoryEntry.isA(OC_NODE)) Full("Ok")
                       else Failure("Bad object class, need %s and found %s".format(OC_NODE,inventoryEntry.valuesFor(A_OC)))
 
+      machineType  =  machineEntry.map(machine => if (machine.isA(OC_PM)) "Physical" else "Virtual").getOrElse("No Machine Inventory")
       checkSameID  <- if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) Full("Ok")
                       else Failure("Mismatch id for the node %s and the inventory %s".format(nodeEntry(A_NODE_UUID), inventoryEntry(A_NODE_UUID)))
 
@@ -136,23 +137,19 @@ class LDAPEntityMapper(
       date        <- nodeEntry.getAsGTime(A_OBJECT_CREATION_DATE) ?~!
                       "Can not find mandatory attribute '%s' in entry".format(A_OBJECT_CREATION_DATE)
       osVersion   = inventoryEntry(A_OS_VERSION).getOrElse("N/A")
-      osFullName  = inventoryEntry(A_OS_FULL_NAME).getOrElse("N/A")
+      osName  = inventoryEntry(A_OS_NAME).getOrElse("N/A")
       servicePack = inventoryEntry(A_OS_SERVICE_PACK)
-      osType      = if(inventoryEntry.isA(OC_WINDOWS_NODE))    "Windows"
-                    else if(inventoryEntry.isA(OC_LINUX_NODE)) "Linux"
-                      else                                     "Unknown"
     } yield {
       // fetch the inventory datetime of the object
       val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map(_.dateTime) getOrElse(DateTime.now)
-
       NodeInfo(
           id
         , nodeEntry(A_NAME).getOrElse("")
         , nodeEntry(A_DESCRIPTION).getOrElse("")
         , inventoryEntry(A_HOSTNAME).getOrElse("")
         //OsType.osTypeFromObjectClasses(inventoryEntry.valuesFor(A_OC)).map(_.toString).getOrElse(""),
-        , osFullName
-        , osType
+        , machineType
+        , osName
         , osVersion
         , servicePack
         , inventoryEntry.valuesFor(A_LIST_OF_IP).toList

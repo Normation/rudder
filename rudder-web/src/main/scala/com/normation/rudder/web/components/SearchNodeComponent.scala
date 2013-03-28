@@ -279,7 +279,7 @@ class SearchNodeComponent(
     def showQueryAndGridContent() : NodeSeq = {
       bind("content",searchNodes,
         "query" -> {x:NodeSeq => displayQuery(x)},
-        "gridResult" -> srvGrid.display(Seq(), "serverGrid", Seq()) // we need to set something, or IE moans
+        "gridResult" -> srvGrid.display(Seq(), "serverGrid") // we need to set something, or IE moans
       )
     }
     showQueryAndGridContent()  ++ Script(OnLoad(ajaxGridRefresh))
@@ -317,12 +317,12 @@ class SearchNodeComponent(
     // Ideally this would just check the size first ?
     srvList match {
       case Full(seq) =>
-        (srvGrid.display(seq, "serverGrid", Seq()),
-        srvGrid.initJs("serverGrid", Seq(), false, true, onClickCallback))
+        (srvGrid.display(seq, "serverGrid"),
+        srvGrid.initJs("serverGrid", onClickCallback,groupPage))
 
       case Empty =>
-        (srvGrid.display(Seq(), "serverGrid", Seq()),
-        srvGrid.initJs("serverGrid", Seq(), false, true, onClickCallback))
+        (srvGrid.display(Seq(), "serverGrid"),
+        srvGrid.initJs("serverGrid", onClickCallback,groupPage))
 
       case f@Failure(_,_,_) => (<div><h4>Error</h4>{f.messageChain}</div>, Noop)
     }

@@ -1009,8 +1009,8 @@ object RudderConfig extends Loggable {
     , techniqueRepositoryImpl)
   private[this] lazy val propertyRepository = new RudderPropertiesSquerylRepository(
       squerylDatasourceProvider
-    , reportsRepositoryImpl )
-  private[this] lazy val automaticReportLogger = new AutomaticReportLogger(
+    , reportsRepository )
+  private[this] lazy val autoReportLogger = new AutomaticReportLogger(
       propertyRepository
     , reportsRepositoryImpl
     , roLdapRuleRepository
