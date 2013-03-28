@@ -109,13 +109,15 @@ object DefaultRequestLimits extends RequestLimits(10,1000,10,1000)
  */
 class AccepetedNodesLDAPQueryProcessor(
     nodeDit:NodeDit,
+    inventoryDit:InventoryDit,
     processor:InternalLDAPQueryProcessor
 ) extends QueryProcessor with Loggable {
 
 
   private[this] case class QueryResult(
-    nodeEntry:LDAPEntry,
-    inventoryEntry:LDAPEntry
+      nodeEntry:LDAPEntry
+    , inventoryEntry:LDAPEntry
+    , machineEntry:LDAPEntry
   ) extends HashcodeCaching
 
   /**
@@ -135,12 +137,16 @@ class AccepetedNodesLDAPQueryProcessor(
     } yield {
       for {
         inventoryEntry <- inventoryEntries
+        container <- inventoryEntry(A_CONTAINER_DN)
+        machineId <- inventoryDit.MACHINES.MACHINE.idFromDN(new DN(container))
+
         rdn <- inventoryEntry(A_NODE_UUID)
         con <- processor.ldap
+        machine <- con.get(inventoryDit.MACHINES.MACHINE.dn(machineId),Seq("*"):_*)
         nodeEntry <- con.get(nodeDit.NODES.NODE.dn(rdn), Seq(SearchRequest.ALL_USER_ATTRIBUTES, A_OBJECT_CREATION_DATE):_*)
         if ((query.returnType == NodeReturnType && !nodeEntry.isA(OC_POLICY_SERVER_NODE)) || (query.returnType == NodeAndPolicyServerReturnType))
       } yield {
-        QueryResult(nodeEntry,inventoryEntry)
+        QueryResult(nodeEntry,inventoryEntry,machine)
       }
     }
   }
@@ -149,8 +155,8 @@ class AccepetedNodesLDAPQueryProcessor(
   override def process(query:Query) : Box[Seq[NodeInfo]] = {
     //only keep the one of the form Full(...)
     queryAndChekNodeId(query, processor.ldapMapper.nodeInfoAttributes, None).map { seq => seq.flatMap {
-      case QueryResult(nodeEntry, inventoryEntry) =>
-        processor.ldapMapper.convertEntriesToNodeInfos(nodeEntry, inventoryEntry) match {
+      case QueryResult(nodeEntry, inventoryEntry,machine) =>
+        processor.ldapMapper.convertEntriesToNodeInfos(nodeEntry, inventoryEntry,Some(machine)) match {
           case Full(nodeInfo) => Seq(nodeInfo)
           case e:EmptyBox =>
             logger.error((e ?~! "Ignoring entry in result set").messageChain)
