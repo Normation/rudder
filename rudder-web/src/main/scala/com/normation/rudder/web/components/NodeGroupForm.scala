@@ -183,6 +183,7 @@ class NodeGroupForm(
       , onSearchCallback = saveButtonCallBack
       , onClickCallback = { id => onClickCallBack(id) }
       , saveButtonId = saveButtonId
+      , groupPage = true
     )))
   }
 

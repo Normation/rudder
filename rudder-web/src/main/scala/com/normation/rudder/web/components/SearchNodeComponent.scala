@@ -72,13 +72,14 @@ import bootstrap.liftweb.RudderConfig
  *
  */
 class SearchNodeComponent(
-    htmlId : String, // unused ...
-    _query : Option[Query],
-    _srvList : Box[Seq[NodeInfo]],
-    onUpdateCallback : () => JsCmd = { () => Noop }, // this one is not used yet
-    onClickCallback :  (String) => JsCmd = { (x:String) => Noop }, // this callback is used when we click on an element in the grid
-    onSearchCallback :  (Boolean) => JsCmd = { (x:Boolean) => Noop }, // this callback is used when a research is done and the state of the Search button changes
-    saveButtonId : String = "" // the id of the save button, that gets disabled when one change the form
+    htmlId : String // unused ...
+  , _query : Option[Query]
+  , _srvList : Box[Seq[NodeInfo]]
+  , onUpdateCallback : () => JsCmd = { () => Noop } // this one is not used yet
+  , onClickCallback :  (String) => JsCmd = { (x:String) => Noop } // this callback is used when we click on an element in the grid
+  , onSearchCallback :  (Boolean) => JsCmd = { (x:Boolean) => Noop } // this callback is used when a research is done and the state of the Search button changes
+  , saveButtonId : String = "" // the id of the save button, that gets disabled when one change the form
+  , groupPage : Boolean
 )extends DispatchSnippet {
   import SearchNodeComponent._
 
@@ -278,7 +279,7 @@ class SearchNodeComponent(
     def showQueryAndGridContent() : NodeSeq = {
       bind("content",searchNodes,
         "query" -> {x:NodeSeq => displayQuery(x)},
-        "gridResult" -> srvGrid.display(Seq(), "serverGrid", Seq(), "") // we need to set something, or IE moans
+        "gridResult" -> srvGrid.display(Seq(), "serverGrid") // we need to set something, or IE moans
       )
     }
     showQueryAndGridContent()  ++ Script(OnLoad(ajaxGridRefresh))
@@ -316,12 +317,12 @@ class SearchNodeComponent(
     // Ideally this would just check the size first ?
     srvList match {
       case Full(seq) =>
-        (srvGrid.display(seq, "serverGrid", Seq(), ""),
-        srvGrid.initJs("serverGrid", Seq(), "", false, true, onClickCallback))
+        (srvGrid.display(seq, "serverGrid"),
+        srvGrid.initJs("serverGrid", onClickCallback,groupPage))
 
       case Empty =>
-        (srvGrid.display(Seq(), "serverGrid", Seq(), ""),
-        srvGrid.initJs("serverGrid", Seq(), "", false, true, onClickCallback))
+        (srvGrid.display(Seq(), "serverGrid"),
+        srvGrid.initJs("serverGrid", onClickCallback,groupPage))
 
       case f@Failure(_,_,_) => (<div><h4>Error</h4>{f.messageChain}</div>, Noop)
     }
@@ -521,7 +522,9 @@ object SearchNodeComponent {
         ditQueryData.criteriaMap.get(x) foreach { o => if(i >= 0 && i < lines.size) lines(i) = lines(i).copy(objectType=o) }
       }),
       ("id","ot_"+i),
-      ("onchange", ajaxAttr(lines,i)._2.toJsCmd)
+      ("onchange", ajaxAttr(lines,i)._2.toJsCmd),
+      ("class","selectField")
+
     )
   }
 
@@ -533,7 +536,8 @@ object SearchNodeComponent {
         if(i >= 0 && i < lines.size) lines(i).objectType.criterionForName(x) foreach { y => lines(i) = lines(i).copy(attribute=y) }
       }),
       ("id","at_"+i),
-      ("onchange", ajaxComp(lines,i)._2.toJsCmd)
+      ("onchange", ajaxComp(lines,i)._2.toJsCmd),
+      ("class","selectField")
     )
   }
 

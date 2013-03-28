@@ -512,7 +512,10 @@ class EventLogDetailsServiceImpl(
       ips            <- (details \ "ips").headOption.map { case  x:NodeSeq =>
                           (x \ "ip").toSeq.map( (y:NodeSeq) => y.text  )
                         }?~! ("Missing attribute 'ips' in entry type node : " + entry)
+      machineType    <- (details \ "machineType").headOption.map( _.text ) ?~! ("Missing attribute 'machineType' in entry type node : " + entry)
       os             <- (details \ "os").headOption.map( _.text ) ?~! ("Missing attribute 'os' in entry type node : " + entry)
+      osVersion      <- (details \ "osVersion").headOption.map( _.text ) ?~! ("Missing attribute 'os' in entry type node : " + entry)
+      servicePack    = (details \ "os").headOption.map( _.text )
       boxedAgentsName<- (details \ "agentsName").headOption.map  {
                               case x:NodeSeq =>
                               (x \ "agentName").toSeq.map( (y:NodeSeq) => AgentType.fromValue(y.text) )
@@ -533,7 +536,10 @@ class EventLogDetailsServiceImpl(
         , name           = name
         , description    = description
         , hostname       = hostname
-        , os             = os
+        , machineType
+        , os
+        , osVersion
+        , servicePack
         , ips            = ips.toList
         , inventoryDate  = ISODateTimeFormat.dateTimeParser.parseDateTime(inventoryDate)
         , publicKey      = publicKey

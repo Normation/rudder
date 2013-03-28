@@ -97,6 +97,7 @@ class TestQueryProcessor extends Loggable {
 
   val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
       nodeDit,
+      DIT,
       internalLDAPQueryProcessor
   )
 
