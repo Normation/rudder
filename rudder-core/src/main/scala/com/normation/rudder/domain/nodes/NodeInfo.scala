@@ -52,7 +52,6 @@ case class NodeInfo(
   , hostname      : String
   , machineType   : String
   , osName        : String
-  , osType        : String
   , osVersion     : String
   , servicePack   : Option[String]
   , ips           : List[String]

@@ -108,22 +108,20 @@ class SrvGrid {
    * @return
    */
   def displayAndInit(
-      servers:Seq[NodeInfo],
-      tableId:String,
-      columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(),
-      searchable : Boolean = true,
-      paginate : Boolean = true,
-      callback : String => JsCmd = x => Noop
+      servers:Seq[NodeInfo]
+    , tableId:String
+    , callback : String => JsCmd = x => Noop
+    , isGroupPage : Boolean = false
    ) : NodeSeq = {
-    display(servers, tableId, columns) ++
-    Script(initJs(tableId, columns, searchable, paginate, callback))
+    display(servers, tableId) ++
+    Script(initJs(tableId, callback,isGroupPage))
   }
 
   /*
    * Init Javascript for the table with ID 'tableId'
    *
    */
-  def initJs(tableId:String, columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(), searchable : Boolean, paginate : Boolean,callback : String => JsCmd) : JsCmd = {
+  def initJs(tableId:String,callback : String => JsCmd,isGroupPage:Boolean) : JsCmd = {
 
     val sizes = if (isGroupPage)
         Seq(210,60,60,60,40,115) //545px width
@@ -153,18 +151,11 @@ class SrvGrid {
             },
             "bJQueryUI": true,
             "aaSorting": [[ 0, "asc" ]],
-            "aoColumns": [
-              { "sWidth": "200px" },
-              { "sWidth": "125px" },
-              { "sWidth": "600px" },
-              { "sWidth": "175px" },
-              { "sWidth": "300px" },
-              { "sWidth": "250px" }
-            ],
+            "aoColumns": [${sizes.map(size => s""" { "sWidth": "${size}" }""").mkString(",")}],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
-          $('.dataTables_filter input').attr("placeholder", "Search");
-          """.format(tableId,paginate).replaceAll("#table_var#",jsVarNameForId(tableId))
+          $$('.dataTables_filter input').attr("placeholder", "Search");
+          """
         ) &
 
         initJsCallBack(tableId, callback)
@@ -179,13 +170,10 @@ class SrvGrid {
    */
   def initJsCallBack(tableId:String, callback : (String) => JsCmd) : JsCmd = {
       JsRaw("""$("#serverName", #table_var#.fnGetNodes() ).each( function () {
-              var td = this;
-          $(this.parentNode).click( function () {
-              var aPos = #table_var#.fnGetPosition( td );
-              var aData = $(#table_var#.fnGetData( aPos[0] ));
-              var node = $(aData[aPos[1]]);
-              var id = node.attr("serverid");
-              var jsid = node.attr("jsuuid");
+              var td = $(this);
+          td.click( function () {
+              var id = td.attr("serverid");
+              var jsid = td.attr("jsuuid");
               var ajaxParam = jsid + "|" + id;
               %s;
           } );
@@ -210,33 +198,32 @@ class SrvGrid {
    *    is the content of the column
    */
 
-  def display(servers:Seq[NodeInfo], tableId:String, columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq()) : NodeSeq = {
+  def display(servers:Seq[NodeInfo], tableId:String) : NodeSeq = {
     //bind the table
     <table id={tableId} cellspacing="0">
     <thead>
       <tr class="head">
         <th>Node name</th>
-        <th>OS type</th>
+        <th>Machine type</th>
         <th>OS name</th>
         <th>OS version</th>
-        <th>OS service pack</th>
-        <th>Last report date</th>
+        <th>OS SP</th>
+        <th>Last seen</th>
       </tr>
     </thead>
     <tbody>
     {servers.map { server =>
-      (("#serverName *") #> <span  class="hostnamecurs" jsuuid={server.id.value.replaceAll("-","")} serverid={server.id.value.toString} >
-                         { if (isEmpty(server.name))
-                             s"(Missing name)  ${server.id.value}"
-                           else
-                             server.hostname
-                         } </span> &
-      ("#osType *")      #> server.osType &
-      ("#osFullName *")  #> server.osFullName &
+
+      (("#serverName *") #> ( if (isEmpty(server.name))
+                                s"(Missing name)  ${server.id.value}"
+                              else
+                                server.hostname ) &
+      ("#machineType *") #> server.machineType &
+      ("#osFullName *")  #> S.?(s"os.name.${server.osName}") &
       ("#osVersion *")   #> server.osVersion &
       ("#servicePack *") #> server.servicePack.getOrElse("N/A") &
-      ("#lastReport *")  #> reportsRepo.getNewestReportOnNode(server.id).getOrElse(None).map(report =>  DateFormaterService.getFormatedDate(report.executionDate)).getOrElse("never")
-      )(lineXml)
+      ("#lastReport *")  #> reportsRepo.getNewestReportOnNode(server.id).getOrElse(None).map(report =>  DateFormaterService.getFormatedDate(report.executionDate)).getOrElse("Never")
+      )(lineXml(server.id.value))
     } }
     </tbody>
       </table>
@@ -246,10 +233,10 @@ class SrvGrid {
       </div>
   }
 
-  private[this] val lineXml =
+  private[this] def lineXml(serverId:String) =
     <tr>
-      <td id="serverName" />
-      <td id="osType"     />
+      <td id="serverName" class="hostnamecurs" jsuuid={serverId.replaceAll("-","")} serverid={serverId}/>
+      <td id="machineType"/>
       <td id="osFullName" />
       <td id="osVersion"  />
       <td id="servicePack"/>
