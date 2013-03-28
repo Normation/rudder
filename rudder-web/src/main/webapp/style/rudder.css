@@ -307,11 +307,15 @@ form input.btnSearch {
 }
 
 form select.selectComparator {
-   width: 100px;
+   width: 150px;
+}
+
+form select.selectField {
+   width: 180px;
 }
 
 input.queryInputValue, select.queryInputValue {
-  width:115px !important;
+  width:160px !important;
   margin: 0px !important;
   padding: 0px !important;
   
@@ -933,7 +937,7 @@ padding:0 20px;
   margin:10px;
 }
 table.searchNodes {
-  width: 545px;
+  width: 750px;
   margin: 0;
 }
 
@@ -947,7 +951,6 @@ table.searchNodes tbody td.last {
 
 fieldset.searchNodes {
   padding:5px;
-  margin:5px;
   width: 545px;
   clear: both;
 }
@@ -987,7 +990,7 @@ tr.query_line, .query_line td {
 .composition {
   padding: 5px 0px 0px 5px;
   margin: 0px 0px 0px 0px;
-  width: 538px;
+  width: 743px;
   vertical-align: middle;
   border-left: solid 1px #ABABAB;
   border-top: 1px solid #ABABAB;
@@ -1004,7 +1007,7 @@ tr.query_line, .query_line td {
 }
 
 table#serverGrid {
-  width: 545px;
+  width: 750px;
   
 }
 
@@ -1015,7 +1018,7 @@ table#serverGrid tbody td {
 }
 
 #serverGrid_wrapper {
-  width: 545px;
+  width: 750px;
   margin: 0;
 }
 
@@ -1056,7 +1059,7 @@ div.dataTables_scroll {
 }
 
 #serverGrid_tooManyResult {
-  width: 543px;
+  width: 748px;
   margin:0 0 0 10px;
   border: solid 1px #ABABAB;
 }
@@ -1109,7 +1112,7 @@ fieldset.groupCategory {
 }
 
 .nodeGroupSubmitSearch {
-   width:543px;
+   width:748px;
    border-left: 1px solid #ABABAB;
    border-right: 1px solid #ABABAB;
    margin: 0 ;

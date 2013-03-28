@@ -104,6 +104,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       , srvList
       , () => Noop
       , showNodeDetails
+      , groupPage = false
     )
     searchNodeComponent.set(Full(sc))
     sc

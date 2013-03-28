@@ -35,27 +35,26 @@
 package com.normation.rudder.web.services
 
 import com.normation.rudder.domain.nodes.NodeInfo
-
 import com.normation.utils.Utils.isEmpty
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core._
 import LDAPConstants._
 import bootstrap.liftweb.LiftSpringApplicationContext.inject
-
 import org.slf4j.LoggerFactory
-
-//lift std import
 import scala.xml._
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.util._
 import Helpers._
 import net.liftweb.http.js._
-import JsCmds._ // For implicits
+import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
 import com.normation.exceptions.TechnicalException
 import net.liftweb.http.Templates
+import com.normation.rudder.repository.ReportsRepository
+import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.web.components.DateFormaterService
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -87,6 +86,7 @@ class SrvGrid {
 
   private def headTemplate = chooseTemplate("servergrid","head",template)
   private def tableTemplate = chooseTemplate("servergrid","table",template)
+  private[this] val reportsRepo = RudderConfig.reportsRepository
 
   /*
    * All JS/CSS needed to have datatable working
@@ -108,24 +108,25 @@ class SrvGrid {
    * @return
    */
   def displayAndInit(
-      servers:Seq[NodeInfo],
-      tableId:String,
-      columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(),
-      aoColumns:String ="",
-      searchable : Boolean = true,
-      paginate : Boolean = true,
-      callback : String => JsCmd = x => Noop
+      servers:Seq[NodeInfo]
+    , tableId:String
+    , callback : String => JsCmd = x => Noop
+    , isGroupPage : Boolean = false
    ) : NodeSeq = {
-    display(servers, tableId, columns, aoColumns) ++
-    Script(initJs(tableId, columns, aoColumns, searchable, paginate, callback))
+    display(servers, tableId) ++
+    Script(initJs(tableId, callback,isGroupPage))
   }
 
   /*
    * Init Javascript for the table with ID 'tableId'
    *
    */
-  def initJs(tableId:String, columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(), aoColumns:String ="", searchable : Boolean, paginate : Boolean,callback : String => JsCmd) : JsCmd = {
+  def initJs(tableId:String,callback : String => JsCmd,isGroupPage:Boolean) : JsCmd = {
 
+    val sizes = if (isGroupPage)
+        Seq(210,60,60,60,40,115) //545px width
+      else
+        Seq(225,125,100,100,75,125) // 750px width
     JsRaw("""
         var #table_var#;
         /* Formating function for row details */
@@ -136,13 +137,13 @@ class SrvGrid {
       """.replaceAll("#table_var#",jsVarNameForId(tableId))
     ) & OnLoad(
 
-        JsRaw("""
+        JsRaw(s"""
           /* Event handler function */
-          #table_var# = $('#%s').dataTable({
+          ${jsVarNameForId(tableId)} = $$('#${tableId}').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
-            "bFilter" :true,
-            "bPaginate" :%s,
+            "bFilter"  : true,
+            "bPaginate": true,
             "bLengthChange": true,
             "sPaginationType": "full_numbers",
             "oLanguage": {
@@ -150,14 +151,11 @@ class SrvGrid {
             },
             "bJQueryUI": true,
             "aaSorting": [[ 0, "asc" ]],
-            "aoColumns": [
-              { "sWidth": "180px" },
-              { "sWidth": "300px" } %s
-            ],
+            "aoColumns": [${sizes.map(size => s""" { "sWidth": "${size}" }""").mkString(",")}],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
-          $('.dataTables_filter input').attr("placeholder", "Search");
-          """.format(tableId,paginate,aoColumns).replaceAll("#table_var#",jsVarNameForId(tableId))
+          $$('.dataTables_filter input').attr("placeholder", "Search");
+          """
         ) &
 
         initJsCallBack(tableId, callback)
@@ -171,14 +169,11 @@ class SrvGrid {
    * initialization.
    */
   def initJsCallBack(tableId:String, callback : (String) => JsCmd) : JsCmd = {
-      JsRaw("""$('td[name="serverName"]', #table_var#.fnGetNodes() ).each( function () {
-              var td = this;
-          $(this.parentNode).click( function () {
-              var aPos = #table_var#.fnGetPosition( td );
-              var aData = $(#table_var#.fnGetData( aPos[0] ));
-              var node = $(aData[aPos[1]]);
-              var id = node.attr("serverid");
-              var jsid = node.attr("jsuuid");
+      JsRaw("""$("#serverName", #table_var#.fnGetNodes() ).each( function () {
+              var td = $(this);
+          td.click( function () {
+              var id = td.attr("serverid");
+              var jsid = td.attr("jsuuid");
               var ajaxParam = jsid + "|" + id;
               %s;
           } );
@@ -201,27 +196,50 @@ class SrvGrid {
    *    a list of supplementary column to add in the grid,
    *    where the _1 is the header, and the (server => NodeSeq)
    *    is the content of the column
-   * @parameter aoColumns : the javascript for the datatable
    */
 
-  def display(servers:Seq[NodeInfo], tableId:String, columns:Seq[(Node,NodeInfo => NodeSeq)]=Seq(), aoColumns:String ="") : NodeSeq = {
+  def display(servers:Seq[NodeInfo], tableId:String) : NodeSeq = {
     //bind the table
-    <table id={tableId} cellspacing="0">{
-    bind("servergrid",tableTemplate,
-      "header" -> (columns flatMap { c => <th>{c._1}<span/></th> }),
-      "lines" -> ( servers.flatMap { case s@NodeInfo(id,name,description, hostname, operatingSystem, ips, inventoryDate,pkey, agentsName, policyServerId, admin, creationDate, isBroken, isSystem, isPolicyServer) =>
-        //build all table lines
-        bind("line",chooseTemplate("servergrid","lines",tableTemplate),
-          "name" -> <span class="hostnamecurs" jsuuid={id.value.replaceAll("-","")} serverid={id.value.toString} >{(if(isEmpty(name)) "(Missing name) " + id.value else hostname)}</span>,
-          "fullos" -> operatingSystem,
-          "other" -> (columns flatMap { c => <td>{c._2(s)}</td> })
-        )
-      })
-    )}</table>
+    <table id={tableId} cellspacing="0">
+    <thead>
+      <tr class="head">
+        <th>Node name</th>
+        <th>Machine type</th>
+        <th>OS name</th>
+        <th>OS version</th>
+        <th>OS SP</th>
+        <th>Last seen</th>
+      </tr>
+    </thead>
+    <tbody>
+    {servers.map { server =>
+
+      (("#serverName *") #> ( if (isEmpty(server.name))
+                                s"(Missing name)  ${server.id.value}"
+                              else
+                                server.hostname ) &
+      ("#machineType *") #> server.machineType &
+      ("#osFullName *")  #> S.?(s"os.name.${server.osName}") &
+      ("#osVersion *")   #> server.osVersion &
+      ("#servicePack *") #> server.servicePack.getOrElse("N/A") &
+      ("#lastReport *")  #> reportsRepo.getNewestReportOnNode(server.id).getOrElse(None).map(report =>  DateFormaterService.getFormatedDate(report.executionDate)).getOrElse("Never")
+      )(lineXml(server.id.value))
+    } }
+    </tbody>
+      </table>
       <div class={tableId +"_pagination"}>
         <div id={tableId +"_paginate_area"}></div>
         <div id={tableId +"_filter_area"}></div>
       </div>
   }
 
+  private[this] def lineXml(serverId:String) =
+    <tr>
+      <td id="serverName" class="hostnamecurs" jsuuid={serverId.replaceAll("-","")} serverid={serverId}/>
+      <td id="machineType"/>
+      <td id="osFullName" />
+      <td id="osVersion"  />
+      <td id="servicePack"/>
+      <td id="lastReport" />
+   </tr>
 }

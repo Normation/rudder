@@ -170,7 +170,11 @@ object NodeEventLog {
         <name>{node.name}</name>
         <hostname>{node.hostname}</hostname>
         <description>{node.description}</description>
-        <os>{node.os}</os>
+        <os>{node.osName}</os>
+        <osVersion>{node.osVersion}</osVersion>
+        {node.servicePack.map(sp =>   <servicePack>{sp}</servicePack>)
+          .getOrElse(NodeSeq.Empty)}
+
         <ips>{node.ips.map(ip => <ip>{ip}</ip>)}</ips>
         <inventoryDate>{node.inventoryDate}</inventoryDate>
         <publicKey>{node.publicKey}</publicKey>
