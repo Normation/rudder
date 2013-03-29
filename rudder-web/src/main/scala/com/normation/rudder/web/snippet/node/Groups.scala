@@ -389,7 +389,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     }
     override def children = category.children.flatMap(x => nodeGroupCategoryIdToJsTreeNode(x)) ++ category.items.map(x => policyTargetInfoToJsTreeNode(x))
     override val attrs =
-      ( "rel" -> { if(category.id == rootCategoryId) "root-category" else "category" } ) ::
+      ( "rel" -> { if(category.id == rootCategoryId) "root-category" else if (category.isSystem) "system_category" else "category"  } ) ::
       ( "catId" -> category.id.value ) ::
       ( "class" -> "" ) ::
       Nil
@@ -404,13 +404,9 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   //fetch server group category id and transform it to a tree node
   private[this] def nodeGroupCategoryIdToJsTreeNode(id:NodeGroupCategoryId) : Box[JsTreeNode] = {
     roNodeGroupRepository.getGroupCategory(id) match {
-      //remove sytem category
-      case Full(group) => group.isSystem match {
-        case true => Empty
-        case false => Full(nodeGroupCategoryToJsTreeNode(group))
-      }
+      case Full(group) => Full(nodeGroupCategoryToJsTreeNode(group))
       case e:EmptyBox =>
-        val f = e ?~! "Error while fetching Technique category %s".format(id)
+        val f = e ?~! "Error while fetching Group category %s".format(id)
         logger.error(f.messageChain)
         f
     }
@@ -430,18 +426,18 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       case x => new JsTreeNode {
          override def body =  {
            val tooltipId = Helpers.nextFuncName
-
-           (
-             <span class="treeGroupName tooltipable" title="" tooltipid={tooltipId} >{targetInfo.name}
-               <span class="greyscala">(special)</span>
+           (<a style="cursor:default">
+             <span class="treeGroupName tooltipable" title="" tooltipid={tooltipId}>{targetInfo.name}
+              {if (targetInfo.isSystem) <span class="greyscala">(System)</span>}
              </span>
              <div class="tooltipContent" id={tooltipId}>{
                if(targetInfo.description.size > 0) targetInfo.description else targetInfo.name
              }</div>
+            </a>
            )
          }
          override def children = Nil
-         override val attrs = ( "rel" -> "special_target" ) :: Nil
+         override val attrs = ( "rel" -> "system_target" ) :: Nil
       }
     }
   }
@@ -457,24 +453,31 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     }
 
     override def body = {
-      val tooltupId = Helpers.nextFuncName
-      SHtml.a(
-        onClickNode _,
-        (
-          <span class="treeGroupName tooltipable" title="" tooltipid={tooltupId}>{List(group.name,group.isDynamic?"dynamic"|"static").mkString(": ")}</span>
-          <div class="tooltipContent" id={tooltupId}>{
-            if(group.description.size > 0) group.description else group.name
-          }</div>
-        )
-      )
+      val tooltipId = Helpers.nextFuncName
+      val xml  = {
+        <span class="treeGroupName tooltipable" title="" tooltipid={tooltipId}>{s" ${group.name}: ${group.isDynamic?"dynamic"|"static"}"}
+        {if (group.isSystem) <span class="greyscala">(System)</span>}
+        </span>
+        <div class="tooltipContent" id={tooltipId}>{
+          if(group.description.size > 0) group.description else group.name
+        }</div>
+      }
+
+      if (group.isSystem)
+        <a style="cursor:default">{xml}</a>
+      else
+        SHtml.a(onClickNode _,xml)
     }
 
     override def children = Nil
     override val attrs =
-      ( "rel" -> "group" ) ::
-      ( "groupId" -> group.id.value ) ::
-      ( "id" -> ("jsTree-" + group.id.value) ) ::
-      Nil
+      if(group.isSystem) {
+        ( "rel" -> "system_target" ) :: Nil
+      } else {
+        ( "rel" -> "group" ) ::
+        ( "groupId" -> group.id.value ) ::
+        ( "id" -> ("jsTree-" + group.id.value) ) :: Nil
+      }
   }
 
   /**
@@ -493,9 +496,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
 
     //update UI
     SetHtml("createGroupContainer", createPopup) &
-    JsRaw( """ createPopup("createGroupPopup",300,400)
-
-     """)
+    JsRaw( """ createPopup("createGroupPopup",300,400)""")
 
   }
 }
