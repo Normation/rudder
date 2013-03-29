@@ -117,7 +117,7 @@ class AccepetedNodesLDAPQueryProcessor(
   private[this] case class QueryResult(
       nodeEntry:LDAPEntry
     , inventoryEntry:LDAPEntry
-    , machineEntry:LDAPEntry
+    , machineEntry:Option[LDAPEntry]
   ) extends HashcodeCaching
 
   /**
@@ -137,12 +137,20 @@ class AccepetedNodesLDAPQueryProcessor(
     } yield {
       for {
         inventoryEntry <- inventoryEntries
-        container <- inventoryEntry(A_CONTAINER_DN)
-        machineId <- inventoryDit.MACHINES.MACHINE.idFromDN(new DN(container))
-
         rdn <- inventoryEntry(A_NODE_UUID)
         con <- processor.ldap
-        machine <- con.get(inventoryDit.MACHINES.MACHINE.dn(machineId),Seq("*"):_*)
+
+        machine <- inventoryEntry(A_CONTAINER_DN) match {
+          case Some(container) => inventoryDit.MACHINES.MACHINE.idFromDN(new DN(container)) match {
+            case Full(machineId) =>  Full(con.get(inventoryDit.MACHINES.MACHINE.dn(machineId),Seq("*"):_*).toOption)
+            case eb:EmptyBox => val msg = s"could not get machine from container ${container} : ${eb}"
+              logger.error(msg)
+              Failure(msg)
+            }
+          case None => logger.debug(s"no machine Inventory for ${inventoryEntry}")
+            Full(None)
+        }
+
         nodeEntry <- con.get(nodeDit.NODES.NODE.dn(rdn), Seq(SearchRequest.ALL_USER_ATTRIBUTES, A_OBJECT_CREATION_DATE):_*)
         if ((query.returnType == NodeReturnType && !nodeEntry.isA(OC_POLICY_SERVER_NODE)) || (query.returnType == NodeAndPolicyServerReturnType))
       } yield {
@@ -156,7 +164,7 @@ class AccepetedNodesLDAPQueryProcessor(
     //only keep the one of the form Full(...)
     queryAndChekNodeId(query, processor.ldapMapper.nodeInfoAttributes, None).map { seq => seq.flatMap {
       case QueryResult(nodeEntry, inventoryEntry,machine) =>
-        processor.ldapMapper.convertEntriesToNodeInfos(nodeEntry, inventoryEntry,Some(machine)) match {
+        processor.ldapMapper.convertEntriesToNodeInfos(nodeEntry, inventoryEntry,machine) match {
           case Full(nodeInfo) => Seq(nodeInfo)
           case e:EmptyBox =>
             logger.error((e ?~! "Ignoring entry in result set").messageChain)
