@@ -110,9 +110,17 @@ class NodeInfoServiceImpl(
       node <- con.get(nodeDit.NODES.NODE.dn(nodeId.value), nodeInfoAttributes:_*) ?~! "Node with ID '%s' was not found".format(nodeId.value)
       nodeInfo <- for {
                     server <- con.get(inventoryDit.NODES.NODE.dn(nodeId.value), nodeInfoAttributes:_*)  ?~! "Node info with ID '%s' was not found".format(nodeId.value)
-                    machineId <- inventoryDit.MACHINES.MACHINE.idFromDN(new DN(server(A_CONTAINER_DN).get))
-                    machine <- con.get(inventoryDit.MACHINES.MACHINE.dn(machineId),Seq("*"):_*)
-                    nodeInfo <- ldapMapper.convertEntriesToNodeInfos(node, server,Some(machine))
+                    machine <- server(A_CONTAINER_DN) match {
+                      case Some(container) => inventoryDit.MACHINES.MACHINE.idFromDN(new DN(container)) match {
+                        case Full(machineId) =>  Full(con.get(inventoryDit.MACHINES.MACHINE.dn(machineId),Seq("*"):_*).toOption)
+                        case eb:EmptyBox => val msg = s"could not get machine from container ${container} : ${eb}"
+                          logger.error(msg)
+                          Failure(msg)
+                      }
+                      case None => logger.debug(s"no machine Inventory for ${server}")
+                        Full(None)
+                    }
+                    nodeInfo <- ldapMapper.convertEntriesToNodeInfos(node, server,machine)
                   } yield {
                     nodeInfo
                   }
