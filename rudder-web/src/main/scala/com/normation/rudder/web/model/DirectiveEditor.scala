@@ -220,39 +220,83 @@ trait SectionField extends SectionChildField {
 
   def displayHtml = Text(toClient)
 
+  // A Section may be displayed or not-displayed by default
+  // for the current user (we need to figure out
+  // how to specify it per user)
+  def displayedByDefault : Boolean
+  // this is the user selected value : 
+  // - the user may not have choosen anything, so the default applied
+  // - the user want to have the section displayed
+  // - the user want to have the section hidden
+  var displayed : Option[Boolean] = Option.empty[Boolean]
+
   def isMultivalued = this match {
     case _: MultivaluedSectionField => true
     case _ => false
   }
+  
+  /**
+   * Ajax method to define the visibility status of a section
+   * Takes sectionId : the id of the section as a parameter
+   * Caution : it mutates the current field 
+   */
+  def visibilityCallBack(sectionId: String) : net.liftweb.http.GUIDJsExp = {
+    SHtml.ajaxCall(
+       JsRaw("")
+     , (v:String) => {
+            displayed = Some(!displayed.getOrElse(displayedByDefault))
+            JsRaw("""   
+               $('#%s').toggleClass("foldedSection").toggleClass("unfoldedSection"); """.format(sectionId))
+      }
+   )
+  }
+  
+  /**
+   * Based on the default visibility and user selected visibility,
+   * returns the proper display classes
+   */
+  def visibilityClasses : String = {
+    displayed.getOrElse(displayedByDefault) match {
+      case true => "unfoldedSection"
+      case false => "foldedSection"
+    }
+  }
 }
 
 case class SectionFieldImp(
-  val name: String,
-  val childFields: Seq[SectionChildField],
+  val name               : String,
+  val childFields        : Seq[SectionChildField],
+  val displayedByDefault : Boolean,
   // Only variables of the current section have entries in the values map
   // the key of type String is the id (variable name),
   // the value is a function which should be called at validation time
-  val values: Map[String, () => String]) extends SectionField with HashcodeCaching {
+  val values     : Map[String, () => String]) extends SectionField with HashcodeCaching {
 
   def copy(): Nothing = throw new TechnicalException("Can't copy DirectiveFieldGroup, it contains mutable datas")
   def toClient = childFields.mkString
 
   def mapValueSeq: Map[String, Seq[String]] = values.map { case (k, v) => (k, Seq(v())) }
-
+ 
   // If a section is empty, we want to hide it.
 
   override def toFormNodeSeq: NodeSeq = {
     val childrenXml = childFields map (f => f.toFormNodeSeq)
+    val sectionId = Helpers.nextFuncName
+    val changeVisibility = visibilityCallBack(sectionId)
+    // set the method name for the ajax call back (the guid plus the mandatory () to define/call it
+    val methodName = changeVisibility.guid + "()"
+
+    val classes = "sectionFieldset foldableSection " + visibilityClasses
     if(childrenXml.isEmpty) NodeSeq.Empty
     else
       <tr><td colspan="2">
-        <div class="sectionFieldset">
-        <div class="inner-portlet-header-lower">Section: { name }</div>
+        <div  id={sectionId} class={classes}>
+         <div class="inner-portlet-header-lower" onClick={methodName}>Section: { name }</div>
           <table class="directiveSectionDef">
               { childrenXml }
           </table>
         </div>
-      </td></tr>
+      </td></tr> ++ Script(JsRaw(""" function %s { %s } """.format(methodName, changeVisibility.toJsCmd)))
   }
 
   override def toHtmlNodeSeq = {
@@ -273,8 +317,10 @@ case class SectionFieldImp(
 }
 
 case class MultivaluedSectionField(
-  val sections: Seq[SectionField],
-  private val newSection: () => SectionField) extends SectionField with HashcodeCaching {
+    val sections          : Seq[SectionField]
+  , private val newSection: () => SectionField
+  , val displayedByDefault: Boolean
+) extends SectionField with HashcodeCaching {
   require(!sections.isEmpty)
 
   val name: String = sections.head.name
@@ -289,7 +335,7 @@ case class MultivaluedSectionField(
     case Empty => logger.error("Empty value was returned")
     case _ => //ok
   }
-
+  
   private val allSections = sections.toBuffer
 
   def toClient: String = childFields.mkString
@@ -311,7 +357,7 @@ case class MultivaluedSectionField(
       if (index < 0) {
         Failure("Index must be a positive integer")
       } else if (index >= allSections.size) {
-        Failure("Index must be lesser than number of sections (%s)".format(allSections.size))
+        Failure("Index (%s) must be lesser than number of sections (%s)".format(index, allSections.size))
       } else {
         allSections remove index
         Full(allSections.size)
@@ -375,8 +421,14 @@ case class MultivaluedSectionField(
       <div class="directiveGroup">{
         (allSections.zipWithIndex.map {
           case (section, i) =>
-            <div class="groupFieldset">
-              <div class="inner-portlet-header-lower">{ "%s #%s".format(name, i + 1) }</div>
+            val sectionId = Helpers.nextFuncName
+            val changeVisibility = section.visibilityCallBack(sectionId)
+            // set the method name for the ajax call back (the guid plus the mandatory () to define/call it
+            val methodName = changeVisibility.guid + "()"
+
+            val classes = "groupFieldset foldableSection " + section.visibilityClasses
+            <div  id={sectionId} class={classes}>
+              <div class="inner-portlet-header-lower" onClick={methodName}>{ "%s #%s".format(name, i + 1) }</div>
               { showFormEntry(section, i) }
               { // showAddAnother under the last element
                 if ((i + 1) == size) {
@@ -385,14 +437,14 @@ case class MultivaluedSectionField(
                   NodeSeq.Empty
                 }
               }
-            </div>
+            </div> ++ Script(JsRaw(""" function %s { %s } """.format(methodName, changeVisibility.toJsCmd)))
         })
       }</div>
     </td> ++  Script(OnLoad(JsVar("""
           $("input").not("#treeSearch").keydown( function(event) {
             processKey(event , 'policyConfigurationSave')
-          } );
-          """)))
+          } ); """)
+          ))
   }
 
   private def showAddAnother(): NodeSeq = {
@@ -400,7 +452,7 @@ case class MultivaluedSectionField(
       SHtml.ajaxSubmit("Add another", { () =>
         add()
         //refresh UI - all item of that group
-        SetHtml(htmlId, this.content) & JsRaw("""correctButtons(); """)
+        SetHtml(htmlId, this.content) & postModificationJS()
       })
     }</div>
   }
@@ -416,10 +468,20 @@ case class MultivaluedSectionField(
       SHtml.ajaxSubmit("Delete", { () =>
         logError(delete(i))
         //refresh UI - all item of that group
-        SetHtml(htmlId, this.content) & JsRaw(""" correctButtons(); """)
+        SetHtml(htmlId, this.content) & postModificationJS()
       },
         attr)
     }</div>
+  }
+  
+  /**
+   * Command to correct display and behaviour after modifying sections
+   */
+  private[this] def postModificationJS() : JsExp = {
+    JsRaw("""
+          correctButtons();
+         
+         """)
   }
 
   override def toHtmlNodeSeq = {

@@ -809,6 +809,28 @@ fieldset.techniqueDetailsFieldset {
   padding: 1px 10px 1px 10px;
 }
 
+div.foldableSection div.inner-portlet-header-lower {
+  cursor: pointer;
+}
+
+div.unfoldedSection div.inner-portlet-header-lower:before {
+  content: url("../images/tableau/flecheBasGris.png");
+  padding-right: 3px;
+}
+
+div.foldedSection div.inner-portlet-header-lower:before {
+  content: url("../images/tableau/flecheDroiteGris.png");
+  padding-right: 3px;
+}
+
+
+.foldedSection table, .foldedSection div {
+  display:none;
+}
+
+.foldedSection div.inner-portlet-header-lower {
+  display:block;
+}
 
 /**********************************
  *add / remove group 
