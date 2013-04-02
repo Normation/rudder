@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory
  * accepted branch.
  */
 class AcceptPendingMachineIfServerIsAccepted(
-    writeOnlyMachineRepository:WriteOnlyMachineRepository[Seq[LDIFChangeRecord]]
+    fullInventoryRepositoryImpl:FullInventoryRepositoryImpl
 ) extends PostCommit[Seq[LDIFChangeRecord]] with Loggable {
 
   override val name = "post_commit_inventory:accept_pending_machine_for_accepted_server"
@@ -74,11 +74,15 @@ class AcceptPendingMachineIfServerIsAccepted(
     (report.node.main.status, report.machine.status ) match {
       case (AcceptedInventory,  PendingInventory) =>
         logger.debug("Found machine '%s' in pending DIT but that machine is the container of the accepted node '%s'. Moving machine to accpeted".format(report.machine.id,report.node.main.id))
+        // Change the container state, no need to keep the machine
+        val fullInventory = FullInventory(report.node.copy(machineId = Some(report.machine.id,AcceptedInventory)),None)
         for {
-          res <- writeOnlyMachineRepository.move(report.machine.id, PendingInventory, AcceptedInventory)
+          res <- fullInventoryRepositoryImpl.move(report.machine.id, PendingInventory, AcceptedInventory)
+          // Save Inventory to change the container too, no need to have the machine saved again
+          inventory <- fullInventoryRepositoryImpl.save(fullInventory, AcceptedInventory)
         } yield {
           logger.debug("Machine '%s' moved to accepted DIT".format(report.machine.id))
-          records ++ res
+          records ++ res ++ inventory
         }
       case _ => //nothing to do, just forward to next post commit
         Full(records)
