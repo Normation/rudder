@@ -151,8 +151,25 @@ class RoLDAPDirectiveRepository(
       activeTechnique
     }
   }
-
-
+  
+  /**
+   * Find the active technique for which the given directive is an instance.
+   *
+   * Return empty if no such directive is known,
+   * fails if no active technique match the directive.
+   */
+  override def getActiveTechniqueAndDirective(id:DirectiveId) : Box[(ActiveTechnique, Directive)] = {
+    for {
+      locked  <- userLibMutex.readLock
+      con     <- ldap 
+      piEntry <- getDirectiveEntry(con, id) ?~! "Can not find directive with id %s".format(id)
+      uptEntry        <- getUPTEntry(con, mapper.dn2ActiveTechniqueId(piEntry.dn.getParent), { id:ActiveTechniqueId => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) }) ?~! "Can not find Active Technique entry in LDAP"
+      activeTechnique <- mapper.entry2ActiveTechnique(uptEntry) ?~! "Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry)
+      directive       <- mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, piEntry)
+    } yield {
+      (activeTechnique, directive)
+    }
+  }
   /**
    * Get directives for given technique.
    * A not known technique id is a failure.
