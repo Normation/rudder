@@ -107,7 +107,7 @@ class DummyActiveTechniqueRepository extends RoDirectiveRepository {
   def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId): Box[ActiveTechniqueCategory] = ???
   def getParentsForActiveTechnique(id: ActiveTechniqueId): Box[ActiveTechniqueCategory] = ???
   def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId): Box[List[ActiveTechniqueCategory]] = ???  
-  
+  def getActiveTechniqueAndDirective(id:DirectiveId) : Box[(ActiveTechnique, Directive)] = ???
 }
 
 
