@@ -92,11 +92,11 @@ class RuleValServiceImpl (
 
                 Some(DirectiveVal(
                     policyPackage.id,
-                    upt.id,
                     pi.id,
                     pi.priority,
                     policyPackage.trackerVariableSpec.toVariable(trackerVariable.values),
-                    otherVars
+                    otherVars,
+                    vared
                 ))
               }
         }
