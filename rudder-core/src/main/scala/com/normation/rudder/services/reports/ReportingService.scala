@@ -43,6 +43,7 @@ import net.liftweb.common.Box
 import com.normation.rudder.domain.reports.bean._
 import org.joda.time._
 import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
+import com.normation.rudder.domain.policies.ExpandedRuleVal
 
 /**
  * The reporting service. It is used to
@@ -65,41 +66,20 @@ trait ReportingService {
    * @param ruleVal
    * @return
    */
-  def updateExpectedReports(ruleVal : Seq[RuleVal], deletedCrs : Seq[RuleId]) : Box[Seq[RuleExpectedReports]]
+  def updateExpectedReports(ruleVal : Seq[ExpandedRuleVal], deletedCrs : Seq[RuleId]) : Box[Seq[RuleExpectedReports]]
 
-
-
-  /**
-   * Returns the operation reports for a rule (for all servers)
-   */
-  def findReportsByRule(ruleId : RuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch]
-
-  /**
-   * Returns the reports for a server (for all directive)
-   */
-  def findReportsByNode(nodeId : NodeId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch]
 
   /**
    * Find the latest reports for a given rule (for all servers)
    * Note : if there is an expected report, and that we don't have it, we should say that it is empty
    */
-  def findImmediateReportsByRule(ruleId : RuleId) : Option[ExecutionBatch]
+  def findImmediateReportsByRule(ruleId : RuleId) : Box[Option[ExecutionBatch]]
 
-  /**
-   *  find the last reports for a given node, for a sequence of policyinstance
-   *  look for each CR for the current report
-   */
-  def findImmediateReportsByNodeAndCrs(nodeId : NodeId, ruleIds : Seq[RuleId]) : Seq[ExecutionBatch]
-
-   /**
-   *  find the last reports for a given server
-   */
-  def findCurrentReportsByNode(nodeId : NodeId) : Seq[ExecutionBatch]
 
   /**
    * Find the latest (15 minutes) reports for a given node (all CR)
    * Note : if there is an expected report, and that we don't have it, we should say that it is empty
    */
-  def findImmediateReportsByNode(nodeId : NodeId) :  Seq[ExecutionBatch]
+  def findImmediateReportsByNode(nodeId : NodeId) :  Box[Seq[ExecutionBatch]]
 
 }
