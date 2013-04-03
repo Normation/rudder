@@ -208,6 +208,7 @@ class ReportDisplayer(
 
  def showComponentValueReport(values : Seq[ComponentValueStatusReport],directiveSeverity:String) : NodeSeq = {
     val worstseverity= ReportType.getSeverityFromStatus(ReportType.getWorseType(values.map(_.cptValueReportType))).replaceAll(" ", "")
+
     <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth ">
       <thead>
         <tr class="head tablewidth">
@@ -223,7 +224,22 @@ class ReportDisplayer(
           ( "#valueStatus [class+]" #> severity.replaceAll(" ", "") &
             "#valueStatus *" #> <center>{severity}</center> &
             "#message *" #>  <ul>{value.message.map(msg => <li>{msg}</li>)}</ul>&
-            "#componentValue *" #>  <b>{value.componentValue}</b> &
+            "#componentValue *" #> {
+              value.unexpandedComponentValue match {
+                case None => <b>{value.componentValue}</b>
+                case Some(unexpanded) if unexpanded == value.componentValue => <b>{value.componentValue}</b>
+                case Some(unexpanded) =>
+                  val tooltipid = Helpers.nextFuncName
+                  <div>
+                  <b>{value.componentValue}</b>
+                  <span class="tooltipable" tooltipid={tooltipid} title="">
+                    <img src="/images/icInfo.png" style="padding-left:4px"/>
+                  </span>
+                  <div class="tooltipContent" id={tooltipid}>
+                    Value <b>{value.componentValue}</b> was expanded from the entry <b>{unexpanded}</b>
+                  </div>
+                  </div>}
+            } & 
             "#componentValue [class+]" #>  "firstTd"
          ) (componentValueDetails) } }
       </tbody>
@@ -254,7 +270,10 @@ class ReportDisplayer(
   }
 
   def displayReports(node : NodeInfo) : NodeSeq = {
-    display(reportingService.findImmediateReportsByNode(node.id), "reportsGrid")
+    reportingService.findImmediateReportsByNode(node.id) match {
+      case e:EmptyBox => <div class="error">Could not fetch reports information</div>
+      case Full(batches) => display(batches, "reportsGrid")
+    }
   }
 
   /**
@@ -354,7 +373,9 @@ class ReportDisplayer(
           $('td.details', nDetailsRow).attr("colspan",4);
           $('div.innerDetails table', nDetailsRow).attr("style","");
           $('div.innerDetails', nDetailsRow).slideDown(300);
+
           anOpen.push( nTr );
+          createTooltip();
         }
         else {
           $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
@@ -634,6 +655,7 @@ class ReportDisplayer(
        * To get missing reports we have to find them in each node report
        * So we have to go the value level and also get technique details at directive level for each report
        * we could add more information at each level (directive name? rule name?)
+       * NOTE : a missing report is an unknown report with no message
        */
       val reports = batches.flatMap(x => x.getNodeStatus()).filter(_.nodeReportType==UnknownReportType).flatMap { reports =>
         val techniqueComponentsReports = reports.directives.filter(_.directiveReportType==UnknownReportType).flatMap{dir =>

@@ -42,6 +42,7 @@ import Box._
 import org.joda.time.{LocalDate,LocalTime,Duration,DateTime}
 import com.normation.rudder.domain._
 import com.normation.utils.HashcodeCaching
+import com.normation.inventory.domain.NodeId
 
 /*
  * Immutable bridge between cfclerk and rudder
@@ -52,27 +53,40 @@ import com.normation.utils.HashcodeCaching
  */
 case class DirectiveVal(
     techniqueId      : TechniqueId
-  , activeTechniqueId: ActiveTechniqueId
-  //TODO: why there is no technique version ? ANS : The technique Version is within the ActiveTechniqueId
   , directiveId      : DirectiveId
   , priority         : Int
   , trackerVariable  : TrackerVariable
   , variables        : Map[String, Variable]
+  , originalVariables: Map[String, Variable] // the original variable, unexpanded
 ) extends HashcodeCaching
 
 case class RuleVal(
   ruleId       : RuleId,
   targets      : Set[RuleTarget],  //list of target for that directive (server groups, server ids, etc)
   directiveVals: Seq[DirectiveVal],
+  serial       : Int // the generation serial of the Rule. Do we need it ?
+) extends HashcodeCaching {
+  def toPolicyDrafts : Seq[PolicyDraft] =
+    directiveVals.map ( pol => PolicyDraft(
+        ruleId
+      , pol.directiveId
+      , pol.techniqueId
+      , __variableMap = pol.variables
+      , pol.trackerVariable
+      , priority = pol.priority
+      , serial = serial
+      , originalVariables = pol.originalVariables ))
+}
+
+case class ExpandedRuleVal(
+  ruleId       : RuleId,
+  configs      : Map[NodeId, Seq[DirectiveVal]], // A map of NodeId->DirectiveId, where all vars are expanded
   serial       : Int // the generation serial of the Rule
 ) extends HashcodeCaching {
 
-  def toRuleWithCf3PolicyDraft : Seq[RuleWithCf3PolicyDraft] =
-    directiveVals.map ( pol => RuleWithCf3PolicyDraft(ruleId,
-        new Cf3PolicyDraft(Cf3PolicyDraftId(ruleId.value + "@@" + pol.directiveId.value),
-            pol.techniqueId, __variableMap = pol.variables, pol.trackerVariable,
-            priority = pol.priority, serial = serial )))
+
 }
+
 
 /**
  * A composite class, to keep the link between the applied Directive and the Rule
@@ -82,4 +96,37 @@ case class RuleWithCf3PolicyDraft (
   , cf3PolicyDraft: Cf3PolicyDraft
 ) extends HashcodeCaching
 
+/**
+ * This is the draft of the policy, not yet a cfengine policy, but a level of abstraction between both
+ */
+case class PolicyDraft(
+    ruleId         : RuleId
+  , directiveId    : DirectiveId
+  , techniqueId    : TechniqueId
+  , __variableMap  : Map[String, Variable]
+  , trackerVariable: TrackerVariable
+  , priority       : Int
+  , serial         : Int
+  , originalVariables: Map[String, Variable] // the original list of variable that are replaced
+)extends HashcodeCaching {
+  def toRuleWithCf3PolicyDraft : RuleWithCf3PolicyDraft =
+    RuleWithCf3PolicyDraft(ruleId,
+        new Cf3PolicyDraft(
+            Cf3PolicyDraftId(ruleId.value + "@@" + directiveId.value)
+          , techniqueId
+          , __variableMap = Map[String, Variable]() ++__variableMap
+          , trackerVariable
+          , priority = priority
+          , serial = serial ))
 
+  def toDirectiveVal : DirectiveVal = {
+    DirectiveVal(
+        techniqueId
+      , directiveId
+      , priority
+      , trackerVariable
+      , __variableMap
+      , originalVariables
+    )
+  }
+}

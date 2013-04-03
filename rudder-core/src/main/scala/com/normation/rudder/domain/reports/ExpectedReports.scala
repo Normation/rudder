@@ -51,23 +51,43 @@ import com.normation.utils.HashcodeCaching
  */
 case class RuleExpectedReports(
     ruleId                  : RuleId
-  , directiveExpectedReports: Seq[DirectiveExpectedReports]
   , serial                  : Int // the serial of the rule
-  , nodeJoinKey             : Int // the version id of the rule, follows a sequence, used to join with the server table
-  , nodeIds                 : Seq[NodeId]
+  , directivesOnNodes       : Seq[DirectivesOnNodes]
   // the period where the configuration is applied to the servers
   , beginDate               : DateTime = DateTime.now()
   , endDate                 : Option[DateTime] = None
 ) extends HashcodeCaching
 
 /**
+ * This class allow to have for differents nodes differents directives
+ * Actually, it is used in a constrainted way : same directiveId for all nodes,
+ * but directives can have differents component/componentValues per Nodes
+ */
+case class DirectivesOnNodes(
+    nodeJoinKey             : Int// the version id of the rule, follows a sequence, used to join with the node table
+  , nodeIds                 : Seq[NodeId]
+  , directiveExpectedReports: Seq[DirectiveExpectedReports]
+) extends HashcodeCaching
+
+/**
  * The Cardinality is per Component
  */
 case class ReportComponent(
-    componentName   : String
-  , cardinality     : Int
-  , componentsValues: Seq[String]
-) extends HashcodeCaching
+    componentName             : String
+  , cardinality               : Int
+  , componentsValues          : Seq[String]
+  , unexpandedComponentsValues: Seq[String]
+) extends HashcodeCaching {
+  // Utilitary method to returns componentValues along with unexpanded values
+  // The unexpanded may be none, for older version of Rudder didn't have this
+  def groupedComponentValues : Seq[(String, Option[String])] = {
+    if (componentsValues.size != unexpandedComponentsValues.size) {
+      componentsValues.map((_, None))
+    } else {
+      componentsValues.zip(unexpandedComponentsValues.map(Some(_)))
+    }
+  }
+}
 
 /**
  * A Directive may have several components
@@ -76,3 +96,14 @@ case class DirectiveExpectedReports (
     directiveId: DirectiveId
   , components : Seq[ReportComponent]
 ) extends HashcodeCaching
+
+
+/**
+ * This utilitary class is used only to compare what is already saved in the
+ * DB and compare it with what is to be saved
+ */
+case class Comparator(
+    nodeId       : NodeId
+  , directiveId  : DirectiveId
+  , componentName: String
+)

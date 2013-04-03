@@ -56,6 +56,7 @@ create table expectedReports (
 	component text NOT NULL CHECK (component <> ''),
 	cardinality integer NOT NULL,
 	componentsValues text NOT NULL, -- this is the serialisation of the expected values 
+	unexpandedComponentsValues text, -- this is the serialisatin of the unexpanded expected values. It may be null for pre-2.6 entries
 	beginDate timestamp with time zone NOT NULL,
 	endDate timestamp with time zone
 );
