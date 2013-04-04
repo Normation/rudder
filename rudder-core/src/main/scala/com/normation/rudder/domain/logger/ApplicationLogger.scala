@@ -37,6 +37,9 @@ package com.normation.rudder.domain.logger
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 
+/**
+ * Applicative log of interest for Rudder ops.
+ */
 object ApplicationLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("application")
 }

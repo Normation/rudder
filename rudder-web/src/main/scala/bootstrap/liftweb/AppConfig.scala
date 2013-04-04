@@ -324,10 +324,16 @@ object RudderConfig extends Loggable {
   def init() : Unit = {
     import scala.collection.JavaConverters._
     val config = RudderProperties.config
-    if(logger.isDebugEnabled) {
+    if(ApplicationLogger.isInfoEnabled) {
       //sort properties by key name
-      val properties = config.entrySet.asScala.toSeq.sortBy( _.getKey ).map{ x => f"${x.getKey}%60s: ${if(filteredPasswords.contains(x.getKey)) "**********" else x.getValue.render}" }
-      logger.debug("List of registered properties:" +  properties.mkString("\n"))
+      val properties = config.entrySet.asScala.toSeq.sortBy( _.getKey ).map{ x =>
+        //the log line: registered property: property_name=property_value
+        s"registered property: ${x.getKey}=${if(filteredPasswords.contains(x.getKey)) "**********" else x.getValue.render}"
+      }
+      ApplicationLogger.info("List of registered properties:")
+      properties.foreach { p =>
+        ApplicationLogger.info(p)
+      }
     }
   }
 
