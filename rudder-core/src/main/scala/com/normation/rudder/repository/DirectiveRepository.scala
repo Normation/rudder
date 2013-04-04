@@ -113,14 +113,6 @@ trait RoDirectiveRepository {
   def getActiveTechnique(id:DirectiveId) : Box[ActiveTechnique]
 
   /**
-   * Find the active technique for which the given directive is an instance.
-   *
-   * Return empty if no such directive is known,
-   * fails if no active technique match the directive.
-   */
-  def getActiveTechniqueAndDirective(id:DirectiveId) : Box[(ActiveTechnique, Directive)]
-
-  /**
    * Get directives for given technique.
    * A not known technique id is a failure.
    */

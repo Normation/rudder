@@ -95,10 +95,7 @@ class RuleGrid(
   private[this] val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   private[this] val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
   private[this] val tableId_reportsPopup = "popupReportsGrid"
-  
-  private[this] val techniqueRepository = inject[TechniqueRepository] 
 
-  private[this] val directiveCache = scala.collection.mutable.Map[DirectiveId, Box[(ActiveTechnique, Directive)]]()
 
   def templatePath = List("templates-hidden", "reports_grid")
   def template() =  Templates(templatePath) match {
@@ -432,17 +429,22 @@ class RuleGrid(
 
       val trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]] =
         sequence(rule.directiveIds.toSeq) { id =>
-          directiveCache.getOrElseUpdate(id, directiveRepository.getActiveTechniqueAndDirective(id)) match {
-            case Full((activeTechnique, directive)) => 
-              techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
+          directiveRepository.getDirective(id) match {
+            case Full(directive) => directiveRepository.getActiveTechnique(id) match {
+              case Full(activeTechnique) => techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
                 case None => Failure("Can not find Technique for activeTechnique with name %s referenced in Rule with ID %s".format(activeTechnique.techniqueName, rule.id))
                 case Some(technique) => Full((directive,activeTechnique,technique))
               }
               case e:EmptyBox => //it's an error if the directive ID is defined and found but it is not attached to an activeTechnique
-                val error = e ?~! "Can not find Directive or Active Technique for Directive with ID %s referenced in Rule with ID %s".format(id, rule.id)
+                val error = e ?~! "Can not find Active Technique for Directive with ID %s referenced in Rule with ID %s".format(id, rule.id)
                 logger.debug(error.messageChain, error)
                 error
             }
+            case e:EmptyBox => //it's an error if the directive ID is defined and such directive is not found
+              val error = e ?~! "Can not find Directive with ID %s referenced in Rule with ID %s".format(id, rule.id)
+              logger.debug(error.messageChain, error)
+              error
+          }
         }
 
       val targetsInfo = sequence(rule.targets.toSeq) { target =>
