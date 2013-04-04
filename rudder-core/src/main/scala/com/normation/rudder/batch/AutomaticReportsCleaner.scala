@@ -279,9 +279,10 @@ case class AutomaticReportsCleaning(
       logger.trace("***** starting Automatic Archive Reports batch *****")
       new LADatabaseCleaner(ArchiveAction(dbManager,this),archivettl)
     }
-    else
+    else {
       reportLogger.info("Disable automatic archive since archive maximum age is older than delete maximum age")
       new LADatabaseCleaner(ArchiveAction(dbManager,this),-1)
+    }
   }
   archiver ! CheckLaunch
 
@@ -338,23 +339,24 @@ case class AutomaticReportsCleaning(
        */
       case CheckLaunch => {
         // Schedule next check, every minute
-        if(automatic)
-        LAPinger.schedule(this, CheckLaunch, 1000L*60)
-        currentState match {
-
-          case IdleCleaner =>
-
+        if (automatic) {
+          LAPinger.schedule(this, CheckLaunch, 1000L*60)
+          currentState match {
+            case IdleCleaner =>
             logger.trace("***** Check launch *****")
             if(freq.check(DateTime.now)){
               logger.trace("***** Automatic %s entering in active State *****".format(cleanaction.name.toLowerCase()))
               currentState = ActiveCleaner
               (this) ! CleanDatabase
             }
-         else
-           logger.trace("***** Database %s is not automatic, it will not schedule its next launch *****".format(cleanaction.name))
-       case ActiveCleaner => ()
+            else
+              logger.trace("***** Automatic %s will not be launched now, It is scheduled '%s'*****".format(cleanaction.name.toLowerCase(),freq.toString))
 
+            case ActiveCleaner => ()
+          }
         }
+        else
+          logger.trace("***** Database %s is not automatic, it will not schedule its next launch *****".format(cleanaction.name))
       }
       /*
        * Ask to clean Database
