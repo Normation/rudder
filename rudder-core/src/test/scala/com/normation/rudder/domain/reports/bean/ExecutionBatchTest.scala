@@ -1138,7 +1138,7 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
-   "An execution Batch, with one component with an escaped quote in its value, cardinality one, one node" should {
+   "An execution Batch, with one component with a quote in its value, cardinality one, one node" should {
 
     val uniqueExecutionBatch = new ConfigurationExecutionBatch(
        "rule",
@@ -1155,7 +1155,7 @@ class ExecutionBatchTest extends Specification {
          )
        ),
        new DateTime(),
-       Seq[Reports](new ResultSuccessReport(new DateTime(), "rule", "policy", "one", 12, "component", """some"text""",new DateTime(), "message")),
+       Seq[Reports](new ResultSuccessReport(new DateTime(), "rule", "policy", "one", 12, "component", """some\"text""",new DateTime(), "message")),
        new DateTime(), None)
 
     "have one reports when we create it with one report" in {
@@ -1215,7 +1215,87 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
- "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {, and a quote as well" should {
+ "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {, and a an escaped quote as well" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "rule", "policy", "nodeId", 12, "component", """/var/cfengine/inputs/\"test""", executionTimestamp, "message")
+              )
+
+    val sameKeyExecutionBatch = new ConfigurationExecutionBatch(
+       "rule",
+       12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("nodeId"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(new ReportComponent("component", 1, Seq("""${sys.workdir}/inputs/\"test"""), Seq() ))
+             )
+           )
+         )
+       ),
+       executionTimestamp,
+       reports,
+       executionTimestamp, None)
+
+    "have one reports when we create it with one report" in {
+      sameKeyExecutionBatch.executionReports.size ==1
+    }
+
+    "have one detailed reports when we create it with one report" in {
+      sameKeyExecutionBatch.getNodeStatus.size ==1
+    }
+
+    "have one detailed success node when we create it with one success report" in {
+      sameKeyExecutionBatch.getNodeStatus.head.nodeId == NodeId("nodeId") &&
+      sameKeyExecutionBatch.getNodeStatus.head.nodeReportType == SuccessReportType
+    }
+
+    "have no detailed repaired node when we create it with one success report" in {
+      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
+    }
+
+    "have no detailed error node when we create it with one success report" in {
+      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
+    }
+
+    "have no detailed unknown node when we create it with one success report" in {
+      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == UnknownReportType).size == 0)
+    }
+
+    "have one success report when we create it with one success report" in {
+      sameKeyExecutionBatch.getSuccessReports.size == 1
+    }
+     "have one detailed rule reports when we create it with one report" in {
+      sameKeyExecutionBatch.getRuleStatus.size ==1
+    }
+
+    "have one detailed rule success directive when we create it with one success report" in {
+      sameKeyExecutionBatch.getRuleStatus.head.directiveId == DirectiveId("policy") &&
+      sameKeyExecutionBatch.getRuleStatus.head.directiveReportType == SuccessReportType
+    }
+
+    "have no detailed rule repaired directive when we create it with one success report" in {
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == RepairedReportType).size == 0)
+    }
+    "have no detailed rule error directive when we create it with one success report" in {
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == ErrorReportType).size == 0)
+    }
+
+    "have no detailed rule unknown directive when we create it with one success report" in {
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == UnknownReportType).size == 0)
+    }
+
+    "have no detailed rule no answer directive when we create it with one success report" in {
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == NoAnswerReportType).size == 0)
+    }
+
+    "have no detailed rule no pending directive when we create it with one success report" in {
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size == 0)
+    }
+  }
+  "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {, and a quote as well" should {
     val executionTimestamp = new DateTime()
     val reports = Seq[Reports](
         new ResultSuccessReport(executionTimestamp, "rule", "policy", "nodeId", 12, "component", """/var/cfengine/inputs/"test""", executionTimestamp, "message")
@@ -1230,7 +1310,7 @@ class ExecutionBatchTest extends Specification {
            Seq(
              DirectiveExpectedReports(
               "policy",
-               Seq(new ReportComponent("component", 1, Seq("""${sys.workdir}/inputs/\"test"""), Seq() ))
+               Seq(new ReportComponent("component", 1, Seq("""${sys.workdir}/inputs/"test"""), Seq("""${sys.workdir}/inputs/"test""") ))
              )
            )
          )
