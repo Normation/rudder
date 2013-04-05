@@ -23,7 +23,7 @@ limitations under the License.
   </parent>
   
   <artifactId>scala-ldap</artifactId>
-  <version>2.5.1-SNAPSHOT</version>
+  <version>2.5.2-SNAPSHOT</version>
 
   <description>
     This project define a Scala API to interoperate with LDAP
