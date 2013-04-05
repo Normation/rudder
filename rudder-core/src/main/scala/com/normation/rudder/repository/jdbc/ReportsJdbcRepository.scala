@@ -327,7 +327,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
                    | delete from %s  where executionTimeStamp < '%s'
                    |]] and: [[
                    | delete from %s  where executionTimeStamp < '%s'
-                   |]]""".stripMargin.format(reportsTable,archiveTable,date.toString("yyyy-MM-dd")))
+                   |]]""".stripMargin.format(reportsTable,date.toString("yyyy-MM-dd"),archiveTable,date.toString("yyyy-MM-dd")))
     try{
 
       val delete = jdbcTemplate.update("""
