@@ -180,12 +180,12 @@ object ConfigSection2FieldService {
       v match {
         case selectOne: SelectOneVariableSpec => new SelectOneField(id, selectOne.valueslabels)
         case select: SelectVariableSpec => new SelectField(id, select.valueslabels)
-        case input: InputVariableSpec => v.constraint.typeName.toLowerCase match {
-          case "uploadedfile" => new UploadedFileField("")(id)
-          case "destinationfullpath" => default(id)
-          case "perm" => new FilePermsField(id)
-          case "boolean" => new CheckboxField(id)
-          case "size" => new InputSizeField(id)
+        case input: InputVariableSpec => v.constraint.typeName match {
+          case UploadedFileVType => new UploadedFileField("")(id)
+          case DestinationPathVType => default(id)
+          case PermVType => new FilePermsField(id)
+          case BooleanVType => new CheckboxField(id)
+          case s:SizeVType => new InputSizeField(id)
           case _ => default(id)
         }
         case _ =>
