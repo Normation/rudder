@@ -973,15 +973,16 @@ object RudderConfig extends Loggable {
       v match {
         case selectOne: SelectOneVariableSpec => new SelectOneField(id, selectOne.valueslabels)
         case select: SelectVariableSpec => new SelectField(id, select.valueslabels)
-        case input: InputVariableSpec => v.constraint.typeName.toLowerCase match {
-          case str: String if str.startsWith(prefixSize) => new InputSizeField(id, str.substring(prefixSize.size))
-          case "uploadedfile" => new UploadedFileField(UPLOAD_ROOT_DIRECTORY)(id)
-          case "destinationfullpath" => default(id)
-          case "date" => new DateField(frenchDateFormatter)(id)
-          case "time" => new TimeField(frenchTimeFormatter)(id)
-          case "perm" => new FilePermsField(id)
-          case "boolean" => new CheckboxField(id)
-          case "textarea" => new TextareaField(id)
+        case input: InputVariableSpec => v.constraint.typeName match {
+          case str: SizeVType => new InputSizeField(id, str.name.substring(prefixSize.size))
+          case UploadedFileVType => new UploadedFileField(UPLOAD_ROOT_DIRECTORY)(id)
+          case DestinationPathVType => default(id)
+          case DateVType(r) => new DateField(frenchDateFormatter)(id)
+          case TimeVType(r) => new TimeField(frenchTimeFormatter)(id)
+          case PermVType => new FilePermsField(id)
+          case BooleanVType => new CheckboxField(id)
+          case TextareaVType(r) => new TextareaField(id)
+          case PasswordVType(algos) => new PasswordField(id, input.constraint.mayBeEmpty, algos)
           case _ => default(id)
         }
         case _ =>
