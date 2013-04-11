@@ -44,6 +44,8 @@ import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 
 
 
@@ -207,4 +209,80 @@ trait DeploymentStatusSerialisation {
   def serialise(
       deploymentStatus : CurrentDeploymentStatus) : Elem
 
+}
+
+
+/**
+ * That trait allow to unserialise change request changes from an XML file.
+ *
+ */
+trait ChangeRequestChangesSerialisation {
+  /**
+   * Version 2:
+     <changeRequest fileFormat="2">
+        <groups></groups>
+          <group id="id1">*
+            <initialState>
+              NodeGroupSerialization*
+            </initialState>
+            <firstChange>
+              NodeGroupSerialization+
+            </firstChange>
+            <nextChanges>
+              <change>*
+                NodeGroupSerilization
+              </change>
+            </nextChanges>
+          </group>
+        <directives>
+          <directive id="id2">
+            <initialState>
+              <techniqueName>
+                techniqueName
+              </techniqueName>
+              DirectiveSerialization
+              <sectionSpec>
+                sectionSpec
+              </sectionSpec>
+            </initialState>
+            <firstChange>
+              <techniqueName>
+                techniqueName
+              </techniqueName>
+              DirectiveSerialization
+              <sectionSpec>
+                sectionSpec
+              </sectionSpec>
+            </firstChange>
+            <nextChanges>
+              <change>*
+                <techniqueName>
+                  techniqueName
+                </techniqueName>
+                DirectiveSerialization
+                <sectionSpec>
+                  sectionSpec
+                </sectionSpec>
+              </change>
+            </nextChanges>
+          </directive>
+        </directives>
+        <rules>
+          <rule id="id3">*
+            <initialState>
+              RuleSerialization*
+            </initialState>
+            <firstChange>
+              RuleSerialization+
+            </firstChange>
+            <nextChanges>
+              <change>*
+                RuleSerialization
+              </change>
+            </nextChanges>
+          </group>
+        </rules>
+      </changeRequest>
+   */
+  def serialise(changeRequest:ChangeRequest): Elem
 }

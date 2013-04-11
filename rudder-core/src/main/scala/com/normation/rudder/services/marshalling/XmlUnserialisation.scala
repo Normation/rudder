@@ -36,7 +36,6 @@ package com.normation.rudder.services.marshalling
 
 import scala.xml.{Node => XNode}
 import scala.xml.NodeSeq
-
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -46,8 +45,16 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
-
 import net.liftweb.common.Box
+import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.workflows.DirectiveChange
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.workflows.NodeGroupChange
+import com.normation.rudder.domain.workflows.DirectiveChanges
+import com.normation.rudder.domain.workflows.NodeGroupChanges
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.workflows.RuleChanges
 
 
 trait DeploymentStatusUnserialisation {
@@ -241,4 +248,80 @@ trait DirectiveUnserialisation {
    * We await for a node that contains an unique <section>
    */
   def parseSectionVal(xml:NodeSeq) : Box[SectionVal]
+}
+
+
+/**
+ * That trait allow to unserialise change request changes from an XML file.
+ *
+ */
+trait ChangeRequestChangesUnserialisation {
+  /**
+   * Version 1:
+     <changeRequest fileFormat="3">
+        <groups></groups>
+          <group id="id1">*
+            <initialState>
+              NodeGroupSerialization*
+            </initialState>
+            <firstChange>
+              NodeGroupSerialization+
+            </firstChange>
+            <nextChanges>
+              <change>*
+                NodeGroupSerilization
+              </change>
+            </nextChanges>
+          </group>
+        <directives>
+          <directive id="id2">
+            <initialState>
+              <techniqueName>
+                techniqueName
+              </techniqueName>
+              DirectiveSerialization
+              <sectionSpec>
+                sectionSpec
+              </sectionSpec>
+            </initialState>
+            <firstChange>
+              <techniqueName>
+                techniqueName
+              </techniqueName>
+              DirectiveSerialization
+              <sectionSpec>
+                sectionSpec
+              </sectionSpec>
+            </firstChange>
+            <nextChanges>
+              <change>*
+                <techniqueName>
+                  techniqueName
+                </techniqueName>
+                DirectiveSerialization
+                <sectionSpec>
+                  sectionSpec
+                </sectionSpec>
+              </change>
+            </nextChanges>
+          </directive>
+        </directives>
+        <rules>
+          <rule id="id3">*
+            <initialState>
+              RuleSerialization*
+            </initialState>
+            <firstChange>
+              RuleSerialization+
+            </firstChange>
+            <nextChanges>
+              <change>*
+                RuleSerialization
+              </change>
+            </nextChanges>
+          </group>
+        </rules>
+      </changeRequest>
+   */
+  def unserialise(xml:XNode): Box[(Box[Map[DirectiveId,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges])]
 }

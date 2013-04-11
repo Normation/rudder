@@ -90,7 +90,6 @@ final case class AcceptNodeEventLog (
 ) extends InventoryEventLog with HashcodeCaching {
 
   override val eventType = AcceptNodeEventLog.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object AcceptNodeEventLog extends EventLogFilter {
@@ -119,7 +118,6 @@ final case class RefuseNodeEventLog (
     override val eventDetails : EventLogDetails
 ) extends InventoryEventLog with HashcodeCaching {
   override val eventType = RefuseNodeEventLog.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object RefuseNodeEventLog extends EventLogFilter {
@@ -195,7 +193,6 @@ final case class DeleteNodeEventLog (
     override val eventDetails : EventLogDetails
 ) extends InventoryEventLog with HashcodeCaching {
   override val eventType = DeleteNodeEventLog.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
 }
 

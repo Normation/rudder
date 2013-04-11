@@ -43,9 +43,14 @@ import com.normation.utils.HashcodeCaching
 
 sealed trait RuleDiff
 
-final case class AddRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching
+//for change request, with add type tag to RuleDiff
+sealed trait ChangeRequestRuleDiff {
+  def rule     : Rule
+}
 
-final case class DeleteRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching
+final case class AddRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff
+
+final case class DeleteRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff
 
 final case class ModifyRuleDiff(
     id                  : RuleId
@@ -61,3 +66,6 @@ final case class ModifyRuleDiff(
   , modIsSystem         : Option[SimpleDiff[Boolean]] = None
 ) extends RuleDiff with HashcodeCaching
 
+final case class ModifyToRuleDiff(
+    rule     : Rule
+) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff

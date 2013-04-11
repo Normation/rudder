@@ -62,6 +62,27 @@ import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
 import com.normation.utils.XmlUtils
 import com.normation.rudder.domain.Constants._
+import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
+import scala.util.Try
+import scala.util.Success
+import com.normation.rudder.domain.nodes.AddNodeGroupDiff
+import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
+import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
+import com.normation.rudder.domain.workflows.NodeGroupChange
+import com.normation.rudder.domain.workflows.NodeGroupChangeItem
+import com.normation.rudder.domain.workflows.DirectiveChangeItem
+import com.normation.rudder.domain.policies.AddDirectiveDiff
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.rudder.domain.policies.DeleteDirectiveDiff
+import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
+import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
+import com.normation.cfclerk.xmlwriters.SectionSpecWriter
+import com.normation.rudder.domain.workflows.RuleChangeItem
+import com.normation.rudder.domain.policies.AddRuleDiff
+import com.normation.rudder.domain.policies.DeleteRuleDiff
+import com.normation.rudder.domain.policies.ModifyToRuleDiff
 
 
 class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
@@ -202,4 +223,146 @@ class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentSta
       case _ => throw new TechnicalException("Bad CurrentDeploymentStatus type, expected a success or an error")
     }
   ) }
+}
+
+
+/**
+ * That class allow to serialise change request changes to an XML data.
+ *
+ */
+class ChangeRequestChangesSerialisationImpl(
+    xmlVersion         : String
+  , nodeGroupSerializer: NodeGroupSerialisation
+  , directiveSerializer: DirectiveSerialisation
+  , ruleSerializer     : RuleSerialisation
+  , techniqueRepo      : TechniqueRepository
+  , sectionSerializer  : SectionSpecWriter
+) extends ChangeRequestChangesSerialisation with Loggable {
+  def serialise(changeRequest:ChangeRequest): Elem = {
+
+    def serializeGroupChange(change :NodeGroupChangeItem) : NodeSeq = {
+      <change>
+        <actor>{change.actor.name}</actor>
+        <date>{change.creationDate}</date>
+        <reason>{change.reason.getOrElse("")}</reason>
+        { change.diff match {
+          case AddNodeGroupDiff(group) => <diff action="add">{nodeGroupSerializer.serialise(group)}</diff>
+          case DeleteNodeGroupDiff(group) => <diff action="delete">{nodeGroupSerializer.serialise(group)}</diff>
+          case ModifyToNodeGroupDiff(group) => <diff action="modifyTo">{nodeGroupSerializer.serialise(group)}</diff>
+          case _ => "should not be here"
+        } }
+      </change>
+    }
+
+    def serializeDirectiveChange(change :DirectiveChangeItem) : NodeSeq = {
+      <change>
+        <actor>{change.actor.name}</actor>
+        <date>{change.creationDate}</date>
+        <reason>{change.reason.getOrElse("")}</reason>
+        { change.diff match {
+          case  AddDirectiveDiff(techniqueName,directive) =>
+            techniqueRepo.get(TechniqueId(techniqueName,directive.techniqueVersion)) match {
+              case None => (s"Error, could not retrieve technique ${techniqueName} version ${directive.techniqueVersion.toString}")
+              case Some(technique) => <diff action="add">{directiveSerializer.serialise(techniqueName,technique.rootSection,directive)}</diff>
+             }
+          case DeleteDirectiveDiff(techniqueName,directive) =>
+            techniqueRepo.get(TechniqueId(techniqueName,directive.techniqueVersion)) match {
+              case None => (s"Error, could not retrieve technique ${techniqueName} version ${directive.techniqueVersion.toString}")
+              case Some(technique) => <diff action="delete">{directiveSerializer.serialise(techniqueName,technique.rootSection,directive)}</diff>
+             }
+          case ModifyToDirectiveDiff(techniqueName,directive,rootSection) =>
+             val rootSectionXml = change.diff match {
+               case ModifyToDirectiveDiff(_,_,rs) =>
+                 sectionSerializer.serialize(rs).getOrElse(NodeSeq.Empty)
+               case _ => NodeSeq.Empty
+             }
+            <diff action="modifyTo">{directiveSerializer.serialise(techniqueName,rootSection,directive)}</diff> ++
+            <rootSection>{rootSectionXml}</rootSection>
+        } }
+      </change>
+    }
+
+    def serializeRuleChange(change : RuleChangeItem) : NodeSeq = {
+      <change>
+        <actor>{change.actor.name}</actor>
+        <date>{change.creationDate}</date>
+        <reason>{change.reason.getOrElse("")}</reason>
+        { change.diff match {
+          case AddRuleDiff(rule) => <diff action="add">{ruleSerializer.serialise(rule)}</diff>
+          case DeleteRuleDiff(rule) => <diff action="delete">{ruleSerializer.serialise(rule)}</diff>
+          case ModifyToRuleDiff(rule) => <diff action="modifyTo">{ruleSerializer.serialise(rule)}</diff>
+        } }
+      </change>
+    }
+
+    changeRequest match {
+
+      case changeRequest : ConfigurationChangeRequest =>
+        val groups = changeRequest.nodeGroups.map{ case (nodeGroupId,group) =>
+          <group id={nodeGroupId.value}>
+            <initialState>
+              {group.changes.initialState.map(nodeGroupSerializer.serialise(_)).getOrElse(NodeSeq.Empty)}
+            </initialState>
+              <firstChange>
+                {serializeGroupChange(group.changes.firstChange)}
+              </firstChange>
+            <nextChanges>
+              {group.changes.nextChanges.map(serializeGroupChange(_))}
+            </nextChanges>
+          </group>
+          }
+
+        val directives = changeRequest.directives.map{ case (directiveId,directive) =>
+          <directive id={directiveId.value}>
+            <initialState>
+              {directive.changes.initialState.map{
+                        case (techniqueName,directive,rootSection) =>
+                          directiveSerializer.serialise(techniqueName,rootSection,directive)
+                     }.getOrElse(NodeSeq.Empty)
+                  }
+            </initialState>
+              <firstChange>
+                { serializeDirectiveChange(directive.changes.firstChange) }
+              </firstChange>
+            <nextChanges>
+              {directive.changes.nextChanges.map(serializeDirectiveChange(_))}
+            </nextChanges>
+          </directive>
+          }
+
+        val rules = changeRequest.rules.map{ case (ruleId, rule) =>
+          <rule id={ruleId.value}>
+            <initialState>
+              {rule.changes.initialState.map{
+                case (initialRule) =>
+                  ruleSerializer.serialise(initialRule)
+                }.getOrElse(NodeSeq.Empty)
+              }
+            </initialState>
+            <firstChange>
+              { serializeRuleChange(rule.changes.firstChange) }
+            </firstChange>
+            <nextChanges>
+              { rule.changes.nextChanges.map(serializeRuleChange(_)) }
+            </nextChanges>
+          </rule>
+        }
+
+
+    createTrimedElem(XML_TAG_CHANGE_REQUEST, xmlVersion)  (
+      <groups>
+        {groups}
+      </groups>
+      <directives>
+        {directives}
+      </directives>
+      <rules>
+        {rules}
+      </rules>
+      )
+
+   case _ => <not_implemented_yet />
+  }
+
+  }
 }
