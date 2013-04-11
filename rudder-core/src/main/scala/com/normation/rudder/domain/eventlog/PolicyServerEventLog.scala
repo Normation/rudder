@@ -25,7 +25,6 @@ final case class UpdatePolicyServer(
   override val cause = None
   override val eventType = UpdatePolicyServer.eventType
   override val eventLogCategory = PolicyServerLogCategory
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 final case class AuthorizedNetworkModification(

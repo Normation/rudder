@@ -94,7 +94,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   override def registerWith = asyncDeploymentAgent
 
   override def lowPriority = {
-    case d:DeploymentStatus => deploymentStatus = d ; computeHistoricOfChange; reRender()
+    case d:DeploymentStatus => deploymentStatus = d ; reRender()
   }
 
   override def render = {
@@ -105,37 +105,6 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     )(layout) , JsRaw("""$("button.deploymentButton").button(); """))
   }
 
-  private[this] def computeHistoricOfChange = {
-    asyncDeploymentAgent.isAutoDeploy match {
-      case true =>
-      case false =>
-        deploymentStatus.processing match {
-          case IdleDeployer =>
-            lastSuccessfulDeployement  = eventLogDeploymentService.getLastSuccessfulDeployement()
-            lastSuccessfulDeployement match {
-              case f: EmptyBox =>
-                lastEventSinceDeployment = eventLogDeploymentService.getListOfModificationEvents(
-                    UnspecializedEventLog(
-                        EventLogDetails(
-                            id = Some(-1)
-                          , modificationId = None
-                          , principal = RudderEventActor
-                          , creationDate = DateTime.now
-                          , cause = None
-                          , severity = 0
-                          , reason = None
-                          , details = <entry/>) )
-                    )
-              case Full(event) =>
-                lastEventSinceDeployment = eventLogDeploymentService.getListOfModificationEvents(event)
-            }
-
-
-          case _ => // if it's a deployment, nothing to do
-
-        }
-    }
-  }
 
   val deployementErrorMessage = """(.*)!errormessage!(.*)""".r
 
@@ -174,18 +143,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   private[this] def currentStatus : NodeSeq = {
     deploymentStatus.processing match {
       case IdleDeployer =>
-        { asyncDeploymentAgent.isAutoDeploy match {
-          case true =>  NodeSeq.Empty
-          case false => <div class="pendingModificationStatus">{ lastEventSinceDeployment match {
-            case f: Failure => <span class="errorscala">Cannot fetch modification since last deployment</span>
-            case Empty => Text("There are no modification pending")
-            case Full(seq) if seq.size == 0 => Text("There are no modification pending")
-            case Full(seq) if seq.size == 1 =>  SHtml.a(Text("There is 1 modification pending"))(showPendingPopup) ++ createInnerPopup(seq)
-            case Full(seq) if seq.size > 1 =>  SHtml.a(Text("There are " + seq.size + " modifications pending"))(showPendingPopup) ++ createInnerPopup(seq)
-            }
-        } </div>
-        } } ++
-          <lift:authz role="deployment_write"> {
+        <lift:authz role="deployment_write"> {
           SHtml.ajaxButton("Regenerate now", { () =>
             asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.getActor, "User requested a manual regeneration") //TODO: let the user fill the cause
             Noop

@@ -65,8 +65,8 @@ var #table_var#;
 function createTooltip() {
   $(".tooltipable").tooltip({
 			show: {
-			  effect: "none",
-              delay: 100,
+				effect: "none",
+                delay: 100
             },
 			content: function() {
 		      return $("#"+$(this).attr("tooltipid")).html();
@@ -513,3 +513,54 @@ function showParameters(s){
   else
     document.getElementById("showParametersInfo" + s).style.display = "none";
 }
+
+/*
+ * This function takes the content of 2 elements (represented by their ids)
+ * , produce a diff beetween them and add the result in third element
+ */
+function makeDiff(beforeId,afterId,resultId) {
+  function appendLines(c, s) {
+    var res = s.replace(/\n/g, "\n" + c);
+    res = c+res;
+    if(res.charAt(res.length -1) == c)
+      res = res.substring(0, res.length - 1);
+    if(res.charAt(res.length -1) == "\n")
+      return res;
+    else
+      return res+"\n"
+  }
+  var before = $('#'+beforeId);
+  var after  = $('#'+afterId);
+  var result = $('#'+resultId);
+  console.log(before.text())
+  console.log(after.text())
+  var diff = JsDiff.diffLines(before.text(), after.text());
+  var fragment = document.createDocumentFragment();
+  for (var i=0; i < diff.length; i++) {
+    if (diff[i].added && diff[i + 1] && diff[i + 1].removed) {
+      var swap = diff[i];
+      diff[i] = diff[i + 1];
+      diff[i + 1] = swap;
+    }
+
+    var node;
+    if (diff[i].removed) {
+      node = document.createElement('del');
+      node.appendChild(document.createTextNode(appendLines('-', diff[i].value)));
+    } 
+    else
+      if (diff[i].added) {
+        node = document.createElement('ins');
+        node.appendChild(document.createTextNode(appendLines('+', diff[i].value)));
+      }
+      else
+        node = document.createTextNode(appendLines(" ", diff[i].value));
+  
+    fragment.appendChild(node);
+  }
+
+  result.text('');
+  result.append(fragment);
+}
+
+

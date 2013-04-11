@@ -72,14 +72,14 @@ import bootstrap.liftweb.RudderConfig
  *
  */
 class SearchNodeComponent(
-    htmlId : String // unused ...
-  , _query : Option[Query]
-  , _srvList : Box[Seq[NodeInfo]]
+    htmlId           : String // unused ...
+  , _query           : Option[Query]
+  , _srvList         : Box[Seq[NodeInfo]]
   , onUpdateCallback : () => JsCmd = { () => Noop } // this one is not used yet
-  , onClickCallback :  (String) => JsCmd = { (x:String) => Noop } // this callback is used when we click on an element in the grid
-  , onSearchCallback :  (Boolean) => JsCmd = { (x:Boolean) => Noop } // this callback is used when a research is done and the state of the Search button changes
-  , saveButtonId : String = "" // the id of the save button, that gets disabled when one change the form
-  , groupPage : Boolean
+  , onClickCallback  : (String) => JsCmd = { (x:String) => Noop } // this callback is used when we click on an element in the grid
+  , onSearchCallback : (Boolean) => JsCmd = { (x:Boolean) => Noop } // this callback is used when a research is done and the state of the Search button changes
+  , saveButtonId     : String = "" // the id of the save button, that gets disabled when one change the form
+  , groupPage        : Boolean
 )extends DispatchSnippet {
   import SearchNodeComponent._
 

@@ -49,7 +49,6 @@ final case class AddRule(
     override val eventDetails : EventLogDetails
 ) extends RuleEventLog with HashcodeCaching {
   override val eventType = AddRule.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object AddRule extends EventLogFilter {
@@ -63,7 +62,6 @@ final case class DeleteRule(
     override val eventDetails : EventLogDetails
 ) extends RuleEventLog with HashcodeCaching {
   override val eventType = DeleteRule.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object DeleteRule extends EventLogFilter {
@@ -77,7 +75,6 @@ final case class ModifyRule(
     override val eventDetails : EventLogDetails
 ) extends RuleEventLog with HashcodeCaching {
   override val eventType = ModifyRule.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object ModifyRule extends EventLogFilter {

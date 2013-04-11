@@ -57,6 +57,11 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.eventlog.EventLogFactory
 import com.normation.rudder.domain.eventlog._
+import scala.collection.mutable.Buffer
+import com.normation.rudder.domain.workflows.ChangeRequestId
+import scala.util.Try
+import scala.util.Success
+import scala.util.{Failure => Catch}
 
 /**
  * The EventLog repository
@@ -145,23 +150,60 @@ class EventLogJdbcRepository(
     }
   }
 
-  def getEventLogByCriteria(criteria : Option[String], limit:Option[Int] = None, orderBy:Option[String]) : Box[Seq[EventLog]] = {
-    val select = SELECT_SQL +
-        criteria.map( c => " and " + c).getOrElse("") +
-        orderBy.map(o => " order by " + o).getOrElse("") +
-        limit.map( l => " limit " + l).getOrElse("")
 
-    val list = jdbcTemplate.query(select, EventLogReportsMapper)
+  def getEventLogByChangeRequest(
+      changeRequest   : ChangeRequestId
+    , xpath           : String
+    , optLimit        : Option[Int] = None
+    , orderBy         : Option[String] = None
+    , eventTypeFilter : Option[Seq[EventLogFilter]] = None) : Box[Seq[EventLog]]= {
+    Try {
+      jdbcTemplate.query(
+        new PreparedStatementCreator() {
+           def createPreparedStatement(connection : Connection) : PreparedStatement = {
+             val order = orderBy.map(o => " order by " + o).getOrElse("")
+             val limit = optLimit.map( l => " limit " + l).getOrElse("")
+             val eventFilter = eventTypeFilter.map( seq => " and eventType in (" + seq.map(x => "?").mkString(",") + ")").getOrElse("")
 
-    list.size match {
-      case 0 => Empty
-      case _ => Full(Seq[EventLog]() ++ list)
+             val query= s"${SELECT_SQL} and cast (xpath('${xpath}', data) as text[]) = ? ${eventFilter} ${order} ${limit}"
+             val ps = connection.prepareStatement(
+                 query, Array[String]());
+             ps.setArray(1, connection.createArrayOf("text", Seq(changeRequest.value.toString).toArray[AnyRef]) )
+
+             // if with have eventtype filter, apply them
+             eventTypeFilter.map { seq => seq.zipWithIndex.map { case (eventType, number) =>
+               // zipwithIndex starts at 0, and we have already 1 used for the array, so we +2 the index
+               ps.setString((number+2), eventType.eventType.serialize )
+               }
+             }
+
+             ps
+           }
+         }, EventLogReportsMapper)
+    } match {
+      case Success(x) => Full(x)
+      case Catch(error) => Failure(error.toString())
+    }
+  }
+
+
+  def getEventLogByCriteria(criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]) : Box[Seq[EventLog]] = {
+    val where = criteria.map(c => s"and ${c}").getOrElse("")
+    val order = orderBy.map(o => s" order by ${o}").getOrElse("")
+    val limit = optLimit.map(l => s" limit ${l}").getOrElse("")
+    val select = s"${SELECT_SQL} ${where} ${order} ${limit}"
+    Try {
+      Full(jdbcTemplate.query(select, EventLogReportsMapper).toSeq)
+    } match {
+      case Success(events) => events
+      case Catch(e) => val msg = s"could not find event log with request ${select} cause: ${e}"
+        logger.error(msg)
+        Failure(msg)
     }
   }
 }
 
 object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
-
   def mapRow(rs : ResultSet, rowNum: Int) : EventLog = {
     val eventLogDetails = EventLogDetails(
         id             = Some(rs.getInt("id"))
@@ -203,6 +245,7 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
   }
 
   private[this] val logFilters =
+        WorkflowStepChanged ::
         AssetsEventLogsFilter.eventList :::
         RuleEventLogsFilter.eventList :::
         GenericEventLogsFilter.eventList :::
@@ -212,8 +255,8 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
         PolicyServerEventLogsFilter.eventList :::
         PromisesEventLogsFilter.eventList :::
         UserEventLogsFilter.eventList :::
+        ChangeRequestLogsFilter.eventList :::
         TechniqueEventLogsFilter.eventList
-
 
 
   private[this] def mapEventLog(

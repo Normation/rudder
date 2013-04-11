@@ -257,3 +257,19 @@ CREATE TABLE gitCommit(
   gitcommit text PRIMARY KEY
 , modificationid text
 );
+
+
+create sequence ChangeRequestId start 1;
+
+CREATE TABLE ChangeRequest(
+  id        integer PRIMARY KEY default(nextval('ChangeRequestId'))
+, name text CHECK (name <> '')
+, description text
+, creationTime timestamp with time zone
+, content xml
+);
+
+CREATE TABLE Workflow(
+  id integer references ChangeRequest(id)
+, state text
+);

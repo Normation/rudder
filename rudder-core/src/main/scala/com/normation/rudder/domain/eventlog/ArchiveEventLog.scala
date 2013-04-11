@@ -89,7 +89,6 @@ final case class ExportGroupsArchive(
     override val eventDetails : EventLogDetails
 ) extends ExportEventLog with HashcodeCaching {
   override val eventType = ExportGroupsArchive.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
       modificationId = None
@@ -114,7 +113,6 @@ final case class ImportGroupsArchive(
     override val eventDetails : EventLogDetails
 ) extends ImportEventLog with HashcodeCaching {
   override val eventType = ImportGroupsArchive.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
       modificationId = None
@@ -139,7 +137,6 @@ final case class ExportTechniqueLibraryArchive(
     override val eventDetails : EventLogDetails
 ) extends ExportEventLog with HashcodeCaching {
   override val eventType = ExportTechniqueLibraryArchive.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
       modificationId = None
@@ -164,7 +161,6 @@ final case class ImportTechniqueLibraryArchive(
     override val eventDetails : EventLogDetails
 ) extends ImportEventLog with HashcodeCaching {
   override val eventType = ImportTechniqueLibraryArchive.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
       modificationId = None
@@ -190,7 +186,6 @@ final case class ExportRulesArchive(
     override val eventDetails : EventLogDetails
 ) extends ExportEventLog with HashcodeCaching {
   override val eventType = ExportRulesArchive.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
       modificationId = None
@@ -215,7 +210,6 @@ final case class ImportRulesArchive(
     override val eventDetails : EventLogDetails
 ) extends ImportEventLog with HashcodeCaching {
   override val eventType = ImportRulesArchive.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
       modificationId = None
@@ -240,7 +234,6 @@ final case class ExportFullArchive(
     override val eventDetails : EventLogDetails
 ) extends ExportEventLog with HashcodeCaching {
   override val eventType = ExportFullArchive.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
       modificationId = None
@@ -265,7 +258,6 @@ final case class ImportFullArchive(
     override val eventDetails : EventLogDetails
 ) extends ImportEventLog with HashcodeCaching {
   override val eventType = ImportFullArchive.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
       modificationId = None
@@ -291,7 +283,6 @@ final case class Rollback(
     override val eventDetails : EventLogDetails
 ) extends ImportEventLog with HashcodeCaching {
   override val eventType = RollbackEventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
   def this(actor:EventActor, rollbackedEvent:Seq[EventLog],targetEvent: EventLog, rollbackType:String, reason: Option[String]) = this(EventLogDetails(
       modificationId = None

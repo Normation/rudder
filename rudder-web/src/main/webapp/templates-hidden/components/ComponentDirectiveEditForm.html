@@ -152,18 +152,6 @@
         <span id="parameters">Here goes the list of parameters</span>
       </div>
 	<lift:authz role="directive_edit">
-    <div class="reasonsFieldset">
-    <div class="inner-portlet-header">Change Message</div>
-    
-    <div id="explanationMessage">
-      Here comes the explanation to reasons field
-    </div>
-    
-    <div id="reasonsField">
-      Here comes the reasons field
-    </div>
-    </div>
-    
       <div class="cpiefsave">
         <button id="save">Save</button>
       </div>
@@ -173,12 +161,18 @@
     </div>
   </div>
 
-    <div id="createCloneDirectivePopup" class="nodisplay">
-	    <lift:ignore>
+  <div id="createCloneDirectivePopup" class="nodisplay">
+	  <lift:ignore>
 	    This div gets the content of the createDirective injected within
-	    </lift:ignore>
+	  </lift:ignore>
 	</div>
 
+  <div id="confirmUpdateActionDialog" class="nodisplay">
+    <lift:ignore>
+      This div gets the content of action (save, delete,
+      enable/disable) confirmation pop-up
+    </lift:ignore>
+  </div>
 </component:form>
 
 <component:popupRemoveForm>
