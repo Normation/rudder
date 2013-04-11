@@ -51,7 +51,6 @@ final case class ApplicationStarted(
   override val eventType = ApplicationStarted.eventType
   override def details = EventLog.emptyDetails
   override val eventLogCategory = RudderApplicationLogCategory
-  override def copySetCause(causeId:Int) = this
 }
 
 object ApplicationStarted extends EventLogFilter {
@@ -69,7 +68,6 @@ final case class ActivateRedButton(
   override val eventType = ActivateRedButton.eventType
   override def details = EventLog.emptyDetails
   override val eventLogCategory = RedButtonLogCategory
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
 }
 
@@ -86,7 +84,6 @@ final case class ReleaseRedButton(
   override val eventType = ReleaseRedButton.eventType
   override def details= EventLog.emptyDetails
   override val eventLogCategory = RedButtonLogCategory
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
 }
 
@@ -106,7 +103,6 @@ final case class ClearCacheEventLog(
   override val eventType = ClearCacheEventLog.eventType
   override def details = EventLog.emptyDetails
   override val eventLogCategory = RudderApplicationLogCategory
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 
 }
 

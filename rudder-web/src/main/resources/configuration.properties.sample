@@ -285,17 +285,6 @@ rudder.dir.gitRoot=/var/rudder/configuration-repository
 rudder.autoArchiveItems=true
 
 #
-# Automatically generate promise on policies modification.
-#
-# If true, when a Directive, Rule,
-# group, node ... is modified, promises will be automatically
-# regenerated. If false, only a manual request for deployment
-# will trigger a deployment.
-# Boolean, defaults to true.
-# 
-rudder.autoDeployOnModification=true
-
-#
 # If true, in UI Rudder will prompt the user for a reason of the change. 
 # The message displayed to the user is based on the variable 
 # rudder.ui.changeMessage.explanation
@@ -382,6 +371,24 @@ history.inventories.rootdir=/var/rudder/inventories/historical
 #
 
 rudder.batch.reports.logInterval=1
+
+###########################
+# Workflow configuration  ###########################################################
+###########################
+
+# Activate the Workflow (default false)
+#
+# If true, the workflow will be activated within Rudder. Every changes in 
+# Directive, Group or Rules will have to be validated before being deployed
+# If false, when a Directive, Rule, group, node ... is modified
+# promises will be automatically
+# regenerated. 
+# If true, the workflow will be activated within Rudder. Every changes in 
+# Directive, Group or Rules will have to be validated before being deployed
+#
+# Boolean, defaults to false.
+
+rudder.workflow.enabled=true
 
 #########################
 # DEPRECATED properties #############################################################

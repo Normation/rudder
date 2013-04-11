@@ -264,7 +264,7 @@ class Archives extends DispatchSnippet with Loggable {
       selectedCommitId match {
         case None    => error(Empty, "A valid archive must be chosen")
         case Some(commit) =>
-          S.redirectTo("/secure/administration/archiveManagement/zip/%s/%s".format(downloadRestAction, commit.value))
+          S.redirectTo("/secure/utilities/archiveManagement/zip/%s/%s".format(downloadRestAction, commit.value))
       }
 
     }

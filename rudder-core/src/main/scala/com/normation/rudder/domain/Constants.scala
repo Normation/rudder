@@ -111,6 +111,7 @@ object Constants {
   val XML_TAG_NODE_GROUP_CATEGORY = "nodeGroupCategory"
   val XML_TAG_NODE_GROUP = "nodeGroup"
   val XML_TAG_DEPLOYMENT_STATUS = "deploymentStatus"
+  val XML_TAG_CHANGE_REQUEST = "changeRequest"
 
 
 }

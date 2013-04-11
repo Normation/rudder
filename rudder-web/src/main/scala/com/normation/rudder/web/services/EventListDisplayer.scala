@@ -65,6 +65,12 @@ import org.joda.time.DateTime
 import net.liftweb.util.ToJsCmd
 import com.normation.rudder.services.eventlog.RollbackInfo
 import com.normation.rudder.services.eventlog.RollbackedEvent
+import com.normation.rudder.domain.workflows.ChangeRequestId
+import scala.util.Try
+import scala.util.Success
+import scala.util.{Failure => Catch}
+import com.normation.rudder.domain.eventlog.WorkflowStepChanged
+import com.normation.rudder.domain.workflows.WorkflowStepChange
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
@@ -285,43 +291,77 @@ class EventListDisplayer(
         Text("Technique %s".format(name)) ++ actionName
     }
 
+    def changeRequestDesc(x:EventLog, actionName: NodeSeq) = {
+      val name = (x.details \ "changeRequest" \ "name").text
+      val idNode = (x.details \ "changeRequest" \ "id").text.trim
+      val xml = Try(idNode.toInt) match {
+        case Success(id) =>
+          if (actionName==Text(" deleted"))
+            Text(name)
+          else
+            <a href={changeRequestLink(ChangeRequestId(id))} onclick="noBubble(event);">{name}</a>
+
+        case Catch(e) =>
+          logger.error(s"could not translate ${idNode} to a correct chage request identifier: ${e.getMessage()}")
+          Text(name)
+        }
+      Text("Change request ") ++ xml ++ actionName
+    }
+
+    def workflowStepDesc(x:EventLog) = {
+      logDetailsService.getWorkflotStepChange(x.details)  match {
+        case Full(WorkflowStepChange(crId,from,to)) =>
+          Text("Change request #") ++
+          <a href={changeRequestLink(crId)} onclick="noBubble(event);">{crId}</a> ++
+          Text(s" state changed from ${from} to ${to}")
+
+        case eb:EmptyBox => val fail = eb ?~! "could not display workflow step event log"
+          logger.error(fail.msg)
+          Text("Change request state changed")
+      }
+    }
+
     event match {
-      case x:ActivateRedButton => Text("Stop Rudder agents on all nodes")
-      case x:ReleaseRedButton => Text("Start again Rudder agents on all nodes")
-      case x:AcceptNodeEventLog => nodeDesc(x, Text(" accepted"))
-      case x:RefuseNodeEventLog => nodeDesc(x, Text(" refused"))
-      case x:DeleteNodeEventLog => nodeDesc(x, Text(" deleted"))
-      case x:LoginEventLog => Text("User '%s' login".format(x.principal.name))
-      case x:LogoutEventLog => Text("User '%s' logout".format(x.principal.name))
-      case x:BadCredentialsEventLog => Text("User '%s' failed to login: bad credentials".format(x.principal.name))
-      case x:AutomaticStartDeployement => Text("Automatically deploy Directive on nodes")
-      case x:ManualStartDeployement => Text("Manually deploy Directive on nodes")
-      case x:ApplicationStarted => Text("Rudder starts")
-      case x:ModifyRule => crDesc(x,Text(" modified"))
-      case x:DeleteRule => crDesc(x,Text(" deleted"))
-      case x:AddRule    => crDesc(x,Text(" added"))
-      case x:ModifyDirective => piDesc(x,Text(" modified"))
-      case x:DeleteDirective => piDesc(x,Text(" deleted"))
-      case x:AddDirective    => piDesc(x,Text(" added"))
-      case x:ModifyNodeGroup => groupDesc(x,Text(" modified"))
-      case x:DeleteNodeGroup => groupDesc(x,Text(" deleted"))
-      case x:AddNodeGroup    => groupDesc(x,Text(" added"))
-      case x:ClearCacheEventLog => Text("Clear caches of all nodes")
-      case x:UpdatePolicyServer => Text("Change Policy Server authorized network")
-      case x:ReloadTechniqueLibrary => Text("Technique library updated")
-      case x:ModifyTechnique => techniqueDesc(x, Text(" modified"))
-      case x:DeleteTechnique => techniqueDesc(x, Text(" deleted"))
-      case x:SuccessfulDeployment => Text("Successful deployment")
-      case x:FailedDeployment => Text("Failed deployment")
-      case x:ExportGroupsArchive => Text("New groups archive")
+      case x:ActivateRedButton             => Text("Stop Rudder agents on all nodes")
+      case x:ReleaseRedButton              => Text("Start again Rudder agents on all nodes")
+      case x:AcceptNodeEventLog            => nodeDesc(x, Text(" accepted"))
+      case x:RefuseNodeEventLog            => nodeDesc(x, Text(" refused"))
+      case x:DeleteNodeEventLog            => nodeDesc(x, Text(" deleted"))
+      case x:LoginEventLog                 => Text("User '%s' login".format(x.principal.name))
+      case x:LogoutEventLog                => Text("User '%s' logout".format(x.principal.name))
+      case x:BadCredentialsEventLog        => Text("User '%s' failed to login: bad credentials".format(x.principal.name))
+      case x:AutomaticStartDeployement     => Text("Automatically deploy Directive on nodes")
+      case x:ManualStartDeployement        => Text("Manually deploy Directive on nodes")
+      case x:ApplicationStarted            => Text("Rudder starts")
+      case x:ModifyRule                    => crDesc(x,Text(" modified"))
+      case x:DeleteRule                    => crDesc(x,Text(" deleted"))
+      case x:AddRule                       => crDesc(x,Text(" added"))
+      case x:ModifyDirective               => piDesc(x,Text(" modified"))
+      case x:DeleteDirective               => piDesc(x,Text(" deleted"))
+      case x:AddDirective                  => piDesc(x,Text(" added"))
+      case x:ModifyNodeGroup               => groupDesc(x,Text(" modified"))
+      case x:DeleteNodeGroup               => groupDesc(x,Text(" deleted"))
+      case x:AddNodeGroup                  => groupDesc(x,Text(" added"))
+      case x:ClearCacheEventLog            => Text("Clear caches of all nodes")
+      case x:UpdatePolicyServer            => Text("Change Policy Server authorized network")
+      case x:ReloadTechniqueLibrary        => Text("Technique library updated")
+      case x:ModifyTechnique               => techniqueDesc(x, Text(" modified"))
+      case x:DeleteTechnique               => techniqueDesc(x, Text(" deleted"))
+      case x:SuccessfulDeployment          => Text("Successful deployment")
+      case x:FailedDeployment              => Text("Failed deployment")
+      case x:ExportGroupsArchive           => Text("New groups archive")
       case x:ExportTechniqueLibraryArchive => Text("New Directive library archive")
-      case x:ExportRulesArchive => Text("New Rules archives")
-      case x:ExportFullArchive => Text("New full archive")
-      case x:ImportGroupsArchive => Text("Restoring group archive")
+      case x:ExportRulesArchive            => Text("New Rules archives")
+      case x:ExportFullArchive             => Text("New full archive")
+      case x:ImportGroupsArchive           => Text("Restoring group archive")
       case x:ImportTechniqueLibraryArchive => Text("Restoring Directive library archive")
-      case x:ImportRulesArchive => Text("Restoring Rules archive")
-      case x:ImportFullArchive => Text("Restoring full archive")
-      case _:Rollback          => Text("Restore a previous state of configuration policy")
+      case x:ImportRulesArchive            => Text("Restoring Rules archive")
+      case x:ImportFullArchive             => Text("Restoring full archive")
+      case _:AddChangeRequest              => changeRequestDesc(event,Text(" created"))
+      case _:DeleteChangeRequest           => changeRequestDesc(event,Text(" deleted"))
+      case _:ModifyChangeRequest           => changeRequestDesc(event,Text(" modified"))
+      case _:Rollback                      => Text("Restore a previous state of configuration policy")
+      case x:WorkflowStepChanged           => workflowStepDesc(x)
       case _ => Text("Unknow event type")
 
     }
@@ -361,15 +401,21 @@ class EventListDisplayer(
         SHtml.ajaxButton(
           "Confirm"
         , () => {
-            val select = event.id.map(action.selectRollbackedEventsRequest)
-            repos.getEventLogByCriteria(select) match {
-              case Full(events) =>
-                val rollbackedEvents = events.filter(_.canRollBack)
-                action.action(event,commiter,rollbackedEvents,event)
-                S.redirectTo("eventLogs")
-              case eb => S.error("Problem while performing a rollback")
-              logger.error("Problem while performing a rollback : ",eb)
-              cancel
+            event.id match {
+              case Some(id) => val select = action.selectRollbackedEventsRequest(id)
+                repos.getEventLogByCriteria(Some(select)) match {
+                  case Full(events) =>
+                    val rollbackedEvents = events.filter(_.canRollBack)
+                    action.action(event,commiter,rollbackedEvents,event)
+                    S.redirectTo("eventLogs")
+                  case eb => S.error("Problem while performing a rollback")
+                  logger.error("Problem while performing a rollback : ",eb)
+                  cancel
+              }
+              case None => val failure = "Problem while performing a rollback, could not find event id"
+                S.error(failure)
+                logger.error(failure)
+                cancel
             }
           }
         )
@@ -861,13 +907,79 @@ class EventListDisplayer(
         }
         xml }
 
+      case x:ChangeRequestEventLog =>
+        "*" #> { logDetailsService.getChangeRequestDetails(x.details) match {
+        case Full(diff) =>
+            val (name,desc) = x.id match {
+              case None => (Text(diff.changeRequest.info.name),Text(diff.changeRequest.info.description))
+              case Some(id) =>
+                val modName = displaySimpleDiff(diff.diffName, s"name${id}", diff.changeRequest.info.name)
+                val modDesc = displaySimpleDiff(diff.diffDescription, s"description${id}", diff.changeRequest.info.description)
+                (modName,modDesc)
+            }
+            <div class="evloglmargin">
+              <h4>Change request details:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Id: </b>{diff.changeRequest.id}</li>
+                <li><b>Name: </b>{name}</li>
+                <li><b>Description: </b>{desc}</li>
+              </ul>
+            </div>
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        }
+        }
+
+     case x:WorkflowStepChanged =>
+        "*" #> { logDetailsService.getWorkflotStepChange(x.details) match {
+        case Full(step) =>
+            <div class="evloglmargin">
+              <h4>Change request stated modified:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Id: </b>{step.id}</li>
+                <li><b>From state: </b>{step.from}</li>
+                <li><b>To state: </b>{step.to}</li>
+                <li><b>By:</b>{x.principal.name}</li>
+                <li><b>Date:</b>{DateFormaterService.getFormatedDate(x.creationDate)}</li>
+                {reasonHtml}
+              </ul>
+            </div>
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        }
+
+
+        }
+
       // other case: do not display details at all
       case _ => "*" #> ""
 
     })(event.details)++Script(JsRaw("correctButtons();"))
   }
 
-
+  private[this] def displaySimpleDiff[T] (
+      diff    : Option[SimpleDiff[T]]
+    , name    : String
+    , default : String
+  ) = diff.map(value => displayFormDiff(value, name)).getOrElse(Text(default))
+  private[this] def displayFormDiff[T](diff: SimpleDiff[T], name:String)(implicit fun: T => String = (t:T) => t.toString) = {
+    <pre style="width:200px;" id={s"before${name}"}
+    class="nodisplay">{fun(diff.oldValue)}</pre>
+    <pre style="width:200px;" id={s"after${name}"}
+    class="nodisplay">{fun(diff.newValue)}</pre>
+    <pre id={s"result${name}"} ></pre>  ++
+    Script(
+      OnLoad(
+        JsRaw(
+          s"""
+            var before = "before${name}";
+            var after  = "after${name}";
+            var result = "result${name}";
+            makeDiff(before,after,result);"""
+        )
+      )
+    )
+  }
   private[this] def displaydirectiveInnerFormDiff(diff: SimpleDiff[SectionVal], eventId: Option[Int]): NodeSeq = {
       eventId match {
         case None => NodeSeq.Empty
@@ -878,54 +990,12 @@ class EventListDisplayer(
           <pre style="width:200px;" id={"after" + id}
             class="nodisplay">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
           <pre id={"result" + id} ></pre>
-        ) ++ Script(OnLoad(JsRaw("""
-
-            var eventId = '%s';
-            var a = $('#before' + eventId);
-            var b = $('#after' + eventId);
-            var result = $('#result' + eventId);
-
-            function changed() {
-              var diff = JsDiff.diffLines(a.text(), b.text());
-              var fragment = document.createDocumentFragment();
-              for (var i=0; i < diff.length; i++) {
-
-                if (diff[i].added && diff[i + 1] && diff[i + 1].removed) {
-                  var swap = diff[i];
-                  diff[i] = diff[i + 1];
-                  diff[i + 1] = swap;
-                }
-
-                var node;
-                if (diff[i].removed) {
-                  node = document.createElement('del');
-                  node.appendChild(document.createTextNode(appendLines('-', diff[i].value)));
-                } else if (diff[i].added) {
-                  node = document.createElement('ins');
-                  node.appendChild(document.createTextNode(appendLines('+', diff[i].value)));
-                } else {
-                  node = document.createTextNode(appendLines(" ", diff[i].value));
-                }
-                fragment.appendChild(node);
-              }
-
-              result.text('');
-              result.append(fragment);
-            }
-
-            function appendLines(c, s) {
-              var res = s.replace(/\n/g, "\n" + c);
-              res = c+res;
-              if(res.charAt(res.length -1) == c)
-                res = res.substring(0, res.length - 1);
-              return res;
-            }
-
-            changed();
-
-            """
-            .format(id)
-            )))
+        ) ++ Script(OnLoad(JsRaw(s"""
+            var before = "before${id}";
+            var after  = "after${id}";
+            var result = "result${id}";
+            makeDiff(before,after,result);
+            """)))
       }
   }
 
@@ -1389,7 +1459,7 @@ trait RollBackAction {
   def name   : String
   def op     : String
   def action : (EventLog,PersonIdent,Seq[EventLog],EventLog) => Box[GitCommitId]
-  def selectRollbackedEventsRequest(id:Int): String =" id %s %d and modificationid IS NOT NULL".format(op,id)
+  def selectRollbackedEventsRequest(id:Int) = s" id ${op} ${id} and modificationid IS NOT NULL"
 }
 
 case object RollbackTo extends RollBackAction{

@@ -50,7 +50,6 @@ final case class AddDirective(
 ) extends DirectiveEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = AddDirective.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object AddDirective extends EventLogFilter {
@@ -64,7 +63,6 @@ final case class DeleteDirective(
 ) extends DirectiveEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = DeleteDirective.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object DeleteDirective extends EventLogFilter {
@@ -78,7 +76,6 @@ final case class ModifyDirective(
 ) extends DirectiveEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = ModifyDirective.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object ModifyDirective extends EventLogFilter {
