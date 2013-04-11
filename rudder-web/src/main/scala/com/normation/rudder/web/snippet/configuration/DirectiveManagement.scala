@@ -54,6 +54,7 @@ import net.liftweb.util._
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.rudder.web.services.JsTreeUtilService
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.workflows.ChangeRequestId
 
 /**
  * Snippet for managing the System and Active Technique libraries.
@@ -72,7 +73,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   val directiveRepository = RudderConfig.roDirectiveRepository
   val uuidGen             = RudderConfig.stringUuidGenerator
   val treeUtilService     = RudderConfig.jsTreeUtilService
-
+  val workflowEnabled     = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
 
   def dispatch = {
     case "head" => { _ => head }
@@ -320,7 +321,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         case Full(technique) =>
           currentTechnique = Some((technique,activeTechnique))
           updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique,
-              directive.copy(techniqueVersion = v))
+              directive.copy(techniqueVersion = v),Some(directive))
         case e:EmptyBox => currentDirectiveSettingForm.set(e)
       }
     }
@@ -377,7 +378,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           An error happened when trying to load Directive configuration.
           Error message was: {m}
         </div>
-      case Empty => <div id={htmlId_policyConf}></div>
+      case Empty =>  <div id={htmlId_policyConf}></div>
       //here we CAN NOT USE <lift:DirectiveEditForm.showForm /> because lift seems to cache things
       //strangely, and if so, after an form save, clicking on tree node does nothing
       // (or more exactly, the call to "onclicknode" is correct, the currentDirectiveSettingForm
@@ -391,7 +392,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     new CreateDirectivePopup(
         technique.name, technique.description, technique.id.version,
         onSuccessCallback = { (directive : Directive) =>
-          updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, directive, true)
+          updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, directive,None, true)
           //Update UI
           Replace(htmlId_policyConf, showDirectiveDetails) &
           JsRaw("""scrollToElement('%s')""".format(htmlId_policyConf))
@@ -405,7 +406,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case Full((technique,activeTechnique,directive)) =>
         Replace(htmlId_activeTechniquesTree, userLibrary)
         currentTechnique = Some((technique,activeTechnique))
-        updateCf3PolicyDraftInstanceSettingFormComponent(technique,activeTechnique,directive)
+        updateCf3PolicyDraftInstanceSettingFormComponent(technique,activeTechnique,directive,None)
       case e:EmptyBox => currentDirectiveSettingForm.set(e)
     }
 
@@ -422,37 +423,51 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       technique:Technique,
       activeTechnique:ActiveTechnique,
       directive:Directive,
+      oldDirective:Option[Directive],
       isADirectiveCreation : Boolean = false) : Unit = {
 
     val dirEditForm = new DirectiveEditForm(
-      htmlId_policyConf, technique, activeTechnique, directive,
-      onSuccessCallback = directiveEditFormSuccessCallBack,
-      onRemoveSuccessCallback = onRemoveSuccessCallBack,
-      isADirectiveCreation = isADirectiveCreation
+        htmlId_policyConf
+      , technique, activeTechnique
+      , directive
+      , oldDirective
+      , onSuccessCallback = directiveEditFormSuccessCallBack
+      , isADirectiveCreation = isADirectiveCreation
+      , onRemoveSuccessCallBack = onRemoveSuccessCallBack
     )
 
     currentDirectiveSettingForm.set(Full(dirEditForm))
   }
 
-  private[this] def directiveEditFormSuccessCallBack(dir: Directive): JsCmd = {
-    directiveRepository.getDirectiveWithContext(dir.id) match {
-      case Full((technique, activeTechnique, directive)) => {
-        updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, dir)
-        Replace(htmlId_policyConf, showDirectiveDetails) &
-        JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})"""
-          .format(dir.id.value)) &
-        Replace(htmlId_activeTechniquesTree, userLibrary)
-      }
-      case eb:EmptyBox => {
-        val errMsg = "Error when trying to get directive'%s' [%s] info with its " +
-        		"technique context for displaying in Directive Management edit form."
-        val e = eb ?~! errMsg.format(dir.name, dir.id)
-        logger.error(e.messageChain)
-        e.rootExceptionCause.foreach { ex =>
-          logger.error("Root exception was: ", ex)
-        }
-        Alert("Error when trying to get display the page. Please, try again")
-      }
+  /**
+   * Callback used to update the form when the edition of the directive have 
+   * been done
+   * If it is given a directive, it updated the form, else goes to the changerequest page
+   */
+  private[this] def directiveEditFormSuccessCallBack(returns: Either[Directive,ChangeRequestId]): JsCmd = {  
+    returns match {
+      case Left(dir) => // ok, we've received a directive, show it
+          directiveRepository.getDirectiveWithContext(dir.id) match {
+            case Full((technique, activeTechnique, directive)) => {
+              updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, dir,None)
+              Replace(htmlId_policyConf, showDirectiveDetails) &
+              JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})"""
+                .format(dir.id.value)) &
+              Replace(htmlId_activeTechniquesTree, userLibrary)
+            }
+            case eb:EmptyBox => {
+              val errMsg = "Error when trying to get directive'%s' [%s] info with its " +
+                  "technique context for displaying in Directive Management edit form."
+              val e = eb ?~! errMsg.format(dir.name, dir.id)
+              logger.error(e.messageChain)
+              e.rootExceptionCause.foreach { ex =>
+                logger.error("Root exception was: ", ex)
+              }
+              Alert("Error when trying to get display the page. Please, try again")
+            }
+          }
+      case Right(changeRequest) => // oh, we have a change request, go to it
+        RedirectTo(s"""/secure/utilities/changeRequest/${changeRequest.value}""")
     }
   }
 

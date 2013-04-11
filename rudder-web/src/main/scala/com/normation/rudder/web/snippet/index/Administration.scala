@@ -55,9 +55,6 @@ import com.normation.rudder.authorization._
 class Administration {
 
   def index(xhtml:NodeSeq) : NodeSeq = {
-    if ( CurrentUser.checkRights(Edit("administration")) || CurrentUser.checkRights(Write("administration")))
-      S.redirectTo("archiveManagement")
-    else
-      S.redirectTo("eventLogs")
+      S.redirectTo("policyServerManagement")
   }
 }

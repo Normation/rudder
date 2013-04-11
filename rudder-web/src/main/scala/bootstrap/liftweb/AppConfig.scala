@@ -108,6 +108,18 @@ import com.normation.rudder.services.modification.ModificationService
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import scala.util.Try
+import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
+import com.normation.rudder.services.workflows.ChangeRequestService
+import com.normation.rudder.services.workflows.ChangeRequestServiceImpl
+import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
+import com.normation.rudder.services.workflows.WorkflowServiceImpl
+import com.normation.cfclerk.xmlwriters.SectionSpecWriter
+import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
+import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestService
+import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServiceImpl
+import com.normation.rudder.services.modification.DiffServiceImpl
+import com.normation.rudder.services.modification.DiffService
+import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.services.user.PersonIdentService
 
 /**
@@ -210,7 +222,6 @@ object RudderConfig extends Loggable {
   val RUDDER_BATCH_REPORTS_LOGINTERVAL = config.getInt("rudder.batch.reports.logInterval") //1 //one minute
   val RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH = config.getString("rudder.techniqueLibrary.git.refs.path")
   val RUDDER_AUTOARCHIVEITEMS = config.getBoolean("rudder.autoArchiveItems") //true
-  val RUDDER_AUTODEPLOYONMODIFICATION = config.getBoolean("rudder.autoDeployOnModification") //true
   val RUDDER_UI_CHANGEMESSAGE_ENABLED = config.getBoolean("rudder.ui.changeMessage.enabled") //false
   val RUDDER_UI_CHANGEMESSAGE_MANDATORY = config.getBoolean("rudder.ui.changeMessage.mandatory") //false
   val RUDDER_UI_CHANGEMESSAGE_EXPLANATION = config.getString("rudder.ui.changeMessage.explanation") //"Please enter a message explaining the reason for this change."
@@ -222,6 +233,9 @@ object RudderConfig extends Loggable {
 
   //used in spring security "applicationContext-security.xml", be careful if you change its name
   val RUDDER_REST_ALLOWNONAUTHENTICATEDUSER = config.getBoolean("rudder.rest.allowNonAuthenticatedUser")
+
+  //workflows configuration
+  val RUDDER_ENABLE_APPROVAL_WORKFLOWS = config.getBoolean("rudder.workflow.enabled") // false
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
@@ -297,6 +311,69 @@ object RudderConfig extends Loggable {
   val allBootstrapChecks : BootstrapChecks = allChecks
   val srvGrid = new SrvGrid
 
+  val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(jdbcTemplate)
+  val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(jdbcTemplate, roWorkflowRepository)
+
+  val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
+
+
+  val roChangeRequestRepository : RoChangeRequestRepository = RUDDER_ENABLE_APPROVAL_WORKFLOWS match {
+      case false =>
+        inMemoryChangeRequestRepository
+      case true =>
+        new RoChangeRequestJdbcRepository(
+          jdbcTemplate
+        , new ChangeRequestsMapper(changeRequestChangesUnserialisation))
+    }
+
+  val woChangeRequestRepository : WoChangeRequestRepository = RUDDER_ENABLE_APPROVAL_WORKFLOWS match {
+    case false =>
+      inMemoryChangeRequestRepository
+    case true =>
+      new WoChangeRequestJdbcRepository(
+          jdbcTemplate
+        , changeRequestChangesSerialisation
+        , roChangeRequestRepository
+        )
+    }
+
+  val changeRequestEventLogService : ChangeRequestEventLogService = new ChangeRequestEventLogServiceImpl(eventLogRepository)
+
+
+  val workflowEventLogService =    new WorkflowEventLogServiceImpl(eventLogRepository,uuidGen)
+  val diffService: DiffService = new DiffServiceImpl(roDirectiveRepository)
+  val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService = new CommitAndDeployChangeRequestServiceImpl(
+                uuidGen
+              , roChangeRequestRepository
+              , roDirectiveRepository
+              , woDirectiveRepository
+              , roNodeGroupRepository
+              , roRuleRepository
+              , woRuleRepository
+              , asyncDeploymentAgent
+              , dependencyAndDeletionService
+            )
+  val asyncWorkflowInfo = new AsyncWorkflowInfo
+  val workflowService: WorkflowService = RUDDER_ENABLE_APPROVAL_WORKFLOWS match {
+    case true => new WorkflowServiceImpl(
+            workflowEventLogService
+          , commitAndDeployChangeRequest
+          , roWorkflowRepository
+          , woWorkflowRepository
+          , asyncWorkflowInfo
+        )
+    case false => new NoWorkflowServiceImpl(
+            commitAndDeployChangeRequest
+          , inMemoryChangeRequestRepository
+        )
+  }
+  val changeRequestService: ChangeRequestService = new ChangeRequestServiceImpl (
+      roChangeRequestRepository
+    , woChangeRequestRepository
+    , changeRequestEventLogService
+    , uuidGen
+  )
+
 
   //////////////////////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////// REST ///////////////////////////////////////////
@@ -358,6 +435,7 @@ object RudderConfig extends Loggable {
 
   ///// items serializer - service that transforms items to XML /////
   private[this] lazy val ruleSerialisation: RuleSerialisation = new RuleSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
+  private[this] lazy val rootSectionSerialisation : SectionSpecWriter = new SectionSpecWriterImpl()
   private[this] lazy val activeTechniqueCategorySerialisation: ActiveTechniqueCategorySerialisation =
     new ActiveTechniqueCategorySerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val activeTechniqueSerialisation: ActiveTechniqueSerialisation =
@@ -370,6 +448,15 @@ object RudderConfig extends Loggable {
     new NodeGroupSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val deploymentStatusSerialisation : DeploymentStatusSerialisation =
     new DeploymentStatusSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
+  private[this] lazy val changeRequestChangesSerialisation : ChangeRequestChangesSerialisation =
+    new ChangeRequestChangesSerialisationImpl(
+        Constants.XML_CURRENT_FILE_FORMAT.toString
+      , nodeGroupSerialisation
+      , directiveSerialisation
+      , ruleSerialisation
+      , techniqueRepositoryImpl
+      , rootSectionSerialisation
+    )
   private[this] lazy val eventLogFactory = new EventLogFactoryImpl(
     ruleSerialisation,
     directiveSerialisation,
@@ -399,6 +486,13 @@ object RudderConfig extends Loggable {
   private[this] lazy val nodeGroupCategoryUnserialisation = new NodeGroupCategoryUnserialisationImpl
   private[this] lazy val nodeGroupUnserialisation = new NodeGroupUnserialisationImpl(queryParser)
   private[this] lazy val ruleUnserialisation = new RuleUnserialisationImpl
+  private[this] lazy val changeRequestChangesUnserialisation = new ChangeRequestChangesUnserialisationImpl(
+      nodeGroupUnserialisation
+    , directiveUnserialisation
+    , ruleUnserialisation
+    , techniqueRepository
+    , sectionSpecParser
+  )
   private[this] lazy val deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
   private[this] lazy val xmlMigration_2_3 = new XmlMigration_2_3()
   private[this] lazy val xmlMigration_10_2 = new XmlMigration_10_2()
@@ -421,9 +515,10 @@ object RudderConfig extends Loggable {
 
   // => because of systemVariableSpecService
   // metadata.xml parser
+  private[this] lazy val variableSpecParser = new VariableSpecParser
+  private[this] lazy val sectionSpecParser = new SectionSpecParser(variableSpecParser)
   private[this] lazy val techniqueParser = {
-    val variableSpecParser = new VariableSpecParser()
-    new TechniqueParser(variableSpecParser,new SectionSpecParser(variableSpecParser),new Cf3PromisesFileTemplateParser,systemVariableSpecService)
+    new TechniqueParser(variableSpecParser,sectionSpecParser,new Cf3PromisesFileTemplateParser,systemVariableSpecService)
   }
 
   ////////////////////////////////////
@@ -750,7 +845,6 @@ object RudderConfig extends Loggable {
           reportingServiceImpl,
           historizationService)
       , eventLogDeploymentServiceImpl
-      , RUDDER_AUTODEPLOYONMODIFICATION
       , deploymentStatusSerialisation)
     techniqueRepositoryImpl.registerCallback(
         new DeployOnTechniqueCallback("DeployOnPTLibUpdate", agent)

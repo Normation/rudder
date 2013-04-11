@@ -45,10 +45,16 @@ import com.normation.cfclerk.domain.SectionSpec
 
 sealed trait DirectiveDiff
 
+//for change request, with add type tag to DirectiveDiff
+sealed trait ChangeRequestDirectiveDiff {
+  def techniqueName : TechniqueName
+  def directive     : Directive
+}
+
 final case class DeleteDirectiveDiff(
     techniqueName: TechniqueName
   , directive    : Directive
-) extends DirectiveDiff with HashcodeCaching
+) extends DirectiveDiff with HashcodeCaching with ChangeRequestDirectiveDiff
 
 // add and modify are put together
 sealed trait DirectiveSaveDiff extends DirectiveDiff
@@ -56,21 +62,26 @@ sealed trait DirectiveSaveDiff extends DirectiveDiff
 final case class AddDirectiveDiff(
     techniqueName: TechniqueName
   , directive    : Directive
-) extends DirectiveSaveDiff with HashcodeCaching
+) extends DirectiveSaveDiff with HashcodeCaching with ChangeRequestDirectiveDiff
 
 
 final case class ModifyDirectiveDiff(
-    techniqueName           : TechniqueName
-  , id                      : DirectiveId
-  , name                    : String //keep the name around to be able to display it as it was at that time
-  , modName                 : Option[SimpleDiff[String]]           = None
+    techniqueName      : TechniqueName
+  , id                 : DirectiveId
+  , name               : String //keep the name around to be able to display it as it was at that time
+  , modName            : Option[SimpleDiff[String]]           = None
   , modTechniqueVersion: Option[SimpleDiff[TechniqueVersion]] = None
-  , modParameters           : Option[SimpleDiff[SectionVal]]       = None
-  , modShortDescription     : Option[SimpleDiff[String]]           = None
-  , modLongDescription      : Option[SimpleDiff[String]]           = None
-  , modPriority             : Option[SimpleDiff[Int]]              = None
-  , modIsActivated          : Option[SimpleDiff[Boolean]]          = None
-  , modIsSystem             : Option[SimpleDiff[Boolean]]          = None
+  , modParameters      : Option[SimpleDiff[SectionVal]]       = None
+  , modShortDescription: Option[SimpleDiff[String]]           = None
+  , modLongDescription : Option[SimpleDiff[String]]           = None
+  , modPriority        : Option[SimpleDiff[Int]]              = None
+  , modIsActivated     : Option[SimpleDiff[Boolean]]          = None
+  , modIsSystem        : Option[SimpleDiff[Boolean]]          = None
 ) extends DirectiveSaveDiff with HashcodeCaching
 
 
+final case class ModifyToDirectiveDiff(
+    techniqueName: TechniqueName
+  , directive    : Directive
+  , rootSection  : SectionSpec
+) extends DirectiveDiff with HashcodeCaching with ChangeRequestDirectiveDiff

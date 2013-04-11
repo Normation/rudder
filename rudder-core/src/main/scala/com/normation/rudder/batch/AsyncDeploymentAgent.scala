@@ -99,15 +99,12 @@ final case class DeploymentStatus(
 final class AsyncDeploymentAgent(
     deploymentService: DeploymentService
   , eventLogger:EventLogDeploymentService
-  , autoDeployOnModification : Boolean
   , deploymentStatusSerialisation : DeploymentStatusSerialisation
 ) extends LiftActor with Loggable with ListenerManager {
 
   deploymentManager =>
 
   val timeFormat = "yyyy/MM/dd HH:mm:ss"
-
-  def isAutoDeploy = autoDeployOnModification
 
   //message from the deployment agent to the manager
   private[this] sealed case class DeploymentResult(
@@ -172,41 +169,33 @@ final class AsyncDeploymentAgent(
     case AutomaticStartDeployment(modId, actor) => {
       implicit val a = actor
       logger.trace("Deployment manager: receive new automatic deployment request message")
-      autoDeployOnModification match {
-        case false =>
-          logger.trace("Deployment manager: the automatic deployment are not permitted")
-        case true =>
-          currentDeployerState match {
-            case IdleDeployer => //ok, start a new deployment
-              currentDeploymentId += 1
-              val newState = Processing(currentDeploymentId, DateTime.now)
-              currentDeployerState = newState
-              logger.trace("Deployment manager: ask deployer agent to start a deployment")
-              val event = eventLogger.repository.saveEventLog(
-                  modId, AutomaticStartDeployement(WithDetails(NodeSeq.Empty))
-                )
-              DeployerAgent ! NewDeployment(newState.id, modId, newState.started, actor, event.flatMap(_.id).getOrElse(0))
 
-            case p@Processing(id, startTime) => //ok, add a pending deployment
-              logger.trace("Deployment manager: currently deploying, add a pending deployment request")
-              val event = eventLogger.repository.saveEventLog(
-                  modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="false"/>))
-                )
-              currentDeployerState = ProcessingAndPendingAuto(DateTime.now, p, actor, event.flatMap(_.id).getOrElse(0))
+      currentDeployerState match {
+        case IdleDeployer => //ok, start a new deployment
+          currentDeploymentId += 1
+          val newState = Processing(currentDeploymentId, DateTime.now)
+          currentDeployerState = newState
+          logger.trace("Deployment manager: ask deployer agent to start a deployment")
+          val event = eventLogger.repository.saveEventLog(
+            modId, AutomaticStartDeployement(WithDetails(NodeSeq.Empty)))
+          DeployerAgent ! NewDeployment(newState.id, modId, newState.started, actor, event.flatMap(_.id).getOrElse(0))
 
-            case p:ProcessingAndPendingAuto => //drop message, one is already pending
-              eventLogger.repository.saveEventLog(
-                  modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
-                )
-              logger.info("One automatic deployment process is already pending, ignoring new deployment request")
+        case p @ Processing(id, startTime) => //ok, add a pending deployment
+          logger.trace("Deployment manager: currently deploying, add a pending deployment request")
+          val event = eventLogger.repository.saveEventLog(
+            modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="false"/>)))
+          currentDeployerState = ProcessingAndPendingAuto(DateTime.now, p, actor, event.flatMap(_.id).getOrElse(0))
 
-            case p:ProcessingAndPendingManual => //drop message, one is already pending
-              eventLogger.repository.saveEventLog(
-                  modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="true"/>))
-                )
-              logger.info("One manual deployment process is already pending, ignoring new deployment request")
+        case p: ProcessingAndPendingAuto => //drop message, one is already pending
+          eventLogger.repository.saveEventLog(
+            modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="true"/>)))
+          logger.info("One automatic deployment process is already pending, ignoring new deployment request")
 
-          }
+        case p: ProcessingAndPendingManual => //drop message, one is already pending
+          eventLogger.repository.saveEventLog(
+            modId, AutomaticStartDeployement(WithDetails(<addPending alreadyPending="true"/>)))
+          logger.info("One manual deployment process is already pending, ignoring new deployment request")
+
       }
       //update listeners
       updateListeners()

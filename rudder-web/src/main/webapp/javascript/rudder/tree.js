@@ -456,6 +456,48 @@ var buildRulePIdepTree = function(id, initially_select, appContext) {
 }
 
 
+/*
+ * Directive management
+ */
+var buildChangesTree = function(id,appContext) {
+  $(id).jstree({ 
+      "core" : { 
+      "animation" : 400,
+      "html_titles" : true,
+      "initially_open" : [ "changes","directives" ]
+      },
+     "ui" : { 
+        "select_limit" : 1,
+        "initially_select" : [ "changes"]
+      },
+      // I set both options to -2, as I do not need depth and children count checking
+      // Those two checks may slow jstree a lot, so use only when needed
+      "max_depth" : -2,
+      "max_children" : -2,
+      "types" : {
+        "valid_children" : [ "changeType" ],
+          "types" : {
+            "changeType" : {
+              "valid_children" : [ "changeType", "change" ]
+            },
+            "change" : {
+              "valid_children" : "none",
+            },
+            "default" : {
+              "valid_children" : "none"
+            }
+          }
+      },
+      "themes" : { 
+    	  "theme" : "rudder",
+    	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css",
+    	  "icons" : false
+      },
+      "plugins" : [ "themes", "html_data", "ui", "types" ]      
+  })
+
+}
+
 /**
  * Shows the sibling of the searched items in the tree.
  * This function must be called after each search call

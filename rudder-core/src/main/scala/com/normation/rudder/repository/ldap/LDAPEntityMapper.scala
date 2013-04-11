@@ -62,7 +62,6 @@ import scala.xml.{Text,NodeSeq}
 import com.normation.exceptions.{BusinessException,TechnicalException}
 import com.normation.rudder.services.policies.VariableBuilderService
 import net.liftweb.json.JsonAST.JObject
-import com.normation.inventory.ldap.core.InventoryDit
 
 
 
