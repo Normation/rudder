@@ -146,11 +146,6 @@ trait EventLog  {
 
   //// not in details
 
-  /**
-   * Return a copy of the object with the cause set to given Id
-   */
-  def copySetCause(causeId:Int) : EventLog
-
   //event log type is given by the implementation class.
   //we only precise the category.
   /**
@@ -176,8 +171,6 @@ case class UnspecializedEventLog(
 ) extends EventLog with HashcodeCaching {
   override val eventType = UnspecializedEventLog.eventType
   override val eventLogCategory = UnknownLogCategory
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
-
 }
 
 object UnspecializedEventLog extends EventLogFilter {
