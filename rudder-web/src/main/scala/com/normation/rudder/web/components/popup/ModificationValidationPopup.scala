@@ -62,7 +62,6 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.web.components.RuleGrid
 import com.normation.rudder.services.policies.OnlyDisableable
 import com.normation.rudder.services.policies.OnlyEnableable
-import com.normation.rudder.repository.WoDraftChangeRequestRepository
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.repository.RoChangeRequestRepository
 import com.normation.rudder.repository.WoChangeRequestRepository
@@ -336,13 +335,6 @@ class ModificationValidationPopup(
     override def validations = Nil
 
   }
-
-  //TODO : get existing change request
-  /*
-  private[this] val changeRequestList = Seq(("Private Draft 1", "pvd1"), ("Change Request 42", "cr42"))
-  private[this] val existingChangeRequest = new WBSelectField("Existing change requests", changeRequestList, "") {
-    override def inputField = super.inputField % ("class" -> "nodisplay")
-  }*/
 
   // The formtracker needs to check everything only if its not a creation and there is workflow
   private[this] val formTracker = {
