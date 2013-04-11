@@ -1322,6 +1322,27 @@ span.ui-button-text {
   background: #DDDDDD !important;
 }
 
+.modificationsDisplayer {
+  float:right;
+  margin-right: 50px;
+  margin-top: 10px;
+}
+
+.modificationsDisplayer span {
+  margin-right: 30px;
+  padding: 0;
+  font-weight: normal;
+  color: #FFFFFF;
+  font-size: 1.4em;
+  font-weight: bold;
+  clear : both;
+  float : left;
+}
+.modificationsDisplayer a{
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /**************************************
 menu principal
 **************************************/
@@ -1817,6 +1838,12 @@ popin Alert
   width:130px;
   text-align: center;
 }
+
+#simplemodal-container .simplemodal-bottom input.wideButton {
+  width:190px;
+  text-align: center;
+}
+
 #simplemodal-container .simplemodal-bottom hr {
  margin: 0px;
  width:100%;
@@ -2023,7 +2050,8 @@ td.complianceTd, td.parametersTd {
   text-align:center;
 }
 .greyscala{
-  color:grey;
+  color:grey; 
+  border-bottom:1px dotted grey;
 }
 .checkbox{
   float:right;

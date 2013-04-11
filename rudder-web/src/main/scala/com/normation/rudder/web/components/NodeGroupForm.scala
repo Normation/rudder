@@ -181,9 +181,9 @@ class NodeGroupForm(
       , query
       , srvList
       , onSearchCallback = saveButtonCallBack
-      , onClickCallback = { id => onClickCallBack(id) }
-      , saveButtonId = saveButtonId
-      , groupPage = true
+      , onClickCallback  = { id => onClickCallBack(id) }
+      , saveButtonId     = saveButtonId
+      , groupPage        = false
     )))
   }
 

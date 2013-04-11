@@ -43,6 +43,10 @@ import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.eventlog.ModificationId
+import scala.collection.mutable.Buffer
+import com.normation.rudder.domain.eventlog.ChangeRequestDiff
+import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.domain.workflows.WorkflowStepChange
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory
@@ -178,6 +182,28 @@ trait EventLogRepository {
     )
   }
 
+  def saveChangeRequest(modId: ModificationId, principal: EventActor, diff: ChangeRequestDiff, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getChangeRequestFromDiff(
+          principal =  principal
+        , diff = diff
+        , reason = reason
+      )
+    )
+  }
+
+  def saveWorkflowStep(modId: ModificationId, principal: EventActor, step: WorkflowStepChange, reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getWorkFlowEventFromStepChange(
+          principal =  principal
+        , step = step
+        , reason = reason
+      )
+    )
+  }
+
   /**
    * Get an EventLog by its entry
    */
@@ -188,5 +214,8 @@ trait EventLogRepository {
    * For the moment it only a string, it should be something else in the future
    */
   def getEventLogByCriteria(criteria : Option[String], limit:Option[Int] = None, orderBy:Option[String] = None) : Box[Seq[EventLog]]
+
+
+  def getEventLogByChangeRequest(changeRequest : ChangeRequestId, xpath:String, optLimit:Option[Int] = None, orderBy:Option[String] = None, eventTypeFilter : Option[Seq[EventLogFilter]] = None) : Box[Seq[EventLog]]
 
 }

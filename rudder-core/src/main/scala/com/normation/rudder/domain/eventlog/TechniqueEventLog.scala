@@ -52,7 +52,6 @@ final case class ReloadTechniqueLibrary(
 ) extends TechniqueEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = ReloadTechniqueLibrary.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object ReloadTechniqueLibrary extends EventLogFilter {
@@ -82,7 +81,6 @@ final case class ModifyTechnique(
 ) extends TechniqueEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = ModifyTechnique.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object ModifyTechnique extends EventLogFilter {
@@ -95,7 +93,6 @@ final case class DeleteTechnique(
 ) extends TechniqueEventLog with HashcodeCaching {
   override val cause = None
   override val eventType = DeleteTechnique.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object DeleteTechnique extends EventLogFilter {

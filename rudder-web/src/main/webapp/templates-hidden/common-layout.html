@@ -101,6 +101,8 @@
     <lift:authz role="deployment_read">
     <lift:comet type="AsyncDeployment" name="deploymentStatus" />
     </lift:authz>
+      <lift:comet type="WorkflowInformation" name="workflowInfo" />
+    
     <h1><a href="/secure/"><img src="/images/logoRudder.jpg" alt="Rudder" /></a></h1>
   </div>
   <!--Fin Logo-->
@@ -137,6 +139,8 @@
       <div>
         <img src="/images/icOK.png" alt="Success" height="32" width="32" class="icon" />
         <h2>Your changes have been saved</h2>
+        
+        <div id="successDialogContent" />
       </div>
       <hr class="spacer" />
       <br />

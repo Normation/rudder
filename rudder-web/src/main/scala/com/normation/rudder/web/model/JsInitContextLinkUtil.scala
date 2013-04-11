@@ -38,6 +38,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.workflows.ChangeRequestId
 
 /**
  * That class helps user to create valide JS initialisation context
@@ -47,14 +48,17 @@ import com.normation.inventory.domain.NodeId
 object JsInitContextLinkUtil {
 
   def groupLink(id:NodeGroupId) =
-    """/secure/nodeManager/groups#{"groupId":"%s"}""".format(id.value)
+    s"""/secure/nodeManager/groups#{"groupId":"${id.value}"}"""
 
   def ruleLink(id:RuleId) =
-    """/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(id.value)
+    s"""/secure/configurationManager/ruleManagement#{"ruleId":"${id.value}"}"""
 
   def directiveLink(id:DirectiveId) =
-    """/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(id.value)
+    s"""/secure/configurationManager/directiveManagement#{"directiveId":"${id.value}"}"""
 
   def nodeLink(id:NodeId) =
-    """/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(id.value)
+    s"""/secure/nodeManager/searchNodes#{"nodeId":"${id.value}s"}"""
+
+  def changeRequestLink(id:ChangeRequestId) =
+    s"/secure/utilities/changeRequest/${id}"
 }

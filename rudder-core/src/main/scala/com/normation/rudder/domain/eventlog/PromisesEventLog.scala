@@ -45,7 +45,6 @@ final case class AutomaticStartDeployement(
     override val eventDetails : EventLogDetails
 ) extends PromiseEventLog with HashcodeCaching {
   override val eventType = AutomaticStartDeployement.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object AutomaticStartDeployement extends EventLogFilter {
@@ -58,7 +57,6 @@ final case class ManualStartDeployement(
     override val eventDetails : EventLogDetails
 ) extends PromiseEventLog with HashcodeCaching {
   override val eventType = ManualStartDeployement.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object ManualStartDeployement extends EventLogFilter {
@@ -71,7 +69,6 @@ final case class SuccessfulDeployment (
     override val eventDetails : EventLogDetails
 ) extends PromiseEventLog with HashcodeCaching {
   override val eventType = SuccessfulDeployment.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object SuccessfulDeployment extends EventLogFilter {
@@ -84,7 +81,6 @@ final case class FailedDeployment (
     override val eventDetails : EventLogDetails
 ) extends PromiseEventLog with HashcodeCaching {
   override val eventType = FailedDeployment.eventType
-  override def copySetCause(causeId:Int) = this.copy(eventDetails.copy(cause = Some(causeId)))
 }
 
 object FailedDeployment extends EventLogFilter {

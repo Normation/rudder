@@ -44,12 +44,17 @@ import com.normation.utils.HashcodeCaching
  */
 sealed trait NodeGroupDiff
 
+//for change request, with add type tag to DirectiveDiff
+sealed trait ChangeRequestNodeGroupDiff {
+  def group:NodeGroup
+}
 
 final case class DeleteNodeGroupDiff(group:NodeGroup) extends
-  NodeGroupDiff with HashcodeCaching
+  NodeGroupDiff with HashcodeCaching with ChangeRequestNodeGroupDiff
 
-final case class AddNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with HashcodeCaching
+final case class AddNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with HashcodeCaching with ChangeRequestNodeGroupDiff
 
+final case class ModifyToNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with HashcodeCaching with ChangeRequestNodeGroupDiff
 
 final case class ModifyNodeGroupDiff(
     id            : NodeGroupId
