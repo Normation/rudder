@@ -725,7 +725,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     </div>
     <div class="simplemodal-content">
       <div>
-          <img src="/images/icError.png" alt="Error!" height="32" width="32" class="erroricon"/>
+          <img src="/images/icfail.png" alt="Error!" height="32" width="32" class="erroricon"/>
           <h2>There was an error while deleting the Node with id {nodeId.value}. Please contact your administrator.</h2>
       </div>
       <hr class="spacer" />
