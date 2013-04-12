@@ -26,6 +26,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.utils.Control.sequence
 
 
 trait RemoveNodeService {
@@ -144,16 +145,22 @@ class RemoveNodeServiceImpl(
     logger.debug("Trying to remove node %s from all the groups were it is referenced".format(nodeId.value))
     for {
       nodeGroupIds <- roNodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))
+      deleted      <- sequence(nodeGroupIds) { nodeGroupId =>
+                        for {
+                          nodeGroup    <- roNodeGroupRepository.getNodeGroup(nodeGroupId)
+                          updatedGroup =  nodeGroup.copy(serverList = nodeGroup.serverList - nodeId)
+                          msg          =  Some("Automatic update of group due to deletion of node " + nodeId.value)
+                          diff         <- (if(nodeGroup.isSystem) {
+                                            woNodeGroupRepository.updateSystemGroup(updatedGroup, modId, actor, msg)
+                                          } else {
+                                            woNodeGroupRepository.update(updatedGroup, modId, actor, msg)
+                                          }) ?~! "Could not update group %s to remove node '%s'".format(nodeGroup.id.value, nodeId.value)
+                        } yield {
+                          diff
+                        }
+                      }
     } yield {
-      (for {
-        nodeGroups   <- nodeGroupIds.map(nodeGroupId => roNodeGroupRepository.getNodeGroup(nodeGroupId))
-        nodeGroup    <- nodeGroups
-        updatedGroup =  nodeGroup.copy(serverList = nodeGroup.serverList - nodeId)
-        msg          =  Some("Automatic update of group due to deletion of node " + nodeId.value)
-        diff         <- woNodeGroupRepository.update(updatedGroup, modId, actor, msg)  ?~! "Could not update group %s to remove node '%s'".format(nodeGroup.id.value, nodeId.value)
-      } yield {
-        diff
-      }).flatten
+      deleted.flatten
     }
   }
 
