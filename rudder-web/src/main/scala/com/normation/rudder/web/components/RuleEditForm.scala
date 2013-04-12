@@ -304,7 +304,7 @@ class RuleEditForm(
           </ul>
         </div> } &
       "#save" #> saveButton &
-      "#notification *" #>  updateAndDisplayNotifications(formTracker) &
+      "#notifications" #>  updateAndDisplayNotifications(formTracker) &
       "#editForm [id]" #> htmlId_rule
     )(crForm) ++ 
     Script(OnLoad(JsRaw("""
@@ -660,7 +660,7 @@ class RuleEditForm(
     formTracker.cleanErrors
    
     if(notifications.isEmpty) {
-      NodeSeq.Empty
+      <div id="notifications" />
     }
     else {
       val html = 
