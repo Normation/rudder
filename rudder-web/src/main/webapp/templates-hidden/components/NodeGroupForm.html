@@ -16,7 +16,7 @@
 </component:staticInit>
 
 <component:staticBody>
-  <div id="nodeDetailsPopup" class="nodisplay" style="overflow: auto; max-height: 550px;">
+  <div id="nodeDetailsPopup" class="nodisplay">
     <lift:ignore>
       This div will get node details information, when a node in a group is clicked
     </lift:ignore>
@@ -39,94 +39,63 @@
     <div id="createCloneGroupContainer" />
   </div>
   
-  <div id="confirmUpdateActionDialog" />
+  <div id="confirmUpdateActionDialog" class="nodisplay" />
 </component:staticBody>
 
-<component:popupRemoveForm>
-  <div id="removeActionDialog" class="nodisplay">
-    <div class="simplemodal-title">
-      <h1>Delete a group</h1>
-      <hr/>
-    </div>
-    <div class="simplemodal-content">
-      <div>
-        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-        <h2>Are you sure that you want to delete this item?</h2>
-        
-      </div>
-      <br />
-      <div>
-        Deleting this Group will also remove it from the following Rules.
-      </div>
-      <hr class="spacer" />
-      <div id="removeItemDependencies">
-        Here comes the grid.
-      </div>
-      <br />
-
-      <hr class="spacer" />
-      <div class="reasonsFieldsetPopup">
-        <div id="explanationMessage">
-          Here comes the explanation to reasons field
-        </div>
-        <div id="reasonsField">
-          Here comes the reasons field
-        </div>
-      </div>
-
-      <br />
-      <hr class="spacer" />
-    </div>
-    <div class="simplemodal-bottom">
-      <hr/>
-      <div class="popupButton">
-         <span>
-          <button class="simplemodal-close" onClick="return false;">Cancel</button>
-          <div id="removeButton" />
-        </span>
-      </div>
-    </div>
-  </div>   
-</component:popupRemoveForm>
-
-<component:popupDependentUpdateForm>
-  <div id="updateActionDialog" class="nodisplay">
-    <div class="simplemodal-title">
-      <h1>Update a group</h1>
-      <hr/>
-    </div>
-    <div class="simplemodal-content">
-      <div>
-        <img src="/images/icDetails.png" alt="Details" height="20" width="22" class="icon"/>
-        <h2>Are you sure that you want to update this group?</h2> 
-      </div>
-      <br />
-      <div>
-        Updating this Group will have an impact on the following Rules which apply it.
-      </div>
-      <hr class="spacer" />
-      <div id="updateItemDependencies">
-        Here comes the grid.
-      </div>
-      <br />
-
-      <hr class="spacer" />
-      <br />
-      <hr class="spacer" />
-    </div>
-    <div class="simplemodal-bottom">
-      <hr/>
-      <div class="popupButton">
-         <span>
-          <button class="simplemodal-close" onClick="return false;">Cancel</button>
-          <button id="dialogSaveButton">Save</button>
-        </span>
-      </div>
-    </div>
-  </div>
-</component:popupDependentUpdateForm>
-
 <component:body>
-<!--  TODO!  -->
+<div id="GroupTabs">
+  <ul id="groupTabMenu">
+    <li><a href="#groupParametersTab">Group parameters</a></li>
+  </ul>
+  
+  <div id="groupParametersTab">
+
+       <div class="inner-portlet">
+         <div>
+           <div class="inner-portlet-header">
+             Group details
+           </div>
+           <div class="inner-portlet-content" style="display: inline-block">
+             <group:notifications />
+             <hr class="spacer"/>
+             <group:name/>
+             <hr class="spacer"/>
+             <group:container/>
+             <hr class="spacer"/>
+             <group:static/>
+             <hr class="spacer"/>
+             <group:description/>
+             <hr class="spacer"/>
+             <group:rudderID/>
+             <hr class="spacer"/>
+             <fieldset class="searchNodes"><legend>Group criteria</legend>
+               <div id="SearchNodes">
+                 <group:showGroup />
+               </div>
+             </fieldset>
+<!--
+             <lift:authz role="group_edit">
+               <group:reason />
+             </lift:authz>
+-->
+             <div >
+               <div class="margins" align="right" style="overflow:hidden;display:block;">
+                 <div style="float:left" align="left">
+                 <lift:authz role="group_write"><group:clone/></lift:authz>
+                 <lift:authz role="group_write"><group:delete/></lift:authz>
+               </div>
+               <div style="float:right" align="right">
+                 <group:save/>
+               </div>
+             </div>
+           </div>
+        </div>
+      </div>
+     </div>
+<!--
+    <group:removeForm/>
+-->
+  </div>   
+</div>
 </component:body>
 </xml:group>

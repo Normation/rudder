@@ -90,7 +90,7 @@ class DynGroupUpdaterServiceImpl(
 
   override def update(dynGroupId:NodeGroupId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff] = {
     for {
-      group <- roNodeGroupRepository.getNodeGroup(dynGroupId)
+      (group,_) <- roNodeGroupRepository.getNodeGroup(dynGroupId)
       isDynamic <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
       query <- Box(group.query) ?~! "Can not a group if its query is not defined"
       newMembers <- queryProcessor.process(query) ?~! "Error when processing request for updating dynamic group with id %s".format(dynGroupId)

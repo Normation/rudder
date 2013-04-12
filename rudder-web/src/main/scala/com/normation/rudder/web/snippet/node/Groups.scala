@@ -69,6 +69,8 @@ import com.normation.plugins.SpringExtendableSnippet
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.domain.workflows.ChangeRequestId
 
 
 object Groups {
@@ -79,7 +81,7 @@ object Groups {
 
   private sealed trait RightPanel
   private case object NoPanel extends RightPanel
-  private case class GroupForm(group:NodeGroup) extends RightPanel with HashcodeCaching
+  private case class GroupForm(group:NodeGroup, parentCategoryId:NodeGroupCategoryId) extends RightPanel with HashcodeCaching
   private case class CategoryForm(category:NodeGroupCategory) extends RightPanel with HashcodeCaching
 
 }
@@ -164,9 +166,9 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     def displayDetails(groupId:String) = {
       roNodeGroupRepository.getNodeGroup(new NodeGroupId(groupId)) match {
         case t: EmptyBox => Noop
-        case Full(nodeGroup) =>
+        case Full((nodeGroup,parentCatId)) =>
           refreshTree(htmlTreeNodeId(groupId)) &
-          refreshRightPanel(GroupForm(nodeGroup)) &
+          refreshRightPanel(GroupForm(nodeGroup,parentCatId)) &
           JsRaw("createTooltip()")
       }
     }
@@ -197,8 +199,19 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   private[this] def setAndShowRightPanel(panel:RightPanel) : NodeSeq = {
     panel match {
       case NoPanel => NodeSeq.Empty
-      case GroupForm(group) =>
-        val form = new NodeGroupForm(htmlId_item, Some(group), onSuccessCallback())
+      case GroupForm(group,parentCatId) =>
+        val form = new NodeGroupForm(
+            htmlId_item
+          , group
+          , parentCatId
+          , { (redirect: Either[NodeGroup,ChangeRequestId]) =>
+              redirect match {
+                case Left(group) => refreshTree(htmlTreeNodeId(group.id.value))
+                case Right(crId) => RedirectTo(s"""/secure/utilities/changeRequest/${crId.value}""")
+              }
+            }
+        )
+
         nodeGroupForm.set(Full(form))
         form.dispatch("showForm")(NodeSeq.Empty);
 
@@ -302,14 +315,13 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
        }) match {
         case (sourceGroupId, destCatId) :: Nil =>
           (for {
-            group <- roNodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId)) ?~! "Error while trying to find group with requested id %s".format(sourceGroupId)
-            result <- woNodeGroupRepository.move(group, NodeGroupCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Group moved by user"))?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
-            newGroup <- roNodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId))
+            result <- woNodeGroupRepository.move(NodeGroupId(sourceGroupId), NodeGroupCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Group moved by user"))?~! "Error while trying to move group with requested id '%s' to category id '%s'".format(sourceGroupId,destCatId)
+            (ng,cat) <- roNodeGroupRepository.getNodeGroup(NodeGroupId(sourceGroupId))
           } yield {
-            newGroup
+            (ng,cat)
           }) match {
-            case Full(res) =>
-              refreshTree(htmlTreeNodeId(res.id.value)) & JsRaw("""setTimeout(function() { $("[groupid=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceGroupId)) & refreshRightPanel(GroupForm(res))
+            case Full((ng,cat)) =>
+              refreshTree(htmlTreeNodeId(ng.id.value)) & JsRaw("""setTimeout(function() { $("[groupid=%s]").effect("highlight", {}, 2000)}, 100)""".format(sourceGroupId)) & refreshRightPanel(GroupForm(ng,cat))
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move group with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceGroupId,destCatId))
           }
@@ -417,7 +429,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     targetInfo.target match {
       case GroupTarget(id) =>
         roNodeGroupRepository.getNodeGroup(id) match {
-          case Full(group) => nodeGroupToJsTreeNode(group)
+          case Full((group,parentGroupId)) => nodeGroupToJsTreeNode(group,parentGroupId)
           case _ => new JsTreeNode {
             override def body = <span class="error">Can not find node {id.value}</span>
             override def children = Nil
@@ -446,10 +458,10 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   /**
    * Transform a WBNodeGroup into a JsTree leaf.
    */
-  private[this] def nodeGroupToJsTreeNode(group : NodeGroup) : JsTreeNode = new JsTreeNode {
+  private[this] def nodeGroupToJsTreeNode(group : NodeGroup, parentCategoryId: NodeGroupCategoryId) : JsTreeNode = new JsTreeNode {
     //ajax function that update the bottom
     def onClickNode() : JsCmd = {
-      showGroupSection(group)
+      showGroupSection(group, parentCategoryId)
     }
 
     override def body = {
@@ -485,9 +497,9 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
    * @param sg
    * @return
    */
-  private[this] def showGroupSection(sg : NodeGroup) : JsCmd = {
+  private[this] def showGroupSection(sg : NodeGroup, parentCategoryId: NodeGroupCategoryId) : JsCmd = {
     //update UI
-    refreshRightPanel(GroupForm(sg))&
+    refreshRightPanel(GroupForm(sg, parentCategoryId))&
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'groupId':'%s'})""".format(sg.id.value))
   }
 
