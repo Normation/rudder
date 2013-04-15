@@ -244,9 +244,21 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
     select_multiple_modifier = "";
     select_limit = 1;
   }
+  
+  /**
+   * We want to be able to select category on group
+   * page.
+   */
   if(select_node == undefined) {
     select_node = false; 
   } 
+  
+  /**
+   * We want to select all nodes, including
+   * system one, on the rule page
+   * (so where category are not selectable
+   */
+  var select_system_node_allowed = !select_node;
   
   $(id).bind("loaded.jstree", function (event, data) {
     data.inst.open_all(-1);
@@ -298,8 +310,8 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
         },
         "system_target" : {
           "icon" : { "image" : appContext+"/images/tree/server_group_16x16.gif" },
-          "select_node" : false,
-          "hover_node" : false,
+          "select_node" : select_system_node_allowed,
+          "hover_node" : select_system_node_allowed,
           "valid_children" : "none"
         },
         "default" : {
