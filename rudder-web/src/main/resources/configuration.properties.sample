@@ -388,7 +388,7 @@ rudder.batch.reports.logInterval=1
 #
 # Boolean, defaults to false.
 
-rudder.workflow.enabled=true
+rudder.workflow.enabled=false
 
 #########################
 # DEPRECATED properties #############################################################
