@@ -105,6 +105,35 @@ class RoChangeRequestJdbcRepository(
     }
   }
 
+  // Get every change request where a user add a change
+  def getByContributor(actor:EventActor) : Box[Seq[ChangeRequest]] = {
+    Try {
+
+      jdbcTemplate.query(
+        new PreparedStatementCreator() {
+           def createPreparedStatement(connection : Connection) : PreparedStatement = {
+
+             val query= s"${SELECT_SQL} where cast( xpath('//firstChange/change/actor/text()',content) as text[]) = ?"
+             val ps = connection.prepareStatement(
+                 query, Array[String]());
+             ps.setArray(1, connection.createArrayOf("text", Seq(actor.name).toArray[AnyRef]) )
+
+             // if with have eventtype filter, apply them
+             ps
+           }
+         }, changeRequestsMapper)
+    } match {
+      case Success(x) =>
+        Full(x.:\(Seq[ChangeRequest]()){(changeRequest,seq) => changeRequest match {
+        case Full(cr) =>  seq :+ cr
+        case eb:EmptyBox =>
+          seq
+        }
+      } )
+      case Catch(x) => ApplicationLogger.error(s"could not fetch change request for user ${actor}: ${x}")
+      Failure(s"could not fetch change request for user ${actor}")
+    }
+  }
   def getByIds(changeRequestId:Seq[ChangeRequestId]) : Box[Seq[ChangeRequest]] = {
     val parameters = new MapSqlParameterSource();
     parameters.addValue("ids", changeRequestId.map(x => x.value))
