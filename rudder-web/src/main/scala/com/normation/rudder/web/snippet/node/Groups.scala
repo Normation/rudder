@@ -496,7 +496,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
 
     //update UI
     SetHtml("createGroupContainer", createPopup) &
-    JsRaw( """ createPopup("createGroupPopup",300,400)""")
+    JsRaw( """ createPopup("createGroupPopup")""")
 
   }
 }

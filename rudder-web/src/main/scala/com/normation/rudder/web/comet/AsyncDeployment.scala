@@ -224,7 +224,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private[this] def showPendingPopup : JsCmd = (
-    JsRaw("createPopup('%s', 150, 850)".format(pendingPopupHtmlId)) &
+    JsRaw(s"createPopup('${pendingPopupHtmlId}')") &
     eventList.initJs(gridName)
 
   )
