@@ -798,12 +798,10 @@ object RudderConfig extends Loggable {
     RUDDER_COMMUNITY_PORT,
     RUDDER_COMMUNITY_CHECKPROMISES_COMMAND,
     RUDDER_NOVA_CHECKPROMISES_COMMAND)
+
   //must be here because of cirular dependency if in techniqueRepository
-  private[this] lazy val techniqueAcceptationDatetimeUpdater: TechniquesLibraryUpdateNotification = {
-    val callback = new TechniqueAcceptationDatetimeUpdater("UpdatePTAcceptationDatetime", roLdapDirectiveRepository, woLdapDirectiveRepository)
-    techniqueRepositoryImpl.registerCallback(callback)
-    callback
-  }
+  techniqueRepositoryImpl.registerCallback(new TechniqueAcceptationDatetimeUpdater("UpdatePTAcceptationDatetime", roLdapDirectiveRepository, woLdapDirectiveRepository))
+
   private[this] lazy val techniqueRepositoryImpl = {
     val service = new TechniqueRepositoryImpl(
         techniqueReader,
