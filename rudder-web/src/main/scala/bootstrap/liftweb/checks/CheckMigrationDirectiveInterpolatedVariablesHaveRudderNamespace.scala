@@ -117,7 +117,11 @@ class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
             logger.info(message)
             for {
               activeTechnique <- repos.getActiveTechnique(directive.id)
-              saved           <- repos.saveDirective(activeTechnique.id, directive, modId, RudderEventActor, Some(message))
+              saved           <- if(directive.isSystem) {
+                                   repos.saveSystemDirective(activeTechnique.id, directive, modId, RudderEventActor, Some(message))
+                                 } else {
+                                   repos.saveDirective(activeTechnique.id, directive, modId, RudderEventActor, Some(message))
+                                 }
             } yield {
               saved
             }
