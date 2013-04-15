@@ -255,7 +255,13 @@ class DependencyAndDeletionServiceImpl(
       updatedRules <- sequence(configRules) { rule =>
                         //check that target is actually "target", and remove it
                         if(rule.directiveIds.exists(i => id == i)) {
-                          ruleRepository.update(rule.copy(directiveIds = rule.directiveIds - id), modId, actor, reason) ?~!
+                          val newRule = rule.copy(directiveIds = rule.directiveIds - id)
+                          val updatedRuleRes = if(rule.isSystem) {
+                            ruleRepository.updateSystem(newRule, modId, actor, reason)
+                          } else {
+                            ruleRepository.update(newRule, modId, actor, reason)
+                          }
+                          updatedRuleRes ?~!
                             "Can not update rule with ID %s. %s".format(rule.id, {
                                val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
                                if(alreadyUpdated.isEmpty) ""
@@ -412,7 +418,13 @@ class DependencyAndDeletionServiceImpl(
           updatedRules  <- sequence(configRules) { rule =>
                              //check that target is actually "target", and remove it
                              if (rule.targets.contains(target)) {
-                                 ruleRepository.update(rule.copy(targets = rule.targets - target), modId, actor, reason) ?~! 
+                                 val newRule = rule.copy(targets = rule.targets - target)
+                                 val updatedRuleRes = if(rule.isSystem) {
+                                   ruleRepository.updateSystem(newRule, modId, actor, reason)
+                                 } else {
+                                   ruleRepository.update(newRule, modId, actor, reason)
+                                 }
+                                 updatedRuleRes ?~!
                                    "Can not remove target '%s' from rule with Dd '%s'. %s".format(
                                        target.target, rule.id.value, {
                                          val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)

@@ -94,7 +94,14 @@ class DynGroupUpdaterServiceImpl(
       newMembers <- queryProcessor.process(query) ?~! "Error when processing request for updating dynamic group with id %s".format(dynGroupId)
       //save
       val newMemberIdsSet = newMembers.map( _.id).toSet
-      savedGroup <- nodeGroupRepository.update(group.copy(serverList = newMemberIdsSet ), modId, actor, reason) ?~! "Error when saving update for dynmic group '%s'".format(dynGroupId)
+      savedGroup <- {
+                      val newGroup = group.copy(serverList = newMemberIdsSet)
+                      if(group.isSystem) {
+                        nodeGroupRepository.updateSystemGroup(newGroup, modId, actor, reason)
+                      } else {
+                        nodeGroupRepository.update(newGroup, modId, actor, reason)
+                      }
+                    } ?~! "Error when saving update for dynmic group '%s'".format(dynGroupId)
     } yield {
       val plus = newMemberIdsSet -- group.serverList
       val minus = group.serverList -- newMemberIdsSet
