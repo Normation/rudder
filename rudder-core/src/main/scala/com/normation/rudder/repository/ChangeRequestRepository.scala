@@ -44,6 +44,7 @@ import com.normation.rudder.domain.workflows.WorkflowNode
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.eventlog.EventActor
 
 /**
  * Read access to change request
@@ -68,7 +69,7 @@ trait RoChangeRequestRepository {
 
   def getByRule(id : RuleId) : Box[Seq[ChangeRequest]]
 
-
+  def getByContributor(actor:EventActor) : Box[Seq[ChangeRequest]]
 }
 
 /**

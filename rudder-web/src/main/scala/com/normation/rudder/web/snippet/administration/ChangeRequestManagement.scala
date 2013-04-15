@@ -125,11 +125,7 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
          {cr.info.name}
       </td>
       <td id="crOwner">
-         {
-           changeRequestEventLogService.getFirstLog(cr.id) match {
-           case eb :EmptyBox => "Error while fetching Creator"
-           case Full(result) => result.map(_.principal.name).getOrElse("Unknown User")
-         }}
+         { cr.owner }
       </td>
       <td id="crDate">
          {(changeRequestEventLogService.getLastLog(cr.id),workflowLoggerService.getLastLog(cr.id)) match {
