@@ -234,12 +234,12 @@ class TechniqueEditForm(
       correctButtons();
 
       $('#deleteButton').click(function() {
-        createPopup("deleteActionDialog",140,400);
+        createPopup("deleteActionDialog");
         return false;
       });
 
       $('#disableButton').click(function() {
-        createPopup("disableActionDialog",140,500);
+        createPopup("disableActionDialog");
         return false;
       });
     """)))
@@ -647,7 +647,7 @@ class TechniqueEditForm(
 
   ///////////// success pop-up ///////////////
     private[this] def successPopup : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)
+    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog")
     """)
   }
 

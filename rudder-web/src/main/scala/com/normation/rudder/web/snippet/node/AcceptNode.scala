@@ -268,9 +268,9 @@ class AcceptNode {
                 { "sWidth": "300px" }
               ]
             });"""
-          ) & JsRaw("""
-                createPopup("#popupId#",300,660);
-          $('#pendingNodeConfirm_info').remove();""".replaceAll("#popupId#", popupId))
+          ) & JsRaw(s"""
+                createPopup("${popupId}");
+          $$('#pendingNodeConfirm_info').remove();""")
           )
       }
     }
@@ -327,8 +327,7 @@ class AcceptNode {
   def showExpectedPolicyPopup(nodeId : NodeId) = {
 
     SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", nodeId)).display ) &
-    OnLoad(JsRaw("""createPopup("expectedPolicyPopup",300,660)
-      """) )
+    OnLoad(JsRaw("""createPopup("expectedPolicyPopup")""") )
   }
 
     newNodeManager.listNewNodes match {
