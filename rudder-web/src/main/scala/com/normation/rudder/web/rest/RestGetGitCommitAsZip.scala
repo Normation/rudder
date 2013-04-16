@@ -70,16 +70,16 @@ class RestGetGitCommitAsZip(
      * API not authenticated but restricted to localhost.
      * See http://www.rudder-project.org/redmine/issues/2990
      */
-    case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "groups"     :: commitId :: Nil, req) =>
+    case Get("secure" :: "utilities" :: "archiveManagement" :: "zip" :: "groups"     :: commitId :: Nil, req) =>
       getZip(commitId, List("groups"))
 
-    case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "directives" :: commitId :: Nil, req) =>
+    case Get("secure" :: "utilities" :: "archiveManagement" :: "zip" :: "directives" :: commitId :: Nil, req) =>
       getZip(commitId, List("directives"))
 
-    case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "rules"      :: commitId :: Nil, req) =>
+    case Get("secure" :: "utilities" :: "archiveManagement" :: "zip" :: "rules"      :: commitId :: Nil, req) =>
       getZip(commitId, List("rules"))
 
-    case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "all"        :: commitId :: Nil, req) =>
+    case Get("secure" :: "utilities" :: "archiveManagement" :: "zip" :: "all"        :: commitId :: Nil, req) =>
       getZip(commitId, List("groups", "directives", "rules"))
 
 
