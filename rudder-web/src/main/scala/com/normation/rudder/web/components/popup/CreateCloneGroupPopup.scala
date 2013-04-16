@@ -70,7 +70,7 @@ class CreateCloneGroupPopup(
       "notifications" -> updateAndDisplayNotifications(formTracker),
       "cancel" -> SHtml.ajaxButton( "Cancel", { () => closePopup() } ) % ( "tabindex", "6" ),
       "save" -> SHtml.ajaxSubmit( "Save", onSubmit _ ) % ( "id", "createCOGSaveButton" ) % ( "tabindex", "5" )
-    ) ) ++ Script( OnLoad( initJs ) )
+    ) ) ++ Script( OnLoad( initJs & JsRaw("updatePopup();") ) )
   }
 
   def templatePath = List("templates-hidden", "Popup", "createCloneGroupPopup")
@@ -245,7 +245,6 @@ class CreateCloneGroupPopup(
   }
 
   private[this] def initJs : JsCmd = {
-    JsRaw("correctButtons();") &
     JsShowId("createGroupHiddable") &
     {
       if (groupGenerator != None) {
