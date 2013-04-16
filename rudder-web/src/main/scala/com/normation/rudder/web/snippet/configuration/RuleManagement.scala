@@ -215,7 +215,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     setCreationPopup(clonedRule)
     val popupHtml = createPopup
     SetHtml(CreateOrCloneRulePopup.htmlId_popupContainer, popupHtml) &
-    JsRaw( """ createPopup("%s",300,400) """.format(CreateOrCloneRulePopup.htmlId_popup))
+    JsRaw( s""" createPopup("${CreateOrCloneRulePopup.htmlId_popup}") """)
 
   }
 

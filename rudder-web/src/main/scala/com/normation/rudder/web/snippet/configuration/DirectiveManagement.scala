@@ -247,8 +247,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           { Text("Create a new Directive based on technique ") ++ <b>{technique.name}</b> },
           { () =>  SetHtml(CreateDirectivePopup.htmlId_popup,
                      newCreationPopup(technique, activeTechnique)) &
-                   JsRaw( """ createPopup("%s",300,400) """
-                     .format(CreateDirectivePopup.htmlId_popup) ) },
+                   JsRaw( s""" createPopup("${CreateDirectivePopup.htmlId_popup}") """) },
             ("class", "autoWidthButton")
           )
     })
@@ -364,7 +363,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   ///////////// finish migration pop-up ///////////////
   private[this] def displayFinishMigrationPopup : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200,"finishMigrationPopup",100,350) """)
+    JsRaw(""" callPopupWithTimeout(200,"finishMigrationPopup") """)
   }
 
   /**
@@ -440,11 +439,11 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
 
   /**
-   * Callback used to update the form when the edition of the directive have 
+   * Callback used to update the form when the edition of the directive have
    * been done
    * If it is given a directive, it updated the form, else goes to the changerequest page
    */
-  private[this] def directiveEditFormSuccessCallBack(returns: Either[Directive,ChangeRequestId]): JsCmd = {  
+  private[this] def directiveEditFormSuccessCallBack(returns: Either[Directive,ChangeRequestId]): JsCmd = {
     returns match {
       case Left(dir) => // ok, we've received a directive, show it
           directiveRepository.getDirectiveWithContext(dir.id) match {

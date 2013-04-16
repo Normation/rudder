@@ -195,8 +195,7 @@ class NodeGroupForm(
     s.split("\\|").toList match {
       case _ :: id :: _ =>
         SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(id))).display(true)) &
-        JsRaw( """ createPopup("nodeDetailsPopup",500,1000)
-        """)
+        createPopup("nodeDetailsPopup")
 
       case _ => Alert("Error when trying to display node details: received bad parameter for node ID: %s".format(s))
     }
@@ -350,7 +349,7 @@ class NodeGroupForm(
           Script(JsRaw("""
             correctButtons();
             $('#removeButton').click(function() {
-              createPopup("removeActionDialog",140,850);
+              createPopup("removeActionDialog");
               return false;
             });
         """))
@@ -607,11 +606,11 @@ class NodeGroupForm(
     , container  : String): JsCmd = {
     SetHtml("confirmUpdateActionDialog", showUpdatePopupForm(checkAndUpdateGroup(
         nodeGroup, name, description, query, isDynamic, srvList, container))) &
-    createPopup("updateActionDialog",140,850)
+    createPopup("updateActionDialog")
   }
 
-  def createPopup(name:String,height:Int,width:Int) :JsCmd = {
-    JsRaw("""createPopup("%s",%s,%s);""".format(name,height,width))
+  def createPopup(name:String) :JsCmd = {
+    JsRaw(s"""createPopup("${name}");""")
   }
 
   private[this] def showCloneGroupPopup() : JsCmd = {
@@ -627,7 +626,7 @@ class NodeGroupForm(
       case Full(popup) => popup.popupContent()
     }
     SetHtml("createCloneGroupContainer", nodeSeqPopup) &
-    JsRaw("""createPopup("createCloneGroupPopup", 300, 400)""")
+    createPopup("createCloneGroupPopup")
   }
 
   private[this] def htmlTreeNodeId(id:String) = "jsTree-" + id
@@ -788,8 +787,7 @@ class NodeGroupForm(
 
   ///////////// success pop-up ///////////////
     private[this] def successPopup : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)
-    """)
+    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog")""")
   }
 
   private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {

@@ -659,7 +659,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
 
 
     SetHtml(deleteNodePopupHtmlId, popupHtml) &
-    JsRaw( """ createPopup("%s",300,400) """.format(deleteNodePopupHtmlId))
+    JsRaw(s""" createPopup("${deleteNodePopupHtmlId}") """)
 
   }
 
@@ -741,7 +741,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
 
     JsRaw( """$.modal.close();""") &
     SetHtml(errorPopupHtmlId, popupHtml) &
-    JsRaw( """ callPopupWithTimeout(200,"%s",300,400) """.format(errorPopupHtmlId))
+    JsRaw( s""" callPopupWithTimeout(200,"${errorPopupHtmlId}")""")
   }
 
   private[this] def onSuccess : JsCmd = {
@@ -772,7 +772,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
 
     JsRaw( """$.modal.close();""") &
     SetHtml(successPopupHtmlId, popupHtml) &
-    JsRaw( """ callPopupWithTimeout(200,"%s",300,400) """.format(successPopupHtmlId))
+    JsRaw( s""" callPopupWithTimeout(200,"${successPopupHtmlId}") """)
   }
 
   private [this] def isRootNode(n: NodeId): Boolean = {

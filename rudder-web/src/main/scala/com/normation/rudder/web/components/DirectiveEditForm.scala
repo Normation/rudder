@@ -215,8 +215,7 @@ class DirectiveEditForm(
   private[this] def clone(): JsCmd = {
     SetHtml(CreateCloneDirectivePopup.htmlId_popup,
         newCreationPopup(technique, activeTechnique)) &
-    JsRaw(""" createPopup("%s",300,400); """
-        .format(CreateCloneDirectivePopup.htmlId_popup))
+    JsRaw(s""" createPopup("${CreateCloneDirectivePopup.htmlId_popup}"); """)
   }
 
   ////////////// Callbacks //////////////
@@ -225,12 +224,12 @@ class DirectiveEditForm(
     formTracker.addFormError(error("The form contains some errors, please correct them."))
     showErrorNotifications()
   }
-  
+
   private[this] def onNothingToDo() : JsCmd = {
     formTracker.addFormError(error("There are no modification to save."))
     showErrorNotifications()
   }
-  
+
   private[this] def showErrorNotifications() : JsCmd = {
     onFailureCallback() & Replace("editForm", showDirectiveForm) &
     JsRaw("""scrollToElement("notifications");""")
@@ -415,7 +414,7 @@ class DirectiveEditForm(
             , parentFormTracker = Some(formTracker)
           )
         } else {
-          val callback = { 
+          val callback = {
             if (action == "delete") {
                 val nSeq = <div id={ htmlId_policyConf }>Directive successfully deleted</div>
                 cr : ChangeRequestId => JsRaw("$.modal.close();") &onRemoveSuccessCallBack() & SetHtml(htmlId_policyConf, nSeq) &
@@ -447,7 +446,7 @@ class DirectiveEditForm(
 
 
     SetHtml("confirmUpdateActionDialog", popup.popupContent) &
-    JsRaw("""createPopup("confirmUpdateActionDialog",400,800)""")
+    JsRaw("""createPopup("confirmUpdateActionDialog")""")
   }
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
@@ -479,12 +478,12 @@ class DirectiveEditForm(
   ///////////// success pop-up ///////////////
 
   private[this] def successPopup(message: NodeSeq) : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350) """) &
+    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog") """) &
     JsRaw(s""" $$("#successDialogContent").html('${message}') """)
   }
 
   private[this] def failurePopup(message: NodeSeq) : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350) """) &
+    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog") """) &
     JsRaw(s""" $$("#successDialogContent").html('${message}') """)
   }
 }
