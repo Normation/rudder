@@ -174,7 +174,7 @@ class RuleModificationValidationPopup(
       "#saveStartWorkflow" #> (SHtml.ajaxSubmit(buttonName, () => onSubmit(), ("class" -> classForButton)) % ("id", "createDirectiveSaveButton") % ("tabindex","3")) andThen
        ".notifications *" #> updateAndDisplayNotifications()
 
-    )(html ++ Script(OnLoad(JsRaw("correctButtons();"))))
+    )(html ++ Script(OnLoad(JsRaw("updatePopup();"))))
   }
 
   private[this] def showError(field:RudderBaseField) : NodeSeq = {

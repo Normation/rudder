@@ -111,8 +111,6 @@ class CreateCategoryOrGroupPopup(
    */
  private[this] def initJs : JsCmd = {
     JsRaw("""
-        correctButtons();
-
         $('#createGroupHiddable').removeClass('nodisplay');
 
         $('input[value="Group"]').click(
@@ -126,6 +124,7 @@ class CreateCategoryOrGroupPopup(
             $('#createGroupHiddable').addClass('nodisplay');
           }
         );
+        updatePopup();
      """)
   }
 

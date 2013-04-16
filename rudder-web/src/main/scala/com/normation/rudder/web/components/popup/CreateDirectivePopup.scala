@@ -109,7 +109,7 @@ class CreateDirectivePopup(
       "#notifications" #> updateAndDisplayNotifications() &
       "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"))&
       "#save" #> (SHtml.ajaxSubmit("Configure", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3"))
-    )(html ++ Script(OnLoad(JsRaw("correctButtons();"))))
+    )(html ++ Script(OnLoad(JsRaw("updatePopup();"))))
 
   }
 
