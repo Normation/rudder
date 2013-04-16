@@ -256,7 +256,13 @@ class DependencyAndDeletionServiceImpl(
       updatedRules <- sequence(configRules) { rule =>
                         //check that target is actually "target", and remove it
                         if(rule.directiveIds.exists(i => id == i)) {
-                          woRuleRepository.update(rule.copy(directiveIds = rule.directiveIds - id), modId, actor, reason) ?~!
+                          val newRule = rule.copy(directiveIds = rule.directiveIds - id)
+                          val updatedRuleRes = if(rule.isSystem) {
+                            woRuleRepository.updateSystem(newRule, modId, actor, reason)
+                          } else {
+                            woRuleRepository.update(newRule, modId, actor, reason)
+                          }
+                          updatedRuleRes ?~!
                             "Can not update rule with ID %s. %s".format(rule.id, {
                                val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
                                if(alreadyUpdated.isEmpty) ""
@@ -267,7 +273,7 @@ class DependencyAndDeletionServiceImpl(
                           None
                         }
       }
-      diff         <- woDirectiveRepository.delete(id, modId, actor, reason) ?~! 
+      diff         <- woDirectiveRepository.delete(id, modId, actor, reason) ?~!
                       "Error when deleting policy instanc with ID %s. All dependent rules where deleted %s.".format(
                           id, configRules.map( _.id.value ).mkString(" (", ", ", ")"))
     } yield {
@@ -413,7 +419,13 @@ class DependencyAndDeletionServiceImpl(
           updatedRules  <- sequence(configRules) { rule =>
                              //check that target is actually "target", and remove it
                              if (rule.targets.contains(target)) {
-                                 woRuleRepository.update(rule.copy(targets = rule.targets - target), modId, actor, reason) ?~! 
+                                 val newRule = rule.copy(targets = rule.targets - target)
+                                 val updatedRuleRes = if(rule.isSystem) {
+                                   woRuleRepository.updateSystem(newRule, modId, actor, reason)
+                                 } else {
+                                   woRuleRepository.update(newRule, modId, actor, reason)
+                                 }
+                                 updatedRuleRes ?~!
                                    "Can not remove target '%s' from rule with Dd '%s'. %s".format(
                                        target.target, rule.id.value, {
                                          val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)

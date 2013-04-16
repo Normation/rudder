@@ -548,7 +548,14 @@ class AddNodeToDynGroup(
           group <- roGroupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
           updatedGroup = group.copy( serverList = group.serverList + sm.node.main.id )
           msg = Some("Automatic update of system group due to acceptation of node "+ sm.node.main.id.value)
-          saved <- woGroupRepo.update(updatedGroup, modId, actor, msg) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
+          saved <- {
+                     val res = if(updatedGroup.isSystem) {
+                       woGroupRepo.updateSystemGroup(updatedGroup, modId, actor, msg)
+                     } else {
+                       woGroupRepo.update(updatedGroup, modId, actor, msg)
+                     }
+                     res ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
+                   }
         } yield {
           saved
         }
@@ -571,7 +578,14 @@ class AddNodeToDynGroup(
             group <- roGroupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
             updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
             msg = Some("Automatic update of system group due to rollback of acceptation of node "+ sm.node.main.id.value)
-            saved <- woGroupRepo.update(updatedGroup, modId, actor, msg) ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
+            saved <- {
+                       val res = if(updatedGroup.isSystem) {
+                         woGroupRepo.updateSystemGroup(updatedGroup, modId, actor, msg)
+                       } else {
+                         woGroupRepo.update(updatedGroup, modId, actor, msg)
+                       }
+                       res ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
+                     }
           } yield {
             saved
           }
@@ -611,7 +625,14 @@ class RefuseGroups(
           group <- roGroupRepo.getNodeGroup(groupId)
           modGroup = group.copy( serverList = group.serverList - srv.id)
           msg = Some("Automatic update of groups due to refusal of node "+ srv.id.value)
-          saved <- woGroupRepo.update(modGroup, modId, actor, msg)
+          saved <- {
+                     val res = if(modGroup.isSystem) {
+                       woGroupRepo.updateSystemGroup(modGroup, modId, actor, msg)
+                     } else {
+                       woGroupRepo.update(modGroup, modId, actor, msg)
+                     }
+                     res
+                   }
         } yield {
           saved
         }
