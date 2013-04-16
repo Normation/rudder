@@ -45,6 +45,9 @@ import JE._
 import net.liftweb.util.Helpers._
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.services.workflows.WorkflowUpdate
+import com.normation.rudder.services.workflows.TwoValidationStepsWorkflowServiceImpl
+import com.normation.rudder.domain.workflows.WorkflowNodeId
+import com.normation.rudder.domain.workflows.ChangeRequestId
 
 
 
@@ -74,31 +77,46 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
   </div>
 
   def pendingModifications = {
-    workflowService.getValidation match {
-      case Full(seq) =>
-        seq.size match {
-          case 0 => 
-            ".pendingModifications" #> <span style="font-size:12px; padding-left:25px; padding-top:2px">Pending review: 0</span>
-          case size => 
-            ".pendingModifications" #> <span style="font-size:12px; padding-top:2px"><img src="/images/icWarn.png" alt="Warning!" height="15" width="15" class="warnicon"/> <a href="/secure/utilities/changeRequests/Pending_validation" style="color:#999999">Pending review: {size}</a></span>
+
+    val xml = workflowService match {
+      case ws:TwoValidationStepsWorkflowServiceImpl =>
+        ws.getItemsInStep(ws.Validation.id) match {
+          case Full(seq) =>
+            seq.size match {
+              case 0 =>
+                <span style="font-size:12px; padding-left:25px; padding-top:2px">Pending review: 0</span>
+              case size =>
+                <span style="font-size:12px; padding-top:2px"><img src="/images/icWarn.png" alt="Warning!" height="15" width="15" class="warnicon"/> <a href="/secure/utilities/changeRequests/Pending_validation" style="color:#999999">Pending review: {size}</a></span>
+            }
+          case e:EmptyBox =>
+            <p class="error">Error when trying to fetch pending change requests.</p>
         }
-      case e:EmptyBox => 
-        ".pendingModifications" #>  <p class="error">Error when trying to fetch pending change requests.</p>
+      case _ => //For other kind of workflows, this has no meaning
+        <p class="error">Error, the configured workflow does not have that step.</p>
     }
+
+    ".pendingModifications" #> xml
   }
 
   def pendingDeployment = {
-    workflowService.getDeployment match {
-      case Full(seq) =>
-        seq.size match {
-          case 0 => 
-            ".pendingDeployment" #> <span style="font-size:12px; padding-left:25px; padding-top:2px">Pending deployment: 0</span>
-          case size => 
-            ".pendingDeployment" #> <span style="font-size:12px; padding-top:2px"><img src="/images/icWarn.png" alt="Warning!" height="15" width="15" class="warnicon"/> <a href="/secure/utilities/changeRequests/Pending_deployment" style="color:#999999">Pending deployment: {size}</a> </span>
+    val xml = workflowService match {
+      case ws:TwoValidationStepsWorkflowServiceImpl =>
+        ws.getItemsInStep(ws.Deployment.id) match {
+          case Full(seq) =>
+            seq.size match {
+              case 0 =>
+                <span style="font-size:12px; padding-left:25px; padding-top:2px">Pending deployment: 0</span>
+              case size =>
+                <span style="font-size:12px; padding-top:2px"><img src="/images/icWarn.png" alt="Warning!" height="15" width="15" class="warnicon"/> <a href="/secure/utilities/changeRequests/Pending_deployment" style="color:#999999">Pending deployment: {size}</a> </span>
+            }
+          case e:EmptyBox =>
+            <p class="error">Error when trying to fetch pending change requests.</p>
         }
-      case e:EmptyBox => 
-        ".pendingDeployment" #>  <p class="error">Error when trying to fetch pending change requests.</p>
+      case _ => //For other kind of workflows, this has no meaning
+        <p class="error">Error, the configured workflow does not have that step.</p>
     }
+
+    ".pendingDeployment" #> xml
   }
 
   override def lowPriority = {
