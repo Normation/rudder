@@ -47,6 +47,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.eventlog.EventLog
 import com.normation.rudder.domain.eventlog.ChangeRequestLogCategory
+import com.normation.eventlog.ModificationId
 
 
 
@@ -65,8 +66,8 @@ case class ChangeRequestId(value:Int) {
 
 //a container for changer request infos
 final case class ChangeRequestInfo(
-    name       : String
-  , description: String
+    name        : String
+  , description : String
 )
 
 object ChangeRequest {
@@ -88,13 +89,34 @@ object ChangeRequest {
         x.copy(id = newId).asInstanceOf[T]
     }
   }
+
+  /*
+   * Replace the change request mod id by a new one.
+   * If you don't want to lose the old modId, you have to check it before.
+   */
+  def setModId[T <: ChangeRequest](cr:T, modId:ModificationId): T = {
+    cr match {
+      case x:ConfigurationChangeRequest =>
+        x.copy(modId = Some(modId)).asInstanceOf[T]
+      case x:RollbackChangeRequest =>
+        x.copy(modId = Some(modId)).asInstanceOf[T]
+    }
+  }
 }
 
 sealed trait ChangeRequest {
 
-  def id: ChangeRequestId //modification Id ?
+  def id : ChangeRequestId
 
-  def info: ChangeRequestInfo
+  /*
+   * A modification id is linked to a change request when the change request
+   * is deployed. This modification id will be used for every change in the change
+   * request. There will be only one commit for the change request and rollbacking
+   * a change request means rollback everything
+   */
+  def modId : Option[ModificationId]
+
+  def info : ChangeRequestInfo
 
 }
 
@@ -111,7 +133,8 @@ sealed trait ChangeRequest {
  * Rules and Group.
  */
 case class ConfigurationChangeRequest(
-    id         : ChangeRequestId //modification Id ?
+    id         : ChangeRequestId
+  , modId      : Option[ModificationId]
   , info       : ChangeRequestInfo
   , directives : Map[DirectiveId, DirectiveChanges]
   , nodeGroups : Map[NodeGroupId, NodeGroupChanges]
@@ -121,7 +144,8 @@ case class ConfigurationChangeRequest(
 
 
 case class RollbackChangeRequest(
-    id         : ChangeRequestId //modification Id ?
+    id         : ChangeRequestId
+  , modId      : Option[ModificationId]
   , info       : ChangeRequestInfo
   , rollback   : Null // TODO: rollback change request
 ) extends ChangeRequest

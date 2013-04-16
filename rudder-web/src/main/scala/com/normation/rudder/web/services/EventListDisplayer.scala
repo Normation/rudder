@@ -71,6 +71,7 @@ import scala.util.Success
 import scala.util.{Failure => Catch}
 import com.normation.rudder.domain.eventlog.WorkflowStepChanged
 import com.normation.rudder.domain.workflows.WorkflowStepChange
+import com.normation.rudder.domain.workflows.ChangeRequestId
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
@@ -203,9 +204,13 @@ class EventListDisplayer(
       Alert("Called ID is not valid: %s".format(jsid))
     } else {
       val eventId = arr(1).toInt
-      repos.getEventLog(eventId) match {
-        case Full(event) =>
-          SetHtml(jsid,displayDetails(event))
+      repos.getEventLogWithChange(eventId) match {
+        case Full(Some((event,crId))) =>
+          SetHtml(jsid,displayDetails(event,crId))
+        case Full(None) =>
+          val msg = s"could not find event for id ${eventId}"
+          logger.debug(msg)
+          Alert(s"Called id is not valid: ${jsid}, cause : ${msg}")
         case e:EmptyBox =>
           logger.debug((e ?~! "error").messageChain)
           Alert("Called id is not valid: %s".format(jsid))
@@ -367,8 +372,13 @@ class EventListDisplayer(
     }
   }
 
-  def displayDetails(event:EventLog) = {
+  def displayDetails(event:EventLog,changeRequestId:Option[ChangeRequestId]) = {
 
+    val generatedByChangeRequest =
+      changeRequestId match {
+      case None => NodeSeq.Empty
+      case Some(id) => <h4 style="padding:5px"> This event was generated when change request #<a href={changeRequestLink(id)}>{id}</a> was deployed</h4>
+    }
     def xmlParameters(eventId: Option[Int]) = {
       eventId match {
         case None => NodeSeq.Empty
@@ -503,6 +513,7 @@ class EventListDisplayer(
         "*" #> { val xml : NodeSeq = logDetailsService.getRuleAddDetails(add.details) match {
           case Full(addDiff) =>
             <div class="evloglmargin">
+              { generatedByChangeRequest }
               { addRestoreAction }
               { ruleDetails(crDetailsXML, addDiff.rule)}
               { reasonHtml }
@@ -519,6 +530,7 @@ class EventListDisplayer(
           case Full(delDiff) =>
             <div class="evloglmargin">
               { addRestoreAction }
+              { generatedByChangeRequest }
               { ruleDetails(crDetailsXML, delDiff.rule) }
               { reasonHtml }
               { xmlParameters(event.id) }
@@ -532,6 +544,7 @@ class EventListDisplayer(
           case Full(modDiff) =>
             <div class="evloglmargin">
               { addRestoreAction }
+              { generatedByChangeRequest }
               <h4>Rule overview:</h4>
               <ul class="evlogviewpad">
                 <li><b>Rule ID:</b> { modDiff.id.value.toUpperCase }</li>
@@ -573,6 +586,7 @@ class EventListDisplayer(
           case Full(modDiff) =>
             <div class="evloglmargin">
               { addRestoreAction }
+              { generatedByChangeRequest }
               <h4>Directive overview:</h4>
               <ul class="evlogviewpad">
                 <li><b>Directive ID:</b> { modDiff.id.value.toUpperCase }</li>
@@ -608,6 +622,7 @@ class EventListDisplayer(
           case Full((diff,sectionVal)) =>
             <div class="evloglmargin">
               { addRestoreAction }
+              { generatedByChangeRequest }
               { directiveDetails(piDetailsXML, diff.techniqueName,
                   diff.directive, sectionVal) }
               { reasonHtml }
@@ -623,6 +638,7 @@ class EventListDisplayer(
           case Full((diff,sectionVal)) =>
             <div class="evloglmargin">
               { addRestoreAction }
+              { generatedByChangeRequest }
               { directiveDetails(piDetailsXML, diff.techniqueName,
                   diff.directive, sectionVal) }
               { reasonHtml }
@@ -639,6 +655,7 @@ class EventListDisplayer(
           case Full(modDiff) =>
             <div class="evloglmargin">
               { addRestoreAction }
+              { generatedByChangeRequest }
               <h4>Group overview:</h4>
               <ul class="evlogviewpad">
                 <li><b>Node Group ID:</b> { modDiff.id.value.toUpperCase }</li>
@@ -684,6 +701,7 @@ class EventListDisplayer(
           case Full(diff) =>
             <div class="evloglmargin">
               { addRestoreAction }
+              { generatedByChangeRequest }
               { groupDetails(groupDetailsXML, diff.group) }
               { reasonHtml }
               { xmlParameters(event.id) }
@@ -698,9 +716,10 @@ class EventListDisplayer(
         "*" #> { val xml : NodeSeq = logDetailsService.getNodeGroupDeleteDetails(x.details) match {
           case Full(diff) =>
             <div class="evloglmargin">
-            { addRestoreAction }
-            { groupDetails(groupDetailsXML, diff.group) }
-            { reasonHtml }
+              { addRestoreAction }
+              { generatedByChangeRequest }
+              { groupDetails(groupDetailsXML, diff.group) }
+              { reasonHtml }
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => errorMessage(e)

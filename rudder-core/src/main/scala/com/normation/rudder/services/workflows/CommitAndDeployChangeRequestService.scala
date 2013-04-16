@@ -89,6 +89,7 @@ trait CommitAndDeployChangeRequestService {
 class CommitAndDeployChangeRequestServiceImpl(
     uuidGen             : StringUuidGenerator
   , roChangeRequestRepo : RoChangeRequestRepository
+  , woChangeRequestRepo : WoChangeRequestRepository
   , roDirectiveRepo     : RoDirectiveRepository
   , woDirectiveRepo     : WoDirectiveRepository
   , roNodeGroupRepo     : RoNodeGroupRepository
@@ -105,7 +106,12 @@ class CommitAndDeployChangeRequestServiceImpl(
       modId         <- changeRequest match {
                          case Some(config:ConfigurationChangeRequest) =>
                            if(isMergeableConfigurationChangeRequest(config)) {
-                             saveConfigurationChangeRequest(config)
+                             for{
+                               modId <-saveConfigurationChangeRequest(config)
+                               updatedCr  <- woChangeRequestRepo.updateChangeRequest(ChangeRequest.setModId(config, modId),actor,reason)
+                             } yield {
+                               modId
+                             }
                            } else {
                              Failure("The change request can not be merge because current item state diverged since its creation")
                            }
@@ -268,6 +274,7 @@ class CommitAndDeployChangeRequestServiceImpl(
      */
 
     for {
+
       directives <- sequence(cr.directives.values.toSeq) { directiveChange =>
                       doDirectiveChange(directiveChange, modId)
                     }

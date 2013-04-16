@@ -345,6 +345,7 @@ object RudderConfig extends Loggable {
   val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService = new CommitAndDeployChangeRequestServiceImpl(
                 uuidGen
               , roChangeRequestRepository
+              , woChangeRequestRepository
               , roDirectiveRepository
               , woDirectiveRepository
               , roNodeGroupRepository
