@@ -83,18 +83,16 @@ function createTooltip() {
 
 
 
-function callPopupWithTimeout(timeout, popupName, minHeight, minWidth){
-	setTimeout("createPopup('"+popupName+"',"+minHeight+","+minWidth+")", timeout);
+function callPopupWithTimeout(timeout, popupName){
+	setTimeout("createPopup('"+popupName+"')", timeout);
 }
 
-function createPopup(popupName, minHeight, minWidth){
+function createPopup(popupName){
 		$("#"+popupName).modal({
-			minHeight: minHeight,
-			minWidth: minWidth,
-			maxHeight: 500,
-			maxWidth: 1000
+            autoResize: true
 		});
-		$('#simplemodal-container').css('height', 'auto');
+		$('#simplemodal-container').css('height', 'auto').css('width', 'auto');
+		$(window).trigger('resize.simplemodal');
 		correctButtons();
 }
 

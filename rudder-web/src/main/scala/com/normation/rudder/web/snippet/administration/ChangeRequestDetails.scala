@@ -257,7 +257,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       SetHtml("changeRequestChanges", new ChangeRequestChangesForm(cr).dispatch("changes")(NodeSeq.Empty)) &
       JsRaw("""correctButtons();
                $.modal.close();
-          callPopupWithTimeout(200, "successWorkflow", 100, 350); """)
+          callPopupWithTimeout(200, "successWorkflow"); """)
 
     var nextChosen = nextSteps.head._2
     val nextSelect =
@@ -375,7 +375,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
     }
 
     SetHtml("popupContent",content) &
-    JsRaw("createPopup('changeStatePopup', 150, 850)")
+    JsRaw("createPopup('changeStatePopup')")
 
   }
 }

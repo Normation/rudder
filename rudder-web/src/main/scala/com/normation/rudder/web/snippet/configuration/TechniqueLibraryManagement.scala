@@ -672,7 +672,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   ///////////// success pop-up ///////////////
     private[this] def successPopup : JsCmd = {
-    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog", 100, 350)
+    JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog")
     """)
   }
 
@@ -681,7 +681,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
     //update UI
     SetHtml("createActiveTechniquesCategoryContainer", createPopup) &
-    JsRaw( """createPopup("createActiveTechniqueCategoryPopup", 300, 400)
+    JsRaw( """createPopup("createActiveTechniqueCategoryPopup")
      """)
 
   }
@@ -693,7 +693,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     //update UI
 
     SetHtml("createActiveTechniquesContainer", createReasonPopup) &
-    JsRaw( """createPopup("createActiveTechniquePopup", 200, 350)
+    JsRaw( """createPopup("createActiveTechniquePopup")
      """)
   }
 

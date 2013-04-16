@@ -267,7 +267,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       case Full(r) => setCreationPopup(r.getQuery, r.getSrvList)
         //update UI
         SetHtml("createGroupContainer", createPopup) &
-        JsRaw( """ createPopup("createGroupPopup",300,400) """)
+        JsRaw( """ createPopup("createGroupPopup") """)
 
       case eb:EmptyBox => Alert("Error when trying to retrieve the resquest, please try again")
     }

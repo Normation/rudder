@@ -145,7 +145,7 @@ class RuleGrid(
       """.replaceAll("#table_var#",jsVarNameForId(htmlId_rulesGridId))) &
       //pop-ups for multiple Directives
       JsRaw( """var openMultiPiPopup = function(popupid) {
-          createPopup(popupid,300,520);
+          createPopup(popupid);
      }""") &
      OnLoad(JsRaw("""
       /* Event handler function */
@@ -431,7 +431,7 @@ class RuleGrid(
       val trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]] =
         sequence(rule.directiveIds.toSeq) { id =>
           directiveCache.getOrElseUpdate(id, directiveRepository.getActiveTechniqueAndDirective(id)) match {
-            case Full((activeTechnique, directive)) => 
+            case Full((activeTechnique, directive)) =>
               techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
                 case None => Failure("Can not find Technique for activeTechnique with name %s referenced in Rule with ID %s".format(activeTechnique.techniqueName, rule.id))
                 case Some(technique) => Full((directive,activeTechnique,technique))
@@ -734,7 +734,7 @@ class RuleGrid(
             moveFilterAndFullPaginateArea('#%1$s');""".format( tableId_reportsPopup).replaceAll("#table_var#",jsVarNameForId(tableId_reportsPopup))
         ) //&  initJsCallBack(tableId)
     ) &
-    JsRaw( """ createPopup("%s",300,500)""".format(htmlId_modalReportsPopup))
+    JsRaw( s""" createPopup("${htmlId_modalReportsPopup}")""")
   }
 
 }
