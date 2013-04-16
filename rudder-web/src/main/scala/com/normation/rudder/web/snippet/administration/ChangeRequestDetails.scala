@@ -256,8 +256,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       SetHtml("CRStatusDetails",workflowService.findStep(cr.id).map(x => Text(x.value)).openOr(<div class="error">Cannot find the status of this change request</div>) ) &
       SetHtml("changeRequestChanges", new ChangeRequestChangesForm(cr).dispatch("changes")(NodeSeq.Empty)) &
       JsRaw("""correctButtons();
-               $.modal.close();
-          callPopupWithTimeout(200, "successWorkflow"); """)
+               $.modal.close();""")
 
     var nextChosen = nextSteps.head._2
     val nextSelect =
@@ -365,7 +364,8 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
         nextChosen(cr.id,CurrentUser.getActor,changeMessage.map(_.is)) match {
           case Full(next) =>
             SetHtml("workflowActionButtons", displayActionButton(cr,next)) &
-            SetHtml("newStatus",Text(next.value)) & closePopup
+            SetHtml("newStatus",Text(next.value)) &
+            closePopup & JsRaw(""" callPopupWithTimeout(200, "successWorkflow"); """)
           case eb:EmptyBox => val fail = eb ?~! "could not change Change request step"
             formTracker.addFormError(error(fail.msg))
             updateForm
