@@ -80,17 +80,14 @@ trait WorkflowService {
   def startWorkflow(changeRequestId: ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId]
 
 
-  def getValidation : Box[Seq[ChangeRequestId]]
-  def getDeployment : Box[Seq[ChangeRequestId]]
-  def getDeployed   : Box[Seq[ChangeRequestId]]
-  def getCancelled  : Box[Seq[ChangeRequestId]]
-
 
   val stepsValue :List[WorkflowNodeId]
 
   val nextSteps: Map[WorkflowNodeId,WorkflowAction]
   val backSteps: Map[WorkflowNodeId,Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])]]
+
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId]
+
 }
 
 case class WorkflowAction(name:String,actions:Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])] )
@@ -145,47 +142,9 @@ class NoWorkflowServiceImpl(
     }
   }
 
-  def onFailureWorkflow(changeRequestId: ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ChangeRequestId] = {
-    // This should never happen, we can't reject in this workflow
-    logger.error(s"Change request with ID ${changeRequestId.value} was rejected")
-    Failure("Cannot reject a modification when there is no workflow")
-  }
-
-  def stepValidationToDeployment(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ChangeRequestId] = {
-    logger.error("Invalid use of no workflow : It is impossible to change state when there is no workflow")
-    Failure("It is impossible to change state when there is no workflow")
-  }
-
-
-  def stepValidationToDeployed(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ChangeRequestId] = {
-    logger.error("Invalid use of no workflow : It is impossible to change state when there is no workflow")
-    Failure("It is impossible to change state when there is no workflow")
-  }
-
-  def stepValidationToCancelled(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ChangeRequestId] = {
-    logger.error("Invalid use of no workflow : It is impossible to change state when there is no workflow")
-    Failure("It is impossible to change state when there is no workflow")
-  }
-
-  def stepDeploymentToDeployed(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ChangeRequestId] = {
-    logger.error("Invalid use of no workflow : It is impossible to change state when there is no workflow")
-    Failure("It is impossible to change state when there is no workflow")
-  }
-
-
-  def stepDeploymentToCancelled(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ChangeRequestId] = {
-    logger.error("Invalid use of no workflow : It is impossible to change state when there is no workflow")
-    Failure("It is impossible to change state when there is no workflow")
-  }
-
-  def getValidation : Box[Seq[ChangeRequestId]] = Failure("No state when no workflow")
-  def getDeployment : Box[Seq[ChangeRequestId]] = Failure("No state when no workflow")
-  def getDeployed   : Box[Seq[ChangeRequestId]] = Failure("No state when no workflow")
-  def getCancelled  : Box[Seq[ChangeRequestId]] = Failure("No state when no workflow")
-
 }
 
-class WorkflowServiceImpl(
+class TwoValidationStepsWorkflowServiceImpl(
     workflowLogger : WorkflowEventLogService
   , commit         : CommitAndDeployChangeRequestService
   , roWorkflowRepo : RoWorkflowRepository
@@ -193,23 +152,25 @@ class WorkflowServiceImpl(
   , workflowComet  : AsyncWorkflowInfo
 ) extends WorkflowService with Loggable {
 
-  private[this] case object Validation extends WorkflowNode {
+  case object Validation extends WorkflowNode {
     val id = WorkflowNodeId("Pending validation")
   }
 
-  private[this] case object Deployment extends WorkflowNode {
+  case object Deployment extends WorkflowNode {
     val id = WorkflowNodeId("Pending deployment")
   }
 
-  private[this] case object Deployed extends WorkflowNode {
+  case object Deployed extends WorkflowNode {
     val id = WorkflowNodeId("Deployed")
   }
 
-  private[this] case object Cancelled extends WorkflowNode {
+  case object Cancelled extends WorkflowNode {
     val id = WorkflowNodeId("Cancelled")
   }
 
   private[this] val steps:List[WorkflowNode] = List(Validation,Deployment,Deployed,Cancelled)
+
+  def getItemsInStep(stepId: WorkflowNodeId) : Box[Seq[ChangeRequestId]] = roWorkflowRepo.getAllByState(stepId)
 
   val stepsValue = steps.map(_.id)
 
@@ -309,8 +270,4 @@ class WorkflowServiceImpl(
   }
 
 
-  def getValidation : Box[Seq[ChangeRequestId]] = roWorkflowRepo.getAllByState(Validation.id)
-  def getDeployment : Box[Seq[ChangeRequestId]] = roWorkflowRepo.getAllByState(Deployment.id)
-  def getDeployed   : Box[Seq[ChangeRequestId]] = roWorkflowRepo.getAllByState(Deployed.id)
-  def getCancelled  : Box[Seq[ChangeRequestId]] = roWorkflowRepo.getAllByState(Cancelled.id)
 }

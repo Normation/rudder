@@ -112,7 +112,6 @@ import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.ChangeRequestServiceImpl
 import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
-import com.normation.rudder.services.workflows.WorkflowServiceImpl
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
 import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestService
@@ -121,6 +120,7 @@ import com.normation.rudder.services.modification.DiffServiceImpl
 import com.normation.rudder.services.modification.DiffService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.services.workflows.TwoValidationStepsWorkflowServiceImpl
 
 /**
  * Define a resource for configuration.
@@ -355,7 +355,7 @@ object RudderConfig extends Loggable {
             )
   val asyncWorkflowInfo = new AsyncWorkflowInfo
   val workflowService: WorkflowService = RUDDER_ENABLE_APPROVAL_WORKFLOWS match {
-    case true => new WorkflowServiceImpl(
+    case true => new TwoValidationStepsWorkflowServiceImpl(
             workflowEventLogService
           , commitAndDeployChangeRequest
           , roWorkflowRepository
