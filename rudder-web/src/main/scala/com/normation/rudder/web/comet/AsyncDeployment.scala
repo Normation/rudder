@@ -187,48 +187,6 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     </div>
   }
 
-
-  private[this] val gridName = "pendingEventLogsGrid"
-  private[this] val pendingPopupHtmlId = "pendingModificationDialog"
-
-
-  private[this] def createInnerPopup(events:Seq[EventLog]) : NodeSeq = {
-    (
-        ".popupContent *" #> eventList.display(events, gridName)
-    ).apply(pendingPopup)
-  }
-
-
-  private[this] def pendingPopup = {
-    <div id="pendingModificationDialog" class="nodisplay" style="overflow: auto; max-height:500px;">
-      <div class="simplemodal-title">
-        <h1>List of modification since last successful deployment</h1>
-        <hr/>
-      </div>
-      <div class="simplemodal-content">
-       <br />
-       <div class="popupContent"/>
-       <hr class="spacer" />
-      </div>
-      <div class="simplemodal-bottom">
-        <hr/>
-        <div class="popupButton">
-        <span>
-          <button class="simplemodal-close" onClick="return false;">
-            Close
-          </button>
-        </span>
-        </div>
-      </div>
-    </div>
-  }
-
-  private[this] def showPendingPopup : JsCmd = (
-    JsRaw(s"createPopup('${pendingPopupHtmlId}')") &
-    eventList.initJs(gridName)
-
-  )
-
   private[this] def errorPopup = {
     <div id="errorDetailsDialog" class="nodisplay">
       <div class="simplemodal-title">
