@@ -81,6 +81,19 @@ function createTooltip() {
 
 /* popups */
 
+/*
+ * That function allow to refresh the display of popup
+ * It corrects the buttons (was called anyway on a stand alone)
+ * then trigger the event resize.simplemodal on the window element
+ * Which adapt the popup to the window (autoResize is on)
+ * 
+ * That function should be called in every popup refresh function
+ */
+function updatePopup() {
+	correctButtons();
+	$(window).trigger('resize.simplemodal');
+
+}
 
 
 function callPopupWithTimeout(timeout, popupName){
@@ -92,7 +105,6 @@ function createPopup(popupName){
             autoResize: true
 		});
 		$('#simplemodal-container').css('height', 'auto').css('width', 'auto');
-		$(window).trigger('resize.simplemodal');
 		correctButtons();
 }
 
@@ -530,8 +542,6 @@ function makeDiff(beforeId,afterId,resultId) {
   var before = $('#'+beforeId);
   var after  = $('#'+afterId);
   var result = $('#'+resultId);
-  console.log(before.text())
-  console.log(after.text())
   var diff = JsDiff.diffLines(before.text(), after.text());
   var fragment = document.createDocumentFragment();
   for (var i=0; i < diff.length; i++) {

@@ -89,7 +89,7 @@ class GiveReasonPopup(
   }
 
   def initJs : JsCmd = {
-    JsRaw("correctButtons();")
+    JsRaw("updatePopup();")
   }
 
   def popupContent(html : NodeSeq) : NodeSeq = {
