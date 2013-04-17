@@ -118,6 +118,8 @@ sealed trait ChangeRequest {
 
   def info : ChangeRequestInfo
 
+  def owner: String
+
 }
 
 
@@ -140,7 +142,17 @@ case class ConfigurationChangeRequest(
   , nodeGroups : Map[NodeGroupId, NodeGroupChanges]
   , rules      : Map[RuleId, RuleChanges]
   // ... TODO: complete for groups and rules
-) extends ChangeRequest
+) extends ChangeRequest {
+  val owner = {
+
+    // To get the owner of the change request we need to get the actor of oldest change associated to change request
+    // We have to regroup all changes in one sequence then find the oldest change in them
+    val changes : Seq[Changes[ _, _, _ <: ChangeItem[_]]] = (directives.values ++ rules.values ++ nodeGroups.values).toSeq
+    val change  : Seq[Change [ _, _, _ <: ChangeItem[_]]] = changes.map(_.changes)
+    val firsts  : Seq[ChangeItem[_]] = change.map(_.firstChange)
+    firsts.sortWith((a,b) => a.creationDate isAfter b.creationDate).headOption.map(_.actor.name).getOrElse("No One")
+  }
+}
 
 
 case class RollbackChangeRequest(
@@ -148,6 +160,7 @@ case class RollbackChangeRequest(
   , modId      : Option[ModificationId]
   , info       : ChangeRequestInfo
   , rollback   : Null // TODO: rollback change request
+  , owner      : String
 ) extends ChangeRequest
 
 
