@@ -127,7 +127,7 @@ class CreateCloneDirectivePopup(
       "#notifications" #> updateAndDisplayNotifications() &
       "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"))&
       "#save" #> (SHtml.ajaxSubmit("Clone", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3"))
-    )(html ++ Script(OnLoad(JsRaw("correctButtons();"))))
+    )(html ++ Script(OnLoad(JsRaw("updatePopup();"))))
 
   }
 

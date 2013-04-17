@@ -80,7 +80,7 @@ class CreateOrCloneRulePopup(
   }
 
   def initJs : JsCmd = {
-      JsRaw("correctButtons();")
+      JsRaw("updatePopup();")
   }
 
   def popupContent() : NodeSeq = {

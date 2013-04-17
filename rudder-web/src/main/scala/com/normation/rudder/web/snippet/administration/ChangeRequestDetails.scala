@@ -348,7 +348,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
               ) (popupContent)
           )
       ) ( popup ) ++
-      Script(JsRaw("correctButtons();"))
+      Script(JsRaw("""updatePopup();"""))
     }
 
     def updateForm = Replace("changeStatePopup",content)
