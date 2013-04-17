@@ -107,6 +107,8 @@ class InMemoryChangeRequestRepository
 
   }
 
+  def getByContributor(actor:EventActor) = Failure(s"could not fetch change request for actor ${actor}")
+
   def getByIds(changeRequestId:Seq[ChangeRequestId]) : Box[Seq[ChangeRequest]] =  ???
 
   def getByDirective(id : DirectiveId) : Box[Seq[ChangeRequest]] = ???
