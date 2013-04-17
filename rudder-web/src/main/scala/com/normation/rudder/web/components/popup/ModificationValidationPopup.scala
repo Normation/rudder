@@ -243,7 +243,7 @@ class ModificationValidationPopup(
       "#saveStartWorkflow" #> (SHtml.ajaxSubmit(buttonName, () => onSubmitStartWorkflow(), ("class" -> classForButton)) % ("id", "createDirectiveSaveButton") % ("tabindex","3")) andThen
        ".notifications *" #> updateAndDisplayNotifications()
 
-    )(html ++ Script(OnLoad(JsRaw("correctButtons();"))))
+    )(html ++ Script(OnLoad(JsRaw("updatePopup();"))))
   }
 
   private[this] def showError(field:RudderBaseField) : NodeSeq = {
