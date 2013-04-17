@@ -224,7 +224,7 @@ class ShowNodeDetailsFromNode(
     targetInfo.target match {
       case GroupTarget(id) =>
         nodeGroupRepository.getNodeGroup(id) match {
-          case Full(group) => nodeGroupToJsTreeNode(group)
+          case Full((group,parentCatId)) => nodeGroupToJsTreeNode(group)
           case _ => new JsTreeNode {
             override def body = <span class="error">Can not find node {id.value}</span>
             override def children = Nil

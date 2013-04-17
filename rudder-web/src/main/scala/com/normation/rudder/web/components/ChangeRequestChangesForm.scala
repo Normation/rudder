@@ -65,6 +65,11 @@ import com.normation.rudder.domain.eventlog.WorkflowStepChanged
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
+import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
+import com.normation.rudder.domain.queries.Query
+import com.normation.inventory.domain.NodeId
 
 
 object ChangeRequestChangesForm {
@@ -354,6 +359,69 @@ class ChangeRequestChangesForm(
     ) (RuleXML)
   }
 
+
+  private[this] val groupXML =
+    <div>
+      <h4>Group overview:</h4>
+      <ul class="evlogviewpad">
+        <li><b>ID: </b><value id="groupID"/></li>
+        <li><b>Name: </b><value id="groupName"/></li>
+        <li><b>Description: </b><value id="shortDescription"/></li>
+        <li><b>Enabled: </b><value id="isEnabled"/></li>
+        <li><b>Dynamic: </b><value id="isDynamic"/></li>
+        <li><b>System: </b><value id="isSystem"/></li>
+        <li><b>Query: </b><value id="query"/></li>
+        <li><b>Node list: </b><value id="nodes"/></li>
+      </ul>
+    </div>
+
+  private[this] def displayGroup(group: NodeGroup) = (
+      "#groupID" #> group.id.value.toUpperCase &
+      "#groupName" #> group.name &
+      "#shortDescription" #> group.description &
+      "#query" #> (group.query match {
+        case None => Text("None")
+        case Some(q) => Text(q.toJSONString)
+      } ) &
+      "#isDynamic" #> group.isDynamic &
+      "#nodes" #>( <ul>
+                   {
+                     val l = group.serverList.toList
+                       l match {
+                         case Nil => Text("None")
+                         case _ => l
+                           .map(id => <li><a href={nodeLink(id)}>{id.value}</a></li>)
+                       }
+                     }
+                  </ul> ) &
+      "#isEnabled" #> group.isEnabled &
+      "#isSystem" #> group.isSystem
+  )(groupXML)
+
+
+  private[this] def displayGroupDiff (
+        diff          : ModifyNodeGroupDiff
+      , group         : NodeGroup
+  ) = {
+    def displayQuery(query:Option[Query]) = query match {
+        case None => "None"
+        case Some(q) => q.toJSONString
+      }
+    def displayServerList(servers:Set[NodeId]):String = {
+      servers.map(_.value).toList.sortBy(s => s).mkString("\n")
+
+    }
+    ( "#groupID" #> group.id.value.toUpperCase &
+      "#groupName" #> displaySimpleDiff(diff.modName,"name",Text(group.name))&
+      "#shortDescription" #> displaySimpleDiff(diff.modDescription,"description",Text(group.description)) &
+      "#query" #> diff.modQuery.map( query =>displayFormDiff(query , "query")(displayQuery)).getOrElse(Text(displayQuery(group.query))) &
+      "#isDynamic" #> displaySimpleDiff(diff.modIsDynamic,"isDynamic",Text(group.isDynamic.toString)) &
+      "#nodes" #> diff.modNodeList.map(displayFormDiff(_, "nodeList")(displayServerList)).getOrElse(Text(group.serverList.mkString("\n"))) &
+      "#isEnabled" #> displaySimpleDiff(diff.modIsActivated,"isEnabled",Text(group.isEnabled.toString)) &
+      "#isSystem" #> group.isSystem
+    ) (groupXML)
+  }
+
   private[this] def displayDirective(directive:Directive, techniqueName:TechniqueName) = {
     val techniqueId = TechniqueId(techniqueName,directive.techniqueVersion)
     val parameters = techniqueRepo.get(techniqueId).map(_.rootSection) match {
@@ -426,7 +494,27 @@ class ChangeRequestChangesForm(
         }</li>
 
       ) ++
-      groups.map(a => <li>a group change></li>)++
+      groups.map(groupChange =>
+        <li>
+          {
+            groupChange.change.map{
+            _.diff match {
+              case ModifyToNodeGroupDiff(group) =>
+                groupChange.initialState match {
+                  case Some(initialGroup) =>
+                    val diff = diffService.diffNodeGroup(initialGroup, group)
+                   displayGroupDiff(diff,group)
+                  case None =>  val msg = s"Could not display diff for ${group.name} (${group.id.value.toUpperCase})"
+                  logger.error(msg)
+                  <div>msg</div>
+
+                }
+              case diff => displayGroup(diff.group)
+
+          } }.getOrElse(<error>Error</error>)
+        }
+        </li>
+      ) ++
       rules.flatMap(ruleChange =>
         <li>{
           ruleChange.change.map{_.diff match {

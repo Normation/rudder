@@ -39,6 +39,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupDiff
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.cfclerk.domain.SectionSpec
+import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 
 /**
  * A service that allows to build diff between
@@ -53,7 +54,7 @@ trait DiffService {
     , newRootSection : SectionSpec
   ) : ModifyDirectiveDiff
 
-  def diffNodeGroup(reference:NodeGroup, newItem:NodeGroup) : NodeGroupDiff
+  def diffNodeGroup(reference:NodeGroup, newItem:NodeGroup) : ModifyNodeGroupDiff
 
   def diffRule(reference:Rule, newItem:Rule) : ModifyRuleDiff
 
@@ -96,7 +97,27 @@ class DiffServiceImpl (
   }
 
 
-  def diffNodeGroup(reference:NodeGroup, newItem:NodeGroup) : NodeGroupDiff = ???
+  def diffNodeGroup(reference:NodeGroup, newItem:NodeGroup) : ModifyNodeGroupDiff = {
+    val diffName = if (reference.name == newItem.name) None else Some(SimpleDiff(reference.name,newItem.name))
+    val diffDescription = if (reference.description == newItem.description) None else Some(SimpleDiff(reference.description,newItem.description))
+    val diffEnable = if (reference.isEnabled == newItem.isEnabled) None else Some(SimpleDiff(reference.isEnabled,newItem.isEnabled))
+    val diffDynamic = if (reference.isDynamic == newItem.isDynamic) None else Some(SimpleDiff(reference.isDynamic,newItem.isDynamic))
+    val diffServerList = if (reference.serverList == newItem.serverList) None else Some(SimpleDiff(reference.serverList,newItem.serverList))
+    val diffQuery = if (reference.query == newItem.query) None else Some(SimpleDiff(reference.query,newItem.query))
+
+    ModifyNodeGroupDiff (
+        reference.id
+      , reference.name
+      , diffName
+      , diffDescription
+      , diffQuery
+      , diffDynamic
+      , diffServerList
+      , diffEnable
+      , None
+      )
+
+  }
 
   def diffRule(reference:Rule, newItem:Rule) : ModifyRuleDiff = {
     val diffName = if (reference.name == newItem.name) None else Some(SimpleDiff(reference.name,newItem.name))
