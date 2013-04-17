@@ -54,6 +54,8 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.web.components.DateFormaterService
 import scala.xml.Node
 import scala.xml.Elem
+import com.normation.rudder.authorization.Edit
+import com.normation.rudder.authorization.Read
 
 class ChangeRequestManagement extends DispatchSnippet with Loggable {
 
@@ -63,6 +65,7 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
   private[this] val changeRequestEventLogService = RudderConfig.changeRequestEventLogService
   private[this] val workflowLoggerService = RudderConfig.workflowEventLogService
   private[this] val changeRequestTableId = "ChangeRequestId"
+  private[this] val currentUser = CurrentUser.checkRights(Read("validator")) || CurrentUser.checkRights(Read("deployer"))
 
   private[this] val initFilter : Box[String] = S.param("filter").map(_.replace("_", " "))
 
@@ -146,7 +149,9 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
     case "filter" =>
       xml => ("#actualFilter *" #> statusFilter).apply(xml)
     case "display" => xml =>
-      ( "#crBody" #> {roCrRepo.getAll match {
+      ( "#crBody" #> {
+        val changeRequests = if (currentUser) roCrRepo.getAll else roCrRepo.getByContributor(CurrentUser.getActor)
+        changeRequests match {
         case Full(changeRequests) => changeRequests.flatMap(CRLine(_))
         case eb:EmptyBox => val fail = eb ?~! s"Could not get change requests because of : ${eb}"
         logger.error(fail.msg)

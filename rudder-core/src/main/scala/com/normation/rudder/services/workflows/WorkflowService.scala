@@ -83,14 +83,16 @@ trait WorkflowService {
 
   val stepsValue :List[WorkflowNodeId]
 
-  val nextSteps: Map[WorkflowNodeId,WorkflowAction]
-  val backSteps: Map[WorkflowNodeId,Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])]]
-
+  def findNextSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId) : WorkflowAction
+  def findBackSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId) : Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])]
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId]
 
 }
 
-case class WorkflowAction(name:String,actions:Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])] )
+case class WorkflowAction(
+    name:String
+  , actions:Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])]
+)
 
 object NoWorkflowAction extends WorkflowAction("Nothing",Seq())
 object WorkflowAction {
@@ -109,9 +111,9 @@ class NoWorkflowServiceImpl(
 
   val noWorfkflow = WorkflowNodeId("No Workflow")
 
-  val nextSteps: Map[WorkflowNodeId,WorkflowAction] = Map()
+  def findNextSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId) : WorkflowAction = NoWorkflowAction
 
-  val backSteps: Map[WorkflowNodeId,Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])]] = Map()
+  def findBackSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId) = Seq()
 
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId] = Failure("No state when no workflow")
 
@@ -174,24 +176,41 @@ class TwoValidationStepsWorkflowServiceImpl(
 
   val stepsValue = steps.map(_.id)
 
-  val nextSteps: Map[WorkflowNodeId,WorkflowAction] =
-    steps.map{
-      case Validation => val actions = Seq((Deployment.id,stepValidationToDeployment _),(Deployed.id,stepValidationToDeployed _))
-        Validation.id -> WorkflowAction("Validate",actions)
-      case Deployment => val action = (Deployed.id,stepDeploymentToDeployed _)
-        Deployment.id -> WorkflowAction("Deploy",action)
-      case Deployed   => Deployed.id -> NoWorkflowAction
-      case Cancelled  => Cancelled.id -> NoWorkflowAction
-    }.toMap
+  def findNextSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId) = {
+    val authorizedRoles = currentUserRights.filter(role => (role == "validator" || role == "deployer"))
+    currentStep match {
+      case Validation.id =>
+        val validatorActions =
+          if (authorizedRoles.contains("validator"))
+            Seq((Deployment.id,stepValidationToDeployment _)) ++ {
+            if(authorizedRoles.contains("deployer"))
+              Seq((Deployed.id,stepValidationToDeployed _))
+              else Seq()
+             }
+          else Seq()
+        WorkflowAction("Validate",validatorActions )
 
-  val backSteps: Map[WorkflowNodeId,Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])]] =
-    steps.map{
-      case Validation => Validation.id -> Seq((Cancelled.id,stepValidationToCancelled _))
-      case Deployment => Deployment.id -> Seq((Cancelled.id,stepDeploymentToCancelled _))
-      case Deployed   => Deployed.id -> Seq()
-      case Cancelled  => Cancelled.id -> Seq()
-    }.toMap
 
+      case Deployment.id =>
+        val actions =
+          if(authorizedRoles.contains("deployer"))
+            Seq((Deployed.id,stepDeploymentToDeployed _))
+          else Seq()
+        WorkflowAction("Deploy",actions)
+      case Deployed.id   => NoWorkflowAction
+      case Cancelled.id  => NoWorkflowAction
+    }
+  }
+
+  def findBackSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId): Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])] = {
+    val authorizedRoles = currentUserRights.filter(role => (role == "validator" || role == "deployer"))
+    currentStep match {
+      case Validation.id => if (authorizedRoles.contains("validator")) Seq((Cancelled.id,stepValidationToCancelled _)) else Seq()
+      case Deployment.id => if (authorizedRoles.contains("deployer"))  Seq((Cancelled.id,stepDeploymentToCancelled _)) else Seq()
+      case Deployed.id   => Seq()
+      case Cancelled.id  => Seq()
+    }
+  }
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId] = {
     roWorkflowRepo.getStateOfChangeRequest(changeRequestId)
   }
