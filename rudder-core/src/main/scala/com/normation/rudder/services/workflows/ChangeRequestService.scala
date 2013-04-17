@@ -134,7 +134,7 @@ class ChangeRequestServiceImpl(
     // We need to remap back to the original type to fetch the id of the CR created
     val save = diff match {
       case add:AddChangeRequestDiff         => woChangeRequestRepository.createChangeRequest(diff.changeRequest, actor, reason).map(AddChangeRequestDiff(_))
-      case modify:ModifyToChangeRequestDiff => woChangeRequestRepository.updateChangeRequest(changeRequest, actor, reason).map(x => modify) // For modification the id is already correct 
+      case modify:ModifyToChangeRequestDiff => woChangeRequestRepository.updateChangeRequest(changeRequest, actor, reason).map(x => modify) // For modification the id is already correct
       case delete:DeleteChangeRequestDiff   => woChangeRequestRepository.deleteChangeRequest(changeRequest.id, actor, reason).map(DeleteChangeRequestDiff(_))
     }
 
@@ -184,6 +184,7 @@ class ChangeRequestServiceImpl(
     logger.debug(change)
     val changeRequest =  ConfigurationChangeRequest(
         ChangeRequestId(0)
+      , None
       , ChangeRequestInfo(
             changeRequestName
           , changeRequestDesc
@@ -212,6 +213,7 @@ class ChangeRequestServiceImpl(
     logger.debug(change)
    val changeRequest = ConfigurationChangeRequest(
         ChangeRequestId(0)
+      , None
       , ChangeRequestInfo(
             changeRequestName
           , changeRequestDesc
@@ -241,6 +243,7 @@ class ChangeRequestServiceImpl(
     logger.debug(change)
    val changeRequest = ConfigurationChangeRequest(
         ChangeRequestId(0)
+      , None
       , ChangeRequestInfo(
             changeRequestName
           , changeRequestDesc

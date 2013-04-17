@@ -62,6 +62,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import scala.util.Try
 import scala.util.Success
 import scala.util.{Failure => Catch}
+import com.normation.rudder.domain.workflows.ChangeRequestId
 
 /**
  * The EventLog repository
@@ -201,6 +202,43 @@ class EventLogJdbcRepository(
         Failure(msg)
     }
   }
+
+  def getEventLogWithChangeRequest(id:Int) : Box[Option[(EventLog,Option[ChangeRequestId])]] = {
+
+    val select = "SELECT E.id, creationDate, E.modificationId, principal, eventType, severity, data, reason, causeId, CR.id as changeRequestId FROM EventLog E  LEFT JOIN changeRequest CR on E.modificationId = CR.modificationId"
+    Try {
+      jdbcTemplate.query(select + " where E.id = ?" ,
+        Array[AnyRef](id.asInstanceOf[AnyRef]),
+        EventLogWithChangeRequestMapper)
+    } match {
+      case Success(list) =>
+        list.size match {
+          case 0 => Full(None)
+          case 1 => Full(Some(list.get(0)))
+          case _ => Failure("Too many event log for this id")
+        }
+      case Catch(e) => val msg = s"could not find event log with request ${select} cause: ${e}"
+        logger.error(msg)
+        Failure(msg)
+    }
+
+  }
+
+}
+
+object EventLogWithChangeRequestMapper extends RowMapper[(EventLog,Option[ChangeRequestId])] with Loggable {
+
+  def mapRow(rs : ResultSet, rowNum: Int) : (EventLog,Option[ChangeRequestId]) = {
+    val eventLog = EventLogReportsMapper.mapRow(rs, rowNum)
+    val changeRequestId = {
+          val crId = rs.getInt("changeRequestId")
+          if (crId > 0)
+            Some(ChangeRequestId(crId))
+          else
+            None
+        }
+    (eventLog,changeRequestId)
+  }
 }
 
 object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
@@ -210,7 +248,7 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
       , modificationId = {
           val modId = rs.getString("modificationId")
           if (modId != null && modId.size > 0)
-            Some(ModificationId(rs.getString("modificationId")))
+            Some(ModificationId(modId))
           else
             None
         }

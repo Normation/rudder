@@ -64,13 +64,14 @@ import scala.xml.XML
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.workflows.DirectiveChanges
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.eventlog.ModificationId
 
 class RoChangeRequestJdbcRepository(
     jdbcTemplate         : JdbcTemplate
   , changeRequestsMapper : ChangeRequestsMapper
 ) extends RoChangeRequestRepository with Loggable {
 
-  val SELECT_SQL = "SELECT id, name, description, creationTime, content FROM ChangeRequest"
+  val SELECT_SQL = "SELECT id, name, description, creationTime, content, modificationId FROM ChangeRequest"
 
   def getAll() : Box[Seq[ChangeRequest]] = {
     Try {
@@ -152,9 +153,9 @@ class WoChangeRequestJdbcRepository(
   , roRepo       : RoChangeRequestRepository
 ) extends WoChangeRequestRepository with Loggable {
 
-  val INSERT_SQL = "insert into ChangeRequest (name, description, creationTime, content) values (?, ?, ?, ?)"
+  val INSERT_SQL = "insert into ChangeRequest (name, description, creationTime, content, modificationId) values (?, ?, ?, ?, ?)"
 
-  val UPDATE_SQL = "update ChangeRequest set name = ?, description = ?, content = ? where id = ?"
+  val UPDATE_SQL = "update ChangeRequest set name = ?, description = ?, content = ? , modificationId = ? where id = ?"
 
   /**
    * Save a new change request in the back-end.
@@ -178,7 +179,7 @@ class WoChangeRequestJdbcRepository(
              ps.setString(2, changeRequest.info.description)
              ps.setTimestamp(3, new Timestamp(DateTime.now().getMillis()))
              ps.setSQLXML(4, sqlXml) // have a look at the SQLXML
-
+             ps.setString(5, changeRequest.modId.map(_.value).getOrElse(""))
              ps
            }
          },
@@ -235,7 +236,8 @@ class WoChangeRequestJdbcRepository(
                    ps.setString(1, changeRequest.info.name)
                    ps.setString(2, changeRequest.info.description)
                    ps.setSQLXML(3, sqlXml)
-                   ps.setInt(4, new java.lang.Integer(changeRequest.id.value))
+                   ps.setString(4, changeRequest.modId.map(_.value).getOrElse(""))
+                   ps.setInt(5, new java.lang.Integer(changeRequest.id.value))
                    ps
                  }
                }
@@ -275,9 +277,17 @@ class ChangeRequestsMapper(
     changeRequestChangesUnserialisation.unserialise(XML.load(rs.getSQLXML("content").getBinaryStream() )) match {
       case Full((directivesMaps, nodesMaps, ruleMaps)) =>
         val id = ChangeRequestId(rs.getInt("id"))
+        val modId = {
+          val modId = rs.getString("modificationId")
+          if (modId != null && modId.size > 0)
+            Some(ModificationId(modId))
+          else
+            None
+        }
         directivesMaps match {
           case Full(map) => Full(ConfigurationChangeRequest(
             id
+          , modId
           , ChangeRequestInfo(
                 rs.getString("name")
               , rs.getString("description")
