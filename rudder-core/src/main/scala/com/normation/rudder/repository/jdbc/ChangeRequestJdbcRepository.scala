@@ -156,23 +156,55 @@ class RoChangeRequestJdbcRepository(
   }
 
   def getByDirective(id : DirectiveId) : Box[Seq[ChangeRequest]] = {
-    val directiveQuery = " where cast (xpath('/directives/directive/@directive', content) as text[]) = '{?}'"
-    Try {
-      jdbcTemplate.query(SELECT_SQL + directiveQuery, Array[AnyRef](id.value), changeRequestsMapper).toSeq
-    } match {
-      case Success(x) => Full(x.:\(Seq[ChangeRequest]()){(changeRequest,seq) => changeRequest match {
-        case Full(cr) =>  seq :+ cr
-        case eb:EmptyBox =>
-          seq
-        }
-      })
-      case Catch(error) => Failure(error.toString())
-    }
+    getChangeRequestsByXpathContent(
+        "/changeRequest/directives/directive/@id"
+      , id.value
+      , s"could not fetch change request for directive with id ${id.value}"
+    )
   }
 
-  def getByNodeGroup(id : NodeGroupId) : Box[Seq[ChangeRequest]] = ???
+  def getByNodeGroup(id : NodeGroupId) : Box[Seq[ChangeRequest]] = {
+    getChangeRequestsByXpathContent(
+        "/changeRequest/groups/group/@id"
+      , id.value
+      , s"could not fetch change request for group with id ${id.value}"
+    )
+  }
 
-  def getByRule(id : RuleId) : Box[Seq[ChangeRequest]] = ???
+  def getByRule(id : RuleId) : Box[Seq[ChangeRequest]] = {
+    getChangeRequestsByXpathContent(
+        "/changeRequest/rules/rule/@id"
+      , id.value
+      , s"could not fetch change request for rule with id ${id.value}"
+    )
+  }
+
+  /**
+   * Retrieve a sequence of change request based on one XML
+   * element value.
+   * The xpath query must match only one element.
+   */
+  private[this] def getChangeRequestsByXpathContent(xpath:String, shouldEquals:String, errorMessage:String) = {
+    try {
+      Full(jdbcTemplate.query(
+        new PreparedStatementCreator() {
+           def createPreparedStatement(connection : Connection) : PreparedStatement = {
+
+             val query= s"${SELECT_SQL} where cast( xpath('${xpath}', content) as text[]) = ?"
+             val ps = connection.prepareStatement(query, Array[String]());
+             ps.setArray(1, connection.createArrayOf("text", Seq(shouldEquals).toArray[AnyRef]) )
+             ps
+           }
+         }, changeRequestsMapper
+      ).flatten)
+    } catch {
+      case ex: Exception =>
+        val f = Failure(errorMessage, Full(ex), Empty)
+        ApplicationLogger.error(f.messageChain)
+        ApplicationLogger.error("Root exception was:", ex)
+        f
+    }
+  }
 
 }
 

@@ -152,6 +152,7 @@ class RuleEditForm(
   private[this] val userPropertyService  = RudderConfig.userPropertyService
 
   private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
+  private[this] val roChangeRequestRepo  = RudderConfig.roChangeRequestRepository
 
   private[this] var selectedTargets = rule.targets
   private[this] var selectedDirectiveIds = rule.directiveIds
@@ -224,6 +225,7 @@ class RuleEditForm(
     (
       "#editForm *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
       ClearClearable &
+      "#pendingChangeRequestNotification" #> (xml => checkPendingChangeRequest(xml)) &
       //activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if(rule.isEnabledStatus) "Disable" else "Enable" } &
       "#removeAction *" #> {
@@ -520,6 +522,27 @@ class RuleEditForm(
         </div>
       html
     }
+  }
+
+  private[this] def checkPendingChangeRequest(xml:NodeSeq) : NodeSeq = {
+    roChangeRequestRepo.getByRule(rule.id) match {
+      case eb: EmptyBox =>
+        val e = eb ?~! "Error when trying to lookup change request affecting that rule"
+        logger.error(e.messageChain)
+        e.rootExceptionCause.foreach { ex =>
+          logger.error("Exception was:", ex)
+        }
+        <span class="error">{e.messageChain}</span>
+      case Full(crs) if(crs.size == 0) =>
+        NodeSeq.Empty
+      case Full(crs) =>
+        (
+          "li" #> crs.map { cr =>
+             <a href={"/secure/utilities/changeRequest/"+cr.id.value}>{cr.info.name}</a>
+           }
+        ).apply(xml)
+    }
+
   }
 
   ///////////// success pop-up ///////////////
