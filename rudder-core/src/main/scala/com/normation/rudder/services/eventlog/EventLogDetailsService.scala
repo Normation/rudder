@@ -71,6 +71,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestInfo
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.domain.workflows.WorkflowNodeId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
+import com.normation.eventlog.ModificationId
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -732,12 +733,13 @@ class EventLogDetailsServiceImpl(
       changeRequest <- (entry \ "changeRequest").headOption ?~! s"Entry type is not a 'changeRequest': ${entry}"
       kind          <- (changeRequest \ "@changeType").headOption.map(_.text)  ?~! s"diff is not a valid changeRequest diff: ${changeRequest}"
       crId          <- (changeRequest \ "id").headOption.map(id => ChangeRequestId(id.text.toInt)) ?~! s"change request does not have any Id: ${changeRequest}"
+      modId         =  (changeRequest \ "modId").headOption.map(modId => ModificationId(modId.text))
       name          <- (changeRequest \ "name").headOption.map(_.text) ?~! s"change request does not have any name: ${changeRequest}"
       description   <- (changeRequest \ "description").headOption.map(_.text) ?~! s"change request does not have any description: ${changeRequest}"
       diffName      <- getFromToString((changeRequest \ "diffName").headOption)
       diffDesc      <- getFromToString((changeRequest \ "diffDescription").headOption)
       } yield {
-        val changeRequest = ConfigurationChangeRequest(crId,ChangeRequestInfo(name,description),Map(),Map(),Map())
+        val changeRequest = ConfigurationChangeRequest(crId,modId,ChangeRequestInfo(name,description),Map(),Map(),Map())
         kind match {
           case "add" => AddChangeRequestDiff(changeRequest)
           case "delete" => DeleteChangeRequestDiff(changeRequest)
