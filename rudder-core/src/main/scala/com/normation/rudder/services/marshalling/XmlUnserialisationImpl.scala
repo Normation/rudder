@@ -399,7 +399,7 @@ class ChangeRequestChangesUnserialisationImpl (
             nodeGroupId  <- group.attribute("id").map(id => NodeGroupId(id.text)) ?~!
                              s"Missing attribute 'id' in entry type changeRequest group changes  : ${group}"
             initialNode  <- (group \ "initialState").headOption
-            initialState <- (group \ "nodeGroup").headOption match {
+            initialState <- (initialNode \ "nodeGroup").headOption match {
               case Some(initialState) => nodeGroupUnserialiser.unserialise(initialState) match {
                 case Full(group) => Full(Some(group))
                 case eb : EmptyBox => eb ?~! "could not unserialize group"

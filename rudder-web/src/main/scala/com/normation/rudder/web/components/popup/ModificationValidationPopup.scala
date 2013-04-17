@@ -74,6 +74,10 @@ import com.normation.rudder.domain.nodes.ChangeRequestNodeGroupDiff
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.nodes.AddNodeGroupDiff
+import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
+import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 
 
 /**
@@ -173,7 +177,8 @@ class ModificationValidationPopup(
     //if we are creating a new item, then None, else Some(x)
     item              : Either[
                             (TechniqueName, ActiveTechniqueId, SectionSpec ,Directive, Option[Directive])
-                          , (NodeGroup, Option[NodeGroup])
+
+                          , (NodeGroup, Option[NodeGroupCategoryId], Option[NodeGroup])
                         ]
   , action            : String //one among: save, delete, enable, disable or create
   , isANewItem        : Boolean
@@ -196,6 +201,9 @@ class ModificationValidationPopup(
   private[this] val uuidGen                  = RudderConfig.stringUuidGenerator
   private[this] val techniqueRepo            = RudderConfig.techniqueRepository
   private[this] val asyncDeploymentAgent     = RudderConfig.asyncDeploymentAgent
+  //needed to move groups
+  private[this] val woNodeGroupRepository    = RudderConfig.woNodeGroupRepository
+
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }
@@ -265,7 +273,7 @@ class ModificationValidationPopup(
             case "enable" => dependencyService.directiveDependencies(directive.id, OnlyDisableable).map(_.rules)
           }
 
-        case Right((nodeGroup, _)) => dependencyService.targetDependencies(GroupTarget(nodeGroup.id)).map( _.rules)
+        case Right((nodeGroup, _, _)) => dependencyService.targetDependencies(GroupTarget(nodeGroup.id)).map( _.rules)
       }
 
       rules match {
@@ -316,7 +324,7 @@ class ModificationValidationPopup(
   )(action)
     item match {
     case Left((t,a,r,d,opt)) => s"${defaultActionName} Directive ${d.name}"
-    case Right((g,opt)) => s"${defaultActionName} Group ${g.name}"
+    case Right((g,_,_)) => s"${defaultActionName} Group ${g.name}"
   }
   }
 
@@ -401,7 +409,79 @@ class ModificationValidationPopup(
       group        : NodeGroup
     , initialState : Option[NodeGroup]
   ) : Box[ChangeRequestNodeGroupDiff] = {
-      ???
+    initialState match {
+      case None =>
+        if ((action=="save") || (action == "create"))
+          Full(AddNodeGroupDiff(group))
+        else
+          Failure(s"Action ${action} is not possible on a new group")
+      case Some(d) =>
+        action match {
+          case "delete" => Full(DeleteNodeGroupDiff(group))
+          case "save" | "create" => Full(ModifyToNodeGroupDiff(group))
+          case _ => Failure(s"Action ${action} is not possible on a existing directive")
+        }
+    }
+  }
+
+
+  private[this] def saveChangeRequest : Box[ChangeRequestId] = {
+    // we only have quick change request now
+    val cr = item match {
+      case Left((techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal)) =>
+        val action = DirectiveDiffFromAction(techniqueName, directive, optOriginal)
+        action.flatMap(
+          changeRequestService.createChangeRequestFromDirective(
+                changeRequestName.get
+              , crReasons.map( _.get ).getOrElse("")
+              , techniqueName
+              , oldRootSection
+              , directive.id
+              , optOriginal
+              , _
+              , CurrentUser.getActor
+              , crReasons.map( _.get )
+          ) )
+
+      case Right((nodeGroup, optParentCategory, optOriginal)) =>
+        //if we have a optParentCategory, that means that we
+        //have to start to move the group, and then create/save the cr.
+
+
+        optParentCategory.foreach { parentCategoryId =>
+          woNodeGroupRepository.move(
+              nodeGroup.id
+            , parentCategoryId
+            , ModificationId(uuidGen.newUuid)
+            , CurrentUser.getActor
+            , crReasons.map( _.get )
+          ) match {
+            case Full(_) => //ok, continue
+            case eb:EmptyBox =>
+              val e = eb ?~! "Error when moving the group (no change request was created)"
+              //early return here
+              return e
+          }
+        }
+
+        val action = groupDiffFromAction(nodeGroup, optOriginal)
+        action.flatMap(
+        changeRequestService.createChangeRequestFromNodeGroup(
+            changeRequestName.get
+          , crReasons.map( _.get ).getOrElse("")
+          , nodeGroup
+          , optOriginal
+          , _
+          , CurrentUser.getActor
+          , crReasons.map(_.get))
+        )
+    }
+    for {
+      crId <- cr.map(_.id)
+      wf <- workflowService.startWorkflow(crId, CurrentUser.getActor, crReasons.map(_.get))
+      } yield {
+        crId
+      }
   }
 
   private[this] def onSubmit() : JsCmd = {
@@ -410,47 +490,7 @@ class ModificationValidationPopup(
     } else {
       // we create a CR only if we are not creating
       if (!isANewItem) {
-        //based on the choice of the user, create or update a Change request
-        val savedChangeRequest = {
-          // we only have quick change request now
-          val cr = item match {
-            case Left((techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal)) =>
-                val action = DirectiveDiffFromAction(techniqueName, directive, optOriginal)
-                action.flatMap(
-                  changeRequestService.createChangeRequestFromDirective(
-                        changeRequestName.get
-                      , crReasons.map( _.get ).getOrElse("")
-                      , techniqueName
-                      , oldRootSection
-                      , directive.id
-                      , optOriginal
-                      , _
-                      , CurrentUser.getActor
-                      , crReasons.map( _.get )
-                  ) )
-
-            case Right((nodeGroup, optOriginal)) =>
-                val action = groupDiffFromAction(nodeGroup, optOriginal)
-                action.flatMap(
-                changeRequestService.createChangeRequestFromNodeGroup(
-                    changeRequestName.get
-                  , crReasons.map( _.get ).getOrElse("")
-                  , nodeGroup
-                  , optOriginal
-                  , _
-                  , CurrentUser.getActor
-                  , crReasons.map(_.get))
-                )
-          }
-          for {
-            crId <- cr.map(_.id)
-            wf <- workflowService.startWorkflow(crId, CurrentUser.getActor, crReasons.map(_.get))
-            } yield {
-              crId
-            }
-        }
-
-        savedChangeRequest match {
+        saveChangeRequest match {
           case Full(cr) =>
             onSuccessCallback(cr)
           case eb:EmptyBox =>

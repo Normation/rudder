@@ -1049,7 +1049,7 @@ class EventListDisplayer(
     nodeGroupRepository.getNodeGroup(id) match {
       case t: EmptyBox =>
         <span>Group (Rudder ID: {id.value.toUpperCase})</span>
-      case Full(nodeGroup) =>
+      case Full((nodeGroup, _)) =>
         <span>Group "<a href={groupLink(id)}>{nodeGroup.name}</a>" (Rudder ID: {id.value.toUpperCase})</span>
     }
   }

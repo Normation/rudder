@@ -147,7 +147,7 @@ class RemoveNodeServiceImpl(
       nodeGroupIds <- roNodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))
       deleted      <- sequence(nodeGroupIds) { nodeGroupId =>
                         for {
-                          nodeGroup    <- roNodeGroupRepository.getNodeGroup(nodeGroupId)
+                          nodeGroup    <- roNodeGroupRepository.getNodeGroup(nodeGroupId).map(_._1)
                           updatedGroup =  nodeGroup.copy(serverList = nodeGroup.serverList - nodeId)
                           msg          =  Some("Automatic update of group due to deletion of node " + nodeId.value)
                           diff         <- (if(nodeGroup.isSystem) {
