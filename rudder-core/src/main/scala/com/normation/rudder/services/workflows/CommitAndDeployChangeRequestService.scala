@@ -53,6 +53,9 @@ import net.liftweb.common._
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
 import com.normation.rudder.services.eventlog.WorkflowEventLogService
+import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
+import com.normation.rudder.domain.nodes.AddNodeGroupDiff
+import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 
 
 /**
@@ -93,6 +96,7 @@ class CommitAndDeployChangeRequestServiceImpl(
   , roDirectiveRepo     : RoDirectiveRepository
   , woDirectiveRepo     : WoDirectiveRepository
   , roNodeGroupRepo     : RoNodeGroupRepository
+  , woNodeGroupRepo     : WoNodeGroupRepository
   , roRuleRepository    : RoRuleRepository
   , woRuleRepository    : WoRuleRepository
   , asyncDeploymentAgent: AsyncDeploymentAgent
@@ -155,12 +159,12 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     def checkGroup(nodeGroupChanges:NodeGroupChanges) : Box[String] = {
       nodeGroupChanges.changes.initialState match {
-        case None => //ok, we were creating a directive, can't diverge
+        case None => //ok, we were creating a group, can't diverge
           Full("OK")
         case Some(group) =>
           for {
-            currentGroup <- roNodeGroupRepo.getNodeGroup(group.id)
-            check        <- if(currentGroup == group) {
+            (g, _) <- roNodeGroupRepo.getNodeGroup(group.id)
+            check  <- if(g == group) {
                               Full("OK")
                             } else {
                               Failure(s"Group ${group.name} (id: ${group.id.value}) has diverged since change request creation")
@@ -173,7 +177,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     def checkRule(ruleChanges:RuleChanges) : Box[String] = {
       ruleChanges.changes.initialState match {
-        case None => //ok, we were creating a directive, can't diverge
+        case None => //ok, we were creating a rule, can't diverge
           Full("OK")
         case Some(rule) =>
           for {
@@ -246,8 +250,19 @@ class CommitAndDeployChangeRequestServiceImpl(
     }
 
     def doNodeGroupChange(change:NodeGroupChanges, modId: ModificationId) : Box[NodeGroupId] = {
-      val id = change.changes.initialState.map( _.id.value).getOrElse("new group")
-      Full(NodeGroupId(id))
+      for {
+        change <- change.changes.change
+        done   <- change.diff match {
+                    case DeleteNodeGroupDiff(n) =>
+                      woNodeGroupRepo.delete(n.id, modId, change.actor, change.reason).map( _ => n.id)
+                    case AddNodeGroupDiff(n) =>
+                     Failure("You should not be able to create a group with a change request")
+                    case ModifyToNodeGroupDiff(n) =>
+                      woNodeGroupRepo.update(n, modId, change.actor, change.reason).map( _ => n.id)
+                  }
+      } yield {
+        done
+      }
     }
 
     def doRuleChange(change:RuleChanges, modId: ModificationId) : Box[RuleId] = {

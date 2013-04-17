@@ -545,7 +545,7 @@ class AddNodeToDynGroup(
     for {
       updatetGroup <- sequence(dynGroupIdByNode.getOrElse(sm.node.main.id, Seq())) { groupId =>
         for {
-          group <- roGroupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
+          (group, _) <- roGroupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
           updatedGroup = group.copy( serverList = group.serverList + sm.node.main.id )
           msg = Some("Automatic update of system group due to acceptation of node "+ sm.node.main.id.value)
           saved <- {
@@ -575,7 +575,7 @@ class AddNodeToDynGroup(
       (for {
         updatetGroup <- sequence(dynGroupIdByNode.getOrElse(sm.node.main.id, Seq())) { groupId =>
           for {
-            group <- roGroupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
+            (group, _) <- roGroupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
             updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
             msg = Some("Automatic update of system group due to rollback of acceptation of node "+ sm.node.main.id.value)
             saved <- {
@@ -622,7 +622,7 @@ class RefuseGroups(
       groupIds <- roGroupRepo.findGroupWithAnyMember(Seq(srv.id))
       modifiedGroups <- bestEffort(groupIds) { groupId =>
         for {
-          group <- roGroupRepo.getNodeGroup(groupId)
+          (group, _) <- roGroupRepo.getNodeGroup(groupId)
           modGroup = group.copy( serverList = group.serverList - srv.id)
           msg = Some("Automatic update of groups due to refusal of node "+ srv.id.value)
           saved <- {
@@ -678,7 +678,7 @@ class AcceptNodeRule(
   private[this] def addNodeToPolicyServerGroup(sm:FullInventory, nodeId:NodeId, modId: ModificationId, actor:EventActor) : Box[NodeId] = {
     val hasPolicyServerNodeGroup = buildHasPolicyServerGroupId(sm.node.main.policyServerId)
     for {
-      group <- roGroupRepo.getNodeGroup(hasPolicyServerNodeGroup) ?~! "Technical group with ID '%s' was not found".format(hasPolicyServerNodeGroup)
+      (group, _) <- roGroupRepo.getNodeGroup(hasPolicyServerNodeGroup) ?~! "Technical group with ID '%s' was not found".format(hasPolicyServerNodeGroup)
       updatedGroup = group.copy( serverList = group.serverList + nodeId )
       msg = Some("Automatic update of system group due to acceptation of node "+ sm.node.main.id.value)
       saved<- woGroupRepo.updateSystemGroup(updatedGroup, modId, actor, msg) ?~! "Could not update the technical group with ID '%s'".format(updatedGroup.id )
@@ -694,7 +694,7 @@ class AcceptNodeRule(
   def rollback(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit = {
     sms.foreach { sm =>
       (for {
-        group <- roGroupRepo.getNodeGroup(buildHasPolicyServerGroupId(sm.node.main.policyServerId)) ?~! "Can not find group with id: %s".format(sm.node.main.policyServerId)
+        (group, _) <- roGroupRepo.getNodeGroup(buildHasPolicyServerGroupId(sm.node.main.policyServerId)) ?~! "Can not find group with id: %s".format(sm.node.main.policyServerId)
         updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
         msg = Some("Automatic update of system group due to rollback of acceptation of node "+ sm.node.main.id.value)
         saved<- woGroupRepo.updateSystemGroup(updatedGroup, modId, actor, msg)?~! "Error when trying to update dynamic group %s with member %s".format(updatedGroup.id,sm.node.main.id.value)

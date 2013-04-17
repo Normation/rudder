@@ -349,6 +349,7 @@ object RudderConfig extends Loggable {
               , roDirectiveRepository
               , woDirectiveRepository
               , roNodeGroupRepository
+              , woNodeGroupRepository
               , roRuleRepository
               , woRuleRepository
               , asyncDeploymentAgent
