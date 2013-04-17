@@ -267,6 +267,7 @@ CREATE TABLE ChangeRequest(
 , description text
 , creationTime timestamp with time zone
 , content xml
+, modificationId text
 );
 
 CREATE TABLE Workflow(
