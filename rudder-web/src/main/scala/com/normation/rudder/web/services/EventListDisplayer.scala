@@ -204,7 +204,7 @@ class EventListDisplayer(
       Alert("Called ID is not valid: %s".format(jsid))
     } else {
       val eventId = arr(1).toInt
-      repos.getEventLogWithChange(eventId) match {
+      repos.getEventLogWithChangeRequest(eventId) match {
         case Full(Some((event,crId))) =>
           SetHtml(jsid,displayDetails(event,crId))
         case Full(None) =>
