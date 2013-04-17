@@ -179,7 +179,7 @@ class ChangeRequestChangesForm(
         () => SetHtml("history",displayHistory(Nil,changes) )
       , <span>Groups</span>
     )
-    val children = Nil
+    val children = changeRequest.nodeGroups.keys.map(groupChild(_)).toList
     override val attrs = List(( "rel" -> { "changeType" } ),("id" -> { "groups"}))
   }
 
@@ -583,7 +583,7 @@ class ChangeRequestChangesForm(
 
   def displayWorkflowEvent(wfEvent: WorkflowStepChanged)= {
     val step = eventLogDetailsService.getWorkflotStepChange(wfEvent.details)
-    val action = step.map(step => Text(s"State changed from ${step.from} to ${step.to}")).getOrElse(Text("State changed"))
+    val action = step.map(step => Text(s"Status changed from ${step.from} to ${step.to}")).getOrElse(Text("State changed"))
     displayEvent(action,wfEvent.principal,wfEvent.creationDate,wfEvent.eventDetails.reason.getOrElse(""))
    }
 

@@ -222,7 +222,7 @@ class ModificationValidationPopup(
     val titleWorkflow = workflowEnabled match {
       case true =>
         <div>
-          <h2 style="padding-left:42px;">Workflows are enabled in Rudder, your change has to be validated in a change request</h2>
+          <h2 style="padding: 20px 0 10px;">Workflows are enabled in Rudder, your change has to be validated in a change request</h2>
         </div>
       case false => NodeSeq.Empty
     }
@@ -328,7 +328,7 @@ class ModificationValidationPopup(
   }
   }
 
-  private[this] val changeRequestName = new WBTextField("Title", defaultRequestName) {
+  private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = ""
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")

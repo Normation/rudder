@@ -340,11 +340,10 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
 
     val introMessage = {
       <div>
-        <h2>You want to {action} that change request</h2>
         <b>{ nextSteps match {
           case Nil => "You can't confirm"
-          case (next,_) :: Nil => s"The change request will be sent to the '${next}' state"
-          case list => s"You have to chose a next state for the change request before you confirm"
+          case (next,_) :: Nil => s"The change request will be sent to the '${next}' status"
+          case list => s"You have to chose a next status for the change request before you confirm"
         } }
         </b>
      </div>
