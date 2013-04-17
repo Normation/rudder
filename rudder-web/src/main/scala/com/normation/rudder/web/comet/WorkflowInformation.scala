@@ -48,6 +48,8 @@ import com.normation.rudder.services.workflows.WorkflowUpdate
 import com.normation.rudder.services.workflows.TwoValidationStepsWorkflowServiceImpl
 import com.normation.rudder.domain.workflows.WorkflowNodeId
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.authorization.Edit
 
 
 
@@ -57,27 +59,28 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
   private[this] val workflowEnabled = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
   private[this] val asyncWorkflow   = RudderConfig.asyncWorkflowInfo
 
+  private[this] val isValidator = CurrentUser.checkRights(Edit("validator"))
+  private[this] val isDeployer = CurrentUser.checkRights(Edit("deployer"))
   def registerWith = asyncWorkflow
 
   def render = {
-    new RenderOut(( workflowEnabled match {
-      case true =>   pendingModifications & pendingDeployment
+    new RenderOut(( (workflowEnabled && (isValidator || isDeployer )) match {
+      case true =>   {if (isValidator) pendingModifications
+      else ".pendingModifications" #> Text("")} &
+      {if (isDeployer) pendingDeployment
+      else ".pendingDeployment" #> Text("")}
       case _ => ".modificationsDisplayer" #> Text("")
     } ) (layout))
   }
 
   val layout =
-    <div id="workflowInfo" class="modificationsDisplayer"><lift:authz role="validator_read">
+    <div id="workflowInfo" class="modificationsDisplayer">
         <span >Open change requests:</span>
         <span class="pendingModifications" >[here comes the modifications]</span>
-      </lift:authz>
-      <lift:authz role="deployer_read">
         <span class="pendingDeployment" >[here comes the pending deployment]</span>
-      </lift:authz>
   </div>
 
   def pendingModifications = {
-
     val xml = workflowService match {
       case ws:TwoValidationStepsWorkflowServiceImpl =>
         ws.getItemsInStep(ws.Validation.id) match {

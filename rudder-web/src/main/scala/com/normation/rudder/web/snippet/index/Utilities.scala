@@ -47,6 +47,7 @@ import JE._
 import net.liftweb.http.SHtml._
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization._
+import bootstrap.liftweb.RudderConfig
 
 /**
  * Manage redirection for Utilities home page
@@ -54,9 +55,12 @@ import com.normation.rudder.authorization._
 class Utilities {
 
   def index(xhtml:NodeSeq) : NodeSeq = {
-    if ( CurrentUser.checkRights(Edit("administration")) || CurrentUser.checkRights(Write("administration")))
-      S.redirectTo("archiveManagement")
-    else
+    if ( CurrentUser.checkRights(Read("administration")) )
       S.redirectTo("eventLogs")
+    else
+      if (RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS)
+        S.redirectTo("changeRequests")
+      else
+        S.redirectTo("/secure/index")
   }
 }
