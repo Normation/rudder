@@ -476,7 +476,7 @@ var buildChangesTree = function(id,appContext) {
       "core" : { 
       "animation" : 400,
       "html_titles" : true,
-      "initially_open" : [ "changes","directives" ]
+      "initially_open" : [ "changes","directives","rules","groups" ]
       },
      "ui" : { 
         "select_limit" : 1,
