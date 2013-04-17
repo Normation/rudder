@@ -58,6 +58,8 @@ import com.normation.rudder.domain.eventlog.AddChangeRequest
 import com.normation.rudder.domain.eventlog.DeleteChangeRequest
 import com.normation.rudder.services.workflows.NoWorkflowAction
 import com.normation.rudder.services.workflows.WorkflowAction
+import com.normation.rudder.authorization.Edit
+import com.normation.rudder.authorization.Read
 
 
 object ChangeRequestDetails {
@@ -97,9 +99,13 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
 
   private[this] val changeRequestTableId = "ChangeRequestId"
   private[this] val CrId: Box[Int] = {S.param("crId").map(x=>x.toInt) }
-  private[this] var changeRequest: Box[ChangeRequest] = CrId match {
+  private[this] var changeRequest: Box[ChangeRequest] = {
+    CrId match {
     case Full(id) => changeRequestService.get(ChangeRequestId(id)) match {
-      case Full(Some(cr)) => Full(cr)
+      case Full(Some(cr)) =>
+        if (CurrentUser.checkRights(Read("validator"))||CurrentUser.checkRights(Read("deployer"))||cr.owner == CurrentUser.getActor.name)
+        Full(cr)
+        else Failure("You are not allowed to see this change request")
       case Full(None) => Failure(s"There is no Cr with id :${id}")
       case eb:EmptyBox =>       val fail = eb ?~ "no id selected"
       Failure(s"Error in the cr id asked: ${fail.msg}")
@@ -108,7 +114,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       val fail = eb ?~ "no id selected"
       Failure(s"Error in the cr id asked: ${fail.msg}")
   }
-
+  }
   private[this] def step = changeRequest.flatMap(cr => workflowService.findStep(cr.id))
 
   def dispatch = {
@@ -126,7 +132,13 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       ( xml =>
 
         changeRequest match {
-          case eb:EmptyBox => <div> Error {eb}</div>
+          case eb:EmptyBox =>
+            val error = eb ?~ "Error"
+            <div style="padding :40px;text-align:center">
+              <h2>{error.msg}</h2>
+              <h3>You will be redirected to the change requests page</h3>
+            </div>++
+          Script(JsRaw(s"""setTimeout("location.href = '${S.contextPath}/secure/utilities/changeRequests';",5000);"""))
           case Full(cr) =>
             new ChangeRequestEditForm(
                 cr.info
@@ -170,8 +182,9 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
   }
 
   def displayActionButton(cr:ChangeRequest,step:WorkflowNodeId):NodeSeq = {
+    val authz = CurrentUser.getRights.authorizationTypes.toSeq.collect{case Edit(right) => right}
     ( "#backStep" #> {
-      workflowService.backSteps(step) match {
+      workflowService.findBackSteps(authz, step) match {
         case Nil => NodeSeq.Empty
         case steps =>
           SHtml.ajaxButton(
@@ -180,8 +193,9 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
           ) } }  &
       "#nextStep" #> {
         if(commitAndDeployChangeRequest.isMergeable(cr.id)) {
-          workflowService.nextSteps(step) match {
+          workflowService.findNextSteps(authz,step) match {
             case NoWorkflowAction => NodeSeq.Empty
+            case WorkflowAction(actionName,emptyList) if emptyList.size == 0 => NodeSeq.Empty
             case WorkflowAction(actionName,steps) =>
               SHtml.ajaxButton(
                   actionName
