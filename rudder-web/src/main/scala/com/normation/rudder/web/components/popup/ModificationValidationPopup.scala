@@ -280,7 +280,7 @@ class ModificationValidationPopup(
         case e: EmptyBox =>
           <div class="error">An error occurred while trying to find dependent item</div>
         case Full(rules) => {
-          val cmp = new RuleGrid("remove_popup_grid", rules, None, false)
+          val cmp = new RuleGrid("remove_popup_grid", rules.toSeq, None, false)
           cmp.rulesGrid(popup = true,linkCompliancePopup = false)
         }
       }
