@@ -2633,4 +2633,17 @@ fieldset {
 .alignRollback {
   vertical-align:50%
 }
+
+/**
+ * Pending change request
+ */
+
+#changeRequestList {
+  padding-left: 15px;
+}
+
+#changeRequestList li {
+  list-style-type: disc;
+}
+
 }
