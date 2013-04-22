@@ -78,7 +78,7 @@ case class TargetDependencies(
  */
 case class TechniqueDependencies(
   activeTechniqueId:ActiveTechniqueId,
-  directives:Map[DirectiveId, (Directive,Seq[RuleId])],
+  directives:Map[DirectiveId, (Directive,Set[RuleId])],
   rules:Map[RuleId,Rule]
 ) extends HashcodeCaching
 
@@ -241,7 +241,7 @@ class DependencyAndDeletionServiceImpl(
         case OnlyDisableable => filterRules(configRules)
       }
     } yield {
-      DirectiveDependencies(id,filtered)
+      DirectiveDependencies(id,filtered.toSet)
     }
   }
 
@@ -277,7 +277,7 @@ class DependencyAndDeletionServiceImpl(
                       "Error when deleting policy instanc with ID %s. All dependent rules where deleted %s.".format(
                           id, configRules.map( _.id.value ).mkString(" (", ", ", ")"))
     } yield {
-      DirectiveDependencies(id,configRules)
+      DirectiveDependencies(id,configRules.toSet)
     }
   }
 
@@ -402,7 +402,7 @@ class DependencyAndDeletionServiceImpl(
       configRules <- searchRules(con,target)
       filtered:Seq[Rule] <- if(onlyEnableable) filterRules(configRules) else Full(configRules)
     } yield {
-      TargetDependencies(target,filtered)
+      TargetDependencies(target,filtered.toSet)
     }
   }
 
@@ -443,7 +443,7 @@ class DependencyAndDeletionServiceImpl(
                             "Error when deleting target %s. All dependent rules where updated %s".format(
                               target, configRules.map( _.id.value ).mkString("(", ", ", ")" ))
         } yield {
-          TargetDependencies(target,configRules)
+          TargetDependencies(target,configRules.toSet)
         }
 
       case _ => Failure("Can not delete the special target: %s ; abort".format(target))
