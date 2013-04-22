@@ -63,11 +63,11 @@ trait RoChangeRequestRepository {
    */
   def getByIds(changeRequestId:Seq[ChangeRequestId]) : Box[Seq[ChangeRequest]]
 
-  def getByDirective(id : DirectiveId) : Box[Seq[ChangeRequest]]
+  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Seq[ChangeRequest]]
 
-  def getByNodeGroup(id : NodeGroupId) : Box[Seq[ChangeRequest]]
+  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Seq[ChangeRequest]]
 
-  def getByRule(id : RuleId) : Box[Seq[ChangeRequest]]
+  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Seq[ChangeRequest]]
 
   def getByContributor(actor:EventActor) : Box[Seq[ChangeRequest]]
 }

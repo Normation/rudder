@@ -152,6 +152,7 @@ class RuleEditForm(
   private[this] val userPropertyService  = RudderConfig.userPropertyService
 
   private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
+  private[this] val roChangeRequestRepo  = RudderConfig.roChangeRequestRepository
 
   private[this] var selectedTargets = rule.targets
   private[this] var selectedDirectiveIds = rule.directiveIds
@@ -224,6 +225,9 @@ class RuleEditForm(
     (
       "#editForm *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
       ClearClearable &
+      "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
+          PendingChangeRequestDisplayer.checkByRule(xml, rule.id)
+        } &
       //activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if(rule.isEnabledStatus) "Disable" else "Enable" } &
       "#removeAction *" #> {
