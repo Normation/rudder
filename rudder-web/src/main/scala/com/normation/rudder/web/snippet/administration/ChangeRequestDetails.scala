@@ -183,8 +183,9 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
 
   def displayActionButton(cr:ChangeRequest,step:WorkflowNodeId):NodeSeq = {
     val authz = CurrentUser.getRights.authorizationTypes.toSeq.collect{case Edit(right) => right}
+    val isOwner = cr.owner == CurrentUser.getActor.name
     ( "#backStep" #> {
-      workflowService.findBackSteps(authz, step) match {
+      workflowService.findBackSteps(authz, step,isOwner) match {
         case Nil => NodeSeq.Empty
         case steps =>
           SHtml.ajaxButton(
@@ -193,7 +194,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
           ) } }  &
       "#nextStep" #> {
         if(commitAndDeployChangeRequest.isMergeable(cr.id)) {
-          workflowService.findNextSteps(authz,step) match {
+          workflowService.findNextSteps(authz,step,isOwner) match {
             case NoWorkflowAction => NodeSeq.Empty
             case WorkflowAction(actionName,emptyList) if emptyList.size == 0 => NodeSeq.Empty
             case WorkflowAction(actionName,steps) =>
