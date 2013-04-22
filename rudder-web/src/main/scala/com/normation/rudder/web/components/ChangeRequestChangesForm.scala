@@ -70,6 +70,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.web.services.DiffDisplayer
 
 
 object ChangeRequestChangesForm {
@@ -263,7 +264,7 @@ class ChangeRequestChangesForm(
     <div>
       <h4>Directive overview:</h4>
       <ul class="evlogviewpad">
-        <li><b>ID:&nbsp;</b><value id="directiveID"/></li>
+        <li style="padding-bottom : 10px;"><b>Directive:&nbsp;</b><value id="directiveID"/></li>
         <li><b>Name:&nbsp;</b><value id="directiveName"/></li>
         <li><b>Short description:&nbsp;</b><value id="shortDescription"/></li>
         <li><b>Technique name:&nbsp;</b><value id="techniqueName"/></li>
@@ -280,7 +281,7 @@ class ChangeRequestChangesForm(
     <div>
       <h4>Rule overview:</h4>
       <ul class="evlogviewpad">
-        <li><b>ID:&nbsp;</b><value id="ruleID"/></li>
+        <li style="padding-bottom : 10px;"><b>Rule:&nbsp;</b><value id="ruleID"/></li>
         <li><b>Name:&nbsp;</b><value id="ruleName"/></li>
         <li><b>Short description:&nbsp;</b><value id="shortDescription"/></li>
         <li><b>Target:&nbsp;</b><value id="target"/></li>
@@ -298,23 +299,10 @@ class ChangeRequestChangesForm(
   ) = diff.map(value => displayFormDiff(value, name)).getOrElse(default)
 
   private[this] def displayRule(rule:Rule) = {
-    def groupTargetDetails(groups: Set[RuleTarget]) = {
-      <ul>
-      {groups.map(group => <li>{group.target}</li>)}
-      </ul>
-    }
-
-    def directiveTargetDetails(directives: Set[DirectiveId]) = {
-      <ul>
-      {directives.map{directive =>
-        val directiveName = roDirectiveRepo.getDirective(directive).map(_.name).openOr("Unknown Directive")
-        <li>{SHtml.a(() => S.redirectTo(directiveLink(directive)),Text(directiveName))}</li>}}
-      </ul>
-    }
-    ( "#ruleID" #> rule.id.value.toUpperCase &
+    ( "#ruleID" #> createRuleLink(rule.id) &
       "#ruleName" #> rule.name &
-      "#target" #> groupTargetDetails(rule.targets) &
-      "#policy" #> directiveTargetDetails(rule.directiveIds) &
+      "#target" #> DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq) &
+      "#policy" #> DiffDisplayer.displayDirectiveChangeList(rule.directiveIds.toSeq, rule.directiveIds.toSeq) &
       "#isEnabled" #> rule.isEnabled &
       "#isSystem" #> rule.isSystem &
       "#shortDescription" #> rule.shortDescription &
@@ -327,32 +315,14 @@ class ChangeRequestChangesForm(
       diff : ModifyRuleDiff
     , rule : Rule
   ) = {
-    def groupTargetDetails(groups: Set[RuleTarget]) = {
-      <ul>
-      {groups.map(group => <li>{group.target}</li>)}
-      </ul>
-    }
-
-    def directiveTargetDetails(directives: Set[DirectiveId]) = {
-      <ul>
-      {directives.map{directive =>
-        val directiveName = roDirectiveRepo.getDirective(directive).map(_.name).openOr("Unknown Directive")
-        <li>{SHtml.a(() => S.redirectTo(directiveLink(directive)),Text(directiveName))}</li>}}
-      </ul>
-    }
-
-    def directiveinfoDiff(directiveIds:Set[DirectiveId]) = directiveIds.map{ id =>
-        val directive = roDirectiveRepo.getDirective(id)
-        directive.map(
-          directive => s" ${directive.name} (ID: ${id})"
-        ).openOr("Unknown Directive")
-    }.toSeq.sortBy(s => s).mkString("\n")
-
-
-    ( "#ruleID" #> rule.id.value.toUpperCase &
+    ( "#ruleID" #> createRuleLink(rule.id) &
       "#ruleName" #> displaySimpleDiff(diff.modName, "name", Text(rule.name)) &
-      "#target" #> diff.modTarget.map(displayFormDiff(_, "target")(t => t.map(_.target).mkString("\n"))).getOrElse(groupTargetDetails(rule.targets)) &
-      "#policy" #> diff.modDirectiveIds.map(displayFormDiff(_, "directive")(directiveinfoDiff)).getOrElse(directiveTargetDetails(rule.directiveIds)) &
+      "#target" #> diff.modTarget.map{
+        case SimpleDiff(oldOnes,newOnes) => DiffDisplayer.displayRuleTargets(oldOnes.toSeq,newOnes.toSeq)
+        }.getOrElse(DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq)) &
+      "#policy" #> diff.modDirectiveIds.map{
+        case SimpleDiff(oldOnes,newOnes) => DiffDisplayer.displayDirectiveChangeList(oldOnes.toSeq,newOnes.toSeq)
+        }.getOrElse(DiffDisplayer.displayDirectiveChangeList(rule.directiveIds.toSeq, rule.directiveIds.toSeq)) &
       "#isEnabled"        #> displaySimpleDiff(diff.modIsActivatedStatus, "active", Text(rule.isEnabled.toString)) &
       "#shortDescription" #> displaySimpleDiff(diff.modShortDescription, "short", Text(rule.shortDescription)) &
       "#longDescription"  #> displaySimpleDiff(diff.modLongDescription, "long", Text(rule.longDescription))
@@ -364,19 +334,19 @@ class ChangeRequestChangesForm(
     <div>
       <h4>Group overview:</h4>
       <ul class="evlogviewpad">
-        <li><b>ID: </b><value id="groupID"/></li>
-        <li><b>Name: </b><value id="groupName"/></li>
-        <li><b>Description: </b><value id="shortDescription"/></li>
-        <li><b>Enabled: </b><value id="isEnabled"/></li>
-        <li><b>Dynamic: </b><value id="isDynamic"/></li>
-        <li><b>System: </b><value id="isSystem"/></li>
-        <li><b>Query: </b><value id="query"/></li>
-        <li><b>Node list: </b><value id="nodes"/></li>
+        <li style="padding-bottom : 10px;"><b>Group:&nbsp;</b><value id="groupID"/></li>
+        <li><b>Name:&nbsp;</b><value id="groupName"/></li>
+        <li><b>Description:&nbsp;</b><value id="shortDescription"/></li>
+        <li><b>Enabled:&nbsp;</b><value id="isEnabled"/></li>
+        <li><b>Dynamic:&nbsp;</b><value id="isDynamic"/></li>
+        <li><b>System:&nbsp;</b><value id="isSystem"/></li>
+        <li><b>Query:&nbsp;</b><value id="query"/></li>
+        <li><b>Node list:&nbsp;</b><value id="nodes"/></li>
       </ul>
     </div>
 
   private[this] def displayGroup(group: NodeGroup) = (
-      "#groupID" #> group.id.value.toUpperCase &
+      "#groupID" #> createGroupLink(group.id) &
       "#groupName" #> group.name &
       "#shortDescription" #> group.description &
       "#query" #> (group.query match {
@@ -411,7 +381,7 @@ class ChangeRequestChangesForm(
       servers.map(_.value).toList.sortBy(s => s).mkString("\n")
 
     }
-    ( "#groupID" #> group.id.value.toUpperCase &
+    ( "#groupID" #> createGroupLink(group.id) &
       "#groupName" #> displaySimpleDiff(diff.modName,"name",Text(group.name))&
       "#shortDescription" #> displaySimpleDiff(diff.modDescription,"description",Text(group.description)) &
       "#query" #> diff.modQuery.map( query =>displayFormDiff(query , "query")(displayQuery)).getOrElse(Text(displayQuery(group.query))) &
@@ -432,7 +402,7 @@ class ChangeRequestChangesForm(
         <div> directive.parameters </div>
       }
 
-    ( "#directiveID" #> directive.id.value.toUpperCase &
+    ( "#directiveID" #> createDirectiveLink(directive.id) &
       "#directiveName" #> directive.name &
       "#techniqueVersion" #> directive.techniqueVersion.toString &
       "#techniqueName" #> techniqueName.value &
@@ -454,7 +424,7 @@ class ChangeRequestChangesForm(
       , rootSection   : SectionSpec
   ) = {
 
-    ( "#directiveID"      #> directive.id.value.toUpperCase &
+    ( "#directiveID"      #> createDirectiveLink(directive.id) &
       "#techniqueName"    #> techniqueName.value &
       "#isSystem"         #> directive.isSystem &
       "#directiveName"    #> displaySimpleDiff(diff.modName, "name", Text(directive.name)) &
