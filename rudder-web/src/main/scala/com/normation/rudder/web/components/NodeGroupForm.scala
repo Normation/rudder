@@ -156,6 +156,18 @@ class NodeGroupForm(
     JsRaw("correctButtons();")
   }
 
+
+  val pendingChangeRequestXml =
+    <div id="pendingChangeRequestNotification">
+      <div>
+        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+        <div style="float:left">
+          The following pending change requests affect this Group, you should check that your modification is not already pending:
+          <ul id="changeRequestList"/>
+        </div>
+      </div>
+    </div>
+
   def showForm() : NodeSeq = {
      val html = SHtml.ajaxForm(body) ++
      Script(
@@ -167,6 +179,7 @@ class NodeGroupForm(
      )
 
      bind("group", html,
+      "pendingChangeRequest" ->  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id),
       "name" -> groupName.toForm_!,
       "rudderID" -> <div><b class="threeCol">Rudder ID: </b>{nodeGroup.id.value.toUpperCase}</div>,
       "description" -> groupDescription.toForm_!,
