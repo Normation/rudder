@@ -229,6 +229,14 @@ abstract class RudderBaseField extends BaseField {
       }
     }
   )
+
+  def readOnlyValue =
+   <div class="wbBaseField">
+      <label class={labelClassName + " wbBaseFieldLabel textright"}>{displayHtml}</label>
+      <div class={subContainerClassName}>
+        {defaultValue}
+      </div>
+   </div>
 }
 
 class WBTextField(override val name:String, override val defaultValue:String = "") extends RudderBaseField with StringValidators {
