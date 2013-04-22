@@ -86,7 +86,8 @@ trait WorkflowService {
   def findNextSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId) : WorkflowAction
   def findBackSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId) : Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])]
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId]
-
+  def isEditable(currentUserRights:Seq[String],currentStep:WorkflowNodeId, isCreator : Boolean): Boolean
+  def isPending(currentStep:WorkflowNodeId): Boolean
 }
 
 case class WorkflowAction(
@@ -129,6 +130,7 @@ class NoWorkflowServiceImpl(
       // and return a no workflow
       noWorfkflow
     }
+
   }
 
   // should we keep this one or the previous ??
@@ -144,6 +146,9 @@ class NoWorkflowServiceImpl(
     }
   }
 
+  def isEditable(currentUserRights:Seq[String],currentStep:WorkflowNodeId, isCreator : Boolean): Boolean = false
+
+  def isPending(currentStep:WorkflowNodeId): Boolean = false
 }
 
 class TwoValidationStepsWorkflowServiceImpl(
@@ -209,6 +214,25 @@ class TwoValidationStepsWorkflowServiceImpl(
       case Deployment.id => if (authorizedRoles.contains("deployer"))  Seq((Cancelled.id,stepDeploymentToCancelled _)) else Seq()
       case Deployed.id   => Seq()
       case Cancelled.id  => Seq()
+    }
+  }
+
+  def isEditable(currentUserRights:Seq[String],currentStep:WorkflowNodeId, isCreator : Boolean): Boolean = {
+    val authorizedRoles = currentUserRights.filter(role => (role == "validator" || role == "deployer"))
+    currentStep match {
+      case Validation.id => authorizedRoles.contains("validator") || isCreator
+      case Deployment.id => authorizedRoles.contains("deployer")
+      case Deployed.id   => false
+      case Cancelled.id  => false
+    }
+  }
+
+  def isPending(currentStep:WorkflowNodeId): Boolean = {
+    currentStep match {
+      case Validation.id => true
+      case Deployment.id => true
+      case Deployed.id   => false
+      case Cancelled.id  => false
     }
   }
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId] = {
