@@ -61,7 +61,7 @@ import com.normation.ldap.sdk.RoLDAPConnection
  */
 case class DirectiveDependencies(
   directiveId:DirectiveId,
-  rules:Seq[Rule]
+  rules:Set[Rule]
 ) extends HashcodeCaching
 
 /**
@@ -69,7 +69,7 @@ case class DirectiveDependencies(
  */
 case class TargetDependencies(
   target:RuleTarget,
-  rules:Seq[Rule]
+  rules:Set[Rule]
 ) extends HashcodeCaching
 
 /**
@@ -325,7 +325,7 @@ class DependencyAndDeletionServiceImpl(
 
       TechniqueDependencies(
         id,
-        piAndCrs.map { case ( (directiveId, (directive,seqCrs )) ) => (directiveId, (directive, seqCrs.map( _.id))) }.toMap,
+        piAndCrs.map { case ( (directiveId, (directive,seqCrs )) ) => (directiveId, (directive, seqCrs.map( _.id).toSet )) }.toMap,
         allCrs
       )
     }
