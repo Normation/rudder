@@ -83,8 +83,18 @@ trait WorkflowService {
 
   val stepsValue :List[WorkflowNodeId]
 
-  def findNextSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId) : WorkflowAction
-  def findBackSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId) : Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])]
+  def findNextSteps(
+      currentUserRights : Seq[String]
+    , currentStep       : WorkflowNodeId
+    , isCreator         : Boolean
+  ) : WorkflowAction
+
+  def findBackSteps(
+      currentUserRights : Seq[String]
+    , currentStep       : WorkflowNodeId
+    , isCreator         : Boolean
+  ) : Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])]
+
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId]
   def isEditable(currentUserRights:Seq[String],currentStep:WorkflowNodeId, isCreator : Boolean): Boolean
   def isPending(currentStep:WorkflowNodeId): Boolean
@@ -112,9 +122,17 @@ class NoWorkflowServiceImpl(
 
   val noWorfkflow = WorkflowNodeId("No Workflow")
 
-  def findNextSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId) : WorkflowAction = NoWorkflowAction
+  def findNextSteps(
+      currentUserRights : Seq[String]
+    , currentStep       : WorkflowNodeId
+    , isCreator         : Boolean
+  ) : WorkflowAction = NoWorkflowAction
 
-  def findBackSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId) = Seq()
+   def findBackSteps(
+      currentUserRights : Seq[String]
+    , currentStep       : WorkflowNodeId
+    , isCreator         : Boolean
+  ) : Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])] = Seq()
 
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId] = Failure("No state when no workflow")
 
@@ -157,6 +175,8 @@ class TwoValidationStepsWorkflowServiceImpl(
   , roWorkflowRepo : RoWorkflowRepository
   , woWorkflowRepo : WoWorkflowRepository
   , workflowComet  : AsyncWorkflowInfo
+  , selfValidation : Boolean
+  , selfDeployment : Boolean
 ) extends WorkflowService with Loggable {
 
   case object Validation extends WorkflowNode {
@@ -181,14 +201,20 @@ class TwoValidationStepsWorkflowServiceImpl(
 
   val stepsValue = steps.map(_.id)
 
-  def findNextSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId) = {
+  def findNextSteps(
+      currentUserRights : Seq[String]
+    , currentStep       : WorkflowNodeId
+    , isCreator         : Boolean
+  ) : WorkflowAction = {
     val authorizedRoles = currentUserRights.filter(role => (role == "validator" || role == "deployer"))
+    val canValid  = selfValidation || !isCreator
+    val canDeploy = selfDeployment || !isCreator
     currentStep match {
       case Validation.id =>
         val validatorActions =
-          if (authorizedRoles.contains("validator"))
+          if (authorizedRoles.contains("validator") && canValid)
             Seq((Deployment.id,stepValidationToDeployment _)) ++ {
-            if(authorizedRoles.contains("deployer"))
+            if(authorizedRoles.contains("deployer") && canDeploy)
               Seq((Deployed.id,stepValidationToDeployed _))
               else Seq()
              }
@@ -198,7 +224,7 @@ class TwoValidationStepsWorkflowServiceImpl(
 
       case Deployment.id =>
         val actions =
-          if(authorizedRoles.contains("deployer"))
+          if(authorizedRoles.contains("deployer") && canDeploy)
             Seq((Deployed.id,stepDeploymentToDeployed _))
           else Seq()
         WorkflowAction("Deploy",actions)
@@ -207,11 +233,18 @@ class TwoValidationStepsWorkflowServiceImpl(
     }
   }
 
-  def findBackSteps(currentUserRights:Seq[String],currentStep:WorkflowNodeId): Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])] = {
+  def findBackSteps(
+      currentUserRights : Seq[String]
+    , currentStep       : WorkflowNodeId
+    , isCreator         : Boolean
+  ) : Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])] = {
     val authorizedRoles = currentUserRights.filter(role => (role == "validator" || role == "deployer"))
+    val canValid  = selfValidation || !isCreator
+    val canDeploy = selfDeployment || !isCreator
     currentStep match {
-      case Validation.id => if (authorizedRoles.contains("validator")) Seq((Cancelled.id,stepValidationToCancelled _)) else Seq()
-      case Deployment.id => if (authorizedRoles.contains("deployer"))  Seq((Cancelled.id,stepDeploymentToCancelled _)) else Seq()
+      case Validation.id =>
+        if (authorizedRoles.contains("validator") && canValid) Seq((Cancelled.id,stepValidationToCancelled _)) else Seq()
+      case Deployment.id => if (authorizedRoles.contains("deployer") && canDeploy)  Seq((Cancelled.id,stepDeploymentToCancelled _)) else Seq()
       case Deployed.id   => Seq()
       case Cancelled.id  => Seq()
     }

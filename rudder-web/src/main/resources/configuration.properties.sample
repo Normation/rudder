@@ -390,6 +390,26 @@ rudder.batch.reports.logInterval=1
 
 rudder.workflow.enabled=false
 
+# Enable self validation (default false)
+#
+# If false, no change request can be validated by it's creator
+# So every change request will need to be reviewed by someone different from
+# who requested this changed
+#
+# Boolean, defaults to false.
+
+rudder.workflow.self.validation=false
+
+# Enable self deployment (default true)
+#
+# If false, no change request can be deployed by it's creator
+# So every change request will need to be reviewed by someone different from
+# who requested this changed
+#
+# Boolean, defaults to true.
+
+rudder.workflow.self.deployment=true
+
 #########################
 # DEPRECATED properties #############################################################
 #########################
