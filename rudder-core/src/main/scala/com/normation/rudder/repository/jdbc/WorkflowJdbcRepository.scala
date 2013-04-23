@@ -52,14 +52,14 @@ class RoWorkflowJdbcRepository(
     jdbcTemplate : JdbcTemplate
 )extends RoWorkflowRepository with Loggable {
   val SELECT_SQL = "SELECT id, state FROM Workflow "
-    
+
   def getAllByState(state : WorkflowNodeId) :  Box[Seq[ChangeRequestId]] = {
     Try {
       val list = jdbcTemplate.query(SELECT_SQL + "WHERE state = ?", Array[AnyRef](state.value.asInstanceOf[AnyRef]), DummyWorkflowsMapper)
       list.toSeq.map(x => ChangeRequestId(x.crId))
     } match {
       case Success(x) => Full(x)
-      case Catch(error) => 
+      case Catch(error) =>
         logger.error(s"Error when fetching all change request by state ${state.value} : ${error.toString()}")
         Failure(error.toString())
     }
@@ -72,33 +72,33 @@ class RoWorkflowJdbcRepository(
         case seq if seq.size == 0 =>
           logger.warn(s"Change request ${crId.value} doesn't exist")
           Failure(s"Change request ${crId.value} doesn't exist")
-        case seq if seq.size > 1 => 
+        case seq if seq.size > 1 =>
           logger.error(s"Too many change request with same id ${crId.value}")
           Failure(s"Too many change request with same id ${crId.value}")
         case seq if seq.size == 1 => Full(WorkflowNodeId(seq.head.state))
       }
     } match {
       case Success(x) => x
-      case Catch(error) => 
-        logger.error(s"Error when fetching state of change request ${crId.value} : ${error.toString()}")
+      case Catch(error) =>
+        logger.error(s"Error when fetching status of change request ${crId.value} : ${error.toString()}")
         Failure(error.toString())
     }
   }
-  
+
   def isChangeRequestInWorkflow(crId: ChangeRequestId) : Box[Boolean] = {
      Try {
       val list = jdbcTemplate.query(SELECT_SQL + "WHERE id = ?", Array[AnyRef](crId.value.asInstanceOf[AnyRef]), DummyWorkflowsMapper)
       list.toSeq match {
         case seq if seq.size == 0 =>
           Full(true)
-        case seq if seq.size > 1 => 
+        case seq if seq.size > 1 =>
           logger.error(s"Too many change request with same id ${crId.value}")
           Failure(s"Too many change request with same id ${crId.value}")
         case seq if seq.size == 1 => Full(false)
       }
     } match {
       case Success(x) => x
-      case Catch(error) => 
+      case Catch(error) =>
         logger.error(s"Error when fetching existance of change request ${crId.value} : ${error.toString()}")
         Failure(error.toString())
     }
@@ -112,7 +112,7 @@ class WoWorkflowJdbcRepository(
   val UPDATE_SQL = "UPDATE Workflow set state = ? where id = ?"
 
   val INSERT_SQL = "INSERT into Workflow (id, state) values (?, ?)"
- 
+
   def createWorkflow(crId: ChangeRequestId, state : WorkflowNodeId) : Box[WorkflowNodeId] = {
     Try {
       roRepo.isChangeRequestInWorkflow(crId) match {
@@ -124,15 +124,15 @@ class WoWorkflowJdbcRepository(
             , state.value
           )
           roRepo.getStateOfChangeRequest(crId)
-        case _ => 
+        case _ =>
           logger.error(s"Cannot start a workflow for Change Request id ${crId.value}, as it is already part of a workflow")
           Failure(s"Cannot start a workflow for Change Request id ${crId.value}, as it is already part of a workflow")
-          
+
       }
     } match {
-      case Success(x) => x 
-      case Catch(error) => 
-        logger.error(s"Error when updating state of change request ${crId.value}: ${error.toString}")
+      case Success(x) => x
+      case Catch(error) =>
+        logger.error(s"Error when updating status of change request ${crId.value}: ${error.toString}")
         Failure(error.toString())
     }
   }
@@ -143,7 +143,7 @@ class WoWorkflowJdbcRepository(
         case eb : EmptyBox => eb
         case Full(entry) =>
           if (entry != from) {
-            Failure(s"Cannot change state of ChangeRequest id ${crId.value} : it has the state ${entry.value} but we were expecting ${from.value}")
+            Failure(s"Cannot change status of ChangeRequest id ${crId.value} : it has the status ${entry.value} but we were expecting ${from.value}")
           } else {
             jdbcTemplate.update(
                   UPDATE_SQL
@@ -154,9 +154,9 @@ class WoWorkflowJdbcRepository(
           roRepo.getStateOfChangeRequest(crId)
       }
     } match {
-      case Success(x) => x 
-      case Catch(error) => 
-        logger.error(s"Error when updating state of change request ${crId.value} : ${error.toString()}")
+      case Success(x) => x
+      case Catch(error) =>
+        logger.error(s"Error when updating status of change request ${crId.value} : ${error.toString()}")
         Failure(error.toString())
     }
   }
@@ -179,5 +179,5 @@ object DummyWorkflowsMapper extends RowMapper[DummyMapper] with Loggable {
       , rs.getInt("id")
     )
   }
-  
+
 }
