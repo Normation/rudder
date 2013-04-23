@@ -146,7 +146,7 @@ class RuleModificationValidationPopup(
     val titleWorkflow = workflowEnabled match {
       case true =>
         <div>
-          <h2 style="padding-left:42px;">Workflows are enabled in Rudder, your change has to be validated in a change request</h2>
+          <h2 style="padding: 20px 0 10px">Workflows are enabled in Rudder, your change has to be validated in a change request</h2>
         </div>
       case false => NodeSeq.Empty
     }

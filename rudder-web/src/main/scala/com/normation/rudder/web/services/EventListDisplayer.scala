@@ -318,11 +318,11 @@ class EventListDisplayer(
         case Full(WorkflowStepChange(crId,from,to)) =>
           Text("Change request #") ++
           <a href={changeRequestLink(crId)} onclick="noBubble(event);">{crId}</a> ++
-          Text(s" state changed from ${from} to ${to}")
+          Text(s" status modified from ${from} to ${to}")
 
         case eb:EmptyBox => val fail = eb ?~! "could not display workflow step event log"
           logger.error(fail.msg)
-          Text("Change request state changed")
+          Text("Change request status modified")
       }
     }
 
@@ -377,7 +377,7 @@ class EventListDisplayer(
     val generatedByChangeRequest =
       changeRequestId match {
       case None => NodeSeq.Empty
-      case Some(id) => <h4 style="padding:5px"> This event was generated when change request #<a href={changeRequestLink(id)}>{id}</a> was deployed</h4>
+      case Some(id) => <h4 style="padding:5px"> This change was introduced by change request #<a href={changeRequestLink(id)}>{id}</a></h4>
     }
     def xmlParameters(eventId: Option[Int]) = {
       eventId match {
@@ -953,13 +953,11 @@ class EventListDisplayer(
         "*" #> { logDetailsService.getWorkflotStepChange(x.details) match {
         case Full(step) =>
             <div class="evloglmargin">
-              <h4>Change request stated modified:</h4>
+              <h4>Change request status modified:</h4>
               <ul class="evlogviewpad">
                 <li><b>Id: </b>{step.id}</li>
-                <li><b>From state: </b>{step.from}</li>
-                <li><b>To state: </b>{step.to}</li>
-                <li><b>By:</b>{x.principal.name}</li>
-                <li><b>Date:</b>{DateFormaterService.getFormatedDate(x.creationDate)}</li>
+                <li><b>From status: </b>{step.from}</li>
+                <li><b>To status: </b>{step.to}</li>
                 {reasonHtml}
               </ul>
             </div>
