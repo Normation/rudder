@@ -116,6 +116,17 @@
 <component:form>
 <div id="editForm" class="object-details">
 
+  <div id="pendingChangeRequestNotification">
+     <div>
+      <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+      <div style="float:left">
+      The following pending change requests affect this Rule, you should check that your modification is not already pending:
+      <ul id="changeRequestList"/>
+      </div>
+    </div> 
+  </div>
+  <hr class="spacer"/>
+  
   <fieldset class="topLevelAction">
     <p class="clearable">
       This is the zone for top level actions which does not take into account

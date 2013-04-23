@@ -87,6 +87,18 @@
 <component:form>
   <div id="editForm" class="object-details">
     <lift:authz role="directive_edit">
+      <div id="pendingChangeRequestNotification">
+        <div class="inner-portlet-header">Pending change requests</div>
+        <br />
+        <div>
+          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+          <div style="float:left">
+            The following pending change requests affect this Directive, you should check that your modification is not already pending:
+            <ul id="changeRequestList"/>
+          </div>
+        </div>
+      </div>
+    <hr class="spacer"/>
     <div class="topLevelAction">
       <p class="clearable">
         This is the zone for top level actions which does not take into account
