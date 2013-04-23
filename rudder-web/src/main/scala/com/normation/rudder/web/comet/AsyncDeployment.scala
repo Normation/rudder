@@ -109,6 +109,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   val deployementErrorMessage = """(.*)!errormessage!(.*)""".r
 
   private[this] def lastStatus : NodeSeq = {
+
     deploymentStatus.current match {
       case NoStatus => <span>Rules application status unavailable</span>
       case SuccessStatus(id,start,end,configurationNodes) =>
@@ -169,6 +170,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   private[this] def layout = {
     <div id="deploymentStatus">
+      <div style="font-size: 14px; font-weight: bold; margin-bottom:7px;">Deployment status</div>
       <lift:ignore>
         Here come the status of the last finised deployment.
         Status can be: no previous deployment, correctly deployed, warning, error.
