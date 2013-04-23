@@ -236,6 +236,8 @@ object RudderConfig extends Loggable {
 
   //workflows configuration
   val RUDDER_ENABLE_APPROVAL_WORKFLOWS = config.getBoolean("rudder.workflow.enabled") // false
+  val RUDDER_ENABLE_SELF_VALIDATION    = config.getBoolean("rudder.workflow.self.validation") // false
+  val RUDDER_ENABLE_SELF_DEPLOYMENT    = config.getBoolean("rudder.workflow.self.deployment") // true
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
@@ -363,6 +365,8 @@ object RudderConfig extends Loggable {
           , roWorkflowRepository
           , woWorkflowRepository
           , asyncWorkflowInfo
+          , RUDDER_ENABLE_SELF_VALIDATION
+          , RUDDER_ENABLE_SELF_DEPLOYMENT
         )
     case false => new NoWorkflowServiceImpl(
             commitAndDeployChangeRequest
