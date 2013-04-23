@@ -73,6 +73,7 @@ class RoChangeRequestJdbcRepository(
 
   val SELECT_SQL = "SELECT id, name, description, creationTime, content, modificationId FROM ChangeRequest"
 
+  val SELECT_SQL_JOIN_WORKFLOW = "SELECT CR.id, name, description, creationTime, content, modificationId FROM  changeRequest CR LEFT JOIN workflow W on CR.id = W.id"
   def getAll() : Box[Seq[ChangeRequest]] = {
     Try {
       jdbcTemplate.query(SELECT_SQL, Array[AnyRef](), changeRequestsMapper).toSeq
@@ -155,24 +156,67 @@ class RoChangeRequestJdbcRepository(
     }
   }
 
-  def getByDirective(id : DirectiveId) : Box[Seq[ChangeRequest]] = {
-    val directiveQuery = " where cast (xpath('/directives/directive/@directive', content) as text[]) = '{?}'"
-    Try {
-      jdbcTemplate.query(SELECT_SQL + directiveQuery, Array[AnyRef](id.value), changeRequestsMapper).toSeq
-    } match {
-      case Success(x) => Full(x.:\(Seq[ChangeRequest]()){(changeRequest,seq) => changeRequest match {
-        case Full(cr) =>  seq :+ cr
-        case eb:EmptyBox =>
-          seq
-        }
-      })
-      case Catch(error) => Failure(error.toString())
-    }
+  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = {
+    getChangeRequestsByXpathContent(
+        "/changeRequest/directives/directive/@id"
+      , id.value
+      , s"could not fetch change request for directive with id ${id.value}"
+      , onlyPending
+    )
   }
 
-  def getByNodeGroup(id : NodeGroupId) : Box[Seq[ChangeRequest]] = ???
+  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = {
+    getChangeRequestsByXpathContent(
+        "/changeRequest/groups/group/@id"
+      , id.value
+      , s"could not fetch change request for group with id ${id.value}"
+      , onlyPending
+    )
+  }
 
-  def getByRule(id : RuleId) : Box[Seq[ChangeRequest]] = ???
+  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = {
+    getChangeRequestsByXpathContent(
+        "/changeRequest/rules/rule/@id"
+      , id.value
+      , s"could not fetch change request for rule with id ${id.value}"
+      , onlyPending
+    )
+  }
+
+  /**
+   * Retrieve a sequence of change request based on one XML
+   * element value.
+   * The xpath query must match only one element.
+   * We want to be able to find only pending change request without having to request the state of each change request
+   * Maybe this function should be in Workflow repository/service instead
+   */
+  private[this] def getChangeRequestsByXpathContent(xpath:String, shouldEquals:String, errorMessage:String, onlyPending:Boolean) = {
+    try {
+      Full(jdbcTemplate.query(
+        new PreparedStatementCreator() {
+           def createPreparedStatement(connection : Connection) : PreparedStatement = {
+             val query =
+               if (onlyPending) {
+                 s"${SELECT_SQL_JOIN_WORKFLOW} where cast( xpath('${xpath}', content) as text[]) = ? and state like 'Pending%'"
+               }
+               else {
+                 s"${SELECT_SQL} where cast( xpath('${xpath}', content) as text[]) = ?"
+               }
+
+             val ps = connection.prepareStatement(query, Array[String]());
+             ps.setArray(1, connection.createArrayOf("text", Seq(shouldEquals).toArray[AnyRef]) )
+             ps
+           }
+         }, changeRequestsMapper
+      ).flatten)
+    } catch {
+      case ex: Exception =>
+        val f = Failure(errorMessage, Full(ex), Empty)
+        ApplicationLogger.error(f.messageChain)
+        ApplicationLogger.error("Root exception was:", ex)
+        f
+    }
+  }
 
 }
 
