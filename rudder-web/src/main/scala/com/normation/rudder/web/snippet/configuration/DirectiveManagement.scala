@@ -394,7 +394,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           updateCf3PolicyDraftInstanceSettingFormComponent(technique, activeTechnique, directive,None, true)
           //Update UI
           Replace(htmlId_policyConf, showDirectiveDetails) &
-          JsRaw("""scrollToElement('%s')""".format(htmlId_policyConf))
+          JsRaw("""createTooltip(); scrollToElement('%s')""".format(htmlId_policyConf))
         }
     ).popupContent
   }
@@ -415,7 +415,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     Replace(htmlId_policyConf, showDirectiveDetails) &
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})"""
         .format(directiveId.value)) &
-    JsRaw("""scrollToElement('%s')""".format(htmlId_policyConf))
+    JsRaw("""createTooltip(); scrollToElement('%s')""".format(htmlId_policyConf))
   }
 
   private[this] def updateCf3PolicyDraftInstanceSettingFormComponent(

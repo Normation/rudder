@@ -45,6 +45,8 @@ import net.liftweb.http.js.JE._
 import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.services.workflows.WorkflowService
+import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.authorization.Edit
 
 object ChangeRequestEditForm {
   def form =
@@ -57,13 +59,15 @@ object ChangeRequestEditForm {
 
 class ChangeRequestEditForm (
     var info        : ChangeRequestInfo
-  , step            : Box[String]
+  , creator         : String
+  , step            : Box[WorkflowNodeId]
   , crId            : ChangeRequestId
   , SuccessCallback : ChangeRequestInfo => JsCmd
 ) extends DispatchSnippet with Loggable {
 
   import ChangeRequestEditForm._
 
+  private[this] val workflowService = RudderConfig.workflowService
   def dispatch = { case "details" => { _ => display } }
 
   private[this] val changeRequestName =new WBTextField("Title", info.name) {
@@ -80,15 +84,35 @@ class ChangeRequestEditForm (
     override def validations = Nil
   }
 
+  private[this] val isEditable = {
+    val authz = CurrentUser.getRights.authorizationTypes.toSeq.collect{case Edit(right) => right}
+    val isOwner = creator == CurrentUser.getActor.name
+    step.map(workflowService.isEditable(authz,_,isOwner))
+    }.openOr(false)
+
+  private[this] def actionButton = {
+    if (isEditable)
+      SHtml.ajaxSubmit("Update", () =>  submit)
+    else
+      NodeSeq.Empty
+  }
+
+  private[this] def crName = {
+    if (isEditable) changeRequestName.toForm_! else changeRequestName.readOnlyValue
+  }
+
+  private[this] def CRDescription = {
+    if (isEditable) changeRequestDescription.toForm_! else changeRequestDescription.readOnlyValue
+  }
 
   def display: NodeSeq =
     ( "#detailsForm *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
       ClearClearable &
-      "#CRName *" #> changeRequestName.toForm_! &
+      "#CRName *" #> crName &
       "#CRId *"   #> crId.value &
-      "#CRStatusDetails *"   #>  step.map(Text(_)).openOr(<div class="error">Cannot find the status of this change request</div>) &
-      "#CRDescription *" #> changeRequestDescription.toForm_! &
-      "#CRSave *" #> SHtml.ajaxSubmit("Update", () =>  submit)
+      "#CRStatusDetails *"   #>  step.map(wfId => Text(wfId.toString)).openOr(<div class="error">Cannot find the status of this change request</div>) &
+      "#CRDescription *" #> CRDescription &
+      "#CRSave *" #> actionButton
     ) (form) ++ Script(JsRaw("correctButtons();"))
 
   def submit = {

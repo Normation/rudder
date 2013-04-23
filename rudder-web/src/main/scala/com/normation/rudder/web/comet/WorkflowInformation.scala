@@ -75,7 +75,7 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
 
   val layout =
     <div id="workflowInfo" class="modificationsDisplayer">
-        <span >Open change requests:</span>
+        <span >Open change requests</span>
         <span class="pendingModifications" >[here comes the modifications]</span>
         <span class="pendingDeployment" >[here comes the pending deployment]</span>
   </div>
@@ -89,7 +89,7 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
               case 0 =>
                 <span style="font-size:12px; padding-left:25px; padding-top:2px">Pending review: 0</span>
               case size =>
-                <span style="font-size:12px; padding-top:2px"><img src="/images/icWarn.png" alt="Warning!" height="15" width="15" class="warnicon"/> <a href="/secure/utilities/changeRequests/Pending_validation" style="color:#999999">Pending review: {size}</a></span>
+                <span style="font-size:12px; padding-top:2px"><img src="/images/icWarn.png" alt="Warning!" height="15" width="15" class="warnicon" style="margin-top:0px !important"/> <a href="/secure/utilities/changeRequests/Pending_validation" style="color:#999999">Pending review: {size}</a></span>
             }
           case e:EmptyBox =>
             <p class="error">Error when trying to fetch pending change requests.</p>
@@ -110,7 +110,7 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
               case 0 =>
                 <span style="font-size:12px; padding-left:25px; padding-top:2px">Pending deployment: 0</span>
               case size =>
-                <span style="font-size:12px; padding-top:2px"><img src="/images/icWarn.png" alt="Warning!" height="15" width="15" class="warnicon"/> <a href="/secure/utilities/changeRequests/Pending_deployment" style="color:#999999">Pending deployment: {size}</a> </span>
+                <span style="font-size:12px; padding-top:2px"><img src="/images/icWarn.png" alt="Warning!" height="15" width="15" class="warnicon" style="margin-top:0px !important"/> <a href="/secure/utilities/changeRequests/Pending_deployment" style="color:#999999">Pending deployment: {size}</a> </span>
             }
           case e:EmptyBox =>
             <p class="error">Error when trying to fetch pending change requests.</p>

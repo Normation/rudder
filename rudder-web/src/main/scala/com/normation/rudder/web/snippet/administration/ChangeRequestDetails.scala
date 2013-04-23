@@ -96,14 +96,14 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
   private[this] val eventlogDetailsService = RudderConfig.eventLogDetailsService
   private[this] val commitAndDeployChangeRequest =  RudderConfig.commitAndDeployChangeRequest
 
-
+  private[this] def checkAccess(cr:ChangeRequest) = CurrentUser.checkRights(Read("validator"))||CurrentUser.checkRights(Read("deployer"))||cr.owner == CurrentUser.getActor.name
   private[this] val changeRequestTableId = "ChangeRequestId"
   private[this] val CrId: Box[Int] = {S.param("crId").map(x=>x.toInt) }
   private[this] var changeRequest: Box[ChangeRequest] = {
     CrId match {
     case Full(id) => changeRequestService.get(ChangeRequestId(id)) match {
       case Full(Some(cr)) =>
-        if (CurrentUser.checkRights(Read("validator"))||CurrentUser.checkRights(Read("deployer"))||cr.owner == CurrentUser.getActor.name)
+        if (checkAccess(cr))
         Full(cr)
         else Failure("You are not allowed to see this change request")
       case Full(None) => Failure(s"There is no Cr with id :${id}")
@@ -142,7 +142,8 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
           case Full(cr) =>
             new ChangeRequestEditForm(
                 cr.info
-              , step.map(_.value)
+              , cr.owner
+              , step
               , cr.id
               , changeDetailsCallback(cr) _
             ).display
@@ -183,8 +184,9 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
 
   def displayActionButton(cr:ChangeRequest,step:WorkflowNodeId):NodeSeq = {
     val authz = CurrentUser.getRights.authorizationTypes.toSeq.collect{case Edit(right) => right}
+    val isOwner = cr.owner == CurrentUser.getActor.name
     ( "#backStep" #> {
-      workflowService.findBackSteps(authz, step) match {
+      workflowService.findBackSteps(authz, step,isOwner) match {
         case Nil => NodeSeq.Empty
         case steps =>
           SHtml.ajaxButton(
@@ -193,7 +195,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
           ) } }  &
       "#nextStep" #> {
         if(commitAndDeployChangeRequest.isMergeable(cr.id)) {
-          workflowService.findNextSteps(authz,step) match {
+          workflowService.findNextSteps(authz,step,isOwner) match {
             case NoWorkflowAction => NodeSeq.Empty
             case WorkflowAction(actionName,emptyList) if emptyList.size == 0 => NodeSeq.Empty
             case WorkflowAction(actionName,steps) =>
@@ -254,11 +256,13 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
   }
 
   def displayWarnUnmergeable(cr:ChangeRequest) : NodeSeq = {
-    if(commitAndDeployChangeRequest.isMergeable(cr.id)) {
-      NodeSeq.Empty
-    } else {
-      unmergeableWarning
-    }
+    step.map{ wfId =>
+      if(!workflowService.isPending(wfId) || commitAndDeployChangeRequest.isMergeable(cr.id) ) {
+        NodeSeq.Empty
+      } else {
+        unmergeableWarning
+      }
+    }.openOr(NodeSeq.Empty)
   }
 
 
@@ -340,11 +344,10 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
 
     val introMessage = {
       <div>
-        <h2>You want to {action} that change request</h2>
         <b>{ nextSteps match {
           case Nil => "You can't confirm"
-          case (next,_) :: Nil => s"The change request will be sent to the '${next}' state"
-          case list => s"You have to chose a next state for the change request before you confirm"
+          case (next,_) :: Nil => s"The change request will be sent to the '${next}' status"
+          case list => s"You have to chose a next status for the change request before you confirm"
         } }
         </b>
      </div>
