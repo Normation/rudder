@@ -559,17 +559,17 @@ class EventListDisplayer(
                 "#shortDescription *" #> mapSimpleDiff(modDiff.modShortDescription) &
                 "#longDescription *" #> mapSimpleDiff(modDiff.modLongDescription) &
                 "#target" #> (
-                  modDiff.modTarget.map { diff =>
-                    ".diffOldValue *" #> groupTargetDetails(diff.oldValue) &
-                    ".diffNewValue *" #> groupTargetDetails(diff.newValue)
-                  }
-                ) &
+                  modDiff.modTarget.map{
+                    case SimpleDiff(oldOnes,newOnes) =>
+                      <li><b>Group Targets changed: </b></li> ++
+                      DiffDisplayer.displayRuleTargets(oldOnes.toSeq,newOnes.toSeq)
+                  } ) &
                 "#policies" #> (
-                   modDiff.modDirectiveIds.map { diff =>
-                     ".diffOldValue *" #> directiveTargetDetails(diff.oldValue) &
-                     ".diffNewValue *" #> directiveTargetDetails(diff.newValue)
-                   }
-                )
+                  modDiff.modDirectiveIds.map{
+                    case SimpleDiff(oldOnes,newOnes) =>
+                      <li><b>Directives changed: </b></li> ++
+                      DiffDisplayer.displayDirectiveChangeList(oldOnes.toSeq,newOnes.toSeq)
+                  } )
               )(crModDetailsXML)
               }
               { reasonHtml }
@@ -1130,8 +1130,8 @@ class EventListDisplayer(
   private[this] def ruleDetails(xml:NodeSeq, rule:Rule) = (
       "#ruleID" #> rule.id.value.toUpperCase &
       "#ruleName" #> rule.name &
-      "#target" #> groupTargetDetails(rule.targets) &
-      "#policy" #> directiveTargetDetails(rule.directiveIds) &
+      "#target" #> DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq) &
+      "#policy" #> DiffDisplayer.displayDirectiveChangeList(rule.directiveIds.toSeq, rule.directiveIds.toSeq) &
       "#isEnabled" #> rule.isEnabled &
       "#isSystem" #> rule.isSystem &
       "#shortDescription" #> rule.shortDescription &

@@ -39,13 +39,23 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.workflows.ChangeRequestId
-
+import bootstrap.liftweb.RudderConfig
+import net.liftweb.http.SHtml
+import net.liftweb.http.S
+import net.liftweb.common.Full
+import scala.xml.Text
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Loggable
 /**
  * That class helps user to create valide JS initialisation context
  * links for pages that support them (search, Directive,
  * Rule).
  */
-object JsInitContextLinkUtil {
+object JsInitContextLinkUtil extends Loggable {
+
+  private[this] val roRuleRepository      = RudderConfig.roRuleRepository
+  private[this] val roGroupRepository     = RudderConfig.roNodeGroupRepository
+  private[this] val roDirectiveRepository = RudderConfig.roDirectiveRepository
 
   def groupLink(id:NodeGroupId) =
     s"""/secure/nodeManager/groups#{"groupId":"${id.value}"}"""
@@ -61,4 +71,31 @@ object JsInitContextLinkUtil {
 
   def changeRequestLink(id:ChangeRequestId) =
     s"/secure/utilities/changeRequest/${id}"
+
+  def createRuleLink(id:RuleId) = {
+    roRuleRepository.get(id) match {
+      case Full(rule) => <span> {SHtml.a(() => S.redirectTo(ruleLink(id)), Text(rule.name))} (Rudder ID: {id.value.toUpperCase})</span>
+      case eb:EmptyBox => val fail = eb ?~! s"Could not find Rule with Id ${id.value}"
+        logger.error(fail.msg)
+        <span> {id.value.toUpperCase} </span>
+    }
+  }
+
+  def createGroupLink(id:NodeGroupId) = {
+    roGroupRepository.getNodeGroup(id) match {
+      case Full((group,_)) => <span> {SHtml.a(() => S.redirectTo(groupLink(id)), Text(group.name))} (Rudder ID: {id.value.toUpperCase})</span>
+      case eb:EmptyBox => val fail = eb ?~! s"Could not find NodeGroup with Id ${id.value}"
+        logger.error(fail.msg)
+        <span> {id.value.toUpperCase} </span>
+    }
+  }
+
+  def createDirectiveLink(id:DirectiveId) = {
+    roDirectiveRepository.getDirective(id) match {
+      case Full(directive) => <span> {SHtml.a(() => S.redirectTo(directiveLink(id)), Text(directive.name))} (Rudder ID: {id.value.toUpperCase})</span>
+      case eb:EmptyBox => val fail = eb ?~! s"Could not find Directive with Id ${id.value}"
+        logger.error(fail.msg)
+        <span> {id.value.toUpperCase} </span>
+    }
+  }
 }
