@@ -437,7 +437,7 @@ class DirectiveEditForm(
             Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal)
           , action
           , isADirectiveCreation
-          , onCreateSuccessCallBack = onSuccessCallback
+          , onCreateSuccessCallBack = ( result => onSuccessCallback(result) & successPopup(NodeSeq.Empty))
           , onCreateFailureCallBack = onFailure
           , parentFormTracker = Some(formTracker)
         )
