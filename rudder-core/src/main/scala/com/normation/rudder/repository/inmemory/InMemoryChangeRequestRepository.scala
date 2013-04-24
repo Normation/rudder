@@ -107,15 +107,14 @@ class InMemoryChangeRequestRepository
 
   }
 
-  def getByContributor(actor:EventActor) = Failure(s"could not fetch change request for actor ${actor}")
+  def getByContributor(actor:EventActor) = Full(Seq())
 
-  def getByIds(changeRequestId:Seq[ChangeRequestId]) : Box[Seq[ChangeRequest]] =  ???
+  def getByIds(changeRequestId:Seq[ChangeRequestId]) : Box[Seq[ChangeRequest]] =  Full(Seq())
 
-  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = ???
+  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = Full(Seq())
 
-  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = ???
+  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = Full(Seq())
 
-  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = ???
-
+  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = Full(Seq())
 
 }
