@@ -97,6 +97,7 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     val tag = "UUID"
     for {
       tagHere <- checkNodeSeq(report, tag, true) ?~! "Missing node ID attribute '%s' in report. This attribute is mandatory and must contains node ID.".format(tag)
+      uuidOK  <- checkNodeUUID(tagHere)
     } yield {
       report
     }
@@ -149,6 +150,20 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     }
   }
   
+  /**
+   * A node ID must:
+   * - be less than 50 chars (because we have taken that hypothesis elsewhere)
+   * - only contains [a-zA-Z0-9\-] (because other chars leads to strange errors, like
+   *   having a # breaks javascript)
+   */
+  private[this] val uuidAuthCharRegex = """([a-zA-Z0-9\-]{1,50})""".r
+  private[this] def checkNodeUUID(uuid:String) : Box[String] = {
+    uuid match {
+      case uuidAuthCharRegex(x) => Full(uuid)
+      case _ => Failure("""The UUID '%s' is not valid. It should be lesser than 50 chars and contains chars among the set [a-zA-Z0-9\-])""".format(uuid))
+    }
+  }
+
   /**
    * That one is special: we don't fail on a missing
    * machine id, we just add an empty one. 
