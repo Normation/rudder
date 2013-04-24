@@ -276,11 +276,11 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       JsRaw("""correctButtons();
                $.modal.close();""")
 
-    var nextChosen = nextSteps.head._2
-    val nextSelect =
+    var nextChosen = nextSteps.head
+    def nextSelect(default:(WorkflowNodeId,stepChangeFunction)) =
       SHtml.selectObj(
-          nextSteps.map(v => (v._2,v._1.value)), Full(nextChosen)
-        , {t:stepChangeFunction => nextChosen = t}
+          nextSteps.map(v => (v,v._1.value)), Full(nextChosen)
+        , {t:(WorkflowNodeId,stepChangeFunction) => nextChosen = t}
       )
     def nextOne(next:String) : NodeSeq=
 
@@ -323,11 +323,11 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       }
     }
 
-    val next = {
+    def next(default:(WorkflowNodeId,stepChangeFunction)) = {
       nextSteps match {
         case Nil => <span id="CRStatus">Error</span>
         case (head,_) :: Nil =>  <span id="CRStatus"> {head.value} </span>
-        case _ => nextSelect
+        case _ => nextSelect(default)
       }
     }
 
@@ -352,12 +352,12 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
         </b>
      </div>
     }
-    def content = {
+    def content(default:(WorkflowNodeId,stepChangeFunction)) = {
       ( "#header"   #>  s"${action} CR #${cr.id}: ${cr.info.name}" &
         "#form -*"  #>
           SHtml.ajaxForm(
             ( "#reason"  #> changeMessageDisplay &
-              "#next"    #> next &
+              "#next"    #> next(default) &
               "#cancel"  #> SHtml.ajaxButton("Cancel", () => closePopup ) &
               "#confirm" #> SHtml.ajaxSubmit("Confirm", () => confirm()) &
               "#intro *+" #> introMessage andThen
@@ -368,30 +368,30 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       Script(JsRaw("""updatePopup();"""))
     }
 
-    def updateForm = Replace("changeStatePopup",content)
+    def updateForm(default:(WorkflowNodeId,stepChangeFunction)) = Replace("changeStatePopup",content(default))
 
     def error(msg:String) = <span class="error">{msg}</span>
 
     def confirm() : JsCmd = {
       if (formTracker.hasErrors) {
         formTracker.addFormError(error("The form contains some errors, please correct them"))
-        updateForm
+        updateForm(nextChosen)
       }
       else {
-        nextChosen(cr.id,CurrentUser.getActor,changeMessage.map(_.is)) match {
+        nextChosen._2(cr.id,CurrentUser.getActor,changeMessage.map(_.is)) match {
           case Full(next) =>
             SetHtml("workflowActionButtons", displayActionButton(cr,next)) &
             SetHtml("newStatus",Text(next.value)) &
             closePopup & JsRaw(""" callPopupWithTimeout(200, "successWorkflow"); """)
           case eb:EmptyBox => val fail = eb ?~! "could not change Change request step"
             formTracker.addFormError(error(fail.msg))
-            updateForm
+            updateForm(nextChosen)
         }
 
       }
     }
 
-    SetHtml("popupContent",content) &
+    SetHtml("popupContent",content(nextChosen)) &
     JsRaw("createPopup('changeStatePopup')")
 
   }
