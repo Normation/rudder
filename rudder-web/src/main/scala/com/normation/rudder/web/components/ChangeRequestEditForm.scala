@@ -67,7 +67,9 @@ class ChangeRequestEditForm (
 
   import ChangeRequestEditForm._
 
+  private[this] val containerId = "changeRequestDetails"
   private[this] val workflowService = RudderConfig.workflowService
+
   def dispatch = { case "details" => { _ => display } }
 
   private[this] val changeRequestName =new WBTextField("Title", info.name) {
@@ -84,6 +86,11 @@ class ChangeRequestEditForm (
     override def validations = Nil
   }
 
+  private[this] val formTracker = new FormTracker( changeRequestName )
+  private[this] def onNothingToDo : JsCmd = {
+    formTracker.addFormError(error("There are no modification to save."))
+    updateFomClientSide
+  }
   private[this] val isEditable = {
     val authz = CurrentUser.getRights.authorizationTypes.toSeq.collect{case Edit(right) => right}
     val isOwner = creator == CurrentUser.getActor.name
@@ -96,7 +103,15 @@ class ChangeRequestEditForm (
     else
       NodeSeq.Empty
   }
-
+  private[this] def updateAndDisplayNotifications() : NodeSeq = {
+      val notifications = formTracker.formErrors
+      formTracker.cleanErrors
+      if(notifications.isEmpty)
+        NodeSeq.Empty
+      else
+        <div id="notifications" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+    }
+  private[this]  def error(msg:String) = <span class="error">{msg}</span>
   private[this] def crName = {
     if (isEditable) changeRequestName.toForm_! else changeRequestName.readOnlyValue
   }
@@ -105,9 +120,11 @@ class ChangeRequestEditForm (
     if (isEditable) changeRequestDescription.toForm_! else changeRequestDescription.readOnlyValue
   }
 
+  def updateFomClientSide = SetHtml(containerId,display)
+
   def display: NodeSeq =
     ( "#detailsForm *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
-      ClearClearable &
+      "#formError *" #> updateAndDisplayNotifications() &
       "#CRName *" #> crName &
       "#CRId *"   #> crId.value &
       "#CRStatusDetails *"   #>  step.map(wfId => Text(wfId.toString)).openOr(<div class="error">Cannot find the status of this change request</div>) &
@@ -116,7 +133,18 @@ class ChangeRequestEditForm (
     ) (form) ++ Script(JsRaw("correctButtons();"))
 
   def submit = {
-    info = info.copy(name=changeRequestName.is, description = changeRequestDescription.is)
-    SuccessCallback(info) & SetHtml("changeRequestDetails",display)
+    if (formTracker.hasErrors) {
+      formTracker.addFormError(error("The form contains some errors, please correct them"))
+      updateFomClientSide
+    }
+    else {
+      val newInfo = ChangeRequestInfo(changeRequestName.is,changeRequestDescription.is)
+      if (info == newInfo)
+        onNothingToDo
+      else {
+        info = newInfo
+        SuccessCallback(info) & SetHtml("changeRequestDetails",display)
+      }
+    }
   }
 }
