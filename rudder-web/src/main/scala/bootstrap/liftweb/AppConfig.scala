@@ -344,19 +344,21 @@ object RudderConfig extends Loggable {
 
   val workflowEventLogService =    new WorkflowEventLogServiceImpl(eventLogRepository,uuidGen)
   val diffService: DiffService = new DiffServiceImpl(roDirectiveRepository)
-  val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService = new CommitAndDeployChangeRequestServiceImpl(
-                uuidGen
-              , roChangeRequestRepository
-              , woChangeRequestRepository
-              , roDirectiveRepository
-              , woDirectiveRepository
-              , roNodeGroupRepository
-              , woNodeGroupRepository
-              , roRuleRepository
-              , woRuleRepository
-              , asyncDeploymentAgent
-              , dependencyAndDeletionService
-            )
+  val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
+    new CommitAndDeployChangeRequestServiceImpl(
+        uuidGen
+      , roChangeRequestRepository
+      , woChangeRequestRepository
+      , roDirectiveRepository
+      , woDirectiveRepository
+      , roNodeGroupRepository
+      , woNodeGroupRepository
+      , roRuleRepository
+      , woRuleRepository
+      , asyncDeploymentAgent
+      , dependencyAndDeletionService
+      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+    )
   val asyncWorkflowInfo = new AsyncWorkflowInfo
   val workflowService: WorkflowService = RUDDER_ENABLE_APPROVAL_WORKFLOWS match {
     case true => new TwoValidationStepsWorkflowServiceImpl(
