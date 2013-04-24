@@ -846,13 +846,13 @@ div.foldedSection div.inner-portlet-header-lower:before {
 div.directiveDeleteGroup {
   float:right;
   margin-right: 5px;
-  margin-top: 3px;
+  margin-top: -10px;
 }
 
 div.directiveAddGroup {
   float:right;
   margin-right: 5px;
-  margin-top: 3px;
+  margin-top: -10px;
 }
 
 
