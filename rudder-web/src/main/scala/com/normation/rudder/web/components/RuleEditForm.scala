@@ -454,7 +454,7 @@ class RuleEditForm(
   private[this] def onSubmitDisable(action:String): JsCmd = {
     displayConfirmationPopup(
         action
-      , rule.copy(isEnabledStatus = !rule.isEnabled)
+      , rule.copy(isEnabledStatus = action == "enable")
     )
   }
 
@@ -494,10 +494,7 @@ class RuleEditForm(
   private[this] def workflowCallBack(action:String)(returns : Either[Rule,ChangeRequestId]) : JsCmd = {
     if ((!workflowEnabled) & (action == "delete")) {
       JsRaw("$.modal.close();") & onSuccessCallback() & SetHtml("editRuleZone",
-          <div id="editRuleZone">Rule successfully deleted</div>
-      ) &
-      SetHtml(htmlId_rule,
-          <div id={htmlId_rule}>Rule successfully deleted</div>
+          <div id={htmlId_rule}>Rule '{rule.name}' successfully deleted</div>
       )
     } else {
       returns match {
