@@ -148,7 +148,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
     { <head>
       <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.datepicker.js"></script>
-      <script type="text/javascript" src="/javascript/jquery/ui/i18n/jquery.ui.datepicker-fr.js"></script>
+      <script type="text/javascript" src="/javascript/jquery/ui/i18n/jquery-ui-i18n.js"></script>
       {Script(OnLoad(parseJsArg()))}
     </head> } ++ ShowNodeDetailsFromNode.staticInit
   }
