@@ -101,6 +101,7 @@ class CommitAndDeployChangeRequestServiceImpl(
   , woRuleRepository    : WoRuleRepository
   , asyncDeploymentAgent: AsyncDeploymentAgent
   , dependencyService   : DependencyAndDeletionService
+  , workflowEnabled     : Boolean
 ) extends CommitAndDeployChangeRequestService with Loggable {
 
   def save(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ModificationId] = {
@@ -196,28 +197,32 @@ class CommitAndDeployChangeRequestServiceImpl(
     /*
      * check for all elem, stop on the first failing
      */
-    (for {
-      directivesOk <- sequence(changeRequest.directives.values.toSeq) { changes =>
-                        checkDirective(changes)
-                      }
-      groupsOk     <- sequence(changeRequest.nodeGroups.values.toSeq) { changes =>
-                        checkGroup(changes)
-                      }
-      rulesOk      <- sequence(changeRequest.rules.values.toSeq) { changes =>
-                        checkRule(changes)
-                      }
-    } yield {
-      directivesOk
-    }) match {
-      case Full(_) => true
-      case eb:EmptyBox =>
-        val e = eb ?~! "Can not merge change request"
-        logger.debug(e.messageChain)
-        e.rootExceptionCause.foreach { ex =>
-          logger.debug("Root exception was:", ex)
-        }
-        false
-    }
+    if (workflowEnabled)
+      (for {
+        directivesOk <- sequence(changeRequest.directives.values.toSeq) { changes =>
+                          checkDirective(changes)
+                        }
+        groupsOk     <- sequence(changeRequest.nodeGroups.values.toSeq) { changes =>
+                          checkGroup(changes)
+                        }
+        rulesOk      <- sequence(changeRequest.rules.values.toSeq) { changes =>
+                          checkRule(changes)
+                        }
+      } yield {
+        directivesOk
+      }) match {
+        case Full(_) => true
+        case eb:EmptyBox =>
+          val e = eb ?~! "Can not merge change request"
+          logger.debug(e.messageChain)
+          e.rootExceptionCause.foreach { ex =>
+            logger.debug("Root exception was:", ex)
+          }
+          false
+      }
+    else
+      //If workflow are disabled, a change is always mergeable.
+      true
   }
 
   /*
