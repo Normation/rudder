@@ -40,6 +40,13 @@ import org.eclipse.jgit.revwalk.RevTree
 import com.normation.rudder.repository.xml.GitFindUtils
 import com.normation.cfclerk.services.GitRepositoryProvider
 import net.liftweb.common._
+import org.eclipse.jgit.lib.ObjectId
+import org.joda.time.DateTime
+import org.eclipse.jgit.revwalk.RevWalk
+import org.joda.time.format.DateTimeFormat
+import org.eclipse.jgit.treewalk.TreeWalk
+import net.liftweb.util.Helpers
+import org.joda.time.format.DateTimeFormatterBuilder
 
 /**
  * A rest api that allows to deploy promises.
@@ -47,20 +54,26 @@ import net.liftweb.common._
  */
 class RestGetGitCommitAsZip(
    repo : GitRepositoryProvider
-) extends RestHelper {
-  
+) extends RestHelper with Loggable {
+
+  //date formater for reports:
+  private[this] val format = new DateTimeFormatterBuilder()
+                                   .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
+                                   .appendLiteral('T')
+                                   .append(DateTimeFormat.forPattern("hhmmss")).toFormatter
+
   serve {
     case Get("api" :: "archives" :: "zip" :: "groups"     :: commitId :: Nil, req) =>
-      getZip(commitId, List("groups"))
+      getZip(commitId, List("groups"), "groups")
       
     case Get("api" :: "archives" :: "zip" :: "directives" :: commitId :: Nil, req) =>
-      getZip(commitId, List("directives"))
+      getZip(commitId, List("directives"), "directives")
       
     case Get("api" :: "archives" :: "zip" :: "rules"      :: commitId :: Nil, req) =>
-      getZip(commitId, List("rules"))
+      getZip(commitId, List("rules"), "rules")
       
     case Get("api" :: "archives" :: "zip" :: "all"        :: commitId :: Nil, req) =>
-      getZip(commitId, List("groups", "directives", "rules"))
+      getZip(commitId, List("groups", "directives", "rules"), "all")
       
       
     /*
@@ -71,38 +84,53 @@ class RestGetGitCommitAsZip(
      * See http://www.rudder-project.org/redmine/issues/2990
      */
     case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "groups"     :: commitId :: Nil, req) =>
-      getZip(commitId, List("groups"))
+      getZip(commitId, List("groups"), "groups")
       
     case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "directives" :: commitId :: Nil, req) =>
-      getZip(commitId, List("directives"))
+      getZip(commitId, List("directives"), "directives")
       
     case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "rules"      :: commitId :: Nil, req) =>
-      getZip(commitId, List("rules"))
+      getZip(commitId, List("rules"), "rules")
       
     case Get("secure" :: "administration" :: "archiveManagement" :: "zip" :: "all"        :: commitId :: Nil, req) =>
-      getZip(commitId, List("groups", "directives", "rules"))
+      getZip(commitId, List("groups", "directives", "rules"), "all")
       
       
   }
   
-  private[this] def getZip(commitId:String, paths:List[String]) = {
-      (for {
-        treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, commitId)
-        bytes  <- GitFindUtils.getZip(repo.db, treeId, paths)
-      } yield {
-        bytes
-      }) match {
-        case eb:EmptyBox => PlainTextResponse("Error when trying to get archive as a Zip", 500)
-        case Full(bytes) => 
-          InMemoryResponse(
-              bytes
-            , ("Content-Type" -> "application/zip") :: 
-              ("Content-Disposition","""attachment;filename="rudder-configuration-archive-id_%s.zip"""".format(commitId)) ::
-              Nil
-           , Nil
-           , 200
-         )
-      }
-  } 
-  
+  private[this] def getZip(commitId:String, paths:List[String], archiveType: String) = {
+    val rw = new RevWalk(repo.db)
+
+    (for {
+      revCommit <- try {
+                    val id = repo.db.resolve(commitId)
+                    Full(rw.parseCommit(id))
+                  } catch {
+                    case e:Exception => Failure("Error when retrieving commit revision for " + commitId, Full(e), Empty)
+                  } finally {
+                    rw.dispose
+                  }
+      treeId    <- Helpers.tryo { revCommit.getTree.getId }
+      bytes     <- GitFindUtils.getZip(repo.db, treeId, paths)
+    } yield {
+      (bytes, format.print(new DateTime(revCommit.getCommitTime.toLong * 1000)))
+    }) match {
+      case eb:EmptyBox =>
+        val e = eb ?~! "Error when trying to get archive as a Zip"
+        e.rootExceptionCause.foreach { ex =>
+          logger.debug("Root exception was:", ex)
+        }
+        PlainTextResponse(e.messageChain, 500)
+      case Full((bytes, date)) =>
+        InMemoryResponse(
+            bytes
+          , ("Content-Type" -> "application/zip") ::
+            ("Content-Disposition","""attachment;filename="rudder-conf-%s-%s.zip"""".format(archiveType, date)) ::
+            Nil
+         , Nil
+         , 200
+       )
+    }
+  }
+
 }
