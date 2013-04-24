@@ -281,7 +281,7 @@ class WoChangeRequestJdbcRepository(
    */
   def deleteChangeRequest(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ChangeRequest] = {
     // we should update it rather, isn't it ?
-    ???
+    throw new IllegalArgumentException("This a developer error. Please contact rudder developer, saying that they call unemplemented deleteChangeRequest")
   }
 
   /**
