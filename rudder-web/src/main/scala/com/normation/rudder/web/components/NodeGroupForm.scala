@@ -305,7 +305,11 @@ class NodeGroupForm(
       def successCallback(crId:ChangeRequestId) = if (workflowEnabled) {
         onSuccessCallback(Right(crId))
       } else {
-        successPopup & onSuccessCallback(Left(newGroup))
+        successPopup & onSuccessCallback(Left(newGroup)) &
+        (if (action=="delete")
+           SetHtml(htmlId_item,NodeSeq.Empty)
+        else
+             Noop)
       }
 
       new ModificationValidationPopup(
