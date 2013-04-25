@@ -62,6 +62,9 @@ import com.normation.eventlog.ModificationId
  * to modify lift's environment
  */
 class Boot extends Loggable {
+
+  val redirection = RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error )
+
   def boot {
 
     ////////// bootstraps checks //////////
@@ -142,9 +145,9 @@ class Boot extends Loggable {
     AutoComplete.init()
 
 
-    // All the following is related to the sitemap
     val workflowEnabled = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
 
+    // All the following is related to the sitemap
     val nodeManagerMenu =
       Menu("NodeManagerHome", <span>Node Management</span>) /
         "secure" / "nodeManager" / "index"  >> TestAccess( ()
@@ -219,9 +222,11 @@ class Boot extends Loggable {
       Menu("UtilitiesHome", <span>Utilities</span>) /
         "secure" / "utilities" / "index" >>
         TestAccess ( () =>
-          if (!workflowEnabled & CurrentUser.checkRights(Read("administration")))
-             Full(RedirectWithState("/secure/index", RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error ) ) )
-           else Empty  )submenus (
+          if (workflowEnabled || CurrentUser.checkRights(Read("administration")))
+            Empty
+          else
+             Full(RedirectWithState("/secure/index", redirection))
+        ) submenus (
 
           Menu("archivesManagement", <span>Archives</span>) /
             "secure" / "utilities" / "archiveManagement"
@@ -235,7 +240,7 @@ class Boot extends Loggable {
               if (workflowEnabled)
                 Empty
               else
-                Full(RedirectWithState("/secure/utilities/eventLogs", RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error ) ) )
+                Full(RedirectWithState("/secure/utilities/eventLogs", redirection ) )
               )
 
         , Menu("changeRequest", <span>Change request</span>) /
@@ -245,7 +250,7 @@ class Boot extends Loggable {
               if (workflowEnabled)
                 Empty
               else
-                Full(RedirectWithState("/secure/utilities/eventLogs", RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error ) ) )
+                Full(RedirectWithState("/secure/utilities/eventLogs", redirection) )
               )
 
         , Menu("eventLogViewer", <span>Event Logs</span>) /
@@ -313,11 +318,11 @@ class Boot extends Loggable {
     LiftRules.addToPackages(plugin.basePackage)
   }
 
-  private[this] def userIsAllowed(redirection:String, requiredAuthz:AuthorizationType*) : Box[LiftResponse] =  {
+  private[this] def userIsAllowed(redirectTo:String, requiredAuthz:AuthorizationType*) : Box[LiftResponse] =  {
     if (requiredAuthz.exists((CurrentUser.checkRights(_)))) {
       Empty
     } else {
-      Full(RedirectWithState(redirection, RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error ) ) )
+      Full(RedirectWithState(redirectTo, redirection ) )
     }
   }
 }
