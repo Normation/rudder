@@ -1,0 +1,1 @@
+APACHE_MODULES="${APACHE_MODULES} rewrite dav dav_fs proxy proxy_http headers"
