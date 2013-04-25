@@ -112,14 +112,28 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
   def updateValue = {
     val reportsInterval = databaseManager.getReportsInterval()
     val archivedReportsInterval = databaseManager.getArchivedReportsInterval()
-    SetHtml("oldestEntry", displayDate(reportsInterval.map( x => x._1 ))) &
-    SetHtml("newestEntry", displayDate(reportsInterval.map( x => x._2 ))) &
+
+    val inProgress = !(archiveAction.actorIsIdle && deleteAction.actorIsIdle)
+
+    def displayInProgress(lastValue: Box[Option[DateTime]]) = {
+      val date = displayDate(lastValue)
+      if(inProgress){
+        <span>Archiving is in progress, please wait (last known value: '{date}')</span>
+      } else {
+        date
+      }
+    }
+
+    SetHtml("oldestEntry", displayInProgress(reportsInterval.map( _._1 ))) &
+    SetHtml("newestEntry", displayInProgress(reportsInterval.map( _._2 ))) &
     SetHtml("databaseSize" , databaseManager.getDatabaseSize().map(x =>
-      Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database"))) &
-    SetHtml("oldestArchivedEntry", displayDate(archivedReportsInterval.map( x => x._1 ))) &
-    SetHtml("newestArchivedEntry", displayDate(archivedReportsInterval.map( x => x._2 ))) &
+      Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database"))
+    ) &
+    SetHtml("oldestArchivedEntry", displayInProgress(archivedReportsInterval.map( _._1 ))) &
+    SetHtml("newestArchivedEntry", displayInProgress(archivedReportsInterval.map( _._2 ))) &
     SetHtml("archiveSize", databaseManager.getArchiveSize().map(x =>
-      Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database"))) &
+      Text(MemorySize(x).toStringMo())).openOr(Text("Could not compute the size of the database"))
+    ) &
     SetHtml("archiveProgress", Text(archiveAction.progress)) &
     SetHtml("deleteProgress", Text(deleteAction.progress)) &
       updateAutomaticCleaner
