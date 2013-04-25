@@ -97,6 +97,7 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     val tag = "UUID"
     for {
       tagHere <- checkNodeSeq(report, tag, true) ?~! "Missing node ID attribute '%s' in report. This attribute is mandatory and must contains node ID.".format(tag)
+      uuidOK  <- checkNodeUUID(tagHere)
     } yield {
       report
     }
@@ -146,6 +147,20 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
       tagHere <- checkNodeSeq(report, tag) ?~! "Missing agent name attribute in report. This attribute is mandatory and must contains (at least one of) the agent deployed on the node.".format(tag)
     } yield {
       report
+    }
+  }
+
+  /**
+   * A node ID must:
+   * - be less than 50 chars (because we have taken that hypothesis elsewhere)
+   * - only contains [a-zA-Z0-9\-] (because other chars leads to strange errors, like
+   *   having a # breaks javascript)
+   */
+  private[this] val uuidAuthCharRegex = """([a-zA-Z0-9\-]{1,50})""".r
+  private[this] def checkNodeUUID(uuid:String) : Box[String] = {
+    uuid match {
+      case uuidAuthCharRegex(x) => Full(uuid)
+      case _ => Failure("""The UUID '%s' is not valid. It should be lesser than 50 chars and contains chars among the set [a-zA-Z0-9\-])""".format(uuid))
     }
   }
 
