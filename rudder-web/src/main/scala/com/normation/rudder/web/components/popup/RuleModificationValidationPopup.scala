@@ -148,12 +148,18 @@ class RuleModificationValidationPopup(
         <div>
           <h2 style="padding: 20px 0 10px">Workflows are enabled in Rudder, your change has to be validated in a change request</h2>
         </div>
-      case false => NodeSeq.Empty
+      case false =>  explanationMessages(action)
     }
     (
       "#validationForm" #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
       "#dialogTitle *" #> titles(action) &
-      "#explanationMessageZone" #> explanationMessages(action) &
+      "#titleWorkflow *" #> titleWorkflow &
+      "#changeRequestName" #> {
+          if (workflowEnabled) {
+            changeRequestName.toForm
+          } else
+            Full(NodeSeq.Empty)
+      } &
       ".reasonsFieldsetPopup" #> {
         crReasons.map { f =>
           <div>
@@ -163,13 +169,6 @@ class RuleModificationValidationPopup(
               {f.toForm_!}
         </div>
         }
-      } &
-      "#titleWorkflow *" #> titleWorkflow &
-      "#changeRequestName" #> {
-          if (workflowEnabled) {
-            changeRequestName.toForm
-          } else
-            Full(NodeSeq.Empty)
       } &
       "#saveStartWorkflow" #> (SHtml.ajaxSubmit(buttonName, () => onSubmit(), ("class" -> classForButton)) % ("id", "createDirectiveSaveButton") % ("tabindex","3")) andThen
        ".notifications *" #> updateAndDisplayNotifications()
