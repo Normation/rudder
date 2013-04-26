@@ -222,7 +222,10 @@ class ModificationValidationPopup(
     val titleWorkflow = workflowEnabled match {
       case true =>
         <div>
-          <h2 style="padding: 20px 0 10px;">Workflows are enabled in Rudder, your change has to be validated in a change request</h2>
+          <br/>
+          <img src="/images/ic_ChangeRequest.jpg" alt="Warning!" height="32" width="32" style="margin-top: 4px;" class="warnicon"/>
+          <h2>Workflows are enabled in Rudder, your change has to be validated in a Change request</h2>
+          <br />
         </div>
       case false => NodeSeq.Empty
     }
