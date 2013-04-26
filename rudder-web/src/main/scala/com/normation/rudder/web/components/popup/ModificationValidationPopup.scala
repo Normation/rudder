@@ -162,7 +162,7 @@ object ModificationValidationPopup extends Loggable {
            <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
            <b>Warning:</b> This {item} is currently disabled. Your changes will not take effect until it is enabled.
          </div>
-         <div>
+         <div  id="dialogDisableWarning">
            Updating this {item} will have an impact on the following Rules which apply it.
          </div>
       </div>
@@ -219,18 +219,53 @@ class ModificationValidationPopup(
         }
       case false => ("Save", "")
     }
-    val titleWorkflow = workflowEnabled match {
+    val titleWorkflow = (workflowEnabled & !isANewItem) match {
       case true =>
         <div>
           <h2 style="padding: 20px 0 10px;">Workflows are enabled in Rudder, your change has to be validated in a change request</h2>
         </div>
       case false => NodeSeq.Empty
     }
+
+
+    val (explanationMessage,dependentRules) = {
+      val explanation = explanationMessages(name)(action)
+      val rules =
+        if (!isANewItem)
+          item match {
+          case Left((_, _, _, directive, _)) =>
+            action match {
+              case "delete" => dependencyService.directiveDependencies(directive.id).map(_.rules)
+              case "disable" | "save" => dependencyService.directiveDependencies(directive.id, OnlyEnableable).map(_.rules)
+              case "enable" => dependencyService.directiveDependencies(directive.id, OnlyDisableable).map(_.rules)
+            }
+
+          case Right((nodeGroup, _, _)) => dependencyService.targetDependencies(GroupTarget(nodeGroup.id)).map( _.rules)
+        }
+        else
+          Full(Set[Rule]())
+      rules match {
+        // Error while fetch dependent Rules => display message and error
+        case eb:EmptyBox =>
+          val error = <div class="error">An error occurred while trying to find dependent item</div>
+          (explanation, error)
+        // Nothing to display, but if workflow are disabled or the this is a new Item, display the explanation message
+        case Full(emptyRules) if emptyRules.size == 0 =>
+          // We need to remove the warning message, because there is no dependent rules
+          val explanationNoWarning = ("#dialogDisableWarning *" #> NodeSeq.Empty).apply(explanation)
+          if (workflowEnabled & !isANewItem)
+            (NodeSeq.Empty,NodeSeq.Empty)
+          else
+            (explanationNoWarning,NodeSeq.Empty)
+        case Full(rules) =>
+          (explanation,showDependentRules(rules))
+      }
+    }
     (
       "#validationForm" #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
       "#dialogTitle *" #> titles(name)(action) &
-      "#explanationMessageZone" #> explanationMessages(name)(action) &
-      "#disableItemDependencies" #> showDependentRules() &
+      "#explanationMessageZone" #> explanationMessage &
+      "#disableItemDependencies" #> dependentRules &
       ".reasonsFieldsetPopup" #> {
         crReasons.map { f =>
           <div>
@@ -260,33 +295,14 @@ class ModificationValidationPopup(
     } else { NodeSeq.Empty }
   }
 
-  private[this] def showDependentRules() : NodeSeq = {
-    if(isANewItem) {
+  private[this] def showDependentRules(rules : Set[Rule]) : NodeSeq = {
+    if(isANewItem || rules.size == 0 ) {
       NodeSeq.Empty
     } else {
-
-      val rules = item match {
-        case Left((_, _, _, directive, _)) =>
-          action match {
-            case "delete" => dependencyService.directiveDependencies(directive.id).map(_.rules)
-            case "disable" | "save" => dependencyService.directiveDependencies(directive.id, OnlyEnableable).map(_.rules)
-            case "enable" => dependencyService.directiveDependencies(directive.id, OnlyDisableable).map(_.rules)
-          }
-
-        case Right((nodeGroup, _, _)) => dependencyService.targetDependencies(GroupTarget(nodeGroup.id)).map( _.rules)
-      }
-
-      rules match {
-        case e: EmptyBox =>
-          <div class="error">An error occurred while trying to find dependent item</div>
-        case Full(rules) => {
-          val cmp = new RuleGrid("remove_popup_grid", rules.toSeq, None, false)
-          cmp.rulesGrid(popup = true,linkCompliancePopup = false)
-        }
-      }
+      val cmp = new RuleGrid("remove_popup_grid", rules.toSeq, None, false)
+      cmp.rulesGrid(popup = true,linkCompliancePopup = false)
     }
   }
-
   ///////////// fields for category settings ///////////////////
 
   private[this] val crReasons = {
