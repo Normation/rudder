@@ -183,7 +183,8 @@ class CommitAndDeployChangeRequestServiceImpl(
         case Some(rule) =>
           for {
             currentRule <- roRuleRepository.get(rule.id)
-            check       <- if(currentRule == rule) {
+            check       <- if(currentRule == rule.copy(serial = currentRule.serial)) {
+                              //we clearly don't want to compare for serial!
                               Full("OK")
                             } else {
                               Failure(s"Rule ${rule.name} (id: ${rule.id.value}) has diverged since change request creation")
