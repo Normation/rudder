@@ -342,7 +342,8 @@ class RuleEditForm(
   private[this] def unserializeTargets(ids:String) : Seq[RuleTarget] = {
     implicit val formats = DefaultFormats
     parse(ids).extract[List[String]].map{x =>
-      GroupTarget(NodeGroupId(x.replace("jsTree-","")))
+      val id = x.replace("jsTree-","")
+      RuleTarget.unser(id).getOrElse(GroupTarget(NodeGroupId(id)))
     }
   }
 
@@ -561,8 +562,16 @@ class RuleEditForm(
         category.items.map(x => policyTargetInfoToJsTreeNode(x))
       }
 
+      val rel =
+        if(category.id == rootCategoryId)
+          "root-category"
+        else if (category.isSystem)
+            "system_category"
+          else
+            "category"
+
       override val attrs =
-        ( "rel" -> { if(category.id == rootCategoryId) "root-category" else "category" } ) ::
+        ( "rel" -> rel ) ::
         ( "catId" -> category.id.value ) ::
         ( "class" -> "" ) ::
         Nil
@@ -574,12 +583,9 @@ class RuleEditForm(
   private def nodeGroupCategoryIdToJsTreeNode(id:NodeGroupCategoryId) : Box[JsTreeNode] = {
     nodeGroupRepository.getGroupCategory(id) match {
       //remove sytem category
-      case Full(category) => category.isSystem match {
-        case true => Empty
-        case false => Full(nodeGroupCategoryToJsTreeNode(category))
-      }
+      case Full(category) =>  Full(nodeGroupCategoryToJsTreeNode(category))
       case e:EmptyBox =>
-        val f = e ?~! "Error while fetching Technique category %s".format(id)
+        val f = e ?~! "Error while fetching Group category %s".format(id)
         logger.error(f.messageChain)
         f
     }
@@ -596,56 +602,67 @@ class RuleEditForm(
             override def children = Nil
           }
         }
-      case x => new JsTreeNode {
-         override def body =  {
-           val tooltipid = Helpers.nextFuncName
-           <span class="treeGroupName tooltipable" title="" tooltipid={tooltipid} >
-             {targetInfo.name}
-             <span title={targetInfo.description} class="greyscala">
-               (special)
-             </span>
-             <div class="tooltipContent" id={tooltipid}>
-               <h3>{targetInfo.name}</h3>
-               <div>{targetInfo.description}</div>
-             </div>
-           </span>
-         }
+      case x =>
+        new JsTreeNode {
+          override def body =  {
+            val tooltipid = Helpers.nextFuncName
+            SHtml.a( () => onClickNode(x),
+              <span class="treeGroupName tooltipable" title="" tooltipid={tooltipid} >
+                {targetInfo.name}
+                { if (targetInfo.isSystem)
+                  <span title={targetInfo.description} class="greyscala">(System)</span>
+                }
+              <div class="tooltipContent" id={tooltipid}>
+                <h3>{targetInfo.name}</h3>
+                <div>{targetInfo.description}</div>
+              </div>
+              </span>
+          )
+        }
 
          override def children = Nil
-         override val attrs = ( "rel" -> "special_target" ) :: Nil
+         override val attrs =
+           ( "rel" -> "system_target" ) ::
+           ( "groupId" -> x.target ) ::
+           ( "id" -> ("jsTree-" + x.target) ) ::
+           Nil
       }
     }
   }
 
+  private[this] def onClickNode(target:RuleTarget) : JsCmd = {
+        selectedTargets = selectedTargets + target
+        Noop
+  }
 
   /**
    * Transform a WBNodeGroup into a JsTree leaf.
    */
   private def nodeGroupToJsTreeNode(group : NodeGroup) : JsTreeNode = {
     new JsTreeNode {
-      //ajax function that update the bottom
-      def onClickNode() : JsCmd = {
-        selectedTargets = selectedTargets + GroupTarget(group.id)
-        Noop
-      }
 
-      override def body = {
+      val content = {
         val tooltipid = Helpers.nextFuncName
-        SHtml.a(onClickNode _,
-          <span class="treeGroupName tooltipable" tooltipid={tooltipid}
-          title={group.description}>
+        <span class="treeGroupName tooltipable" tooltipid={tooltipid} title={group.description}>
             {List(group.name,group.isDynamic?"dynamic"|"static").mkString(": ")}
-          </span>
+            { if (group.isSystem)
+                <span title={group.description} class="greyscala">(System) </span>
+            }
           <div class="tooltipContent" id={tooltipid}>
             <h3>{group.name}</h3>
             <div>{group.description}</div>
-          </div>)
+          </div>
+        </span>
+      }
+
+      override def body = {
+        SHtml.a( () =>  onClickNode(GroupTarget(group.id)),content)
       }
 
       override def children = Nil
 
       override val attrs =
-        ( "rel" -> "group" ) ::
+        ( "rel" -> { if (group.isSystem) "system_target" else "group"} ) ::
         ( "groupId" -> group.id.value ) ::
         ( "id" -> ("jsTree-" + group.id.value) ) ::
         Nil
