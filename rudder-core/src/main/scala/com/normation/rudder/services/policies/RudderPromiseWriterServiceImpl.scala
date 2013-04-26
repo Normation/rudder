@@ -188,24 +188,38 @@ class RudderCf3PromisesFileWriterServiceImpl(
         case _ => ;
       }
 
-      var out = List[String]()
-      var err = List[String]()
-      val processLogger = ProcessLogger((s) => out ::= s, (s) => err ::= s)
-
       // Check the promises
-      val errorCode = agentType match {
-        case NOVA_AGENT =>
-          val process: scala.sys.process.ProcessBuilder = (novaCheckPromises + " -f " + newNodeRulePath + "/promises.cf")
-          process.!(processLogger)
-
-        case _ =>
-          val process: scala.sys.process.ProcessBuilder = (communityCheckPromises + " -f " + newNodeRulePath + "/promises.cf")
-          process.!(processLogger)
+      val (errorCode, errors) =  {
+        if(logger.isDebugEnabled) {
+          //current time millis for debuging info
+          val now = System.currentTimeMillis
+          val res = executeCfPromise(agentType, newNodeRulePath)
+          val spent = System.currentTimeMillis - now
+          logger.debug("Timing cf-promise for %s: %sms (%ss)".format(newNodeRulePath, spent, spent / 1000))
+          res
+        } else {
+          executeCfPromise(agentType, newNodeRulePath)
+        }
       }
 
       if (errorCode != 0) {
-        logger.error("The generated promises at %s are invalid, cause %s".format(newNodeRulePath, (out.reverse ++ err.reverse).mkString("\n") ))
-        return Failure("The generated promises are invalid, cause is: !errormessage! %s".format( ( err.reverse).mkString("")))
+        /*
+         * we want to put any cfengine error or output as a technical detail, because:
+         * - between version of cf-agent, it does not seems consistant what goes to sterr and what goes to stdout
+         * - even sdtout message can be quiet crytic, like:
+         *   ''' Fatal cfengine error: Validation: Scalar item in built-in FnCall
+         *       fileexists-arg => { Download a file } in rvalue is out of bounds
+         *       (value should match pattern "?(/.*)) '''
+         *
+         * More over, the !errormessage! tag is used on the client side to split among "information"
+         * and "error/technical details"
+         */
+        val completeErrorMsg = ( "The generated promises are invalid!errormessage!cf-promise check fails for promises generated at '%s'".format(newNodeRulePath)
+                               + (if(errors.isEmpty) "" else errors.mkString("<-", "<-", ""))
+                               )
+        val failure = Failure(completeErrorMsg)
+        logger.error(failure.messageChain.replace("!errormessage!", ": "))
+        return failure
       }
 
       folders += ((node, nodeRulePath, newNodePath, backupNodeRulePath))
@@ -213,6 +227,23 @@ class RudderCf3PromisesFileWriterServiceImpl(
     
     Full(folders)
 
+  }
+
+  private[this] def executeCfPromise(agentType: AgentType, pathOfPromises: String) : (Int, List[String]) = {
+    var out = List[String]()
+    var err = List[String]()
+    val processLogger = ProcessLogger((s) => out ::= s, (s) => err ::= s)
+
+    val errorCode = agentType match {
+      case NOVA_AGENT =>
+        val process: scala.sys.process.ProcessBuilder = (novaCheckPromises + " -f " + pathOfPromises + "/promises.cf")
+        process.!(processLogger)
+
+      case _ =>
+        val process: scala.sys.process.ProcessBuilder = (communityCheckPromises + " -f " + pathOfPromises + "/promises.cf")
+        process.!(processLogger)
+    }
+    (errorCode, out.reverse ++ err.reverse)
   }
 
 }
