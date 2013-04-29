@@ -47,8 +47,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
 <!-- example with hash -->
 <!-- <authentication hash="sha"> -->
 <authentication>
-  <user name="jon.doe"  password="secret" role="administrator" />
+  <user name="jon.doe"  password="secret"  role="administrator" />
   <user name="alex.bar" password="secret2" role="read_only"/>
+  <user name="bob.foo"  password="secret3" role="user,validator"/>
   <!-- 
   Authorizations
     You must define a role attribute to every user you add.
@@ -65,13 +66,20 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
       - read_only (read all)
       - compliance(read rule)
       - inventory (read node)
-      
+
+    There is three predefined roles for change request rights:
+      - validator (Can valid changes)
+      - deployer  (Can deploy changes)
+      - workflow  (Both deployer and validator)
+    The administrator role include the workflow ones
+
   Custom authorizations
 
     Custom authorisations are composed of two elements:
     - A type of authorization, which define what is concerned
-        there's is 8 types, which are : node, group, deployement,
-        administration, configuration, rule, technique, directive.
+        there's is 10 types, which are : node, group, deployement,
+        administration, configuration, rule, technique, directive,
+        validator and deployer.
     - A level of authorization, 
         levels are: read, write, edit, all(read, write, edit)
         They are not inclusive (write and edit don't include read,)
@@ -82,6 +90,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     Some predefined users :
       <user name="jon.doe"  password="secret" role="administrator" />
       <user name="alex.bar" password="secret2" role="read_only"/>
+      <user name="bob.foo"  password="secret3" role="user,validator"/>
 
     A custom user :
       - can read everything but administration,groups and deployement
