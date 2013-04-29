@@ -119,8 +119,8 @@ publicKey: Currently not used
 dn: nodeGroupId=hasPolicyServer-root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: nodeGroup
 objectClass: top
-cn: Root server group
-description: Root server goup
+cn: All nodes managed by root policy server
+description: All nodes known by Rudder directly connected to the root server
 isDynamic: FALSE
 nodeGroupId: hasPolicyServer-root
 nodeId: root
@@ -132,7 +132,7 @@ objectClass: specialRuleTarget
 objectClass: top
 ruleTarget: policyServer:root
 cn: Root policy server
-description: A special target which only matches the policy server with the ID given after the semicolon
+description: Only the root policy server
 isEnabled: TRUE
 isSystem: TRUE
 
