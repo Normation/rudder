@@ -380,6 +380,7 @@ object RudderConfig extends Loggable {
     , woChangeRequestRepository
     , changeRequestEventLogService
     , uuidGen
+    , RUDDER_ENABLE_APPROVAL_WORKFLOWS
   )
 
 
