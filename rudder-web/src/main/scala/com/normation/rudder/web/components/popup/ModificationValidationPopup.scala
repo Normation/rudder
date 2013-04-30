@@ -173,6 +173,15 @@ object ModificationValidationPopup extends Loggable {
 }
 
 
+/*
+ * Pop-up logic:
+ * - popupContent allow the pop-up to process a lot of thing and choose
+ *   if it should be displayed (Some(node seq)) or not (None)
+ * - in all case, the logic is OK and the pop-up can be displayed, even
+ *   if the user won't be any choice
+ * - in all case, the user can try to submit directly submitted
+ *   with the call to onSubmit (but in some case, it can fail)
+ */
 class ModificationValidationPopup(
     //if we are creating a new item, then None, else Some(x)
     item              : Either[
@@ -185,8 +194,8 @@ class ModificationValidationPopup(
   , onSuccessCallback : ChangeRequestId => JsCmd = { x => Noop }
   , onFailureCallback : NodeSeq => JsCmd = { x => Noop }
   , onCreateSuccessCallBack : (Either[Directive,ChangeRequestId]) => JsCmd = { x => Noop }
-  , onCreateFailureCallBack : JsCmd = { Noop }
-  , parentFormTracker : Option[FormTracker] = None
+  , onCreateFailureCallBack : () => JsCmd = { () => Noop }
+  , parentFormTracker : FormTracker
 ) extends DispatchSnippet with Loggable {
 
   import ModificationValidationPopup._
@@ -204,13 +213,73 @@ class ModificationValidationPopup(
   //needed to move groups
   private[this] val woNodeGroupRepository    = RudderConfig.woNodeGroupRepository
 
-
   def dispatch = {
     case "popupContent" => { _ => popupContent }
   }
 
+  private[this] val name = if(item.isLeft) "Directive" else "Group"
+  private[this] val explanation = explanationMessages(name)(action)
+  // When there is no rules, we need to remove the warning message
+  private[this]  val explanationNoWarning = ("#dialogDisableWarning *" #> NodeSeq.Empty).apply(explanation)
+  private[this] val rules = {
+    if (!isANewItem) {
+      item match {
+        case Left((_, _, _, directive, _)) =>
+          dependencyService.directiveDependencies(directive.id).map(_.rules)
+
+        case Right((nodeGroup, _, _)) =>
+          dependencyService.targetDependencies(GroupTarget(nodeGroup.id)).map( _.rules)
+      }
+    } else {
+      Full(Set[Rule]())
+    }
+  }
+
+  //must be here because used in val popupWarningMessages
+  private[this] val crReasons = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => None
+      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
+      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+    }
+  }
+
+  val popupWarningMessages : Option[(NodeSeq,NodeSeq)] = {
+
+    rules match {
+      // Error while fetch dependent Rules => display message and error
+      case eb:EmptyBox =>
+        val error = <div class="error">An error occurred while trying to find dependent item</div>
+        Some((explanation, error))
+      // Nothing to display, but if workflow are disabled or the this is a new Item, display the explanation message
+      case Full(emptyRules) if emptyRules.size == 0 =>
+
+        //if there is nothing to validate and no workflows,
+        if(isANewItem) {
+          if(crReasons.isDefined) {
+            Some((explanationNoWarning,NodeSeq.Empty))
+          } else {
+            //new item, no reason, and it's creation so no wf no rules
+            // => no pop-up
+            None
+          }
+        } else { //item update
+          if(crReasons.isDefined || workflowEnabled) {
+            Some((NodeSeq.Empty,NodeSeq.Empty))
+          } else { //no wf, no message => the user can't do anything
+            None
+          }
+        }
+
+      case Full(rules) =>
+        Some((explanation,showDependentRules(rules)))
+    }
+  }
+
+  // _1 is explanation message, _2 is dependant rules
   def popupContent() : NodeSeq = {
-    val name = if(item.isLeft) "Directive" else "Group"
+
     val (buttonName, classForButton) = workflowEnabled match {
       case true =>
         isANewItem match {
@@ -231,44 +300,11 @@ class ModificationValidationPopup(
     }
 
 
-    val (explanationMessage,dependentRules) = {
-      val explanation = explanationMessages(name)(action)
-      val rules =
-        if (!isANewItem)
-          item match {
-          case Left((_, _, _, directive, _)) =>
-            action match {
-              case "delete" => dependencyService.directiveDependencies(directive.id).map(_.rules)
-              case "disable" | "save" => dependencyService.directiveDependencies(directive.id, OnlyEnableable).map(_.rules)
-              case "enable" => dependencyService.directiveDependencies(directive.id, OnlyDisableable).map(_.rules)
-            }
-
-          case Right((nodeGroup, _, _)) => dependencyService.targetDependencies(GroupTarget(nodeGroup.id)).map( _.rules)
-        }
-        else
-          Full(Set[Rule]())
-      rules match {
-        // Error while fetch dependent Rules => display message and error
-        case eb:EmptyBox =>
-          val error = <div class="error">An error occurred while trying to find dependent item</div>
-          (explanation, error)
-        // Nothing to display, but if workflow are disabled or the this is a new Item, display the explanation message
-        case Full(emptyRules) if emptyRules.size == 0 =>
-          // We need to remove the warning message, because there is no dependent rules
-          val explanationNoWarning = ("#dialogDisableWarning *" #> NodeSeq.Empty).apply(explanation)
-          if (workflowEnabled & !isANewItem)
-            (NodeSeq.Empty,NodeSeq.Empty)
-          else
-            (explanationNoWarning,NodeSeq.Empty)
-        case Full(rules) =>
-          (explanation,showDependentRules(rules))
-      }
-    }
     (
       "#validationForm" #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
       "#dialogTitle *" #> titles(name)(action) &
-      "#explanationMessageZone" #> explanationMessage &
-      "#disableItemDependencies" #> dependentRules &
+      "#explanationMessageZone" #> popupWarningMessages.map( _._1).getOrElse(explanationNoWarning) &
+      "#disableItemDependencies" #> popupWarningMessages.map( _._2).getOrElse(NodeSeq.Empty) &
       ".reasonsFieldsetPopup" #> {
         crReasons.map { f =>
           <div>
@@ -307,16 +343,6 @@ class ModificationValidationPopup(
     }
   }
   ///////////// fields for category settings ///////////////////
-
-  private[this] val crReasons = {
-    import com.normation.rudder.web.services.ReasonBehavior._
-    userPropertyService.reasonsFieldBehavior match {
-      case Disabled => None
-      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
-      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
-    }
-  }
-
 
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
     new WBTextAreaField("Message", "") {
@@ -503,7 +529,7 @@ class ModificationValidationPopup(
       }
   }
 
-  private[this] def onSubmit() : JsCmd = {
+  def onSubmit() : JsCmd = {
     if(formTracker.hasErrors) {
       onFailure
     } else {
@@ -515,7 +541,7 @@ class ModificationValidationPopup(
           case eb:EmptyBox =>
             val e = (eb ?~! "Error when trying to save your modification")
             e.chain.foreach { ex =>
-              parentFormTracker.map(x => x.addFormError(error(ex.messageChain)))
+              parentFormTracker.addFormError(error(ex.messageChain))
               logger.error(s"Exception when trying to update a change request:", ex)
             }
             onFailureCallback(Text(e.messageChain))
@@ -526,7 +552,10 @@ class ModificationValidationPopup(
           case Left((techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal)) =>
             saveAndDeployDirective(directive, activeTechniqueId, crReasons.map( _.get ))
           case _ =>
-            Alert("var")
+            //no change request for group creation/clone
+            logger.error("This feature is not implemented. Yell at developper for changer request with groupe creation")
+            formTracker.addFormError(Text("System error: feature missing"))
+            onFailure
         }
       }
     }
@@ -547,23 +576,12 @@ class ModificationValidationPopup(
         }
         closePopup() & onCreateSuccessCallBack(Left(directive))
       case Empty =>
-        parentFormTracker match {
-          case None =>
-            logger.error("Invalid use of modificationValidationPopup : no parentFormTracker defined when creating/cloning directive")
-          case Some(tracker) =>
-            tracker.addFormError(Text("There was an error on creating this directive"))
+        parentFormTracker.addFormError(Text("There was an error on creating this directive"))
+        closePopup() & onCreateFailureCallBack()
 
-        }
-        closePopup() & onCreateFailureCallBack
       case Failure(m, _, _) =>
-        parentFormTracker match {
-          case None =>
-            logger.error("Invalid use of modificationValidationPopup : no parentFormTracker defined when creating/cloning directive")
-          case Some(tracker) =>
-            tracker.addFormError(Text(m))
-
-        }
-        closePopup() & onCreateFailureCallBack
+        parentFormTracker.addFormError(Text(m))
+        closePopup() & onCreateFailureCallBack()
     }
   }
 

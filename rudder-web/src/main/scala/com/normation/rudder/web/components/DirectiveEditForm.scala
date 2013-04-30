@@ -414,7 +414,7 @@ class DirectiveEditForm(
             , isADirectiveCreation
             , cr => onSuccessCallback(Right(cr))
             , xml => JsRaw("$.modal.close();") & onFailure
-            , parentFormTracker = Some(formTracker)
+            , parentFormTracker = formTracker
           )
         } else {
           val callback = {
@@ -432,7 +432,7 @@ class DirectiveEditForm(
             , isADirectiveCreation
             , callback
             , xml => JsRaw("$.modal.close();") & onFailure
-            , parentFormTracker = Some(formTracker)
+            , parentFormTracker = formTracker
           )
         }
       } else {
@@ -442,14 +442,18 @@ class DirectiveEditForm(
           , isADirectiveCreation
           , onCreateSuccessCallBack = ( result => onSuccessCallback(result) & successPopup(NodeSeq.Empty))
           , onCreateFailureCallBack = onFailure
-          , parentFormTracker = Some(formTracker)
+          , parentFormTracker = formTracker
         )
       }
     }
 
-
-    SetHtml("confirmUpdateActionDialog", popup.popupContent) &
-    JsRaw("""createPopup("confirmUpdateActionDialog")""")
+    popup.popupWarningMessages match {
+      case None =>
+        popup.onSubmit
+      case Some(_) =>
+        SetHtml("confirmUpdateActionDialog", popup.popupContent) &
+        JsRaw("""createPopup("confirmUpdateActionDialog")""")
+    }
   }
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
