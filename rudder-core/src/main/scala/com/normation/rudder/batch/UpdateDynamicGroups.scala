@@ -48,6 +48,7 @@ import com.normation.utils.StringUuidGenerator
 //Message to send to the updater manager to start a new update of all dynamic groups
 case object StartUpdate
 case object ManualStartUpdate
+case object DelayedUpdate
 
 //a container to hold the list of dynamic group to update
 case class GroupsToUpdate(ids:Seq[NodeGroupId]) extends HashcodeCaching
@@ -86,7 +87,7 @@ class UpdateDynamicGroups(
   private val laUpdateDyngroupManager = new LAUpdateDyngroupManager
   //start batch
   if(updateInterval < 1) {
-    logger.info("Disable dynamic group updates sinces property %s is 0 or negative".format(propertyName))
+    logger.info("Disable dynamic group updates since property %s is 0 or negative".format(propertyName))
   } else {
     logger.trace("***** starting Dynamic Group Update batch *****")
     laUpdateDyngroupManager ! StartUpdate
@@ -113,11 +114,12 @@ class UpdateDynamicGroups(
     private var updateId = 0L
     private var currentState: UpdaterStates = IdleUdater
     private var onePending = false
-    private var realUpdateInterval = {
-      if(updateInterval < DYNGROUP_MINIMUM_UPDATE_INTERVAL) {
+    private[this] val isAutomatic = updateInterval > 0
+    private[this] val realUpdateInterval = {
+      if (updateInterval < DYNGROUP_MINIMUM_UPDATE_INTERVAL && isAutomatic) {
         logger.warn("Value '%s' for %s is too small, using '%s'".format(
-            updateInterval, propertyName, DYNGROUP_MINIMUM_UPDATE_INTERVAL
-        ))
+           updateInterval, propertyName, DYNGROUP_MINIMUM_UPDATE_INTERVAL
+        ) )
         DYNGROUP_MINIMUM_UPDATE_INTERVAL
       } else {
         updateInterval
@@ -133,12 +135,12 @@ class UpdateDynamicGroups(
                 updateId = updateId + 1
                 LAUpdateDyngroup ! StartProcessing(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groupIds))
               case e:EmptyBox =>
-                val error = (e?~! "Errro when trying to get the list of dynamic group to update")
+                val error = (e?~! "Error when trying to get the list of dynamic group to update")
 
             }
           case _:StartProcessing if(!onePending) => onePending = true
           case _ =>
-            logger.error("Ignoring start update dynamic group request because one other update still processing".format())
+            logger.error("Ignoring start dynamic group update request because another update is in progress")
         }
     }
 
@@ -148,13 +150,19 @@ class UpdateDynamicGroups(
       //Ask for a new dynamic group update
       //
       case StartUpdate =>
-        //schedule next update, in minutes
-        LAPinger.schedule(this, StartUpdate, realUpdateInterval*1000L*60)
+        if (isAutomatic) {
+          // schedule next update, in minutes
+          LAPinger.schedule(this, StartUpdate, realUpdateInterval*1000L*60)
+        } // no else part as there is nothing to do (would only be Unit)
         processUpdate
 
       case ManualStartUpdate =>
         processUpdate
 
+      // This case is launched when an update was pending, it only launch the process
+      // and it does not schedule a new update.
+      case DelayedUpdate =>
+        processUpdate
       //
       //Process a dynamic group update response
       //
@@ -166,8 +174,8 @@ class UpdateDynamicGroups(
 
         if(onePending) {
           onePending = false
-          logger.debug("Immediatly start an other update process: pending request")
-          this ! StartUpdate
+          logger.debug("Immediatly start another update process: pending request")
+          this ! DelayedUpdate
         }
 
         //log some information
@@ -193,7 +201,7 @@ class UpdateDynamicGroups(
       //
       //Unexpected messages
       //
-      case x => logger.debug("Don't know how to process message: '%s'".format(x))
+      case x => logger.debug("Dynamic group updater can't process this message: '%s'".format(x))
     }
 
 

@@ -984,9 +984,10 @@ object RudderConfig extends Loggable {
     , cleanFrequency
   )}
 
-  private[this] lazy val ptLibCron = new CheckTechniqueLibrary(
+  @Bean
+  def techniqueLibraryUpdater = new CheckTechniqueLibrary(
       techniqueRepositoryImpl
-    , asyncDeploymentAgentImpl
+    , asyncDeploymentAgent
     , uuidGen
     , RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
   )
