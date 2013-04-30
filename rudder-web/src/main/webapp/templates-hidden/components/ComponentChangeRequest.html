@@ -8,6 +8,15 @@
   <div id="CRName" style="margin-left: 40px; font-weight: bold; font-size: 25px;"/>
   <hr class="spacer"/>
   <i id="CRLastAction" style="margin-left: 40px; font-size: 15px; margin-bottom:5px" />
+  <script type="text/javascript">
+  // <![CDATA[
+  $(document).ready(function() {
+    $('a[href="/rudder-web/secure/utilities/changeRequests"]').replaceWith(function() { 
+      return "<span>" + $(this).html() + "</span>" ; 
+    });
+  });
+  // ]]>
+</script>
 </component:header>
 
 <component:details>
