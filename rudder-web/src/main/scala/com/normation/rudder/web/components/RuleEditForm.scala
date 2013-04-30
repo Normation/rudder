@@ -480,7 +480,7 @@ class RuleEditForm(
         , optOriginal
         , action
         , cr => workflowCallBack(action)(cr)
-        , JsRaw("$.modal.close();") & onFailure
+        , () => JsRaw("$.modal.close();") & onFailure
         , parentFormTracker = Some(formTracker)
       )
 
