@@ -113,7 +113,7 @@ class UpdateDynamicGroups(
     private var onePending = false
     private[this] val isAutomatic = updateInterval > 0
     private[this] val realUpdateInterval = {
-      if (updateInterval < DYNGROUP_MINIMUM_UPDATE_INTERVAL & isAutomatic) {
+      if (updateInterval < DYNGROUP_MINIMUM_UPDATE_INTERVAL && isAutomatic) {
         logger.warn("Value '%s' for %s is too small, using '%s'".format(
            updateInterval, propertyName, DYNGROUP_MINIMUM_UPDATE_INTERVAL
         ) )
