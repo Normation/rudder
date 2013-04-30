@@ -62,7 +62,7 @@ class CheckTechniqueLibrary(
    
   //start batch
   if(updateInterval < 1) {
-    logger.info("Disable dynamic group updates sinces property %s is 0 or negative".format(propertyName))
+    logger.info("Disable automatic Technique library updates since property %s is 0 or negative".format(propertyName))
   } else {
     logger.trace("***** starting Technique Library Update batch *****")
     (new LAUpdateTechLibManager) ! StartLibUpdate(RudderEventActor)
@@ -75,8 +75,9 @@ class CheckTechniqueLibrary(
   private class LAUpdateTechLibManager extends LiftActor with Loggable {
     updateManager => 
         
-    private[this] var realUpdateInterval = {
-      if(updateInterval < TECHLIB_MINIMUM_UPDATE_INTERVAL) {
+    private[this] val isAutomatic = updateInterval > 0
+    private[this] val realUpdateInterval = {
+      if(updateInterval < TECHLIB_MINIMUM_UPDATE_INTERVAL && isAutomatic) {
         logger.warn("Value '%s' for %s is too small, using '%s'".format(
            updateInterval, propertyName, TECHLIB_MINIMUM_UPDATE_INTERVAL 
         ))
@@ -91,13 +92,16 @@ class CheckTechniqueLibrary(
       //Ask for a new dynamic group update
       //
       case StartLibUpdate(actor) => 
-        //schedule next update, in minutes
-        LAPinger.schedule(this, StartLibUpdate, realUpdateInterval*1000L*60)      
+        //schedule next update if it's automatic, in minutes
+        if (isAutomatic) {
+          LAPinger.schedule(this, StartLibUpdate(actor), realUpdateInterval*1000L*60)
+        } // don't need an else part : we have to do nothing and the else return Unit
+
         logger.trace("***** Start a new update")
-        policyPackageUpdater.update(actor, Some("Automatic batch update at " + DateTime.now))
-        () //unit is expected   
-      case _ => 
-        logger.error("Ignoring start update dynamic group request because one other update still processing".format())
+        policyPackageUpdater.update(actor, Some("Automatic Technique library update at " + DateTime.now))
+
+      case msg =>
+        logger.error("Automatic Technique library updater can't handle that message: %s".format(msg))
     }
   }
 }

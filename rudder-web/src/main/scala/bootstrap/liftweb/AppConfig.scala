@@ -963,7 +963,7 @@ class AppConfig extends Loggable {
   )
 
   @Bean
-  def ptLibCron = new CheckTechniqueLibrary(
+  def techniqueLibraryUpdater = new CheckTechniqueLibrary(
       techniqueRepository
     , asyncDeploymentAgent
     , ptlibUpdateInterval
