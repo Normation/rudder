@@ -1021,7 +1021,7 @@ class AppConfig extends Loggable {
     , cleanFrequency
   )
   @Bean
-  def ptLibCron = new CheckTechniqueLibrary(
+  def techniqueLibraryUpdater = new CheckTechniqueLibrary(
       techniqueRepository
     , asyncDeploymentAgent
     , uuidGen
