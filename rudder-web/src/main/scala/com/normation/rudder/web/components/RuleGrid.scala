@@ -560,7 +560,11 @@ class RuleGrid(
           }</td>
           <td style="text-align:right;">{ //  COMPLIANCE
             "N/A"
-          }</td>
+          }</td>{
+            //detail and parameter only if not in a pop-up
+            val detailsAndParam = if(popup) {
+              NodeSeq.Empty
+            } else {
           <td class="complianceTd">{ //  DETAIL
               detailsCallbackLink match {
       case None => Text("No details")
@@ -575,9 +579,16 @@ class RuleGrid(
                       () =>  callback(line.rule,"showEditForm")
                     }, ("class", "smallButton")) }
           }</td>
+            }
 
-          { // CHECKBOX
-            if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty
+            // CHECKBOX
+            val checkbox = if(showCheckboxColumn) {
+              <td><input type="checkbox" name={line.rule.id.value} /></td>
+            } else {
+              NodeSeq.Empty
+            }
+
+            detailsAndParam ++ checkbox
           }
         </tr>
       } }
