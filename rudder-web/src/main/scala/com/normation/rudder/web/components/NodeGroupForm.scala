@@ -281,7 +281,13 @@ class NodeGroupForm(
         , query = query
         , serverList =  srvList.getOrElse(Set()).map( _.id ).toSet
       )
-      displayConfirmationPopup("save", newGroup, optContainer)
+
+      if(newGroup == nodeGroup) {
+        formTracker.addFormError(Text("There is no modification to save"))
+        onFailure & onFailureCallback()
+      } else {
+        displayConfirmationPopup("save", newGroup, optContainer)
+      }
     }
   }
 
@@ -318,12 +324,17 @@ class NodeGroupForm(
         , false
         , crId => JsRaw("$.modal.close();") & successCallback(crId)
         , xml => JsRaw("$.modal.close();") & onFailure
-        , parentFormTracker = Some(formTracker)
+        , parentFormTracker = formTracker
       )
     }
 
-    SetHtml("confirmUpdateActionDialog", popup.popupContent) &
-    createPopup("confirmUpdateActionDialog")
+    popup.popupWarningMessages match {
+      case None =>
+        popup.onSubmit
+      case Some(_) =>
+        SetHtml("confirmUpdateActionDialog", popup.popupContent) &
+        JsRaw("""createPopup("confirmUpdateActionDialog")""")
+    }
   }
 
 

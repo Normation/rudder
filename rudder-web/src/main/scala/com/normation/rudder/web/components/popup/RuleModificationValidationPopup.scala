@@ -120,7 +120,7 @@ class RuleModificationValidationPopup(
   , initialState      : Option[Rule]
   , action            : String //one among: save, delete, enable, disable or create
   , onSuccessCallBack : (Either[Rule,ChangeRequestId]) => JsCmd = { x => Noop }
-  , onFailureCallback : JsCmd = { Noop }
+  , onFailureCallback : () => JsCmd = { () => Noop }
   , parentFormTracker : Option[FormTracker] = None
 ) extends DispatchSnippet with Loggable {
 
@@ -303,7 +303,7 @@ class RuleModificationValidationPopup(
               parentFormTracker.map(x => x.addFormError(error(ex.messageChain)))
               logger.error(s"Exception when trying to update a change request:", ex)
             }
-            onFailureCallback
+            onFailureCallback()
         }
     }
   }
