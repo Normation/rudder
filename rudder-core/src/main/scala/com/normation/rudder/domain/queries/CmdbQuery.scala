@@ -204,8 +204,9 @@ case object DateComparator extends CriterionType {
   }
   //init a jquery datepicker
   override def initForm(formId:String) : JsCmd = OnLoad(JsRaw(
-    "var init = $.datepicker.regional['fr']; init['showOn'] = 'both'; jQuery('#%s').datepicker(init);".
-      format(formId,formId)))
+    """var init = $.datepicker.regional['en-GB'];
+       init['showOn'] = 'both';
+       $('#%s').datepicker(init);""".format(formId,formId)))
       
   override def toLDAP(value:String) = try {
     val date = frenchFmt.parseDateTime(value)
