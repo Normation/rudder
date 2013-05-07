@@ -314,6 +314,42 @@ class TestQueryProcessor extends Loggable {
       testQueries(q1 :: q2 :: q3 :: q3_2 :: q4 :: Nil)
   }
 
+  @Test def dateQueries() {
+    //the node inventory date is 15/05/2013
+
+    def q(name: String, comp: String, day: Int, expects: Seq[NodeId] ) = TestQuery(
+        name
+      , parser("""
+          {  "select":"node", "where":[
+            { "objectType":"node", "attribute":"inventoryDate", "comparator":"%s"   , "value":"%s/05/2013" }
+          ] }
+          """.format(comp, day)).open_!
+      , expects
+    )
+
+    def query(name: String, comp: String, day: Int, valid: Boolean) = q(name, comp, day, { if(valid) s(0) :: Nil else Nil })
+
+    val q12 = q("q12", "notEq", 15, s.filterNot( _ == s(0)))
+    val q13 = q("q13", "notEq", 14, s )
+    val q14 = q("q14", "notEq", 16, s )
+
+    testQueries(
+         query("q1", "eq", 15, valid = true)
+      :: query("q2", "eq", 14, valid = false)
+      :: query("q3", "eq", 16, valid = false)
+      :: query("q4", "gteq", 15, valid = true)
+      :: query("q5", "gteq", 16, valid = false)
+      :: query("q6", "lteq", 15, valid = true)
+      :: query("q7", "lteq", 14, valid = false)
+      :: query("q8", "lt", 15, valid = false)
+      :: query("q9", "lt", 16, valid = true)
+      :: query("q10", "gt", 15, valid = false)
+      :: query("q11", "gt", 14, valid = true)
+      :: q12 :: q13 :: q14
+      :: Nil
+    )
+  }
+
 
   @Test def unsortedQueries() {
     val q1 = TestQuery(
