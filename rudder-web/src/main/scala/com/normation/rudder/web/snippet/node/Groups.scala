@@ -122,7 +122,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   def head(html:NodeSeq) : NodeSeq = {
     {<head>
       <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.datepicker.js"></script>
-      <script type="text/javascript" src="/javascript/jquery/ui/i18n/jquery.ui.datepicker-fr.js"></script>
+      <script type="text/javascript" src="/javascript/jquery/ui/i18n/jquery-ui-i18n.js"></script>
       <script type="text/javascript" src="/javascript/jstree/jquery.jstree.js" id="jstree"></script>
       <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
       <script type="text/javascript" src="/javascript/json2.js" id="json2"></script>
