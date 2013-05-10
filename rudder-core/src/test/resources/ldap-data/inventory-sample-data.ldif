@@ -116,6 +116,7 @@ localAdministratorAccountName: root
 agentName: Nova
 policyServerId:root-policy-server
 nodeHostname: node0.normation.com
+inventoryDate: 20130515123456.948Z
 
 # Example of the same (almost) node, but not in ou=nodes
 dn: nodeId=node0_0,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration

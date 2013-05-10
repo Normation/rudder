@@ -183,6 +183,7 @@ case object OrderedStringComparator extends TStringComparator {
     case Equals => escapedFilter(attributeName,value)
     case NotEquals => NOT(escapedFilter(attributeName,value))
     case NotExists => NOT(HAS(attributeName))
+    //for Greater/Lesser, the HAS attribute part is meaningful: that won't work without it.
     case Greater => AND(HAS(attributeName),NOT(LTEQ(attributeName,value)))
     case Lesser => AND(HAS(attributeName),NOT(GTEQ(attributeName,value)))
     case GreaterEq => GTEQ(attributeName,value)
@@ -193,8 +194,9 @@ case object OrderedStringComparator extends TStringComparator {
 }
 
 case object DateComparator extends CriterionType {
-  override val comparators = OrderedComparators.comparators
-  val frenchFmt = DateTimeFormat.forPattern("dd/MM/yyyy").withLocale(Locale.FRANCE)
+  override val comparators = OrderedComparators.comparators.filterNot( _ == Regex)
+  val fmt = "dd/MM/yyyy"
+  val frenchFmt = DateTimeFormat.forPattern(fmt).withLocale(Locale.FRANCE)
 
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = try {
     Full(frenchFmt.parseDateTime(v).toString)
@@ -207,14 +209,44 @@ case object DateComparator extends CriterionType {
     """var init = $.datepicker.regional['en-GB'];
        init['showOn'] = 'both';
        $('#%s').datepicker(init);""".format(formId,formId)))
-      
-  override def toLDAP(value:String) = try {
+
+  override def toLDAP(value:String) = parseDate(value).map( GeneralizedTime( _ ).toString )
+
+  private[this] def parseDate(value: String) : Box[DateTime] = try {
     val date = frenchFmt.parseDateTime(value)
-    Full(GeneralizedTime(date).toString)
+    Full(date)
   } catch {
     case e:Exception =>
       Failure("Invalide date: '%s'".format(value), Full(e),Empty)
   }
+
+  /*
+   * Date comparison are not trivial, because we don't want to take care of the
+   * time, but the time exists.
+   */
+  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
+
+    val date = parseDate(value).getOrElse(throw new TechnicalException("The date format was not recognized: '%s', expected '%s'".format(value, fmt)))
+
+    val date0000 = GeneralizedTime(date.withTimeAtStartOfDay).toString
+    val date2359 = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString
+
+    val eq = AND(GTEQ(attributeName, date0000), LTEQ(attributeName, date2359))
+
+    comparator match {
+      //for equals and not equals, check value for jocker
+      case Equals => eq
+      case NotEquals => NOT(eq)
+      case NotExists => NOT(HAS(attributeName))
+      case Greater => AND(HAS(attributeName),NOT(LTEQ(attributeName,date2359)))
+      case Lesser => AND(HAS(attributeName),NOT(GTEQ(attributeName,date0000)))
+      case GreaterEq => GTEQ(attributeName,date0000)
+      case LesserEq => LTEQ(attributeName,date2359)
+//      case Regex => HAS(attributeName) //"default, non interpreted regex
+      case _ => HAS(attributeName) //default to Exists
+    }
+  }
+
 }
 
 case object BooleanComparator extends CriterionType {
