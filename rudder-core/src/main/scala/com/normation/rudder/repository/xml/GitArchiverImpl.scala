@@ -332,13 +332,17 @@ class UpdatePiOnActiveTechniqueEvent(
       val notArchivedDirective = 
       for {
         directiveId          <- activeTechnique.directives
-        optDirectiveArchived =  (for {
-                                  directive  <- directiveRepository.getDirective(directiveId) ?~! "Can not find directive with id '%s' in repository".format(directiveId.value)
-                                  technique  <- Box(techniqeRepository.get(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion))) ?~! "Can not find Technique '%s:%s'".format(activeTechnique.techniqueName.value, directive.techniqueVersion)
-                                  archivedPi <- gitDirectiveArchiver.archiveDirective(directive, technique.id.name, parents, technique.rootSection, gitCommit)
-                                } yield {
-                                  archivedPi
-                                }) match {
+        directive  <- directiveRepository.getDirective(directiveId) ?~! "Can not find directive with id '%s' in repository".format(directiveId.value)
+        optDirectiveArchived =  ( if (directive.isSystem) {
+                                    Full("ok")
+                                  } else {
+                                    for {
+                                      technique  <- Box(techniqeRepository.get(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion))) ?~! "Can not find Technique '%s:%s'".format(activeTechnique.techniqueName.value, directive.techniqueVersion)
+                                      archivedPi <- gitDirectiveArchiver.archiveDirective(directive, technique.id.name, parents, technique.rootSection, gitCommit)
+                                    } yield {
+                                      archivedPi
+                                    }
+                                  }) match {
                                   case Full(_)   => None
                                   case Empty     => Some(DirectiveNotArchived(directiveId, Failure("No error message was left")))
                                   case f:Failure => Some(DirectiveNotArchived(directiveId, f))

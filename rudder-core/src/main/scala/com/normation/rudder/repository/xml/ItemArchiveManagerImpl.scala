@@ -113,7 +113,7 @@ class ItemArchiveManagerImpl(
     for {
       rules       <- ruleRepository.getAll(false)
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitRuleArchiver.getRootDirectory) }
-      saved       <- sequence(rules) { rule => 
+      saved       <- sequence(rules.filterNot(_.isSystem)) { rule =>
                        gitRuleArchiver.archiveRule(rule, None)
                      }
       commitId    <- gitRuleArchiver.commitRules(modId, commiter, reason)
@@ -128,14 +128,14 @@ class ItemArchiveManagerImpl(
     exportTechniqueLibraryAndDeploy(commiter, modId, actor, reason, includeSystem) 
     
 
+  //TODO : remove include system because we don't want to include system anymore
   private[this] def exportTechniqueLibraryAndDeploy(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true): Box[(GitArchiveId, NotArchivedElements)] = { 
     //case class SavedDirective( saved:Seq[String, ])
     
     for { 
       catWithUPT   <- uptRepository.getActiveTechniqueByCategory(includeSystem = true)
-      //remove systems things if asked (both system categories and system active techniques in non-system categories)
-      okCatWithUPT =  if(includeSystem) catWithUPT
-                      else catWithUPT.collect { 
+      //remove systems categories, we don't want to export them anymore
+      okCatWithUPT =  catWithUPT.collect {
                           //always include root category, even if it's a system one
                           case (categories, CategoryWithActiveTechniques(cat, upts)) if(cat.isSystem == false || categories.size <= 1) => 
                             (categories, CategoryWithActiveTechniques(cat, upts.filter( _.isSystem == false )))
@@ -170,7 +170,7 @@ class ItemArchiveManagerImpl(
                          case f:Failure=> Seq(CategoryNotArchived(cat.id, f))
                        }
       //now, we try to save the active techniques - we only
-      val activeTechniquesInError = activeTechniques.toSeq.map { activeTechnique =>
+      val activeTechniquesInError = activeTechniques.toSeq.filterNot(_.isSystem).map { activeTechnique =>
                                       gitActiveTechniqueArchiver.archiveActiveTechnique(activeTechnique,categories.reverse, gitCommit = None) match {
                                         case Full((gitPath, directivesNotArchiveds)) => (Seq.empty[ActiveTechniqueNotArchived], directivesNotArchiveds)
                                         case Empty => (Seq(ActiveTechniqueNotArchived(activeTechnique.id, Failure("No error message was left"))), Seq.empty[DirectiveNotArchived])
@@ -194,9 +194,8 @@ class ItemArchiveManagerImpl(
   private[this] def exportGroupLibraryAndDeploy(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = { 
     for { 
       catWithGroups   <- groupRepository.getGroupsByCategory(includeSystem = true)
-      //remove systems things if asked (both system categories and system groups in non-system categories)
-      okCatWithGroup  =  if(includeSystem) catWithGroups
-                         else catWithGroups.collect { 
+      //remove systems categories, because we don't want them
+      okCatWithGroup  =   catWithGroups.collect {
                             //always include root category, even if it's a system one
                             case (categories, CategoryAndNodeGroup(cat, groups)) if(cat.isSystem == false || categories.size <= 1) => 
                               (categories, CategoryAndNodeGroup(cat, groups.filter( _.isSystem == false )))
@@ -206,7 +205,7 @@ class ItemArchiveManagerImpl(
                            for {
                              //categories.tail is OK, as no category can have an empty path (id)
                              savedCat    <- gitNodeGroupCategoryArchiver.archiveNodeGroupCategory(cat,categories.reverse.tail, gitCommit = None)
-                             savedgroups <- sequence(groups.toSeq) { group =>
+                             savedgroups <- sequence(groups.toSeq.filterNot(_.isSystem)) { group =>
                                               gitNodeGroupArchiver.archiveNodeGroup(group,categories.reverse, gitCommit = None)
                                             }
                            } yield {
