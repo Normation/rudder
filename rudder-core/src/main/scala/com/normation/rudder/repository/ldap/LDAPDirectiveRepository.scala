@@ -151,7 +151,7 @@ class RoLDAPDirectiveRepository(
       activeTechnique
     }
   }
-  
+
   /**
    * Find the active technique for which the given directive is an instance.
    *
@@ -161,7 +161,7 @@ class RoLDAPDirectiveRepository(
   override def getActiveTechniqueAndDirective(id:DirectiveId) : Box[(ActiveTechnique, Directive)] = {
     for {
       locked  <- userLibMutex.readLock
-      con     <- ldap 
+      con     <- ldap
       piEntry <- getDirectiveEntry(con, id) ?~! "Can not find directive with id %s".format(id)
       uptEntry        <- getUPTEntry(con, mapper.dn2ActiveTechniqueId(piEntry.dn.getParent), { id:ActiveTechniqueId => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) }) ?~! "Can not find Active Technique entry in LDAP"
       activeTechnique <- mapper.entry2ActiveTechnique(uptEntry) ?~! "Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry)
@@ -529,7 +529,7 @@ class WoLDAPDirectiveRepository(
                            , reason = reason
                          )
                      }
-      autoArchive <- if(autoExportOnModify && optDiff.isDefined) {
+      autoArchive <- if(autoExportOnModify && optDiff.isDefined && !directive.isSystem) {
                        for {
                          parents  <- activeTechniqueBreadCrump(activeTechnique.id)
                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -580,13 +580,13 @@ class WoLDAPDirectiveRepository(
       loggedAction    <- actionLogger.saveDeleteDirective(
                           modId, principal = actor, deleteDiff = diff, varsRootSectionSpec = technique.rootSection, reason = reason
                       )
-      autoArchive     <- if(autoExportOnModify && deleted.size > 0) {
-                        for {
-                          parents  <- activeTechniqueBreadCrump(activeTechnique.id)
-                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some(modId,commiter, reason))
-                        } yield archived
-                      } else Full("ok")
+      autoArchive     <- if (autoExportOnModify && deleted.size > 0 && !directive.isSystem) {
+                           for {
+                             parents  <- activeTechniqueBreadCrump(activeTechnique.id)
+                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                             archived <- gitPiArchiver.deleteDirective(directive.id, activeTechnique.techniqueName, parents.map( _.id), Some(modId,commiter, reason))
+                           } yield archived
+                         } else Full("ok")
     } yield {
       diff
     }
@@ -628,7 +628,7 @@ class WoLDAPDirectiveRepository(
                                Full("Can add, no sub categorie with that name")
                              }
       result              <- userLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
+      autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
                                for {
                                  parents  <- getParentsForActiveTechniqueCategory(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -656,7 +656,7 @@ class WoLDAPDirectiveRepository(
                           }
       result           <- userLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       updated          <- getActiveTechniqueCategory(category.id)
-      autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
+      autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
                             for {
                               parents  <- getParentsForActiveTechniqueCategory(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -677,6 +677,7 @@ class WoLDAPDirectiveRepository(
         getCategoryEntry(con, id, "1.1") match {
           case Full(entry) =>
             for {
+              category    <- mapper.entry2ActiveTechniqueCategory(entry)
               parents     <- if(autoExportOnModify) {
                                getParentsForActiveTechniqueCategory(id)
                              } else Full(Nil)
@@ -686,7 +687,7 @@ class WoLDAPDirectiveRepository(
                                case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
                                case e:Exception => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
                              }
-              autoArchive <- (if(autoExportOnModify && ok.size > 0) {
+              autoArchive <- (if(autoExportOnModify && ok.size > 0 && !category.isSystem) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                  archive  <- gitCatArchiver.deleteActiveTechniqueCategory(id,parents.map( _.id), Some(modId,commiter, reason))
@@ -732,7 +733,8 @@ class WoLDAPDirectiveRepository(
                             case _ => Failure("Can not find the category entry name for category with ID %s. Name is needed to check unicity of categories by level")
                           }
         result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn) }
-        autoArchive    <- (if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
+        category       <- getActiveTechniqueCategory(categoryId)
+        autoArchive    <- (if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem ) {
                             for {
                               newCat   <- getActiveTechniqueCategory(categoryId)
                               parents  <- getParentsForActiveTechniqueCategory(categoryId)
@@ -774,6 +776,8 @@ class WoLDAPDirectiveRepository(
       newActiveTechnique =  ActiveTechnique(ActiveTechniqueId(uuidGen.newUuid),techniqueName, versions.map(x => x -> DateTime.now()).toMap)
       uptEntry           =  mapper.activeTechnique2Entry(newActiveTechnique,categoryEntry.dn)
       result             <- userLibMutex.writeLock { con.save(uptEntry, true) }
+      // a new active technique is never system, see constructor call, using defvault value,
+      // maybe we should check in its caller is the technique is system or not
       autoArchive        <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                               for {
                                 parents  <- activeTechniqueBreadCrump(newActiveTechnique.id)
@@ -795,23 +799,23 @@ class WoLDAPDirectiveRepository(
    */
   def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {
      for {
-      con             <- ldap
-      oldParents      <- if(autoExportOnModify) {
-                           activeTechniqueBreadCrump(uactiveTechniqueId)
-                         } else Full(Nil)
-      activeTechnique <- getUPTEntry(con, uactiveTechniqueId, "1.1") ?~! "Can not move non existing template in use library with ID %s".format(uactiveTechniqueId)
-      newCategory     <- getCategoryEntry(con, newCategoryId, "1.1") ?~! "Can not move template with ID %s into non existing category of user library %s".format(uactiveTechniqueId, newCategoryId)
-      moved           <- userLibMutex.writeLock { con.move(activeTechnique.dn, newCategory.dn) ?~! "Error when moving technique %s to category %s".format(uactiveTechniqueId, newCategoryId) }
-      autoArchive     <- (if(autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord]) {
-                        for {
-                          parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
-                          newActiveTechnique   <- getActiveTechnique(uactiveTechniqueId)
-                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          moved    <- gitATArchiver.moveActiveTechnique(newActiveTechnique, oldParents.map( _.id), parents.map( _.id), Some(modId,commiter, reason))
-                        } yield {
-                          moved
-                        }
-                      } else Full("ok") ) ?~! "Error when trying to archive automatically the technique move"
+      con                  <- ldap
+      oldParents           <- if(autoExportOnModify) {
+                                activeTechniqueBreadCrump(uactiveTechniqueId)
+                              } else Full(Nil)
+      activeTechnique      <- getUPTEntry(con, uactiveTechniqueId, "1.1") ?~! "Can not move non existing template in use library with ID %s".format(uactiveTechniqueId)
+      newCategory          <- getCategoryEntry(con, newCategoryId, "1.1") ?~! "Can not move template with ID %s into non existing category of user library %s".format(uactiveTechniqueId, newCategoryId)
+      moved                <- userLibMutex.writeLock { con.move(activeTechnique.dn, newCategory.dn) ?~! "Error when moving technique %s to category %s".format(uactiveTechniqueId, newCategoryId) }
+      movedActiveTechnique <- getActiveTechnique(uactiveTechniqueId)
+      autoArchive          <- ( if(autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord] && !movedActiveTechnique.isSystem) {
+                                for {
+                                  parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
+                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                  moved    <- gitATArchiver.moveActiveTechnique(movedActiveTechnique, oldParents.map( _.id), parents.map( _.id), Some(modId, commiter, reason))
+                                } yield {
+                                  moved
+                                }
+                              } else Full("ok") ) ?~! "Error when trying to archive automatically the technique move"
     } yield {
       uactiveTechniqueId
     }
@@ -836,12 +840,12 @@ class WoLDAPDirectiveRepository(
                            case None => Full("OK")
                            case Some(diff) => actionLogger.saveModifyTechnique(modId, principal = actor, modifyDiff = diff, reason = reason)
                          }
-      autoArchive     <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord]) {
+      newactiveTechnique <- getActiveTechnique(uactiveTechniqueId)
+      autoArchive     <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && ! newactiveTechnique.isSystem) {
                            for {
                              parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
-                             newActiveTechnique   <- getActiveTechnique(uactiveTechniqueId)
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive  <- gitATArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(modId,commiter, reason))
+                             archive  <- gitATArchiver.archiveActiveTechnique(newactiveTechnique, parents.map( _.id), Some(modId, commiter, reason))
                            } yield archive
                          } else Full("ok")
     } yield {
@@ -859,14 +863,14 @@ class WoLDAPDirectiveRepository(
                            activeTechnique.+=!(A_ACCEPTATION_DATETIME, json)
                            userLibMutex.writeLock { con.save(activeTechnique) }
                          }
-      autoArchive     <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord]) {
-                           for {
-                             parents <- activeTechniqueBreadCrump(uactiveTechniqueId)
-                             newActiveTechnique  <- getActiveTechnique(uactiveTechniqueId)
-                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive <- gitATArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(modId,commiter, reason))
-                           } yield archive
-                         } else Full("ok")
+      newActiveTechnique  <- getActiveTechnique(uactiveTechniqueId)
+      autoArchive         <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && !newActiveTechnique.isSystem) {
+                               for {
+                                 parents <- activeTechniqueBreadCrump(uactiveTechniqueId)
+                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                 archive <- gitATArchiver.archiveActiveTechnique(newActiveTechnique, parents.map( _.id), Some(modId,commiter, reason))
+                               } yield archive
+                             } else Full("ok")
     } yield {
       uactiveTechniqueId
     }
@@ -889,7 +893,7 @@ class WoLDAPDirectiveRepository(
       deleted            <- userLibMutex.writeLock { con.delete(activeTechnique.dn, false) }
       diff               =  DeleteTechniqueDiff(oldTechnique)
       loggedAction       <- actionLogger.saveDeleteTechnique(modId, principal = actor, deleteDiff = diff, reason = reason)
-      autoArchive        <- (if(autoExportOnModify && deleted.size > 0) {
+      autoArchive        <- (if(autoExportOnModify && deleted.size > 0 && !oldTechnique.isSystem) {
                                for {
                                  ptName   <- Box(activeTechnique(A_TECHNIQUE_UUID)) ?~! "Missing required reference technique name"
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
