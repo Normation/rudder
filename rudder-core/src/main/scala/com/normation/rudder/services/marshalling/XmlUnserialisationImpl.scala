@@ -193,7 +193,11 @@ class NodeGroupUnserialisationImpl(
                               else cmdbQueryParser(s.text).map( Some(_) )
                           }
       isDynamic       <- (group \ "isDynamic").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isDynamic' in entry type nodeGroup : " + entry)
-      serverList      =  (group \ "nodeIds" \ "id" ).map( n => NodeId( n.text ) ).toSet
+      serverList      =  if (isDynamic) {
+                            Set[NodeId]()
+                          } else {
+                            (group \ "nodeIds" \ "id" ).map( n => NodeId( n.text ) ).toSet
+                          }
       isEnabled       <- (group \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type nodeGroup : " + entry)
       isSystem        <- (group \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
     } yield {
@@ -224,8 +228,6 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
                           ("Missing attribute 'id' in entry type rule: " + entry)
       name             <- (rule \ "displayName").headOption.map( _.text ) ?~! 
                           ("Missing attribute 'displayName' in entry type rule: " + entry)
-      serial           <- (rule \ "serial").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! 
-                          ("Missing or bad attribute 'serial' in entry type rule: " + entry)
       shortDescription <- (rule \ "shortDescription").headOption.map( _.text ) ?~! 
                           ("Missing attribute 'shortDescription' in entry type rule: " + entry)
       longDescription  <- (rule \ "longDescription").headOption.map( _.text ) ?~! 
@@ -241,7 +243,9 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
       Rule(
           id = RuleId(id)
         , name = name
-        , serial = serial
+        // current serial should to be in Rule, we set it to 0
+        // its value must be handled by the caller of the unserialisation
+        , serial = 0
         , targets = targets.toSet
         , directiveIds = directiveIds
         , shortDescription = shortDescription
