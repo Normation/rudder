@@ -843,11 +843,10 @@ class WoLDAPDirectiveRepository(
       newactiveTechnique <- getActiveTechnique(uactiveTechniqueId)
       autoArchive     <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && ! newactiveTechnique.isSystem) {
                            for {
-                             parents  <- this.activeTechniqueBreadCrump(uactiveTechniqueId)
+                             parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                              archive  <- gitATArchiver.archiveActiveTechnique(newactiveTechnique, parents.map( _.id), Some(modId, commiter, reason))
                            } yield archive
-                         } else Full("ok")
                          } else Full("ok")
     } yield {
       uactiveTechniqueId
