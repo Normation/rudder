@@ -201,7 +201,7 @@ class WoLDAPRuleRepository(
       deleted      <- con.delete(rudderDit.RULES.configRuleDN(id.value)) ?~! "Error when deleting rule with ID %s".format(id)
       diff         =  DeleteRuleDiff(oldCr)
       loggedAction <- actionLogger.saveDeleteRule(modId, principal = actor, deleteDiff = diff, reason = reason)
-      autoArchive  <- if(autoExportOnModify && deleted.size > 0) {
+      autoArchive  <- if(autoExportOnModify && deleted.size > 0  && !oldCr.isSystem) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                           archive  <- gitCrArchiver.deleteRule(id, Some(modId,commiter, reason))
@@ -233,7 +233,7 @@ class WoLDAPRuleRepository(
                          }
       diff            <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn,result)
       loggedAction    <- actionLogger.saveAddRule(modId, principal = actor, addDiff = diff, reason = reason)
-      autoArchive     <- if(autoExportOnModify) {
+      autoArchive     <- if(autoExportOnModify && !rule.isSystem) {
                            for {
                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                              archive  <- gitCrArchiver.archiveRule(rule, Some(modId,commiter, reason))
@@ -266,14 +266,14 @@ class WoLDAPRuleRepository(
                            case None => Full("OK")
                            case Some(diff) => actionLogger.saveModifyRule(modId, principal = actor, modifyDiff = diff, reason = reason)
                          }
-      autoArchive     <- if(autoExportOnModify && optDiff.isDefined) {
-                         for {
-                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                           archive  <- gitCrArchiver.archiveRule(rule, Some(modId,commiter, reason))
-                         } yield {
-                           archive
-                         }
-                       } else Full("ok")
+      autoArchive     <- if(autoExportOnModify && optDiff.isDefined  && !rule.isSystem) {
+                           for {
+                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                             archive  <- gitCrArchiver.archiveRule(rule, Some(modId,commiter, reason))
+                           } yield {
+                             archive
+                           }
+                         } else Full("ok")
     } yield {
       optDiff
     } }
