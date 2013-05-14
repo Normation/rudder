@@ -189,6 +189,7 @@ class LDAPNodeGroupRepository(
       result        <- groupLibMutex.writeLock { con.save(entry, true) }
       diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result)
       loggedAction  <- actionLogger.saveAddNodeGroup(principal = actor, addDiff = diff, reason = reason )
+      // We dont want to check if this is a system group or not, because new groups are not systems (see constructor)
       autoArchive   <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                          for {
                            parents  <- categoryRepo.getParents_NodeGroupCategory(into)
@@ -229,7 +230,7 @@ class LDAPNodeGroupRepository(
                         case None => Full("OK")
                         case Some(diff) => actionLogger.saveModifyNodeGroup(principal = actor, modifyDiff = diff, reason = reason) ?~! "Error when logging modification as an event"
                       }
-      autoArchive  <- if(autoExportOnModify && optDiff.isDefined) { //only persists if modification are present
+      autoArchive  <- if(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if modification are present
                         for {
                           parent   <- getParentGroupCategory(nodeGroup.id)
                           parents  <- categoryRepo.getParents_NodeGroupCategory(parent.id)
@@ -274,7 +275,7 @@ class LDAPNodeGroupRepository(
                         case None => Full("OK")
                         case Some(diff) => actionLogger.saveModifyNodeGroup(principal = actor, modifyDiff = diff, reason = reason )
                       }
-      autoArchive   <- (if(autoExportOnModify && optDiff.isDefined) { //only persists if that was a real move (not a move in the same category)
+      autoArchive   <- (if(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if that was a real move (not a move in the same category)
                          for {
                            newGroup <- getNodeGroup(nodeGroup.id)
                            parent   <- getParentGroupCategory(nodeGroup.id)
@@ -363,7 +364,7 @@ class LDAPNodeGroupRepository(
                       } 
       diff         =  DeleteNodeGroupDiff(oldGroup)
       loggedAction <- actionLogger.saveDeleteNodeGroup(principal = actor, deleteDiff = diff, reason = reason ) ?~! "Error when saving user event log for node deletion"
-      autoArchive  <- if(autoExportOnModify) {
+      autoArchive  <- if(autoExportOnModify && !oldGroup.isSystem) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                           archive  <- gitArchiver.deleteNodeGroup(id, parents, Some(commiter, reason))

@@ -258,7 +258,7 @@ class LDAPDirectiveRepository(
                        case Some(diff:ModifyDirectiveDiff) => 
                          actionLogger.saveModifyDirective(principal = actor, modifyDiff = diff, reason = reason)
                      }
-      autoArchive <- if(autoExportOnModify && optDiff.isDefined) {
+      autoArchive <- if(autoExportOnModify && optDiff.isDefined && !directive.isSystem) {
                        for {
                          parents  <- ldapActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)
                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -309,7 +309,7 @@ class LDAPDirectiveRepository(
       loggedAction <- actionLogger.saveDeleteDirective(
                           principal = actor, deleteDiff = diff, varsRootSectionSpec = technique.rootSection, reason = reason
                       )
-      autoArchive  <- if(autoExportOnModify && deleted.size > 0) {
+      autoArchive  <- if(autoExportOnModify && deleted.size > 0 && !directive.isSystem) {
                         for {
                           parents  <- ldapActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
