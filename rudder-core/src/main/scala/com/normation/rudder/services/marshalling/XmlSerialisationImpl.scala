@@ -90,7 +90,6 @@ class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
     createTrimedElem(XML_TAG_RULE, xmlVersion) {
         <id>{rule.id.value}</id>
         <displayName>{rule.name}</displayName>
-        <serial>{rule.serial}</serial>
         <targets>{
           rule.targets.map { target => <target>{target.target}</target> }
         }</targets>
@@ -192,7 +191,11 @@ class NodeGroupSerialisationImpl(xmlVersion:String) extends NodeGroupSerialisati
         <query>{ group.query.map( _.toJSONString ).getOrElse("") }</query>
         <isDynamic>{group.isDynamic}</isDynamic>
         <nodeIds>{
+          if (group.isDynamic) {
+            NodeSeq.Empty
+          } else {
           group.serverList.map { id => <id>{id.value}</id> }
+          }
         }</nodeIds>
         <isEnabled>{group.isEnabled}</isEnabled>
         <isSystem>{group.isSystem}</isSystem>

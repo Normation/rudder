@@ -509,7 +509,7 @@ class WoLDAPNodeGroupRepository(
                              else Full("OK, can add")
       categoryEntry       =  mapper.nodeGroupCategory2ldap(that,parentCategoryEntry.dn)
       result              <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
+      autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
                                for {
                                  parents  <- getParents_NodeGroupCategory(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -535,8 +535,9 @@ class WoLDAPNodeGroupRepository(
                           else Full("OK")
       result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       updated          <- getGroupCategory(category.id)
-      autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
-                            for {
+      // Maybe we have to check if the parents are system or not too
+      autoArchive      <- if(autoExportOnModify && !updated.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
+                             for {
                               parents  <- getParents_NodeGroupCategory(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                               archive  <- gitArchiver.archiveNodeGroupCategory(updated,parents.map( _.id), Some(modId,commiter, reason))
@@ -569,7 +570,7 @@ class WoLDAPNodeGroupRepository(
       updated          <- getGroupCategory(category.id)
       autoArchive      <- (moved, result) match {
                             case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => Full("OK, nothing to archive")
-                            case _ if(autoExportOnModify) =>
+                            case _ if(autoExportOnModify && !updated.isSystem) =>
                               (for {
                                 parents  <- getParents_NodeGroupCategory(updated.id)
                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -612,7 +613,8 @@ class WoLDAPNodeGroupRepository(
                                case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
                                case e:Exception => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
                              }
-              autoArchive <- (if(autoExportOnModify && ok.size > 0) {
+              category    <- mapper.entry2NodeGroupCategory(entry)
+              autoArchive <- (if(autoExportOnModify && ok.size > 0 && !category.isSystem) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                  archive  <- gitArchiver.deleteNodeGroupCategory(id,parents.map( _.id), Some(modId, commiter, reason))
@@ -655,6 +657,7 @@ class WoLDAPNodeGroupRepository(
       result        <- groupLibMutex.writeLock { con.save(entry, true) }
       diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result)
       loggedAction  <- actionLogger.saveAddNodeGroup(modId, principal = actor, addDiff = diff, reason = reason )
+      // We dont want to check if this is a system group or not, because new groups are not systems (see constructor)
       autoArchive   <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                          for {
                            parents  <- getParents_NodeGroupCategory(into)
@@ -697,7 +700,7 @@ class WoLDAPNodeGroupRepository(
                         case None => Full("OK")
                         case Some(diff) => actionLogger.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason) ?~! "Error when logging modification as an event"
                       }
-      autoArchive  <- if(autoExportOnModify && optDiff.isDefined) { //only persists if modification are present
+      autoArchive  <- if(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if modification are present
                         for {
                           parent   <- getParentGroupCategory(nodeGroup.id)
                           parents  <- getParents_NodeGroupCategory(parent.id)
@@ -742,7 +745,7 @@ class WoLDAPNodeGroupRepository(
                         case None => Full("OK")
                         case Some(diff) => actionLogger.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason )
                       }
-      autoArchive   <- (if(autoExportOnModify && optDiff.isDefined) { //only persists if that was a real move (not a move in the same category)
+      autoArchive   <- (if(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if that was a real move (not a move in the same category)
                          for {
                            (ng,cId) <- getNodeGroup(nodeGroupId)
                            parents  <- getParents_NodeGroupCategory(cId)
@@ -793,7 +796,7 @@ class WoLDAPNodeGroupRepository(
                       }
       diff         =  DeleteNodeGroupDiff(oldGroup)
       loggedAction <- actionLogger.saveDeleteNodeGroup(modId, principal = actor, deleteDiff = diff, reason = reason ) ?~! "Error when saving user event log for node deletion"
-      autoArchive  <- if(autoExportOnModify) {
+      autoArchive  <- if(autoExportOnModify && !oldGroup.isSystem) {
                         for {
                           commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                           archive  <- gitArchiver.deleteNodeGroup(id, parents, Some(modId, commiter, reason))
