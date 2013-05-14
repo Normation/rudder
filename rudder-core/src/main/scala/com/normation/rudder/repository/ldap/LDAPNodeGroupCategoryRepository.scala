@@ -261,9 +261,9 @@ class LDAPNodeGroupCategoryRepository(
                              else Full("OK, can add")
       categoryEntry       =  mapper.nodeGroupCategory2ldap(that,parentCategoryEntry.dn)
       result              <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
+      autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
                                for {
-                                 parents  <- this.getParents_NodeGroupCategory(that.id)
+                                 parents  <- getParents_NodeGroupCategory(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                  archive  <- gitArchiver.archiveNodeGroupCategory(that,parents.map( _.id), Some(modId,commiter, reason))
                                } yield archive
@@ -287,9 +287,10 @@ class LDAPNodeGroupCategoryRepository(
                           else Full("OK")
       result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       updated          <- getGroupCategory(category.id)
-      autoArchive      <- if(autoExportOnModify && !updated.isInstanceOf[LDIFNoopChangeRecord]) {
+      // Maybe we have to check if the parents are system or not too
+      autoArchive      <- if(autoExportOnModify && !updated.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
                             for {
-                              parents  <- this.getParents_NodeGroupCategory(category.id)
+                              parents  <- getParents_NodeGroupCategory(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                               archive  <- gitArchiver.archiveNodeGroupCategory(updated,parents.map( _.id), Some(modId,commiter, reason))
                             } yield archive
@@ -321,7 +322,7 @@ class LDAPNodeGroupCategoryRepository(
       updated          <- getGroupCategory(category.id)
       autoArchive      <- (moved, result) match {
                             case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => Full("OK, nothing to archive")
-                            case _ if(autoExportOnModify) => 
+                            case _ if(autoExportOnModify && !updated.isSystem) =>
                               (for {
                                 parents  <- this.getParents_NodeGroupCategory(updated.id)
                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -425,6 +426,7 @@ class LDAPNodeGroupCategoryRepository(
         getCategoryEntry(con, id, "1.1") match {
           case Full(entry) => 
             for {
+              category    <- mapper.entry2NodeGroupCategory(entry)
               parents     <- if(autoExportOnModify) {
                                this.getParents_NodeGroupCategory(id)
                              } else Full(Nil)
@@ -434,7 +436,7 @@ class LDAPNodeGroupCategoryRepository(
                                case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
                                case e:Exception => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
                              }
-              autoArchive <- (if(autoExportOnModify && ok.size > 0) {
+              autoArchive <- (if(autoExportOnModify && ok.size > 0 && !category.isSystem) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                  archive  <- gitArchiver.deleteNodeGroupCategory(id,parents.map( _.id), Some(modId, commiter, reason))
