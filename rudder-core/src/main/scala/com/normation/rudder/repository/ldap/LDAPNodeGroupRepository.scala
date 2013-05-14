@@ -745,7 +745,8 @@ class WoLDAPNodeGroupRepository(
                         case None => Full("OK")
                         case Some(diff) => actionLogger.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason )
                       }
-      autoArchive   <- (if(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if that was a real move (not a move in the same category)
+      (nodeGroup,_)    <- getNodeGroup(nodeGroupId)
+      autoArchive  <- (if(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { //only persists if that was a real move (not a move in the same category)
                          for {
                            (ng,cId) <- getNodeGroup(nodeGroupId)
                            parents  <- getParents_NodeGroupCategory(cId)
