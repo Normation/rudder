@@ -214,7 +214,7 @@ class LDAPActiveTechniqueCategoryRepository(
                                Full("Can add, no sub categorie with that name")
                              }
       result              <- userLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
+      autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
                                for {
                                  parents  <- this.getParentsForActiveTechniqueCategory(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -242,7 +242,7 @@ class LDAPActiveTechniqueCategoryRepository(
                           }
       result           <- userLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       updated          <- getActiveTechniqueCategory(category.id)
-      autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
+      autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
                             for {
                               parents  <- this.getParentsForActiveTechniqueCategory(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -312,6 +312,7 @@ class LDAPActiveTechniqueCategoryRepository(
         getCategoryEntry(con, id, "1.1") match {
           case Full(entry) => 
             for {
+              category    <- mapper.entry2ActiveTechniqueCategory(entry)
               parents     <- if(autoExportOnModify) {
                                this.getParentsForActiveTechniqueCategory(id)
                              } else Full(Nil)
@@ -321,7 +322,7 @@ class LDAPActiveTechniqueCategoryRepository(
                                case e:LDAPException if(e.getResultCode == ResultCode.NOT_ALLOWED_ON_NONLEAF) => Failure("Can not delete a non empty category")
                                case e:Exception => Failure("Exception when trying to delete category with ID '%s'".format(id), Full(e), Empty)
                              }
-              autoArchive <- (if(autoExportOnModify && ok.size > 0) {
+              autoArchive <- (if(autoExportOnModify && ok.size > 0 && !category.isSystem) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                  archive  <- gitArchiver.deleteActiveTechniqueCategory(id,parents.map( _.id), Some(commiter, reason))
@@ -353,6 +354,7 @@ class LDAPActiveTechniqueCategoryRepository(
                             this.getParentsForActiveTechniqueCategory(categoryId)
                           } else Full(Nil)
         categoryEntry  <- getCategoryEntry(con, categoryId, A_NAME)
+        category       <- mapper.entry2ActiveTechniqueCategory(categoryEntry)
         newParentEntry <- getCategoryEntry(con, intoParent, "1.1")
         moveAuthorised <- if(newParentEntry.dn.isDescendantOf(categoryEntry.dn, true)) {
                             Failure("Can not move a category to itself or one of its children")
@@ -367,7 +369,7 @@ class LDAPActiveTechniqueCategoryRepository(
                             case _ => Failure("Can not find the category entry name for category with ID %s. Name is needed to check unicity of categories by level")
                           }
         result         <- userLibMutex.writeLock { con.move(categoryEntry.dn, newParentEntry.dn) }
-        autoArchive    <- (if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
+        autoArchive    <- (if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem ) {
                             for {
                               newCat   <- getActiveTechniqueCategory(categoryId)
                               parents  <- this.getParentsForActiveTechniqueCategory(categoryId)
