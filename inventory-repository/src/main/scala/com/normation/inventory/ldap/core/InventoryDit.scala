@@ -128,6 +128,11 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
 
   implicit val DIT = dit
 
+
+  dit.register(SOFTWARE.model)
+  dit.register(NODES.model)
+  dit.register(MACHINES.model)
+
   object SOFTWARE extends OU("Software", SOFTWARE_BASE_DN) { software =>
     object SOFT extends UUID_ENTRY[SoftwareUuid](OC_SOFTWARE, A_SOFTWARE_UUID, software.dn) {
 
@@ -171,9 +176,9 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
         mod += (A_OC,OC.objectClassNames(OC_SOLARIS_NODE).toSeq:_*)
         mod
       }
-      
+
       def dn(uuid:String) = new DN(this.rdn(uuid), servers.dn)
-      
+
       def idFromDN(dn:DN) : Box[NodeId] = {
         if(dn.getParent == servers.dn) {
             val rdn = dn.getRDN
@@ -268,8 +273,6 @@ class UUID_ENTRY[U <: Uuid](val entryObjectClass:String,val rdnAttributeName:Str
  */
 class OU(ouName:String,parentDn:DN)(implicit dit:AbstractDit) extends ENTRY1("ou",ouName) {
   ou =>
-
-  dit.register(ou.model)
 
   lazy val rdn : RDN = this.rdn(this.rdnValue._1)
   lazy val dn = new DN(rdn, parentDn)
