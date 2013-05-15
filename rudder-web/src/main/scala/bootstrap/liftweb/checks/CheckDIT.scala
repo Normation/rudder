@@ -105,7 +105,7 @@ class CheckDIT(
     }
 
     //now, check that all DIT entries are here, add missing ones
-    val ditEntries = pendingNodesDit.getDITEntries ++ acceptedDit.getDITEntries ++ removedDit.getDITEntries ++ rudderDit.getDITEntries
+    val ditEntries = (pendingNodesDit.getDITEntries ++ acceptedDit.getDITEntries ++ removedDit.getDITEntries ++ rudderDit.getDITEntries).toSet
 
     ldap.map { con =>
       (for {
