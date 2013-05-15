@@ -130,6 +130,16 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   }
 
 
+  /*
+   * Register object here, and force their loading
+   */
+  dit.register(ACTIVE_TECHNIQUES_LIB.model)
+  dit.register(RULES.model)
+  dit.register(ARCHIVES.model)
+  dit.register(GROUP.model)
+  dit.register(GROUP.SYSTEM.model)
+
+
   //here, we can't use activeTechniqueCategory because we want a subclass
   object ACTIVE_TECHNIQUES_LIB extends CATEGORY(
       uuid = "Active Techniques",
@@ -141,11 +151,6 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       objectClassUuid = A_TECHNIQUE_CATEGORY_UUID
   ) {
     activeTechniques =>
-
-    //check for the presence of that entry at bootstrap
-    dit.register(activeTechniques.model)
-
-
 
     /**
      * From a DN of a category, return the value of the rdn (uuid)
@@ -196,8 +201,6 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
 
   object RULES extends OU("Rules", BASE_DN) {
     rules =>
-    //check for the presence of that entry at bootstrap
-    dit.register(rules.model)
 
     def getRuleId(dn:DN) : Box[String] = singleRdnValue(dn,A_RULE_UUID)
 
@@ -230,11 +233,6 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       objectClassUuid = A_GROUP_CATEGORY_UUID
   ) {
     group =>
-
-    //check for the presence of that entry at bootstrap
-    dit.register(group.model)
-
-
 
     /**
      * From a DN of a category, return the value of the rdn (uuid)
@@ -287,9 +285,6 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       objectClassUuid = A_GROUP_CATEGORY_UUID
   ) {
       system =>
-
-      //check for the presence of that entry at bootstrap
-      dit.register(system.model)
 
       def targetDN(target:RuleTarget) : DN = target match {
         case GroupTarget(groupId) => group.groupDN(groupId.value, system.dn)
@@ -373,7 +368,6 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   object ARCHIVES extends OU("Archives", BASE_DN) {
     archives =>
     //check for the presence of that entry at bootstrap
-    dit.register(archives.model)
 
     def ruleModel(
       crArchiveId : RuleArchiveId

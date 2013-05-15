@@ -47,6 +47,8 @@ class NodeDit(val BASE_DN:DN) extends AbstractDit {
   dit =>
   implicit val DIT = dit
 
+  dit.register(NODES.model)
+
   object NODES extends OU("Nodes", BASE_DN) {
     nodes =>
       object NODE extends ENTRY1(A_NODE_UUID) {
