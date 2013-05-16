@@ -312,6 +312,8 @@ object RudderConfig extends Loggable {
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
   val allBootstrapChecks : BootstrapChecks = allChecks
   val srvGrid = new SrvGrid
+  val expectedReportRepository : RuleExpectedReportsRepository = configurationExpectedRepo
+  val historizationRepository : HistorizationRepository =  historizationJdbcRepository
 
   val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(jdbcTemplate)
   val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(jdbcTemplate, roWorkflowRepository)
