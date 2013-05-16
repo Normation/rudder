@@ -96,7 +96,7 @@ object NodeGroupForm {
  */
 class NodeGroupForm(
     htmlIdCategory    : String
-  , nodeGroup         : NodeGroup
+  , val nodeGroup     : NodeGroup
   , parentCategoryId  : NodeGroupCategoryId
   , onSuccessCallback : (Either[NodeGroup, ChangeRequestId]) => JsCmd = { (NodeGroup) => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
