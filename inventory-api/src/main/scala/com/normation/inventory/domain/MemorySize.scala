@@ -96,15 +96,15 @@ object MemorySize {
     s match {
       case num_r(x) => Some(clean(x))
       case numunit_r(x,y) => y.toLowerCase match {
-        case "b"|"o" => Some(clean(x))
-        case "ko"|"kb" => Some(Ko*clean(x))
-        case "mo"|"mb" => Some(Ko*Ko*clean(x))
-        case "go"|"gb" => Some(Ko*Ko*Ko*clean(x))
-        case "to"|"tb" => Some(Ko*Ko*Ko*Ko*clean(x))
-        case "po"|"pb" => Some(Ko*Ko*Ko*Ko*Ko*clean(x))
-        case "eo"|"eb" => Some(Ko*Ko*Ko*Ko*Ko*Ko*clean(x))
-        case "zo"|"zb" => Some(Ko*Ko*Ko*Ko*Ko*Ko*Ko*clean(x))
-        case "yo"|"yb" => Some(Ko*Ko*Ko*Ko*Ko*Ko*Ko*Ko*clean(x))
+        case "b" |"o" |""  => Some(clean(x))
+        case "ko"|"kb"|"k" => Some(Ko*clean(x))
+        case "mo"|"mb"|"m" => Some(Ko*Ko*clean(x))
+        case "go"|"gb"|"g" => Some(Ko*Ko*Ko*clean(x))
+        case "to"|"tb"|"t" => Some(Ko*Ko*Ko*Ko*clean(x))
+        case "po"|"pb"|"p" => Some(Ko*Ko*Ko*Ko*Ko*clean(x))
+        case "eo"|"eb"|"e" => Some(Ko*Ko*Ko*Ko*Ko*Ko*clean(x))
+        case "zo"|"zb"|"z" => Some(Ko*Ko*Ko*Ko*Ko*Ko*Ko*clean(x))
+        case "yo"|"yb"|"y" => Some(Ko*Ko*Ko*Ko*Ko*Ko*Ko*Ko*clean(x))
         case _ => None
       }
       case _ => None
