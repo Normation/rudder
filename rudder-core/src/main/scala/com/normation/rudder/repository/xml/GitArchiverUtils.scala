@@ -196,25 +196,34 @@ trait GitArchiverFullCommitUtils extends Loggable {
 
   def restoreCommitAtHead(commiter:PersonIdent, commitMessage:String, commit:GitCommitId, archiveMode:ArchiveMode,modId:ModificationId) = {
     tryo {
-      /* Configure rm with archive mode and call it
-       *this will delete latest (HEAD) configuration files from the repository
-       */
-      archiveMode.configureRm(gitRepo.git.rm).call
 
-      /* Configure checkout with archive mode, set reference commit to target commit,
-       * set master as branches to update, and finally call checkout on it
-       *This will add the content from the commit to be restored on the HEAD of branch master
-       */
-      archiveMode.configureCheckout(gitRepo.git.checkout).setStartPoint(commit.value).setName("master").call
+      // We don't want any commit when we are restoring HEAD
+      val head = gitRepo.db.resolve("HEAD")
+      val target = gitRepo.db.resolve(commit.value)
+      if (target == head) {
+        // we are restoring HEAD
+        commit
+      } else {
+        /* Configure rm with archive mode and call it
+         *this will delete latest (HEAD) configuration files from the repository
+         */
+        archiveMode.configureRm(gitRepo.git.rm).call
 
-      // The commit will actually delete old files and replace them with those from the checkout
-      val newCommit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-      val newCommitId = GitCommitId(newCommit.getName)
-      // Store the commit the modification repository
-      gitModificationRepository.addCommit(newCommitId, modId)
+        /* Configure checkout with archive mode, set reference commit to target commit,
+         * set master as branches to update, and finally call checkout on it
+         *This will add the content from the commit to be restored on the HEAD of branch master
+         */
+        archiveMode.configureCheckout(gitRepo.git.checkout).setStartPoint(commit.value).setName("master").call
 
-      logger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommitId.value))
-      newCommitId
+        // The commit will actually delete old files and replace them with those from the checkout
+        val newCommit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
+        val newCommitId = GitCommitId(newCommit.getName)
+        // Store the commit the modification repository
+        gitModificationRepository.addCommit(newCommitId, modId)
+
+        logger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommitId.value))
+        newCommitId
+      }
     }
   }
 
