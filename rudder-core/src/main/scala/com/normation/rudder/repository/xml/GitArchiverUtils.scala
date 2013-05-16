@@ -57,10 +57,10 @@ import com.normation.eventlog.ModificationId
 
 
 /**
- * Utility trait that factor out file commits. 
+ * Utility trait that factor out file commits.
  */
 trait GitArchiverUtils extends Loggable {
-  
+
   def gitRepo : GitRepositoryProvider
   def gitRootDirectory : File
   def relativePath : String
@@ -69,8 +69,8 @@ trait GitArchiverUtils extends Loggable {
   def gitModificationRepository : GitModificationRepository
 
   def newDateTimeTagString = (DateTime.now()).toString(ISODateTimeFormat.dateTime)
-  
-  lazy val getRootDirectory : File = { 
+
+  lazy val getRootDirectory : File = {
     val file = new File(gitRootDirectory, relativePath)
     Utils.createDirectory(file) match {
       case Full(dir) => dir
@@ -78,12 +78,12 @@ trait GitArchiverUtils extends Loggable {
         val e = eb ?~! "Error when checking required directories '%s' to archive in git:".format(file.getPath)
         logger.error(e.messageChain)
         throw new TechnicalException(e.messageChain)
-    } 
+    }
   }
-    
+
   /**
-   * Files in gitPath are added. 
-   * commitMessage is used for the message of the commit. 
+   * Files in gitPath are added.
+   * commitMessage is used for the message of the commit.
    */
   def commitAddFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
     tryo {
@@ -101,10 +101,10 @@ trait GitArchiverUtils extends Loggable {
       commit
     }
   }
-  
+
   /**
-   * Files in gitPath are removed. 
-   * commitMessage is used for the message of the commit. 
+   * Files in gitPath are removed.
+   * commitMessage is used for the message of the commit.
    */
   def commitRmFile(modId : ModificationId, commiter:PersonIdent, gitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
     tryo {
@@ -121,16 +121,16 @@ trait GitArchiverUtils extends Loggable {
       commit
     }
   }
-  
+
   /**
    * Commit files in oldGitPath and newGitPath, trying to commit them so that
-   * git is aware of moved from old files to new ones. 
+   * git is aware of moved from old files to new ones.
    * More preciselly, files in oldGitPath are 'git rm', files in newGitPath are
-   * 'git added' (with and without the 'update' mode). 
-   * commitMessage is used for the message of the commit. 
+   * 'git added' (with and without the 'update' mode).
+   * commitMessage is used for the message of the commit.
    */
   def commitMvDirectory(modId : ModificationId, commiter:PersonIdent, oldGitPath:String, newGitPath:String, commitMessage:String) : Box[GitCommitId] = synchronized {
-    
+
     tryo {
       logger.debug("move file %s from configuration repository to %s".format(oldGitPath,newGitPath))
       gitRepo.git.rm.addFilepattern(oldGitPath).call
@@ -147,14 +147,14 @@ trait GitArchiverUtils extends Loggable {
       commit
     }
   }
-  
+
   def toGitPath(fsPath:File) = fsPath.getPath.replace(gitRootDirectory.getPath +"/","")
-  
+
   /**
    * Write the given Elem (prettified) into given file, log the message
    */
   def writeXml(fileName:File, elem:Elem, logMessage:String) : Box[File] = {
-    tryo { 
+    tryo {
       FileUtils.writeStringToFile(fileName, xmlPrettyPrinter.format(elem), encoding)
       logger.debug(logMessage)
       fileName
@@ -166,16 +166,16 @@ trait GitArchiverUtils extends Loggable {
  * Utility trait that factor global commit and tags.
  */
 trait GitArchiverFullCommitUtils extends Loggable {
-  
+
   def gitRepo : GitRepositoryProvider
   def gitModificationRepository : GitModificationRepository
   //where goes tags, something like archives/groups/ (with a final "/") is awaited
   def tagPrefix : String
   def relativePath : String
-  
+
   /**
    * Commit all the modifications for files under the given path.
-   * The commitMessage is used in the commit. 
+   * The commitMessage is used in the commit.
    */
   def commitFullGitPathContentAndTag(commiter:PersonIdent, commitMessage:String) : Box[GitArchiveId] = {
     tryo {
@@ -196,39 +196,48 @@ trait GitArchiverFullCommitUtils extends Loggable {
 
   def restoreCommitAtHead(commiter:PersonIdent, commitMessage:String, commit:GitCommitId, archiveMode:ArchiveMode,modId:ModificationId) = {
     tryo {
-      /* Configure rm with archive mode and call it
-       *this will delete latest (HEAD) configuration files from the repository
-       */
-      archiveMode.configureRm(gitRepo.git.rm).call
 
-      /* Configure checkout with archive mode, set reference commit to target commit,
-       * set master as branches to update, and finally call checkout on it
-       *This will add the content from the commit to be restored on the HEAD of branch master
-       */
-      archiveMode.configureCheckout(gitRepo.git.checkout).setStartPoint(commit.value).setName("master").call
+      // We don't want any commit when we are restoring HEAD
+      val head = gitRepo.db.resolve("HEAD")
+      val target = gitRepo.db.resolve(commit.value)
+      if (target == head) {
+        // we are restoring HEAD
+        commit
+      } else {
+        /* Configure rm with archive mode and call it
+         *this will delete latest (HEAD) configuration files from the repository
+         */
+        archiveMode.configureRm(gitRepo.git.rm).call
 
-      // The commit will actually delete old files and replace them with those from the checkout
-      val newCommit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-      val newCommitId = GitCommitId(newCommit.getName)
-      // Store the commit the modification repository
-      gitModificationRepository.addCommit(newCommitId, modId)
+        /* Configure checkout with archive mode, set reference commit to target commit,
+         * set master as branches to update, and finally call checkout on it
+         *This will add the content from the commit to be restored on the HEAD of branch master
+         */
+        archiveMode.configureCheckout(gitRepo.git.checkout).setStartPoint(commit.value).setName("master").call
 
-      logger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommitId.value))
-      newCommitId
+        // The commit will actually delete old files and replace them with those from the checkout
+        val newCommit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
+        val newCommitId = GitCommitId(newCommit.getName)
+        // Store the commit the modification repository
+        gitModificationRepository.addCommit(newCommitId, modId)
+
+        logger.debug("Restored commit %s at HEAD (commit %s)".format(commit.value,newCommitId.value))
+        newCommitId
+      }
     }
   }
 
   /**
    * List tags and their date for that use of commitFullGitPathContentAndTag
-   * The DateTime is the one from the name, which may differ from the 
-   * date of the tag. 
+   * The DateTime is the one from the name, which may differ from the
+   * date of the tag.
    */
   def getTags() : Box[Map[DateTime, GitArchiveId]] = {
     import scala.collection.JavaConversions._
     tryo {
-//      TODO: use that when JGit version > 1.2      
-//      gitRepo.git.tagList.call.flatMap { revTag => 
-      listTagWorkaround.flatMap { revTag => 
+//      TODO: use that when JGit version > 1.2
+//      gitRepo.git.tagList.call.flatMap { revTag =>
+      listTagWorkaround.flatMap { revTag =>
           val name = revTag.getTagName
           if(name.startsWith(tagPrefix)) {
             val t = try {
@@ -246,16 +255,16 @@ trait GitArchiverFullCommitUtils extends Loggable {
       }.toMap
     }
   }
-  
+
   /**
    * There is a bug in tag resolution of JGit 1.2, see:
    * https://bugs.eclipse.org/bugs/show_bug.cgi?id=360650
-   * 
+   *
    * They used a workaround here:
    * http://git.eclipse.org/c/orion/org.eclipse.orion.server.git/commit/?id=5fca49ced7f0c220472c724678884ee84d13e09d
-   * 
+   *
    * For now, we will just ignore tag which are no real tags
-   * 
+   *
    * When the upgrade is done to JGit > 1.2, replace the call to
    * listTagWorkaround in getTags by "gitRepo.git.tagList.call"
    */
@@ -267,7 +276,7 @@ trait GitArchiverFullCommitUtils extends Loggable {
     import org.eclipse.jgit.revwalk._
     import scala.collection.mutable.{Map => MutMap, ArrayBuffer}
     import scala.collection.JavaConversions._
-    
+
     var refList = MutMap[String,Ref]()
     val revWalk = new RevWalk(gitRepo.db)
     val tags = ArrayBuffer[RevTag]()
@@ -279,7 +288,7 @@ trait GitArchiverFullCommitUtils extends Loggable {
           val tag = revWalk.parseTag(ref.getObjectId())
           tags.add(tag)
         } catch {
-          case e:IncorrectObjectTypeException => 
+          case e:IncorrectObjectTypeException =>
             logger.debug("Ignoring object due to JGit bug: " + ref.getName)
             logger.debug(e)
         }
@@ -290,5 +299,5 @@ trait GitArchiverFullCommitUtils extends Loggable {
       revWalk.release();
     }
     tags.sortWith( (o1, o2) => o1.getTagName().compareTo(o2.getTagName()) <= 0 )
-  }  
+  }
 }
