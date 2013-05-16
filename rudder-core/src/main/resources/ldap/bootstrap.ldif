@@ -222,3 +222,11 @@ isSystem: TRUE
 longDescription: This rule makes all nodes do daily self inventories
 serial: 0
 
+#######################################################################################################################
+## Archives
+#######################################################################################################################
+dn: ou=Archives,ou=Rudder,cn=rudder-configuration
+objectClass: organizationalUnit
+objectClass: top
+ou: Archives
+
