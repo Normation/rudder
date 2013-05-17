@@ -59,6 +59,12 @@ limitations under the License.
 
   <repositories>
     <repository>
+      <id>maven_central</id>
+      <name>Default maven repository</name>
+      <url>http://repo1.maven.org/maven2/</url>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+    <repository>
       <id>rudder-project</id>
       <url>http://www.rudder-project.org/maven-repo/</url>
       <layout>default</layout>
@@ -66,6 +72,12 @@ limitations under the License.
   </repositories>
 
   <pluginRepositories>
+    <pluginRepository>
+      <id>maven_central_plugin</id>
+      <name>Default maven repository</name>
+      <url>http://repo1.maven.org/maven2/</url>
+      <snapshots><enabled>true</enabled></snapshots>
+    </pluginRepository>
     <pluginRepository>
       <id>zt-repo</id>
       <name>Zero turnaround repo</name>
