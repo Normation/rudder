@@ -41,7 +41,7 @@ trait RemoveNodeService {
    * - clean the groups
    * - clean the AcceptedNodeConfiguration
    */
-  def removeNode(nodeId : NodeId, modId: ModificationId, actor:EventActor) : (Box[Seq[LDIFChangeRecord]],Box[Unit])
+  def removeNode(nodeId : NodeId, modId: ModificationId, actor:EventActor) : Box[Seq[LDIFChangeRecord]]
 }
 
 
@@ -67,17 +67,17 @@ class RemoveNodeServiceImpl(
    * Then find its container, to see if it has others nodes on it
    *        if so, copy the container to the removed inventory
    *        if not, move the container to the removed inventory
-   * 
+   *
    * Return a couple with 2 boxes, one about the LDIF change, and one containing the result of the clear cache
    * The main goal is to separate the clear cache as it could fail while the node is correctly deleted.
    * A failing clear cache should not be considered an error when deleting a Node.
    */
-  def removeNode(nodeId : NodeId, modId: ModificationId, actor:EventActor) : (Box[Seq[LDIFChangeRecord]],Box[Unit]) = {
+  def removeNode(nodeId : NodeId, modId: ModificationId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
     logger.debug("Trying to remove node %s from the LDAP".format(nodeId.value))
     nodeId.value match {
-      case "root" => (Failure("The root node cannot be deleted from the nodes list."),Full(()))
+      case "root" => Failure("The root node cannot be deleted from the nodes list.")
       case _ => {
-        val moved = for {
+        for {
           nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
 
           moved <- groupLibMutex.writeLock {atomicDelete(nodeId, modId, actor) } ?~!
@@ -99,8 +99,6 @@ class RemoveNodeServiceImpl(
         } yield {
           moved
         }
-        val cacheCleared = deleteNodeConfiguration(nodeId)
-        (moved,cacheCleared)
       }
     }
   }
@@ -139,13 +137,6 @@ class RemoveNodeServiceImpl(
       result  <-  nodeConfigurationService.deleteAllNodeConfigurations()
     } yield {
       () // unit is expected
-    }
-  }
-
-  private def deleteNodeConfiguration(nodeId:NodeId) : Box[Unit]= {
-    logger.debug("Trying to clear node %s configuration".format(nodeId.value))
-    tryo {
-      nodeConfigurationService.deleteNodeConfiguration(nodeId.value)
     }
   }
 

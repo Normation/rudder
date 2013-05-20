@@ -37,6 +37,7 @@ package com.normation.rudder.domain.policies
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain.nodes.NodeGroup
 
 
 /**
@@ -50,8 +51,10 @@ sealed abstract class RuleTarget {
   def target:String
 }
 
+sealed trait NonGroupRuleTarget extends RuleTarget
+
 object GroupTarget { def r = "group:(.+)".r }
-case class GroupTarget(groupId:NodeGroupId) extends RuleTarget with HashcodeCaching {
+final case class GroupTarget(groupId:NodeGroupId) extends RuleTarget with HashcodeCaching {
   override def target = "group:"+groupId.value
 }
 
@@ -61,16 +64,16 @@ case class GroupTarget(groupId:NodeGroupId) extends RuleTarget with HashcodeCach
 //}
 
 object PolicyServerTarget { def r = "policyServer:(.+)".r }
-case class PolicyServerTarget(nodeId:NodeId) extends RuleTarget with HashcodeCaching {
+final case class PolicyServerTarget(nodeId:NodeId) extends NonGroupRuleTarget with HashcodeCaching {
   override def target = "policyServer:"+nodeId.value
 }
 
-case object AllTarget extends RuleTarget {
+final case object AllTarget extends NonGroupRuleTarget {
   override def target = "special:all"
   def r = "special:all".r
 }
 
-case object AllTargetExceptPolicyServers extends RuleTarget {
+final case object AllTargetExceptPolicyServers extends NonGroupRuleTarget {
   override def target = "special:all_exceptPolicyServers"
   def r = "special:all_exceptPolicyServers".r
 }
@@ -93,14 +96,43 @@ object RuleTarget {
 /** common information on a target */
 
 case class RuleTargetInfo(
-  target:RuleTarget,
-  name:String,
-  description:String,
-  isEnabled:Boolean,
-  isSystem:Boolean
+    target     : RuleTarget
+  , name       : String
+  , description: String
+  , isEnabled  : Boolean
+  , isSystem   : Boolean
 ) extends HashcodeCaching
 
+///// the full version with all information /////
+
+sealed trait FullRuleTarget {
+  def target: RuleTarget
+}
+
+final case class FullGroupTarget(
+    target   : GroupTarget
+  , nodeGroup: NodeGroup
+) extends FullRuleTarget
+
+final case class FullOtherTarget(
+    target: NonGroupRuleTarget
+) extends FullRuleTarget
 
 
+final case class FullRuleTargetInfo(
+    target     : FullRuleTarget
+  , name       : String
+  , description: String
+  , isEnabled  : Boolean
+  , isSystem   : Boolean
+) extends HashcodeCaching {
 
+  def toTargetInfo = RuleTargetInfo(
+      target = target.target
+    , name = name
+    , description = description
+    , isEnabled = isEnabled
+    , isSystem = isSystem
+  )
+}
 

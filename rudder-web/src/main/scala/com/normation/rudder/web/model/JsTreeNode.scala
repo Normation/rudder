@@ -60,3 +60,12 @@ trait JsTreeNode {
     </li> /: attrs.map(x => x:MetaData))( (node, attr) => node % attr )
   }
 }
+
+/**
+ * An empty JsTreeNode - display nothing
+ */
+object EmptyJsTreeNode extends JsTreeNode {
+  override val body = NodeSeq.Empty
+  override val children = Nil
+  override val toXml = NodeSeq.Empty
+}

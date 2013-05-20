@@ -32,35 +32,20 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.transporter
+package com.normation.rudder.domain.policies
 
-import com.normation.rudder.domain.eventlog._
-import scala.collection._
-import com.normation.rudder.domain.servers._
 
 /**
- * UpdateBatch : holds the informations regarding the current update happening :
- * - The impacted server
- * - The logs of each actions
- * - The root cause
- * @author Nicolas CHARLES
- *
+ * Application status of a rule
  */
-class UpdateBatch {
 
+sealed trait ApplicationStatus
+sealed trait NotAppliedStatus extends ApplicationStatus
+sealed trait AppliedStatus extends ApplicationStatus
 
+final case object NotAppliedNoPI extends NotAppliedStatus
+final case object NotAppliedNoTarget extends NotAppliedStatus
+final case object NotAppliedCrDisabled extends NotAppliedStatus
 
-  val updatedNodeConfigurations = mutable.Map[String, NodeConfiguration]()
-
-
-
-  def getNodeConfiguration(id : String) : Option[NodeConfiguration] = {
-    updatedNodeConfigurations.get(id)
-  }
-
-  def addNodeConfiguration(server : NodeConfiguration) : Unit = {
-    updatedNodeConfigurations += (server.id -> server)
-    () //unit is expected
-  }
-
-}
+final case object FullyApplied extends AppliedStatus
+final case class PartiallyApplied(disabled: Seq[(ActiveTechnique, Directive)]) extends AppliedStatus

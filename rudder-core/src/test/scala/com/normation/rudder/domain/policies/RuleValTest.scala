@@ -57,6 +57,8 @@ import com.normation.cfclerk.domain.InputVariable
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class RuleValTest {
 
+  def newTechnique(id: TechniqueId) = Technique(id, "tech" + id, "", Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), Set(), None)
+
   @Test
   def testCRwithNoPI() {
     new RuleVal(
@@ -72,7 +74,7 @@ class RuleValTest {
   @Test
   def testBasicRuleVal() {
     val container = new DirectiveVal(
-      new TechniqueId(TechniqueName("id"), TechniqueVersion("1.0")),
+      newTechnique(new TechniqueId(TechniqueName("id"), TechniqueVersion("1.0"))),
    //   new ActiveTechniqueId("id"),
       new DirectiveId("id"),
       0,
@@ -94,7 +96,7 @@ class RuleValTest {
   @Test
   def testToRuleWithCf3PolicyDraft() {
     val container = new DirectiveVal(
-      new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0")),
+      newTechnique(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))),
     //  new ActiveTechniqueId("uactiveTechniqueId"),
       new DirectiveId("directiveId"),
       2,
@@ -110,10 +112,10 @@ class RuleValTest {
 
     val beans = crVal.toPolicyDrafts.map(_.toRuleWithCf3PolicyDraft)
     assert(beans.length == 1)
-    assertEquals(beans.head.cf3PolicyDraft.id.value, "ruleId@@directiveId")
+    assertEquals(beans.head.draftId.value, "ruleId@@directiveId")
     assertEquals(beans.head.ruleId.value, "ruleId")
-    assertEquals(beans.head.cf3PolicyDraft.techniqueId.name.value, "ppId")
-    assertEquals(beans.head.cf3PolicyDraft.techniqueId.version.toString, "1.0")
+    assertEquals(beans.head.cf3PolicyDraft.technique.id.name.value, "ppId")
+    assertEquals(beans.head.cf3PolicyDraft.technique.id.version.toString, "1.0")
     assertEquals(beans.head.cf3PolicyDraft.getVariables.size.toLong, 0L)
     assertEquals(beans.head.cf3PolicyDraft.priority.toLong, 2L)
     assertEquals(beans.head.cf3PolicyDraft.serial.toLong, 1L)
@@ -122,12 +124,12 @@ class RuleValTest {
   @Test
   def testToDirectiveBeanWithVar() {
     val container = new DirectiveVal(
-      new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0")),
+      newTechnique(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))),
    //   new ActiveTechniqueId("uactiveTechniqueId"),
       new DirectiveId("directiveId"),
       2,
       TrackerVariableSpec().toVariable(),
-      Map("foo" -> new InputVariable(InputVariableSpec("foo", "bar"))),
+      Map("foo" -> InputVariableSpec("foo", "bar").toVariable()),
       Map())
 
     val crVal = new RuleVal(
@@ -138,14 +140,14 @@ class RuleValTest {
 
     val beans = crVal.toPolicyDrafts.map(_.toRuleWithCf3PolicyDraft)
     assert(beans.length == 1)
-    assertEquals(beans.head.cf3PolicyDraft.id.value, "ruleId@@directiveId")
+    assertEquals(beans.head.draftId.value, "ruleId@@directiveId")
     assertEquals(beans.head.ruleId.value, "ruleId")
-    assertEquals(beans.head.cf3PolicyDraft.techniqueId.name.value, "ppId")
-    assertEquals(beans.head.cf3PolicyDraft.techniqueId.version.toString, "1.0")
+    assertEquals(beans.head.cf3PolicyDraft.technique.id.name.value, "ppId")
+    assertEquals(beans.head.cf3PolicyDraft.technique.id.version.toString, "1.0")
     assertEquals(beans.head.cf3PolicyDraft.getVariables.size.toLong, 1L)
     assertEquals(beans.head.cf3PolicyDraft.priority.toLong, 2L)
     assertEquals(beans.head.cf3PolicyDraft.serial.toLong, 1L)
     assertEquals(beans.head.cf3PolicyDraft.getVariables,
-      Map("foo" -> new InputVariable(InputVariableSpec("foo", "bar"))))
+      Map("foo" -> InputVariableSpec("foo", "bar").toVariable()))
   }
 }

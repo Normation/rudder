@@ -49,6 +49,17 @@ import com.normation.utils.Utils
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import scala.collection.immutable.SortedMap
+import com.normation.rudder.domain.policies.RuleTargetInfo
+import com.normation.rudder.domain.policies.FullRuleTargetInfo
+import com.normation.rudder.domain.policies.RuleTargetInfo
+import com.normation.rudder.domain.policies.FullGroupTarget
+import com.normation.rudder.domain.policies.FullGroupTarget
+import com.normation.rudder.domain.policies.FullRuleTargetInfo
+import com.normation.rudder.domain.policies.AllTargetExceptPolicyServers
+import com.normation.rudder.domain.policies.AllTarget
+import com.normation.rudder.domain.policies.NonGroupRuleTarget
+import com.normation.rudder.domain.policies.PolicyServerTarget
+import com.normation.rudder.domain.policies.GroupTarget
 
 /**
  * Here is the ordering for a List[NodeGroupCategoryId]
@@ -84,7 +95,111 @@ final case class CategoryAndNodeGroup(
 ) extends HashcodeCaching
 
 
+final case class FullNodeGroupCategory(
+    id           : NodeGroupCategoryId
+  , name         : String
+  , description  : String
+  , subCategories: List[FullNodeGroupCategory]
+  , targetInfos  : List[FullRuleTargetInfo]
+  , isSystem     : Boolean = false
+) extends Loggable with HashcodeCaching {
+
+  def toNodeGroupCategory = NodeGroupCategory(
+      id = id
+    , name = name
+    , description = description
+    , children = subCategories.map( _.id )
+    , items = targetInfos.map( _.toTargetInfo )
+    , isSystem = isSystem
+  )
+
+  /**
+   * Get the list of categories, starting by that one,
+   * and with chlidren sorted with the given ordering.
+   * So we get:
+   * cat1
+   *  - cat1.1
+   *     - cat1.1.1
+   *     - cat1.1.2
+   *  - cat1.2
+   *     - cat1.2.1
+   *     etc.
+   *
+   * Some categories AND ALL THERE SUBCATEGORIES can be
+   * exclude with the "exclude" predicat is true.
+   */
+  def getSortedCategories(
+      ordering: (FullNodeGroupCategory, FullNodeGroupCategory) => Boolean
+    , exclude: FullNodeGroupCategory => Boolean
+  ) : List[(List[NodeGroupCategoryId], FullNodeGroupCategory)] = {
+
+    if(exclude(this)){
+      Nil
+    } else {
+      val subCats = for {
+        directSubCat    <- subCategories.sortWith(ordering)
+        (subId, subCat) <- directSubCat.getSortedCategories(ordering, exclude)
+      } yield {
+        (id :: subId, subCat)
+      }
+
+      (List(id) -> this) :: subCats
+    }
+  }
+
+  val ownGroups = targetInfos.collect {
+        case FullRuleTargetInfo(g:FullGroupTarget, _, _, _, _) => (g.nodeGroup.id, g)
+      }.toMap
+
+  val allGroups: Map[NodeGroupId, FullGroupTarget] = (
+      ownGroups ++ subCategories.flatMap( _.allGroups )
+  ).toMap
+
+  val categoryByGroupId: Map[NodeGroupId, NodeGroupCategoryId] = (
+      ownGroups.map { case (gid, _) => (gid, id)} ++ subCategories.flatMap( _.categoryByGroupId)
+  ).toMap
+
+  val allCategories: Map[NodeGroupCategoryId, FullNodeGroupCategory] = {
+      subCategories.flatMap( _.allCategories ) :+ (id -> this)
+  }.toMap
+
+  val allTargets: Map[RuleTarget, FullRuleTargetInfo] = (
+      targetInfos.map(t => (t.target.target, t)).toMap ++ subCategories.flatMap( _.allTargets)
+  )
+
+
+  /**
+   * Return all node ids that match the set of target.
+   */
+  def getNodeIds(targets: Set[RuleTarget], allNodeInfos: Set[NodeInfo]) : Set[NodeId] = {
+    (Set[NodeId]()/:targets) {
+      case (nodes, t:NonGroupRuleTarget) =>
+        t match {
+          case AllTarget => return allNodeInfos.map( _.id )
+          case AllTargetExceptPolicyServers => nodes ++ allNodeInfos.collect { case(n) if(!n.isPolicyServer) => n.id }
+          case PolicyServerTarget(nodeId) => nodes + nodeId
+        }
+      //here, if we don't find the group, we consider it's an error in the
+      //target recording, but don't fail, just log it.
+      case (nodes, GroupTarget(groupId)) =>
+        val nodesForGroup = allGroups.get(groupId).map( _.nodeGroup.serverList) match {
+          case None =>
+            logger.error(s"Ignoring target for Group with ID='${groupId.value}' because that group is not present in group library")
+            Set()
+          case Some(ids) => ids
+        }
+        nodes ++ nodesForGroup
+    }
+  }
+}
+
 trait RoNodeGroupRepository {
+
+  /**
+   * Get the full group tree with all information
+   * for categories and groups.
+   */
+  def getFullGroupLibrary(): Box[FullNodeGroupCategory]
 
   /**
    * Get a server group by its id

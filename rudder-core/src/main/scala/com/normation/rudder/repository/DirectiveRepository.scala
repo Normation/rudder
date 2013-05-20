@@ -39,7 +39,6 @@ import net.liftweb.common._
 import com.normation.eventlog.EventActor
 import com.normation.cfclerk.domain.Technique
 import com.normation.eventlog.ModificationId
-
 import com.normation.rudder.domain.policies._
 import com.normation.cfclerk.domain.TechniqueName
 import net.liftweb.common._
@@ -49,12 +48,14 @@ import scala.collection.SortedMap
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-
 import com.normation.rudder.domain.policies._
 import net.liftweb.common._
 import com.normation.utils.Utils
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueId
 
 
 
@@ -81,6 +82,70 @@ final case class CategoryWithActiveTechniques(
 
 
 /**
+ * Note that we can have a different set of
+ * Technique versions in techniquesDateTime
+ * and in "techniques"
+ */
+final case class FullActiveTechnique(
+    id                  : ActiveTechniqueId
+  , techniqueName       : TechniqueName
+  , acceptationDatetimes: Map[TechniqueVersion, DateTime]
+  , techniques          : Map[TechniqueVersion, Technique]
+  , directives          : List[Directive]
+  , isEnabled           : Boolean = true
+  , isSystem            : Boolean = false
+) {
+  def toActiveTechnique() = ActiveTechnique(
+      id = id
+    , techniqueName = techniqueName
+    , acceptationDatetimes = acceptationDatetimes
+    , directives = directives.map( _.id )
+    , isEnabled = isEnabled
+    , isSystem = isSystem
+  )
+
+  val newestAvailableTechnique = techniques.toSeq.sortBy( _._1).reverse.map( _._2 ).headOption
+}
+
+
+final case class FullActiveTechniqueCategory(
+    id              : ActiveTechniqueCategoryId
+  , name            : String
+  , description     : String
+  , subCategories   : List[FullActiveTechniqueCategory]
+  , activeTechniques: List[FullActiveTechnique]
+  , isSystem        : Boolean = false // by default, we can't create system Category
+) {
+
+  val allDirectives : Map[DirectiveId, (FullActiveTechnique, Directive)] = (
+       subCategories.flatMap( _.allDirectives).toMap
+    ++ activeTechniques.flatMap( at => at.directives.map( d => (d.id, (at, d))) ).toMap
+  )
+
+  val allDirectivesByActiveTechniques : Map[ActiveTechniqueId, List[Directive]] = (
+      subCategories.flatMap( _.allDirectivesByActiveTechniques ).toMap
+   ++ activeTechniques.map( at => (at.id, at.directives)).toMap
+  )
+
+  val allActiveTechniques : Map[ActiveTechniqueId, FullActiveTechnique] = (
+      subCategories.flatMap( _.allActiveTechniques).toMap
+   ++ activeTechniques.map( at => (at.id, at)).toMap
+  )
+
+  val allActiveTechniquesByCategories : Map[ActiveTechniqueCategoryId, List[FullActiveTechnique]] = (
+      subCategories.flatMap( _.allActiveTechniquesByCategories ).toMap
+    + (id -> activeTechniques)
+  )
+
+  val allTechniques: Map[TechniqueId, (Technique, Option[DateTime])] = {
+    allActiveTechniques.flatMap { case (_, at) =>  (at.techniques.map { case(version, technique) =>
+      (TechniqueId(at.techniqueName, version) -> ((technique, at.acceptationDatetimes.get(version))))
+    }) }
+  }
+}
+
+
+/**
  * The directive repository.
  *
  * directive are instance of technique
@@ -88,6 +153,12 @@ final case class CategoryWithActiveTechniques(
  *
  */
 trait RoDirectiveRepository {
+
+  /**
+   * Get the full directive library with all information,
+   * from techniques to directives
+   */
+  def getFullDirectiveLibrary() : Box[FullActiveTechniqueCategory]
 
   /**
    * Try to find the directive with the given ID.

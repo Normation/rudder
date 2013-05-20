@@ -35,37 +35,19 @@
 package com.normation.rudder.services.servers
 
 import com.normation.inventory.domain.AgentType
-import scala.collection._
 import com.normation.rudder.domain.servers._
 import net.liftweb.common.Box
 import com.normation.cfclerk.domain.{Cf3PolicyDraftId,TechniqueId}
-import com.normation.rudder.services.policies.targetNodeConfiguration
+import com.normation.rudder.services.policies.TargetNodeConfiguration
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.{Rule,RuleId}
 
 trait NodeConfigurationService {
 
   /**
-   * Find a node configuration by its uuid
-   * @param nodeId
-   * @return
+   * Get all NodeConfigurations
    */
-  def findNode(nodeId: NodeId) : Option[NodeConfiguration]
-
-  /**
-   * Return multiple NodeConfigurations by their uuid
-   * If an uuid is not existent, it is simply skipped
-   * @param uuids
-   * @return
-   */
-  def getMultipleNodeConfigurations(uuids : Seq[NodeId]) : Set[NodeConfiguration]
-
-
-  /**
-   * Find all NodeConfigurations
-   * @return
-   */
-  def getAllNodeConfigurations() : Map[String, NodeConfiguration]
+  def getAllNodeConfigurations() : Box[Map[NodeId, NodeConfiguration]]
 
   /**
    * Update a node configuration using a targetNodeConfiguration :
@@ -74,28 +56,14 @@ trait NodeConfigurationService {
    * @param target
    * @return
    */
-  def updateNodeConfiguration(target : targetNodeConfiguration) : Box[NodeConfiguration]
-
-    /**
-   * From the list of updated rules (is it what we need) ? and the list of ALL NODES (caution, we must have 'em all)
-   * update the serials, and save them
-   */
-  def incrementSerials(rules: Seq[(RuleId,Int)], nodes : Seq[NodeConfiguration]) : Box[Seq[NodeConfiguration]]
+  def updateNodeConfiguration(target : TargetNodeConfiguration, allNodeConfiguration: Map[NodeId, NodeConfiguration]) : Box[Map[NodeId, NodeConfiguration]]
 
 
   /**
-   * Create a node configuration from a target.
-   * Hence, it will have empty current configuration
-   * @param target
-   * @return
+   * Delete a list of node configurations
+   * If a NodeConfiguration is not found, ignore it.
    */
-  def addNodeConfiguration(target : targetNodeConfiguration) : Box[NodeConfiguration]
-
-  /**
-   * Delete a NodeConfiguration by its uuid
-   * If a NodeConfiguration is not existant, throw a NotFoundException
-   */
-  def deleteNodeConfiguration(nodeConfigurationUUID:String) : Box[Unit]
+  def deleteNodeConfigurations(nodeIds:Set[NodeId]) : Box[Set[NodeId]]
 
   /**
    * Delete all node configurations
@@ -103,35 +71,33 @@ trait NodeConfigurationService {
   def deleteAllNodeConfigurations() : Box[Set[NodeId]]
 
   /**
-   * Return the NodeConfiguration that need to be commited (that have been updated, and
-   * their promises are not yet written)
+   * Write the templates of the updated NodeConfigurations.
+   * That method will write the promises for updated nodes
+   * and save corresponding node configuration *only*.
+   * If there is no modification between current and target state,
+   * nothing is done for that node configuration.
+   *
+   * Return the list of updated node configuration (and so nodes
+   * for which promises where written).
    */
-  def getUpdatedNodeConfigurations() : Seq[NodeConfiguration]
+  def writeTemplateForUpdatedNodeConfigurations(rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration]) : Box[Seq[NodeConfiguration]]
 
+  ///// pure methods /////
 
   /**
-   * Write the templates of the updated NodeConfigurations
-   * All the updated NodeConfigurations must be written
-   * @param uuids
+   * Find the NodeConfigurations having the policy name listed (it's policy name, not instance).
+   * We are looking in TARGET rule policy draft containing technique with given name
    */
-  def writeTemplateForUpdatedNodeConfigurations(uuids : Seq[NodeId]) : Box[Seq[NodeConfiguration]]
-
-  /**
-   * Rollback the configuration of the updated NodeConfigurations
-   * All the updated NodeConfigurations must be rollbacked in one shot
-   * If the input parameters contains NodeConfiguration that does not need to be roolbacked, they won't be
-   * @param uuids : the uuid of the updated NodeConfiguration
-   */
-  def rollbackNodeConfigurations(uuids : Seq[NodeId]) : Box[Unit]
-
-
-  /**
-   * Find the NodeConfigurations having all the policies name listed (it's policy name, not instance)
-   */
-  def getNodeConfigurationsMatchingPolicy(policyName : TechniqueId) : Seq[NodeConfiguration]
+  def getNodeConfigurationsMatchingPolicy(techniqueId : TechniqueId, allNodeConfigs:Map[NodeId, NodeConfiguration]) : Seq[NodeConfiguration] = {
+    allNodeConfigs.values.toSeq.filterNot( _.findDirectiveByTechnique(techniqueId).isEmpty )
+  }
 
   /**
    * Find the NodeConfigurations having the directive named (it's the directiveId)
+   * We are looking for CURRENT rule policy draft
    */
-  def getNodeConfigurationsMatchingDirective(directiveId : Cf3PolicyDraftId) : Seq[NodeConfiguration]
+  def getNodeConfigurationsMatchingDirective(cf3PolicyDraftId : Cf3PolicyDraftId, allNodeConfigs: Map[NodeId, NodeConfiguration]) : Seq[NodeConfiguration] = {
+    allNodeConfigs.values.toSeq.filter( _.currentRulePolicyDrafts.exists(x => x.draftId == cf3PolicyDraftId) )
+  }
+
 }

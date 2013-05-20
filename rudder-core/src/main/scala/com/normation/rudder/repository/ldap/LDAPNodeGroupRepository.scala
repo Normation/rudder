@@ -80,7 +80,7 @@ import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
 import com.normation.rudder.domain.RudderLDAPConstants.OC_SPECIAL_TARGET
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.RudderDit
 import com.normation.utils.Control._
 import com.unboundid.ldap.sdk._
@@ -417,6 +417,113 @@ class RoLDAPNodeGroupRepository(
     )
     findGroupWithFilter(filter)
   }
+
+
+  def getFullGroupLibrary() : Box[FullNodeGroupCategory] = {
+
+    case class AllMaps(
+        categories: Map[NodeGroupCategoryId, NodeGroupCategory]
+      , categoriesByCategory: Map[NodeGroupCategoryId, List[NodeGroupCategoryId]]
+      , targetByCategory: Map[NodeGroupCategoryId, List[FullRuleTargetInfo]]
+    )
+
+    def fromCategory(catId: NodeGroupCategoryId, maps:AllMaps): FullNodeGroupCategory = {
+      def getCat(id: NodeGroupCategoryId) = maps.categories.getOrElse(id, throw new IllegalArgumentException(s"Missing categories with id ${catId} in the list of available categories"))
+      val cat = getCat(catId)
+
+      FullNodeGroupCategory(
+          id = catId
+        , name = cat.name
+        , description = cat.description
+        , subCategories = maps.categoriesByCategory.getOrElse(catId, Nil).map { id =>
+            fromCategory(id, maps)
+          }
+        , targetInfos = maps.targetByCategory.getOrElse(catId, Nil)
+        , isSystem = cat.isSystem
+      )
+    }
+
+
+    /*
+     * strategy: load the full subtree from the root category id,
+     * then process entrie mapping them to their light version,
+     * then call fromCategory on the root (we know its id).
+     */
+
+
+    val emptyAll = AllMaps(Map(), Map(), Map())
+    import rudderDit.GROUP._
+
+    def mappingError(current:AllMaps, e:LDAPEntry, eb:EmptyBox) : AllMaps = {
+      val error = eb ?~! s"Error when mapping entry with DN '${e.dn.toString}' from node groups library"
+      logger.warn(error.messageChain)
+      current
+    }
+
+    for {
+      con     <- ldap
+      entries <- groupLibMutex.readLock( con.getTree(rudderDit.GROUP.dn) ) ?~! "The root category of the node group library seems to be missing in LDAP directory. Please check its content"
+    } yield {
+      val allMaps =  (emptyAll /: entries.toSeq) { case (current, e) =>
+         if(isACategory(e)) {
+           mapper.entry2NodeGroupCategory(e) match {
+             case Full(category) =>
+               //for categories other than root, add it in the list
+               //of its parent subcategories
+               val updatedSubCats = if(e.dn == rudderDit.GROUP.dn) {
+                 current.categoriesByCategory
+               } else {
+                 val catId = mapper.dn2NodeGroupCategoryId(e.dn.getParent)
+                 val subCats = category.id :: current.categoriesByCategory.getOrElse(catId, Nil)
+                 current.categoriesByCategory + (catId -> subCats)
+               }
+               current.copy(
+                   categories = current.categories + (category.id -> category)
+                 , categoriesByCategory =  updatedSubCats
+               )
+             case eb:EmptyBox => mappingError(current, e, eb)
+           }
+         } else if(isAGroup(e) || isASpecialTarget(e)){
+           mapper.entry2RuleTargetInfo(e) match {
+             case Full(info) =>
+               val fullRuleTarget = info.target match {
+                 case GroupTarget(groupId) =>
+                   FullGroupTarget(
+                       target = GroupTarget(groupId)
+                     , nodeGroup = mapper.entry2NodeGroup(e) match {
+                         case Full(g) => g
+                         case eb:EmptyBox => return eb //yeah, a return
+                       }
+                   )
+                 case t:NonGroupRuleTarget =>
+                   FullOtherTarget(t)
+               }
+
+               val fullInfo = FullRuleTargetInfo(
+                   target = fullRuleTarget
+                 , name = info.name
+                 , description = info.description
+                 , isEnabled = info.isEnabled
+                 , isSystem = info.isSystem
+               )
+
+               val catId = mapper.dn2NodeGroupCategoryId(e.dn.getParent)
+               val infosForCatId = fullInfo :: current.targetByCategory.getOrElse(catId, Nil)
+               current.copy(
+                   targetByCategory = current.targetByCategory + (catId -> infosForCatId)
+               )
+             case eb:EmptyBox => mappingError(current, e, eb)
+           }
+         } else {
+           //log error, continue
+           logger.warn(s"Entry with DN '${e.dn}' was ignored because it is of an unknow type. Known types are categories, active techniques, directives")
+           current
+         }
+      }
+
+      fromCategory(NodeGroupCategoryId(rudderDit.GROUP.rdnValue._1), allMaps)
+    }
+  }
 }
 
 class WoLDAPNodeGroupRepository(
@@ -536,7 +643,7 @@ class WoLDAPNodeGroupRepository(
       result           <- groupLibMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       updated          <- getGroupCategory(category.id)
       // Maybe we have to check if the parents are system or not too
-      autoArchive      <- if(autoExportOnModify && !updated.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
+      autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
                              for {
                               parents  <- getParents_NodeGroupCategory(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)

@@ -34,7 +34,6 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.rudder.domain.transporter.UpdateBatch
 import net.liftweb.common._
 import com.normation.rudder.domain.servers.NodeConfiguration
 import org.apache.commons.io.FilenameUtils
@@ -43,42 +42,29 @@ import java.io.File
 import java.io.IOException
 import com.normation.rudder.repository.LicenseRepository
 import com.normation.cfclerk.domain.PromisesFinalMoveInfo
+import com.normation.inventory.domain.NodeId
 
 trait TemplateWriter extends Loggable {
-  val licenseRepository : LicenseRepository
+  def licenseRepository : LicenseRepository
+
   def getSharesFolder() : String
 
   /**
    * Write the promises of all the nodes
    * @param updateBatch : the container for the server to be updated
    */
-  def writePromisesForMachines(updateBatch : UpdateBatch) : Box[Seq[PromisesFinalMoveInfo]]
-
-  /**
-   * Write data specific from the roles
-   */
-  def writeSpecificsData(nodeConfiguration : NodeConfiguration, newMachineFolder:String) : Unit = {
-    /*nodeConfiguration match {
-        case CopyFile(x) =>
-          for (fileName <- x.fileNames) {
-            createSymLink(fileName, newMachineFolder)
-          }
-        case _ => ;
-      }*/
-  }
-
+  def writePromisesForMachines(configuration: Map[NodeId, NodeConfiguration], rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration]) : Box[Seq[PromisesFinalMoveInfo]]
 
   def writeLicense(nodeConfiguration : NodeConfiguration, newMachineFolder:String) : Unit = {
     logger.debug("Writing licence for nodeConfiguration  " + nodeConfiguration.id);
     nodeConfiguration.isPolicyServer match {
       case true =>  copyLicenseFile(nodeConfiguration.id, newMachineFolder)
 
-
-      case false => copyLicenseFile(nodeConfiguration.targetMinimalNodeConfig.policyServerId, newMachineFolder)
+      case false => copyLicenseFile(NodeId(nodeConfiguration.targetMinimalNodeConfig.policyServerId), newMachineFolder)
     }
   }
 
-  private def copyLicenseFile(nodeConfigurationid: String, newMachineFolder:String) : Unit = {
+  private def copyLicenseFile(nodeConfigurationid: NodeId, newMachineFolder:String) : Unit = {
     licenseRepository.findLicense(nodeConfigurationid) match {
       case None => throw new Exception("Could not find license file")
       case Some(license) =>

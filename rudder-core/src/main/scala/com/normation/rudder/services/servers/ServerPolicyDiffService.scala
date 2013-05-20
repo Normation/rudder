@@ -41,17 +41,18 @@ class NodeConfigurationDiffService {
 
   def getDiff(server:NodeConfiguration) : Seq[NodeConfigurationDiff] = {
     val buffer = scala.collection.mutable.Buffer[NodeConfigurationDiff]()
-    val cps = server.getCurrentDirectives.keySet
-    val tps = server.getDirectives.keySet
+    val cps = server.currentRulePolicyDrafts.map( _.draftId).toSet
+    val tps = server.targetRulePolicyDrafts.map( _.draftId).toSet
     //added
     buffer ++= (tps -- cps).map(AddedPolicy(_))
     //deleted
     buffer ++= (cps -- tps) map(DeletedPolicy(_))
     //check for modified
-    for( cp <- (cps & tps) ) {
+    for( cpId <- (cps & tps) ) {
       val modVars = scala.collection.mutable.Buffer[ModifiedVariable]()
-      val oldInstanceVars = server.getCurrentDirective(cp).get.cf3PolicyDraft.getVariables
-      val newInstanceVars = server.getDirective(cp).get.cf3PolicyDraft.getVariables
+      val errorMessage = s"Try to find a policy draft with id ${cpId.value} in current draft for node configuration ${server.id}"
+      val oldInstanceVars = server.currentRulePolicyDrafts.find( _.draftId == cpId).getOrElse(throw new IllegalArgumentException(errorMessage)).cf3PolicyDraft.getVariables
+      val newInstanceVars = server.targetRulePolicyDrafts. find( _.draftId == cpId).getOrElse(throw new IllegalArgumentException(errorMessage)).cf3PolicyDraft.getVariables
       for {
         key <- oldInstanceVars.keySet ++ newInstanceVars.keySet
         oldVar <- oldInstanceVars.get(key)
@@ -61,7 +62,7 @@ class NodeConfigurationDiffService {
       } {
         modVars += ModifiedVariable(oldVar,newVar.values)
       }
-      if(modVars.nonEmpty) buffer += ModifiedPolicy(cp,modVars.toList)
+      if(modVars.nonEmpty) buffer += ModifiedPolicy(cpId,modVars.toList)
     }
 
     buffer.toSeq

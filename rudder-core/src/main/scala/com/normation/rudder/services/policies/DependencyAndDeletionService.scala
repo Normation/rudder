@@ -109,7 +109,7 @@ trait DependencyAndDeletionService {
    * (independently from the actual status of that directive).
    * The DontCare ModificationStatus does not filter.
    */
-  def directiveDependencies(id:DirectiveId, onlyForState:ModificationStatus = DontCare) : Box[DirectiveDependencies]
+  def directiveDependencies(id:DirectiveId, groupLib: Box[FullNodeGroupCategory], onlyForState:ModificationStatus = DontCare) : Box[DirectiveDependencies]
 
   /**
    * Delete a given item and modify all objects that depends on it.
@@ -130,7 +130,7 @@ trait DependencyAndDeletionService {
    * (independently from the actual status of that technique).
    * The DontCare ModificationStatus does not filter.
    */
-  def techniqueDependencies(id:ActiveTechniqueId, onlyForState:ModificationStatus = DontCare) : Box[TechniqueDependencies]
+  def techniqueDependencies(id:ActiveTechniqueId, groupLib: Box[FullNodeGroupCategory], onlyForState:ModificationStatus = DontCare) : Box[TechniqueDependencies]
 
   /**
    * Delete a given item and modify all objects that depends on it.
@@ -173,7 +173,6 @@ class DependencyAndDeletionServiceImpl(
   , woRuleRepository     : WoRuleRepository
   , woGroupRepository    : WoNodeGroupRepository
   , mapper               : LDAPEntityMapper
-  , targetService        : RuleTargetService
 ) extends DependencyAndDeletionService with Loggable {
 
   /**
@@ -198,7 +197,7 @@ class DependencyAndDeletionServiceImpl(
    * - have a target ;
    * - the target is enable ;
    */
-   private[this] def filterRules(rules:Seq[Rule]) : Box[Seq[Rule]] = {
+   private[this] def filterRules(rules:Seq[Rule], groupLib: FullNodeGroupCategory) : Box[Seq[Rule]] = {
         val switchableCr: Seq[(Rule, Set[RuleTarget])] =
           // only rule with "own status == true" and completly defined
           // (else their states can't change)
@@ -211,7 +210,7 @@ class DependencyAndDeletionServiceImpl(
         (sequence(switchableCr) { case (rule, targets) =>
           sequence(targets.toSeq) { target =>
             for {
-              targetInfo <- targetService.getTargetInfo(target)
+              targetInfo <- groupLib.allTargets.get(target)
               if targetInfo.isEnabled
             } yield {
               rule
@@ -231,14 +230,15 @@ class DependencyAndDeletionServiceImpl(
    * For now, we don't care about dependencies yielded by parameterized values,
    * and so we just look for rules with directive=directiveId
    */
-  override def directiveDependencies(id:DirectiveId, onlyForState:ModificationStatus = DontCare) : Box[DirectiveDependencies] = {
+  override def directiveDependencies(id:DirectiveId, boxGroupLib: Box[FullNodeGroupCategory], onlyForState:ModificationStatus = DontCare) : Box[DirectiveDependencies] = {
     for {
       con <- ldap
       configRules <- searchRules(con,id)
+      groupLib <- boxGroupLib
       filtered:Seq[Rule] <- onlyForState match {
         case DontCare => Full(configRules)
-        case OnlyEnableable => filterRules(configRules)
-        case OnlyDisableable => filterRules(configRules)
+        case OnlyEnableable => filterRules(configRules, groupLib)
+        case OnlyDisableable => filterRules(configRules, groupLib)
       }
     } yield {
       DirectiveDependencies(id,filtered.toSet)
@@ -293,7 +293,7 @@ class DependencyAndDeletionServiceImpl(
    * if that technique was switching from disabled to enabled
    * (independently from the actual status of that technique).
    */
-  def techniqueDependencies(id:ActiveTechniqueId, onlyForState:ModificationStatus = DontCare) : Box[TechniqueDependencies] = {
+  def techniqueDependencies(id:ActiveTechniqueId, boxGroupLib: Box[FullNodeGroupCategory], onlyForState:ModificationStatus = DontCare) : Box[TechniqueDependencies] = {
     for {
       con <- ldap
       directives <- roDirectiveRepository.getDirectives(id)
@@ -303,13 +303,14 @@ class DependencyAndDeletionServiceImpl(
         //if the technique is not internally enable, there is no chance that its status will ever change
         case _ => directives.filter(directive => directive.isEnabled)
       }
+      groupLib <- boxGroupLib
       piAndCrs <- sequence(filteredPis) { directive =>
         for {
           configRules <- searchRules(con,directive.id)
           filtered:Seq[Rule] <- onlyForState match {
             case DontCare => Full(configRules)
-            case OnlyEnableable => filterRules(configRules)
-            case OnlyDisableable => filterRules(configRules)
+            case OnlyEnableable => filterRules(configRules, groupLib)
+            case OnlyDisableable => filterRules(configRules, groupLib)
           }
         } yield {
           ( directive.id , (directive,filtered) )

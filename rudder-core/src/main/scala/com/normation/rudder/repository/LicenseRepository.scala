@@ -35,6 +35,7 @@
 package com.normation.rudder.repository
 
 import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.inventory.domain.NodeId
 
 /**
  * Repository des licences Nova
@@ -44,7 +45,7 @@ import com.normation.rudder.domain.licenses.NovaLicense
 trait LicenseRepository {
 
 
-  def findLicense(uuid:String) : Option[NovaLicense]
+  def findLicense(nodeId:NodeId) : Option[NovaLicense]
 
   def getAllLicense() : Seq[NovaLicense]
 
