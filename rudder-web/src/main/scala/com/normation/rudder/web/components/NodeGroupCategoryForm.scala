@@ -60,10 +60,11 @@ import bootstrap.liftweb.RudderConfig
  *
  */
 class NodeGroupCategoryForm(
-  htmlIdCategory : String,
-  nodeGroupCategory : NodeGroupCategory,
-  onSuccessCallback : (String) => JsCmd = { (String) => Noop },
-  onFailureCallback : () => JsCmd = { () => Noop }
+    htmlIdCategory    : String
+  , nodeGroupCategory : NodeGroupCategory
+  , rootCategory      : FullNodeGroupCategory
+  , onSuccessCallback : (String) => JsCmd = { (String) => Noop }
+  , onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
 
@@ -243,7 +244,7 @@ class NodeGroupCategoryForm(
     case Full(category) =>
       new WBSelectField(
         "Parent category"
-      , categoryHierarchyDisplayer.getCategoriesHierarchy().
+      , categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, exclude = Some( _.id == _nodeGroupCategory.id)).
             map { case (id, name) => (id.value -> name)}
       , parentCategoryId)  {
           override def className = "rudderBaseFieldSelectClassName"

@@ -201,17 +201,21 @@ class ModificationValidationPopup(
   import ModificationValidationPopup._
 
   private[this] val userPropertyService      = RudderConfig.userPropertyService
-  private[this] val woChangeRequestRepo      = RudderConfig.woChangeRequestRepository
   private[this] val changeRequestService     = RudderConfig.changeRequestService
   private[this] val workflowService          = RudderConfig.workflowService
   private[this] val dependencyService        = RudderConfig.dependencyAndDeletionService
   private[this] val workflowEnabled          = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
-  private[this] val directiveRepository      = RudderConfig.woDirectiveRepository
   private[this] val uuidGen                  = RudderConfig.stringUuidGenerator
   private[this] val techniqueRepo            = RudderConfig.techniqueRepository
   private[this] val asyncDeploymentAgent     = RudderConfig.asyncDeploymentAgent
-  //needed to move groups
   private[this] val woNodeGroupRepository    = RudderConfig.woNodeGroupRepository
+  private[this] val woDirectiveRepository    = RudderConfig.woDirectiveRepository
+  private[this] val woChangeRequestRepo      = RudderConfig.woChangeRequestRepository
+
+  //fonction to read state of things
+  private[this] val getGroupLib              = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  private[this] val getDirectiveLib          = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
+  private[this] val getAllNodeInfos          = RudderConfig.nodeInfoService.getAll _
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }
@@ -220,12 +224,16 @@ class ModificationValidationPopup(
   private[this] val name = if(item.isLeft) "Directive" else "Group"
   private[this] val explanation = explanationMessages(name)(action)
   // When there is no rules, we need to remove the warning message
-  private[this]  val explanationNoWarning = ("#dialogDisableWarning *" #> NodeSeq.Empty).apply(explanation)
+  private[this] val explanationNoWarning = ("#dialogDisableWarning *" #> NodeSeq.Empty).apply(explanation)
+  private[this] val allNodeInfos = getAllNodeInfos()
+  private[this] val groupLib = getGroupLib()
+  private[this] val directiveLib = getDirectiveLib()
+
   private[this] val rules = {
     if (!isANewItem) {
       item match {
         case Left((_, _, _, directive, _)) =>
-          dependencyService.directiveDependencies(directive.id).map(_.rules)
+          dependencyService.directiveDependencies(directive.id, groupLib).map(_.rules)
 
         case Right((nodeGroup, _, _)) =>
           dependencyService.targetDependencies(GroupTarget(nodeGroup.id)).map( _.rules)
@@ -339,7 +347,7 @@ class ModificationValidationPopup(
       NodeSeq.Empty
     } else {
       val cmp = new RuleGrid("remove_popup_grid", rules.toSeq, None, false)
-      cmp.rulesGrid(popup = true,linkCompliancePopup = false)
+      cmp.rulesGrid(allNodeInfos, groupLib, directiveLib, popup = true,linkCompliancePopup = false)
     }
   }
   ///////////// fields for category settings ///////////////////
@@ -567,7 +575,7 @@ class ModificationValidationPopup(
     , why:Option[String]
     ): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
-    directiveRepository.saveDirective(activeTechniqueId, directive, modId, CurrentUser.getActor, why) match {
+    woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, CurrentUser.getActor, why) match {
       case Full(optChanges) =>
         optChanges match {
           case Some(_) => // There is a modification diff, launch a deployment.

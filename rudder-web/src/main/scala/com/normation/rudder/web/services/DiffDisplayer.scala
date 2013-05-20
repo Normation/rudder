@@ -44,6 +44,7 @@ import net.liftweb.http.SHtml
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.repository.FullNodeGroupCategory
 
 
 
@@ -130,25 +131,27 @@ object DiffDisplayer {
 
   //Node groups targets Displayer
   private[this] val roNodeGroupRepository = RudderConfig.roNodeGroupRepository
-  private[this] val ruleTargetService = RudderConfig.ruleTargetService
-  private[this] implicit def displayNodeGroup(target: RuleTarget) : NodeSeq= {
-    target match {
-      case GroupTarget(nodeGroupId) =>
-        <span> Group {createGroupLink(nodeGroupId)}</span>
-      case x => ruleTargetService.getTargetInfo(x).map{ targetInfo =>
-        <span>
-          {targetInfo.name}
-          {if (targetInfo.isSystem) <span class="greyscala">(System)</span>}
-        </span>
-      }.openOr(<span> {x.target}</span>)
-    }
-  }
+
 
   // Almost the same as display Directive see comments there for more details
   def displayRuleTargets (
           oldTargets:Seq[RuleTarget]
         , newTargets:Seq[RuleTarget]
+        , groupLib: FullNodeGroupCategory
   ) : NodeSeq = {
+
+    implicit def displayNodeGroup(target: RuleTarget) : NodeSeq= {
+      target match {
+        case GroupTarget(nodeGroupId) =>
+          <span> Group {createGroupLink(nodeGroupId)}</span>
+        case x => groupLib.allTargets.get(x).map{ targetInfo =>
+            <span>
+              {targetInfo.name}
+              {if (targetInfo.isSystem) <span class="greyscala">(System)</span>}
+            </span>
+          }.getOrElse(<span> {x.target}</span>)
+      }
+    }
 
     val (unchanged,deleted) = oldTargets.partition(newTargets.contains)
     val added = newTargets.filterNot(unchanged.contains).map(Added(_))

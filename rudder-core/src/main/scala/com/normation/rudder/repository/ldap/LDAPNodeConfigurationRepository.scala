@@ -48,7 +48,7 @@ import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.cfclerk.domain.TechniqueId
-import com.normation.utils.Control.bestEffort
+import com.normation.utils.Control.{ bestEffort, sequence }
 
 class LDAPNodeConfigurationRepository(
     ldap:LDAPConnectionProvider[RwLDAPConnection],
@@ -180,22 +180,18 @@ class LDAPNodeConfigurationRepository(
   }
 
   /**
-   * Delete a server. It will first clean its roles, and keep the consistencies of data
-   * @param server
-   */
-  def deleteNodeConfiguration(server:NodeConfiguration) : Box[String] = deleteNodeConfiguration(server.id)
-
-  /**
    * Delete a node configuration.
    * Does not check the consistency of anything
    * @param server
    */
-  def deleteNodeConfiguration(id:String) : Box[String] = {
+  def deleteNodeConfigurations(ids:Set[NodeId]) : Box[Set[NodeId]] = {
     for {
       con <- ldap
-      deleted <- con.delete(rudderDit.NODE_CONFIGS.NODE_CONFIG.dn(id), true)
+      deleted <- sequence(ids.toSeq) { id =>
+                   con.delete(rudderDit.NODE_CONFIGS.NODE_CONFIG.dn(id.value), true)
+                 }
     } yield {
-      id
+      ids
     }
   }
 
@@ -221,7 +217,7 @@ class LDAPNodeConfigurationRepository(
    * Return all servers
    * @return
    */
-  def getAll() : Box[Map[String, NodeConfiguration]] = {
+  def getAll() : Box[Map[NodeId, NodeConfiguration]] = {
     ldap.flatMap { con =>
       findNodeConfigurationFromNodeConfigurationEntryDN(con, con.searchOne(rudderDit.NODE_CONFIGS.dn, ALL, "1:1").map(_.dn).toSet)
     }.map { seq => seq.map(s => (s.id,s)).toMap }

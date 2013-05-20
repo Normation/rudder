@@ -34,81 +34,72 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleVal
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.Rule
 import net.liftweb.common._
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.domain.policies.DirectiveVal
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.exceptions._
 import com.normation.utils.Control.sequence
 import com.normation.utils.Control.sequenceEmptyable
+import com.normation.rudder.repository.FullActiveTechniqueCategory
 
 trait RuleValService {
-  def findRuleVal(ruleId:RuleId) : Box[RuleVal]
+  def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory) : Box[RuleVal]
 }
 
 
 class RuleValServiceImpl (
-  val ruleRepo              : RoRuleRepository,
-  val directiveRepo         : RoDirectiveRepository,
-  val techniqueRepository   : TechniqueRepository,
-  val variableBuilderService: VariableBuilderService
+    val variableBuilderService: VariableBuilderService
 ) extends RuleValService with Loggable {
 
-  private[this] def getContainer(piId : DirectiveId, ruleId:RuleId) : Box[Option[DirectiveVal]]= {
-    directiveRepo.getDirective(piId) match {
-      case e:Failure => e
-      case Empty => Failure("Cannot find Directive with id %s when building Rule %s".format(piId.value, ruleId.value))
-      case Full(pi) if !(pi.isEnabled) =>
+  private[this] def getContainer(piId : DirectiveId, ruleId:RuleId, directiveLib: FullActiveTechniqueCategory) : Box[Option[DirectiveVal]]= {
+    directiveLib.allDirectives.get(piId) match {
+      case None => Failure("Cannot find Directive with id %s when building Rule %s".format(piId.value, ruleId.value))
+      case Some((_, directive) ) if !(directive.isEnabled) =>
         logger.debug("The Directive with id %s is disabled and we don't generate a DirectiveVal for Rule %s".format(piId.value, ruleId.value))
         Full(None)
-      case Full(pi) if (pi.isEnabled) =>
-        directiveRepo.getActiveTechnique(piId) match {
-          case e:Failure => e
-          case Empty => Failure("Cannot find the active Technique on which Directive with id %s is based when building Rule %s".format(piId.value, ruleId.value))
-          case Full(upt) if !(upt.isEnabled) =>
-             Failure("We are trying to apply the Directive with id %s which is based on disabled Technique %s".format(piId.value, upt.techniqueName))
-          case Full(upt) if upt.isEnabled =>
-            for {
-              policyPackage <- techniqueRepository.get(TechniqueId(upt.techniqueName, pi.techniqueVersion))
-              varSpecs = policyPackage.rootSection.getAllVariables ++ policyPackage.systemVariableSpecs :+ policyPackage.trackerVariableSpec
-              vared <- variableBuilderService.buildVariables(varSpecs, pi.parameters)
-              exists <- {
-                if (vared.isDefinedAt(policyPackage.trackerVariableSpec.name)) {
-                  Full("OK")
-                } else {
-                  logger.error("Cannot find key %s in Directive %s when building Rule %s".format(policyPackage.trackerVariableSpec.name, piId.value, ruleId.value))
-                  Failure("Cannot find key %s in Directibe %s when building Rule %s".format(policyPackage.trackerVariableSpec.name, piId.value, ruleId.value))
-                }
-              }
-              trackerVariable <- vared.get(policyPackage.trackerVariableSpec.name)
-              otherVars = vared - policyPackage.trackerVariableSpec.name
-              } yield {
-                logger.debug("Creating a DirectiveVal %s from the ruleId %s".format(upt.techniqueName, ruleId.value))
+      case Some((fullActiveDirective, _) ) if !(fullActiveDirective.isEnabled) =>
+        logger.debug(s"The Active Technique with id ${fullActiveDirective.id.value} is disabled and we don't generate a DirectiveVal for Rule ${ruleId.value}")
+        Full(None)
+      case Some((fullActiveTechnique, directive)) =>
+        for {
+          policyPackage <- Box(fullActiveTechnique.techniques.get(directive.techniqueVersion)) ?~! "The required version of technique is not available for directive"
+          varSpecs = policyPackage.rootSection.getAllVariables ++ policyPackage.systemVariableSpecs :+ policyPackage.trackerVariableSpec
+          vared <- variableBuilderService.buildVariables(varSpecs, directive.parameters)
+          exists <- {
+            if (vared.isDefinedAt(policyPackage.trackerVariableSpec.name)) {
+              Full("OK")
+            } else {
+              logger.error("Cannot find key %s in Directive %s when building Rule %s".format(policyPackage.trackerVariableSpec.name, piId.value, ruleId.value))
+              Failure("Cannot find key %s in Directibe %s when building Rule %s".format(policyPackage.trackerVariableSpec.name, piId.value, ruleId.value))
+            }
+          }
+          trackerVariable <- vared.get(policyPackage.trackerVariableSpec.name)
+          otherVars = vared - policyPackage.trackerVariableSpec.name
+        } yield {
+            logger.debug("Creating a DirectiveVal %s from the ruleId %s".format(fullActiveTechnique.techniqueName, ruleId.value))
 
-                Some(DirectiveVal(
-                    policyPackage.id,
-                    pi.id,
-                    pi.priority,
-                    policyPackage.trackerVariableSpec.toVariable(trackerVariable.values),
-                    otherVars,
-                    vared
-                ))
-              }
+            Some(DirectiveVal(
+                policyPackage,
+                directive.id,
+                directive.priority,
+                policyPackage.trackerVariableSpec.toVariable(trackerVariable.values),
+                otherVars,
+                vared
+            ))
         }
     }
   }
 
-  override def findRuleVal(ruleId:RuleId) : Box[RuleVal] = {
+  override def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory) : Box[RuleVal] = {
+    val targets      = rule.targets
+    val directiveIds = rule.directiveIds.toSeq
+
     for {
-      rule         <- ruleRepo.get(ruleId)
-      targets      = rule.targets
-      directiveIds = rule.directiveIds.toSeq
-      containers   <- sequence(directiveIds) { getContainer(_, ruleId) }
+      containers   <- sequence(directiveIds) { getContainer(_, rule.id, directiveLib) }
     } yield {
       RuleVal(
         rule.id,

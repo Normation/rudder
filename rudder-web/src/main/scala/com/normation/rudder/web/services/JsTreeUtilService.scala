@@ -125,6 +125,14 @@ class JsTreeUtilService(
       sort(x.name , y.name)
     }
 
+    def sortFullActiveTechniqueCategory(x: FullActiveTechniqueCategory,y: FullActiveTechniqueCategory) : Boolean = {
+      sort(x.name , y.name)
+    }
+
+    def sortFullActiveTechnique(x: FullActiveTechnique,y: FullActiveTechnique) : Boolean = {
+      sort(x.techniqueName.value , y.techniqueName.value)
+    }
+
     def sortPt(x:Technique,y:Technique) : Boolean = {
       sort(x.name , y.name)
     }

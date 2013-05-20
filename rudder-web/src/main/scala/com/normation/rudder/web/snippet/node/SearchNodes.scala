@@ -72,27 +72,37 @@ class SearchNodes extends StatefulSnippet with Loggable {
   val lock = new Object
   private[this] val quickSearchService = RudderConfig.quickSearchService
   private[this] val queryParser = RudderConfig.cmdbQueryParser
+  private[this] val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
   //the popup component to create the group
   private[this] val creationPopup = new LocalSnippet[CreateCategoryOrGroupPopup]
 
+  private[this] val groupLibrary = getFullGroupLibrary() match {
+    case Full(x) => x
+    case eb:EmptyBox =>
+      val e = eb ?~! "Major error: can not get the node group library"
+      logger.error(e.messageChain)
+      throw new Exception(e.messageChain)
+  }
+
   private[this] def setCreationPopup(query : Option[Query], serverList : Box[Seq[NodeInfo]]) : Unit = {
-         creationPopup.set(Full(new CreateCategoryOrGroupPopup(
-            // create a totally invalid group
-             Some(new NodeGroup(
-                    null,
-                    null,
-                    null,
-                    query,
-                    true,
-                    serverList.openOr(Seq[NodeInfo]()).map(_.id).toSet,
-                    true,
-                    false
-                  )
-             ),
-            onSuccessCategory= { _ => Noop },
-            onSuccessGroup = { (node:NodeGroup, _) => RedirectTo("""/secure/nodeManager/groups#{"groupId":"%s"}""".format(node.id.value)) }
-         )))
+      creationPopup.set(Full(new CreateCategoryOrGroupPopup(
+          // create a totally invalid group
+          Some(new NodeGroup(
+              null,
+              null,
+              null,
+              query,
+              true,
+              serverList.openOr(Seq[NodeInfo]()).map(_.id).toSet,
+              true,
+              false
+              )
+          )
+        , rootCategory = groupLibrary
+        , onSuccessCategory= { _ => Noop }
+        , onSuccessGroup = { (node:NodeGroup, _) => RedirectTo("""/secure/nodeManager/groups#{"groupId":"%s"}""".format(node.id.value)) }
+      )))
   }
 
   val searchNodeComponent = new LocalSnippet[SearchNodeComponent]
@@ -178,7 +188,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       val regex = """.+\[(.+)\]""".r
       s match {
         case regex(id) =>
-          SetHtml("serverDetails", (new ShowNodeDetailsFromNode(NodeId(id)).display())) &
+          SetHtml("serverDetails", (new ShowNodeDetailsFromNode(NodeId(id), groupLibrary).display())) &
           updateLocationHash(id)
         case _ =>
           Alert("No server was selected")
@@ -213,7 +223,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
    */
   private[this] def parseJsArg(): JsCmd = {
     def displayDetails(nodeId:String) = {
-      SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId))).display())
+      SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display())
     }
 
     def executeQuery(query:String) : JsCmd = {
@@ -283,7 +293,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   private def showNodeDetails(s:String) : JsCmd = {
     val arr = s.split("\\|")
     val nodeId = arr(1)
-    SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId))).display()) &
+    SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display()) &
     updateLocationHash(nodeId) &
     JsRaw("""scrollToElement("serverDetails");""".format(nodeId))
   }

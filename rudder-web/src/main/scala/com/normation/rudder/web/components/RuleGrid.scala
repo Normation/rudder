@@ -34,16 +34,20 @@
 
 package com.normation.rudder.web.components
 
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.services.policies.RuleTargetService
-import com.normation.rudder.repository._
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.domain.reports.bean._
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.repository._
+import com.normation.rudder.services.reports.ReportingService
+import com.normation.rudder.services.nodes.NodeInfoService
 import net.liftweb.http.js._
 import JsCmds._
-import com.normation.rudder.services.reports.ReportingService
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.services.nodes.NodeInfoService
 import JE._
 import net.liftweb.common._
 import net.liftweb.http._
@@ -55,10 +59,6 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.exceptions.TechnicalException
 import com.normation.utils.Control.sequence
 import com.normation.utils.HashcodeCaching
-import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.domain.reports.bean._
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 
@@ -81,22 +81,26 @@ class RuleGrid(
     showCheckboxColumn:Boolean = true
 ) extends DispatchSnippet with Loggable {
 
-  private[this] val targetInfoService   = RudderConfig.ruleTargetService
-  private[this] val directiveRepository = RudderConfig.roDirectiveRepository
-  private[this] val roRuleRepository    = RudderConfig.roRuleRepository
+  private[this] val getFullNodeGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
+  private[this] val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied _
+
+  private[this] val reportingService = RudderConfig.reportingService
+  private[this] val getAllNodeInfos  = RudderConfig.nodeInfoService.getAll _
+  private[this] val techniqueRepository = RudderConfig.techniqueRepository
+
+  //used to error tempering
   private[this] val woRuleRepository    = RudderConfig.woRuleRepository
   private[this] val uuidGen             = RudderConfig.stringUuidGenerator
-  private[this] val techniqueRepository = RudderConfig.techniqueRepository
-  private[this] val reportingService    = RudderConfig.reportingService
-  private[this] val nodeInfoService     = RudderConfig.nodeInfoService
 
+
+  /////  local variables /////
   private[this] val htmlId_rulesGridId = "grid_" + htmlId_rulesGridZone
-
   private[this] val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   private[this] val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
   private[this] val tableId_reportsPopup = "popupReportsGrid"
 
-  private[this] val directiveCache = scala.collection.mutable.Map[DirectiveId, Box[(ActiveTechnique, Directive)]]()
+
 
   def templatePath = List("templates-hidden", "reports_grid")
   def template() =  Templates(templatePath) match {
@@ -107,12 +111,41 @@ class RuleGrid(
   def reportTemplate = chooseTemplate("reports", "report", template)
 
   def dispatch = {
-    case "rulesGrid" => { _:NodeSeq => rulesGrid() }
+    case "rulesGrid" => { _:NodeSeq => rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib()) }
   }
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 
-  def rulesGrid(popup:Boolean = false, linkCompliancePopup:Boolean = true) : NodeSeq = {
+  def rulesGridWithUpdatedInfo(popup: Boolean = false, linkCompliancePopup:Boolean = true) = {
+    rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), popup, linkCompliancePopup)
+  }
+
+
+  def rulesGrid(
+      allNodeInfos: Box[Set[NodeInfo]]
+    , groupLib    : Box[FullNodeGroupCategory]
+    , directiveLib: Box[FullActiveTechniqueCategory]
+    , popup       : Boolean = false
+    , linkCompliancePopup:Boolean = true
+  ) : NodeSeq = {
+    showRulesDetails(popup,rules,linkCompliancePopup, allNodeInfos, groupLib, directiveLib) match {
+      case eb:EmptyBox =>
+        val e = eb ?~! "Error when trying to get information about rules"
+        logger.error(e.messageChain)
+        e.rootExceptionCause.foreach { ex =>
+          logger.error("Root exception was:", ex)
+        }
+
+        <div id={htmlId_rulesGridZone}>
+          <div id={htmlId_modalReportsPopup} class="nodisplay">
+            <div id={htmlId_reportsPopup} ></div>
+          </div>
+          <span class="error">{e.messageChain}</span>
+        </div>
+
+
+      case Full(xml) =>
+
     (
         <div id={htmlId_rulesGridZone}>
           <div id={htmlId_modalReportsPopup} class="nodisplay">
@@ -132,7 +165,7 @@ class RuleGrid(
               </tr>
             </thead>
             <tbody>
-            {showRulesDetails(popup,rules,linkCompliancePopup)}
+            {xml}
             </tbody>
           </table>
           <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
@@ -183,18 +216,26 @@ class RuleGrid(
       ).replaceAll("#table_var#",jsVarNameForId(htmlId_rulesGridId))
     )))
   }
+  }
 
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  private[this] def showRulesDetails(popup:Boolean, rules:Seq[Rule],linkCompliancePopup:Boolean) : NodeSeq = {
+  private[this] def showRulesDetails(
+      popup:Boolean
+    , rules:Seq[Rule]
+    , linkCompliancePopup:Boolean
+    , allNodeInfos: Box[Set[NodeInfo]]
+    , groupLib    : Box[FullNodeGroupCategory]
+    , directiveLib: Box[FullActiveTechniqueCategory]) : Box[NodeSeq] = {
     sealed trait Line { val rule:Rule }
 
     case class OKLine(
-        rule:Rule,
-        compliance:Option[ComplianceLevel],
-        trackerVariables: Seq[(Directive,ActiveTechnique,Technique)],
-        targets:Set[RuleTargetInfo]
+        rule             : Rule
+      , compliance       : Option[ComplianceLevel]
+      , applicationStatus: ApplicationStatus
+      , trackerVariables : Seq[(Directive,ActiveTechnique,Technique)]
+      , targets          : Set[RuleTargetInfo]
     ) extends Line with HashcodeCaching
 
     case class ErrorLine(
@@ -203,50 +244,7 @@ class RuleGrid(
         targets:Box[Set[RuleTargetInfo]]
     ) extends Line with HashcodeCaching
 
-    sealed trait ApplicationStatus
-    sealed trait NotAppliedStatus extends ApplicationStatus
-    sealed trait AppliedStatus extends ApplicationStatus
 
-    final case object NotAppliedNoPI extends NotAppliedStatus
-    final case object NotAppliedNoTarget extends NotAppliedStatus
-    final case object NotAppliedCrDisabled extends NotAppliedStatus
-
-    final case object FullyApplied extends AppliedStatus
-    final case class PartiallyApplied(disabled: Seq[(Directive, ActiveTechnique, Technique)]) extends AppliedStatus
-
-
-    //is a cr applied for real ?
-    def isApplied(
-        cr:Rule,
-        trackerVariables: Seq[(Directive, ActiveTechnique, Technique)],
-        target:Set[RuleTargetInfo]
-    ) : ApplicationStatus = {
-
-      if(cr.isEnabled) {
-
-        val isAllTargetsEnabled = target.filter(x => !x.isEnabled).isEmpty
-        val nodeTargetSize = (target.flatMap(target => targetInfoService.getNodeIds(target.target).map(_.size)):\ 0)  ((res,acc) => res+acc)
-        if (nodeTargetSize !=0)
-          if(isAllTargetsEnabled) {
-            val disabled = trackerVariables.filterNot { case (pi,upt, pt) => pi.isEnabled && upt.isEnabled }
-            if(disabled.size == 0) {
-              FullyApplied
-            }
-            else if(trackerVariables.size - disabled.size > 0) {
-              PartiallyApplied(disabled)
-            }
-            else {
-              NotAppliedNoPI
-            }
-          } else {
-            NotAppliedNoTarget
-          }
-        else
-          NotAppliedNoTarget
-      } else {
-        NotAppliedCrDisabled
-      }
-    }
 
     /*
      * For the Directive:
@@ -422,40 +420,48 @@ class RuleGrid(
       }
     }
 
-    {
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////// actual start of the logic of the grid displaying /////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////
 
-    }
+
+
+    def displayGridLines(directivesLib: FullActiveTechniqueCategory, groupsLib: FullNodeGroupCategory, nodes: Set[NodeInfo]) : NodeSeq = {
     //for each rule, get all the required info and display them
     val lines:Seq[Line] = rules.map { rule =>
 
-      val trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]] =
+      val trackerVariables: Box[Seq[(Directive, ActiveTechnique, Technique)]] =
         sequence(rule.directiveIds.toSeq) { id =>
-          directiveCache.getOrElseUpdate(id, directiveRepository.getActiveTechniqueAndDirective(id)) match {
-            case Full((activeTechnique, directive)) =>
+          directivesLib.allDirectives.get(id) match {
+            case Some((activeTechnique, directive)) =>
               techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
                 case None => Failure("Can not find Technique for activeTechnique with name %s referenced in Rule with ID %s".format(activeTechnique.techniqueName, rule.id))
-                case Some(technique) => Full((directive,activeTechnique,technique))
+                case Some(technique) => Full((directive, activeTechnique.toActiveTechnique, technique))
               }
-              case e:EmptyBox => //it's an error if the directive ID is defined and found but it is not attached to an activeTechnique
-                val error = e ?~! "Can not find Directive or Active Technique for Directive with ID %s referenced in Rule with ID %s".format(id, rule.id)
+            case None => //it's an error if the directive ID is defined and found but it is not attached to an activeTechnique
+                val error = Failure(s"Can not find Directive with ID '${id.value}' referenced in Rule with ID '${rule.id.value}'")
                 logger.debug(error.messageChain, error)
                 error
             }
         }
 
       val targetsInfo = sequence(rule.targets.toSeq) { target =>
-        targetInfoService.getTargetInfo(target)
+        groupsLib.allTargets.get(target) match {
+          case Some(t) => Full(t.toTargetInfo)
+          case None => Failure(s"Can not find full information for target '${target}' referenced in Rule with ID '${rule.id.value}'")
+        }
       }.map(x => x.toSet)
 
       (trackerVariables, targetsInfo) match {
         case (Full(seq), Full(targets)) =>
-          val compliance = isApplied(rule, seq, targets) match {
+          val applicationStatus = getRuleApplicationStatus(rule, groupsLib, directivesLib, nodes)
+          val compliance =  applicationStatus match {
             case _:NotAppliedStatus => Full(None)
             case _ =>  computeCompliance(rule)
           }
           compliance match {
             case e:EmptyBox => ErrorLine(rule, trackerVariables, targetsInfo)
-            case Full(value) =>  OKLine(rule, value, seq, targets)
+            case Full(value) =>  OKLine(rule, value, applicationStatus, seq, targets)
           }
         case (x,y) =>
           //the Rule has some error, try to disactivate it
@@ -480,17 +486,17 @@ class RuleGrid(
             if (line.rule.isEnabledStatus) "Enabled" else "Disabled"
           }</td>
           <td><b>{ // EFFECTIVE STATUS
-            isApplied(line.rule, line.trackerVariables, line.targets) match {
+            line.applicationStatus match {
               case FullyApplied => Text("In application")
               case PartiallyApplied(seq) =>
                   val tooltipId = Helpers.nextFuncName
-                  val why = seq.map { case (pi, upt, pt) => "Policy " + pi.name + " disabled" }.mkString(", ")
+                  val why = seq.map { case (at, d) => "Policy " + d.name + " disabled" }.mkString(", ")
 
                  <span class="tooltip tooltipable" title="" tooltipid={tooltipId}>Partially applied</span>
                  <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
               case x:NotAppliedStatus =>
                 val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
-                val nodeSize = (line.targets.flatMap(targetInfo => targetInfoService.getNodeIds(targetInfo.target).map(_.size)) :\ 0) ((res,acc) => res+acc)
+                val nodeSize = groupsLib.getNodeIds(line.rule.targets, nodes).size
                 val conditions = Seq(
                     ( line.rule.isEnabled, "rule disabled" ),
                     ( line.trackerVariables.size > 0, "No policy defined"),
@@ -513,7 +519,7 @@ class RuleGrid(
             displayTargets(line.targets)
           }</td>
           <td style="text-align:right;">{ //  COMPLIANCE
-            buildComplianceChart(line.compliance, line.rule, linkCompliancePopup)
+            buildComplianceChart(line.compliance, line.rule, linkCompliancePopup, nodes)
           }</td>
           { if (!popup)
             <td class="complianceTd">{ //  DETAILLED COMPLIANCE
@@ -592,7 +598,16 @@ class RuleGrid(
           }
         </tr>
       } }
+    } }
+
+    for {
+      directivesLib <- directiveLib
+      groupsLib     <- groupLib
+      nodes         <- allNodeInfos
+    } yield {
+      displayGridLines(directivesLib, groupsLib, nodes)
     }
+
   }
 
   private[this] def computeCompliance(rule: Rule) : Box[Option[ComplianceLevel]] = {
@@ -612,14 +627,14 @@ class RuleGrid(
     }
   }
 
-  private[this] def buildComplianceChart(level:Option[ComplianceLevel], rule: Rule, linkCompliancePopup:Boolean) : NodeSeq = {
+  private[this] def buildComplianceChart(level:Option[ComplianceLevel], rule: Rule, linkCompliancePopup:Boolean, allNodes: Set[NodeInfo]) : NodeSeq = {
     level match {
       case None => Text("N/A")
       case Some(Applying) => Text("Applying")
       case Some(NoAnswer) => Text("No answer")
       case Some(Compliance(percent)) =>  {
         val text = Text(percent.toString + "%")
-        if(linkCompliancePopup) SHtml.a({() => showPopup(rule)}, text)
+        if(linkCompliancePopup) SHtml.a({() => showPopup(rule, allNodes)}, text)
         else text
       }
     }
@@ -628,7 +643,7 @@ class RuleGrid(
 /*********************************************
   Popup for the reports
  ************************************************/
-  private[this] def createPopup(rule: Rule) : NodeSeq = {
+  private[this] def createPopup(rule: Rule, allNodes: Set[NodeInfo]) : NodeSeq = {
 
     def showReportDetail(batch : Box[Option[ExecutionBatch]]) : NodeSeq = {
     ( "#reportLine" #> {batch match {
@@ -637,10 +652,10 @@ class RuleGrid(
             case Full(Some(reports)) =>
               reports.getNodeStatus().map {
                 nodeStatus =>
-                   nodeInfoService.getNodeInfo(nodeStatus.nodeId) match {
-                     case Full(nodeInfo)  => {
-                      val tooltipid = Helpers.nextFuncName
-                      val xml:NodeSeq = (
+                   allNodes.find ( _.id == nodeStatus.nodeId) match {
+                     case Some(nodeInfo)  => {
+                       val tooltipid = Helpers.nextFuncName
+                       val xml:NodeSeq = (
                               "#node *" #>
                                 <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.nodeId.value)}>
                                   <span class="curspoint">
@@ -652,9 +667,8 @@ class RuleGrid(
                        )(nodeLineXml)
                        xml
                      }
-                     case x:EmptyBox =>
-                     logger.error( (x?~! "An error occured when trying to load node %s".format(nodeStatus.nodeId.value)),x)
-                     <div class="error">Node with ID "{nodeStatus.nodeId.value}" is invalid</div>
+                     case None =>
+                       <div class="error">Node with ID "{nodeStatus.nodeId.value}" is invalid</div>
                    }
               }
     }}
@@ -710,8 +724,8 @@ class RuleGrid(
   </div>
   }
 
-  private[this] def showPopup(rule: Rule) : JsCmd = {
-    val popupHtml = createPopup(rule)
+  private[this] def showPopup(rule: Rule, allNodes: Set[NodeInfo]) : JsCmd = {
+    val popupHtml = createPopup(rule, allNodes)
     SetHtml(htmlId_reportsPopup, popupHtml) &
       JsRaw("""
         var #table_var#;
