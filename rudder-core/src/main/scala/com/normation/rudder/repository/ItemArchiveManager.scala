@@ -158,13 +158,23 @@ trait ItemArchiveManager {
   /**
    * Import the item archive from HEAD (corresponding to last commit)
    */
-  def importHeadAll(actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  private[this] def lastGitCommitId = GitCommitId("HEAD")
   
-  def importHeadRules(actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadAll(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+    importAll(lastGitCommitId, actor, reason: Option[String], includeSystem)
+  }
   
-  def importHeadTechniqueLibrary(actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadRules(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+    importRules(lastGitCommitId, actor, reason: Option[String], includeSystem)
+  }
   
-  def importHeadGroupLibrary(actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadTechniqueLibrary(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+    importTechniqueLibrary(lastGitCommitId, actor, reason: Option[String], includeSystem)
+  }
+
+  def importHeadGroupLibrary(actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+    importGroupLibrary(lastGitCommitId, actor, reason: Option[String], includeSystem)
+  }
   
   
   /**
