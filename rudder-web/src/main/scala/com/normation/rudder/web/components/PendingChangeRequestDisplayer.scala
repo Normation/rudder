@@ -70,30 +70,42 @@ object PendingChangeRequestDisplayer extends Loggable{
         val pendingChangeRequestLink =( NodeSeq.Empty /: crs) {
           (res,cr) => res ++
           {
-          if (CurrentUser.checkRights(Read("validator"))||CurrentUser.checkRights(Read("deployer"))||cr.owner == CurrentUser.getActor.name)
-            <li><a href={JsInitContextLinkUtil.changeRequestLink(cr.id)}>CR #{cr.id}: {cr.info.name}</a></li>
-            else
+            if (CurrentUser.checkRights(Read("validator"))||CurrentUser.checkRights(Read("deployer"))||cr.owner == CurrentUser.getActor.name) {
+              <li><a href={JsInitContextLinkUtil.changeRequestLink(cr.id)}>CR #{cr.id}: {cr.info.name}</a></li>
+            } else {
               <li>CR #{cr.id}</li>
-          }
+          } }
         }
-
         ("#changeRequestList *+" #> pendingChangeRequestLink ).apply(xml)
     }
 
   }
 
+  private type checkFunction[T] = (T,Boolean) => Box[Seq[ChangeRequest]]
+
+  private[this] def checkChangeRequest[T] (
+      xml   : NodeSeq
+    , id    : T
+    , check : checkFunction[T]
+  ) = {
+    if (RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS) {
+      val crs = check(id,true)
+      displayPendingChangeRequest(xml,crs)
+    }  else {
+      // Workflow disabled, nothing to display
+      NodeSeq.Empty
+    }
+  }
+
   def checkByRule(xml:NodeSeq,ruleId:RuleId) = {
-    val crs = roChangeRequestRepo.getByRule(ruleId,true)
-    displayPendingChangeRequest(xml,crs)
+    checkChangeRequest(xml,ruleId,roChangeRequestRepo.getByRule)
   }
 
   def checkByGroup(xml:NodeSeq,groupId:NodeGroupId) = {
-    val crs = roChangeRequestRepo.getByNodeGroup(groupId,true)
-    displayPendingChangeRequest(xml,crs)
+    checkChangeRequest(xml,groupId,roChangeRequestRepo.getByNodeGroup)
   }
 
   def checkByDirective(xml:NodeSeq,directiveId:DirectiveId) = {
-    val crs = roChangeRequestRepo.getByDirective(directiveId,true)
-    displayPendingChangeRequest(xml,crs)
+    checkChangeRequest(xml,directiveId,roChangeRequestRepo.getByDirective)
   }
 }
