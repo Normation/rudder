@@ -228,7 +228,13 @@ class NodeGroupForm(
     new WBRadioField(
         "Group type",
         Seq("static", "dynamic"),
-        if(nodeGroup.isDynamic) "dynamic" else "static"
+        if(nodeGroup.isDynamic) "dynamic" else "static",
+        {
+           //how to display label ? Capitalize, and with a tooltip
+          case "static" => <span class="tooltip" title="The list of member nodes is defined at creation and will not change automatically.">Static</span>
+          case "dynamic" => <span class="tooltip" title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
+          case _ => NodeSeq.Empty // guarding against NoMatchE
+       }
     ) {
       override def setFilter = notNull _ :: trim _ :: Nil
     }
