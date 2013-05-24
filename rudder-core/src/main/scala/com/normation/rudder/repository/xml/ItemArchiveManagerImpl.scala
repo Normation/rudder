@@ -327,27 +327,6 @@ class ItemArchiveManagerImpl(
       archiveId
     }
   }
-  private[this] def lastGitCommitId = GitCommitId(revisionProvider.getAvailableRevTreeId.getName)
-
-  override def importHeadAll(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
-    logger.info("Importing full archive from HEAD")
-    this.importAll(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
-  }
-
-  override def importHeadRules(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
-    logger.info("Importing rules archive from HEAD")
-    this.importRules(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
-  }
-
-  override def importHeadTechniqueLibrary(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
-    logger.info("Importing technique library archive from HEAD")
-    this.importTechniqueLibrary(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
-  }
-
-  override def importHeadGroupLibrary(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
-    logger.info("Importing groups archive from HEAD")
-    this.importGroupLibrary(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
-  }
 
   override def getFullArchiveTags : Box[Map[DateTime,GitArchiveId]] = this.getTags()
 
