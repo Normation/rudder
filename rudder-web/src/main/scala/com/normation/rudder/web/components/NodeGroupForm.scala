@@ -216,7 +216,7 @@ class NodeGroupForm(
       "save" ->   {_nodeGroup match {
             case Some(x) => SHtml.ajaxSubmit("Update", onSubmit _)  %  ("id", saveButtonId)
             case None => SHtml.ajaxSubmit("Save", onSubmit _) % ("id", saveButtonId)
-          }},
+      }},
       "delete" -> deleteButton(),          
       "notifications" -> updateAndDisplayNotifications()
     ) 
@@ -356,7 +356,16 @@ class NodeGroupForm(
     )
   }
   
-  private[this] val piStatic = new WBRadioField("Group type: ", Seq("static", "dynamic"), ((_nodeGroup.map( x => x.isDynamic).getOrElse(false)) ? "dynamic" | "static")) {
+  private[this] val piStatic = new WBRadioField(
+        "Group type: "
+      , Seq("static", "dynamic")
+      , ((_nodeGroup.map( x => x.isDynamic).getOrElse(false)) ? "dynamic" | "static")
+      , {
+         //how to display label ? Capitalize, and with a tooltip
+        case "static" => <span class="tooltip" title="The list of member nodes is defined at creation and will not change automatically.">Static</span>
+        case "dynamic" => <span class="tooltip" title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
+        case _ => NodeSeq.Empty // guarding against NoMatchException
+      }) {
     override def displayNameHtml = Some(<b>{displayName}</b>)
     override def setFilter = notNull _ :: trim _ :: Nil
   }
