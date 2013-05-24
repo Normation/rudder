@@ -160,13 +160,23 @@ trait ItemArchiveManager {
   /**
    * Import the item archive from HEAD (corresponding to last commit)
    */
-  def importHeadAll(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  private[this] def lastGitCommitId = GitCommitId("HEAD")
   
-  def importHeadRules(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadAll(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+    importAll(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
+  }
   
-  def importHeadTechniqueLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadRules(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+    importRules(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
+  }
   
-  def importHeadGroupLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitCommitId]
+  def importHeadTechniqueLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+    importTechniqueLibrary(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
+  }
+
+  def importHeadGroupLibrary(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason: Option[String], includeSystem:Boolean = false) : Box[GitCommitId] = {
+    importGroupLibrary(lastGitCommitId, commiter, modId, actor, reason: Option[String], includeSystem)
+  }
   
   /**
    * Rollback method
