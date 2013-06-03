@@ -55,6 +55,7 @@ import com.normation.exceptions.TechnicalException
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.queries.RegexFilter
 import net.liftweb.common.EmptyBox
+import com.normation.rudder.services.queries.NotRegexFilter
 
 sealed trait CriterionComparator {
   val id:String
@@ -82,6 +83,7 @@ case object LesserEq  extends OrderedComparator { override val id = "lteq"} //lo
 
 trait SpecialComparator extends BaseComparator
 case object Regex extends SpecialComparator { override val id = "regex" }
+case object NotRegex extends SpecialComparator { override val id = "notRegex" }
 
 trait ComparatorList {
   def comparators : Seq[CriterionComparator]
@@ -94,7 +96,7 @@ trait ComparatorList {
 }
 
 object BaseComparators extends ComparatorList {
-  override def comparators : Seq[CriterionComparator] = Seq(Exists, NotExists, Equals, NotEquals) :+ Regex
+  override def comparators : Seq[CriterionComparator] = Seq(Exists, NotExists, Equals, NotEquals, Regex, NotRegex)
 }
 
 object OrderedComparators extends ComparatorList {
@@ -126,6 +128,7 @@ sealed trait CriterionType  extends ComparatorList {
   def toLDAP(value:String) : Box[String]
 
   def buildRegex(attribute:String,value:String):RegexFilter = RegexFilter(attribute,value)
+  def buildNotRegex(attribute:String,value:String):NotRegexFilter = NotRegexFilter(attribute,value)
 
   //build the ldap filter for given attribute name and comparator
   def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter =
@@ -139,6 +142,7 @@ sealed trait CriterionType  extends ComparatorList {
       case (Full(v),GreaterEq) => GTEQ(attributeName,v)
       case (Full(v),LesserEq) => LTEQ(attributeName,v)
       case (Full(v),Regex) => HAS(attributeName) //"default, non interpreted regex
+      case (Full(v),NotRegex) => HAS(attributeName) //"default, non interpreted regex
       case (f,c) => throw new TechnicalException("Can not build a filter with a non legal value for comparator '%s': %s'".format(c,f))
   }
 
@@ -171,6 +175,7 @@ case object StringComparator extends TStringComparator {
     case NotEquals => NOT(escapedFilter(attributeName,value))
     case NotExists => NOT(HAS(attributeName))
     case Regex => HAS(attributeName) //"default, non interpreted regex
+    case NotRegex => HAS(attributeName) //"default, non interpreted regex
     case _ => HAS(attributeName) //default to Exists
   }
 }
@@ -189,12 +194,13 @@ case object OrderedStringComparator extends TStringComparator {
     case GreaterEq => GTEQ(attributeName,value)
     case LesserEq => LTEQ(attributeName,value)
     case Regex => HAS(attributeName) //"default, non interpreted regex
+    case NotRegex => HAS(attributeName) //"default, non interpreted regex
     case _ => HAS(attributeName) //default to Exists
   }
 }
 
 case object DateComparator extends CriterionType {
-  override val comparators = OrderedComparators.comparators.filterNot( _ == Regex)
+  override val comparators = OrderedComparators.comparators.filterNot( c => c == Regex || c == NotRegex)
   val fmt = "dd/MM/yyyy"
   val frenchFmt = DateTimeFormat.forPattern(fmt).withLocale(Locale.FRANCE)
 
@@ -410,8 +416,13 @@ case class JsonComparator(key:String,splitter:String = "",numericvalue:Boolean =
   }
 
   override def buildRegex(attribute:String,value:String) : RegexFilter = {
-  val regexp = ".*%s.*".format(splitJson(attribute,value).getOrElse(Nil).mkString(".*"))
-  RegexFilter(key,regexp)
+    val regexp = ".*%s.*".format(splitJson(attribute,value).getOrElse(Nil).mkString(".*"))
+    RegexFilter(key,regexp)
+  }
+
+  override def buildNotRegex(attribute:String,value:String) : NotRegexFilter = {
+    val regexp = ".*%s.*".format(splitJson(attribute,value).getOrElse(Nil).mkString(".*"))
+    NotRegexFilter(key,regexp)
   }
 
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
@@ -426,6 +437,7 @@ case class JsonComparator(key:String,splitter:String = "",numericvalue:Boolean =
     case NotEquals => NOT(JsonQueryfromkeyvalues(attributeName,value))
     case NotExists => NOT(HAS(key))
     case Regex => HAS(key) //default, non interpreted regex
+    case NotRegex => HAS(key) //default, non interpreted regex
     case _ => HAS(key) //default to Exists
   }
  }
@@ -437,6 +449,8 @@ case class Criterion(val name:String, val cType:CriterionType) extends HashcodeC
   require(cType != null, "Criterion Type must be defined")
 
   def buildRegex(attribute:String,value:String) = cType.buildRegex(attribute,value)
+
+  def buildNotRegex(attribute:String,value:String) = cType.buildNotRegex(attribute,value)
 
   def buildFilter(comp:CriterionComparator,value:String) = cType.buildFilter(name,comp,value)
 }
