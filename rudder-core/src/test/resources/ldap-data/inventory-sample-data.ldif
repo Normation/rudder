@@ -117,6 +117,7 @@ agentName: Nova
 policyServerId:root-policy-server
 nodeHostname: node0.normation.com
 inventoryDate: 20130515123456.948Z
+ipHostNumber: 192.168.56.100
 
 # Example of the same (almost) node, but not in ou=nodes
 dn: nodeId=node0_0,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
@@ -155,6 +156,8 @@ localAccountName: root
 localAdministratorAccountName: root
 agentName: Nova
 policyServerId:root-policy-server
+ipHostNumber: 192.168.56.101
+ipHostNumber: 127.0.0.1
 
 # Example of a node
 dn: nodeId=node2,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
@@ -174,6 +177,8 @@ localAdministratorAccountName: root
 agentName: Nova
 policyServerId:root-policy-server
 nodeHostname: node2.normation.com
+ipHostNumber: 192.168.56.102
+ipHostNumber: 127.0.0.1
 
 dn: nodeId=node3,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
@@ -189,6 +194,8 @@ localAdministratorAccountName: root
 agentName: Nova
 policyServerId:root-policy-server
 nodeHostname: node3.normation.com
+ipHostNumber: 192.168.56.103
+ipHostNumber: 127.0.0.1
 
 dn: nodeId=node4,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
@@ -205,6 +212,7 @@ localAdministratorAccountName: root
 agentName: Community
 policyServerId:root-policy-server
 nodeHostname: node4.normation.com
+ipHostNumber: 127.0.0.1
 
 dn: nodeId=node5,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
