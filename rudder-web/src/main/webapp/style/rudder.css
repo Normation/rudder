@@ -1172,6 +1172,7 @@ div#navigation {
 div#logo {
    padding: 5px 50px 2px 0;
    height: 113px;
+   display: inline;
 }
 
 #deploymentStatus {
