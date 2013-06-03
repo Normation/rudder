@@ -260,7 +260,7 @@ class CommitAndDeployChangeRequestServiceImpl(
         change <- change.changes.change
         done   <- change.diff match {
                     case DeleteNodeGroupDiff(n) =>
-                      woNodeGroupRepo.delete(n.id, modId, change.actor, change.reason).map( _ => n.id)
+                      dependencyService.cascadeDeleteTarget(GroupTarget(n.id), modId, change.actor, change.reason).map(_ => n.id )
                     case AddNodeGroupDiff(n) =>
                      Failure("You should not be able to create a group with a change request")
                     case ModifyToNodeGroupDiff(n) =>
