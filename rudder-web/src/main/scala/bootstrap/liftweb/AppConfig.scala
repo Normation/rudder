@@ -622,7 +622,8 @@ object RudderConfig extends Loggable {
     "accept_new_server:check_hostname_unicity",
     AcceptedInventory,
     queryProcessor,
-    ditQueryDataImpl
+    ditQueryDataImpl,
+    psMngtService
   )
   private[this] lazy val addNodeToDynGroup: UnitAcceptInventory with UnitRefuseInventory = new AddNodeToDynGroup(
     "add_server_to_dyngroup",
