@@ -237,7 +237,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   def getNewestReportOnNode(nodeId:NodeId) : Box[Option[Reports]] = {
 
     val array = Seq(nodeId.value)
-    val query = baseQuery + s" and nodeid = ? order by executionDate desc limit 1"
+    val query = baseQuery + s" and nodeid = ? order by executionTimeStamp desc limit 1"
     jdbcTemplate.query(query,array.toArray[AnyRef],ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
       case seq => Full(seq.headOption)
@@ -247,7 +247,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
 
 
 
-    def getNewestReports() : Box[Option[Reports]] = {
+  def getNewestReports() : Box[Option[Reports]] = {
     jdbcTemplate.query(baseQuery + " order by executionTimeStamp desc limit 1",
           ReportsMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")

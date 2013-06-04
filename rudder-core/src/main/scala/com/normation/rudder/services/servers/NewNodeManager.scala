@@ -66,7 +66,8 @@ import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.domain.queries._
 import java.lang.IllegalArgumentException
 import com.normation.eventlog.ModificationId
-
+import java.net.InetAddress
+import org.apache.commons.net.util.SubnetUtils
 
 /**
  * A trait to manage the acceptation of new node in Rudder
@@ -735,6 +736,7 @@ class AcceptHostnameAndIp(
   , inventoryStatus  : InventoryStatus
   , queryProcessor   : QueryProcessor
   , ditQueryData     : DitQueryData
+  , policyServerNet  : PolicyServerManagementService
 ) extends UnitAcceptInventory {
 
 
@@ -802,6 +804,24 @@ class AcceptHostnameAndIp(
     }
   }
 
+  /**
+   * Check if the given addresses are contained in any of the given networks (like 192.168.0.0/24)
+   * Return the list of IP in authorized network.
+   */
+  private[this] def keepIpsInAuthorizedNetwork(ips: Seq[String], networks: Seq[SubnetUtils#SubnetInfo]) : Seq[String]= {
+    ips.flatMap { ip =>
+      try {
+        if(networks.exists( _.isInRange(ip))) {
+          Some(ip)
+        } else {
+          None
+        }
+      } catch {
+        case e:Exception => None //can be an invalid ip format, or an IPv6 one
+      }
+    }
+  }
+
 
   override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = {
 
@@ -809,13 +829,24 @@ class AcceptHostnameAndIp(
     val ips = sms.map( _.node.serverIps).flatten.filter( InetAddressUtils.getAddressByName(_) match {
       case None => false
       //we don't want to check for duplicate loopback and the like - we expect them to be duplicated
+      //we also want to ONLY check for IP in authorized network, as it is legit to have two
+      //node with two interfaces, one public and one local (and the same)
       case Some(ip) => !(ip.isAnyLocalAddress || ip.isLoopbackAddress || ip.isMulticastAddress )
     })
 
     for {
+      authorizedNetworks   <- policyServerNet.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID)
+      validNetworks        =  authorizedNetworks.flatMap { net =>
+                                try {
+                                  Some(new SubnetUtils(net).getInfo)
+                                } catch {
+                                  case e:Exception => None
+                                }
+                              }
+      fitleredIps          =  keepIpsInAuthorizedNetwork(ips, validNetworks)
       noDuplicateHostnames <- checkDuplicateString(hostnames, "hostname")
-      noDuplicateIPs       <- checkDuplicateString(ips, "IP")
-      noDuplicateInDB      <- queryForDuplicateHostnameAndIp(hostnames,ips)
+      noDuplicateIPs       <- checkDuplicateString(fitleredIps, "IP")
+      noDuplicateInDB      <- queryForDuplicateHostnameAndIp(hostnames, fitleredIps)
     } yield {
       sms
     }
