@@ -128,7 +128,7 @@ class SearchNodeComponent(
   var activateSubmitButton = true
   var initUpdate = true // this is true when we arrive on the page, or when we've done an search
 
-  var errors = Buffer[Box[String]]()
+  val errors = Buffer[Box[String]]()
 
   def head() : NodeSeq = {
     <head>
@@ -181,13 +181,12 @@ class SearchNodeComponent(
         srvList = queryProcessor.process(newQuery)
         activateSubmitButton = false
         initUpdate = true
-        ajaxGridRefresh
       } else {
         // ********* ERRORS FOUND ***********"
         srvList = Empty
         activateSubmitButton = true
-        ajaxCriteriaRefresh & ajaxGridRefresh
       }
+      ajaxCriteriaRefresh & ajaxGridRefresh
     }
 
     /**
