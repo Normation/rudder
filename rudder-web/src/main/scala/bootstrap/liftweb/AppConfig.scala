@@ -662,7 +662,8 @@ class AppConfig extends Loggable {
     "accept_new_server:check_hostname_unicity",
     AcceptedInventory,
     queryProcessor,
-    ditQueryData
+    ditQueryData,
+    psMngtService
   )
 
   @Bean
