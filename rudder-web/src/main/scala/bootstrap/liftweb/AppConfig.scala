@@ -618,13 +618,15 @@ object RudderConfig extends Loggable {
     woLdapNodeGroupRepository,
     ldapNodeConfigurationRepository,
     AcceptedInventory)
+
   private[this] lazy val acceptHostnameAndIp: UnitAcceptInventory = new AcceptHostnameAndIp(
-    "accept_new_server:check_hostname_unicity",
-    AcceptedInventory,
-    queryProcessor,
-    ditQueryDataImpl,
-    psMngtService
+      "accept_new_server:check_hostname_unicity"
+    , AcceptedInventory
+    , queryProcessor
+    , ditQueryDataImpl
+    , psMngtService
   )
+
   private[this] lazy val addNodeToDynGroup: UnitAcceptInventory with UnitRefuseInventory = new AddNodeToDynGroup(
     "add_server_to_dyngroup",
     roLdapNodeGroupRepository,
@@ -828,6 +830,7 @@ object RudderConfig extends Loggable {
     roLdapDirectiveRepository,
     techniqueRepositoryImpl,
     variableBuilderService)
+
   private[this] lazy val psMngtService: PolicyServerManagementService = new PolicyServerManagementServiceImpl(
     roLdapDirectiveRepository, woLdapDirectiveRepository, asyncDeploymentAgentImpl)
   private[this] lazy val historizationService = new HistorizationServiceImpl(

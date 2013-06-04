@@ -804,7 +804,6 @@ class AcceptHostnameAndIp(
     }
   }
 
-
   /**
    * Check if the given addresses are contained in any of the given networks (like 192.168.0.0/24)
    * Return the list of IP in authorized network.
