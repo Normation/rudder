@@ -624,7 +624,7 @@ object RudderConfig extends Loggable {
     , AcceptedInventory
     , queryProcessor
     , ditQueryDataImpl
-    , policyServerManagementService
+    , psMngtService
   )
 
   private[this] lazy val addNodeToDynGroup: UnitAcceptInventory with UnitRefuseInventory = new AddNodeToDynGroup(
