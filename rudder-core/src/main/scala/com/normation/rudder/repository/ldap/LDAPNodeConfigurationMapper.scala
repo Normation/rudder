@@ -100,7 +100,7 @@ class LDAPNodeConfigurationMapper(
               e(A_POLICY_INSTANCE_UUID) ?~! errorMessage(A_POLICY_INSTANCE_UUID)
             } else if(e.isA(OC_TARGET_CR_POLICY_INSTANCE)){
               e(A_TARGET_POLICY_INSTANCE_UUID) ?~! errorMessage(A_TARGET_POLICY_INSTANCE_UUID)
-            } else Failure("Entry %s is not mappable to policy instance (unknow policy instance type)".format(e.dn))
+            } else Failure("Entry %s is not mappable to policy instance (unknown policy instance type)".format(e.dn))
          } else Failure("Entry %s is not mappable to policy instance (it misses object class %s)".format(e.dn,OC_ABSTRACT_POLICY_INSTANCE))
         }
         policyId <- e(A_REFERENCE_POLICY_TEMPLATE_UUID).map(x => PolicyPackageName(x)) ?~! errorMessage(A_REFERENCE_POLICY_TEMPLATE_UUID)
