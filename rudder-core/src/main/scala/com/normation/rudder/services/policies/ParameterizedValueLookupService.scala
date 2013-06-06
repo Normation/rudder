@@ -338,9 +338,22 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
         }
         nodeIds <- sequence(targets.toSeq){target => directiveTargetService.getNodeIds(target)}
         cf1 = logger.trace("Fetched nodes ids : %s".format(nodeIds))
-        nodeInfos <- sequence(nodeIds.flatten.distinct) { nodeId =>
-          nodeInfoService.getNodeInfo(nodeId)
-        }
+
+        //here, we don't want to fail on missing node.
+        //that will be handle in cardinality check
+        nodeInfos = ( (nodeIds.flatten.distinct).flatMap { nodeId =>
+                        val info = nodeInfoService.getNodeInfo(nodeId)
+                        info match {
+                          case eb:EmptyBox => //log
+                            val e = eb ?~! "Can not lookup accessor %s on node %s".format(targetAccessorName, nodeId.value)
+                            logger.warn(e)
+                            e.rootExceptionCause.foreach { ex =>
+                              logger.warn("Root exception was: ", ex)
+                            }
+                          case _ => //nothing
+                        }
+                        info
+                     } )
         cf2 = logger.trace("Fetched nodes infos : %s".format(nodeInfos))
         cardinalityOk <- {
           if(!sourceVariableSpec.multivalued && nodeInfos.size != 1)
