@@ -100,7 +100,7 @@ class LDAPNodeConfigurationMapper(
               e(A_DIRECTIVE_UUID) ?~! errorMessage(A_DIRECTIVE_UUID)
             } else if(e.isA(OC_TARGET_RULE_WITH_CF3POLICYDRAFT)){
               e(A_TARGET_DIRECTIVE_UUID) ?~! errorMessage(A_TARGET_DIRECTIVE_UUID)
-            } else Failure("Entry %s is not mappable to directive (unknow directive type)".format(e.dn))
+            } else Failure("Entry %s is not mappable to directive (unknown directive type)".format(e.dn))
          } else Failure("Entry %s is not mappable to directive (it misses object class %s)".format(e.dn,OC_ABSTRACT_RULE_WITH_CF3POLICYDRAFT))
         }
         techniqueId <- e(A_TECHNIQUE_UUID).map(x => TechniqueName(x)) ?~! errorMessage(A_TECHNIQUE_UUID)
