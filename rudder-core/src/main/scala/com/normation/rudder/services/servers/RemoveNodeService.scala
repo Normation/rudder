@@ -23,7 +23,7 @@ import com.normation.inventory.services.core.WriteOnlyMachineRepository
 import com.normation.inventory.services.core.ReadOnlyMachineRepository
 import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
 import com.normation.inventory.ldap.core.InventoryDit
-
+import net.liftweb.util.Helpers.tryo
 
 trait RemoveNodeService {
   
@@ -36,7 +36,7 @@ trait RemoveNodeService {
    * - clean the groups
    * - clean the AcceptedNodeConfiguration
    */
-  def removeNode(nodeId : NodeId, actor:EventActor) : Box[Seq[LDIFChangeRecord]]
+  def removeNode(nodeId : NodeId, actor:EventActor) : (Box[Seq[LDIFChangeRecord]],Box[Unit])
 }
 
 
@@ -62,13 +62,16 @@ class RemoveNodeServiceImpl(
    *        if so, copy the container to the removed inventory
    *        if not, move the container to the removed inventory
    * 
+   * Return a couple with 2 boxes, one about the LDIF change, and one containing the result of the clear cache
+   * The main goal is to separate the clear cache as it could fail while the node is correctly deleted.
+   * A failing clear cache should not be considered an error when deleting a Node.
    */
-  def removeNode(nodeId : NodeId, actor:EventActor) : Box[Seq[LDIFChangeRecord]] = {
+  def removeNode(nodeId : NodeId, actor:EventActor) : (Box[Seq[LDIFChangeRecord]],Box[Unit]) = {
     logger.debug("Trying to remove node %s from the LDAP".format(nodeId.value))
     nodeId.value match {
-      case "root" => Failure("The root node cannot be deleted from the nodes list.")
+      case "root" => (Failure("The root node cannot be deleted from the nodes list."),Full(()))
       case _ => {
-        for {
+        val moved = for {
           nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
 
           moved <- groupLibMutex.writeLock { atomicDelete(nodeId, actor) } ?~! 
@@ -90,6 +93,8 @@ class RemoveNodeServiceImpl(
         } yield {
           moved
         }
+        val cacheCleared = deleteNodeConfiguration(nodeId)
+        (moved,cacheCleared)
       }
     }
   }
@@ -99,7 +104,6 @@ class RemoveNodeServiceImpl(
     for {
       cleanGroup            <- deleteFromGroups(nodeId, actor) ?~! "Could not remove the node '%s' from the groups".format(nodeId.value)
       cleanNode             <- deleteFromNodes(nodeId) ?~! "Could not remove the node '%s' from the nodes list".format(nodeId.value)
-      cleanNodeConfiguration<- deleteAllNodesConfiguration ?~! "Could not clear all cache"
       moveNodeInventory     <- fullNodeRepo.move(nodeId, AcceptedInventory, RemovedInventory)
     } yield {
       cleanNode ++ moveNodeInventory
@@ -131,7 +135,14 @@ class RemoveNodeServiceImpl(
       () // unit is expected
     }
   }
-  
+
+  private def deleteNodeConfiguration(nodeId:NodeId) : Box[Unit]= {
+    logger.debug("Trying to clear node %s configuration".format(nodeId.value))
+    tryo {
+      nodeConfigurationService.deleteNodeConfiguration(nodeId.value)
+    }
+  }
+
   /**
    * Look for the groups containing this node in their nodes list, and remove the node
    * from the list
