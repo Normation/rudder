@@ -22,6 +22,7 @@ import com.normation.rudder.web.rest.RestUtils._
 import scala.util.parsing.json.JSONObject
 import net.liftweb.common.Failure
 import com.normation.rudder.services.policies.RuleTargetServiceImpl
+import net.liftweb.common.Loggable
 
 class RestRuleManagement (
     readRule : RoRuleRepository
@@ -29,13 +30,13 @@ class RestRuleManagement (
   , targetInfoService : RuleTargetService
   , uuidGen           : StringUuidGenerator
   , asyncDeploymentAgent : AsyncDeploymentAgent
-) extends RestHelper {
+) extends RestHelper with Loggable{
   serve( "api" / "rule" prefix {
 
     case Nil JsonGet _ =>
       implicit val action = "listRules"
       readRule.getAll(false) match {
-        case Full(rules) => toJsonResponse("N/A", JArray(rules.map(toJSONshort(_)).toList))
+        case Full(rules) => toJsonResponse("N/A", ( "rules" -> JArray(rules.map(toJSONshort(_)).toList)))
         case eb: EmptyBox => val message = (eb ?~ ("Could not fetch Rules")).msg
           toJsonResponse("N/A", message, RestError)
 
@@ -60,7 +61,7 @@ class RestRuleManagement (
       writeRule.delete(ruleId, modId, actor, Some(s"Delete rule ${id.toUpperCase}) ")) match {
       case Full(x) => asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
         val message = s"Rule ${id} deleted"
-        toJsonResponse(id, message)
+        toJsonResponse(id, message, RestOk)
       case eb:EmptyBox => val fail = eb ?~ (s"Could not find Rule ${id}" )
         val message = s"Could not delete Rule ${id} cause is: ${fail.msg}"
         toJsonResponse(id, message, RestError)
@@ -78,17 +79,17 @@ class RestRuleManagement (
       val actor = getActor(req)
       val ruleId = RuleId(id)
       println(req)
-      println(body)
+      println( req.json)
       req.json match {
 
         case Full(JString("disable")) =>
           ChangeRuleStatus(ruleId,modId,actor,false)
         case Full(JString("enable")) =>
-          ChangeRuleStatus(ruleId,modId,actor,false)
-        case Full(JField("update",value)) =>         toJsonResponse(id, "not impl", RestError)
+          ChangeRuleStatus(ruleId,modId,actor,true)
+        case Full(JObject(List(JField("update",value)))) =>  updateRule(ruleId,modId,actor,value)
         case Full(JObject(List(JField("clone",value)))) =>    clone(ruleId,modId,actor,value)
-        case Full(arg) => toJsonResponse(id, s"error in arguments: ${arg}", RestError)
-        case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)
+        case Full(arg) => toJsonResponse(id, s"error in arguments: ${arg}", RestError)("nothing")
+        case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)("Empty")
       }
     }
 
@@ -131,10 +132,36 @@ class RestRuleManagement (
           toJsonResponse(id, message, RestError)
       }
     }
-    case nimp => println(nimp)
-         toJsonResponse("nothing", "rien", RestError)
+    case content => println(content)
+         toJsonResponse("nothing", "rien", RestError)("error")
 
   })
+
+  def updateRule(ruleId: RuleId, modId : ModificationId, actor : EventActor, value : JValue) = {
+    implicit val action = "Update Rule"
+    val Jrule = extract(value)
+    logger.error(Jrule)
+    readRule.get(ruleId) match {
+      case Full(rule) =>
+        val updatedRule = Jrule.updateRule(rule)
+        writeRule.update(
+            updatedRule
+          , modId
+          , actor
+          , Some(s"Modify Rule ${rule.name} (id:${rule.id.value}) ")
+        ) match {
+          case Full(x) =>  asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
+            val message = s"Rule ${rule.name} (id:${rule.id.value}) modified"
+              toJsonResponse(ruleId.value, message, RestOk)
+          case eb:EmptyBox => val fail = eb ?~ (s"Could not find Rule ${ruleId.value}" )
+              val message = s"Could not modify Rule ${rule.name} (id:${ruleId.value}) cause is: ${fail.msg}."
+             toJsonResponse(ruleId.value, message, RestError)
+          }
+      case eb:EmptyBox => val fail = eb ?~ (s"Could not find Rule ${ruleId.value}" )
+        val message = s"Could not modify Rule ${ruleId.value} cause is: ${fail.msg}."
+        toJsonResponse(ruleId.value, message, RestError)
+    }
+  }
 
   def ChangeRuleStatus(id : RuleId, modId : ModificationId, actor : EventActor, status : Boolean)={
 
@@ -143,9 +170,9 @@ class RestRuleManagement (
     implicit val action = if (status) "enableRule" else "disableRule"
     readRule.get(id) match {
       case Full(rule) =>
-        if (rule.isEnabled==status){
+        if (rule.isEnabledStatus==status){
           val message = s"Rule ${id.value} already ${past}"
-          toJsonResponse(id.value, message)
+          toJsonResponse(id.value, message, RestOk)
         }
         else
           writeRule.update(
@@ -156,7 +183,7 @@ class RestRuleManagement (
           ) match {
             case Full(x) =>  asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
               val message = s"Rule ${rule.name} (id:${rule.id.value}) ${past}"
-             toJsonResponse(id.value, message)
+             toJsonResponse(id.value, message, RestOk)
             case eb:EmptyBox => val fail = eb ?~ (s"Could not find Rule ${id}" )
               val message = s"Could not ${act} Rule ${rule.name} (id:${rule.id.value}) cause is: ${fail.msg}."
              toJsonResponse(id.value, message, RestError)
@@ -168,6 +195,7 @@ class RestRuleManagement (
   }
 
   def clone(id:RuleId,modId:ModificationId,actor:EventActor,value:JValue) = {
+    implicit val action = "clone"
       readRule.get(id) match {
         case Full(rule) =>
          val name = value \\ "name" match{
@@ -230,7 +258,7 @@ class RestRuleManagement (
       case _ => None
     }
 
-   val targets = json \\ "targets" match{
+   val targets:Option[Set[RuleTarget]] = json \\ "targets" match{
       case JArray(list) => Some(list.flatMap{
         case JString(target) => RuleTarget.unser(target)
         case _ => None
@@ -243,7 +271,7 @@ class RestRuleManagement (
     }
     JRule(name,shortDescription,longDescription,directived,targets,isEnabled)
   }
-  def toJSON (rule : Rule) : JValue = {
+  def toJSON (rule : Rule) : JObject = {
 
   ("rule" ->
     ("id" -> rule.id.value) ~
@@ -271,5 +299,14 @@ class RestRuleManagement (
     , directives       : Option[Set[DirectiveId]] = None
     , targets          : Option[Set[RuleTarget]] = None
     , isEnabled        : Option[Boolean]     = None
-  )
+  ) {
+    def updateRule(rule:Rule) = {
+      val updateName = name.getOrElse(rule.name)
+
+      rule.copy(name=updateName)
+
+    }
+  }
+
+
 }

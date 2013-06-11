@@ -69,16 +69,24 @@ object RestUtils {
   def getActor(req:Req) : EventActor = EventActor(getUsername(req).getOrElse("UnknownRestUser"))
 
 
-def toJsonResponse(id:String, message:JValue, status:HttpStatus = RestOk)(implicit action : String = "rest") = {
-  JsonResponse((action ->
-    ("id" -> id) ~
-    ("status" -> status.status) ~
-    ("message" -> message)
-  ), status.code)
+  def toJsonResponse(id:String, message:String, status:HttpStatus)(implicit action : String) : LiftResponse = {
+
+    RestUtils.toJsonResponse(id, toJsonMessage(message), status)(action)
 
   }
-}
 
+  def toJsonResponse(id:String, message:JObject, status:HttpStatus = RestOk)(implicit action : String = "rest") : LiftResponse = {
+	JsonResponse(
+	    ("action" -> action) ~
+        ("id"     -> id) ~
+        ("status" -> status.status) ~
+        message
+      , status.code)
+
+  }
+
+  def toJsonMessage (message:String) : JObject = ("message" -> message)
+}
 
 
 sealed trait HttpStatus {
