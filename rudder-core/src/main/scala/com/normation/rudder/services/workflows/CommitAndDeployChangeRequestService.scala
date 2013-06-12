@@ -164,12 +164,25 @@ class CommitAndDeployChangeRequestServiceImpl(
           Full("OK")
         case Some(group) =>
           for {
-            (g, _) <- roNodeGroupRepo.getNodeGroup(group.id)
-            check  <- if(g == group) {
-                              Full("OK")
-                            } else {
-                              Failure(s"Group ${group.name} (id: ${group.id.value}) has diverged since change request creation")
-                            }
+
+            (currentGroup,_) <- roNodeGroupRepo.getNodeGroup(group.id)
+
+            check  <- { /*
+                         * We need to remove nodes from dynamic groups, it has no sense to compare them.
+                         * In a static group, the node list is important and can be very different,
+                         * and depends on when the change request was made.
+                         * Maybe a future upgrade will be to check the parameters first and then check the nodelist.
+                         */
+                        val correctGroup = if (currentGroup.isDynamic) {
+                                             currentGroup.copy(serverList = group.serverList)
+                                           } else {
+                                             currentGroup
+                                           }
+                        if(correctGroup == group) {
+                          Full("OK")
+                        } else {
+                          Failure(s"Group ${group.name} (id: ${group.id.value}) has diverged since change request creation")
+                      } }
             } yield {
               check
             }
