@@ -706,11 +706,19 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
   private[this] def removeNode(nodeId: NodeId) : JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
     removeNodeService.removeNode(nodeId, modId, CurrentUser.getActor) match {
-      case Full(entry) =>
-        logger.info("Successfully removed node %s from Rudder".format(nodeId.value))
+      case (Full(entry),cacheCleared) =>
+        // Check if cache was correctly cleared, for now only log if it fails or not, but still a success.
+        cacheCleared match {
+          case Full(()) =>
+            logger.info("Successfully removed node %s from Rudder".format(nodeId.value))
+          case eb:EmptyBox =>
+            val msg = eb ?~! "Node %s was removed from Rudder but caches could not be cleaned, please run 'Clear caches'".format(nodeId.value)
+            logger.warn(msg)
+        }
+
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
         onSuccess
-      case eb:EmptyBox => 
+      case (eb:EmptyBox,_) =>
         val e = eb ?~! "Could not remove node %s from Rudder".format(nodeId.value)
         logger.error(e.messageChain)
         onFailure(nodeId)
