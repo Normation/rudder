@@ -393,24 +393,24 @@ function dropFilterArea(tableId) {
 
 function activateButtonOnFormChange(containerDivId, buttonId, status) {
 	if ("false"==status)
-		$('#'+buttonId).prop("disabled", true);
+		$('#'+buttonId).button( "option", "disabled", true );
 	else 
-		$('#'+buttonId).prop("disabled", false);
+		$('#'+buttonId).button( "option", "disabled", false );
 	
 	// all change on the form
-	$('#'+containerDivId+' > form').change(function() { $('#'+buttonId).prop("disabled", false);;});
+	$('#'+containerDivId+' > form').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
 	// This one is for all input (text, textarea, password... and yes, button)
-	$('#'+containerDivId+' :input').change(function() { $('#'+buttonId).prop("disabled", false);;});
+	$('#'+containerDivId+' :input').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
 	// this one is for the checkbox when using IE
 	//if ($.browser.msie) 
 	//	$('#'+containerDivId+' > form :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).prop("disabled", false);}});
 
 	// all change on not the form
-	$('#'+containerDivId+' :radio').change(function() { $('#'+buttonId).prop("disabled", false);;});
+	$('#'+containerDivId+' :radio').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
 	// This one is for all input (text, textarea, password... and yes, button)
-	$('#'+containerDivId+' :input').keyup(function() { $('#'+buttonId).prop("disabled", false);;});
+	$('#'+containerDivId+' :input').keyup(function() { $('#'+buttonId).button( "option", "disabled", false );});
 
-	$('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).prop("disabled", false);}});
+	$('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).button( "option", "disabled", false );}});
 
 }
 
@@ -418,8 +418,9 @@ function activateButtonOnFormChange(containerDivId, buttonId, status) {
  *
  */
 function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, gridId, status, optionnalButton) {
+
 	if ("false"==status)
-		$('#'+buttonId).prop("disabled", true);
+		$('#'+buttonId).button( "option", "disabled", true )
 	else
 		activateButtonDeactivateGrid(buttonId, gridId);
 
@@ -441,11 +442,11 @@ function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, grid
 }
 
 function activateButtonDeactivateGrid(buttonId, gridId, optionnalButton) {
-     $('#'+buttonId).prop("disabled", false);
+     $('#'+buttonId).button( "option", "disabled", false );
      $('#'+gridId).addClass("desactivatedGrid");
 
      if ((optionnalButton)&&("" != optionnalButton))
-      $('#'+optionnalButton).prop("disabled", true);
+      $('#'+optionnalButton).button( "option", "disabled", true );
 }
 
 function scrollToElement(elementId) {

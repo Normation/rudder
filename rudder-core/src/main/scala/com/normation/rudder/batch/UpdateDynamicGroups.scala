@@ -44,6 +44,7 @@ import com.normation.rudder.domain.Constants.DYNGROUP_MINIMUM_UPDATE_INTERVAL
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
+import com.normation.inventory.domain.NodeId
 
 //Message to send to the updater manager to start a new update of all dynamic groups
 case object StartUpdate
@@ -144,6 +145,14 @@ class UpdateDynamicGroups(
         }
     }
 
+    private[this] def displayNodechange (nodes : Seq[NodeId]) : String = {
+      if (nodes.nonEmpty) {
+        nodes.map(_.value).mkString("[ ",", "," ]")
+      } else {
+        "nothing"
+      }
+    }
+
     override protected def messageHandler = {
 
       //
@@ -186,13 +195,15 @@ class UpdateDynamicGroups(
         } {
           boxRes match {
             case e:EmptyBox =>
-              val error = (e ?~! "Error when updating dynamic group %s:".format(id))
+              val error = (e ?~! "Error when updating dynamic group %s".format(id.value))
               logger.error(error.messageChain)
             case Full(diff) =>
-              logger.debug("Group %s: adding [%s], removing [%s]".format(id,diff.added.map(_.value), diff.removed.map(_.value)))
+              val addedNodes = displayNodechange(diff.added)
+              val removedNodes = displayNodechange(diff.removed)
+              logger.debug("Group %s: adding %s, removing %s".format(id.value, addedNodes, removedNodes))
               //if the diff is not empty, start a new deploy
               if(diff.added.nonEmpty || diff.removed.nonEmpty) {
-                logger.info("Dynamic group %s: added node with id: [%s], removed: [%s]".format(id,diff.added.map(_.value), diff.removed.map(_.value)))
+                logger.info("Dynamic group %s: added node with id: %s, removed: %s".format(id.value, addedNodes, removedNodes))
                 asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
               }
           }
