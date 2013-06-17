@@ -198,8 +198,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
 
    <logger name="non-compliant-reports" level="info" additivity="false">
      <appender-ref ref="REPORTLOG" />
-     <!-- comment the following appender if you don't want to have logs about non compliant reports in both stdout and reportlog -->
-     <appender-ref ref="STDOUT" />
    </logger>
 
 </configuration>
