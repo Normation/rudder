@@ -56,6 +56,7 @@ import com.normation.rudder.services.eventlog.WorkflowEventLogService
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
+import com.normation.rudder.domain.nodes.NodeGroup
 
 
 /**
@@ -144,13 +145,13 @@ class CommitAndDeployChangeRequestServiceImpl(
       directiveChanges.changes.initialState match {
         case None => //ok, we were creating a directive, can't diverge
           Full("OK")
-        case Some((t, directive, s)) =>
+        case Some((t, initialDirective, s)) =>
           for {
-            currentDirective <- roDirectiveRepo.getDirective(directive.id)
-            check            <- if(currentDirective == directive) {
+            currentDirective <- roDirectiveRepo.getDirective(initialDirective.id)
+            check            <- if ( compareDirectives(initialDirective, currentDirective) ) {
                                   Full("OK")
                                 } else {
-                                  Failure(s"Directive ${directive.name} (id: ${directive.id.value}) has diverged since change request creation")
+                                  Failure(s"Directive ${initialDirective.name} (id: ${initialDirective.id.value}) has diverged since change request creation")
                                 }
             } yield {
               check
@@ -162,26 +163,16 @@ class CommitAndDeployChangeRequestServiceImpl(
       nodeGroupChanges.changes.initialState match {
         case None => //ok, we were creating a group, can't diverge
           Full("OK")
-        case Some(group) =>
+        case Some(initialGroup) =>
           for {
 
-            (currentGroup,_) <- roNodeGroupRepo.getNodeGroup(group.id)
+            (currentGroup,_) <- roNodeGroupRepo.getNodeGroup(initialGroup.id)
 
-            check  <- { /*
-                         * We need to remove nodes from dynamic groups, it has no sense to compare them.
-                         * In a static group, the node list is important and can be very different,
-                         * and depends on when the change request was made.
-                         * Maybe a future upgrade will be to check the parameters first and then check the nodelist.
-                         */
-                        val correctGroup = if (currentGroup.isDynamic) {
-                                             currentGroup.copy(serverList = group.serverList)
-                                           } else {
-                                             currentGroup
-                                           }
-                        if(correctGroup == group) {
+            check  <- {
+                        if ( compareGroups(initialGroup,currentGroup) ) {
                           Full("OK")
                         } else {
-                          Failure(s"Group ${group.name} (id: ${group.id.value}) has diverged since change request creation")
+                          Failure(s"Group ${initialGroup.name} (id: ${initialGroup.id.value}) has diverged since change request creation")
                       } }
             } yield {
               check
@@ -193,19 +184,79 @@ class CommitAndDeployChangeRequestServiceImpl(
       ruleChanges.changes.initialState match {
         case None => //ok, we were creating a rule, can't diverge
           Full("OK")
-        case Some(rule) =>
+        case Some(initialRule) =>
           for {
-            currentRule <- roRuleRepository.get(rule.id)
-            check       <- if(currentRule == rule.copy(serial = currentRule.serial)) {
+            currentRule <- roRuleRepository.get(initialRule.id)
+            check       <- if ( compareRules(initialRule,currentRule) ) {
                               //we clearly don't want to compare for serial!
                               Full("OK")
                             } else {
-                              Failure(s"Rule ${rule.name} (id: ${rule.id.value}) has diverged since change request creation")
+                              Failure(s"Rule ${initialRule.name} (id: ${initialRule.id.value}) has diverged since change request creation")
                             }
             } yield {
               check
             }
       }
+    }
+
+    /*
+     * Comparison methods between Rules/directives/groups
+     * They are used to check if they are mergeable.
+     */
+
+    def compareRules(initial:Rule, current:Rule) : Boolean = {
+      val initialFixed = initial.copy(
+          name = initial.name.trim
+        , shortDescription = initial.shortDescription.trim
+        , longDescription = initial.longDescription.trim
+        , serial = current.serial
+      )
+
+      val currentFixed = current.copy(
+          name = current.name.trim
+        , shortDescription = current.shortDescription.trim
+        , longDescription = current.longDescription.trim
+      )
+
+      initialFixed == currentFixed
+    }
+
+    def compareDirectives(initial:Directive, current:Directive) : Boolean = {
+      val initialFixed = initial.copy(
+          name = initial.name.trim
+        , shortDescription = initial.shortDescription.trim
+        , longDescription = initial.longDescription.trim
+      )
+
+      val currentFixed = current.copy(
+          name = current.name.trim
+        , shortDescription = current.shortDescription.trim
+        , longDescription = current.longDescription.trim
+      )
+
+      initialFixed == currentFixed
+    }
+
+    def compareGroups(initial:NodeGroup, current:NodeGroup) : Boolean = {
+
+      val initialFixed = initial.copy(
+          name = initial.name.trim
+        , description = initial.description.trim
+      )
+
+      val currentFixed = current.copy(
+          name = current.name.trim
+        , description = current.description.trim
+        /*
+        * We need to remove nodes from dynamic groups, it has no sense to compare them.
+        * In a static group, the node list is important and can be very different,
+        * and depends on when the change request was made.
+        * Maybe a future upgrade will be to check the parameters first and then check the nodelist.
+        */
+        , serverList = ( if (current.isDynamic) { initial } else { current }).serverList
+      )
+
+      initialFixed == currentFixed
     }
 
     /*
