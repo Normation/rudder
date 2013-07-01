@@ -208,6 +208,8 @@ class FusionReportUnmarshaller(
     r = r.copy(machine = r.machine.copy( sounds = report.machine.sounds.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( storages = report.machine.storages.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
     r = r.copy(machine = r.machine.copy( videos = report.machine.videos.groupBy(identity).map { case (x,seq) => x.copy(quantity = seq.size) }.toSeq ) )
+    //node part
+    r = demuxSameInterfaceDifferentIp(r)
     r = r.copy(applications = report.applications.groupBy( app => (app.name, app.version)).map { case (x,seq) => seq.head }.toSeq ) //seq.head is ok since its the result of groupBy
     r
   }
@@ -227,6 +229,20 @@ class FusionReportUnmarshaller(
     validSlotNumbers++getNegative
   }
   
+  /**
+   * One interface can have several IP. We have to
+   * merge them when it's the case.
+   */
+  private[this] def demuxSameInterfaceDifferentIp(report: InventoryReport) : InventoryReport = {
+    val nets = report.node.networks.groupBy( _.name ).map { case (interface, ips) =>
+      val referenceInterface = ips.head //we have at least one due to the groupBy
+
+      referenceInterface.copy(ifAddresses = ips.flatMap( _.ifAddress ) )
+    }.toSeq
+
+    report.copy(node = report.node.copy(networks = nets))
+  }
+
   
   // ******************************************** //
   // parsing implementation details for each tags //
