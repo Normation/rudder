@@ -41,6 +41,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import net.liftweb.actor._
 import net.liftweb.common._
 import com.normation.utils.UuidRegex
+import com.normation.rudder.domain.nodes.NodeInfo
 
 
 
@@ -159,13 +160,14 @@ class AutomaticReportLogger(
 
     def logReports(reports : Seq[Reports]) = {
       for {
+        allNodes <- nodeInfoService.getAll
         report <- reports
-      } logReport(report)
+      } logReport(report, allNodes)
     }
     /*
      * Transform to log line and log a report with the appropriate kind
      */
-    def logReport(report:Reports) = {
+    def logReport(report:Reports, allNodes: Set[NodeInfo]) = {
       val execDate = report.executionDate.toString("yyyy-MM-dd HH:mm:ssZ")
 
       val ruleId =
@@ -187,7 +189,7 @@ class AutomaticReportLogger(
 
       val node :String = "%s [%s]".format(
             nodeId
-          , nodeInfoService.getNodeInfo(report.nodeId).map(_.hostname).openOr("Unknown node")
+          , allNodes.find( _.id == report.nodeId).map(_.hostname).getOrElse("Unknown node")
           )
 
       val directiveId =

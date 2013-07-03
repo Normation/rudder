@@ -45,19 +45,21 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain._
 import net.liftweb.common._
 import org.slf4j.{ Logger, LoggerFactory }
-import scala.collection._
 import com.normation.rudder.exceptions.LicenseException
 import com.normation.cfclerk.services.SystemVariableSpecService
+import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.Rule
 
 trait SystemVariableService {
-  def getSystemVariables(nodeInfo: NodeInfo): Box[Map[String, Variable]]
+  def getSystemVariables(nodeInfo: NodeInfo, allNodeInfos: Set[NodeInfo], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule]): Box[Map[String, Variable]]
 }
 
 class SystemVariableServiceImpl(
     licenseRepository               : LicenseRepository
   , parameterizedValueLookupService : ParameterizedValueLookupService
   , systemVariableSpecService       : SystemVariableSpecService
-  , nodeInfoService                 : NodeInfoService
   , toolsFolder                     : String
   , cmdbEndPoint                    : String
   , communityPort                   : Int
@@ -67,32 +69,19 @@ class SystemVariableServiceImpl(
   , syslogPort                      : Int
 ) extends SystemVariableService with Loggable {
 
-  val varToolsFolder = SystemVariable(systemVariableSpecService.get("TOOLS_FOLDER"))
-  varToolsFolder.saveValue(toolsFolder);
+  val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
+  val varCmdbEndpoint = systemVariableSpecService.get("CMDBENDPOINT").toVariable().copyWithSavedValue(cmdbEndPoint)
+  val varWebdavUser = systemVariableSpecService.get("DAVUSER").toVariable().copyWithSavedValue(webdavUser)
+  val varWebdavPassword = systemVariableSpecService.get("DAVPASSWORD").toVariable().copyWithSavedValue(webdavPassword)
+  val varSharedFilesFolder = systemVariableSpecService.get("SHARED_FILES_FOLDER").toVariable().copyWithSavedValue(sharedFilesFolder)
+  val varCommunityPort = systemVariableSpecService.get("COMMUNITYPORT").toVariable().copyWithSavedValue(communityPort.toString)
+  val syslogPortConfig = systemVariableSpecService.get("SYSLOGPORT").toVariable().copyWithSavedValue(syslogPort.toString)
 
-  val varCmdbEndpoint = SystemVariable(systemVariableSpecService.get("CMDBENDPOINT"))
-  varCmdbEndpoint.saveValue(cmdbEndPoint)
-
-  val varWebdavUser = SystemVariable(systemVariableSpecService.get("DAVUSER"))
-  varWebdavUser.saveValue(webdavUser)
-
-  val varWebdavPassword = SystemVariable(systemVariableSpecService.get("DAVPASSWORD"))
-  varWebdavPassword.saveValue(webdavPassword)
-
-  val varSharedFilesFolder = SystemVariable(systemVariableSpecService.get("SHARED_FILES_FOLDER"))
-  varSharedFilesFolder.saveValue(sharedFilesFolder)
-
-  val varCommunityPort = SystemVariable(systemVariableSpecService.get("COMMUNITYPORT"))
-  varCommunityPort.saveValue(communityPort.toString)
-
-  val syslogPortConfig = SystemVariable(systemVariableSpecService.get("SYSLOGPORT"))
-  syslogPortConfig.saveValue(syslogPort.toString)
-
-  def getSystemVariables(nodeInfo: NodeInfo): Box[Map[String, Variable]] = {
+  def getSystemVariables(nodeInfo: NodeInfo, allNodeInfos: Set[NodeInfo], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule]): Box[Map[String, Variable]] = {
     logger.debug("Preparing the system variables for server %s".format(nodeInfo.id.value))
 
     // Set the roles of the nodes
-    val nodeConfigurationRoles = mutable.Set[String]()
+    val nodeConfigurationRoles = collection.mutable.Set[String]()
 
     if(nodeInfo.isPolicyServer) {
       nodeConfigurationRoles.add("policy_server")
@@ -101,57 +90,61 @@ class SystemVariableServiceImpl(
       }
     }
 
-    val varNodeRole = new SystemVariable(systemVariableSpecService.get("NODEROLE"))
-
-    if (nodeConfigurationRoles.size > 0) {
-      varNodeRole.saveValue("  classes: \n" + nodeConfigurationRoles.map(x => "    \"" + x + "\" expression => \"any\";").mkString("\n"))
+    val varNodeRoleValue = if (nodeConfigurationRoles.size > 0) {
+      "  classes: \n" + nodeConfigurationRoles.map(x => "    \"" + x + "\" expression => \"any\";").mkString("\n")
     } else {
-      varNodeRole.saveValue("# This node doesn't have any specific role")
+      "# This node doesn't have any specific role"
     }
+    val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable().copyWithSavedValue(varNodeRoleValue)
 
     // Set the licences for the Nova
-    val varLicensesPaid = SystemVariable(systemVariableSpecService.get("LICENSESPAID"))
-    if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
-      licenseRepository.findLicense(nodeInfo.policyServerId.value) match {
+    val varLicensesPaidValue = if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
+      licenseRepository.findLicense(nodeInfo.policyServerId) match {
         case None =>
           logger.warn("Caution, the policy server %s does not have a registered Nova license".format(nodeInfo.policyServerId.value))
           throw new LicenseException("No license found for the policy server " + nodeInfo.policyServerId.value)
-        case Some(x) => varLicensesPaid.saveValue(x.licenseNumber.toString)
+        case Some(x) => x.licenseNumber.toString
       }
     } else {
-      varLicensesPaid.saveValue("1")
+      "1"
     }
+    val varLicensesPaid = systemVariableSpecService.get("LICENSESPAID").toVariable().copyWithSavedValue(varLicensesPaidValue)
 
-    val varAllowConnect = SystemVariable(systemVariableSpecService.get("ALLOWCONNECT"))
 
-    val varClientList = SystemVariable(systemVariableSpecService.get("CLIENTSLIST"))
+    var varClientList = systemVariableSpecService.get("CLIENTSLIST").toVariable()
 
-    val allowConnect = mutable.Set[String]()
+    val allowConnect = collection.mutable.Set[String]()
 
-    val clientList = mutable.Set[String]()
+    val clientList = collection.mutable.Set[String]()
 
     // If we are facing a policy server, we have to allow each children to connect, plus the policy parent,
     // else it's only the policy server
     if(nodeInfo.isPolicyServer) {
-      val allowedNodeVar = new SystemVariable(SystemVariableSpec(name = "${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true))
-      allowedNodeVar.values = Seq("${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}")
+      val allowedNodeVarSpec = SystemVariableSpec(name = "${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true)
+      val allowedNodeVar = SystemVariable(allowedNodeVarSpec, Seq()).copyWithSavedValues(Seq("${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}"))
 
-      parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNodeVar)) match {
+      parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNodeVar), allNodeInfos, groupLib, directiveLib, allRules) match {
         case Full(variable) =>
           allowConnect ++= variable.flatMap(x => x.values)
           clientList ++= variable.flatMap(x => x.values)
-          varClientList.saveValues(clientList.toSeq)
+          varClientList = varClientList.copyWithSavedValues(clientList.toSeq)
         case Empty => logger.warn("No variable parametrized found for ${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}")
-        case f: Failure => logger.error("Failure when fetching the policy children : %s ".format(f.msg))
+        case f: Failure =>
+          val e = f ?~! "Failure when fetching the policy children"
+          logger.error(e.messageChain)
+          return e
       }
     }
 
-    nodeInfoService.getNodeInfo(nodeInfo.policyServerId) match {
-      case Full(policyServer) => allowConnect += policyServer.hostname
-      case f: EmptyBox => logger.error("Couldn't find the policy server of node %s".format(nodeInfo.id.value))
+    allNodeInfos.find( _.id == nodeInfo.policyServerId) match {
+      case Some(policyServer) => allowConnect += policyServer.hostname
+      case None =>
+        val m = s"Couldn't find the policy server of node %s".format(nodeInfo.id.value)
+        logger.error(m)
+        return Failure(m)
     }
 
-    varAllowConnect.saveValues(allowConnect.toSeq)
+    val varAllowConnect = systemVariableSpecService.get("ALLOWCONNECT").toVariable().copyWithSavedValues(allowConnect.toSeq)
 
     logger.debug("System variables for server %s done".format(nodeInfo.id.value))
 

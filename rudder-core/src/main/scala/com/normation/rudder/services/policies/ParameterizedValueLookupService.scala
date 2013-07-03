@@ -44,6 +44,13 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.utils.Control.sequence
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.repository.FullActiveTechniqueCategory
 
 /**
  * A service that handle parameterized value of
@@ -119,7 +126,7 @@ trait ParameterizedValueLookupService {
    * We can provide a NodeInfo as cache for the node.
    *
    */
-  def lookupNodeParameterization(nodeId:NodeId, variables:Seq[Variable]) : Box[Seq[Variable]]
+  def lookupNodeParameterization(nodeId:NodeId, variables:Seq[Variable], allNodes:Set[NodeInfo]) : Box[Seq[Variable]]
 
   /**
    * Replace all parameterization of the form
@@ -128,7 +135,13 @@ trait ParameterizedValueLookupService {
    * TODO: handle cache !!
    *
    */
-  def lookupRuleParameterization(variables:Seq[Variable]) : Box[Seq[Variable]]
+  def lookupRuleParameterization(
+      variables:Seq[Variable]
+    , allNodeInfos:Set[NodeInfo]
+    , groupLib: FullNodeGroupCategory
+    , directiveLib: FullActiveTechniqueCategory
+    , allRules: Map[RuleId, Rule]
+  ) : Box[Seq[Variable]]
 
 
 
@@ -225,9 +238,6 @@ trait ParameterizedValueLookupService {
 
 
 class ParameterizedValueLookupServiceImpl(
-    override val nodeInfoService : NodeInfoService,
-    override val directiveTargetService : RuleTargetService,
-    override val ruleRepo : RoRuleRepository,
     override val ruleValService : RuleValService
 ) extends ParameterizedValueLookupService with
   ParameterizedValueLookupService_lookupNodeParameterization with
@@ -237,8 +247,6 @@ class ParameterizedValueLookupServiceImpl(
 
 
 trait ParameterizedValueLookupService_lookupNodeParameterization extends ParameterizedValueLookupService {
-
-  def nodeInfoService : NodeInfoService
 
   private[this] def lookupNodeVariable(nodeInfo : NodeInfo, policyServerInfo: => Box[NodeInfo], value:String) : Box[String] = {
     value match {
@@ -254,13 +262,13 @@ trait ParameterizedValueLookupService_lookupNodeParameterization extends Paramet
   }
 
 
-  override def lookupNodeParameterization(nodeId:NodeId, variables:Seq[Variable]) : Box[Seq[Variable]] = {
+  override def lookupNodeParameterization(nodeId:NodeId, variables:Seq[Variable], allNodes:Set[NodeInfo]) : Box[Seq[Variable]] = {
     for {
-      nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+      nodeInfo <- Box(allNodes.find( _.id == nodeId)) ?~! s"Can not find node with id ${nodeId.value}"
       variables <- sequence(variables) { v =>
         for {
           values <- sequence(v.values) { value =>
-            lookupNodeVariable(nodeInfo, nodeInfoService.getNodeInfo(nodeInfo.policyServerId), value)
+            lookupNodeVariable(nodeInfo, Box(allNodes.find( _.id == nodeInfo.policyServerId)), value)
           }
         } yield Variable.matchCopy(v, values)
       }
@@ -272,38 +280,41 @@ trait ParameterizedValueLookupService_lookupNodeParameterization extends Paramet
 
 
 trait ParameterizedValueLookupService_lookupRuleParameterization extends ParameterizedValueLookupService with Loggable {
-
-
-  def directiveTargetService : RuleTargetService
-  def nodeInfoService : NodeInfoService
-  def ruleRepo : RoRuleRepository
   def ruleValService : RuleValService
 
   /**
    * Replace all parameterization of the form
    * ${CONFGIGURATION_RULE_ID.XXX} by their values
    */
-  override def lookupRuleParameterization(variables:Seq[Variable]) : Box[Seq[Variable]] = {
+  override def lookupRuleParameterization(
+      variables:Seq[Variable]
+    , allNodeInfos:Set[NodeInfo]
+    , groupLib: FullNodeGroupCategory
+    , directiveLib: FullActiveTechniqueCategory
+    , allRules: Map[RuleId, Rule]
+  ) : Box[Seq[Variable]] = {
      sequence(variables) { variable =>
-     logger.debug("Processing variable : %s".format(variable))
-       (sequence(variable.values) { value =>
-         value match {
-           case CrParametrization(CrTargetParametrization(targetConfiguRuleId, targetAccessorName)) =>
+       logger.debug("Processing variable : %s".format(variable))
+       (sequence(variable.values) { value => value match {
+           case CrParametrization(CrTargetParametrization(targetConfigRuleId, targetAccessorName)) =>
              logger.debug("Processing rule's parameterized value on target: %s".format(value))
-             lookupTargetParameter(variable.spec, RuleId(targetConfiguRuleId), targetAccessorName)
-           case CrParametrization(CrVarParametrization(targetConfiguRuleId, varAccessorName)) =>
+             lookupTargetParameter(variable.spec, RuleId(targetConfigRuleId), targetAccessorName, allNodeInfos, groupLib, allRules)
+           case CrParametrization(CrVarParametrization(targetConfigRuleId, varAccessorName)) =>
              logger.debug("Processing rule's parameterized value on variable: %s".format(value))
-             lookupVariableParameter(variable.spec, RuleId(targetConfiguRuleId), varAccessorName)
+             lookupVariableParameter(variable.spec, RuleId(targetConfigRuleId), varAccessorName, directiveLib, allRules)
            case CrParametrization(BadParametrization(name)) =>
              logger.debug("Ignoring parameterized value (can not handle such parameter): %s".format(value))
              Full(Seq(value))
            case _ =>  //nothing to do
              Full(Seq(value))
-         }
-       }
+         } }
        //we had value as simple strings, now we habe seq of strings (most of the time of one string) : flatten the results
        //note: the resulting Seq[values] may be longer after replacement that before
-       ).map {seq => logger.debug("setted variable values are %s %s".format(variable.spec.name, seq.flatten));Variable.matchCopy(variable, seq.flatten) }
+       ).map { seq =>
+         val flat = seq.flatten
+         logger.debug(s"Setted variable values are: ${Variable.format(variable.spec.name, flat)}")
+         Variable.matchCopy(variable, flat)
+       }
      }
   }
 
@@ -316,31 +327,37 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
     * update it with the value from RuleVal.
     * If RuleVal does not have such a variable name, fails.
     * If the looked-up variable's values contain a parameterized value, fails.
+    *
+    * The rule ID search must be case insensitive
     * @param crv
     * @param varName
     * @param cache
     * @return
     */
   private[this] def lookupTargetParameter(
-    sourceVariableSpec:VariableSpec,
-    targetConfiguRuleId:RuleId,
-    targetAccessorName:String) : Box[Seq[String]] = {
+      sourceVariableSpec:VariableSpec
+    , targetConfigurationRuleId:RuleId
+    , targetAccessorName:String
+    , allNodes: Set[NodeInfo]
+    , groupLib: FullNodeGroupCategory
+    , allRules: Map[RuleId, Rule]
+  ) : Box[Seq[String]] = {
 
     if(isValidAccessorName(targetAccessorName)) {
       for {
-        rule <- ruleRepo.get(targetConfiguRuleId)
+        rule <- Box(allRules.get(targetConfigurationRuleId)) ?~! (
+            s"Rule with ID ${targetConfigurationRuleId.value} was not found"
+        )
         cf = logger.trace("Fetched rule : %s".format(rule))
         targets <- rule.targets match {
           case list if !list.isEmpty => Full(list)
           case list if list.isEmpty => Failure(
               "Missing target for rule with ID %s. Can not lookup parameters for a not fully defined rule"
-                .format(targetConfiguRuleId))
+                .format(targetConfigurationRuleId))
         }
-        nodeIds <- sequence(targets.toSeq){target => directiveTargetService.getNodeIds(target)}
+        nodeIds = groupLib.getNodeIds(targets, allNodes)
         cf1 = logger.trace("Fetched nodes ids : %s".format(nodeIds))
-        nodeInfos <- sequence(nodeIds.flatten.distinct) { nodeId =>
-          nodeInfoService.getNodeInfo(nodeId)
-        }
+        nodeInfos = allNodes.filter(x => nodeIds.contains(x.id)).toSeq
         cf2 = logger.trace("Fetched nodes infos : %s".format(nodeInfos))
         cardinalityOk <- {
           if(!sourceVariableSpec.multivalued && nodeInfos.size != 1)
@@ -374,9 +391,16 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
     * @param varAccessorName : the name of the searched variable, lowercase !
     * @return
     */
-  private[this] def lookupVariableParameter(sourceVariableSpec:VariableSpec, targetConfiguRuleId:RuleId, varAccessorName:String) : Box[Seq[String]] = {
+  private[this] def lookupVariableParameter(
+      sourceVariableSpec: VariableSpec
+    , targetConfiguRuleId:RuleId
+    , varAccessorName:String
+    , directiveLib: FullActiveTechniqueCategory
+    , allRules: Map[RuleId, Rule]
+  ) : Box[Seq[String]] = {
      for {
-       crv <- ruleValService.findRuleVal(targetConfiguRuleId)
+       rule <- Box(allRules.get(targetConfiguRuleId)) ?~! s"Missing rule with ID ${targetConfiguRuleId.value}"
+       crv <- ruleValService.buildRuleVal(rule, directiveLib)
        variables = crv.directiveVals.map(x => x.variables.map { case (name, variable) =>
                        ( name.toLowerCase, variable) // need to lower the variable i'm looking for
                      }.get(varAccessorName)).filter(x => x != None).flatten

@@ -68,19 +68,28 @@ trait NodeInfoService {
    * @param nodeId
    * @return
    */
-  def find(nodeIds: Seq[NodeId]) : Box[Seq[NodeInfo]]
+//  def find(nodeIds: Seq[NodeId]) : Box[Seq[NodeInfo]]
 
 
   /**
    * Get all node ids
    */
-  def getAllIds() : Box[Seq[NodeId]]
+//  def getAllIds() : Box[Seq[NodeId]]
+
+  /**
+   * Get all node infos.
+   * That method try to return the maximum
+   * of information, and will not totally fail if some information are
+   * missing (but the corresponding nodeInfos won't be present)
+   * So it is possible that getAllIds.size > getAll.size
+   */
+  def getAll() : Box[Set[NodeInfo]]
 
   /**
    * Get all "simple" node ids (i.e, all user nodes,
    * for example, NOT policy servers)
    */
-  def getAllUserNodeIds() : Box[Seq[NodeId]]
+//  def getAllUserNodeIds() : Box[Seq[NodeId]]
 
   /**
    * Get all systen node ids, for example
@@ -129,6 +138,39 @@ class NodeInfoServiceImpl(
     }
   }
 
+  /**
+   * Get all node infos.
+   * That method try to return the maximum
+   * of information, and will not totally fail if some information are
+   * missing (but the corresponding nodeInfos won't be present)
+   * So it is possible that getAllIds.size > getAll.size
+   */
+  def getAll() : Box[Set[NodeInfo]] = {
+    ldap.map { con =>
+      val allNodes = con.searchOne(nodeDit.NODES.dn, ALL, nodeInfoAttributes:_*).flatMap { node =>
+        nodeDit.NODES.NODE.idFromDn(node.dn).map { (_, node) }
+      }
+      val allNodeInventories = con.searchOne(inventoryDit.NODES.dn, ALL, nodeInfoAttributes:_*).flatMap { nodeInv =>
+        inventoryDit.NODES.NODE.idFromDN(nodeInv.dn).map{ (_, nodeInv) }
+      }.toMap
+      val allMachineInventories = con.searchOne(inventoryDit.MACHINES.dn, ALL).map( machine => (machine.dn, machine) ).toMap
+
+      allNodes.flatMap { case (id, nodeEntry) =>
+        for {
+          nodeInv <- allNodeInventories.get(id)
+          machineInv = for {
+                         containerDn  <- nodeInv(A_CONTAINER_DN)
+                         machineEntry <- allMachineInventories.get(containerDn)
+                       } yield {
+                         machineEntry
+                       }
+          nodeInfo <- ldapMapper.convertEntriesToNodeInfos(nodeEntry, nodeInv, machineInv)
+        } yield {
+          nodeInfo
+        }
+      }.toSet
+    }
+  }
 
   def find(nodeIds: Seq[NodeId]) : Box[Seq[NodeInfo]] = {
     sequence(nodeIds) { nodeId =>

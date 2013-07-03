@@ -50,15 +50,17 @@ case class SerialedRuleId(ruleId : RuleId, serial : Int) extends HashcodeCaching
  * the isEnabledField say.
  */
 case class Rule(
-  id: RuleId,
-  name: String,
-  serial: Int,
-  targets: Set[RuleTarget] = Set(), //is not mandatory, but if not present, rule is disabled
-  directiveIds: Set[DirectiveId] = Set(), //is not mandatory, but if not present, rule is disabled
-  shortDescription: String = "",
-  longDescription: String = "",
-  isEnabledStatus: Boolean = false,
-  isSystem: Boolean = false
+    id              : RuleId
+  , name            : String
+  , serial          : Int
+    //is not mandatory, but if not present, rule is disabled
+  , targets         : Set[RuleTarget] = Set()
+    //is not mandatory, but if not present, rule is disabled
+  , directiveIds    : Set[DirectiveId] = Set()
+  , shortDescription: String = ""
+  , longDescription : String = ""
+  , isEnabledStatus : Boolean = false
+  , isSystem        : Boolean = false
 ) extends HashcodeCaching {
   def isEnabled = isEnabledStatus & !targets.isEmpty & !directiveIds.isEmpty
 }

@@ -36,6 +36,7 @@ package com.normation.rudder.services.licenses
 
 import org.joda.time.DateTime
 import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.inventory.domain.NodeId
 
 /**
  * A service that handles Nova licenses files
@@ -49,7 +50,7 @@ trait NovaLicenseService {
    * @param server
    * @return
    */
-  def findLicenseForNode(server: String) : Option[NovaLicense]
+  def findLicenseForNode(nodeId: NodeId) : Option[NovaLicense]
 
   /**
    * Add a license file
@@ -58,7 +59,7 @@ trait NovaLicenseService {
    * @param expirationDate : expiration date of the licence
    * @param file : path to the licence file
    */
-  def saveLicenseFile(uuid : String, licenseNumber : Int, expirationDate : DateTime, file : String)
+//  def saveLicenseFile(uuid : String, licenseNumber : Int, expirationDate : DateTime, file : String)
 
 
 }

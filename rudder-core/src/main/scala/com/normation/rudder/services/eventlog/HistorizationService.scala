@@ -34,21 +34,16 @@
 
 package com.normation.rudder.services.eventlog
 
-import net.liftweb.common._
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.RuleVal
-import com.normation.rudder.domain.policies.Rule
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.repository.jdbc.SerializedGroups
-import com.normation.rudder.domain.logger.HistorizationLogger
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.HistorizationLogger
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.HistorizationRepository
-import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.repository.jdbc.SerializedGroups
+
+import net.liftweb.common._
 
 /**
  * At each deployment, we compare the content of the groups/PI/CR in the ldap with the content
@@ -62,44 +57,36 @@ trait HistorizationService {
   /**
    * Update the nodes, based on what is on the ldap, and return nothing (I don't know yet how to know what has been updated)
    */
-  def updateNodes() : Box[Unit]
+  def updateNodes(allNodeInfo: Set[NodeInfo]) : Box[Unit]
 
 
   /**
    * Update the groups, based on what is on the ldap, and return nothing (I don't know yet how to know what has been updated)
    */
-  def updateGroups() : Box[Unit]
+  def updateGroups(groupLib: FullNodeGroupCategory) : Box[Unit]
 
   /**
    * Update the policy details, based on what is on the ldap and what is on the file system.
    * A directive changed when it is deleted, renamed, changed version, changed priority,
    * it's underlying PT changed name, description
    */
-  def updatePINames() : Box[Unit]
+  def updateDirectiveNames(directiveLib: FullActiveTechniqueCategory) : Box[Unit]
 
-  def updatesRuleNames() : Box[Unit]
+  def updatesRuleNames(rules:Seq[Rule]) : Box[Unit]
 
 }
 
 
 class HistorizationServiceImpl(
-    historizationRepository : HistorizationRepository,
-    nodeInfoService : NodeInfoService,
-    nodeGroupRepository : RoNodeGroupRepository,
-    directiveRepository : RoDirectiveRepository,
-    techniqueRepository : TechniqueRepository,
-    ruleRepository      : RoRuleRepository
+    historizationRepository: HistorizationRepository
 ) extends HistorizationService {
 
 
-  def updateNodes() : Box[Unit] = {
+  override def updateNodes(allNodeInfo: Set[NodeInfo]) : Box[Unit] = {
+
+    val nodeInfos = allNodeInfo.filterNot(_.isPolicyServer).toSeq
+
     try {
-    // Fetch all nodeinfo from the ldap
-      val ids = nodeInfoService.getAllUserNodeIds().openOr({HistorizationLogger.error("Could not fetch all node ids"); Seq()})
-
-      val nodeInfos = nodeInfoService.find(ids).openOr(
-          {HistorizationLogger.error("Could not fetch node details "); Seq()} )
-
       // fetch all the current nodes in the jdbc
       val registered = historizationRepository.getAllOpenedNodes().map(x => x.nodeId -> x).toMap
 
@@ -121,28 +108,27 @@ class HistorizationServiceImpl(
     }
   }
 
-  def updateGroups() : Box[Unit] = {
-    try {
+  override def updateGroups(groupLib: FullNodeGroupCategory) : Box[Unit] = {
     // Fetch all groups from the ldap
-      val nodeGroups = nodeGroupRepository.getAll().openOr(
-          {HistorizationLogger.error("Could not fetch all groups"); Seq()} )
+    val nodeGroups = groupLib.allGroups.values
 
+    try {
       // fetch all the current group in the database
       val registered = historizationRepository.getAllOpenedGroups().map(x => x._1.groupId -> x).toMap
 
       // detect changes
-      val changed = nodeGroups.filter(x => registered.get(x.id.value) match {
+      val changed = nodeGroups.filter(x => registered.get(x.nodeGroup.id.value) match {
         case None => true
         case Some((entry, nodes)) =>
-          (entry.groupName != x.name ||
-           entry.groupDescription != x.description ||
-           nodes.map(x => NodeId(x.nodes)).toSet != x.serverList ||
-           SerializedGroups.fromSQLtoDynamic(entry.groupStatus) != Some(x.isDynamic))
-      })
+          (entry.groupName != x.nodeGroup.name ||
+           entry.groupDescription != x.nodeGroup.description ||
+           nodes.map(x => NodeId(x.nodes)).toSet != x.nodeGroup.serverList ||
+           SerializedGroups.fromSQLtoDynamic(entry.groupStatus) != Some(x.nodeGroup.isDynamic))
+      }).toSeq.map( _.nodeGroup )
 
       // a group closable is a group that is current in the database, but don't exist in the
       // ldap
-      val closable = registered.keySet.filter(x => !(nodeGroups.map(group => group.id.value)).contains(x))
+      val closable = registered.keySet.filter(x => !(nodeGroups.map( _.nodeGroup.id.value)).toSet.contains(x))
 
       historizationRepository.updateGroups(changed, closable.toSeq)
       Full(())
@@ -152,70 +138,50 @@ class HistorizationServiceImpl(
     }
   }
 
-  def updatePINames() : Box[Unit] = {
+  override def updateDirectiveNames(directiveLib: FullActiveTechniqueCategory) : Box[Unit] = {
+    // we only want to keep directives with a matching technique.
+    // just filter out (with an error message) when we don't have the technique
+    val directives = directiveLib.allDirectives.flatMap { case (did, (fullActiveTechnique, directive)) =>
+      fullActiveTechnique.techniques.get(directive.techniqueVersion) match {
+        case None =>
+          HistorizationLogger.error(s"Could not find version ${directive.techniqueVersion} for Technique with name ${fullActiveTechnique.techniqueName} for Directive ${directive.id.value}")
+          None
+        case Some(t) => Some((did, (t, fullActiveTechnique, directive)))
+      }
+    }
+
     try {
-    // sorry for this piece of nightmare
-    // I don't want it to fail on PT deleted
-    // Fetch a triplet policyinstance, userPT, policypackage from the ldap/filesystem
-    // starting by the directives, then search for the userPT (which can fails)
-    // then look on the file system for the matching policypackagename/policyversion
-    // againt, it should not fail (but report an error nonetheless)
-      val directives = directiveRepository.getAll().openOr(Seq()).map(x =>
-            (x, directiveRepository.getActiveTechnique(x.id)))
-              .filter { case (directive, userPt) =>
-                          userPt match {
-                              case Full(userPT) => true
-                              case _ => HistorizationLogger.error("Could not find matching Technique for Directive %s".format(directive.id.value))
-                                    false
-                          }
-              }.
-              map(x =>( x._1 -> x._2.openOrThrowException("That should not fail if a Technique is deleted"))).
-              map { case (directive, userPT) =>
-                (directive, userPT, techniqueRepository.get(new TechniqueId(userPT.techniqueName, directive.techniqueVersion)))
-              }.filter { case (directive, userPt, policyPackage) =>
-                          policyPackage match {
-                              case Some(pp) => true
-                              case _ => HistorizationLogger.error("Could not find matching Technique for Directive %s".format(directive.id.value))
-                                    false
-                          }
-              }.map(x =>( x._1 , x._2 , x._3.get))
-
-
-
       val registered = historizationRepository.getAllOpenedDirectives().map(x => x.directiveId -> x).toMap
 
-
-      val changed = directives.filter { case (directive, userPT, technique) =>
-          registered.get(directive.id.value) match {
-              case None => true
-              case Some(entry) =>
-                     (entry.directiveName != directive.name ||
-                  entry.directiveDescription != directive.shortDescription ||
-                  entry.priority != directive.priority ||
-                  entry.techniqueHumanName != technique.name ||
-                  entry.techniqueName != userPT.techniqueName.value ||
-                  entry.techniqueDescription != technique.description ||
-                  entry.techniqueVersion != directive.techniqueVersion.toString )
-
+      val changed = directives.values.filter { case (technique, fullActiveTechnique, directive) =>
+        registered.get(directive.id.value) match {
+          case None => true
+          case Some(entry) => (
+              entry.directiveName != directive.name
+           || entry.directiveDescription != directive.shortDescription
+           || entry.priority != directive.priority
+           || entry.techniqueHumanName != technique.name
+           || entry.techniqueName != fullActiveTechnique.techniqueName.value
+           || entry.techniqueDescription != technique.description
+           || entry.techniqueVersion != directive.techniqueVersion.toString
+          )
          }
-     }
+      }.toSeq.map { case (t,fat,d) => (d, fat.toActiveTechnique, t) }
 
-     val closable = registered.keySet.filter(x => !(directives.map(directive => directive._1.id.value)).contains(x))
+      val stringDirectiveIds = directives.keySet.map( _.value)
 
-     historizationRepository.updateDirectives(changed, closable.toSeq)
-     Full(())
+      val closable = registered.keySet.filter(x => !stringDirectiveIds.contains(x))
+
+      historizationRepository.updateDirectives(changed, closable.toSeq)
+      Full(())
     } catch {
       case e:Exception => HistorizationLogger.error("Could not update the directives. Reason : "+e.getMessage())
                           Failure("Could not update the directives. Reason : "+e.getMessage())
     }
   }
 
-  def updatesRuleNames() : Box[Unit] = {
+  override def updatesRuleNames(rules:Seq[Rule]) : Box[Unit] = {
     try {
-      val rules = ruleRepository.getAll().openOr({
-          HistorizationLogger.error("Could not fetch all Rules");
-          Seq()})
-
       val registered = historizationRepository.getAllOpenedRules().map(x => x.id -> x).toMap
 
 

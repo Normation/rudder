@@ -74,12 +74,13 @@ import bootstrap.liftweb.RudderConfig
  * contained
  */
 class CreateCategoryOrGroupPopup(
-  groupGenerator : Option[NodeGroup] = None,
-  onSuccessCategory : (NodeGroupCategory) => JsCmd,
-  onSuccessGroup : (NodeGroup, NodeGroupCategoryId) => JsCmd,
-  onSuccessCallback : (String) => JsCmd = { _ => Noop },
-  onFailureCallback : () => JsCmd = { () => Noop }
-       ) extends DispatchSnippet with Loggable {
+    groupGenerator   : Option[NodeGroup]
+  , rootCategory     : FullNodeGroupCategory
+  , onSuccessCategory: (NodeGroupCategory) => JsCmd
+  , onSuccessGroup   : (NodeGroup, NodeGroupCategoryId) => JsCmd
+  , onSuccessCallback: (String) => JsCmd = { _ => Noop }
+  , onFailureCallback: () => JsCmd = { () => Noop }
+) extends DispatchSnippet with Loggable {
 
   // Load the template from the popup
   def templatePath = List("templates-hidden", "Popup", "createCategoryOrGroup")
@@ -91,7 +92,6 @@ class CreateCategoryOrGroupPopup(
   def popupTemplate = chooseTemplate("groups", "createGroupPopup", template)
 
 
-  private[this] val roNodeGroupRepository      = RudderConfig.roNodeGroupRepository
   private[this] val woNodeGroupRepository      = RudderConfig.woNodeGroupRepository
   private[this] val nodeInfoService            = RudderConfig.nodeInfoService
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
@@ -204,7 +204,7 @@ class CreateCategoryOrGroupPopup(
   }
 
   private[this] val piContainer = new WBSelectField("Parent category",
-      (categoryHierarchyDisplayer.getCategoriesHierarchy().map { case (id, name) => (id.value -> name)}),
+      (categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, None).map { case (id, name) => (id.value -> name)}),
       "") {
     override def errorClassName = "threeColErrors"
     override def className = "rudderBaseFieldSelectClassName"

@@ -87,14 +87,12 @@ class EventListDisplayer(
     , personIdentService  : PersonIdentService
 ) extends Loggable {
 
-  private[this] var rollbackAction:RollBackAction = RollbackTo
-  private[this] var gridname:String = "eventLogsGrid"
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
  // private[this] val gridName = "eventLogsGrid"
  // private[this] val jsGridName = "oTable" + gridName
 
   def display(events:Seq[EventLog], gridName:String) : NodeSeq  = {
-    gridname = gridName
+
     (
       "tbody *" #> ("tr" #> events.map { event =>
         ".eventLine [jsuuid]" #> Text(gridName + "-" + event.id.getOrElse(0).toString) &
@@ -189,7 +187,7 @@ class EventListDisplayer(
           }
 
       """.format(
-          SHtml.ajaxCall(JsVar("jsid"), details _)._2.toJsCmd).replaceAll("#table_var#",
+          SHtml.ajaxCall(JsVar("jsid"), details(gridName) _)._2.toJsCmd).replaceAll("#table_var#",
              jsGridName)
      )
     )
@@ -198,7 +196,7 @@ class EventListDisplayer(
   /*
    * Expect something like gridName-eventId
    */
-  private def details(jsid:String) : JsCmd = {
+  private def details(gridname: String)(jsid:String) : JsCmd = {
     val arr = jsid.split("-")
     if (arr.length != 2) {
       Alert("Called ID is not valid: %s".format(jsid))
@@ -206,7 +204,7 @@ class EventListDisplayer(
       val eventId = arr(1).toInt
       repos.getEventLogWithChangeRequest(eventId) match {
         case Full(Some((event,crId))) =>
-          SetHtml(jsid,displayDetails(event,crId))
+          SetHtml(jsid,displayDetails(event,crId, gridname))
         case Full(None) =>
           val msg = s"could not find event for id ${eventId}"
           logger.debug(msg)
@@ -372,7 +370,9 @@ class EventListDisplayer(
     }
   }
 
-  def displayDetails(event:EventLog,changeRequestId:Option[ChangeRequestId]) = {
+  def displayDetails(event:EventLog,changeRequestId:Option[ChangeRequestId], gridname: String): NodeSeq = {
+
+    val groupLib = nodeGroupRepository.getFullGroupLibrary().openOr(return <div class="error">System error when trying to get the group library</div>)
 
     val generatedByChangeRequest =
       changeRequestId match {
@@ -440,9 +440,11 @@ class EventListDisplayer(
       showDialog
     }
 
-    def addRestoreAction =
+    def addRestoreAction() =
       personIdentService.getPersonIdentOrDefault(CurrentUser.getActor.name) match {
       case Full(commiter) =>
+        var rollbackAction : RollBackAction = null
+
         if (event.canRollBack)
           modificationService.getCommitsfromEventLog(event).map{ commit =>
           <form class="lift:form.ajax" >
@@ -515,7 +517,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               { generatedByChangeRequest }
               { addRestoreAction }
-              { ruleDetails(crDetailsXML, addDiff.rule)}
+              { ruleDetails(crDetailsXML, addDiff.rule, groupLib)}
               { reasonHtml }
               { xmlParameters(event.id) }
             </div>
@@ -531,7 +533,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               { addRestoreAction }
               { generatedByChangeRequest }
-              { ruleDetails(crDetailsXML, delDiff.rule) }
+              { ruleDetails(crDetailsXML, delDiff.rule, groupLib) }
               { reasonHtml }
               { xmlParameters(event.id) }
             </div>
@@ -562,7 +564,7 @@ class EventListDisplayer(
                   modDiff.modTarget.map{
                     case SimpleDiff(oldOnes,newOnes) =>
                       <li><b>Group Targets changed: </b></li> ++
-                      DiffDisplayer.displayRuleTargets(oldOnes.toSeq,newOnes.toSeq)
+                      DiffDisplayer.displayRuleTargets(oldOnes.toSeq,newOnes.toSeq, groupLib)
                   } ) &
                 "#policies" #> (
                   modDiff.modDirectiveIds.map{
@@ -911,7 +913,7 @@ class EventListDisplayer(
         "*" #> { val xml : NodeSeq = logDetailsService.getRollbackDetails(x.details) match {
           case Full(eventLogs) =>
                addRestoreAction ++
-               displayRollbackDetails(eventLogs,event.id.get)
+               displayRollbackDetails(eventLogs,event.id.get, gridname)
           case e:EmptyBox => logger.warn(e)
           errorMessage(e)
         }
@@ -1043,35 +1045,6 @@ class EventListDisplayer(
         , ("to ^*" #> "X" & "* *" #> ( (x:NodeSeq) => x))(xml)
       )
 
-  private[this] def groupNodeSeqLink(id: NodeGroupId): NodeSeq = {
-    nodeGroupRepository.getNodeGroup(id) match {
-      case t: EmptyBox =>
-        <span>Group (Rudder ID: {id.value.toUpperCase})</span>
-      case Full((nodeGroup, _)) =>
-        <span>Group "<a href={groupLink(id)}>{nodeGroup.name}</a>" (Rudder ID: {id.value.toUpperCase})</span>
-    }
-  }
-
-  private[this] def groupTargetDetails(targets: Set[RuleTarget]): NodeSeq = {
-    val res = targets.toSeq match {
-      case Seq() => NodeSeq.Empty
-      case t =>
-        targets
-        .toSeq
-        .map { target =>
-          target match {
-            case GroupTarget(id@NodeGroupId(g)) =>
-              groupNodeSeqLink(id)
-            case x =>
-              <span>{Text("Special group (" + x.toString + ")")}</span>
-          }
-        }
-        .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
-    }
-    (
-      ".groupSeparator" #> ", "
-    ).apply(res)
-  }
 
   private[this] def nodeNodeSeqLink(id: NodeId): NodeSeq = {
     nodeInfoService.getNodeInfo(id) match {
@@ -1125,10 +1098,10 @@ class EventListDisplayer(
     }
   }
 
-  private[this] def ruleDetails(xml:NodeSeq, rule:Rule) = (
+  private[this] def ruleDetails(xml:NodeSeq, rule:Rule, groupLib: FullNodeGroupCategory) = (
       "#ruleID" #> rule.id.value.toUpperCase &
       "#ruleName" #> rule.name &
-      "#target" #> DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq) &
+      "#target" #> DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq, groupLib) &
       "#policy" #> DiffDisplayer.displayDirectiveChangeList(rule.directiveIds.toSeq, rule.directiveIds.toSeq) &
       "#isEnabled" #> rule.isEnabled &
       "#isSystem" #> rule.isSystem &
@@ -1367,7 +1340,7 @@ class EventListDisplayer(
       {liModDetailsXML("isSystem", "System")}
     </xml:group>
 
-  private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int) = {
+  private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int, gridname: String) = {
     val rollbackedEvents = rollbackInfo.rollbacked
     <div class="evloglmargin">
       <div style="width:50%; float:left;">

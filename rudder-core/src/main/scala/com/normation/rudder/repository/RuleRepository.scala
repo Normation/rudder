@@ -60,18 +60,12 @@ trait RoRuleRepository {
    */
   def get(ruleId:RuleId) : Box[Rule]
 
-  def getAll(includeSytem:Boolean = false) : Box[Seq[Rule]]
-
   /**
-   * Return all activated rule.
-   * A rule is activated if
-   * - its attribute "isEnabled" is set to true ;
-   * - its referenced group is Activated ;
-   * - its referenced directive is activated (what means that the
-   *   referenced active technique is activated)
-   * @return
+   * Return all rules.
+   * To get only applied one, you can post-filter the seq
+   * with the method RuleTargetService#isApplied
    */
-  def getAllEnabled() : Box[Seq[Rule]]
+  def getAll(includeSytem:Boolean = false) : Box[Seq[Rule]]
 
 }
 
