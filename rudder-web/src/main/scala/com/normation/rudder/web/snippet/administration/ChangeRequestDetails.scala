@@ -192,6 +192,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
           SHtml.ajaxButton(
               "Decline"
             , () => ChangeStepPopup("Decline", steps, cr)
+            , ("class" ,"dangerButton")
           ) } }  &
       "#nextStep" #> {
         if(commitAndDeployChangeRequest.isMergeable(cr.id)) {

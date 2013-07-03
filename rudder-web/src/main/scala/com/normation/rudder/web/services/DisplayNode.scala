@@ -322,7 +322,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                 if(!isRootNode(sm.node.main.id)) {
                   <fieldset class="nodeIndernal"><legend>Action</legend>
                     {SHtml.ajaxButton("Delete this node",
-                      { () => {showConfirmationDialog(sm.node.main.id); } }, ("id", "boutonTest"))
+                      { () => {showConfirmationDialog(sm.node.main.id); } }, ("id", "boutonTest"), ("class", "dangerButton"))
                     }
                     <div id="test"></div>
                   </fieldset>
