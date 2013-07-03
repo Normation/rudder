@@ -173,7 +173,7 @@ class DirectiveEditForm(
         if (directive.isEnabled) "Disable" else "Enable"
        } &
        "#removeAction *" #> {
-         SHtml.ajaxSubmit("Delete", () => onSubmitDelete())
+         SHtml.ajaxSubmit("Delete", () => onSubmitDelete(),("class" ,"dangerButton"))
        } &
        "#desactivateAction *" #> {
          val status = directive.isEnabled ? "disable" | "enable"
