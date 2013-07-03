@@ -44,6 +44,7 @@ import java.io.File
 import scala.xml._
 import com.normation.rudder.exceptions._
 import java.io.FileNotFoundException
+import com.normation.inventory.domain.NodeId
 
 class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
 
@@ -52,8 +53,8 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
   val licenseMap = mutable.Map[String, NovaLicense]()
 
 
-  def findLicense(uuid: String): Option[NovaLicense] = {
-    licenseMap.get(uuid)
+  def findLicense(nodeId: NodeId): Option[NovaLicense] = {
+    licenseMap.get(nodeId.value)
   }
 
   def getAllLicense(): Seq[NovaLicense] = {
@@ -64,7 +65,7 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
       logger.debug("Adding a license {}", license)
       licenseMap.put(license.uuid, license)
       saveLicenseFile()
-      findLicense(license.uuid)
+      findLicense(NodeId(license.uuid))
     }
 
 

@@ -36,7 +36,6 @@ package com.normation.rudder.services.path
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain._
-import scala.collection.mutable._
 import org.apache.commons.io.FilenameUtils
 import com.normation.rudder.domain.servers._
 import com.normation.rudder.repository._
@@ -55,8 +54,7 @@ import com.normation.exceptions.BusinessException
  *
  */
 class PathComputerImpl(
-            nodeConfigurationRepository : NodeConfigurationRepository
-         ,  backupFolder        : String // /var/rudder/backup/
+  backupFolder: String // /var/rudder/backup/
 ) extends PathComputer with Loggable {
 
 
@@ -74,16 +72,12 @@ class PathComputerImpl(
    * @param searchedNodeConfiguration : the machine we search
    * @return
    */
-  def computeBaseNodePath(searchedNode : NodeConfiguration) :  (String, String) = {
-    val root = nodeConfigurationRepository.getRootNodeConfiguration match {
-      case Full(s) => s
-      case e:EmptyBox =>
-        val msg = "Failed to get root server to build path"
-        logger.error(msg,e)
-        throw new BusinessException(msg)
+  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration]): Box[((String, String))] = {
+    for {
+      path <- recurseComputePath(rootNodeId, searchedNodeId, "/"  + searchedNodeId.value, allNodeConfigs)
+    } yield {
+      (FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path) , FilenameUtils.normalize(backupFolder + path))
     }
-    val path = recurseComputePath(root, searchedNode, "/"  + searchedNode.id)
-    return (FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path) , FilenameUtils.normalize(backupFolder + path))
   }
 
   /**
@@ -111,16 +105,23 @@ class PathComputerImpl(
    * @param path
    * @return
    */
-  private def recurseComputePath(fromNode : NodeConfiguration, toNode : NodeConfiguration, path : String) : String = {
-    if (fromNode == toNode)
-      return path
-
-    nodeConfigurationRepository.findNodeConfiguration(NodeId(toNode.targetMinimalNodeConfig.policyServerId)) match {
-      case Full(root : RootNodeConfiguration) =>
-          recurseComputePath(fromNode, root, path)
-      case Full(policyParent) =>
-          recurseComputePath(fromNode, policyParent, policyParent.id + "/" + relativeShareFolder + "/" + path)
-      case _ =>throw new HierarchicalException("Wrong hierarchy for node:" + toNode)
+  private def recurseComputePath(fromNodeId: NodeId, toNodeId: NodeId, path : String, allNodeConfig: Map[NodeId, NodeConfiguration]) : Box[String] = {
+    if (fromNodeId == toNodeId) {
+      Full(path)
+    } else {
+      for {
+        toNode <- Box(allNodeConfig.get(toNodeId)) ?~! s"Missing node with id ${toNodeId.value} when trying to build the promise files path for node ${fromNodeId.value}"
+        pid    =  NodeId(toNode.targetMinimalNodeConfig.policyServerId)
+        parent <- Box(allNodeConfig.get(pid)) ?~! s"Can not find the parent node (${pid.value}) of node ${toNodeId.value} when trying to build the promise files for node ${fromNodeId.value}"
+        result <- parent match {
+                    case root: RootNodeConfiguration =>
+                        recurseComputePath(fromNodeId, root.id, path, allNodeConfig)
+                    case policyParent: SimpleNodeConfiguration =>
+                        recurseComputePath(fromNodeId, policyParent.id, policyParent.id + "/" + relativeShareFolder + "/" + path, allNodeConfig)
+                  }
+      } yield {
+        result
+      }
     }
   }
 }

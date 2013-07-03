@@ -95,7 +95,7 @@ class DynGroupUpdaterServiceImpl(
       query <- Box(group.query) ?~! "Can not a group if its query is not defined"
       newMembers <- queryProcessor.process(query) ?~! "Error when processing request for updating dynamic group with id %s".format(dynGroupId)
       //save
-      val newMemberIdsSet = newMembers.map( _.id).toSet
+      newMemberIdsSet = newMembers.map( _.id).toSet
       savedGroup <- {
                       val newGroup = group.copy(serverList = newMemberIdsSet)
                       if(group.isSystem) {

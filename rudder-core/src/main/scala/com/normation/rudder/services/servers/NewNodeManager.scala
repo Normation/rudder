@@ -652,7 +652,6 @@ class AcceptNodeRule(
     asyncDeploymentAgent:AsyncDeploymentAgent,
     roGroupRepo: RoNodeGroupRepository,
     woGroupRepo: WoNodeGroupRepository,
-    nodeConfigRepo:NodeConfigurationRepository,
     inventoryStatus: InventoryStatus
 ) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
 
@@ -717,12 +716,8 @@ class AcceptNodeRule(
 
   //////////// refuse ////////////
   override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
-    //remove node rule
-    for {
-      deleted <- nodeConfigRepo.deleteNodeConfiguration(srv.id.value)
-    } yield {
-      srv
-    }
+    //nothing, node configuration state will be handle by the deployment service
+    Full(srv)
   }
 }
 

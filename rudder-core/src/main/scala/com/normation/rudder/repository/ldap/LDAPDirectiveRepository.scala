@@ -65,6 +65,8 @@ import com.normation.utils.StringUuidGenerator
 import net.liftweb.json.Printer
 import net.liftweb.json.JsonAST
 import org.joda.time.DateTime
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueName
 
 
 class RoLDAPDirectiveRepository(
@@ -421,6 +423,124 @@ class RoLDAPDirectiveRepository(
   }
 
 
+
+
+  def getFullDirectiveLibrary() : Box[FullActiveTechniqueCategory] = {
+    //data structure to holds all relation between objects
+    case class AllMaps(
+        categories: Map[ActiveTechniqueCategoryId, ActiveTechniqueCategory]
+      , activeTechiques: Map[ActiveTechniqueId, ActiveTechnique]
+      , categoriesByCategory: Map[ActiveTechniqueCategoryId, List[ActiveTechniqueCategoryId]]
+      , activeTechniquesByCategory: Map[ActiveTechniqueCategoryId, List[ActiveTechniqueId]]
+      , directivesByActiveTechnique: Map[ActiveTechniqueId, List[Directive]]
+    )
+
+    //here, active technique is expected to have an empty list of children
+    def fromActiveTechnique(at: ActiveTechnique, maps:AllMaps) = {
+      FullActiveTechnique(
+          id = at.id
+        , techniqueName = at.techniqueName
+        , techniques = techniqueRepository.getByName(at.techniqueName)
+        , acceptationDatetimes = at.acceptationDatetimes
+        , directives = maps.directivesByActiveTechnique.getOrElse(at.id, Nil)
+        , isEnabled = at.isEnabled
+        , isSystem = at.isSystem
+      )
+    }
+
+    //here, subcaterories and active technique are expexcted to be empty
+    def fromCategory(atcId:ActiveTechniqueCategoryId, maps:AllMaps, activeTechniques:Map[ActiveTechniqueId, FullActiveTechnique]): FullActiveTechniqueCategory = {
+      def getCat(id:ActiveTechniqueCategoryId) = maps.categories.getOrElse(id, throw new IllegalArgumentException(s"Missing categories with id ${atcId} in the list of available categories"))
+      val atc = getCat(atcId)
+
+      FullActiveTechniqueCategory(
+          id = atc.id
+        , name = atc.name
+        , description = atc.description
+        , subCategories = maps.categoriesByCategory.getOrElse(atc.id, Nil) .map { id =>
+            fromCategory(id, maps, activeTechniques)
+          }
+        , activeTechniques = maps.activeTechniquesByCategory.getOrElse(atc.id, Nil).map { atId =>
+            activeTechniques.getOrElse(atId, throw new IllegalArgumentException(s"Missing active technique with id ${atId} in the list of available active techniques"))
+          }
+        , isSystem = atc.isSystem
+      )
+    }
+
+    /*
+     * strategy: load the full subtree from the root category id,
+     * then process entrie mapping them to their light version,
+     * then call fromCategory on the root (we know its id).
+     */
+
+
+    val emptyAll = AllMaps(Map(), Map(), Map(), Map(), Map())
+    import rudderDit.ACTIVE_TECHNIQUES_LIB._
+
+    def mappingError(current:AllMaps, e:LDAPEntry, eb:EmptyBox) : AllMaps = {
+      val error = eb ?~! s"Error when mapping entry with DN '${e.dn.toString}' from directive library"
+      logger.warn(error.messageChain)
+      current
+    }
+
+    for {
+      con     <- ldap
+      entries <- userLibMutex.readLock( con.getTree(rudderDit.ACTIVE_TECHNIQUES_LIB.dn) ) ?~! "The root category of the user library of techniques seems to be missing in LDAP directory. Please check its content"
+    } yield {
+      val allMaps =  (emptyAll /: entries.toSeq) { case (current, e) =>
+         if(isACategory(e)) {
+           mapper.entry2ActiveTechniqueCategory(e) match {
+             case Full(category) =>
+               //for categories other than root, add it in the list
+               //of its parent subcategories
+               val updatedSubCats = if(e.dn == rudderDit.ACTIVE_TECHNIQUES_LIB.dn) {
+                 current.categoriesByCategory
+               } else {
+                 val catId = mapper.dn2ActiveTechniqueCategoryId(e.dn.getParent)
+                 val subCats = category.id :: current.categoriesByCategory.getOrElse(catId, Nil)
+                 current.categoriesByCategory + (catId -> subCats)
+               }
+               current.copy(
+                   categories = current.categories + (category.id -> category)
+                 , categoriesByCategory =  updatedSubCats
+               )
+             case eb:EmptyBox => mappingError(current, e, eb)
+           }
+         } else if(isAnActiveTechnique(e)) {
+           mapper.entry2ActiveTechnique(e) match {
+             case Full(at) =>
+               val catId = mapper.dn2ActiveTechniqueCategoryId(e.dn.getParent)
+               val atsForCatId = at.id :: current.activeTechniquesByCategory.getOrElse(catId, Nil)
+               current.copy(
+                   activeTechiques = current.activeTechiques + (at.id -> at)
+                 , activeTechniquesByCategory = current.activeTechniquesByCategory + (catId -> atsForCatId)
+               )
+             case eb:EmptyBox => mappingError(current, e, eb)
+           }
+         } else if(isADirective(e)) {
+           mapper.entry2Directive(e) match {
+             case Full(dir) =>
+               val atId = mapper.dn2ActiveTechniqueId(e.dn.getParent)
+               val dirsForAt = dir :: current.directivesByActiveTechnique.getOrElse(atId, Nil)
+               current.copy(
+                   directivesByActiveTechnique = current.directivesByActiveTechnique + (atId -> dirsForAt)
+               )
+             case eb:EmptyBox => mappingError(current, e, eb)
+           }
+         } else {
+           //log error, continue
+           logger.warn(s"Entry with DN '${e.dn}' was ignored because it is of an unknow type. Known types are categories, active techniques, directives")
+           current
+         }
+      }
+
+      val fullActiveTechniques = allMaps.activeTechiques.map{ case (id,at) => (id -> fromActiveTechnique(at, allMaps)) }.toMap
+
+      fromCategory(ActiveTechniqueCategoryId(rudderDit.ACTIVE_TECHNIQUES_LIB.rdnValue._1), allMaps, fullActiveTechniques)
+    }
+  }
+
+
 }
 
 class WoLDAPDirectiveRepository(
@@ -533,7 +653,7 @@ class WoLDAPDirectiveRepository(
                        for {
                          parents  <- activeTechniqueBreadCrump(activeTechnique.id)
                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                         archived <- gitPiArchiver.archiveDirective(directive, technique.id.name, parents.map( _.id), technique.rootSection, Some(modId,commiter, reason))
+                         archived <- gitPiArchiver.archiveDirective(directive, technique.id.name, parents.map( _.id), technique.rootSection, Some((modId,commiter, reason)))
                        } yield archived
                      } else Full("ok")
     } yield {

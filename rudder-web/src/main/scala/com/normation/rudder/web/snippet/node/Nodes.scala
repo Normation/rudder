@@ -50,20 +50,13 @@ class Nodes extends StatefulSnippet with Loggable {
   }
 
   def table(html:NodeSeq)= {
-  val nodes = nodeInfoService.getAllIds match {
-      case Full(ids) => ids.flatMap{id => val nodeInfo =   nodeInfoService.getNodeInfo(id)
-        nodeInfo match { case eb:EmptyBox => val fail = eb?~ s"could not find Node ${id}"
-        logger.error(fail.msg)
-        case _ =>
-        }
-      nodeInfo
-      }
+    val nodes = nodeInfoService.getAll match {
+      case Full(infos) => infos.toSeq
       case eb:EmptyBox => val fail = eb?~ s"could not find Nodes "
-           logger.error(fail.msg)
-           Seq()
+          logger.error(fail.msg)
+          Seq()
     }
     srvGrid.displayAndInit(nodes, "nodes", ((nodeId:String) => RedirectTo(s"""/secure/nodeManager/searchNodes#{\"nodeId\":\"${nodeId.split("\\|")(1)}\"}""")))
-
-}
+  }
 
 }

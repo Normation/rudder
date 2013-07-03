@@ -38,7 +38,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.policies.RuleVal
-import com.normation.rudder.domain.transporter._
 import net.liftweb.common.Box
 import com.normation.rudder.domain.reports.bean._
 import org.joda.time._

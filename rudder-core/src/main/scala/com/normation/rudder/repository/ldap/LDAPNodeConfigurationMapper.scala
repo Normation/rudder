@@ -73,8 +73,7 @@ class LDAPNodeConfigurationMapper(
     var returnedMap = scala.collection.mutable.Map[String, Variable]()
     for ((variableName, values) <- variableMap) {
       try {
-        val settedVariable = SystemVariable(systemVariableSpecService.get(variableName))
-        settedVariable.values = values
+        val settedVariable = new SystemVariable(systemVariableSpecService.get(variableName), values)
         returnedMap += (settedVariable.spec.name -> settedVariable)
       } catch {
         case e: Exception => logger.error("Could not fetch spec for system variable %s".format(variableName))
@@ -116,8 +115,10 @@ class LDAPNodeConfigurationMapper(
         vared <- variableBuilderService.buildVariables(varSpecs, parsePolicyVariables(e.valuesFor(A_DIRECTIVE_VARIABLES).toSeq)) ?~! "Error when building variables from their specs and values"
         priority <- e.getAsInt(A_PRIORITY) ?~! errorMessage(A_PRIORITY)
         serial <- e.getAsInt(A_SERIAL) ?~! errorMessage(A_SERIAL)
+        tid = TechniqueId(techniqueId, policyVersion)
+        technique <- techniqueRepository.get(tid) ?~! s"Can not find the technique with ID ${tid}"
         directive = new RuleWithCf3PolicyDraft(new RuleId(ruleId),
-            new Cf3PolicyDraft(Cf3PolicyDraftId(id),TechniqueId(techniqueId, policyVersion),
+            new Cf3PolicyDraft(Cf3PolicyDraftId(id),technique,
             //remove trackerVariableVar
             vared.filterKeys(k => k != policyPackage.trackerVariableSpec.name),
             vared.get(policyPackage.trackerVariableSpec.name).map(x => x.asInstanceOf[TrackerVariable]).getOrElse(policyPackage.trackerVariableSpec.toVariable()),
@@ -214,7 +215,7 @@ class LDAPNodeConfigurationMapper(
         targetNodeConfig <- getTargetMinimalNodeConfig(tree.root()) ?~! "Missing target node minimal configuration"
       } yield {
         if(tree.root.isA(OC_ROOT_POLICY_SERVER)) {
-          val server = new RootNodeConfiguration(id, currentPIs,targetPIs, true,
+          val server = new RootNodeConfiguration(NodeId(id), currentPIs,targetPIs, true,
                 getCurrentMinimalNodeConfig(tree.root()),
                 targetNodeConfig,
                 writtenDate.map(_.dateTime),
@@ -224,7 +225,7 @@ class LDAPNodeConfigurationMapper(
 
           server
         } else {
-          val server = new SimpleNodeConfiguration(id, currentPIs,targetPIs, tree.root().getAsBoolean(A_IS_POLICY_SERVER).getOrElse(false),
+          val server = new SimpleNodeConfiguration(NodeId(id), currentPIs,targetPIs, tree.root().getAsBoolean(A_IS_POLICY_SERVER).getOrElse(false),
               getCurrentMinimalNodeConfig(tree.root()),
               targetNodeConfig,
               writtenDate.map(_.dateTime),
@@ -257,14 +258,14 @@ class LDAPNodeConfigurationMapper(
     def fromDirective(identifiable:RuleWithCf3PolicyDraft,  serverEntry:LDAPEntry, isCurrent:Boolean) : LDAPEntry = {
 
       val entry =
-        if(isCurrent) rudderDit.NODE_CONFIGS.NODE_CONFIG.CF3POLICYDRAFT.model(identifiable.cf3PolicyDraft.id.value, serverEntry.dn)
-        else rudderDit.NODE_CONFIGS.NODE_CONFIG.TARGET_CF3POLICYDRAFT.model(identifiable.cf3PolicyDraft.id.value, serverEntry.dn)
+        if(isCurrent) rudderDit.NODE_CONFIGS.NODE_CONFIG.CF3POLICYDRAFT.model(identifiable.draftId.value, serverEntry.dn)
+        else rudderDit.NODE_CONFIGS.NODE_CONFIG.TARGET_CF3POLICYDRAFT.model(identifiable.draftId.value, serverEntry.dn)
 
       val vars = identifiable.cf3PolicyDraft.getVariables().values.toSeq :+ identifiable.cf3PolicyDraft.trackerVariable
       entry +=! (A_RULE_UUID, identifiable.ruleId.value)
 
-      entry +=! (A_TECHNIQUE_UUID, identifiable.cf3PolicyDraft.techniqueId.name.value)
-      entry +=! (A_TECHNIQUE_VERSION, identifiable.cf3PolicyDraft.techniqueId.version.toString)
+      entry +=! (A_TECHNIQUE_UUID, identifiable.cf3PolicyDraft.technique.id.name.value)
+      entry +=! (A_TECHNIQUE_VERSION, identifiable.cf3PolicyDraft.technique.id.version.toString)
       entry +=! (A_LAST_UPDATE_DATE, GeneralizedTime(identifiable.cf3PolicyDraft.modificationDate).toString)
       //put variable under Map[String, Seq[String]]
       /*val variables = directive.getVariables().map { case(name,v) =>
@@ -276,13 +277,10 @@ class LDAPNodeConfigurationMapper(
       entry
     }
 
-    //if server id is null or empty, throw an error here
-    val id = NodeId(Utils.??!(server.id).getOrElse(throw new BusinessException("NodeConfiguration UUID can not be null nor emtpy")))
-
     //Build the server entry and its children (role an directives)
     val serverEntry : LDAPEntry = server match {
-      case rootNodeConfiguration:RootNodeConfiguration => rudderDit.NODE_CONFIGS.NODE_CONFIG.rootPolicyServerModel(id)
-      case s => rudderDit.NODE_CONFIGS.NODE_CONFIG.nodeConfigurationModel(id)
+      case rootNodeConfiguration:RootNodeConfiguration => rudderDit.NODE_CONFIGS.NODE_CONFIG.rootPolicyServerModel(server.id)
+      case s => rudderDit.NODE_CONFIGS.NODE_CONFIG.nodeConfigurationModel(server.id)
     }
     serverEntry +=!(A_SERVER_IS_MODIFIED, server.isModified.toLDAPString)
     //serverEntry +=!(A_LAST_UPDATE_DATE, GeneralizedTime( Utils.??(server.modificationDate).getOrElse(DateTime.now) ).toString)
@@ -306,14 +304,14 @@ class LDAPNodeConfigurationMapper(
     serverEntry +=!(A_IS_POLICY_SERVER, server.isPolicyServer.toLDAPString )
 
     // Add the system variable
-    serverEntry +=!(A_NODE_CONFIGURATION_SYSTEM_VARIABLE, variableToSeq(server.getCurrentSystemVariables().values.toSeq):_*)
-    serverEntry +=!(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE, variableToSeq(server.getTargetSystemVariables().values.toSeq):_*)
+    serverEntry +=!(A_NODE_CONFIGURATION_SYSTEM_VARIABLE, variableToSeq(server.currentSystemVariables.values.toSeq):_*)
+    serverEntry +=!(A_NODE_CONFIGURATION_TARGET_SYSTEM_VARIABLE, variableToSeq(server.targetSystemVariables.values.toSeq):_*)
 
     //should be ok, that's why we use an exception
     LDAPTree(
       Seq(serverEntry) ++  //server root entry
-      { server.getCurrentDirectives.map( directive => fromDirective(directive._2, serverEntry, true)) } ++
-      { server.getDirectives.map( directive => fromDirective(directive._2, serverEntry, false)) }
+      { server.currentRulePolicyDrafts.map( draft => fromDirective(draft, serverEntry, true)) } ++
+      { server.targetRulePolicyDrafts.map( draft => fromDirective(draft, serverEntry, false)) }
     ) match {
       case Full(tree) => tree
       case e:EmptyBox =>
