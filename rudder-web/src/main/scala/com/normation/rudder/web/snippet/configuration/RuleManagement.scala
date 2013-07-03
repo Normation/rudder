@@ -71,7 +71,6 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
   import RuleManagement._
 
   private[this] val ruleRepository    = RudderConfig.roRuleRepository
-  private[this] val targetInfoService = RudderConfig.ruleTargetService
   private[this] val uuidGen           = RudderConfig.stringUuidGenerator
 
   //the popup component
@@ -155,7 +154,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
                 {SHtml.ajaxButton("Add a new rule", () => showPopup(None), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))}
               </div>
             </lift:authz>
-             {ruleGrid.rulesGrid() }
+             {ruleGrid.rulesGridWithUpdatedInfo() }
            </div>
 
   }

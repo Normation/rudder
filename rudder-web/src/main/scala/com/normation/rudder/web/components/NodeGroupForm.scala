@@ -46,6 +46,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.web.model.{
   WBTextField, FormTracker, WBTextAreaField,WBSelectField,WBRadioField
 }
+import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.rudder.web.model.CurrentUser
@@ -98,6 +99,7 @@ class NodeGroupForm(
     htmlIdCategory    : String
   , val nodeGroup     : NodeGroup
   , parentCategoryId  : NodeGroupCategoryId
+  , rootCategory      : FullNodeGroupCategory
   , onSuccessCallback : (Either[NodeGroup, ChangeRequestId]) => JsCmd = { (NodeGroup) => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with SpringExtendableSnippet[NodeGroupForm] with Loggable {
@@ -112,7 +114,7 @@ class NodeGroupForm(
   private[this] val searchNodeComponent = new LocalSnippet[SearchNodeComponent]
 
   private[this] var query : Option[Query] = nodeGroup.query
-  private[this] var srvList : Box[Seq[NodeInfo]] = nodeInfoService.find(nodeGroup.serverList.toSeq)
+  private[this] var srvList : Box[Seq[NodeInfo]] = nodeInfoService.getAll.map( _.filter( (x:NodeInfo) => nodeGroup.serverList.contains( x.id ) ).toSeq )
 
   private def setNodeGroupCategoryForm : Unit = {
     searchNodeComponent.set(Full(new SearchNodeComponent(
@@ -133,7 +135,7 @@ class NodeGroupForm(
   private[this] def onClickCallBack(s:String) : JsCmd = {
     s.split("\\|").toList match {
       case _ :: id :: _ =>
-        SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(id))).display(true)) &
+        SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(id), rootCategory)).display(true)) &
         createPopup("nodeDetailsPopup")
 
       case _ => Alert("Error when trying to display node details: received bad parameter for node ID: %s".format(s))
@@ -241,7 +243,7 @@ class NodeGroupForm(
   }
 
   private[this] val groupContainer = new WBSelectField("Group container",
-      (categoryHierarchyDisplayer.getCategoriesHierarchy().map { case (id, name) => (id.value -> name)}),
+      (categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, None).map { case (id, name) => (id.value -> name)}),
       parentCategoryId.value) {
     override def className = "rudderBaseFieldSelectClassName"
   }
@@ -378,12 +380,12 @@ class NodeGroupForm(
     panel match {
       case NoPanel => NodeSeq.Empty
       case GroupForm(group, catId) =>
-        val form = new NodeGroupForm(htmlId_item, group, catId, onSuccessCallback)
+        val form = new NodeGroupForm(htmlId_item, group, catId, rootCategory, onSuccessCallback)
         nodeGroupForm.set(Full(form))
         form.showForm()
 
       case CategoryForm(category) =>
-        val form = new NodeGroupCategoryForm(htmlId_item, category) //, onSuccessCallback)
+        val form = new NodeGroupCategoryForm(htmlId_item, category, rootCategory) //, onSuccessCallback)
         nodeGroupCategoryForm.set(Full(form))
         form.showForm()
     }

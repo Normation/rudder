@@ -52,7 +52,7 @@ import com.normation.inventory.domain.NodeId
  * This class holds the necessary data for a Directive. It kind of replace the DirectiveBean
  */
 case class DirectiveVal(
-    techniqueId      : TechniqueId
+    technique        : Technique
   , directiveId      : DirectiveId
   , priority         : Int
   , trackerVariable  : TrackerVariable
@@ -70,8 +70,8 @@ case class RuleVal(
     directiveVals.map ( pol => PolicyDraft(
         ruleId
       , pol.directiveId
-      , pol.techniqueId
-      , __variableMap = pol.variables
+      , pol.technique
+      , variableMap = pol.variables
       , pol.trackerVariable
       , priority = pol.priority
       , serial = serial
@@ -94,7 +94,9 @@ case class ExpandedRuleVal(
 case class RuleWithCf3PolicyDraft (
     ruleId        : RuleId
   , cf3PolicyDraft: Cf3PolicyDraft
-) extends HashcodeCaching
+) extends HashcodeCaching {
+  val draftId = cf3PolicyDraft.id
+}
 
 /**
  * This is the draft of the policy, not yet a cfengine policy, but a level of abstraction between both
@@ -102,8 +104,8 @@ case class RuleWithCf3PolicyDraft (
 case class PolicyDraft(
     ruleId         : RuleId
   , directiveId    : DirectiveId
-  , techniqueId    : TechniqueId
-  , __variableMap  : Map[String, Variable]
+  , technique      : Technique
+  , variableMap  : Map[String, Variable]
   , trackerVariable: TrackerVariable
   , priority       : Int
   , serial         : Int
@@ -111,21 +113,23 @@ case class PolicyDraft(
 )extends HashcodeCaching {
   def toRuleWithCf3PolicyDraft : RuleWithCf3PolicyDraft =
     RuleWithCf3PolicyDraft(ruleId,
-        new Cf3PolicyDraft(
+        Cf3PolicyDraft(
             Cf3PolicyDraftId(ruleId.value + "@@" + directiveId.value)
-          , techniqueId
-          , __variableMap = Map[String, Variable]() ++__variableMap
+          , technique
+          , variableMap
           , trackerVariable
           , priority = priority
-          , serial = serial ))
+          , serial = serial
+        )
+    )
 
   def toDirectiveVal : DirectiveVal = {
     DirectiveVal(
-        techniqueId
+        technique
       , directiveId
       , priority
       , trackerVariable
-      , __variableMap
+      , variableMap
       , originalVariables
     )
   }

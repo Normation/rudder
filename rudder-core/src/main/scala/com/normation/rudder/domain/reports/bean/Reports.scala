@@ -243,8 +243,8 @@ object Reports {
     factory(executionDate, ruleId, directiveId, nodeId, serial, component, keyValue, executionTimestamp, severity,  message)
   }
 
-  def unapply(report : Reports) = Some(report.executionDate, report.ruleId,
-    report.directiveId, report.nodeId, report.serial, report.component, report.keyValue, report.executionTimestamp, report.severity, report.message)
+  def unapply(report : Reports) = Some((report.executionDate, report.ruleId,
+    report.directiveId, report.nodeId, report.serial, report.component, report.keyValue, report.executionTimestamp, report.severity, report.message))
 
 
   val LOG_TRACE = "log_trace"

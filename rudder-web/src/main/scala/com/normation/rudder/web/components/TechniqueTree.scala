@@ -73,6 +73,7 @@ class TechniqueTree(
   val activeTechniqueRepository = RudderConfig.roDirectiveRepository
   val dependencyService         = RudderConfig.dependencyAndDeletionService
   val ruleRepository            = RudderConfig.roRuleRepository
+  val getGrouLib                = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
   def dispatch = {
     case "tree" => { _ => tree }
@@ -89,7 +90,7 @@ class TechniqueTree(
       }
       activeTechnique <- activeTechniqueRepository.getActiveTechnique(techniqueId)
       technique <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
-      dep <- dependencyService.techniqueDependencies(techniqueId,switchStatusFilter)
+      dep <- dependencyService.techniqueDependencies(techniqueId,getGrouLib(),switchStatusFilter)
     } yield {
       categoryNode(rootCat,subCats, dep, technique, activeTechnique)
     }) match {

@@ -36,25 +36,30 @@ package com.normation.rudder.web.services
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import net.liftweb.common._
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.repository.FullNodeGroupCategory
 
 /**
  * Display the hierarchy of category in the NodeGroup and NodeCategory
  * drop down in a nicely way
  */
-class CategoryHierarchyDisplayer(
-    groupCategoryRepository : RoNodeGroupRepository
-    ) {
-
-  def getCategoriesHierarchy() : Seq[(NodeGroupCategoryId, String)] = {
-    groupCategoryRepository.getCategoryHierarchy match {
-      case Full(categories) => categories.toSeq.map {
-        case (list, nodeGroupCategory) =>
-          list.size match {
-            case level if level<=1  => (nodeGroupCategory.id, nodeGroupCategory.name)
-            case level => (nodeGroupCategory.id, ("\u00a0\u00a0\u00a0\u00a0\u00a0"*(level-2) + "\u2514"+"\u2500 " + nodeGroupCategory.name))
-          }
-        }
-      case e:EmptyBox => Seq()
+class CategoryHierarchyDisplayer() {
+  def getCategoriesHierarchy(rootCategory:FullNodeGroupCategory, exclude: Option[FullNodeGroupCategory => Boolean]) : Seq[(NodeGroupCategoryId, String)] = {
+    //always exclude system categories (minus root one)
+    val excludeSystem = (cat: FullNodeGroupCategory) => (cat.id != rootCategory.id && cat.isSystem)
+    val ex = exclude match {
+      case None =>
+        (cat: FullNodeGroupCategory) => excludeSystem(cat)
+      case Some(ex1) =>
+        (cat: FullNodeGroupCategory) => excludeSystem(cat) || ex1(cat)
+    }
+    rootCategory.getSortedCategories((a,b) => a.name > b.name, ex).map { case (list, nodeGroupCategory) =>
+       if(list.size <= 1) {
+         (nodeGroupCategory.id, nodeGroupCategory.name)
+       } else {
+         (nodeGroupCategory.id, ("\u00a0\u00a0\u00a0\u00a0\u00a0"*(list.size-2) + "\u2514"+"\u2500 " + nodeGroupCategory.name))
+       }
     }
   }
 }

@@ -316,7 +316,7 @@ final class AsyncDeploymentAgent(
         logger.trace("Deployer Agent: start a new deployment")
         try {
           val result = deploymentService.deploy().map { nodeConfs =>
-            nodeConfs.map { conf => (NodeId(conf.id), conf) }.toMap
+            nodeConfs.map { conf => (conf.id, conf) }.toMap
           }
           result match {
             case Full(_) => // nothing to report

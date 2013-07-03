@@ -49,7 +49,7 @@ case class NodeGroupId(value:String) extends HashcodeCaching
  *
  * A node group contains :
  * - the name and a description
- * - a search query (optionnal)
+ * - a search query (optional)
  * - an indicator whether the group is static or dynamic
  * - a list of node id, if the group is static (or even dynamic?)
  *

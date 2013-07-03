@@ -71,6 +71,7 @@ import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
 import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.web.services.DiffDisplayer
+import com.normation.rudder.repository.FullNodeGroupCategory
 
 
 object ChangeRequestChangesForm {
@@ -88,14 +89,12 @@ class ChangeRequestChangesForm(
 ) extends DispatchSnippet with Loggable {
   import ChangeRequestChangesForm._
 
-  private[this] val roDirectiveRepo = RudderConfig.roDirectiveRepository
   private[this] val techniqueRepo = RudderConfig.techniqueRepository
-  private[this] val roGroupRepo = RudderConfig.roNodeGroupRepository
-  private[this] val roRuleRepo = RudderConfig.roRuleRepository
   private[this] val changeRequestEventLogService =  RudderConfig.changeRequestEventLogService
   private[this] val workFlowEventLogService = RudderConfig.workflowEventLogService
   private[this] val eventLogDetailsService =  RudderConfig.eventLogDetailsService
   private[this] val diffService =  RudderConfig.diffService
+  private[this] val getGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
   def dispatch = {
     case "changes" =>
@@ -298,10 +297,10 @@ class ChangeRequestChangesForm(
     , default : NodeSeq
   ) = diff.map(value => displayFormDiff(value, name)).getOrElse(default)
 
-  private[this] def displayRule(rule:Rule) = {
+  private[this] def displayRule(rule:Rule, groupLib: FullNodeGroupCategory) = {
     ( "#ruleID" #> createRuleLink(rule.id) &
       "#ruleName" #> rule.name &
-      "#target" #> DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq) &
+      "#target" #> DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq, groupLib) &
       "#policy" #> DiffDisplayer.displayDirectiveChangeList(rule.directiveIds.toSeq, rule.directiveIds.toSeq) &
       "#isEnabled" #> rule.isEnabled &
       "#isSystem" #> rule.isSystem &
@@ -314,12 +313,13 @@ class ChangeRequestChangesForm(
   private[this] def displayRuleDiff (
       diff : ModifyRuleDiff
     , rule : Rule
+    , groupLib: FullNodeGroupCategory
   ) = {
     ( "#ruleID" #> createRuleLink(rule.id) &
       "#ruleName" #> displaySimpleDiff(diff.modName, "name", Text(rule.name)) &
       "#target" #> diff.modTarget.map{
-        case SimpleDiff(oldOnes,newOnes) => DiffDisplayer.displayRuleTargets(oldOnes.toSeq,newOnes.toSeq)
-        }.getOrElse(DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq)) &
+        case SimpleDiff(oldOnes,newOnes) => DiffDisplayer.displayRuleTargets(oldOnes.toSeq,newOnes.toSeq, groupLib)
+        }.getOrElse(DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq, groupLib)) &
       "#policy" #> diff.modDirectiveIds.map{
         case SimpleDiff(oldOnes,newOnes) => DiffDisplayer.displayDirectiveChangeList(oldOnes.toSeq,newOnes.toSeq)
         }.getOrElse(DiffDisplayer.displayDirectiveChangeList(rule.directiveIds.toSeq, rule.directiveIds.toSeq)) &
@@ -490,18 +490,28 @@ class ChangeRequestChangesForm(
           ruleChange.change.map{_.diff match {
 
             case ModifyToRuleDiff(rule) =>
-              ruleChange.initialState match {
-                case Some(initialRule) =>
+              (for {
+                groupLib <- getGroupLib()
+                initialRule <- ruleChange.initialState
+              } yield {
+                (groupLib, initialRule)
+              }) match {
+                case Full((groupLib,initialRule)) =>
                   val diff = diffService.diffRule(initialRule, rule)
-                  displayRuleDiff(diff, rule)
-                case None =>
+                  displayRuleDiff(diff, rule, groupLib)
+                case eb:EmptyBox =>
                   val msg = s"Could not display diff for ${rule.name} (${rule.id.value.toUpperCase})"
                   logger.error(msg)
                   <div>msg</div>
               }
            case diff =>
               val rule = diff.rule
-              displayRule(rule)
+              for {
+                groupLib <- getGroupLib()
+                res <- displayRule(rule, groupLib)
+              } yield {
+                res
+              }
           } }.getOrElse(<div>Error</div>)
         }</li>
           )
