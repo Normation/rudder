@@ -39,9 +39,14 @@ import com.normation.rudder.domain.policies.SimpleDiff
 
 sealed trait ParameterDiff
 
-final case class AddGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with HashcodeCaching
+//for change request, with add type tag to DirectiveDiff
+sealed trait ChangeRequestGlobalParameterDiff {
+  def parameter:GlobalParameter
+}
 
-final case class DeleteGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with HashcodeCaching
+final case class AddGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff with HashcodeCaching
+
+final case class DeleteGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff with HashcodeCaching
 
 final case class ModifyGlobalParameterDiff(
     name                : ParameterName
@@ -49,3 +54,8 @@ final case class ModifyGlobalParameterDiff(
   , modDescription      : Option[SimpleDiff[String]] = None
   , modOverridable      : Option[SimpleDiff[Boolean]] = None
 ) extends ParameterDiff with HashcodeCaching
+
+
+final case class ModifyToGlobalParameterDiff(
+    parameter : GlobalParameter
+) extends ParameterDiff with HashcodeCaching with ChangeRequestGlobalParameterDiff
