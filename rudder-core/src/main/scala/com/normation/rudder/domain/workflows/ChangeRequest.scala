@@ -48,7 +48,7 @@ import com.normation.cfclerk.domain.SectionSpec
 import com.normation.eventlog.EventLog
 import com.normation.rudder.domain.eventlog.ChangeRequestLogCategory
 import com.normation.eventlog.ModificationId
-
+import com.normation.rudder.domain.parameters._
 
 
 /*
@@ -135,19 +135,20 @@ sealed trait ChangeRequest {
  * Rules and Group.
  */
 case class ConfigurationChangeRequest(
-    id         : ChangeRequestId
-  , modId      : Option[ModificationId]
-  , info       : ChangeRequestInfo
-  , directives : Map[DirectiveId, DirectiveChanges]
-  , nodeGroups : Map[NodeGroupId, NodeGroupChanges]
-  , rules      : Map[RuleId, RuleChanges]
+    id          : ChangeRequestId
+  , modId       : Option[ModificationId]
+  , info        : ChangeRequestInfo
+  , directives  : Map[DirectiveId, DirectiveChanges]
+  , nodeGroups  : Map[NodeGroupId, NodeGroupChanges]
+  , rules       : Map[RuleId, RuleChanges]
+  , globalParams: Map[ParameterName, GlobalParameterChanges]
   // ... TODO: complete for groups and rules
 ) extends ChangeRequest {
   val owner = {
 
     // To get the owner of the change request we need to get the actor of oldest change associated to change request
     // We have to regroup all changes in one sequence then find the oldest change in them
-    val changes : Seq[Changes[ _, _, _ <: ChangeItem[_]]] = (directives.values ++ rules.values ++ nodeGroups.values).toSeq
+    val changes : Seq[Changes[ _, _, _ <: ChangeItem[_]]] = (directives.values ++ rules.values ++ nodeGroups.values ++ globalParams.values).toSeq
     val change  : Seq[Change [ _, _, _ <: ChangeItem[_]]] = changes.map(_.changes)
     val firsts  : Seq[ChangeItem[_]] = change.map(_.firstChange)
     firsts.sortWith((a,b) => a.creationDate isAfter b.creationDate).headOption.map(_.actor.name).getOrElse("No One")
@@ -356,3 +357,25 @@ case class RuleChanges(
   , val changeHistory: Seq[RuleChange]
 )extends Changes[Rule, ChangeRequestRuleDiff, RuleChangeItem]
 
+
+//////////////////// Change Request section ////////////////////////////////////////
+case class GlobalParameterChangeItem(
+    actor       : EventActor
+  , creationDate: DateTime
+  , reason      : Option[String]
+  , diff        : ChangeRequestGlobalParameterDiff
+) extends ChangeItem[ChangeRequestGlobalParameterDiff]
+
+case class GlobalParameterChange(
+    val initialState: Option[GlobalParameter]
+  , val firstChange : GlobalParameterChangeItem
+  , val nextChanges : Seq[GlobalParameterChangeItem]
+) extends Change[GlobalParameter, ChangeRequestGlobalParameterDiff, GlobalParameterChangeItem] {
+
+  val change = Full(firstChange)
+}
+
+case class GlobalParameterChanges(
+    val changes      : GlobalParameterChange
+  , val changeHistory: Seq[GlobalParameterChange]
+)extends Changes[GlobalParameter, ChangeRequestGlobalParameterDiff, GlobalParameterChangeItem]
