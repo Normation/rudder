@@ -43,11 +43,16 @@ import org.apache.commons.codec.binary.Base64
 import net.liftweb.json._
 import net.liftweb.http._
 import net.liftweb.json.JsonDSL._
+import net.liftweb.http.js.JsExp
+import scala.text.Document
+import net.liftweb.common.Loggable
+import net.liftweb.common.Box
+import net.liftweb.common.Failure
 
 
 /**
  */
-object RestUtils {
+object RestUtils extends Loggable {
 
   /**
    * Get the rest user name, as follow:
@@ -68,20 +73,31 @@ object RestUtils {
 
   def getActor(req:Req) : EventActor = EventActor(getUsername(req).getOrElse("UnknownRestUser"))
 
+  def getPrettify(req:Req) : Box[Boolean] = req.params.get("prettify") match {
+    case None => Full(false)
+    case Some("true" :: Nil) => Full(true)
+    case Some("false" :: Nil) => Full(false)
+    case _ => Failure("Prettify should only have one value, and should be set to true or false")
+  }
 
-  def toJsonResponse(id:String, message:String, status:HttpStatus)(implicit action : String) : LiftResponse = {
+  def toJsonResponse(id:String, message:String, status:HttpStatus)(implicit action : String, prettify : Boolean) : LiftResponse = {
 
-    RestUtils.toJsonResponse(id, toJsonMessage(message), status)(action)
+    RestUtils.toJsonResponse(id, toJsonMessage(message), status)
 
   }
 
-  def toJsonResponse(id:String, message:JObject, status:HttpStatus = RestOk)(implicit action : String = "rest") : LiftResponse = {
-	JsonResponse(
-	    ("action" -> action) ~
-        ("id"     -> id) ~
-        ("status" -> status.status) ~
-        message
-      , status.code)
+  def toJsonResponse(id:String, message:JObject, status:HttpStatus = RestOk)( implicit action : String = "rest", prettify : Boolean) : LiftResponse = {
+
+    val printer: Document => String = if (prettify) Printer.pretty else Printer.compact
+    val json = ( "action" -> action ) ~
+                  ( "id"     -> id ) ~
+                  ( "result" -> status.status ) ~
+                  ( "data"   ->  message )
+    val content : JsExp = new JsExp {
+      lazy val toJsCmd = printer(JsonAST.render((json)))
+    }
+
+    JsonResponse(content,List(),List(), status.code)
 
   }
 
@@ -96,10 +112,10 @@ sealed trait HttpStatus {
 
 object RestOk extends HttpStatus{
   val code = 200
-  val status = "Ok"
+  val status = "success"
 }
 
 object RestError extends HttpStatus{
   val code = 500
-  val status = "Error"
+  val status = "error"
 }
