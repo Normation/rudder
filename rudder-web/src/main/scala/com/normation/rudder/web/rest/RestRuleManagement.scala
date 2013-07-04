@@ -31,46 +31,80 @@ import net.liftweb.util.Props
 import net.liftweb.http.LiftRules
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.web.services.rest.RestExtractorService
+import com.normation.eventlog.EventActor
+import net.liftweb.http.LiftResponse
 
-class RestRuleManagement (
+
+trait RuleAPI {
+  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]]
+
+  val apiService: RuleAPIService
+}
+
+trait RuleAPIService
+
+class RuleAPIV1_0 (
     readRule             : RoRuleRepository
-  , writeRule            : WoRuleRepository
-  , readDirective        : RoDirectiveRepository
-  , targetInfoService    : RuleTargetService
-  , uuidGen              : StringUuidGenerator
-  , asyncDeploymentAgent : AsyncDeploymentAgent
-  , changeRequestService : ChangeRequestService
-  , workflowService      : WorkflowService
-) extends RestHelper with Loggable{
-
-  val latestAPI = RuleAPIV1_0
+  , restExtractor        : RestExtractorService
+  , apiV1_0              : RuleAPIV1_0_Service
+) extends RestHelper with RuleAPI with Loggable{
 
 
-  implicit val prettify = true
-  serve( "api" / "1.0" / "rules" prefix {
+  val requestDispatch = {
 
-
-    case Get(Nil, _) => RuleAPIV1_0.listRules
+    case Get(Nil, req) => apiV1_0.listRules(req)
 
     case Put(Nil, req) => {
-      val restRule = RuleAPIV1_0.extractRuleFromParams(req.params)
-      RuleAPIV1_0.createRule(restRule, req)
+      val restRule = restExtractor.extractRule(req.params)
+      apiV1_0.createRule(restRule, req)
     }
 
-    case Get(id :: Nil, _) => RuleAPIV1_0.ruleDetails(id)
+    case Get(id :: Nil, req) => apiV1_0.ruleDetails(id, req)
 
-    case Delete(id :: Nil, req) =>  RuleAPIV1_0.deleteRule(id,req)
+    case Delete(id :: Nil, req) =>  apiV1_0.deleteRule(id,req)
 
     case Post(id:: Nil, req) => {
-      val restRule = RuleAPIV1_0.extractRuleFromParams(req.params)
-      RuleAPIV1_0.updateRule(id,req,restRule)
+      val restRule = restExtractor.extractRule(req.params)
+      apiV1_0.updateRule(id,req,restRule)
     }
 
     case id :: Nil JsonPost body -> req => {
       req.json match {
         case Full(arg) =>
-          val restRule = RuleAPIV1_0.extractRuleFromJSON(arg)
-          RuleAPIV1_0.updateRule(id,req,Full(restRule))
+          val restRule = restExtractor.extractRuleFromJSON(arg)
+          apiV1_0.updateRule(id,req,restRule)
+        case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)("Empty",true)
+      }
+    }
+
+    case content => println(content)
+         toJsonResponse("nothing", "rien", RestError)("error",true)
+
+  }
+  serve( "api" / "1.0" / "rules" prefix {
+
+    case Get(Nil, req) => apiV1_0.listRules(req)
+
+    case Put(Nil, req) => {
+      val restRule = restExtractor.extractRule(req.params)
+      apiV1_0.createRule(restRule, req)
+    }
+
+    case Get(id :: Nil, req) => apiV1_0.ruleDetails(id, req)
+
+    case Delete(id :: Nil, req) =>  apiV1_0.deleteRule(id,req)
+
+    case Post(id:: Nil, req) => {
+      val restRule = restExtractor.extractRule(req.params)
+      apiV1_0.updateRule(id,req,restRule)
+    }
+
+    case id :: Nil JsonPost body -> req => {
+      req.json match {
+        case Full(arg) =>
+          val restRule = restExtractor.extractRuleFromJSON(arg)
+          apiV1_0.updateRule(id,req,restRule)
         case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)("Empty",true)
       }
     }
@@ -84,7 +118,7 @@ class RestRuleManagement (
 
     case Get(Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") => RuleAPIV1_0.listRules
+        case Full("1.0") => apiV1_0.listRules(req)
         case _ => notValidVersionResponse("listRules")
       }
     }
@@ -92,22 +126,22 @@ class RestRuleManagement (
     case Put(Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("1.0") =>
-          val restRule = RuleAPIV1_0.extractRuleFromParams(req.params)
-          RuleAPIV1_0.createRule(restRule, req)
+          val restRule = restExtractor.extractRule(req.params)
+          apiV1_0.createRule(restRule, req)
         case _ => notValidVersionResponse("createRule")
       }
     }
 
     case Get(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") => RuleAPIV1_0.ruleDetails(id)
+        case Full("1.0") => apiV1_0.ruleDetails(id, req)
         case _ => notValidVersionResponse("listRules")
       }
     }
 
     case Delete(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") => RuleAPIV1_0.deleteRule(id,req)
+        case Full("1.0") => apiV1_0.deleteRule(id,req)
         case _ => notValidVersionResponse("listRules")
       }
     }
@@ -115,8 +149,8 @@ class RestRuleManagement (
     case Post(id:: Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("1.0") =>
-          val restRule = RuleAPIV1_0.extractRuleFromParams(req.params)
-          RuleAPIV1_0.updateRule(id,req,restRule)
+          val restRule = restExtractor.extractRule(req.params)
+          apiV1_0.updateRule(id,req,restRule)
         case _ => notValidVersionResponse("listRules")
       }
     }
@@ -126,8 +160,8 @@ class RestRuleManagement (
         case Full("1.0") =>
       req.json match {
         case Full(arg) =>
-          val restRule = RuleAPIV1_0.extractRuleFromJSON(arg)
-          RuleAPIV1_0.updateRule(id,req,Full(restRule))
+          val restRule = restExtractor.extractRuleFromJSON(arg)
+          apiV1_0.updateRule(id,req,restRule)
         case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)("Empty",true)
       }
         case _ => notValidVersionResponse("listRules")
@@ -144,15 +178,58 @@ class RestRuleManagement (
     toJsonResponse("badversion", "version x does not exists", RestError)(action,true)
    }
 
-  case object RuleAPIV1_0 {
+}
+  case class RuleAPIV1_0_Service (
+    readRule             : RoRuleRepository
+  , writeRule            : WoRuleRepository
+  , uuidGen              : StringUuidGenerator
+  , asyncDeploymentAgent : AsyncDeploymentAgent
+  , changeRequestService : ChangeRequestService
+  , workflowService      : WorkflowService
+  , restExtractor        : RestExtractorService
+  , workflowEnabled      : Boolean
+  ) {
 
 
-  def listRules = {
+  private[this] def createChangeRequestAndAnswer (
+      id            : String
+    , diff          : ChangeRequestRuleDiff
+    , rule          : Rule
+    , initialtState : Option[Rule]
+    , actor         : EventActor
+    , message       : String
+  ) (implicit action : String, prettify : Boolean) = {
+    ( for {
+        cr <- changeRequestService.createChangeRequestFromRule(
+                  message
+                , message
+                , rule
+                , Some(rule)
+                , diff
+                , actor
+                , None
+              )
+        wfStarted <- workflowService.startWorkflow(cr.id, actor, None)
+      } yield {
+        cr.id
+      }
+    ) match {
+      case Full(x) =>
+        val jsonRule = List(rule.toJSON)
+        toJsonResponse(id, ("rules" -> JArray(jsonRule)), RestOk)
+      case eb:EmptyBox =>
+        val fail = eb ?~ (s"Could not save changes on Rule ${id}" )
+        val msg = s"${message} failed, cause is: ${fail.msg}."
+        toJsonResponse(id, msg, RestError)
+    }
+  }
+
+  def listRules(req : Req) = {
     implicit val action = "listRules"
-    implicit val prettify = true
+    implicit val prettify = restExtractor.extractPrettify(req.params)
     readRule.getAll(false) match {
       case Full(rules) =>
-        toJsonResponse("N/A", ( "rules" -> JArray(rules.map(toJSON(_)).toList)))
+        toJsonResponse("N/A", ( "rules" -> JArray(rules.map(_.toJSON).toList)))
       case eb: EmptyBox =>
         val message = (eb ?~ ("Could not fetch Rules")).msg
         toJsonResponse("N/A", message, RestError)
@@ -160,24 +237,24 @@ class RestRuleManagement (
   }
 
   def createRule(restRule: Box[RestRule], req:Req) = {
-
     implicit val action = "createRule"
+    implicit val prettify = restExtractor.extractPrettify(req.params)
     val modId = ModificationId(uuidGen.newUuid)
     val actor = RestUtils.getActor(req)
     val ruleId = RuleId(req.param("id").getOrElse(uuidGen.newUuid))
 
     def actualRuleCreation(restRule : RestRule, baseRule : Rule) = {
       val newRule = restRule.updateRule( baseRule )
-        writeRule.create(newRule, modId, actor, None) match {
-          case Full(x) =>
-            asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
-            val jsonRule = List(toJSON(newRule))
-            toJsonResponse(ruleId.value, ("rules" -> JArray(jsonRule)), RestOk)
+      writeRule.create(newRule, modId, actor, None) match {
+        case Full(x) =>
+          asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
+          val jsonRule = List(newRule.toJSON)
+          toJsonResponse(ruleId.value, ("rules" -> JArray(jsonRule)), RestOk)
 
-          case eb:EmptyBox =>
-            val fail = eb ?~ (s"Could not find Rule ${ruleId.value}" )
-            val message = s"Could not create Rule ${newRule.name} (id:${ruleId.value}) cause is: ${fail.msg}."
-            toJsonResponse(ruleId.value, message, RestError)
+        case eb:EmptyBox =>
+          val fail = eb ?~ (s"Could not save Rule ${ruleId.value}" )
+          val message = s"Could not create Rule ${newRule.name} (id:${ruleId.value}) cause is: ${fail.msg}."
+          toJsonResponse(ruleId.value, message, RestError)
       }
     }
 
@@ -190,7 +267,8 @@ class RestRuleManagement (
               case Some(sourceId :: Nil) =>
                 readRule.get(RuleId(sourceId)) match {
                   case Full(sourceRule) =>
-                    actualRuleCreation(restRule,sourceRule.copy(id=ruleId))
+                    // disable rest Rule if cloning
+                    actualRuleCreation(restRule.copy(enabled = Some(false)),sourceRule.copy(id=ruleId))
                   case eb:EmptyBox =>
                     val fail = eb ?~ (s"Could not find Rule ${sourceId}" )
                     val message = s"Could not create Rule ${name} (id:${ruleId.value}) based on Rule ${sourceId} : cause is: ${fail.msg}."
@@ -199,8 +277,23 @@ class RestRuleManagement (
 
               // Create a new Rule
               case None =>
+                // If enable is missing in parameter consider it to true
+                val defaultEnabled = restRule.enabled.getOrElse(true)
+
+                // if only the name parameter is set, consider it to be enabled
+                // if not if workflow are enabled, consider it to be disabled
+                // if there is no workflow, use the value used as parameter (default to true)
+                // code extract :
+                /*re
+                 * if (restRule.onlyName) true
+                 * else if (workflowEnabled) false
+                 * else defaultEnabled
+                 */
+                val enableCheck = restRule.onlyName || (!workflowEnabled && defaultEnabled)
                 val baseRule = Rule(ruleId,name,0)
-                actualRuleCreation(restRule,baseRule)
+
+                // The enabled value in restRule will be used in the saved Rule
+                actualRuleCreation(restRule.copy(enabled = Some(enableCheck)),baseRule)
 
               // More than one source, make an error
               case _ =>
@@ -220,50 +313,33 @@ class RestRuleManagement (
     }
   }
 
-  def ruleDetails(id:String) = {
+  def ruleDetails(id:String, req:Req) = {
     implicit val action = "ruleDetails"
-      readRule.get(RuleId(id)) match {
-        case Full(x) =>
-          val jsonRule = List(toJSON(x))
-          toJsonResponse(id,("rules" -> JArray(jsonRule)))
-        case eb:EmptyBox =>
-          val fail = eb ?~!(s"Could not find Rule ${id}" )
-          val message=  s"Could not get Rule ${id} details cause is: ${fail.msg}."
-          toJsonResponse(id, message, RestError)
-      }
+    implicit val prettify = restExtractor.extractPrettify(req.params)
+
+    readRule.get(RuleId(id)) match {
+      case Full(rule) =>
+        val jsonRule = List(rule.toJSON)
+        toJsonResponse(id,("rules" -> JArray(jsonRule)))
+      case eb:EmptyBox =>
+        val fail = eb ?~!(s"Could not find Rule ${id}" )
+        val message=  s"Could not get Rule ${id} details cause is: ${fail.msg}."
+        toJsonResponse(id, message, RestError)
+    }
   }
 
   def deleteRule(id:String, req:Req) = {
     implicit val action = "deleteRule"
+    implicit val prettify = restExtractor.extractPrettify(req.params)
     val modId = ModificationId(uuidGen.newUuid)
     val actor = RestUtils.getActor(req)
     val ruleId = RuleId(id)
+
     readRule.get(ruleId) match {
       case Full(rule) =>
         val deleteRuleDiff = DeleteRuleDiff(rule)
-        ( for {
-          cr <- changeRequestService.createChangeRequestFromRule(
-                         s"Delete rule ${id.toUpperCase}) with API "
-                       , s"Delete rule ${id.toUpperCase}) "
-                       , rule
-                       , Some(rule)
-                       , deleteRuleDiff
-                       , actor
-                       , None
-                       )
-          wfStarted <- workflowService.startWorkflow(cr.id, actor, None)
-        } yield {
-          cr.id
-        } ) match {
-          case Full(x) =>
-            asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
-            val jsonRule = List(toJSON(rule))
-            toJsonResponse(ruleId.value, ("rules" -> JArray(jsonRule)), RestOk)
-          case eb:EmptyBox =>
-            val fail = eb ?~ (s"Could not find Rule ${id}" )
-            val message = s"Could not delete Rule ${id} cause is: ${fail.msg}"
-            toJsonResponse(id, message, RestError)
-        }
+        val message = s"Delete Rule ${rule.name} ${id} from API "
+        createChangeRequestAndAnswer(id, deleteRuleDiff, rule, Some(rule), actor, message)
 
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Rule ${ruleId.value}" )
@@ -271,30 +347,22 @@ class RestRuleManagement (
         toJsonResponse(ruleId.value, message, RestError)
     }
   }
+
   def updateRule(id: String, req: Req, restValues : Box[RestRule]) = {
     implicit val action = "updateRule"
+    implicit val prettify = restExtractor.extractPrettify(req.params)
     val modId = ModificationId(uuidGen.newUuid)
     val actor = getActor(req)
     val ruleId = RuleId(id)
+
     readRule.get(ruleId) match {
       case Full(rule) =>
         restValues match {
           case Full(restRule) =>
             val updatedRule = restRule.updateRule(rule)
-            writeRule.update(
-                updatedRule
-              , modId
-              , actor
-              , Some(s"Modify Rule ${rule.name} (id:${rule.id.value}) ")
-            ) match {
-              case Full(x) =>  asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
-                  val jsonRule = List(toJSON(updatedRule))
-                  toJsonResponse(ruleId.value, ("rules" -> JArray(jsonRule)), RestOk)
-
-              case eb:EmptyBox => val fail = eb ?~ (s"Could not find Rule ${ruleId.value}" )
-                  val message = s"Could not modify Rule ${rule.name} (id:${ruleId.value}) cause is: ${fail.msg}."
-                 toJsonResponse(ruleId.value, message, RestError)
-              }
+            val diff = ModifyToRuleDiff(updatedRule)
+            val message = s"Modify Rule ${rule.name} ${id} from API "
+            createChangeRequestAndAnswer(id, diff, updatedRule, Some(rule), actor, message)
 
           case eb : EmptyBox =>
             val fail = eb ?~ (s"Could extract values from request" )
@@ -308,128 +376,8 @@ class RestRuleManagement (
         toJsonResponse(ruleId.value, message, RestError)
     }
   }
-
-  def extractRuleFromParams (params : Map[String,List[String]]) : Box[RestRule] = {
-
-    def extractOneValue[T] (key : String, convertTo : (String,String) => Box[T] = ( (value:String,key:String) => Full(value))) = {
-      params.get(key) match {
-        case None               => Full(None)
-        case Some(value :: Nil) => convertTo(value,key).map(Some(_))
-        case _                  => Failure(s"updateRule should contain only one value for $key")
-      }
-    }
-
-    def extractList[T] (key : String, convertTo : (List[String],String) => Box[T] = ( (values:List[String],key:String) => Full(values))) : Box[Option[T]] = {
-      params.get(key) match {
-        case None       => Full(None)
-        case Some(list) => convertTo(list,key).map(Some(_))
-      }
-    }
-
-    def convertToBoolean (value : String, key : String) : Box[Boolean] = {
-      value match {
-        case "true"  => Full(true)
-        case "false" => Full(false)
-        case _       => Failure(s"value for $key should be true or false")
-      }
-    }
-
-    def convertListToDirectiveId (values : List[String], key : String) : Box[Set[DirectiveId]] = {
-      val directives = values.filter(_.size != 0).map{
-                         value =>
-                           readDirective.getDirective(DirectiveId(value)) ?~ s"Directive '$value' not found"
-                       }
-      val failure = directives.collectFirst{case fail:EmptyBox => fail ?~ "There was an error with a Directive" }
-      logger.info(directives)
-      failure match {
-        case Some(fail) => fail
-        case None => Full(directives.collect{case Full(rt) => rt.id}.toSet)
-      }
-
-    }
-
-    def convertListToRuleTarget (values : List[String], key : String) : Box[Set[RuleTarget]] = {
-      val targets : Set[Box[RuleTarget]] = values.map(value => (value,RuleTarget.unser(value)) match {
-        case (_,Some(rt)) => Full(rt)
-        case (wrong,None) => Failure(s"$wrong is not a valid RuleTarget")
-      }).toSet
-      val failure = targets.collectFirst{case fail:Failure => fail }
-      failure match {
-        case Some(fail) => fail
-        case None => Full(targets.collect{case Full(rt) => rt})
-      }
-    }
-
-    for {
-      name             <- extractOneValue("displayName")
-      shortDescription <- extractOneValue("shortDescription")
-      longDescription  <- extractOneValue("longDescription")
-      enabled          <- extractOneValue("enabled", convertToBoolean)
-      directives       <- extractList("directives", convertListToDirectiveId)
-      targets          <- extractList("ruleTarget",convertListToRuleTarget)
-    } yield {
-      RestRule(name,shortDescription,longDescription,directives,targets,enabled)
-    }
-
   }
-
-  def extractRuleFromJSON (json : JValue) : RestRule = {
-
-
-    val name = json \\ "displayName" match{
-      case JString(name) => Some(name)
-      case _             => None
-    }
-
-    val shortDescription = json \\ "shortDescription" match{
-      case JString(short) => Some(short)
-      case a => logger.info(a)
-      None
-    }
-    val longDescription = json \\ "longDescription" match{
-      case JString(long) => Some(long)
-      case _ => None
-    }
-   val directives = json \\ "directives" match{
-      case JArray(list) => println(list)
-      Some(list.flatMap{
-        case JString(directiveId) => Some(DirectiveId(directiveId))
-        case _ => None
-      }.toSet)
-      case _ => None
-    }
-
-   val targets:Option[Set[RuleTarget]] = json \\ "targets" match{
-      case JArray(list) => Some(list.flatMap{
-        case JString(target) => RuleTarget.unser(target)
-        case _ => None
-      }.toSet)
-      case _ => None
-    }
-    val isEnabled = json \\ "enabled" match{
-      case JBool(bool) => Some(bool)
-      case _ => None
-    }
-    RestRule(name,shortDescription,longDescription,directives,targets,isEnabled)
-  }
-  def toJSON (rule : Rule) : JObject = {
-
-    ( "id"               -> rule.id.value ) ~
-    ( "displayName"      -> rule.name ) ~
-    ( "shortDescription" -> rule.shortDescription ) ~
-    ( "longDescription"  -> rule.longDescription ) ~
-    ( "directives"       -> rule.directiveIds.map(_.value) ) ~
-    ( "targets"          -> rule.targets.map(_.target) ) ~
-    ( "enabled"          -> rule.isEnabledStatus ) ~
-    ( "system"           -> rule.isSystem )
-  }
-
-  def toJSONshort (rule : Rule) : JValue ={
-    ("id" -> rule.id.value) ~
-    ("displayName" -> rule.name)
-  }
-  }
-  case class RestRule(
+case class RestRule(
       name             : Option[String] = None
     , shortDescription : Option[String] = None
     , longDescription  : Option[String] = None
@@ -437,6 +385,14 @@ class RestRuleManagement (
     , targets          : Option[Set[RuleTarget]] = None
     , enabled        : Option[Boolean]     = None
   ) {
+
+    val onlyName = name.isDefined           &&
+                   shortDescription.isEmpty &&
+                   longDescription.isEmpty  &&
+                   directives.isEmpty       &&
+                   targets.isEmpty          &&
+                   enabled.isEmpty
+
     def updateRule(rule:Rule) = {
       val updateName = name.getOrElse(rule.name)
       val updateShort = shortDescription.getOrElse(rule.shortDescription)
@@ -455,6 +411,3 @@ class RestRuleManagement (
 
     }
   }
-
-
-}

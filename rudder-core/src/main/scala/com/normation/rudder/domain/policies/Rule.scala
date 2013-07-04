@@ -34,6 +34,8 @@
 
 package com.normation.rudder.domain.policies
 import com.normation.utils.HashcodeCaching
+import net.liftweb.json.JObject
+import net.liftweb.json.JsonDSL._
 
 case class RuleId(value:String) extends HashcodeCaching
 
@@ -61,4 +63,17 @@ case class Rule(
   isSystem: Boolean = false
 ) extends HashcodeCaching {
   def isEnabled = isEnabledStatus & !targets.isEmpty & !directiveIds.isEmpty
+
+  def toJSON : JObject = {
+
+    ( "id"               -> id.value ) ~
+    ( "displayName"      -> name ) ~
+    ( "shortDescription" -> shortDescription ) ~
+    ( "longDescription"  -> longDescription ) ~
+    ( "directives"       -> directiveIds.map(_.value) ) ~
+    ( "targets"          -> targets.map(_.target) ) ~
+    ( "enabled"          -> isEnabledStatus ) ~
+    ( "system"           -> isSystem )
+
+  }
 }
