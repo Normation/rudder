@@ -357,6 +357,8 @@ object RudderConfig extends Loggable {
       , woNodeGroupRepository
       , roRuleRepository
       , woRuleRepository
+      , roLDAPParameterRepository
+      , woLDAPParameterRepository
       , asyncDeploymentAgent
       , dependencyAndDeletionService
       , RUDDER_ENABLE_APPROVAL_WORKFLOWS
@@ -470,6 +472,7 @@ object RudderConfig extends Loggable {
       , nodeGroupSerialisation
       , directiveSerialisation
       , ruleSerialisation
+      , globalParameterSerialisation
       , techniqueRepositoryImpl
       , rootSectionSerialisation
     )
@@ -502,14 +505,16 @@ object RudderConfig extends Loggable {
   private[this] lazy val nodeGroupCategoryUnserialisation = new NodeGroupCategoryUnserialisationImpl
   private[this] lazy val nodeGroupUnserialisation = new NodeGroupUnserialisationImpl(queryParser)
   private[this] lazy val ruleUnserialisation = new RuleUnserialisationImpl
+  private[this] lazy val globalParameterUnserialisation = new GlobalParameterUnserialisationImpl
   private[this] lazy val changeRequestChangesUnserialisation = new ChangeRequestChangesUnserialisationImpl(
       nodeGroupUnserialisation
     , directiveUnserialisation
     , ruleUnserialisation
+    , globalParameterUnserialisation
     , techniqueRepository
     , sectionSpecParser
   )
-  private[this] lazy val globalParameterUnserialisation = new GlobalParameterUnserialisationImpl
+
   private[this] lazy val deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
   private[this] lazy val xmlMigration_2_3 = new XmlMigration_2_3()
   private[this] lazy val xmlMigration_10_2 = new XmlMigration_10_2()

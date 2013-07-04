@@ -348,7 +348,7 @@ class ChangeRequestsMapper(
     // If it fails, produce a failure
     // directives map is boxed because some Exception could be launched
     changeRequestChangesUnserialisation.unserialise(XML.load(rs.getSQLXML("content").getBinaryStream() )) match {
-      case Full((directivesMaps, nodesMaps, ruleMaps)) =>
+      case Full((directivesMaps, nodesMaps, ruleMaps, paramMaps)) =>
         val id = ChangeRequestId(rs.getInt("id"))
         val modId = {
           val modId = rs.getString("modificationId")
@@ -368,6 +368,7 @@ class ChangeRequestsMapper(
           , map
           , nodesMaps
           , ruleMaps
+          , paramMaps
         ) )
           case eb:EmptyBox => val fail = eb ?~! s"could not deserialize directive change of change request #${id} cause is: ${eb}"
           ApplicationLogger.error(fail)
