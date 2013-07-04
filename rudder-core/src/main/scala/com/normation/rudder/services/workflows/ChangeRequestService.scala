@@ -68,7 +68,7 @@ import com.normation.rudder.domain.eventlog.DeleteChangeRequestDiff
 import com.normation.rudder.domain.eventlog.AddChangeRequestDiff
 import com.normation.rudder.domain.eventlog.ModifyToChangeRequestDiff
 import com.normation.rudder.domain.eventlog.ChangeRequestEventLog
-
+import com.normation.rudder.domain.parameters._
 
 
 /**
@@ -107,6 +107,16 @@ trait ChangeRequestService {
     , diff             : ChangeRequestNodeGroupDiff
     , actor            : EventActor
     , reason           : Option[String]
+  ) : Box[ChangeRequest]
+
+  def createChangeRequestFromGlobalParameter(
+      changeRequestName   : String
+    , changeRequestDesc   : String
+    , globalParam         : GlobalParameter
+    , originalGlobalParam : Option[GlobalParameter]
+    , diff                : ChangeRequestGlobalParameterDiff
+    , actor               : EventActor
+    , reason              : Option[String]
   ) : Box[ChangeRequest]
 
   def updateChangeRequestInfo(
@@ -197,6 +207,7 @@ class ChangeRequestServiceImpl(
       , Map(directiveId -> DirectiveChanges(change, Seq()))
       , Map()
       , Map()
+      , Map()
     )
     saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
   }
@@ -226,6 +237,7 @@ class ChangeRequestServiceImpl(
       , Map()
       , Map()
       , Map(rule.id -> RuleChanges(change, Seq()))
+      , Map()
     )
     saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
   }
@@ -256,9 +268,38 @@ class ChangeRequestServiceImpl(
       , Map()
       , Map(nodeGroup.id -> NodeGroupChanges(change,Seq()))
       , Map()
+      , Map()
     )
     saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
   }
 
-
+  def createChangeRequestFromGlobalParameter(
+      changeRequestName   : String
+    , changeRequestDesc   : String
+    , globalParam         : GlobalParameter
+    , originalGlobalParam : Option[GlobalParameter]
+    , diff                : ChangeRequestGlobalParameterDiff
+    , actor               : EventActor
+    , reason              : Option[String]
+  ) : Box[ChangeRequest] = {
+    val change = GlobalParameterChange(
+                     initialState = originalGlobalParam
+                   , firstChange  = GlobalParameterChangeItem(actor, DateTime.now, reason, diff)
+                   , Seq()
+                 )
+    logger.debug(change)
+    val changeRequest = ConfigurationChangeRequest(
+        ChangeRequestId(0)
+      , None
+      , ChangeRequestInfo(
+            changeRequestName
+          , changeRequestDesc
+        )
+      , Map()
+      , Map()
+      , Map()
+      , Map(globalParam.name -> GlobalParameterChanges(change,Seq()))
+    )
+    saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
+  }
 }

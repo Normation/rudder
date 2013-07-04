@@ -55,6 +55,7 @@ import java.util.regex.Pattern
 import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
 import net.liftweb.http.js.JE.JsVar
+import com.normation.rudder.domain.workflows.ChangeRequestId
 
 class ParameterManagement extends DispatchSnippet with Loggable {
 
@@ -68,7 +69,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   private[this] val woParameterService = RudderConfig.woParameterService
   private[this] val uuidGen            = RudderConfig.stringUuidGenerator
   private[this] val userPropertyService= RudderConfig.userPropertyService
-
+private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
 
   //the current GlobalParameterForm component
   private[this] val parameterPopup = new LocalSnippet[CreateOrUpdateGlobalParameterPopup]
@@ -98,11 +99,11 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         ".description [id]" #> ("description-" + lineHtmlId) &
         ".overridable *" #> param.overridable &
         ".change *" #> <div >{
-                       ajaxButton("Edit", () => showPopup(Some(param)), ("class", "mediumButton"), ("align", "left")) ++
-                       ajaxButton("Delete", () => showRemovePopupForm(param), ("class", "mediumButton"), ("style", "margin-left:5px;"))
+                       ajaxButton("Edit", () => showPopup("save", Some(param)), ("class", "mediumButton"), ("align", "left")) ++
+                       ajaxButton("Delete", () => showPopup("delete", Some(param)), ("class", "mediumButton"), ("style", "margin-left:5px;"))
                        }</div>
       }) &
-      ".createParameter *" #> ajaxButton("Add Parameter", () => showPopup(None))
+      ".createParameter *" #> ajaxButton("Add Parameter", () => showPopup("create", None))
      ).apply(dataTableXml(gridName)) ++ Script(initJs)
   }
 
@@ -205,23 +206,37 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     )
   }
 
-  private[this] def showPopup(parameter : Option[GlobalParameter]) : JsCmd = {
-    setCreationPopup(parameter)
+  private[this] def showPopup(
+      action    : String
+    , parameter : Option[GlobalParameter]
+  ) : JsCmd = {
+    parameterPopup.set(
+        Full(
+            new CreateOrUpdateGlobalParameterPopup(
+                parameter
+              , action
+              , cr => workflowCallBack(action)(cr)
+            )
+        )
+      )
     val popupHtml = createPopup
     SetHtml(CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer, popupHtml) &
     JsRaw( """ createPopup("%s",300,600) """.format(CreateOrUpdateGlobalParameterPopup.htmlId_popup))
 
   }
 
-  private[this] def setCreationPopup(parameter : Option[GlobalParameter]) : Unit = {
-    parameterPopup.set(
-        Full(
-            new CreateOrUpdateGlobalParameterPopup(
-                parameter
-              , (String) => updateGrid() & successPopup
-            )
-        )
-      )
+
+  private[this] def workflowCallBack(action:String)(returns : Either[GlobalParameter,ChangeRequestId]) : JsCmd = {
+    if ((!workflowEnabled) & (action == "delete")) {
+      JsRaw("$.modal.close();") & onSuccessDeleteCallback()
+    } else {
+      returns match {
+        case Left(param) => // ok, we've received a parameter, do as before
+          JsRaw("$.modal.close();") &  updateGrid() & successPopup
+        case Right(changeRequest) => // oh, we have a change request, go to it
+          RedirectTo(s"""/secure/utilities/changeRequest/${changeRequest.value}""")
+      }
+    }
   }
 
   /**
@@ -251,142 +266,11 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     updateGrid() & successPopup
   }
 
-  private[this] val reason = {
-    import com.normation.rudder.web.services.ReasonBehavior._
-    userPropertyService.reasonsFieldBehavior match {
-      case Disabled => None
-      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
-      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
-    }
-  }
 
-  def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
-    new WBTextAreaField("Message", "") {
-      override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  %
-        ("style" -> "height:5em;")  % ("tabindex","4")
-      override def errorClassName = ""
-      override def validations() = {
-        if(mandatory){
-          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
-        } else {
-          Nil
-        }
-      }
-    }
-  }
-  private[this] val formTrackerRemovePopup = new FormTracker(reason.toList)
 
-  private[this] var notifications = List.empty[NodeSeq]
-
-  private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
-    val notifications = formTrackerRemovePopup.formErrors
-    formTrackerRemovePopup.cleanErrors
-
-    if(notifications.isEmpty) {
-      NodeSeq.Empty
-    }
-    else {
-      <div id="notifications" class="notify">
-        <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
-      </div>
-    }
-  }
-
-  private[this] def updateRemoveFormClientSide(parameter : GlobalParameter) : JsCmd = {
-    SetHtml("deletionPopupContainer", deletePopupContent(parameter)) & JsRaw("correctButtons();")
-  }
-
-  private[this] def onFailureRemovePopup(parameter : GlobalParameter) : JsCmd = {
-    formTrackerRemovePopup.addFormError(error("The form contains some errors, please correct them."))
-    updateRemoveFormClientSide(parameter)
-  }
-
-  private[this] def error(msg:String) = <span class="error">{msg}</span>
-
-  private[this] def removeButton(parameter : GlobalParameter): Elem = {
-    def removeParameters(): JsCmd = {
-      if(formTrackerRemovePopup.hasErrors) {
-        onFailureRemovePopup(parameter)
-      } else {
-        val modId = ModificationId(uuidGen.newUuid)
-        woParameterService.delete(parameter.name, modId,  CurrentUser.getActor, reason.map(_.is)) match {
-          case Full(x) => closePopup() & onSuccessDeleteCallback()
-          case Empty =>
-            logger.error("An error occurred while deleting the parameter")
-            formTrackerRemovePopup.addFormError(error("An error occurred while deleting the parameter"))
-            onFailureRemovePopup(parameter)
-          case Failure(m,_,_) =>
-              logger.error("An error occurred while deleting the parameter: " + m)
-              formTrackerRemovePopup.addFormError(error(m))
-              onFailureRemovePopup(parameter)
-        }
-      }
-    }
-
-    SHtml.ajaxSubmit("Delete", removeParameters _)
-    }
-
-  /**
-   * Display a popup to confirm  deletion of parameter
-   */
-  private[this] def showRemovePopupForm(parameter : GlobalParameter) : JsCmd = {
-    // we need to empty the reason
-    reason.map(x => x.set(""))
-    SetHtml("deletionPopup", deletePopupContent(parameter)) &
-    JsRaw( """ createPopup("deletionPopup",140,150) """)
-  }
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $.modal.close();""")
   }
 
-  private[this] def deletePopupContent(parameter : GlobalParameter) : NodeSeq = {
-    (
-       "#deletionPopupContainer *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
-       "#areYouSure *" #> s"Are you sure that you want to delete the Global Parameter: ${parameter.name.value} ?" &
-       "#dialogRemoveButton" #> { removeButton(parameter) % ("id", "removeButton") } &
-       ".reasonsFieldsetPopup" #> { reason.map { f =>
-         "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
-         "#reasonsField" #> f.toForm_!
-       } } andThen
-        ".notifications *" #> { updateAndDisplayNotifications(formTrackerRemovePopup) }
-    )(deletePopupXml)
-  }
 
-
-  private[this] def deletePopupXml : NodeSeq = {
-    <div id="deletionPopupContainer">
-     <div class="simplemodal-title">
-       <h1 id="title">Delete Global Parameter</h1>
-       <hr/>
-     </div>
-     <div class="simplemodal-content">
-       <div>
-         <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-         <h2 id="areYouSure">Are you sure that you want to delete this item?</h2>
-       </div>
-       <div class="notifications">Here comes validation messages</div>
-       <br />
-        <div class="reasonsFieldsetPopup">
-        <div id="explanationMessage">
-          Here comes the explanation to reasons field
-        </div>
-        <div id="reasonsField">
-          Here comes the reasons field
-        </div>
-      </div>
-       <br />
-       <hr class="spacer" />
-     </div>
-     <div class="simplemodal-bottom">
-       <hr/>
-       <div class="popupButton">
-         <span>
-           <button class="simplemodal-close" onClick="$.modal.close();">Cancel</button>
-           <button id="dialogRemoveButton">Delete</button>
-         </span>
-       </div>
-     </div>
-   </div>
-  }
 }
