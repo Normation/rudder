@@ -217,6 +217,7 @@ trait DeploymentStatusSerialisation {
  * That trait allow to unserialise change request changes from an XML file.
  *
  */
+// TODO : do we need to change the fileFormat ?
 trait ChangeRequestChangesSerialisation {
   /**
    * Version 2:
@@ -283,6 +284,21 @@ trait ChangeRequestChangesSerialisation {
             </nextChanges>
           </group>
         </rules>
+         <globalParameters>
+          <globalParameter name="id3">*
+            <initialState>
+              GlobalParameterSerialization*
+            </initialState>
+            <firstChange>
+              GlobalParameterSerialization+
+            </firstChange>
+            <nextChanges>
+              <change>*
+                GlobalParameterSerialization
+              </change>
+            </nextChanges>
+          </globalParameter>
+        </globalParameters>
       </changeRequest>
    */
   def serialise(changeRequest:ChangeRequest): Elem

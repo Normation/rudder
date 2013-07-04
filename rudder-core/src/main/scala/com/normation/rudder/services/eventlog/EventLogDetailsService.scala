@@ -748,7 +748,7 @@ class EventLogDetailsServiceImpl(
       diffName      <- getFromToString((changeRequest \ "diffName").headOption)
       diffDesc      <- getFromToString((changeRequest \ "diffDescription").headOption)
       } yield {
-        val changeRequest = ConfigurationChangeRequest(crId,modId,ChangeRequestInfo(name,description),Map(),Map(),Map())
+        val changeRequest = ConfigurationChangeRequest(crId,modId,ChangeRequestInfo(name,description),Map(),Map(),Map(), Map())
         kind match {
           case "add" => AddChangeRequestDiff(changeRequest)
           case "delete" => DeleteChangeRequestDiff(changeRequest)
