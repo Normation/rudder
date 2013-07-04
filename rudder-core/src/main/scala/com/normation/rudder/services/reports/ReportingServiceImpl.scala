@@ -193,8 +193,7 @@ class ReportingServiceImpl(
   def findImmediateReportsByNode(nodeId : NodeId) :  Box[Seq[ExecutionBatch]] = {
     // look in the configuration
     confExpectedRepo.findCurrentExpectedReportsByNode(nodeId) match {
-      case Empty => Empty
-      case e:Failure => logger.error("Error when fetching reports for node %s : %s".format(nodeId.value, e.messageChain)); e
+      case e:EmptyBox => e
       case Full(seq) =>
         Full(seq.map(expected => createLastBatchFromConfigurationReports(expected, Some(nodeId))))
     }

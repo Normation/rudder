@@ -55,6 +55,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
 import com.normation.rudder.repository.NodeGroupLibraryArchiveId
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.parameters.ParameterName
 
 class CATEGORY(
     val uuid: String,
@@ -139,6 +140,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   dit.register(ARCHIVES.model)
   dit.register(GROUP.model)
   dit.register(GROUP.SYSTEM.model)
+  dit.register(PARAMETERS.model)
 
 
   //here, we can't use activeTechniqueCategory because we want a subclass
@@ -403,8 +405,29 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
         , parentDN = archives.dn
       ).model.dn
     }
+
+    def parameterModel(
+      parameterArchiveId : ParameterArchiveId
+    ) : LDAPEntry = {
+      (new OU("Parameters-" + parameterArchiveId.value, archives.dn)).model
+    }
   }
 
+  object PARAMETERS extends OU("Parameters", BASE_DN) {
+    parameters =>
+
+    def getParameter(dn:DN) : Box[String] = singleRdnValue(dn,A_PARAMETER_NAME)
+
+    def parameterDN(parameterName:ParameterName) = new DN(new RDN(A_PARAMETER_NAME, parameterName.value), parameters.dn)
+
+    def parameterModel(
+        name        : ParameterName
+    ) : LDAPEntry = {
+      val mod = LDAPEntry(parameterDN(name))
+      mod +=! (A_OC,OC.objectClassNames(OC_PARAMETER).toSeq:_*)
+      mod
+    }
+  }
 
   private def singleRdnValue(dn:DN, expectedAttributeName:String) : Box[String] = {
       val rdn = dn.getRDN

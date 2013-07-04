@@ -131,6 +131,7 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
     , nodes                 : Seq[NodeId]
   ) : Box[RuleExpectedReports] = {
      logger.info("Saving expected report for rule {}", ruleId.value)
+// TODO : store also the unexpanded
      findCurrentExpectedReports(ruleId) match {
        case e: EmptyBox => e
        case Full(Some(x)) =>

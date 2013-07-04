@@ -49,6 +49,7 @@ import com.normation.rudder.domain.Constants.{
     CONFIGURATION_RULES_ARCHIVE_TAG
   , GROUPS_ARCHIVE_TAG
   , POLICY_LIBRARY_ARCHIVE_TAG
+  , PARAMETERS_ARCHIVE_TAG
 }
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupCategory
@@ -68,6 +69,8 @@ import scala.collection.mutable.Buffer
 import scala.collection.JavaConversions._
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.parameters.ParameterName
 
 private[xml] object GET {
   def apply(reason:Option[String]) = reason match {
@@ -767,5 +770,82 @@ class GitNodeGroupArchiverImpl(
 
 }
 
+/////////////////////////////////////////////////////////////
+////// Parameters                                      //////
+/////////////////////////////////////////////////////////////
 
+/**
+ * A specific trait to create archive of global parameters
+ *
+ */  
+class GitParameterArchiverImpl(
+    override val gitRepo          : GitRepositoryProvider
+  , override val gitRootDirectory : File
+  , parameterSerialisation        : GlobalParameterSerialisation
+  , parameterRootDir              : String //relative path !
+  , override val xmlPrettyPrinter : PrettyPrinter
+  , override val gitModificationRepository : GitModificationRepository
+  , override val encoding         : String = "UTF-8"
+) extends
+  GitParameterArchiver with 
+  Loggable with
+  GitArchiverUtils with
+  GitArchiverFullCommitUtils {
+
+  override val relativePath = parameterRootDir
+  override val tagPrefix = "archives/parameters/"
+    
+  private[this] def newParameterFile(parameterName:ParameterName) = new File(getRootDirectory, parameterName + ".xml")
+
+  def archiveParameter(
+      parameter:GlobalParameter
+    , doCommit:Option[(ModificationId, PersonIdent,Option[String])]
+  ) : Box[GitPath] = {
+    val paramFile = newParameterFile(parameter.name)
+    val gitPath = toGitPath(paramFile)
+    for {
+      archive <- writeXml(
+                     paramFile
+                   , parameterSerialisation.serialise(parameter)
+                   , "Archived parameter: " + paramFile.getPath
+                 )
+      commit  <- doCommit match {
+                   case Some((modId, commiter, reason)) =>
+                     val msg = "Archive parameter with name '%s'%s".format(parameter.name.value, GET(reason))
+                     commitAddFile(modId, commiter, gitPath, msg)
+                   case None => Full("ok")
+                 }
+    } yield {
+      GitPath(gitPath)
+    }
+  }
+  
+  def commitParameters(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId] = {
+    this.commitFullGitPathContentAndTag(
+        commiter
+      , PARAMETERS_ARCHIVE_TAG + " Commit all modification done on parameters (git path: '%s')%s".format(parameterRootDir, GET(reason))
+    )
+  }
+  
+  def deleteParameter(parameterName:ParameterName, doCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath] = {
+    val paramFile = newParameterFile(parameterName)
+    val gitPath = toGitPath(paramFile)
+    if(paramFile.exists) {
+      for {
+        deleted  <- tryo {
+                      FileUtils.forceDelete(paramFile)
+                      logger.debug("Deleted archive of parameter: " + paramFile.getPath)
+                    }
+        commited <- doCommit match {
+                      case Some((modId, commiter, reason)) => commitRmFile(modId, commiter, gitPath, "Delete archive of parameter with name '%s'%s".format(parameterName.value, GET(reason)))
+                      case None => Full("OK")
+                    }
+      } yield {
+        GitPath(gitPath)
+      }
+    } else {
+      Full(GitPath(gitPath))
+    }
+  }
+}
 
