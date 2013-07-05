@@ -92,8 +92,11 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RudderConfig.restTechniqueReload)
     LiftRules.statelessDispatch.append(RudderConfig.restArchiving)
     LiftRules.statelessDispatch.append(RudderConfig.restGetGitCommitAsZip)
-    LiftRules.statelessDispatch.append(RudderConfig.restRules)
-    
+    // Rule APIs
+    LiftRules.statelessDispatch.append(RudderConfig.ruleApi1_0)
+    LiftRules.statelessDispatch.append(RudderConfig.latestRuleApi)
+    LiftRules.statelessDispatch.append(RudderConfig.genericRuleApi)
+
     // URL rewrites
     LiftRules.statefulRewrite.append {
       case RewriteRequest(ParsePath("secure" :: "configurationManager" :: "techniqueLibraryManagement" :: activeTechniqueId :: Nil, _, _, _), GetRequest, _) =>

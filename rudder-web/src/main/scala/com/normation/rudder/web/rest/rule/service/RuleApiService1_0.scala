@@ -1,185 +1,23 @@
-package com.normation.rudder.web.rest
+package com.normation.rudder.web.rest.rule.service
 
-import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.repository._
-import net.liftweb.json.JValue
-import net.liftweb.json.JsonAST._
 import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.domain.policies._
-import com.normation.eventlog.ModificationId
-import net.liftweb.common.Full
-import net.liftweb.http.PlainTextResponse
-import net.liftweb.common.EmptyBox
-import com.normation.rudder.services.policies.RuleTargetService
-import com.normation.rudder.batch._
-import com.normation.eventlog.EventActor
-import net.liftweb.json.JsonDSL._
-import net.liftweb.http.JsonResponse
-import scala.util.Random
-import net.liftweb.json.JValue
-import com.normation.rudder.web.rest._
-import com.normation.rudder.web.rest.RestUtils._
-import scala.util.parsing.json.JSONObject
-import net.liftweb.common.Failure
-import com.normation.rudder.services.policies.RuleTargetServiceImpl
-import net.liftweb.common.Loggable
-import net.liftweb.common.Box
-import com.normation.rudder.domain.policies.RuleTarget
-import net.liftweb.common.Empty
-import net.liftweb.http.Req
-import net.liftweb.util.Props
-import net.liftweb.http.LiftRules
-import com.normation.rudder.services.workflows.ChangeRequestService
-import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.services.workflows._
 import com.normation.rudder.web.services.rest.RestExtractorService
+import com.normation.rudder.domain.policies._
 import com.normation.eventlog.EventActor
-import net.liftweb.http.LiftResponse
+import net.liftweb.common._
+import com.normation.rudder.web.rest.RestUtils._
+import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
+import com.normation.rudder.web.rest._
+import net.liftweb.http.Req
+import com.normation.rudder.web.rest.rule.RestRule
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.batch.AutomaticStartDeployment
 
-
-trait RuleAPI {
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]]
-
-  val apiService: RuleAPIService
-}
-
-trait RuleAPIService
-
-class RuleAPIV1_0 (
-    readRule             : RoRuleRepository
-  , restExtractor        : RestExtractorService
-  , apiV1_0              : RuleAPIV1_0_Service
-) extends RestHelper with RuleAPI with Loggable{
-
-
-  val requestDispatch = {
-
-    case Get(Nil, req) => apiV1_0.listRules(req)
-
-    case Put(Nil, req) => {
-      val restRule = restExtractor.extractRule(req.params)
-      apiV1_0.createRule(restRule, req)
-    }
-
-    case Get(id :: Nil, req) => apiV1_0.ruleDetails(id, req)
-
-    case Delete(id :: Nil, req) =>  apiV1_0.deleteRule(id,req)
-
-    case Post(id:: Nil, req) => {
-      val restRule = restExtractor.extractRule(req.params)
-      apiV1_0.updateRule(id,req,restRule)
-    }
-
-    case id :: Nil JsonPost body -> req => {
-      req.json match {
-        case Full(arg) =>
-          val restRule = restExtractor.extractRuleFromJSON(arg)
-          apiV1_0.updateRule(id,req,restRule)
-        case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)("Empty",true)
-      }
-    }
-
-    case content => println(content)
-         toJsonResponse("nothing", "rien", RestError)("error",true)
-
-  }
-  serve( "api" / "1.0" / "rules" prefix {
-
-    case Get(Nil, req) => apiV1_0.listRules(req)
-
-    case Put(Nil, req) => {
-      val restRule = restExtractor.extractRule(req.params)
-      apiV1_0.createRule(restRule, req)
-    }
-
-    case Get(id :: Nil, req) => apiV1_0.ruleDetails(id, req)
-
-    case Delete(id :: Nil, req) =>  apiV1_0.deleteRule(id,req)
-
-    case Post(id:: Nil, req) => {
-      val restRule = restExtractor.extractRule(req.params)
-      apiV1_0.updateRule(id,req,restRule)
-    }
-
-    case id :: Nil JsonPost body -> req => {
-      req.json match {
-        case Full(arg) =>
-          val restRule = restExtractor.extractRuleFromJSON(arg)
-          apiV1_0.updateRule(id,req,restRule)
-        case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)("Empty",true)
-      }
-    }
-
-    case content => println(content)
-         toJsonResponse("nothing", "rien", RestError)("error",true)
-
-  })
-
-  serve ( "api" / "rules" prefix {
-
-    case Get(Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("1.0") => apiV1_0.listRules(req)
-        case _ => notValidVersionResponse("listRules")
-      }
-    }
-
-    case Put(Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("1.0") =>
-          val restRule = restExtractor.extractRule(req.params)
-          apiV1_0.createRule(restRule, req)
-        case _ => notValidVersionResponse("createRule")
-      }
-    }
-
-    case Get(id :: Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("1.0") => apiV1_0.ruleDetails(id, req)
-        case _ => notValidVersionResponse("listRules")
-      }
-    }
-
-    case Delete(id :: Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("1.0") => apiV1_0.deleteRule(id,req)
-        case _ => notValidVersionResponse("listRules")
-      }
-    }
-
-    case Post(id:: Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("1.0") =>
-          val restRule = restExtractor.extractRule(req.params)
-          apiV1_0.updateRule(id,req,restRule)
-        case _ => notValidVersionResponse("listRules")
-      }
-    }
-
-    case id :: Nil JsonPost body -> req => {
-      req.header("X-API-VERSION") match {
-        case Full("1.0") =>
-      req.json match {
-        case Full(arg) =>
-          val restRule = restExtractor.extractRuleFromJSON(arg)
-          apiV1_0.updateRule(id,req,restRule)
-        case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)("Empty",true)
-      }
-        case _ => notValidVersionResponse("listRules")
-      }
-
-    }
-
-    case content => println(content)
-         toJsonResponse("nothing", "rien", RestError)("error",true)
-
-  })
-
-  def notValidVersionResponse(action:String) = {
-    toJsonResponse("badversion", "version x does not exists", RestError)(action,true)
-   }
-
-}
-  case class RuleAPIV1_0_Service (
+case class RuleApiService1_0 (
     readRule             : RoRuleRepository
   , writeRule            : WoRuleRepository
   , uuidGen              : StringUuidGenerator
@@ -376,38 +214,4 @@ class RuleAPIV1_0 (
         toJsonResponse(ruleId.value, message, RestError)
     }
   }
-  }
-case class RestRule(
-      name             : Option[String] = None
-    , shortDescription : Option[String] = None
-    , longDescription  : Option[String] = None
-    , directives       : Option[Set[DirectiveId]] = None
-    , targets          : Option[Set[RuleTarget]] = None
-    , enabled        : Option[Boolean]     = None
-  ) {
-
-    val onlyName = name.isDefined           &&
-                   shortDescription.isEmpty &&
-                   longDescription.isEmpty  &&
-                   directives.isEmpty       &&
-                   targets.isEmpty          &&
-                   enabled.isEmpty
-
-    def updateRule(rule:Rule) = {
-      val updateName = name.getOrElse(rule.name)
-      val updateShort = shortDescription.getOrElse(rule.shortDescription)
-      val updateLong = longDescription.getOrElse(rule.longDescription)
-      val updateDirectives = directives.getOrElse(rule.directiveIds)
-      val updateTargets = targets.getOrElse(rule.targets)
-      val updateEnabled = enabled.getOrElse(rule.isEnabledStatus)
-      rule.copy(
-          name             = updateName
-        , shortDescription = updateShort
-        , longDescription  = updateLong
-        , directiveIds     = updateDirectives
-        , targets          = updateTargets
-        , isEnabledStatus  = updateEnabled
-      )
-
-    }
   }

@@ -122,7 +122,10 @@ import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows.TwoValidationStepsWorkflowServiceImpl
 import com.normation.rudder.web.services.rest.RestExtractorService
-
+import com.normation.rudder.web.rest.rule.service.RuleApiService1_0
+import com.normation.rudder.web.rest.rule.RuleAPI1_0
+import com.normation.rudder.web.rest.rule.LatestRuleAPI
+import com.normation.rudder.web.rest.rule.RuleAPIHeaderVersion
 /**
  * Define a resource for configuration.
  * For now, config properties can only be loaded from either
@@ -400,8 +403,8 @@ object RudderConfig extends Loggable {
   val restArchiving = new RestArchiving(itemArchiveManagerImpl,personIdentServiceImpl, uuidGen)
   val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
 
-  val restRules =
-    new RestRuleManagement(
+  val ruleApiService1_0 =
+    new RuleApiService1_0(
         roRuleRepository
       , woRuleRepository
       , uuidGen
@@ -411,6 +414,23 @@ object RudderConfig extends Loggable {
       , restExtractorService
       , RUDDER_ENABLE_APPROVAL_WORKFLOWS
     )
+
+  val ruleApi1_0 =
+    new RuleAPI1_0 (
+        roRuleRepository
+      , restExtractorService
+      , ruleApiService1_0
+    )
+
+  val latestRuleApi = new LatestRuleAPI (ruleApi1_0)
+
+  val genericRuleApi =
+    new RuleAPIHeaderVersion (
+        roRuleRepository
+      , restExtractorService
+      , ruleApiService1_0
+    )
+
 
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////

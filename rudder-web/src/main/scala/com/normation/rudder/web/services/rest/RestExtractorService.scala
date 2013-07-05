@@ -3,7 +3,7 @@ package com.normation.rudder.web.services.rest
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.services.policies.RuleTargetService
-import com.normation.rudder.web.rest.RestRule
+import com.normation.rudder.web.rest.rule.RestRule
 import net.liftweb.common._
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleTarget
