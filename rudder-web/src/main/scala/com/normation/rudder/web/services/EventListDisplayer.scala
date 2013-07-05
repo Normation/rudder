@@ -428,6 +428,7 @@ class EventListDisplayer(
                 cancel
             }
           }
+        ,("class" ,"dangerButton")
         )
 
       def showDialog : JsCmd = {
