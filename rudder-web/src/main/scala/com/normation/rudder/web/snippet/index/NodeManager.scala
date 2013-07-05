@@ -53,6 +53,6 @@ import net.liftweb.http.SHtml._
 class NodeManager {
 
   def index(xhtml:NodeSeq) : NodeSeq = {
-    S.redirectTo("searchNodes")
+    S.redirectTo("nodes")
   }
 }
