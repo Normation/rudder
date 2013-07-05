@@ -46,6 +46,7 @@ import net.liftweb.common.Full
 import scala.xml.Text
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
+import com.normation.rudder.domain.parameters.ParameterName
 /**
  * That class helps user to create valide JS initialisation context
  * links for pages that support them (search, Directive,
@@ -68,6 +69,9 @@ object JsInitContextLinkUtil extends Loggable {
 
   def nodeLink(id:NodeId) =
     s"""/secure/nodeManager/searchNodes#{"nodeId":"${id.value}s"}"""
+
+  def globalParameterLink(name:ParameterName) =
+    s"/secure/configurationManager/parameterManagement"
 
   def changeRequestLink(id:ChangeRequestId) =
     s"/secure/utilities/changeRequest/${id}"
@@ -97,5 +101,9 @@ object JsInitContextLinkUtil extends Loggable {
         logger.error(fail.msg)
         <span> {id.value.toUpperCase} </span>
     }
+  }
+  // Naive implementation that redirect simply to all Global Parameter page
+  def createGlobalParameterLink(name:ParameterName) = {
+     <span> {SHtml.a(() => S.redirectTo(globalParameterLink(name)), Text(name.value))} (Rudder ID: {name.value})</span>
   }
 }

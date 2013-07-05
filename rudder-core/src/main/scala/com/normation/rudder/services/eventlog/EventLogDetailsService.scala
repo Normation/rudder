@@ -72,6 +72,7 @@ import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.domain.workflows.WorkflowNodeId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.parameters._
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -142,6 +143,13 @@ trait EventLogDetailsService {
 
   def getWorkflotStepChange(xml:NodeSeq) : Box[WorkflowStepChange]
 
+  // Parameters
+  def getGlobalParameterAddDetails(xml:NodeSeq) : Box[AddGlobalParameterDiff]
+
+  def getGlobalParameterDeleteDetails(xml:NodeSeq) : Box[DeleteGlobalParameterDiff]
+
+  def getGlobalParameterModifyDetails(xml:NodeSeq) : Box[ModifyGlobalParameterDiff]
+
 }
 
 
@@ -155,6 +163,7 @@ class EventLogDetailsServiceImpl(
   , crUnserialiser                  : RuleUnserialisation
   , techniqueUnserialiser           : ActiveTechniqueUnserialisation
   , deploymentStatusUnserialisation : DeploymentStatusUnserialisation
+  , globalParameterUnserialisation  : GlobalParameterUnserialisation
 ) extends EventLogDetailsService {
 
 
@@ -739,7 +748,7 @@ class EventLogDetailsServiceImpl(
       diffName      <- getFromToString((changeRequest \ "diffName").headOption)
       diffDesc      <- getFromToString((changeRequest \ "diffDescription").headOption)
       } yield {
-        val changeRequest = ConfigurationChangeRequest(crId,modId,ChangeRequestInfo(name,description),Map(),Map(),Map())
+        val changeRequest = ConfigurationChangeRequest(crId,modId,ChangeRequestInfo(name,description),Map(),Map(),Map(), Map())
         kind match {
           case "add" => AddChangeRequestDiff(changeRequest)
           case "delete" => DeleteChangeRequestDiff(changeRequest)
@@ -794,6 +803,55 @@ class EventLogDetailsServiceImpl(
       RollbackInfo(target,rollbackType,getEvents(xml))
     }
    rollbackInfo.headOption
+  }
+
+  // Parameters
+  def getGlobalParameterFromXML(xml:NodeSeq, changeType:String) : Box[GlobalParameter] = {
+    for {
+      entry           <- getEntryContent(xml)
+      globalParam     <- (entry \ "globalParameter").headOption ?~! (s"Entry type is not a globalParameter: ${entry}")
+      changeTypeAddOk <- {
+                           if(globalParam.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
+                           else Failure(s"Global Parameter attribute does not have changeType=${changeType} in ${entry}")
+                         }
+      globalParameter <- globalParameterUnserialisation.unserialise(globalParam)
+    } yield {
+      globalParameter
+    }
+  }
+
+  def getGlobalParameterAddDetails(xml:NodeSeq) : Box[AddGlobalParameterDiff] = {
+    getGlobalParameterFromXML(xml, "add").map { globalParam =>
+      AddGlobalParameterDiff(globalParam)
+    }
+  }
+
+  def getGlobalParameterDeleteDetails(xml:NodeSeq) : Box[DeleteGlobalParameterDiff] = {
+    getGlobalParameterFromXML(xml, "delete").map { globalParam =>
+      DeleteGlobalParameterDiff(globalParam)
+    }
+  }
+
+  def getGlobalParameterModifyDetails(xml:NodeSeq) : Box[ModifyGlobalParameterDiff] = {
+    for {
+      entry              <- getEntryContent(xml)
+      globalParam        <- (entry \ "globalParameter").headOption ?~!
+                            (s"Entry type is not a Global Parameter: ${entry}")
+      name               <- (globalParam \ "name").headOption.map( _.text ) ?~!
+                           ("Missing attribute 'name' in entry type Global Parameter: ${entry}")
+      modValue           <- getFromToString((globalParam \ "value").headOption)
+      modDescription     <- getFromToString((globalParam \ "description").headOption)
+      modOverridable     <- getFromTo[Boolean]((globalParam \ "overridable").headOption,
+                             { s => tryo { s.text.toBoolean } } )
+      fileFormatOk       <- TestFileFormat(globalParam)
+    } yield {
+      ModifyGlobalParameterDiff(
+          name = ParameterName(name)
+        , modValue = modValue
+        , modDescription = modDescription
+        , modOverridable = modOverridable
+      )
+    }
   }
 
 }
