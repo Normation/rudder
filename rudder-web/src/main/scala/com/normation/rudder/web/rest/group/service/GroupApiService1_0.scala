@@ -22,16 +22,16 @@ import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.domain.nodes._
 
 case class GroupApiService1_0 (
-    readGroup             : RoNodeGroupRepository
-  , writeGroup            : WoNodeGroupRepository
+    readGroup            : RoNodeGroupRepository
+  , writeGroup           : WoNodeGroupRepository
   , uuidGen              : StringUuidGenerator
   , asyncDeploymentAgent : AsyncDeploymentAgent
   , changeRequestService : ChangeRequestService
   , workflowService      : WorkflowService
   , restExtractor        : RestExtractorService
-  , queryProcessor : QueryProcessor
+  , queryProcessor       : QueryProcessor
   , workflowEnabled      : Boolean
-  ) {
+  ) extends Loggable {
 
 
   private[this] def createChangeRequestAndAnswer (
@@ -188,14 +188,17 @@ case class GroupApiService1_0 (
           case Some(query) => queryProcessor.process(query) match {
             case Full(nodeList) =>
               val updatedGroup = group.copy(serverList = nodeList.map(_.id).toSet)
-              val deleteGroupDiff = DeleteNodeGroupDiff(updatedGroup)
+              val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
               val message = s"Reload Group ${group.name} ${id} from API "
-              createChangeRequestAndAnswer(id, deleteGroupDiff, group, Some(group), actor, message)
+              createChangeRequestAndAnswer(id, reloadGroupDiff, group, Some(group), actor, message)
             case eb:EmptyBox =>
               val fail = eb ?~(s"Could not fetch Nodes" )
               val message=  s"Could not reload Group ${id} details cause is: ${fail.msg}."
               toJsonResponse(id, message, RestError)
           }
+          case None =>
+            val jsonGroup = List(toJSON(group))
+            toJsonResponse(id,("groups" -> JArray(jsonGroup)))
         }
         val jsonGroup = List(toJSON(group))
         toJsonResponse(id,("groups" -> JArray(jsonGroup)))

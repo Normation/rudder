@@ -126,6 +126,8 @@ import com.normation.rudder.web.rest.rule.service.RuleApiService1_0
 import com.normation.rudder.web.rest.rule._
 import com.normation.rudder.web.rest.directive._
 import com.normation.rudder.web.rest.directive.service.DirectiveAPIService1_0
+import com.normation.rudder.web.rest.group.service.GroupApiService1_0
+import com.normation.rudder.web.rest.group._
 /**
  * Define a resource for configuration.
  * For now, config properties can only be loaded from either
@@ -395,7 +397,7 @@ object RudderConfig extends Loggable {
   //////////////////////////////////////////////////////////////////////////////////////////
 
 
-  val restExtractorService = RestExtractorService (roRuleRepository,roDirectiveRepository,techniqueRepository,ruleTargetService)
+  val restExtractorService = RestExtractorService (roRuleRepository,roDirectiveRepository,roNodeGroupRepository, techniqueRepository,ruleTargetService)
 
   val restDeploy = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)
   val restDyngroupReload = new RestDyngroupReload(dyngroupUpdaterBatch)
@@ -460,6 +462,34 @@ object RudderConfig extends Loggable {
       , directiveApiService1_0
     )
 
+  val groupApiService1_0 =
+    new GroupApiService1_0 (
+        roNodeGroupRepository
+      , woNodeGroupRepository
+      , uuidGen
+      , asyncDeploymentAgent
+      , changeRequestService
+      , workflowService
+      , restExtractorService
+      , queryProcessor
+      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+    )
+
+  val groupApi1_0 =
+    new GroupAPI1_0 (
+        roNodeGroupRepository
+      , restExtractorService
+      , groupApiService1_0
+    )
+
+  val latestGroupApi = new LatestGroupAPI (groupApi1_0)
+
+  val genericGroupApi =
+    new GroupAPIHeaderVersion (
+        roNodeGroupRepository
+      , restExtractorService
+      , groupApiService1_0
+    )
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
 

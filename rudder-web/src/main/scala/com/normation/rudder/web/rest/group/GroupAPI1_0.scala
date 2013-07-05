@@ -35,6 +35,10 @@ class GroupAPI1_0 (
       apiV1_0.updateGroup(id,req,restGroup)
     }
 
+    case Post("reload" :: id:: Nil, req) => {
+      apiV1_0.groupReload(id, req)
+    }
+
 /*    case id :: Nil JsonPost body -> req => {
       req.json match {
         case Full(arg) =>

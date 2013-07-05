@@ -198,7 +198,8 @@ case class RestExtractorService (
               case Some(version) => Full(Some(version))
               case None => Failure(s" version ${version} of Technique ${techniqueName}  is not valid")
             }
-          case others => others
+          case Full(None) => Full(None)
+          case eb:EmptyBox => eb ?~ "error when extracting technique version"
      }
   }
 
