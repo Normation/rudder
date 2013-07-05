@@ -53,3 +53,4 @@ case class RestRule(
       )
 
     }
+}
