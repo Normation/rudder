@@ -85,6 +85,11 @@ class Boot extends Loggable {
     // where to search snippet
     LiftRules.addToPackages("com.normation.rudder.web")
 
+    //exclude Rudder doc from context-path rewriting
+    LiftRules.excludePathFromContextPathRewriting.default.set(() => (path:String) => {
+      path.startsWith("/rudder-doc")
+    })
+
     // REST API
     LiftRules.statelessDispatch.append(RestStatus)
     LiftRules.statelessDispatch.append(RudderConfig.restDeploy)
