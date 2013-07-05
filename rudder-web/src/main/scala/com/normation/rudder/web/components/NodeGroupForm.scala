@@ -199,7 +199,7 @@ class NodeGroupForm(
                     SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId)
                    else NodeSeq.Empty
                 },
-      "delete" -> SHtml.ajaxSubmit("Delete", () => onSubmitDelete()),
+      "delete" -> SHtml.ajaxSubmit("Delete", () => onSubmitDelete(),("class" ,"dangerButton")),
       "notifications" -> updateAndDisplayNotifications()
     )
    }
