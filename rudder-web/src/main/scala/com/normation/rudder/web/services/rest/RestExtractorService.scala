@@ -13,10 +13,16 @@ import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.TechniqueRepository
 import scala.util.matching.Regex
 import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.web.rest.group.RestGroup
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
   , readDirective        : RoDirectiveRepository
+  , readGroup            : RoNodeGroupRepository
   , techniqueRepository  : TechniqueRepository
   , targetInfoService    : RuleTargetService
 ) extends Loggable {
@@ -91,6 +97,12 @@ case class RestExtractorService (
       case _ : java.lang.NumberFormatException => Failure(s"value for $key should be an integer instead of ${value}")
     }
   }
+
+
+  private[this] def convertToNodeGroupCategoryId (value:String, key:String) : Box[NodeGroupCategoryId] = {
+    readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Directive '$value' not found"
+  }
+
 
 
   private[this] def convertToDirectiveId (value:String, key:String) : Box[DirectiveId] = {
@@ -186,10 +198,17 @@ case class RestExtractorService (
               case Some(version) => Full(Some(version))
               case None => Failure(s" version ${version} of Technique ${techniqueName}  is not valid")
             }
-          case Full(None) => Full(None)
+          case others => others
      }
   }
 
+  def extractNodeGroupCategoryId (params :  Map[String,List[String]]) : Box[NodeGroupCategoryId] ={
+    extractOneValue(params, "nodeGroupCategory")(convertToNodeGroupCategoryId) match {
+      case Full(Some(category)) => Full(category)
+      case Full(None) => Failure("nodeGroupCategory cannot be empty")
+      case eb:EmptyBox => eb ?~ "error when deserializing node group category"
+    }
+  }
   def extractRule (params : Map[String,List[String]]) : Box[RestRule] = {
 
     for {
@@ -201,6 +220,21 @@ case class RestExtractorService (
       targets          <- extractList(params,"ruleTarget")(convertListToRuleTarget)
     } yield {
       RestRule(name,shortDescription,longDescription,directives,targets,enabled)
+    }
+  }
+
+
+  def extractGroup (params : Map[String,List[String]]) : Box[RestGroup] = {
+
+
+    for {
+      name        <- extractOneValue(params,"displayName")()
+      description <- extractOneValue(params,"description")()
+      enabled     <- extractOneValue(params,"enabled")( convertToBoolean)
+      dynamic     <- extractOneValue(params,"dynamic")( convertToBoolean)
+      query       =  None
+    } yield {
+      RestGroup(name,description,query,dynamic,enabled)
     }
   }
 
