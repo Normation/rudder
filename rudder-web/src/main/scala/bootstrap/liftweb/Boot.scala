@@ -96,6 +96,8 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RudderConfig.ruleApi1_0)
     LiftRules.statelessDispatch.append(RudderConfig.latestRuleApi)
     LiftRules.statelessDispatch.append(RudderConfig.genericRuleApi)
+    // Directive APIs
+    LiftRules.statelessDispatch.append(RudderConfig.restDirectives)
 
     // URL rewrites
     LiftRules.statefulRewrite.append {
