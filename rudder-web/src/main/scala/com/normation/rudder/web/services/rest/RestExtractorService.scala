@@ -8,10 +8,16 @@ import net.liftweb.common._
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleTarget
 import net.liftweb.json._
+import com.normation.rudder.web.rest.directive.RestDirective
+import com.normation.cfclerk.domain._
+import com.normation.cfclerk.services.TechniqueRepository
+import scala.util.matching.Regex
+import com.normation.rudder.domain.policies.ActiveTechnique
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
   , readDirective        : RoDirectiveRepository
+  , techniqueRepository  : TechniqueRepository
   , targetInfoService    : RuleTargetService
 ) extends Loggable {
 
@@ -75,6 +81,14 @@ case class RestExtractorService (
       case "true"  => Full(true)
       case "false" => Full(false)
       case _       => Failure(s"value for $key should be true or false")
+    }
+  }
+
+  private[this] def convertToInt (value:String, key:String) : Box[Int] = {
+    try {
+      Full(value.toInt)
+    } catch  {
+      case _ : java.lang.NumberFormatException => Failure(s"value for $key should be an integer instead of ${value}")
     }
   }
 
@@ -142,6 +156,40 @@ case class RestExtractorService (
     extractOneValue(params, "changeRequestDescription")().getOrElse(None)
   }
 
+  def extractTechnique (params : Map[String,List[String]]) :  Box[Technique] = {
+    extractOneValue(params, "techniqueName")() match {
+      case Full(Some(name)) =>
+        val techniqueName = TechniqueName(name)
+        extractOneValue(params, "techniqueVersion")() match {
+          case Full(Some(version)) =>
+            techniqueRepository.getTechniqueVersions(techniqueName).find(_.upsreamTechniqueVersion.value == version) match {
+              case Some(version) => techniqueRepository.get(TechniqueId(techniqueName,version)) match {
+                case Some(technique) => Full(technique)
+                case None => Failure(s" Technique ${techniqueName} version ${version} is not a valid Technique")
+              }
+              case None => Failure(s" version ${version} of Technique ${techniqueName}  is not valid")
+            }
+          case Full(None) => techniqueRepository.getLastTechniqueByName(techniqueName) match {
+            case Some(technique) => Full(technique)
+            case None => Failure( s"Error while fetching last version of technique ${techniqueName}")
+          }
+        }
+      case Full(None) => Failure("techniqueName should not be empty")
+      case eb:EmptyBox => eb ?~ "techniqueName should not be empty"
+    }
+  }
+
+  def extractTechniqueVersion (params : Map[String,List[String]], techniqueName : TechniqueName)  = {
+     extractOneValue(params, "techniqueVersion")() match {
+          case Full(Some(version)) =>
+            techniqueRepository.getTechniqueVersions(techniqueName).find(_.upsreamTechniqueVersion.value == version) match {
+              case Some(version) => Full(Some(version))
+              case None => Failure(s" version ${version} of Technique ${techniqueName}  is not valid")
+            }
+          case Full(None) => Full(None)
+     }
+  }
+
   def extractRule (params : Map[String,List[String]]) : Box[RestRule] = {
 
     for {
@@ -153,6 +201,25 @@ case class RestExtractorService (
       targets          <- extractList(params,"ruleTarget")(convertListToRuleTarget)
     } yield {
       RestRule(name,shortDescription,longDescription,directives,targets,enabled)
+    }
+  }
+
+  def extractDirective (params : Map[String,List[String]]) : Box[RestDirective] = {
+
+
+    for {
+      //technique        <- extractTechnique(params)
+      //activeTechnique  <- readDirective.getActiveTechnique(technique.id.name)
+      name             <- extractOneValue(params,"displayName")()
+      shortDescription <- extractOneValue(params,"shortDescription")()
+      longDescription  <- extractOneValue(params,"longDescription")()
+      enabled          <- extractOneValue(params,"enabled")( convertToBoolean)
+      directives       <- extractList(params,"directives")( convertListToDirectiveId)
+      targets          <- extractList(params,"ruleTarget")(convertListToRuleTarget)
+      priority         <- extractOneValue(params,"priority")(convertToInt)
+      techniqueVersion =  None
+    } yield {
+      RestDirective(name,shortDescription,longDescription,enabled,None,priority,None)
     }
   }
 

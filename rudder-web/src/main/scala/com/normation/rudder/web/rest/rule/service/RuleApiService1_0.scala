@@ -30,19 +30,19 @@ case class RuleApiService1_0 (
 
 
   private[this] def createChangeRequestAndAnswer (
-      id            : String
-    , diff          : ChangeRequestRuleDiff
-    , rule          : Rule
-    , initialtState : Option[Rule]
-    , actor         : EventActor
-    , message       : String
+      id           : String
+    , diff         : ChangeRequestRuleDiff
+    , rule         : Rule
+    , initialState : Option[Rule]
+    , actor        : EventActor
+    , message      : String
   ) (implicit action : String, prettify : Boolean) = {
     ( for {
         cr <- changeRequestService.createChangeRequestFromRule(
                   message
                 , message
                 , rule
-                , Some(rule)
+                , initialState
                 , diff
                 , actor
                 , None

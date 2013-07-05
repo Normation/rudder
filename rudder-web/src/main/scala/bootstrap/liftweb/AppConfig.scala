@@ -395,7 +395,7 @@ object RudderConfig extends Loggable {
   //////////////////////////////////////////////////////////////////////////////////////////
 
 
-  val restExtractorService = RestExtractorService (roRuleRepository,roDirectiveRepository,ruleTargetService)
+  val restExtractorService = RestExtractorService (roRuleRepository,roDirectiveRepository,techniqueRepository,ruleTargetService)
 
   val restDeploy = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)
   val restDyngroupReload = new RestDyngroupReload(dyngroupUpdaterBatch)
