@@ -230,6 +230,19 @@ button.ui-state-default {
    
 }
 
+.dangerButton {
+	color: #990000 !important;
+}
+
+.dangerButton:hover {
+	background-color: #B33630 !important;
+    background-image: linear-gradient(#DC5F59, #B33630) !important;
+    background-repeat: repeat-x !important;
+    border-color: #CD504A !important;
+    color: #FFFFFF !important;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
 button.largeButton {
   width:250px !important;
 }

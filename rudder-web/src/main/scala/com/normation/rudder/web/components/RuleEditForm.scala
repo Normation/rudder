@@ -239,7 +239,7 @@ class RuleEditForm(
       //activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if(rule.isEnabledStatus) "Disable" else "Enable" } &
       "#removeAction *" #> {
-         SHtml.ajaxButton("Delete", () => onSubmitDelete())
+         SHtml.ajaxButton("Delete", () => onSubmitDelete(),("class","dangerButton"))
        } &
        "#desactivateAction *" #> {
          val status = rule.isEnabledStatus ? "disable" | "enable"

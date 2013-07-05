@@ -182,7 +182,7 @@ class NodeGroupCategoryForm(
             <div class="popupButton">
                <span>
                 <button class="simplemodal-close" onClick="$.modal.close();">Cancel</button>
-                {SHtml.ajaxButton("Delete", onDelete _)}
+                {SHtml.ajaxButton("Delete", onDelete _ ,("class", "dangerButton"))}
               </span>
             </div>
           </div>
