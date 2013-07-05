@@ -87,7 +87,7 @@ object RestUtils extends Loggable {
   }
 
   def toJsonResponse(id:String, message:JObject, status:HttpStatus = RestOk)( implicit action : String = "rest", prettify : Boolean) : LiftResponse = {
-
+    logger.info(prettify.toString)
     val printer: Document => String = if (prettify) Printer.pretty else Printer.compact
     val json = ( "action" -> action ) ~
                   ( "id"     -> id ) ~

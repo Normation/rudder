@@ -1,4 +1,4 @@
-package com.normation.rudder.web.rest.directive
+package com.normation.rudder.web.rest.directive.service
 
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
@@ -17,8 +17,8 @@ import net.liftweb.http.Req
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.eventlog.ModificationId
 import com.normation.cfclerk.domain.Technique
-import com.normation.rudder.web.rest.directive.RestDirective
 import net.liftweb.common.Box.box2Iterable
+import com.normation.rudder.web.rest.directive._
 
 case class DirectiveAPIService1_0 (
     readDirective        : RoDirectiveRepository
@@ -29,7 +29,7 @@ case class DirectiveAPIService1_0 (
   , workflowService      : WorkflowService
   , restExtractor        : RestExtractorService
   , workflowEnabled      : Boolean
-  ) {
+  ) extends Loggable {
 
 
   private[this] def createChangeRequestAndAnswer (

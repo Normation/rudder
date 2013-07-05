@@ -8,12 +8,12 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import com.normation.rudder.web.rest.RestError
-import com.normation.rudder.web.rest.directive.DirectiveAPI
+import com.normation.rudder.web.rest.directive.service.DirectiveAPIService1_0
 
 class DirectiveAPIHeaderVersion (
-    readDirective             : RoDirectiveRepository
-  , restExtractor        : RestExtractorService
-  , apiV1_0              : DirectiveAPIService1_0
+    readDirective : RoDirectiveRepository
+  , restExtractor : RestExtractorService
+  , apiV1_0       : DirectiveAPIService1_0
 ) extends RestHelper with DirectiveAPI with Loggable{
 
 

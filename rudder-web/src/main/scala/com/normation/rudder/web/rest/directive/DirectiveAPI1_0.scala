@@ -8,6 +8,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import com.normation.rudder.web.rest.RestError
+import com.normation.rudder.web.rest.directive.service.DirectiveAPIService1_0
 
 class DirectiveAPI1_0 (
     readDirective : RoDirectiveRepository
