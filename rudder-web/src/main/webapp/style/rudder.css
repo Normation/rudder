@@ -1236,6 +1236,7 @@ div#logo {
   float:right;
   width:200px;
   padding:10px;
+  padding-right:25px;
   font-size:0.9em;
   color:white;
 }
@@ -1262,7 +1263,7 @@ header - haut de page
   width:130px;
 }
 div#infosUser {
-   padding: 7px 5px;
+   padding: 10px 5px;
    height: 30px;
    color: #f79d10;
 }
@@ -1297,6 +1298,19 @@ div#infosUser {
    text-decoration: underline;
    cursor: pointer;
 }
+
+#documentation {
+  float: right;
+  font-size: 14px;
+  font-weight: bold;  
+  padding-right: 20px;
+}
+
+#documentation a {
+    color: #999; 
+}
+
+
 .automaticCleanDetail {
 	padding : 5px 5px 0;
 } 
