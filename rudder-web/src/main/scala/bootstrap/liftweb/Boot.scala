@@ -95,8 +95,8 @@ class Boot extends Loggable {
 
     // URL rewrites
     LiftRules.statefulRewrite.append {
-      case RewriteRequest(ParsePath("secure" :: "configurationManager" :: "techniqueLibraryManagement" :: activeTechniqueId :: Nil, _, _, _), GetRequest, _) =>
-        RewriteResponse("secure" :: "configurationManager" :: "techniqueLibraryManagement" :: Nil, Map("techniqueId" -> activeTechniqueId))
+      case RewriteRequest(ParsePath("secure" :: "administration" :: "techniqueLibraryManagement" :: activeTechniqueId :: Nil, _, _, _), GetRequest, _) =>
+        RewriteResponse("secure" :: "administration" :: "techniqueLibraryManagement" :: Nil, Map("techniqueId" -> activeTechniqueId))
       case RewriteRequest(ParsePath("secure"::"nodeManager"::"searchNodes"::nodeId::Nil, _, _, _), GetRequest, _) =>
         RewriteResponse("secure"::"nodeManager"::"searchNodes"::Nil, Map("nodeId" -> nodeId))
       case RewriteRequest(ParsePath("secure"::"utilities"::"changeRequests"::filter::Nil, _, _, _), GetRequest, _) =>
@@ -189,10 +189,6 @@ class Boot extends Loggable {
             >> LocGroup(name+"Group")
             >> TestAccess( () => userIsAllowed("/secure/index",Read("directive") ) )
 
-        , Menu("TechniqueLibraryManagement", <span>Techniques</span>) /
-            "secure" / (name+"Manager") / "techniqueLibraryManagement"
-            >> LocGroup(name+"Group")
-            >> TestAccess( () => userIsAllowed("/secure/index",Read("technique") ) )
       )
 
 
@@ -215,6 +211,12 @@ class Boot extends Loggable {
             "secure" / "administration" / "databaseManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Write("administration")) )
+
+
+        , Menu("TechniqueLibraryManagement", <span>Techniques</span>) /
+            "secure" / "administration" / "techniqueLibraryManagement"
+            >> LocGroup("administrationGroup")
+            >> TestAccess( () => userIsAllowed("/secure/index",Read("technique") ) )
       )
 
 
