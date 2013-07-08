@@ -42,6 +42,7 @@ import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.parameters.GlobalParameter
 
 /**
  * A category of the technique library.
@@ -90,6 +91,20 @@ trait ParseRules {
    * file system for an archive with the given ID.
    */
   def getArchive(archiveId:GitCommitId) : Box[Seq[Rule]]
+}
+
+/**
+ * That trait allows to manage the import of Global Parameters
+ * from the File System into the LDAP.
+ * That part read the last Parameters archive.
+ */
+trait ParseGlobalParameters {
+
+  /**
+   * That method parse global parameters from the
+   * file system for an archive with the given ID.
+   */
+  def getArchive(archiveId:GitCommitId) : Box[Seq[GlobalParameter]]
 }
 
 /**

@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,19 +32,43 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.marshalling
-
+package com.normation.rudder.repository
 import net.liftweb.common._
-import com.normation.rudder.domain.Constants
-import scala.xml.Node
+import com.normation.rudder.domain.parameters._
+import com.normation.eventlog.ModificationId
+import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.archives.ParameterArchiveId
 
+/**
+ * The Parameter Repository (Read Only) to read parameters from LDAP
+ */
+trait RoParameterRepository {
 
-object TestFileFormat {
+  def getGlobalParameter(parameterName : ParameterName) : Box[GlobalParameter]
+  
+  def getAllGlobalParameters() : Box[Seq[GlobalParameter]]
+  
+  def getAllOverridable() : Box[Seq[GlobalParameter]]
+}
 
-  private[this] val currentFileFormat = Constants.XML_FILE_FORMAT_4
+trait WoParameterRepository {
+  def saveParameter(parameter : GlobalParameter, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[AddGlobalParameterDiff]
 
-  def apply(xml:Node, fileFormat:String = currentFileFormat.toString) : Box[String] = {
-    if(xml.attribute("fileFormat").map( _.text ) == Some(fileFormat)) Full("OK")
-    else Failure("Bad fileFormat (expecting %s): %s".format(fileFormat, xml))
-  }
+  def updateParameter(parameter : GlobalParameter, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyGlobalParameterDiff]]
+
+  def delete(parameterName:ParameterName, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteGlobalParameterDiff]
+  
+  /**
+   * A (dangerous) method that replace all existing parameters
+   * by the list given in parameter.
+   * If succeed, return an identifier of the place were
+   * are stored the old parameters - it is the
+   * responsibility of the user to delete them.
+   */
+  def swapParameters(newParameters:Seq[GlobalParameter]) : Box[ParameterArchiveId]
+
+  /**
+   * Delete a set of saved rules.
+   */
+  def deleteSavedParametersArchiveId(saveId:ParameterArchiveId) : Box[Unit]
 }

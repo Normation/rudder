@@ -46,6 +46,9 @@ import com.normation.rudder.domain.policies.{Rule,RuleId}
 import com.normation.utils.HashcodeCaching
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.parameters.Parameter
+import com.normation.rudder.services.policies.ParameterForConfiguration
+import com.normation.cfclerk.domain.ParameterEntry
 
 case class MinimalNodeConfig(
     name                         : String
@@ -65,6 +68,8 @@ sealed trait NodeConfiguration extends Loggable {
   def writtenDate               : Option[DateTime]
   def currentSystemVariables    : Map[String, Variable]
   def targetSystemVariables     : Map[String, Variable]
+  def currentParameters         : Set[ParameterForConfiguration]
+  def targetParameters          : Set[ParameterForConfiguration]
 
   /**
    * Add a directive
@@ -84,7 +89,7 @@ sealed trait NodeConfiguration extends Loggable {
             + (ruleWithCf3PolicyDraft.draftId -> ruleWithCf3PolicyDraft.copy()))
 
             Full(copySetTargetRulePolicyDrafts(newRulePolicyDrafts.values.toSeq))
-      case Some(x) => Failure("An instance of the ruleWithCf3PolicyDraft with the same identifier %s already exists".format(ruleWithCf3PolicyDraft.draftId.value))
+      case Some(x) => Failure(s"An instance of the ruleWithCf3PolicyDraft with the same identifier ${ruleWithCf3PolicyDraft.draftId.value} already exists")
     }
   }
 
@@ -127,6 +132,7 @@ sealed trait NodeConfiguration extends Loggable {
   def isModified : Boolean = {
     if(currentRulePolicyDrafts.size != targetRulePolicyDrafts.size) true
     else if(currentRulePolicyDrafts.map( _.draftId).toSet != targetRulePolicyDrafts.map( _.draftId ).toSet ) true
+    else if (currentParameters !=  targetParameters) true
     else {
       for {
         currentCFC <- currentRulePolicyDrafts
@@ -176,14 +182,18 @@ sealed trait NodeConfiguration extends Loggable {
   def getAllPoliciesNames(): Set[TechniqueId] = {
     targetRulePolicyDrafts.map( _.cf3PolicyDraft.technique.id).toSet
   }
+
+  override def toString() = "%s %s".format(currentMinimalNodeConfig.name, id)
 }
 
 
-
 object NodeConfiguration {
-  def toContainer(outPath : String, server : NodeConfiguration) : Cf3PolicyDraftContainer = {
-    val container = new Cf3PolicyDraftContainer(outPath)
-    server.targetRulePolicyDrafts foreach (x =>  container.add(x.cf3PolicyDraft))
+  def toContainer(outPath : String, node: NodeConfiguration) : Cf3PolicyDraftContainer = {
+    val container = new Cf3PolicyDraftContainer(
+        outPath
+      , node.targetParameters.map(x => ParameterEntry(x.name.value, x.value)).toSet
+    )
+    node.targetRulePolicyDrafts foreach (x =>  container.add(x.cf3PolicyDraft))
     container
   }
 }
@@ -204,6 +214,8 @@ final case class RootNodeConfiguration(
   , writtenDate              : Option[DateTime]
   , currentSystemVariables   : Map[String, Variable]
   , targetSystemVariables    : Map[String, Variable]
+  , currentParameters        : Set[ParameterForConfiguration]
+  , targetParameters         : Set[ParameterForConfiguration]
 ) extends NodeConfiguration with HashcodeCaching {
 
   def copySetTargetRulePolicyDrafts(policies: Seq[RuleWithCf3PolicyDraft]): RootNodeConfiguration = {
@@ -216,13 +228,13 @@ final case class RootNodeConfiguration(
    */
   def commitModification() : RootNodeConfiguration = {
     logger.debug("Commiting node configuration " + this);
-
-    this.copy(currentRulePolicyDrafts = this.targetRulePolicyDrafts,
-        currentMinimalNodeConfig = this.targetMinimalNodeConfig,
-        currentSystemVariables = this.targetSystemVariables,
-        writtenDate = Some(DateTime.now())
+    this.copy(
+        currentRulePolicyDrafts = this.targetRulePolicyDrafts
+      , currentMinimalNodeConfig = this.targetMinimalNodeConfig
+      , currentSystemVariables = this.targetSystemVariables
+      , currentParameters = this.targetParameters
+      , writtenDate = Some(DateTime.now())
     )
-
   }
 
   /**
@@ -230,29 +242,16 @@ final case class RootNodeConfiguration(
    * @return the updated configuration with "target" updated to match "current"
    */
   def rollbackModification() : RootNodeConfiguration = {
-    copy(targetRulePolicyDrafts = this.currentRulePolicyDrafts,
-        targetMinimalNodeConfig = this.currentMinimalNodeConfig,
-        targetSystemVariables = this.currentSystemVariables
-        )
-
+    copy(
+        targetRulePolicyDrafts = this.currentRulePolicyDrafts
+      , targetMinimalNodeConfig = this.currentMinimalNodeConfig
+      , targetSystemVariables = this.currentSystemVariables
+      , targetParameters = this.currentParameters
+    )
   }
+
 }
 
-object RootNodeConfiguration {
-  def apply(server:NodeConfiguration) : RootNodeConfiguration = {
-    val root = new RootNodeConfiguration(server.id,
-        server.currentRulePolicyDrafts,
-        server.targetRulePolicyDrafts,
-        server.isPolicyServer,
-        server.currentMinimalNodeConfig,
-        server.targetMinimalNodeConfig,
-        server.writtenDate,
-        server.currentSystemVariables,
-        server.targetSystemVariables)
-
-    root
-  }
-}
 
 final case class SimpleNodeConfiguration(
     id                       : NodeId
@@ -264,6 +263,8 @@ final case class SimpleNodeConfiguration(
   , writtenDate              : Option[DateTime]
   , currentSystemVariables   : Map[String, Variable]
   , targetSystemVariables    : Map[String, Variable]
+  , currentParameters        : Set[ParameterForConfiguration]
+  , targetParameters         : Set[ParameterForConfiguration]
 ) extends NodeConfiguration with HashcodeCaching {
 
 
@@ -277,13 +278,13 @@ final case class SimpleNodeConfiguration(
    */
   def commitModification() : SimpleNodeConfiguration = {
     logger.debug("Commiting server " + this);
-
-    copy(currentRulePolicyDrafts = this.targetRulePolicyDrafts,
-        currentMinimalNodeConfig = this.targetMinimalNodeConfig,
-        currentSystemVariables = this.targetSystemVariables,
-        writtenDate = Some(DateTime.now())
-     )
-
+    this.copy(
+        currentRulePolicyDrafts = this.targetRulePolicyDrafts
+      , currentMinimalNodeConfig = this.targetMinimalNodeConfig
+      , currentSystemVariables = this.targetSystemVariables
+      , currentParameters = this.targetParameters
+      , writtenDate = Some(DateTime.now())
+    )
   }
 
   /**
@@ -291,14 +292,14 @@ final case class SimpleNodeConfiguration(
    * @return nothing
    */
   def rollbackModification() : SimpleNodeConfiguration = {
-    copy(targetRulePolicyDrafts = this.currentRulePolicyDrafts,
-        targetMinimalNodeConfig = this.currentMinimalNodeConfig,
-        targetSystemVariables = this.currentSystemVariables
-        )
-
+    copy(
+        targetRulePolicyDrafts = this.currentRulePolicyDrafts
+      , targetMinimalNodeConfig = this.currentMinimalNodeConfig
+      , targetSystemVariables = this.currentSystemVariables
+      , targetParameters = this.currentParameters
+    )
   }
 
-  override def toString() = "%s %s".format(currentMinimalNodeConfig.name, id)
 
 }
 
