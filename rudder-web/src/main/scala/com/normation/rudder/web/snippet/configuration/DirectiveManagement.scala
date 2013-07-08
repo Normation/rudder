@@ -213,7 +213,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case None => "*" #> {
         <div class="deca">
           <p><em>Directives</em> are displayed in the tree of
-          <a href="/secure/configurationManager/techniqueLibraryManagement">
+          <a href="/secure/administration/techniqueLibraryManagement">
             <em>Active Techniques</em>
           </a>,
           grouped by categories.</p>
@@ -226,7 +226,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             </li>
           </ul>
           <p>Additional <em>Techniques</em> may be available through the
-            <a href="/secure/configurationManager/techniqueLibraryManagement">
+            <a href="/secure/administration/techniqueLibraryManagement">
               Techniques screen
             </a>.
           </p>

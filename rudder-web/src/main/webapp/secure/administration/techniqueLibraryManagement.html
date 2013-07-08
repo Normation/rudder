@@ -1,4 +1,4 @@
-<lift:surround with="menu/menu-configure" at="content">
+<lift:surround with="menu/menu-administration" at="content">
 
 <head>
 <title>Rudder - Technique Library Management</title>
@@ -28,7 +28,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
 </script>
 </head>
 
-<lift:configuration.TechniqueLibraryManagement.head />
+<lift:administration.TechniqueLibraryManagement.head />
 
 <div class="portlet">
   <div class="portlet-header">Technique Library Management</div>
@@ -46,7 +46,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
       </div>
       <lift:authz role="technique_edit">
       <div>
-        <div class="lift:configuration.TechniqueLibraryManagement.reloadTechniqueLibrary" id="reloadTechniqueLibForm">
+        <div class="lift:administration.TechniqueLibraryManagement.reloadTechniqueLibrary" id="reloadTechniqueLibForm">
           <form class="lift:form.ajax">
             <span>Reload the last available version of the Technique library</span>
             <input type="submit" value="Reload"/>
@@ -69,7 +69,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
             <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
             <span onclick="clearSearchFieldTree('#treeSearch2', '#techniqueLibraryTree')"><img src="/images/close-cross.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
           </div>
-          <lift:configuration.TechniqueLibraryManagement.systemLibrary />
+          <lift:administration.TechniqueLibraryManagement.systemLibrary />
         </div>
       </div>
     </div>
@@ -85,16 +85,16 @@ var clearSearchFieldTree = function(inputId, treeId) {
             <span onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree')"><img src="/images/close-cross.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
           </div>
           <lift:authz role="technique_write">
-          <lift:configuration.TechniqueLibraryManagement.userLibraryAction />
+          <lift:administration.TechniqueLibraryManagement.userLibraryAction />
           </lift:authz>
-          <lift:configuration.TechniqueLibraryManagement.userLibrary />
+          <lift:administration.TechniqueLibraryManagement.userLibrary />
         </div>
       </div>
     </div>
     
     <hr class="spacer"/>
 
-    <lift:configuration.TechniqueLibraryManagement.bottomPanel /> 
+    <lift:administration.TechniqueLibraryManagement.bottomPanel /> 
     
   </div>
   

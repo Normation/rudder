@@ -186,7 +186,7 @@ class DirectiveEditForm(
        ) &
        //form and form fields
       "#techniqueName" #>
-        <a href={ "/secure/configurationManager/techniqueLibraryManagement/" +
+        <a href={ "/secure/administration/techniqueLibraryManagement/" +
           technique.id.name.value }>
           { technique.name }
         </a> &
