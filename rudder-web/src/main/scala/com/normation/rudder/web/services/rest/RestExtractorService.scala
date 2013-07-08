@@ -18,6 +18,7 @@ import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.inventory.domain.NodeId
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -125,8 +126,12 @@ case class RestExtractorService (
 
     failure match {
       case Some(fail) => fail
-      case None => Full(directives.collect{case Full(rt) => rt}.toSet)
+      case None => Full(directives.collect{case Full(directive) => directive}.toSet)
     }
+  }
+
+  private[this] def convertListToNodeId (values : List[String], key : String) : Box[List[NodeId]] = {
+    Full(values.map(NodeId(_)))
   }
 
   private[this] def convertListToRuleTarget (values : List[String], key : String) : Box[Set[RuleTarget]] = {
@@ -164,8 +169,14 @@ case class RestExtractorService (
     extractOneValue(params, "changeRequestName")().getOrElse(None)
   }
 
-  def extractChangeDescription (params : Map[String,List[String]]) : Option[String] = {
-    extractOneValue(params, "changeRequestDescription")().getOrElse(None)
+  def extractNodeStatus (params : Map[String,List[String]]) : Option[String] = {
+    extractOneValue(params, "status")().getOrElse(None)
+  }
+
+
+
+  def extractNodeIds (params : Map[String,List[String]]) : Box[Option[List[NodeId]]] = {
+    extractList(params, "nodeId")(convertListToNodeId)
   }
 
   def extractTechnique (params : Map[String,List[String]]) :  Box[Technique] = {

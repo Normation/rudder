@@ -252,6 +252,7 @@ class RestNodeManagement (
 
   def toJSONshort (node : Srv) : JValue ={
   import net.liftweb.json.JsonDSL._
+
   ("Node" ->
     ("id" -> node.id.value) ~
     ("hostname" -> node.hostname)
