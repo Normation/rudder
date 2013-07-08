@@ -40,6 +40,8 @@ import com.normation.rudder.domain.nodes.NodeGroupDiff
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
+import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.parameters.ModifyGlobalParameterDiff
 
 /**
  * A service that allows to build diff between
@@ -58,6 +60,7 @@ trait DiffService {
 
   def diffRule(reference:Rule, newItem:Rule) : ModifyRuleDiff
 
+  def diffGlobalParameter(reference:GlobalParameter, newItem:GlobalParameter) : ModifyGlobalParameterDiff
 }
 
 class DiffServiceImpl (
@@ -143,4 +146,16 @@ class DiffServiceImpl (
     )
   }
 
+  def diffGlobalParameter(reference:GlobalParameter, newItem:GlobalParameter) : ModifyGlobalParameterDiff = {
+    val diffValue = if (reference.value == newItem.value) None else Some(SimpleDiff(reference.value,newItem.value))
+    val diffDescription = if (reference.description == newItem.description) None else Some(SimpleDiff(reference.description,newItem.description))
+    val diffOverridable = if (reference.overridable == newItem.overridable) None else Some(SimpleDiff(reference.overridable,newItem.overridable))
+
+    ModifyGlobalParameterDiff(
+        reference.name
+      , diffValue
+      , diffDescription
+      , diffOverridable
+    )
+  }
 }
