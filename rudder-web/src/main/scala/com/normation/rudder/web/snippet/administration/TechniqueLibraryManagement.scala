@@ -32,41 +32,39 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.snippet.configuration
+package com.normation.rudder.web.snippet.administration
 
 import com.normation.rudder.web.model._
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.cfclerk.domain._
-import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common._
 import net.liftweb.http.{SHtml,S}
 import scala.xml._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js._
-import JsCmds._
+import net.liftweb.http.js.JsCmds._
 import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPopup
-import JE._
+import net.liftweb.http.js.JE._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-import com.normation.utils.StringUuidGenerator
 import com.normation.rudder.repository._
-import com.normation.rudder.web.components.{
-  TechniqueEditForm, TechniqueCategoryEditForm
-}
 import net.liftweb.http.LocalSnippet
 import net.liftweb.json._
-import com.normation.rudder.web.services.JsTreeUtilService
-import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import net.liftweb.http.IdMemoizeTransform
 import com.normation.rudder.web.components.popup.GiveReasonPopup
-import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.services.ReasonBehavior._
 import com.normation.rudder.authorization.Write
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
-
+import net.liftweb.common.Box.box2Option
+import net.liftweb.common.Box.option2Box
+import net.liftweb.http.NodeSeqFuncOrSeqNodeSeqFunc.promoteNodeSeq
+import net.liftweb.http.SHtml.ElemAttr.pairToBasic
+import scala.Option.option2Iterable
+import scala.xml.NodeSeq.seqToNodeSeq
+import com.normation.rudder.web.snippet.configuration._
+import com.normation.rudder.web.components._
 
 /**
  * Snippet for managing the System and User Technique libraries.
