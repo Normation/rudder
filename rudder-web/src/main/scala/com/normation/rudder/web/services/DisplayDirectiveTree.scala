@@ -105,8 +105,10 @@ object DisplayDirectiveTree extends Loggable {
         case Some(f) => SHtml.a({() => f(category)}, xml)
       }
 
+      // We don't want to display system Categories nor Directives
       override def children = (
         category.subCategories
+          .filterNot(_.isSystem)
           .sortBy( _.name )
           .zipWithIndex
           .collect{ case (node, i) if(keepCategory(node)) =>
@@ -114,6 +116,7 @@ object DisplayDirectiveTree extends Loggable {
           }
         ++
         category.activeTechniques
+          .filterNot(_.isSystem)
           .sortBy( _.techniqueName.value )
           .collect { case at if(keepTechnique(at)) =>
             displayActiveTechnique(at, localOnClickTechnique, localOnClickDirective)
