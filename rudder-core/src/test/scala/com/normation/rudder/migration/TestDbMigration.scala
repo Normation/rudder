@@ -80,13 +80,13 @@ case class MigEx102(msg:String) extends Exception(msg)
 @RunWith(classOf[JUnitRunner])
 class TestDbMigration_2_3 extends DBCommon {
 
-    lazy val migration = new EventLogsMigration_2_3(
+  lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
-    , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
-    , successLogger = successLogger
+    , individualMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
     , batchSize = 2
-  )
+  ) {
+    override val errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
+  }
 
   val sqlClean = "" //no need to clean temp data table.
 
@@ -139,7 +139,7 @@ CREATE TEMP TABLE EventLog (
   "Event Logs" should {
 
     "be all found" in {
-      val logs = migration.findAllEventLogs.openOrThrowException("For tests")
+      val logs = migration.findAll.openOrThrowException("For tests")
 
       logs.size must beEqualTo(logs2WithId.size) and
       forallWhen(logs) {
@@ -153,7 +153,7 @@ CREATE TEMP TABLE EventLog (
 
     "be correctly migrated" in {
 
-      migration.processEventLogs
+      migration.process
 
       val logs = jdbcTemplate.query("select * from eventlog", testLogRowMapper).asScala.filter(log =>
                    //only actually migrated file format
@@ -186,6 +186,132 @@ CREATE TEMP TABLE EventLog (
 
 /**
  * Test how the migration run with a Database context from 1.0 to 3
+<<<<<<< HEAD:rudder-core/src/test/scala/com/normation/rudder/migration/TestDbMigration.scala
+=======
+ *
+ * Prerequise: A postgres database must be available,
+ * with parameters defined in src/test/resources/database.properties.
+ * That database should be empty to avoid table name collision.
+ */
+@RunWith(classOf[JUnitRunner])
+class TestDbMigration_10_3 extends DBCommon {
+
+ lazy val logs_10_2 = new EventLogsMigration_10_2(
+      jdbcTemplate
+    , new EventLogMigration_10_2(new XmlMigration_10_2())
+    , (f:Failure) => throw new MigEx102(f.messageChain)
+    , successLogger
+    , 2
+  )
+
+  lazy val migration = new EventLogsMigration_2_3(
+      jdbcTemplate = jdbcTemplate
+    , individualMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
+    , batchSize = 2
+  ) {
+   override val errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
+ }
+
+  val sqlClean = "" //no need to clean temp data table.
+
+  val sqlInit = """
+CREATE TEMP SEQUENCE eventLogIdSeq START 1;
+
+CREATE TEMP TABLE EventLog (
+  id integer PRIMARY KEY  DEFAULT nextval('eventLogIdSeq')
+, creationDate timestamp with time zone NOT NULL DEFAULT 'now'
+, severity integer
+, causeId integer
+, principal varchar(64)
+, eventType varchar(64)
+, data xml
+);
+    """
+
+  var logs10WithId : Map[String,MigrationTestLog] = null //init in initDb
+  var logs3WithId : Seq[MigrationTestLog] = null
+
+  override def initDb = {
+    super.initDb
+
+    // init datas, get the map of ids
+    logs10WithId = withConnection[Map[String,MigrationTestLog]] { c =>
+      (Migration_10_2_DATA_EventLogs.data_10.map { case (k,log) =>
+        val id = log.insertSql(c)
+        logger.debug("Inserting %s, id: %s".format(k,id))
+
+        (k,log.copy( id = Some(id) ))
+      }).toMap
+    }
+
+    //also add some bad event log that should not be migrated (bad/more recent file format)
+    withConnection[Unit] { c =>
+      NoMigrationEventLogs.e1.insertSql(c)
+      NoMigrationEventLogs.e2.insertSql(c)
+      NoMigrationEventLogs.e3.insertSql(c)
+
+      {}
+    }
+
+    logs3WithId = (Migration_3_DATA_EventLogs.data_3.map { case (k,log) =>
+      log.copy( id = Some(logs10WithId(k).id.get ) ) //actually get so that an exception is throw if there is no ID set
+    }).toSeq
+  }
+
+  sequential
+  //actual tests
+  "Event Logs" should {
+
+    "be all found" in {
+      val logs = migration.findAll.openOrThrowException("For tests")
+      val parentlogs = logs_10_2.findAll.openOrThrowException("For tests")
+      logs.size+parentlogs.size must beEqualTo(logs10WithId.size) and
+      forallWhen(logs) {
+        case MigrationEventLog(id, eventType, data) =>
+          val l = logs10WithId.values.find(x => x.id.get == id).get
+
+          l.data must be_==/(data) and
+          l.eventType === eventType
+      }
+    }
+
+    "be correctly migrated" in {
+      logs_10_2.process()
+      migration.process()
+
+      jdbcTemplate.query("select * from eventlog", testLogRowMapper).asScala
+      val logs = jdbcTemplate.query("select * from eventlog", testLogRowMapper).asScala.filter(log =>
+                   //only actually migrated file format
+                   try {
+                     log.data \\ "@fileFormat" exists { _.text.toInt == 3 }
+                   } catch {
+                     case e:NumberFormatException => false
+                   }
+                 )
+
+      logs.size must beEqualTo(logs3WithId.size) and
+      forallWhen(logs) {
+        case MigrationTestLog(Some(id), eventType, timestamp, principal, cause, severity, data) =>
+          val l = logs3WithId.find(x => x.id.get == id).get
+
+          (l.eventType === eventType) and
+          (l.timestamp === timestamp) and
+          (l.principal === principal) and
+          (l.cause === cause) and
+          (l.severity == severity must beTrue) and
+          (l.data must be_==/(data))
+
+        case x => failure("Bad TestLog (no id): " + x)
+      }
+    }
+
+  }
+}
+
+
+/**
+ * Test how the migration run with a Database context from 1.0 to 3
+>>>>>>> 4082532... Fixes #3714 refs 3349: Add the scala logic to migrate from XML file format 3 to 4:rudder-core/src/test/scala/com/normation/rudder/migration/TestDbMigration_10_2.scala
  * with both database (eventlog and migration event log)
  *
  * Prerequise: A postgres database must be available,
@@ -198,17 +324,17 @@ class TestDbMigration_2_3b extends DBCommon {
 
   lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
-    , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
-    , successLogger = successLogger
+    , individualMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
     , batchSize = 2
-  )
+  ) {
+    override val errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
+  }
 
   lazy val logRepo = new MigrationEventLogRepository(squerylConnectionProvider)
 
   lazy val migrationManagement = new ControlEventLogsMigration_2_3(
           migrationEventLogRepository = logRepo
-        , migration
+        , Seq(migration)
   )
 
   val sqlClean = "" //no need to clean temp data table.

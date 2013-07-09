@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2012 Normation SAS
+* Copyright 2012-2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,34 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.logger
 
-import org.slf4j.LoggerFactory
+-- if an old EventLog entry has been detected, add a flag with the format 1 and the current date to tell Rudder about it
 
-import com.normation.rudder.domain.Constants.XML_CURRENT_FILE_FORMAT
-import com.normation.rudder.migration.MigrableEntity
-
-import net.liftweb.common.Failure
-import net.liftweb.common.Logger
-
-
-case class MigrationLogger(
-   goal : Int = XML_CURRENT_FILE_FORMAT
-    ) extends Logger {
-  override protected def _logger = LoggerFactory.getLogger("migration")
-
-  val defaultErrorLogger : Failure => Unit = { f =>
-    _logger.error(f.messageChain)
-    f.rootExceptionCause.foreach { ex =>
-      _logger.error("Root exception was:", ex)
-    }
-  }
-  val defaultSuccessLogger : Seq[MigrableEntity] => Unit = { seq =>
-    if(_logger.isDebugEnabled) {
-      seq.foreach { log =>
-        _logger.debug("Migrating eventlog to format %s, id: ".format(goal) + log.id)
-      }
-    }
-    _logger.info("Successfully migrated %s eventlog to format %s".format(seq.size,goal))
-  }
-}
+INSERT INTO migrationeventlog(detectiontime, detectedfileformat) VALUES (NOW(), 3);
