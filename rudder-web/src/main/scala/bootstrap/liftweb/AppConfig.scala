@@ -117,6 +117,13 @@ import com.normation.rudder.services.modification.DiffService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows.TwoValidationStepsWorkflowServiceImpl
+import com.normation.rudder.migration.XmlMigration_3_4
+import com.normation.rudder.migration.ControlXmlFileFormatMigration_3_4
+import com.normation.rudder.migration.EventLogMigration_3_4
+import com.normation.rudder.migration.ChangeRequestsMigration_3_4
+import com.normation.rudder.migration.ChangeRequestMigration_3_4
+import com.normation.rudder.migration.EventLogsMigration_3_4
+import com.normation.rudder.migration.EventLogsMigration_3_4
 
 /**
  * Define a resource for configuration.
@@ -512,8 +519,9 @@ object RudderConfig extends Loggable {
   )
 
   private[this] lazy val deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
+  private[this] lazy val entityMigration = new DefaultXmlEventLogMigration(xmlMigration_2_3, xmlMigration_3_4)
   private[this] lazy val xmlMigration_2_3 = new XmlMigration_2_3()
-  private[this] lazy val entityMigration = new DefaultXmlEventLogMigration(xmlMigration_2_3)
+  private[this] lazy val xmlMigration_3_4 = new XmlMigration_3_4()
 
   private[this] lazy val eventLogDetailsServiceImpl = new EventLogDetailsServiceImpl(
       queryParser
@@ -1039,17 +1047,35 @@ object RudderConfig extends Loggable {
    */
 
 
+  private[this] lazy val migrationRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
+
   private[this] lazy val eventLogsMigration_2_3 = new EventLogsMigration_2_3(
-      jdbcTemplate      = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_2_3(xmlMigration_2_3)
-    , errorLogger       = MigrationLogger(3).defaultErrorLogger
-    , successLogger     = MigrationLogger(3).defaultSuccessLogger
-    , batchSize         = 1000
-   )
+      jdbcTemplate        = jdbcTemplate
+    , individualMigration = new EventLogMigration_2_3(xmlMigration_2_3)
+    , batchSize           = 1000
+  )
   private[this] lazy val eventLogsMigration_2_3_Management = new ControlEventLogsMigration_2_3(
-          migrationEventLogRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
-        , eventLogsMigration_2_3
-      )
+          migrationEventLogRepository = migrationRepository
+        , Seq(eventLogsMigration_2_3)
+        , Some(eventLogsMigration_10_2_Management)
+  )
+
+  private[this] lazy val eventLogsMigration_3_4 = new EventLogsMigration_3_4(
+      jdbcTemplate
+    , new EventLogMigration_3_4(xmlMigration_3_4)
+    , eventLogsMigration_2_3
+  )
+
+  private[this] lazy val controlXmlFileFormatMigration_3_4 = new ControlXmlFileFormatMigration_3_4(
+      migrationEventLogRepository = migrationRepository
+    , batchMigrators              = Seq(eventLogsMigration_3_4
+                                      , new ChangeRequestsMigration_3_4(
+                                          jdbcTemplate
+                                        , new ChangeRequestMigration_3_4(xmlMigration_3_4)
+                                      )
+                                    )
+    , previousMigrationController = Some(eventLogsMigration_2_3_Management)
+  )
 
   /**
    * *************************************************
@@ -1063,7 +1089,7 @@ object RudderConfig extends Loggable {
     , new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,
         roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen) //new CheckDirectiveBusinessRules()
-    , new CheckMigrationEventLog2_3(eventLogsMigration_2_3_Management)
+    , new CheckMigrationXmlFileFormat3_4(controlXmlFileFormatMigration_3_4)
     , new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen)
     , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen)
   )

@@ -74,17 +74,18 @@ import java.sql.Timestamp
  */
 @RunWith(classOf[JUnitRunner])
 class TestManageMigration_2_3 extends DBCommon {
-      lazy val migration = new EventLogsMigration_2_3(
+
+  lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
-    , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
-    , successLogger = successLogger
+    , individualMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
     , batchSize = 2
-  )
+  ) {
+    override def errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
+  }
 
   lazy val migrationManagement = new ControlEventLogsMigration_2_3(
           migrationEventLogRepository = new MigrationEventLogRepository(squerylConnectionProvider)
-        , migration
+        , Seq(migration)
       )
   val sqlClean = "" //no need to clean temp data table.
 
