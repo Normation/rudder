@@ -95,11 +95,7 @@ import com.normation.rudder.web.services.UserPropertyService
 import java.lang.IllegalArgumentException
 import com.normation.rudder.domain.logger.ApplicationLogger
 import logger.MigrationLogger
-import com.normation.rudder.migration.ControlEventLogsMigration_10_2
-import com.normation.rudder.migration.EventLogsMigration_10_2
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
-import com.normation.rudder.migration.XmlMigration_10_2
-import com.normation.rudder.migration.EventLogMigration_10_2
 import net.liftweb.common._
 import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
 import com.normation.rudder.repository.squeryl._
@@ -505,8 +501,7 @@ object RudderConfig extends Loggable {
   )
   private[this] lazy val deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
   private[this] lazy val xmlMigration_2_3 = new XmlMigration_2_3()
-  private[this] lazy val xmlMigration_10_2 = new XmlMigration_10_2()
-  private[this] lazy val entityMigration = new DefaultXmlEventLogMigration(xmlMigration_10_2, xmlMigration_2_3)
+  private[this] lazy val entityMigration = new DefaultXmlEventLogMigration(xmlMigration_2_3)
 
   private[this] lazy val eventLogDetailsServiceImpl = new EventLogDetailsServiceImpl(
       queryParser
@@ -998,21 +993,9 @@ object RudderConfig extends Loggable {
    */
 
 
-  private[this] lazy val eventLogsMigration_10_2 = new EventLogsMigration_10_2(
-      jdbcTemplate      = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_10_2(xmlMigration_10_2)
-    , errorLogger       = MigrationLogger(2).defaultErrorLogger
-    , successLogger     = MigrationLogger(2).defaultSuccessLogger
-    , batchSize         = 1000
-   )
-  private[this] lazy val eventLogsMigration_10_2_Management = new ControlEventLogsMigration_10_2(
-      migrationEventLogRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
-    , eventLogsMigration_10_2
-  )
   private[this] lazy val eventLogsMigration_2_3 = new EventLogsMigration_2_3(
       jdbcTemplate      = jdbcTemplate
     , eventLogMigration = new EventLogMigration_2_3(xmlMigration_2_3)
-    , eventLogsMigration_10_2 = eventLogsMigration_10_2
     , errorLogger       = MigrationLogger(3).defaultErrorLogger
     , successLogger     = MigrationLogger(3).defaultSuccessLogger
     , batchSize         = 1000
@@ -1020,7 +1003,6 @@ object RudderConfig extends Loggable {
   private[this] lazy val eventLogsMigration_2_3_Management = new ControlEventLogsMigration_2_3(
           migrationEventLogRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
         , eventLogsMigration_2_3
-        , eventLogsMigration_10_2_Management
       )
 
   /**
