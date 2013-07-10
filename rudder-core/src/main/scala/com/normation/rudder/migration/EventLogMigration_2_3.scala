@@ -98,7 +98,6 @@ object LogMigrationEventLog_2_3 {
 class ControlEventLogsMigration_2_3(
     migrationEventLogRepository   : MigrationEventLogRepository
   , eventLogsMigration_2_3        : EventLogsMigration_2_3
-  , controlEventLogsMigration_10_2: ControlEventLogsMigration_10_2
 ) {
 
   def logger = MigrationLogger(3)
@@ -171,43 +170,15 @@ class ControlEventLogsMigration_2_3(
       case Some(status@SerializedMigrationEventLog(
           _
         , detectedFileFormat
-        , migrationStartTime
-        , migrationEndTime @ None
+        , _
+        , _
         , _
         , _
       )) if(detectedFileFormat < 2) =>
 
 
-        logger.info("Found and older migration to do")
-        controlEventLogsMigration_10_2.migrate() match{
-        case Full(MigrationSuccess(i)) =>
-            logger.info("Older migration completed, relaunch migration")
-            this.migrate()
-        case eb:EmptyBox =>
-            val e = (eb ?~! "Older migration failed, Could not correctly finish the migration from EventLog fileFormat from '2' to '3'. Check logs for errors. The process can be trigger by restarting the application")
-            logger.error(e)
-            e
-        case _ =>
-            logger.info("Older migration completed, relaunch migration")
-            this.migrate()
-        }
-              //a past migration was done, but the final format is not the one we want
-      case Some(x@SerializedMigrationEventLog(
-          _
-        , _
-        , _
-        , Some(endTime)
-        , Some(migrationFileFormat)
-        , _
-      )) if(migrationFileFormat < 2) =>
-        //create a new status line with detected format = migrationFileFormat,
-        //and a description to say why we recurse
-        controlEventLogsMigration_10_2.migrate()
-        this.migrate()
-
-
-
-
+        logger.error(s"The file format ${detectedFileFormat} is no more supported. The last version to support it is Rudder 2.6.x")
+        Full(MigrationVersionNotHandledHere)
 
 
       //other case: does nothing
@@ -228,7 +199,6 @@ class ControlEventLogsMigration_2_3(
 class EventLogsMigration_2_3(
     jdbcTemplate               : JdbcTemplate
   , eventLogMigration          : EventLogMigration_2_3
-  , val eventLogsMigration_10_2: EventLogsMigration_10_2
   , errorLogger                : Failure => Unit
   , successLogger              : Seq[MigrationEventLog] => Unit
   , batchSize                  : Int = 1000

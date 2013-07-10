@@ -87,65 +87,14 @@ case class MigrationTestLog(
   }
 }
 
-object Migration_10_2_DATA_EventLogs {
+object Migration_2_DATA_EventLogs {
   import com.normation.rudder.migration.{
-      Migration_10_2_DATA_Rule      => RuleXml
-    , Migration_10_2_DATA_Other     => OtherXml
-    , Migration_10_2_DATA_Directive => DirectiveXml
-    , Migration_10_2_DATA_Group     => GroupXml
+      Migration_2_DATA_Rule      => RuleXml
+    , Migration_2_DATA_Other     => OtherXml
+    , Migration_2_DATA_Directive => DirectiveXml
+    , Migration_2_DATA_Group     => GroupXml
   }
   def e(xml:Elem) = <entry>{xml}</entry>
-
-  val data_10 = Map(
-      "rule_add"    -> MigrationTestLog(
-            eventType = "ConfigurationRuleAdded"
-          , data      = e(RuleXml.rule_add_10)
-          )
-    , "rule_modify" -> MigrationTestLog(
-            eventType = "ConfigurationRuleModified"
-          , data      =  e(RuleXml.rule_modify_10)
-          )
-    , "rule_delete" -> MigrationTestLog(
-            eventType = "ConfigurationRuleDeleted"
-          , data      = e(RuleXml.rule_delete_10)
-          )
-    , "addPendingDeployment" -> MigrationTestLog(
-            eventType = "StartDeployement"
-          , data      = e(OtherXml.addPendingDeployment_10)
-          )
-    , "node_accept" -> MigrationTestLog(
-            eventType = "AcceptNode"
-          , data      = e(OtherXml.node_accept_10)
-          )
-    , "node_refuse" -> MigrationTestLog(
-            eventType = "RefuseNode"
-          , data      = e(OtherXml.node_refuse_10)
-          )
-    , "directive_add" -> MigrationTestLog(
-            eventType = "PolicyInstanceAdded"
-          , data      = e(DirectiveXml.directive_add_10)
-          )
-    , "directive_modify" -> MigrationTestLog(
-            eventType = "PolicyInstanceModified"
-          , data      = e(DirectiveXml.directive_modify_10)
-          )
-    , "directive_delete" -> MigrationTestLog(
-            eventType = "PolicyInstanceDeleted"
-          , data      = e(DirectiveXml.directive_delete_10)
-          )
-    , "nodeGroup_add" -> MigrationTestLog(
-            eventType = "NodeGroupAdded"
-          , data      = e(GroupXml.nodeGroup_add_10)
-          )
-    , "nodeGroup_modify" -> MigrationTestLog(
-            eventType = "NodeGroupModified"
-          , data      = e(GroupXml.nodeGroup_modify_10)
-          )
-    , "nodeGroup_delete" -> MigrationTestLog(
-            eventType = "NodeGroupDeleted"
-          , data      = e(GroupXml.nodeGroup_delete_10)
-          )
-  )
 
   val data_2 = Map(
       "rule_add"    -> MigrationTestLog(
@@ -202,36 +151,14 @@ object Migration_10_2_DATA_EventLogs {
 
 
 
-object Migration_10_2_DATA_Other {
-
-  val addPendingDeployment_10 =
-    <addPending alreadyPending="false"></addPending>
-
+object Migration_2_DATA_Other {
 
   val addPendingDeployment_2 =
     <addPendingDeployement alreadyPending="false" fileFormat="2"></addPendingDeployement>
 
 
-  val node_accept_10 =
-    <node action="accept" fileFormat="1.0">
-      <id>248c8e3d-1bf6-4bc1-9398-f8890b015a50</id>
-      <inventoryVersion>2011-10-13T11:43:52.907+02:00</inventoryVersion>
-      <hostname>centos-5-32</hostname>
-      <fullOsName>Centos</fullOsName>
-      <actorIp>127.0.0.1</actorIp>
-    </node>
-
   val node_accept_2 =
     <node action="accept" fileFormat="2">
-      <id>248c8e3d-1bf6-4bc1-9398-f8890b015a50</id>
-      <inventoryVersion>2011-10-13T11:43:52.907+02:00</inventoryVersion>
-      <hostname>centos-5-32</hostname>
-      <fullOsName>Centos</fullOsName>
-      <actorIp>127.0.0.1</actorIp>
-    </node>
-
-  val node_refuse_10 =
-    <node fileFormat="1.0" action="accept">
       <id>248c8e3d-1bf6-4bc1-9398-f8890b015a50</id>
       <inventoryVersion>2011-10-13T11:43:52.907+02:00</inventoryVersion>
       <hostname>centos-5-32</hostname>
@@ -249,22 +176,7 @@ object Migration_10_2_DATA_Other {
     </node>
 }
 
-object Migration_10_2_DATA_Rule {
-  val rule_add_10 =
-    <configurationRule fileFormat="1.0" changeType="add">
-      <id>e7c21276-d2b5-4fff-9924-96b67db9bd1c</id>
-      <displayName>configuration</displayName>
-      <serial>0</serial>
-      <target>group:f4b27025-b5a9-46fe-8289-cf9d56e07a8a</target>
-      <policyInstanceIds>
-        <id>2813aeb2-6930-11e1-b052-0024e8cdea1f</id>
-        <id>2c1b0d34-6930-11e1-b901-0024e8cdea1f</id>
-      </policyInstanceIds>
-      <shortDescription>configurationconfiguration</shortDescription>
-      <longDescription></longDescription>
-      <isActivated>true</isActivated>
-      <isSystem>false</isSystem>
-    </configurationRule>
+object Migration_2_DATA_Rule {
 
   val rule_add_2 =
 
@@ -283,40 +195,6 @@ object Migration_10_2_DATA_Rule {
       <isSystem>false</isSystem>
     </rule>
 
-
-  val rule_modify_10 =
-    <configurationRule fileFormat="1.0" changeType="modify">
-      <id>39720027-952c-4e28-b774-9d5ce63f7a1e</id>
-      <displayName>Eutelsat CR Test</displayName>
-      <name>
-        <from>Eutelsat CR Test</from>
-        <to>Users and Fstabs CR</to>
-      </name>
-      <shortDescription>
-        <from>Test CR for Eutelsat</from>
-        <to>Test CR</to>
-      </shortDescription>
-      <longDescription>
-        <from></from>
-        <to>Test application of two (single) directives, with two multivalued section.</to>
-      </longDescription>
-      <target>
-        <from>
-          <none></none>
-        </from>
-        <to>group:383d521c-e5a7-4dc2-b402-21d425eefd30</to>
-      </target>
-      <policyInstanceIds>
-        <from></from>
-        <to>
-          <id>0a50f415-a8da-42aa-9e86-eb045e289de3</id>
-        </to>
-      </policyInstanceIds>
-      <isActivated>
-        <from>false</from>
-        <to>true</to>
-      </isActivated>
-    </configurationRule>
 
   val rule_modify_2 =
     <rule fileFormat="2" changeType="modify">
@@ -352,21 +230,6 @@ object Migration_10_2_DATA_Rule {
       </isEnabled>
     </rule>
 
-  val rule_delete_10 =
-    <configurationRule fileFormat="1.0" changeType="delete">
-      <id>ad8c48f7-b278-4f0c-83d7-f9cb28e0d440</id>
-      <displayName>zada on SLES10</displayName>
-      <serial>2</serial>
-      <target>group:9bf723d9-0838-4af8-82f7-37912a5093ca</target>
-      <policyInstanceIds>
-        <id>3fa24049-e673-475d-90ec-e5f9b6b81e38</id>
-      </policyInstanceIds>
-      <shortDescription></shortDescription>
-      <longDescription></longDescription>
-      <isActivated>true</isActivated>
-      <isSystem>false</isSystem>
-    </configurationRule>
-
   val rule_delete_2 =
     <rule fileFormat="2" changeType="delete">
       <id>ad8c48f7-b278-4f0c-83d7-f9cb28e0d440</id>
@@ -383,43 +246,8 @@ object Migration_10_2_DATA_Rule {
     </rule>
 }
 
-object Migration_10_2_DATA_Directive {
+object Migration_2_DATA_Directive {
 
-  val directive_add_10 =
-    <policyInstance fileFormat="1.0" changeType="add">
-      <id>2fd5dd7e-c83b-4610-96ad-02002024c2f1</id>
-      <displayName>Name resolution 1</displayName>
-      <policyTemplateName>dnsConfiguration</policyTemplateName>
-      <policyTemplateVersion>1.0</policyTemplateVersion>
-      <section name="sections">
-        <section name="Nameserver settings">
-          <var name="DNS_RESOLVERS_EDIT">false</var>
-          <section name="DNS resolvers">
-            <var name="DNS_RESOLVERS">192.168.1.1</var>
-          </section>
-          <section name="DNS resolvers">
-            <var name="DNS_RESOLVERS">192.168.1.2</var>
-          </section>
-        </section>
-        <section name="Search suffix settings">
-          <var name="DNS_SEARCHLIST_EDIT">false</var>
-          <section name="DNS search list">
-            <var name="DNS_SEARCHLIST">example1.com</var>
-          </section>
-          <section name="DNS search list">
-            <var name="DNS_SEARCHLIST">example2.com</var>
-          </section>
-          <section name="DNS search list">
-            <var name="DNS_SEARCHLIST">example3.com</var>
-          </section>
-        </section>
-      </section>
-      <shortDescription></shortDescription>
-      <longDescription></longDescription>
-      <priority>5</priority>
-      <isActivated>true</isActivated>
-      <isSystem>false</isSystem>
-    </policyInstance>
 
   val directive_add_2 =
     <directive fileFormat="2" changeType="add">
@@ -457,38 +285,6 @@ object Migration_10_2_DATA_Directive {
       <isSystem>false</isSystem>
     </directive>
 
-  val directive_modify_10 =
-    <policyInstance fileFormat="1.0" changeType="modify">
-      <id>70785952-d3b9-4d8e-9df4-1606af6d1ba3</id>
-      <policyTemplateName>createFilesFromList</policyTemplateName>
-      <displayName>creatFileTestPI</displayName>
-      <parameters>
-        <from>
-          <section name="sections">
-            <section name="File">
-              <var name="CREATEFILESFROMLIST_FILE">/tmp/anotherFile</var>
-            </section>
-            <section name="File">
-              <var name="CREATEFILESFROMLIST_FILE">/tmp/anotherFile2</var>
-            </section>
-          </section>
-        </from>
-        <to>
-          <section name="sections">
-            <section name="File">
-              <var name="CREATEFILESFROMLIST_FILE">/tmp/anotherFile</var>
-            </section>
-            <section name="File">
-              <var name="CREATEFILESFROMLIST_FILE">/tmp/anotherFile2</var>
-            </section>
-            <section name="File">
-              <var name="CREATEFILESFROMLIST_FILE">/tmp/anotherFile3</var>
-            </section>
-          </section>
-        </to>
-      </parameters>
-    </policyInstance>
-
   val directive_modify_2 =
     <directive fileFormat="2" changeType="modify">
       <id>70785952-d3b9-4d8e-9df4-1606af6d1ba3</id>
@@ -520,38 +316,6 @@ object Migration_10_2_DATA_Directive {
         </to>
       </parameters>
     </directive>
-
-  val directive_delete_10 =
-    <policyInstance fileFormat="1.0" changeType="delete">
-      <id>2a79eabf-9987-450c-88bf-3c86d4759eb7</id>
-      <displayName>Edit crontabs to use "yada"</displayName>
-      <policyTemplateName>checkGenericFileContent</policyTemplateName>
-      <policyTemplateVersion>2.0</policyTemplateVersion>
-      <section name="sections">
-        <section name="File to manage">
-          <section name="File">
-            <var name="GENERIC_FILE_CONTENT_PATH">/var/spool/cron/tabs/root</var>
-            <var name="GENERIC_FILE_CONTENT_PAYLOAD">* * * * * /home/wimics/yada</var>
-            <var name="GENERIC_FILE_CONTENT_ENFORCE">false</var>
-          </section>
-          <section name="Permission adjustment">
-            <var name="GENERIC_FILE_CONTENT_PERMISSION_ADJUSTMENT">true</var>
-            <var name="GENERIC_FILE_CONTENT_OWNER">root</var>
-            <var name="GENERIC_FILE_CONTENT_GROUP">root</var>
-            <var name="GENERIC_FILE_CONTENT_PERM">644</var>
-          </section>
-          <section name="Post-modification hook">
-            <var name="GENERIC_FILE_CONTENT_POST_HOOK_RUN">false</var>
-            <var name="GENERIC_FILE_CONTENT_POST_HOOK_COMMAND"></var>
-          </section>
-        </section>
-      </section>
-      <shortDescription></shortDescription>
-      <longDescription></longDescription>
-      <priority>5</priority>
-      <isActivated>true</isActivated>
-      <isSystem>false</isSystem>
-    </policyInstance>
 
   val directive_delete_2 =
     <directive fileFormat="2" changeType="delete">
@@ -586,19 +350,7 @@ object Migration_10_2_DATA_Directive {
     </directive>
 }
 
-object Migration_10_2_DATA_Group {
-
-  val nodeGroup_add_10 =
-    <nodeGroup fileFormat="1.0" changeType="add">
-      <id>a73220c8-c3e1-40f1-803b-55d21bc817ec</id>
-      <displayName>CentOS</displayName>
-      <description>CentOS Group</description>
-      <query></query>
-      <isDynamic>true</isDynamic>
-      <nodeIds></nodeIds>
-      <isActivated>true</isActivated>
-      <isSystem>false</isSystem>
-    </nodeGroup>
+object Migration_2_DATA_Group {
 
   val nodeGroup_add_2 =
     <nodeGroup fileFormat="2" changeType="add">
@@ -610,23 +362,6 @@ object Migration_10_2_DATA_Group {
       <nodeIds></nodeIds>
       <isEnabled>true</isEnabled>
       <isSystem>false</isSystem>
-    </nodeGroup>
-
-  val nodeGroup_modify_10 =
-    <nodeGroup fileFormat="1.0" changeType="modify">
-      <id>hasPolicyServer-root</id>
-      <displayName>Root server group</displayName>
-      <nodeIds>
-        <from>
-          <id>root</id>
-          <id>248c8e3d-1bf6-4bc1-9398-f8890b015a50</id>
-        </from>
-        <to>
-          <id>root</id>
-          <id>248c8e3d-1bf6-4bc1-9398-f8890b015a50</id>
-          <id>06da3556-5204-4bd7-b3b0-fa5e7bcfbbea</id>
-        </to>
-      </nodeIds>
     </nodeGroup>
 
   val nodeGroup_modify_2 =
@@ -646,24 +381,6 @@ object Migration_10_2_DATA_Group {
       </nodeIds>
     </nodeGroup>
 
-
-  val nodeGroup_delete_10 =
-    <nodeGroup fileFormat="1.0" changeType="delete">
-      <id>4e0e8d5e-c87a-445c-ac81-a0e7a2b9e5e6</id>
-      <displayName>All debian</displayName>
-      <description></description>
-      <query>
-        {{"select":"node","composition":"And","where":[{{"objectType":"node","attribute":"osName","comparator":"eq","value":"Debian"}}]}}
-      </query>
-      <isDynamic>true</isDynamic>
-      <nodeIds>
-        <id>b9a71482-5030-4699-984d-b03d28bbbf36</id>
-        <id>0876521e-3c81-4775-85c7-5dd7f9d5d3da</id>
-      </nodeIds>
-      <isActivated>true</isActivated>
-      <isSystem>false</isSystem>
-    </nodeGroup>
-
   val nodeGroup_delete_2 =
     <nodeGroup fileFormat="2" changeType="delete">
       <id>4e0e8d5e-c87a-445c-ac81-a0e7a2b9e5e6</id>
@@ -680,5 +397,4 @@ object Migration_10_2_DATA_Group {
       <isEnabled>true</isEnabled>
       <isSystem>false</isSystem>
     </nodeGroup>
-
 }
