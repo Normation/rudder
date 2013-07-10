@@ -19,6 +19,12 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.web.rest.nodes.service.NodeStatusAction
+import com.normation.rudder.web.rest.nodes.service.AcceptNode
+import com.normation.rudder.web.rest.nodes.service.RefuseNode
+import com.normation.rudder.web.rest.nodes.service.DeleteNode
+import com.normation.rudder.web.rest.nodes.service.NodeStatusAction
+import com.normation.utils.Control._
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -91,6 +97,14 @@ case class RestExtractorService (
     }
   }
 
+  private[this] def convertToNodeStatusAction (value : String, key : String) : Box[NodeStatusAction] = {
+    value.toLowerCase match {
+      case "accept" | "accepted"  => Full(AcceptNode)
+      case "refuse" | "refused" => Full(RefuseNode)
+      case "delete" | "deleted" | "removed" => Full(DeleteNode)
+      case _       => Failure(s"value for nodestatus action should be accept, refuse, delete")
+    }
+  }
   private[this] def convertToInt (value:String, key:String) : Box[Int] = {
     try {
       Full(value.toInt)
@@ -115,7 +129,7 @@ case class RestExtractorService (
    */
   private[this] def convertListToDirectiveId (values : List[String], key : String) : Box[Set[DirectiveId]] = {
     val directives =
-      values.filter(_.size != 0).map {
+      sequence (values.filter(_.size != 0) ) ( ).map {
         value => convertToDirectiveId(value,key)
     }
 
@@ -169,8 +183,12 @@ case class RestExtractorService (
     extractOneValue(params, "changeRequestName")().getOrElse(None)
   }
 
-  def extractNodeStatus (params : Map[String,List[String]]) : Option[String] = {
-    extractOneValue(params, "status")().getOrElse(None)
+  def extractNodeStatus (params : Map[String,List[String]]) : Box[NodeStatusAction] = {
+    extractOneValue(params, "status")(convertToNodeStatusAction) match {
+      case Full(Some(status)) => Full(status)
+      case Full(None) => Failure("node status should not be empty")
+      case eb:EmptyBox => eb ?~ "error with node status"
+    }
   }
 
 

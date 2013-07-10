@@ -17,6 +17,8 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JArray
 import com.normation.rudder.web.rest.RestError
 import com.normation.rudder.domain.servers.Srv
+import com.normation.inventory.domain.NodeId
+import com.normation.eventlog.ModificationId
 
 
 class NodeApiService1_0 (
@@ -60,9 +62,17 @@ class NodeApiService1_0 (
     }
   }
 
-  def changePendingNodeStatus (req : Req) = {
+  def changeNodeStatus (req : Req, ids: Seq[NodeId]) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "changePendingNodeStatus"
+    val modId = ModificationId(uuidGen.newUuid)
+    val actor = getActor(req)
+    restExtractor.extractNodeStatus(req.params) match {
+      case Full(AcceptNode) => newNodeManager.accept(ids, modId, actor)
+      case Full(RefuseNode) =>
+      case Full(DeleteNode) =>
+    }
+
     newNodeManager.listNewNodes match {
       case Full(ids) =>
         val pendingNodes = ids.map(toJSON(_,"pending")).toList
@@ -73,6 +83,7 @@ class NodeApiService1_0 (
     }
   }
 
+  import com.normation.utils.
   def toJSON (node : NodeInfo, status : String) : JValue ={
 
     ("id"          -> node.id.value) ~
@@ -92,4 +103,13 @@ class NodeApiService1_0 (
     ("osName"      -> node.osName)
 
   }
+
 }
+
+trait NodeStatusAction
+
+case object AcceptNode extends NodeStatusAction
+
+case object RefuseNode extends NodeStatusAction
+
+case object DeleteNode extends NodeStatusAction
