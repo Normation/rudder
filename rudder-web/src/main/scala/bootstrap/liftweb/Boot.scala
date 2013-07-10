@@ -104,6 +104,10 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RudderConfig.groupApi1_0)
     LiftRules.statelessDispatch.append(RudderConfig.latestGroupApi)
     LiftRules.statelessDispatch.append(RudderConfig.genericGroupApi)
+    // Node APIs
+    LiftRules.statelessDispatch.append(RudderConfig.nodeApi1_0)
+    LiftRules.statelessDispatch.append(RudderConfig.latestNodeApi)
+    LiftRules.statelessDispatch.append(RudderConfig.genericNodeApi)
 
     // URL rewrites
     LiftRules.statefulRewrite.append {

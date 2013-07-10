@@ -19,12 +19,10 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.web.rest.nodes.service.NodeStatusAction
-import com.normation.rudder.web.rest.nodes.service.AcceptNode
-import com.normation.rudder.web.rest.nodes.service.RefuseNode
-import com.normation.rudder.web.rest.nodes.service.DeleteNode
-import com.normation.rudder.web.rest.nodes.service.NodeStatusAction
 import com.normation.utils.Control._
+import com.normation.rudder.web.rest.node.service._
+import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.rudder.domain.queries.Query
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -32,33 +30,34 @@ case class RestExtractorService (
   , readGroup            : RoNodeGroupRepository
   , techniqueRepository  : TechniqueRepository
   , targetInfoService    : RuleTargetService
+  , queryParser          : CmdbQueryParser
 ) extends Loggable {
 
 
   /*
    * Params Extractors
    */
-  private[this] def extractOneValue[T] (params : Map[String,List[String]], key : String)( convertTo : (String,String) => Box[T] = ( (value:String,key:String) => Full(value))) = {
+  private[this] def extractOneValue[T] (params : Map[String,List[String]], key : String)( convertTo : (String) => Box[T] = ( (value:String) => Full(value))) = {
     params.get(key) match {
       case None               => Full(None)
-      case Some(value :: Nil) => convertTo(value,key).map(Some(_))
+      case Some(value :: Nil) => convertTo(value).map(Some(_))
       case _                  => Failure(s"updateRule should contain only one value for $key")
     }
   }
 
-  private[this] def extractList[T] (params : Map[String,List[String]],key : String)( convertTo : (List[String],String) => Box[T] = ( (values:List[String],key:String) => Full(values))) : Box[Option[T]] = {
+  private[this] def extractList[T] (params : Map[String,List[String]],key : String)( convertTo : (List[String]) => Box[T] = ( (values:List[String]) => Full(values))) : Box[Option[T]] = {
     params.get(key) match {
       case None       => Full(None)
-      case Some(list) => convertTo(list,key).map(Some(_))
+      case Some(list) => convertTo(list).map(Some(_))
     }
   }
 
   /*
    * JSON extractors
    */
-  private[this] def extractOneValueJson[T](json:JValue, key:String )( convertTo : (String,String) => Box[T] = ( (value:String,key:String) => Full(value))) = {
+  private[this] def extractOneValueJson[T](json:JValue, key:String )( convertTo : (String) => Box[T] = ( (value:String) => Full(value))) = {
     json \\ key match {
-      case JString(value) => convertTo(value,key).map(Some(_))
+      case JString(value) => convertTo(value).map(Some(_))
       case JObject(Nil)   => Full(None)
       case _              => Failure(s"Not a good value for parameter ${key}")
     }
@@ -73,14 +72,14 @@ case class RestExtractorService (
   }
 
 
-  private[this] def extractJsonList[T] (json : JValue,key : String)( convertTo : (List[String],String) => Box[T] = ( (value:List[String],key:String) => Full(value))) : Box[Option[T]] = {
+  private[this] def extractJsonList[T] (json : JValue,key : String)( convertTo : (List[String]) => Box[T] = ( (value:List[String]) => Full(value))) : Box[Option[T]] = {
     json \\ key match {
       case JArray(values) =>
         val list = values.flatMap {
           case JString(value) => Full(value)
           case value          => Failure(s"Not a good value for parameter ${key} and value ${value}")
           }
-        convertTo(list,key).map(Some(_))
+        convertTo(list).map(Some(_))
       case JObject(Nil)   => Full(None)
       case _              => Failure(s"Not a good value for parameter ${key}")
     }
@@ -89,15 +88,15 @@ case class RestExtractorService (
   /*
    * Convert value functions
    */
-  private[this] def convertToBoolean (value : String, key : String) : Box[Boolean] = {
+  private[this] def convertToBoolean (value : String) : Box[Boolean] = {
     value match {
       case "true"  => Full(true)
       case "false" => Full(false)
-      case _       => Failure(s"value for $key should be true or false")
+      case _       => Failure(s"value for boolean should be true or false instead of ${value}")
     }
   }
 
-  private[this] def convertToNodeStatusAction (value : String, key : String) : Box[NodeStatusAction] = {
+  private[this] def convertToNodeStatusAction (value : String) : Box[NodeStatusAction] = {
     value.toLowerCase match {
       case "accept" | "accepted"  => Full(AcceptNode)
       case "refuse" | "refused" => Full(RefuseNode)
@@ -105,50 +104,42 @@ case class RestExtractorService (
       case _       => Failure(s"value for nodestatus action should be accept, refuse, delete")
     }
   }
-  private[this] def convertToInt (value:String, key:String) : Box[Int] = {
+  private[this] def convertToInt (value:String) : Box[Int] = {
     try {
       Full(value.toInt)
     } catch  {
-      case _ : java.lang.NumberFormatException => Failure(s"value for $key should be an integer instead of ${value}")
+      case _ : java.lang.NumberFormatException => Failure(s"value for integer should be an integer instead of ${value}")
     }
   }
 
+  private[this] def convertToQuery (value:String) : Box[Query] = {
+    queryParser(value)
+  }
 
-  private[this] def convertToNodeGroupCategoryId (value:String, key:String) : Box[NodeGroupCategoryId] = {
+
+  private[this] def convertToNodeGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
     readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Directive '$value' not found"
   }
 
 
 
-  private[this] def convertToDirectiveId (value:String, key:String) : Box[DirectiveId] = {
+  private[this] def convertToDirectiveId (value:String) : Box[DirectiveId] = {
     readDirective.getDirective(DirectiveId(value)).map(_.id) ?~ s"Directive '$value' not found"
   }
 
   /*
    * Convert List Functions
    */
-  private[this] def convertListToDirectiveId (values : List[String], key : String) : Box[Set[DirectiveId]] = {
-    val directives =
-      sequence (values.filter(_.size != 0) ) ( ).map {
-        value => convertToDirectiveId(value,key)
-    }
+  private[this] def convertListToDirectiveId (values : List[String]) : Box[Set[DirectiveId]] = {
+    sequence ( values.filter(_.size != 0) ) ( convertToDirectiveId ).map(_.toSet)
 
-    val failure =
-      directives.collectFirst {
-        case fail:EmptyBox => fail ?~ "There was an error with a Directive"
-      }
-
-    failure match {
-      case Some(fail) => fail
-      case None => Full(directives.collect{case Full(directive) => directive}.toSet)
-    }
   }
 
-  private[this] def convertListToNodeId (values : List[String], key : String) : Box[List[NodeId]] = {
+  private[this] def convertListToNodeId (values : List[String]) : Box[List[NodeId]] = {
     Full(values.map(NodeId(_)))
   }
 
-  private[this] def convertListToRuleTarget (values : List[String], key : String) : Box[Set[RuleTarget]] = {
+  private[this] def convertListToRuleTarget (values : List[String]) : Box[Set[RuleTarget]] = {
     val targets : Set[Box[RuleTarget]] =
       values.map(value => (value,RuleTarget.unser(value)) match {
         case (_,Some(rt)) => Full(rt) // Need to check if the ruletarget is an existing group
@@ -190,8 +181,6 @@ case class RestExtractorService (
       case eb:EmptyBox => eb ?~ "error with node status"
     }
   }
-
-
 
   def extractNodeIds (params : Map[String,List[String]]) : Box[Option[List[NodeId]]] = {
     extractList(params, "nodeId")(convertListToNodeId)
@@ -262,8 +251,10 @@ case class RestExtractorService (
       description <- extractOneValue(params,"description")()
       enabled     <- extractOneValue(params,"enabled")( convertToBoolean)
       dynamic     <- extractOneValue(params,"dynamic")( convertToBoolean)
-      query       =  None
+      query       <- extractOneValue(params, "query")(convertToQuery)
     } yield {
+      logger.info(params)
+      logger.info(query)
       RestGroup(name,description,query,dynamic,enabled)
     }
   }

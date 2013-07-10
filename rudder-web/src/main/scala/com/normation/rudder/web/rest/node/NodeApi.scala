@@ -1,4 +1,4 @@
-package com.normation.rudder.web.rest.rule
+package com.normation.rudder.web.rest.node
 
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.common._
