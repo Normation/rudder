@@ -454,6 +454,7 @@ object RudderConfig extends Loggable {
       , workflowService
       , restExtractorService
       , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+      , directiveEditorService
     )
 
   val directiveApi1_0 =

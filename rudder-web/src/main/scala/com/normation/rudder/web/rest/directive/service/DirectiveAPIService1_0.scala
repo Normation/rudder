@@ -19,6 +19,10 @@ import com.normation.eventlog.ModificationId
 import com.normation.cfclerk.domain.Technique
 import net.liftweb.common.Box.box2Iterable
 import com.normation.rudder.web.rest.directive._
+import com.normation.rudder.web.services.DirectiveEditorService
+import com.normation.rudder.domain.RudderLDAPConstants
+import com.normation.utils.Control._
+import com.normation.rudder.web.model.DirectiveEditor
 
 case class DirectiveAPIService1_0 (
     readDirective        : RoDirectiveRepository
@@ -29,6 +33,7 @@ case class DirectiveAPIService1_0 (
   , workflowService      : WorkflowService
   , restExtractor        : RestExtractorService
   , workflowEnabled      : Boolean
+  , editorService        : DirectiveEditorService
   ) extends Loggable {
 
 
@@ -221,6 +226,17 @@ case class DirectiveAPIService1_0 (
     }
   }
 
+
+  def checkFun (paramEditor : DirectiveEditor) (vars : (String,Seq[String])) = {
+    try {
+      val s = Seq((paramEditor.variableSpecs(vars._1).toVariable(vars._2)))
+          RudderLDAPConstants.variableToSeq(s)
+          Full("ok")
+    }
+    catch {
+    case e: Exception => Failure(s"Error with one directive parameter : ${e.getMessage()}")
+    }
+  }
   def updateDirective(id: String, req: Req, restValues : Box[RestDirective]) = {
     implicit val action = "updateDirective"
     implicit val prettify = restExtractor.extractPrettify(req.params)
@@ -228,16 +244,34 @@ case class DirectiveAPIService1_0 (
     val actor = getActor(req)
     val directiveId = DirectiveId(id)
 
+    //Find existing directive
     readDirective.getDirectiveWithContext(directiveId) match {
       case Full((technique,activeTechnique,directive)) =>
         restValues match {
           case Full(restDirective) =>
+            // Technique Version has to be extracted separetly (it needs to know which technique we are using
             restExtractor.extractTechniqueVersion(req.params, technique.id.name) match {
               case Full(version) =>
+                // Update Technique
                 val updatedDirective = restDirective.copy(techniqueVersion = version).updateDirective(directive)
-                val diff = ModifyToDirectiveDiff(technique.id.name,updatedDirective,technique.rootSection)
-                val message = s"Modify Directive ${directive.name} ${id} from API "
-                createChangeRequestAndAnswer(id, diff, technique, activeTechnique, updatedDirective, Some(directive), actor, message)
+                // check Parameters value
+                val paramCheck = for {
+                  paramEditor <- editorService.get(technique.id, directiveId, updatedDirective.parameters)
+                  check <- sequence (paramEditor.mapValueSeq.toSeq)( checkFun(paramEditor))
+                } yield {
+                  check
+                }
+                paramCheck match {
+                  case Full(_) =>
+                    val diff = ModifyToDirectiveDiff(technique.id.name,updatedDirective,technique.rootSection)
+                    val message = s"Modify Directive ${directive.name} ${id} from API "
+                    createChangeRequestAndAnswer(id, diff, technique, activeTechnique, updatedDirective, Some(directive), actor, message)
+
+                  case eb:EmptyBox =>
+                    val fail = eb ?~ (s"Error with directive Parameter" )
+                    val message = s"Could not update Directive ${directive.name} (id:${directiveId.value}): cause is: ${fail.msg}."
+                    toJsonResponse(directiveId.value, message, RestError)
+                }
               case eb:EmptyBox =>
                 val fail = eb ?~ (s"Could not find technique version" )
                 val message = s"Could not update Directive ${directive.name} (id:${directiveId.value}): cause is: ${fail.msg}."

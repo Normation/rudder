@@ -23,6 +23,7 @@ import com.normation.utils.Control._
 import com.normation.rudder.web.rest.node.service._
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.policies.SectionVal
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -116,6 +117,10 @@ case class RestExtractorService (
     queryParser(value)
   }
 
+  private[this] def convertToDirectiveParam (value:String) : Box[Map[String,Seq[String]]] = {
+    parseSectionVal(parse(value)).map(SectionVal.toMapVariables(_))
+  }
+
 
   private[this] def convertToNodeGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
     readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Directive '$value' not found"
@@ -157,7 +162,68 @@ case class RestExtractorService (
     }
   }
 
+  def parseSectionVal(xml:JValue) : Box[SectionVal] = {
 
+    def parseSectionName(section:JValue) : Box[String] = {
+      section \ "name" match {
+        case JString(sectionName) => Full(sectionName)
+        case a => Failure("Missing required attribute 'name' for <section>: " + section)
+      }
+    }
+
+    def parseSection(section:JValue) : Box[(String, SectionVal)] = {
+      section match {
+        case JNothing       => Failure("Missing required tag <section> in: " + xml)
+        case JObject( JField("section",values) :: Nil) => recValParseSection(values)
+        case _              => Failure("Found several <section> tag in XML, but only one root section is allowed: " + xml)
+      }
+
+    }
+
+
+    def parseSections(section:JValue) : Box[Map[String,Seq[SectionVal]]] = {
+      section \ "sections" match {
+        case JNothing => Full(Map())
+        case JArray(sections) => (sequence (sections.toSeq) (parseSection)).map(_.groupBy(_._1).mapValues(_.map(_._2)))
+        case a => Failure("Missing required attribute 'name' for <section>: " + section)
+      }
+    }
+
+    def parseVar (varSection :JValue) : Box[(String,String)] = {
+      varSection match {
+        case JObject( JField("var", JObject(JField("name",JString(varName)) :: JField("value",JString(varValue)) :: Nil)) :: Nil) => Full((varName,varValue))
+        case a => Failure("Missing required attribute 'name' for <section>: " + varSection)
+      }
+    }
+    def parseSectionVars(section:JValue) : Box[Map[String,String]] = {
+      section \ "vars" match {
+        case JNothing => Full(Map())
+        case JArray(vars) => (sequence (vars.toSeq) (parseVar)).map(_.toMap)
+        case a => Failure("Missing required attribute 'name' for <section>: " + section)
+      }
+    }
+
+    def recValParseSection(section:JValue) : Box[(String, SectionVal)] = {
+      for {
+        sectionName <- parseSectionName(section)
+        vars <- parseSectionVars(section)
+        sections <-parseSections(section)
+      } yield {
+        (sectionName,SectionVal(sections,vars))
+      }
+    }
+
+    for {
+      root <- xml match {
+        case JNothing       => Failure("Missing required tag <section> in: " + xml)
+        case JObject( JField("section",values) :: Nil) => Full(JField("section",values))
+        case _              => Failure("Found several <section> tag in XML, but only one root section is allowed: " + xml)
+      }
+      (_ , sectionVal) <- recValParseSection(root)
+    } yield {
+      sectionVal
+    }
+  }
 
   /*
    * Data extraction functions
@@ -272,9 +338,10 @@ case class RestExtractorService (
       directives       <- extractList(params,"directives")( convertListToDirectiveId)
       targets          <- extractList(params,"ruleTarget")(convertListToRuleTarget)
       priority         <- extractOneValue(params,"priority")(convertToInt)
+      parameters       <- extractOneValue(params, "parameters")(convertToDirectiveParam)
       techniqueVersion =  None
     } yield {
-      RestDirective(name,shortDescription,longDescription,enabled,None,priority,None)
+      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority,None)
     }
   }
 
