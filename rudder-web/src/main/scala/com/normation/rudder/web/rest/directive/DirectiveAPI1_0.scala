@@ -9,6 +9,7 @@ import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import com.normation.rudder.web.rest.RestError
 import com.normation.rudder.web.rest.directive.service.DirectiveAPIService1_0
+import net.liftweb.json.JString
 
 class DirectiveAPI1_0 (
     readDirective : RoDirectiveRepository
@@ -35,15 +36,14 @@ class DirectiveAPI1_0 (
       apiV1_0.updateDirective(id,req,restDirective)
     }
 
-/*    case id :: Nil JsonPost body -> req => {
+    case id :: Nil JsonPost body -> req => {
       req.json match {
         case Full(arg) =>
           val restDirective = restExtractor.extractDirectiveFromJSON(arg)
           apiV1_0.updateDirective(id,req,restDirective)
-        case eb:EmptyBox=>    toJsonError(id, "no args arg")("Empty",true)
+        case eb:EmptyBox=>    toJsonError(None, JString("No Json data sent"))("updateDirective",true)
       }
     }
-*/
 
   }
   serve( "api" / "1.0" / "directives" prefix requestDispatch)

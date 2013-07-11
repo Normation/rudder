@@ -16,6 +16,7 @@ import net.liftweb.http.Req
 import com.normation.rudder.web.rest.rule.RestRule
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.domain.workflows.ChangeRequestId
 
 case class RuleApiService1_0 (
     readRule             : RoRuleRepository
@@ -58,8 +59,9 @@ case class RuleApiService1_0 (
         cr.id
       }
     ) match {
-      case Full(x) =>
-        val jsonRule = List(rule.toJSON)
+      case Full(crId) =>
+        val optCrId = if (workflowEnabled) Some(crId) else None
+        val jsonRule = List(toJSON(rule,optCrId))
         toJsonResponse(Some(id), ("rules" -> JArray(jsonRule)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Rule ${id}" )
@@ -73,7 +75,7 @@ case class RuleApiService1_0 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readRule.getAll(false) match {
       case Full(rules) =>
-        toJsonResponse(None, ( "rules" -> JArray(rules.map(_.toJSON).toList)))
+        toJsonResponse(None, ( "rules" -> JArray(rules.map(toJSON(_)).toList)))
       case eb: EmptyBox =>
         val message = (eb ?~ ("Could not fetch Rules")).msg
         toJsonError(None, message)
@@ -97,7 +99,7 @@ case class RuleApiService1_0 (
       } ) match {
         case Full(x) =>
           asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
-          val jsonRule = List(newRule.toJSON)
+          val jsonRule = List(toJSON(newRule))
           toJsonResponse(Some(ruleId.value), ("rules" -> JArray(jsonRule)))
 
         case eb:EmptyBox =>
@@ -168,7 +170,7 @@ case class RuleApiService1_0 (
 
     readRule.get(RuleId(id)) match {
       case Full(rule) =>
-        val jsonRule = List(rule.toJSON)
+        val jsonRule = List(toJSON(rule))
         toJsonResponse(Some(id),("rules" -> JArray(jsonRule)))
       case eb:EmptyBox =>
         val fail = eb ?~!(s"Could not find Rule ${id}" )
@@ -223,4 +225,18 @@ case class RuleApiService1_0 (
         toJsonError(Some(ruleId.value), message)
     }
   }
+
+    def toJSON (rule:Rule , crId: Option[ChangeRequestId] = None): JValue = {
+
+    ("changeRequestId" -> crId.map(_.value.toString)) ~
+    ( "id"               -> rule.id.value ) ~
+    ( "displayName"      -> rule.name ) ~
+    ( "shortDescription" -> rule.shortDescription ) ~
+    ( "longDescription"  -> rule.longDescription ) ~
+    ( "directives"       -> rule.directiveIds.map(_.value) ) ~
+    ( "targets"          -> rule.targets.map(_.target) ) ~
+    ( "enabled"          -> rule.isEnabledStatus ) ~
+    ( "system"           -> rule.isSystem )
+
   }
+}

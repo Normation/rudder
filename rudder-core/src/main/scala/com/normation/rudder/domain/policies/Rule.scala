@@ -64,16 +64,4 @@ case class Rule(
 ) extends HashcodeCaching {
   def isEnabled = isEnabledStatus & !targets.isEmpty & !directiveIds.isEmpty
 
-  def toJSON : JObject = {
-
-    ( "id"               -> id.value ) ~
-    ( "displayName"      -> name ) ~
-    ( "shortDescription" -> shortDescription ) ~
-    ( "longDescription"  -> longDescription ) ~
-    ( "directives"       -> directiveIds.map(_.value) ) ~
-    ( "targets"          -> targets.map(_.target) ) ~
-    ( "enabled"          -> isEnabledStatus ) ~
-    ( "system"           -> isSystem )
-
-  }
 }

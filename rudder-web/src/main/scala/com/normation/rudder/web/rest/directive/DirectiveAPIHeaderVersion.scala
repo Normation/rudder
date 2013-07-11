@@ -9,6 +9,7 @@ import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import com.normation.rudder.web.rest.RestError
 import com.normation.rudder.web.rest.directive.service.DirectiveAPIService1_0
+import net.liftweb.json.JString
 
 class DirectiveAPIHeaderVersion (
     readDirective : RoDirectiveRepository
@@ -38,14 +39,14 @@ class DirectiveAPIHeaderVersion (
     case Get(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("1.0") => apiV1_0.directiveDetails(id, req)
-        case _ => notValidVersionResponse("listDirectives")
+        case _ => notValidVersionResponse("directiveDetails")
       }
     }
 
     case Delete(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("1.0") => apiV1_0.deleteDirective(id,req)
-        case _ => notValidVersionResponse("listDirectives")
+        case _ => notValidVersionResponse("deleteDirective")
       }
     }
 
@@ -54,24 +55,24 @@ class DirectiveAPIHeaderVersion (
         case Full("1.0") =>
           val restDirective = restExtractor.extractDirective(req.params)
           apiV1_0.updateDirective(id,req,restDirective)
-        case _ => notValidVersionResponse("listDirectives")
+        case _ => notValidVersionResponse("updateDirective")
       }
     }
 
-/*    case id :: Nil JsonPost body -> req => {
+    case id :: Nil JsonPost body -> req => {
       req.header("X-API-VERSION") match {
         case Full("1.0") =>
       req.json match {
         case Full(arg) =>
           val restDirective = restExtractor.extractDirectiveFromJSON(arg)
           apiV1_0.updateDirective(id,req,restDirective)
-        case eb:EmptyBox=>    toJsonError(id, "no args arg")("Empty",true)
+        case eb:EmptyBox=>    toJsonError(None, JString("No Json data sent"))("updateDirective",true)
       }
         case _ => notValidVersionResponse("listDirectives")
       }
 
     }
-*/
+
 
   }
   serve( "api" / "directives" prefix requestDispatch)

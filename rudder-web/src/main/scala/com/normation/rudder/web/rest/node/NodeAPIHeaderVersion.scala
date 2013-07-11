@@ -51,7 +51,7 @@ class NodeAPIHeaderVersion (
       req.header("X-API-VERSION") match {
         case Full("1.0") =>
           apiV1_0.changeNodeStatus(req)
-        case _ => notValidVersionResponse("listRules")
+        case _ => notValidVersionResponse("changeNodeStatus")
       }
     }
   }

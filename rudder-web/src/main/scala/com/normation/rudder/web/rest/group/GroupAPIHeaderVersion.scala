@@ -9,6 +9,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import com.normation.rudder.web.rest.RestError
+import net.liftweb.json.JString
 
 class GroupAPIHeaderVersion (
     readGroup             : RoNodeGroupRepository
@@ -38,14 +39,14 @@ class GroupAPIHeaderVersion (
     case Get(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("1.0") => apiV1_0.groupDetails(id, req)
-        case _ => notValidVersionResponse("listGroups")
+        case _ => notValidVersionResponse("groupDetails")
       }
     }
 
     case Delete(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("1.0") => apiV1_0.deleteGroup(id,req)
-        case _ => notValidVersionResponse("listGroups")
+        case _ => notValidVersionResponse("deleteGroup")
       }
     }
 
@@ -54,23 +55,23 @@ class GroupAPIHeaderVersion (
         case Full("1.0") =>
           val restGroup = restExtractor.extractGroup(req.params)
           apiV1_0.updateGroup(id,req,restGroup)
-        case _ => notValidVersionResponse("listGroups")
+        case _ => notValidVersionResponse("updateGroup")
       }
     }
 
-/*    case id :: Nil JsonPost body -> req => {
+    case id :: Nil JsonPost body -> req => {
       req.header("X-API-VERSION") match {
         case Full("1.0") =>
       req.json match {
         case Full(arg) =>
           val restGroup = restExtractor.extractGroupFromJSON(arg)
           apiV1_0.updateGroup(id,req,restGroup)
-        case eb:EmptyBox=>    toJsonError(id, "no args arg")("Empty",true)
+        case eb:EmptyBox=>    toJsonError(None, JString("No Json data sent"))("updateGroup",true)
       }
         case _ => notValidVersionResponse("listGroups")
       }
 
-    }*/
+    }
 
   }
   serve( "api" / "groups" prefix requestDispatch)

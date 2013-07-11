@@ -20,6 +20,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.workflows.ChangeRequestId
 
 case class GroupApiService1_0 (
     readGroup            : RoNodeGroupRepository
@@ -62,8 +63,9 @@ case class GroupApiService1_0 (
         cr.id
       }
     ) match {
-      case Full(x) =>
-        val jsonGroup = List(toJSON(group))
+      case Full(crId) =>
+        val optCrId = if (workflowEnabled) Some(crId) else None
+        val jsonGroup = List(toJSON(group,optCrId))
         toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Group ${id}" )
@@ -266,8 +268,9 @@ case class GroupApiService1_0 (
     }
   }
 
-  def toJSON (group : NodeGroup) : JValue = {
+  def toJSON (group : NodeGroup, crId: Option[ChangeRequestId] = None): JValue = {
   val query = group.query.map(query => query.toJSON)
+    ("changeRequestId" -> crId.map(_.value.toString)) ~
     ("id" -> group.id.value) ~
     ("displayName" -> group.name) ~
     ("description" -> group.description) ~

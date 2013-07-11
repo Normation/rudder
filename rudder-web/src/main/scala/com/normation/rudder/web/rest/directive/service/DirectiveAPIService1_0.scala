@@ -23,6 +23,7 @@ import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.utils.Control._
 import com.normation.rudder.web.model.DirectiveEditor
+import com.normation.rudder.domain.workflows.ChangeRequestId
 
 case class DirectiveAPIService1_0 (
     readDirective        : RoDirectiveRepository
@@ -70,8 +71,9 @@ case class DirectiveAPIService1_0 (
         cr.id
       }
     ) match {
-      case Full(x) =>
-        val jsonDirective = ("directives" -> JArray(List(toJSON(technique, activeTechnique, directive))))
+      case Full(crId) =>
+        val optCrId = if (workflowEnabled) Some(crId) else None
+        val jsonDirective = ("directives" -> JArray(List(toJSON(technique, activeTechnique, directive, optCrId))))
         toJsonResponse(Some(id), jsonDirective)
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Directive ${id}" )
@@ -316,8 +318,9 @@ case class DirectiveAPIService1_0 (
   }
 
 
-  def toJSON (technique:Technique, activeTechnique:ActiveTechnique , directive : Directive): JValue = {
+  def toJSON (technique:Technique, activeTechnique:ActiveTechnique , directive : Directive, crId: Option[ChangeRequestId] = None): JValue = {
 
+    ("changeRequestId" -> crId.map(_.value.toString)) ~
     ("id" -> directive.id.value) ~
     ("displayName" -> directive.name) ~
     ("shortDescription" -> directive.shortDescription) ~
