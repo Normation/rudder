@@ -65,23 +65,14 @@ class GroupAPIHeaderVersion (
         case Full(arg) =>
           val restGroup = restExtractor.extractGroupFromJSON(arg)
           apiV1_0.updateGroup(id,req,restGroup)
-        case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)("Empty",true)
+        case eb:EmptyBox=>    toJsonError(id, "no args arg")("Empty",true)
       }
         case _ => notValidVersionResponse("listGroups")
       }
 
     }*/
 
-    case content => println(content)
-         toJsonResponse("nothing", "rien", RestError)("error",true)
-
   }
   serve( "api" / "groups" prefix requestDispatch)
-
-
-
-  def notValidVersionResponse(action:String) = {
-    toJsonResponse("badversion", "version x does not exists", RestError)(action,true)
-   }
 
 }

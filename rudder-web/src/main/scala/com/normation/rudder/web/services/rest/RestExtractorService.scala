@@ -24,6 +24,8 @@ import com.normation.rudder.web.rest.node.service._
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.policies.SectionVal
+import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.web.services.UserPropertyService
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -32,6 +34,7 @@ case class RestExtractorService (
   , techniqueRepository  : TechniqueRepository
   , targetInfoService    : RuleTargetService
   , queryParser          : CmdbQueryParser
+  , userPropertyService  : UserPropertyService
 ) extends Loggable {
 
 
@@ -117,6 +120,17 @@ case class RestExtractorService (
     queryParser(value)
   }
 
+  private[this] def convertToMinimalSizeString (minimalSize : Int) (value:String) : Box[String] = {
+    if (value.size >= minimalSize){
+      Full(value)
+    }
+    else {
+      Failure(s"$value must be at least have a ${minimalSize} character size")
+    }
+  }
+
+
+
   private[this] def convertToDirectiveParam (value:String) : Box[Map[String,Seq[String]]] = {
     parseSectionVal(parse(value)).map(SectionVal.toMapVariables(_))
   }
@@ -126,7 +140,13 @@ case class RestExtractorService (
     readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Directive '$value' not found"
   }
 
-
+  private[this] def convertToRuleTarget (value:String) : Box[RuleTarget] = {
+      RuleTarget.unser(value) match {
+        case Some(GroupTarget(groupId)) => readGroup.getNodeGroup(groupId).map(_ => GroupTarget(groupId))
+        case Some(otherTarget)          => Full(otherTarget)
+        case None                       => Failure(s"${value} is not a valid RuleTarget")
+      }
+  }
 
   private[this] def convertToDirectiveId (value:String) : Box[DirectiveId] = {
     readDirective.getDirective(DirectiveId(value)).map(_.id) ?~ s"Directive '$value' not found"
@@ -145,21 +165,7 @@ case class RestExtractorService (
   }
 
   private[this] def convertListToRuleTarget (values : List[String]) : Box[Set[RuleTarget]] = {
-    val targets : Set[Box[RuleTarget]] =
-      values.map(value => (value,RuleTarget.unser(value)) match {
-        case (_,Some(rt)) => Full(rt) // Need to check if the ruletarget is an existing group
-        case (wrong,None) => Failure(s"$wrong is not a valid RuleTarget")
-      }).toSet
-
-    val failure =
-      targets.collectFirst {
-        case fail:EmptyBox => fail ?~ "There was an error with a Target"
-      }
-
-    failure match {
-      case Some(fail) => fail
-      case None => Full(targets.collect{case Full(rt) => rt})
-    }
+    sequence ( values.filter(_.size != 0) ) ( convertToRuleTarget ).map(_.toSet)
   }
 
   def parseSectionVal(xml:JValue) : Box[SectionVal] = {
@@ -232,12 +238,21 @@ case class RestExtractorService (
     extractOneValue(params, "prettify")(convertToBoolean).map(_.getOrElse(false)).getOrElse(false)
   }
 
-  def extractReason (params : Map[String,List[String]]) : Option[String] = {
-    extractOneValue(params, "reason")().getOrElse(None)
+  def extractReason (params : Map[String,List[String]]) : Box[Option[String]] = {
+    import com.normation.rudder.web.services.ReasonBehavior._
+    userPropertyService.reasonsFieldBehavior match {
+      case Disabled => Full(None)
+      case Mandatory =>  extractOneValue(params, "reason")(convertToMinimalSizeString(5))
+      case Optionnal => extractOneValue(params, "reason")()
+    }
   }
 
-  def extractChangeRequestName (params : Map[String,List[String]]) : Option[String] = {
-    extractOneValue(params, "changeRequestName")().getOrElse(None)
+  def extractChangeRequestName (params : Map[String,List[String]]) : Box[Option[String]] = {
+    extractOneValue(params, "changeRequestName")(convertToMinimalSizeString(3))
+  }
+
+  def extractChangeRequestDescription (params : Map[String,List[String]]) : String = {
+    extractOneValue(params, "changeRequestDescription")().getOrElse(None).getOrElse("")
   }
 
   def extractNodeStatus (params : Map[String,List[String]]) : Box[NodeStatusAction] = {
@@ -297,7 +312,7 @@ case class RestExtractorService (
   def extractRule (params : Map[String,List[String]]) : Box[RestRule] = {
 
     for {
-      name             <- extractOneValue(params,"displayName")()
+      name             <- extractOneValue(params,"displayName")(convertToMinimalSizeString(3))
       shortDescription <- extractOneValue(params,"shortDescription")()
       longDescription  <- extractOneValue(params,"longDescription")()
       enabled          <- extractOneValue(params,"enabled")( convertToBoolean)
@@ -310,52 +325,71 @@ case class RestExtractorService (
 
 
   def extractGroup (params : Map[String,List[String]]) : Box[RestGroup] = {
-
-
     for {
-      name        <- extractOneValue(params,"displayName")()
-      description <- extractOneValue(params,"description")()
-      enabled     <- extractOneValue(params,"enabled")( convertToBoolean)
-      dynamic     <- extractOneValue(params,"dynamic")( convertToBoolean)
+      name        <- extractOneValue(params, "displayName")(convertToMinimalSizeString(3))
+      description <- extractOneValue(params, "description")()
+      enabled     <- extractOneValue(params, "enabled")( convertToBoolean)
+      dynamic     <- extractOneValue(params, "dynamic")( convertToBoolean)
       query       <- extractOneValue(params, "query")(convertToQuery)
     } yield {
-      logger.info(params)
-      logger.info(query)
       RestGroup(name,description,query,dynamic,enabled)
     }
   }
 
   def extractDirective (params : Map[String,List[String]]) : Box[RestDirective] = {
-
-
     for {
-      //technique        <- extractTechnique(params)
-      //activeTechnique  <- readDirective.getActiveTechnique(technique.id.name)
-      name             <- extractOneValue(params,"displayName")()
-      shortDescription <- extractOneValue(params,"shortDescription")()
-      longDescription  <- extractOneValue(params,"longDescription")()
-      enabled          <- extractOneValue(params,"enabled")( convertToBoolean)
-      directives       <- extractList(params,"directives")( convertListToDirectiveId)
-      targets          <- extractList(params,"ruleTarget")(convertListToRuleTarget)
-      priority         <- extractOneValue(params,"priority")(convertToInt)
+      name             <- extractOneValue(params, "displayName")(convertToMinimalSizeString(3))
+      shortDescription <- extractOneValue(params, "shortDescription")()
+      longDescription  <- extractOneValue(params, "longDescription")()
+      enabled          <- extractOneValue(params, "enabled")( convertToBoolean)
+      directives       <- extractList(params, "directives")( convertListToDirectiveId)
+      targets          <- extractList(params, "ruleTarget")(convertListToRuleTarget)
+      priority         <- extractOneValue(params, "priority")(convertToInt)
       parameters       <- extractOneValue(params, "parameters")(convertToDirectiveParam)
-      techniqueVersion =  None
     } yield {
-      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority,None)
+      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority)
     }
   }
 
   def extractRuleFromJSON (json : JValue) : Box[RestRule] = {
-
     for {
-      name <- extractOneValueJson(json, "displayName")()
+      name             <- extractOneValueJson(json, "displayName")(convertToMinimalSizeString(3))
       shortDescription <- extractOneValueJson(json, "shortDescription")()
-      longDescription <- extractOneValueJson(json, "longDescription")()
-      directives <- extractJsonList(json, "directives")(convertListToDirectiveId)
-      targets <- extractJsonList(json, "directives")(convertListToRuleTarget)
-      enabled <- extractJsonBoolean(json,"enabled")
+      longDescription  <- extractOneValueJson(json, "longDescription")()
+      directives       <- extractJsonList(json, "directives")(convertListToDirectiveId)
+      targets          <- extractJsonList(json, "directives")(convertListToRuleTarget)
+      enabled          <- extractJsonBoolean(json,"enabled")
     } yield {
       RestRule(name,shortDescription,longDescription,directives,targets,enabled)
-  } }
+    }
+  }
+
+  def extractDirectiveFromJSON (json : JValue) : Box[RestDirective] = {
+    for {
+      name             <- extractOneValueJson(json, "displayName")(convertToMinimalSizeString(3))
+      shortDescription <- extractOneValueJson(json, "shortDescription")()
+      longDescription  <- extractOneValueJson(json, "longDescription")()
+      enabled          <- extractOneValueJson(json, "enabled")( convertToBoolean)
+      directives       <- extractJsonList(json, "directives")( convertListToDirectiveId)
+      targets          <- extractJsonList(json, "ruleTarget")(convertListToRuleTarget)
+      priority         <- extractOneValueJson(json, "priority")(convertToInt)
+      parameters       <- extractOneValueJson(json,  "parameters")(convertToDirectiveParam)
+    } yield {
+      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority)
+    }
+  }
+
+  def extractGroupFromJSON (json : JValue) : Box[RestGroup] = {
+    for {
+      name        <- extractOneValueJson(json, "displayName")(convertToMinimalSizeString(3))
+      description <- extractOneValueJson(json, "description")()
+      enabled     <- extractOneValueJson(json, "enabled")( convertToBoolean)
+      dynamic     <- extractOneValueJson(json, "dynamic")( convertToBoolean)
+      query       <- extractOneValueJson(json, "query")(convertToQuery)
+    } yield {
+      RestGroup(name,description,query,dynamic,enabled)
+    }
+  }
+
 
 }

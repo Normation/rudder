@@ -28,7 +28,7 @@ case class RestDirective(
     , enabled          : Option[Boolean] = None
     , parameters       : Option[Map[String, Seq[String]]] = None
     , priority         : Option[Int] = None
-    , techniqueVersion : Option[TechniqueVersion]
+    , techniqueVersion : Option[TechniqueVersion] = None
   ) {
 
     val onlyName = name.isDefined           &&

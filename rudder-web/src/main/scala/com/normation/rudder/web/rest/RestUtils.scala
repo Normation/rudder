@@ -80,19 +80,12 @@ object RestUtils extends Loggable {
     case _ => Failure("Prettify should only have one value, and should be set to true or false")
   }
 
-  def toJsonResponse(id:String, message:String, status:HttpStatus)(implicit action : String, prettify : Boolean) : LiftResponse = {
-
-    RestUtils.toJsonResponse(id, toJsonMessage(message), status)
-
-  }
-
-  def toJsonResponse(id:String, message:JObject, status:HttpStatus = RestOk)( implicit action : String = "rest", prettify : Boolean) : LiftResponse = {
-    logger.info(prettify.toString)
+  private[this] def effectiveResponse (id:Option[String], message:JValue, status:HttpStatus, action : String , prettify : Boolean) : LiftResponse = {
     val printer: Document => String = if (prettify) Printer.pretty else Printer.compact
     val json = ( "action" -> action ) ~
                   ( "id"     -> id ) ~
                   ( "result" -> status.status ) ~
-                  ( "data"   ->  message )
+                  ( status.container   ->  message )
     val content : JsExp = new JsExp {
       lazy val toJsCmd = printer(JsonAST.render((json)))
     }
@@ -101,21 +94,37 @@ object RestUtils extends Loggable {
 
   }
 
-  def toJsonMessage (message:String) : JObject = ("message" -> message)
+
+  def toJsonResponse(id:Option[String], message:JValue) ( implicit action : String, prettify : Boolean) : LiftResponse = {
+    effectiveResponse (id, message, RestOk, action, prettify)
+  }
+
+  def toJsonError(id:Option[String], message:JValue)( implicit action : String = "rest", prettify : Boolean) : LiftResponse = {
+    effectiveResponse (id, message, RestError, action, prettify)
+  }
+
+  def notValidVersionResponse(action:String) = {
+    val availableVersion = List("1.0")
+    toJsonError(None, JString(s"Version used does not exists, please use one of the following: ${availableVersion.mkString("[ ", ", ", " ]")} "))(action,true)
+   }
+
 }
 
 
 sealed trait HttpStatus {
   def code : Int
   def status : String
+  def container : String
 }
 
 object RestOk extends HttpStatus{
   val code = 200
   val status = "success"
+  val container = "data"
 }
 
 object RestError extends HttpStatus{
   val code = 500
   val status = "error"
+  val container = "error details"
 }

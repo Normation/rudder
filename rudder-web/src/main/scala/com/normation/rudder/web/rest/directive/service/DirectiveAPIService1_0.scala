@@ -45,20 +45,25 @@ case class DirectiveAPIService1_0 (
     , directive       : Directive
     , initialtState   : Option[Directive]
     , actor           : EventActor
-    , message         : String
+    , req             : Req
+    , act             : String
   ) (implicit action : String, prettify : Boolean) = {
-    ( for {
 
+
+    ( for {
+        reason <- restExtractor.extractReason(req.params)
+        crName <- restExtractor.extractChangeRequestName(req.params).map(_.getOrElse(s"${act} Directive ${directive.name} from API"))
+        crDescription = restExtractor.extractChangeRequestDescription(req.params)
         cr <- changeRequestService.createChangeRequestFromDirective(
-                  message
-                , message
+                  crName
+                , crDescription
                 , technique.id.name
                 , technique.rootSection
                 , directive.id
                 , initialtState
                 , diff
                 , actor
-                , None
+                , reason
               )
         wfStarted <- workflowService.startWorkflow(cr.id, actor, None)
       } yield {
@@ -67,11 +72,11 @@ case class DirectiveAPIService1_0 (
     ) match {
       case Full(x) =>
         val jsonDirective = ("directives" -> JArray(List(toJSON(technique, activeTechnique, directive))))
-        toJsonResponse(id, jsonDirective, RestOk)
+        toJsonResponse(Some(id), jsonDirective)
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Directive ${id}" )
-        val msg = s"${message} failed, cause is: ${fail.msg}."
-        toJsonResponse(id, msg, RestError)
+        val msg = s"Change request creation failed, cause is: ${fail.msg}."
+        toJsonError(Some(id), msg)
     }
   }
 
@@ -86,10 +91,10 @@ case class DirectiveAPIService1_0 (
         } yield {
           toJSON(technique,activeTechnique,directive)
         } )
-        toJsonResponse("N/A", ( "directives" -> JArray(res.toList)))
+        toJsonResponse(None, ( "directives" -> JArray(res.toList)))
       case eb: EmptyBox =>
         val message = (eb ?~ ("Could not fetch Directives")).msg
-        toJsonResponse("N/A", message, RestError)
+        toJsonError(None, message)
     }
   }
 
@@ -102,16 +107,21 @@ case class DirectiveAPIService1_0 (
 
     def actualDirectiveCreation(restDirective : RestDirective, baseDirective : Directive, activeTechnique: ActiveTechnique, technique : Technique) = {
       val newDirective = restDirective.updateDirective( baseDirective )
-      writeDirective.saveDirective(activeTechnique.id, newDirective, modId, actor, None) match {
-        case Full(x) =>
+      ( for {
+        reason   <- restExtractor.extractReason(req.params)
+        saveDiff <- writeDirective.saveDirective(activeTechnique.id, newDirective, modId, actor, reason)
+      } yield {
+        saveDiff
+      } ) match {
+        case Full(saveDiff) =>
           asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
           val jsonDirective = List(toJSON(technique,activeTechnique,newDirective))
-          toJsonResponse(directiveId.value, ("directives" -> JArray(jsonDirective)), RestOk)
+          toJsonResponse(Some(directiveId.value), ("directives" -> JArray(jsonDirective)))
 
         case eb:EmptyBox =>
           val fail = eb ?~ (s"Could not save Directive ${directiveId.value}" )
           val message = s"Could not create Directive ${newDirective.name} (id:${directiveId.value}) cause is: ${fail.msg}."
-          toJsonResponse(directiveId.value, message, RestError)
+          toJsonError(Some(directiveId.value), message)
       }
     }
 
@@ -131,30 +141,20 @@ case class DirectiveAPIService1_0 (
                       case eb:EmptyBox =>
                         val fail = eb ?~ (s"Could not find technique version" )
                         val message = s"Could not create Directive ${name} (id:${directiveId.value}) based on Directive ${sourceId} : cause is: ${fail.msg}."
-                        toJsonResponse(directiveId.value, message, RestError)
+                        toJsonError(Some(directiveId.value), message)
                     }
                     // disable rest Directive if cloning
                     actualDirectiveCreation(restDirective.copy(enabled = Some(false)),sourceDirective.copy(id=directiveId),activeTechnique,technique)
                   case eb:EmptyBox =>
                     val fail = eb ?~ (s"Could not find Directive ${sourceId}" )
                     val message = s"Could not create Directive ${name} (id:${directiveId.value}) based on Directive ${sourceId} : cause is: ${fail.msg}."
-                    toJsonResponse(directiveId.value, message, RestError)
+                    toJsonError(Some(directiveId.value), message)
                 }
 
               // Create a new Directive
               case None =>
                 // If enable is missing in parameter consider it to true
                 val defaultEnabled = restDirective.enabled.getOrElse(true)
-
-                // if only the name parameter is set, consider it to be enabled
-                // if not if workflow are enabled, consider it to be disabled
-                // if there is no workflow, use the value used as parameter (default to true)
-                // code extract :
-                /*re
-                 * if (restDirective.onlyName) true
-                 * else if (workflowEnabled) false
-                 * else defaultEnabled
-                 */
                 restExtractor.extractTechnique(req.params) match {
                   case Full(technique) =>
                     readDirective.getActiveTechnique(technique.id.name) match {
@@ -164,30 +164,30 @@ case class DirectiveAPIService1_0 (
                       case eb:EmptyBox =>
                         val fail = eb ?~ (s"Could not save Directive ${directiveId.value}" )
                         val message = s"Could not create Directive cause is: ${fail.msg}."
-                        toJsonResponse(directiveId.value, message, RestError)
+                        toJsonError(Some(directiveId.value), message)
                     }
                   case eb:EmptyBox =>
                     val fail = eb ?~ (s"Could not save Directive ${directiveId.value}" )
                     val message = s"Could not create Directive cause is: ${fail.msg}."
-                    toJsonResponse(directiveId.value, message, RestError)
+                    toJsonError(Some(directiveId.value), message)
                 }
 
 
               // More than one source, make an error
               case _ =>
                 val message = s"Could not create Directive ${name} (id:${directiveId.value}) based on an already existing Directive, cause is : too many values for source parameter."
-                toJsonResponse(directiveId.value, message, RestError)
+                toJsonError(Some(directiveId.value), message)
             }
 
           case None =>
             val message =  s"Could not get create a Directive details because there is no value as display name."
-            toJsonResponse(directiveId.value, message, RestError)
+            toJsonError(Some(directiveId.value), message)
         }
 
       case eb : EmptyBox =>
         val fail = eb ?~ (s"Could extract values from request" )
         val message = s"Could not create Directive ${directiveId.value} cause is: ${fail.msg}."
-        toJsonResponse(directiveId.value, message, RestError)
+        toJsonError(Some(directiveId.value), message)
     }
   }
 
@@ -198,11 +198,11 @@ case class DirectiveAPIService1_0 (
     readDirective.getDirectiveWithContext(DirectiveId(id)) match {
       case Full((technique,activeTechnique,directive)) =>
         val jsonDirective = List(toJSON(technique,activeTechnique,directive))
-        toJsonResponse(id,("directives" -> JArray(jsonDirective)))
+        toJsonResponse(Some(id),("directives" -> JArray(jsonDirective)))
       case eb:EmptyBox =>
         val fail = eb ?~!(s"Could not find Directive ${id}" )
         val message=  s"Could not get Directive ${id} details cause is: ${fail.msg}."
-        toJsonResponse(id, message, RestError)
+        toJsonError(Some(id), message)
     }
   }
 
@@ -216,28 +216,41 @@ case class DirectiveAPIService1_0 (
     readDirective.getDirectiveWithContext(directiveId) match {
       case Full((technique,activeTechnique,directive)) =>
         val deleteDirectiveDiff = DeleteDirectiveDiff(technique.id.name,directive)
-        val message = s"Delete Directive ${directive.name} ${id} from API "
-        createChangeRequestAndAnswer(id, deleteDirectiveDiff,technique, activeTechnique, directive, Some(directive), actor, message)
+        createChangeRequestAndAnswer(
+            id
+          , deleteDirectiveDiff
+          , technique
+          , activeTechnique
+          , directive
+          , Some(directive)
+          , actor
+          , req
+          , "Delete"
+        )
 
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Directive ${directiveId.value}" )
         val message = s"Could not delete Directive ${directiveId.value} cause is: ${fail.msg}."
-        toJsonResponse(directiveId.value, message, RestError)
+        toJsonError(Some(directiveId.value), message)
     }
   }
 
 
-  def checkFun (paramEditor : DirectiveEditor) (vars : (String,Seq[String])) = {
-    try {
-      val s = Seq((paramEditor.variableSpecs(vars._1).toVariable(vars._2)))
-          RudderLDAPConstants.variableToSeq(s)
-          Full("ok")
-    }
-    catch {
-    case e: Exception => Failure(s"Error with one directive parameter : ${e.getMessage()}")
-    }
-  }
+
   def updateDirective(id: String, req: Req, restValues : Box[RestDirective]) = {
+
+    // A function to check if Variables passed as parameter are correct
+    def checkParameters (paramEditor : DirectiveEditor) (vars : (String,Seq[String])) = {
+      try {
+        val s = Seq((paramEditor.variableSpecs(vars._1).toVariable(vars._2)))
+            RudderLDAPConstants.variableToSeq(s)
+            Full("OK")
+      }
+      catch {
+      case e: Exception => Failure(s"Error with one directive parameter : ${e.getMessage()}")
+      }
+    }
+
     implicit val action = "updateDirective"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val modId = ModificationId(uuidGen.newUuid)
@@ -257,38 +270,47 @@ case class DirectiveAPIService1_0 (
                 // check Parameters value
                 val paramCheck = for {
                   paramEditor <- editorService.get(technique.id, directiveId, updatedDirective.parameters)
-                  check <- sequence (paramEditor.mapValueSeq.toSeq)( checkFun(paramEditor))
+                  check <- sequence (paramEditor.mapValueSeq.toSeq)( checkParameters(paramEditor))
                 } yield {
                   check
                 }
                 paramCheck match {
                   case Full(_) =>
                     val diff = ModifyToDirectiveDiff(technique.id.name,updatedDirective,technique.rootSection)
-                    val message = s"Modify Directive ${directive.name} ${id} from API "
-                    createChangeRequestAndAnswer(id, diff, technique, activeTechnique, updatedDirective, Some(directive), actor, message)
+                    createChangeRequestAndAnswer(
+                        id
+                      , diff
+                      , technique
+                      , activeTechnique
+                      , updatedDirective
+                      , Some(directive)
+                      , actor
+                      , req
+                      , "Update"
+                    )
 
                   case eb:EmptyBox =>
                     val fail = eb ?~ (s"Error with directive Parameter" )
                     val message = s"Could not update Directive ${directive.name} (id:${directiveId.value}): cause is: ${fail.msg}."
-                    toJsonResponse(directiveId.value, message, RestError)
+                    toJsonError(Some(directiveId.value), message)
                 }
               case eb:EmptyBox =>
                 val fail = eb ?~ (s"Could not find technique version" )
                 val message = s"Could not update Directive ${directive.name} (id:${directiveId.value}): cause is: ${fail.msg}."
-                toJsonResponse(directiveId.value, message, RestError)
+                toJsonError(Some(directiveId.value), message)
             }
 
 
           case eb : EmptyBox =>
             val fail = eb ?~ (s"Could extract values from request" )
             val message = s"Could not modify Directive ${directiveId.value} cause is: ${fail.msg}."
-            toJsonResponse(directiveId.value, message, RestError)
+            toJsonError(Some(directiveId.value), message)
         }
 
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Directive ${directiveId.value}" )
         val message = s"Could not modify Directive ${directiveId.value} cause is: ${fail.msg}."
-        toJsonResponse(directiveId.value, message, RestError)
+        toJsonError(Some(directiveId.value), message)
     }
 
   }

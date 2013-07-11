@@ -9,6 +9,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import com.normation.rudder.web.rest.RestError
+import net.liftweb.json.JString
 
 class RuleAPIHeaderVersion (
     readRule             : RoRuleRepository
@@ -45,7 +46,7 @@ class RuleAPIHeaderVersion (
     case Delete(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("1.0") => apiV1_0.deleteRule(id,req)
-        case _ => notValidVersionResponse("listRules")
+        case _ => notValidVersionResponse("deleteRule")
       }
     }
 
@@ -54,7 +55,7 @@ class RuleAPIHeaderVersion (
         case Full("1.0") =>
           val restRule = restExtractor.extractRule(req.params)
           apiV1_0.updateRule(id,req,restRule)
-        case _ => notValidVersionResponse("listRules")
+        case _ => notValidVersionResponse("updateRule")
       }
     }
 
@@ -65,23 +66,13 @@ class RuleAPIHeaderVersion (
         case Full(arg) =>
           val restRule = restExtractor.extractRuleFromJSON(arg)
           apiV1_0.updateRule(id,req,restRule)
-        case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)("Empty",true)
+        case eb:EmptyBox=>    toJsonError(Some(id), JString("no Json Data sent"))("updateRule",true)
       }
-        case _ => notValidVersionResponse("listRules")
+        case _ => notValidVersionResponse("updateRule")
       }
 
     }
-
-    case content => println(content)
-         toJsonResponse("nothing", "rien", RestError)("error",true)
-
   }
   serve( "api" / "rules" prefix requestDispatch)
-
-
-
-  def notValidVersionResponse(action:String) = {
-    toJsonResponse("badversion", "version x does not exists", RestError)(action,true)
-   }
 
 }

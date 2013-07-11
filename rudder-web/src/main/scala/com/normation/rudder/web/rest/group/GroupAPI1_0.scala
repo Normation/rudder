@@ -44,12 +44,9 @@ class GroupAPI1_0 (
         case Full(arg) =>
           val restGroup = restExtractor.extractGroupFromJSON(arg)
           apiV1_0.updateGroup(id,req,restGroup)
-        case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)("Empty",true)
+        case eb:EmptyBox=>    toJsonError(id, "no args arg")("Empty",true)
       }
     }*/
-
-    case content => println(content)
-         toJsonResponse("nothing", "rien", RestError)("error",true)
 
   }
   serve( "api" / "1.0" / "groups" prefix requestDispatch)

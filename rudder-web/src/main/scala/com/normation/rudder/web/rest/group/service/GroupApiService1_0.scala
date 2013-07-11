@@ -40,17 +40,22 @@ case class GroupApiService1_0 (
     , group        : NodeGroup
     , initialState : Option[NodeGroup]
     , actor        : EventActor
-    , message      : String
+    , req             : Req
+    , act             : String
   ) (implicit action : String, prettify : Boolean) = {
+
     ( for {
+        reason <- restExtractor.extractReason(req.params)
+        crName <- restExtractor.extractChangeRequestName(req.params).map(_.getOrElse(s"${act} Group ${group.name} from API"))
+        crDescription = restExtractor.extractChangeRequestDescription(req.params)
         cr <- changeRequestService.createChangeRequestFromNodeGroup(
-                  message
-                , message
+                  crName
+                , crDescription
                 , group
                 , initialState
                 , diff
                 , actor
-                , None
+                , reason
               )
         wfStarted <- workflowService.startWorkflow(cr.id, actor, None)
       } yield {
@@ -59,11 +64,11 @@ case class GroupApiService1_0 (
     ) match {
       case Full(x) =>
         val jsonGroup = List(toJSON(group))
-        toJsonResponse(id, ("groups" -> JArray(jsonGroup)), RestOk)
+        toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Group ${id}" )
-        val msg = s"${message} failed, cause is: ${fail.msg}."
-        toJsonResponse(id, msg, RestError)
+        val msg = s"${act} failed, cause is: ${fail.msg}."
+        toJsonError(Some(id), msg)
     }
   }
 
@@ -72,10 +77,10 @@ case class GroupApiService1_0 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readGroup.getAll match {
       case Full(groups) =>
-        toJsonResponse("N/A", ( "groups" -> JArray(groups.map(toJSON(_)).toList)))
+        toJsonResponse(None, ( "groups" -> JArray(groups.map(toJSON(_)).toList)))
       case eb: EmptyBox =>
         val message = (eb ?~ ("Could not fetch Groups")).msg
-        toJsonResponse("N/A", message, RestError)
+        toJsonError(None, message)
     }
   }
 
@@ -88,16 +93,21 @@ case class GroupApiService1_0 (
 
     def actualGroupCreation(restGroup : RestGroup, baseGroup : NodeGroup, nodeGroupCategoryId: NodeGroupCategoryId) = {
       val newGroup = restGroup.updateGroup( baseGroup )
-      writeGroup.create(newGroup, nodeGroupCategoryId, modId, actor, None) match {
+      ( for {
+        reason   <- restExtractor.extractReason(req.params)
+        saveDiff <- writeGroup.create(newGroup, nodeGroupCategoryId, modId, actor, reason)
+      } yield {
+        saveDiff
+      } ) match {
         case Full(x) =>
           asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
           val jsonGroup = List(toJSON(newGroup))
-          toJsonResponse(groupId.value, ("groups" -> JArray(jsonGroup)), RestOk)
+          toJsonResponse(Some(groupId.value), ("groups" -> JArray(jsonGroup)))
 
         case eb:EmptyBox =>
           val fail = eb ?~ (s"Could not save Group ${groupId.value}" )
           val message = s"Could not create Group ${newGroup.name} (id:${groupId.value}) cause is: ${fail.msg}."
-          toJsonResponse(groupId.value, message, RestError)
+          toJsonError(Some(groupId.value), message)
       }
     }
 
@@ -115,7 +125,7 @@ case class GroupApiService1_0 (
                   case eb:EmptyBox =>
                     val fail = eb ?~ (s"Could not find Group ${sourceId}" )
                     val message = s"Could not create Group ${name} (id:${groupId.value}) based on Group ${sourceId} : cause is: ${fail.msg}."
-                    toJsonResponse(groupId.value, message, RestError)
+                    toJsonError(Some(groupId.value), message)
                 }
 
               // Create a new Group
@@ -141,24 +151,24 @@ case class GroupApiService1_0 (
                   case eb:EmptyBox =>
                     val fail = eb ?~ (s"Could not node group category" )
                     val message = s"Could not create Group ${name} (id:${groupId.value}): cause is: ${fail.msg}."
-                    toJsonResponse(groupId.value, message, RestError)
+                    toJsonError(Some(groupId.value), message)
                 }
 
               // More than one source, make an error
               case _ =>
                 val message = s"Could not create Group ${name} (id:${groupId.value}) based on an already existing Group, cause is : too many values for source parameter."
-                toJsonResponse(groupId.value, message, RestError)
+                toJsonError(Some(groupId.value), message)
             }
 
           case None =>
             val message =  s"Could not get create a Group details because there is no value as display name."
-            toJsonResponse(groupId.value, message, RestError)
+            toJsonError(Some(groupId.value), message)
         }
 
       case eb : EmptyBox =>
         val fail = eb ?~ (s"Could extract values from request" )
         val message = s"Could not create Group ${groupId.value} cause is: ${fail.msg}."
-        toJsonResponse(groupId.value, message, RestError)
+        toJsonError(Some(groupId.value), message)
     }
   }
 
@@ -169,11 +179,11 @@ case class GroupApiService1_0 (
     readGroup.getNodeGroup(NodeGroupId(id)) match {
       case Full((group,_)) =>
         val jsonGroup = List(toJSON(group))
-        toJsonResponse(id,("groups" -> JArray(jsonGroup)))
+        toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
         val fail = eb ?~!(s"Could not find Group ${id}" )
         val message=  s"Could not get Group ${id} details cause is: ${fail.msg}."
-        toJsonResponse(id, message, RestError)
+        toJsonError(Some(id), message)
     }
   }
 
@@ -190,22 +200,22 @@ case class GroupApiService1_0 (
               val updatedGroup = group.copy(serverList = nodeList.map(_.id).toSet)
               val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
               val message = s"Reload Group ${group.name} ${id} from API "
-              createChangeRequestAndAnswer(id, reloadGroupDiff, group, Some(group), actor, message)
+              createChangeRequestAndAnswer(id, reloadGroupDiff, group, Some(group), actor, req, "Reload")
             case eb:EmptyBox =>
               val fail = eb ?~(s"Could not fetch Nodes" )
               val message=  s"Could not reload Group ${id} details cause is: ${fail.msg}."
-              toJsonResponse(id, message, RestError)
+              toJsonError(Some(id), message)
           }
           case None =>
             val jsonGroup = List(toJSON(group))
-            toJsonResponse(id,("groups" -> JArray(jsonGroup)))
+            toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
         }
         val jsonGroup = List(toJSON(group))
-        toJsonResponse(id,("groups" -> JArray(jsonGroup)))
+        toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Group ${id}" )
         val message=  s"Could not reload Group ${id} details cause is: ${fail.msg}."
-        toJsonResponse(id, message, RestError)
+        toJsonError(Some(id), message)
     }
   }
 
@@ -219,12 +229,12 @@ case class GroupApiService1_0 (
       case Full((group,_)) =>
         val deleteGroupDiff = DeleteNodeGroupDiff(group)
         val message = s"Delete Group ${group.name} ${id} from API "
-        createChangeRequestAndAnswer(id, deleteGroupDiff, group, Some(group), actor, message)
+        createChangeRequestAndAnswer(id, deleteGroupDiff, group, Some(group), actor, req, "Delete")
 
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Group ${groupId.value}" )
         val message = s"Could not delete Group ${groupId.value} cause is: ${fail.msg}."
-        toJsonResponse(groupId.value, message, RestError)
+        toJsonError(Some(groupId.value), message)
     }
   }
 
@@ -241,18 +251,18 @@ case class GroupApiService1_0 (
             val updatedGroup = restGroup.updateGroup(group)
             val diff = ModifyToNodeGroupDiff(updatedGroup)
             val message = s"Modify Group ${group.name} ${id} from API "
-            createChangeRequestAndAnswer(id, diff, updatedGroup, Some(group), actor, message)
+            createChangeRequestAndAnswer(id, diff, updatedGroup, Some(group), actor, req, "Update")
 
           case eb : EmptyBox =>
             val fail = eb ?~ (s"Could extract values from request" )
             val message = s"Could not modify Group ${groupId.value} cause is: ${fail.msg}."
-            toJsonResponse(groupId.value, message, RestError)
+            toJsonError(Some(groupId.value), message)
         }
 
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Group ${groupId.value}" )
         val message = s"Could not modify Group ${groupId.value} cause is: ${fail.msg}."
-        toJsonResponse(groupId.value, message, RestError)
+        toJsonError(Some(groupId.value), message)
     }
   }
 

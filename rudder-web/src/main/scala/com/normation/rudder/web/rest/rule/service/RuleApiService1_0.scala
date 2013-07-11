@@ -35,17 +35,23 @@ case class RuleApiService1_0 (
     , rule         : Rule
     , initialState : Option[Rule]
     , actor        : EventActor
-    , message      : String
+    , req          : Req
+    , act          : String
   ) (implicit action : String, prettify : Boolean) = {
+
+
     ( for {
+        reason <- restExtractor.extractReason(req.params)
+        crName <- restExtractor.extractChangeRequestName(req.params).map(_.getOrElse(s"${act} Rule ${rule.name} from API"))
+        crDescription = restExtractor.extractChangeRequestDescription(req.params)
         cr <- changeRequestService.createChangeRequestFromRule(
-                  message
-                , message
+                  crName
+                , crDescription
                 , rule
                 , initialState
                 , diff
                 , actor
-                , None
+                , reason
               )
         wfStarted <- workflowService.startWorkflow(cr.id, actor, None)
       } yield {
@@ -54,11 +60,11 @@ case class RuleApiService1_0 (
     ) match {
       case Full(x) =>
         val jsonRule = List(rule.toJSON)
-        toJsonResponse(id, ("rules" -> JArray(jsonRule)), RestOk)
+        toJsonResponse(Some(id), ("rules" -> JArray(jsonRule)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Rule ${id}" )
-        val msg = s"${message} failed, cause is: ${fail.msg}."
-        toJsonResponse(id, msg, RestError)
+        val msg = s"${act} failed, cause is: ${fail.msg}."
+        toJsonError(Some(id), msg)
     }
   }
 
@@ -67,10 +73,10 @@ case class RuleApiService1_0 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readRule.getAll(false) match {
       case Full(rules) =>
-        toJsonResponse("N/A", ( "rules" -> JArray(rules.map(_.toJSON).toList)))
+        toJsonResponse(None, ( "rules" -> JArray(rules.map(_.toJSON).toList)))
       case eb: EmptyBox =>
         val message = (eb ?~ ("Could not fetch Rules")).msg
-        toJsonResponse("N/A", message, RestError)
+        toJsonError(None, message)
     }
   }
 
@@ -83,16 +89,21 @@ case class RuleApiService1_0 (
 
     def actualRuleCreation(restRule : RestRule, baseRule : Rule) = {
       val newRule = restRule.updateRule( baseRule )
-      writeRule.create(newRule, modId, actor, None) match {
+      ( for {
+        reason   <- restExtractor.extractReason(req.params)
+        saveDiff <-  writeRule.create(newRule, modId, actor, reason)
+      } yield {
+        saveDiff
+      } ) match {
         case Full(x) =>
           asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
           val jsonRule = List(newRule.toJSON)
-          toJsonResponse(ruleId.value, ("rules" -> JArray(jsonRule)), RestOk)
+          toJsonResponse(Some(ruleId.value), ("rules" -> JArray(jsonRule)))
 
         case eb:EmptyBox =>
           val fail = eb ?~ (s"Could not save Rule ${ruleId.value}" )
           val message = s"Could not create Rule ${newRule.name} (id:${ruleId.value}) cause is: ${fail.msg}."
-          toJsonResponse(ruleId.value, message, RestError)
+          toJsonError(Some(ruleId.value), message)
       }
     }
 
@@ -110,7 +121,7 @@ case class RuleApiService1_0 (
                   case eb:EmptyBox =>
                     val fail = eb ?~ (s"Could not find Rule ${sourceId}" )
                     val message = s"Could not create Rule ${name} (id:${ruleId.value}) based on Rule ${sourceId} : cause is: ${fail.msg}."
-                    toJsonResponse(ruleId.value, message, RestError)
+                    toJsonError(Some(ruleId.value), message)
                 }
 
               // Create a new Rule
@@ -136,18 +147,18 @@ case class RuleApiService1_0 (
               // More than one source, make an error
               case _ =>
                 val message = s"Could not create Rule ${name} (id:${ruleId.value}) based on an already existing Rule, cause is : too many values for source parameter."
-                toJsonResponse(ruleId.value, message, RestError)
+                toJsonError(Some(ruleId.value), message)
             }
 
           case None =>
             val message =  s"Could not get create a Rule details because there is no value as display name."
-            toJsonResponse(ruleId.value, message, RestError)
+            toJsonError(Some(ruleId.value), message)
         }
 
       case eb : EmptyBox =>
         val fail = eb ?~ (s"Could extract values from request" )
         val message = s"Could not create Rule ${ruleId.value} cause is: ${fail.msg}."
-        toJsonResponse(ruleId.value, message, RestError)
+        toJsonError(Some(ruleId.value), message)
     }
   }
 
@@ -158,11 +169,11 @@ case class RuleApiService1_0 (
     readRule.get(RuleId(id)) match {
       case Full(rule) =>
         val jsonRule = List(rule.toJSON)
-        toJsonResponse(id,("rules" -> JArray(jsonRule)))
+        toJsonResponse(Some(id),("rules" -> JArray(jsonRule)))
       case eb:EmptyBox =>
         val fail = eb ?~!(s"Could not find Rule ${id}" )
         val message=  s"Could not get Rule ${id} details cause is: ${fail.msg}."
-        toJsonResponse(id, message, RestError)
+        toJsonError(Some(id), message)
     }
   }
 
@@ -176,13 +187,12 @@ case class RuleApiService1_0 (
     readRule.get(ruleId) match {
       case Full(rule) =>
         val deleteRuleDiff = DeleteRuleDiff(rule)
-        val message = s"Delete Rule ${rule.name} ${id} from API "
-        createChangeRequestAndAnswer(id, deleteRuleDiff, rule, Some(rule), actor, message)
+        createChangeRequestAndAnswer(id, deleteRuleDiff, rule, Some(rule), actor, req, "Delete")
 
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Rule ${ruleId.value}" )
         val message = s"Could not delete Rule ${ruleId.value} cause is: ${fail.msg}."
-        toJsonResponse(ruleId.value, message, RestError)
+        toJsonError(Some(ruleId.value), message)
     }
   }
 
@@ -199,19 +209,18 @@ case class RuleApiService1_0 (
           case Full(restRule) =>
             val updatedRule = restRule.updateRule(rule)
             val diff = ModifyToRuleDiff(updatedRule)
-            val message = s"Modify Rule ${rule.name} ${id} from API "
-            createChangeRequestAndAnswer(id, diff, updatedRule, Some(rule), actor, message)
+            createChangeRequestAndAnswer(id, diff, updatedRule, Some(rule), actor, req, "Update")
 
           case eb : EmptyBox =>
             val fail = eb ?~ (s"Could extract values from request" )
             val message = s"Could not modify Rule ${ruleId.value} cause is: ${fail.msg}."
-            toJsonResponse(ruleId.value, message, RestError)
+            toJsonError(Some(ruleId.value), message)
         }
 
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Rule ${ruleId.value}" )
         val message = s"Could not modify Rule ${ruleId.value} cause is: ${fail.msg}."
-        toJsonResponse(ruleId.value, message, RestError)
+        toJsonError(Some(ruleId.value), message)
     }
   }
   }

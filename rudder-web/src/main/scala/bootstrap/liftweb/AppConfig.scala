@@ -407,6 +407,7 @@ object RudderConfig extends Loggable {
       , techniqueRepository
       , ruleTargetService
       , queryParser
+      , userPropertyService
     )
 
   val restDeploy = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)

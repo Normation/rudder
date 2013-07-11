@@ -30,9 +30,6 @@ class NodeAPI1_0 (
       apiV1_0.changeNodeStatus(req)
     }
 
-    case content => println(content)
-         toJsonResponse("nothing", "rien", RestError)("error",true)
-
   }
   serve( "api" / "1.0" / "nodes" prefix requestDispatch)
 

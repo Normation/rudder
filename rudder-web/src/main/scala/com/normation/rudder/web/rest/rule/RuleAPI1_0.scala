@@ -9,6 +9,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import com.normation.rudder.web.rest.RestError
+import net.liftweb.json.JString
 
 class RuleAPI1_0 (
     readRule             : RoRuleRepository
@@ -40,12 +41,9 @@ class RuleAPI1_0 (
         case Full(arg) =>
           val restRule = restExtractor.extractRuleFromJSON(arg)
           apiV1_0.updateRule(id,req,restRule)
-        case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)("Empty",true)
+        case eb:EmptyBox=>    toJsonError(None, JString("No Json data sent"))("updateRule",true)
       }
     }
-
-    case content => println(content)
-         toJsonResponse("nothing", "rien", RestError)("error",true)
 
   }
   serve( "api" / "1.0" / "rules" prefix requestDispatch)

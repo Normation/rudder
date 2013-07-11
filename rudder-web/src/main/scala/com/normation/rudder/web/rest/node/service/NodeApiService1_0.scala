@@ -40,14 +40,14 @@ class NodeApiService1_0 (
         case Full(ids) =>
           boxSequence(ids.map(nodeInfoService.getNodeInfo(_).map(toJSON(_,"accepted")))) match {
             case Full(acceptedNodes)=>
-              toJsonResponse("N/A", ( "nodes" -> JArray(acceptedNodes.toList)))
+              toJsonResponse(None, ( "nodes" -> JArray(acceptedNodes.toList)))
             case eb:EmptyBox =>
               val message = (eb ?~ ("Could not fetch accepted Nodes")).msg
-              toJsonResponse("N/A", message, RestError)
+              toJsonError(None, message)
           }
 
         case eb: EmptyBox => val message = (eb ?~ ("Could not fetch accepted Nodes")).msg
-          toJsonResponse("N/A", message, RestError)
+          toJsonError(None, message)
       }
   }
 
@@ -58,10 +58,10 @@ class NodeApiService1_0 (
       nodeInfoService.getNodeInfo(id) match {
         case Full(info) =>
           val node =  toJSON(info,"accepted")
-          toJsonResponse("N/A", ( "nodes" -> JArray(List(node))))
+          toJsonResponse(None, ( "nodes" -> JArray(List(node))))
         case eb:EmptyBox =>
           val message = (eb ?~ s"Could not fetch Node ${id.value}").msg
-          toJsonResponse("N/A", message, RestError)
+          toJsonError(None, message)
     }
   }
 
@@ -71,10 +71,10 @@ class NodeApiService1_0 (
     newNodeManager.listNewNodes match {
       case Full(ids) =>
         val pendingNodes = ids.map(toJSON(_,"pending")).toList
-        toJsonResponse("N/A", ( "nodes" -> JArray(pendingNodes)))
+        toJsonResponse(None, ( "nodes" -> JArray(pendingNodes)))
 
       case eb: EmptyBox => val message = (eb ?~ ("Could not fetch pending Nodes")).msg
-        toJsonResponse("N/A", message, RestError)
+        toJsonError(None, message)
     }
   }
 
@@ -87,10 +87,10 @@ class NodeApiService1_0 (
     modifyStatusFromAction(ids,DeleteNode,modId,actor) match {
       case Full(jsonValues) =>
         val deletedNodes = jsonValues.toList
-        toJsonResponse("N/A", ( "nodes" -> JArray(deletedNodes)))
+        toJsonResponse(None, ( "nodes" -> JArray(deletedNodes)))
 
       case eb: EmptyBox => val message = (eb ?~ ("Error when deleting Nodes")).msg
-        toJsonResponse("N/A", message, RestError)
+        toJsonError(None, message)
     }
   }
 
@@ -129,16 +129,16 @@ class NodeApiService1_0 (
         jsonValues match {
         case Full(jsonValue) =>
           val updatedNodes = jsonValue.toList
-          toJsonResponse("N/A", ( "nodes" -> JArray(updatedNodes)))
+          toJsonResponse(None, ( "nodes" -> JArray(updatedNodes)))
 
         case eb: EmptyBox => val message = (eb ?~ ("Error when changing Nodes status")).msg
-        toJsonResponse("N/A", message, RestError)
+        toJsonError(None, message)
         }
       case Full(None) =>
         val message = "You must add a node id as target"
-        toJsonResponse("N/A", message, RestError)
+        toJsonError(None, message)
       case eb: EmptyBox => val message = (eb ?~ ("Error when extracting Nodes' id")).msg
-        toJsonResponse("N/A", message, RestError)
+        toJsonError(None, message)
     }
   }
 

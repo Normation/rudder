@@ -54,18 +54,8 @@ class NodeAPIHeaderVersion (
         case _ => notValidVersionResponse("listRules")
       }
     }
-
-    case content => println(content)
-         toJsonResponse("nothing", "rien", RestError)("error",true)
-
   }
 
   serve( "api" / "nodes" prefix requestDispatch)
-
-
-
-  def notValidVersionResponse(action:String) = {
-    toJsonResponse("badversion", "version x does not exists", RestError)(action,true)
-   }
 
 }

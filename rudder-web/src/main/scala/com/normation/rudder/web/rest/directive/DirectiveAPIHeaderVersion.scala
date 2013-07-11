@@ -65,23 +65,15 @@ class DirectiveAPIHeaderVersion (
         case Full(arg) =>
           val restDirective = restExtractor.extractDirectiveFromJSON(arg)
           apiV1_0.updateDirective(id,req,restDirective)
-        case eb:EmptyBox=>    toJsonResponse(id, "no args arg", RestError)("Empty",true)
+        case eb:EmptyBox=>    toJsonError(id, "no args arg")("Empty",true)
       }
         case _ => notValidVersionResponse("listDirectives")
       }
 
     }
 */
-    case content => println(content)
-         toJsonResponse("nothing", "rien", RestError)("error",true)
 
   }
   serve( "api" / "directives" prefix requestDispatch)
-
-
-
-  def notValidVersionResponse(action:String) = {
-    toJsonResponse("badversion", "version x does not exists", RestError)(action,true)
-   }
 
 }
