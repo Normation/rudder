@@ -75,6 +75,8 @@ import java.sql.Timestamp
 @RunWith(classOf[JUnitRunner])
 class TestManageMigration_2_3 extends DBCommon {
 
+  case class MigEx102(msg:String) extends Exception(msg)
+
   lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
     , individualMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
@@ -167,21 +169,21 @@ CREATE TEMP TABLE MigrationEventLog(
       val res = withFileFormatLine(-1) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotHandledHere)
+      res ==== Full(MigrationVersionNotSupported)
     }
 
     "not be launched if fileformat is 0" in {
       val res = withFileFormatLine(0) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotHandledHere)
+      res ==== Full(MigrationVersionNotSupported)
     }
 
     "not be launched if fileformat is 1" in {
       val res = withFileFormatLine(1) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotHandledHere)
+      res ==== Full(MigrationVersionNotSupported)
     }
 
     "be launched if fileformat is 2, event if marked finished" in {
