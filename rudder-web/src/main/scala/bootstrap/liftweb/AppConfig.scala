@@ -668,6 +668,7 @@ object RudderConfig extends Loggable {
   )
 
   private[this] lazy val deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
+
   private[this] lazy val entityMigration = new DefaultXmlEventLogMigration(xmlMigration_2_3, xmlMigration_3_4)
   private[this] lazy val xmlMigration_2_3 = new XmlMigration_2_3()
   private[this] lazy val xmlMigration_3_4 = new XmlMigration_3_4()
@@ -1203,10 +1204,10 @@ object RudderConfig extends Loggable {
     , individualMigration = new EventLogMigration_2_3(xmlMigration_2_3)
     , batchSize           = 1000
   )
+
   private[this] lazy val eventLogsMigration_2_3_Management = new ControlEventLogsMigration_2_3(
           migrationEventLogRepository = migrationRepository
         , Seq(eventLogsMigration_2_3)
-        , Some(eventLogsMigration_10_2_Management)
   )
 
   private[this] lazy val eventLogsMigration_3_4 = new EventLogsMigration_3_4(

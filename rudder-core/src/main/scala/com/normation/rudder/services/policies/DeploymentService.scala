@@ -411,8 +411,6 @@ trait DeploymentService_buildRuleVals extends DeploymentService {
     * Replace all variable of the for ${rudder.ruleId.varName} by the seq of values for
     * the varName in RuleVal with id ruleId.
     *
-    * Replacement rules are:
-    *
     *
     * @param rules
     * @return
@@ -529,6 +527,7 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
                 return e
               case Full(nodeConfig) => targetNodeConfigMap(nodeConfig.nodeInfo.id) = nodeConfig
             }
+
           case Some(nodeConfig) => //add DirectiveVal to the list of policies for that node
                nodeConfig.identifiablePolicyDrafts ++= ruleVal.toPolicyDrafts
         }
@@ -583,7 +582,7 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
 
 
   /**
-   * Replace variables in a node
+   * Replace variables in a node configuration
    */
   private[this] def replaceNodeVars(targetNodeConfig:MutableTargetNodeConfiguration, allNodeInfos: Set[NodeInfo]) : Box[MutableTargetNodeConfiguration] = {
     val nodeId = targetNodeConfig.nodeInfo.id
