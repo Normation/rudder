@@ -84,8 +84,9 @@ trait Migration_2_3_Definition extends XmlFileFormatMigration {
 class ControlEventLogsMigration_2_3(
     override val migrationEventLogRepository: MigrationEventLogRepository
   , override val batchMigrators             : Seq[BatchElementMigration[MigrationEventLog]]
-  , override val previousMigrationController: Option[ControlEventLogsMigration_10_2]
-) extends ControlXmlFileFormatMigration with Migration_2_3_Definition
+) extends ControlXmlFileFormatMigration with Migration_2_3_Definition {
+  override val previousMigrationController = None
+}
 
 
 /**
@@ -208,10 +209,10 @@ class XmlMigration_2_3 extends Migration_2_3_Definition {
                       TestIsElem(
                         (
                         "rule [fileFormat]" #> toVersion  &
-                        "target " #>  ChangeLabel("targets") andThen
+                        "target " #>  ChangeLabel("targets", logger) andThen
                         "targets *" #> ("none " #>  NodeSeq.Empty andThen
-                        "to"  #> EncapsulateChild("target") andThen
-                        "from" #> EncapsulateChild("target"))
+                        "to"  #> EncapsulateChild("target", logger) andThen
+                        "from" #> EncapsulateChild("target", logger))
 
                       )(xml))
                     else //handle add/deletion
@@ -219,9 +220,9 @@ class XmlMigration_2_3 extends Migration_2_3_Definition {
                         (
                         "rule [fileFormat]" #> toVersion  &
 
-                        "target " #> ChangeLabel("targets") andThen
+                        "target " #> ChangeLabel("targets", logger) andThen
                         "none "   #>  NodeSeq.Empty andThen
-                        "targets" #> EncapsulateChild("target")
+                        "targets" #> EncapsulateChild("target", logger)
 
                       )(xml))
     } yield {

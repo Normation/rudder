@@ -44,8 +44,8 @@ import net.liftweb.common.Logger
 
 
 case class MigrationLogger(
-   goal : Int = XML_CURRENT_FILE_FORMAT
-    ) extends Logger {
+    goal : Int = XML_CURRENT_FILE_FORMAT
+) extends Logger {
   override protected def _logger = LoggerFactory.getLogger("migration")
 
   val defaultErrorLogger : Failure => Unit = { f =>

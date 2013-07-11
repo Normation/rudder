@@ -12,6 +12,8 @@ import com.normation.utils.Control._
 import org.springframework.jdbc.core.RowMapper
 import java.sql.Timestamp
 import java.util.Calendar
+import com.normation.utils.XmlUtils
+import scala.xml.Node
 
 /**
  * specify from/to version
@@ -28,6 +30,83 @@ trait XmlFileFormatMigration {
 
 }
 
+object TestLabel {
+  def apply(xml:Node, label:String) : Box[Node] = {
+    if(xml.label == label) Full(xml)
+    else Failure("Entry type is not a '%s' : %s".format(label, xml) )
+  }
+}
+
+
+object TestIsElem {
+
+  private[this] def failBadElemType(xml:NodeSeq) = {
+    Failure("Not expected type of NodeSeq (wish it was an Elem): " + xml)
+  }
+
+  def apply(xml:NodeSeq) : Box[Elem] = {
+    xml match {
+      case seq if(seq.size == 1) => seq.head match {
+        case e:Elem => Full(e)
+        case x => failBadElemType(x)
+      }
+      case x => failBadElemType(x)
+    }
+  }
+}
+
+
+//test that the node is an entry and that it has EXACTLY one child
+//do not use to test empty entry
+//return the child
+object TestIsEntry {
+  def apply(xml:Elem) : Box[Elem] = {
+    val trimed = XmlUtils.trim(xml)
+    if(trimed.label.toLowerCase == "entry" && trimed.child.size == 1) TestIsElem(trimed.child.head)
+    else Failure("Given XML data has not an 'entry' root element and exactly one child: " + trimed)
+  }
+}
+
+
+/**
+ * Change labels of a list of Elem
+ */
+case class ChangeLabel(label:String, logger: Logger) extends Function1[NodeSeq, Option[Elem]] {
+
+  override def apply(nodes:NodeSeq) = nodes match {
+    case e:Elem => Some(e.copy(label = label))
+    case x => //ignore other type of nodes
+      logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
+      None
+  }
+}
+
+/**
+ * Change labels of a list of Elem
+ */
+case class EncapsulateChild(label:String, logger:Logger) extends Function1[NodeSeq, Option[NodeSeq]] {
+
+  override def apply(nodes:NodeSeq) = nodes match {
+    case e:Elem => Some(e.copy(child = Encapsulate(label, logger).apply(e.child).getOrElse(NodeSeq.Empty)))
+    case x => //ignore other type of nodes
+      logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
+      None
+  }
+}
+/**
+ * Change labels of a list of Elem
+ */
+case class Encapsulate(label:String, logger: Logger) extends Function1[NodeSeq, Option[NodeSeq]] {
+
+  override def apply(nodes:NodeSeq) = nodes match {
+    case e:Elem => Some(e.copy(label=label,child=e))
+    case nodeseq:NodeSeq if (nodeseq.size == 1) => Some(<test>{nodeseq.head}</test>.copy(label = label) )
+    case nodeseq:NodeSeq if (nodeseq == NodeSeq.Empty) => Some(nodeseq)
+    case x => //ignore other type of nodes
+      logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
+      None
+  }
+}
 
 
 /**
@@ -134,7 +213,9 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
         logger.info("Found and older migration to do")
         previousMigrationController match {
           case None =>
-            logger.info(s"The detected format ${detectedFileFormat} is no more supported")
+            logger.info(s"The detected format ${detectedFileFormat} is no more supported, you will have to " +
+            		"use an installation of Rudder that understand it to do the migration. For information, " +
+            		"Rudder 2.6.x is the last major version which is able to import file format 1.0")
             Full(MigrationVersionNotSupported)
 
           case Some(migrator) => migrator.migrate() match{
@@ -310,6 +391,7 @@ trait XmlEntityMigration {
  */
 class DefaultXmlEventLogMigration(
     xmlMigration_2_3: XmlMigration_2_3
+  , xmlMigration_3_4: XmlMigration_3_4
 ) extends XmlEntityMigration {
 
   def getUpToDateXml(entity:Elem) : Box[Elem] = {
@@ -334,6 +416,22 @@ class DefaultXmlEventLogMigration(
     }
   }
 
+  private[this] def migrate3_4(xml:Elem) : Box[Elem] = {
+    xml.label match {
+      case "changeRequest" => xmlMigration_3_4.changeRequest(xml)
+      case _ => xmlMigration_3_4.other(xml)
+    }
+  }
+
+
+  private[this] def migrate2_4(xml:Elem) : Box[Elem] = {
+    for {
+      a <- migrate2_3(xml)
+      b <- migrate3_4(a)
+    } yield {
+      b
+    }
+  }
 }
 
 
