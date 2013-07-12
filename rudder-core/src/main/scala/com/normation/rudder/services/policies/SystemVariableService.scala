@@ -78,7 +78,7 @@ class SystemVariableServiceImpl(
 
   val varWebdavPassword = SystemVariable(systemVariableSpecService.get("DAVPASSWORD"))
   varWebdavPassword.saveValue(webdavPassword)
-  
+
   val varSharedFilesFolder = SystemVariable(systemVariableSpecService.get("SHARED_FILES_FOLDER"))
   varSharedFilesFolder.saveValue(sharedFilesFolder)
 
@@ -93,7 +93,7 @@ class SystemVariableServiceImpl(
 
     // Set the roles of the nodes
     val nodeConfigurationRoles = mutable.Set[String]()
-    
+
     if(nodeInfo.isPolicyServer) {
       nodeConfigurationRoles.add("policy_server")
       if (nodeInfo.id == nodeInfo.policyServerId) {
@@ -101,14 +101,14 @@ class SystemVariableServiceImpl(
       }
     }
 
-    val varNodeRole = new SystemVariable(systemVariableSpecService.get("NODEROLE"))
+    val varNodeRole = SystemVariable(systemVariableSpecService.get("NODEROLE"))
 
     if (nodeConfigurationRoles.size > 0) {
       varNodeRole.saveValue("  classes: \n" + nodeConfigurationRoles.map(x => "    \"" + x + "\" expression => \"any\";").mkString("\n"))
     } else {
       varNodeRole.saveValue("# This node doesn't have any specific role")
     }
-    
+
     // Set the licences for the Nova
     val varLicensesPaid = SystemVariable(systemVariableSpecService.get("LICENSESPAID"))
     if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
@@ -133,7 +133,7 @@ class SystemVariableServiceImpl(
     // If we are facing a policy server, we have to allow each children to connect, plus the policy parent,
     // else it's only the policy server
     if(nodeInfo.isPolicyServer) {
-      val allowedNodeVar = new SystemVariable(SystemVariableSpec(name = "${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true))
+      val allowedNodeVar = SystemVariable(SystemVariableSpec(name = "${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true))
       allowedNodeVar.values = Seq("${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}")
 
       parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNodeVar)) match {
@@ -152,7 +152,7 @@ class SystemVariableServiceImpl(
     }
 
     varAllowConnect.saveValues(allowConnect.toSeq)
-    
+
     logger.debug("System variables for server %s done".format(nodeInfo.id.value))
 
     Full(Map(
