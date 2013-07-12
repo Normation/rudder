@@ -100,6 +100,11 @@ object RudderLDAPConstants extends Loggable {
   // it's an operational attribute of OpenLDAP
   val A_OBJECT_CREATION_DATE = "createTimestamp"
 
+  //API Token related
+  val A_CREATION_DATETIME = "creationTimestamp" //not operationnal, can be different from ldap entry value
+  val A_API_TOKEN = "apiToken"
+  val A_API_TOKEN_CREATION_DATETIME = "apiTokenCreationTimestamp"
+
 
   //
   // Object Classe names
@@ -119,6 +124,8 @@ object RudderLDAPConstants extends Loggable {
   val OC_RULE_WITH_CF3POLICYDRAFT = "directiveNodeConfiguration"
   val OC_TARGET_RULE_WITH_CF3POLICYDRAFT = "targetDirectiveNodeConfiguration"
   val OC_NODE_CONFIGURATION = "nodeConfiguration" //actually a node configuration, not a "rudder server"
+
+  val OC_API_ACCOUNT = "apiAccount"
 
   OC += (OC_SPECIAL_TARGET,
     must = Set(A_RULE_TARGET, A_NAME),
@@ -181,6 +188,12 @@ object RudderLDAPConstants extends Loggable {
 
   OC += (OC_ACTIVE_TECHNIQUE_LIB_VERSION,
     may = Set(A_INIT_DATETIME))
+
+
+  OC += (OC_API_ACCOUNT
+      , must = Set(A_NAME, A_CREATION_DATETIME, A_API_TOKEN, A_API_TOKEN_CREATION_DATETIME)
+      , may = Set(A_DESCRIPTION)
+  )
 
   /**
    * Serialize and unserialize variables in A_DIRECTIVE_VARIABLES

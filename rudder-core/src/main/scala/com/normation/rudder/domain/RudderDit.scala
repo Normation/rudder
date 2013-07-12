@@ -55,6 +55,9 @@ import org.joda.time.DateTime
 import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
 import com.normation.rudder.repository.NodeGroupLibraryArchiveId
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.api.ApiAccountId
+import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.ApiToken
 
 class CATEGORY(
     val uuid: String,
@@ -139,6 +142,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   dit.register(ARCHIVES.model)
   dit.register(GROUP.model)
   dit.register(GROUP.SYSTEM.model)
+  dit.register(API_ACCOUNTS.model)
 
 
   //here, we can't use activeTechniqueCategory because we want a subclass
@@ -307,6 +311,40 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       }
 
 
+    }
+  }
+
+
+  /**
+   * That branch contains API authentication principals with their Tokens
+   */
+  object API_ACCOUNTS extends OU("API Accounts", BASE_DN) {
+    principals =>
+
+    /**
+     * There is two actual implementations of Rudder server, which
+     * differ only slightly in their identification.
+     */
+    object API_ACCOUNT extends ENTRY1(A_NAME) {
+      principal =>
+
+      //get id from dn
+      def idFromDn(dn:DN) : Option[ApiAccountId] = buildId(dn,principals.dn,{x:String => ApiAccountId(x)})
+
+      //build the dn from an UUID
+      def dn(id:ApiAccountId) = new DN(this.rdn(id.value), principals.dn)
+
+      def apiAccountModel(principal:ApiAccount) : LDAPEntry = {
+        val mod = LDAPEntry(this.dn(principal.id))
+        mod +=! (A_OC, OC.objectClassNames(OC_API_ACCOUNT).toSeq:_*)
+        mod +=! (A_NAME, principal.id.value)
+        mod +=! (A_CREATION_DATETIME, GeneralizedTime(principal.creationDate).toString)
+        mod +=! (A_API_TOKEN, principal.token.value)
+        mod +=! (A_API_TOKEN_CREATION_DATETIME, GeneralizedTime(principal.tokenGenerationDate).toString)
+        mod +=! (A_DESCRIPTION, principal.description)
+        mod +=! (A_IS_ENABLED, principal.isEnabled.toLDAPString)
+        mod
+      }
     }
   }
 

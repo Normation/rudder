@@ -61,9 +61,9 @@ import com.normation.rudder.web.services.ReasonBehavior.Mandatory
 import com.normation.rudder.web.services.ReasonBehavior.Optionnal
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.utils.Control._
-
 import net.liftweb.common._
 import net.liftweb.json._
+import com.normation.rudder.api.ApiAccountId
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -187,6 +187,10 @@ case class RestExtractorService (
 
   private[this] def convertToDirectiveId (value:String) : Box[DirectiveId] = {
     readDirective.getDirective(DirectiveId(value)).map(_.id) ?~ s"Directive '$value' not found"
+  }
+
+  private[this] def convertToApiAccountId (value:String) : Box[ApiAccountId] = {
+    Full(ApiAccountId(value))
   }
 
   /*
@@ -427,6 +431,17 @@ case class RestExtractorService (
       RestGroup(name,description,query,dynamic,enabled)
     }
   }
+
+  def extractApiAccountFromJSON (json : JValue) : Box[RestApiAccount] = {
+    for {
+      name        <- extractOneValueJson(json, "id")(convertToApiAccountId)
+      description <- extractOneValueJson(json, "description")()
+      enabled     <- extractJsonBoolean(json, "enabled")
+    } yield {
+      RestApiAccount(name,description,enabled)
+    }
+  }
+
 
 
 }
