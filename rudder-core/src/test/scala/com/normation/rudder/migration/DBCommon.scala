@@ -41,10 +41,10 @@ import java.io.FileInputStream
 import java.util.Properties
 import java.sql.Connection
 import java.sql.ResultSet
-import Migration_10_2_DATA_Other._
-import Migration_10_2_DATA_Group._
-import Migration_10_2_DATA_Directive._
-import Migration_10_2_DATA_Rule._
+import Migration_2_DATA_Other._
+import Migration_2_DATA_Group._
+import Migration_2_DATA_Directive._
+import Migration_2_DATA_Rule._
 import net.liftweb.common._
 import net.liftweb.util.Helpers
 import org.junit.runner.RunWith
