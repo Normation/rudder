@@ -113,7 +113,17 @@ trait ParameterizedValueLookupService {
 
   /**
    * Replace all parameterization of the form ${rudder.node.XXX}
-   * by their values
+   * and ${rudder.param.XXX} by their values
+   *
+   * Here, we expect to always have only ONE value for each parametrization,
+   * so variable cardinality are NOT changed by that lookup.
+   *
+   * A variable's value can have several parametrization.
+   *
+   * Return the new set of variables with value in place of parameters, for example:
+   * "/tmp/${rudder.param.root_of_nodes}/${rudder.node.id}"
+   * will become:
+   * "/tmp/something/3720814d-7d2c-41eb-b730-804701c2f398
    *
    * We are in the context of a node, given by the id.
    * We can provide a NodeInfo as cache for the node.
@@ -142,6 +152,17 @@ trait ParameterizedValueLookupService {
     case _ => false
   }
 
+  sealed trait RegexParameterTest {
+    def regex: String
+    protected lazy val internalRegex = regex.r
+
+    def r = (".*" + regex + ".*").r
+
+    /**
+     * Replace all occurence of regex in "target" by the value "replacer"
+     */
+    def replace(target: String, replacer:String) : String = internalRegex.replaceAllIn(target, replacer)
+  }
 
   sealed trait Parametrization
 
@@ -150,26 +171,26 @@ trait ParameterizedValueLookupService {
   abstract class NodeParametrization extends Parametrization
 
   abstract class NodePsParametrization extends Parametrization
-  object NodePsParametrization {
-    def r = """\$\{rudder\.node\.policyserver\..*\}""".r
+  object NodePsParametrization extends RegexParameterTest {
+    override val regex = """\$\{rudder\.node\.policyserver\..*\}"""
   }
-  case object ParamNodeId extends NodeParametrization {
-    def r = """\$\{rudder\.node\.id\}""".r
+  case object ParamNodeId extends NodeParametrization with RegexParameterTest {
+    override val regex = """\$\{rudder\.node\.id\}"""
   }
-  case object ParamNodeHostname extends NodeParametrization {
-    def r = """\$\{rudder\.node\.hostname\}""".r
+  case object ParamNodeHostname extends NodeParametrization with RegexParameterTest {
+    override val regex = """\$\{rudder\.node\.hostname\}"""
   }
-  case object ParamNodeAdmin extends NodeParametrization {
-    def r = """\$\{rudder\.node\.admin\}""".r
+  case object ParamNodeAdmin extends NodeParametrization with RegexParameterTest {
+    override val regex = """\$\{rudder\.node\.admin\}"""
   }
-  case object ParamNodePsId extends NodeParametrization {
-    def r = """\$\{rudder\.node\.policyserver\.id\}""".r
+  case object ParamNodePsId extends NodeParametrization with RegexParameterTest {
+    override val regex = """\$\{rudder\.node\.policyserver\.id\}"""
   }
-  case object ParamNodePsHostname extends NodeParametrization {
-    def r = """\$\{rudder\.node\.policyserver\.hostname\}""".r
+  case object ParamNodePsHostname extends NodeParametrization with RegexParameterTest {
+    override val regex = """\$\{rudder\.node\.policyserver\.hostname\}"""
   }
-  case object ParamNodePsAdmin extends NodeParametrization {
-    def r = """\$\{rudder\.node\.policyserver\.admin\}""".r
+  case object ParamNodePsAdmin extends NodeParametrization with RegexParameterTest {
+    override val regex = """\$\{rudder\.node\.policyserver\.admin\}"""
   }
 
   case object NodeParam extends NodeParametrization
@@ -179,18 +200,18 @@ trait ParameterizedValueLookupService {
 
   case class CrVarParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching
   case class CrTargetParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching
-  object CrTargetParametrization {
-    def r = """\$\{rudder\.([\-_a-zA-Z0-9]+)\.target\.([\-_a-zA-Z0-9]+)\}""".r
+  object CrTargetParametrization extends RegexParameterTest {
+    override val regex = """\$\{rudder\.([\-_a-zA-Z0-9]+)\.target\.([\-_a-zA-Z0-9]+)\}"""
   }
 
 
 
-  object Parametrization {
-    def r = """\$\{rudder\.(.*)\}""".r
+  object Parametrization extends RegexParameterTest {
+    override val regex = """\$\{rudder\.(.*)\}"""
   }
 
-  object CrParametrization {
-    def r = """\$\{rudder\.([\-_a-zA-Z0-9]+)\.([\-_a-zA-Z0-9]+)\}""".r
+  object CrParametrization extends RegexParameterTest {
+    override val regex = """\$\{rudder\.([\-_a-zA-Z0-9]+)\.([\-_a-zA-Z0-9]+)\}"""
 
     def unapply(value:String) : Option[Parametrization] = {
         //start by the most specific and go up
@@ -204,8 +225,8 @@ trait ParameterizedValueLookupService {
     }
   }
 
-  object NodeParametrization {
-    def r = """\$\{rudder\.node\..*\}""".r
+  object NodeParametrization extends RegexParameterTest {
+    override val regex = """\$\{rudder\.node\..*\}"""
 
     def unapply(value:String) : Option[Parametrization] = {
         //start by the most specific and go up
@@ -242,12 +263,12 @@ trait ParameterizedValueLookupService_lookupNodeParameterization extends Paramet
 
   private[this] def lookupNodeVariable(nodeInfo : NodeInfo, policyServerInfo: => Box[NodeInfo], value:String) : Box[String] = {
     value match {
-      case NodeParametrization(ParamNodeId) => Full(nodeInfo.id.value)
-      case NodeParametrization(ParamNodeHostname) => Full(nodeInfo.hostname)
-      case NodeParametrization(ParamNodeAdmin) => Full(nodeInfo.localAdministratorAccountName)
-      case NodeParametrization(ParamNodePsId) => Full(nodeInfo.policyServerId.value)
-      case NodeParametrization(ParamNodePsHostname) => policyServerInfo.map( _.hostname)
-      case NodeParametrization(ParamNodePsAdmin) => policyServerInfo.map( _.localAdministratorAccountName)
+      case NodeParametrization(ParamNodeId) => Full(ParamNodeId.replace(value, nodeInfo.id.value))
+      case NodeParametrization(ParamNodeHostname) => Full(ParamNodeHostname.replace(value, nodeInfo.hostname))
+      case NodeParametrization(ParamNodeAdmin) => Full(ParamNodeAdmin.replace(value,nodeInfo.localAdministratorAccountName))
+      case NodeParametrization(ParamNodePsId) => Full(ParamNodePsId.replace(value,nodeInfo.policyServerId.value))
+      case NodeParametrization(ParamNodePsHostname) => policyServerInfo.map(x => ParamNodePsHostname.replace(value, x.hostname))
+      case NodeParametrization(ParamNodePsAdmin) => policyServerInfo.map(x => ParamNodePsAdmin.replace(value, x.localAdministratorAccountName))
       case NodeParametrization(BadParametrization(value)) => Failure("Unknow parameterized value: ${%s}".format(value))
       case _ => Full(value) //nothing to replace
     }

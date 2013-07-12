@@ -101,7 +101,7 @@ class SystemVariableServiceImpl(
       }
     }
 
-    val varNodeRole = new SystemVariable(systemVariableSpecService.get("NODEROLE"))
+    val varNodeRole = SystemVariable(systemVariableSpecService.get("NODEROLE"))
 
     if (nodeConfigurationRoles.size > 0) {
       varNodeRole.saveValue("  classes: \n" + nodeConfigurationRoles.map(x => "    \"" + x + "\" expression => \"any\";").mkString("\n"))
@@ -133,7 +133,7 @@ class SystemVariableServiceImpl(
     // If we are facing a policy server, we have to allow each children to connect, plus the policy parent,
     // else it's only the policy server
     if(nodeInfo.isPolicyServer) {
-      val allowedNodeVar = new SystemVariable(SystemVariableSpec(name = "${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true))
+      val allowedNodeVar = SystemVariable(SystemVariableSpec(name = "${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true))
       allowedNodeVar.values = Seq("${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}")
 
       parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNodeVar)) match {

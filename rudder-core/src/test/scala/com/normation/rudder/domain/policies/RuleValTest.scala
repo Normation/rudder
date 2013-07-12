@@ -127,7 +127,7 @@ class RuleValTest {
       new DirectiveId("directiveId"),
       2,
       TrackerVariableSpec().toVariable(),
-      Map("foo" -> new InputVariable(InputVariableSpec("foo", "bar"))),
+      Map("foo" -> InputVariable(InputVariableSpec("foo", "bar"))),
       Map())
 
     val crVal = new RuleVal(
@@ -146,6 +146,6 @@ class RuleValTest {
     assertEquals(beans.head.cf3PolicyDraft.priority.toLong, 2L)
     assertEquals(beans.head.cf3PolicyDraft.serial.toLong, 1L)
     assertEquals(beans.head.cf3PolicyDraft.getVariables,
-      Map("foo" -> new InputVariable(InputVariableSpec("foo", "bar"))))
+      Map("foo" -> InputVariable(InputVariableSpec("foo", "bar"))))
   }
 }
