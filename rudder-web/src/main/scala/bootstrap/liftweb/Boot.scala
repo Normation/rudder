@@ -97,6 +97,7 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RudderConfig.restTechniqueReload)
     LiftRules.statelessDispatch.append(RudderConfig.restArchiving)
     LiftRules.statelessDispatch.append(RudderConfig.restGetGitCommitAsZip)
+    LiftRules.statelessDispatch.append(RudderConfig.restApiAccounts)
     // Rule APIs
     LiftRules.statelessDispatch.append(RudderConfig.ruleApi1_0)
     LiftRules.statelessDispatch.append(RudderConfig.latestRuleApi)
@@ -233,11 +234,14 @@ class Boot extends Loggable {
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Write("administration")) )
 
-
         , Menu("TechniqueLibraryManagement", <span>Techniques</span>) /
             "secure" / "administration" / "techniqueLibraryManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess( () => userIsAllowed("/secure/index",Read("technique") ) )
+        , Menu("apiManagement", <span>API Accounts</span>) /
+            "secure" / "administration" / "apiManagement"
+            >> LocGroup("administrationGroup")
+            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Write("administration")) )
       )
 
 

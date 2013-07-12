@@ -35,24 +35,50 @@
 package bootstrap.liftweb
 
 import java.io.File
-
 import scala.collection.JavaConversions.seqAsJavaList
-
-import org.springframework.context.annotation.{ Bean, Configuration, ImportResource }
-import org.springframework.core.io.{ ClassPathResource => CPResource, FileSystemResource => FSResource, Resource }
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.ImportResource
+import org.springframework.core.io.{ ClassPathResource => CPResource }
+import org.springframework.core.io.{ FileSystemResource => FSResource }
+import org.springframework.core.io.Resource
 import org.springframework.security.authentication.AuthenticationProvider
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
-import org.springframework.security.authentication.encoding._
+import org.springframework.security.authentication.encoding.Md5PasswordEncoder
+import org.springframework.security.authentication.encoding.PasswordEncoder
+import org.springframework.security.authentication.encoding.PlaintextPasswordEncoder
+import org.springframework.security.authentication.encoding.ShaPasswordEncoder
+import org.springframework.security.core.AuthenticationException
 import org.springframework.security.core.GrantedAuthority
-import org.springframework.security.core.userdetails.{ UserDetails, UserDetailsService, UsernameNotFoundException }
-
+import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.core.userdetails.UserDetails
+import org.springframework.security.core.userdetails.UserDetailsService
+import org.springframework.security.core.userdetails.UsernameNotFoundException
+import org.springframework.security.web.AuthenticationEntryPoint
+import com.normation.authorization.Create
+import com.normation.authorization.Delete
+import com.normation.authorization.Read
 import com.normation.authorization.Rights
-import com.normation.rudder.authorization.{ AuthzToRights, NoRights }
+import com.normation.authorization.Search
+import com.normation.authorization.Write
+import com.normation.rudder.api.ApiToken
+import com.normation.rudder.api.RoApiAccountRepository
+import com.normation.rudder.authorization.AuthzToRights
+import com.normation.rudder.authorization.NoRights
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.utils.HashcodeCaching
-
-import bootstrap.liftweb._
+import javax.servlet.Filter
+import javax.servlet.FilterChain
+import javax.servlet.FilterConfig
+import javax.servlet.ServletRequest
+import javax.servlet.ServletResponse
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+import net.liftweb.common.Failure
 
 /**
  * Spring configuration for user authentication.
@@ -69,6 +95,9 @@ import net.liftweb.common.Loggable
 @ImportResource(Array("classpath:applicationContext-security.xml"))
 class AppConfigAuth extends Loggable {
   import AppConfigAuth._
+
+
+  ///////////// FOR WEB INTERFACE /////////////
 
   val JVM_AUTH_FILE_KEY = "rudder.authFile"
   val DEFAULT_AUTH_FILE_NAME = "demo-rudder-users.xml"
@@ -106,6 +135,17 @@ class AppConfigAuth extends Loggable {
         throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
     }
   }
+
+
+  ///////////// FOR REST API /////////////
+
+  @Bean def restAuthenticationFilter = new RestAuthenticationFilter(RudderConfig.roApiAccountRepository)
+
+  @Bean def restAuthenticationEntryPoint = new AuthenticationEntryPoint() {
+    override def commence(request: HttpServletRequest, response: HttpServletResponse, ex: AuthenticationException) : Unit = {
+        response.sendError( HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized" )
+    }
+  }
 }
 
 /**
@@ -134,21 +174,111 @@ case object RoleUserAuthority extends GrantedAuthority {
   override val getAuthority = "ROLE_USER"
 }
 
+case object RoleApiAuthority extends GrantedAuthority {
+  override val getAuthority = "ROLE_REMOTE"
+
+  val apiRudderRights = new Rights(Read, Write, Create, Delete, Search)
+}
+
 /**
  * Our simple model for for user authentication and authorizations.
  * Note that authorizations are not managed by spring, but by the
  * 'authz' token of RudderUserDetail.
  */
-case class RudderUserDetail(login:String,password:String,authz:Rights) extends UserDetails with HashcodeCaching {
-  override val getAuthorities:java.util.Collection[GrantedAuthority] = Seq(RoleUserAuthority)
+case class RudderUserDetail(login:String,password:String,authz:Rights, grantedAuthorities: Seq[GrantedAuthority] = Seq(RoleUserAuthority)) extends UserDetails with HashcodeCaching {
+  override val getAuthorities:java.util.Collection[GrantedAuthority] = grantedAuthorities
   override val getPassword = password
   override val getUsername = login
   override val isAccountNonExpired = true
   override val isAccountNonLocked = true
   override val isCredentialsNonExpired = true
   override val isEnabled = true
-
 }
+
+/**
+ * Our rest filter, we just look for X-API-Token and
+ * ckeck if a token exists with that value
+ */
+class RestAuthenticationFilter(
+    apiTokenRepository: RoApiAccountRepository
+  , headerName: String = "X-API-Token"
+) extends Filter with Loggable {
+  def destroy(): Unit = {}
+  def init(config: FilterConfig): Unit = {}
+
+
+  private[this] def failsAuthentication(httpResponse: HttpServletResponse, eb: EmptyBox) : Unit = {
+    val e = eb ?~! "REST authentication failed"
+    logger.debug(e.messageChain)
+    e.rootExceptionCause.foreach( ex => logger.debug(ex))
+    httpResponse.sendError( HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized" )
+  }
+
+  /**
+   * Look for the X-API-TOKEN header, and use it
+   * to try to find a correspond token,
+   * and authenticate in SpringSecurity with that.
+   */
+  def doFilter(request: ServletRequest, response: ServletResponse, chain: FilterChain): Unit = {
+
+    (request, response) match {
+
+      case (httpRequest:HttpServletRequest, httpResponse:HttpServletResponse) =>
+
+        httpRequest.getHeader(headerName) match {
+
+          case null | "" =>
+            failsAuthentication(httpResponse, Failure(s"Missing or empty HTTP header ${headerName}"))
+
+          case token =>
+            //try to authenticate
+
+            apiTokenRepository.getByToken(ApiToken(token)) match {
+              case eb:EmptyBox =>
+                failsAuthentication(httpResponse, eb)
+
+              case Full(None) =>
+                failsAuthentication(httpResponse, Failure(s"No registered token '${token}'"))
+
+              case Full(Some(principal)) =>
+                if(principal.isEnabled) {
+                  //cool, build an authentication token from it
+                  val userDetails = RudderUserDetail(
+                      principal.token.value
+                    , principal.id.value
+                    , RoleApiAuthority.apiRudderRights
+                    , Seq(RoleApiAuthority)
+                  )
+
+                  val authenticationToken = new UsernamePasswordAuthenticationToken(
+                      userDetails
+                    , userDetails.getAuthorities
+                    , userDetails.getAuthorities
+                  )
+
+                  //save in spring security context
+                  SecurityContextHolder.getContext().setAuthentication(authenticationToken)
+
+                  chain.doFilter(request, response)
+
+
+                } else {
+                  failsAuthentication(httpResponse, Failure(s"Account with ID ${principal.id.value} is disabled"))
+                }
+            }
+        }
+
+
+
+      case _ =>
+        //can not do anything with that, chain filter.
+        chain.doFilter(request, response)
+    }
+
+
+  }
+}
+
 
 case class AuthConfig(
   encoder: PasswordEncoder,

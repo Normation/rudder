@@ -118,14 +118,21 @@ import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows.TwoValidationStepsWorkflowServiceImpl
 import com.normation.rudder.web.rest.RestExtractorService
-import com.normation.rudder.web.rest.rule.service.RuleApiService1_0
+import com.normation.rudder.web.rest.rule.RuleApiService1_0
 import com.normation.rudder.web.rest.rule._
 import com.normation.rudder.web.rest.directive._
 import com.normation.rudder.web.rest.directive.DirectiveAPIService1_0
-import com.normation.rudder.web.rest.group.service.GroupApiService1_0
+import com.normation.rudder.web.rest.group.GroupApiService1_0
 import com.normation.rudder.web.rest.group._
 import com.normation.rudder.web.rest.node.NodeApiService1_0
 import com.normation.rudder.web.rest.node._
+import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.RoLDAPApiAccountRepository
+import com.normation.rudder.api.WoApiAccountRepository
+import com.normation.rudder.api.RoApiAccountRepository
+import com.normation.rudder.api.WoLDAPApiAccountRepository
+import com.normation.rudder.api.TokenGeneratorImpl
+
 /**
  * Define a resource for configuration.
  * For now, config properties can only be loaded from either
@@ -318,9 +325,12 @@ object RudderConfig extends Loggable {
   val srvGrid = new SrvGrid
   val expectedReportRepository : RuleExpectedReportsRepository = configurationExpectedRepo
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
+  val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
+  val woApiAccountRepository : WoApiAccountRepository = woLDAPApiAccountRepository
 
   val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(jdbcTemplate)
   val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(jdbcTemplate, roWorkflowRepository)
+
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
 
@@ -405,11 +415,14 @@ object RudderConfig extends Loggable {
       , userPropertyService
     )
 
+  val tokenGenerator = new TokenGeneratorImpl(32)
+
   val restDeploy = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)
   val restDyngroupReload = new RestDyngroupReload(dyngroupUpdaterBatch)
   val restTechniqueReload = new RestTechniqueReload(techniqueRepositoryImpl, uuidGen)
   val restArchiving = new RestArchiving(itemArchiveManagerImpl,personIdentServiceImpl, uuidGen)
   val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
+  val restApiAccounts = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator)
 
   val ruleApiService1_0 =
     new RuleApiService1_0(
@@ -553,6 +566,17 @@ object RudderConfig extends Loggable {
   // private implementation as long as they conform to interface.
   //
 
+  private[this] lazy val roLDAPApiAccountRepository = new RoLDAPApiAccountRepository(
+      rudderDitImpl
+    , roLdap
+    , ldapEntityMapper
+  )
+
+  private[this] lazy val woLDAPApiAccountRepository = new WoLDAPApiAccountRepository(
+      rudderDitImpl
+    , rwLdap
+    , ldapEntityMapper
+  )
 
   private[this] lazy val ruleApplicationStatusImpl: RuleApplicationStatusService = new RuleApplicationStatusServiceImpl()
   private[this] lazy val acceptedNodesDitImpl: InventoryDit = new InventoryDit(LDAP_INVENTORIES_ACCEPTED_BASEDN, LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")

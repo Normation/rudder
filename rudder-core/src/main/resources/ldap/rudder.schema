@@ -273,6 +273,28 @@ attributetype ( RudderAttributes:225
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} ) 
 
+attributetype ( RudderAttributes:226
+  NAME 'creationTimestamp'
+  DESC 'Creation date of an object - can be different than the createTimestamp operational attribute'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch
+  ORDERING generalizedTimeOrderingMatch )
+
+### API principal and tokens 
+
+attributetype ( RudderAttributes:250
+  NAME 'apiToken'
+  DESC 'The token used to authenticate an API principal'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} ) 
+
+attributetype ( RudderAttributes:251
+  NAME 'apiTokenCreationTimestamp'
+  DESC 'Last creation date of the API Token'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
+  EQUALITY generalizedTimeMatch
+  ORDERING generalizedTimeOrderingMatch )
 
 #######################################################
 ################  Object Classes ######################
@@ -437,3 +459,11 @@ objectclass ( RudderObjectClasses:105
   STRUCTURAL
   MUST ( targetdirectiveId ) )
 
+objectclass ( RudderObjectClasses:106
+  NAME 'apiAccount'
+  DESC 'A principal for the REST API'
+  SUP top
+  STRUCTURAL
+  MUST ( cn $ creationTimestamp $ 
+         apiToken $ apiTokenCreationTimestamp) 
+  MAY ( description  $ isEnabled ) )
