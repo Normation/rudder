@@ -117,14 +117,14 @@ import com.normation.rudder.services.modification.DiffService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows.TwoValidationStepsWorkflowServiceImpl
-import com.normation.rudder.web.services.rest.RestExtractorService
+import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.rule.service.RuleApiService1_0
 import com.normation.rudder.web.rest.rule._
 import com.normation.rudder.web.rest.directive._
-import com.normation.rudder.web.rest.directive.service.DirectiveAPIService1_0
+import com.normation.rudder.web.rest.directive.DirectiveAPIService1_0
 import com.normation.rudder.web.rest.group.service.GroupApiService1_0
 import com.normation.rudder.web.rest.group._
-import com.normation.rudder.web.rest.node.service.NodeApiService1_0
+import com.normation.rudder.web.rest.node.NodeApiService1_0
 import com.normation.rudder.web.rest.node._
 /**
  * Define a resource for configuration.
@@ -401,7 +401,6 @@ object RudderConfig extends Loggable {
       , roDirectiveRepository
       , roNodeGroupRepository
       , techniqueRepository
-      , ruleTargetService
       , queryParser
       , userPropertyService
     )

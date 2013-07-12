@@ -1,28 +1,65 @@
-package com.normation.rudder.web.rest.node.service
+/*
+*************************************************************************************
+* Copyright 2013 Normation SAS
+*************************************************************************************
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Affero General Public License as
+* published by the Free Software Foundation, either version 3 of the
+* License, or (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU Affero GPL v3, the copyright holders add the following
+* Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+* licence, when you create a Related Module, this Related Module is
+* not considered as a part of the work and may be distributed under the
+* license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU Affero General Public License for more details.
+*
+* You should have received a copy of the GNU Affero General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+*
+*************************************************************************************
+*/
 
-import com.normation.rudder.services.servers.NewNodeManager
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.servers.RemoveNodeService
-import com.normation.utils.StringUuidGenerator
-import com.normation.rudder.batch.AsyncDeploymentAgent
-import net.liftweb.common.Loggable
-import com.normation.rudder.domain.nodes.NodeInfo
-import net.liftweb.json.JValue
-import net.liftweb.http.Req
-import com.normation.rudder.web.rest.RestUtils._
-import com.normation.rudder.web.services.rest.RestExtractorService
-import net.liftweb.common.Full
-import net.liftweb.common.EmptyBox
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.JArray
-import com.normation.rudder.web.rest.RestError
-import com.normation.rudder.domain.servers.Srv
-import com.normation.inventory.domain.NodeId
-import com.normation.eventlog.ModificationId
-import com.normation.utils.Control._
-import net.liftweb.common.Box
+package com.normation.rudder.web.rest.node
+
 import com.normation.eventlog.EventActor
-import net.liftweb.common.Failure
+import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.servers.NewNodeManager
+import com.normation.rudder.services.servers.RemoveNodeService
+import com.normation.rudder.web.rest.RestUtils.getActor
+import com.normation.rudder.web.rest.RestUtils.toJsonError
+import com.normation.rudder.web.rest.RestUtils.toJsonResponse
+import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.utils.Control._
+import com.normation.utils.StringUuidGenerator
+
+import net.liftweb.common.Box.box2Iterable
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+import net.liftweb.http.Req
+import net.liftweb.json.JArray
+import net.liftweb.json.JValue
+import net.liftweb.json.JsonDSL.jobject2assoc
+import net.liftweb.json.JsonDSL.pair2Assoc
+import net.liftweb.json.JsonDSL.pair2jvalue
+import net.liftweb.json.JsonDSL.string2jvalue
 
 
 class NodeApiService1_0 (
@@ -36,15 +73,10 @@ class NodeApiService1_0 (
   def listAcceptedNodes (req : Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "listAcceptedNodes"
-      nodeInfoService.getAllIds match {
-        case Full(ids) =>
-          boxSequence(ids.map(nodeInfoService.getNodeInfo(_).map(toJSON(_,"accepted")))) match {
-            case Full(acceptedNodes)=>
-              toJsonResponse(None, ( "nodes" -> JArray(acceptedNodes.toList)))
-            case eb:EmptyBox =>
-              val message = (eb ?~ ("Could not fetch accepted Nodes")).msg
-              toJsonError(None, message)
-          }
+      nodeInfoService.getAll match {
+        case Full(nodes) =>
+          val acceptedNodes = nodes.map(toJSON(_,"accepted"))
+          toJsonResponse(None, ( "nodes" -> JArray(acceptedNodes.toList)))
 
         case eb: EmptyBox => val message = (eb ?~ ("Could not fetch accepted Nodes")).msg
           toJsonError(None, message)
