@@ -41,7 +41,6 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.utils.HashcodeCaching
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.Technique
-import net.liftweb.json.JValue
 
 
 case class DirectiveId(value:String) extends HashcodeCaching
@@ -145,27 +144,6 @@ object SectionVal {
         })
       }
     </section>
-  }
-
-  def toJSON(sv:SectionVal, sectionName:String = ROOT_SECTION_NAME): JValue = {
-    import net.liftweb.json.JsonDSL._
-
-    val variables = sv.variables.toSeq.sortBy(_._1).map { case (variable,value) =>
-          ("var" ->
-          ("name" -> variable) ~
-          ("value" -> value))
-    }
-
-    val section =  for {
-          (sectionName, sectionIterations) <- sv.sections.toSeq.sortBy(_._1)
-          sectionValue <- sectionIterations
-        } yield this.toJSON(sectionValue,sectionName)
-
-    ("section" ->
-        ("name" -> sectionName) ~
-        ("vars" ->  (if (variables.isEmpty) None else Some(variables))) ~
-        ("sections" -> (if (section.isEmpty) None else Some(section)))
-      )
   }
 
   def directiveValToSectionVal(rootSection:SectionSpec, allValues:Map[String,Seq[String]]) : SectionVal = {

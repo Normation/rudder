@@ -71,12 +71,14 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     val valuesByName = vars.map(v => (v.spec.name, v.values)).toMap
     val variableSpecs = vars.map(v => (v.spec.name -> v.spec)).toMap
     val sections = policy.rootSection.copyWithoutSystemVars
+
     //a policy is a new one if we don't have any saved values
     //Don't forget that we may have empty saved value.
     val isNewPolicy = valuesByName.size < 1 || valuesByName.forall { case (n,vals) => vals.size < 1 }
     logger.debug("Is it a new directive ? " + isNewPolicy)
 
     val sectionField = createSectionField(sections, valuesByName, isNewPolicy)
+
     Full(DirectiveEditor(policy.id, directiveId, policy.name, policy.description, sectionField, variableSpecs))
   }
 
@@ -223,17 +225,19 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
   private def createMapForEachSubSection(section: SectionSpec, valuesByName:Map[String,Seq[String]]): Seq[Map[String, Option[String]]] = {
     // values represent all the values we have for the same name of variable
     case class NameValuesVar(name: String, values: Seq[String]) extends HashcodeCaching
+
     // seq of variable values with same name correctly ordered
-    val seqOfNameValues : Seq[NameValuesVar] =
+    val seqOfNameValues : Seq[NameValuesVar] = {
       for {
         varSpec <- section.getAllVariables
       } yield {
         NameValuesVar(varSpec.name, valuesByName.getOrElse(varSpec.name, Seq[String]()))
       }
+    }
+    
     if (seqOfNameValues.isEmpty) {
       Seq(Map[String, Option[String]]())
-    }
-    else {
+    } else {
       for {
         // If head has an empty sequence as value, it does not iterate for other variables
         // To fix, we use the max size of of all variables (so those value can be used, missing will be set to None.
