@@ -31,8 +31,7 @@ trait XmlEntityMigration {
  * Implementation
  */
 class DefaultXmlEventLogMigration(
-    xmlMigration_1_2: XmlMigration_10_2
-  , xmlMigration_2_3: XmlMigration_2_3
+    xmlMigration_2_3: XmlMigration_2_3
 ) extends XmlEntityMigration {
 
   def getUpToDateXml(entity:Elem) : Box[Elem] = {
@@ -41,23 +40,12 @@ class DefaultXmlEventLogMigration(
       versionT <- Box(entity.attribute("fileFormat").map( _.text )) ?~! "Can not migrate element with unknow fileFormat: %s".format(entity)
       version  <- try { Full(versionT.toFloat.toInt) } catch { case e:Exception => Failure("Bad version (expecting an integer or a float: '%s'".format(versionT))}
       migrate  <- version match {
-                    case 1 => migrate1_3(entity)
                     case 2 => migrate2_3(entity)
                     case 3 => Full(entity)
                     case x => Failure("Can not migrate XML file with fileFormat='%s' (expecting 1,2 or 3)".format(version))
                   }
     } yield {
       migrate
-    }
-  }
-
-  private[this] def migrate1_2(xml:Elem) : Box[Elem] = {
-    xml.label match {
-      case "configurationRule" => xmlMigration_1_2.rule(xml)
-      case "policyLibraryCategory" => xmlMigration_1_2.activeTechniqueCategory(xml)
-      case "policyLibraryTemplate" => xmlMigration_1_2.activeTechnique(xml)
-      case "policyInstance" => xmlMigration_1_2.directive(xml)
-      case "nodeGroup" => xmlMigration_1_2.nodeGroup(xml)
     }
   }
 
@@ -68,14 +56,6 @@ class DefaultXmlEventLogMigration(
     }
   }
 
-  private[this] def migrate1_3(xml:Elem) : Box[Elem] = {
-    for {
-      a <- migrate1_2(xml)
-      b <- migrate2_3(xml)
-    } yield {
-      b
-    }
-  }
 }
 
 

@@ -105,7 +105,7 @@ object Migration_3_DATA_EventLogs {
 
 object Migration_3_DATA_Other {
 
-     val addPendingDeployment_3 =
+  val addPendingDeployment_3 =
     <addPendingDeployement alreadyPending="false" fileFormat="3"></addPendingDeployement>
 
 

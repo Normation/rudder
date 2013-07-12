@@ -41,10 +41,10 @@ import java.io.FileInputStream
 import java.util.Properties
 import java.sql.Connection
 import java.sql.ResultSet
-import Migration_10_2_DATA_Other._
-import Migration_10_2_DATA_Group._
-import Migration_10_2_DATA_Directive._
-import Migration_10_2_DATA_Rule._
+import Migration_2_DATA_Other._
+import Migration_2_DATA_Group._
+import Migration_2_DATA_Directive._
+import Migration_2_DATA_Rule._
 import net.liftweb.common._
 import net.liftweb.util.Helpers
 import org.junit.runner.RunWith
@@ -69,111 +69,6 @@ case class MigEx102(msg:String) extends Exception(msg)
  * with parameters defined in src/test/resources/database.properties.
  * That database should be empty to avoid table name collision.
  */
-@RunWith(classOf[JUnitRunner])
-class TestDbMigration_10_2 extends DBCommon {
-
-
-    lazy val migration = new EventLogsMigration_10_2(
-      jdbcTemplate = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_10_2(new XmlMigration_10_2())
-    , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
-    , successLogger = successLogger
-    , batchSize = 2
-  )
-
-  val sqlClean = "" //no need to clean temp data table.
-
-  val sqlInit = """
-CREATE TEMP SEQUENCE eventLogIdSeq START 1;
-
-CREATE TEMP TABLE EventLog (
-  id integer PRIMARY KEY  DEFAULT nextval('eventLogIdSeq')
-, creationDate timestamp with time zone NOT NULL DEFAULT 'now'
-, severity integer
-, causeId integer
-, principal varchar(64)
-, eventType varchar(64)
-, data xml
-);
-    """
-
-  var logs10WithId : Map[String,MigrationTestLog] = null //init in initDb
-  var logs2WithId : Seq[MigrationTestLog] = null
-
-  override def initDb = {
-    super.initDb
-
-    // init datas, get the map of ids
-    logs10WithId = withConnection[Map[String,MigrationTestLog]] { c =>
-      (Migration_10_2_DATA_EventLogs.data_10.map { case (k,log) =>
-        val id = log.insertSql(c)
-        logger.debug("Inserting %s, id: %s".format(k,id))
-
-        (k,log.copy( id = Some(id) ))
-      }).toMap
-    }
-
-    //also add some bad event log that should not be migrated (bad/more recent file format)
-    withConnection[Unit] { c =>
-      NoMigrationEventLogs.e1.insertSql(c)
-      NoMigrationEventLogs.e2.insertSql(c)
-      NoMigrationEventLogs.e3.insertSql(c)
-
-      {}
-    }
-
-    logs2WithId = (Migration_10_2_DATA_EventLogs.data_2.map { case (k,log) =>
-      log.copy( id = Some(logs10WithId(k).id.get ) ) //actually get so that an exception is throw if there is no ID set
-    }).toSeq
-  }
-
-  sequential
-  //actual tests
-  "Event Logs" should {
-
-    "be all found" in {
-      val logs = migration.findAllEventLogs.openOrThrowException("For tests")
-
-      logs.size must beEqualTo(logs10WithId.size) and
-      forallWhen(logs) {
-        case MigrationEventLog(id, eventType, data) =>
-          val l = logs10WithId.values.find(x => x.id.get == id).get
-          l.data must be_==/(data) and
-          l.eventType === eventType
-      }
-    }
-
-    "be correctly migrated" in {
-
-      migration.processEventLogs
-
-      val logs = jdbcTemplate.query("select * from eventlog", testLogRowMapper).asScala.filter(log =>
-                   //only actually migrated file format
-                   try {
-                     log.data \\ "@fileFormat" exists { _.text.toInt == 2 }
-                   } catch {
-                     case e:NumberFormatException => false
-                   }
-                 )
-
-      logs.size must beEqualTo(logs2WithId.size) and
-      forallWhen(logs) {
-        case MigrationTestLog(Some(id), eventType, timestamp, principal, cause, severity, data) =>
-          val l = logs2WithId.find(x => x.id.get == id).get
-
-          (l.eventType === eventType) and
-          (l.timestamp === timestamp) and
-          (l.principal === principal) and
-          (l.cause === cause) and
-          (l.severity == severity must beTrue) and
-          (l.data must be_==/(data))
-
-        case x => failure("Bad TestLog (no id): " + x)
-      }
-    }
-
-  }
-}
 
 /**
  * Test how the migration run with a Database context from 2 to 3
@@ -188,7 +83,6 @@ class TestDbMigration_2_3 extends DBCommon {
     lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
     , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
-    , null //don't test pre migration
     , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
     , successLogger = successLogger
     , batchSize = 2
@@ -218,7 +112,7 @@ CREATE TEMP TABLE EventLog (
 
     // init datas, get the map of ids
     logs2WithId = withConnection[Map[String,MigrationTestLog]] { c =>
-      (Migration_10_2_DATA_EventLogs.data_2.map { case (k,log) =>
+      (Migration_2_DATA_EventLogs.data_2.map { case (k,log) =>
         val id = log.insertSql(c)
         logger.debug("Inserting %s, id: %s".format(k,id))
 
@@ -292,129 +186,6 @@ CREATE TEMP TABLE EventLog (
 
 /**
  * Test how the migration run with a Database context from 1.0 to 3
- *
- * Prerequise: A postgres database must be available,
- * with parameters defined in src/test/resources/database.properties.
- * That database should be empty to avoid table name collision.
- */
-@RunWith(classOf[JUnitRunner])
-class TestDbMigration_10_3 extends DBCommon {
-
- lazy val logs_10_2 = new EventLogsMigration_10_2(
-      jdbcTemplate
-    , new EventLogMigration_10_2(new XmlMigration_10_2())
-    , (f:Failure) => throw new MigEx102(f.messageChain)
-    , successLogger
-    , 2
-  )
-
-  lazy val migration = new EventLogsMigration_2_3(
-      jdbcTemplate = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
-    , eventLogsMigration_10_2 = logs_10_2
-    , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
-    , successLogger = successLogger
-    , batchSize = 2
-  )
-
-  val sqlClean = "" //no need to clean temp data table.
-
-  val sqlInit = """
-CREATE TEMP SEQUENCE eventLogIdSeq START 1;
-
-CREATE TEMP TABLE EventLog (
-  id integer PRIMARY KEY  DEFAULT nextval('eventLogIdSeq')
-, creationDate timestamp with time zone NOT NULL DEFAULT 'now'
-, severity integer
-, causeId integer
-, principal varchar(64)
-, eventType varchar(64)
-, data xml
-);
-    """
-
-  var logs10WithId : Map[String,MigrationTestLog] = null //init in initDb
-  var logs3WithId : Seq[MigrationTestLog] = null
-
-  override def initDb = {
-    super.initDb
-
-    // init datas, get the map of ids
-    logs10WithId = withConnection[Map[String,MigrationTestLog]] { c =>
-      (Migration_10_2_DATA_EventLogs.data_10.map { case (k,log) =>
-        val id = log.insertSql(c)
-        logger.debug("Inserting %s, id: %s".format(k,id))
-
-        (k,log.copy( id = Some(id) ))
-      }).toMap
-    }
-
-    //also add some bad event log that should not be migrated (bad/more recent file format)
-    withConnection[Unit] { c =>
-      NoMigrationEventLogs.e1.insertSql(c)
-      NoMigrationEventLogs.e2.insertSql(c)
-      NoMigrationEventLogs.e3.insertSql(c)
-
-      {}
-    }
-
-    logs3WithId = (Migration_3_DATA_EventLogs.data_3.map { case (k,log) =>
-      log.copy( id = Some(logs10WithId(k).id.get ) ) //actually get so that an exception is throw if there is no ID set
-    }).toSeq
-  }
-
-  sequential
-  //actual tests
-  "Event Logs" should {
-
-    "be all found" in {
-      val logs = migration.findAllEventLogs.openOrThrowException("For tests")
-      val parentlogs = migration.eventLogsMigration_10_2.findAllEventLogs.openOrThrowException("For tests")
-      logs.size+parentlogs.size must beEqualTo(logs10WithId.size) and
-      forallWhen(logs) {
-        case MigrationEventLog(id, eventType, data) =>
-          val l = logs10WithId.values.find(x => x.id.get == id).get
-
-          l.data must be_==/(data) and
-          l.eventType === eventType
-      }
-    }
-
-    "be correctly migrated" in {
-      migration.eventLogsMigration_10_2.processEventLogs()
-      migration.processEventLogs
-
-      val logs = jdbcTemplate.query("select * from eventlog", testLogRowMapper).asScala.filter(log =>
-                   //only actually migrated file format
-                   try {
-                     log.data \\ "@fileFormat" exists { _.text.toInt == 3 }
-                   } catch {
-                     case e:NumberFormatException => false
-                   }
-                 )
-
-      logs.size must beEqualTo(logs3WithId.size) and
-      forallWhen(logs) {
-        case MigrationTestLog(Some(id), eventType, timestamp, principal, cause, severity, data) =>
-          val l = logs3WithId.find(x => x.id.get == id).get
-
-          (l.eventType === eventType) and
-          (l.timestamp === timestamp) and
-          (l.principal === principal) and
-          (l.cause === cause) and
-          (l.severity == severity must beTrue) and
-          (l.data must be_==/(data))
-
-        case x => failure("Bad TestLog (no id): " + x)
-      }
-    }
-
-  }
-}
-
-
-/**
- * Test how the migration run with a Database context from 1.0 to 3
  * with both database (eventlog and migration event log)
  *
  * Prerequise: A postgres database must be available,
@@ -422,19 +193,12 @@ CREATE TEMP TABLE EventLog (
  * That database should be empty to avoid table name collision.
  */
 @RunWith(classOf[JUnitRunner])
-class TestDbMigration_10_3b extends DBCommon {
-  lazy val logs_10_2 = new EventLogsMigration_10_2(
-      jdbcTemplate
-    , new EventLogMigration_10_2(new XmlMigration_10_2())
-    , (f:Failure) => throw new MigEx102(f.messageChain)
-    , successLogger
-    , 2
-  )
+class TestDbMigration_2_3b extends DBCommon {
+
 
   lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
     , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
-    , eventLogsMigration_10_2 = logs_10_2
     , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
     , successLogger = successLogger
     , batchSize = 2
@@ -442,15 +206,9 @@ class TestDbMigration_10_3b extends DBCommon {
 
   lazy val logRepo = new MigrationEventLogRepository(squerylConnectionProvider)
 
-  lazy val migrationManagement_10_2 = new ControlEventLogsMigration_10_2(
-          migrationEventLogRepository = logRepo
-        , logs_10_2
-  )
-
   lazy val migrationManagement = new ControlEventLogsMigration_2_3(
           migrationEventLogRepository = logRepo
         , migration
-        , migrationManagement_10_2
   )
 
   val sqlClean = "" //no need to clean temp data table.
@@ -481,21 +239,21 @@ CREATE TEMP TABLE MigrationEventLog(
 );
     """
 
-  var logs10WithId : Map[String,MigrationTestLog] = null //init in initDb
+  var logs2WithId : Map[String,MigrationTestLog] = null //init in initDb
   var logs3WithId : Seq[MigrationTestLog] = null
 
   override def initDb = {
     super.initDb
 
     // init datas, get the map of ids
-    logs10WithId = withConnection[Map[String,MigrationTestLog]] { c =>
-      (Migration_10_2_DATA_EventLogs.data_10.map { case (k,log) =>
+    logs2WithId = withConnection[Map[String,MigrationTestLog]] { c =>
+      (Migration_2_DATA_EventLogs.data_2.map { case (k,log) =>
         val id = log.insertSql(c)
         logger.debug("Inserting %s, id: %s".format(k,id))
         (k,log.copy( id = Some(id) ))
       }).toMap
     }
-    migrationEventLogRepository.createNewStatusLine(1)
+    migrationEventLogRepository.createNewStatusLine(2)
     //also add some bad event log that should not be migrated (bad/more recent file format)
     withConnection[Unit] { c =>
       NoMigrationEventLogs.e1.insertSql(c)
@@ -506,7 +264,7 @@ CREATE TEMP TABLE MigrationEventLog(
     }
 
     logs3WithId = (Migration_3_DATA_EventLogs.data_3.map { case (k,log) =>
-      log.copy( id = Some(logs10WithId(k).id.get ) ) //actually get so that an exception is throw if there is no ID set
+      log.copy( id = Some(logs2WithId(k).id.get ) ) //actually get so that an exception is throw if there is no ID set
     }).toSeq
   }
   sequential
@@ -518,7 +276,11 @@ CREATE TEMP TABLE MigrationEventLog(
       logs match {
         case Full(MigrationSuccess(i)) =>
            i must beEqualTo(logs3WithId.size)
-        case _ => failure("Migration not working")
+        case Full(x) =>
+          failure("Migration not working, found result: " + x)
+        case eb:EmptyBox =>
+          val e = eb ?~! "Migration not working"
+          failure(e.messageChain)
       }
     }
 
