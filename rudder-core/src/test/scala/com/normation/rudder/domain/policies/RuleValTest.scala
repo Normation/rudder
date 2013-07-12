@@ -84,7 +84,7 @@ class RuleValTest {
       Set(new GroupTarget(new NodeGroupId("target"))),
       Seq(container),
       0)
-    
+
     //TODO: what that test actually tests ?
     //return Unit
     ()
@@ -125,7 +125,7 @@ class RuleValTest {
       new DirectiveId("directiveId"),
       2,
       TrackerVariableSpec().toVariable(),
-      Map("foo" -> new InputVariable(InputVariableSpec("foo", "bar"))))
+      Map("foo" -> InputVariable(InputVariableSpec("foo", "bar"))))
 
     val crVal = new RuleVal(
       new RuleId("ruleId"),
@@ -143,6 +143,6 @@ class RuleValTest {
     assertEquals(beans.head.cf3PolicyDraft.priority.toLong, 2L)
     assertEquals(beans.head.cf3PolicyDraft.serial.toLong, 1L)
     assertEquals(beans.head.cf3PolicyDraft.getVariables,
-      Map("foo" -> new InputVariable(InputVariableSpec("foo", "bar"))))
+      Map("foo" -> InputVariable(InputVariableSpec("foo", "bar"))))
   }
 }
