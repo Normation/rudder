@@ -188,7 +188,7 @@ class DirectiveEditForm(
       "#techniqueName" #>
         <a href={ "/secure/administration/techniqueLibraryManagement/" +
           technique.id.name.value }>
-          { technique.name }
+          { technique.name } version {technique.id.version}
         </a> &
       "#techniqueDescription" #> technique.description &
       "#nameField" #> {piName.toForm_!} &

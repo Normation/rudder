@@ -440,8 +440,8 @@ class RoLDAPDirectiveRepository(
       FullActiveTechnique(
           id = at.id
         , techniqueName = at.techniqueName
-        , techniques = techniqueRepository.getByName(at.techniqueName)
-        , acceptationDatetimes = at.acceptationDatetimes
+        , techniques = SortedMap( techniqueRepository.getByName(at.techniqueName).toSeq:_* )
+        , acceptationDatetimes = SortedMap( at.acceptationDatetimes.toSeq:_* )
         , directives = maps.directivesByActiveTechnique.getOrElse(at.id, Nil)
         , isEnabled = at.isEnabled
         , isSystem = at.isSystem
@@ -536,7 +536,7 @@ class RoLDAPDirectiveRepository(
 
       val fullActiveTechniques = allMaps.activeTechiques.map{ case (id,at) => (id -> fromActiveTechnique(at, allMaps)) }.toMap
 
-      fromCategory(ActiveTechniqueCategoryId(rudderDit.ACTIVE_TECHNIQUES_LIB.rdnValue._1), allMaps, fullActiveTechniques)
+      fromCategory(ActiveTechniqueCategoryId(rudderDit.ACTIVE_TECHNIQUES_LIB.rdnValue._1), allMaps, fullActiveTechniques.toMap)
     }
   }
 
