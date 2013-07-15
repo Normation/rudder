@@ -60,7 +60,7 @@ object CreateDirectivePopup {
   val html =  SHtml.ajaxForm(
   <div id="createDirectiveContainer">
     <div class="simplemodal-title">
-      <h1>Create a new Directive based on <span id="techniqueName">TECHNIQUE NAME</span></h1>
+      <h1 style="padding-right:10px">Create a new Directive based on <span id="techniqueName">TECHNIQUE NAME</span> </h1>
       <hr/>
     </div>
     <div class="simplemodal-content">
@@ -103,7 +103,7 @@ class CreateDirectivePopup(
   def popupContent() : NodeSeq = {
 
     (
-      "#techniqueName" #> techniqueName &
+      "#techniqueName" #> s"${techniqueName} version ${techniqueVersion}" &
       "#itemName" #> directiveName.toForm_! &
       "#itemDescription" #> directiveShortDescription.toForm_! &
       "#notifications" #> updateAndDisplayNotifications() &
