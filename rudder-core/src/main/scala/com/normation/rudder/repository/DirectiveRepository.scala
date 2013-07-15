@@ -89,8 +89,8 @@ final case class CategoryWithActiveTechniques(
 final case class FullActiveTechnique(
     id                  : ActiveTechniqueId
   , techniqueName       : TechniqueName
-  , acceptationDatetimes: Map[TechniqueVersion, DateTime]
-  , techniques          : Map[TechniqueVersion, Technique]
+  , acceptationDatetimes: SortedMap[TechniqueVersion, DateTime]
+  , techniques          : SortedMap[TechniqueVersion, Technique]
   , directives          : List[Directive]
   , isEnabled           : Boolean = true
   , isSystem            : Boolean = false
@@ -98,7 +98,7 @@ final case class FullActiveTechnique(
   def toActiveTechnique() = ActiveTechnique(
       id = id
     , techniqueName = techniqueName
-    , acceptationDatetimes = acceptationDatetimes
+    , acceptationDatetimes = acceptationDatetimes.toMap
     , directives = directives.map( _.id )
     , isEnabled = isEnabled
     , isSystem = isSystem

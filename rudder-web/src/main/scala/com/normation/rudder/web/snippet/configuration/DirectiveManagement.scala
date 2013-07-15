@@ -258,7 +258,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         "#techniqueVersions" #> showVersions(fullActiveTechnique) &
         "#migrate" #> showMigration(fullActiveTechnique) &
         "#addButton" #> SHtml.ajaxButton(
-          { Text("Create a new Directive based on technique ") ++ <b>{technique.name}</b> },
+          { Text("Create a new Directive based on technique ") ++ <i>{technique.name}</i> ++ Text(s" (version ${technique.id.version})") },
           { () =>  SetHtml(CreateDirectivePopup.htmlId_popup,
                      newCreationPopup(technique, fullActiveTechnique)) &
                    JsRaw( s""" createPopup("${CreateDirectivePopup.htmlId_popup}") """) },
@@ -497,7 +497,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def onClickActiveTechnique(cat: FullActiveTechniqueCategory, fullActiveTechnique : FullActiveTechnique) : JsCmd = {
-      currentTechnique = Some((fullActiveTechnique, fullActiveTechnique.techniques.keys.toSeq.sorted.head))
+      currentTechnique = fullActiveTechnique.newestAvailableTechnique.map( fat => (fullActiveTechnique, fat.id.version) )
 
       currentDirectiveSettingForm.set(Empty)
 
