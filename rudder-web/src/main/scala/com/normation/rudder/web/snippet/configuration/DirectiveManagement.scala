@@ -59,6 +59,10 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.web.services.DisplayDirectiveTree
+import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.authorization.AuthzToRights
+import com.normation.rudder.authorization.NoRights
+import org.joda.time.DateTime
 
 /**
  * Snippet for managing the System and Active Technique libraries.
@@ -209,8 +213,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   def initTechniqueDetails : MemoizeTransform = SHtml.memoize {
 
-    "#techniqueDetails *" #> ( currentTechnique match {
-      case None => "*" #> {
+    "#techniqueDetails" #> ( currentTechnique match {
+      case None =>
+        "*" #> {
+        <div id="techniqueDetails">
         <div class="deca">
           <p><em>Directives</em> are displayed in the tree of
           <a href="/secure/administration/techniqueLibraryManagement">
@@ -231,39 +237,63 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             </a>.
           </p>
         </div>
+        </div>
       }
+
       case Some((fullActiveTechnique,version)) =>
         val technique = fullActiveTechnique.techniques(version)
+        /*
+         * We want to filter technique to only show the one
+         * with registered acceptation date time.
+         * Also sort by version, reverse
+         */
+        val validTechniqueVersions = fullActiveTechnique.techniques.map { case(v, t) =>
+          fullActiveTechnique.acceptationDatetimes.get(v) match {
+            case Some(timeStamp) => Some((v, t, timeStamp))
+            case None =>
+              logger.error("Inconsistent Technique version state for Technique with ID '%s' and its version '%s': ".format(fullActiveTechnique.techniqueName, v.toString) +
+                      "that version was not correctly registered into Rudder and can not be use for now.")
+              logger.info("A workaround is to remove that version manually from Rudder (move the directory for that version of the Technique out " +
+                      "of your configuration-repository directory (for example in /tmp) and 'git commit' the modification), " +
+                      "reload the Technique Library, then add back the version back (move it back at its place, 'git add' the directory, 'git commit' the" +
+                      "modification), and reload again the Technique Library.")
 
-        "#detailFieldsetId *" #> {
-          if(currentDirectiveSettingForm.is.isDefined) {
-            "Directive's template"
-          } else {
-            "Template details"
+              None
           }
-        } &
+        }.toSeq.flatten.sortBy( _._1 )
+
         "#directiveIntro " #> {
           currentDirectiveSettingForm.is.map { piForm =>
             (".directive *" #> piForm.directive.name)
           }
         } &
         "#techniqueName" #> technique.name &
-        "#compatibility" #> {
-          if (!technique.compatible.isEmpty) technique.compatible.head.toHtml
-          else NodeSeq.Empty
+        "#compatibility" #> technique.compatible.map { comp =>
+          { if(comp.os.isEmpty) {
+            NodeSeq.Empty
+          } else {
+            <p><b>Supported operating systems: </b>{comp.os.mkString(", ")}</p>
+          } } ++ {
+          if (comp.agents.isEmpty) {
+            NodeSeq.Empty
+          } else {
+            <p><b>Supported agents: </b>{comp.agents.mkString(", ")}</p>
+          } }
         } &
         "#techniqueDescription" #>  technique.description &
         "#techniqueLongDescription" #>  technique.longDescription &
         "#isSingle *" #> showIsSingle(technique) &
-        "#techniqueVersions" #> showVersions(fullActiveTechnique) &
+        "#techniqueVersions" #> showVersions(fullActiveTechnique, validTechniqueVersions) &
         "#migrate" #> showMigration(fullActiveTechnique) &
-        "#addButton" #> SHtml.ajaxButton(
-          { Text("Create a new Directive based on technique ") ++ <i>{technique.name}</i> ++ Text(s" (version ${technique.id.version})") },
-          { () =>  SetHtml(CreateDirectivePopup.htmlId_popup,
-                     newCreationPopup(technique, fullActiveTechnique)) &
-                   JsRaw( s""" createPopup("${CreateDirectivePopup.htmlId_popup}") """) },
-            ("class", "autoWidthButton")
-          )
+        "#addButton" #> validTechniqueVersions.lastOption.map { case(v, t, time) =>
+          SHtml.ajaxButton(
+            { Text(s"Create Directive (latest version) - ${v}") },
+            { () =>  SetHtml(CreateDirectivePopup.htmlId_popup,
+                       newCreationPopup(t, fullActiveTechnique)) &
+                     JsRaw( s""" createPopup("${CreateDirectivePopup.htmlId_popup}") """) },
+              ("class", "autoWidthButton")
+            )
+        }
     })
   }
 
@@ -281,37 +311,44 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     </span>
   }
 
-  private[this] def showVersions(activeTechnique: FullActiveTechnique) : NodeSeq = {
+  private[this] def showVersions(activeTechnique: FullActiveTechnique, validTechniques: Seq[(TechniqueVersion, Technique, DateTime)]) : NodeSeq = {
     //if we are on a Policy Server, add a "in use" after the currently used version
     val directiveVersion = currentDirectiveSettingForm.is.map {
       form => form.directive.techniqueVersion
     }
 
-    activeTechnique.techniques.map { case(v,t) =>
+    def newDirectiveAction(technique:Technique) : NodeSeq = {
+      val rights = AuthzToRights.parseAuthz("directive_write").headOption.getOrElse(NoRights)
+      if(CurrentUser.checkRights(rights)) {
+        SHtml.ajaxButton(
+            Text("Create Directive")
+          , { () => (   SetHtml(CreateDirectivePopup.htmlId_popup,
+                         newCreationPopup(technique, activeTechnique)
+                       )
+                     & JsRaw( s""" createPopup("${CreateDirectivePopup.htmlId_popup}") """)
+                     )
 
-        activeTechnique.acceptationDatetimes.get(v) match {
-          case Some(timeStamp) =>
-            <li>
-              <b>{v.toString}</b>, last accepted on:
-                { DateFormaterService.getFormatedDate(timeStamp)} {
-                  directiveVersion match {
-                    case Full(x) if(x == v) => <i>(version used)</i>
-                    case _ => NodeSeq.Empty
-                  }
-                }
-             </li>
+            }
+          , ("class", "smallButton")
+          , ("style", "width: 120px !important;")
+        )
+      } else {
+        NodeSeq.Empty
+      }
+    }
 
-          case None =>
-            logger.error("Inconsistent Technique version state for Technique with ID '%s' and its version '%s': ".format(activeTechnique.techniqueName, v.toString) +
-                    "that version was not correctly registered into Rudder and can not be use for now.")
-            logger.debug("A workaround is to remove that version manually from Rudder (move the directory for that version of the Technique out " +
-                    "of your configuration-repository directory (for example in /tmp) and 'git commit' the modification), " +
-                    "reload the Technique Library, then add back the version back (move it back at its place, 'git add' the directory, 'git commit' the" +
-                    "modification), and reload again the Technique Library.")
-
-            NodeSeq.Empty
-        }
-     }.toSeq.flatten
+    validTechniques.map { case(v,t, timeStamp) =>
+        <tr style="border: solid #666666 1px !important">
+          <td>{v.toString}</td>
+          <td>{DateFormaterService.getFormatedDate(timeStamp)} {
+              directiveVersion match {
+                case Full(x) if(x == v) => <i>(version used)</i>
+                case _ => NodeSeq.Empty
+              }
+          }</td>
+          <td>{newDirectiveAction(t)}</td>
+        </tr>
+     }
   }
 
   /**

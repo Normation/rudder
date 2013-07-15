@@ -27,6 +27,39 @@ var clearSearchFieldTree = function(inputId, treeId) {
 }
 // ]]>
 </script>
+
+<style type="text/css">
+
+#versionTable thead tr {
+    border: 1px solid #666 !important;
+    padding: 0px;
+    list-style: none inside none;
+    font-weight: bold;
+    background-color: #666;
+    color: #FFF;
+    font-size: 13px;
+}
+
+#versionTable thead tr th {
+    padding: 3px;
+    text-align: center;
+}
+
+#versionTable tbody tr {
+    border: 1px solid #666 !important;
+    padding: 4px 3px;
+    margin: 0px;
+    padding: 0px;
+    list-style: none inside none;
+    font-size: 12px;
+}
+
+#versionTable tbody tr td {
+  text-align: center;
+}
+
+</style>
+
 </head>
 
 <lift:configuration.DirectiveManagement.head />
@@ -65,26 +98,53 @@ var clearSearchFieldTree = function(inputId, treeId) {
         <div class="inner-portlet-content">
           <lift:configuration.DirectiveManagement.techniqueDetails>
             <div id="techniqueDetails">
-            <fieldset class="deca"><legend id="detailFieldsetId">Technique details</legend>
               <div id="directiveIntro">
                 The Directive <b class="directive">[Directive]</b> is based on following Technique:
                 <br/><br/>
               </div>
               <div>
                 <h3><span id="techniqueName">[Technique name]</span></h3>
-                <i><span id="techniqueDescription">[technique.description]</span></i>
+              </div>
+              <br/>
+              <div>
+                <fieldset class="deca"><legend>Description</legend>
+                  <span id="techniqueDescription">[technique.description]</span>
+                </fieldset>
               </div>
             
               <div class="groupDiv">
-                <p id="techniqueLongDescription">[technique.longDescription]</p>
-                <p id="isSingle">[Unique Technique]</p>
-                <p></p>
-                <p><span id="compatibility">[Supported operating systems : debian-5]</span></p>
+                <fieldset class="deca"><legend>Characteristics</legend>
+                  <p id="techniqueLongDescription">[technique.longDescription]</p>
+                  <p id="isSingle">[Unique Technique]</p>
+                  <p><span id="compatibility">[Supported operating systems : debian-5]</span></p>
+                </fieldset>
               </div>
-              <fieldset class="pimversionspad"><legend>Versions available</legend>
-                <ul class="evlogviewpad">
-                  <li id="techniqueVersions">[here come version: date]</li>
-                </ul>
+              
+              <fieldset class="pimversionspad"><legend>Available versions</legend>
+<!--                 <ul class="evlogviewpad"> -->
+<!--                   <li id="techniqueVersions">[here come version: date]</li> -->
+<!--                 </ul> -->
+                
+                <table id="versionTable">
+                  <thead>
+                    <tr>
+                      <th>Version</th>
+                      <th>Last updated on</th>
+                      <th>Use this version</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr id="techniqueVersions"/>
+                  </tbody>
+                
+                </table>
+                
+                <div style="text-align: center;">
+                <lift:authz role="directive_write">
+                  <br/>
+                  <button id="addButton">[Add a new instance]</button>
+                </lift:authz>
+                </div>         
                 <div id="migrate">
                   <br/>
                   <form>
@@ -96,10 +156,6 @@ var clearSearchFieldTree = function(inputId, treeId) {
               </fieldset>
               
               <br/>
-              <lift:authz role="directive_write">
-              <button id="addButton">[Add a new instance]</button>
-              </lift:authz>
-            </fieldset>
             </div>
           </lift:configuration.DirectiveManagement.techniqueDetails>       
         </div>
