@@ -77,8 +77,8 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           FullActiveTechnique(
               id = ActiveTechniqueId("at-ppId")
             , techniqueName = TechniqueName("ppId")
-            , acceptationDatetimes = Map(TechniqueVersion("1.0") -> new DateTime(0))
-            , techniques = Map(TechniqueVersion("1.0") -> null)
+            , acceptationDatetimes = SortedMap(TechniqueVersion("1.0") -> new DateTime(0))
+            , techniques = SortedMap(TechniqueVersion("1.0") -> null)
             , directives = Nil
             , isEnabled = true
             , isSystem = false
@@ -86,8 +86,8 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
        :: FullActiveTechnique(
               id = ActiveTechniqueId("at-ppId0")
             , techniqueName = TechniqueName("ppId1")
-            , acceptationDatetimes = Map(TechniqueVersion("1.0") -> new DateTime(0))
-            , techniques = Map(TechniqueVersion("1.0") -> null)
+            , acceptationDatetimes = SortedMap(TechniqueVersion("1.0") -> new DateTime(0))
+            , techniques = SortedMap(TechniqueVersion("1.0") -> null)
             , directives = Nil
             , isEnabled = true
             , isSystem = false
