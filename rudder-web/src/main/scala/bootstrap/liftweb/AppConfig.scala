@@ -139,6 +139,7 @@ import com.normation.rudder.migration.ChangeRequestsMigration_3_4
 import com.normation.rudder.migration.ChangeRequestMigration_3_4
 import com.normation.rudder.migration.EventLogsMigration_3_4
 import com.normation.rudder.migration.EventLogsMigration_3_4
+import com.normation.rudder.web.rest.parameter._
 
 /**
  * Define a resource for configuration.
@@ -541,6 +542,32 @@ object RudderConfig extends Loggable {
   val genericNodeApi =
     new NodeAPIHeaderVersion (
       nodeApiService1_0
+    )
+
+  val parameterApiService2 =
+    new ParameterApiService2 (
+        roLDAPParameterRepository
+      , woLDAPParameterRepository
+      , uuidGen
+      , changeRequestService
+      , workflowService
+      , restExtractorService
+      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+    )
+
+
+  val parameterApi2 =
+    new ParameterAPI2 (
+        restExtractorService
+      , parameterApiService2
+    )
+
+  val latestParameterApi = new LatestParameterAPI (parameterApi2)
+
+  val genericParameterApi =
+    new ParameterAPIHeaderVersion (
+        restExtractorService
+      , parameterApiService2
     )
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
