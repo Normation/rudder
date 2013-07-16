@@ -407,10 +407,13 @@ function dropFilterArea(tableId) {
 }
 
 function activateButtonOnFormChange(containerDivId, buttonId, status) {
-	if ("false"==status)
+  $("#"+buttonId).button();
+  
+	if ("false"==status) {
 		$('#'+buttonId).button( "option", "disabled", true );
-	else 
+	} else {
 		$('#'+buttonId).button( "option", "disabled", false );
+	}
 	
 	// all change on the form
 	$('#'+containerDivId+' > form').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
@@ -433,11 +436,13 @@ function activateButtonOnFormChange(containerDivId, buttonId, status) {
  *
  */
 function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, gridId, status, optionnalButton) {
+  $("#"+buttonId).button();
 
-	if ("false"==status)
+	if ("false"==status) {
 		$('#'+buttonId).button( "option", "disabled", true )
-	else
+	} else {
 		activateButtonDeactivateGrid(buttonId, gridId);
+  }
 
 	// all change on the form
 	$('#'+containerDivId+' > form').change(function() { activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);});
@@ -452,16 +457,23 @@ function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, grid
 	// This one is for all input (text, textarea, password... and yes, button)
 	$('#'+containerDivId+' :input').keyup(function() { activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);});
 
-	$('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);}});
+	$('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {
+	  if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  
+	    activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);
+	  }
+	});
 
 }
 
 function activateButtonDeactivateGrid(buttonId, gridId, optionnalButton) {
-     $('#'+buttonId).button( "option", "disabled", false );
-     $('#'+gridId).addClass("desactivatedGrid");
+  $("#"+buttonId).button();
+  
+  $('#'+buttonId).button( "option", "disabled", false );
+  $('#'+gridId).addClass("desactivatedGrid");
 
-     if ((optionnalButton)&&("" != optionnalButton))
-      $('#'+optionnalButton).button( "option", "disabled", true );
+  if ((optionnalButton)&&("" != optionnalButton)) {
+    $('#'+optionnalButton).button( "option", "disabled", true );
+  }
 }
 
 function scrollToElement(elementId) {
