@@ -546,6 +546,7 @@ class LDAPEntityMapper(
 
   def apiAccount2Entry(principal:ApiAccount) : LDAPEntry = {
     rudderDit.API_ACCOUNTS.API_ACCOUNT.apiAccountModel(principal)
+  }
 
   //////////////////////////////    Parameters    //////////////////////////////
 

@@ -31,36 +31,47 @@
 *
 *************************************************************************************
 */
-package com.normation.rudder.domain.parameters
-import com.normation.utils.HashcodeCaching
-import java.util.regex.Pattern
 
-case class ParameterName(value:String) extends HashcodeCaching
+package com.normation.rudder.web.rest.parameter
 
-object ParameterName {
-  val patternName = Pattern.compile("[a-zA-Z0-9_]+");
-}
 
-/**
- * A Parameter is an object that has a name and a value, to store and reuse
- * values at different places within Rudder
- */
-sealed trait Parameter {
-  def name        : ParameterName
-  def value       : String
-  def description : String
-  def overridable : Boolean
-}
+import net.liftweb.common.Box
+import net.liftweb.common.Loggable
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.Req
+import net.liftweb.http.rest.RestHelper
+import com.normation.rudder.domain.parameters.Parameter
+import com.normation.rudder.domain.parameters.ParameterName
+import com.normation.rudder.domain.parameters.GlobalParameter
 
-/**
- * A Global Parameter is a parameter globally defined, that may be overriden
- */
-case class GlobalParameter(
-    override val name       : ParameterName
-  , override val value      : String
-  , override val description: String
-  , override val overridable: Boolean
-) extends Parameter {
+class LatestParameterAPI (
+    latestApi : ParameterAPI
+) extends RestHelper with Loggable {
+    serve( "api" / "lastest" / "parameters" prefix latestApi.requestDispatch)
 
 }
 
+trait ParameterAPI {
+  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]]
+
+}
+
+case class RestParameter(
+      value       : Option[String] = None
+    , description : Option[String] = None
+    , overridable : Option[Boolean] = None
+  ) {
+
+
+    def updateParameter(parameter:GlobalParameter) = {
+      val updateValue = value.getOrElse(parameter.value)
+      val updateDescription = description.getOrElse(parameter.description)
+      val updateOverridable = overridable.getOrElse(parameter.overridable)
+      parameter.copy(
+          value       = updateValue
+        , description = updateDescription
+        , overridable = updateOverridable
+      )
+
+    }
+}
