@@ -127,6 +127,10 @@ class SearchNodeComponent(
   var activateSubmitButton = true
   var initUpdate = true // this is true when we arrive on the page, or when we've done an search
 
+  //used in callback to know if we have to
+  //activate the global save button
+  var searchFormHasError = false
+
   val errors = Buffer[Box[String]]()
   
   def head() : NodeSeq = {
@@ -180,10 +184,12 @@ class SearchNodeComponent(
         srvList = queryProcessor.process(newQuery)
         activateSubmitButton = false
         initUpdate = true
+        searchFormHasError = false
       } else {
         // ********* ERRORS FOUND ***********"
         srvList = Empty
         activateSubmitButton = true
+        searchFormHasError = true
       }
       ajaxCriteriaRefresh & ajaxGridRefresh
     }
@@ -304,7 +310,7 @@ class SearchNodeComponent(
    * @return
    */
   def activateButtonOnChange() : JsCmd = {
-    onSearchCallback(activateSubmitButton & !initUpdate) &
+    onSearchCallback(searchFormHasError) &
     JE.JsRaw("""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "%s", "%s");  """.format(activateSubmitButton, saveButtonId))
   }
   
