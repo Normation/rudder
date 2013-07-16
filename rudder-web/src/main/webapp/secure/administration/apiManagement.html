@@ -1,0 +1,415 @@
+<lift:surround with="menu/menu-administration" at="content">
+
+<lift:administration.ApiAccounts.render>
+  That gives us a JS variable with the servlet
+  context path named "contextPath" and the API
+  path for token management named apiPath
+  var contextPath = "/rudder"";
+  var apiPath = "/rudder/secure/apiaccounts"
+</lift:administration.ApiAccounts.render>
+
+<head>
+  <title>Rudder - API Settings</title>
+  <style>
+    #accounts
+    {
+        margin: 0;
+        padding: 0;
+        list-style-type: none;
+    }
+
+    #accountGrid td {
+    border  : 1px solid #B4B3A8;
+    }
+
+    #accounts li
+    {
+        display: inline;
+        float:left;
+        margin :0px 15px;
+        padding : 10px
+    }
+  </style>
+
+  <script type="text/javascript" src="/javascript/angular/angular.js" />
+  <script type="text/javascript" src="/javascript/angular/angular-datatables.js" />
+
+  <script type="text/javascript">
+
+  </script>
+</head>
+
+
+<div class="portlet" ng-app="accountManagement" id="accountManagement" >
+  <div class="portlet-header">API Settings</div>
+  <div class="portlet-content">
+
+    <div class="intro">
+      <div>
+        <p>Configure API related properties, like allowed accounts.</p>
+      </div>
+    </div>
+
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Configure allowed accounts</div>
+      <div class="portlet-content">
+
+        <div class="intro">
+          <div>
+            <p>
+              Configure accounts allowed to connect to Rudder API.
+            </p>
+            <p>
+              An account is composed of an ID, used to identify its action (for example in event logs),
+              an authentication token which is the secret that will allow it to use Rudder APIs, and
+              a description to explain the intent of that account.
+            </p>
+          </div>
+        </div>
+
+        <br/>
+        <hr class="spacer" />
+        <br/>
+
+        <div class="deca" ng-controller="AccountCtrl">
+
+          <button ng-click="addAccount();"   >
+            Add API Account
+          </button>
+
+          <table datatables="overrideOptions" ao-column-defs="columnDefs" aa-data="accounts" id="accountGrid">
+            <thead><tr class="head tablewidth">
+                <th style="width:100px">Account Name</th>
+                <th style="width:250px">Token</th>
+                <th style="width:50px">Status</th>
+                <th style="border-right:none; width:20px;">Actions</th>
+                <th style="border-left:none; border-right:none; width:20px;"></th>
+                <th style="border-left:none; width:20px;"></th>
+            </tr></thead>
+          </table>
+        	
+          <div class="accountGrid_pagination, paginatescala" >
+            <div id="accountGrid_paginate_area"></div>
+          </div>
+
+
+          <!-- pop-ups -->
+          <div id="newAccountPopup" ng-show="myNewAccount" style="display: none;">
+            <div id="newAccountContainer" >
+              <div id="simplemodal-overlay" class="simplemodal-overlay" style="opacity: 0.5; height: 100%; width: 100%; position: fixed; left: 0px; top: 0px; z-index: 1001;"></div>
+              <div id="simplemodal-container" class="simplemodal-container" style="position: fixed; z-index: 1002; height: auto; width: 450px; left: 30%; top: 20%;">
+                <a title="Close" ng-click="myNewAccount=undefined;setPristine();" class="modalCloseImg simplemodal-close"></a>
+                <div tabindex="-1" class="simplemodal-wrap" style="height: 100%; outline: 0px none; width: 100%; overflow: auto;">
+                  <div id="paramForm">
+                    <div class="simplemodal-title">
+                      <h1 id="title" style="color: #000; wrap-word:break-word;">{{formTitle(myNewAccount)}}</h1>
+                      <hr/>
+                    </div>
+                    <form  name="newAccount" >
+                      <div class="simplemodal-content" >
+                        <div class="wbBaseField">
+                          <label class="threeCol wbBaseFieldLabel textright"><b>Name: *</b></label>
+                          <div class="twoCol">
+                            <input type="text" ng-model="myNewAccount.id" id="newAccountName" ng-change="$(newAccountName).focus()" tj:focus="tj:focus" required="required"  style="width: 100%;"/>
+                          </div>
+                        </div>
+                        <hr class="spacer"/>
+                        <div class="wbBaseField" style="margin-top:15px">
+                          <label class="threeCol wbBaseFieldLabel textright"><b>Description:</b></label>
+                          <div class="twoCol">
+                            <textarea rows="5" ng-model="myNewAccount.description" style="width: 100%;" />
+                          </div>
+                        </div>
+                      </div>
+                      <hr class="spacer"/>
+                      <div class="simplemodal-bottom">
+                        <hr/>
+                        <div class="popupButton" style="width:97%">
+                          <span>
+                            <input type="submit" class="btn-primary" style="float:right;" value="Save" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);" />
+                            <button class="simplemodal-close" ng-click="myNewAccount=undefined;">Cancel</button>
+                          </span>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        
+          <div id="oldAccountPopup" ng-show="myOldAccount" style="display: none;">
+            <div id="deletionPopupContainer" ng-show="myOldAccount">
+              <div id="simplemodal-overlay" class="simplemodal-overlay" style="opacity: 0.5; height: 100%; width: 100%; position: fixed; left: 0px; top: 0px; z-index: 1001;"></div>
+              <div id="simplemodal-container" class="simplemodal-container" style="position: fixed; z-index: 1002; max-height: 300px; width: 500px; left: 30%; top: 20%;">
+                <a title="Close" ng-click="myOldAccount=undefined;" class="modalCloseImg simplemodal-close"></a>
+                <div tabindex="-1" class="simplemodal-wrap" style="height: auto; outline: 0px none; width: auto; overflow: auto;">
+                  <div id="paramForm">
+                    <div id="deletionPopup">
+                      <div class="simplemodal-title">
+                        <h1 id="title" style="color:#000">{{myOldAccount.actionName}} API Account '{{myOldAccount.id}}'</h1>
+                        <hr/>
+                      </div>
+                      <div class="simplemodal-content">
+                        <div>
+                          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
+                          <h2 id="areYouSure">You are about to {{myOldAccount.actionName.toLowerCase()}} an API Account.</h2>
+                          <span> All scripts using that authentication method won't be able to connect to Rudder REST API anymore.</span>
+                        </div>
+                        <br />
+                        <hr class="spacer" />
+                      </div>
+                      <div class="simplemodal-bottom">
+                        <hr/>
+                        <div class="popupButton">
+                          <span>
+                            <button class="simplemodal-close" ng-click="myOldAccount=undefined;">Cancel</button>
+                            <button id="dialogRemoveButton" ng-click="myOldAccount.action(myOldAccount,myOldAccount.index);myOldAccount=undefined;" >Confirm</button>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script type="text/javascript">
+  //<![CDATA[
+    var accountManagement = angular.module('accountManagement', ['DataTables']);
+
+
+    var popUpCreated = false;
+
+    function AccountCtrl($scope, $http) {
+
+      $http.get(apiPath).
+      success(function(data, status, headers, config) {
+        $scope.accounts = data.data.accounts
+      }).
+      error(function(data, status, headers, config) {
+      });
+
+
+    $scope.deleteAccount = function(account,index) {
+      $http.delete(apiPath + '/'+account.token).
+          success(function(data, status, headers, config) {
+            $scope.accounts.splice(index,1);
+            $scope.myNewAccount = undefined;
+
+            $("#accountGrid").dataTable().fnClearTable();
+            $("#accountGrid").dataTable().fnAddData($scope.accounts);
+          }).
+          error(function(data, status, headers, config) {
+          });
+    }
+
+    $scope.regenerateAccount = function(account,index) {
+       $http.post(apiPath + '/'+account.token+"/regenerate").
+         success(function(data, status, headers, config) {
+           var newAccount = data.data.accounts[0];
+           $scope.accounts[index] = newAccount;
+
+           $.extend($scope.myNewAccount, newAccount);
+           $("#accountGrid").dataTable().fnClearTable();
+           $("#accountGrid").dataTable().fnAddData($scope.accounts);
+         }).
+         error(function(data, status, headers, config) {
+         });
+    }
+
+    $scope.enableButton = function(account,index) {
+    if (account.enabled) {
+      var button = $("<button style='width: 80px; margin: 0px 10px;'>Disable</button>")
+        button.button();
+      button.click( function(){
+            account.enabled = false;
+          $scope.saveAccount(account,index);
+        })
+      return button;
+    } else {
+      var button = $("<button style='width: 80px; margin: 0px 10px;'>Enable</button>")
+        button.button()
+        button.click( function() {
+            account.enabled = true;
+          $scope.saveAccount(account,index);
+        })
+      return button;
+      }
+    }
+
+    $scope.addAccount = function() {
+      var newAccount = { id : "", token: "not yet obtained", enabled : true, description : ""}
+      $scope.myNewAccount = newAccount;
+    }
+
+    //define what each column of the grid
+    //get from the JSON people
+    $scope.columnDefs = [
+        { "aTargets":[0], "mDataProp": "id", "sWidth": "20%" }
+      , {   "aTargets":[1]
+          , "mDataProp": "token"
+          , 'bSortable': false
+          , "sWidth": "40%"
+          , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+              var content  = $("<button style='margin-right:10px; float:left;' class='smallButton'><img style='width:20px; height:20px;' src='"+contextPath+"/images/refresh_reload.png' alt='Regenerate'  /> </button>")
+              content.button()
+              content.click( function() {
+                $scope.popupDeletion(oData,iRow,$scope.regenerateAccount,"Regenerate token of");
+              });
+              var stringContent = $("<div style='padding-top:7px;' >"+sData+"</div>");
+              $(nTd).empty();
+              $(nTd).prepend(stringContent);
+              $(nTd).prepend(content);
+          }
+        }
+      , {   "aTargets"      : [2]
+          , "mDataProp"     : "enabled"
+          , 'bSortable': false
+          , "sWidth": "10%"
+        , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+          var color = sData ? "#CCFFCC" : "#FF6655";
+              var content  = $(" <b>"+$scope.accountDisabled(sData)+"</b>")
+          $(nTd).empty();
+              $(nTd).attr("style","text-align:center;  background-color:"+color);
+              $(nTd).prepend(content );
+          }
+        }
+      , {   "aTargets"      : [3]
+          , "mDataProp"     : "enabled"
+          , 'bSortable': false
+          , "sWidth": "10%"
+        , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+            var data = oData
+        var editButton  = $("<button style='width: 80px; margin: 0px 10px;'>Edit</button>")
+            editButton.button()
+            editButton.click( function() {
+              console.log("mescouilles")
+              $scope.popupCreation(data,iRow);
+            });
+          $(nTd).empty();
+          $(nTd).attr("style","border-right:none");
+            $(nTd).prepend(editButton);
+        }
+        }
+      , {   "aTargets"      : [4]
+      , "mDataProp"     : "enabled"
+      , 'bSortable': false
+      , "sWidth": "10%"
+      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        var data = oData
+        var statusButton = $scope.enableButton(data,iRow);
+      $(nTd).empty();
+      $(nTd).attr("style","border-right:none;border-left:none;");
+        $(nTd).prepend(statusButton);
+      }
+    }
+      , {   "aTargets"      : [5]
+      , "mDataProp"     : "enabled"
+      , 'bSortable': false
+      , "sWidth": "10%"
+      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        var data = oData
+        var deleteButton  = $("<button style='width: 80px; margin: 0px 10px;' class='dangerButton'>Delete</button>")
+        deleteButton.button()
+        deleteButton.click( function() {
+          $scope.popupDeletion(data,iRow,$scope.deleteAccount,"Delete");
+        });
+      $(nTd).empty();
+        $(nTd).prepend(deleteButton);
+      $(nTd).attr("style","border-left:none;");
+      }
+    }
+    ]
+
+    $scope.overrideOptions = {
+      "asStripeClasses": [ 'color1', 'color2' ],
+        "bAutoWidth": false,
+        "bFilter" : true,
+        "bPaginate" : true,
+        "bInfo" : false,
+        "bJQueryUI": true,
+        "bLengthChange": true,
+        "sPaginationType": "full_numbers",
+        "oLanguage": {
+            "sZeroRecords": "No matching API accounts!",
+            "sSearch": ""
+          },
+          "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
+    };
+
+    $scope.popupCreation = function(account,index) {
+      $scope.$apply(function() {
+         $scope.myNewAccount = account
+                // Maybe should use indexOf
+                $scope.myNewAccount.index = index;
+            $("#newAccountName").focus();
+            });
+        return account;
+    };
+
+    $scope.popupDeletion = function(account, index, action, actionName) {
+      $scope.$apply(function() {
+        $scope.myOldAccount = account;
+        $scope.myOldAccount.index = index;
+        $scope.myOldAccount.action = action;
+        $scope.myOldAccount.actionName = actionName;
+      });
+      return account;
+    };
+
+     $scope.checkAndSaveAccount = function (account,index,form) {
+       if (form.$valid) {
+         $scope.saveAccount(account,index)
+           $scope.myNewAccount = undefined;
+       }
+     }
+     $scope.saveAccount = function(account,index) {
+       if(account.token == "not yet obtained" ) {
+         $http.put(apiPath,account).
+         success(function(data, status, headers, config) {
+           var newAccount = data.data.accounts[0];
+           var newLength = $scope.accounts.push(newAccount);
+           newAccount.index = newLength - 1 ;
+           $scope.myNewAccount = undefined;
+           $("#accountGrid").dataTable().fnClearTable();
+           $("#accountGrid").dataTable().fnAddData($scope.accounts);
+         }).
+         error(function(data, status, headers, config) {
+         });
+       } else {
+       $http.post(apiPath + '/'+account.token,account).
+         success(function(data, status, headers, config) {
+             var newAccount = data.data.accounts[0];
+             $scope.accounts[index] = newAccount;
+             $.extend($scope.myNewAccount, newAccount);
+           $("#accountGrid").dataTable().fnClearTable();
+           $("#accountGrid").dataTable().fnAddData($scope.accounts);
+         }).
+         error(function(data, status, headers, config) {
+         });
+       }
+     }
+
+      $scope.formTitle = function(account) {
+        if (account!= undefined && account.index!=undefined) {
+            return  "Update account '"+account.id+"'";
+        } else {
+          return "Create a new Account";
+        }
+      }
+      $scope.accountDisabled = function(isEnabled) {
+        if(isEnabled) return "Enabled";
+        else return "Disabled";
+      }
+    }
+  // ]]>
+  </script>
+</lift:surround>
+

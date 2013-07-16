@@ -230,3 +230,10 @@ objectClass: organizationalUnit
 objectClass: top
 ou: Archives
 
+#######################################################################################################################
+## API Accounts
+#######################################################################################################################
+dn: ou=API Accounts,ou=Rudder,cn=rudder-configuration
+objectClass: organizationalUnit
+objectClass: top
+ou: API Accounts
