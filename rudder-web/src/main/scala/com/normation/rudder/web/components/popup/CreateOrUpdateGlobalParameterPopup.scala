@@ -220,16 +220,17 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   private[this] val defaultActionName = Map (
-      "save"    -> "Update"
-    , "create"  -> "Create"
-    , "delete"  -> "Delete"
-  )(action)
+        "save"    -> "Update"
+      , "create"  -> "Create"
+      , "delete"  -> "Delete"
+    )(action)
+
   private[this] val defaultRequestName = s"${defaultActionName} Global Parameter " + parameter.map(_.name.value).getOrElse("")
 
   private[this] val changeRequestName = new WBTextField("Title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = ""
-    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")
+    override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","4")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
@@ -249,7 +250,7 @@ class CreateOrUpdateGlobalParameterPopup(
     new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  %
-        ("style" -> "height:5em;")  % ("tabindex","4")
+        ("style" -> "height:5em;")  % ("tabindex","5")
       override def errorClassName = ""
       override def validations() = {
         if(mandatory){
@@ -274,6 +275,12 @@ class CreateOrUpdateGlobalParameterPopup(
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
   def popupContent() = {
+    val (buttonName, classForButton) = workflowEnabled match {
+      case true =>
+         ("Submit for Validation", "wideButton")
+      case false => (defaultActionName, "")
+    }
+
     (
       "#title *" #> titles(action) &
       ".name" #> parameterName.toForm_! &
@@ -305,7 +312,7 @@ class CreateOrUpdateGlobalParameterPopup(
         </div>
       } } &
       "#cancel"  #> (SHtml.ajaxButton("Cancel", { () => closePopup() })  % ("tabindex","6")) &
-      "#save" #> (SHtml.ajaxSubmit( defaultActionName, onSubmit _) % ("id","createParameterSaveButton")  % ("tabindex","5")) andThen
+      "#save" #> (SHtml.ajaxSubmit( buttonName, onSubmit _) % ("id","createParameterSaveButton")  % ("tabindex","5") % ("class", classForButton)) andThen
       ".notifications *"  #> { updateAndDisplayNotifications(formTracker) }
     ).apply(formXml())
   }
