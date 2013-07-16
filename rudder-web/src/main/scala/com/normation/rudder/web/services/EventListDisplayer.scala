@@ -1021,6 +1021,7 @@ class EventListDisplayer(
                 <li><b>Global Parameter name:</b> { modDiff.name.value }</li>
               </ul>
               {(
+                "#name" #> modDiff.name.value &
                 "#value" #>  mapSimpleDiff(modDiff.modValue) &
                 "#description *" #> mapSimpleDiff(modDiff.modDescription) &
                 "#overridable *" #> mapSimpleDiff(modDiff.modOverridable)
@@ -1423,6 +1424,7 @@ class EventListDisplayer(
 
   private[this] val globalParamModDetailsXML =
     <xml:group>
+      {liModDetailsXML("name", "Name")}
       {liModDetailsXML("value", "Value")}
       {liModDetailsXML("description", "Description")}
       {liModDetailsXML("overridable", "Overridable")}

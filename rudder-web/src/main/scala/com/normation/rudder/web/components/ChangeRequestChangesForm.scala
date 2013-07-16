@@ -102,7 +102,11 @@ class ChangeRequestChangesForm(
         changeRequest match {
           case cr: ConfigurationChangeRequest =>
             ( "#changeTree ul *" #>  treeNode(cr).toXml &
-              "#history *" #> displayHistory (cr.directives.values.map(_.changes).toList,cr.nodeGroups.values.map(_.changes).toList,cr.rules.values.map(_.changes).toList) &
+              "#history *" #> displayHistory (
+                                  cr.directives.values.map(_.changes).toList
+                                , cr.nodeGroups.values.map(_.changes).toList
+                                , cr.rules.values.map(_.changes).toList
+                                , cr.globalParams.values.map(_.changes).toList) &
               "#diff *" #> diff(
                               cr.directives.values.map(_.changes).toList
                             , cr.nodeGroups.values.map(_.changes).toList
@@ -210,7 +214,7 @@ class ChangeRequestChangesForm(
       , <span>Global Parameters</span>
     )
     val children = changeRequest.globalParams.keys.map(globalParameterChild(_)).toList
-    override val attrs = List(( "rel" -> { "changeType" } ),("id" -> { "groups"}))
+    override val attrs = List(( "rel" -> { "changeType" } ),("id" -> { "params"}))
   }
 
 
@@ -238,6 +242,7 @@ class ChangeRequestChangesForm(
   ) = {
     val crLogs = changeRequestEventLogService.getChangeRequestHistory(changeRequest.id).getOrElse(Seq())
     val wfLogs = workFlowEventLogService.getChangeRequestHistory(changeRequest.id).getOrElse(Seq())
+
     val lines =
       wfLogs.flatMap(displayWorkflowEvent(_)) ++
       crLogs.flatMap(displayChangeRequestEvent(_)) ++
@@ -594,6 +599,7 @@ class ChangeRequestChangesForm(
       , param         : GlobalParameter
   ) = {
     ( "#paramName" #> createGlobalParameterLink(param.name) &
+      "#name" #> param.name.value &
       "#value" #> displaySimpleDiff(diff.modValue,"value",Text(param.value)) &
       "#description" #> displaySimpleDiff(diff.modDescription,"description",Text(param.description)) &
       "#overridable" #> displaySimpleDiff(diff.modOverridable,"overridable",Text(param.overridable.toString))
