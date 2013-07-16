@@ -51,6 +51,10 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.domain.parameters.Parameter
+import com.normation.rudder.domain.parameters.ParameterName
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 /**
  * A service that handle parameterized value of
@@ -77,6 +81,9 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
  *
  * Accessor are keywords which allows to reach value in a context, exactly like
  * properties in object oriented programming.
+ *
+ * Accessors for parameters
+ *    ${rudder.param.ACCESSOR} : replace by the value for the parameter with the name ACCESSOR
  *
  * Accessors for node
  * ------------------
@@ -132,11 +139,12 @@ trait ParameterizedValueLookupService {
    * will become:
    * "/tmp/something/3720814d-7d2c-41eb-b730-804701c2f398
    *
-   * We are in the context of a node, given by the id.
-   * We can provide a NodeInfo as cache for the node.
+   * nodeId: obviously, the node id
+   * variables: the variables on which paremeter will be replaced
+   * parameters: parameters from TargetNodeConfiguration for that node
    *
    */
-  def lookupNodeParameterization(nodeId:NodeId, variables:Seq[Variable], allNodes:Set[NodeInfo]) : Box[Seq[Variable]]
+  def lookupNodeParameterization(nodeId: NodeId, variables:Seq[Variable], parameters:Set[ParameterForConfiguration], allNodes:Set[NodeInfo]) : Box[Seq[Variable]]
 
   /**
    * Replace all parameterization of the form
@@ -167,14 +175,20 @@ trait ParameterizedValueLookupService {
 
   sealed trait RegexParameterTest {
     def regex: String
-    protected lazy val internalRegex = regex.r
+    protected lazy val internalRegex = ("(?is)" + regex).r
 
-    def r = (".*" + regex + ".*").r
+    def r = ("(?is).*" + regex + ".*").r
 
     /**
      * Replace all occurence of regex in "target" by the value "replacer"
      */
-    def replace(target: String, replacer:String) : String = internalRegex.replaceAllIn(target, replacer)
+    def replace(target: String, replacer:String) : Box[String] = {
+      try {
+        Full(internalRegex.replaceAllIn(target, replacer))
+      } catch {
+        case e: Exception => Failure(s"Error when replacing parameter named '${target}' by value '${replacer}': ${e.getMessage}")
+      }
+    }
   }
 
   sealed trait Parametrization
@@ -218,6 +232,9 @@ trait ParameterizedValueLookupService {
   }
 
 
+  abstract class ParameterParametrization extends Parametrization
+
+  case class ParameterParam(parameterName: String) extends ParameterParametrization with HashcodeCaching
 
   object Parametrization extends RegexParameterTest {
     override val regex = """\$\{rudder\.(.*)\}"""
@@ -255,6 +272,39 @@ trait ParameterizedValueLookupService {
         }
     }
   }
+
+  /**
+   * This one is different from nodes, because we do have to remember the param name and replace only these one
+   * after
+   */
+  object ParameterParametrization extends Loggable {
+
+    val regex = """(?is)\$\{rudder\.param\.([\-_a-zA-Z0-9]+)}"""
+
+    private[this] def internalRegex(param: ParameterName) = ("""(?is)\$\{rudder\.param\.""" + param.value + """}""").r
+
+    def r = ("(?is).*" + regex + ".*").r
+
+    /**
+     * Replace all occurence of regex in "target" by the value "replacer"
+     */
+    def replace(target: String, replacer: ParameterForConfiguration) : Box[String] = {
+      try {
+        Full(internalRegex(replacer.name).replaceAllIn(target, Matcher.quoteReplacement(replacer.value)))
+      } catch {
+        case e:Exception => Failure(s"Exception with parameter name: '${replacer.name.value}' for value: '${replacer.value}': ${e.getMessage}")
+      }
+    }
+
+
+    def unapply(value:String) : Option[Parametrization] = {
+        //start by the most specific and go up
+        value match {
+          case ParameterParametrization.r(parameter) => Some(ParameterParam(parameter))
+          case _ => None
+        }
+    }
+  }
 }
 
 
@@ -269,27 +319,103 @@ class ParameterizedValueLookupServiceImpl(
 
 trait ParameterizedValueLookupService_lookupNodeParameterization extends ParameterizedValueLookupService {
 
+
   private[this] def lookupNodeVariable(nodeInfo : NodeInfo, policyServerInfo: => Box[NodeInfo], value:String) : Box[String] = {
     value match {
-      case NodeParametrization(ParamNodeId) => Full(ParamNodeId.replace(value, nodeInfo.id.value))
-      case NodeParametrization(ParamNodeHostname) => Full(ParamNodeHostname.replace(value, nodeInfo.hostname))
-      case NodeParametrization(ParamNodeAdmin) => Full(ParamNodeAdmin.replace(value,nodeInfo.localAdministratorAccountName))
-      case NodeParametrization(ParamNodePsId) => Full(ParamNodePsId.replace(value,nodeInfo.policyServerId.value))
-      case NodeParametrization(ParamNodePsHostname) => policyServerInfo.map(x => ParamNodePsHostname.replace(value, x.hostname))
-      case NodeParametrization(ParamNodePsAdmin) => policyServerInfo.map(x => ParamNodePsAdmin.replace(value, x.localAdministratorAccountName))
+      case NodeParametrization(ParamNodeId) => ParamNodeId.replace(value, nodeInfo.id.value)
+      case NodeParametrization(ParamNodeHostname) => ParamNodeHostname.replace(value, nodeInfo.hostname)
+      case NodeParametrization(ParamNodeAdmin) => ParamNodeAdmin.replace(value,nodeInfo.localAdministratorAccountName)
+      case NodeParametrization(ParamNodePsId) => ParamNodePsId.replace(value,nodeInfo.policyServerId.value)
+      case NodeParametrization(ParamNodePsHostname) => policyServerInfo.flatMap(x => ParamNodePsHostname.replace(value, x.hostname))
+      case NodeParametrization(ParamNodePsAdmin) => policyServerInfo.flatMap(x => ParamNodePsAdmin.replace(value, x.localAdministratorAccountName))
       case NodeParametrization(BadParametrization(value)) => Failure("Unknow parameterized value: ${%s}".format(value))
       case _ => Full(value) //nothing to replace
     }
   }
 
+  private[this] def lookupParameterParametrization(value: String, parameters: Map[String, ParameterForConfiguration]) : Box[String] = {
+    value match {
+      case ParameterParametrization(ParameterParam(name)) =>
+        parameters.get(name) match {
+          case Some(parameter) => ParameterParametrization.replace(value, parameter)
+          case _ => Failure("Unknow parametrized value : %s".format(value))
+        }
+      case _ => Full(value)
+    }
+  }
 
-  override def lookupNodeParameterization(nodeId:NodeId, variables:Seq[Variable], allNodes:Set[NodeInfo]) : Box[Seq[Variable]] = {
+
+  private[this] def checkSanity(value: String) : Box[String] = {
+
+    //To check if contains spaces
+    val ok = """(?is).*\$\{rudder(.+)}.*""".r
+
+    val matchSpace = Pattern.compile("""^[\S]+$""")
+
+    /*
+     * Unclosed also if another line or contain spaces
+     */
+    val unclosed = """(?is).*\$\{rudder[^\}]*""".r
+
+    /*
+     *
+     * that one is sooooo nice.
+     * Can be check in http://www.regexplanet.com/advanced/java/index.html
+     * with values:
+     * [Doesn't match]  ${rudder.param.foo}
+     * [Matches      ]  ${rudder.foo}
+     * [Matches      ]  ${rudder.}
+     * [Matches      ]  ${rudder}
+     */
+    val unknown  = """(?is).*\$\{rudder(\.?[^(param|node)]?[^\}\.]*)\}.*""".r
+
+    value match {
+      case ok(name) if(!matchSpace.matcher(name).matches) =>
+        Failure(s"Can not replace parameters in value '${value}' because accessors contains spaces")
+      case unclosed() => Failure(s"Can not replace parameters in value '${value}' because a curly brace is not closed")
+      case unknown(name) => Failure(s"Can not replace parameters in value '${value}' because accessor '${name}' is not recognized")
+      case _ => Full(value)
+    }
+
+  }
+
+  /**
+   * Change parameter for given value until a fixe point is reached.
+   * Don't iterate more than 5 times.
+   */
+  private[this] def recurrencelLookupParameter(value:String, nodeInfo : NodeInfo, policyServerInfo: => Box[NodeInfo], parameters: Map[String, ParameterForConfiguration]) : Box[String] = {
+
+    def recLookup(recValue:String, iteration: Int) : Box[String] = {
+
+      (for {
+        v1 <- lookupNodeVariable(nodeInfo, policyServerInfo, recValue)
+        v2 <- lookupParameterParametrization(v1, parameters)
+        v3 <- checkSanity(v2)
+      } yield {
+        v3
+      }) match {
+        case eb:EmptyBox => eb
+        case Full(v) if(v == recValue) => Full(v)
+        case Full(v) =>
+          if(iteration > 0) recLookup(v, iteration - 1)
+          else Failure(s"Can not replace parameters in value ${value} because of two many replacement attemped. Last value was: ${v}")
+      }
+    }
+    recLookup(value, 5)
+  }
+
+
+  override def lookupNodeParameterization(nodeId: NodeId, variables:Seq[Variable], parameters:Set[ParameterForConfiguration], allNodes:Set[NodeInfo]) : Box[Seq[Variable]] = {
+    val params = parameters.map(p => (p.name.value, p)).toMap
+
     for {
       nodeInfo <- Box(allNodes.find( _.id == nodeId)) ?~! s"Can not find node with id ${nodeId.value}"
+      polServer = Box(allNodes.find( _.id == nodeInfo.policyServerId))
       variables <- sequence(variables) { v =>
         for {
+          // first, expand the node variables
           values <- sequence(v.values) { value =>
-            lookupNodeVariable(nodeInfo, Box(allNodes.find( _.id == nodeInfo.policyServerId)), value)
+            recurrencelLookupParameter(value, nodeInfo, polServer, params)
           }
         } yield Variable.matchCopy(v, values)
       }
@@ -305,7 +431,7 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
 
   /**
    * Replace all parameterization of the form
-   * ${CONFGIGURATION_RULE_ID.XXX} by their values
+   * ${rudder.CONFIGURATION_RULE_ID.XXX} by their values
    */
   override def lookupRuleParameterization(
       variables:Seq[Variable]
@@ -344,8 +470,7 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
 
    /**
     * Lookup the variable with name varName in RuleVal.id in crv.
-    * Try to first lookup the values in cache, and if it is not yet present,
-    * update it with the value from RuleVal.
+    *
     * If RuleVal does not have such a variable name, fails.
     * If the looked-up variable's values contain a parameterized value, fails.
     *
@@ -403,8 +528,7 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
 
    /**
     * Lookup the variable with name varName in RuleVal.id in crv.
-    * Try to first lookup the values in cache, and if it is not yet present,
-    * update it with the value from RuleVal.
+    *
     * If RuleVal does not have such a variable name, fails.
     * If the looked-up variable's values contain a parameterized value, fails.
     * @param sourceVariableSpec : the spec of the variable
@@ -447,7 +571,7 @@ trait ParameterizedValueLookupService_lookupRuleParameterization extends Paramet
   }
 
   private[this] def containsParameterizedValue(values:Seq[String]) : Boolean = {
-    val regex = """\$\{rudder\.*\}""".r
+    val regex = """\$\{rudder\.(?!param).*\}""".r
     values.foreach {
       case regex() => return true
       case _ => //continue

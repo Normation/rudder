@@ -41,19 +41,35 @@ import com.normation.rudder.domain.logger.MigrationLogger
 import com.normation.rudder.domain.logger.MigrationLogger
 
 
-class CheckMigrationEventLog2_3(
-  manageEventLogsMigration: ControlEventLogsMigration_2_3
-) extends BootstrapChecks {
+trait CheckMigrationXmlFileFormat extends BootstrapChecks {
+
+  def controler: ControlXmlFileFormatMigration
 
   override def checks() : Unit = {
-    manageEventLogsMigration.migrate() match {
+    controler.migrate() match {
       case Full(_) => //ok, and logging should already be done
       case eb:EmptyBox =>
-        val e = eb ?~! "Error when migrating EventLogs' datas from format 1 to 2 in database"
-        MigrationLogger(3).error(e.messageChain)
+        val e = eb ?~! s"Error when migrating XML FileFormat' datas from format ${controler.fromVersion} to ${controler.toVersion} in database"
+        MigrationLogger(controler.toVersion).error(e.messageChain)
         e.rootExceptionCause.foreach { ex =>
-          MigrationLogger(3).error("Exception was:", ex)
+          MigrationLogger(controler.toVersion).error("Exception was:", ex)
         }
     }
   }
+
 }
+
+/**
+ * That class add all the available reference template in
+ * the default user library
+ * if it wasn't already initialized.
+ */
+
+class CheckMigrationEventLog2_3(
+  override val controler: ControlEventLogsMigration_2_3
+) extends CheckMigrationXmlFileFormat
+
+class CheckMigrationXmlFileFormat3_4(
+  override val controler: ControlXmlFileFormatMigration_3_4
+) extends CheckMigrationXmlFileFormat
+
