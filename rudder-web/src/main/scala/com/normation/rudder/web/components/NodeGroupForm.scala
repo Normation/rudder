@@ -129,7 +129,7 @@ class NodeGroupForm(
   }
 
   private[this] def saveButtonCallBack(searchStatus : Boolean) : JsCmd = {
-    JsRaw("""$('#%s').prop("disabled", %s);""".format(saveButtonId, searchStatus))
+    JsRaw("""$('#%1$s').button() ; $('#%1$s').button("option", "disabled", %2$s);""".format(saveButtonId, searchStatus))
   }
 
   private[this] def onClickCallBack(s:String) : JsCmd = {
