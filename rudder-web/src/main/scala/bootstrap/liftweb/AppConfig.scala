@@ -117,7 +117,15 @@ import com.normation.rudder.services.modification.DiffService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows.TwoValidationStepsWorkflowServiceImpl
-
+import com.normation.rudder.web.services.rest.RestExtractorService
+import com.normation.rudder.web.rest.rule.service.RuleApiService1_0
+import com.normation.rudder.web.rest.rule._
+import com.normation.rudder.web.rest.directive._
+import com.normation.rudder.web.rest.directive.service.DirectiveAPIService1_0
+import com.normation.rudder.web.rest.group.service.GroupApiService1_0
+import com.normation.rudder.web.rest.group._
+import com.normation.rudder.web.rest.node.service.NodeApiService1_0
+import com.normation.rudder.web.rest.node._
 /**
  * Define a resource for configuration.
  * For now, config properties can only be loaded from either
@@ -386,13 +394,131 @@ object RudderConfig extends Loggable {
   ///////////////////////////////////////// REST ///////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
 
+
+  val restExtractorService =
+    RestExtractorService (
+        roRuleRepository
+      , roDirectiveRepository
+      , roNodeGroupRepository
+      , techniqueRepository
+      , ruleTargetService
+      , queryParser
+      , userPropertyService
+    )
+
   val restDeploy = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)
   val restDyngroupReload = new RestDyngroupReload(dyngroupUpdaterBatch)
   val restTechniqueReload = new RestTechniqueReload(techniqueRepositoryImpl, uuidGen)
   val restArchiving = new RestArchiving(itemArchiveManagerImpl,personIdentServiceImpl, uuidGen)
   val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
 
+  val ruleApiService1_0 =
+    new RuleApiService1_0(
+        roRuleRepository
+      , woRuleRepository
+      , uuidGen
+      , asyncDeploymentAgent
+      , changeRequestService
+      , workflowService
+      , restExtractorService
+      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+    )
 
+  val ruleApi1_0 =
+    new RuleAPI1_0 (
+        roRuleRepository
+      , restExtractorService
+      , ruleApiService1_0
+    )
+
+  val latestRuleApi = new LatestRuleAPI (ruleApi1_0)
+
+  val genericRuleApi =
+    new RuleAPIHeaderVersion (
+        roRuleRepository
+      , restExtractorService
+      , ruleApiService1_0
+    )
+
+
+   val directiveApiService1_0 =
+    new DirectiveAPIService1_0 (
+        roDirectiveRepository
+      , woDirectiveRepository
+      , uuidGen
+      , asyncDeploymentAgent
+      , changeRequestService
+      , workflowService
+      , restExtractorService
+      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+      , directiveEditorService
+    )
+
+  val directiveApi1_0 =
+    new DirectiveAPI1_0 (
+        roDirectiveRepository
+      , restExtractorService
+      , directiveApiService1_0
+    )
+
+  val latestDirectiveApi = new LatestDirectiveAPI (directiveApi1_0)
+
+  val genericDirectiveApi =
+    new DirectiveAPIHeaderVersion (
+        roDirectiveRepository
+      , restExtractorService
+      , directiveApiService1_0
+    )
+
+  val groupApiService1_0 =
+    new GroupApiService1_0 (
+        roNodeGroupRepository
+      , woNodeGroupRepository
+      , uuidGen
+      , asyncDeploymentAgent
+      , changeRequestService
+      , workflowService
+      , restExtractorService
+      , queryProcessor
+      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+    )
+
+  val groupApi1_0 =
+    new GroupAPI1_0 (
+        roNodeGroupRepository
+      , restExtractorService
+      , groupApiService1_0
+    )
+
+  val latestGroupApi = new LatestGroupAPI (groupApi1_0)
+
+  val genericGroupApi =
+    new GroupAPIHeaderVersion (
+        roNodeGroupRepository
+      , restExtractorService
+      , groupApiService1_0
+    )
+
+    val nodeApiService1_0 =
+    new NodeApiService1_0 (
+        newNodeManager
+      , nodeInfoService
+      , removeNodeService
+      , uuidGen
+      , restExtractorService
+    )
+
+  val nodeApi1_0 =
+    new NodeAPI1_0 (
+      nodeApiService1_0
+    )
+
+  val latestNodeApi = new LatestNodeAPI (nodeApi1_0)
+
+  val genericNodeApi =
+    new NodeAPIHeaderVersion (
+      nodeApiService1_0
+    )
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
 

@@ -55,9 +55,8 @@ import com.normation.utils.HashcodeCaching
  * so all information have to be given.
  *
  */
-class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translators: Translators) {
+class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translators: Translators) extends Loggable {
 
-  val logger = LoggerFactory.getLogger(classOf[Section2FieldService])
 
 
   /**
@@ -72,14 +71,12 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     val valuesByName = vars.map(v => (v.spec.name, v.values)).toMap
     val variableSpecs = vars.map(v => (v.spec.name -> v.spec)).toMap
     val sections = policy.rootSection.copyWithoutSystemVars
-
     //a policy is a new one if we don't have any saved values
     //Don't forget that we may have empty saved value.
     val isNewPolicy = valuesByName.size < 1 || valuesByName.forall { case (n,vals) => vals.size < 1 }
     logger.debug("Is it a new directive ? " + isNewPolicy)
 
     val sectionField = createSectionField(sections, valuesByName, isNewPolicy)
-
     Full(DirectiveEditor(policy.id, directiveId, policy.name, policy.description, sectionField, variableSpecs))
   }
 
@@ -225,20 +222,31 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
   //If there is no value, a None is returned
   private def createMapForEachSubSection(section: SectionSpec, valuesByName:Map[String,Seq[String]]): Seq[Map[String, Option[String]]] = {
     // values represent all the values we have for the same name of variable
-    case class NameValuesVar(name: String, values: Array[String]) extends HashcodeCaching
-
+    case class NameValuesVar(name: String, values: Seq[String]) extends HashcodeCaching
     // seq of variable values with same name correctly ordered
-    val seqOfNameValues: Seq[NameValuesVar] = for (varSpec <- section.getAllVariables)
-      yield NameValuesVar(varSpec.name, valuesByName.getOrElse(varSpec.name, Seq[String]()).toArray)
-
-    if (seqOfNameValues.isEmpty) Seq(Map[String, Option[String]]())
-    else
-      for (i <- 0 until seqOfNameValues.head.values.size) yield {
-        for (nameValues <- seqOfNameValues) yield {
+    val seqOfNameValues : Seq[NameValuesVar] =
+      for {
+        varSpec <- section.getAllVariables
+      } yield {
+        NameValuesVar(varSpec.name, valuesByName.getOrElse(varSpec.name, Seq[String]()))
+      }
+    if (seqOfNameValues.isEmpty) {
+      Seq(Map[String, Option[String]]())
+    }
+    else {
+      for {
+        // If head has an empty sequence as value, it does not iterate for other variables
+        // To fix, we use the max size of of all variables (so those value can be used, missing will be set to None.
+        i <- 0 until seqOfNameValues.map(_.values.size).max
+      } yield {
+        for {
+          nameValues <- seqOfNameValues
+        } yield {
           val valueOpt = try Some(nameValues.values(i)) catch { case e: Exception => None }
           (nameValues.name, valueOpt)
         }
       }.toMap
+    }
   }
 
   private def createDefaultMap(section: SectionSpec): Map[String, Option[String]] =
@@ -261,10 +269,10 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
         logger.debug("Can not init field %s, no translator found for property 'self'".format(currentField.name))
     }
   }
-  
+
   /**
    * From a priority, returns the visibility of a section
-   * For the moment, a naive approach is : 
+   * For the moment, a naive approach is :
    * - Low priority => hidden
    * - High priority => displayed
    */
