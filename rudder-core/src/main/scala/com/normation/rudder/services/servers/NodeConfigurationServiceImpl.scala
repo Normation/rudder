@@ -106,7 +106,7 @@ class NodeConfigurationServiceImpl(
       block
     } catch {
       // File is already locked in this thread or virtual server
-      case ex : OverlappingFileLockException => LOGGER.debug("Concurrent acces for method %s".format(Thread.currentThread.getStackTrace()(0).getMethodName))
+      case ex : OverlappingFileLockException => LOGGER.debug("Concurrent access for method %s".format(Thread.currentThread.getStackTrace()(1).getMethodName))
       throw ex
     } finally {
       // Release the lock
