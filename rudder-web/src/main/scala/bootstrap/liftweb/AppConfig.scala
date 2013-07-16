@@ -1169,6 +1169,7 @@ object RudderConfig extends Loggable {
     , new CheckMigrationEventLog2_3(eventLogsMigration_2_3_Management)
     , new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen)
     , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen)
+    , new CheckDotInGenericCFEngineVariableDef(roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen)
   )
 
 
