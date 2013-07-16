@@ -117,6 +117,21 @@ import com.normation.rudder.services.modification.DiffService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows.TwoValidationStepsWorkflowServiceImpl
+import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.web.rest.rule.RuleApiService1_0
+import com.normation.rudder.web.rest.rule._
+import com.normation.rudder.web.rest.directive._
+import com.normation.rudder.web.rest.directive.DirectiveAPIService1_0
+import com.normation.rudder.web.rest.group.GroupApiService1_0
+import com.normation.rudder.web.rest.group._
+import com.normation.rudder.web.rest.node.NodeApiService1_0
+import com.normation.rudder.web.rest.node._
+import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.RoLDAPApiAccountRepository
+import com.normation.rudder.api.WoApiAccountRepository
+import com.normation.rudder.api.RoApiAccountRepository
+import com.normation.rudder.api.WoLDAPApiAccountRepository
+import com.normation.rudder.api.TokenGeneratorImpl
 
 /**
  * Define a resource for configuration.
@@ -310,9 +325,12 @@ object RudderConfig extends Loggable {
   val srvGrid = new SrvGrid
   val expectedReportRepository : RuleExpectedReportsRepository = configurationExpectedRepo
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
+  val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
+  val woApiAccountRepository : WoApiAccountRepository = woLDAPApiAccountRepository
 
   val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(jdbcTemplate)
   val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(jdbcTemplate, roWorkflowRepository)
+
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
 
@@ -386,13 +404,133 @@ object RudderConfig extends Loggable {
   ///////////////////////////////////////// REST ///////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
 
+
+  val restExtractorService =
+    RestExtractorService (
+        roRuleRepository
+      , roDirectiveRepository
+      , roNodeGroupRepository
+      , techniqueRepository
+      , queryParser
+      , userPropertyService
+    )
+
+  val tokenGenerator = new TokenGeneratorImpl(32)
+
   val restDeploy = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)
   val restDyngroupReload = new RestDyngroupReload(dyngroupUpdaterBatch)
   val restTechniqueReload = new RestTechniqueReload(techniqueRepositoryImpl, uuidGen)
   val restArchiving = new RestArchiving(itemArchiveManagerImpl,personIdentServiceImpl, uuidGen)
   val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
+  val restApiAccounts = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator)
+
+  val ruleApiService1_0 =
+    new RuleApiService1_0(
+        roRuleRepository
+      , woRuleRepository
+      , uuidGen
+      , asyncDeploymentAgent
+      , changeRequestService
+      , workflowService
+      , restExtractorService
+      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+    )
+
+  val ruleApi1_0 =
+    new RuleAPI1_0 (
+        roRuleRepository
+      , restExtractorService
+      , ruleApiService1_0
+    )
+
+  val latestRuleApi = new LatestRuleAPI (ruleApi1_0)
+
+  val genericRuleApi =
+    new RuleAPIHeaderVersion (
+        roRuleRepository
+      , restExtractorService
+      , ruleApiService1_0
+    )
 
 
+   val directiveApiService1_0 =
+    new DirectiveAPIService1_0 (
+        roDirectiveRepository
+      , woDirectiveRepository
+      , uuidGen
+      , asyncDeploymentAgent
+      , changeRequestService
+      , workflowService
+      , restExtractorService
+      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+      , directiveEditorService
+    )
+
+  val directiveApi1_0 =
+    new DirectiveAPI1_0 (
+        roDirectiveRepository
+      , restExtractorService
+      , directiveApiService1_0
+    )
+
+  val latestDirectiveApi = new LatestDirectiveAPI (directiveApi1_0)
+
+  val genericDirectiveApi =
+    new DirectiveAPIHeaderVersion (
+        roDirectiveRepository
+      , restExtractorService
+      , directiveApiService1_0
+    )
+
+  val groupApiService1_0 =
+    new GroupApiService1_0 (
+        roNodeGroupRepository
+      , woNodeGroupRepository
+      , uuidGen
+      , asyncDeploymentAgent
+      , changeRequestService
+      , workflowService
+      , restExtractorService
+      , queryProcessor
+      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+    )
+
+  val groupApi1_0 =
+    new GroupAPI1_0 (
+        roNodeGroupRepository
+      , restExtractorService
+      , groupApiService1_0
+    )
+
+  val latestGroupApi = new LatestGroupAPI (groupApi1_0)
+
+  val genericGroupApi =
+    new GroupAPIHeaderVersion (
+        roNodeGroupRepository
+      , restExtractorService
+      , groupApiService1_0
+    )
+
+    val nodeApiService1_0 =
+    new NodeApiService1_0 (
+        newNodeManager
+      , nodeInfoService
+      , removeNodeService
+      , uuidGen
+      , restExtractorService
+    )
+
+  val nodeApi1_0 =
+    new NodeAPI1_0 (
+      nodeApiService1_0
+    )
+
+  val latestNodeApi = new LatestNodeAPI (nodeApi1_0)
+
+  val genericNodeApi =
+    new NodeAPIHeaderVersion (
+      nodeApiService1_0
+    )
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -428,6 +566,17 @@ object RudderConfig extends Loggable {
   // private implementation as long as they conform to interface.
   //
 
+  private[this] lazy val roLDAPApiAccountRepository = new RoLDAPApiAccountRepository(
+      rudderDitImpl
+    , roLdap
+    , ldapEntityMapper
+  )
+
+  private[this] lazy val woLDAPApiAccountRepository = new WoLDAPApiAccountRepository(
+      rudderDitImpl
+    , rwLdap
+    , ldapEntityMapper
+  )
 
   private[this] lazy val ruleApplicationStatusImpl: RuleApplicationStatusService = new RuleApplicationStatusServiceImpl()
   private[this] lazy val acceptedNodesDitImpl: InventoryDit = new InventoryDit(LDAP_INVENTORIES_ACCEPTED_BASEDN, LDAP_INVENTORIES_SOFTWARE_BASEDN, "Accepted inventories")
