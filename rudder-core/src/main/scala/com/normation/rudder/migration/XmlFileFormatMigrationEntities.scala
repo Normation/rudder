@@ -62,32 +62,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.IterableFunc.itNodeSeq
 import net.liftweb.util.StringPromotable.intToStrPromo
 
-/*
-/**
- * ////////////////////////////////////////
- * The logger to use for tracking that
- * migration
- * ////////////////////////////////////////
- */
-object LogMigrationEventLog_10_2 {
-  val logger = Logger("migration-2.3-2.4-eventlog-xml-format-1.0-2")
 
-  val defaultErrorLogger : Failure => Unit = { f =>
-    logger.error(f.messageChain)
-    f.rootExceptionCause.foreach { ex =>
-      logger.error("Root exception was:", ex)
-    }
-  }
-  val defaultSuccessLogger : Seq[MigrationEventLog] => Unit = { seq =>
-    if(logger.isDebugEnabled) {
-      seq.foreach { log =>
-        logger.debug("Migrating eventlog to format 2, id: " + log.id)
-      }
-    }
-    logger.info("Successfully migrated %s eventlog to format 2".format(seq.size))
-  }
-}
-*/
 /**
  * ////////////////////////////////////////
  * DataBase
@@ -178,11 +153,23 @@ class MigrationEventLogRepository(squerylConnectionProvider : SquerylConnectionP
   }
 }
 
+sealed trait MigrationStatus
+final case object NoMigrationRequested extends MigrationStatus
+final case object MigrationVersionNotHandledHere extends MigrationStatus
+final case object MigrationVersionNotSupported extends MigrationStatus
+final case class  MigrationSuccess(migrated:Int) extends MigrationStatus
+
+
+trait MigrableEntity {
+  def id: Long
+  def data: Elem
+}
+
 case class MigrationEventLog(
-    id           : Long
-  , eventType    : String
-  , data         : Elem
-)
+    id       : Long
+  , eventType: String
+  , data     : Elem
+) extends MigrableEntity
 
 object MigrationEventLogMapper extends RowMapper[MigrationEventLog] {
   override def mapRow(rs : ResultSet, rowNum: Int) : MigrationEventLog = {
@@ -194,94 +181,20 @@ object MigrationEventLogMapper extends RowMapper[MigrationEventLog] {
   }
 }
 
-sealed trait MigrationStatus
-final case object NoMigrationRequested extends MigrationStatus
-final case object MigrationVersionNotHandledHere extends MigrationStatus
-final case class MigrationSuccess(migrated:Int) extends MigrationStatus
 
+case class MigrationChangeRequest(
+    id  : Long
+  , name: String
+  , data: Elem
+) extends MigrableEntity
 
-/**
- * ////////////////////////////////////////
- * XML
- * ////////////////////////////////////////
- */
-
-//test the label of an xml node
-object TestLabel {
-  def apply(xml:Node, label:String) : Box[Node] = {
-    if(xml.label == label) Full(xml)
-    else Failure("Entry type is not a '%s' : %s".format(label, xml) )
+object MigrationChangeRequestMapper extends RowMapper[MigrationChangeRequest] {
+  override def mapRow(rs : ResultSet, rowNum: Int) : MigrationChangeRequest = {
+    MigrationChangeRequest(
+        id   = rs.getLong("id")
+      , name = rs.getString("name")
+      , data = XML.load(rs.getSQLXML("content").getBinaryStream)
+    )
   }
 }
 
-
-object TestIsElem {
-
-  private[this] def failBadElemType(xml:NodeSeq) = {
-    Failure("Not expected type of NodeSeq (wish it was an Elem): " + xml)
-  }
-
-  def apply(xml:NodeSeq) : Box[Elem] = {
-    xml match {
-      case seq if(seq.size == 1) => seq.head match {
-        case e:Elem => Full(e)
-        case x => failBadElemType(x)
-      }
-      case x => failBadElemType(x)
-    }
-  }
-}
-
-
-//test that the node is an entry and that it has EXACTLY one child
-//do not use to test empty entry
-//return the child
-object TestIsEntry {
-  def apply(xml:Elem) : Box[Elem] = {
-    val trimed = XmlUtils.trim(xml)
-    if(trimed.label.toLowerCase == "entry" && trimed.child.size == 1) TestIsElem(trimed.child.head)
-    else Failure("Given XML data has not an 'entry' root element and exactly one child: " + trimed)
-  }
-}
-
-/**
- * Change labels of a list of Elem
- */
-case class ChangeLabel(label:String) extends Function1[NodeSeq, Option[Elem]] {
-   def logger = MigrationLogger(2)
-
-  override def apply(nodes:NodeSeq) = nodes match {
-    case e:Elem => Some(e.copy(label = label))
-    case x => //ignore other type of nodes
-      logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
-      None
-  }
-}
-/**
- * Change labels of a list of Elem
- */
-case class EncapsulateChild(label:String) extends Function1[NodeSeq, Option[NodeSeq]] {
- def logger = MigrationLogger(2)
-
-  override def apply(nodes:NodeSeq) = nodes match {
-    case e:Elem => Some(e.copy(child = Encapsulate(label).apply(e.child).getOrElse(NodeSeq.Empty)))
-    case x => //ignore other type of nodes
-      logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
-      None
-  }
-}
-/**
- * Change labels of a list of Elem
- */
-case class Encapsulate(label:String) extends Function1[NodeSeq, Option[NodeSeq]] {
-   def logger = MigrationLogger(2)
-
-  override def apply(nodes:NodeSeq) = nodes match {
-    case e:Elem => Some(e.copy(label=label,child=e))
-    case nodeseq:NodeSeq if (nodeseq.size == 1) => Some(<test>{nodeseq.head}</test>.copy(label = label) )
-    case nodeseq:NodeSeq if (nodeseq == NodeSeq.Empty) => Some(nodeseq)
-    case x => //ignore other type of nodes
-      logger.debug("Can not change the label to '%s' of a NodeSeq other than elem in a CssSel: '%s'".format(label, x))
-      None
-  }
-}

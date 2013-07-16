@@ -57,7 +57,7 @@ import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
-
+import com.normation.rudder.domain.parameters._
 
 /**
  * A service responsible to actually commit a change request,
@@ -91,18 +91,20 @@ trait CommitAndDeployChangeRequestService {
  * deploy them
  */
 class CommitAndDeployChangeRequestServiceImpl(
-    uuidGen             : StringUuidGenerator
-  , roChangeRequestRepo : RoChangeRequestRepository
-  , woChangeRequestRepo : WoChangeRequestRepository
-  , roDirectiveRepo     : RoDirectiveRepository
-  , woDirectiveRepo     : WoDirectiveRepository
-  , roNodeGroupRepo     : RoNodeGroupRepository
-  , woNodeGroupRepo     : WoNodeGroupRepository
-  , roRuleRepository    : RoRuleRepository
-  , woRuleRepository    : WoRuleRepository
-  , asyncDeploymentAgent: AsyncDeploymentAgent
-  , dependencyService   : DependencyAndDeletionService
-  , workflowEnabled     : Boolean
+    uuidGen              : StringUuidGenerator
+  , roChangeRequestRepo  : RoChangeRequestRepository
+  , woChangeRequestRepo  : WoChangeRequestRepository
+  , roDirectiveRepo      : RoDirectiveRepository
+  , woDirectiveRepo      : WoDirectiveRepository
+  , roNodeGroupRepo      : RoNodeGroupRepository
+  , woNodeGroupRepo      : WoNodeGroupRepository
+  , roRuleRepository     : RoRuleRepository
+  , woRuleRepository     : WoRuleRepository
+  , roParameterRepository: RoParameterRepository
+  , woParameterRepository: WoParameterRepository
+  , asyncDeploymentAgent : AsyncDeploymentAgent
+  , dependencyService    : DependencyAndDeletionService
+  , workflowEnabled      : Boolean
 ) extends CommitAndDeployChangeRequestService with Loggable {
 
   def save(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ModificationId] = {
@@ -199,8 +201,26 @@ class CommitAndDeployChangeRequestServiceImpl(
       }
     }
 
+    def checkGlobalParameter(globalParamChanges:GlobalParameterChanges) : Box[String] = {
+      globalParamChanges.changes.initialState match {
+        case None => //ok, we were creating a Global Parameter, can't diverge
+          Full("OK")
+        case Some(initialParam) =>
+          for {
+            currentParam <- roParameterRepository.getGlobalParameter(initialParam.name)
+            check        <- if ( initialParam == currentParam) {
+                              Full("OK")
+                            } else {
+                              Failure(s"Global Parameter ${initialParam.name.value} has diverged since change request creation")
+                            }
+            } yield {
+              check
+            }
+      }
+    }
+
     /*
-     * Comparison methods between Rules/directives/groups
+     * Comparison methods between Rules/directives/groups/global Param
      * They are used to check if they are mergeable.
      */
 
@@ -272,6 +292,9 @@ class CommitAndDeployChangeRequestServiceImpl(
                         }
         rulesOk      <- sequence(changeRequest.rules.values.toSeq) { changes =>
                           checkRule(changes)
+                        }
+        globalParamOk<- sequence(changeRequest.globalParams.values.toSeq) { changes =>
+                          checkGlobalParameter(changes)
                         }
       } yield {
         directivesOk
@@ -351,6 +374,21 @@ class CommitAndDeployChangeRequestServiceImpl(
       }
     }
 
+    def doParamChange(change:GlobalParameterChanges, modId: ModificationId) : Box[ParameterName] = {
+      for {
+        change <- change.changes.change
+        done   <- change.diff match {
+                    case DeleteGlobalParameterDiff(param) =>
+                      woParameterRepository.delete(param.name, modId, change.actor, change.reason).map( _ => param.name)
+                    case AddGlobalParameterDiff(param) =>
+                      woParameterRepository.saveParameter(param, modId, change.actor, change.reason).map( _ => param.name)
+                    case ModifyToGlobalParameterDiff(param) =>
+                      woParameterRepository.updateParameter(param, modId, change.actor, change.reason).map( _ => param.name)
+                  }
+      } yield {
+        done
+      }
+    }
     val modId = ModificationId(uuidGen.newUuid)
 
     /*
@@ -368,6 +406,9 @@ class CommitAndDeployChangeRequestServiceImpl(
                     }
       rules      <- sequence(cr.rules.values.toSeq) { rule =>
                       doRuleChange(rule, modId)
+                    }
+      params     <- sequence(cr.globalParams.values.toSeq) { param =>
+                      doParamChange(param, modId)
                     }
     } yield {
       modId

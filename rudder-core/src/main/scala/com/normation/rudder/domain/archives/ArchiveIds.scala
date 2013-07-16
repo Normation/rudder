@@ -36,3 +36,5 @@ package com.normation.rudder.domain.archives
 import com.normation.utils.HashcodeCaching
 
 final case class RuleArchiveId(value:String) extends HashcodeCaching
+
+final case class ParameterArchiveId(value:String) extends HashcodeCaching

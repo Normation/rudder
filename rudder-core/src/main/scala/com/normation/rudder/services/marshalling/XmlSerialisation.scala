@@ -46,6 +46,7 @@ import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
+import com.normation.rudder.domain.parameters.GlobalParameter
 
 
 
@@ -216,6 +217,7 @@ trait DeploymentStatusSerialisation {
  * That trait allow to unserialise change request changes from an XML file.
  *
  */
+// TODO : do we need to change the fileFormat ?
 trait ChangeRequestChangesSerialisation {
   /**
    * Version 2:
@@ -282,7 +284,39 @@ trait ChangeRequestChangesSerialisation {
             </nextChanges>
           </group>
         </rules>
+         <globalParameters>
+          <globalParameter name="id3">*
+            <initialState>
+              GlobalParameterSerialization*
+            </initialState>
+            <firstChange>
+              GlobalParameterSerialization+
+            </firstChange>
+            <nextChanges>
+              <change>*
+                GlobalParameterSerialization
+              </change>
+            </nextChanges>
+          </globalParameter>
+        </globalParameters>
       </changeRequest>
    */
   def serialise(changeRequest:ChangeRequest): Elem
+}
+
+/**
+ * That trait allows to serialise
+ * Global Parameter to an XML
+ */
+trait GlobalParameterSerialisation {
+  /**
+   * Version 3:
+     <globalParameter fileFormat="3">
+       <name>{param.name.value}</name>
+       <value>{param.value}</value>
+       <description>{param.description}</description>
+       <overridable>{param.overridable}</overridable>
+     </globalParameter>
+   */
+  def serialise(param:GlobalParameter):  Elem
 }

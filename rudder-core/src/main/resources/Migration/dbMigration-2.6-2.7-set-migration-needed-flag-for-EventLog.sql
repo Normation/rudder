@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2012-2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,19 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.marshalling
 
-import net.liftweb.common._
-import com.normation.rudder.domain.Constants
-import scala.xml.Node
+-- if an old EventLog entry has been detected, add a flag with the format 1 and the current date to tell Rudder about it
 
-
-object TestFileFormat {
-
-  private[this] val currentFileFormat = Constants.XML_FILE_FORMAT_4
-
-  def apply(xml:Node, fileFormat:String = currentFileFormat.toString) : Box[String] = {
-    if(xml.attribute("fileFormat").map( _.text ) == Some(fileFormat)) Full("OK")
-    else Failure("Bad fileFormat (expecting %s): %s".format(fileFormat, xml))
-  }
-}
+INSERT INTO migrationeventlog(detectiontime, detectedfileformat) VALUES (NOW(), 3);

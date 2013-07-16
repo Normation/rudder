@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -31,20 +31,31 @@
 *
 *************************************************************************************
 */
+package com.normation.rudder.domain.parameters
+import com.normation.utils.HashcodeCaching
 
-package com.normation.rudder.services.marshalling
+case class ParameterName(value:String) extends HashcodeCaching
 
-import net.liftweb.common._
-import com.normation.rudder.domain.Constants
-import scala.xml.Node
-
-
-object TestFileFormat {
-
-  private[this] val currentFileFormat = Constants.XML_FILE_FORMAT_4
-
-  def apply(xml:Node, fileFormat:String = currentFileFormat.toString) : Box[String] = {
-    if(xml.attribute("fileFormat").map( _.text ) == Some(fileFormat)) Full("OK")
-    else Failure("Bad fileFormat (expecting %s): %s".format(fileFormat, xml))
-  }
+/**
+ * A Parameter is an object that has a name and a value, to store and reuse
+ * values at different places within Rudder
+ */
+sealed trait Parameter {
+  def name        : ParameterName
+  def value       : String
+  def description : String
+  def overridable : Boolean
 }
+
+/**
+ * A Global Parameter is a parameter globally defined, that may be overriden
+ */
+case class GlobalParameter(
+    override val name       : ParameterName
+  , override val value      : String
+  , override val description: String
+  , override val overridable: Boolean
+) extends Parameter {
+
+}
+

@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2012-2013 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -65,49 +65,43 @@ import net.liftweb.util.StringPromotable.intToStrPromo
 
 
 
+
 /**
  * General information about that migration
  */
-trait Migration_2_3_Definition extends XmlFileFormatMigration {
+trait Migration_3_4_Definition extends XmlFileFormatMigration {
 
-  override val fromVersion = Constants.XML_FILE_FORMAT_2
-  override val toVersion   = Constants.XML_FILE_FORMAT_3
+  override val fromVersion = Constants.XML_FILE_FORMAT_3
+  override val toVersion   = Constants.XML_FILE_FORMAT_4
 
 }
 
-/**
- * This class manage the hight level migration process: read if a
- * migration is required in the MigrationEventLog datatable, launch
- * the migration process, write migration result.
- * The actual migration of event logs is delegated to EventLogsMigration_10_2
- */
-class ControlEventLogsMigration_2_3(
+
+class ControlXmlFileFormatMigration_3_4(
     override val migrationEventLogRepository: MigrationEventLogRepository
-  , override val batchMigrators             : Seq[BatchElementMigration[MigrationEventLog]]
-) extends ControlXmlFileFormatMigration with Migration_2_3_Definition {
-  override val previousMigrationController = None
-}
-
+  , override val batchMigrators             : Seq[BatchElementMigration[_]]
+  , override val previousMigrationController: Option[ControlXmlFileFormatMigration]
+) extends ControlXmlFileFormatMigration with Migration_3_4_Definition
 
 /**
  * The class that handle the processing of the list of all event logs
  * logic.
- * Each individual eventlog is processed in EventLogMigration_2_3
+ * Each individual eventlog is processed in EventLogMigration_3_4
  *
  */
-class EventLogsMigration_2_3(
+class EventLogsMigration_3_4(
     override val jdbcTemplate       : JdbcTemplate
-  , override val individualMigration: EventLogMigration_2_3
+  , override val individualMigration: EventLogMigration_3_4
+  , val eventLogsMigration_2_3      : EventLogsMigration_2_3
   , override val batchSize          : Int = 1000
-) extends BatchElementMigration[MigrationEventLog] with Migration_2_3_Definition {
-
+) extends BatchElementMigration[MigrationEventLog] with Migration_3_4_Definition {
 
   override val elementName = "EventLog"
   override val rowMapper = MigrationEventLogMapper
   override val selectAllSqlRequest = "SELECT id, eventType, data FROM eventlog"
 
   override protected def save(logs:Seq[MigrationEventLog]) : Box[Seq[MigrationEventLog]] = {
-    val UPDATE_SQL = "UPDATE EventLog set eventType = ?, data = ? where id = ?"
+    val UPDATE_SQL = "UPDATE EventLog set data = ? where id = ?"
 
     val ilogs = logs match {
       case x:IndexedSeq[_] => logs
@@ -118,28 +112,26 @@ class EventLogsMigration_2_3(
                UPDATE_SQL
              , new BatchPreparedStatementSetter() {
                  override def setValues(ps: PreparedStatement, i: Int): Unit = {
-                   ps.setString(1, ilogs(i).eventType )
                    val sqlXml = ps.getConnection.createSQLXML()
                    sqlXml.setString(ilogs(i).data.toString)
-                   ps.setSQLXML(2, sqlXml)
-                   ps.setLong(3, ilogs(i).id )
+                   ps.setSQLXML(1, sqlXml)
+                   ps.setLong(2, ilogs(i).id )
                  }
 
                  override def getBatchSize() = ilogs.size
                }
     ) }.map( _ => ilogs )
   }
-
 }
 
 
 /**
- * Migrate an event log from fileFormat 2 to 3
+ * Migrate an event log from fileFormat 3 to 4
  * Also take care of categories, etc.
  */
-class EventLogMigration_2_3(
-    xmlMigration:XmlMigration_2_3
-) extends IndividualElementMigration[MigrationEventLog] with Migration_2_3_Definition {
+class EventLogMigration_3_4(
+    xmlMigration:XmlMigration_3_4
+) extends IndividualElementMigration[MigrationEventLog] with Migration_3_4_Definition {
 
   def migrate(eventLog:MigrationEventLog) : Box[MigrationEventLog] = {
     /*
@@ -170,12 +162,10 @@ class EventLogMigration_2_3(
     for {
       xml      <- TestIsEntry(data)
       migrated <- eventType.toLowerCase match {
-                    case "ruleadded"    => create(xmlMigration.rule(xml), "RuleAdded")
-                    case "ruledeleted"  => create(xmlMigration.rule(xml), "RuleDeleted")
-                    case "rulemodified" => create(xmlMigration.rule(xml), "RuleModified")
+                    case "ruleadded"    => create(xmlMigration.changeRequest(xml), "RuleAdded")
 
                     /*
-                     * When migrating from 2 to 3, no eventType name change,
+                     * When migrating from 3 to 4, no eventType name change,
                      * so we can just pass it.
                      */
                     case _    => create(xmlMigration.other(xml), eventType)
@@ -188,42 +178,26 @@ class EventLogMigration_2_3(
 
 /**
  * That class handle migration of XML eventLog file
- * from format 2 to a 3.
+ * from format 3 to a 4.
  *
  * Hypothesis:
- * - only rule was change, and only "target" was change
- *   (now we can have several targets, so we have <targets><target></target>...</targets>
- * - all other elements are well formed, and have a file format attribute, and it's 2
+ * - only Change Request was change, and only adding a globalParameters tag in it
+ *   (now we can have change on Global Parameters, so we have <globalParameters><globalParameter></globalParameter>...</globalParameters>
+ * - all other elements are well formed, and have a file format attribute, and it's 3
  *   (because we filtered them to be so)
- * - only the entity tag (<group ...>, <directive ...>, etc has a fileformat="2" attribute
+ * - only the entity tag (<group ...>, <directive ...>, etc has a fileformat="3" attribute
  */
-class XmlMigration_2_3 extends Migration_2_3_Definition {
+class XmlMigration_3_4 extends Migration_3_4_Definition {
 
-  def rule(xml:Elem) : Box[Elem] = {
+  def changeRequest(xml:Elem) : Box[Elem] = {
     for {
-      labelOK      <- TestLabel(xml, "rule")
-      fileFormatOK <- TestFileFormat(xml, fromVersion.toString())
+      labelOK      <- TestLabel(xml, "changeRequest")
+      fileFormatOK <- TestFileFormat(xml,fromVersion.toString())
       migrated     <-
-
-                    if (xml.attribute("changeType").map(_.text) == Some("modify"))
                       TestIsElem(
                         (
-                        "rule [fileFormat]" #> toVersion  &
-                        "target " #>  ChangeLabel("targets", logger) andThen
-                        "targets *" #> ("none " #>  NodeSeq.Empty andThen
-                        "to"  #> EncapsulateChild("target", logger) andThen
-                        "from" #> EncapsulateChild("target", logger))
-
-                      )(xml))
-                    else //handle add/deletion
-                      TestIsElem(
-                        (
-                        "rule [fileFormat]" #> toVersion  &
-
-                        "target " #> ChangeLabel("targets", logger) andThen
-                        "none "   #>  NodeSeq.Empty andThen
-                        "targets" #> EncapsulateChild("target", logger)
-
+                        "changeRequest [fileFormat]" #> toVersion  &
+                        "changeRequest " #> (( xml \"changeRequest" ) ++  <globalParameters></globalParameters>)
                       )(xml))
     } yield {
       migrated
@@ -232,14 +206,89 @@ class XmlMigration_2_3 extends Migration_2_3_Definition {
 
   def other(xml:Elem) : Box[Elem] = {
     for {
-      fileFormatOK <- TestFileFormat(xml, fromVersion.toString())
+      fileFormatOK <- TestFileFormat(xml,fromVersion.toString())
       migrated     <- TestIsElem((
-                        //here we use the hypothesis that no other element than the entity type has an attribute fileformat to 2
-                        "fileFormat=2 [fileFormat]" #> toVersion
+                        //here we use the hypothesis that no other element than the entity type has an attribute fileformat to 3
+                        "fileFormat=3 [fileFormat]" #> toVersion
                       ).apply(xml))
     } yield {
       migrated
     }
   }
 
+}
+
+
+/**
+ * The class that handle the processing of the list of all event logs
+ * logic.
+ * Each individual eventlog is processed in EventLogMigration_10_2
+ *
+ */
+class ChangeRequestsMigration_3_4(
+    override val jdbcTemplate       : JdbcTemplate
+  , override val individualMigration: ChangeRequestMigration_3_4
+  , override val batchSize          : Int = 1000
+) extends BatchElementMigration[MigrationChangeRequest] with Migration_3_4_Definition {
+
+  override val elementName = "ChangeRequest"
+  override val rowMapper = MigrationChangeRequestMapper
+  override val selectAllSqlRequest = "SELECT id, name, content FROM changerequest"
+
+
+  override protected def save(logs:Seq[MigrationChangeRequest]) : Box[Seq[MigrationChangeRequest]] = {
+    val UPDATE_SQL = "UPDATE changerequest set content = ? where id = ?"
+
+    val ilogs = logs match {
+      case x:IndexedSeq[_] => logs
+      case seq => seq.toIndexedSeq
+    }
+
+    tryo { jdbcTemplate.batchUpdate(
+               UPDATE_SQL
+             , new BatchPreparedStatementSetter() {
+                 override def setValues(ps: PreparedStatement, i: Int): Unit = {
+                   val sqlXml = ps.getConnection.createSQLXML()
+                   sqlXml.setString(ilogs(i).data.toString)
+                   ps.setSQLXML(1, sqlXml)
+                   ps.setLong(2, ilogs(i).id )
+                 }
+
+                 override def getBatchSize() = ilogs.size
+               }
+    ) }.map( _ => ilogs )
+  }
+}
+
+/**
+ * Migrate an event log from fileFormat 2 to 3
+ * Also take care of categories, etc.
+ */
+class ChangeRequestMigration_3_4(
+    xmlMigration:XmlMigration_3_4
+) extends IndividualElementMigration[MigrationChangeRequest] with Migration_3_4_Definition {
+
+  def migrate(cr:MigrationChangeRequest) : Box[MigrationChangeRequest] = {
+    /*
+     * We don't use values from
+     * com.normation.rudder.domain.eventlog.*EventType
+     * so that if they change in the future, the migration
+     * from 2.3 to 2.4 is still OK.
+     */
+    val MigrationChangeRequest(id,name, content) = cr
+
+
+    //utility to factor common code
+    //notice the addition of <entry> tag in the result
+    def create(optElem:Box[Elem], name:String) = {
+       optElem.map { xml => MigrationChangeRequest(id, name, <entry>{xml}</entry>) }
+    }
+
+    for {
+      xml      <- TestIsEntry(content)
+      migrated <- create(xmlMigration.changeRequest(xml), name)
+    } yield {
+      migrated
+    }
+  }
 }

@@ -230,3 +230,24 @@ objectClass: organizationalUnit
 objectClass: top
 ou: Archives
 
+## Rudder Parameters configuration branch
+
+dn: ou=Parameters,ou=Rudder,cn=rudder-configuration
+objectClass: organizationalUnit
+objectClass: top
+ou: Parameters
+
+dn: parameterName=rudder_file_edit_header,ou=Parameters,ou=Rudder,cn=rudder-configuration
+objectClass: parameter
+objectClass: top
+parameterName: rudder_file_edit_header
+description: Default inform message put in header of managed files by Rudder
+overridable: TRUE
+parameterValue:: IyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyM
+ jIyMjIyMjIyMjIyMjIyMjIw0KIyMjIFRoaXMgZmlsZSBpcyBwcm90ZWN0ZWQgYnkgeW91ciBSdW
+ RkZXIgaW5mcmFzdHJ1Y3R1cmUuICMjIw0KIyMjIE1hbnVhbGx5IGVkaXRpbmcgdGhlIGZpbGUgb
+ WlnaHQgbGVhZCB5b3VyIFJ1ZGRlciAgICAgICMjIw0KIyMjIGluZnJhc3RydWN0dXJlIHRvIGNo
+ YW5nZSBiYWNrIHRoZSBzZXJ2ZXLigJlzICAgICAgICAgICAgIyMjDQojIyMgY29uZmlndXJhdGl
+ vbiBhbmQvb3IgdG8gcmFpc2UgYSBjb21wbGlhbmNlIGFsZXJ0LiAgICAgIyMjDQojIyMjIyMjIy
+ MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj
+

@@ -74,17 +74,20 @@ import java.sql.Timestamp
  */
 @RunWith(classOf[JUnitRunner])
 class TestManageMigration_2_3 extends DBCommon {
-      lazy val migration = new EventLogsMigration_2_3(
+
+  case class MigEx102(msg:String) extends Exception(msg)
+
+  lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
-    , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
-    , successLogger = successLogger
+    , individualMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
     , batchSize = 2
-  )
+  ) {
+    override def errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
+  }
 
   lazy val migrationManagement = new ControlEventLogsMigration_2_3(
           migrationEventLogRepository = new MigrationEventLogRepository(squerylConnectionProvider)
-        , migration
+        , Seq(migration)
       )
   val sqlClean = "" //no need to clean temp data table.
 
@@ -166,21 +169,21 @@ CREATE TEMP TABLE MigrationEventLog(
       val res = withFileFormatLine(-1) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotHandledHere)
+      res ==== Full(MigrationVersionNotSupported)
     }
 
     "not be launched if fileformat is 0" in {
       val res = withFileFormatLine(0) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotHandledHere)
+      res ==== Full(MigrationVersionNotSupported)
     }
 
     "not be launched if fileformat is 1" in {
       val res = withFileFormatLine(1) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotHandledHere)
+      res ==== Full(MigrationVersionNotSupported)
     }
 
     "be launched if fileformat is 2, event if marked finished" in {

@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,19 +32,30 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.marshalling
+package com.normation.rudder.domain.parameters
 
-import net.liftweb.common._
-import com.normation.rudder.domain.Constants
-import scala.xml.Node
+import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain.policies.SimpleDiff
 
+sealed trait ParameterDiff
 
-object TestFileFormat {
-
-  private[this] val currentFileFormat = Constants.XML_FILE_FORMAT_4
-
-  def apply(xml:Node, fileFormat:String = currentFileFormat.toString) : Box[String] = {
-    if(xml.attribute("fileFormat").map( _.text ) == Some(fileFormat)) Full("OK")
-    else Failure("Bad fileFormat (expecting %s): %s".format(fileFormat, xml))
-  }
+//for change request, with add type tag to DirectiveDiff
+sealed trait ChangeRequestGlobalParameterDiff {
+  def parameter:GlobalParameter
 }
+
+final case class AddGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff with HashcodeCaching
+
+final case class DeleteGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff with HashcodeCaching
+
+final case class ModifyGlobalParameterDiff(
+    name                : ParameterName
+  , modValue            : Option[SimpleDiff[String]] = None
+  , modDescription      : Option[SimpleDiff[String]] = None
+  , modOverridable      : Option[SimpleDiff[Boolean]] = None
+) extends ParameterDiff with HashcodeCaching
+
+
+final case class ModifyToGlobalParameterDiff(
+    parameter : GlobalParameter
+) extends ParameterDiff with HashcodeCaching with ChangeRequestGlobalParameterDiff
