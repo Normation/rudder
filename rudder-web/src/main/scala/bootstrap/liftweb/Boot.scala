@@ -97,6 +97,23 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RudderConfig.restTechniqueReload)
     LiftRules.statelessDispatch.append(RudderConfig.restArchiving)
     LiftRules.statelessDispatch.append(RudderConfig.restGetGitCommitAsZip)
+    LiftRules.statelessDispatch.append(RudderConfig.restApiAccounts)
+    // Rule APIs
+    LiftRules.statelessDispatch.append(RudderConfig.ruleApi1_0)
+    LiftRules.statelessDispatch.append(RudderConfig.latestRuleApi)
+    LiftRules.statelessDispatch.append(RudderConfig.genericRuleApi)
+    // Directive APIs
+    LiftRules.statelessDispatch.append(RudderConfig.directiveApi1_0)
+    LiftRules.statelessDispatch.append(RudderConfig.latestDirectiveApi)
+    LiftRules.statelessDispatch.append(RudderConfig.genericDirectiveApi)
+    // Group APIs
+    LiftRules.statelessDispatch.append(RudderConfig.groupApi1_0)
+    LiftRules.statelessDispatch.append(RudderConfig.latestGroupApi)
+    LiftRules.statelessDispatch.append(RudderConfig.genericGroupApi)
+    // Node APIs
+    LiftRules.statelessDispatch.append(RudderConfig.nodeApi1_0)
+    LiftRules.statelessDispatch.append(RudderConfig.latestNodeApi)
+    LiftRules.statelessDispatch.append(RudderConfig.genericNodeApi)
 
     // URL rewrites
     LiftRules.statefulRewrite.append {
@@ -217,11 +234,14 @@ class Boot extends Loggable {
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Write("administration")) )
 
-
         , Menu("TechniqueLibraryManagement", <span>Techniques</span>) /
             "secure" / "administration" / "techniqueLibraryManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess( () => userIsAllowed("/secure/index",Read("technique") ) )
+        , Menu("apiManagement", <span>API Accounts</span>) /
+            "secure" / "administration" / "apiManagement"
+            >> LocGroup("administrationGroup")
+            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Write("administration")) )
       )
 
 

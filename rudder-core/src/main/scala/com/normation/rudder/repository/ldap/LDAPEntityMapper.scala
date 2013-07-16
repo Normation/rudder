@@ -62,6 +62,10 @@ import scala.xml.{Text,NodeSeq}
 import com.normation.exceptions.{BusinessException,TechnicalException}
 import com.normation.rudder.services.policies.VariableBuilderService
 import net.liftweb.json.JsonAST.JObject
+import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.ApiAccountId
+import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.ApiToken
 
 
 
@@ -517,4 +521,30 @@ class LDAPEntityMapper(
     entry
   }
 
+
+
+  //////////////////////////////    API Accounts    //////////////////////////////
+
+  /**
+   * Build an API Account from an entry
+   */
+  def entry2ApiAccount(e:LDAPEntry) : Box[ApiAccount] = {
+    if(e.isA(OC_API_ACCOUNT)) {
+      //OK, translate
+      for {
+        id <- e(A_NAME).map( ApiAccountId(_) ) ?~! s"Missing required id (attribute name ${A_NAME}) in entry ${e}"
+        token <- e(A_API_TOKEN).map( ApiToken(_) ) ?~! s"Missing required name (attribute name ${A_API_TOKEN}) in entry ${e}"
+        creationDatetime <- e.getAsGTime(A_CREATION_DATETIME) ?~! s"Missing required creation timestamp (attribute name ${A_CREATION_DATETIME}) in entry ${e}"
+        tokenCreationDatetime <- e.getAsGTime(A_API_TOKEN_CREATION_DATETIME) ?~! s"Missing required token creation timestamp (attribute name ${A_API_TOKEN_CREATION_DATETIME}) in entry ${e}"
+        isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
+        description = e(A_DESCRIPTION).getOrElse("")
+      } yield {
+        ApiAccount(id, token, description, isEnabled, creationDatetime.dateTime, tokenCreationDatetime.dateTime)
+      }
+    } else Failure(s"The given entry is not of the expected ObjectClass '${OC_API_ACCOUNT}'. Entry details: ${e}")
+  }
+
+  def apiAccount2Entry(principal:ApiAccount) : LDAPEntry = {
+    rudderDit.API_ACCOUNTS.API_ACCOUNT.apiAccountModel(principal)
+  }
 }
