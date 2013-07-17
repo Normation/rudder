@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.repository.DirectiveRepository
 import com.normation.utils.Control._
 import bootstrap.liftweb.BootstrapChecks
 import net.liftweb.common._
