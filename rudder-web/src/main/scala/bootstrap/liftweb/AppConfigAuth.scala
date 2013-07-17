@@ -207,11 +207,38 @@ class RestAuthenticationFilter(
   def init(config: FilterConfig): Unit = {}
 
 
+  private[this] val api_v1_url = List(
+      "/api/status"
+    , "/api/techniqueLibrary/reload"
+    , "/api/dyngroup/reload"
+    , "/api/deploy/reload"
+    , "/api/archives"
+  )
+
+  private[this] def isValidNonAuthApiV1(httpRequest:HttpServletRequest) : Boolean = (
+       RudderConfig.RUDDER_REST_ALLOWNONAUTHENTICATEDUSER
+    && {
+         val requestPath = httpRequest.getRequestURI.substring(httpRequest.getContextPath.length)
+         api_v1_url.exists(path => requestPath.startsWith(path))
+       }
+  )
+
   private[this] def failsAuthentication(httpResponse: HttpServletResponse, eb: EmptyBox) : Unit = {
     val e = eb ?~! "REST authentication failed"
     logger.debug(e.messageChain)
     e.rootExceptionCause.foreach( ex => logger.debug(ex))
     httpResponse.sendError( HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized" )
+  }
+
+  private[this] def authenticate(userDetails: RudderUserDetail) : Unit = {
+    val authenticationToken = new UsernamePasswordAuthenticationToken(
+        userDetails
+      , userDetails.getAuthorities
+      , userDetails.getAuthorities
+    )
+
+    //save in spring security context
+    SecurityContextHolder.getContext().setAuthentication(authenticationToken)
   }
 
   /**
@@ -228,7 +255,19 @@ class RestAuthenticationFilter(
         httpRequest.getHeader(headerName) match {
 
           case null | "" =>
-            failsAuthentication(httpResponse, Failure(s"Missing or empty HTTP header ${headerName}"))
+
+            /* support of API v1 rest.AllowNonAuthenticatedUser */
+            if(isValidNonAuthApiV1(httpRequest)) {
+              authenticate(RudderUserDetail(
+                  "UnknownRestUser"
+                 , ""
+                 , RoleApiAuthority.apiRudderRights
+                 , Seq(RoleApiAuthority)
+              ))
+              chain.doFilter(request, response)
+            } else {
+              failsAuthentication(httpResponse, Failure(s"Missing or empty HTTP header ${headerName}"))
+            }
 
           case token =>
             //try to authenticate
@@ -243,24 +282,14 @@ class RestAuthenticationFilter(
               case Full(Some(principal)) =>
                 if(principal.isEnabled) {
                   //cool, build an authentication token from it
-                  val userDetails = RudderUserDetail(
-                      principal.token.value
-                    , principal.id.value
+                  authenticate(RudderUserDetail(
+                      principal.id.value
+                    , principal.token.value
                     , RoleApiAuthority.apiRudderRights
                     , Seq(RoleApiAuthority)
-                  )
-
-                  val authenticationToken = new UsernamePasswordAuthenticationToken(
-                      userDetails
-                    , userDetails.getAuthorities
-                    , userDetails.getAuthorities
-                  )
-
-                  //save in spring security context
-                  SecurityContextHolder.getContext().setAuthentication(authenticationToken)
+                  ))
 
                   chain.doFilter(request, response)
-
 
                 } else {
                   failsAuthentication(httpResponse, Failure(s"Account with ID ${principal.id.value} is disabled"))
