@@ -48,6 +48,7 @@ import net.liftweb.common.Loggable
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Empty
 import net.liftweb.common.Failure
+import com.normation.inventory.ldap.core.LDAPConstants
 
 /**
  * A repository to retrieve API Accounts
@@ -57,7 +58,7 @@ trait RoApiAccountRepository {
   /**
    * Retrieve all API Account
    */
-  def getAll(): Box[Map[ApiToken, ApiAccount]]
+  def getAll(): Box[Seq[ApiAccount]]
 
   def getByToken(token: ApiToken): Box[Option[ApiAccount]]
 
@@ -68,7 +69,19 @@ trait RoApiAccountRepository {
  */
 trait WoApiAccountRepository {
 
+  /**
+   * Save an API account
+   * If an account with a different name but the same token exists,
+   * action won't be perform.
+   *
+   */
   def save(principal: ApiAccount): Box[ApiAccount]
+
+  /**
+   * Change an account name.
+   * If the old name does not exists, it's an error.
+   */
+  def rename(oldName: ApiAccountId, newName: ApiAccountId): Box[ApiAccountId]
 
   def delete(id: ApiAccountId): Box[ApiAccountId]
 }
@@ -81,7 +94,7 @@ final class RoLDAPApiAccountRepository(
   , val mapper       : LDAPEntityMapper
 ) extends RoApiAccountRepository with Loggable {
 
-  override def getAll(): Box[Map[ApiToken, ApiAccount]] = {
+  override def getAll(): Box[Seq[ApiAccount]] = {
 
     for {
       ldap <- ldapConnexion
@@ -93,8 +106,8 @@ final class RoLDAPApiAccountRepository(
             val error = eb ?~! s"Ignoring API Account with dn ${e.dn} due to mapping error"
             logger.debug(error.messageChain)
             None
-          case Full(p) => Some((p.token, p))
-      } ).toMap
+          case Full(p) => Some(p)
+      } )
     }
   }
 
@@ -127,11 +140,30 @@ final class WoLDAPApiAccountRepository(
   override def save(principal: ApiAccount) : Box[ApiAccount] = {
 
     for {
-      ldap  <- ldapConnexion
+      ldap     <- ldapConnexion
+      existing <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, principal.token.value)) match {
+                    case f:Failure => f
+                    case Empty => Full(None)
+                    case Full(e) => if(e(LDAPConstants.A_NAME) == Some(principal.id.value)) {
+                                      Full(e)
+                                    } else {
+                                      Failure("An account with given token but different name already exists")
+                                    }
+                  }
       entry =  mapper.apiAccount2Entry(principal)
       saved <- ldap.save(entry, removeMissingAttributes=true)
     } yield {
       principal
+    }
+  }
+
+  override def rename(oldName: ApiAccountId, newName: ApiAccountId): Box[ApiAccountId] = {
+    def toDn(id:ApiAccountId) = rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)
+    for {
+      ldap  <- ldapConnexion
+      moved <- ldap.move(toDn(oldName), rudderDit.API_ACCOUNTS.dn, Some(toDn(newName).getRDN))
+    } yield {
+      newName
     }
   }
 
