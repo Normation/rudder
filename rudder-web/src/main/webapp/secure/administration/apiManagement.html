@@ -29,6 +29,10 @@
         margin :0px 15px;
         padding : 10px
     }
+    
+    form .ng-invalid-valid_empty {
+        box-shadow : 0px 0px 1px 1px red;
+    }
   </style>
 
   <script type="text/javascript" src="/javascript/angular/angular.js" />
@@ -87,7 +91,7 @@
                 <th style="border-left:none; width:20px;"></th>
             </tr></thead>
           </table>
-        	
+
           <div class="accountGrid_pagination, paginatescala" >
             <div id="accountGrid_paginate_area"></div>
           </div>
@@ -98,7 +102,7 @@
             <div id="newAccountContainer" >
               <div id="simplemodal-overlay" class="simplemodal-overlay" style="opacity: 0.5; height: 100%; width: 100%; position: fixed; left: 0px; top: 0px; z-index: 1001;"></div>
               <div id="simplemodal-container" class="simplemodal-container" style="position: fixed; z-index: 1002; height: auto; width: 450px; left: 30%; top: 20%;">
-                <a title="Close" ng-click="myNewAccount=undefined;setPristine();" class="modalCloseImg simplemodal-close"></a>
+                <a title="Close" ng-click="myNewAccount=undefined;newAccount.$setPristine();" class="modalCloseImg simplemodal-close"></a>
                 <div tabindex="-1" class="simplemodal-wrap" style="height: 100%; outline: 0px none; width: 100%; overflow: auto;">
                   <div id="paramForm">
                     <div class="simplemodal-title">
@@ -110,7 +114,7 @@
                         <div class="wbBaseField">
                           <label class="threeCol wbBaseFieldLabel textright"><b>Name: *</b></label>
                           <div class="twoCol">
-                            <input type="text" ng-model="myNewAccount.id" id="newAccountName" ng-change="$(newAccountName).focus()" tj:focus="tj:focus" required="required"  style="width: 100%;"/>
+                            <input type="text" ng-model="myNewAccount.id" name="newAccountName" id="newAccountName" ng-change="$(newAccountName).focus()" valid-empty="valid-empty"  style="width: 100%;"/>
                           </div>
                         </div>
                         <hr class="spacer"/>
@@ -126,8 +130,8 @@
                         <hr/>
                         <div class="popupButton" style="width:97%">
                           <span>
-                            <input type="submit" class="btn-primary" style="float:right;" value="Save" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);" />
-                            <button class="simplemodal-close" ng-click="myNewAccount=undefined;">Cancel</button>
+                            <input type="submit" class="btn-primary" style="float:right;" value="Save" ng-disabled="newAccount.$pristine || newAccount.$invalid" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);newAccount.$setPristine();" />
+                            <button class="simplemodal-close" ng-click="myNewAccount=undefined;newAccount.$setPristine();">Cancel</button>
                           </span>
                         </div>
                       </div>
@@ -184,10 +188,25 @@
   //<![CDATA[
     var accountManagement = angular.module('accountManagement', ['DataTables']);
 
-
     var popUpCreated = false;
+    accountManagement.directive('validEmpty', function() {
 
-    function AccountCtrl($scope, $http) {
+      return {
+          restrict: 'A'
+        , require: 'ngModel'
+        , link: function(scope, elm, attrs, ctrl) {
+                  var validator = function (viewValue) {
+                    var valid = (scope.newAccount == undefined || viewValue != "");
+                    ctrl.$setValidity('valid_empty', valid);
+                    return viewValue;
+                  }
+                  ctrl.$parsers.unshift(validator);
+                  ctrl.$formatters.unshift(validator);
+                }
+      };
+    } );
+    
+    accountManagement.controller('AccountCtrl', function ($scope, $http) {
 
       $http.get(apiPath).
       success(function(data, status, headers, config) {
@@ -197,32 +216,32 @@
       });
 
 
-    $scope.deleteAccount = function(account,index) {
-      $http.delete(apiPath + '/'+account.token).
-          success(function(data, status, headers, config) {
-            $scope.accounts.splice(index,1);
-            $scope.myNewAccount = undefined;
+      $scope.deleteAccount = function(account,index) {
+        $http.delete(apiPath + '/'+account.token).
+            success(function(data, status, headers, config) {
+              $scope.accounts.splice(index,1);
+              $scope.myNewAccount = undefined;
 
-            $("#accountGrid").dataTable().fnClearTable();
-            $("#accountGrid").dataTable().fnAddData($scope.accounts);
-          }).
-          error(function(data, status, headers, config) {
-          });
-    }
+              $("#accountGrid").dataTable().fnClearTable();
+              $("#accountGrid").dataTable().fnAddData($scope.accounts);
+            }).
+            error(function(data, status, headers, config) {
+            });
+      }
 
-    $scope.regenerateAccount = function(account,index) {
-       $http.post(apiPath + '/'+account.token+"/regenerate").
-         success(function(data, status, headers, config) {
-           var newAccount = data.data.accounts[0];
-           $scope.accounts[index] = newAccount;
+      $scope.regenerateAccount = function(account,index) {
+         $http.post(apiPath + '/'+account.token+"/regenerate").
+           success(function(data, status, headers, config) {
+             var newAccount = data.data.accounts[0];
+             $scope.accounts[index] = newAccount;
 
-           $.extend($scope.myNewAccount, newAccount);
-           $("#accountGrid").dataTable().fnClearTable();
-           $("#accountGrid").dataTable().fnAddData($scope.accounts);
-         }).
-         error(function(data, status, headers, config) {
-         });
-    }
+             $.extend($scope.myNewAccount, newAccount);
+             $("#accountGrid").dataTable().fnClearTable();
+             $("#accountGrid").dataTable().fnAddData($scope.accounts);
+           }).
+           error(function(data, status, headers, config) {
+           });
+      }
 
     $scope.enableButton = function(account,index) {
     if (account.enabled) {
@@ -407,7 +426,7 @@
         if(isEnabled) return "Enabled";
         else return "Disabled";
       }
-    }
+    } );
   // ]]>
   </script>
 </lift:surround>
