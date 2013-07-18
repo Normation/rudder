@@ -285,11 +285,11 @@ case object MemoryComparator extends CriterionType {
   override val comparators = OrderedComparators.comparators
   override protected def validateSubCase(v:String,comparator:CriterionComparator) =  try {
     if(MemorySize.parse(v).isDefined) Full(v)
-    else Failure("Invalide memory size : '%s', expecting '300 Mo', '16KB', etc".format(v))
+    else Failure("Invalid memory size : '%s', expecting '300 Mo', '16KB', etc".format(v))
   }
   override def toLDAP(v:String) = MemorySize.parse(v) match {
     case Some(m) => Full(m.toString)
-    case None => Failure("Invalide memory size : '%s', expecting '300 Mo', '16KB', etc".format(v))
+    case None => Failure("Invalid memory size : '%s', expecting '300 Mo', '16KB', etc".format(v))
   }
 }
 
