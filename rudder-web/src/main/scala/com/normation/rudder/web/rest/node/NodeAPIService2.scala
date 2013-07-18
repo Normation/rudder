@@ -62,7 +62,7 @@ import net.liftweb.json.JsonDSL.pair2jvalue
 import net.liftweb.json.JsonDSL.string2jvalue
 
 
-class NodeApiService1_0 (
+class NodeApiService2 (
     newNodeManager  : NewNodeManager
   , nodeInfoService : NodeInfoService
   , removeNodeService: RemoveNodeService
