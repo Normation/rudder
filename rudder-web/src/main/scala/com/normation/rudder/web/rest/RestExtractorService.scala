@@ -282,8 +282,12 @@ case class RestExtractorService (
   def extractReason (params : Map[String,List[String]]) : Box[Option[String]] = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
-      case Disabled => Full(None)
-      case Mandatory =>  extractOneValue(params, "reason")(convertToMinimalSizeString(5))
+      case Disabled  => Full(None)
+      case Mandatory =>  extractOneValue(params, "reason")(convertToMinimalSizeString(5)) match {
+        case Full(None)  => Failure("Reason field is mandatory and should be at least 5 characters long")
+        case Full(value) => Full(value)
+        case eb:EmptyBox => eb ?~ "Error while extracting mandatory reason field"
+      }
       case Optionnal => extractOneValue(params, "reason")()
     }
   }
