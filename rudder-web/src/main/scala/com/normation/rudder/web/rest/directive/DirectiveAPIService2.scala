@@ -68,7 +68,7 @@ import net.liftweb.json.JArray
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonDSL._
 
-case class DirectiveAPIService1_0 (
+case class DirectiveAPIService2 (
     readDirective        : RoDirectiveRepository
   , writeDirective       : WoDirectiveRepository
   , uuidGen              : StringUuidGenerator
