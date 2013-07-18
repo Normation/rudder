@@ -95,7 +95,7 @@ class GitParseRules(
       rules     <- sequence(xmls) { xml =>
                      for {
                        ruleXml <- xmlMigration.getUpToDateXml(xml)
-                       rule    <- ruleUnserialisation.unserialise(xml)
+                       rule    <- ruleUnserialisation.unserialise(ruleXml)
                      } yield {
                        rule
                      }                   
