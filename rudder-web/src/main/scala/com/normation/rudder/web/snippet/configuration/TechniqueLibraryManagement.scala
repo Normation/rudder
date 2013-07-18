@@ -107,7 +107,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     case "userLibrary" => { _ => userLibrary }
     case "bottomPanel" => { _ => showBottomPanel }
     case "userLibraryAction" => { _ => userLibraryAction }
-    case "reloadTechniqueLibrary" => reloadTechniqueLibrary
+    case "reloadTechniqueButton" =>  reloadTechniqueLibrary(false)
+    case "reloadTechniqueLibrary" => reloadTechniqueLibrary(true)
   }
 
 
@@ -696,8 +697,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     JsRaw( """createPopup("createActiveTechniquePopup")
      """)
   }
-
-  private[this] def reloadTechniqueLibrary : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+  
+  private[this] def reloadTechniqueLibrary(isTechniqueLibraryPage : Boolean) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
       def process = {
         updatePTLibService.update(ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Technique library reloaded by user")) match {
           case Full(x) =>
@@ -707,7 +708,13 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             logger.debug(error.messageChain, e)
             S.error("updateLib", error.msg)
         }
-        Replace("reloadTechniqueLibForm",outerXml.applyAgain) & refreshTree
+
+        Replace("reloadTechniqueLibForm",outerXml.applyAgain) &
+        (if (isTechniqueLibraryPage) {
+          refreshTree
+        } else {
+          Noop
+        } )
       }
 
 
