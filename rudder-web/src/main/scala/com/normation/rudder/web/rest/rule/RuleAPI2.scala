@@ -58,6 +58,16 @@ class RuleAPI2 (
 
     case Get(Nil, req) => apiV2.listRules(req)
 
+    case Nil JsonPut body -> req => {
+      req.json match {
+        case Full(arg) =>
+          val restRule = restExtractor.extractRuleFromJSON(arg)
+          apiV2.createRule(restRule,req)
+        case eb:EmptyBox=>
+          toJsonError(None, JString("No Json data sent"))("createRule",restExtractor.extractPrettify(req.params))
+      }
+    }
+
     case Put(Nil, req) => {
       val restRule = restExtractor.extractRule(req.params)
       apiV2.createRule(restRule, req)
@@ -67,19 +77,21 @@ class RuleAPI2 (
 
     case Delete(id :: Nil, req) =>  apiV2.deleteRule(id,req)
 
-    case Post(id:: Nil, req) => {
-      val restRule = restExtractor.extractRule(req.params)
-      apiV2.updateRule(id,req,restRule)
-    }
-
     case id :: Nil JsonPost body -> req => {
       req.json match {
         case Full(arg) =>
           val restRule = restExtractor.extractRuleFromJSON(arg)
           apiV2.updateRule(id,req,restRule)
-        case eb:EmptyBox=>    toJsonError(None, JString("No Json data sent"))("updateRule",true)
+        case eb:EmptyBox=>
+          toJsonError(None, JString("No Json data sent"))("updateRule",restExtractor.extractPrettify(req.params))
       }
     }
+
+    case Post(id:: Nil, req) => {
+      val restRule = restExtractor.extractRule(req.params)
+      apiV2.updateRule(id,req,restRule)
+    }
+
 
   }
   serve( "api" / "2" / "rules" prefix requestDispatch)

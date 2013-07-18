@@ -36,12 +36,12 @@ package com.normation.rudder.web.rest.group
 
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.web.rest.RestExtractorService
-
-import net.liftweb.common.Box
-import net.liftweb.common.Loggable
+import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
+import net.liftweb.json.JsonDSL._
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.common._
 
 class GroupAPI2 (
     readGroup     : RoNodeGroupRepository
@@ -54,6 +54,16 @@ class GroupAPI2 (
 
     case Get(Nil, req) => apiV2.listGroups(req)
 
+    case Nil JsonPut body -> req => {
+      req.json match {
+        case Full(arg) =>
+          val restGroup = restExtractor.extractGroupFromJSON(arg)
+          apiV2.createGroup(restGroup, req)
+        case eb:EmptyBox=>
+          toJsonError(None, "No Json data sent")("createGroup",restExtractor.extractPrettify(req.params))
+      }
+    }
+
     case Put(Nil, req) => {
       val restGroup = restExtractor.extractGroup(req.params)
       apiV2.createGroup(restGroup, req)
@@ -63,6 +73,16 @@ class GroupAPI2 (
 
     case Delete(id :: Nil, req) =>  apiV2.deleteGroup(id,req)
 
+    case id :: Nil JsonPost body -> req => {
+      req.json match {
+        case Full(arg) =>
+          val restGroup = restExtractor.extractGroupFromJSON(arg)
+          apiV2.updateGroup(id,req,restGroup)
+        case eb:EmptyBox=>
+          toJsonError(None, "No Json data sent")("updateGroup",restExtractor.extractPrettify(req.params))
+      }
+    }
+
     case Post(id:: Nil, req) => {
       val restGroup = restExtractor.extractGroup(req.params)
       apiV2.updateGroup(id,req,restGroup)
@@ -71,15 +91,6 @@ class GroupAPI2 (
     case Post("reload" :: id:: Nil, req) => {
       apiV2.groupReload(id, req)
     }
-
-/*    case id :: Nil JsonPost body -> req => {
-      req.json match {
-        case Full(arg) =>
-          val restGroup = restExtractor.extractGroupFromJSON(arg)
-          apiV2.updateGroup(id,req,restGroup)
-        case eb:EmptyBox=>    toJsonError(id, "no args arg")("Empty",true)
-      }
-    }*/
 
   }
   serve( "api" / "2" / "groups" prefix requestDispatch)

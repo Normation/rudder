@@ -59,10 +59,10 @@ class ParameterAPI2 (
     case Get(Nil, req) => apiV2.listParameters(req)
 
     case Nil JsonPut body -> req => {
+      implicit val action = "createParameter"
+      implicit val prettify = restExtractor.extractPrettify(req.params)
       req.json match {
         case Full(json) =>
-          implicit val action = "createParameter"
-          implicit val prettify = restExtractor.extractPrettify(req.params)
           logger.info(json)
           val restParameter = restExtractor.extractParameterFromJSON(json)
           restExtractor.extractParameterNameFromJSON(json) match {
@@ -74,12 +74,11 @@ class ParameterAPI2 (
               toJsonError(None, message)
           }
         case eb:EmptyBox=>
-          toJsonError(None, JString("No Json data sent"))("updateParameter",true)
+          toJsonError(None, JString("No Json data sent"))
       }
     }
 
     case Put(Nil, req) => {
-      logger.info(req)
       implicit val action = "createParameter"
       implicit val prettify = restExtractor.extractPrettify(req.params)
       val restParameter = restExtractor.extractParameter(req.params)
@@ -98,12 +97,14 @@ class ParameterAPI2 (
     case Delete(id :: Nil, req) =>  apiV2.deleteParameter(id,req)
 
     case id :: Nil JsonPost body -> req => {
+      implicit val action = "updateParameter"
+      implicit val prettify = restExtractor.extractPrettify(req.params)
       req.json match {
         case Full(arg) =>
           val restParameter = restExtractor.extractParameterFromJSON(arg)
           apiV2.updateParameter(id,req,restParameter)
         case eb:EmptyBox=>
-          toJsonError(None, JString("No Json data sent"))("updateParameter",true)
+          toJsonError(None, JString("No Json data sent"))
       }
     }
 

@@ -64,6 +64,20 @@ class DirectiveAPIHeaderVersion (
       }
     }
 
+    case Nil JsonPut body -> req => {
+      req.header("X-API-VERSION") match {
+        case Full("2") =>
+          req.json match {
+            case Full(arg) =>
+            val restDirective = restExtractor.extractDirectiveFromJSON(arg)
+            apiV2.createDirective(restDirective,req)
+         case eb:EmptyBox=>
+           toJsonError(None, JString("No Json data sent"))("createDirective",restExtractor.extractPrettify(req.params))
+          }
+        case _ => notValidVersionResponse("createDirective")
+      }
+    }
+
     case Put(Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("2") =>
@@ -87,6 +101,21 @@ class DirectiveAPIHeaderVersion (
       }
     }
 
+    case id :: Nil JsonPost body -> req => {
+      req.header("X-API-VERSION") match {
+        case Full("2") =>
+          req.json match {
+            case Full(arg) =>
+            val restDirective = restExtractor.extractDirectiveFromJSON(arg)
+            apiV2.updateDirective(id,req,restDirective)
+         case eb:EmptyBox=>
+           toJsonError(None, JString("No Json data sent"))("updateDirective",restExtractor.extractPrettify(req.params))
+          }
+        case _ => notValidVersionResponse("updateDirective")
+      }
+
+    }
+
     case Post(id:: Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("2") =>
@@ -96,22 +125,8 @@ class DirectiveAPIHeaderVersion (
       }
     }
 
-    case id :: Nil JsonPost body -> req => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
-      req.json match {
-        case Full(arg) =>
-          val restDirective = restExtractor.extractDirectiveFromJSON(arg)
-          apiV2.updateDirective(id,req,restDirective)
-        case eb:EmptyBox=>    toJsonError(None, JString("No Json data sent"))("updateDirective",true)
-      }
-        case _ => notValidVersionResponse("listDirectives")
-      }
-
-    }
-
-
   }
+
   serve( "api" / "directives" prefix requestDispatch)
 
 }
