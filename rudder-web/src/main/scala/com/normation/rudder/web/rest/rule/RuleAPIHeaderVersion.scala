@@ -51,7 +51,7 @@ import net.liftweb.json.JString
 class RuleAPIHeaderVersion (
     readRule             : RoRuleRepository
   , restExtractor        : RestExtractorService
-  , apiV1_0              : RuleApiService1_0
+  , apiV2              : RuleApiService2
 ) extends RestHelper with RuleAPI with Loggable{
 
 
@@ -59,50 +59,50 @@ class RuleAPIHeaderVersion (
 
     case Get(Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") => apiV1_0.listRules(req)
+        case Full("2") => apiV2.listRules(req)
         case _ => notValidVersionResponse("listRules")
       }
     }
 
     case Put(Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") =>
+        case Full("2") =>
           val restRule = restExtractor.extractRule(req.params)
-          apiV1_0.createRule(restRule, req)
+          apiV2.createRule(restRule, req)
         case _ => notValidVersionResponse("createRule")
       }
     }
 
     case Get(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") => apiV1_0.ruleDetails(id, req)
+        case Full("2") => apiV2.ruleDetails(id, req)
         case _ => notValidVersionResponse("listRules")
       }
     }
 
     case Delete(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") => apiV1_0.deleteRule(id,req)
+        case Full("2") => apiV2.deleteRule(id,req)
         case _ => notValidVersionResponse("deleteRule")
       }
     }
 
     case Post(id:: Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") =>
+        case Full("2") =>
           val restRule = restExtractor.extractRule(req.params)
-          apiV1_0.updateRule(id,req,restRule)
+          apiV2.updateRule(id,req,restRule)
         case _ => notValidVersionResponse("updateRule")
       }
     }
 
     case id :: Nil JsonPost body -> req => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") =>
+        case Full("2") =>
       req.json match {
         case Full(arg) =>
           val restRule = restExtractor.extractRuleFromJSON(arg)
-          apiV1_0.updateRule(id,req,restRule)
+          apiV2.updateRule(id,req,restRule)
         case eb:EmptyBox=>    toJsonError(Some(id), JString("no Json Data sent"))("updateRule",true)
       }
         case _ => notValidVersionResponse("updateRule")

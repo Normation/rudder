@@ -64,7 +64,7 @@ import net.liftweb.json.JArray
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonDSL._
 
-case class RuleApiService1_0 (
+case class RuleApiService2 (
     readRule             : RoRuleRepository
   , writeRule            : WoRuleRepository
   , uuidGen              : StringUuidGenerator

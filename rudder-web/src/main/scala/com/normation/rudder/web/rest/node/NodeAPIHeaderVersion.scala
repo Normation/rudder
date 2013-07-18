@@ -46,7 +46,7 @@ import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 
 class NodeAPIHeaderVersion (
-    apiV1_0              : NodeApiService1_0
+    apiV2              : NodeApiService2
 ) extends RestHelper with RuleAPI with Loggable{
 
 
@@ -54,14 +54,14 @@ class NodeAPIHeaderVersion (
 
     case Get(Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") =>  apiV1_0.listAcceptedNodes(req)
+        case Full("2") =>  apiV2.listAcceptedNodes(req)
         case _ => notValidVersionResponse("listAcceptedNodes")
       }
     }
 
     case Get("pending" :: Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") =>  apiV1_0.listPendingNodes(req)
+        case Full("2") =>  apiV2.listPendingNodes(req)
         case _ => notValidVersionResponse("listPendingNodes")
       }
     }
@@ -69,22 +69,22 @@ class NodeAPIHeaderVersion (
 
     case Get(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") => apiV1_0.acceptedNodeDetails(req, NodeId(id))
+        case Full("2") => apiV2.acceptedNodeDetails(req, NodeId(id))
         case _ => notValidVersionResponse("acceptedNodeDetails")
       }
     }
 
     case Delete(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") => apiV1_0.deleteNode(req, Seq(NodeId(id)))
+        case Full("2") => apiV2.deleteNode(req, Seq(NodeId(id)))
         case _ => notValidVersionResponse("deleteNode")
       }
     }
 
      case Post("pending" :: Nil, req) =>  {
       req.header("X-API-VERSION") match {
-        case Full("1.0") =>
-          apiV1_0.changeNodeStatus(req)
+        case Full("2") =>
+          apiV2.changeNodeStatus(req)
         case _ => notValidVersionResponse("changeNodeStatus")
       }
     }

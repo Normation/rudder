@@ -32,56 +32,37 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.rule
+package com.normation.rudder.web.rest.node
 
-import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.web.rest.RestUtils.toJsonError
-import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.inventory.domain.NodeId
 
 import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JString
 
-class RuleAPI1_0 (
-    readRule             : RoRuleRepository
-  , restExtractor        : RestExtractorService
-  , apiV1_0              : RuleApiService1_0
-) extends RestHelper with RuleAPI with Loggable{
+class NodeAPI2 (
+  apiV2              : NodeApiService2
+) extends RestHelper with NodeAPI with Loggable{
 
 
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
-    case Get(Nil, req) => apiV1_0.listRules(req)
+    case Get(Nil, req) => apiV2.listAcceptedNodes(req)
 
-    case Put(Nil, req) => {
-      val restRule = restExtractor.extractRule(req.params)
-      apiV1_0.createRule(restRule, req)
-    }
 
-    case Get(id :: Nil, req) => apiV1_0.ruleDetails(id, req)
+    case Get("pending" :: Nil, req) => apiV2.listPendingNodes(req)
 
-    case Delete(id :: Nil, req) =>  apiV1_0.deleteRule(id,req)
+    case Get(id :: Nil, req) => apiV2.acceptedNodeDetails(req, NodeId(id))
 
-    case Post(id:: Nil, req) => {
-      val restRule = restExtractor.extractRule(req.params)
-      apiV1_0.updateRule(id,req,restRule)
-    }
+    case Delete(id :: Nil, req) =>  apiV2.deleteNode(req, Seq(NodeId(id)))
 
-    case id :: Nil JsonPost body -> req => {
-      req.json match {
-        case Full(arg) =>
-          val restRule = restExtractor.extractRuleFromJSON(arg)
-          apiV1_0.updateRule(id,req,restRule)
-        case eb:EmptyBox=>    toJsonError(None, JString("No Json data sent"))("updateRule",true)
-      }
+    case Post("pending" :: Nil, req) => {
+      apiV2.changeNodeStatus(req)
     }
 
   }
-  serve( "api" / "1.0" / "rules" prefix requestDispatch)
+  serve( "api" / "2" / "nodes" prefix requestDispatch)
 
 }
