@@ -312,56 +312,7 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
 
-    //test regex for "not containing word", see http://stackoverflow.com/questions/406230/regular-expression-to-match-string-not-containing-a-word
-    //here, we don't want to have node0 or node1
-    val q5 = TestQuery(
-      "q5",
-      parser("""
-      {  "select":"node", "where":[
-          { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"((?!node0|node1).)*" }
-      ] }
-      """).openOrThrowException("For tests"),
-      s.tail.tail)
-
-    //same as q5, but with "not regex"
-    val q6 = TestQuery(
-      "q6",
-      parser("""
-      {  "select":"node", "where":[
-          { "objectType":"node" , "attribute":"nodeId" , "comparator":"notRegex", "value":"node0" }
-      ] }
-      """).openOrThrowException("For tests"),
-      s.tail)
-
-    //same as q5 on IP, to test with escaping
-    //192.168.56.101 is for node3
-    val q7 = TestQuery(
-      "q7",
-      parser("""
-      {  "select":"node", "where":[
-          { "objectType":"node" , "attribute":"ipHostNumber" , "comparator":"notRegex", "value":"192.168.56.101" }
-      ] }
-      """).openOrThrowException("For tests"),
-      s.filterNot( _ == s(1)) )
-
-    //typical use case for server on internal/dmz/both: want intenal (but not both)
-    //that test a match regex and not regex
-    val q8 = TestQuery(
-      "q8",
-      parser("""
-      {  "select":"node", "where":[
-          { "objectType":"node" , "attribute":"ipHostNumber" , "comparator":"regex", "value":"127.0.0.*" }
-        , { "objectType":"node" , "attribute":"ipHostNumber" , "comparator":"notRegex", "value":"192.168.56.10[23]" }
-      ] }
-      """).openOrThrowException("For tests"),
-      Seq(s(1), s(4)) )
-      //s0,5,6,7,8 not ok because no 127.0.0.1
-      //s1 ok because not in "not regex" pattern
-      //s2,s3 not ok because in the "not regex" pattern
-      //s4 ok because only 127.0.0.1
-
-
-      testQueries(q1 :: q2 :: q3 :: q3_2 :: q4 :: q5 :: q6 :: q7 :: q8 ::Nil)
+      testQueries(q1 :: q2 :: q3 :: q3_2 :: q4 :: Nil)
   }
 
   @Test def dateQueries() {
@@ -427,7 +378,7 @@ class TestQueryProcessor extends Loggable {
   private def testQueryResultProcessor(name:String,query:Query, ids:Seq[NodeId]) = {
       val found = queryProcessor.process(query).openOrThrowException("For tests").map { nodeInfo =>
         nodeInfo.id
-      }.sortBy( _.value )
+      }
       //also test with requiring only the expected node to check consistancy
       //(that should not change anything)
 
@@ -440,7 +391,7 @@ class TestQueryProcessor extends Loggable {
 
       val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, serverUuids = Some(ids)).openOrThrowException("For tests").map { entry =>
         NodeId(entry("nodeId").get)
-      }).distinct.sortBy( _.value )
+      }).distinct
       assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected enrties (process)\n Found: %s\n Wants: %s".
           format(name,foundWithLimit,ids),ids.size.toLong,foundWithLimit.size.toLong)
   }

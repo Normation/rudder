@@ -70,7 +70,6 @@ final case class LDAPFilter(f:Filter) extends ExtendedFilter with HashcodeCachin
 //special ones
 sealed trait SpecialFilter extends ExtendedFilter
 final case class RegexFilter(attributeName:String, regex:String) extends SpecialFilter with HashcodeCaching
-final case class NotRegexFilter(attributeName:String, regex:String) extends SpecialFilter with HashcodeCaching
 
 
 /*
@@ -441,14 +440,6 @@ class InternalLDAPQueryProcessor(
                 case And => f.orElse(Some(ALL))             }
 
               (filterToApply, currentAttributes ++ getAdditionnalAttributes(Set(r)))
-
-            case ( (f, currentAttributes), r:NotRegexFilter) =>
-              val filterToApply = composition match {
-                case Or => Some(ALL)
-                case And => f.orElse(Some(ALL))             }
-
-              (filterToApply, currentAttributes ++ getAdditionnalAttributes(Set(r)))
-
             case (_, sf) => return Failure("Unknow special filter, can not build a request with it: " + sf)
       }
 
@@ -507,7 +498,6 @@ class InternalLDAPQueryProcessor(
 
       val sf = specialFilters.groupBy {
         case r:RegexFilter => "regex"
-        case r:NotRegexFilter => "notregex"
         case _ => "other"
       }
 
@@ -574,7 +564,6 @@ class InternalLDAPQueryProcessor(
     Full((start /: filters) {
       case (  (ldapFilters,specials), LDAPFilter(f) ) => (ldapFilters + f, specials)
       case (  (ldapFilters,specials), r:RegexFilter ) => (ldapFilters, specials + r)
-      case (  (ldapFilters,specials), r:NotRegexFilter ) => (ldapFilters, specials + r)
       case (x, f) => return Failure("Can not handle filter type: '%s', abort".format(f))
     })
   }
@@ -586,7 +575,6 @@ class InternalLDAPQueryProcessor(
   private[this] def getAdditionnalAttributes(filters:Set[SpecialFilter]) : Set[String] = {
     filters.flatMap {
       case RegexFilter(attr,v) => Set(attr)
-      case NotRegexFilter(attr,v) => Set(attr)
     }
   }
 
@@ -608,22 +596,6 @@ class InternalLDAPQueryProcessor(
               logger.trace("Filtering with regex '%s' entry: %s:%s".format(regexText,entry.dn,entry.valuesFor(attr).mkString(",")))
               val res = entry.valuesFor(attr).exists { value =>
                 pattern.matcher( value ).matches
-              }
-              logger.trace("Entry matches: " + res)
-              res
-            }
-          )
-        case NotRegexFilter(attr,regexText) =>
-          val pattern = Pattern.compile(regexText)
-          /*
-           * We want to match "OK" an entry if the entry does not
-           * have the attribute or NONE of the value matches the regex.
-           */
-          Full(
-            entries.filter { entry =>
-              logger.trace("Filtering with regex not matching '%s' entry: %s:%s".format(regexText,entry.dn,entry.valuesFor(attr).mkString(",")))
-              val res = entry.valuesFor(attr).forall { value =>
-                !pattern.matcher( value ).matches
               }
               logger.trace("Entry matches: " + res)
               res
@@ -682,7 +654,6 @@ class InternalLDAPQueryProcessor(
         (key , (seq map { case CriterionLine(ot,a,comp,value) =>
           (comp match {
             case Regex => a.buildRegex(a.name,value)
-            case NotRegex => a.buildNotRegex(a.name,value)
             case _ => LDAPFilter(a.buildFilter(comp,value))
           }) : ExtendedFilter
         }).toSet)
