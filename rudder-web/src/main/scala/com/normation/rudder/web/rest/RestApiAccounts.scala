@@ -11,6 +11,7 @@ import net.liftweb.json.JArray
 import org.joda.time.DateTime
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.api._
+import net.liftweb.http.LiftResponse
 
 class RestApiAccounts (
     readApi        : RoApiAccountRepository
@@ -19,6 +20,8 @@ class RestApiAccounts (
   , tokenGenerator : TokenGenerator
 ) extends RestHelper with Loggable {
 
+  val tokenSize = 32
+
   //used in ApiAccounts snippet to get the context path
   //of that service
   val relativePath = "secure" :: "apiaccounts" :: Nil
@@ -26,8 +29,8 @@ class RestApiAccounts (
   serve {
     case Get("secure" :: "apiaccounts" :: Nil, req) =>
       readApi.getAll() match {
-        case Full(accountMap) =>
-          val accounts = ("accounts" -> JArray(accountMap.values.toList.map(toJson(_))))
+        case Full(accountSeq) =>
+          val accounts = ("accounts" -> JArray(accountSeq.toList.map(toJson(_))))
           toJsonResponse(None,accounts)("getAllAccounts",true)
         case eb : EmptyBox =>
               toJsonError(None,s"Could not get accounts cause : ${(eb ?~ "could not get account").msg}")("getAllAccounts",true)
@@ -41,7 +44,7 @@ class RestApiAccounts (
         restExtractor.extractApiAccountFromJSON(json) match {
           case Full(restApiAccount) =>
             if (restApiAccount.id.isDefined) {
-              val account = ApiAccount(restApiAccount.id.get,ApiToken(tokenGenerator.newToken(32)), restApiAccount.description.getOrElse(""), restApiAccount.enabled.getOrElse(true), DateTime.now, DateTime.now)
+              val account = ApiAccount(restApiAccount.id.get,ApiToken(tokenGenerator.newToken(tokenSize)), restApiAccount.description.getOrElse(""), restApiAccount.enabled.getOrElse(true), DateTime.now, DateTime.now)
               writeApi.save(account) match {
                 case Full(_) =>
                   val accounts = ("accounts" -> JArray(List(toJson(account))))
@@ -71,14 +74,8 @@ class RestApiAccounts (
             readApi.getByToken(apiToken) match {
               case Full(Some(account)) =>
                 val updateAccount = restApiAccount.update(account)
-                writeApi.save(updateAccount) match {
-                  case Full(_) =>
-                    val accounts = ("accounts" -> JArray(List(toJson(updateAccount))))
-                    toJsonResponse(None,accounts)("updateAccount",true)
 
-                  case eb : EmptyBox =>
-                    toJsonError(None,s"Could not update account with token $token cause : ${(eb ?~ "could not save account").msg}")("updateAccount",true)
-                }
+                save(updateAccount, restApiAccount.oldId)
 
               case Full(None) =>
                 toJsonError(None,s"Could not update account with token $token cause : could not get account")("updateAccount",true)
@@ -116,7 +113,7 @@ class RestApiAccounts (
       val apiToken = ApiToken(token)
       readApi.getByToken(apiToken) match {
         case Full(Some(account)) =>
-          val newToken = ApiToken(tokenGenerator.newToken(32))
+          val newToken = ApiToken(tokenGenerator.newToken(tokenSize))
           val generationDate = DateTime.now
           writeApi.save(account.copy(token = newToken,tokenGenerationDate = generationDate)) match {
             case Full(account) =>
@@ -133,6 +130,28 @@ class RestApiAccounts (
           toJsonError(None,s"Could not regenerate account with token $token cause : ${(eb ?~ "could not get account").msg}")("regenerateAccount",true)
       }
 
+  }
+
+  def save(account:ApiAccount, oldId: Option[ApiAccountId]) : LiftResponse = {
+    val res = oldId match {
+      case Some(id) if(id != account.id) =>
+        for {
+          moved <- writeApi.rename(id, account.id)
+          saved <- writeApi.save(account)
+        } yield {
+          saved
+        }
+      case _ => writeApi.save(account)
+    }
+
+    res match {
+      case Full(res) =>
+        val accounts = ("accounts" -> JArray(List(toJson(res))))
+        toJsonResponse(None,accounts)("updateAccount",true)
+
+      case eb : EmptyBox =>
+        toJsonError(None, s"Could not update account with token ${account.token} cause : ${(eb ?~ "could not save account").msg}")("updateAccount",true)
+    }
   }
 
   def toJson(account : ApiAccount) = {
@@ -153,7 +172,9 @@ class RestApiAccounts (
 case class RestApiAccount(
     id          : Option[ApiAccountId]
   , description : Option[String]
-  , enabled     : Option[Boolean]) {
+  , enabled     : Option[Boolean]
+  , oldId       : Option[ApiAccountId]
+) {
 
  def update(account : ApiAccount) = {
     val idUpdate    = id.getOrElse(account.id)
