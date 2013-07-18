@@ -397,12 +397,13 @@ class DefaultXmlEventLogMigration(
   def getUpToDateXml(entity:Elem) : Box[Elem] = {
 
     for {
-      versionT <- Box(entity.attribute("fileFormat").map( _.text )) ?~! "Can not migrate element with unknow fileFormat: %s".format(entity)
-      version  <- try { Full(versionT.toFloat.toInt) } catch { case e:Exception => Failure("Bad version (expecting an integer or a float: '%s'".format(versionT))}
+      versionT <- Box(entity.attribute("fileFormat").map( _.text )) ?~! s"Can not migrate element with unknow fileFormat: ${entity}"
+      version  <- try { Full(versionT.toFloat.toInt) } catch { case e:Exception => Failure(s"Bad version (expecting an integer or a float: '${versionT}'")}
       migrate  <- version match {
-                    case 2 => migrate2_3(entity)
-                    case 3 => Full(entity)
-                    case x => Failure("Can not migrate XML file with fileFormat='%s' (expecting 1,2 or 3)".format(version))
+                    case 2 => migrate2_4(entity)
+                    case 3 => migrate3_4(entity)
+                    case 4 => Full(entity)
+                    case x => Failure(s"Can not migrate XML file with fileFormat='${version}' (expecting 2,3 or 4)")
                   }
     } yield {
       migrate
