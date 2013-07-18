@@ -55,7 +55,7 @@ import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 
-case class GroupApiService1_0 (
+case class GroupApiService2 (
     readGroup            : RoNodeGroupRepository
   , writeGroup           : WoNodeGroupRepository
   , uuidGen              : StringUuidGenerator

@@ -51,7 +51,7 @@ import net.liftweb.json.JString
 class DirectiveAPIHeaderVersion (
     readDirective : RoDirectiveRepository
   , restExtractor : RestExtractorService
-  , apiV1_0       : DirectiveAPIService1_0
+  , apiV2       : DirectiveAPIService2
 ) extends RestHelper with DirectiveAPI with Loggable{
 
 
@@ -59,50 +59,50 @@ class DirectiveAPIHeaderVersion (
 
     case Get(Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") => apiV1_0.listDirectives(req)
+        case Full("2") => apiV2.listDirectives(req)
         case _ => notValidVersionResponse("listDirectives")
       }
     }
 
     case Put(Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") =>
+        case Full("2") =>
           val restDirective = restExtractor.extractDirective(req.params)
-          apiV1_0.createDirective(restDirective, req)
+          apiV2.createDirective(restDirective, req)
         case _ => notValidVersionResponse("createDirective")
       }
     }
 
     case Get(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") => apiV1_0.directiveDetails(id, req)
+        case Full("2") => apiV2.directiveDetails(id, req)
         case _ => notValidVersionResponse("directiveDetails")
       }
     }
 
     case Delete(id :: Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") => apiV1_0.deleteDirective(id,req)
+        case Full("2") => apiV2.deleteDirective(id,req)
         case _ => notValidVersionResponse("deleteDirective")
       }
     }
 
     case Post(id:: Nil, req) => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") =>
+        case Full("2") =>
           val restDirective = restExtractor.extractDirective(req.params)
-          apiV1_0.updateDirective(id,req,restDirective)
+          apiV2.updateDirective(id,req,restDirective)
         case _ => notValidVersionResponse("updateDirective")
       }
     }
 
     case id :: Nil JsonPost body -> req => {
       req.header("X-API-VERSION") match {
-        case Full("1.0") =>
+        case Full("2") =>
       req.json match {
         case Full(arg) =>
           val restDirective = restExtractor.extractDirectiveFromJSON(arg)
-          apiV1_0.updateDirective(id,req,restDirective)
+          apiV2.updateDirective(id,req,restDirective)
         case eb:EmptyBox=>    toJsonError(None, JString("No Json data sent"))("updateDirective",true)
       }
         case _ => notValidVersionResponse("listDirectives")

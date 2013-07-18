@@ -118,13 +118,9 @@ import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows.TwoValidationStepsWorkflowServiceImpl
 import com.normation.rudder.web.rest.RestExtractorService
-import com.normation.rudder.web.rest.rule.RuleApiService1_0
 import com.normation.rudder.web.rest.rule._
 import com.normation.rudder.web.rest.directive._
-import com.normation.rudder.web.rest.directive.DirectiveAPIService1_0
-import com.normation.rudder.web.rest.group.GroupApiService1_0
 import com.normation.rudder.web.rest.group._
-import com.normation.rudder.web.rest.node.NodeApiService1_0
 import com.normation.rudder.web.rest.node._
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.RoLDAPApiAccountRepository
@@ -424,8 +420,8 @@ object RudderConfig extends Loggable {
   val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
   val restApiAccounts = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator)
 
-  val ruleApiService1_0 =
-    new RuleApiService1_0(
+  val ruleApiService2 =
+    new RuleApiService2(
         roRuleRepository
       , woRuleRepository
       , uuidGen
@@ -436,25 +432,25 @@ object RudderConfig extends Loggable {
       , RUDDER_ENABLE_APPROVAL_WORKFLOWS
     )
 
-  val ruleApi1_0 =
-    new RuleAPI1_0 (
+  val ruleApi2 =
+    new RuleAPI2 (
         roRuleRepository
       , restExtractorService
-      , ruleApiService1_0
+      , ruleApiService2
     )
 
-  val latestRuleApi = new LatestRuleAPI (ruleApi1_0)
+  val latestRuleApi = new LatestRuleAPI (ruleApi2)
 
   val genericRuleApi =
     new RuleAPIHeaderVersion (
         roRuleRepository
       , restExtractorService
-      , ruleApiService1_0
+      , ruleApiService2
     )
 
 
-   val directiveApiService1_0 =
-    new DirectiveAPIService1_0 (
+   val directiveApiService2 =
+    new DirectiveAPIService2 (
         roDirectiveRepository
       , woDirectiveRepository
       , uuidGen
@@ -466,24 +462,24 @@ object RudderConfig extends Loggable {
       , directiveEditorService
     )
 
-  val directiveApi1_0 =
-    new DirectiveAPI1_0 (
+  val directiveApi2 =
+    new DirectiveAPI2 (
         roDirectiveRepository
       , restExtractorService
-      , directiveApiService1_0
+      , directiveApiService2
     )
 
-  val latestDirectiveApi = new LatestDirectiveAPI (directiveApi1_0)
+  val latestDirectiveApi = new LatestDirectiveAPI (directiveApi2)
 
   val genericDirectiveApi =
     new DirectiveAPIHeaderVersion (
         roDirectiveRepository
       , restExtractorService
-      , directiveApiService1_0
+      , directiveApiService2
     )
 
-  val groupApiService1_0 =
-    new GroupApiService1_0 (
+  val groupApiService2 =
+    new GroupApiService2 (
         roNodeGroupRepository
       , woNodeGroupRepository
       , uuidGen
@@ -495,24 +491,24 @@ object RudderConfig extends Loggable {
       , RUDDER_ENABLE_APPROVAL_WORKFLOWS
     )
 
-  val groupApi1_0 =
-    new GroupAPI1_0 (
+  val groupApi2 =
+    new GroupAPI2 (
         roNodeGroupRepository
       , restExtractorService
-      , groupApiService1_0
+      , groupApiService2
     )
 
-  val latestGroupApi = new LatestGroupAPI (groupApi1_0)
+  val latestGroupApi = new LatestGroupAPI (groupApi2)
 
   val genericGroupApi =
     new GroupAPIHeaderVersion (
         roNodeGroupRepository
       , restExtractorService
-      , groupApiService1_0
+      , groupApiService2
     )
 
-    val nodeApiService1_0 =
-    new NodeApiService1_0 (
+    val nodeApiService2 =
+    new NodeApiService2 (
         newNodeManager
       , nodeInfoService
       , removeNodeService
@@ -520,16 +516,16 @@ object RudderConfig extends Loggable {
       , restExtractorService
     )
 
-  val nodeApi1_0 =
-    new NodeAPI1_0 (
-      nodeApiService1_0
+  val nodeApi2 =
+    new NodeAPI2 (
+      nodeApiService2
     )
 
-  val latestNodeApi = new LatestNodeAPI (nodeApi1_0)
+  val latestNodeApi = new LatestNodeAPI (nodeApi2)
 
   val genericNodeApi =
     new NodeAPIHeaderVersion (
-      nodeApiService1_0
+      nodeApiService2
     )
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////

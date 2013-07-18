@@ -104,7 +104,7 @@ object RestUtils extends Loggable {
   }
 
   def notValidVersionResponse(action:String) = {
-    val availableVersion = List("1.0")
+    val availableVersion = List("2")
     toJsonError(None, JString(s"Version used does not exists, please use one of the following: ${availableVersion.mkString("[ ", ", ", " ]")} "))(action,true)
    }
 
