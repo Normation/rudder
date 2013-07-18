@@ -50,11 +50,9 @@ import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.workflows.DirectiveChange
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.workflows.NodeGroupChange
-import com.normation.rudder.domain.workflows.DirectiveChanges
-import com.normation.rudder.domain.workflows.NodeGroupChanges
+import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.workflows.RuleChanges
+import com.normation.rudder.domain.parameters._
 
 
 trait DeploymentStatusUnserialisation {
@@ -250,6 +248,22 @@ trait DirectiveUnserialisation {
   def parseSectionVal(xml:NodeSeq) : Box[SectionVal]
 }
 
+/**
+ * That trait allows to unserialize
+ * Global Parameter from an XML
+ */
+trait GlobalParameterUnserialisation {
+  /**
+   * Version 3:
+     <globalParameter fileFormat="3">
+       <name>{param.name.value}</name>
+       <value>{param.value}</value>
+       <description>{param.description}</description>
+       <overridable>{param.overridable}</overridable>
+     </globalParameter>
+   */
+  def unserialise(xml:XNode) : Box[GlobalParameter]
+}
 
 /**
  * That trait allow to unserialise change request changes from an XML file.
@@ -257,8 +271,8 @@ trait DirectiveUnserialisation {
  */
 trait ChangeRequestChangesUnserialisation {
   /**
-   * Version 1:
-     <changeRequest fileFormat="3">
+   * Version 2:
+     <changeRequest fileFormat="4">
         <groups></groups>
           <group id="id1">*
             <initialState>
@@ -321,7 +335,22 @@ trait ChangeRequestChangesUnserialisation {
             </nextChanges>
           </group>
         </rules>
+        <globalParameters>
+          <globalParameter name="id3">*
+            <initialState>
+              GlobalParameterSerialization*
+            </initialState>
+            <firstChange>
+              GlobalParameterSerialization+
+            </firstChange>
+            <nextChanges>
+              <change>*
+                GlobalParameterSerialization
+              </change>
+            </nextChanges>
+          </globalParameter>
+        </globalParameters>
       </changeRequest>
    */
-  def unserialise(xml:XNode): Box[(Box[Map[DirectiveId,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges])]
+  def unserialise(xml:XNode): Box[(Box[Map[DirectiveId,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges],Map[ParameterName,GlobalParameterChanges])]
 }

@@ -114,6 +114,10 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RudderConfig.nodeApi2)
     LiftRules.statelessDispatch.append(RudderConfig.latestNodeApi)
     LiftRules.statelessDispatch.append(RudderConfig.genericNodeApi)
+    // Node APIs
+    LiftRules.statelessDispatch.append(RudderConfig.parameterApi2)
+    LiftRules.statelessDispatch.append(RudderConfig.latestParameterApi)
+    LiftRules.statelessDispatch.append(RudderConfig.genericParameterApi)
 
     // URL rewrites
     LiftRules.statefulRewrite.append {
@@ -211,6 +215,10 @@ class Boot extends Loggable {
             >> LocGroup(name+"Group")
             >> TestAccess( () => userIsAllowed("/secure/index",Read("directive") ) )
 
+        , Menu(name+"ParameterManagement", <span>Parameters</span>) /
+            "secure" / (name+"Manager") / "parameterManagement"
+            >> LocGroup(name+"Group")
+            >> TestAccess( () => userIsAllowed("/secure/index",Read("directive") ) )
       )
 
 

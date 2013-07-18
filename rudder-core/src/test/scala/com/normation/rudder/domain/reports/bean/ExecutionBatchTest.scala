@@ -264,7 +264,7 @@ class ExecutionBatchTest extends Specification {
               DirectiveExpectedReports(
                    "policy2",
                     Seq(ReportComponent("component2", 1, Seq("None"), Seq("None") )))
-             
+
            )
          )
        ),
@@ -1000,7 +1000,7 @@ class ExecutionBatchTest extends Specification {
                Seq(
                    new ReportComponent("component", 1, Seq("value"), Seq() )
                  , new ReportComponent("component2", 1, Seq("value"), Seq() ))
-             ) 
+             )
            )
          )
        ),
@@ -1049,7 +1049,7 @@ class ExecutionBatchTest extends Specification {
                Seq(
                    new ReportComponent("component", 1, Seq("value"), Seq() )
                  , new ReportComponent("component2", 1, Seq("value"), Seq() ))
-             ) 
+             )
            )
          )
        ),

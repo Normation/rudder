@@ -72,7 +72,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.web.services.DiffDisplayer
 import com.normation.rudder.repository.FullNodeGroupCategory
-
+import com.normation.rudder.domain.parameters._
 
 object ChangeRequestChangesForm {
   def form =
@@ -102,8 +102,17 @@ class ChangeRequestChangesForm(
         changeRequest match {
           case cr: ConfigurationChangeRequest =>
             ( "#changeTree ul *" #>  treeNode(cr).toXml &
-              "#history *" #> displayHistory (cr.directives.values.map(_.changes).toList,cr.nodeGroups.values.map(_.changes).toList,cr.rules.values.map(_.changes).toList) &
-              "#diff *" #> diff(cr.directives.values.map(_.changes).toList,cr.nodeGroups.values.map(_.changes).toList,cr.rules.values.map(_.changes).toList)
+              "#history *" #> displayHistory (
+                                  cr.directives.values.map(_.changes).toList
+                                , cr.nodeGroups.values.map(_.changes).toList
+                                , cr.rules.values.map(_.changes).toList
+                                , cr.globalParams.values.map(_.changes).toList) &
+              "#diff *" #> diff(
+                              cr.directives.values.map(_.changes).toList
+                            , cr.nodeGroups.values.map(_.changes).toList
+                            , cr.rules.values.map(_.changes).toList
+                            , cr.globalParams.values.map(_.changes).toList
+                            )
             ) (form) ++
             Script(JsRaw(s"""buildChangesTree("#changeTree","${S.contextPath}");
                              $$( "#changeDisplay" ).tabs();""") )
@@ -183,34 +192,64 @@ class ChangeRequestChangesForm(
     override val attrs = List(( "rel" -> { "changeType" } ),("id" -> { "groups"}))
   }
 
+  def globalParameterChild(paramName:ParameterName) = new JsTreeNode{
+    val changes = changeRequest.globalParams(paramName).changes
+    val parameterName = changes.initialState.map(_.name.value).getOrElse(changes.firstChange.diff match{
+           case a :AddGlobalParameterDiff => a.parameter.name.value
+           case d :DeleteGlobalParameterDiff => d.parameter.name.value
+           case modTo : ModifyToGlobalParameterDiff => modTo.parameter.name.value
+    } )
+    val body = SHtml.a(
+        () => SetHtml("history",displayHistory(Nil,Nil,Nil,List(changes)))
+      , <span>{parameterName}</span>
+    )
+
+    val children = Nil
+  }
+
+  val globalParametersChild = new JsTreeNode{
+    val changes =  changeRequest.globalParams.values.map(_.changes).toList
+    val body = SHtml.a(
+        () => SetHtml("history",displayHistory(Nil,Nil,Nil,changes) )
+      , <span>Global Parameters</span>
+    )
+    val children = changeRequest.globalParams.keys.map(globalParameterChild(_)).toList
+    override val attrs = List(( "rel" -> { "changeType" } ),("id" -> { "params"}))
+  }
+
+
   val body = SHtml.a(
      () => SetHtml("history",displayHistory (
            changeRequest.directives.values.map(_.changes).toList
          , changeRequest.nodeGroups.values.map(_.changes).toList
          , changeRequest.rules.values.map(_.changes).toList
+         , changeRequest.globalParams.values.map(_.changes).toList
          ))
    , <span>Changes</span>
   )
 
-  val children = directivesChild :: rulesChild :: groupsChild ::  Nil
+  val children = directivesChild :: rulesChild :: groupsChild :: globalParametersChild :: Nil
 
   override val attrs = List(( "rel" -> { "changeType" } ),("id" -> { "changes"}))
 
 }
 
   def displayHistory (
-      directives : List[DirectiveChange] = Nil
-    , groups     : List[NodeGroupChange] = Nil
-    , rules      : List[RuleChange]      = Nil
+      directives  : List[DirectiveChange]       = Nil
+    , groups      : List[NodeGroupChange]       = Nil
+    , rules       : List[RuleChange]            = Nil
+    , globalParams: List[GlobalParameterChange] = Nil
   ) = {
     val crLogs = changeRequestEventLogService.getChangeRequestHistory(changeRequest.id).getOrElse(Seq())
     val wfLogs = workFlowEventLogService.getChangeRequestHistory(changeRequest.id).getOrElse(Seq())
+
     val lines =
       wfLogs.flatMap(displayWorkflowEvent(_)) ++
       crLogs.flatMap(displayChangeRequestEvent(_)) ++
       directives.flatMap(displayDirectiveChange(_)) ++
       groups.flatMap(displayNodeGroupChange(_)) ++
-      rules.flatMap(displayRuleChange(_))
+      rules.flatMap(displayRuleChange(_)) ++
+      globalParams.flatMap(displayGlobalParameterChange(_))
 
 
     val initDatatable = JsRaw(s"""
@@ -238,7 +277,7 @@ class ChangeRequestChangesForm(
 
     ( "#crBody" #> lines).apply(CRTable) ++
     Script(
-      SetHtml("diff",diff(directives,groups,rules) ) &
+      SetHtml("diff",diff(directives,groups,rules, globalParams) ) &
       initDatatable
     )
   }
@@ -441,7 +480,7 @@ class ChangeRequestChangesForm(
     ) (DirectiveXML)
   }
 
-  def diff(directives : List[DirectiveChange],groups : List[NodeGroupChange], rules : List[RuleChange]) = <ul> {
+  def diff(directives : List[DirectiveChange],groups : List[NodeGroupChange], rules : List[RuleChange], globalParameters : List[GlobalParameterChange]) = <ul> {
       directives.flatMap(directiveChange =>
         <li>{
           directiveChange.change.map(_.diff match {
@@ -514,9 +553,58 @@ class ChangeRequestChangesForm(
               }
           } }.getOrElse(<div>Error</div>)
         }</li>
-          )
-
+      ) ++
+      globalParameters.flatMap(globalParameterChange =>
+        <li>
+        {
+          globalParameterChange.change.map{
+          _.diff match {
+            case ModifyToGlobalParameterDiff(param) =>
+              globalParameterChange.initialState match {
+                case Some(initialParameter) =>
+                  val diff = diffService.diffGlobalParameter(initialParameter, param)
+                 displayGlobalParameterDiff(diff,param)
+                case None =>  val msg = s"Could not display diff for ${param.name.value}"
+                logger.error(msg)
+                <div>msg</div>
+               }
+            case diff => displayGlobalParameter(diff.parameter)
+          } }.getOrElse(<error>Error</error>)
+        }</li>
+      )
   }</ul>
+
+  private[this] val globalParameterXML =
+    <div>
+      <h4>Global Parameter overview:</h4>
+      <ul class="evlogviewpad">
+        <li style="padding-bottom : 10px;"><b>Global Parameter:&nbsp;</b><value id="paramName"/></li>
+        <li><b>Name:&nbsp;</b><value id="name"/></li>
+        <li><b>Value:&nbsp;</b><value id="value"/></li>
+        <li><b>Description:&nbsp;</b><value id="description"/></li>
+        <li><b>Overridable:&nbsp;</b><value id="overridable"/></li>
+      </ul>
+    </div>
+
+  private[this] def displayGlobalParameter(param: GlobalParameter) = (
+      "#paramName" #> createGlobalParameterLink(param.name) &
+      "#name" #> param.name.value &
+      "#value" #> param.value &
+      "#description" #> param.description &
+      "#overridable" #> param.overridable
+  )(globalParameterXML)
+
+  private[this] def displayGlobalParameterDiff (
+        diff          : ModifyGlobalParameterDiff
+      , param         : GlobalParameter
+  ) = {
+    ( "#paramName" #> createGlobalParameterLink(param.name) &
+      "#name" #> param.name.value &
+      "#value" #> displaySimpleDiff(diff.modValue,"value",Text(param.value)) &
+      "#description" #> displaySimpleDiff(diff.modDescription,"description",Text(param.description)) &
+      "#overridable" #> displaySimpleDiff(diff.modOverridable,"overridable",Text(param.overridable.toString))
+    ) (globalParameterXML)
+  }
 
   private[this] def displayFormDiff[T](diff: SimpleDiff[T], name:String)(implicit fun: T => String = (t:T) => t.toString) = {
     <pre style="width:200px;" id={s"before${name}"}
@@ -595,4 +683,12 @@ class ChangeRequestChangesForm(
    displayEvent(action,directiveChange.firstChange.actor,directiveChange.firstChange.creationDate, directiveChange.firstChange.reason.getOrElse(""))
   }
 
+  def displayGlobalParameterChange(globalParameterChange: GlobalParameterChange) = {
+    val action = globalParameterChange.firstChange.diff match {
+           case a : AddGlobalParameterDiff => Text(s"Create Global Parameter ${a.parameter.name.value}")
+           case d : DeleteGlobalParameterDiff => <span>Delete Global Parameter {<a href={globalParameterLink(d.parameter.name)} onclick="noBubble(event);">{d.parameter.name.value}</a>}</span>
+           case m : ModifyToGlobalParameterDiff => <span>Modify Global Parameter {<a href={globalParameterLink(m.parameter.name)} onclick="noBubble(event);">{m.parameter.name.value}</a>}</span>
+         }
+   displayEvent(action,globalParameterChange.firstChange.actor,globalParameterChange.firstChange.creationDate, globalParameterChange.firstChange.reason.getOrElse(""))
+  }
 }

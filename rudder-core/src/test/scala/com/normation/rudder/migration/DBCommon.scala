@@ -143,9 +143,9 @@ trait DBCommon extends Specification with Loggable with Tags {
     }
   }
 
-  lazy val successLogger : Seq[MigrationEventLog] => Unit = { seq =>
+  lazy val successLogger : Seq[MigrableEntity] => Unit = { seq =>
     logger.debug("Log correctly migrated (id,type): " + (seq.map { case l =>
-      "(%s, %s)".format(l.id, l.eventType)
+      "(%s, %s)".format(l.id, l.data)
     }).mkString(", ") )
   }
 

@@ -109,7 +109,7 @@ object ConfigurationExecutionBatch {
   /**
    * Takes a string, that should contains a CFEngine var ( $(xxx) or ${xxx} )
    * replace the $(xxx) (or ${xxx}) part by .*
-   * and doubles all the \ 
+   * and doubles all the \
    * Returns a string that is suitable for a beoing used as a regexp
    */
   final def replaceCFEngineVars(x : String) : String = {
@@ -231,7 +231,6 @@ class ConfigurationExecutionBatch(
                               componentValue
                             , purgedReports
                             , expectedComponent.componentsValues
-
                             )
         } yield {
           ComponentValueStatusReport(
@@ -368,7 +367,7 @@ class ConfigurationExecutionBatch(
            case _ => {
             matchedReports.size match {
               case 0 if unexepectedReports.size==0 => (getNoAnswerOrPending(),Nil)
-              case 0 => 
+              case 0 =>
                 (UnknownReportType,Nil)
               case x if x == values.filter( x => x.matches(matchableExpected)).size =>
                 (returnWorseStatus(matchedReports),matchedReports.map(_.message).toList)
@@ -445,7 +444,7 @@ class ConfigurationExecutionBatch(
             groupBy(x=> (x.unexpandedComponentValue)).
             flatMap { case (unexpandedComponentValue, componentValueReport) =>
               // if unexpandedComponentValue exists, then we may have different values, hence the worst type
-              // has to be computed there; else it has to be computed on the values level 
+              // has to be computed there; else it has to be computed on the values level
               unexpandedComponentValue match {
                 case Some(unexpended) =>
                   val cptValueReportType = ReportType.getWorseType(componentValueReport.map(_.cptValueReportType))
@@ -651,7 +650,7 @@ case class ComponentRuleStatusReport (
              entries.head.directiveid // can't fail because we are in a groupBy
            , entries.head.component  // can't fail because we are in a groupBy
            , key
-           , None 
+           , None
            , severity
            , entries.flatMap(_.reports)
           )
