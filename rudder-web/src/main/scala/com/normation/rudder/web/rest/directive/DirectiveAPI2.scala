@@ -32,37 +32,56 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.node
+package com.normation.rudder.web.rest.directive
 
-import com.normation.inventory.domain.NodeId
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.web.rest.RestUtils.toJsonError
+import com.normation.rudder.web.rest.RestExtractorService
 
 import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.JString
 
-class NodeAPI1_0 (
-  apiV1_0              : NodeApiService1_0
-) extends RestHelper with NodeAPI with Loggable{
+class DirectiveAPI2 (
+    readDirective : RoDirectiveRepository
+  , restExtractor : RestExtractorService
+  , apiV2       : DirectiveAPIService2
+) extends RestHelper with DirectiveAPI with Loggable{
 
 
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
-    case Get(Nil, req) => apiV1_0.listAcceptedNodes(req)
+    case Get(Nil, req) => apiV2.listDirectives(req)
 
+    case Put(Nil, req) => {
+      val restDirective = restExtractor.extractDirective(req.params)
+      apiV2.createDirective(restDirective, req)
+    }
 
-    case Get("pending" :: Nil, req) => apiV1_0.listPendingNodes(req)
+    case Get(id :: Nil, req) => apiV2.directiveDetails(id, req)
 
-    case Get(id :: Nil, req) => apiV1_0.acceptedNodeDetails(req, NodeId(id))
+    case Delete(id :: Nil, req) =>  apiV2.deleteDirective(id,req)
 
-    case Delete(id :: Nil, req) =>  apiV1_0.deleteNode(req, Seq(NodeId(id)))
+    case Post(id:: Nil, req) => {
+      val restDirective = restExtractor.extractDirective(req.params)
+      apiV2.updateDirective(id,req,restDirective)
+    }
 
-    case Post("pending" :: Nil, req) => {
-      apiV1_0.changeNodeStatus(req)
+    case id :: Nil JsonPost body -> req => {
+      req.json match {
+        case Full(arg) =>
+          val restDirective = restExtractor.extractDirectiveFromJSON(arg)
+          apiV2.updateDirective(id,req,restDirective)
+        case eb:EmptyBox=>    toJsonError(None, JString("No Json data sent"))("updateDirective",true)
+      }
     }
 
   }
-  serve( "api" / "1.0" / "nodes" prefix requestDispatch)
+  serve( "api" / "2" / "directives" prefix requestDispatch)
 
 }
