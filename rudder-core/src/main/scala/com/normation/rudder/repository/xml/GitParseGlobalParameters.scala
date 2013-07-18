@@ -61,7 +61,7 @@ class GitParseGlobalParameters(
       archive
     }
   }
-  
+
   private[this] def getArchiveForRevTreeId(revTreeId:ObjectId) = {
 
     val root = {
@@ -90,7 +90,7 @@ class GitParseGlobalParameters(
       params  <- sequence(xmls) { xml =>
                      for {
                        paramXml <- xmlMigration.getUpToDateXml(xml)
-                       param    <- paramUnserialisation.unserialise(xml)
+                       param    <- paramUnserialisation.unserialise(paramXml)
                      } yield {
                        param
                      }
