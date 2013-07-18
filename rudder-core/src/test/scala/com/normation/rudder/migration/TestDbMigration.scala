@@ -80,13 +80,13 @@ case class MigEx102(msg:String) extends Exception(msg)
 @RunWith(classOf[JUnitRunner])
 class TestDbMigration_2_3 extends DBCommon {
 
-    lazy val migration = new EventLogsMigration_2_3(
+  lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
-    , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
-    , successLogger = successLogger
+    , individualMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
     , batchSize = 2
-  )
+  ) {
+    override val errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
+  }
 
   val sqlClean = "" //no need to clean temp data table.
 
@@ -139,7 +139,7 @@ CREATE TEMP TABLE EventLog (
   "Event Logs" should {
 
     "be all found" in {
-      val logs = migration.findAllEventLogs.openOrThrowException("For tests")
+      val logs = migration.findAll.openOrThrowException("For tests")
 
       logs.size must beEqualTo(logs2WithId.size) and
       forallWhen(logs) {
@@ -153,7 +153,7 @@ CREATE TEMP TABLE EventLog (
 
     "be correctly migrated" in {
 
-      migration.processEventLogs
+      migration.process
 
       val logs = jdbcTemplate.query("select * from eventlog", testLogRowMapper).asScala.filter(log =>
                    //only actually migrated file format
@@ -185,7 +185,7 @@ CREATE TEMP TABLE EventLog (
 
 
 /**
- * Test how the migration run with a Database context from 1.0 to 3
+ * Test how the migration run with a Database context from 2 to 3
  * with both database (eventlog and migration event log)
  *
  * Prerequise: A postgres database must be available,
@@ -198,17 +198,17 @@ class TestDbMigration_2_3b extends DBCommon {
 
   lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
-    , eventLogMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
-    , errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
-    , successLogger = successLogger
+    , individualMigration = new EventLogMigration_2_3(new XmlMigration_2_3())
     , batchSize = 2
-  )
+  ) {
+    override val errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
+  }
 
   lazy val logRepo = new MigrationEventLogRepository(squerylConnectionProvider)
 
   lazy val migrationManagement = new ControlEventLogsMigration_2_3(
           migrationEventLogRepository = logRepo
-        , migration
+        , Seq(migration)
   )
 
   val sqlClean = "" //no need to clean temp data table.

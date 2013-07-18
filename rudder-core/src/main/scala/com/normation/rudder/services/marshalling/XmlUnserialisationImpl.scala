@@ -66,16 +66,10 @@ import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import scala.xml.Node
 import com.normation.rudder.domain.Constants._
-import com.normation.rudder.domain.workflows.DirectiveChange
-import com.normation.rudder.domain.workflows.NodeGroupChange
-import com.normation.rudder.domain.workflows.DirectiveChanges
-import com.normation.rudder.domain.workflows.NodeGroupChanges
-import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.workflows.NodeGroupChanges
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.workflows.NodeGroupChange
-import com.normation.rudder.domain.workflows.NodeGroupChangeItem
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.workflows.DirectiveChanges
@@ -86,14 +80,11 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.domain.workflows.DirectiveChangeItem
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.domain.TechniqueId
-import com.normation.rudder.domain.workflows.RuleChange
-import com.normation.rudder.domain.workflows.RuleChangeItem
-import com.normation.rudder.domain.workflows.RuleChanges
 import scala.util.Try
 import scala.util.Success
 import scala.util.{Failure => Catch}
 import com.normation.rudder.domain.logger.ApplicationLogger
-
+import com.normation.rudder.domain.parameters._
 
 class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
 
@@ -387,13 +378,14 @@ class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisatio
  *
  */
 class ChangeRequestChangesUnserialisationImpl (
-    nodeGroupUnserialiser : NodeGroupUnserialisation
-  , directiveUnserialiser : DirectiveUnserialisation
-  , ruleUnserialiser      : RuleUnserialisation
-  , techRepo : TechniqueRepository
+    nodeGroupUnserialiser   : NodeGroupUnserialisation
+  , directiveUnserialiser   : DirectiveUnserialisation
+  , ruleUnserialiser        : RuleUnserialisation
+  , globalParamUnserialiser : GlobalParameterUnserialisation
+  , techRepo                : TechniqueRepository
   , sectionSpecUnserialiser : SectionSpecParser
 ) extends ChangeRequestChangesUnserialisation with Loggable {
-  def unserialise(xml:XNode): Box[(Box[Map[DirectiveId,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges])] = {
+  def unserialise(xml:XNode): Box[(Box[Map[DirectiveId,DirectiveChanges]],Map[NodeGroupId,NodeGroupChanges],Map[RuleId,RuleChanges],Map[ParameterName,GlobalParameterChanges])] = {
     def unserialiseNodeGroupChange(changeRequest:XNode): Box[Map[NodeGroupId,NodeGroupChanges]]= {
       (for {
           groupsNode  <- (changeRequest \ "groups").headOption ?~! s"Missing child 'groups' in entry type changeRequest : ${xml}"
@@ -523,6 +515,43 @@ class ChangeRequestChangesUnserialisationImpl (
       })
     }
 
+    def unserialiseGlobalParameterChange(changeRequest:XNode): Box[Map[ParameterName,GlobalParameterChanges]]= {
+      (for {
+          paramsNode  <- (changeRequest \ "globalParameters").headOption ?~! s"Missing child 'globalParameters' in entry type changeRequest : ${xml}"
+      } yield {
+        (paramsNode\"globalParameter").flatMap{ param =>
+          for {
+            paramName    <- param.attribute("name").map(name => ParameterName(name.text)) ?~!
+                             s"Missing attribute 'name' in entry type globalParameters Global Parameter changes  : ${param}"
+            initialParam  <- (param \ "initialState").headOption
+            initialState <- (initialParam \ "globalParameter").headOption match {
+              case Some(initialState) => globalParamUnserialiser.unserialise(initialState) match {
+                case Full(rule) => Full(Some(rule))
+                case eb : EmptyBox => eb ?~! "could not unserialize global parameter"
+              }
+              case None => Full(None)
+            }
+
+            changeParam  <- (param \ "firstChange" \ "change").headOption
+            actor        <- (changeParam \\ "actor").headOption.map(actor => EventActor(actor.text))
+            date         <- (changeParam \\ "date").headOption.map(date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text))
+            reason       =  (changeParam \\ "reason").headOption.map(_.text)
+            diff         <- (changeParam \\ "diff").headOption.flatMap(_.attribute("action").headOption.map(_.text))
+            diffParam    <- (changeParam \\ "globalParameter").headOption
+            changeParam  <- globalParamUnserialiser.unserialise(diffParam)
+            change       <- diff match {
+                              case "add" => Full(AddGlobalParameterDiff(changeParam))
+                              case "delete" => Full(DeleteGlobalParameterDiff(changeParam))
+                              case "modifyTo" => Full(ModifyToGlobalParameterDiff(changeParam))
+                              case  _ => Failure("should not happen")
+                            }
+        } yield {
+          val paramChange = GlobalParameterChange(initialState,GlobalParameterChangeItem(actor,date,reason,change),Seq())
+
+          (paramName -> GlobalParameterChanges(paramChange,Seq()))
+        } }.toMap
+      })
+    }
 
     for {
       changeRequest  <- {
@@ -540,8 +569,35 @@ class ChangeRequestChangesUnserialisationImpl (
              Failure(s"Could not deserialize directives changes cause ${e.getMessage()}")
         }
       rules           <-  unserialiseRuleChange(changeRequest)
+      params          <-  unserialiseGlobalParameterChange(changeRequest)
     } yield {
-      (directives,groups, rules)
+      (directives,groups, rules, params)
+    }
+  }
+
+}
+
+
+class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation {
+  def unserialise(entry:XNode) : Box[GlobalParameter] = {
+    for {
+      globalParam      <- {
+                            if(entry.label ==  XML_TAG_GLOBAL_PARAMETER) Full(entry)
+                            else Failure("Entry type is not a <%s>: %s".format(XML_TAG_GLOBAL_PARAMETER, entry))
+                          }
+      fileFormatOk     <- TestFileFormat(globalParam)
+
+      name             <- (globalParam \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type globalParameter : " + entry)
+      value            <- (globalParam \ "value").headOption.map( _.text ) ?~! ("Missing attribute 'value' in entry type globalParameter : " + entry)
+      description      <- (globalParam \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type globalParameter : " + entry)
+      overridable      <- (globalParam \ "overridable").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'overridable' in entry type globalParameter : " + entry)
+    } yield {
+      GlobalParameter(
+          ParameterName(name)
+        , value
+        , description
+        , overridable
+      )
     }
   }
 

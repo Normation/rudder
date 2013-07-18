@@ -35,15 +35,17 @@
 package com.normation.rudder.domain.logger
 
 import org.slf4j.LoggerFactory
-import net.liftweb.common.Logger
-import net.liftweb.common.Failure
-import com.normation.rudder.migration.MigrationEventLog
+
 import com.normation.rudder.domain.Constants.XML_CURRENT_FILE_FORMAT
+import com.normation.rudder.migration.MigrableEntity
+
+import net.liftweb.common.Failure
+import net.liftweb.common.Logger
 
 
 case class MigrationLogger(
-   goal : Int = XML_CURRENT_FILE_FORMAT
-    ) extends Logger {
+    goal : Int = XML_CURRENT_FILE_FORMAT
+) extends Logger {
   override protected def _logger = LoggerFactory.getLogger("migration")
 
   val defaultErrorLogger : Failure => Unit = { f =>
@@ -52,7 +54,7 @@ case class MigrationLogger(
       _logger.error("Root exception was:", ex)
     }
   }
-  val defaultSuccessLogger : Seq[MigrationEventLog] => Unit = { seq =>
+  val defaultSuccessLogger : Seq[MigrableEntity] => Unit = { seq =>
     if(_logger.isDebugEnabled) {
       seq.foreach { log =>
         _logger.debug("Migrating eventlog to format %s, id: ".format(goal) + log.id)

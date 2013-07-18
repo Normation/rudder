@@ -121,7 +121,9 @@ class NodeConfigurationTest {
         minNodeConf,
         None,
         Map(),
-        Map())
+        Map(),
+        Set(),
+        Set())
     assertEquals(newNode.isPolicyServer, false)
     assertEquals(newNode.currentRulePolicyDrafts.size.toLong, 0L)
     assertEquals(newNode.targetRulePolicyDrafts.size.toLong, 0L)
@@ -164,7 +166,9 @@ class NodeConfigurationTest {
         minNodeConf,
         None,
         Map(),
-        Map())
+        Map(),
+        Set(),
+        Set())
 
     assertEquals(newNode.isPolicyServer, false)
     assertEquals(newNode.currentRulePolicyDrafts.size.toLong, 1L)

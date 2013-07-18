@@ -185,7 +185,7 @@ def matchNodeInfoPairs( serverPairs:Map[NodeId,LDAPEntry], allNodePairs:Map[Node
     } catch {
       case e:LDAPSearchException if(e.getResultCode == ResultCode.TIME_LIMIT_EXCEEDED) => handleException(e)
       case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) => handleException(e)
-      case e:Exception => Failure("Error in quick search query", Full(e), Empty)
+      case e:Exception => Failure("Error in quick search query: " + e.getMessage(), Full(e), Empty)
     }
   }
 
