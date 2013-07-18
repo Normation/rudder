@@ -64,6 +64,8 @@ import com.normation.utils.Control._
 import net.liftweb.common._
 import net.liftweb.json._
 import com.normation.rudder.api.ApiAccountId
+import com.normation.rudder.web.rest.parameter.RestParameter
+import com.normation.rudder.domain.parameters.ParameterName
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -164,6 +166,17 @@ case class RestExtractorService (
     else {
       Failure(s"$value must be at least have a ${minimalSize} character size")
     }
+  }
+
+  private[this] def convertToParameterName (value:String) : Box[ParameterName] = {
+      convertToMinimalSizeString(3)(value) match {
+        case Full(value) =>
+          if (ParameterName.patternName.matcher(value).matches)
+            Full(ParameterName(value))
+          else Failure(s"Parameter Name should be respect the following regex : ${ParameterName.patternName.pattern()}")
+
+        case eb : EmptyBox => eb ?~! "Parameter Name should be at least 3 characters long"
+      }
   }
 
 
@@ -308,6 +321,14 @@ case class RestExtractorService (
     }
   }
 
+  def extractParameterName (params : Map[String,List[String]]) : Box[ParameterName] = {
+     extractOneValue(params, "id")(convertToParameterName) match {
+       case Full(None) => Failure("Parameter id should not be empty")
+       case Full(Some(value)) => Full(value)
+       case eb:EmptyBox => eb ?~ "Error while fetch parameter Name"
+     }
+  }
+
   def extractNodeIds (params : Map[String,List[String]]) : Box[Option[List[NodeId]]] = {
     extractList(params, "nodeId")(convertListToNodeId)
   }
@@ -381,6 +402,17 @@ case class RestExtractorService (
     }
   }
 
+
+  def extractParameter (params : Map[String,List[String]]) : Box[RestParameter] = {
+    for {
+      description <- extractOneValue(params, "description")()
+      overridable <- extractOneValue(params, "overridable")( convertToBoolean)
+      value       <- extractOneValue(params, "value")()
+    } yield {
+      RestParameter(value,description,overridable)
+    }
+  }
+
   def extractDirective (params : Map[String,List[String]]) : Box[RestDirective] = {
     for {
       name             <- extractOneValue(params, "displayName")(convertToMinimalSizeString(3))
@@ -429,6 +461,24 @@ case class RestExtractorService (
       query       <- extractOneValueJson(json, "query")(convertToQuery)
     } yield {
       RestGroup(name,description,query,dynamic,enabled)
+    }
+  }
+
+  def extractParameterNameFromJSON (json : JValue) : Box[ParameterName] = {
+     extractOneValueJson(json, "id")(convertToParameterName) match {
+       case Full(None) => Failure("Parameter id should not be empty")
+       case Full(Some(value)) => Full(value)
+       case eb:EmptyBox => eb ?~ "Error while fetch parameter Name"
+     }
+  }
+
+  def extractParameterFromJSON (json : JValue) : Box[RestParameter] = {
+    for {
+      description <- extractOneValueJson(json, "description")()
+      overridable <- extractOneValueJson(json, "overridable")( convertToBoolean)
+      value       <- extractOneValueJson(json, "value")()
+    } yield {
+      RestParameter(value,description,overridable)
     }
   }
 

@@ -69,20 +69,17 @@ import scala.util.Success
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
-import com.normation.rudder.domain.workflows.NodeGroupChange
-import com.normation.rudder.domain.workflows.NodeGroupChangeItem
-import com.normation.rudder.domain.workflows.DirectiveChangeItem
+import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.policies.AddDirectiveDiff
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
-import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
-import com.normation.rudder.domain.workflows.RuleChangeItem
 import com.normation.rudder.domain.policies.AddRuleDiff
 import com.normation.rudder.domain.policies.DeleteRuleDiff
 import com.normation.rudder.domain.policies.ModifyToRuleDiff
+import com.normation.rudder.domain.parameters._
 
 
 class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
@@ -228,18 +225,29 @@ class DeploymentStatusSerialisationImpl(xmlVersion:String) extends DeploymentSta
   ) }
 }
 
+class GlobalParameterSerialisationImpl(xmlVersion:String) extends GlobalParameterSerialisation {
+  def serialise(param:GlobalParameter):  Elem = {
+    createTrimedElem(XML_TAG_GLOBAL_PARAMETER, xmlVersion) (
+       <name>{param.name.value}</name>
+       <value>{param.value}</value>
+       <description>{param.description}</description>
+       <overridable>{param.overridable}</overridable>
+    )
+  }
+}
 
 /**
  * That class allow to serialise change request changes to an XML data.
  *
  */
 class ChangeRequestChangesSerialisationImpl(
-    xmlVersion         : String
-  , nodeGroupSerializer: NodeGroupSerialisation
-  , directiveSerializer: DirectiveSerialisation
-  , ruleSerializer     : RuleSerialisation
-  , techniqueRepo      : TechniqueRepository
-  , sectionSerializer  : SectionSpecWriter
+    xmlVersion            : String
+  , nodeGroupSerializer   : NodeGroupSerialisation
+  , directiveSerializer   : DirectiveSerialisation
+  , ruleSerializer        : RuleSerialisation
+  , globalParamSerializer : GlobalParameterSerialisation
+  , techniqueRepo         : TechniqueRepository
+  , sectionSerializer     : SectionSpecWriter
 ) extends ChangeRequestChangesSerialisation with Loggable {
   def serialise(changeRequest:ChangeRequest): Elem = {
 
@@ -298,6 +306,19 @@ class ChangeRequestChangesSerialisationImpl(
       </change>
     }
 
+    def serializeGlobalParamChange(change : GlobalParameterChangeItem) : NodeSeq = {
+      <change>
+        <actor>{change.actor.name}</actor>
+        <date>{change.creationDate}</date>
+        <reason>{change.reason.getOrElse("")}</reason>
+        { change.diff match {
+          case AddGlobalParameterDiff(param) => <diff action="add">{globalParamSerializer.serialise(param)}</diff>
+          case DeleteGlobalParameterDiff(param) => <diff action="delete">{globalParamSerializer.serialise(param)}</diff>
+          case ModifyToGlobalParameterDiff(param) => <diff action="modifyTo">{globalParamSerializer.serialise(param)}</diff>
+        } }
+      </change>
+    }
+
     changeRequest match {
 
       case changeRequest : ConfigurationChangeRequest =>
@@ -350,6 +371,23 @@ class ChangeRequestChangesSerialisationImpl(
             </nextChanges>
           </rule>
         }
+        val params = changeRequest.globalParams.map{ case (paramName, param) =>
+          <globalParameter name={paramName.value}>
+            <initialState>
+              {param.changes.initialState.map{
+                case (initialParam) =>
+                  globalParamSerializer.serialise(initialParam)
+                }.getOrElse(NodeSeq.Empty)
+              }
+            </initialState>
+            <firstChange>
+              { serializeGlobalParamChange(param.changes.firstChange) }
+            </firstChange>
+            <nextChanges>
+              { param.changes.nextChanges.map(serializeGlobalParamChange(_)) }
+            </nextChanges>
+          </globalParameter>
+        }
 
 
     createTrimedElem(XML_TAG_CHANGE_REQUEST, xmlVersion)  (
@@ -362,6 +400,9 @@ class ChangeRequestChangesSerialisationImpl(
       <rules>
         {rules}
       </rules>
+      <globalParameters>
+        {params}
+      </globalParameters>
       )
 
    case _ => <not_implemented_yet />

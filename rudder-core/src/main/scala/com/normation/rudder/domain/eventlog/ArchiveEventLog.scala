@@ -230,6 +230,54 @@ object ImportRulesArchive extends EventLogFilter {
   val tagName = "restoreRulesArchive"
 }
 
+final case class ExportParametersArchive(
+    override val eventDetails : EventLogDetails
+) extends ExportEventLog with HashcodeCaching {
+  override val eventType = ExportParametersArchive.eventType
+
+  def this(actor:EventActor, gitArchiveId:GitArchiveId, reason: Option[String]) = this(EventLogDetails(
+      modificationId = None
+    , principal = actor
+    , reason = reason
+    , details = ExportParametersArchive.buildDetails(gitArchiveId)
+  ))
+}
+
+object ExportParametersArchive extends EventLogFilter {
+  override val eventType = ExportParametersEventType
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ExportRulesArchive = ExportRulesArchive(x._2)
+
+  def buildDetails(gitArchiveId:GitArchiveId) =
+    ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
+
+  val tagName = "newParametersArchive"
+}
+
+final case class ImportParametersArchive(
+    override val eventDetails : EventLogDetails
+) extends ImportEventLog with HashcodeCaching {
+  override val eventType = ImportParametersArchive.eventType
+
+  def this(actor:EventActor, gitCommitId:GitCommitId, reason: Option[String]) = this(EventLogDetails(
+      modificationId = None
+    , principal = actor
+    , reason = reason
+    , details = ImportParametersArchive.buildDetails(gitCommitId)
+  ))
+}
+
+object ImportParametersArchive extends EventLogFilter {
+  override val eventType = ImportParametersEventType
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ImportRulesArchive = ImportRulesArchive(x._2)
+
+  def buildDetails(gitCommitId:GitCommitId) =
+    ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
+
+  val tagName = "restoreParametersArchive"
+}
+
 final case class ExportFullArchive(
     override val eventDetails : EventLogDetails
 ) extends ExportEventLog with HashcodeCaching {
