@@ -358,7 +358,7 @@ case class RestExtractorService (
       longDescription  <- extractOneValue(params,"longDescription")()
       enabled          <- extractOneValue(params,"enabled")( convertToBoolean)
       directives       <- extractList(params,"directives")( convertListToDirectiveId)
-      targets          <- extractList(params,"ruleTarget")(convertListToRuleTarget)
+      targets          <- extractList(params,"targets")(convertListToRuleTarget)
     } yield {
       RestRule(name,shortDescription,longDescription,directives,targets,enabled)
     }
@@ -383,8 +383,6 @@ case class RestExtractorService (
       shortDescription <- extractOneValue(params, "shortDescription")()
       longDescription  <- extractOneValue(params, "longDescription")()
       enabled          <- extractOneValue(params, "enabled")( convertToBoolean)
-      directives       <- extractList(params, "directives")( convertListToDirectiveId)
-      targets          <- extractList(params, "ruleTarget")(convertListToRuleTarget)
       priority         <- extractOneValue(params, "priority")(convertToInt)
       parameters       <- extractOneValue(params, "parameters")(convertToDirectiveParam)
     } yield {
@@ -398,7 +396,7 @@ case class RestExtractorService (
       shortDescription <- extractOneValueJson(json, "shortDescription")()
       longDescription  <- extractOneValueJson(json, "longDescription")()
       directives       <- extractJsonList(json, "directives")(convertListToDirectiveId)
-      targets          <- extractJsonList(json, "directives")(convertListToRuleTarget)
+      targets          <- extractJsonList(json, "targets")(convertListToRuleTarget)
       enabled          <- extractJsonBoolean(json,"enabled")
     } yield {
       RestRule(name,shortDescription,longDescription,directives,targets,enabled)
@@ -411,8 +409,6 @@ case class RestExtractorService (
       shortDescription <- extractOneValueJson(json, "shortDescription")()
       longDescription  <- extractOneValueJson(json, "longDescription")()
       enabled          <- extractOneValueJson(json, "enabled")( convertToBoolean)
-      directives       <- extractJsonList(json, "directives")( convertListToDirectiveId)
-      targets          <- extractJsonList(json, "ruleTarget")(convertListToRuleTarget)
       priority         <- extractOneValueJson(json, "priority")(convertToInt)
       parameters       <- extractOneValueJson(json,  "parameters")(convertToDirectiveParam)
     } yield {
