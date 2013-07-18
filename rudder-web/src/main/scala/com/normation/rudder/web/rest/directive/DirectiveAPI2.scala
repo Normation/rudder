@@ -58,6 +58,16 @@ class DirectiveAPI2 (
 
     case Get(Nil, req) => apiV2.listDirectives(req)
 
+    case Nil JsonPut body -> req => {
+      req.json match {
+        case Full(arg) =>
+          val restDirective = restExtractor.extractDirectiveFromJSON(arg)
+          apiV2.createDirective(restDirective,req)
+        case eb:EmptyBox=>
+          toJsonError(None, JString("No Json data sent"))("createDirective",restExtractor.extractPrettify(req.params))
+      }
+    }
+
     case Put(Nil, req) => {
       val restDirective = restExtractor.extractDirective(req.params)
       apiV2.createDirective(restDirective, req)
@@ -67,18 +77,19 @@ class DirectiveAPI2 (
 
     case Delete(id :: Nil, req) =>  apiV2.deleteDirective(id,req)
 
-    case Post(id:: Nil, req) => {
-      val restDirective = restExtractor.extractDirective(req.params)
-      apiV2.updateDirective(id,req,restDirective)
-    }
-
     case id :: Nil JsonPost body -> req => {
       req.json match {
         case Full(arg) =>
           val restDirective = restExtractor.extractDirectiveFromJSON(arg)
           apiV2.updateDirective(id,req,restDirective)
-        case eb:EmptyBox=>    toJsonError(None, JString("No Json data sent"))("updateDirective",true)
+        case eb:EmptyBox=>
+          toJsonError(None, JString("No Json data sent"))("updateDirective",restExtractor.extractPrettify(req.params))
       }
+    }
+
+    case Post(id:: Nil, req) => {
+      val restDirective = restExtractor.extractDirective(req.params)
+      apiV2.updateDirective(id,req,restDirective)
     }
 
   }

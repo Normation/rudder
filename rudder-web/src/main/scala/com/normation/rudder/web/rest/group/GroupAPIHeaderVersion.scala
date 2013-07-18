@@ -46,7 +46,7 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JString
+import net.liftweb.json.JsonDSL._
 
 class GroupAPIHeaderVersion (
     readGroup             : RoNodeGroupRepository
@@ -61,6 +61,20 @@ class GroupAPIHeaderVersion (
       req.header("X-API-VERSION") match {
         case Full("2") => apiV2.listGroups(req)
         case _ => notValidVersionResponse("listGroups")
+      }
+    }
+
+    case Nil JsonPut body -> req => {
+      req.header("X-API-VERSION") match {
+        case Full("2") =>
+          req.json match {
+            case Full(arg) =>
+              val restGroup = restExtractor.extractGroupFromJSON(arg)
+              apiV2.createGroup(restGroup, req)
+            case eb:EmptyBox=>
+              toJsonError(None, "No Json data sent")("createGroup",restExtractor.extractPrettify(req.params))
+          }
+        case _ => notValidVersionResponse("createGroup")
       }
     }
 
@@ -87,6 +101,20 @@ class GroupAPIHeaderVersion (
       }
     }
 
+    case id :: Nil JsonPost body -> req => {
+      req.header("X-API-VERSION") match {
+        case Full("2") =>
+          req.json match {
+            case Full(arg) =>
+              val restGroup = restExtractor.extractGroupFromJSON(arg)
+              apiV2.updateGroup(id,req,restGroup)
+            case eb:EmptyBox=>
+              toJsonError(None, "No Json data sent")("updateGroup",restExtractor.extractPrettify(req.params))
+          }
+        case _ => notValidVersionResponse("updateGroup")
+      }
+    }
+
     case Post(id:: Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("2") =>
@@ -94,20 +122,6 @@ class GroupAPIHeaderVersion (
           apiV2.updateGroup(id,req,restGroup)
         case _ => notValidVersionResponse("updateGroup")
       }
-    }
-
-    case id :: Nil JsonPost body -> req => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
-      req.json match {
-        case Full(arg) =>
-          val restGroup = restExtractor.extractGroupFromJSON(arg)
-          apiV2.updateGroup(id,req,restGroup)
-        case eb:EmptyBox=>    toJsonError(None, JString("No Json data sent"))("updateGroup",true)
-      }
-        case _ => notValidVersionResponse("listGroups")
-      }
-
     }
 
   }
