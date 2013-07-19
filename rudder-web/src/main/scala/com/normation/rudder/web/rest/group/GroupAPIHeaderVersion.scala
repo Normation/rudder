@@ -109,7 +109,14 @@ class GroupAPIHeaderVersion (
       }
 
     }
-
+    case Post( id :: "reload" ::  Nil, req) => {
+      req.header("X-API-VERSION") match {
+        case Full("2") =>
+          apiV2.reloadGroup(id, req)
+        case _ =>
+          notValidVersionResponse("reloadGroup")
+      }
+    }
   }
   serve( "api" / "groups" prefix requestDispatch)
 

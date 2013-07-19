@@ -222,8 +222,8 @@ case class GroupApiService2 (
     }
   }
 
-    def groupReload(id:String, req:Req) = {
-    implicit val action = "groupReload"
+    def reloadGroup(id:String, req:Req) = {
+    implicit val action = "reloadGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = RestUtils.getActor(req)
 
