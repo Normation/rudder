@@ -68,8 +68,8 @@ class GroupAPI2 (
       apiV2.updateGroup(id,req,restGroup)
     }
 
-    case Post("reload" :: id:: Nil, req) => {
-      apiV2.groupReload(id, req)
+    case Post( id :: "reload" ::  Nil, req) => {
+      apiV2.reloadGroup(id, req)
     }
 
 /*    case id :: Nil JsonPost body -> req => {
