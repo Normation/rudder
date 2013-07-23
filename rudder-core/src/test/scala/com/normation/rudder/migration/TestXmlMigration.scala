@@ -60,6 +60,8 @@ import Migration_3_DATA_Other.node_accept_3
 import Migration_3_DATA_Rule.rule_add_3
 import Migration_3_DATA_Rule.rule_delete_3
 import Migration_3_DATA_Rule.rule_modify_3
+import Migration_3_DATA_ChangeRequest.cr_directive_change_3
+import Migration_4_DATA_ChangeRequest.cr_directive_change_4
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
@@ -127,6 +129,16 @@ class TestXmlMigration_2_3 extends Specification with Loggable {
 
     "correctly rewrite node acceptation status" in {
       compare(migration.other(node_accept_2), node_accept_3)
+    }
+  }
+
+
+  val migration_3_4 = new XmlMigration_3_4
+
+
+  "change request migration from fileFormat '3' to '4'" should {
+    "correctly rewrite add" in {
+      compare(migration_3_4.changeRequest(cr_directive_change_3) , cr_directive_change_4)
     }
   }
 }
