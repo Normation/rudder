@@ -64,6 +64,20 @@ class RuleAPIHeaderVersion (
       }
     }
 
+    case  Nil JsonPut body -> req => {
+      req.header("X-API-VERSION") match {
+        case Full("2") =>
+          req.json match {
+            case Full(arg) =>
+              val restRule = restExtractor.extractRuleFromJSON(arg)
+              apiV2.createRule(restRule, req)
+            case eb:EmptyBox=>
+              toJsonError(None, JString("no Json Data sent"))("createRule",restExtractor.extractPrettify(req.params))
+          }
+        case _ => notValidVersionResponse("createRule")
+      }
+    }
+
     case Put(Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("2") =>
@@ -87,6 +101,21 @@ class RuleAPIHeaderVersion (
       }
     }
 
+    case id :: Nil JsonPost body -> req => {
+      req.header("X-API-VERSION") match {
+        case Full("2") =>
+      req.json match {
+        case Full(arg) =>
+          val restRule = restExtractor.extractRuleFromJSON(arg)
+          apiV2.updateRule(id,req,restRule)
+        case eb:EmptyBox=>
+          toJsonError(Some(id), JString("no Json Data sent"))("updateRule",restExtractor.extractPrettify(req.params))
+      }
+        case _ => notValidVersionResponse("updateRule")
+      }
+    }
+
+
     case Post(id:: Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("2") =>
@@ -96,19 +125,7 @@ class RuleAPIHeaderVersion (
       }
     }
 
-    case id :: Nil JsonPost body -> req => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
-      req.json match {
-        case Full(arg) =>
-          val restRule = restExtractor.extractRuleFromJSON(arg)
-          apiV2.updateRule(id,req,restRule)
-        case eb:EmptyBox=>    toJsonError(Some(id), JString("no Json Data sent"))("updateRule",true)
-      }
-        case _ => notValidVersionResponse("updateRule")
-      }
 
-    }
   }
   serve( "api" / "rules" prefix requestDispatch)
 
