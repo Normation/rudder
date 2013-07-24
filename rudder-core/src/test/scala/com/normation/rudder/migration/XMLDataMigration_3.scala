@@ -364,3 +364,33 @@ object Migration_3_DATA_Group {
       <isSystem>false</isSystem>
     </nodeGroup>
 }
+
+
+
+
+object Migration_3_DATA_ChangeRequest {
+  val cr_directive_change_3 =
+    <changeRequest fileFormat="3">
+      <groups>
+      </groups>
+      <directives>
+        <directive id="790a3f8a-72e9-47e8-8b61-ee89be2bcf68">
+            <initialState>
+              <directive fileFormat="3"><id>790a3f8a-72e9-47e8-8b61-ee89be2bcf68</id><displayName>aaaaaaaaaaaaaaaaaaa</displayName><techniqueName>aptPackageInstallation</techniqueName><techniqueVersion>1.0</techniqueVersion><section name="sections"><section name="Debian/Ubuntu packages"><var name="APT_PACKAGE_DEBACTION">add</var><var name="APT_PACKAGE_DEBLIST">f</var></section></section><shortDescription/><longDescription/><priority>5</priority><isEnabled>true</isEnabled><isSystem>false</isSystem></directive>
+            </initialState>
+              <firstChange>
+                <change>
+                  <actor>jon.doe</actor>
+                  <date>2013-04-04T11:21:14.691+02:00</date>
+                  <reason/>
+                  <modifyTo><directive fileFormat="3"><id>790a3f8a-72e9-47e8-8b61-ee89be2bcf68</id><displayName>aaaaaaaaaaaaaaaaaaa</displayName><techniqueName>aptPackageInstallation</techniqueName><techniqueVersion>1.0</techniqueVersion><section name="sections"><section name="Debian/Ubuntu packages"><var name="APT_PACKAGE_DEBACTION">add</var><var name="APT_PACKAGE_DEBLIST">f</var></section></section><shortDescription/><longDescription/><priority>5</priority><isEnabled>true</isEnabled><isSystem>false</isSystem></directive></modifyTo>
+                </change>
+              </firstChange>
+            <nextChanges>
+            </nextChanges>
+          </directive>
+      </directives>
+      <rules>
+      </rules>
+    </changeRequest>
+}

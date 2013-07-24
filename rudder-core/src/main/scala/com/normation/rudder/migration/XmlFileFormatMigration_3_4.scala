@@ -161,15 +161,7 @@ class EventLogMigration_3_4(
 
     for {
       xml      <- TestIsEntry(data)
-      migrated <- eventType.toLowerCase match {
-                    case "ruleadded"    => create(xmlMigration.changeRequest(xml), "RuleAdded")
-
-                    /*
-                     * When migrating from 3 to 4, no eventType name change,
-                     * so we can just pass it.
-                     */
-                    case _    => create(xmlMigration.other(xml), eventType)
-                  }
+      migrated <- create(xmlMigration.other(xml), eventType)
     } yield {
       migrated
     }
@@ -196,13 +188,14 @@ class XmlMigration_3_4 extends Migration_3_4_Definition {
       migrated     <-
                       TestIsElem(
                         (
-                        "changeRequest [fileFormat]" #> toVersion  &
-                        "changeRequest " #> (( xml \"changeRequest" ) ++  <globalParameters></globalParameters>)
-                      )(xml))
+                        "changeRequest *" #> (( ( xml.child )  ++  <globalParameters></globalParameters>) : NodeSeq ) andThen
+                        "* fileFormat=3 [fileFormat]" #> toVersion
+                      ).apply(xml))
     } yield {
       migrated
     }
   }
+
 
   def other(xml:Elem) : Box[Elem] = {
     for {
@@ -279,14 +272,12 @@ class ChangeRequestMigration_3_4(
 
 
     //utility to factor common code
-    //notice the addition of <entry> tag in the result
     def create(optElem:Box[Elem], name:String) = {
-       optElem.map { xml => MigrationChangeRequest(id, name, <entry>{xml}</entry>) }
+       optElem.map { xml => MigrationChangeRequest(id, name, xml) }
     }
 
     for {
-      xml      <- TestIsEntry(content)
-      migrated <- create(xmlMigration.changeRequest(xml), name)
+      migrated <- create(xmlMigration.changeRequest(content), name)
     } yield {
       migrated
     }
