@@ -65,12 +65,13 @@ class ParameterAPIHeaderVersion (
     }
 
     case Nil JsonPut body -> req => {
+      implicit val action = "createParameter"
+      implicit val prettify = restExtractor.extractPrettify(req.params)
       req.header("X-API-VERSION") match {
         case Full("2") =>
           req.json match {
             case Full(json) =>
-              implicit val action = "createParameter"
-              implicit val prettify = restExtractor.extractPrettify(req.params)
+
               logger.info(json)
               val restParameter = restExtractor.extractParameterFromJSON(json)
               restExtractor.extractParameterNameFromJSON(json) match {
@@ -82,7 +83,7 @@ class ParameterAPIHeaderVersion (
                   toJsonError(None, message)
               }
             case eb:EmptyBox=>
-              toJsonError(None, JString("No Json data sent"))("updateParameter",true)
+              toJsonError(None, JString("No Json data sent"))
           }
          case _ => notValidVersionResponse("createParameter")
       }
@@ -120,6 +121,21 @@ class ParameterAPIHeaderVersion (
       }
     }
 
+    case id :: Nil JsonPost body -> req => {
+      req.header("X-API-VERSION") match {
+        case Full("2") =>
+      req.json match {
+        case Full(arg) =>
+          val restParameter = restExtractor.extractParameterFromJSON(arg)
+          apiV2.updateParameter(id,req,restParameter)
+        case eb:EmptyBox=>
+          toJsonError(Some(id), JString("no Json Data sent"))("updateParameter",restExtractor.extractPrettify(req.params))
+      }
+        case _ => notValidVersionResponse("updateParameter")
+      }
+
+    }
+
     case Post(id:: Nil, req) => {
       req.header("X-API-VERSION") match {
         case Full("2") =>
@@ -129,19 +145,6 @@ class ParameterAPIHeaderVersion (
       }
     }
 
-    case id :: Nil JsonPost body -> req => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
-      req.json match {
-        case Full(arg) =>
-          val restParameter = restExtractor.extractParameterFromJSON(arg)
-          apiV2.updateParameter(id,req,restParameter)
-        case eb:EmptyBox=>    toJsonError(Some(id), JString("no Json Data sent"))("updateParameter",true)
-      }
-        case _ => notValidVersionResponse("updateParameter")
-      }
-
-    }
   }
   serve( "api" / "parameters" prefix requestDispatch)
 
