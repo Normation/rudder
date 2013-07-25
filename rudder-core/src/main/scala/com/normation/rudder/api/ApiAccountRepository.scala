@@ -50,6 +50,11 @@ import net.liftweb.common.Empty
 import net.liftweb.common.Failure
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.rudder.domain.RudderLDAPConstants.A_API_UUID
+import com.normation.rudder.repository.ldap.LDAPDiffMapper
+import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.services.user.PersonIdentService
+import com.normation.eventlog.ModificationId
+import com.normation.eventlog.EventActor
 
 /**
  * A repository to retrieve API Accounts
@@ -78,9 +83,15 @@ trait WoApiAccountRepository {
    * action won't be performed.
    *
    */
-  def save(principal: ApiAccount): Box[ApiAccount]
+  def save(
+      principal : ApiAccount
+    , modId     : ModificationId
+    , actor     : EventActor): Box[ApiAccount]
 
-  def delete(id: ApiAccountId): Box[ApiAccountId]
+  def delete(
+      id        : ApiAccountId
+    , modId     : ModificationId
+    , actor     : EventActor) : Box[ApiAccountId]
 }
 
 
@@ -130,9 +141,9 @@ final class RoLDAPApiAccountRepository(
     for {
       ldap     <- ldapConnexion
       optEntry <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)) match {
-                  case f:Failure => f
-                  case Empty => Full(None)
-                  case Full(e) => Full(Some(e))
+                    case f:Failure => f
+                    case Empty => Full(None)
+                    case Full(e) => Full(Some(e))
                   }
       optRes   <- optEntry match {
                     case None => Full(None)
@@ -146,43 +157,92 @@ final class RoLDAPApiAccountRepository(
 
 
 final class WoLDAPApiAccountRepository(
-    val rudderDit    : RudderDit
-  , val ldapConnexion: LDAPConnectionProvider[RwLDAPConnection]
-  , val mapper       : LDAPEntityMapper
+    rudderDit          : RudderDit
+  , ldapConnexion      : LDAPConnectionProvider[RwLDAPConnection]
+  , mapper             : LDAPEntityMapper
+  , diffMapper         : LDAPDiffMapper
+  , actionLogger       : EventLogRepository
+  , personIdentService : PersonIdentService
 ) extends WoApiAccountRepository with Loggable {
+  repo =>
 
-  override def save(principal: ApiAccount) : Box[ApiAccount] = {
-    for {
-      ldap     <- ldapConnexion
-      existing <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, principal.token.value)) match {
-                    case f:Failure => f
-                    case Empty => Full(None)
-                    case Full(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
-                                      Full(e)
-                                    } else {
-                                      Failure("An account with given token but different id already exists")
-                                    }
-                  }
-      name     <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(LDAPConstants.A_NAME, principal.name.value)) match {
-                    case f:Failure => f
-                    case Empty => Full(None)
-                    case Full(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
-                                      Full(e)
-                                    } else {
-                                      Failure("An account with the same name exists")
-                                    }
-                  }
-      entry =  mapper.apiAccount2Entry(principal)
-      saved <- ldap.save(entry, removeMissingAttributes=true)
-    } yield {
-      principal
+  override def save(
+      principal : ApiAccount
+    , modId     : ModificationId
+    , actor     : EventActor) : Box[ApiAccount] = {
+    repo.synchronized {
+      for {
+        ldap     <- ldapConnexion
+        existing <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, principal.token.value)) match {
+                      case f:Failure => f
+                      case Empty => Full(None)
+                      case Full(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
+                                        Full(e)
+                                      } else {
+                                        Failure("An account with given token but different id already exists")
+                                      }
+                    }
+        name     <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(LDAPConstants.A_NAME, principal.name.value)) match {
+                      case f:Failure => f
+                      case Empty => Full(None)
+                      case Full(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
+                                        Full(e)
+                                      } else {
+                                        Failure(s"An account with the same name ${principal.name.value} exists")
+                                      }
+                    }
+        optPrevious <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id)) match {
+                        case f:Failure => f
+                        case Empty => Full(None)
+                        case Full(e) => Full(Some(e))
+                      }
+
+        entry =  mapper.apiAccount2Entry(principal)
+        saved <- ldap.save(entry, removeMissingAttributes=true)
+        loggedAction <- optPrevious match {
+                            // if there is a previous value, then it's an update
+                            case Some(previous) =>
+                              for {
+                                optDiff <- diffMapper.modChangeRecords2ApiAccountDiff(
+                                            previous
+                                          , saved)
+
+                                action  <- optDiff match {
+                                            case Some(diff) => actionLogger.saveModifyApiAccount(modId, principal = actor, modifyDiff = diff, None) ?~! "Error when logging modification of an API Account as an event"
+                                            case None => Full("Ok")
+                                          }
+                              } yield {
+                                action
+                              }
+                            // if there is no previous value, then it's a creation
+                            case None =>
+                              for {
+                                diff   <- diffMapper.addChangeRecords2ApiAccountDiff(
+                                            entry.dn
+                                          , saved)
+
+                                action <-  actionLogger.saveCreateApiAccount(modId, principal = actor, addDiff = diff, None) ?~! "Error when logging creation of API Account as an event"
+                              } yield {
+                                action
+                              }
+                       }
+      } yield {
+        principal
+      }
     }
   }
 
-  override def delete(id:ApiAccountId) : Box[ApiAccountId] = {
+  override def delete(
+      id        : ApiAccountId
+    , modId     : ModificationId
+    , actor     : EventActor) : Box[ApiAccountId] = {
     for {
-      ldap     <- ldapConnexion
-      deleted  <- ldap.delete(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id))
+      ldap         <- ldapConnexion
+      entry        <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)) ?~! "Api Account with ID '%s' is not present".format(id.value)
+      oldAccount   <- mapper.entry2ApiAccount(entry)
+      deleted      <- ldap.delete(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id))
+      diff         =  DeleteApiAccountDiff(oldAccount)
+      loggedAction <- actionLogger.saveDeleteApiAccount(modId, principal = actor, deleteDiff = diff, None)
     } yield {
       id
     }

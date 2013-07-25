@@ -99,7 +99,6 @@ class EventLogJdbcRepository(
            def createPreparedStatement(connection : Connection) : PreparedStatement = {
              val sqlXml = connection.createSQLXML()
              sqlXml.setString(eventLog.details.toString)
-
              var i = 6
              val (reasonCol, reasonVal) = eventLog.eventDetails.reason match {
                case None => ("", "")
@@ -293,6 +292,7 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
         PolicyServerEventLogsFilter.eventList :::
         PromisesEventLogsFilter.eventList :::
         UserEventLogsFilter.eventList :::
+        APIAccountEventLogsFilter.eventList :::
         ChangeRequestLogsFilter.eventList :::
         TechniqueEventLogsFilter.eventList :::
         ParameterEventsLogsFilter.eventList
