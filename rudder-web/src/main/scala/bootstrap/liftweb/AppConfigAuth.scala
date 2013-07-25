@@ -207,6 +207,8 @@ class RestAuthenticationFilter(
   def init(config: FilterConfig): Unit = {}
 
 
+  private[this] val REST_USER_PREFIX = "REST Account: "
+
   private[this] val api_v1_url = List(
       "/api/status"
     , "/api/techniqueLibrary/reload"
@@ -281,9 +283,10 @@ class RestAuthenticationFilter(
 
               case Full(Some(principal)) =>
                 if(principal.isEnabled) {
+                  val rest_principal = REST_USER_PREFIX + s""""${principal.name.value}"""" + s" (${principal.id.value.toUpperCase()})"
                   //cool, build an authentication token from it
                   authenticate(RudderUserDetail(
-                      principal.id.value
+                      rest_principal
                     , principal.token.value
                     , RoleApiAuthority.apiRudderRights
                     , Seq(RoleApiAuthority)
