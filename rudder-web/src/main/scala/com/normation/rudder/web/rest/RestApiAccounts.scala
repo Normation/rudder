@@ -13,6 +13,8 @@ import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.api._
 import net.liftweb.http.LiftResponse
 import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.web.model.CurrentUser
 
 class RestApiAccounts (
     readApi        : RoApiAccountRepository
@@ -49,7 +51,7 @@ class RestApiAccounts (
               // generate the id for creation
               val id = ApiAccountId(uuidGen.newUuid)
               val account = ApiAccount(id, restApiAccount.name.get ,ApiToken(tokenGenerator.newToken(tokenSize)), restApiAccount.description.getOrElse(""), restApiAccount.enabled.getOrElse(true), DateTime.now, DateTime.now)
-              writeApi.save(account) match {
+              writeApi.save(account, ModificationId(uuidGen.newUuid), CurrentUser.getActor) match {
                 case Full(_) =>
                   val accounts = ("accounts" -> JArray(List(toJson(account))))
                   toJsonResponse(None,accounts)("updateAccount",true)
@@ -97,7 +99,7 @@ class RestApiAccounts (
       val apiToken = ApiToken(token)
       readApi.getByToken(apiToken) match {
         case Full(Some(account)) =>
-          writeApi.delete(account.id) match {
+          writeApi.delete(account.id, ModificationId(uuidGen.newUuid), CurrentUser.getActor) match {
             case Full(_) =>
               val accounts = ("accounts" -> JArray(List(toJson(account))))
               toJsonResponse(None,accounts)("deleteAccount",true)
@@ -118,7 +120,10 @@ class RestApiAccounts (
         case Full(Some(account)) =>
           val newToken = ApiToken(tokenGenerator.newToken(tokenSize))
           val generationDate = DateTime.now
-          writeApi.save(account.copy(token = newToken,tokenGenerationDate = generationDate)) match {
+          writeApi.save(
+              account.copy(token = newToken,tokenGenerationDate = generationDate)
+            , ModificationId(uuidGen.newUuid)
+            , CurrentUser.getActor) match {
             case Full(account) =>
               val accounts = ("accounts" -> JArray(List(toJson(account))))
               toJsonResponse(None,accounts)("regenerateAccount",true)
@@ -136,7 +141,7 @@ class RestApiAccounts (
   }
 
   def save(account:ApiAccount) : LiftResponse = {
-    writeApi.save(account) match {
+    writeApi.save(account, ModificationId(uuidGen.newUuid), CurrentUser.getActor) match {
       case Full(res) =>
         val accounts = ("accounts" -> JArray(List(toJson(res))))
         toJsonResponse(None,accounts)("updateAccount",true)

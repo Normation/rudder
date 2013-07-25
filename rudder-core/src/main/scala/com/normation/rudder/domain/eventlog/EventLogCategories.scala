@@ -38,6 +38,7 @@ import com.normation.eventlog._
 
 ///// Define intersting categories /////
 final case object UserLogCategory extends EventLogCategory
+final case object APIAccountCategory extends EventLogCategory
 final case object RudderApplicationLogCategory extends EventLogCategory
 final case object RuleLogCategory extends EventLogCategory
 final case object DirectiveLogCategory extends EventLogCategory
@@ -78,6 +79,15 @@ final case object BadCredentialsEventType extends NoRollbackEventLogType {
 }
 final case object LogoutEventType extends NoRollbackEventLogType {
   def serialize = "UserLogout"
+}
+final case object CreateAPIAccountEventType extends NoRollbackEventLogType {
+  def serialize = "CreateAPIAccount"
+}
+final case object DeleteAPIAccountEventType extends NoRollbackEventLogType {
+  def serialize = "DeleteAPIAccount"
+}
+final case object ModifyAPITokenEventType extends NoRollbackEventLogType {
+  def serialize = "ModifyAPIAccount"
 }
 // the node related event type
 final case object AddNodeGroupEventType extends RollbackEventLogType {
@@ -260,6 +270,10 @@ object EventTypeFactory {
     , LoginEventType
     , BadCredentialsEventType
     , LogoutEventType
+
+    , CreateAPIAccountEventType
+    , DeleteAPIAccountEventType
+    , ModifyAPITokenEventType
 
     , AddNodeGroupEventType
     , DeleteNodeGroupEventType

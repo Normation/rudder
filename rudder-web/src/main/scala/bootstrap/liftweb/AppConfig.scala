@@ -610,6 +610,9 @@ object RudderConfig extends Loggable {
       rudderDitImpl
     , rwLdap
     , ldapEntityMapper
+    , ldapDiffMapper
+    , logRepository
+    , personIdentServiceImpl
   )
 
   private[this] lazy val ruleApplicationStatusImpl: RuleApplicationStatusService = new RuleApplicationStatusServiceImpl()
@@ -641,6 +644,8 @@ object RudderConfig extends Loggable {
     new DeploymentStatusSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val globalParameterSerialisation: GlobalParameterSerialisation =
     new GlobalParameterSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
+  private[this] lazy val apiAccountSerialisation: APIAccountSerialisation =
+    new APIAccountSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val changeRequestChangesSerialisation : ChangeRequestChangesSerialisation =
     new ChangeRequestChangesSerialisationImpl(
         Constants.XML_CURRENT_FILE_FORMAT.toString
@@ -657,6 +662,7 @@ object RudderConfig extends Loggable {
     , nodeGroupSerialisation
     , activeTechniqueSerialisation
     , globalParameterSerialisation
+    , apiAccountSerialisation
   )
   private[this] lazy val pathComputer = new PathComputerImpl(RUDDER_DIR_BACKUP)
   private[this] lazy val baseUrlService: GetBaseUrlService = new DefaultBaseUrlService(BASE_URL)
@@ -704,6 +710,7 @@ object RudderConfig extends Loggable {
     , new ActiveTechniqueUnserialisationImpl
     , new DeploymentStatusUnserialisationImpl
     , new GlobalParameterUnserialisationImpl
+    , new ApiAccountUnserialisationImpl
   )
 
   //////////////////////////////////////////////////////////
