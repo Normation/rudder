@@ -114,7 +114,7 @@
                         <div class="wbBaseField">
                           <label class="threeCol wbBaseFieldLabel textright"><b>Name: *</b></label>
                           <div class="twoCol">
-                            <input type="text" ng-model="myNewAccount.id" name="newAccountName" id="newAccountName" ng-change="$(newAccountName).focus()" valid-empty="valid-empty"  style="width: 100%;"/>
+                            <input type="text" ng-model="myNewAccount.name" name="newAccountName" id="newAccountName" ng-change="$(newAccountName).focus()" valid-empty="valid-empty"  style="width: 100%;"/>
                           </div>
                         </div>
                         <hr class="spacer"/>
@@ -151,7 +151,7 @@
                   <div id="paramForm">
                     <div id="deletionPopup">
                       <div class="simplemodal-title">
-                        <h1 id="title" style="color:#000">{{myOldAccount.actionName}} API Account '{{myOldAccount.id}}'</h1>
+                        <h1 id="title" style="color:#000">{{myOldAccount.actionName}} API Account '{{myOldAccount.name}}'</h1>
                         <hr/>
                       </div>
                       <div class="simplemodal-content">
@@ -264,14 +264,14 @@
     }
 
     $scope.addAccount = function() {
-      var newAccount = { id : "", token: "not yet obtained", enabled : true, description : ""}
+      var newAccount = { id : "", name : "", token: "not yet obtained", enabled : true, description : ""}
       $scope.myNewAccount = newAccount;
     }
 
     //define what each column of the grid
     //get from the JSON people
     $scope.columnDefs = [
-        { "aTargets":[0], "mDataProp": "id", "sWidth": "20%" }
+        { "aTargets":[0], "mDataProp": "name", "sWidth": "20%" }
       , {   "aTargets":[1]
           , "mDataProp": "token"
           , 'bSortable': false

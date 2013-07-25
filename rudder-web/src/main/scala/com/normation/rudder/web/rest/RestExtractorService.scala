@@ -66,6 +66,7 @@ import net.liftweb.json._
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.web.rest.parameter.RestParameter
 import com.normation.rudder.domain.parameters.ParameterName
+import com.normation.rudder.api.ApiAccountName
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -206,6 +207,9 @@ case class RestExtractorService (
     Full(ApiAccountId(value))
   }
 
+  private[this] def convertToApiAccountName (value:String) : Box[ApiAccountName] = {
+    Full(ApiAccountName(value))
+  }
   /*
    * Convert List Functions
    */
@@ -484,12 +488,13 @@ case class RestExtractorService (
 
   def extractApiAccountFromJSON (json : JValue) : Box[RestApiAccount] = {
     for {
-      name        <- extractOneValueJson(json, "id")(convertToApiAccountId)
+      id          <- extractOneValueJson(json, "id")(convertToApiAccountId)
+      name        <- extractOneValueJson(json, "name")(convertToApiAccountName)
       description <- extractOneValueJson(json, "description")()
       enabled     <- extractJsonBoolean(json, "enabled")
       oldName     <- extractOneValueJson(json, "oldId")(convertToApiAccountId)
     } yield {
-      RestApiAccount(name, description, enabled, oldName)
+      RestApiAccount(id, name, description, enabled, oldName)
     }
   }
 
