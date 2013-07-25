@@ -327,7 +327,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
      * There is two actual implementations of Rudder server, which
      * differ only slightly in their identification.
      */
-    object API_ACCOUNT extends ENTRY1(A_NAME) {
+    object API_ACCOUNT extends ENTRY1(A_API_UUID) {
       principal =>
 
       //get id from dn
@@ -339,7 +339,8 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       def apiAccountModel(principal:ApiAccount) : LDAPEntry = {
         val mod = LDAPEntry(this.dn(principal.id))
         mod +=! (A_OC, OC.objectClassNames(OC_API_ACCOUNT).toSeq:_*)
-        mod +=! (A_NAME, principal.id.value)
+        mod +=! (A_API_UUID, principal.id.value)
+        mod +=! (A_NAME, principal.name.value)
         mod +=! (A_CREATION_DATETIME, GeneralizedTime(principal.creationDate).toString)
         mod +=! (A_API_TOKEN, principal.token.value)
         mod +=! (A_API_TOKEN_CREATION_DATETIME, GeneralizedTime(principal.tokenGenerationDate).toString)

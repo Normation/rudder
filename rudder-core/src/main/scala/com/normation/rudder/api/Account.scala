@@ -37,10 +37,15 @@ import com.normation.utils.HashcodeCaching
 import org.joda.time.DateTime
 
 /**
- * ID of the principal, used in event log to know
- * who did actions.
+ * ID of the Account
  */
 final case class ApiAccountId(value:String) extends HashcodeCaching
+
+/**
+ * Name of the principal, used in event log to know
+ * who did actions.
+ */
+final case class ApiAccountName(value:String) extends HashcodeCaching
 
 /**
  * The actual authentication token.
@@ -65,6 +70,7 @@ final case class ApiAccount(
     id                 : ApiAccountId
     //Authentication token. It is a mandatory value, and can't be ""
     //If a token should be revoked, use isEnabled = false.
+  , name               : ApiAccountName  //used in event log to know who did actions.
   , token              : ApiToken
   , description        : String
   , isEnabled          : Boolean

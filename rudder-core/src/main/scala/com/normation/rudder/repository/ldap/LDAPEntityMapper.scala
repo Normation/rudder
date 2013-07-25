@@ -67,6 +67,7 @@ import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiToken
 import com.normation.rudder.domain.parameters._
+import com.normation.rudder.api.ApiAccountName
 
 
 /**
@@ -532,14 +533,15 @@ class LDAPEntityMapper(
     if(e.isA(OC_API_ACCOUNT)) {
       //OK, translate
       for {
-        id <- e(A_NAME).map( ApiAccountId(_) ) ?~! s"Missing required id (attribute name ${A_NAME}) in entry ${e}"
-        token <- e(A_API_TOKEN).map( ApiToken(_) ) ?~! s"Missing required name (attribute name ${A_API_TOKEN}) in entry ${e}"
+        id <- e(A_API_UUID).map( ApiAccountId(_) ) ?~! s"Missing required id (attribute name ${A_API_UUID}) in entry ${e}"
+        name <- e(A_NAME).map( ApiAccountName(_) ) ?~! s"Missing required name (attribute name ${A_NAME}) in entry ${e}"
+        token <- e(A_API_TOKEN).map( ApiToken(_) ) ?~! s"Missing required token (attribute name ${A_API_TOKEN}) in entry ${e}"
         creationDatetime <- e.getAsGTime(A_CREATION_DATETIME) ?~! s"Missing required creation timestamp (attribute name ${A_CREATION_DATETIME}) in entry ${e}"
         tokenCreationDatetime <- e.getAsGTime(A_API_TOKEN_CREATION_DATETIME) ?~! s"Missing required token creation timestamp (attribute name ${A_API_TOKEN_CREATION_DATETIME}) in entry ${e}"
         isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         description = e(A_DESCRIPTION).getOrElse("")
       } yield {
-        ApiAccount(id, token, description, isEnabled, creationDatetime.dateTime, tokenCreationDatetime.dateTime)
+        ApiAccount(id, name, token, description, isEnabled, creationDatetime.dateTime, tokenCreationDatetime.dateTime)
       }
     } else Failure(s"The given entry is not of the expected ObjectClass '${OC_API_ACCOUNT}'. Entry details: ${e}")
   }
