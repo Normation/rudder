@@ -53,6 +53,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.parameters._
+import com.normation.rudder.api.ApiAccount
 
 
 trait DeploymentStatusUnserialisation {
@@ -263,6 +264,26 @@ trait GlobalParameterUnserialisation {
      </globalParameter>
    */
   def unserialise(xml:XNode) : Box[GlobalParameter]
+}
+
+/**
+ * That trait allows to unserialize
+ * API Account from an XML
+ */
+trait ApiAccountUnserialisation {
+  /**
+   * Version 4:
+     <ApiAccount fileFormat="4">
+       <id>{account.id.value}</id>
+       <name>{account.name.value}</name>
+       <token>{account.token.value}</token>
+       <description>{account.description}</description>
+       <isEnabled>{account.isEnabled}</isEnabled>
+       <creationDate>{account.creationDate.toString(ISODateTimeFormat.dateTime)}</creationDate>
+       <tokenGenerationDate>{account.tokenGenerationDate.toString(ISODateTimeFormat.dateTime)}</tokenGenerationDate>
+     </ApiAccount>
+   */
+   def unserialise(xml:XNode) : Box[ApiAccount]
 }
 
 /**

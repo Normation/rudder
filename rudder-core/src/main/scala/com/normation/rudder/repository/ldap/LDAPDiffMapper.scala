@@ -71,6 +71,7 @@ import com.unboundid.ldif.LDIFModifyDNChangeRecord
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.unboundid.ldap.sdk.ModificationType.{ADD, DELETE, REPLACE}
 import com.normation.rudder.domain.parameters._
+import com.normation.rudder.api._
 
 class LDAPDiffMapper(
     mapper         : LDAPEntityMapper
@@ -335,7 +336,7 @@ class LDAPDiffMapper(
       Failure("The following change record does not belong to Parameter entry '%s': %s".format(parameterDN,change))
     }
   }
-  
+
   def modChangeRecords2GlobalParameterDiff(
       parameterName     : ParameterName
     , parameterDn       : DN
@@ -354,7 +355,7 @@ class LDAPDiffMapper(
 
                 case A_DESCRIPTION =>
                   Full(diff.copy(modDescription = Some(SimpleDiff(oldParam.description, mod.getAttribute().getValue()))))
-                  
+
                 case A_PARAMETER_OVERRIDABLE =>
                   tryo(diff.copy(modOverridable = Some(SimpleDiff(oldParam.overridable, mod.getAttribute().getValueAsBoolean))))
                 case x => Failure("Unknown diff attribute: " + x)
@@ -370,6 +371,64 @@ class LDAPDiffMapper(
       }
     } else {
       Failure("The following change record does not belong to Parameter entry '%s': %s".format(parameterDn,change))
+    }
+  }
+
+  // API Account diff
+  def addChangeRecords2ApiAccountDiff(
+      parameterDN   : DN
+    , change        : LDIFChangeRecord
+  ) : Box[AddApiAccountDiff] = {
+    if (change.getParsedDN == parameterDN ) {
+      change match {
+        case add:LDIFAddChangeRecord =>
+          val e = LDAPEntry(add.toAddRequest().toEntry)
+          for {
+            param <- mapper.entry2ApiAccount(e)
+          } yield AddApiAccountDiff(param)
+        case _ => Failure("Bad change record type for requested action 'Add Global Parameter': %s".format(change))
+      }
+    } else {
+      Failure("The following change record does not belong to Parameter entry '%s': %s".format(parameterDN,change))
+    }
+  }
+
+  /**
+   * Map a list of com.unboundid.ldif.LDIFChangeRecord into a
+   * ApiAccountDiff.
+   */
+  def modChangeRecords2ApiAccountDiff(
+      beforeChangeEntry : LDAPEntry
+    , change            : LDIFChangeRecord
+  ) : Box[Option[ModifyApiAccountDiff]] = {
+    if(change.getParsedDN == beforeChangeEntry.dn ) {
+      change match {
+        case modify:LDIFModifyChangeRecord =>
+          for {
+            oldAccount <- mapper.entry2ApiAccount(beforeChangeEntry)
+            diff       <- pipeline(modify.getModifications(), ModifyApiAccountDiff(oldAccount.id)) { (mod, diff) =>
+              mod.getAttributeName() match {
+                case A_NAME =>
+                  tryo(diff.copy(modName = Some(SimpleDiff(oldAccount.name.value, mod.getAttribute().getValue()))))
+                case A_API_TOKEN =>
+                  Full(diff.copy(modToken = Some(SimpleDiff(oldAccount.token.value, mod.getAttribute().getValue()))))
+                case A_DESCRIPTION =>
+                  Full(diff.copy(modDescription = Some(SimpleDiff(oldAccount.description, mod.getAttribute().getValue()))))
+                case A_IS_ENABLED =>
+                  tryo(diff.copy(modIsEnabled = Some(SimpleDiff(oldAccount.isEnabled, mod.getAttribute().getValueAsBoolean))))
+                case x => Failure("Unknown diff attribute: " + x)
+              }
+            }
+          } yield {
+            Some(diff)
+          }
+
+        case noop:LDIFNoopChangeRecord => Full(None)
+
+        case _ => Failure("Bad change record type for requested action 'update rule': %s".format(change))
+      }
+    } else {
+      Failure("The following change record does not belong to Rule entry '%s': %s".format(beforeChangeEntry.dn,change))
     }
   }
 }
