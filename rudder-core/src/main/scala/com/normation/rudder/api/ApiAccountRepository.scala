@@ -49,6 +49,7 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Empty
 import net.liftweb.common.Failure
 import com.normation.inventory.ldap.core.LDAPConstants
+import com.normation.rudder.domain.RudderLDAPConstants.A_API_UUID
 
 /**
  * A repository to retrieve API Accounts
@@ -62,6 +63,8 @@ trait RoApiAccountRepository {
 
   def getByToken(token: ApiToken): Box[Option[ApiAccount]]
 
+  def getById(id : ApiAccountId) : Box[Option[ApiAccount]]
+
 }
 
 /**
@@ -71,17 +74,11 @@ trait WoApiAccountRepository {
 
   /**
    * Save an API account
-   * If an account with a different name but the same token exists,
-   * action won't be perform.
+   * If an account with a same name or same token exists,
+   * action won't be performed.
    *
    */
   def save(principal: ApiAccount): Box[ApiAccount]
-
-  /**
-   * Change an account name.
-   * If the old name does not exists, it's an error.
-   */
-  def rename(oldName: ApiAccountId, newName: ApiAccountId): Box[ApiAccountId]
 
   def delete(id: ApiAccountId): Box[ApiAccountId]
 }
@@ -128,6 +125,23 @@ final class RoLDAPApiAccountRepository(
       optRes
     }
   }
+
+  override def getById(id:ApiAccountId) : Box[Option[ApiAccount]] = {
+    for {
+      ldap     <- ldapConnexion
+      optEntry <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)) match {
+                  case f:Failure => f
+                  case Empty => Full(None)
+                  case Full(e) => Full(Some(e))
+                  }
+      optRes   <- optEntry match {
+                    case None => Full(None)
+                    case Some(e) => mapper.entry2ApiAccount(e).map( Some(_) )
+                  }
+    } yield {
+      optRes
+    }
+  }
 }
 
 
@@ -138,32 +152,30 @@ final class WoLDAPApiAccountRepository(
 ) extends WoApiAccountRepository with Loggable {
 
   override def save(principal: ApiAccount) : Box[ApiAccount] = {
-
     for {
       ldap     <- ldapConnexion
       existing <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, principal.token.value)) match {
                     case f:Failure => f
                     case Empty => Full(None)
-                    case Full(e) => if(e(LDAPConstants.A_NAME) == Some(principal.id.value)) {
+                    case Full(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
                                       Full(e)
                                     } else {
-                                      Failure("An account with given token but different name already exists")
+                                      Failure("An account with given token but different id already exists")
+                                    }
+                  }
+      name     <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(LDAPConstants.A_NAME, principal.name.value)) match {
+                    case f:Failure => f
+                    case Empty => Full(None)
+                    case Full(e) => if(e(A_API_UUID) == Some(principal.id.value)) {
+                                      Full(e)
+                                    } else {
+                                      Failure("An account with the same name exists")
                                     }
                   }
       entry =  mapper.apiAccount2Entry(principal)
       saved <- ldap.save(entry, removeMissingAttributes=true)
     } yield {
       principal
-    }
-  }
-
-  override def rename(oldName: ApiAccountId, newName: ApiAccountId): Box[ApiAccountId] = {
-    def toDn(id:ApiAccountId) = rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)
-    for {
-      ldap  <- ldapConnexion
-      moved <- ldap.move(toDn(oldName), rudderDit.API_ACCOUNTS.dn, Some(toDn(newName).getRDN))
-    } yield {
-      newName
     }
   }
 
