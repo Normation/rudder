@@ -37,7 +37,8 @@ class RestApiAccounts (
           val accounts = ("accounts" -> JArray(accountSeq.toList.map(toJson(_))))
           toJsonResponse(None,accounts)("getAllAccounts",true)
         case eb : EmptyBox =>
-              toJsonError(None,s"Could not get accounts cause : ${(eb ?~ "could not get account").msg}")("getAllAccounts",true)
+          logger.error(s"Could not get accounts cause : ${(eb ?~ "could not get account").msg}")
+          toJsonError(None,s"Could not get accounts cause : ${(eb ?~ "could not get account").msg}")("getAllAccounts",true)
 
       }
 
@@ -57,16 +58,20 @@ class RestApiAccounts (
                   toJsonResponse(None,accounts)("updateAccount",true)
 
                 case eb : EmptyBox =>
+                  logger.error(s"Could not create account cause : ${(eb ?~ "could not save account").msg}")
                   toJsonError(None,s"Could not create account cause : ${(eb ?~ "could not save account").msg}")("updateAccount",true)
               }
             } else {
+              logger.error(s"Could not create account cause : could not get account")
               toJsonError(None,s"Could not create account cause : could not get account")("updateAccount",true)
             }
 
           case eb : EmptyBox =>
-                toJsonError(None,s"Could not create account cause : ${(eb ?~ "could not extract data from JSON").msg}")("updateAccount",true)
+            logger.error(s"Could not create account cause : ${(eb ?~ "could not extract data from JSON").msg}")
+            toJsonError(None,s"Could not create account cause : ${(eb ?~ "could not extract data from JSON").msg}")("updateAccount",true)
         }
         case eb:EmptyBox=>
+          logger.error("No Json data sent")
           toJsonError(None, "No Json data sent")("updateAccount",true)
       }
 
@@ -83,12 +88,15 @@ class RestApiAccounts (
                 save(updateAccount)
 
               case Full(None) =>
+                logger.error(s"Could not update account with token $token cause : could not get account")
                 toJsonError(None,s"Could not update account with token $token cause : could not get account")("updateAccount",true)
               case eb : EmptyBox =>
+                logger.error(s"Could not update account with token $token cause : ${(eb ?~ "could not get account").msg}")
                 toJsonError(None,s"Could not update account with token $token cause : ${(eb ?~ "could not get account").msg}")("updateAccount",true)
             }
           case eb : EmptyBox =>
-                toJsonError(None,s"Could not update account with token $token cause : ${(eb ?~ "could not extract data from JSON").msg}")("updateAccount",true)
+            logger.error(s"Could not update account with token $token cause : ${(eb ?~ "could not extract data from JSON").msg}")
+            toJsonError(None,s"Could not update account with token $token cause : ${(eb ?~ "could not extract data from JSON").msg}")("updateAccount",true)
         }
         case eb:EmptyBox=>
           toJsonError(None, "No Json data sent")("updateAccount",true)
@@ -129,12 +137,15 @@ class RestApiAccounts (
               toJsonResponse(None,accounts)("regenerateAccount",true)
 
             case eb : EmptyBox =>
+              logger.error(s"Could not regenerate account with token $token cause : ${(eb ?~ "could not save account").msg}")
               toJsonError(None,s"Could not regenerate account with token $token cause : ${(eb ?~ "could not save account").msg}")("regenerateAccount",true)
           }
 
         case Full(None) =>
+          logger.error(s"Could not regenerate account with token $token cause could not get account")
           toJsonError(None,s"Could not regenerate account with token $token cause : could not get account")("regenerateAccount",true)
         case eb : EmptyBox =>
+          logger.error(s"Could not regenerate account with token $token cause : ${(eb ?~ "could not get account").msg}")
           toJsonError(None,s"Could not regenerate account with token $token cause : ${(eb ?~ "could not get account").msg}")("regenerateAccount",true)
       }
 
