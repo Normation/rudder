@@ -210,7 +210,7 @@
 
       $http.get(apiPath).
       success(function(data, status, headers, config) {
-        $scope.accounts = data.data.accounts
+        $scope.accounts = data.data.accounts;
       }).
       error(function(data, status, headers, config) {
       });
@@ -245,18 +245,18 @@
 
     $scope.enableButton = function(account,index) {
     if (account.enabled) {
-      var button = $("<button style='width: 80px; margin: 0px 10px;'>Disable</button>")
-        button.button();
+      var button = $("<button style='width: 80px; margin: 0px 10px;'>Disable</button>");
+      button.button();
       button.click( function(){
-            account.enabled = false;
+          account.enabled = false;
           $scope.saveAccount(account,index);
-        })
+        });
       return button;
     } else {
-      var button = $("<button style='width: 80px; margin: 0px 10px;'>Enable</button>")
-        button.button()
+      var button = $("<button style='width: 80px; margin: 0px 10px;'>Enable</button>");
+        button.button();
         button.click( function() {
-            account.enabled = true;
+          account.enabled = true;
           $scope.saveAccount(account,index);
         })
       return button;
@@ -326,7 +326,7 @@
         var statusButton = $scope.enableButton(data,iRow);
       $(nTd).empty();
       $(nTd).attr("style","border-right:none;border-left:none;");
-        $(nTd).prepend(statusButton);
+      $(nTd).prepend(statusButton);
       }
     }
       , {   "aTargets"      : [5]
@@ -341,7 +341,7 @@
           $scope.popupDeletion(data,iRow,$scope.deleteAccount,"Delete");
         });
       $(nTd).empty();
-        $(nTd).prepend(deleteButton);
+      $(nTd).prepend(deleteButton);
       $(nTd).attr("style","border-left:none;");
       }
     }
@@ -360,7 +360,7 @@
             "sZeroRecords": "No matching API accounts!",
             "sSearch": ""
           },
-          "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
+        "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
     };
 
     $scope.popupCreation = function(account,index) {
@@ -385,35 +385,37 @@
 
      $scope.checkAndSaveAccount = function (account,index,form) {
        if (form.$valid) {
-         $scope.saveAccount(account,index)
+         $scope.saveAccount(account,index);
          $scope.myNewAccount = undefined;
        }
      }
      $scope.saveAccount = function(account,index) {
-       if(account.token == "not yet obtained" ) {
-         $http.put(apiPath,account).
-         success(function(data, status, headers, config) {
-           var newAccount = data.data.accounts[0];
-           var newLength = $scope.accounts.push(newAccount);
-           newAccount.index = newLength - 1 ;
-           $scope.myNewAccount = undefined;
-           $("#accountGrid").dataTable().fnClearTable();
-           $("#accountGrid").dataTable().fnAddData($scope.accounts);
-         }).
-         error(function(data, status, headers, config) {
-         });
-       } else {
-       $http.post(apiPath + '/'+account.token,account).
-         success(function(data, status, headers, config) {
+       $scope.$apply(function() {
+         if(account.token == "not yet obtained" ) {
+           $http.put(apiPath,account).
+           success(function(data, status, headers, config) {
+               var newAccount = data.data.accounts[0];
+               var newLength = $scope.accounts.push(newAccount);
+               newAccount.index = newLength - 1 ;
+               $scope.myNewAccount = undefined;
+               $("#accountGrid").dataTable().fnClearTable();
+               $("#accountGrid").dataTable().fnAddData($scope.accounts);
+           }).
+           error(function(data, status, headers, config) {
+           });
+         } else {
+           $http.post(apiPath + '/'+account.token,account).
+           success(function(data, status, headers, config) {
              var newAccount = data.data.accounts[0];
              $scope.accounts[index] = newAccount;
              $.extend($scope.myNewAccount, newAccount);
-           $("#accountGrid").dataTable().fnClearTable();
-           $("#accountGrid").dataTable().fnAddData($scope.accounts);
-         }).
-         error(function(data, status, headers, config) {
-         });
-       }
+             $("#accountGrid").dataTable().fnClearTable();
+             $("#accountGrid").dataTable().fnAddData($scope.accounts);
+           }).
+           error(function(data, status, headers, config) {
+           });
+         }
+       });
      }
 
       $scope.formTitle = function(account) {
