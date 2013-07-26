@@ -12,12 +12,16 @@ import org.joda.time.DateTime
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.api._
 import net.liftweb.http.LiftResponse
+import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.web.model.CurrentUser
 
 class RestApiAccounts (
     readApi        : RoApiAccountRepository
   , writeApi       : WoApiAccountRepository
   , restExtractor  : RestExtractorService
   , tokenGenerator : TokenGenerator
+  , uuidGen        : StringUuidGenerator
 ) extends RestHelper with Loggable {
 
   val tokenSize = 32
@@ -43,9 +47,11 @@ class RestApiAccounts (
         case Full(json) =>
         restExtractor.extractApiAccountFromJSON(json) match {
           case Full(restApiAccount) =>
-            if (restApiAccount.id.isDefined) {
-              val account = ApiAccount(restApiAccount.id.get,ApiToken(tokenGenerator.newToken(tokenSize)), restApiAccount.description.getOrElse(""), restApiAccount.enabled.getOrElse(true), DateTime.now, DateTime.now)
-              writeApi.save(account) match {
+            if (restApiAccount.name.isDefined) {
+              // generate the id for creation
+              val id = ApiAccountId(uuidGen.newUuid)
+              val account = ApiAccount(id, restApiAccount.name.get ,ApiToken(tokenGenerator.newToken(tokenSize)), restApiAccount.description.getOrElse(""), restApiAccount.enabled.getOrElse(true), DateTime.now, DateTime.now)
+              writeApi.save(account, ModificationId(uuidGen.newUuid), CurrentUser.getActor) match {
                 case Full(_) =>
                   val accounts = ("accounts" -> JArray(List(toJson(account))))
                   toJsonResponse(None,accounts)("updateAccount",true)
@@ -74,8 +80,7 @@ class RestApiAccounts (
             readApi.getByToken(apiToken) match {
               case Full(Some(account)) =>
                 val updateAccount = restApiAccount.update(account)
-
-                save(updateAccount, restApiAccount.oldId)
+                save(updateAccount)
 
               case Full(None) =>
                 toJsonError(None,s"Could not update account with token $token cause : could not get account")("updateAccount",true)
@@ -94,7 +99,7 @@ class RestApiAccounts (
       val apiToken = ApiToken(token)
       readApi.getByToken(apiToken) match {
         case Full(Some(account)) =>
-          writeApi.delete(account.id) match {
+          writeApi.delete(account.id, ModificationId(uuidGen.newUuid), CurrentUser.getActor) match {
             case Full(_) =>
               val accounts = ("accounts" -> JArray(List(toJson(account))))
               toJsonResponse(None,accounts)("deleteAccount",true)
@@ -115,7 +120,10 @@ class RestApiAccounts (
         case Full(Some(account)) =>
           val newToken = ApiToken(tokenGenerator.newToken(tokenSize))
           val generationDate = DateTime.now
-          writeApi.save(account.copy(token = newToken,tokenGenerationDate = generationDate)) match {
+          writeApi.save(
+              account.copy(token = newToken,tokenGenerationDate = generationDate)
+            , ModificationId(uuidGen.newUuid)
+            , CurrentUser.getActor) match {
             case Full(account) =>
               val accounts = ("accounts" -> JArray(List(toJson(account))))
               toJsonResponse(None,accounts)("regenerateAccount",true)
@@ -132,19 +140,8 @@ class RestApiAccounts (
 
   }
 
-  def save(account:ApiAccount, oldId: Option[ApiAccountId]) : LiftResponse = {
-    val res = oldId match {
-      case Some(id) if(id != account.id) =>
-        for {
-          moved <- writeApi.rename(id, account.id)
-          saved <- writeApi.save(account)
-        } yield {
-          saved
-        }
-      case _ => writeApi.save(account)
-    }
-
-    res match {
+  def save(account:ApiAccount) : LiftResponse = {
+    writeApi.save(account, ModificationId(uuidGen.newUuid), CurrentUser.getActor) match {
       case Full(res) =>
         val accounts = ("accounts" -> JArray(List(toJson(res))))
         toJsonResponse(None,accounts)("updateAccount",true)
@@ -156,6 +153,7 @@ class RestApiAccounts (
 
   def toJson(account : ApiAccount) = {
     ("id" -> account.id.value) ~
+    ("name" -> account.name.value) ~
     ("token" -> account.token.value) ~
     ("tokenGenerationDate" -> DateFormaterService.getFormatedDate(account.tokenGenerationDate)) ~
     ("description" -> account.description) ~
@@ -163,25 +161,23 @@ class RestApiAccounts (
     ("enabled" -> account.isEnabled)
   }
 
-
-
-
-
 }
 
 case class RestApiAccount(
     id          : Option[ApiAccountId]
+  , name        : Option[ApiAccountName]
   , description : Option[String]
   , enabled     : Option[Boolean]
   , oldId       : Option[ApiAccountId]
 ) {
 
- def update(account : ApiAccount) = {
-    val idUpdate    = id.getOrElse(account.id)
+  // Id cannot change if already defined
+  def update(account : ApiAccount) = {
+    val nameUpdate   = name.getOrElse(account.name)
     val enableUpdate = enabled.getOrElse(account.isEnabled)
-    val descUpdate  = description.getOrElse(account.description)
+    val descUpdate   = description.getOrElse(account.description)
 
-    account.copy(id = idUpdate, isEnabled = enableUpdate, description = descUpdate )
+    account.copy(name = nameUpdate, isEnabled = enableUpdate, description = descUpdate )
   }
 }
 

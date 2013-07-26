@@ -72,6 +72,7 @@ import scala.util.{Failure => Catch}
 import com.normation.rudder.domain.eventlog.WorkflowStepChanged
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.domain.parameters._
+import com.normation.rudder.api._
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
@@ -299,7 +300,6 @@ class EventListDisplayer(
       Text(s"Global Parameter ${name} ${actionName}")
     }
 
-
     def changeRequestDesc(x:EventLog, actionName: NodeSeq) = {
       val name = (x.details \ "changeRequest" \ "name").text
       val idNode = (x.details \ "changeRequest" \ "id").text.trim
@@ -329,6 +329,12 @@ class EventListDisplayer(
           Text("Change request status modified")
       }
     }
+
+    def apiAccountDesc(x:EventLog, actionName: NodeSeq) = {
+      val name = (x.details \ "ApiAccount" \ "name").text
+      Text(s"Api Account ${name} ${actionName}")
+    }
+
 
     event match {
       case x:ActivateRedButton             => Text("Stop Rudder agents on all nodes")
@@ -374,6 +380,9 @@ class EventListDisplayer(
       case x:AddGlobalParameter            => globalParamDesc(x, Text(" added"))
       case x:ModifyGlobalParameter         => globalParamDesc(x, Text(" modified"))
       case x:DeleteGlobalParameter         => globalParamDesc(x, Text(" deleted"))
+      case x:CreateAPIAccountEventLog      => apiAccountDesc(x, Text(" added"))
+      case x:ModifyAPIAccountEventLog      => apiAccountDesc(x, Text(" modified"))
+      case x:DeleteAPIAccountEventLog      => apiAccountDesc(x, Text(" deleted"))
       case _ => Text("Unknow event type")
 
     }
@@ -1035,6 +1044,61 @@ class EventListDisplayer(
         }
         }
 
+      case x:CreateAPIAccountEventLog =>
+        "*" #> { logDetailsService.getApiAccountAddDetails(x.details) match {
+            case Full(apiAccountDiff) =>
+                <div class="evloglmargin">
+                  { addRestoreAction }
+                  { generatedByChangeRequest }
+                  { apiAccountDetails(apiAccountDetailsXML, apiAccountDiff.apiAccount)}
+                  { reasonHtml }
+                  { xmlParameters(event.id) }
+                </div>
+            case e:EmptyBox => logger.warn(e)
+              errorMessage(e)
+          }
+        }
+
+      case x:DeleteAPIAccountEventLog =>
+        "*" #> { logDetailsService.getApiAccountDeleteDetails(x.details) match {
+            case Full(apiAccountDiff) =>
+                <div class="evloglmargin">
+                  { addRestoreAction }
+                  { generatedByChangeRequest }
+                  { apiAccountDetails(apiAccountDetailsXML, apiAccountDiff.apiAccount)}
+                  { reasonHtml }
+                  { xmlParameters(event.id) }
+                </div>
+            case e:EmptyBox => logger.warn(e)
+              errorMessage(e)
+          }
+        }
+
+      case mod:ModifyAPIAccountEventLog =>
+        "*" #> { logDetailsService.getApiAccountModifyDetails(mod.details) match {
+          case Full(apiAccountDiff) =>
+              <div class="evloglmargin">
+              { addRestoreAction }
+              { generatedByChangeRequest }
+              <h4>API account overview:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Account ID:</b> { apiAccountDiff.id.value }</li>
+              </ul>
+              {(
+                  "#name" #> mapSimpleDiff(apiAccountDiff.modName) &
+                  "#token" #>  mapSimpleDiff(apiAccountDiff.modToken) &
+                  "#description *" #> mapSimpleDiff(apiAccountDiff.modDescription) &
+                  "#isEnabled *" #> mapSimpleDiff(apiAccountDiff.modIsEnabled)
+                )(apiAccountModDetailsXML)
+                }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+            errorMessage(e)
+          }
+        }
+
       // other case: do not display details at all
       case _ => "*" #> ""
 
@@ -1227,6 +1291,16 @@ class EventListDisplayer(
       "#overridable" #> globalParameter.overridable
   )(xml)
 
+  private[this] def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccount) = (
+      "#accountID" #> apiAccount.id.value &
+      "#name" #> apiAccount.name.value &
+      "#token" #> apiAccount.token.value &
+      "#description" #> apiAccount.description &
+      "#isEnabled" #> apiAccount.isEnabled &
+      "#creationDate" #> DateFormaterService.getFormatedDate(apiAccount.creationDate) &
+      "#tokenGenerationDate" #> DateFormaterService.getFormatedDate(apiAccount.tokenGenerationDate)
+  )(xml)
+
  private[this] def mapSimpleDiff[T](opt:Option[SimpleDiff[T]]) = opt.map { diff =>
    ".diffOldValue *" #> diff.oldValue.toString &
    ".diffNewValue *" #> diff.newValue.toString
@@ -1357,6 +1431,21 @@ class EventListDisplayer(
       </ul>
     </div>
 
+   private[this] val apiAccountDetailsXML =
+    <div>
+      <h4>API account overview:</h4>
+      <ul class="evlogviewpad">
+        <li><b>Rudder ID: </b><value id="id"/></li>
+        <li><b>Name:&nbsp;</b><value id="name"/></li>
+        <li><b>Token:&nbsp;</b><value id="token"/></li>
+        <li><b>Description:&nbsp;</b><value id="description"/></li>
+        <li><b>Enabled:&nbsp;</b><value id="isEnabled"/></li>
+        <li><b>Creation date:&nbsp;</b><value id="creationDate"/></li>
+        <li><b>Token Generation date:&nbsp;</b><value id="tokenGenerationDate"/></li>
+      </ul>
+    </div>
+
+
   private[this] def liModDetailsXML(id:String, name:String) = (
       <div id={id}>
         <b>{name} changed:</b>
@@ -1428,6 +1517,14 @@ class EventListDisplayer(
       {liModDetailsXML("value", "Value")}
       {liModDetailsXML("description", "Description")}
       {liModDetailsXML("overridable", "Overridable")}
+    </xml:group>
+
+  private[this] val apiAccountModDetailsXML =
+    <xml:group>
+      {liModDetailsXML("name", "Name")}
+      {liModDetailsXML("token", "Token")}
+      {liModDetailsXML("description", "Description")}
+      {liModDetailsXML("isEnabled", "Enabled")}
     </xml:group>
 
   private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int, gridname: String) = {

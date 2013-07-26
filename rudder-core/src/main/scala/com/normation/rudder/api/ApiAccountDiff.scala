@@ -34,49 +34,24 @@
 package com.normation.rudder.api
 
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain.policies.SimpleDiff
 import org.joda.time.DateTime
 
 /**
- * ID of the Account
+ * That file define "diff" object between ApiAccounts.
  */
-final case class ApiAccountId(value:String) extends HashcodeCaching
 
-/**
- * Name of the principal, used in event log to know
- * who did actions.
- */
-final case class ApiAccountName(value:String) extends HashcodeCaching
-
-/**
- * The actual authentication token.
- * A token is defined with [0-9a-zA-Z]{n}, with n not small.
- */
-final case class ApiToken(value: String) extends HashcodeCaching
-
-object ApiToken {
-
-  val tokenRegex = """[0-9a-zA-Z]{12,128}""".r
-
-  def buildCheckValue(value: String) : Option[ApiToken] = value.trim match {
-    case tokenRegex(v) => Some(ApiToken(v))
-    case _ => None
-  }
-}
-
-/**
- * An API principal
- */
-final case class ApiAccount(
-    id                 : ApiAccountId
-    //Authentication token. It is a mandatory value, and can't be ""
-    //If a token should be revoked, use isEnabled = false.
-  , name               : ApiAccountName  //used in event log to know who did actions.
-  , token              : ApiToken
-  , description        : String
-  , isEnabled          : Boolean
-  , creationDate       : DateTime
-  , tokenGenerationDate: DateTime
-) extends HashcodeCaching
+sealed trait ApiAccountDiff
 
 
+final case class AddApiAccountDiff(apiAccount:ApiAccount) extends ApiAccountDiff with HashcodeCaching
 
+final case class DeleteApiAccountDiff(apiAccount:ApiAccount) extends ApiAccountDiff with HashcodeCaching
+
+final case class ModifyApiAccountDiff(
+    id                     : ApiAccountId
+  , modName                : Option[SimpleDiff[String]] = None
+  , modToken               : Option[SimpleDiff[String]] = None
+  , modDescription         : Option[SimpleDiff[String]] = None
+  , modIsEnabled           : Option[SimpleDiff[Boolean]] = None
+) extends ApiAccountDiff with HashcodeCaching
