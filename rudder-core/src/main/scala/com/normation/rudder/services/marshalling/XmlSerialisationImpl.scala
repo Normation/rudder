@@ -80,6 +80,7 @@ import com.normation.rudder.domain.policies.AddRuleDiff
 import com.normation.rudder.domain.policies.DeleteRuleDiff
 import com.normation.rudder.domain.policies.ModifyToRuleDiff
 import com.normation.rudder.domain.parameters._
+import com.normation.rudder.api.ApiAccount
 
 
 class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
@@ -408,5 +409,24 @@ class ChangeRequestChangesSerialisationImpl(
    case _ => <not_implemented_yet />
   }
 
+  }
+}
+
+/**
+ * That trait allows to serialise
+ *  API Account to an XML file.
+ */
+class APIAccountSerialisationImpl(xmlVersion:String) extends APIAccountSerialisation {
+
+  def serialise(account:ApiAccount):  Elem = {
+    createTrimedElem(XML_TAG_API_ACCOUNT, xmlVersion) (
+       <id>{account.id.value}</id>
+       <name>{account.name.value}</name>
+       <token>{account.token.value}</token>
+       <description>{account.description}</description>
+       <isEnabled>{account.isEnabled}</isEnabled>
+       <creationDate>{account.creationDate.toString(ISODateTimeFormat.dateTime)}</creationDate>
+       <tokenGenerationDate>{account.tokenGenerationDate.toString(ISODateTimeFormat.dateTime)}</tokenGenerationDate>
+    )
   }
 }
