@@ -49,6 +49,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.parameters._
+import com.normation.rudder.api._
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory
@@ -250,6 +251,54 @@ trait EventLogRepository {
         , modifyDiff = modifyDiff
         , reason = reason
       )
+    )
+  }
+
+  /**
+   * Save an API Account
+   */
+  def saveCreateApiAccount(
+      modId     : ModificationId
+    , principal : EventActor
+    , addDiff   : AddApiAccountDiff
+    , reason    :Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getCreateApiAccountFromDiff(
+          principal = principal
+        , addDiff = addDiff
+        , reason = reason
+      )
+    )
+  }
+
+  def saveModifyApiAccount(
+      modId     : ModificationId
+    , principal : EventActor
+    , modifyDiff: ModifyApiAccountDiff
+    , reason    :Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getModifyApiAccountFromDiff(
+          principal = principal
+        , modifyDiff = modifyDiff
+        , reason = reason
+      )
+    )
+  }
+
+  def saveDeleteApiAccount(
+      modId: ModificationId
+    , principal: EventActor
+    , deleteDiff: DeleteApiAccountDiff
+    , reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getDeleteApiAccountFromDiff(
+            principal  = principal
+          , deleteDiff = deleteDiff
+          , reason = reason
+        )
     )
   }
 

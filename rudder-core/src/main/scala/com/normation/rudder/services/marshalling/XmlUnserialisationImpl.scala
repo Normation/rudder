@@ -85,6 +85,7 @@ import scala.util.Success
 import scala.util.{Failure => Catch}
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.parameters._
+import com.normation.rudder.api._
 
 class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
 
@@ -600,5 +601,36 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
       )
     }
   }
+}
 
+class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
+  //we expect acceptation date to be in ISO-8601 format
+  private[this] val dateFormatter = ISODateTimeFormat.dateTime
+
+  def unserialise(entry:XNode) : Box[ApiAccount] = {
+    for {
+      apiAccount       <- {
+                            if(entry.label ==  XML_TAG_API_ACCOUNT) Full(entry)
+                            else Failure("Entry type is not a <%s>: %s".format(XML_TAG_API_ACCOUNT, entry))
+                          }
+      fileFormatOk     <- TestFileFormat(apiAccount)
+      id               <- (apiAccount \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type API Account : " + entry)
+      name             <- (apiAccount \ "name").headOption.map( _.text ) ?~! ("Missing attribute 'name' in entry type API Account : " + entry)
+      token            <- (apiAccount \ "token").headOption.map( _.text ) ?~! ("Missing attribute 'token' in entry type API Account : " + entry)
+      description      <- (apiAccount \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type API Account : " + entry)
+      isEnabled        <- (apiAccount \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type API Account : " + entry)
+      creationDate     <- (apiAccount \ "creationDate").headOption.flatMap(s => tryo { dateFormatter.parseDateTime(s.text) } ) ?~! ("Missing attribute 'creationDate' in entry type API Account : " + entry)
+      tokenGenDate     <- (apiAccount \ "tokenGenerationDate").headOption.flatMap(s => tryo { dateFormatter.parseDateTime(s.text) } ) ?~! ("Missing attribute 'tokenGenerationDate' in entry type API Account : " + entry)
+    } yield {
+      ApiAccount(
+          ApiAccountId(id)
+        , ApiAccountName(name)
+        , ApiToken(token)
+        , description
+        , isEnabled
+        , creationDate
+        , tokenGenDate
+      )
+    }
+  }
 }
