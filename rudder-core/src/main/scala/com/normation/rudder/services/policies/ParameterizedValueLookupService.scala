@@ -228,7 +228,7 @@ trait ParameterizedValueLookupService {
   case class CrVarParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching
   case class CrTargetParametrization(crName:String, accessor:String) extends CrParametrization with HashcodeCaching
   object CrTargetParametrization extends RegexParameterTest {
-    override val regex = """\$\{rudder\.([\-_a-zA-Z0-9]+)\.target\.([\-_a-zA-Z0-9]+)\}"""
+    override val regex = """\$\{rudder\.(?!param)([\-_a-zA-Z0-9]+)\.target\.([\-_a-zA-Z0-9]+)\}"""
   }
 
 
@@ -241,7 +241,7 @@ trait ParameterizedValueLookupService {
   }
 
   object CrParametrization extends RegexParameterTest {
-    override val regex = """\$\{rudder\.([\-_a-zA-Z0-9]+)\.([\-_a-zA-Z0-9]+)\}"""
+    override val regex = """\$\{rudder\.(?!param)([\-_a-zA-Z0-9]+)\.([\-_a-zA-Z0-9]+)\}"""
 
     def unapply(value:String) : Option[Parametrization] = {
         //start by the most specific and go up
