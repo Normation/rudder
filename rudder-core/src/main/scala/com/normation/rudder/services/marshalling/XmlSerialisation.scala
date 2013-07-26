@@ -47,7 +47,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.rudder.domain.parameters.GlobalParameter
-
+import com.normation.rudder.api.ApiAccount
 
 
 /**
@@ -319,4 +319,24 @@ trait GlobalParameterSerialisation {
      </globalParameter>
    */
   def serialise(param:GlobalParameter):  Elem
+}
+
+/**
+ * That trait allows to serialise
+ * API Account to an XML
+ */
+trait APIAccountSerialisation {
+  /**
+   * Version 4:
+     <apiAccount fileFormat="4">
+       <id>{account.id.value}</id>
+       <name>{account.name.value}</name>
+       <token>{account.token.value}</token>
+       <description>{account.description}</description>
+       <isEnabled>{account.isEnabled}</isEnabled>
+       <creationDate>{account.creationDate.toString(ISODateTimeFormat.dateTime)}</creationDate>
+       <tokenGenerationDate>{account.tokenGenerationDate.toString(ISODateTimeFormat.dateTime)}</tokenGenerationDate>
+     </apiAccount>
+   */
+  def serialise(account:ApiAccount):  Elem
 }

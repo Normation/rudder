@@ -73,6 +73,8 @@ import com.normation.rudder.domain.workflows.WorkflowNodeId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.parameters._
+import com.normation.rudder.api._
+import com.normation.rudder.domain.Constants._
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -150,6 +152,12 @@ trait EventLogDetailsService {
 
   def getGlobalParameterModifyDetails(xml:NodeSeq) : Box[ModifyGlobalParameterDiff]
 
+  // API Account
+  def getApiAccountAddDetails(xml:NodeSeq) : Box[AddApiAccountDiff]
+
+  def getApiAccountDeleteDetails(xml:NodeSeq) : Box[DeleteApiAccountDiff]
+
+  def getApiAccountModifyDetails(xml:NodeSeq) : Box[ModifyApiAccountDiff]
 }
 
 
@@ -164,6 +172,7 @@ class EventLogDetailsServiceImpl(
   , techniqueUnserialiser           : ActiveTechniqueUnserialisation
   , deploymentStatusUnserialisation : DeploymentStatusUnserialisation
   , globalParameterUnserialisation  : GlobalParameterUnserialisation
+  , apiAccountUnserialisation       : ApiAccountUnserialisation
 ) extends EventLogDetailsService {
 
 
@@ -854,6 +863,55 @@ class EventLogDetailsServiceImpl(
     }
   }
 
+  // API Account
+  def getApiAccountFromXML(xml:NodeSeq, changeType:String) : Box[ApiAccount] = {
+    for {
+      entry           <- getEntryContent(xml)
+      account         <- (entry \ XML_TAG_API_ACCOUNT).headOption ?~! (s"Entry type is not an API Account: ${entry}")
+      changeTypeAddOk <- {
+                           if(account.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
+                           else Failure(s"API Account attribute does not have changeType=${changeType} in ${entry}")
+                         }
+      apiAccount       <- apiAccountUnserialisation.unserialise(account)
+    } yield {
+      apiAccount
+    }
+  }
+
+  def getApiAccountAddDetails(xml:NodeSeq) : Box[AddApiAccountDiff] = {
+    getApiAccountFromXML(xml, "add").map { account =>
+      AddApiAccountDiff(account)
+    }
+  }
+
+  def getApiAccountDeleteDetails(xml:NodeSeq) : Box[DeleteApiAccountDiff] = {
+    getApiAccountFromXML(xml, "delete").map { account =>
+      DeleteApiAccountDiff(account)
+    }
+  }
+
+  def getApiAccountModifyDetails(xml:NodeSeq) : Box[ModifyApiAccountDiff] = {
+    for {
+      entry              <- getEntryContent(xml)
+      apiAccount         <- (entry \ XML_TAG_API_ACCOUNT).headOption ?~!
+                              (s"Entry type is not a Api Account: ${entry}")
+      id                 <- (apiAccount \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type API Account : " + entry)
+      modName            <- getFromToString((apiAccount \ "name").headOption)
+      modToken           <- getFromToString((apiAccount \ "token").headOption)
+      modDescription     <- getFromToString((apiAccount \ "description").headOption)
+      modIsEnabled       <- getFromTo[Boolean]((apiAccount \ "enabled").headOption,
+                             { s => tryo { s.text.toBoolean } } )
+      fileFormatOk       <- TestFileFormat(apiAccount)
+    } yield {
+      ModifyApiAccountDiff(
+          id = ApiAccountId(id)
+        , modName = modName
+        , modToken = modToken
+        , modDescription = modDescription
+        , modIsEnabled = modIsEnabled
+      )
+    }
+  }
 }
 
 case class RollbackInfo(

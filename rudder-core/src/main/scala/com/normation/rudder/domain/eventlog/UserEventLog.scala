@@ -88,6 +88,52 @@ object LogoutEventLog extends EventLogFilter {
   override def apply(x : (EventLogType, EventLogDetails)) : LogoutEventLog = LogoutEventLog(x._2)
 }
 
+///////////////////////////////
+// API Account part
+///////////////////////////////
+
+sealed trait APIAccountEventLog extends EventLog {
+  override final val eventLogCategory = APIAccountCategory
+}
+
+final case class CreateAPIAccountEventLog(
+    override val eventDetails : EventLogDetails
+) extends APIAccountEventLog with HashcodeCaching {
+
+  override val eventType = CreateAPIAccountEventLog.eventType
+}
+
+object CreateAPIAccountEventLog extends EventLogFilter {
+  override val eventType = CreateAPIAccountEventType
+
+  override def apply(x : (EventLogType, EventLogDetails)) : CreateAPIAccountEventLog = CreateAPIAccountEventLog(x._2)
+}
+
+final case class DeleteAPIAccountEventLog(
+    override val eventDetails : EventLogDetails
+) extends APIAccountEventLog with HashcodeCaching {
+
+  override val eventType = DeleteAPIAccountEventLog.eventType
+}
+
+object DeleteAPIAccountEventLog extends EventLogFilter {
+  override val eventType = DeleteAPIAccountEventType
+
+  override def apply(x : (EventLogType, EventLogDetails)) : DeleteAPIAccountEventLog = DeleteAPIAccountEventLog(x._2)
+}
+
+final case class ModifyAPIAccountEventLog(
+    override val eventDetails : EventLogDetails
+) extends APIAccountEventLog with HashcodeCaching {
+
+  override val eventType = ModifyAPIAccountEventLog.eventType
+}
+
+object ModifyAPIAccountEventLog extends EventLogFilter {
+  override val eventType = ModifyAPITokenEventType
+
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyAPIAccountEventLog = ModifyAPIAccountEventLog(x._2)
+}
 
 object UserEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
@@ -95,4 +141,13 @@ object UserEventLogsFilter {
     , LogoutEventLog
     , BadCredentialsEventLog
     )
+}
+
+object APIAccountEventLogsFilter {
+  final val eventList : List[EventLogFilter] = List(
+      CreateAPIAccountEventLog
+    , DeleteAPIAccountEventLog
+    , ModifyAPIAccountEventLog
+    )
+
 }
