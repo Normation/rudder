@@ -248,16 +248,20 @@
       var button = $("<button style='width: 80px; margin: 0px 10px;'>Disable</button>");
       button.button();
       button.click( function(){
+          $scope.$apply(function() {
           account.enabled = false;
           $scope.saveAccount(account,index);
+          });
         });
       return button;
     } else {
       var button = $("<button style='width: 80px; margin: 0px 10px;'>Enable</button>");
         button.button();
         button.click( function() {
+          $scope.$apply(function() {
           account.enabled = true;
           $scope.saveAccount(account,index);
+          });
         })
       return button;
       }
@@ -307,10 +311,10 @@
         , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
             var data = oData
         var editButton  = $("<button style='width: 80px; margin: 0px 10px;'>Edit</button>")
-            editButton.button()
+            editButton.button();
             editButton.click( function() {
-              data.oldId = data.id
-              $scope.popupCreation(data,iRow);
+                data.oldId = data.id;
+              	$scope.popupCreation(data,iRow);
             });
           $(nTd).empty();
           $(nTd).attr("style","border-right:none");
@@ -365,12 +369,12 @@
 
     $scope.popupCreation = function(account,index) {
       $scope.$apply(function() {
-         $scope.myNewAccount = account
-                // Maybe should use indexOf
-                $scope.myNewAccount.index = index;
-            $("#newAccountName").focus();
-            });
-        return account;
+         $scope.myNewAccount = account;
+         // Maybe should use indexOf
+         $scope.myNewAccount.index = index;
+         $("#newAccountName").focus();
+      });
+      return account;
     };
 
     $scope.popupDeletion = function(account, index, action, actionName) {
@@ -390,20 +394,19 @@
        }
      }
      $scope.saveAccount = function(account,index) {
-       $scope.$apply(function() {
-         if(account.token == "not yet obtained" ) {
-           $http.put(apiPath,account).
-           success(function(data, status, headers, config) {
-               var newAccount = data.data.accounts[0];
-               var newLength = $scope.accounts.push(newAccount);
-               newAccount.index = newLength - 1 ;
-               $scope.myNewAccount = undefined;
-               $("#accountGrid").dataTable().fnClearTable();
-               $("#accountGrid").dataTable().fnAddData($scope.accounts);
-           }).
-           error(function(data, status, headers, config) {
-           });
-         } else {
+       if(account.token == "not yet obtained" ) {
+         $http.put(apiPath,account).
+         success(function(data, status, headers, config) {
+             var newAccount = data.data.accounts[0];
+             var newLength = $scope.accounts.push(newAccount);
+             newAccount.index = newLength - 1 ;
+             $scope.myNewAccount = undefined;
+             $("#accountGrid").dataTable().fnClearTable();
+             $("#accountGrid").dataTable().fnAddData($scope.accounts);
+         }).
+         error(function(data, status, headers, config) {
+         });
+       } else {
            $http.post(apiPath + '/'+account.token,account).
            success(function(data, status, headers, config) {
              var newAccount = data.data.accounts[0];
@@ -414,8 +417,7 @@
            }).
            error(function(data, status, headers, config) {
            });
-         }
-       });
+       }
      }
 
       $scope.formTitle = function(account) {
