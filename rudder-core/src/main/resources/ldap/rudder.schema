@@ -95,6 +95,11 @@ attributetype ( RudderAttributes:109
   NAME 'ruleId'
   DESC 'Unique identifier for a rule'
   SUP uuid )
+
+attributetype ( RudderAttributes:110
+  NAME 'apiAccountId'
+  DESC 'Unique identifier for an API Account'
+  SUP uuid )
   
 #######################################################################
   
@@ -499,7 +504,7 @@ objectclass ( RudderObjectClasses:106
   DESC 'A principal for the REST API'
   SUP top
   STRUCTURAL
-  MUST ( cn $ creationTimestamp $ 
+  MUST ( apiAccountId $ cn $ creationTimestamp $
          apiToken $ apiTokenCreationTimestamp) 
   MAY ( description  $ isEnabled ) )
 
