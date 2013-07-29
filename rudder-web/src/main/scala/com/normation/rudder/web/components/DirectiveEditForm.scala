@@ -357,13 +357,17 @@ class DirectiveEditForm(
           , newDirective
         )
       } else {
+        //check if it's a migration - old directive present with a different technique version
+        val isMigration = oldDirective.map( _.techniqueVersion != directive.techniqueVersion).getOrElse(false)
+
         val updatedDirective = directive.copy(
           parameters = parameterEditor.mapValueSeq,
           name = piName.is,
           shortDescription = piShortDescription.is,
           priority = piPriority.is,
           longDescription = piLongDescription.is)
-        if (directive == updatedDirective) {
+
+        if (!isMigration && directive == updatedDirective) {
           onNothingToDo()
         } else {
           displayConfirmationPopup(
