@@ -36,6 +36,8 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.services.marshalling.GlobalParameterSerialisation
+import com.normation.rudder.services.marshalling.APIAccountSerialisation
+import com.normation.rudder.api._
 
 trait EventLogFactory {
 
@@ -202,14 +204,44 @@ trait EventLogFactory {
     , reason             : Option[String]
   ) : WorkflowStepChanged
 
+  def getCreateApiAccountFromDiff(
+      id             : Option[Int] = None
+    , modificationId : Option[ModificationId] = None
+    , principal      : EventActor
+    , addDiff        : AddApiAccountDiff
+    , creationDate   : DateTime = DateTime.now()
+    , severity       : Int = 100
+    , reason         : Option[String]
+  ) : CreateAPIAccountEventLog
+
+  def getModifyApiAccountFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , modifyDiff         : ModifyApiAccountDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+ ) : ModifyAPIAccountEventLog
+
+ def getDeleteApiAccountFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , deleteDiff         : DeleteApiAccountDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : DeleteAPIAccountEventLog
 }
 
 class EventLogFactoryImpl(
-    crToXml   : RuleSerialisation
-  , piToXml   : DirectiveSerialisation
-  , groutToXml: NodeGroupSerialisation
-  , techniqueToXml: ActiveTechniqueSerialisation
-  , parameterToXml: GlobalParameterSerialisation
+    crToXml         : RuleSerialisation
+  , piToXml         : DirectiveSerialisation
+  , groutToXml      : NodeGroupSerialisation
+  , techniqueToXml  : ActiveTechniqueSerialisation
+  , parameterToXml  : GlobalParameterSerialisation
+  , ApiAccountToXml : APIAccountSerialisation
 ) extends EventLogFactory {
 
   /////
@@ -658,6 +690,76 @@ class EventLogFactoryImpl(
     WorkflowStepChanged(data)
   }
 
+  // API Account
+
+  override def getCreateApiAccountFromDiff(
+      id             : Option[Int] = None
+    , modificationId : Option[ModificationId] = None
+    , principal      : EventActor
+    , addDiff        : AddApiAccountDiff
+    , creationDate   : DateTime = DateTime.now()
+    , severity       : Int = 100
+    , reason         : Option[String]
+  ) : CreateAPIAccountEventLog = {
+    val details = EventLog.withContent(ApiAccountToXml.serialise(addDiff.apiAccount) % ("changeType" -> "add"))
+    CreateAPIAccountEventLog(EventLogDetails(
+        id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity))
+  }
+
+ def getModifyApiAccountFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , diff               : ModifyApiAccountDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+ ) = {
+   val details = EventLog.withContent{
+      scala.xml.Utility.trim(<apiAccount changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+        <id>{diff.id.value}</id>{
+          diff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
+          diff.modToken.map(x => SimpleDiff.stringToXml(<token/>, x) ) ++
+          diff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x ) ) ++
+          diff.modIsEnabled.map(x => SimpleDiff.booleanToXml(<enabled/>, x ) )
+        }
+      </apiAccount>)
+    }
+    ModifyAPIAccountEventLog(EventLogDetails(
+        id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity))
+  }
+
+  override def getDeleteApiAccountFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , deleteDiff         : DeleteApiAccountDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : DeleteAPIAccountEventLog = {
+    val details = EventLog.withContent(ApiAccountToXml.serialise(deleteDiff.apiAccount) % ("changeType" -> "delete"))
+    DeleteAPIAccountEventLog(EventLogDetails(
+        id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity))
+  }
 }
 
 
