@@ -158,7 +158,7 @@ class RestApiAccounts (
         toJsonResponse(None,accounts)("updateAccount",true)
 
       case eb : EmptyBox =>
-        toJsonError(None, s"Could not update account with token ${account.token} cause : ${(eb ?~ "could not save account").msg}")("updateAccount",true)
+        toJsonError(None, s"Could not update account '${account.name.value}' cause : ${(eb ?~ "could not save account").msg}")("updateAccount",true)
     }
   }
 

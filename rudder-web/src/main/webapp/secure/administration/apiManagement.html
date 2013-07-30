@@ -76,7 +76,7 @@
         <br/>
 
         <div class="deca" ng-controller="AccountCtrl">
-
+        <div ng-show="errorTable" style="width:100%; text-align:center; color:red" > {{errorTable.errorDetails}} </div>
           <button ng-click="addAccount();"   >
             Add API Account
           </button>
@@ -102,7 +102,7 @@
             <div id="newAccountContainer" >
               <div id="simplemodal-overlay" class="simplemodal-overlay" style="opacity: 0.5; height: 100%; width: 100%; position: fixed; left: 0px; top: 0px; z-index: 1001;"></div>
               <div id="simplemodal-container" class="simplemodal-container" style="position: fixed; z-index: 1002; height: auto; width: 450px; left: 30%; top: 20%;">
-                <a title="Close" ng-click="myNewAccount=undefined;newAccount.$setPristine();" class="modalCloseImg simplemodal-close"></a>
+                <a title="Close" ng-click="closePopup();newAccount.$setPristine();" class="modalCloseImg simplemodal-close"></a>
                 <div tabindex="-1" class="simplemodal-wrap" style="height: 100%; outline: 0px none; width: 100%; overflow: auto;">
                   <div id="paramForm">
                     <div class="simplemodal-title">
@@ -111,6 +111,7 @@
                     </div>
                     <form  name="newAccount" >
                       <div class="simplemodal-content" >
+                        <div ng-show="errorPopup" style="width:100%; text-align:center; color:red">{{errorPopup.errorDetails}}</div>
                         <div class="wbBaseField">
                           <label class="threeCol wbBaseFieldLabel textright"><b>Name: *</b></label>
                           <div class="twoCol">
@@ -131,7 +132,7 @@
                         <div class="popupButton" style="width:97%">
                           <span>
                             <input type="submit" class="btn-primary" style="float:right;" value="Save" ng-disabled="newAccount.$pristine || newAccount.$invalid" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);newAccount.$setPristine();" />
-                            <button class="simplemodal-close" ng-click="myNewAccount=undefined;newAccount.$setPristine();">Cancel</button>
+                            <button class="simplemodal-close" ng-click="closePopup();newAccount.$setPristine();">Cancel</button>
                           </span>
                         </div>
                       </div>
@@ -213,6 +214,7 @@
         $scope.accounts = data.data.accounts;
       }).
       error(function(data, status, headers, config) {
+        $scope.errorTable = data;
       });
 
 
@@ -226,6 +228,7 @@
               $("#accountGrid").dataTable().fnAddData($scope.accounts);
             }).
             error(function(data, status, headers, config) {
+             $scope.errorTable = data;
             });
       }
 
@@ -240,6 +243,7 @@
              $("#accountGrid").dataTable().fnAddData($scope.accounts);
            }).
            error(function(data, status, headers, config) {
+             $scope.errorTable = data;
            });
       }
 
@@ -250,7 +254,7 @@
       button.click( function(){
           $scope.$apply(function() {
           account.enabled = false;
-          $scope.saveAccount(account,index);
+          $scope.saveAccount(account,index,false);
           });
         });
       return button;
@@ -260,7 +264,7 @@
         button.click( function() {
           $scope.$apply(function() {
           account.enabled = true;
-          $scope.saveAccount(account,index);
+          $scope.saveAccount(account,index,false);
           });
         })
       return button;
@@ -313,7 +317,7 @@
         var editButton  = $("<button style='width: 80px; margin: 0px 10px;'>Edit</button>")
             editButton.button();
             editButton.click( function() {
-                data.oldId = data.id;
+                data.oldName = data.name;
               	$scope.popupCreation(data,iRow);
             });
           $(nTd).empty();
@@ -387,42 +391,62 @@
       return account;
     };
 
+     $scope.closePopup = function () {
+       $scope.myNewAccount = undefined;
+       $scope.errorPopup = undefined;
+     }
+
      $scope.checkAndSaveAccount = function (account,index,form) {
        if (form.$valid) {
-         $scope.saveAccount(account,index);
-         $scope.myNewAccount = undefined;
+         $scope.saveAccount(account,index,true);
        }
      }
-     $scope.saveAccount = function(account,index) {
+     $scope.saveAccount = function(account,index,isPopup) {
+       if (isPopup)  {
+         $scope.errorPopup = undefined;
+       } else {
+         $scope.errorTable = undefined;
+       }
        if(account.token == "not yet obtained" ) {
          $http.put(apiPath,account).
-         success(function(data, status, headers, config) {
-             var newAccount = data.data.accounts[0];
-             var newLength = $scope.accounts.push(newAccount);
-             newAccount.index = newLength - 1 ;
-             $scope.myNewAccount = undefined;
-             $("#accountGrid").dataTable().fnClearTable();
-             $("#accountGrid").dataTable().fnAddData($scope.accounts);
+         success( function(data, status, headers, config) {
+           var newAccount = data.data.accounts[0];
+           var newLength = $scope.accounts.push(newAccount);
+           newAccount.index = newLength - 1 ;
+           $scope.myNewAccount = undefined;
+           $("#accountGrid").dataTable().fnClearTable();
+           $("#accountGrid").dataTable().fnAddData($scope.accounts);
          }).
          error(function(data, status, headers, config) {
+           if (isPopup)  {
+             $scope.errorPopup = data;
+           } else {
+             $scope.errorTable = data;
+           }
          });
        } else {
-           $http.post(apiPath + '/'+account.token,account).
-           success(function(data, status, headers, config) {
-             var newAccount = data.data.accounts[0];
-             $scope.accounts[index] = newAccount;
-             $.extend($scope.myNewAccount, newAccount);
-             $("#accountGrid").dataTable().fnClearTable();
-             $("#accountGrid").dataTable().fnAddData($scope.accounts);
-           }).
-           error(function(data, status, headers, config) {
-           });
+         $http.post(apiPath + '/'+account.token,account).
+         success(function(data, status, headers, config) {
+           var newAccount = data.data.accounts[0];
+           $scope.accounts[index] = newAccount;
+           $.extend($scope.myNewAccount, newAccount);
+           $scope.myNewAccount = undefined;
+           $("#accountGrid").dataTable().fnClearTable();
+           $("#accountGrid").dataTable().fnAddData($scope.accounts);
+         }).
+         error(function(data, status, headers, config) {
+           if (isPopup)  {
+             $scope.errorPopup = data;
+           } else {
+             $scope.errorTable = data;
+           }
+         });
        }
      }
 
       $scope.formTitle = function(account) {
         if (account!= undefined && account.index!=undefined) {
-            return  "Update account '"+account.oldId+"'";
+            return  "Update account '"+account.oldName+"'";
         } else {
           return "Create a new Account";
         }
