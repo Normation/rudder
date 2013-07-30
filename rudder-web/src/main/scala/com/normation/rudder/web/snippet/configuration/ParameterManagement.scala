@@ -94,7 +94,7 @@ private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WOR
         ".parameterLine [jsuuid]" #> lineHtmlId &
         ".parameterLine [class]" #> Text("curspoint") &
         ".name *" #> <b>{param.name.value}</b> &
-        ".value *" #> param.value &
+        ".value *" #> <pre>{param.value}</pre> &
         ".description *" #> <span><ul class="evlogviewpad"><li><b>Description:</b>{Text(param.description)}</li></ul></span> &
         ".description [id]" #> ("description-" + lineHtmlId) &
         ".overridable *" #> param.overridable &
