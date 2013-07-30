@@ -50,8 +50,9 @@ final case class DeleteApiAccountDiff(apiAccount:ApiAccount) extends ApiAccountD
 
 final case class ModifyApiAccountDiff(
     id                     : ApiAccountId
-  , modName                : Option[SimpleDiff[String]] = None
-  , modToken               : Option[SimpleDiff[String]] = None
-  , modDescription         : Option[SimpleDiff[String]] = None
-  , modIsEnabled           : Option[SimpleDiff[Boolean]] = None
+  , modName                : Option[SimpleDiff[String]]   = None
+  , modToken               : Option[SimpleDiff[String]]   = None
+  , modDescription         : Option[SimpleDiff[String]]   = None
+  , modIsEnabled           : Option[SimpleDiff[Boolean]]  = None
+  , modTokenGenerationDate : Option[SimpleDiff[DateTime]] = None
 ) extends ApiAccountDiff with HashcodeCaching
