@@ -416,6 +416,9 @@ class LDAPDiffMapper(
                   Full(diff.copy(modDescription = Some(SimpleDiff(oldAccount.description, mod.getAttribute().getValue()))))
                 case A_IS_ENABLED =>
                   tryo(diff.copy(modIsEnabled = Some(SimpleDiff(oldAccount.isEnabled, mod.getAttribute().getValueAsBoolean))))
+                case A_API_TOKEN_CREATION_DATETIME =>
+                  val diffDate = GeneralizedTime.parse(mod.getAttribute().getValue()).map(_.dateTime)
+                  tryo(diff.copy(modTokenGenerationDate = Some(SimpleDiff(oldAccount.tokenGenerationDate, diffDate.get))))
                 case x => Failure("Unknown diff attribute: " + x)
               }
             }
