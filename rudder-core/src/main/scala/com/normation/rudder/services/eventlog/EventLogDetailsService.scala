@@ -721,6 +721,7 @@ class EventLogDetailsServiceImpl(
       case x:ExportGroupsArchive => getCommitInfo(xml, ExportGroupsArchive.tagName)
       case x:ExportTechniqueLibraryArchive => getCommitInfo(xml, ExportTechniqueLibraryArchive.tagName)
       case x:ExportRulesArchive => getCommitInfo(xml, ExportRulesArchive.tagName)
+      case x:ExportParametersArchive => getCommitInfo(xml, ExportParametersArchive.tagName)
       case x:ExportFullArchive => getCommitInfo(xml, ExportFullArchive.tagName)
     }
   }
@@ -741,6 +742,7 @@ class EventLogDetailsServiceImpl(
       case x:ImportGroupsArchive => getCommitInfo(xml, ImportGroupsArchive.tagName)
       case x:ImportTechniqueLibraryArchive => getCommitInfo(xml, ImportTechniqueLibraryArchive.tagName)
       case x:ImportRulesArchive => getCommitInfo(xml, ImportRulesArchive.tagName)
+      case x:ImportParametersArchive => getCommitInfo(xml, ImportParametersArchive.tagName)
       case x:ImportFullArchive => getCommitInfo(xml, ImportFullArchive.tagName)
     }
   }
