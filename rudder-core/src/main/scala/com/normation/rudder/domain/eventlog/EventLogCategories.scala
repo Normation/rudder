@@ -249,6 +249,7 @@ object ModificationWatchList {
     , ImportGroupsEventType
     , ImportTechniqueLibraryEventType
     , ImportRulesEventType
+    , ImportParametersEventType
     , ImportFullArchiveEventType
     , RollbackEventType
 
@@ -307,6 +308,8 @@ object EventTypeFactory {
     , ImportTechniqueLibraryEventType
     , ExportRulesEventType
     , ImportRulesEventType
+    , ExportParametersEventType
+    , ImportParametersEventType
     , ExportFullArchiveEventType
     , ImportFullArchiveEventType
     , RollbackEventType
