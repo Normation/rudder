@@ -126,5 +126,5 @@ object RestOk extends HttpStatus{
 object RestError extends HttpStatus{
   val code = 500
   val status = "error"
-  val container = "error details"
+  val container = "errorDetails"
 }
