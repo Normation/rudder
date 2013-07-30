@@ -246,7 +246,7 @@ final case class ExportParametersArchive(
 object ExportParametersArchive extends EventLogFilter {
   override val eventType = ExportParametersEventType
 
-  override def apply(x : (EventLogType, EventLogDetails)) : ExportRulesArchive = ExportRulesArchive(x._2)
+  override def apply(x : (EventLogType, EventLogDetails)) : ExportParametersArchive = ExportParametersArchive(x._2)
 
   def buildDetails(gitArchiveId:GitArchiveId) =
     ImportExportEventLog.buildCommonExportDetails(tagName = tagName, gitArchiveId)
@@ -270,7 +270,7 @@ final case class ImportParametersArchive(
 object ImportParametersArchive extends EventLogFilter {
   override val eventType = ImportParametersEventType
 
-  override def apply(x : (EventLogType, EventLogDetails)) : ImportRulesArchive = ImportRulesArchive(x._2)
+  override def apply(x : (EventLogType, EventLogDetails)) : ImportParametersArchive = ImportParametersArchive(x._2)
 
   def buildDetails(gitCommitId:GitCommitId) =
     ImportExportEventLog.buildCommonImportDetails(tagName = tagName, gitCommitId)
@@ -376,10 +376,12 @@ object ImportExportEventLogsFilter {
     , ExportTechniqueLibraryArchive
     , ExportRulesArchive
     , ExportFullArchive
+    , ExportParametersArchive
     , ImportGroupsArchive
     , ImportTechniqueLibraryArchive
     , ImportRulesArchive
     , ImportFullArchive
+    , ImportParametersArchive
     , Rollback
     )
 }
