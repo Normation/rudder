@@ -35,8 +35,8 @@
 package com.normation.rudder.web.rest.parameter
 
 import com.normation.rudder.repository.RoParameterRepository
-import com.normation.rudder.web.rest.RestUtils.notValidVersionResponse
-import com.normation.rudder.web.rest.RestUtils.toJsonError
+import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.web.rest.RestUtils._
 import com.normation.rudder.web.rest.RestExtractorService
 
 import net.liftweb.common.Box
@@ -51,15 +51,15 @@ import net.liftweb.json.JsonDSL._
 
 class ParameterAPIHeaderVersion (
     restExtractor  : RestExtractorService
-  , apiV2        : ParameterApiService2
+  , apiV2          : ParameterApiService2
 ) extends RestHelper with ParameterAPI with Loggable {
-
 
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") => apiV2.listParameters(req)
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>  apiV2.listParameters(req)
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("listParameters")
       }
     }
@@ -67,12 +67,11 @@ class ParameterAPIHeaderVersion (
     case Nil JsonPut body -> req => {
       implicit val action = "createParameter"
       implicit val prettify = restExtractor.extractPrettify(req.params)
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>
           req.json match {
             case Full(json) =>
 
-              logger.info(json)
               val restParameter = restExtractor.extractParameterFromJSON(json)
               restExtractor.extractParameterNameFromJSON(json) match {
                 case Full(parameterName) =>
@@ -85,13 +84,14 @@ class ParameterAPIHeaderVersion (
             case eb:EmptyBox=>
               toJsonError(None, JString("No Json data sent"))
           }
-         case _ => notValidVersionResponse("createParameter")
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
+        case _ => notValidVersionResponse("createParameter")
       }
     }
 
     case Put(Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>
           implicit val action = "createParameter"
           implicit val prettify = restExtractor.extractPrettify(req.params)
           val restParameter = restExtractor.extractParameter(req.params)
@@ -103,44 +103,49 @@ class ParameterAPIHeaderVersion (
               val message = s"Could not create Parameter cause is: ${fail.msg}."
               toJsonError(None, message)
           }
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("createParameter")
       }
     }
 
     case Get(id :: Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") => apiV2.parameterDetails(id, req)
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) => apiV2.parameterDetails(id, req)
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("listParameters")
       }
     }
 
     case Delete(id :: Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") => apiV2.deleteParameter(id,req)
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) => apiV2.deleteParameter(id,req)
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("deleteParameter")
       }
     }
 
     case id :: Nil JsonPost body -> req => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
-      req.json match {
-        case Full(arg) =>
-          val restParameter = restExtractor.extractParameterFromJSON(arg)
-          apiV2.updateParameter(id,req,restParameter)
-        case eb:EmptyBox=>
-          toJsonError(Some(id), JString("no Json Data sent"))("updateParameter",restExtractor.extractPrettify(req.params))
-      }
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>
+          req.json match {
+            case Full(arg) =>
+              val restParameter = restExtractor.extractParameterFromJSON(arg)
+              apiV2.updateParameter(id,req,restParameter)
+            case eb:EmptyBox=>
+              toJsonError(Some(id), JString("no Json Data sent"))("updateParameter",restExtractor.extractPrettify(req.params))
+          }
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("updateParameter")
       }
 
     }
 
     case Post(id:: Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>
           val restParameter = restExtractor.extractParameter(req.params)
           apiV2.updateParameter(id,req,restParameter)
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("updateParameter")
       }
     }
