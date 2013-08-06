@@ -35,8 +35,8 @@
 package com.normation.rudder.web.rest.group
 
 import com.normation.rudder.repository.RoNodeGroupRepository
-import com.normation.rudder.web.rest.RestUtils.notValidVersionResponse
-import com.normation.rudder.web.rest.RestUtils.toJsonError
+import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.web.rest.RestUtils._
 import com.normation.rudder.web.rest.RestExtractorService
 
 import net.liftweb.common.Box
@@ -49,24 +49,24 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonDSL._
 
 class GroupAPIHeaderVersion (
-    readGroup             : RoNodeGroupRepository
-  , restExtractor        : RestExtractorService
-  , apiV2              : GroupApiService2
-) extends RestHelper with GroupAPI with Loggable{
-
+    readGroup     : RoNodeGroupRepository
+  , restExtractor : RestExtractorService
+  , apiV2         : GroupApiService2
+) extends RestHelper with Loggable{
 
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") => apiV2.listGroups(req)
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>  apiV2.listGroups(req)
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("listGroups")
       }
     }
 
     case Nil JsonPut body -> req => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>
           req.json match {
             case Full(arg) =>
               val restGroup = restExtractor.extractGroupFromJSON(arg)
@@ -74,36 +74,40 @@ class GroupAPIHeaderVersion (
             case eb:EmptyBox=>
               toJsonError(None, "No Json data sent")("createGroup",restExtractor.extractPrettify(req.params))
           }
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("createGroup")
       }
     }
 
     case Put(Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>
           val restGroup = restExtractor.extractGroup(req.params)
           apiV2.createGroup(restGroup, req)
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("createGroup")
       }
     }
 
     case Get(id :: Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") => apiV2.groupDetails(id, req)
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>  apiV2.groupDetails(id, req)
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("groupDetails")
       }
     }
 
     case Delete(id :: Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") => apiV2.deleteGroup(id,req)
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>  apiV2.deleteGroup(id,req)
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("deleteGroup")
       }
     }
 
     case id :: Nil JsonPost body -> req => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>
           req.json match {
             case Full(arg) =>
               val restGroup = restExtractor.extractGroupFromJSON(arg)
@@ -111,22 +115,27 @@ class GroupAPIHeaderVersion (
             case eb:EmptyBox=>
               toJsonError(None, "No Json data sent")("updateGroup",restExtractor.extractPrettify(req.params))
           }
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("updateGroup")
       }
     }
 
     case Post(id:: Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>
           val restGroup = restExtractor.extractGroup(req.params)
           apiV2.updateGroup(id,req,restGroup)
+        case Full(ApiVersion(missingVersion)) =>
+          missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("updateGroup")
       }
     }
     case Post( id :: "reload" ::  Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>
           apiV2.reloadGroup(id, req)
+        case Full(ApiVersion(missingVersion)) =>
+          missingResponse(missingVersion,"listAcceptedNodes")
         case _ =>
           notValidVersionResponse("reloadGroup")
       }
