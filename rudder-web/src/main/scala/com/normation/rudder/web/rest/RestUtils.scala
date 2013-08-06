@@ -48,6 +48,7 @@ import scala.text.Document
 import net.liftweb.common.Loggable
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
+import net.liftweb.util.Helpers.tryo
 
 
 /**
@@ -104,12 +105,51 @@ object RestUtils extends Loggable {
   }
 
   def notValidVersionResponse(action:String) = {
-    val availableVersion = List("2")
+    val availableVersion = List("2", "latest")
     toJsonError(None, JString(s"Version used does not exists, please use one of the following: ${availableVersion.mkString("[ ", ", ", " ]")} "))(action,false)
+   }
+
+  def missingResponse(version:Int,action:String) = {
+    toJsonError(None, JString(s"Version ${version} exists for this API function, but it's implementation is missing"))(action,false)
    }
 
 }
 
+sealed case class ApiVersion (
+  value : Int
+)
+
+object ApiVersion {
+
+
+  val availableVersions = List(2)
+
+  val latest = availableVersions.max
+
+  def fromRequest(req:Req) : Box[ApiVersion] = {
+    req.header("X-API-VERSION") match {
+      case Full(value) => fromString(value)
+      case eb: EmptyBox => eb ?~ ("Error when getting header X-API-VERSION")
+    }
+  }
+
+  def fromString (version : String) : Box[ApiVersion] = {
+    version match {
+      case "latest"  => Full(ApiVersion(latest))
+      case value =>
+         tryo { value.toInt } match {
+           case Full(version) =>
+             if (availableVersions.contains(version)) {
+               Full(ApiVersion(version))
+             } else {
+               Failure(s" ${version} is not a valid api version")
+             }
+           // Never empty due to tryo
+           case eb:EmptyBox => eb
+        }
+    }
+  }
+}
 
 sealed trait HttpStatus {
   def code : Int
