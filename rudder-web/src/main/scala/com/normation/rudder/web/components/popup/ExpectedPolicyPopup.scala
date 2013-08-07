@@ -116,13 +116,20 @@ class ExpectedPolicyPopup(
 
   private[this] val rules:Box[Seq[Rule]] = {
     for {
-      groupMap <- dynGroupService.findDynGroups(Seq(nodeId)) ?~! "Error when building the map of dynamic group to update by node"
+      allNodesRules               <- dependenciesServices.targetDependencies(AllTarget).map(_.rules.toSeq) ?~!
+                                       "Error when building the list of Rules depending on 'All nodes' system Group"
+      allExceptPolicyServersRules <- dependenciesServices.targetDependencies(AllTargetExceptPolicyServers).map(_.rules.toSeq) ?~!
+                                       "Error when building the list of Rules depending on 'All nodes except policy servers' system Group"
+
+      groupMap       <- dynGroupService.findDynGroups(Seq(nodeId)) ?~! "Error when building the map of dynamic group to update by node"
       seqNodeGroupId = groupMap.get(nodeId).getOrElse(Seq())
-      seqTargetDeps <- sequence(seqNodeGroupId) { groupId =>
-        dependenciesServices.targetDependencies(GroupTarget(groupId)) ?~! "Error when building the list of Rules depending on group %s".format(groupId)
-      }
+      seqTargetDeps  <- sequence(seqNodeGroupId) { groupId =>
+                          dependenciesServices.
+                            targetDependencies(GroupTarget(groupId)) ?~!
+                              s"Error when building the list of Rules depending on Group ${groupId.value}"
+                        }
     } yield {
-      seqTargetDeps.flatMap { case TargetDependencies(target, rules) => rules }.distinct
+      (seqTargetDeps.flatMap { _.rules } ++ allExceptPolicyServersRules ++ allNodesRules).distinct
     }
   }
 
