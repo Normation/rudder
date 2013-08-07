@@ -35,56 +35,58 @@
 package com.normation.rudder.web.rest.node
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.web.rest.RestUtils.notValidVersionResponse
+import com.normation.rudder.web.rest.RestUtils._
+import com.normation.rudder.web.rest.ApiVersion
 import com.normation.rudder.web.rest.rule.RuleAPI
-
-import net.liftweb.common.Box
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
+import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
+import com.normation.rudder.web.rest.ApiVersion
 
 class NodeAPIHeaderVersion (
-    apiV2              : NodeApiService2
-) extends RestHelper with RuleAPI with Loggable{
-
+    apiV2 : NodeApiService2
+) extends RestHelper with Loggable{
 
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>  apiV2.listAcceptedNodes(req)
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>  apiV2.listAcceptedNodes(req)
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("listAcceptedNodes")
       }
     }
 
     case Get("pending" :: Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>  apiV2.listPendingNodes(req)
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>  apiV2.listPendingNodes(req)
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listPendingNodes")
         case _ => notValidVersionResponse("listPendingNodes")
       }
     }
 
 
     case Get(id :: Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") => apiV2.acceptedNodeDetails(req, NodeId(id))
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>  apiV2.acceptedNodeDetails(req, NodeId(id))
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"acceptedNodeDetails")
         case _ => notValidVersionResponse("acceptedNodeDetails")
       }
     }
 
     case Delete(id :: Nil, req) => {
-      req.header("X-API-VERSION") match {
-        case Full("2") => apiV2.deleteNode(req, Seq(NodeId(id)))
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>  apiV2.deleteNode(req, Seq(NodeId(id)))
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"deleteNode")
         case _ => notValidVersionResponse("deleteNode")
       }
     }
 
      case Post("pending" :: Nil, req) =>  {
-      req.header("X-API-VERSION") match {
-        case Full("2") =>
-          apiV2.changeNodeStatus(req)
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>  apiV2.changeNodeStatus(req)
+        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"changeNodeStatus")
         case _ => notValidVersionResponse("changeNodeStatus")
       }
     }
