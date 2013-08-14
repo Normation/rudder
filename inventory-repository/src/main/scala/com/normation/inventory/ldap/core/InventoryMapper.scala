@@ -641,6 +641,8 @@ class InventoryMapper(
           case Fedora  => linux += (A_OS_NAME, A_OS_FEDORA)
           case Suse    => linux += (A_OS_NAME, A_OS_SUZE)
           case Android => linux += (A_OS_NAME, A_OS_ANDROID)
+          case Oracle  => linux += (A_OS_NAME, A_OS_ORACLE)
+          case Scientific => linux += (A_OS_NAME, A_OS_SCIENTIFIC)
           case _       => linux += (A_OS_NAME, A_OS_UNKNOWN_LINUX)
         }
         linux
@@ -800,6 +802,8 @@ class InventoryMapper(
             case A_OS_CENTOS  => Centos
             case A_OS_FEDORA  => Fedora
             case A_OS_SUZE    => Suse
+            case A_OS_ORACLE  => Oracle
+            case A_OS_SCIENTIFIC => Scientific
             case A_OS_ANDROID => Android
             case _            => UnknownLinuxType
           }
