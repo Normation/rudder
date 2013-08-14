@@ -640,6 +640,8 @@ class InventoryMapper(
           case Centos => linux += (A_OS_NAME, A_OS_CENTOS)
           case Fedora => linux += (A_OS_NAME, A_OS_FEDORA)
           case Suse => linux += (A_OS_NAME, A_OS_SUZE)
+          case Oracle => linux += (A_OS_NAME, A_OS_ORACLE)
+          case Scientific => linux += (A_OS_NAME, A_OS_SCIENTIFIC)
           case _ => linux += (A_OS_NAME, A_OS_UNKNOWN_LINUX)
         }
         linux
@@ -793,6 +795,8 @@ class InventoryMapper(
             case A_OS_CENTOS => Centos
             case A_OS_FEDORA => Fedora
             case A_OS_SUZE => Suse
+            case A_OS_ORACLE => Oracle
+            case A_OS_SCIENTIFIC => Scientific
             case _ => UnknownLinuxType
           }
           Full(Linux(os,osFullName,osVersion,osServicePack,kernelVersion))

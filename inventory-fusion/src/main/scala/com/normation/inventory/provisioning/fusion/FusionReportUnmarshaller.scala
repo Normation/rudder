@@ -380,6 +380,8 @@ class FusionReportUnmarshaller(
           else if(x contains "centos") Centos
           else if(x contains "fedora") Fedora
           else if(x contains "suse"  ) Suse
+          else if(x contains "oracle"    ) Oracle
+          else if(x contains "scientific") Scientific
           else                         UnknownLinuxType
         //be sure to handle the validity of that case further down the processing pipeline, 
         //for example in PostUnMarshallCheckConsistency
