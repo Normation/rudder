@@ -400,7 +400,7 @@ class FusionReportUnmarshaller(
           else if(x contains "fedora" ) Fedora
           else if(x contains "suse"   ) Suse
           else if(x contains "android") Android
-          else                          UnknownOSType
+          else                          UnknownLinuxType
 
         case("solaris",x) =>
           if (x contains  "solaris" ) SolarisOS

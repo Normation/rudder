@@ -169,11 +169,12 @@ object LinuxType {
     :: Fedora
     :: Suse
     :: Android
+    :: UnknownLinuxType
     :: Nil
   )
 }
 
-case object UnknownLinuxType extends LinuxType with HashcodeCaching { val name = "Linux"   }
+case object UnknownLinuxType extends LinuxType with HashcodeCaching { val name = "UnknownLinux" }
 case object Debian  extends LinuxType with HashcodeCaching          { val name = "Debian"  }
 case object Ubuntu  extends LinuxType with HashcodeCaching          { val name = "Ubuntu"  }
 case object Redhat  extends LinuxType with HashcodeCaching          { val name = "Redhat"  }
