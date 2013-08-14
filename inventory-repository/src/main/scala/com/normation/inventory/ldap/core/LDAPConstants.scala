@@ -193,6 +193,9 @@ object LDAPConstants {
   val A_OS_ANDROID = "Android"
   val A_OS_UNKNOWN_SOLARIS = "Unknown Solaris version"
   val A_OS_SOLARIS = "Solaris"
+  val A_OS_ORACLE = "Oracle"
+  val A_OS_SCIENTIFIC = "Scientific"
+
   /*
    * A bunch of name, just to be sur to use variable
    * and not string all around our code
