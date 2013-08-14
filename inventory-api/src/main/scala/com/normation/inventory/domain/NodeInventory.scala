@@ -169,11 +169,14 @@ object LinuxType {
     :: Fedora
     :: Suse
     :: Android
+    :: UnknownLinuxType
+    :: Oracle
+    :: Scientific
     :: Nil
   )
 }
 
-case object UnknownLinuxType extends LinuxType with HashcodeCaching { val name = "Linux"   }
+case object UnknownLinuxType extends LinuxType with HashcodeCaching { val name = "UnknownLinux" }
 case object Debian  extends LinuxType with HashcodeCaching          { val name = "Debian"  }
 case object Ubuntu  extends LinuxType with HashcodeCaching          { val name = "Ubuntu"  }
 case object Redhat  extends LinuxType with HashcodeCaching          { val name = "Redhat"  }
@@ -181,6 +184,8 @@ case object Centos  extends LinuxType with HashcodeCaching          { val name =
 case object Fedora  extends LinuxType with HashcodeCaching          { val name = "Fedora"  }
 case object Suse    extends LinuxType with HashcodeCaching          { val name = "Suse"    }
 case object Android extends LinuxType with HashcodeCaching          { val name = "Android" }
+case object Oracle extends LinuxType with HashcodeCaching           { val name = "Oracle" }
+case object Scientific extends LinuxType with HashcodeCaching       { val name = "Scientific" }
 
 sealed abstract class SolarisType extends OsType {
   val kernelName = "Solaris"
