@@ -155,6 +155,7 @@ class DitQueryData(dit:InventoryDit) {
     ObjectCriterion(OC_NODE, Seq(
       Criterion("OS",OstypeComparator),
       Criterion(A_OS_NAME,OsNameComparator),
+      Criterion(A_OS_FULL_NAME, OrderedStringComparator),
       Criterion(A_OS_VERSION, OrderedStringComparator),
       Criterion(A_OS_SERVICE_PACK, OrderedStringComparator),
       Criterion(A_OS_KERNEL_VERSION , OrderedStringComparator),
@@ -265,7 +266,7 @@ case class LDAPObjectType(
   , filter        : Option[Filter]
   , join          : LDAPJoinElement
   , specialFilters: Set[(CriterionComposition, SpecialFilter)] = Set()
-) extends HashcodeCaching 
+) extends HashcodeCaching
 
   //template query for each object type
   def objectTypes = Map(
