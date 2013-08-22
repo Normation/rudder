@@ -487,13 +487,8 @@ class TestQueryProcessor extends Loggable {
       logger.debug("Testing with expected entries")
       val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, serverUuids = Some(ids)).openOrThrowException("For tests").map { entry =>
         NodeId(entry("nodeId").get)
-<<<<<<< HEAD
       }).distinct.sortBy( _.value )
       assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected enrties (process)\n Found: %s\n Wants: %s".
-=======
-      }).distinct
-      assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected entries (process)\n Found: %s\n Wants: %s".
->>>>>>> branches/rudder/2.6
           format(name,foundWithLimit,ids),ids.size.toLong,foundWithLimit.size.toLong)
   }
 
