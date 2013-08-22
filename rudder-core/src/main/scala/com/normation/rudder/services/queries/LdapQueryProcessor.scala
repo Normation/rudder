@@ -57,6 +57,7 @@ import net.liftweb.util.Helpers
 
 
 
+
 /*
  * We have two type of filters:
  * * pure LDAP filters that can be directly translated to LDAP ones
@@ -133,10 +134,13 @@ class AccepetedNodesLDAPQueryProcessor(
       select:Seq[String] = Seq(),
       serverUuids:Option[Seq[NodeId]] = None
   ) : Box[Seq[QueryResult]] = {
+
+    val debugId = if(logger.isDebugEnabled) Helpers.nextNum else 0L
+
     for {
-      inventoryEntries <- processor.internalQueryProcessor(query,select,serverUuids)
+      inventoryEntries <- processor.internalQueryProcessor(query,select,serverUuids,debugId)
     } yield {
-      for {
+      val inNodes = (for {
         inventoryEntry <- inventoryEntries
         rdn <- inventoryEntry(A_NODE_UUID)
         con <- processor.ldap
@@ -153,9 +157,30 @@ class AccepetedNodesLDAPQueryProcessor(
         }
 
         nodeEntry <- con.get(nodeDit.NODES.NODE.dn(rdn), Seq(SearchRequest.ALL_USER_ATTRIBUTES, A_OBJECT_CREATION_DATE):_*)
-        if ((query.returnType == NodeReturnType && !nodeEntry.isA(OC_POLICY_SERVER_NODE)) || (query.returnType == NodeAndPolicyServerReturnType))
       } yield {
         QueryResult(nodeEntry,inventoryEntry,machine)
+      })
+
+      if(logger.isDebugEnabled) {
+        val filtered = inventoryEntries.map( _(A_NODE_UUID).get ).toSet -- inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }.toSet
+        if(!filtered.isEmpty) {
+            logger.debug("[%s] [post-filter:rudderNode] %s results (%s not in ou=Nodes,cn=rudder-configuration)".format(debugId, inNodes.size, filtered.mkString(", ")))
+        }
+      }
+
+      //filter out policy server if necessary
+
+      query.returnType match {
+        case NodeReturnType =>
+          val withoutPolicyServer = inNodes.filterNot { case QueryResult(e, _, _) => e.isA(OC_POLICY_SERVER_NODE)}
+          if(logger.isDebugEnabled) {
+            val filtered = (inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }).toSet -- withoutPolicyServer.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }
+            if(!filtered.isEmpty) {
+                logger.debug("[%s] [post-filter:policyServer] %s results".format(debugId, withoutPolicyServer.size, filtered.mkString(", ")))
+            }
+          }
+          withoutPolicyServer
+        case NodeAndPolicyServerReturnType => inNodes
       }
     }
   }
@@ -245,7 +270,8 @@ class InternalLDAPQueryProcessor(
   def internalQueryProcessor(
       query:Query,
       select:Seq[String] = Seq(),
-      serverUuids:Option[Seq[NodeId]] = None
+      serverUuids:Option[Seq[NodeId]] = None,
+      debugId: Long = 0L
   ) : Box[Seq[LDAPEntry]] = {
 
     //normalize the query: remove duplicates, order elements (last one server)
@@ -256,7 +282,6 @@ class InternalLDAPQueryProcessor(
     }
 
     //log start query
-    val debugId = if(logger.isDebugEnabled) Helpers.nextNum else 0L
     logger.debug("[%s] Start search for %s".format(debugId, query.toString))
 
 
@@ -409,7 +434,7 @@ class InternalLDAPQueryProcessor(
       }
     )
 
-    logger.debug("[%s] |- %s".format(debugId, rt))
+    logger.debug("[%s] |- (final query) %s".format(debugId, rt))
 
     val res = for {
       con      <- ldap
@@ -518,12 +543,14 @@ class InternalLDAPQueryProcessor(
                       case None    => Full(Seq())
                     }
                  //now, each filter individually
-        _        <- { logger.debug("[%s] |-- or (base filter): %s".format(debugId, entries.size)) ; Full({}) }
+        _        <- { logger.debug("[%s] |--- or (base filter): %s".format(debugId, entries.size)) ; Full({}) }
         specials <- sequence(sf.toSeq){ case (k, filters) => baseQuery(con, filters) }
         sFlat    =  specials.flatten
-        _        <- { logger.debug("[%s] |-- or (special filter): %s".format(debugId, sFlat.size)) ; Full({}) }
+        _        <- { logger.debug("[%s] |--- or (special filter): %s".format(debugId, sFlat.size)) ; Full({}) }
       } yield {
-        entries ++ sFlat
+        val total = (entries ++ sFlat).distinct
+        logger.debug("[%s] |--- or (total): %s".format(debugId, total.size))
+        total
       }
     }
 
@@ -555,7 +582,8 @@ class InternalLDAPQueryProcessor(
           case AttributeJoin(attr) => e(attr) map {a:String => new DN(a) }  //that's why Join Attribute must be a DN
         }
       }).toSet
-      logger.debug("[%s] |-- %s sub-results".format(debugId, res.size))
+      logger.debug("[%s] |-- %s sub-results (merged)".format(debugId, res.size))
+      logger.trace("[%s] |-- ids: %s".format(debugId, res))
       res
     }
   }
@@ -688,10 +716,13 @@ class InternalLDAPQueryProcessor(
         }).toSet)
       }
 
-    val requestedTypeSetFilter = groupedSetFilter.get(query.returnType.value) match {
+    val returnTypeKey = query.returnType match {
+      case NodeReturnType | NodeAndPolicyServerReturnType => NodeReturnType.value
+    }
+    val requestedTypeSetFilter = groupedSetFilter.get(returnTypeKey) match {
       case None => None
       case s@Some(setFilter) => //remove it from further processing
-        groupedSetFilter -= query.returnType.value
+        groupedSetFilter -= returnTypeKey
         s
     }
 
