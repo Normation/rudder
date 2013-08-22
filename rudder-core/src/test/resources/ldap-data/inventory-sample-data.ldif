@@ -1,5 +1,15 @@
 #all used node in that example
 
+dn: nodeId=root,ou=Nodes,cn=rudder-configuration
+objectClass: top
+objectClass: rudderNode
+objectClass: rudderPolicyServer
+nodeId: root
+cn: nothing
+isSystem: false
+isBroken: false
+createTimestamp: 20070301000000Z
+
 dn: nodeId=node0,ou=Nodes,cn=rudder-configuration
 objectClass: top
 objectClass: rudderNode
@@ -100,6 +110,22 @@ description: Second software
 ###################################################################################################
 # Nodes #
 ###################################################################################################
+
+dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: node
+objectClass: unixNode
+objectClass: linuxNode
+osVersion: nothing
+osName: Ubuntu
+osKernelVersion: nothing
+nodeId: root
+cn: nothing
+localAdministratorAccountName: root
+agentName: Nova
+policyServerId:root
+nodeHostname: root.normation.com
+inventoryDate: 20130515123456.948Z
 
 # Example of a node
 dn: nodeId=node0,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
@@ -277,6 +303,15 @@ fileSystemFreeSpace: 6718226432
 fileSystemTotalSpace: 8038383616
 
 dn: mountPoint=/,nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+objectClass: top
+objectClass: logicalElement
+objectClass: fileSystemLogicalElement
+mountPoint: /
+cn: ext3
+fileSystemFreeSpace: 10
+fileSystemTotalSpace: 803838361699
+
+dn: mountPoint=/,nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
 objectClass: logicalElement
 objectClass: fileSystemLogicalElement
