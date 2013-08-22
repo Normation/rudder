@@ -115,6 +115,7 @@ class TestQueryProcessor extends Loggable {
     new NodeId("node6"),new NodeId("node7")
   )
 
+  val sr = NodeId("root") +: s
 
 
   @Test def basicQueriesOnId() {
@@ -264,11 +265,13 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
 
+    val q1_ = TestQuery("q1_", query = q1.query.copy(composition = Or), s(0) :: s(1) :: Nil)
+
     //on node software, machine, machine element, node element
     val q2 = TestQuery(
       "q2",
       parser("""
-      {  "select":"node", "where":[
+      {  "select":"nodeAndPolicyServer", "where":[
           { "objectType":"node" , "attribute":"nodeId" , "comparator":"regex", "value":"[nN]ode[017]" }
         , { "objectType":"software", "attribute":"cn", "comparator":"regex"   , "value":"Software [0-9]" }
         , { "objectType":"machine", "attribute":"machineId", "comparator":"regex" , "value":"machine[0-2]"  }
@@ -277,6 +280,14 @@ class TestQueryProcessor extends Loggable {
       ] }
       """).openOrThrowException("For tests"),
       s(7) :: Nil)
+
+    val q2_ = TestQuery("q2_", query = q2.query.copy(composition = Or),
+        (s(0) :: s(1) :: s(7) :: //nodeId
+        s(2) :: s(7) :: //software
+        s(4) :: s(5) :: s(6) :: s(7) :: //machine
+        s(2) :: sr(0) :: // free space
+        s(2) :: //bios
+        Nil).distinct)
 
     //on node and or for regex
     val q3 = TestQuery(
@@ -312,7 +323,16 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
 
-      testQueries(q1 :: q2 :: q3 :: q3_2 :: q4 :: Nil)
+    val q5 = TestQuery(
+      "q5",
+      parser("""
+      {  "select":"nodeAndPolicyServer","composition":"or",  "where":[
+        , { "objectType":"fileSystemLogicalElement" , "attribute":"mountPoint" , "comparator":"regex", "value":"[/]" }
+      ] }
+      """).open_!,
+      s(3) :: s(7) :: sr(0) ::  Nil)
+
+    testQueries(q1 :: q1_ :: q2 :: /* q2_ :: */ q3 :: q3_2 :: q4 :: /* q5 :: */Nil)
   }
 
   @Test def dateQueries() {
@@ -351,6 +371,29 @@ class TestQueryProcessor extends Loggable {
     )
   }
 
+  @Test def policyServerQueriesOnId() {
+
+    val q0 = TestQuery(
+      "q0",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "where":[
+        { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"exists" }
+      ] }
+      """).open_!,
+      sr)
+
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      {  "select":"nodeAndPolicyServer", "composition":"or", "where":[
+        { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"exists" }
+      ] }
+      """).open_!,
+      sr)
+
+
+    testQueries( q1 :: Nil)
+  }
 
   @Test def unsortedQueries() {
     val q1 = TestQuery(
@@ -375,10 +418,11 @@ class TestQueryProcessor extends Loggable {
 
   }
 
-  private def testQueryResultProcessor(name:String,query:Query, ids:Seq[NodeId]) = {
+  private def testQueryResultProcessor(name:String,query:Query, nodes:Seq[NodeId]) = {
+      val ids = nodes.sortBy( _.value )
       val found = queryProcessor.process(query).openOrThrowException("For tests").map { nodeInfo =>
         nodeInfo.id
-      }
+      }.sortBy( _.value )
       //also test with requiring only the expected node to check consistancy
       //(that should not change anything)
 
@@ -389,10 +433,11 @@ class TestQueryProcessor extends Loggable {
       assertTrue("[%s]Entries differ between awaited and found entry set (process)\n Found: %s\n Wants: %s".
           format(name,found,ids),found.forall { f => ids.exists( f == _) })
 
+      logger.debug("Testing with expected entries")
       val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, serverUuids = Some(ids)).openOrThrowException("For tests").map { entry =>
         NodeId(entry("nodeId").get)
       }).distinct
-      assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected enrties (process)\n Found: %s\n Wants: %s".
+      assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected entries (process)\n Found: %s\n Wants: %s".
           format(name,foundWithLimit,ids),ids.size.toLong,foundWithLimit.size.toLong)
   }
 
