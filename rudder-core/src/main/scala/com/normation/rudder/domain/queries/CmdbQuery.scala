@@ -488,7 +488,7 @@ case object NodeAndPolicyServerReturnType extends QueryReturnType{
 }
 
 case class Query(
-    val returnType:QueryReturnType,  //only "node" for now
+    val returnType:QueryReturnType,  //"node" or "node and policy servers"
     val composition:CriterionComposition,
     val criteria:Seq[CriterionLine] //list of all criteria to be matched by returned values
 ) {
