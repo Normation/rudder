@@ -380,9 +380,6 @@ class TestQueryProcessor extends Loggable {
       //s2,s3 not ok because in the "not regex" pattern
       //s4 ok because only 127.0.0.1
 
-
-    testQueries(q1 :: q2 :: q3 :: q3_2 :: q4 :: q5 :: q6 :: q7 :: q8 ::Nil)
-
     testQueries(q1 :: q1_ :: q2 :: /* q2_ :: */ q3 :: q3_2 :: q4 :: /* q5 :: */ q6 :: q7 :: q8 :: q9 :: Nil)
   }
 
