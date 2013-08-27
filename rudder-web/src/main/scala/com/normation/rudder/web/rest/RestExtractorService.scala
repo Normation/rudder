@@ -498,6 +498,17 @@ case class RestExtractorService (
     }
   }
 
+  def extractNodeIdsFromJson (json : JValue) : Box[Option[List[NodeId]]] = {
+    extractJsonList(json, "nodeId")(convertListToNodeId)
+  }
+
+  def extractNodeStatusFromJson (json : JValue) : Box[NodeStatusAction] = {
+    extractOneValueJson(json, "status")(convertToNodeStatusAction) match {
+      case Full(Some(status)) => Full(status)
+      case Full(None) => Failure("node status should not be empty")
+      case eb:EmptyBox => eb ?~ "error with node status"
+    }
+  }
 
 
 }

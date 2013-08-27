@@ -48,7 +48,6 @@ import com.normation.rudder.web.rest.RestUtils.toJsonResponse
 import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.utils.Control._
 import com.normation.utils.StringUuidGenerator
-
 import net.liftweb.common.Box.box2Iterable
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -60,6 +59,8 @@ import net.liftweb.json.JsonDSL.jobject2assoc
 import net.liftweb.json.JsonDSL.pair2Assoc
 import net.liftweb.json.JsonDSL.pair2jvalue
 import net.liftweb.json.JsonDSL.string2jvalue
+import net.liftweb.common.Box
+import net.liftweb.json.JValue
 
 
 class NodeApiService2 (
@@ -87,15 +88,39 @@ class NodeApiService2 (
   def acceptedNodeDetails (req : Req, id :NodeId ) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "acceptedNodeDetails"
-      nodeInfoService.getNodeInfo(id) match {
-        case Full(info) =>
-          val node =  toJSON(info,"accepted")
-          toJsonResponse(None, ( "nodes" -> JArray(List(node))))
-        case eb:EmptyBox =>
-          val message = (eb ?~ s"Could not fetch Node ${id.value}").msg
-          toJsonError(None, message)
+    nodeInfoService.getNodeInfo(id) match {
+      case Full(info) =>
+        val node =  toJSON(info,"accepted")
+        toJsonResponse(None, ( "nodes" -> JArray(List(node))))
+      case eb:EmptyBox =>
+        val message = (eb ?~ s"Could not find accepted Node ${id.value}").msg
+        toJsonError(None, message)
     }
   }
+
+
+  def pendingNodeDetails (nodeId : NodeId, prettifyStatus : Boolean) =  {
+    implicit val prettify = prettifyStatus
+    implicit val action = "pendingNodeDetails"
+    newNodeManager.listNewNodes match {
+      case Full(pendingNodes) =>
+        pendingNodes.filter(_.id==nodeId) match {
+          case Seq() =>
+            val message = s"Could not find pending Node ${nodeId.value}"
+            toJsonError(None, message)
+          case Seq(info) =>
+            val node =  toJSON(info,"pending")
+            toJsonResponse(None, ( "nodes" -> JArray(List(node))))
+          case tooManyNodes =>
+            val message = s"Too many pending Nodes with same id ${nodeId.value} : ${tooManyNodes.size} "
+            toJsonError(None, message)
+        }
+      case eb : EmptyBox =>
+        val message = (eb ?~ s"Could not find pending Node ${nodeId.value}").msg
+        toJsonError(None, message)
+    }
+  }
+
 
   def listPendingNodes (req : Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
@@ -118,7 +143,7 @@ class NodeApiService2 (
     val actor = getActor(req)
     modifyStatusFromAction(ids,DeleteNode,modId,actor) match {
       case Full(jsonValues) =>
-        val deletedNodes = jsonValues.toList
+        val deletedNodes = jsonValues
         toJsonResponse(None, ( "nodes" -> JArray(deletedNodes)))
 
       case eb: EmptyBox => val message = (eb ?~ ("Error when deleting Nodes")).msg
@@ -126,7 +151,7 @@ class NodeApiService2 (
     }
   }
 
-  def modifyStatusFromAction(ids : Seq[NodeId], action : NodeStatusAction,modId : ModificationId, actor:EventActor) = {
+  def modifyStatusFromAction(ids : Seq[NodeId], action : NodeStatusAction,modId : ModificationId, actor:EventActor) : Box[List[JValue]] = {
     def actualNodeDeletion(id : NodeId, modId : ModificationId, actor:EventActor) = {
       for {
         info   <- nodeInfoService.getNodeInfo(id)
@@ -143,28 +168,34 @@ class NodeApiService2 (
 
       case DeleteNode =>
         ids.map(actualNodeDeletion(_,modId,actor))
-    })
+    }).map(_.toList)
   }
 
-  def changeNodeStatus (req : Req) = {
-    implicit val prettify = restExtractor.extractPrettify(req.params)
+  def changeNodeStatus (
+      nodeIds :Box[Option[List[NodeId]]]
+    , nodeStatusAction : Box[NodeStatusAction]
+    , actor : EventActor
+    , prettifyStatus : Boolean
+  ) = {
+    implicit val prettify = prettifyStatus
     implicit val action = "changePendingNodeStatus"
     val modId = ModificationId(uuidGen.newUuid)
-    val actor = getActor(req)
-    restExtractor.extractNodeIds(req.params) match {
+    nodeIds match {
       case Full(Some(ids)) =>
-        logger.info(ids)
-        val jsonValues = restExtractor.extractNodeStatus(req.params) match {
-          case Full(nodeStatusAction  ) => modifyStatusFromAction(ids,nodeStatusAction,modId,actor)
-          case eb:EmptyBox => eb ?~ "node status needs to be specified"
-        }
-        jsonValues match {
-        case Full(jsonValue) =>
-          val updatedNodes = jsonValue.toList
-          toJsonResponse(None, ( "nodes" -> JArray(updatedNodes)))
+        logger.debug(s" Nodes to change Status : ${ids.mkString("[ ", ", ", " ]")}")
+        nodeStatusAction match {
+          case Full(nodeStatusAction  ) =>
+            modifyStatusFromAction(ids,nodeStatusAction,modId,actor) match {
+              case Full(result) =>
+                toJsonResponse(None, ( "nodes" -> JArray(result)))
+              case eb: EmptyBox =>
+                val message = (eb ?~ ("Error when changing Nodes status")).msg
+                toJsonError(None, message)
+            }
 
-        case eb: EmptyBox => val message = (eb ?~ ("Error when changing Nodes status")).msg
-        toJsonError(None, message)
+          case eb:EmptyBox =>
+            val fail = eb ?~ "node status needs to be specified"
+            toJsonError(None, fail.msg)
         }
       case Full(None) =>
         val message = "You must add a node id as target"
