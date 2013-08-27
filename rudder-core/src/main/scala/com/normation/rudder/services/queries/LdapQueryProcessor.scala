@@ -88,9 +88,14 @@ final case class NotRegexFilter(attributeName:String, regex:String) extends Spec
  *   More over, we need a "DN to filter" function for the requested object type
  */
 case class LDAPNodeQuery(
-    returnTypeFilters: Option[Set[ExtendedFilter]],
-    composition:CriterionComposition,           //the final composition to apply
-    objectTypesFilters: Map[DnType, Map[String,Set[ExtendedFilter]]] //that map MUST not contains returnType
+    //filter on the return type.
+    //a None here means that there was no criteria on the
+    //return type, only on other objects
+    nodeFilters       : Option[Set[ExtendedFilter]]
+    //the final composition to apply
+  , composition       : CriterionComposition
+    //that map MUST not contains node related filters
+  , objectTypesFilters: Map[DnType, Map[String,Set[ExtendedFilter]]]
 ) extends HashcodeCaching
 
 
@@ -126,19 +131,19 @@ class AccepetedNodesLDAPQueryProcessor(
    * only report entries that match query in also in node
    * @param query
    * @param select
-   * @param serverUuids
+   * @param limitToNodeIds
    * @return
    */
   private[this] def queryAndChekNodeId(
       query:Query,
       select:Seq[String] = Seq(),
-      serverUuids:Option[Seq[NodeId]] = None
+      limitToNodeIds:Option[Seq[NodeId]] = None
   ) : Box[Seq[QueryResult]] = {
 
     val debugId = if(logger.isDebugEnabled) Helpers.nextNum else 0L
 
     for {
-      inventoryEntries <- processor.internalQueryProcessor(query,select,serverUuids,debugId)
+      inventoryEntries <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId)
     } yield {
       val inNodes = (for {
         inventoryEntry <- inventoryEntries
@@ -210,9 +215,9 @@ class PendingNodesLDAPQueryChecker(
 ) extends QueryChecker {
 
 
-  override def check(query:Query, serverUuids:Seq[NodeId]) : Box[Seq[NodeId]] = {
+  override def check(query:Query, limitToNodeIds:Seq[NodeId]) : Box[Seq[NodeId]] = {
     for {
-      entries <- checker.internalQueryProcessor(query, Seq("1.1"), Some(serverUuids))
+      entries <- checker.internalQueryProcessor(query, Seq("1.1"), Some(limitToNodeIds))
       ids <- sequence(entries) { entry =>
         checker.ldapMapper.nodeDn2OptNodeId(entry.dn) ?~! "Can not get node ID from dn %s".format(entry.dn)
       }
@@ -248,34 +253,15 @@ class InternalLDAPQueryProcessor(
    *
    * TODO: there is a lot of room to be smarter here.
    */
-
-  /*
-   * TODO séparer le processus de query en deux parties:
-   * 1/  requete sur le type d'objet retourné par la requete
-   *     (donc pour nous, les serveurs)
-   *     Ca nous permet d'obtenir une liste de serverDn, softwareDn,
-   *     machineDn à tester.
-   *     A partir de là, on crée les filtres qui vont bien pour
-   *     chaque type, à ANDer en tête de chaque autre requete.
-   *     PROBLEME: on peut se retrouver avec tout l'annuaire en "et".
-   * 2/  requete des différents autres types, avec les bon filter.
-   *
-   * Avantage : tester si une machine vérifie une requete revient
-   * simplement à ajouter la ligne "uuid=truc" pour les requetes ET.
-   *
-   * En fait, c'est une sous requete...
-   * AND ( OR(uuid = x1, uuid = x2, ..., uuid = xN),
-   *    ( Autres parametres )
-   */
   def internalQueryProcessor(
       query:Query,
       select:Seq[String] = Seq(),
-      serverUuids:Option[Seq[NodeId]] = None,
+      limitToNodeIds:Option[Seq[NodeId]] = None, //
       debugId: Long = 0L
   ) : Box[Seq[LDAPEntry]] = {
 
     //normalize the query: remove duplicates, order elements (last one server)
-    val normalizeQuery = normalize(query) match {
+    val normalizedQuery = normalize(query) match {
       case Full(q) => q
       case f:Failure => return f
       case Empty => return Failure("Can not normalize query")
@@ -298,13 +284,149 @@ class InternalLDAPQueryProcessor(
     /*
      * First step: forall criteria, combined filters according to composition
      * (the result is given as an LDAPObjectType, so we have everything to process the query)
+     * We have one request by LDAPObjectType
      *
      * We have to make separated requests for special filter,
      * and we need to have one by filter. So these one are in separated requests.
      *
      */
-    val ldapObjectTypeSets : Map[DnType, Map[String,LDAPObjectType]] =
-      normalizeQuery.objectTypesFilters map { case(dnType,mapOtFilters) =>
+    val ldapObjectTypeSets = { createLDAPObjects(normalizedQuery, debugId) match {
+      case Full(x) => x
+      case e:EmptyBox => return e
+    } }
+
+
+    //then, actually execute queries
+    val dnMapMapSets : Map[DnType, Map[String,Set[DN]]] =
+      ldapObjectTypeSets map { case(dnType,mapLot) =>
+        (dnType, (mapLot map { case (ot,lot) =>
+        //for each set of filter, execute the query
+          val dns = getDnsForObjectType(lot, normalizedQuery.composition, debugId) match {
+            case eb:EmptyBox =>
+              logger.debug("[%s] `-> stop query due to error: %s".format(debugId,eb))
+              return eb
+            case Full(s) => s
+          }
+          (ot, dns)
+        })
+        )
+      }
+
+    //now, groups resulting set of same DnType according to composition
+    val dnMapSets : Map[DnType, Set[DN]] =
+      dnMapMapSets map { case (dnType, dnMapSet) =>
+        val dnSet:Set[DN] = normalizedQuery.composition match {
+          case Or  => (Set[DN]() /: dnMapSet)( _ union _._2 )
+          case And =>
+            val s = if(dnMapSet.isEmpty) Set[DN]() else (dnMapSet.head._2 /: dnMapSet)( _ intersect _._2 )
+            if(s.isEmpty) {
+              logger.debug("[%s] `-> early stop query (empty sub-query)".format(debugId))
+              return Full(Seq()) //there is no need to go farther, since it will lead to anding with empty set
+            }
+            else s
+        }
+        (dnType,dnSet)
+      }
+
+    if(logger.isTraceEnabled) {
+
+      dnMapSets.foreach { case (dnType, dns) =>
+        logger.trace("/// %s ==> %s".format(dnType, dns.map( _.getRDN).mkString(", ") ))
+      }
+
+    }
+
+    //transform all the DNs we get to filters for the targeted object type
+    //here, we are objectType dependent: we use a mapping that is saying
+    // "for that objectType, that dnType is transformed into a filter like that"
+    val filterSeqSet : Seq[Set[Filter]] =
+      (dnMapSets map { case (dnType, dnMapSet) =>
+        dnMapSet map { dn => nodeJoinFilters(dnType)(dn) }
+      }).toSeq
+
+
+    //now, build last filter depending on comparator :
+    //or : just OR everything
+    //and: and in Set, or between them so that: Set(a,b), Set(c,d) => OR( (a and c), (a and d), (b and c), (b and d) )
+    //     or simpler: AND( (a or b), (c or d) )
+    val (finalLdapFilter, finalSpecialFilters) = {
+      unspecialiseFilters(normalizedQuery.nodeFilters.getOrElse(Set[ExtendedFilter]())) match {
+        case e:EmptyBox =>
+          val error = e ?~! "Error when processing final objet filters"
+          logger.debug("[%s] `-> stop query due to error: %s".format(debugId,error))
+          return error
+
+        case Full((ldapFilters, specialFilters)) =>
+          val finalLdapFilter = normalizedQuery.composition match {
+            case Or  =>
+              Some(OR( ((ldapFilters /: filterSeqSet)( _ union _ )).toSeq:_*))
+            case And => //if returnFilter is None, just and other filter, else add it. TODO : may it be empty ?
+              val seqFilter = ldapFilters.toSeq ++
+                  filterSeqSet.map(s => if(s.size > 1) OR(s.toSeq:_*) else s.head ) //s should not be empty, since we returned earlier if it was the case
+              seqFilter.size match {
+                case x if x < 1 => None
+                case 1 => Some(seqFilter.head)
+                case _ => Some(AND( seqFilter:_* ))
+              }
+          }
+          (finalLdapFilter, specialFilters )
+        }
+    }
+
+
+
+    //final query, add "match only server id" filter if needed
+    val rt = nodeObjectTypes.copy(filter = finalLdapFilter)
+
+    logger.debug("[%s] |- (final query) %s".format(debugId, rt))
+
+    val res = for {
+      con      <- ldap
+      results  <- executeQuery(rt.baseDn.toString, rt.scope, nodeObjectTypes.objectFilter, rt.filter, finalSpecialFilters, select.toSet, normalizedQuery.composition, debugId)
+    } yield {
+      postFilterNode(results.groupBy( _.dn ).map( _._2.head ).toSeq, query.returnType, limitToNodeIds)
+    }
+
+    if(logger.isDebugEnabled) {
+      res match {
+        case eb:EmptyBox => logger.debug("[%s] `-> error: %s".format(debugId, eb))
+        case Full(seq) => logger.debug("[%s] `-> %s results".format(debugId, seq.size))
+      }
+    }
+
+    res
+  }
+
+
+  /**
+   * That method allows to post-process a list of nodes based on
+   * the resultType.
+   * - step1: filter out policy server if we only want "simple" nodes
+   * - step2: filter out nodes based on a given list of acceptable entries
+   */
+  private[this] def postFilterNode(entries: Seq[LDAPEntry], returnType: QueryReturnType, limitToNodeIds:Option[Seq[NodeId]]) : Seq[LDAPEntry] = {
+
+    val step1 = returnType match {
+                  //actually, we are able at that point to know if we have a policy server,
+                  //so we don't post-process anything.
+                  case NodeReturnType => entries
+                  case NodeAndPolicyServerReturnType => entries
+                }
+    val step2 = limitToNodeIds match {
+                 case None => step1
+                 case Some(seq) => step1.filter(e =>
+                                     seq.exists(nodeId => nodeId.value == e(A_NODE_UUID).getOrElse("Missing attribute %s in node entry, that case is not supported.").format(A_NODE_UUID))
+                                   )
+               }
+
+    step2
+  }
+
+  /*
+   * From the list of DN to query with their filters, build a list of LDAPObjectType
+   */
+  private[this] def createLDAPObjects(query: LDAPNodeQuery, debugId: Long) : Box[Map[DnType, Map[String,LDAPObjectType]]] = {
+      Full(query.objectTypesFilters map { case(dnType,mapOtFilters) =>
         (dnType, (mapOtFilters map { case (ot,setFilters) =>
           val (ldapFilters, specialFilters) = unspecialiseFilters(setFilters) match {
             case Full((ldapFilters, specialFilters)) =>
@@ -312,13 +434,13 @@ class InternalLDAPQueryProcessor(
                 case 0 => None
                 case 1 => Some(ldapFilters.head)
                 case n =>
-                  normalizeQuery.composition match {
+                  query.composition match {
                     case And => Some(AND(ldapFilters.toSeq:_*))
                     case Or  => Some(OR(ldapFilters.toSeq:_*))
                   }
               }
 
-              normalizeQuery.composition match {
+              query.composition match {
                 case And => (f, specialFilters.map( ( And:CriterionComposition , _)) )
                 case Or  => (f, specialFilters.map( ( Or :CriterionComposition , _)) )
               }
@@ -346,115 +468,11 @@ class InternalLDAPQueryProcessor(
           ))
         })
         )
-      }
-
-    //then, actually execute queries
-    val dnMapMapSets : Map[DnType, Map[String,Set[DN]]] =
-      ldapObjectTypeSets map { case(dnType,mapLot) =>
-        (dnType, (mapLot map { case (ot,lot) =>
-        //for each set of filter, execute the query
-          val dns = getDnsForObjectType(lot, normalizeQuery.composition, debugId) match {
-            case eb:EmptyBox =>
-              logger.debug("[%s] `-> stop query due to error: %s".format(debugId,eb))
-              return eb
-            case Full(s) => s
-          }
-          (ot, dns)
-        })
-        )
-      }
-
-    //now, groups resulting set of same DnType according to composition
-    val dnMapSets : Map[DnType, Set[DN]] =
-      dnMapMapSets map { case (dnType, dnMapSet) =>
-        val dnSet:Set[DN] = normalizeQuery.composition match {
-          case Or  => (Set[DN]() /: dnMapSet)( _ union _._2 )
-          case And =>
-            val s = if(dnMapSet.isEmpty) Set[DN]() else (dnMapSet.head._2 /: dnMapSet)( _ intersect _._2 )
-            if(s.isEmpty) {
-              logger.debug("[%s] `-> early stop query (empty sub-query)".format(debugId))
-              return Full(Seq()) //there is no need to go farther, since it will lead to anding with empty set
-            }
-            else s
-        }
-        (dnType,dnSet)
-      }
-
-    //transform all the DNs we get to filters for the targeted object type
-    //here, we are objectType dependent: we need a mapping that is saying
-    // "for that objectType, that dnType is transformed into a filter like that"
-    val filterSeqSet : Seq[Set[Filter]] =
-      (dnMapSets map { case (dnType, dnMapSet) =>
-        dnMapSet map { dn => serverJoinFilters(dnType)(dn) }
-      }).toSeq
-
-
-    //now, build last filter depending on comparator :
-    //or : just OR everything
-    //and: and in Set, or between them so that: Set(a,b), Set(c,d) => OR( (a and c), (a and d), (b and c), (b and d) )
-    //     or simpler: AND( (a or b), (c or d) )
-    val (finalLdapFilter, finalSpecialFilters) = {
-      unspecialiseFilters(normalizeQuery.returnTypeFilters.getOrElse(Set[ExtendedFilter]())) match {
-        case e:EmptyBox =>
-          val error = e ?~! "Error when processing final objet filters"
-          logger.debug("[%s] `-> stop query due to error: %s".format(debugId,error))
-          return error
-
-        case Full((ldapFilters, specialFilters)) =>
-          val finalLdapFilter = normalizeQuery.composition match {
-            case Or  =>
-              if(ldapFilters.isEmpty) None else Some(OR( ((ldapFilters /: filterSeqSet)( _ union _ )).toSeq:_*))
-            case And => //if returnFilter is None, just and other filter, else add it. TODO : may it be empty ?
-              val seqFilter = ldapFilters.toSeq ++
-                  filterSeqSet.map(s => if(s.size > 1) OR(s.toSeq:_*) else s.head ) //s should not be empty, since we returned earlier if it was the case
-              seqFilter.size match {
-                case x if x < 1 => None
-                case 1 => Some(seqFilter.head)
-                case _ => Some(AND( seqFilter:_* ))
-              }
-          }
-          (finalLdapFilter, specialFilters )
-        }
+      })
     }
-
-
-
-    //final query, add "match only server id" filter if needed
-    val rt = objectTypes(query.returnType.value).copy(
-      filter = {
-        serverUuids match {
-          case None => finalLdapFilter
-          case Some(seq) if(seq.size < 1) => finalLdapFilter
-          case Some(seq) if(seq.size >= 1) =>
-            finalLdapFilter match {
-              case None => Some(buildOnlyDnFilters(seq))
-              case Some(x) => Some(AND(x , buildOnlyDnFilters(seq)))
-            }
-        }
-      }
-    )
-
-    logger.debug("[%s] |- (final query) %s".format(debugId, rt))
-
-    val res = for {
-      con      <- ldap
-      results  <- executeQuery(rt.baseDn.toString, rt.scope, rt.filter, finalSpecialFilters, select.toSet, normalizeQuery.composition, debugId)
-    } yield {
-      results.groupBy( _.dn ).map( _._2.head ).toSeq
-    }
-
-    if(logger.isDebugEnabled) {
-      res match {
-        case eb:EmptyBox => logger.debug("[%s] `-> error: %s".format(debugId, eb))
-        case Full(seq) => logger.debug("[%s] `-> %s results".format(debugId, seq.size))
-      }
-    }
-
-    res
-  }
 
   //execute a query with special filter based on the composition
-  private[this] def executeQuery(base: DN, scope: SearchScope, filter: Option[Filter], specialFilters: Set[SpecialFilter], attributes:Set[String], composition: CriterionComposition, debugId: Long) : Box[Seq[LDAPEntry]] = {
+  private[this] def executeQuery(base: DN, scope: SearchScope, objectFilter: LDAPObjectTypeFilter, filter: Option[Filter], specialFilters: Set[SpecialFilter], attributes:Set[String], composition: CriterionComposition, debugId: Long) : Box[Seq[LDAPEntry]] = {
 
     def buildSearchRequest(addedSpecialFilters:Set[SpecialFilter]) : Box[SearchRequest] = {
 
@@ -479,7 +497,7 @@ class InternalLDAPQueryProcessor(
 
       val finalFilter = params._1 match {
         case None => return Failure("No filter (neither standard nor special) for request, can not process!")
-        case Some(x) => x
+        case Some(x) => AND(objectFilter.value, x)
       }
 
        /*
@@ -508,7 +526,7 @@ class InternalLDAPQueryProcessor(
         _       <- { logger.debug("[%s] |--- %s".format(debugId, sr)) ; Full({}) }
         entries <- Full(con.search(sr))
         _       <- { logger.debug("[%s] |---- %s result(s)".format(debugId, entries.size)) ; Full({}) }
-        post    <- postProcessResults(entries, addedSpecialFilters.map( (composition,_) ), debugId)
+        post    <- postProcessQueryResults(entries, addedSpecialFilters.map( (composition,_) ), debugId)
       } yield {
         post
       }
@@ -544,12 +562,15 @@ class InternalLDAPQueryProcessor(
                     }
                  //now, each filter individually
         _        <- { logger.debug("[%s] |--- or (base filter): %s".format(debugId, entries.size)) ; Full({}) }
+        _        <- { logger.trace("[%s] |--- or (base filter): %s".format(debugId, entries.map( _.dn.getRDN  ).mkString(", "))) ; Full({}) }
         specials <- sequence(sf.toSeq){ case (k, filters) => baseQuery(con, filters) }
         sFlat    =  specials.flatten
         _        <- { logger.debug("[%s] |--- or (special filter): %s".format(debugId, sFlat.size)) ; Full({}) }
+        _        <- { logger.trace("[%s] |--- or (special filter): %s".format(debugId, sFlat.map( _.dn.getRDN  ).mkString(", "))) ; Full({}) }
       } yield {
         val total = (entries ++ sFlat).distinct
         logger.debug("[%s] |--- or (total): %s".format(debugId, total.size))
+        logger.trace("[%s] |--- or (total): %s".format(debugId, total.map( _.dn.getRDN  ).mkString(", ")))
         total
       }
     }
@@ -568,12 +589,12 @@ class InternalLDAPQueryProcessor(
   }
 
   private[this] def getDnsForObjectType(lot:LDAPObjectType, composition: CriterionComposition, debugId: Long) : Box[Set[DN]] = {
-    val LDAPObjectType(base,scope,ldapFilters,joinType,specialFilters) = lot
+    val LDAPObjectType(base,scope, objectFilter, ldapFilters,joinType,specialFilters) = lot
 
     //log sub-query with two "-"
     logger.debug("[%s] |-- %s".format(debugId, lot))
     for {
-      results <- executeQuery(base, scope, ldapFilters, specialFilters.map( _._2), Set(joinType.selectAttribute), composition, debugId)
+      results <- executeQuery(base, scope, objectFilter, ldapFilters, specialFilters.map( _._2), Set(joinType.selectAttribute), composition, debugId)
     } yield {
       val res = (results flatMap { e:LDAPEntry =>
         joinType match {
@@ -583,7 +604,7 @@ class InternalLDAPQueryProcessor(
         }
       }).toSet
       logger.debug("[%s] |-- %s sub-results (merged)".format(debugId, res.size))
-      logger.trace("[%s] |-- ids: %s".format(debugId, res))
+      logger.trace("[%s] |-- ObjectType: %s; ids: %s".format(debugId, lot.baseDn, res.map( _.getRDN).mkString(", ")))
       res
     }
   }
@@ -618,7 +639,7 @@ class InternalLDAPQueryProcessor(
     }
   }
 
-  private[this] def postProcessResults(
+  private[this] def postProcessQueryResults(
       results:Seq[LDAPEntry]
     , specialFilters:Set[(CriterionComposition,SpecialFilter)]
     , debugId: Long
@@ -633,11 +654,10 @@ class InternalLDAPQueryProcessor(
            */
           Full(
             entries.filter { entry =>
-              logger.trace("Filtering with regex '%s' entry: %s:%s".format(regexText,entry.dn,entry.valuesFor(attr).mkString(",")))
               val res = entry.valuesFor(attr).exists { value =>
                 pattern.matcher( value ).matches
               }
-              logger.trace("Entry matches: " + res)
+              logger.trace("[%5s] for regex check '%s' on attribute %s of entry: %s:%s".format(res, regexText, attr, entry.dn,entry.valuesFor(attr).mkString(",")))
               res
             }
           )
@@ -667,7 +687,7 @@ class InternalLDAPQueryProcessor(
       Full(results)
     } else {
       val filterSeq = specialFilters.toSeq
-      logger.debug("[%s] |---- post-process with filters: %s".format(debugId, filterSeq))
+      logger.debug("[%s] |---- post-process with filters: %s".format(debugId, filterSeq.mkString("[", "]  [", "]")))
 
       //we only know how to process homogeneous CriterionComposition. Different one are an error
       for {
@@ -692,6 +712,19 @@ class InternalLDAPQueryProcessor(
     }
   }
 
+  /*
+   * Transform a Query into an LDAPNodeQuery:
+   * - check that the query only contains known LDAP Objects.
+   * - group criteria that target objects under the same 'root'
+   *   together. We have three roots:
+   *   - nodes,
+   *   - software,
+   *   - machines.
+   *
+   * It is also here that we handle the return type.
+   * After that point, we only know how to handle NODES, but
+   * perhaps
+   */
   private def normalize(query:Query) : Box[LDAPNodeQuery] = {
 
     //validate that we knows the requested object type
@@ -705,9 +738,16 @@ class InternalLDAPQueryProcessor(
     }
 
     //group criteria by objectType, and map value to LDAPObjectType
-    var groupedSetFilter : Map[String,Set[ExtendedFilter]] =
-      query.criteria.groupBy(c => c.objectType.objectType) map { case (key,seq) =>
-        (key , (seq map { case CriterionLine(ot,a,comp,value) =>
+    val groupedSetFilter: Map[DnType, Map[String,Set[ExtendedFilter]]] = {
+      query.criteria.groupBy(c => c.objectType.objectType) map { case (objectType,seq) =>
+
+        //here, we have a special case for "node" and "nodeAndPolicyServer" that
+        //are in fact the same "objectType".
+        //Question: should it just be a "normal" post-process not at that level,
+        //but higher ? Why is it a type ?
+        val tpe = if(objectType == "nodeAndPolicyServer") "node" else objectType
+
+        (tpe , (seq map { case CriterionLine(ot,a,comp,value) =>
           (comp match {
             case Regex => a.buildRegex(a.name,value)
             case NotRegex => a.buildNotRegex(a.name,value)
@@ -715,29 +755,20 @@ class InternalLDAPQueryProcessor(
           }) : ExtendedFilter
         }).toSet)
       }
+    }.groupBy { case (objectType, v) => objectDnTypes(objectType) }
 
-    val returnTypeKey = query.returnType match {
-      case NodeReturnType | NodeAndPolicyServerReturnType => NodeReturnType.value
+
+    val nodeFilters = groupedSetFilter.get(QueryNodeDn).flatMap( _.get("node").map( _.toSet) )
+    val otherFilters = groupedSetFilter.flatMap { case(dn, map) =>
+      val setFilter = map.flatMap { case (objectType, x) =>
+        if(objectType == "node") None
+        else Some(objectType -> x)
+      }
+      if(setFilter.isEmpty) None
+      else Some( dn -> setFilter )
     }
-    val requestedTypeSetFilter = groupedSetFilter.get(returnTypeKey) match {
-      case None => None
-      case s@Some(setFilter) => //remove it from further processing
-        groupedSetFilter -= returnTypeKey
-        s
-    }
 
-    Full(LDAPNodeQuery(requestedTypeSetFilter, query.composition, groupedSetFilter.groupBy( kv => objectDnTypes(kv._1))))
-  }
-
-
-  /**
-   * A filter on node id, when we are looking for specific one.
-   * NOTE: that SHOULD be optimized so that we actually only query
-   * on these node if we have the information, and not only post-filter results,
-   * because perhaps we did a thousand requests for nothing here.
-   */
-  private[this] def buildOnlyDnFilters(uuids:Seq[NodeId]) : Filter = {
-    OR(uuids.map { uuid => EQ(A_NODE_UUID, uuid.value) }:_*)
+    Full(LDAPNodeQuery(nodeFilters, query.composition, otherFilters))
   }
 
 }

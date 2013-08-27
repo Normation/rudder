@@ -43,7 +43,7 @@
   </logger>
   -->
   
-  <logger name="com.normation.rudder.services.queries" level="trace" /> 
+  <logger name="com.normation.rudder.services.queries" level="info" /> 
   
   
   <!-- 
