@@ -167,6 +167,8 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: Nil)
 
+    val q2_0_ = TestQuery("q2_0_", query = q2_0.query.copy(composition = Or), q2_0.awaited)
+
     val q2_1 = TestQuery(
       "q2_1",
       parser("""
@@ -176,6 +178,7 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: s(2) :: Nil)
 
+    val q2_1_ = TestQuery("q2_1_", query = q2_1.query.copy(composition = Or), q2_1.awaited)
 
     val q2_2 = TestQuery(
       "q2_2",
@@ -186,7 +189,9 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(2) :: Nil)
 
-    testQueries(q2_2 :: q2_1 :: q2_0 :: Nil)
+    val q2_2_ = TestQuery("q2_2_", query = q2_2.query.copy(composition = Or), q2_2.awaited)
+
+    testQueries(q2_0 :: q2_0_ :: q2_1 :: q2_1_ :: q2_2 :: q2_2_ :: Nil)
   }
 
 
@@ -253,6 +258,20 @@ class TestQueryProcessor extends Loggable {
 
 
   @Test def regexQueries() {
+
+    //regex and "subqueries" for logical elements should not be contradictory
+    //here, we have to *only* search for logical elements with the regex
+    //and cn is both on node and logical elements
+    val q0 = TestQuery(
+      "q0",
+      parser("""
+      {  "select":"node", "composition":"or" , "where":[
+        , { "objectType":"fileSystemLogicalElement", "attribute":"description", "comparator":"regex", "value":"matchOnM[e]" }
+      ] }
+      """).open_!,
+      s(3) :: Nil)
+
+
     //on node
     val q1 = TestQuery(
       "q1",
@@ -380,7 +399,7 @@ class TestQueryProcessor extends Loggable {
       //s2,s3 not ok because in the "not regex" pattern
       //s4 ok because only 127.0.0.1
 
-    testQueries(q1 :: q1_ :: q2 :: /* q2_ :: */ q3 :: q3_2 :: q4 :: /* q5 :: */ q6 :: q7 :: q8 :: q9 :: Nil)
+    testQueries(q0  :: q1 :: q1_ :: q2 :: q2_ :: q3 :: q3_2 :: q4 :: q5 :: q6 :: q7 :: q8 :: q9 :: Nil)
   }
 
   @Test def dateQueries() {
@@ -482,10 +501,10 @@ class TestQueryProcessor extends Loggable {
           format(name,found,ids),found.forall { f => ids.exists( f == _) })
 
       logger.debug("Testing with expected entries")
-      val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, serverUuids = Some(ids)).openOrThrowException("For tests").map { entry =>
+      val foundWithLimit = (internalLDAPQueryProcessor.internalQueryProcessor(query, limitToNodeIds = Some(ids)).openOrThrowException("For tests").map { entry =>
         NodeId(entry("nodeId").get)
       }).distinct.sortBy( _.value )
-      assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected enrties (process)\n Found: %s\n Wants: %s".
+      assertEquals("[%s]Size differ between awaited entry and found entry set when setting expected entries (process)\n Found: %s\n Wants: %s".
           format(name,foundWithLimit,ids),ids.size.toLong,foundWithLimit.size.toLong)
   }
 
