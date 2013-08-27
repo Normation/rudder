@@ -254,6 +254,11 @@ Criterion(A_NAME,GroupOfDnsComparator)
 //  case class QueryJoin(query:Query) extends LDAPJoinElement
 
 
+  //that class represent the base filter for an object type.
+  //it's special because it MUST always be ANDED to any
+  //request for that object type.
+  final case class LDAPObjectTypeFilter(value: Filter)
+
 /*
  * * "baseDn" of the object type to search for
  * * "scope" to use to retrieve object
@@ -263,6 +268,7 @@ Criterion(A_NAME,GroupOfDnsComparator)
 case class LDAPObjectType(
     baseDn        : DN
   , scope         : SearchScope
+  , objectFilter  : LDAPObjectTypeFilter
   , filter        : Option[Filter]
   , join          : LDAPJoinElement
   , specialFilters: Set[(CriterionComposition, SpecialFilter)] = Set()
@@ -270,26 +276,30 @@ case class LDAPObjectType(
 
   //template query for each object type
   def objectTypes = Map(
-    "software" -> LDAPObjectType(dit.SOFTWARE.dn, One, Some(ALL), DNJoin),
-    "node" -> LDAPObjectType(dit.NODES.dn, One, Some(ALL), DNJoin),
-    "nodeAndPolicyServer" -> LDAPObjectType(dit.NODES.dn, One, Some(ALL), DNJoin),
-    "networkInterfaceLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, Some(IS(OC_NET_IF)), ParentDNJoin),
-    "process" -> LDAPObjectType(dit.NODES.dn, One, Some(ALL), DNJoin),
-    "virtualMachineLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, Some(IS(OC_VM_INFO)), ParentDNJoin),
-    "environmentVariable" -> LDAPObjectType(dit.NODES.dn, One, Some(ALL), DNJoin),
-    "fileSystemLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, Some(IS(OC_FS)), ParentDNJoin),
-    "machine" -> LDAPObjectType(dit.MACHINES.dn, One, Some(ALL), DNJoin),
-    "processorPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, Some(IS(OC_PROCESSOR)), ParentDNJoin),
-    "memoryPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, Some(IS(OC_MEMORY)), ParentDNJoin),
-    "storagePhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, Some(IS(OC_STORAGE)), ParentDNJoin),
-    "biosPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, Some(IS(OC_BIOS)), ParentDNJoin),
-    "controllerPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, Some(IS(OC_CONTROLLER)), ParentDNJoin),
-    "portPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, Some(IS(OC_PORT)), ParentDNJoin),
-    "slotPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, Some(IS(OC_SLOT)), ParentDNJoin),
-    "soundCardPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, Some(IS(OC_SOUND)), ParentDNJoin),
-    "videoCardPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, Some(IS(OC_VIDEO)), ParentDNJoin)
+    "software" -> LDAPObjectType(dit.SOFTWARE.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
+    "node" -> LDAPObjectType(dit.NODES.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
+    "nodeAndPolicyServer" -> LDAPObjectType(dit.NODES.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
+    "networkInterfaceLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, LDAPObjectTypeFilter(IS(OC_NET_IF)), None, ParentDNJoin),
+    "process" -> LDAPObjectType(dit.NODES.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
+    "virtualMachineLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, LDAPObjectTypeFilter(IS(OC_VM_INFO)), None, ParentDNJoin),
+    "environmentVariable" -> LDAPObjectType(dit.NODES.dn, One, LDAPObjectTypeFilter(ALL),None,  DNJoin),
+    "networkInterfaceLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, LDAPObjectTypeFilter(IS(OC_NET_IF)), None, ParentDNJoin),
+    "fileSystemLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, LDAPObjectTypeFilter(IS(OC_FS)), None, ParentDNJoin),
+    "machine" -> LDAPObjectType(dit.MACHINES.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
+    "processorPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_PROCESSOR)), None, ParentDNJoin),
+    "memoryPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_MEMORY)), None, ParentDNJoin),
+    "storagePhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_STORAGE)), None, ParentDNJoin),
+    "biosPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_BIOS)), None, ParentDNJoin),
+    "controllerPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_CONTROLLER)), None, ParentDNJoin),
+    "portPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_PORT)), None, ParentDNJoin),
+    "slotPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_SLOT)), None, ParentDNJoin),
+    "soundCardPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_SOUND)), None, ParentDNJoin),
+    "videoCardPhysicalElement" -> LDAPObjectType(dit.MACHINES.dn, Sub, LDAPObjectTypeFilter(IS(OC_VIDEO)), None, ParentDNJoin)
     //,"groupOfDns" -> LDAPObjectType(dit.GROUPS.dn, Sub, EQ(A_OC,OC_GROUP_OF_DNS), A_DN)
   )
+
+  //We only know how to query NODES for now: special word for it.
+  val nodeObjectTypes = objectTypes("node")
 
   //"kind" of each object type
   val objectDnTypes = Map(
@@ -340,9 +350,11 @@ case class LDAPObjectType(
     //,"groupOfDns" -> A_MEMBER
   )
 
+
+
   //how do you create a filter from a DN,
   //when you want to query such an object
-  val serverJoinFilters = Map[DnType, DN => Filter](
+  val nodeJoinFilters = Map[DnType, DN => Filter](
     QueryNodeDn -> ((dn:DN) => (EQ(A_NODE_UUID, dn.getRDN.getAttributeValues()(0)))),
     QuerySoftwareDn -> ((dn:DN) => (EQ(A_SOFTWARE_DN, dn.toString))),
     QueryMachineDn -> ((dn:DN) => (EQ(A_CONTAINER_DN, dn.toString)))
