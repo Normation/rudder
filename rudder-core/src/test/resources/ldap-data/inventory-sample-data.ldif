@@ -144,6 +144,9 @@ policyServerId:root-policy-server
 nodeHostname: node0.normation.com
 inventoryDate: 20130515123456.948Z
 ipHostNumber: 192.168.56.100
+description: matchOnMe
+#description is the same as a logical 
+#element of node3
 
 # Example of the same (almost) node, but not in ou=nodes
 dn: nodeId=node0_0,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
@@ -301,6 +304,7 @@ objectClass: top
 cn: ext3
 fileSystemFreeSpace: 6718226432
 fileSystemTotalSpace: 8038383616
+description: matchOnMe
 
 dn: mountPoint=/,nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
