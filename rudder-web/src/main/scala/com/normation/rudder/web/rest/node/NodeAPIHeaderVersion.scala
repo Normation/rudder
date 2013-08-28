@@ -43,9 +43,12 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.web.rest.ApiVersion
+import com.normation.rudder.web.rest.RestExtractorService
+import net.liftweb.json.JsonDSL._
 
 class NodeAPIHeaderVersion (
-    apiV2 : NodeApiService2
+    apiV2         : NodeApiService2
+  , restExtractor : RestExtractorService
 ) extends RestHelper with Loggable{
 
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
@@ -75,6 +78,18 @@ class NodeAPIHeaderVersion (
       }
     }
 
+    case Get("pending" :: id :: Nil, req) => {
+      val prettify = restExtractor.extractPrettify(req.params)
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>
+          apiV2.pendingNodeDetails(NodeId(id),prettify)
+        case Full(ApiVersion(missingVersion)) =>
+          missingResponse(missingVersion,"acceptedNodeDetails")
+        case _ =>
+          notValidVersionResponse("acceptedNodeDetails")
+      }
+    }
+
     case Delete(id :: Nil, req) => {
       ApiVersion.fromRequest(req) match {
         case Full(ApiVersion(2)) =>  apiV2.deleteNode(req, Seq(NodeId(id)))
@@ -83,11 +98,73 @@ class NodeAPIHeaderVersion (
       }
     }
 
-     case Post("pending" :: Nil, req) =>  {
+    case "pending" :: Nil JsonPost body -> req => {
+      req.json match {
+        case Full(json) =>
+          ApiVersion.fromRequest(req) match {
+            case Full(ApiVersion(2)) =>
+              val prettify = restExtractor.extractPrettify(req.params)
+              val nodeIds  = restExtractor.extractNodeIdsFromJson(json)
+              val nodeStatus = restExtractor.extractNodeStatusFromJson(json)
+              val actor = getActor(req)
+              apiV2.changeNodeStatus(nodeIds,nodeStatus,actor,prettify)
+            case Full(ApiVersion(missingVersion)) =>
+              missingResponse(missingVersion,"changeNodeStatus")
+            case _ =>
+              notValidVersionResponse("changeNodeStatus")
+          }
+        case eb:EmptyBox =>
+          toJsonError(None, "No Json data sent")("updateGroup",restExtractor.extractPrettify(req.params))
+      }
+    }
+
+    case "pending" :: id :: Nil JsonPost body -> req => {
+      req.json match {
+        case Full(json) =>
+        ApiVersion.fromRequest(req) match {
+          case Full(ApiVersion(2)) =>
+            val prettify = restExtractor.extractPrettify(req.params)
+            val nodeId  = Full(Some(List(NodeId(id))))
+            val nodeStatus = restExtractor.extractNodeStatusFromJson(json)
+            val actor = getActor(req)
+            apiV2.changeNodeStatus(nodeId,nodeStatus,actor,prettify)
+            case Full(ApiVersion(missingVersion)) =>
+              missingResponse(missingVersion,"changeNodeStatus")
+            case _ =>
+              notValidVersionResponse("changeNodeStatus")
+        }
+        case eb:EmptyBox =>
+          toJsonError(None, "No Json data sent")("updateGroup",restExtractor.extractPrettify(req.params))
+      }
+    }
+
+    case Post("pending" :: Nil, req) =>  {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.changeNodeStatus(req)
-        case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"changeNodeStatus")
-        case _ => notValidVersionResponse("changeNodeStatus")
+        case Full(ApiVersion(2)) =>
+          val prettify = restExtractor.extractPrettify(req.params)
+          val nodeIds  = restExtractor.extractNodeIds(req.params)
+          val nodeStatus = restExtractor.extractNodeStatus(req.params)
+          val actor = getActor(req)
+          apiV2.changeNodeStatus(nodeIds,nodeStatus,actor,prettify)
+        case Full(ApiVersion(missingVersion)) =>
+          missingResponse(missingVersion,"changeNodeStatus")
+        case _ =>
+          notValidVersionResponse("changeNodeStatus")
+      }
+    }
+
+    case Post("pending" :: id :: Nil, req) =>  {
+      ApiVersion.fromRequest(req) match {
+        case Full(ApiVersion(2)) =>
+          val prettify = restExtractor.extractPrettify(req.params)
+          val nodeId  = Full(Some(List(NodeId(id))))
+          val nodeStatus = restExtractor.extractNodeStatus(req.params)
+          val actor = getActor(req)
+          apiV2.changeNodeStatus(nodeId,nodeStatus,actor,prettify)
+        case Full(ApiVersion(missingVersion)) =>
+          missingResponse(missingVersion,"changeNodeStatus")
+        case _ =>
+          notValidVersionResponse("changeNodeStatus")
       }
     }
   }
