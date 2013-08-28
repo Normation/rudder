@@ -114,7 +114,7 @@ class DitQueryData(dit:InventoryDit) {
       Criterion(A_MEMORY_TYPE, StringComparator)
     )),
     ObjectCriterion(OC_STORAGE, peObjectCriterion.criteria ++ Seq(
-      Criterion(A_STORAGE_NAME, MemoryComparator),
+      Criterion(A_STORAGE_NAME, StringComparator),
       Criterion(A_STORAGE_SIZE, MemoryComparator),
       Criterion(A_STORAGE_FIRMWARE, StringComparator)
     )),
