@@ -100,7 +100,7 @@ private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WOR
         ".overridable *" #> param.overridable &
         ".change *" #> <div >{
                        ajaxButton("Edit", () => showPopup("save", Some(param)), ("class", "mediumButton"), ("align", "left")) ++
-                       ajaxButton("Delete", () => showPopup("delete", Some(param)), ("class", "mediumButton"), ("style", "margin-left:5px;"))
+                       ajaxButton("Delete", () => showPopup("delete", Some(param)), ("class", "mediumButton dangerButton"), ("style", "margin-left:5px;"))
                        }</div>
       }) &
       ".createParameter *" #> ajaxButton("Add Parameter", () => showPopup("create", None))
