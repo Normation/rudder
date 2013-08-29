@@ -43,7 +43,6 @@ import com.normation.rudder.domain.NodeDit
 import net.liftweb.common._
 import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.nodes.NodeInfo
-
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.rudder.domain.Constants._
@@ -52,6 +51,8 @@ import com.normation.ldap.sdk._
 import BuildFilter._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.utils.Control._
+import com.normation.inventory.ldap.core.InventoryMapper
+import com.normation.inventory.ldap.core.InventoryDitService
 
 trait NodeInfoService {
 
@@ -99,7 +100,9 @@ class NodeInfoServiceImpl(
     rudderDit:RudderDit,
     inventoryDit:InventoryDit,
     ldap:LDAPConnectionProvider[RoLDAPConnection],
-    ldapMapper:LDAPEntityMapper
+    ldapMapper:LDAPEntityMapper,
+    inventoryMapper:InventoryMapper,
+    inventoryDitService:InventoryDitService
 ) extends NodeInfoService with Loggable {
   import NodeInfoServiceImpl._
 
@@ -110,15 +113,20 @@ class NodeInfoServiceImpl(
       node <- con.get(nodeDit.NODES.NODE.dn(nodeId.value), nodeInfoAttributes:_*) ?~! "Node with ID '%s' was not found".format(nodeId.value)
       nodeInfo <- for {
                     server <- con.get(inventoryDit.NODES.NODE.dn(nodeId.value), nodeInfoAttributes:_*)  ?~! "Node info with ID '%s' was not found".format(nodeId.value)
-                    machine <- server(A_CONTAINER_DN) match {
-                      case Some(container) => inventoryDit.MACHINES.MACHINE.idFromDN(new DN(container)) match {
-                        case Full(machineId) =>  Full(con.get(inventoryDit.MACHINES.MACHINE.dn(machineId),Seq("*"):_*).toOption)
-                        case eb:EmptyBox => val msg = s"could not get machine from container ${container} : ${eb}"
-                          logger.error(msg)
-                          Failure(msg)
+                    machine <- {
+                      val machines = inventoryMapper.mapSeqStringToMachineIdAndStatus(server.valuesFor(A_CONTAINER_DN))
+                      if(machines.size == 0) Full(None)
+                      else { //here, we only process the first machine
+                        if(logger.isDebugEnabled && machines.size > 1) {
+                          logger.debug("Node with id %s is attached to several container. Taking %s as the valid one, ignoring other (%s)".format(
+                              nodeId.value, machines(0)._1.value, machines.tail.map( _._1).mkString(", "))
+                          )
+                        }
+                        val (machineId, status) = machines(0)
+                        val dit = inventoryDitService.getDit(status)
+
+                        Full(con.get(dit.MACHINES.MACHINE.dn(machineId),Seq("*"):_*).toOption)
                       }
-                      case None => logger.debug(s"no machine Inventory for ${server}")
-                        Full(None)
                     }
                     nodeInfo <- ldapMapper.convertEntriesToNodeInfos(node, server,machine)
                   } yield {
