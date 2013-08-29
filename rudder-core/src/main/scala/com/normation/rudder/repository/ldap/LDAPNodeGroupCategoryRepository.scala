@@ -422,7 +422,7 @@ class LDAPNodeGroupCategoryRepository(
     for {
       con <-ldap
       deleted <- {
-        getCategoryEntry(con, id, "1.1") match {
+        getCategoryEntry(con, id) match {
           case Full(entry) => 
             for {
               category    <- mapper.entry2NodeGroupCategory(entry)
