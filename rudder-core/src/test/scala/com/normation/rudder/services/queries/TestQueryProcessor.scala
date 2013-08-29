@@ -50,6 +50,7 @@ import com.normation.ldap.sdk._
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.services.nodes.NodeInfoServiceImpl
 
 /*
  * Test query parsing.
@@ -88,17 +89,25 @@ class TestQueryProcessor extends Loggable {
 
   val DIT = new InventoryDit(new DN("ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"),new DN("ou=Inventories,cn=rudder-configuration"),"test")
 
+  val removedDIT = new InventoryDit(new DN("ou=Removed Inventories,ou=Inventories,cn=rudder-configuration"),new DN("ou=Inventories,cn=rudder-configuration"),"test")
+  val pendingDIT = new InventoryDit(new DN("ou=Pending Inventories,ou=Inventories,cn=rudder-configuration"),new DN("ou=Inventories,cn=rudder-configuration"),"test")
+  val ditService = new InventoryDitServiceImpl(pendingDIT, DIT, removedDIT)
   val nodeDit = new NodeDit(new DN("cn=rudder-configuration"))
+  val rudderDit = new RudderDit(new DN("cn=rudder-configuration"))
 
   val ditQueryData = new DitQueryData(DIT)
 
-  val ldapMapper = new LDAPEntityMapper(null, nodeDit, DIT, null)
+  val ldapMapper = new LDAPEntityMapper(rudderDit, nodeDit, DIT, null)
+  val inventoryMapper = new InventoryMapper(ditService, pendingDIT, DIT, removedDIT)
   val internalLDAPQueryProcessor = new InternalLDAPQueryProcessor(ldap,DIT,ditQueryData,ldapMapper)
+
+  val nodeInfoService = new NodeInfoServiceImpl(nodeDit, rudderDit, DIT, ldap, ldapMapper, inventoryMapper, ditService)
 
   val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
       nodeDit,
       DIT,
-      internalLDAPQueryProcessor
+      internalLDAPQueryProcessor,
+      nodeInfoService
   )
 
   val parser = new CmdbQueryParser with
