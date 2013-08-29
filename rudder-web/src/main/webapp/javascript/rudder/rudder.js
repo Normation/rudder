@@ -400,7 +400,7 @@ function activateButtonOnFormChange(containerDivId, buttonId, status) {
 function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, gridId, status, optionnalButton) {
 
 	if ("false"==status)
-		$('#'+buttonId).button( "option", "disabled", true )
+		$('#'+buttonId).button( "option", "disabled", true );
 	else
 		activateButtonDeactivateGrid(buttonId, gridId);
 
