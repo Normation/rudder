@@ -161,7 +161,7 @@ class AcceptNode {
     def addNodes(listNode : Seq[NodeId]) : Unit = {
       //TODO : manage error message
       S.clearCurrentNotices
-      newNodeManager.accept(listNode, CurrentUser.getActor).zip(listNode).foreach { case (box,id) => box match {
+      listNode.foreach { id => newNodeManager.accept(id, CurrentUser.getActor) match {
         case f:Failure => 
           S.error(
             <span class="error">
@@ -171,13 +171,13 @@ class AcceptNode {
         case e:EmptyBox => 
           logger.error("Add new node '%s' lead to Failure.".format(id.value.toString), e)
           S.error(<span class="error">Error while accepting node(s).</span>)
-        case Full(srvId) => 
+        case Full(inventory) =>
           // TODO : this will probably move to the NewNodeManager, when we'll know
           // how we handle the user
           val version = retrieveLastVersions(id)
           version match {
             case Some(x) => 
-              serverSummaryService.find(acceptedNodesDit,srvId) match {
+              serverSummaryService.find(acceptedNodesDit,id) match {
                 case Full(srvs) if (srvs.size==1) =>  
                     val srv = srvs.head
                     val entry = AcceptNodeEventLog.fromInventoryLogDetails(
@@ -196,10 +196,10 @@ class AcceptNode {
                         case _ => logger.warn("Node '%s'added, but the action couldn't be logged".format(id.value.toString))
                     }
                 
-                case _ => logger.error("Something bad happened while searching for node %s to log the acceptation, search %s".format(id.value.toString, srvId.value))
+                case _ => logger.error("Something bad happened while searching for node %s to log the acceptation, search %s".format(id.value.toString, id.value))
               }
            
-            case None => logger.warn("Node '%s'added, but couldn't find it's inventory %s".format(id.value.toString, srvId.value))
+            case None => logger.warn("Node '%s'added, but couldn't find it's inventory %s".format(id.value.toString, id.value))
           }
       } }
       
@@ -208,7 +208,7 @@ class AcceptNode {
     def refuseNodes(listNode : Seq[NodeId]) : Unit = {
       //TODO : manage error message    
       S.clearCurrentNotices
-      newNodeManager.refuse(listNode, CurrentUser.getActor).zip(listNode).foreach {case (box,id) =>  box match {
+      listNode.foreach { id => newNodeManager.refuse(id, CurrentUser.getActor) match {
         case e:EmptyBox => 
           logger.error("Refuse node '%s' lead to Failure.".format(id.value.toString), e)
           S.error(<span class="error">Error while refusing node(s).</span>)
