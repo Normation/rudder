@@ -198,6 +198,7 @@ trait RoNodeGroupRepository {
   /**
    * Get the full group tree with all information
    * for categories and groups.
+   * Returns the objects sorted by name within
    */
   def getFullGroupLibrary(): Box[FullNodeGroupCategory]
 

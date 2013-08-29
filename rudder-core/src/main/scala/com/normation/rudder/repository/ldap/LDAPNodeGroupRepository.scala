@@ -419,6 +419,11 @@ class RoLDAPNodeGroupRepository(
   }
 
 
+  /**
+   * Get the full group tree with all information
+   * for categories and groups.
+   * Returns the objects sorted by name within
+   */
   def getFullGroupLibrary() : Box[FullNodeGroupCategory] = {
 
     case class AllMaps(
@@ -437,8 +442,8 @@ class RoLDAPNodeGroupRepository(
         , description = cat.description
         , subCategories = maps.categoriesByCategory.getOrElse(catId, Nil).map { id =>
             fromCategory(id, maps)
-          }
-        , targetInfos = maps.targetByCategory.getOrElse(catId, Nil)
+          }.sortBy(_.name)
+        , targetInfos = maps.targetByCategory.getOrElse(catId, Nil).sortBy(_.name)
         , isSystem = cat.isSystem
       )
     }
