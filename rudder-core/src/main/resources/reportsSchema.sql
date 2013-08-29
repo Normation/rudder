@@ -125,7 +125,7 @@ CREATE TABLE EventLog (
     creationDate timestamp with time zone NOT NULL DEFAULT 'now',
     severity integer,
     causeId integer,
-    principal varchar(64),
+    principal text,
     reason text,
     eventType varchar(64),
     data xml
