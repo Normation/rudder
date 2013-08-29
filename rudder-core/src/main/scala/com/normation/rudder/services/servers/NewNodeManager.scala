@@ -81,14 +81,14 @@ trait NewNodeManager {
   /**
    * Accept a pending node in Rudder
    */
-  def accept(ids:Seq[NodeId], actor:EventActor) : Seq[Box[NodeId]]
+  def accept(id: NodeId, actor:EventActor) : Box[FullInventory]
 
   /**
    * refuse node
    * @param ids : the node id
    * @return : the srv representations of the refused node
    */
-  def refuse(ids:Seq[NodeId], actor:EventActor) : Seq[Box[Srv]]
+  def refuse(id: NodeId, actor:EventActor) : Box[Srv]
 
 }
 
@@ -238,9 +238,13 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
     } 
   }
   
-  override def refuse(ids:Seq[NodeId], actor:EventActor) : Seq[Box[Srv]] = {
-    ids.flatMap { id => serverSummaryService.find(pendingNodesDit, id).openOr(Seq()) }.map { srv => 
-      refuseOne(srv, actor)
+  override def refuse(id: NodeId, actor:EventActor) : Box[Srv] = {
+      for {
+        srvs   <- serverSummaryService.find(pendingNodesDit, id)
+        srv    <- if(srvs.size == 1) Full(srvs(0)) else Failure("Found several pending nodes matchin id %s: %s".format(id.value, srvs))
+        refuse <- refuseOne(srv, actor)
+      } yield {
+        refuse
     }
   }
   
@@ -293,33 +297,29 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
   }
   
   
-  override def accept(ids:Seq[NodeId], actor:EventActor) : Seq[Box[NodeId]] = {
+  override def accept(id: NodeId, actor:EventActor) : Box[FullInventory] = {
     //
     // start by retrieving all sms
     //
-    val sms = (for {
-      id <- ids
-    } yield {
-      //we want a seq of box, so here, it's a box
-      for {
-        sm <- smRepo.get(id, PendingInventory) ?~! "Can not accept not found inventory with id %s".format(id)
-      } yield {
-        (id,sm)
+    val sm = smRepo.get(id, PendingInventory) match {
+      case Full(x) => x
+      case eb: EmptyBox =>
+        return eb ?~! "Can not accept not found inventory with id %s".format(id)
       }
-    }).flatten   
     
     //
     //execute pre-accept phase for all unit acceptor
     // stop here in case of any error
     //
     unitAcceptors.foreach { unitAcceptor =>
-      unitAcceptor.preAccept(sms.map( _._2),actor) match {
+      unitAcceptor.preAccept(Seq(sm), actor) match {
         case Full(seq) => //ok, cool
           logger.debug("Pre accepted phase: %s".format(unitAcceptor.name))
-        case e:EmptyBox => //on an error here, stop
-          logger.error((e ?~! "Error when trying to execute pre-accepting for phase %s. Stop.".format(unitAcceptor.name)).messageChain)
+        case eb:EmptyBox => //on an error here, stop
+          val e = eb ?~! "Error when trying to execute pre-accepting for phase %s. Stop.".format(unitAcceptor.name)
+          logger.error(e.messageChain)
           //stop now
-          return Seq(e)
+          return e
       }
     }
     
@@ -328,45 +328,37 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
     //now, execute unit acceptor
     //  
     
-    //only keep the actually accpeted nodes
-    val accepted = (for {
-      (id,sm) <- sms
-    } yield {
-      //we want a seq of box, so here, it's a box
-      for {
-        accepted <- acceptOne(sm,actor) ?~! "Error when trying to accept node %s".format(sm.node.main.id.value)
-      } yield {
-        (accepted,id)
-      }
-    })
+    //build the map of results
+    val acceptationResults = acceptOne(sm,actor) ?~! "Error when trying to accept node %s".format(sm.node.main.id.value)
     
     //log
-    accepted.foreach { 
-      case Full((sm, nodeId)) => logger.debug("Unit acceptors ok for %s".format(nodeId))
-      case e:EmptyBox => logger.error((e ?~! "Unit acceptor error for a node").messageChain)
+    acceptationResults match {
+      case Full(sm) => logger.debug("Unit acceptors ok for %s".format(id))
+      case eb:EmptyBox =>
+        val e = eb ?~! "Unit acceptor error for node %s".format(id)
+        logger.error(e.messageChain)
+        return eb
     }
     
-    
-    val acceptedSMs = accepted.flatten.map( _._1)
-    val accpetedDNs = accepted.map(b => b.map(_._2))
     
     //
     //now, execute global post process
     //  
     (sequence(unitAcceptors) { unit =>
       try {
-        unit.postAccept(acceptedSMs,actor)
+        unit.postAccept(Seq(sm),actor)
       } catch {
         case e:Exception => Failure(e.getMessage, Full(e), Empty)
       }
     }) match {
       case Full(seq) => //ok, cool
-        logger.debug("Accepted inventories: %s".format(acceptedSMs.map(sm => sm.node.main.id.value).mkString("; ")))
-        accpetedDNs
+        logger.debug("Accepted inventories: %s".format(sm.node.main.id.value))
+        acceptationResults
       case e:EmptyBox => //on an error here, rollback all accpeted
         logger.error((e ?~! "Error when trying to execute accepting new server post-processing. Rollback.").messageChain)
-        rollback(unitAcceptors, acceptedSMs,actor)
-        Seq(e)
+        rollback(unitAcceptors, Seq(sm), actor)
+        //only update results that where not already in error
+        e
     }
   }
 
