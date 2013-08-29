@@ -61,6 +61,11 @@ import net.liftweb.json.JsonDSL.pair2jvalue
 import net.liftweb.json.JsonDSL.string2jvalue
 import net.liftweb.common.Box
 import net.liftweb.json.JValue
+import com.normation.inventory.domain.FullInventory
+import com.normation.inventory.domain.NodeInventory
+import com.normation.inventory.domain.MachineType
+import com.normation.inventory.domain.PhysicalMachineType
+import com.normation.inventory.domain.VirtualMachineType
 
 
 class NodeApiService2 (
@@ -161,10 +166,10 @@ class NodeApiService2 (
 
    boxSequence(action match {
       case AcceptNode =>
-        newNodeManager.accept(ids, modId, actor).flatMap(box =>  box.map((nodeInfoService.getNodeInfo(_).map(toJSON(_,"accepted")))))
+        ids.map(newNodeManager.accept(_, modId, actor).map(toJSON(_,"accepted")))
 
       case RefuseNode =>
-        newNodeManager.refuse(ids, modId, actor).map(_.map(toJSON(_,"refused")))
+        ids.map(newNodeManager.refuse(_, modId, actor)).map(_.map(toJSON(_,"refused")))
 
       case DeleteNode =>
         ids.map(actualNodeDeletion(_,modId,actor))
@@ -214,6 +219,23 @@ class NodeApiService2 (
     ("osName"      -> node.osName) ~
     ("osVersion"   -> node.osVersion) ~
     ("machyneType" -> node.machineType)
+
+  }
+
+  def toJSON (node : FullInventory, status : String) : JValue ={
+
+    val machineType = node.machine.map(_.machineType match {
+      case PhysicalMachineType => "Physical"
+      case VirtualMachineType(kind) => "Virtual"
+    }).getOrElse("No machine Inventory")
+
+
+    ("id"          -> node.node.main.id.value) ~
+    ("status"      -> status) ~
+    ("hostname"    -> node.node.main.hostname) ~
+    ("osName"      -> node.node.main.osDetails.os.name) ~
+    ("osVersion"   -> node.node.main.osDetails.version.toString) ~
+    ("machyneType" -> machineType)
 
   }
 
