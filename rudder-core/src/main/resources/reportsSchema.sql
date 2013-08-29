@@ -127,7 +127,7 @@ CREATE TABLE EventLog (
     severity integer,
     causeId integer,
     modificationId text,
-    principal varchar(64),
+    principal text,
     reason text,
     eventType varchar(64),
     data xml
