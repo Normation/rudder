@@ -601,7 +601,7 @@ class WoLDAPNodeGroupRepository(
     for {
       con <-ldap
       deleted <- {
-        getCategoryEntry(con, id, "1.1") match {
+        getCategoryEntry(con, id) match {
           case Full(entry) =>
             for {
               parents     <- if(autoExportOnModify) {
