@@ -334,7 +334,7 @@ class LDAPEntityMapper(
       } yield {
          NodeGroupCategory(NodeGroupCategoryId(id), name, description, Nil, Nil, isSystem)
       }
-    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(A_GROUP_CATEGORY_UUID, e))
+    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_GROUP_CATEGORY, e))
   }
 
   /**
@@ -351,7 +351,7 @@ class LDAPEntityMapper(
   ////////////////////////////////// Node Group //////////////////////////////////
 
    /**
-   * Build a ActiveTechnique from and LDAPEntry.
+   * Build a node group from and LDAPEntry.
    */
   def entry2NodeGroup(e:LDAPEntry) : Box[NodeGroup] = {
     if(e.isA(OC_RUDDER_NODE_GROUP)) {
@@ -380,7 +380,7 @@ class LDAPEntityMapper(
       } yield {
          NodeGroup(NodeGroupId(id), name, description, query, isDynamic, nodeIds, isEnabled, isSystem)
       }
-    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_TECHNIQUE_CATEGORY, e))
+    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_RUDDER_NODE_GROUP, e))
   }
 
 
