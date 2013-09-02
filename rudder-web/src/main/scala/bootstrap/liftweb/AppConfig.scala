@@ -785,7 +785,9 @@ object RudderConfig extends Loggable {
   private[this] lazy val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
     nodeDitImpl,
     acceptedNodesDitImpl,
-    new InternalLDAPQueryProcessor(roLdap, acceptedNodesDitImpl, ditQueryDataImpl, ldapEntityMapper))
+    new InternalLDAPQueryProcessor(roLdap, acceptedNodesDitImpl, ditQueryDataImpl, ldapEntityMapper),
+    nodeInfoServiceImpl
+  )
 
   //we need a roLdap query checker for nodes in pending
   private[this] lazy val inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(roLdap, pendingNodesDitImpl, new DitQueryData(pendingNodesDitImpl), ldapEntityMapper))
