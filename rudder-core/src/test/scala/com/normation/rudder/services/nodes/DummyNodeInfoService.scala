@@ -78,4 +78,6 @@ class DummyNodeInfoService extends NodeInfoService {
   def getAllSystemNodeIds() : Box[Seq[NodeId]] = {
     Full(allNodes.filter(_.isPolicyServer).map(_.id))
   }
+
+  def getLDAPNodeInfo(nodeId:NodeId) : Box[LDAPNodeInfo] = ???
 }
