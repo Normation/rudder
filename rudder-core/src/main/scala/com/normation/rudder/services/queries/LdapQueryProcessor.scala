@@ -52,6 +52,8 @@ import com.normation.rudder.domain.RudderLDAPConstants._
 import java.util.regex.Pattern
 import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.nodes.LDAPNodeInfo
 
 
 
@@ -116,7 +118,8 @@ object DefaultRequestLimits extends RequestLimits(10,1000,10,1000)
 class AccepetedNodesLDAPQueryProcessor(
     nodeDit:NodeDit,
     inventoryDit:InventoryDit,
-    processor:InternalLDAPQueryProcessor
+    processor:InternalLDAPQueryProcessor,
+    nodeInfoService: NodeInfoService
 ) extends QueryProcessor with Loggable {
 
 
@@ -147,22 +150,9 @@ class AccepetedNodesLDAPQueryProcessor(
       val inNodes = (for {
         inventoryEntry <- inventoryEntries
         rdn <- inventoryEntry(A_NODE_UUID)
-        con <- processor.ldap
-
-        machine <- inventoryEntry(A_CONTAINER_DN) match {
-          case Some(container) => inventoryDit.MACHINES.MACHINE.idFromDN(new DN(container)) match {
-            case Full(machineId) =>  Full(con.get(inventoryDit.MACHINES.MACHINE.dn(machineId),Seq("*"):_*).toOption)
-            case eb:EmptyBox => val msg = s"could not get machine from container ${container} : ${eb}"
-              logger.error(msg)
-              Failure(msg)
-            }
-          case None => logger.debug(s"no machine Inventory for ${inventoryEntry}")
-            Full(None)
-        }
-
-        nodeEntry <- con.get(nodeDit.NODES.NODE.dn(rdn), Seq(SearchRequest.ALL_USER_ATTRIBUTES, A_OBJECT_CREATION_DATE):_*)
+        LDAPNodeInfo(nodeEntry, nodeInv, machineInv) <- nodeInfoService.getLDAPNodeInfo(NodeId(rdn))
       } yield {
-        QueryResult(nodeEntry,inventoryEntry,machine)
+        QueryResult(nodeEntry,nodeInv, machineInv)
       })
 
       if(logger.isDebugEnabled) {
