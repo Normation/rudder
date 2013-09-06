@@ -52,7 +52,7 @@ import com.normation.rudder.domain.RudderLDAPConstants._
 import java.util.regex.Pattern
 import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
-
+import net.liftweb.util.Helpers.tryo
 
 
 
@@ -622,12 +622,13 @@ class InternalLDAPQueryProcessor(
     def applyFilter(specialFilter:SpecialFilter, entries:Seq[LDAPEntry]) : Box[Seq[LDAPEntry]] = {
       specialFilter match {
         case RegexFilter(attr,regexText) =>
-          val pattern = Pattern.compile(regexText)
-          /*
-           * We want to match "OK" an entry if any of the values for
-           * the given attribute matches the regex.
-           */
-          Full(
+           for {
+            pattern <- tryo { Pattern.compile(regexText) }
+          } yield {
+            /*
+             * We want to match "OK" an entry if any of the values for
+             * the given attribute matches the regex.
+             */
             entries.filter { entry =>
               val res = entry.valuesFor(attr).exists { value =>
                 pattern.matcher( value ).matches
@@ -635,7 +636,7 @@ class InternalLDAPQueryProcessor(
               logger.trace("[%5s] for regex check '%s' on attribute %s of entry: %s:%s".format(res, regexText, attr, entry.dn,entry.valuesFor(attr).mkString(",")))
               res
             }
-          )
+          }
         case x => Failure("Don't know how to post process query results for filter '%s'".format(x))
       }
     }
