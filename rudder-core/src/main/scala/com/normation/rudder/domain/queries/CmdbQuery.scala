@@ -56,6 +56,8 @@ import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.queries.RegexFilter
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.services.queries.NotRegexFilter
+import net.liftweb.util.Helpers.tryo
+import java.util.regex.Pattern
 
 sealed trait CriterionComparator {
   val id:String
@@ -177,6 +179,15 @@ case object StringComparator extends TStringComparator {
     case Regex => HAS(attributeName) //"default, non interpreted regex
     case NotRegex => HAS(attributeName) //"default, non interpreted regex
     case _ => HAS(attributeName) //default to Exists
+  }
+
+  override protected def validateSubCase(v:String,comparator:CriterionComparator) = comparator match {
+    case Regex =>
+      tryo { Pattern.compile(v) } match {
+        case Full(_) => Full(v)
+        case _ => Failure("Bad input: valid regular expression expected, '%s' found".format(v))
+      }
+    case _ => Full(v) // nothing to check
   }
 }
 

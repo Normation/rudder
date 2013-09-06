@@ -54,7 +54,7 @@ import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.LDAPNodeInfo
-
+import net.liftweb.util.Helpers.tryo
 
 
 
@@ -637,12 +637,13 @@ class InternalLDAPQueryProcessor(
     def applyFilter(specialFilter:SpecialFilter, entries:Seq[LDAPEntry]) : Box[Seq[LDAPEntry]] = {
       specialFilter match {
         case RegexFilter(attr,regexText) =>
-          val pattern = Pattern.compile(regexText)
-          /*
-           * We want to match "OK" an entry if any of the values for
-           * the given attribute matches the regex.
-           */
-          Full(
+           for {
+            pattern <- tryo { Pattern.compile(regexText) }
+          } yield {
+            /*
+             * We want to match "OK" an entry if any of the values for
+             * the given attribute matches the regex.
+             */
             entries.filter { entry =>
               val res = entry.valuesFor(attr).exists { value =>
                 pattern.matcher( value ).matches
@@ -650,14 +651,15 @@ class InternalLDAPQueryProcessor(
               logger.trace("[%5s] for regex check '%s' on attribute %s of entry: %s:%s".format(res, regexText, attr, entry.dn,entry.valuesFor(attr).mkString(",")))
               res
             }
-          )
+          }
         case NotRegexFilter(attr,regexText) =>
-          val pattern = Pattern.compile(regexText)
-          /*
-           * We want to match "OK" an entry if the entry does not
-           * have the attribute or NONE of the value matches the regex.
-           */
-          Full(
+          for {
+            pattern<- tryo { Pattern.compile(regexText) }
+          } yield {
+            /*
+             * We want to match "OK" an entry if the entry does not
+             * have the attribute or NONE of the value matches the regex.
+             */
             entries.filter { entry =>
               logger.trace("Filtering with regex not matching '%s' entry: %s:%s".format(regexText,entry.dn,entry.valuesFor(attr).mkString(",")))
               val res = entry.valuesFor(attr).forall { value =>
@@ -666,7 +668,7 @@ class InternalLDAPQueryProcessor(
               logger.trace("Entry matches: " + res)
               res
             }
-          )
+          }
         case x => Failure("Don't know how to post process query results for filter '%s'".format(x))
       }
     }
