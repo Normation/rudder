@@ -52,13 +52,9 @@ import com.normation.rudder.domain.RudderLDAPConstants._
 import java.util.regex.Pattern
 import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
-<<<<<<< HEAD
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.LDAPNodeInfo
-
-=======
 import net.liftweb.util.Helpers.tryo
->>>>>>> branches/rudder/2.4
 
 
 
