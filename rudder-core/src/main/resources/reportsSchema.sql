@@ -94,7 +94,7 @@ msg text
 
 
 create index nodeid_idx on RudderSysEvents (nodeId);
-CREATE INDEX composite_node_execution_idx on RudderSysEvents (nodeId, executionTimeStamp);
+CREATE INDEX executionTimeStamp_idx on RudderSysEvents (executionTimeStamp);
 CREATE INDEX component_idx on RudderSysEvents (component);
 CREATE INDEX keyValue_idx on RudderSysEvents (keyValue);
 CREATE INDEX ruleId_idx on RudderSysEvents (ruleId);
