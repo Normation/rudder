@@ -33,10 +33,9 @@
 */
 
 
--- Migration script to change the indexes on the RudderSysEvents table, to have a composite index on nodeId, executionTimeStamp
+-- Migration script to create the index on the RudderSysEvents table, to have a composite index on nodeId, executionTimeStamp
 -- Caution, can be quite slow on large database
 
-DROP INDEX executiontimestamp_idx;
 CREATE INDEX  composite_node_execution_idx ON RudderSysEvents(nodeid, executionTimeStamp);
 
  
