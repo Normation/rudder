@@ -99,6 +99,14 @@ cn: Software 1
 softwareVersion: 1.0.0
 description: First software
 
+dn: softwareId=soft0_0,ou=Software,ou=Inventories,cn=rudder-configuration
+softwareId: soft0_0
+objectClass: software
+objectClass: top
+cn: Software 1
+softwareVersion: 2.0.0
+description: First software
+
 dn: softwareId=soft1,ou=Software,ou=Inventories,cn=rudder-configuration
 softwareId: soft1
 objectClass: software
@@ -213,6 +221,7 @@ osVersion: nothing
 osName: Ubuntu
 osKernelVersion: nothing
 nodeId: node3
+software: softwareId=soft0_0,ou=Software,ou=Inventories,cn=rudder-configuration
 cn:has logical elements
 localAdministratorAccountName: root
 agentName: Nova

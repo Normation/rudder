@@ -227,8 +227,55 @@ class TestQueryProcessor extends Loggable {
       """).open_!,
       s(2) :: Nil)
 
+    val q3 = TestQuery(
+      "q3",
+      parser("""
+      { "select":"node", "composition": "or", "where":[
+          {"objectType":"software", "attribute":"softwareVersion", "comparator":"eq", "value":"1.0.0" }
+        , { "objectType":"software", "attribute":"softwareVersion", "comparator":"eq", "value":"2.0-rc" }
+      ] }
+      """).open_!,
+      s(2) :: s(7) :: Nil)
 
-    testQueries(q1 :: q2 :: Nil)
+    val q4 = TestQuery(
+      "q4",
+      parser("""
+      { "select":"node", "composition":"and", "where":[
+          {"objectType":"software", "attribute":"softwareVersion", "comparator":"eq", "value":"1.0.0" }
+        , { "objectType":"software", "attribute":"softwareVersion", "comparator":"eq", "value":"2.0-rc" }
+      ] }
+      """).open_!,
+
+      /// YES, NOTHING, because the query is actually
+      // software with version (1.0.0 AND 2.0-rc)
+
+      Nil)
+
+    val q5 = TestQuery(
+      "q5",
+      parser("""
+      { "select":"node", "composition":"and", "where":[
+          {"objectType":"software", "attribute":"softwareVersion", "comparator":"eq", "value":"1.0.0" }
+        , { "objectType":"software", "attribute":"cn", "comparator":"eq", "value":"Software 1" }
+      ] }
+      """).open_!,
+
+      // And here, we are looking for Software 1 in version 1.0.0
+      //
+
+      s(2) :: s(7) :: Nil)
+
+    val q6 = TestQuery(
+      "q6",
+      parser("""
+      { "select":"node", "composition":"or", "where":[
+          {"objectType":"software", "attribute":"softwareVersion", "comparator":"eq", "value":"1.0.0" }
+        , { "objectType":"software", "attribute":"cn", "comparator":"eq", "value":"Software 1" }
+      ] }
+      """).open_!,
+      s(2) :: s(3) :: s(7) :: Nil)
+
+    testQueries(q1 :: q2 :: q3 :: q4 :: q5 :: q6 :: Nil)
   }
 
   @Test def logicalElementQueries() {
@@ -301,7 +348,7 @@ class TestQueryProcessor extends Loggable {
 
     val q2_ = TestQuery("q2_", query = q2.query.copy(composition = Or),
         (s(0) :: s(1) :: s(7) :: //nodeId
-        s(2) :: s(7) :: //software
+        s(2) :: s(3) :: s(7) :: //software
         s(4) :: s(5) :: s(6) :: s(7) :: //machine
         s(2) :: sr(0) :: // free space
         s(2) :: //bios
