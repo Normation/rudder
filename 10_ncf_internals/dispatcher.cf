@@ -1,0 +1,83 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# Bundle dispatcher
+# This bundle parse the service path defined in the service_dispatcher.cf
+# for the current node, and transform it into a list of bundle to call
+# Conventions:
+#   Path have the form /path_to_service_within_60_service/service_name/service_version
+#   The paths are defined the the bundle mapper, in the variable services
+#   The service versions can be oldstable, stable, testing, unstable
+#   The main bundle of the service has the same name as the service
+bundle agent dispatcher
+{
+  vars:
+      "services" slist => { "@{mapper.services}" };
+
+  classes:
+      "mapper_services_exists" expression => isvariable("mapper.services");
+
+    mapper_services_exists::
+      # Extract from the services variable the base path, the service name, and the service version
+      # key 1 is the base (relative to 60_services)
+      # key 2 is the service name
+      # key 3 is the service version  (oldstable, stable, testing, unstable)
+      "services_array_defined" expression => regextract("(.*)/([^/]+)/([^/]+)", "${services}", "services_array_${services}");
+
+  methods:
+    services_array_defined.dispatcher_report_reached::
+      "${services_array_${services}[2]}" 
+        usebundle => caller("${services_array_${services}[0]}", "${services_array_${services}[2]}", "${services_array_${services}[3]}"),
+        classes   => classes_generic("dispatcher_${apps_array_${base_apps}[2]}");
+
+  reports:
+    !mapper_services_exists::
+      "[ERROR] There are no services defined in service_dispatcher.cf. The execution is stopped";
+    mapper_services_exists::
+      "[INFO] Running services, going to run bundle: ${services_array_${services}[2]} (in version '${services_array_${services}[3]}')";
+
+    cfengine::
+      "[INFO] Starting bundle runs..."
+        classes => classes_generic("dispatcher_reports");
+      "[ERROR] Could not run bundle ${services_array_${services}[2]} (with service path ${services_array_${services}[0]})"
+        ifvarclass => canonify("dispatcher_${services_array_${services}[2]}_not_ok");
+}
+
+# Execute the bundle for a service.
+# Take three arguements, the service_path (within 60_services), the service name
+# and the service version
+bundle agent caller(service_path, service_name, service_version)
+{
+  methods:
+      "$(service_name)"
+        usebundle  => ${service_name}(${service_path}),
+        classes    => classes_generic("caller_${service_name}"),
+        ifvarclass => canonify("caller_reports_start_${service_name}_reached");
+
+  reports:
+    cfengine::
+      "[INFO] Starting bundle execution: ${service_name} (with path ${service_path}"
+        classes => classes_generic("caller_reports_start_${service_name}");
+
+      "[INFO] Finished bundle execution: ${service_name} (with path ${service_path}"
+        ifvarclass => canonify("caller_${service_name}_ok");
+
+      "[ERROR] Could not execute bundle: ${service_name} (with path ${service_path}"
+        ifvarclass => canonify("caller_${service_name}_not_ok");
+
+}

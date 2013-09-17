@@ -1,0 +1,34 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+#
+# "Copy" classes based on a prefix into another prefix
+# The goal is to bubble up classes from one bundle to another
+# by copying classes from one contract to another
+#
+bundle agent copy_classes(source_prefix, dest_prefix)
+{
+  vars:
+      "suffix" slist => { "repaired", "ok", "reached", "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout", "kept" };
+
+      "local_dest_prefix_${suffix}"
+        string     => "${dest_prefix}_${suffix}",
+        ifvarclass => "${source_prefix}_${suffix}",
+        classes    => always("${dest_prefix}_${suffix}");
+}
+
