@@ -1,0 +1,102 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# Define base characteristics for the framework
+# First, the path where the framework is installed
+bundle common me
+{
+  vars:
+      "framework_path" string => "${sys.workdir}";
+
+}
+# Inputs bundle
+# This bundle figures out which .cf files to include.
+# As a first implementation, it loads all the .cf files in the whole directory tree
+#####################################################################################
+bundle common inputs
+{
+  vars:
+      # this list contains everything that is in the 10_ncf_internals
+      "ncf_internals_files"     slist => lsdir("${me.framework_path}/10_ncf_internals", ".*\.cf", "true");
+      # Here, we get all the generic files of the framework (basics, methods, it ops knowledge
+      "generic_framework"      string => execresult("/bin/bash -c \"cd ${me.framework_path} && /usr/bin/find 20_cfe_basics  30_generic_methods  40_it_ops_knowledge -name '*.cf' -printf '${me.framework_path}/%p\n'\"", "noshell");
+      # The Techniques and Services part are choosen separatly, as we may not want to load
+      # them all automatically in the future
+      # This fetches the techniques cf files
+      "techniques"            string  => execresult("/bin/bash -c \"cd ${me.framework_path} && /usr/bin/find 50_techniques -name '*.cf' -printf '${me.framework_path}/%p\n'\"", "noshell");
+      # This fetches the services cf files
+      "services"              string  => execresult("/bin/bash -c \"cd ${me.framework_path} && /usr/bin/find 60_services -name '*.cf' -printf '${me.framework_path}/%p\n'\"", "noshell");
+
+      # We have to convert the result of the find into lists so that they can be use in the 
+      # inputs list
+      "generic_framework_files" slist => splitstring("${generic_framework}", "\n", 10000);
+      "techniques_files"        slist => splitstring("${techniques}", "\n", 10000);
+      "services_files"          slist => splitstring("${services}", "\n", 10000);    
+}
+
+##############################################################################
+# Init bundle
+# This bundle just displays a welcome message with some system info
+# You should not have to edit this
+##############################################################################
+bundle agent init
+{
+  reports:
+    cfengine::
+      "[INFO] Starting CFEngine ${sys.cf_version} on host ${sys.fqhost} (${sys.flavour} ${sys.arch})";
+    debug::
+      "[DEBUG] inputs from ncf_internals : ${inputs.ncf_internals_files}";
+      "[DEBUG] inputs from framework : ${inputs.generic_framework_files}";
+      "[DEBUG] inputs from techiques : ${inputs.techniques_files}";
+      "[DEBUG] inputs from services : ${inputs.services_files}";
+}
+
+##############################################################################
+# End bundle
+# This bundle just displays a finish message with some system info
+# You should not have to edit this
+##############################################################################
+bundle agent end
+{
+  reports:
+    cfengine::
+      "[INFO] Finished CFEngine ${sys.cf_version} on host ${sys.fqhost} (${sys.flavour} ${sys.arch})";
+}
+
+
+##############################################################################
+# Body common control
+# This is the entry point for CFEngine
+##############################################################################
+body common control
+{
+    inputs => {
+               @(inputs.ncf_internals_files),
+               @(inputs.generic_framework_files),
+               @(inputs.techniques_files),
+               @(inputs.services_files),
+              };
+
+    bundlesequence => { 
+                        "init", 
+                        "me", 
+                        "dispatcher",
+                        "end",
+                      };
+}
+
