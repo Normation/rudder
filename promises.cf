@@ -88,6 +88,7 @@ body common control
     inputs => {
                @(inputs.ncf_internals_files),
                @(inputs.generic_framework_files),
+               "service_mapping.cf",
                @(inputs.techniques_files),
                @(inputs.services_files),
               };
