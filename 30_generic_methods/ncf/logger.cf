@@ -1,0 +1,43 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+###################################################################
+# Bundle for standardized reporting
+# Takes three parameters:
+#   bundlefile:   the name of the file of the calling bundle
+#   message:      the common part of the message to display 
+#   class_prefix: the prefix of the class for different states
+#
+# The three states are kept, repaired and not_ok 
+# (as defined in the classes_generic of the cfengine_stdlib)
+####################################################################
+bundle agent logger(bundlefile, message, class_prefix) 
+{ 
+  reports: 
+    debug:: 
+      "[DEBUG] Promise kept, not doing anything: ${message} (from ${bundlefile})" 
+        ifvarclass => canonify("${class_prefix}_kept"); 
+
+    debug|info:: 
+      "[INFO] Promise repaired, made a change: ${message} (from ${bundlefile})" 
+        ifvarclass => canonify("${class_prefix}_repaired"); 
+
+    cfengine:: # We always want to log errors 
+      "[ERROR] Promise could not be repaired, error encountered: ${message} (from ${bundlefile})" 
+        ifvarclass => canonify("${class_prefix}_not_ok"); 
+}

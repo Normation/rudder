@@ -1,0 +1,46 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# This is a bundle to expand a template in a specific location
+#
+# Contract:
+#  - Args:
+#     -- "tml_file", file name (with full path within the framework) of the template file
+#     -- "target_file", file name (with full path) where to expand the template
+#     -- "mode", mode of destination file
+#     -- "owner", owner of destination file
+#     -- "group", group of destubatuib file
+#  - Returns: defines a class expand_template_${application}_${target_file}_{kept,repaired,error,ok,reached}
+
+bundle agent expand_template(tml_file, target_file, mode, owner, group)
+{
+  vars:
+      "class_prefix" string => canonify("expand_template_${target_file}");
+
+  files:
+      "${target_file}"
+        create        => "true",
+        edit_template => "${me.framework_path}/${tml_file}",
+        edit_defaults => no_backup,
+        perms         => mog("${mode}","${owner}","${group}"),
+	classes       => classes_generic("${class_prefix}");
+
+  methods:
+      "report"
+        usebundle  => logger("${this.promise_filename}", "Expand template ${tml_file} into ${target_file} with perms ${mode}, ${owner}, ${group}", "${class_prefix}");
+}
