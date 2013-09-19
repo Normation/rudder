@@ -122,11 +122,12 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       val goodNets = Buffer[String]()
 
       allowedNetworks.foreach { case v@VH(i,net) =>
-        if(net.trim.length != 0) {
-          if(!isValidNetwork(net)) {
+        val netWithoutSpaces = net.replaceAll("""\s""", "")
+        if(netWithoutSpaces.length != 0) {
+          if(!isValidNetwork(netWithoutSpaces)) {
             S.error("errornetwork_"+ i, "Bad format for given network")
           } else {
-            goodNets += net
+            goodNets += netWithoutSpaces
           }
         }
       }
