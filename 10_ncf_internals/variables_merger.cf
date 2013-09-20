@@ -1,0 +1,46 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# Merge variables between those user defined, and the defaults from it_ops_knowledge
+# Name of the bundle is var as it is short to write, and correspond to the 
+# effective names that will be used
+# takes three arguments
+#   - name:          the resulting variable name for the array with the values
+#   - default_array: the name of the array with the default values
+#   - user_array:    the name of the array with the values defined by the user
+# Results:
+#   create an array var.${name} that contains all the user defined variables,
+#   and default variable when no user variable replaces it
+bundle agent var(name, default_array, user_array)
+{
+  vars:
+      "default_keys" slist => getindices("${default_array}");
+      "user_keys"    slist => getindices("${user_array}");
+
+      # First, create the array with the default values
+      "${name}[${default_keys}]" 
+         string => "${${default_array}[${default_keys}]}",
+         policy => "free";
+      "${name}[${user_keys}]"
+         string => "${${user_array}[${user_keys}]}";
+  reports:
+    debug:: 
+      "[DEBUG] Merging variables into variable with name ${name}:";
+      "[DEBUG] Default values ${default_keys} : ${${default_array}[${default_keys}]}";
+      "[DEBUG] User values    ${user_keys} : ${${user_array}[${user_keys}]}";
+}
