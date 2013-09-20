@@ -22,21 +22,26 @@
 # - the default values
 # The default template file can be found in the same folder
 
-bundle agent ssh_knowledge
+bundle agent openssh_knowledge
 {
   vars:
-      "ssh_package_name" string => "openssh_server";
+      "ssh_package_name"              string => "openssh_server";
 
-      # do we really want a list ? i'm not sure it will do what we expect
-      "default[Port]" slist => { "22" };
-      "default[Protocol]" string => "2";
-      "default[PermitRootLogin]" string => "yes";
+      "default[Port]"                 string => "22";
+      "default[Protocol]"             string => "2";
+      "default[PermitRootLogin]"      string => "yes";
       "default[PubkeyAuthentication]" string => "yes";
 
-      "ssh_config_file_location" string => "/etc/ssh/sshd_config";
+      "ssh_config_file_location"      string => "/etc/ssh/sshd_config";
 
-      "ssh_template_file" string => "40_it_ops_knowledge/ncf/ssh/sshd_config";
+      "ssh_template_file"             string => "40_it_ops_knowledge/ncf/ssh/sshd_config";
 
+    redhat::
+      "ssh_etc_initd"                 string => "sshd";
+
+    !redhat::
+      "ssh_etc_initd"                 string => "ssh";
       
-
+    any::
+      "ssh_service_path"              string => "/usr/sbin/sshd";
 }

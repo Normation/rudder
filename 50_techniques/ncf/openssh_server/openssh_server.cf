@@ -1,0 +1,34 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+bundle agent openssh_server(params)
+{
+  methods:
+      "merge"     usebundle => var("openssh", "openssh_knowledge.default", "params");
+      "install"   usebundle => install_package"${openssh_knowledge.ssh_package_name}"
+      "configure" usebundle => expand_template(
+                                 "${openssh_knowledge.ssh_template_file}",
+                                 "${me.framework_path}/${openssh_knowledge.ssh_config_file_location}",
+                                 "600",
+                                 "root",
+                                 "root");
+      "reload"    usebundle => service_reload("${openssh_knowledge.ssh_etc_initd}")
+                 ifvarclass => canonify("expand_template_${openssh_knowledge.ssh_template_file}_repaired");
+      "running"   usebundle => service_start("${openssh_knowledge.ssh_etc_initd}", "${openssh_knowledge.ssh_service_path}");
+}
+

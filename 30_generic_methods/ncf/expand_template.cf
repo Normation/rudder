@@ -24,8 +24,8 @@
 #     -- "target_file", file name (with full path) where to expand the template
 #     -- "mode", mode of destination file
 #     -- "owner", owner of destination file
-#     -- "group", group of destubatuib file
-#  - Returns: defines a class expand_template_${application}_${target_file}_{kept,repaired,error,ok,reached}
+#     -- "group", group of destination file
+#  - Returns: defines a class expand_template_${target_file}_{kept,repaired,error,ok,reached}
 
 bundle agent expand_template(tml_file, target_file, mode, owner, group)
 {

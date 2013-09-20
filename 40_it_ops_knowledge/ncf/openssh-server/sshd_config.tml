@@ -10,9 +10,9 @@
 # possible, but leave them commented.  Uncommented options change a
 # default value.
 
-Port ${ssh_knowledge[Port]}
+Port ${var.openssh[Port]}
 #Protocol 2,1
-Protocol ${ssh_knowledge[Protocol]}
+Protocol ${var.openssh[Protocol]}
 #AddressFamily any
 #ListenAddress 0.0.0.0
 #ListenAddress ::
@@ -36,12 +36,12 @@ SyslogFacility AUTHPRIV
 # Authentication:
 
 #LoginGraceTime 2m
-PermitRootLogin  ${ssh_knowledge[PermitRootLogin]}
+PermitRootLogin  ${var.openssh[PermitRootLogin]}
 #StrictModes yes
 #MaxAuthTries 6
 
 #RSAAuthentication yes
-PubkeyAuthentication ${ssh_knowledge[PubkeyAuthentication]}
+PubkeyAuthentication ${var.openssh[PubkeyAuthentication]}
 #AuthorizedKeysFile	.ssh/authorized_keys
 
 # For this to work you will also need host keys in /etc/ssh/ssh_known_hosts
