@@ -66,22 +66,25 @@ import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.MachineType
 import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.VirtualMachineType
+import com.normation.rudder.web.rest.RestDataSerializer
 
 
 class NodeApiService2 (
-    newNodeManager  : NewNodeManager
-  , nodeInfoService : NodeInfoService
-  , removeNodeService: RemoveNodeService
+    newNodeManager    : NewNodeManager
+  , nodeInfoService   : NodeInfoService
+  , removeNodeService : RemoveNodeService
   , uuidGen           : StringUuidGenerator
-  , restExtractor        : RestExtractorService
+  , restExtractor     : RestExtractorService
+  , restSerializer    : RestDataSerializer
 ) extends Loggable {
 
+  import restSerializer._
   def listAcceptedNodes (req : Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "listAcceptedNodes"
       nodeInfoService.getAll match {
         case Full(nodes) =>
-          val acceptedNodes = nodes.map(toJSON(_,"accepted"))
+          val acceptedNodes = nodes.map(serializeNodeInfo(_,"accepted"))
           toJsonResponse(None, ( "nodes" -> JArray(acceptedNodes.toList)))
 
         case eb: EmptyBox => val message = (eb ?~ ("Could not fetch accepted Nodes")).msg
@@ -95,7 +98,7 @@ class NodeApiService2 (
     implicit val action = "acceptedNodeDetails"
     nodeInfoService.getNodeInfo(id) match {
       case Full(info) =>
-        val node =  toJSON(info,"accepted")
+        val node =  serializeNodeInfo(info,"accepted")
         toJsonResponse(None, ( "nodes" -> JArray(List(node))))
       case eb:EmptyBox =>
         val message = (eb ?~ s"Could not find accepted Node ${id.value}").msg
@@ -114,7 +117,7 @@ class NodeApiService2 (
             val message = s"Could not find pending Node ${nodeId.value}"
             toJsonError(None, message)
           case Seq(info) =>
-            val node =  toJSON(info,"pending")
+            val node =  serializeServerInfo(info,"pending")
             toJsonResponse(None, ( "nodes" -> JArray(List(node))))
           case tooManyNodes =>
             val message = s"Too many pending Nodes with same id ${nodeId.value} : ${tooManyNodes.size} "
@@ -132,7 +135,7 @@ class NodeApiService2 (
     implicit val action = "listPendingNodes"
     newNodeManager.listNewNodes match {
       case Full(ids) =>
-        val pendingNodes = ids.map(toJSON(_,"pending")).toList
+        val pendingNodes = ids.map(serializeServerInfo(_,"pending")).toList
         toJsonResponse(None, ( "nodes" -> JArray(pendingNodes)))
 
       case eb: EmptyBox => val message = (eb ?~ ("Could not fetch pending Nodes")).msg
@@ -161,19 +164,19 @@ class NodeApiService2 (
       for {
         info   <- nodeInfoService.getNodeInfo(id)
         remove <- removeNodeService.removeNode(info.id, modId, actor)
-      } yield { toJSON(info,"deleted") }
+      } yield { serializeNodeInfo(info,"deleted") }
     }
 
-   boxSequence(action match {
+   boxSequence( action match {
       case AcceptNode =>
-        ids.map(newNodeManager.accept(_, modId, actor).map(toJSON(_,"accepted")))
+        ids.map(newNodeManager.accept(_, modId, actor).map(serializeInventory(_,"accepted")))
 
       case RefuseNode =>
-        ids.map(newNodeManager.refuse(_, modId, actor)).map(_.map(toJSON(_,"refused")))
+        ids.map(newNodeManager.refuse(_, modId, actor)).map(_.map(serializeServerInfo(_,"refused")))
 
       case DeleteNode =>
         ids.map(actualNodeDeletion(_,modId,actor))
-    }).map(_.toList)
+   }).map(_.toList)
   }
 
   def changeNodeStatus (
@@ -208,44 +211,6 @@ class NodeApiService2 (
       case eb: EmptyBox => val message = (eb ?~ ("Error when extracting Nodes' id")).msg
         toJsonError(None, message)
     }
-  }
-
-
-  def toJSON (node : NodeInfo, status : String) : JValue ={
-
-    ("id"          -> node.id.value) ~
-    ("status"      -> status) ~
-    ("hostname"    -> node.hostname) ~
-    ("osName"      -> node.osName) ~
-    ("osVersion"   -> node.osVersion) ~
-    ("machyneType" -> node.machineType)
-
-  }
-
-  def toJSON (node : FullInventory, status : String) : JValue ={
-
-    val machineType = node.machine.map(_.machineType match {
-      case PhysicalMachineType => "Physical"
-      case VirtualMachineType(kind) => "Virtual"
-    }).getOrElse("No machine Inventory")
-
-
-    ("id"          -> node.node.main.id.value) ~
-    ("status"      -> status) ~
-    ("hostname"    -> node.node.main.hostname) ~
-    ("osName"      -> node.node.main.osDetails.os.name) ~
-    ("osVersion"   -> node.node.main.osDetails.version.toString) ~
-    ("machyneType" -> machineType)
-
-  }
-
-  def toJSON (node : Srv, status : String) : JValue ={
-
-    ("id"          -> node.id.value) ~
-    ("status"      -> status) ~
-    ("hostname"    -> node.hostname) ~
-    ("osName"      -> node.osName)
-
   }
 
 }

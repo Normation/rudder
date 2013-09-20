@@ -53,11 +53,13 @@ class RuleAPIHeaderVersion (
   , apiV2         : RuleApiService2
 ) extends RestHelper with Loggable{
 
+  private[this] implicit val availableVersions = List(2,3)
+
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.listRules(req)
+        case Full(ApiVersion(2 | 3)) =>  apiV2.listRules(req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("listRules")
       }
@@ -65,7 +67,7 @@ class RuleAPIHeaderVersion (
 
     case  Nil JsonPut body -> req => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           req.json match {
             case Full(arg) =>
               val restRule = restExtractor.extractRuleFromJSON(arg)
@@ -80,7 +82,7 @@ class RuleAPIHeaderVersion (
 
     case Put(Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           val restRule = restExtractor.extractRule(req.params)
           apiV2.createRule(restRule, req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
@@ -90,7 +92,7 @@ class RuleAPIHeaderVersion (
 
     case Get(id :: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.ruleDetails(id, req)
+        case Full(ApiVersion(2 | 3)) =>  apiV2.ruleDetails(id, req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("listRules")
       }
@@ -98,7 +100,7 @@ class RuleAPIHeaderVersion (
 
     case Delete(id :: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.deleteRule(id,req)
+        case Full(ApiVersion(2 | 3)) =>  apiV2.deleteRule(id,req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("deleteRule")
       }
@@ -106,7 +108,7 @@ class RuleAPIHeaderVersion (
 
     case id :: Nil JsonPost body -> req => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           req.json match {
           case Full(arg) =>
             val restRule = restExtractor.extractRuleFromJSON(arg)
@@ -122,7 +124,7 @@ class RuleAPIHeaderVersion (
 
     case Post(id:: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           val restRule = restExtractor.extractRule(req.params)
           apiV2.updateRule(id,req,restRule)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")

@@ -54,11 +54,13 @@ class ParameterAPIHeaderVersion (
   , apiV2          : ParameterApiService2
 ) extends RestHelper with ParameterAPI with Loggable {
 
+  private[this] implicit val availableVersions = List(2,3)
+
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.listParameters(req)
+        case Full(ApiVersion(2 | 3)) =>  apiV2.listParameters(req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("listParameters")
       }
@@ -68,7 +70,7 @@ class ParameterAPIHeaderVersion (
       implicit val action = "createParameter"
       implicit val prettify = restExtractor.extractPrettify(req.params)
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           req.json match {
             case Full(json) =>
 
@@ -91,7 +93,7 @@ class ParameterAPIHeaderVersion (
 
     case Put(Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           implicit val action = "createParameter"
           implicit val prettify = restExtractor.extractPrettify(req.params)
           val restParameter = restExtractor.extractParameter(req.params)
@@ -110,7 +112,7 @@ class ParameterAPIHeaderVersion (
 
     case Get(id :: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) => apiV2.parameterDetails(id, req)
+        case Full(ApiVersion(2 | 3)) => apiV2.parameterDetails(id, req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("listParameters")
       }
@@ -118,7 +120,7 @@ class ParameterAPIHeaderVersion (
 
     case Delete(id :: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) => apiV2.deleteParameter(id,req)
+        case Full(ApiVersion(2 | 3)) => apiV2.deleteParameter(id,req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("deleteParameter")
       }
@@ -126,7 +128,7 @@ class ParameterAPIHeaderVersion (
 
     case id :: Nil JsonPost body -> req => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           req.json match {
             case Full(arg) =>
               val restParameter = restExtractor.extractParameterFromJSON(arg)
@@ -142,7 +144,7 @@ class ParameterAPIHeaderVersion (
 
     case Post(id:: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           val restParameter = restExtractor.extractParameter(req.params)
           apiV2.updateParameter(id,req,restParameter)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
