@@ -54,6 +54,11 @@ import com.normation.utils.HashcodeCaching
 import bootstrap.liftweb._
 import net.liftweb.common.Loggable
 
+import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
+import org.springframework.ldap.core.DirContextAdapter
+import org.springframework.ldap.core.DirContextOperations
+import java.util.Collection
+
 /**
  * Spring configuration for user authentication.
  *
@@ -70,26 +75,10 @@ import net.liftweb.common.Loggable
 class AppConfigAuth extends Loggable {
   import AppConfigAuth._
 
-  val JVM_AUTH_FILE_KEY = "rudder.authFile"
-  val DEFAULT_AUTH_FILE_NAME = "demo-rudder-users.xml"
 
   @Bean def demoAuthenticationProvider : AuthenticationProvider = {
 
-    val resource = System.getProperty(JVM_AUTH_FILE_KEY) match {
-      case null | "" => //use default location in classpath
-        ApplicationLogger.info("JVM property -D%s is not defined, use configuration file '%s' in classpath".format(JVM_AUTH_FILE_KEY, DEFAULT_AUTH_FILE_NAME))
-        new CPResource(DEFAULT_AUTH_FILE_NAME)
-      case x => //so, it should be a full path, check it
-        val config = new FSResource(new File(x))
-        if(config.exists && config.isReadable) {
-          ApplicationLogger.info("Use configuration file defined by JVM property -D%s : %s".format(JVM_AUTH_FILE_KEY, config.getPath))
-          config
-        } else {
-          ApplicationLogger.error("Can not find configuration file specified by JVM property %s: %s ; abort".format(JVM_AUTH_FILE_KEY, config.getPath))
-          throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
-        }
-    }
-
+    val resource = getUserResourceFile
     //try to read and parse the file for users
     parseUsers(resource) match {
       case Some(config) =>
@@ -101,6 +90,20 @@ class AppConfigAuth extends Loggable {
         provider.setUserDetailsService(userDetails)
         provider.setPasswordEncoder(config.encoder)
         provider
+      case None =>
+        ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
+        throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
+    }
+  }
+
+  /**
+   * Map an user from XML user config file
+   */
+  @Bean def rudderXMLUserDetails : UserDetailsContextMapper = {
+    val resource = getUserResourceFile
+    parseUsers(resource) match {
+      case Some(config) =>
+        new RudderXmlUserDetailsContextMapper(config)
       case None =>
         ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
         throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
@@ -155,7 +158,38 @@ case class AuthConfig(
   users:List[(String,String,Rights)]
 ) extends HashcodeCaching
 
+class RudderXmlUserDetailsContextMapper(authConfig: AuthConfig) extends UserDetailsContextMapper {
+
+  val users = authConfig.users.map { case(login,pass,roles) => (login, RudderUserDetail(login,pass,roles)) }.toMap
+
+  //we are not able to try to save user in the XML file
+  def mapUserToContext(user: UserDetails, ctx: DirContextAdapter) : Unit = ()
+
+  def mapUserFromContext(ctx: DirContextOperations, username: String, authorities: Collection[_ <:GrantedAuthority]): UserDetails = {
+    users.getOrElse(username, RudderUserDetail(username, "", new Rights(NoRights)))
+  }
+
+}
+
 object AppConfigAuth extends Loggable {
+
+  val JVM_AUTH_FILE_KEY = "rudder.authFile"
+  val DEFAULT_AUTH_FILE_NAME = "demo-rudder-users.xml"
+
+  def getUserResourceFile() : Resource =  System.getProperty(JVM_AUTH_FILE_KEY) match {
+      case null | "" => //use default location in classpath
+        ApplicationLogger.info("JVM property -D%s is not defined, use configuration file '%s' in classpath".format(JVM_AUTH_FILE_KEY, DEFAULT_AUTH_FILE_NAME))
+        new CPResource(DEFAULT_AUTH_FILE_NAME)
+      case x => //so, it should be a full path, check it
+        val config = new FSResource(new File(x))
+        if(config.exists && config.isReadable) {
+          ApplicationLogger.info("Use configuration file defined by JVM property -D%s : %s".format(JVM_AUTH_FILE_KEY, config.getPath))
+          config
+        } else {
+          ApplicationLogger.error("Can not find configuration file specified by JVM property %s: %s ; abort".format(JVM_AUTH_FILE_KEY, config.getPath))
+          throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
+        }
+    }
 
   def parseUsers(resource:Resource) : Option[AuthConfig] = {
     if(resource.exists && resource.isReadable) {
