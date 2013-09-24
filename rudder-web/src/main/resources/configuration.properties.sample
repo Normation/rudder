@@ -147,6 +147,7 @@ rudder.batch.reportscleaner.delete.TTL=90
 #  - every day at the time of your choice
 #  - every week on the day at the time of your choice
 #
+# Available options: hourly, daily, weekly
 # Default frequency: daily
 rudder.batch.reportscleaner.frequency=daily
 
