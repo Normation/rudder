@@ -110,9 +110,12 @@ sealed trait CriterionType  extends ComparatorList {
    * DO NOT FORGET TO USE attrs ! (especially 'id')
    */
   def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem = SHtml.text(value,func, attrs:_*)
-  def initForm(formId:String) : JsCmd = Str("")
-  //destroy form ?
-
+  def initForm(formId:String) : JsCmd = Noop
+  def destroyForm(formId:String) : JsCmd = {
+    OnLoad(JsRaw(
+      """$('#%s').datepicker( "destroy" );""".format(formId)
+    ) )
+  }
   //Base validation, subclass only have to define validateSubCase
   def validate(value:String,compName:String) : Box[String] = comparatorForString(compName) match {
     case Some(c) => c match {
@@ -213,9 +216,11 @@ case object DateComparator extends CriterionType {
   //init a jquery datepicker
   override def initForm(formId:String) : JsCmd = OnLoad(JsRaw(
     """var init = $.datepicker.regional['en-GB'];
-       init['showOn'] = 'both';
-       $('#%s').datepicker(init);""".format(formId,formId)))
-
+       init['showOn'] = 'focus';
+       $('#%s').datepicker(init);
+       """.format(formId)))
+  override def destroyForm(formId:String) : JsCmd = OnLoad(JsRaw(
+    """$('#%s').datepicker( "destroy" );""".format(formId)))
   override def toLDAP(value:String) = parseDate(value).map( GeneralizedTime( _ ).toString )
 
   private[this] def parseDate(value: String) : Box[DateTime] = try {
