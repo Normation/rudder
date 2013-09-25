@@ -534,6 +534,28 @@ class RuleEditForm(
 
   ///////////// success pop-up ///////////////
   private[this] def successPopup : JsCmd = {
+    def warning(warn : String) : NodeSeq = {
+      <div style="padding-top: 15px; clear:both">
+        <img src="/images/icWarn.png" alt="Warning!" height="25" width="25" class="warnicon"/>
+        <h4 style="float:left">{warn} No configuration policy will be deployed.</h4>
+      </div>
+    }
+
+    val content =
+      if ( selectedTargets.size == 0 ) {
+        if ( selectedDirectiveIds.size == 0 ) {
+          warning("This Rule is not applied to any Groups and does not have any Directives to apply.")
+        } else {
+          warning("This Rule is not applied to any Groups.")
+        }
+      } else {
+        if ( selectedDirectiveIds.size == 0 ) {
+          warning("This Rule does not have any Directives to apply.")
+        } else {
+          NodeSeq.Empty
+      } }
+
+    SetHtml("successDialogContent",content) &
     JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog")""")
   }
 
