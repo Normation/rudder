@@ -406,7 +406,7 @@ class NodeGroupForm(
     }
     else {
       val html =
-        <div id="notifications" class="notify">
+        <div id="errorNotification" class="notify">
           <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
         </div>
       html
