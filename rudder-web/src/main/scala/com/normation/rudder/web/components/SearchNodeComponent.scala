@@ -259,8 +259,7 @@ class SearchNodeComponent(
           )
         }:NodeSeq} ++ { if(criteria.size > 0) {
           //add a <script> tag to init all specific Js form renderer, like Jquery datepicker for date
-          var initJs = criteria(0).attribute.cType.initForm("v_0")
-          for(i <- 1 until criteria.size) { initJs = initJs & criteria(i).attribute.cType.initForm("v_"+i) }
+          val initJs = criteria.zipWithIndex.map { case (criteria,index) => criteria.attribute.cType.initForm("v_"+index)}
           Script(OnLoad(initJs))
         } else NodeSeq.Empty}
       },
@@ -414,7 +413,9 @@ object SearchNodeComponent {
       }
       case Nil => ""
     }
-    JsRaw("jQuery('#%s').replaceWith('%s')".format(v_eltid,comp.toForm(v_old,func,("id"->v_eltid), ("class" -> "queryInputValue")))) & comp.initForm(v_eltid) &
+    comp.destroyForm(v_eltid) &
+    JsRaw("jQuery('#%s').replaceWith('%s')".format(v_eltid,comp.toForm(v_old,func,("id"->v_eltid), ("class" -> "queryInputValue")))) &
+    comp.initForm(v_eltid) &
     JsCmds.ReplaceOptions(c_eltid,comparators,Full(selectedComp)) &
     setIsEnableFor(selectedComp,v_eltid) &
     OnLoad(JsVar("""
