@@ -659,7 +659,7 @@ class NodeGroupForm(
     if(notifications.isEmpty) NodeSeq.Empty
     else {
       val html = 
-        <div id="notifications" class="notify">
+        <div id="errorNotification" class="notify">
           <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
         </div>
       notifications = Nil
@@ -695,8 +695,8 @@ class NodeGroupForm(
       NodeSeq.Empty
     }
     else {
-      val html = 
-        <div id="notifications" class="notify">
+      val html =
+        <div id="errorNotification" class="notify">
           <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
         </div>
       html
