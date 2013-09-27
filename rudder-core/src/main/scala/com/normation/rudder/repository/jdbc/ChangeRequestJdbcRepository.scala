@@ -243,7 +243,9 @@ class WoChangeRequestJdbcRepository(
         new PreparedStatementCreator() {
            def createPreparedStatement(connection : Connection) : PreparedStatement = {
              val sqlXml = connection.createSQLXML()
-             sqlXml.setString(crSerialiser.serialise(changeRequest).toString)
+             // We need to replace all \r by its valid xml value or else the will be removed (in fact \r (or \r\n) will be in database but replaced by \n)
+             val serializedContent = crSerialiser.serialise(changeRequest).toString.replaceAll("\r", "&#13;")
+             sqlXml.setString(serializedContent)
 
              val ps = connection.prepareStatement(
                  INSERT_SQL, Seq[String]("id").toArray[String]);
