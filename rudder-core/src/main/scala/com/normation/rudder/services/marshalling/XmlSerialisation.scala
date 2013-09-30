@@ -48,6 +48,13 @@ import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 
 
+trait XmlSerializer {
+
+  val rule      : RuleSerialisation
+  val directive : DirectiveSerialisation
+  val group     : NodeGroupSerialisation
+
+}
 
 /**
  * That trait allow to serialise

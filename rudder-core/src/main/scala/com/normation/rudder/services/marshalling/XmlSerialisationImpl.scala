@@ -85,6 +85,12 @@ import com.normation.rudder.domain.policies.DeleteRuleDiff
 import com.normation.rudder.domain.policies.ModifyToRuleDiff
 
 
+case class XmlSerializerImpl (
+    val rule      : RuleSerialisation
+  , val directive : DirectiveSerialisation
+  , val group     : NodeGroupSerialisation
+) extends XmlSerializer
+
 class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
   def serialise(rule:Rule):  Elem = {
     createTrimedElem(XML_TAG_RULE, xmlVersion) {

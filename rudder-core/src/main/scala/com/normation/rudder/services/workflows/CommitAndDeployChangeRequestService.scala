@@ -57,6 +57,12 @@ import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
+import scala.xml._
+import com.normation.rudder.services.marshalling.XmlSerializer
+import com.normation.rudder.services.marshalling.XmlUnserializer
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.xmlparsers.SectionSpecParser
+import java.io.ByteArrayInputStream
 
 
 /**
@@ -103,6 +109,9 @@ class CommitAndDeployChangeRequestServiceImpl(
   , asyncDeploymentAgent: AsyncDeploymentAgent
   , dependencyService   : DependencyAndDeletionService
   , workflowEnabled     : Boolean
+  , xmlSerializer       : XmlSerializer
+  , xmlUnserializer     : XmlUnserializer
+  , sectionSpecParser   : SectionSpecParser
 ) extends CommitAndDeployChangeRequestService with Loggable {
 
   def save(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ModificationId] = {
@@ -141,62 +150,92 @@ class CommitAndDeployChangeRequestServiceImpl(
    */
   private[this] def isMergeableConfigurationChangeRequest(changeRequest:ConfigurationChangeRequest) : Boolean = {
 
-    def checkDirective(directiveChanges:DirectiveChanges) : Box[String] = {
-      directiveChanges.changes.initialState match {
-        case None => //ok, we were creating a directive, can't diverge
-          Full("OK")
-        case Some((t, initialDirective, s)) =>
+
+    trait CheckChanges[T] {
+      // Logging function
+      def failureMessage(elem : T)   : String
+      // Find Current value from initial value
+      def getCurrentValue (initial : T) : Box[T]
+      // Function that validates that the change request is still valid
+      def compareMethod (initial : T, current : T) : Boolean
+      // How to serialize the data into XML
+      def xmlSerialize(elem : T)   : Box[Node]
+      // How to unserialize XML into the datatype
+      def xmlUnserialize(xml : Node)  : Box[T]
+      // Transform date from LDAP to XML then transform it back to data using the XML parser
+      def normalizeData (elem : T) : Box[T] = {
+        try {
           for {
-            currentDirective <- roDirectiveRepo.getDirective(initialDirective.id)
-            check            <- if ( compareDirectives(initialDirective, currentDirective) ) {
-                                  Full("OK")
-                                } else {
-                                  Failure(s"Directive ${initialDirective.name} (id: ${initialDirective.id.value}) has diverged since change request creation")
-                                }
+            entry <- xmlSerialize(elem)
+            is    =  new ByteArrayInputStream(entry.toString.getBytes)
+            xml   = XML.load(is)
+            elem  <- xmlUnserialize(xml)
+          } yield {
+            elem
+          }
+        } catch {
+          case e : Exception => Failure(s"could not verify xml cause is : ${e.getCause}")
+        }
+      }
+
+      // Check if the change request is mergeable
+      def check(initialState : Option[T]) : Box [String] = {
+        initialState match {
+          case None => // No initial state means creation of new elements, can't diverge
+            Full("OK")
+          case Some(initial) =>
+            for {
+              current     <- getCurrentValue(initial)
+              normalized  <- normalizeData(current)
+              check       <- if ( compareMethod(initial,normalized) ) {
+                               Full("OK")
+                             } else {
+                               Failure(s"${failureMessage(initial)} has diverged since change request creation")
+                             }
             } yield {
               check
             }
+        }
       }
     }
 
-    def checkGroup(nodeGroupChanges:NodeGroupChanges) : Box[String] = {
-      nodeGroupChanges.changes.initialState match {
-        case None => //ok, we were creating a group, can't diverge
-          Full("OK")
-        case Some(initialGroup) =>
-          for {
-
-            (currentGroup,_) <- roNodeGroupRepo.getNodeGroup(initialGroup.id)
-
-            check  <- {
-                        if ( compareGroups(initialGroup,currentGroup) ) {
-                          Full("OK")
-                        } else {
-                          Failure(s"Group ${initialGroup.name} (id: ${initialGroup.id.value}) has diverged since change request creation")
-                      } }
-            } yield {
-              check
-            }
-      }
+    case object CheckRule extends CheckChanges[Rule]  {
+      def failureMessage(rule : Rule)  = s"Rule ${rule.name} (id: ${rule.id.value})"
+      def getCurrentValue(rule : Rule) = roRuleRepository.get(rule.id)
+      def compareMethod(initial:Rule, current:Rule) = compareRules(initial,current)
+      def xmlSerialize(rule : Rule) = Full(xmlSerializer.rule.serialise(rule))
+      def xmlUnserialize(xml:Node)  = xmlUnserializer.rule.unserialise(xml)
     }
 
-    def checkRule(ruleChanges:RuleChanges) : Box[String] = {
-      ruleChanges.changes.initialState match {
-        case None => //ok, we were creating a rule, can't diverge
-          Full("OK")
-        case Some(initialRule) =>
-          for {
-            currentRule <- roRuleRepository.get(initialRule.id)
-            check       <- if ( compareRules(initialRule,currentRule) ) {
-                              //we clearly don't want to compare for serial!
-                              Full("OK")
-                            } else {
-                              Failure(s"Rule ${initialRule.name} (id: ${initialRule.id.value}) has diverged since change request creation")
-                            }
-            } yield {
-              check
-            }
+
+    // For now we only check the Directive, not the SectionSpec and the TechniqueName.
+    // The SectionSpec could be a problem (ie : A mono valued param was chanegd to multi valued without changing the technique version).
+    case class CheckDirective(changes : DirectiveChanges) extends CheckChanges[Directive]  {
+      // used in serialisation
+      val directiveContext = {
+        // Option is None, if this is a Directive creation, but serialisation won't be used in this case (see check method)
+        changes.changes.initialState match {
+          case Some((techniqueName,_,rootSection)) => Full((techniqueName,rootSection))
+          case None => Failure("could not find directive context from initial state")
+        }
       }
+      def failureMessage(directive : Directive)  = s"Rule ${directive.name} (id: ${directive.id.value})"
+      def getCurrentValue(directive : Directive) = roDirectiveRepo.getDirective(directive.id)
+      def compareMethod(initial:Directive, current:Directive) = compareDirectives(initial,current)
+      def xmlSerialize(directive : Directive) = {
+        directiveContext.map{
+          case (techniqueName,rootSection) =>
+            xmlSerializer.directive.serialise(techniqueName,rootSection,directive)}
+      }
+      def xmlUnserialize(xml : Node)          = xmlUnserializer.directive.unserialise(xml).map(_._2)
+    }
+
+    case object CheckGroup extends CheckChanges[NodeGroup]  {
+      def failureMessage(group : NodeGroup)  = s"Group ${group.name} (id: ${group.id.value})"
+      def getCurrentValue(group : NodeGroup) = roNodeGroupRepo.getNodeGroup(group.id).map(_._1)
+      def compareMethod(initial:NodeGroup, current:NodeGroup) = compareGroups(initial,current)
+      def xmlSerialize(group : NodeGroup) = Full(xmlSerializer.group.serialise(group))
+      def xmlUnserialize(xml : Node)      = xmlUnserializer.group.unserialise(xml)
     }
 
     /*
@@ -223,15 +262,17 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     def compareDirectives(initial:Directive, current:Directive) : Boolean = {
       val initialFixed = initial.copy(
-          name = initial.name.trim
+          name             = initial.name.trim
         , shortDescription = initial.shortDescription.trim
-        , longDescription = initial.longDescription.trim
+        , longDescription  = initial.longDescription.trim
+        , parameters       = initial.parameters.mapValues(_.map(_.trim))
       )
 
       val currentFixed = current.copy(
-          name = current.name.trim
+          name             = current.name.trim
         , shortDescription = current.shortDescription.trim
-        , longDescription = current.longDescription.trim
+        , longDescription  = current.longDescription.trim
+        , parameters       = initial.parameters.mapValues(_.map(_.trim))
       )
 
       initialFixed == currentFixed
@@ -265,13 +306,14 @@ class CommitAndDeployChangeRequestServiceImpl(
     if (workflowEnabled)
       (for {
         directivesOk <- sequence(changeRequest.directives.values.toSeq) { changes =>
-                          checkDirective(changes)
+                          // Only check the directive for now
+                          CheckDirective(changes).check(changes.changes.initialState.map(_._2))
                         }
         groupsOk     <- sequence(changeRequest.nodeGroups.values.toSeq) { changes =>
-                          checkGroup(changes)
+                          CheckGroup.check(changes.changes.initialState)
                         }
         rulesOk      <- sequence(changeRequest.rules.values.toSeq) { changes =>
-                          checkRule(changes)
+                          CheckRule.check(changes.changes.initialState)
                         }
       } yield {
         directivesOk

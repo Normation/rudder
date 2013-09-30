@@ -57,6 +57,15 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.workflows.RuleChanges
 
 
+trait XmlUnserializer {
+
+  val rule      : RuleUnserialisation
+  val directive : DirectiveUnserialisation
+  val group     : NodeGroupUnserialisation
+
+}
+
+
 trait DeploymentStatusUnserialisation {
   /**
    * Version 2:
