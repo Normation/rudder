@@ -49,6 +49,15 @@ import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.api.ApiAccount
 
+trait XmlSerializer {
+
+  val rule        : RuleSerialisation
+  val directive   : DirectiveSerialisation
+  val group       : NodeGroupSerialisation
+  val globalParam : GlobalParameterSerialisation
+
+
+}
 
 /**
  * That trait allow to serialise

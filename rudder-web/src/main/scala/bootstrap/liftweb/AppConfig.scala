@@ -362,6 +362,19 @@ object RudderConfig extends Loggable {
   val changeRequestEventLogService : ChangeRequestEventLogService = new ChangeRequestEventLogServiceImpl(eventLogRepository)
 
 
+  val xmlSerializer = XmlSerializerImpl(
+      ruleSerialisation
+    , directiveSerialisation
+    , nodeGroupSerialisation
+    , globalParameterSerialisation
+  )
+
+  val xmlUnserializer = XmlUnserializerImpl(
+      ruleUnserialisation
+    , directiveUnserialisation
+    , nodeGroupUnserialisation
+    , globalParameterUnserialisation
+  )
   val workflowEventLogService =    new WorkflowEventLogServiceImpl(eventLogRepository,uuidGen)
   val diffService: DiffService = new DiffServiceImpl(roDirectiveRepository)
   val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
@@ -380,6 +393,9 @@ object RudderConfig extends Loggable {
       , asyncDeploymentAgent
       , dependencyAndDeletionService
       , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+      , xmlSerializer
+      , xmlUnserializer
+      , sectionSpecParser
     )
   val asyncWorkflowInfo = new AsyncWorkflowInfo
   val workflowService: WorkflowService = RUDDER_ENABLE_APPROVAL_WORKFLOWS match {

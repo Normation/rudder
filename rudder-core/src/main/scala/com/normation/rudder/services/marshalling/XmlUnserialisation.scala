@@ -56,6 +56,16 @@ import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api.ApiAccount
 
 
+trait XmlUnserializer {
+
+  val rule        : RuleUnserialisation
+  val directive   : DirectiveUnserialisation
+  val group       : NodeGroupUnserialisation
+  val globalParam : GlobalParameterUnserialisation
+
+}
+
+
 trait DeploymentStatusUnserialisation {
   /**
    * Version 2:
