@@ -95,6 +95,13 @@ import scala.util.{Failure => Catch}
 import com.normation.rudder.domain.logger.ApplicationLogger
 
 
+case class XmlUnserializerImpl (
+    val rule      : RuleUnserialisation
+  , val directive : DirectiveUnserialisation
+  , val group     : NodeGroupUnserialisation
+) extends XmlUnserializer
+
+
 class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
 
   override def parseSectionVal(xml:NodeSeq) : Box[SectionVal] = {
