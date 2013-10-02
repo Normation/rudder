@@ -21,7 +21,7 @@
 bundle common me
 {
   vars:
-      "framework_path" string => "${sys.workdir}";
+      "framework_path" string => "${sys.workdir}/inputs";
 
 }
 # Inputs bundle
