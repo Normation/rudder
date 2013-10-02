@@ -111,7 +111,7 @@ class CommitAndDeployChangeRequestServiceImpl(
   , woParameterRepository : WoParameterRepository
   , asyncDeploymentAgent  : AsyncDeploymentAgent
   , dependencyService     : DependencyAndDeletionService
-  , workflowEnabled       : Boolean
+  , workflowEnabled       : () => Box[Boolean]
   , xmlSerializer         : XmlSerializer
   , xmlUnserializer       : XmlUnserializer
   , sectionSpecParser     : SectionSpecParser
@@ -465,8 +465,11 @@ class CommitAndDeployChangeRequestServiceImpl(
     /*
      * check for all elem, stop on the first failing
      */
-    if (workflowEnabled)
-      (for {
+    (for {
+      cond <- workflowEnabled()
+    } yield {
+      if (cond)
+        (for {
         directivesOk <- sequence(changeRequest.directives.values.toSeq) { changes =>
                           // Only check the directive for now
                           CheckDirective(changes).check(changes.changes.initialState.map(_._2))
@@ -495,6 +498,13 @@ class CommitAndDeployChangeRequestServiceImpl(
     else
       //If workflow are disabled, a change is always mergeable.
       true
+    }) match {
+      case Full(mergeable) => mergeable
+      case eb : EmptyBox =>
+        val fail = eb ?~ "An error occurred while checking the change request acceptance"
+        logger.error(fail.messageChain)
+        false
+    }
   }
 
   /*

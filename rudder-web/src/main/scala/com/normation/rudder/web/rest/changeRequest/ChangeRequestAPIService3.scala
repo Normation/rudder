@@ -64,26 +64,26 @@ case class ChangeRequestAPIService3 (
   , commitRepository     : CommitAndDeployChangeRequestService
   , restExtractor        : RestExtractorService
   , restDataSerializer   : RestDataSerializer
-  , workflowEnabled      : Boolean
+  , workflowEnabled      : () => Box[Boolean]
   ) extends Loggable {
 
-  
+
   private[this] def unboxAnswer(actionName:String, id : ChangeRequestId, boxedAnwser : Box[LiftResponse]) (implicit action : String, prettify : Boolean) = {
     boxedAnwser match {
         case Full(response) => response
-        case eb:EmptyBox    => 
+        case eb:EmptyBox    =>
         	val fail = eb ?~!(s"Could not $actionName ChangeRequest ${id}" )
             val message=  s"Could not $actionName ChangeRequest ${id} details cause is: ${fail.messageChain}."
             toJsonError(Some(id.value.toString), message)
     }
   }
-  
+
   private[this] def disabledWorkflowAnswer (crId : Option[String]) (implicit action : String, prettify : Boolean) = {
     toJsonError(crId, "Workflow are disabled in Rudder, change request API is not available")
   }
 
   def checkWorkflow = {
-    if (workflowEnabled)
+    if (workflowEnabled().getOrElse(false))
       Full("Ok")
     else
       Failure("workflow disabled")
@@ -101,7 +101,7 @@ case class ChangeRequestAPIService3 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
     def listChangeRequestsByStatus(status : WorkflowNodeId)  = {
-      
+
       for {
         crIds <- readWorkflow.getAllByState(status) ?~ ("Could not fetch ChangeRequests")
         crs   <- boxSequence(crIds.map(readChangeRequest.get)).map(_.flatten) ?~ ("Could not fetch ChangeRequests")
@@ -115,7 +115,7 @@ case class ChangeRequestAPIService3 (
     }
 
     checkWorkflow match {
-      case Full(_) => 
+      case Full(_) =>
       	(for {
           res     <- boxSequence(statuses.map(listChangeRequestsByStatus)) ?~ ("Could not fetch ChangeRequests")
           results <- boxSequence(res) ?~ ("Could not fetch ChangeRequests") ?~ ("Could not fetch ChangeRequests")
@@ -132,7 +132,7 @@ case class ChangeRequestAPIService3 (
       case eb:EmptyBox =>
         disabledWorkflowAnswer(None)
      }
-    
+
 
   }
 
@@ -150,7 +150,7 @@ case class ChangeRequestAPIService3 (
         } yield {
         	val jsonChangeRequest = List(serialize(changeRequest,status))
     	    toJsonResponse(Some(id.value.toString),("changeRequests" -> JArray(jsonChangeRequest)))
-        } 
+        }
         unboxAnswer("find", id, answer)
       case eb:EmptyBox =>
         disabledWorkflowAnswer(None)
@@ -177,7 +177,7 @@ case class ChangeRequestAPIService3 (
       }
       unboxAnswer("decline", id, answer)
     }
-    
+
     checkWorkflow match {
       case Full(_) =>
         val answer =
@@ -187,8 +187,8 @@ case class ChangeRequestAPIService3 (
             currentState  <- readWorkflow.getStateOfChangeRequest(id)  ?~!(s"Could not find actual state of ChangeRequest ${id}" )
           } yield {
             actualRefuse(changeRequest, currentState)
-          } 
-        unboxAnswer("decline", id, answer) 
+          }
+        unboxAnswer("decline", id, answer)
 
       case eb:EmptyBox =>
         disabledWorkflowAnswer(None)
@@ -217,7 +217,7 @@ case class ChangeRequestAPIService3 (
       }
       unboxAnswer("accept", id, answer)
     }
-    
+
     checkWorkflow match {
       case Full(_) =>
         val answer =
@@ -238,8 +238,8 @@ case class ChangeRequestAPIService3 (
                 val message=  s"Could not accept ChangeRequest ${id} details cause is: ChangeRequest ${id} has already been deployed."
                 toJsonError(Some(id.value.toString), message)
             }
-          } 
-        unboxAnswer("decline", id, answer) 
+          }
+        unboxAnswer("decline", id, answer)
       case eb:EmptyBox =>
         disabledWorkflowAnswer(None)
     }
@@ -249,7 +249,7 @@ case class ChangeRequestAPIService3 (
     implicit val action = "updateChangeRequest"
     val actor = RestUtils.getActor(req)
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    
+
     def updateInfo(changeRequest : ChangeRequest, status : WorkflowNodeId) = {
       val newInfo = apiInfo.updateCrInfo(changeRequest.info)
       if (changeRequest.info == newInfo) {
@@ -268,7 +268,7 @@ case class ChangeRequestAPIService3 (
         }
       }
     }
-    
+
     checkWorkflow match {
       case Full(_) =>
         val answer = for {

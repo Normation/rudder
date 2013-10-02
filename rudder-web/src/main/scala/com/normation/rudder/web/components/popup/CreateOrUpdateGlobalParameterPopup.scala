@@ -56,6 +56,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 
 class CreateOrUpdateGlobalParameterPopup(
     parameter         : Option[GlobalParameter]
+  , workflowEnabled   : Boolean
   , action            : String //one among: create, save or delete
   , onSuccessCallback : (Either[GlobalParameter,ChangeRequestId]) => JsCmd = { x => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
@@ -68,7 +69,6 @@ class CreateOrUpdateGlobalParameterPopup(
   private[this] val woChangeRequestRepo      = RudderConfig.woChangeRequestRepository
   private[this] val changeRequestService     = RudderConfig.changeRequestService
   private[this] val workflowService          = RudderConfig.workflowService
-  private[this] val workflowEnabled          = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
 
   def dispatch = {
     case "popupContent" =>  { _ =>   popupContent }

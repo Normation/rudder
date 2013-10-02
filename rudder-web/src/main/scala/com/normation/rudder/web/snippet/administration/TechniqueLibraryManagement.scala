@@ -89,6 +89,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private[this] val directiveEditorService      = RudderConfig.directiveEditorService
   private[this] val treeUtilService             = RudderConfig.jsTreeUtilService
   private[this] val userPropertyService         = RudderConfig.userPropertyService
+  private[this] val updateTecLibInterval        = RudderConfig.RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
 
   //the popup component to create user technique category
   private[this] val creationPopup = new LocalSnippet[CreateActiveTechniqueCategoryPopup]
@@ -697,6 +698,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   }
   
   private[this] def reloadTechniqueLibrary(isTechniqueLibraryPage : Boolean) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+
+      def initJs = SetHtml("techniqueLibraryUpdateInterval" , <span>{updateTecLibInterval}</span>)
       def process = {
         updatePTLibService.update(ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Technique library reloaded by user")) match {
           case Full(x) =>
@@ -718,8 +721,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
       //fill the template
       // Add a style to display correctly the button in both page : policyServer and technique library
-      ":submit" #> ( SHtml.ajaxSubmit("Reload Techniques", process _, ("style","min-width:150px")) ++
-                     Script(OnLoad(JsRaw(""" correctButtons(); """)))
+      ":submit" #> ( SHtml.ajaxSubmit("Update Techniques now", process _, ("style","min-width:160px")) ++
+                     Script(OnLoad(JsRaw(""" correctButtons(); """) & initJs))
                    )
   }
 

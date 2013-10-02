@@ -180,7 +180,6 @@ class Boot extends Loggable {
     AutoComplete.init()
 
 
-    val workflowEnabled = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
 
     // All the following is related to the sitemap
     val nodeManagerMenu =
@@ -236,7 +235,7 @@ class Boot extends Loggable {
         "secure" / "administration" / "index" >> TestAccess ( ()
             => userIsAllowed("/secure/index",Write("administration")) ) submenus (
 
-          Menu("policyServerManagement", <span>Policy Server</span>) /
+          Menu("policyServerManagement", <span>Settings</span>) /
             "secure" / "administration" / "policyServerManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index",Write("administration")) )
@@ -262,7 +261,11 @@ class Boot extends Loggable {
       )
 
 
-    def utilitiesMenu =
+    def utilitiesMenu = {
+      // if we can't get the workflow property, default to false
+      // (don't give rights if you don't know)
+      val workflowEnabled = RudderConfig.configService.rudder_workflow_enabled.getOrElse(false)
+
       Menu("UtilitiesHome", <span>Utilities</span>) /
         "secure" / "utilities" / "index" >>
         TestAccess ( () =>
@@ -302,6 +305,7 @@ class Boot extends Loggable {
             >> LocGroup("utilitiesGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index",Read("administration")) )
       )
+    }
 
 
     val rootMenu = List(
