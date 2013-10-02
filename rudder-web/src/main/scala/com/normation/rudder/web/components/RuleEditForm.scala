@@ -130,13 +130,14 @@ object RuleEditForm {
  *
  */
 class RuleEditForm(
-  htmlId_rule:String, //HTML id for the div around the form
-  var rule:Rule, //the Rule to edit
-  //JS to execute on form success (update UI parts)
-  //there are call by name to have the context matching their execution when called
-  onSuccessCallback : () => JsCmd = { () => Noop },
-  onFailureCallback : () => JsCmd = { () => Noop },
-  onCloneCallback : (Rule) => JsCmd = { (r:Rule) => Noop }
+    htmlId_rule       : String //HTML id for the div around the form
+  , var rule          : Rule //the Rule to edit
+  , workflowEnabled   : Boolean
+  , changeMsgEnabled  : Boolean
+  , onSuccessCallback : () => JsCmd = { () => Noop } //JS to execute on form success (update UI parts)
+  //there are call by name to have the context matching their execution when called,
+  , onFailureCallback : () => JsCmd = { () => Noop }
+  , onCloneCallback   : (Rule) => JsCmd = { (r:Rule) => Noop }
 ) extends DispatchSnippet with SpringExtendableSnippet[RuleEditForm] with Loggable {
   import RuleEditForm._
 
@@ -147,7 +148,6 @@ class RuleEditForm(
   private[this] val reportingService     = RudderConfig.reportingService
   private[this] val userPropertyService  = RudderConfig.userPropertyService
 
-  private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
   private[this] val roChangeRequestRepo  = RudderConfig.roChangeRequestRepository
 
   private[this] var selectedTargets = rule.targets
@@ -235,7 +235,7 @@ class RuleEditForm(
       "#editForm *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
       ClearClearable &
       "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
-          PendingChangeRequestDisplayer.checkByRule(xml, rule.id)
+          PendingChangeRequestDisplayer.checkByRule(xml, rule.id, workflowEnabled)
         } &
       //activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if(rule.isEnabledStatus) "Disable" else "Enable" } &
@@ -488,12 +488,13 @@ class RuleEditForm(
           newRule
         , optOriginal
         , action
+        , workflowEnabled
         , cr => workflowCallBack(action)(cr)
         , () => JsRaw("$.modal.close();") & onFailure
         , parentFormTracker = Some(formTracker)
       )
 
-    if((!RudderConfig.RUDDER_UI_CHANGEMESSAGE_ENABLED) && (!workflowEnabled)) {
+    if((!changeMsgEnabled) && (!workflowEnabled)) {
       popup.onSubmit
     } else {
       SetHtml("confirmUpdateActionDialog", popup.popupContent) &

@@ -72,6 +72,28 @@ trait RoChangeRequestRepository {
   def getByContributor(actor:EventActor) : Box[Seq[ChangeRequest]]
 }
 
+
+/**
+ * A proxy implementation simply delegating to either A or B implementation
+ */
+class EitherRoChangeRequestRepository(cond: () => Box[Boolean], whenTrue: RoChangeRequestRepository, whenFalse: RoChangeRequestRepository) extends RoChangeRequestRepository {
+  def getAll() : Box[Seq[ChangeRequest]] =
+    cond().flatMap( if(_) whenTrue.getAll else whenFalse.getAll)
+  def get(changeRequestId:ChangeRequestId) : Box[Option[ChangeRequest]] =
+    cond().flatMap( if(_) whenTrue.get(changeRequestId) else whenFalse.get(changeRequestId))
+  def getByIds(changeRequestId:Seq[ChangeRequestId]) : Box[Seq[ChangeRequest]] =
+    cond().flatMap( if(_) whenTrue.getByIds(changeRequestId) else whenFalse.getByIds(changeRequestId))
+  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] =
+    cond().flatMap( if(_) whenTrue.getByDirective(id,onlyPending) else whenFalse.getByDirective(id,onlyPending))
+  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] =
+    cond().flatMap( if(_) whenTrue.getByNodeGroup(id,onlyPending) else whenFalse.getByNodeGroup(id,onlyPending))
+  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] =
+    cond().flatMap( if(_) whenTrue.getByRule(id,onlyPending) else whenFalse.getByRule(id,onlyPending))
+  def getByContributor(actor:EventActor) : Box[Seq[ChangeRequest]] =
+    cond().flatMap( if(_) whenTrue.getByContributor(actor) else whenFalse.getByContributor(actor))
+}
+
+
 /**
  * Write access to change request
  */
@@ -100,3 +122,16 @@ trait WoChangeRequestRepository {
   def deleteChangeRequest(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ChangeRequest]
 
 }
+
+/**
+ * Again, a proxy forwarding to an implementation based on a runtime property
+ */
+class EitherWoChangeRequestRepository(cond: () => Box[Boolean], whenTrue: WoChangeRequestRepository, whenFalse: WoChangeRequestRepository) extends WoChangeRequestRepository {
+  def createChangeRequest(changeRequest:ChangeRequest, actor:EventActor, reason: Option[String]) : Box[ChangeRequest] =
+    cond().flatMap( if(_) whenTrue.createChangeRequest(changeRequest, actor, reason) else whenFalse.createChangeRequest(changeRequest, actor, reason))
+  def updateChangeRequest(changeRequest:ChangeRequest, actor:EventActor, reason: Option[String]) : Box[ChangeRequest] =
+    cond().flatMap( if(_) whenTrue.updateChangeRequest(changeRequest, actor, reason) else whenFalse.updateChangeRequest(changeRequest, actor, reason))
+  def deleteChangeRequest(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ChangeRequest] =
+    cond().flatMap( if(_) whenTrue.deleteChangeRequest(changeRequestId, actor, reason) else whenFalse.deleteChangeRequest(changeRequestId, actor, reason))
+}
+

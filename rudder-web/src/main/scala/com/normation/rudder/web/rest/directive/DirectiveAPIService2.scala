@@ -77,7 +77,7 @@ case class DirectiveAPIService2 (
   , changeRequestService : ChangeRequestService
   , workflowService      : WorkflowService
   , restExtractor        : RestExtractorService
-  , workflowEnabled      : Boolean
+  , workflowEnabled      : () => Box[Boolean]
   , editorService        : DirectiveEditorService
   , restDataSerializer   : RestDataSerializer
   ) extends Loggable {
@@ -117,9 +117,16 @@ case class DirectiveAPIService2 (
       }
     ) match {
       case Full(crId) =>
-        val optCrId = if (workflowEnabled) Some(crId) else None
-        val jsonDirective = ("directives" -> JArray(List(serialize(technique, directive, optCrId))))
-        toJsonResponse(Some(id), jsonDirective)
+        workflowEnabled() match {
+          case Full(enabled) =>
+            val optCrId = if (enabled) Some(crId) else None
+            val jsonDirective = ("directives" -> JArray(List(serialize(technique, directive, optCrId))))
+            toJsonResponse(Some(id), jsonDirective)
+          case eb : EmptyBox =>
+            val fail = eb ?~ (s"Could not check workflow property" )
+            val msg = s"Change request creation failed, cause is: ${fail.msg}."
+            toJsonError(Some(id), msg)
+        }
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Directive ${id}" )
         val msg = s"Change request creation failed, cause is: ${fail.msg}."

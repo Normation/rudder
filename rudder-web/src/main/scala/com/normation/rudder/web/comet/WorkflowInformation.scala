@@ -50,28 +50,20 @@ import com.normation.rudder.domain.workflows.WorkflowNodeId
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization.Edit
+import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.services.workflows.EitherWorkflowService
 
 
 
 
 class WorkflowInformation extends CometActor with CometListener with Loggable {
   private[this] val workflowService = RudderConfig.workflowService
-  private[this] val workflowEnabled = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
   private[this] val asyncWorkflow   = RudderConfig.asyncWorkflowInfo
 
   private[this] val isValidator = CurrentUser.checkRights(Edit("validator"))
   private[this] val isDeployer = CurrentUser.checkRights(Edit("deployer"))
   def registerWith = asyncWorkflow
 
-  def render = {
-    new RenderOut(( (workflowEnabled && (isValidator || isDeployer )) match {
-      case true =>   {if (isValidator) pendingModifications
-      else ".pendingModifications" #> Text("")} &
-      {if (isDeployer) pendingDeployment
-      else ".pendingDeployment" #> Text("")}
-      case _ => ".modificationsDisplayer" #> Text("")
-    } ) (layout))
-  }
 
   val layout =
     <div id="workflowInfo" class="modificationsDisplayer">
@@ -80,8 +72,46 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
         <span class="pendingDeployment" >[here comes the pending deployment]</span>
   </div>
 
+  def render = {
+    val xml = RudderConfig.configService.rudder_workflow_enabled match {
+      case eb:EmptyBox =>
+        val e = eb ?~! "Error when trying to read Rudder configuration for workflow activation"
+        logger.error(e.messageChain)
+        e.rootExceptionCause.foreach(ex =>
+          logger.error("Exception was:", e)
+        )
+
+        (".modificationsDisplayer *" #> <span class="error">{e.msg}</span>).apply(layout)
+
+
+      case Full(workflowEnabled) =>
+        val cssSelect =
+          if(workflowEnabled && (isValidator || isDeployer )) {
+            {
+              if (isValidator) pendingModifications
+              else ".pendingModifications" #> Text("")
+            } & {
+              if (isDeployer) pendingDeployment
+              else ".pendingDeployment" #> Text("")
+            }
+          } else {
+            ".modificationsDisplayer" #> Text("")
+          }
+
+        cssSelect(layout)
+    }
+
+    new RenderOut(xml)
+  }
+
   def pendingModifications = {
-    val xml = workflowService match {
+    val xml = pendingModificationRec(workflowService)
+
+    ".pendingModifications" #> xml
+  }
+
+  private[this] def pendingModificationRec(workflowService: WorkflowService): NodeSeq = {
+    workflowService match {
       case ws:TwoValidationStepsWorkflowServiceImpl =>
         ws.getItemsInStep(ws.Validation.id) match {
           case Full(seq) =>
@@ -94,15 +124,20 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
           case e:EmptyBox =>
             <p class="error">Error when trying to fetch pending change requests.</p>
         }
+      case either: EitherWorkflowService => pendingModificationRec(either.current)
       case _ => //For other kind of workflows, this has no meaning
         <p class="error">Error, the configured workflow does not have that step.</p>
     }
-
-    ".pendingModifications" #> xml
   }
 
   def pendingDeployment = {
-    val xml = workflowService match {
+    val xml = pendingDeploymentRec(workflowService)
+
+    ".pendingDeployment" #> xml
+  }
+
+  private[this] def pendingDeploymentRec(workflowService: WorkflowService): NodeSeq = {
+    workflowService match {
       case ws:TwoValidationStepsWorkflowServiceImpl =>
         ws.getItemsInStep(ws.Deployment.id) match {
           case Full(seq) =>
@@ -115,11 +150,10 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
           case e:EmptyBox =>
             <p class="error">Error when trying to fetch pending change requests.</p>
         }
+      case either: EitherWorkflowService => pendingDeploymentRec(either.current)
       case _ => //For other kind of workflows, this has no meaning
         <p class="error">Error, the configured workflow does not have that step.</p>
     }
-
-    ".pendingDeployment" #> xml
   }
 
   override def lowPriority = {

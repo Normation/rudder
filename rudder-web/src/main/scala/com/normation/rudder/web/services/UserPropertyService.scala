@@ -32,12 +32,13 @@
 *************************************************************************************
 */
 package com.normation.rudder.web.services
+import net.liftweb.common.Box
+import net.liftweb.common.Full
 
 object ReasonBehavior extends Enumeration {
   type ReasonBehavior = Value
   val Disabled, Mandatory, Optionnal = Value
 }
-import ReasonBehavior._
 
 /**
  * Expose application configuration choices from users
@@ -49,25 +50,35 @@ trait UserPropertyService {
    * @return the strategy
    */
   // def reasonsFieldEnabled() : Boolean
-  def reasonsFieldBehavior : ReasonBehavior
+  def reasonsFieldBehavior : ReasonBehavior.ReasonBehavior
   def reasonsFieldExplanation : String
 
 }
 
 class UserPropertyServiceImpl( val opt : ReasonsMessageInfo ) extends UserPropertyService {
 
-  override val reasonsFieldBehavior = ( opt.enabled, opt.mandatory ) match {
-    case ( true, true )  => Mandatory
-    case ( true, false ) => Optionnal
-    case ( false, _ )    => Disabled
-  }
+  private[this] val impl = new StatelessUserPropertyService(() => Full(opt.enabled), () => Full(opt.mandatory), () => Full(opt.explanation))
 
-  //  def reasonsFieldEnabled() : Boolean = opt.enabled
-
-  //  def reasonsFieldMandatory() : Boolean = opt.mandatory
-
-  override val reasonsFieldExplanation : String = opt.explanation
+  override val reasonsFieldBehavior = impl.reasonsFieldBehavior
+  override val reasonsFieldExplanation : String = impl.reasonsFieldExplanation
 }
+
+/**
+ * Reloadable service
+ */
+class StatelessUserPropertyService(getEnable: () => Box[Boolean], getMandatory: () => Box[Boolean], getExplanation: () => Box[String]) extends UserPropertyService {
+
+  // TODO: handle errors here!
+
+
+  override def reasonsFieldBehavior = ( getEnable().getOrElse(true), getMandatory().getOrElse(true) ) match {
+    case ( true, true )  => ReasonBehavior.Mandatory
+    case ( true, false ) => ReasonBehavior.Optionnal
+    case ( false, _ )    => ReasonBehavior.Disabled
+  }
+  override def reasonsFieldExplanation : String = getExplanation().getOrElse("")
+}
+
 
 class ReasonsMessageInfo(
   val enabled : Boolean,
