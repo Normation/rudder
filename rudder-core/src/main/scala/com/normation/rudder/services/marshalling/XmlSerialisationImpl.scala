@@ -83,6 +83,13 @@ import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api.ApiAccount
 
 
+case class XmlSerializerImpl (
+    rule        : RuleSerialisation
+  , directive   : DirectiveSerialisation
+  , group       : NodeGroupSerialisation
+  , globalParam : GlobalParameterSerialisation
+) extends XmlSerializer
+
 class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
   def serialise(rule:Rule):  Elem = {
     createTrimedElem(XML_TAG_RULE, xmlVersion) {
