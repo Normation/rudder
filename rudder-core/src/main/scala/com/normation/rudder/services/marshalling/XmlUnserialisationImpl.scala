@@ -87,6 +87,14 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
 
+case class XmlUnserializerImpl (
+    rule        : RuleUnserialisation
+  , directive   : DirectiveUnserialisation
+  , group       : NodeGroupUnserialisation
+  , globalParam : GlobalParameterUnserialisation
+) extends XmlUnserializer
+
+
 class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
 
   override def parseSectionVal(xml:NodeSeq) : Box[SectionVal] = {
