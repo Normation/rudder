@@ -25,7 +25,7 @@
 bundle agent openssh_knowledge
 {
   vars:
-      "ssh_package_name"              string => "openssh_server";
+      "ssh_package_name"              string => "openssh-server";
 
       "default[Port]"                 string => "22";
       "default[Protocol]"             string => "2";
