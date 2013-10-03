@@ -22,7 +22,6 @@ bundle common me
 {
   vars:
       "framework_path" string => "${sys.workdir}/inputs";
-
 }
 # Inputs bundle
 # This bundle figures out which .cf files to include.

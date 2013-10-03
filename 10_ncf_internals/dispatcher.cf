@@ -40,7 +40,7 @@ bundle agent dispatcher
       "services_array_defined" expression => regextract("(.*)/([^/]+)/([^/]+)", "${services}", "services_array_${services}");
 
   methods:
-    services_array_defined.dispatcher_report_reached::
+    services_array_defined.dispatcher_reports_reached::
       "${services_array_${services}[2]}" 
         usebundle => caller("${services_array_${services}[0]}", "${services_array_${services}[2]}", "${services_array_${services}[3]}"),
         classes   => classes_generic("dispatcher_${apps_array_${base_apps}[2]}");
@@ -77,7 +77,7 @@ bundle agent caller(service_path, service_name, service_version)
       "[INFO] Finished bundle execution: ${service_name} (with path ${service_path}"
         ifvarclass => canonify("caller_${service_name}_ok");
 
-      "[ERROR] Could not execute bundle: ${service_name} (with path ${service_path}"
+      "[ERROR] there were some error while the execution of bundle: ${service_name} (with path ${service_path}"
         ifvarclass => canonify("caller_${service_name}_not_ok");
 
 }

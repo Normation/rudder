@@ -24,7 +24,7 @@ bundle agent mapper
   vars:
     any::
       # Defines the list of services applicable to every nodes
-      "base_services" slist => { "/ncf/cfengine/stable" };
+      "base_services" slist => { "/ncf/remote_access/stable" };
 
     host1::
       # define list of service applicable to certains hosts

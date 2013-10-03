@@ -34,7 +34,7 @@ bundle agent openssh_knowledge
 
       "ssh_config_file_location"      string => "/etc/ssh/sshd_config";
 
-      "ssh_template_file"             string => "40_it_ops_knowledge/ncf/ssh/sshd_config";
+      "ssh_template_file"             string => "40_it_ops_knowledge/ncf/openssh-server/sshd_config.tml";
 
     redhat::
       "ssh_etc_initd"                 string => "sshd";
