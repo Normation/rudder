@@ -141,7 +141,7 @@ bundle agent install_package_version_cmp(package_name, version_comparator, packa
       "immediate" expression => strcmp("immediate", "${action}");
 
   packages:
-    !version_not_specified.local_package::
+    !version_not_specified.local_package.redhat::
       "${package_name}"
                         package_policy  => "addupdate",
                         package_version => "${package_version}",
@@ -151,7 +151,7 @@ bundle agent install_package_version_cmp(package_name, version_comparator, packa
                         action          => do_if_immediate;
 
 
-    !version_not_specified.!local_package::
+    !version_not_specified.!local_package.redhat::
       "${package_name}"
                         package_policy  => "addupdate",
                         package_version => "${package_version}",
@@ -161,7 +161,7 @@ bundle agent install_package_version_cmp(package_name, version_comparator, packa
                         action          => do_if_immediate;
 
 
-    version_not_specified.local_package::
+    version_not_specified.local_package.redhat::
       "${package_name}"
                         package_policy => "addupdate",
                         package_method => redhat_local_install,
@@ -169,12 +169,49 @@ bundle agent install_package_version_cmp(package_name, version_comparator, packa
                         action         => do_if_immediate;
 
 
-    version_not_specified.!local_package::
+    version_not_specified.!local_package.redhat::
       "${package_name}"
                         package_policy => "addupdate",
                         package_method => yum_rpm,
                         classes        => classes_generic("${class_prefix}"),
-			action         => do_if_immediate;
+                        action         => do_if_immediate;
+
+
+    !version_not_specified.local_package.debian::
+      "${package_name}"
+                        package_policy  => "addupdate",
+                        package_version => "${package_version}",
+                        package_select  => "${version_comparator}",
+                        package_method  => debian_local_install,
+                        classes         => classes_generic("${class_prefix}"),
+                        action          => do_if_immediate;
+
+
+    !version_not_specified.!local_package.debian::
+      "${package_name}"
+                        package_policy  => "addupdate",
+                        package_version => "${package_version}",
+                        package_select  => "${version_comparator}",
+                        package_method  => apt_get,
+                        classes         => classes_generic("${class_prefix}"),
+                        action          => do_if_immediate;
+
+
+    version_not_specified.local_package.debian::
+      "${package_name}"
+                        package_policy => "addupdate",
+                        package_method => debian_local_install,
+                        classes        => classes_generic("${class_prefix}"),
+                        action         => do_if_immediate;
+
+
+    version_not_specified.!local_package.debian::
+      "${package_name}"
+                        package_policy => "addupdate",
+                        package_method => apt_get,
+                        classes        => classes_generic("${class_prefix}"),
+                        action         => do_if_immediate;
+
 
   methods:
     immediate::

@@ -59,7 +59,8 @@ redhat::
  package_noverify_returncode => "1";
 }
 # Install packages using yum standard install, disable package caching
-body package_method redhat_install {
+body package_method redhat_install
+{
 redhat::
  package_changes => "bulk";
  package_list_command => "/bin/rpm -qa --qf '%{name} %{version}-%{release} %{arch}\n'";
@@ -82,6 +83,36 @@ redhat::
  package_verify_command => "/bin/rpm -V";
  package_noverify_returncode => "1";
 }
+
+body package_method debian_local_install
+{
+  package_changes => "individual";
+  package_list_command => "$(debian_knowledge.call_dpkg) -l";
+  # set it to "0" to avoid caching of list during upgrade
+  package_list_update_command => "$(debian_knowledge.call_apt_get) update";
+  package_list_update_ifelapsed => "0";
+  package_list_name_regex    => ".i\s+([^\s]+).*";
+  package_list_version_regex => ".i\s+[^\s]+\s+([^\s]+).*";
+  package_installed_regex => ".i.*"; # packages that have been uninstalled may be listed
+  package_file_repositories => { "$(repo)" };
+  package_add_command => "$(debian_knowledge.call_dpkg) --install";
+  package_delete_command => "$(debian_knowledge.call_dpkg) --purge";
+  package_update_command =>  "$(debian_knowledge.call_dpkg) --install";
+  package_patch_command =>  "$(debian_knowledge.call_dpkg) --install";
+x86_64::
+  package_name_convention => "$(name)_$(version)_amd64.deb";
+i686::
+  package_name_convention => "$(name)_$(version)_i386.deb";
+have_aptitude::
+  package_patch_list_command => "/usr/bin/aptitude --assume-yes --simulate --verbose full-upgrade";
+  package_patch_name_regex => "^Inst\s+(\S+)\s+.*";
+  package_patch_version_regex => "^Inst\s+\S+\s+\[?\(?([^\],\s]+).*";
+!have_aptitude::
+  package_patch_list_command => "$(debian_knowledge.call_apt_get) --just-print dist-upgrade";
+  package_patch_name_regex => "^Inst\s+(\S+)\s+.*";
+  package_patch_version_regex => "^Inst\s+\S+\s+\[?\(?([^\],\s]+).*";
+}
+
 
 # allows for not changing the system, unless the immediate class is defined
 body action do_if_immediate {
