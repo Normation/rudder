@@ -16,25 +16,13 @@
 #
 #####################################################################################
 
-# Defines the service to run on nodes
-# To define a service to apply to a node, you must add to the variable
-# mapper the path to the service
-bundle agent mapper
+bundle common cfengine_knowledge
 {
   vars:
-    any::
-      # Defines the list of services applicable to every nodes
-      "base_services" slist => {
-                                "/ncf/cfengine/stable", 
-                                "/ncf/remote_access/stable"
-                               };
+      "schedule" slist => { "Min00", "Min05", "Min10", "Min15", "Min20", 
+               "Min25", "Min30", "Min35", "Min40", "Min45",
+               "Min50", "Min55" };
+      "splaytime" string => "1";
 
-    host1::
-      # define list of service applicable to certains hosts
-      "host_specific" slist => { "/ncf/host/stable" };
-
-    any::
-      # concatenate the list of services to apply to this node
-      "services" slist => { "@{base_services}", "@{host_specific}" },
-                policy => "ifdefined";
+      "exec_command" string => "$(sys.cf_twin) -f failsafe.cf && $(sys.cf_agent)";
 }

@@ -1,0 +1,61 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# This technique manages CFEngine
+# Since cf-serverd and cf-execd are deamons, and no agent, it will have to rely a lot
+# on bundle common for definition of variables
+
+bundle common cfengine_technique
+{
+  vars:
+    second_pass::
+      "splay" string => "${cfengine_knowledge.splay}",
+        ifvarclass => "!splay_overriden";
+
+      "splay" string => "${cfengine.splay}",
+        ifvarclass => "splay_overriden";
+
+      "schedule" slist => { "@(cfengine_knowledge.schedule)"},
+        ifvarclass => "!schedule_overriden";
+
+      "schedule" slist => { "@(cfengine.schedule)" },
+        ifvarclass => "schedule_overriden";
+
+  classes:
+      "splay_overriden" expression => isvariable("cfengine.splay");
+      "schedule_overriden" expression => isvariable("cfengine.schedule");
+
+      "second_pass" expression => "any";
+
+}
+
+body executor control
+{
+
+    splaytime  => "${cfengine_technique.splay}";
+    mailto     => "cfengine@$(def.domain)";
+    mailfrom   => "cfengine@$(sys.host)\.$(def.domain)";
+    smtpserver => "localhost";
+
+    schedule => { "@{cfengine_technique.schedule}" };  
+
+  linux::
+    exec_command => "$(sys.cf_twin) -f failsafe.cf && $(sys.cf_agent)";
+
+
+}

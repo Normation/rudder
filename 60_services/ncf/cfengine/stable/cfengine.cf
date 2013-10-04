@@ -1,0 +1,5 @@
+bundle common cfengine(path)
+{
+  vars:
+    "splay" string => "2";
+}
