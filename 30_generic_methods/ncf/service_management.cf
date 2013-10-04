@@ -78,7 +78,7 @@ bundle agent service_start_command(service_name, service_path, start_command)
       "cservice_path" string => canonify("${service_path}");
 
   processes:
-      "service_path"
+      "${service_path}"
         restart_class => "${cservice_path}_restart_class",
         classes       => classes_generic("${class_prefix}");
 
@@ -90,7 +90,7 @@ bundle agent service_start_command(service_name, service_path, start_command)
 
   methods:
       "report"
-        usebundle  => logger("${this.promise_filename}", "Starting service ${service_name} with command ${start_command}", "${class_prefix}_start"),
+        usebundle  => logger("${this.promise_filename}", "Starting service ${service_name} with command ${start_command}", "${class_prefix}"),
         ifvarclass => "${class_prefix}_reached";
 }
 
@@ -176,10 +176,17 @@ bundle agent service_stop_command(service_name, stop_command)
 {
   vars:
       "class_prefix" string  => canonify("service_stop_${service_name}");
+      "cservice_path" string => canonify("${service_path}");
+
+  processes:
+      "${service_path}"
+        restart_class => "${cservice_path}_restart_class",
+        classes       => classes_generic("${class_prefix}");
 
   commands:
       "${stop_command}"
-        classes    => classes_generic("${class_prefix}");
+        classes    => classes_generic("${class_prefix}"),
+        ifvarclass => "!${cservice_path}_restart_class";
 
   methods:
       "report_reload"
