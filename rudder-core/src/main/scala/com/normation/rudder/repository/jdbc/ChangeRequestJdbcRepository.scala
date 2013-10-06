@@ -243,7 +243,8 @@ class WoChangeRequestJdbcRepository(
         new PreparedStatementCreator() {
            def createPreparedStatement(connection : Connection) : PreparedStatement = {
              val sqlXml = connection.createSQLXML()
-             sqlXml.setString(crSerialiser.serialise(changeRequest).toString)
+             val serializedContent = crSerialiser.serialise(changeRequest).toString
+             sqlXml.setString(serializedContent)
 
              val ps = connection.prepareStatement(
                  INSERT_SQL, Seq[String]("id").toArray[String]);
