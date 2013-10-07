@@ -198,11 +198,12 @@ object DisplayDirectiveTree extends Loggable {
 
         val xml  = {
                     <span class="treeDirective tooltipable" tooltipid={tooltipId} title="">
-                      {directive.name}
+                     [{directive.techniqueVersion.toString}] {directive.name}
                     </span>
                     <div class="tooltipContent" id={tooltipId}>
                       <h3>{directive.name}</h3>
                       <div>{directive.shortDescription}</div>
+                      <div>Technique version: {directive.techniqueVersion.toString}</div>
                     </div>
         }
 
