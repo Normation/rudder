@@ -40,6 +40,7 @@ import com.normation.rudder.domain.nodes.NodeGroupDiff
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
+import com.normation.cfclerk.domain.TechniqueName
 
 /**
  * A service that allows to build diff between
@@ -52,6 +53,7 @@ trait DiffService {
     , refRootSection : SectionSpec
     , newItem:Directive
     , newRootSection : SectionSpec
+    , techniqueName : TechniqueName
   ) : ModifyDirectiveDiff
 
   def diffNodeGroup(reference:NodeGroup, newItem:NodeGroup) : ModifyNodeGroupDiff
@@ -60,15 +62,14 @@ trait DiffService {
 
 }
 
-class DiffServiceImpl (
-    roDirectiveRepo : RoDirectiveRepository
-) extends DiffService {
+class DiffServiceImpl extends DiffService {
 
   def diffDirective(
       reference:Directive
     , refRootSection : SectionSpec
     , newItem:Directive
-    , newRootSection : SectionSpec) : ModifyDirectiveDiff = {
+    , newRootSection : SectionSpec
+    , techniqueName : TechniqueName) : ModifyDirectiveDiff = {
     import SectionVal._
     val refSectionVal = directiveValToSectionVal(refRootSection,reference.parameters)
     val newSectionVal = directiveValToSectionVal(newRootSection,newItem.parameters)
@@ -80,7 +81,6 @@ class DiffServiceImpl (
     val diffParameters = if (refSectionVal == newSectionVal) None else Some(SimpleDiff(refSectionVal,newSectionVal))
     val diffSystem = if (reference.isSystem == newItem.isSystem) None else Some(SimpleDiff(reference.isSystem,newItem.isSystem))
     val diffEnable = if (reference.isEnabled == newItem.isEnabled) None else Some(SimpleDiff(reference.isEnabled,newItem.isEnabled))
-    val techniqueName = roDirectiveRepo.getActiveTechnique(reference.id).map(_.techniqueName).get
     ModifyDirectiveDiff(
         techniqueName
       , reference.id
