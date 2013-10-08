@@ -36,14 +36,20 @@ package com.normation.rudder.reports.execution
 
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
+import org.joda.time.DateTime
 
-trait ReportsExecutionRepository {
+trait RoReportsExecutionRepository {
 
   def getExecutionByNode (nodeId : NodeId) : Box[Seq[ReportExecution]]
+  
+  def getExecutionByNodeandDate (nodeId : NodeId, date: DateTime) : Box[Option[ReportExecution]] 
 
+  def getNodeLastExecution (nodeId : NodeId) : Box[Option[ReportExecution]]
+}
+
+
+trait WoReportsExecutionRepository {
   def saveExecutions (executions : Seq[ReportExecution]) : Box[Seq[ReportExecution]]
 
   def closeExecutions (executions : Seq[ReportExecution]) : Box[Seq[ReportExecution]]
-
-
 }

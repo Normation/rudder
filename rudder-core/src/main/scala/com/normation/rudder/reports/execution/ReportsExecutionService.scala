@@ -46,7 +46,8 @@ import com.normation.rudder.reports.status.StatusUpdateRepository
  */
 class ReportsExecutionService (
     reportsRepository      : ReportsRepository
-  , executionRepository    : ReportsExecutionRepository
+  , readExecutions         : RoReportsExecutionRepository
+  , writeExecutions        : WoReportsExecutionRepository
   , statusUpdateRepository : StatusUpdateRepository
   , maxDays                : Int // in days
 ) extends Loggable {
@@ -80,7 +81,7 @@ class ReportsExecutionService (
             // Check if there is no interesting reports
             if (!reportsWithIndex.isEmpty) {
               // Save new executions
-              executionRepository.saveExecutions(reportExec) match {
+              writeExecutions.saveExecutions(reportExec) match {
                 case Full(result) =>
                   logger.debug(s"Saved ${result.size} executions")
                   val lastReport = reportsWithIndex.maxBy(_._2)
