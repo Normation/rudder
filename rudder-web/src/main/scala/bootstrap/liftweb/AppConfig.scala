@@ -1456,8 +1456,12 @@ object RudderConfig extends Loggable {
    */
 
 
-  val reportExecutionsRepository = {
-    ReportsExecutionSquerylRepository(squerylDatasourceProvider)
+  val roReportExecutionsRepository = {
+    RoReportsExecutionSquerylRepository(squerylDatasourceProvider)
+  }
+  
+  val woReportExecutionsRepository = {
+    WoReportsExecutionSquerylRepository(squerylDatasourceProvider, roReportExecutionsRepository )
   }
 
   val updatesEntryJdbcRepository = new StatusUpdateSquerylRepository(squerylDatasourceProvider)
@@ -1472,7 +1476,8 @@ object RudderConfig extends Loggable {
 
     new ReportsExecutionService(
       reportsRepository
-    , reportExecutionsRepository
+    , roReportExecutionsRepository
+    , woReportExecutionsRepository
     , updatesEntryJdbcRepository
     , max
     )

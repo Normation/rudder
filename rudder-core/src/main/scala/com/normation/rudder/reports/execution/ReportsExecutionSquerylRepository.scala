@@ -47,9 +47,11 @@ import org.squeryl.dsl.CompositeKey2
 import java.sql.SQLException
 import com.normation.utils.Control._
 
-case class ReportsExecutionSquerylRepository (
+case class RoReportsExecutionSquerylRepository (
     sessionProvider : SquerylConnectionProvider
-) extends ReportsExecutionRepository with Loggable {
+) extends RoReportsExecutionRepository with Loggable {
+  
+  import ExecutionRepositoryUtils._
 
   def getExecutionByNode (nodeId : NodeId) : Box[Seq[ReportExecution]] = {
     try {  sessionProvider.ourTransaction {
@@ -67,6 +69,22 @@ case class ReportsExecutionSquerylRepository (
     }
   }
 
+  def getNodeLastExecution (nodeId : NodeId) : Box[Option[ReportExecution]] = {
+    try {  sessionProvider.ourTransaction {
+      val queryResult = from(Executions.executions)(entry =>
+        where(
+          entry.nodeId === nodeId.value
+        )
+        select(entry)
+        orderBy(entry.date desc)
+      ).page(0,1).headOption.map(fromDB)
+      Full( queryResult)
+    } } catch {
+      case e:Exception  =>
+        logger.error(s"Error when trying to get report executions for node '${nodeId.value}'")
+        Failure(s"Error when trying to get report executions for node '${nodeId.value}' cause is : $e")
+    }
+  }
   def getExecutionByNodeandDate (nodeId : NodeId, date: DateTime) : Box[Option[ReportExecution]] = {
     try {  sessionProvider.ourTransaction {
       val queryResult : Option[ReportExecution] = from(Executions.executions)(entry =>
@@ -156,18 +174,104 @@ case class ReportsExecutionSquerylRepository (
     }
   }
 
-  private[this] implicit def toTimeStamp(d:DateTime) : Timestamp = {
+
+
+}
+
+case class WoReportsExecutionSquerylRepository (
+    sessionProvider : SquerylConnectionProvider
+  , readExecutions  : RoReportsExecutionRepository
+) extends WoReportsExecutionRepository with Loggable {
+  
+  
+  import readExecutions._
+  import ExecutionRepositoryUtils._
+  
+  def saveOrUpdateExecution (execution : ReportExecution) : Box[ReportExecution] = {
+    getExecutionByNodeandDate(execution.nodeId, execution.date) match {
+      case Full(Some(_)) =>
+        if (execution.isComplete) {
+          logger.info("need to update")
+          closeExecution(execution)
+        } else {
+          logger.info("not ended yet")
+          Full(execution)
+        }
+      case Full(None) =>
+        saveExecution(execution)
+      case eb: EmptyBox =>
+        eb ?~! "could not get previous execution"
+    }
+  }
+
+  private[this] def saveExecution (execution: ReportExecution) : Box[ReportExecution] = {
+    try {
+      val saveResult = sessionProvider.ourTransaction {
+        Executions.executions.insert(execution)
+      }
+      Full(fromDB(saveResult))
+    } catch {
+      case e:Exception =>
+        Failure(s"could not save execution reports cause is : ${e.getMessage}")
+    }
+  }
+  def saveExecutions (executions : Seq[ReportExecution]) : Box[Seq[ReportExecution]] =  {
+    boxSequence(executions.map(saveOrUpdateExecution))
+  }
+
+  def closeExecution (execution : ReportExecution) : Box[ReportExecution] =  {
+    try {
+      val closeResult = sessionProvider.ourTransaction {
+          Executions.executions.update( exec =>
+            where (
+                  exec.nodeId === execution.nodeId.value
+              and exec.date   === toTimeStamp(execution.date)
+            )
+
+            set   ( exec.isComplete := true)
+        )
+      }
+      logger.debug(s" closed 1, should have close")
+      Full(execution)
+    } catch {
+      case e:Exception => Failure("could not create aggregated reports")
+    }
+  }
+
+
+  def closeExecutions (executions : Seq[ReportExecution]) : Box[Seq[ReportExecution]] =  {
+    try {
+      val closeResult = sessionProvider.ourTransaction {
+        executions.map( execution =>
+          Executions.executions.update( exec =>
+            where (
+                  exec.nodeId === execution.nodeId.value
+              and exec.date   === toTimeStamp(execution.date)
+            )
+
+            set   ( exec.isComplete := true)
+        ) )
+      }
+      logger.debug(s" closed ${closeResult.size}, should have close ${executions.size}")
+      Full(executions)
+    } catch {
+      case e:Exception => Failure("could not create aggregated reports")
+    }
+  }
+}
+
+object ExecutionRepositoryUtils {
+  implicit def toTimeStamp(d:DateTime) : Timestamp = {
     new Timestamp(d.getMillis)
   }
 
-  private[this] implicit def toDB (execution : ReportExecution)  : DBReportExecution = {
+  implicit def toDB (execution : ReportExecution)  : DBReportExecution = {
     DBReportExecution(execution.nodeId.value, execution.date, execution.isComplete)
   }
 
-  private[this] implicit def fromDB (execution : DBReportExecution)  : ReportExecution = {
+  implicit def fromDB (execution : DBReportExecution)  : ReportExecution = {
     ReportExecution(NodeId(execution.nodeId), new DateTime(execution.date), execution.isComplete)
   }
-
 }
 
 

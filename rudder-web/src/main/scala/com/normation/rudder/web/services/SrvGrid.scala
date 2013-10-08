@@ -86,7 +86,7 @@ class SrvGrid {
 
   private def headTemplate = chooseTemplate("servergrid","head",template)
   private def tableTemplate = chooseTemplate("servergrid","table",template)
-  private[this] val reportsRepo = RudderConfig.reportsRepository
+  private[this] val readExecutions = RudderConfig.roReportExecutionsRepository
 
   /*
    * All JS/CSS needed to have datatable working
@@ -222,7 +222,10 @@ class SrvGrid {
       ("#osFullName *")  #> S.?(s"os.name.${server.osName}") &
       ("#osVersion *")   #> server.osVersion &
       ("#servicePack *") #> server.servicePack.getOrElse("N/A") &
-      ("#lastReport *")  #> reportsRepo.getNewestReportOnNode(server.id).getOrElse(None).map(report =>  DateFormaterService.getFormatedDate(report.executionDate)).getOrElse("Never")
+      ("#lastReport *")  #> { readExecutions.getNodeLastExecution(server.id) match {
+                                case Full(exec) => exec.map(report =>  DateFormaterService.getFormatedDate(report.date)).getOrElse("Never")
+                                case eb : EmptyBox => "Error While fetching node executions"
+                            } }
       )(lineXml(server.id.value))
     } }
     </tbody>
