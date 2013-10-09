@@ -77,6 +77,8 @@ class SystemVariableServiceImpl(
   val varCommunityPort = systemVariableSpecService.get("COMMUNITYPORT").toVariable().copyWithSavedValue(communityPort.toString)
   val syslogPortConfig = systemVariableSpecService.get("SYSLOGPORT").toVariable().copyWithSavedValue(syslogPort.toString)
 
+  // allNodeInfos has to contain ALL the node info (those of every node within Rudder)
+  // for this method to work properly
   def getSystemVariables(nodeInfo: NodeInfo, allNodeInfos: Set[NodeInfo], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule]): Box[Map[String, Variable]] = {
     logger.debug("Preparing the system variables for server %s".format(nodeInfo.id.value))
 
@@ -113,6 +115,9 @@ class SystemVariableServiceImpl(
 
     var varClientList = systemVariableSpecService.get("CLIENTSLIST").toVariable()
 
+    var varManagedNodes = systemVariableSpecService.get("MANAGED_NODES_NAME").toVariable()
+    var varManagedNodesId = systemVariableSpecService.get("MANAGED_NODES_ID").toVariable()
+
     val allowConnect = collection.mutable.Set[String]()
 
     val clientList = collection.mutable.Set[String]()
@@ -134,6 +139,12 @@ class SystemVariableServiceImpl(
           logger.error(e.messageChain)
           return e
       }
+
+      // Find the "policy children" of this policy server
+      // thanks to the allNodeInfos, this is super easy
+      val children = allNodeInfos.filter(_.policyServerId == nodeInfo.id).toSeq
+      varManagedNodes = varManagedNodes.copyWithSavedValues(children.map(_.hostname))
+      varManagedNodesId = varManagedNodesId.copyWithSavedValues(children.map(_.id.value))
     }
 
     allNodeInfos.find( _.id == nodeInfo.policyServerId) match {
@@ -157,6 +168,8 @@ class SystemVariableServiceImpl(
       (varCommunityPort.spec.name, varCommunityPort),
       (varAllowConnect.spec.name, varAllowConnect),
       (varClientList.spec.name, varClientList),
+      (varManagedNodesId.spec.name, varManagedNodesId),
+      (varManagedNodes.spec.name, varManagedNodes),
       (varWebdavUser.spec.name, varWebdavUser),
       (varWebdavPassword.spec.name, varWebdavPassword),
       (syslogPortConfig.spec.name, syslogPortConfig)
