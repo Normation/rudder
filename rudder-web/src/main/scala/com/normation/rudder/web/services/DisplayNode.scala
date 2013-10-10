@@ -60,6 +60,7 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.web.model.JsInitContextLinkUtil
 
 /**
  * A service used to display details about a server
@@ -79,6 +80,7 @@ object DisplayNode extends Loggable {
   private[this] val removeNodeService    = RudderConfig.removeNodeService
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
+  private[this] val nodeInfoService      = RudderConfig.nodeInfoService
 
   private[this] val templatePath = List("templates-hidden", "server_details_tabs")
   private[this] def template() =  Templates(templatePath) match {
@@ -353,7 +355,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
 
       <h4 class="tablemargin">Rudder information</h4>
         <div class="tablepadding">
-          { if(isRootNode(sm.node.main.id)) <span><b>Role: </b>Rudder root server</span><br/> }
+          { displayServerRole(sm) }
           <b>Inventory date:</b>  {sm.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
           <b>Date inventory last received:</b>  {sm.node.receiveDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
           {creationDate.map { creation =>
@@ -361,6 +363,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
           }.getOrElse(NodeSeq.Empty) }
           <b>Agent name:</b> {sm.node.agentNames.map(_.fullname()).mkString(";")}<br/>
           <b>Rudder ID:</b> {sm.node.main.id.value.toUpperCase}<br/>
+          { displayPolicyServerInfos(sm) }
         </div>
 
       <h4 class="tablemargin">Accounts</h4>
@@ -378,6 +381,37 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
 
   private def ?(in:Option[String]) : NodeSeq = in.map(Text(_)).getOrElse(NodeSeq.Empty)
 
+  // Display the role of the node
+  private def displayServerRole(sm:FullInventory) : NodeSeq = {
+    if(isRootNode(sm.node.main.id)) {
+      <span><b>Role: </b>Rudder root server</span><br/>
+    } else {
+      val nodeInfoBox = nodeInfoService.getNodeInfo(sm.node.main.id)
+      nodeInfoBox match {
+        case Full(nodeInfo) =>
+          nodeInfo.isPolicyServer match {
+            case true => <span><b>Role: </b>Rudder relay server</span><br/>
+            case false => <span><b>Role: </b>Rudder node</span><br/>
+          }
+        case eb:EmptyBox =>
+          val e = eb ?~! s"Could not fetch node details for node with id ${sm.node.main.id}, no cause given"
+          logger.error(e.messageChain)
+          <span class="error"><b>Role: </b>Could not fetch Role for this node</span><br/>
+
+      }
+    }
+  }
+
+  private def displayPolicyServerInfos(sm:FullInventory) : NodeSeq = {
+    nodeInfoService.getNodeInfo(sm.node.main.policyServerId) match {
+      case eb:EmptyBox =>
+        val e = eb ?~! s"Could not fetch policy server details (id ${sm.node.main.policyServerId}) for node with id ${sm.node.main.id}"
+        logger.error(e.messageChain)
+        <span class="error"><b>Rudder Policy Server: </b>Could not fetch details about the policy server</span>
+      case Full(policyServerDetails) =>
+        <span><b>Rudder Policy Server: </b><a href={JsInitContextLinkUtil.nodeLink(policyServerDetails.id)}>{policyServerDetails.hostname}</a></span>
+    }
+  }
 
   private def displayMachineType(opt:Option[MachineInventory]) : NodeSeq = {
     opt match {
