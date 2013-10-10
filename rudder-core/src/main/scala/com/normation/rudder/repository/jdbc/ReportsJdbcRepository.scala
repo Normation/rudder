@@ -64,8 +64,8 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
 
   // find the last full run per node
   // we are not looking for older request that 15 minutes for the moment
-  val lastQuery = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where ruleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and executionTimeStamp > (now() - interval '15 minutes') group by nodeid"
-  val lastQueryByNode = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where ruleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and nodeid = ? and executionTimeStamp > (now() - interval '15 minutes') group by nodeid"
+  val lastQuery = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where ruleId like 'hasPolicyServer-%' and component = 'common' and keyValue = 'EndRun' and executionTimeStamp > (now() - interval '15 minutes') group by nodeid"
+  val lastQueryByNode = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where ruleId like 'hasPolicyServer-%' and component = 'common' and keyValue = 'EndRun' and nodeid = ? and executionTimeStamp > (now() - interval '15 minutes') group by nodeid"
 
   val joinQuery = "select executiondate, nodeid, ruleId, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQuery +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
   val joinQueryByNode = "select executiondate, nodeid, ruleId, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQueryByNode +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
@@ -200,7 +200,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     , beginDate: DateTime
     , endDate  : Option[DateTime]
   ) : Seq[DateTime] = {
-    var query = "select distinct executiontimestamp from ruddersysevents where ruleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and nodeId = ? and executiontimestamp >= ?"
+    var query = "select distinct executiontimestamp from ruddersysevents where ruleId like 'hasPolicyServer-%' and component = 'common' and keyValue = 'EndRun' and nodeId = ? and executiontimestamp >= ?"
 
     var array = mutable.Buffer[AnyRef](nodeId.value, new Timestamp(beginDate.getMillis))
 
