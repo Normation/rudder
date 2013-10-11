@@ -65,8 +65,10 @@ case class GroupApiService2 (
   , restExtractor        : RestExtractorService
   , queryProcessor       : QueryProcessor
   , workflowEnabled      : Boolean
+  , restDataSerializer   : RestDataSerializer
   ) extends Loggable {
 
+  import restDataSerializer.{ serializeGroup => serialize }
 
   private[this] def createChangeRequestAndAnswer (
       id           : String
@@ -74,8 +76,8 @@ case class GroupApiService2 (
     , group        : NodeGroup
     , initialState : Option[NodeGroup]
     , actor        : EventActor
-    , req             : Req
-    , act             : String
+    , req          : Req
+    , act          : String
   ) (implicit action : String, prettify : Boolean) = {
 
     ( for {
@@ -98,7 +100,7 @@ case class GroupApiService2 (
     ) match {
       case Full(crId) =>
         val optCrId = if (workflowEnabled) Some(crId) else None
-        val jsonGroup = List(toJSON(group,optCrId))
+        val jsonGroup = List(serialize(group,optCrId))
         toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Group ${id}" )
@@ -112,7 +114,7 @@ case class GroupApiService2 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readGroup.getAll match {
       case Full(groups) =>
-        toJsonResponse(None, ( "groups" -> JArray(groups.map(toJSON(_)).toList)))
+        toJsonResponse(None, ( "groups" -> JArray(groups.map(g => serialize(g,None)).toList)))
       case eb: EmptyBox =>
         val message = (eb ?~ ("Could not fetch Groups")).msg
         toJsonError(None, message)
@@ -136,7 +138,7 @@ case class GroupApiService2 (
       } ) match {
         case Full(x) =>
           asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
-          val jsonGroup = List(toJSON(newGroup))
+          val jsonGroup = List(serialize(newGroup,None))
           toJsonResponse(Some(groupId.value), ("groups" -> JArray(jsonGroup)))
 
         case eb:EmptyBox =>
@@ -213,7 +215,7 @@ case class GroupApiService2 (
 
     readGroup.getNodeGroup(NodeGroupId(id)) match {
       case Full((group,_)) =>
-        val jsonGroup = List(toJSON(group))
+        val jsonGroup = List(serialize(group,None))
         toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
         val fail = eb ?~!(s"Could not find Group ${id}" )
@@ -242,10 +244,10 @@ case class GroupApiService2 (
               toJsonError(Some(id), message)
           }
           case None =>
-            val jsonGroup = List(toJSON(group))
+            val jsonGroup = List(serialize(group,None))
             toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
         }
-        val jsonGroup = List(toJSON(group))
+        val jsonGroup = List(serialize(group,None))
         toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Group ${id}" )
@@ -301,15 +303,5 @@ case class GroupApiService2 (
     }
   }
 
-  def toJSON (group : NodeGroup, crId: Option[ChangeRequestId] = None): JValue = {
-  val query = group.query.map(query => query.toJSON)
-    ("changeRequestId" -> crId.map(_.value.toString)) ~
-    ("id" -> group.id.value) ~
-    ("displayName" -> group.name) ~
-    ("description" -> group.description) ~
-    ("query" -> query) ~
-    ("nodeIds" -> group.serverList.map(_.value)) ~
-    ("isDynamic" -> group.isDynamic) ~
-    ("isEnabled" -> group.isEnabled )
-    }
+
   }

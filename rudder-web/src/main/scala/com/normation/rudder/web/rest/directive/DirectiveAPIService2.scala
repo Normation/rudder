@@ -61,12 +61,13 @@ import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.utils.Control._
 import com.normation.utils.StringUuidGenerator
-
 import net.liftweb.common._
 import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonDSL._
+import com.normation.rudder.web.rest.RestDataSerializer
+import com.normation.rudder.domain.workflows.ChangeRequestId
 
 case class DirectiveAPIService2 (
     readDirective        : RoDirectiveRepository
@@ -78,8 +79,10 @@ case class DirectiveAPIService2 (
   , restExtractor        : RestExtractorService
   , workflowEnabled      : Boolean
   , editorService        : DirectiveEditorService
+  , restDataSerializer   : RestDataSerializer
   ) extends Loggable {
 
+  def serialize(technique : Technique, directive:Directive, crId : Option[ChangeRequestId] = None) = restDataSerializer.serializeDirective(technique, directive, crId)
 
   private[this] def createChangeRequestAndAnswer (
       id              : String
@@ -92,7 +95,6 @@ case class DirectiveAPIService2 (
     , req             : Req
     , act             : String
   ) (implicit action : String, prettify : Boolean) = {
-
 
     ( for {
         reason <- restExtractor.extractReason(req.params)
@@ -116,7 +118,7 @@ case class DirectiveAPIService2 (
     ) match {
       case Full(crId) =>
         val optCrId = if (workflowEnabled) Some(crId) else None
-        val jsonDirective = ("directives" -> JArray(List(toJSON(technique, activeTechnique, directive, optCrId))))
+        val jsonDirective = ("directives" -> JArray(List(serialize(technique, directive, optCrId))))
         toJsonResponse(Some(id), jsonDirective)
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Directive ${id}" )
@@ -134,7 +136,7 @@ case class DirectiveAPIService2 (
           directive <- directives
           (technique,activeTechnique,_) <- readDirective.getDirectiveWithContext(directive.id)
         } yield {
-          toJSON(technique,activeTechnique,directive)
+          serialize(technique,directive)
         } )
         toJsonResponse(None, ( "directives" -> JArray(res.toList)))
       case eb: EmptyBox =>
@@ -160,7 +162,7 @@ case class DirectiveAPIService2 (
       } ) match {
         case Full(saveDiff) =>
           asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
-          val jsonDirective = List(toJSON(technique,activeTechnique,newDirective))
+          val jsonDirective = List(serialize(technique,newDirective))
           toJsonResponse(Some(directiveId.value), ("directives" -> JArray(jsonDirective)))
 
         case eb:EmptyBox =>
@@ -242,7 +244,7 @@ case class DirectiveAPIService2 (
 
     readDirective.getDirectiveWithContext(DirectiveId(id)) match {
       case Full((technique,activeTechnique,directive)) =>
-        val jsonDirective = List(toJSON(technique,activeTechnique,directive))
+        val jsonDirective = List(serialize(technique,directive))
         toJsonResponse(Some(id),("directives" -> JArray(jsonDirective)))
       case eb:EmptyBox =>
         val fail = eb ?~!(s"Could not find Directive ${id}" )
@@ -361,45 +363,4 @@ case class DirectiveAPIService2 (
   }
 
 
-  def toJSON (technique:Technique, activeTechnique:ActiveTechnique , directive : Directive, crId: Option[ChangeRequestId] = None): JValue = {
-
-    def directiveToJSON(sv:SectionVal, sectionName:String = SectionVal.ROOT_SECTION_NAME): JValue = {
-      import net.liftweb.json.JsonDSL._
-
-      val variables = sv.variables.toSeq.sortBy(_._1).map { case (variable,value) =>
-            ("var" ->
-                ("name" -> variable)
-              ~ ("value" -> value)
-            )
-      }
-
-      val section =
-          for {
-            (sectionName, sectionIterations) <- sv.sections.toSeq.sortBy(_._1)
-            sectionValue                     <- sectionIterations
-          } yield {
-            directiveToJSON(sectionValue,sectionName)
-          }
-
-      ("section" ->
-          ("name" -> sectionName)
-        ~ ("vars" ->  (if (variables.isEmpty) None else Some(variables)))
-        ~ ("sections" -> (if (section.isEmpty) None else Some(section)))
-      )
-    }
-
-
-    ("changeRequestId" -> crId.map(_.value.toString)) ~
-    ("id" -> directive.id.value) ~
-    ("displayName" -> directive.name) ~
-    ("shortDescription" -> directive.shortDescription) ~
-    ("longDescription" -> directive.longDescription) ~
-    ("techniqueName" -> technique.id.name.value) ~
-    ("techniqueVersion" -> directive.techniqueVersion.toString) ~
-    ("parameters" -> directiveToJSON(SectionVal.directiveValToSectionVal(technique.rootSection, directive.parameters)) )~
-    ("priority" -> directive.priority) ~
-    ("isEnabled" -> directive.isEnabled ) ~
-    ("isSystem" -> directive.isSystem )
-
-  }
 }

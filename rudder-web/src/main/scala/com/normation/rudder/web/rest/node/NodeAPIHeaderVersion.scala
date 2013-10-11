@@ -51,11 +51,13 @@ class NodeAPIHeaderVersion (
   , restExtractor : RestExtractorService
 ) extends RestHelper with Loggable{
 
+  private[this] implicit val availableVersions = List(2,3)
+
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.listAcceptedNodes(req)
+        case Full(ApiVersion(2 | 3)) =>  apiV2.listAcceptedNodes(req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("listAcceptedNodes")
       }
@@ -63,7 +65,7 @@ class NodeAPIHeaderVersion (
 
     case Get("pending" :: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.listPendingNodes(req)
+        case Full(ApiVersion(2 | 3)) =>  apiV2.listPendingNodes(req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listPendingNodes")
         case _ => notValidVersionResponse("listPendingNodes")
       }
@@ -72,7 +74,7 @@ class NodeAPIHeaderVersion (
 
     case Get(id :: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.acceptedNodeDetails(req, NodeId(id))
+        case Full(ApiVersion(2 | 3)) =>  apiV2.acceptedNodeDetails(req, NodeId(id))
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"acceptedNodeDetails")
         case _ => notValidVersionResponse("acceptedNodeDetails")
       }
@@ -81,7 +83,7 @@ class NodeAPIHeaderVersion (
     case Get("pending" :: id :: Nil, req) => {
       val prettify = restExtractor.extractPrettify(req.params)
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           apiV2.pendingNodeDetails(NodeId(id),prettify)
         case Full(ApiVersion(missingVersion)) =>
           missingResponse(missingVersion,"acceptedNodeDetails")
@@ -92,7 +94,7 @@ class NodeAPIHeaderVersion (
 
     case Delete(id :: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.deleteNode(req, Seq(NodeId(id)))
+        case Full(ApiVersion(2 | 3)) =>  apiV2.deleteNode(req, Seq(NodeId(id)))
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"deleteNode")
         case _ => notValidVersionResponse("deleteNode")
       }
@@ -102,7 +104,7 @@ class NodeAPIHeaderVersion (
       req.json match {
         case Full(json) =>
           ApiVersion.fromRequest(req) match {
-            case Full(ApiVersion(2)) =>
+            case Full(ApiVersion(2 | 3)) =>
               val prettify = restExtractor.extractPrettify(req.params)
               val nodeIds  = restExtractor.extractNodeIdsFromJson(json)
               val nodeStatus = restExtractor.extractNodeStatusFromJson(json)
@@ -122,7 +124,7 @@ class NodeAPIHeaderVersion (
       req.json match {
         case Full(json) =>
         ApiVersion.fromRequest(req) match {
-          case Full(ApiVersion(2)) =>
+          case Full(ApiVersion(2 | 3)) =>
             val prettify = restExtractor.extractPrettify(req.params)
             val nodeId  = Full(Some(List(NodeId(id))))
             val nodeStatus = restExtractor.extractNodeStatusFromJson(json)
@@ -140,7 +142,7 @@ class NodeAPIHeaderVersion (
 
     case Post("pending" :: Nil, req) =>  {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           val prettify = restExtractor.extractPrettify(req.params)
           val nodeIds  = restExtractor.extractNodeIds(req.params)
           val nodeStatus = restExtractor.extractNodeStatus(req.params)
@@ -155,7 +157,7 @@ class NodeAPIHeaderVersion (
 
     case Post("pending" :: id :: Nil, req) =>  {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           val prettify = restExtractor.extractPrettify(req.params)
           val nodeId  = Full(Some(List(NodeId(id))))
           val nodeStatus = restExtractor.extractNodeStatus(req.params)

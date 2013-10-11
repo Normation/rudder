@@ -34,27 +34,17 @@
 
 package com.normation.rudder.web.rest
 
-import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.domain.policies.SectionVal
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.repository.RoNodeGroupRepository
-import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.repository._
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.web.rest.directive.RestDirective
 import com.normation.rudder.web.rest.group.RestGroup
-import com.normation.rudder.web.rest.node.AcceptNode
-import com.normation.rudder.web.rest.node.DeleteNode
-import com.normation.rudder.web.rest.node.NodeStatusAction
-import com.normation.rudder.web.rest.node.RefuseNode
+import com.normation.rudder.web.rest.node._
 import com.normation.rudder.web.rest.rule.RestRule
 import com.normation.rudder.web.services.ReasonBehavior.Disabled
 import com.normation.rudder.web.services.ReasonBehavior.Mandatory
@@ -67,6 +57,9 @@ import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.web.rest.parameter.RestParameter
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.api.ApiAccountName
+import com.normation.rudder.domain.workflows._
+import com.normation.rudder.web.rest.changeRequest.APIChangeRequestInfo
+import com.normation.rudder.services.workflows.WorkflowService
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -75,6 +68,7 @@ case class RestExtractorService (
   , techniqueRepository  : TechniqueRepository
   , queryParser          : CmdbQueryParser
   , userPropertyService  : UserPropertyService
+  , workflowService      : WorkflowService
 ) extends Loggable {
 
 
@@ -210,6 +204,28 @@ case class RestExtractorService (
   private[this] def convertToApiAccountName (value:String) : Box[ApiAccountName] = {
     Full(ApiAccountName(value))
   }
+
+  private[this] def convertToWorkflowStatus (value : String) : Box[Seq[WorkflowNodeId]] = {
+    val possiblestates = workflowService.stepsValue
+    value.toLowerCase match {
+      case "open" => Full(workflowService.openSteps)
+      case "closed" => Full(workflowService.closedSteps)
+      case "all" =>  Full(possiblestates)
+      case value => possiblestates.find(_.value.toLowerCase == value) match {
+        case Some(state) => Full(Seq(state))
+        case None => Failure(s"'${value}' is not a possible state for change requests")
+      }
+    }
+  }
+
+  private[this] def convertToWorkflowTargetStatus (value : String) : Box[WorkflowNodeId] = {
+    val possiblestates = workflowService.stepsValue
+    possiblestates.find(_.value.toLowerCase == value.toLowerCase) match {
+      case Some(state) => Full(state)
+      case None => Failure(s"'${value}' is not a possible state for change requests, availabled values are: ${possiblestates.mkString("[ ", ", ", " ]")}")
+    }
+  }
+
   /*
    * Convert List Functions
    */
@@ -331,6 +347,32 @@ case class RestExtractorService (
        case Full(Some(value)) => Full(value)
        case eb:EmptyBox => eb ?~ "Error while fetch parameter Name"
      }
+  }
+
+  def extractWorkflowStatus (params : Map[String,List[String]]) : Box[Seq[WorkflowNodeId]] = {
+    extractOneValue(params, "status")(convertToWorkflowStatus) match {
+       case Full(None) => Full(workflowService.openSteps)
+       case Full(Some(value)) => Full(value)
+       case eb:EmptyBox => eb ?~ "Error while fetching workflow status"
+     }
+  }
+
+  def extractWorkflowTargetStatus (params : Map[String,List[String]]) : Box[WorkflowNodeId] = {
+    extractOneValue(params, "status")(convertToWorkflowTargetStatus) match {
+      case Full(Some(value)) => Full(value)
+      case Full(None) => Failure("workflow status should not be empty")
+      case eb:EmptyBox => eb ?~ "Error while fetching workflow status"
+    }
+  }
+
+  def extractChangeRequestInfo (params : Map[String,List[String]]) : Box[APIChangeRequestInfo] = {
+   def ident = (value : String) => Full(value)
+   for {
+     name        <- extractOneValue(params, "name")(ident)
+     description <- extractOneValue(params, "description")(ident)
+   } yield {
+     APIChangeRequestInfo(name,description)
+   }
   }
 
   def extractNodeIds (params : Map[String,List[String]]) : Box[Option[List[NodeId]]] = {
