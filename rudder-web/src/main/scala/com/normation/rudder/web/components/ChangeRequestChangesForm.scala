@@ -492,7 +492,7 @@ class ChangeRequestChangesForm(
               directiveChange.initialState.map(init => (init._2,init._3)) match {
                 case Some((initialDirective,initialRS)) =>
                   val techniqueId = TechniqueId(techniqueName,directive.techniqueVersion)
-                  val diff = diffService.diffDirective(initialDirective, initialRS, directive, rootSection)
+                  val diff = diffService.diffDirective(initialDirective, initialRS, directive, rootSection, techniqueName)
                   displayDirectiveDiff(diff,directive,techniqueName,rootSection)
                 case None =>
                   val msg = s"Could not display diff for ${directive.name} (${directive.id.value.toUpperCase})"
