@@ -38,18 +38,33 @@ import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import org.joda.time.DateTime
 
+
+/**
+ * Service for reading or storing execution of Nodes
+ */
 trait RoReportsExecutionRepository {
 
   def getExecutionByNode (nodeId : NodeId) : Box[Seq[ReportExecution]]
-  
-  def getExecutionByNodeandDate (nodeId : NodeId, date: DateTime) : Box[Option[ReportExecution]] 
+
+  def getExecutionByNodeandDate (nodeId : NodeId, date: DateTime) : Box[Option[ReportExecution]]
 
   def getNodeLastExecution (nodeId : NodeId) : Box[Option[ReportExecution]]
+
+  /**
+   * From a seq of found executions in RudderSysEvents, find in the existing executions matching
+   */
+  def getExecutionsByNodeAndDate (executions: Seq[ReportExecution]) : Box[Seq[ReportExecution]]
+
 }
 
 
 trait WoReportsExecutionRepository {
-  def saveExecutions (executions : Seq[ReportExecution]) : Box[Seq[ReportExecution]]
+
+  /**
+   * From a list of nodes execution fetch from the ruddersysevent table, create or update
+   * the list of execution in the execution tables
+   */
+  def updateExecutions (executions : Seq[ReportExecution]) : Box[Seq[ReportExecution]]
 
   def closeExecutions (executions : Seq[ReportExecution]) : Box[Seq[ReportExecution]]
 }

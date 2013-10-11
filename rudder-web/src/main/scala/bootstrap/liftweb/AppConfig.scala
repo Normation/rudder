@@ -333,7 +333,7 @@ object RudderConfig extends Loggable {
   val reportsRepository : ReportsRepository = reportsRepositoryImpl
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
   val allBootstrapChecks : BootstrapChecks = allChecks
-  val srvGrid = new SrvGrid
+  lazy val srvGrid = new SrvGrid(roReportsExecutionSquerylRepository)
   val expectedReportRepository : RuleExpectedReportsRepository = configurationExpectedRepo
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
@@ -342,6 +342,8 @@ object RudderConfig extends Loggable {
   val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(jdbcTemplate)
   val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(jdbcTemplate, roWorkflowRepository)
 
+  val roReportExecutionsRepository : RoReportsExecutionRepository = roReportsExecutionSquerylRepository
+  val woReportExecutionsRepository : WoReportsExecutionRepository = woReportExecutionsSquerylRepository
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
 
@@ -1456,13 +1458,9 @@ object RudderConfig extends Loggable {
    */
 
 
-  val roReportExecutionsRepository = {
-    RoReportsExecutionSquerylRepository(squerylDatasourceProvider)
-  }
-  
-  val woReportExecutionsRepository = {
-    WoReportsExecutionSquerylRepository(squerylDatasourceProvider, roReportExecutionsRepository )
-  }
+  private[this] lazy val roReportsExecutionSquerylRepository = new RoReportsExecutionSquerylRepository(squerylDatasourceProvider)
+
+  private[this] lazy  val woReportExecutionsSquerylRepository = new WoReportsExecutionSquerylRepository(squerylDatasourceProvider, roReportsExecutionSquerylRepository )
 
   val updatesEntryJdbcRepository = new StatusUpdateSquerylRepository(squerylDatasourceProvider)
 
@@ -1476,8 +1474,8 @@ object RudderConfig extends Loggable {
 
     new ReportsExecutionService(
       reportsRepository
-    , roReportExecutionsRepository
-    , woReportExecutionsRepository
+    , roReportsExecutionSquerylRepository
+    , woReportExecutionsSquerylRepository
     , updatesEntryJdbcRepository
     , max
     )
