@@ -376,7 +376,7 @@ object RudderConfig extends Loggable {
     , globalParameterUnserialisation
   )
   val workflowEventLogService =    new WorkflowEventLogServiceImpl(eventLogRepository,uuidGen)
-  val diffService: DiffService = new DiffServiceImpl(roDirectiveRepository)
+  val diffService: DiffService = new DiffServiceImpl()
   val commitAndDeployChangeRequest : CommitAndDeployChangeRequestService =
     new CommitAndDeployChangeRequestServiceImpl(
         uuidGen
