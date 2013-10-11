@@ -54,11 +54,13 @@ class GroupAPIHeaderVersion (
   , apiV2         : GroupApiService2
 ) extends RestHelper with Loggable{
 
+  private[this] implicit val availableVersions = List(2,3)
+
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.listGroups(req)
+        case Full(ApiVersion(2 | 3)) =>  apiV2.listGroups(req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("listGroups")
       }
@@ -66,7 +68,7 @@ class GroupAPIHeaderVersion (
 
     case Nil JsonPut body -> req => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           req.json match {
             case Full(arg) =>
               val restGroup = restExtractor.extractGroupFromJSON(arg)
@@ -81,7 +83,7 @@ class GroupAPIHeaderVersion (
 
     case Put(Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           val restGroup = restExtractor.extractGroup(req.params)
           apiV2.createGroup(restGroup, req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
@@ -91,7 +93,7 @@ class GroupAPIHeaderVersion (
 
     case Get(id :: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.groupDetails(id, req)
+        case Full(ApiVersion(2 | 3)) =>  apiV2.groupDetails(id, req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("groupDetails")
       }
@@ -99,7 +101,7 @@ class GroupAPIHeaderVersion (
 
     case Delete(id :: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.deleteGroup(id,req)
+        case Full(ApiVersion(2 | 3)) =>  apiV2.deleteGroup(id,req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listAcceptedNodes")
         case _ => notValidVersionResponse("deleteGroup")
       }
@@ -107,7 +109,7 @@ class GroupAPIHeaderVersion (
 
     case id :: Nil JsonPost body -> req => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           req.json match {
             case Full(arg) =>
               val restGroup = restExtractor.extractGroupFromJSON(arg)
@@ -122,7 +124,7 @@ class GroupAPIHeaderVersion (
 
     case Post(id:: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           val restGroup = restExtractor.extractGroup(req.params)
           apiV2.updateGroup(id,req,restGroup)
         case Full(ApiVersion(missingVersion)) =>
@@ -132,7 +134,7 @@ class GroupAPIHeaderVersion (
     }
     case Post( id :: "reload" ::  Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2 | 3)) =>
           apiV2.reloadGroup(id, req)
         case Full(ApiVersion(missingVersion)) =>
           missingResponse(missingVersion,"listAcceptedNodes")

@@ -54,7 +54,6 @@ import com.normation.rudder.web.rest.RestUtils.toJsonError
 import com.normation.rudder.web.rest.RestUtils.toJsonResponse
 import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.utils.StringUuidGenerator
-
 import net.liftweb.common.Box
 import net.liftweb.common.Box.box2Option
 import net.liftweb.common.EmptyBox
@@ -63,6 +62,7 @@ import net.liftweb.http.Req
 import net.liftweb.json.JArray
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonDSL._
+import com.normation.rudder.web.rest.RestDataSerializer
 
 case class RuleApiService2 (
     readRule             : RoRuleRepository
@@ -73,8 +73,10 @@ case class RuleApiService2 (
   , workflowService      : WorkflowService
   , restExtractor        : RestExtractorService
   , workflowEnabled      : Boolean
+  , restDataSerializer   : RestDataSerializer
   ) {
 
+  import restDataSerializer.{ serializeRule => serialize}
 
   private[this] def createChangeRequestAndAnswer (
       id           : String
@@ -107,7 +109,7 @@ case class RuleApiService2 (
     ) match {
       case Full(crId) =>
         val optCrId = if (workflowEnabled) Some(crId) else None
-        val jsonRule = List(toJSON(rule,optCrId))
+        val jsonRule = List(serialize(rule,optCrId))
         toJsonResponse(Some(id), ("rules" -> JArray(jsonRule)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Rule ${id}" )
@@ -121,7 +123,7 @@ case class RuleApiService2 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readRule.getAll(false) match {
       case Full(rules) =>
-        toJsonResponse(None, ( "rules" -> JArray(rules.map(toJSON(_)).toList)))
+        toJsonResponse(None, ( "rules" -> JArray(rules.map(serialize(_,None)).toList)))
       case eb: EmptyBox =>
         val message = (eb ?~ ("Could not fetch Rules")).msg
         toJsonError(None, message)
@@ -145,7 +147,7 @@ case class RuleApiService2 (
       } ) match {
         case Full(x) =>
           asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
-          val jsonRule = List(toJSON(newRule))
+          val jsonRule = List(serialize(newRule,None))
           toJsonResponse(Some(ruleId.value), ("rules" -> JArray(jsonRule)))
 
         case eb:EmptyBox =>
@@ -216,7 +218,7 @@ case class RuleApiService2 (
 
     readRule.get(RuleId(id)) match {
       case Full(rule) =>
-        val jsonRule = List(toJSON(rule))
+        val jsonRule = List(serialize(rule,None))
         toJsonResponse(Some(id),("rules" -> JArray(jsonRule)))
       case eb:EmptyBox =>
         val fail = eb ?~!(s"Could not find Rule ${id}" )
@@ -272,17 +274,5 @@ case class RuleApiService2 (
     }
   }
 
-    def toJSON (rule:Rule , crId: Option[ChangeRequestId] = None): JValue = {
 
-    ("changeRequestId" -> crId.map(_.value.toString)) ~
-    ( "id"               -> rule.id.value ) ~
-    ( "displayName"      -> rule.name ) ~
-    ( "shortDescription" -> rule.shortDescription ) ~
-    ( "longDescription"  -> rule.longDescription ) ~
-    ( "directives"       -> rule.directiveIds.map(_.value) ) ~
-    ( "targets"          -> rule.targets.map(_.target) ) ~
-    ( "enabled"          -> rule.isEnabledStatus ) ~
-    ( "system"           -> rule.isSystem )
-
-  }
 }

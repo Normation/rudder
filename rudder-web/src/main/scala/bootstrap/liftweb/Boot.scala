@@ -100,24 +100,33 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RudderConfig.restApiAccounts)
     // Rule APIs
     LiftRules.statelessDispatch.append(RudderConfig.ruleApi2)
+    LiftRules.statelessDispatch.append(RudderConfig.ruleApi3)
     LiftRules.statelessDispatch.append(RudderConfig.latestRuleApi)
     LiftRules.statelessDispatch.append(RudderConfig.genericRuleApi)
     // Directive APIs
     LiftRules.statelessDispatch.append(RudderConfig.directiveApi2)
+    LiftRules.statelessDispatch.append(RudderConfig.directiveApi3)
     LiftRules.statelessDispatch.append(RudderConfig.latestDirectiveApi)
     LiftRules.statelessDispatch.append(RudderConfig.genericDirectiveApi)
     // Group APIs
     LiftRules.statelessDispatch.append(RudderConfig.groupApi2)
+    LiftRules.statelessDispatch.append(RudderConfig.groupApi3)
     LiftRules.statelessDispatch.append(RudderConfig.latestGroupApi)
     LiftRules.statelessDispatch.append(RudderConfig.genericGroupApi)
     // Node APIs
     LiftRules.statelessDispatch.append(RudderConfig.nodeApi2)
+    LiftRules.statelessDispatch.append(RudderConfig.nodeApi3)
     LiftRules.statelessDispatch.append(RudderConfig.latestNodeApi)
     LiftRules.statelessDispatch.append(RudderConfig.genericNodeApi)
-    // Node APIs
+    // Parameter APIs
     LiftRules.statelessDispatch.append(RudderConfig.parameterApi2)
+    LiftRules.statelessDispatch.append(RudderConfig.parameterApi3)
     LiftRules.statelessDispatch.append(RudderConfig.latestParameterApi)
     LiftRules.statelessDispatch.append(RudderConfig.genericParameterApi)
+    // ChangeRequest APIs
+    LiftRules.statelessDispatch.append(RudderConfig.changeRequestApi3)
+    LiftRules.statelessDispatch.append(RudderConfig.latestChangeRequestApi)
+    LiftRules.statelessDispatch.append(RudderConfig.genericChangeRequestApi)
 
     // URL rewrites
     LiftRules.statefulRewrite.append {
