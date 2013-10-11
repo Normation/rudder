@@ -57,6 +57,7 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import com.normation.inventory.domain.NodeId
 
 class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
@@ -64,6 +65,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   private[this] val eventLogService      = RudderConfig.eventLogRepository
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
+  private[this] val nodeInfoService      = RudderConfig.nodeInfoService
 
   /*
    * We are forced to use that class to deals with multiple request
@@ -79,16 +81,21 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] val currentNets = psService.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID)
+  private[this] val policyServers = nodeInfoService.getAllSystemNodeIds()
 
-  private[this] val allowedNetworks = Buffer() ++
-    currentNets.getOrElse(Nil).map(n => VH(net = n))
+  // we need to store that out of the form, so that the changes are persisted at redraw
+  private[this] val allowedNetworksMap = scala.collection.mutable.Map[NodeId, Buffer[VH]]()
+
 
   def dispatch = {
     case "render" =>
-      currentNets match {
+      policyServers match {
         case e:EmptyBox =>  errorMessage(e)
-        case Full(_) => renderForm
+        case Full(seq) =>
+          // we need to order the seq to have root first
+          val sortedSeq =  Constants.ROOT_POLICY_SERVER_ID +: seq.filter(x => x != Constants.ROOT_POLICY_SERVER_ID)
+          xml:NodeSeq =>  {
+              sortedSeq.foldLeft(NodeSeq.Empty)((result, id) => result++renderForm(id).apply(xml)) }
       }
   }
 
@@ -111,7 +118,24 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     }
   }
 
-  def renderForm : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+  def renderForm(policyServerId: NodeId) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+
+    val allowedNetworksFormId = "allowedNetworksForm" + policyServerId.value
+    val currentNets = psService.getAuthorizedNetworks(policyServerId)
+
+    val policyServerName = nodeInfoService.getNodeInfo(policyServerId) match {
+      case Full(nodeInfo) =>
+        <span>{nodeInfo.hostname}</span>
+      case Failure(m,_,_) =>
+        logger.error(s"Could not get details for Policy Server ID ${policyServerId.value.toUpperCase}, reason is: ${m}")
+        <span class="error">Unknown hostname</span>
+      case Empty =>
+        logger.error(s"Could not get details for Policy Server ID ${policyServerId.value.toUpperCase}, no reasons given")
+        <span class="error">Unknown hostname</span>
+    }
+
+    val allowedNetworks = allowedNetworksMap.getOrElseUpdate(policyServerId,
+        Buffer() ++ currentNets.getOrElse(Nil).map(n => VH(net = n)))
 
     // our process method returns a
     // JsCmd which will be sent back to the browser
@@ -136,23 +160,23 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       if(S.errors.isEmpty) {
         val modId = ModificationId(uuidGen.newUuid)
         (for {
-          currentNetworks <- psService.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID) ?~! "Error when getting the list of current authorized networks"
-          changeNetwork   <- psService.setAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID, goodNets, modId, CurrentUser.getActor) ?~! "Error when saving new allowed networks"
+          currentNetworks <- psService.getAuthorizedNetworks(policyServerId) ?~! s"Error when getting the list of current authorized networks for policy server ${policyServerId.value}"
+          changeNetwork   <- psService.setAuthorizedNetworks(policyServerId, goodNets, modId, CurrentUser.getActor) ?~! "Error when saving new allowed networks for policy server ${policyServerId.value}"
           modifications   =  UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(currentNetworks, goodNets))
           eventSaved      <- eventLogService.saveEventLog(modId,
                                UpdatePolicyServer(EventLogDetails(
                                  modificationId = None
                                , principal = CurrentUser.getActor
                                , details = modifications
-                               , reason = None))) ?~! "Unable to save the user event log for modification on authorized networks"
+                               , reason = None))) ?~! "Unable to save the user event log for modification on authorized networks for policy server ${policyServerId.value}"
         } yield {
         }) match {
           case Full(_) =>
             asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
 
-            Replace("allowedNetworksForm", outerXml.applyAgain) &
+            Replace(allowedNetworksFormId, outerXml.applyAgain) &
             successPopup
-          case e:EmptyBox => SetHtml("allowedNetworksForm",errorMessage(e)(outerXml.applyAgain))
+          case e:EmptyBox => SetHtml(allowedNetworksFormId,errorMessage(e)(outerXml.applyAgain))
         }
 
       } else Noop
@@ -160,15 +184,21 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
     def delete(i:Long) : JsCmd = {
       allowedNetworks -= VH(i)
-      Replace("allowedNetworksForm", outerXml.applyAgain)
+      allowedNetworksMap.put(policyServerId, allowedNetworks)
+      Replace(allowedNetworksFormId, outerXml.applyAgain)
     }
 
     def add() : JsCmd = {
       allowedNetworks.append(VH())
-      Replace("allowedNetworksForm", outerXml.applyAgain)
+      allowedNetworksMap.put(policyServerId, allowedNetworks)
+      Replace(allowedNetworksFormId, outerXml.applyAgain)
     }
 
+
+
     //process the list of networks
+    "#allowedNetworksForm [id]" #> allowedNetworksFormId andThen
+    "#policyServerDetails" #> <h3>{"Allowed networks for policy server "}{policyServerName} {s"(Rudder ID: ${policyServerId.value.toUpperCase})"}</h3> &
     "#allowNetworkFields *" #> { (xml:NodeSeq) =>
       allowedNetworks.flatMap { case VH(i,net) =>
         val id = "network_"+ i
@@ -182,7 +212,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
           },  "id" -> id)
         )(xml)
       }
-    } &
+    }  &
     "#addNetworkButton" #> SHtml.ajaxSubmit("Add a network", add _) &
     "#submitAllowedNetwork" #> {
       SHtml.ajaxSubmit("Submit", process _,("id","submitAllowedNetwork")) ++ Script(
