@@ -59,6 +59,7 @@ import net.liftweb.json.JArray
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common.Loggable
+import com.normation.rudder.web.rest.RestDataSerializer
 
 case class ParameterApiService2 (
     readParameter        : RoParameterRepository
@@ -68,8 +69,10 @@ case class ParameterApiService2 (
   , workflowService      : WorkflowService
   , restExtractor        : RestExtractorService
   , workflowEnabled      : Boolean
+  , restDataSerializer   : RestDataSerializer
   ) extends Loggable {
 
+  import restDataSerializer.{ serializeParameter => serialize}
 
   private[this] def createChangeRequestAndAnswer (
       id           : String
@@ -102,7 +105,7 @@ case class ParameterApiService2 (
     ) match {
       case Full(crId) =>
         val optCrId = if (workflowEnabled) Some(crId) else None
-        val jsonParameter = List(toJSON(parameter,optCrId))
+        val jsonParameter = List(serialize(parameter,optCrId))
         toJsonResponse(Some(id), ("parameters" -> JArray(jsonParameter)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Parameter ${id}" )
@@ -116,7 +119,7 @@ case class ParameterApiService2 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readParameter.getAllGlobalParameters match {
       case Full(parameters) =>
-        toJsonResponse(None, ( "parameters" -> JArray(parameters.map(toJSON(_)).toList)))
+        toJsonResponse(None, ( "parameters" -> JArray(parameters.map(serialize(_,None)).toList)))
       case eb: EmptyBox =>
         val message = (eb ?~ ("Could not fetch Parameters")).msg
         toJsonError(None, message)
@@ -157,7 +160,7 @@ case class ParameterApiService2 (
 
     readParameter.getGlobalParameter(ParameterName(id)) match {
       case Full(parameter) =>
-        val jsonParameter = List(toJSON(parameter))
+        val jsonParameter = List(serialize(parameter,None))
         toJsonResponse(Some(id),("parameters" -> JArray(jsonParameter)))
       case eb:EmptyBox =>
         val fail = eb ?~!(s"Could not find Parameter ${id}" )
@@ -213,13 +216,4 @@ case class ParameterApiService2 (
     }
   }
 
-    def toJSON (parameter:Parameter , crId: Option[ChangeRequestId] = None): JValue = {
-
-    ("changeRequestId" -> crId.map(_.value.toString)) ~
-    ( "id"          -> parameter.name.value ) ~
-    ( "value"       -> parameter.value ) ~
-    ( "description" -> parameter.description ) ~
-    ( "overridable" -> parameter.overridable )
-
-  }
 }

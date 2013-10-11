@@ -79,7 +79,8 @@ trait WorkflowService {
    */
   def startWorkflow(changeRequestId: ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId]
 
-
+  val openSteps : List[WorkflowNodeId]
+  val closedSteps : List[WorkflowNodeId]
 
   val stepsValue :List[WorkflowNodeId]
 
@@ -136,6 +137,8 @@ class NoWorkflowServiceImpl(
 
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId] = Failure("No state when no workflow")
 
+  val openSteps : List[WorkflowNodeId] = List()
+  val closedSteps : List[WorkflowNodeId] = List()
   val stepsValue :List[WorkflowNodeId] = List()
 
   def startWorkflow(changeRequestId: ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[WorkflowNodeId] = {
@@ -194,11 +197,13 @@ class TwoValidationStepsWorkflowServiceImpl(
   case object Cancelled extends WorkflowNode {
     val id = WorkflowNodeId("Cancelled")
   }
-
-  private[this] val steps:List[WorkflowNode] = List(Validation,Deployment,Deployed,Cancelled)
+  
+  val steps:List[WorkflowNode] = List(Validation,Deployment,Deployed,Cancelled)
 
   def getItemsInStep(stepId: WorkflowNodeId) : Box[Seq[ChangeRequestId]] = roWorkflowRepo.getAllByState(stepId)
 
+  val openSteps : List[WorkflowNodeId] = List(Validation.id,Deployment.id)
+  val closedSteps : List[WorkflowNodeId] = List(Cancelled.id,Deployed.id)
   val stepsValue = steps.map(_.id)
 
   def findNextSteps(
@@ -347,3 +352,5 @@ class TwoValidationStepsWorkflowServiceImpl(
 
 
 }
+
+

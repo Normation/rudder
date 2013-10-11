@@ -55,11 +55,13 @@ class DirectiveAPIHeaderVersion (
   , apiV2         : DirectiveAPIService2
 ) extends RestHelper with Loggable{
 
+
+  private[this] implicit val availableVersions = List(2,3)
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.listDirectives(req)
+        case Full(ApiVersion(2)) | Full(ApiVersion(3)) =>  apiV2.listDirectives(req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"listDirectives")
         case _ => notValidVersionResponse("listDirectives")
       }
@@ -67,7 +69,7 @@ class DirectiveAPIHeaderVersion (
 
     case Nil JsonPut body -> req => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2)) | Full(ApiVersion(3)) =>
           req.json match {
             case Full(arg) =>
             val restDirective = restExtractor.extractDirectiveFromJSON(arg)
@@ -82,7 +84,7 @@ class DirectiveAPIHeaderVersion (
 
     case Put(Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2)) | Full(ApiVersion(3)) =>
           val restDirective = restExtractor.extractDirective(req.params)
           apiV2.createDirective(restDirective, req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"createDirective")
@@ -92,7 +94,7 @@ class DirectiveAPIHeaderVersion (
 
     case Get(id :: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.directiveDetails(id, req)
+        case Full(ApiVersion(2)) | Full(ApiVersion(3)) =>  apiV2.directiveDetails(id, req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"directiveDetails")
         case _ => notValidVersionResponse("directiveDetails")
       }
@@ -100,7 +102,7 @@ class DirectiveAPIHeaderVersion (
 
     case Delete(id :: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>  apiV2.deleteDirective(id,req)
+        case Full(ApiVersion(2)) | Full(ApiVersion(3)) =>  apiV2.deleteDirective(id,req)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"deleteDirective")
         case _ => notValidVersionResponse("deleteDirective")
       }
@@ -108,7 +110,7 @@ class DirectiveAPIHeaderVersion (
 
     case id :: Nil JsonPost body -> req => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2)) | Full(ApiVersion(3)) =>
           req.json match {
             case Full(arg) =>
             val restDirective = restExtractor.extractDirectiveFromJSON(arg)
@@ -124,7 +126,7 @@ class DirectiveAPIHeaderVersion (
 
     case Post(id:: Nil, req) => {
       ApiVersion.fromRequest(req) match {
-        case Full(ApiVersion(2)) =>
+        case Full(ApiVersion(2)) | Full(ApiVersion(3)) =>
           val restDirective = restExtractor.extractDirective(req.params)
           apiV2.updateDirective(id,req,restDirective)
         case Full(ApiVersion(missingVersion)) => missingResponse(missingVersion,"updateDirective")

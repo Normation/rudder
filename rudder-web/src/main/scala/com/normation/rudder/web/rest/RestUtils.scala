@@ -104,9 +104,9 @@ object RestUtils extends Loggable {
     effectiveResponse (id, message, RestError, action, prettify)
   }
 
-  def notValidVersionResponse(action:String) = {
-    val availableVersion = List("2", "latest")
-    toJsonError(None, JString(s"Version used does not exists, please use one of the following: ${availableVersion.mkString("[ ", ", ", " ]")} "))(action,false)
+  def notValidVersionResponse(action:String)(implicit availableVersions : List[Int]) = {
+    val versions = "latest" :: availableVersions.map(_.toString)
+    toJsonError(None, JString(s"Version used does not exists, please use one of the following: ${versions.mkString("[ ", ", ", " ]")} "))(action,false)
    }
 
   def missingResponse(version:Int,action:String) = {
@@ -121,34 +121,33 @@ sealed case class ApiVersion (
 
 object ApiVersion {
 
+  def fromRequest(req:Req)( implicit availableVersions : List[Int]) : Box[ApiVersion] = {
 
-  val availableVersions = List(2)
+    val latest = availableVersions.max
+    def fromString (version : String) : Box[ApiVersion] = {
+      version match {
+        case "latest"  => Full(ApiVersion(latest))
+        case value =>
+           tryo { value.toInt } match {
+             case Full(version) =>
+               if (availableVersions.contains(version)) {
+                 Full(ApiVersion(version))
+               } else {
+                 Failure(s" ${version} is not a valid api version")
+               }
+             // Never empty due to tryo
+             case eb:EmptyBox => eb
+          }
+      }
+    }
 
-  val latest = availableVersions.max
-
-  def fromRequest(req:Req) : Box[ApiVersion] = {
     req.header("X-API-VERSION") match {
       case Full(value) => fromString(value)
       case eb: EmptyBox => eb ?~ ("Error when getting header X-API-VERSION")
     }
   }
 
-  def fromString (version : String) : Box[ApiVersion] = {
-    version match {
-      case "latest"  => Full(ApiVersion(latest))
-      case value =>
-         tryo { value.toInt } match {
-           case Full(version) =>
-             if (availableVersions.contains(version)) {
-               Full(ApiVersion(version))
-             } else {
-               Failure(s" ${version} is not a valid api version")
-             }
-           // Never empty due to tryo
-           case eb:EmptyBox => eb
-        }
-    }
-  }
+
 }
 
 sealed trait HttpStatus {
