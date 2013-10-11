@@ -39,6 +39,7 @@ import com.normation.rudder.domain.reports.bean._
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import com.normation.rudder.reports.status.StatusUpdateRepository
+import org.joda.time.DateTime
 
 /**
  * That service contains most of the logic to merge
@@ -52,69 +53,62 @@ class ReportsExecutionService (
   , maxDays                : Int // in days
 ) extends Loggable {
 
-  def findEndReport(report : Reports) : Boolean = {
-    report.directiveId.value == "common-root" && report.component == "common" && report.keyValue == "EndRun"
-  }
+
   def findAndSaveExecutions = {
 
     // Get execution status
     statusUpdateRepository.getExecutionStatus match {
       // Find it, start looking for new executions
       case Full(Some((lastReportId,lastReportDate))) =>
+        logger.info(s"Starting to fetch Nodes Executions from report ID ${lastReportId} - date from ${lastReportDate} to ${lastReportDate plusDays(maxDays)}")
 
         // Get reports of the last id and before last report date plus maxDays
-        reportsRepository.getReportsfromId(lastReportId, lastReportDate plusDays(maxDays)) match {
-          case Full(reportsWithIndex) =>
-            val reports = reportsWithIndex.map(_._1)
-            val reportExec : Seq[ReportExecution] =
-              ( for {
-                  ((nodeId,date), reports) <- reports.groupBy(report => (report.nodeId,report.executionTimestamp))
-                } yield {
+        val endBatchDate = if (lastReportDate.plusDays(maxDays).isAfter(DateTime.now)) {
+                              DateTime.now
+                            } else {
+                              lastReportDate.plusDays(maxDays)
+                            }
 
-                  if (reports.exists(findEndReport)){
-                    ReportExecution(nodeId,date,true)
-                  } else {
-                    logger.warn("not complete")
-                    ReportExecution(nodeId,date,false)
-                } }
-              ).toSeq
-            // Check if there is no interesting reports
-            if (!reportsWithIndex.isEmpty) {
+        reportsRepository.getReportsfromId(lastReportId, endBatchDate) match {
+          case Full((reportExec, maxReportId)) =>
+            if (reportExec.size > 0) {
+              val maxDate = reportExec.maxBy(_.date.getMillis()).date
               // Save new executions
-              writeExecutions.saveExecutions(reportExec) match {
+              writeExecutions.updateExecutions(reportExec) match {
                 case Full(result) =>
-                  logger.debug(s"Saved ${result.size} executions")
-                  val lastReport = reportsWithIndex.maxBy(_._2)
-                  statusUpdateRepository.setExecutionStatus(lastReport._2, lastReport._1.executionTimestamp)
+                  logger.info(s"Saved ${result.size} execution of nodes, up to the ID ${maxReportId} and date ${maxDate}")
+                  statusUpdateRepository.setExecutionStatus(maxReportId, maxDate)
 
-                case eb:EmptyBox => val fail = eb ?~! "could not save reports executions"
-                  logger.error(s"could not save reports execution cause is : ${fail.messageChain}")
+                case eb:EmptyBox => val fail = eb ?~! "could not save nodes executions"
+                  logger.error(s"Could not save execution of Nodes from report ID ${lastReportId} - date ${lastReportDate} to ${lastReportDate plusDays(maxDays)}, cause is : ${fail.messageChain}")
               }
 
             } else {
-              logger.debug("No reports to aggregate ")
-              statusUpdateRepository.setExecutionStatus(lastReportId, lastReportDate plusDays maxDays)
+              logger.info("There are no nodes executions to store")
+              logger.debug(s"Storing date ${endBatchDate} for next upper limits")
+              statusUpdateRepository.setExecutionStatus(lastReportId, endBatchDate)
             }
 
           case eb:EmptyBox =>
             val fail = eb ?~! "could not get Reports"
-            logger.error(s"could not get reports cause is: ${fail.messageChain}")
+            logger.error(s"Could not get node execution reports in the RudderSysEvents table, cause is: ${fail.messageChain}")
         }
 
       // Executions status not initialized ... initialize it!
       case Full(None) =>
         reportsRepository.getReportsWithLowestId match {
           case Full(Some((report,id))) =>
+            logger.debug(s"Initializing the status execution update to  id ${id}, date ${report.executionTimestamp}")
             statusUpdateRepository.setExecutionStatus(id, report.executionTimestamp)
           case Full(None) =>
-            logger.debug("no reports in database, could not start aggregation for now")
+            logger.debug("There are no node execution in the database, cannot save the execution")
           case eb:EmptyBox =>
-            val fail = eb ?~! "could not get Reports with lowest id"
-            logger.error(s"could not get update aggregation status cause is: ${fail.messageChain}")
+            val fail = eb ?~! "Could not get Reports with lowest id from the RudderSysEvents table"
+            logger.error(s"Could not get reports from the database, cause is: ${fail.messageChain}")
         }
       case eb:EmptyBox =>
-        val fail = eb ?~! "could not get execution status"
-        logger.error(s"could not find reports executions cause is: ${fail.messageChain}")
+        val fail = eb ?~! "Could not get node execution status"
+        logger.error(s"Could not get node executions reports from the RudderSysEvents table  cause is: ${fail.messageChain}")
 
 
     }

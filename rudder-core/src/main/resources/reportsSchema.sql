@@ -282,9 +282,11 @@ lastId integer NOT NULL,
 date timestamp with time zone NOT NULL
 );
 
-create table ReportsExecution {
+create table ReportsExecution (
 nodeId text NOT NULL,
 date timestamp with time zone NOT NULL,
 complete boolean NOT NULL,
 PRIMARY KEY(nodeId, date)
-};
+);
+
+create index reportsexecution_date_idx on ReportsExecution (date);

@@ -81,10 +81,4 @@ trait ReportingService {
    */
   def findImmediateReportsByNode(nodeId : NodeId) :  Box[Seq[ExecutionBatch]]
 
-
-  /**
-   * Returns the reports for a rule
-   */
-  def findReportsByRule(ruleId : RuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch]
-
 }

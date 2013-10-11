@@ -50,10 +50,6 @@ class StatusUpdateSquerylRepository (
   import StatusUpdate._
 
 
-  def getAggregationStatus : Box[Option[(Int,DateTime)]] = {
-    getValue(aggregationStatus)
-  }
-
   def getExecutionStatus : Box[Option[(Int,DateTime)]] = {
     getValue(executionStatus)
   }
@@ -71,20 +67,17 @@ class StatusUpdateSquerylRepository (
           case Nil => Full(None)
           case head :: Nil => Full(Some((head.lastId,new DateTime(head.date))))
           case _ =>
-            val msg = s"Too many entry matching ${key} in table aggregationStatus "
+            val msg = s"Too many entry matching ${key} in table StatusUpdate "
             logger.error(msg)
             Failure(msg)
         }
       }
     } catch {
-     case e:Exception => Failure(s"Error while fetching ${key} in table aggregationStatus :$e")
+     case e:Exception => Failure(s"Error while fetching ${key} in table StatusUpdate :$e")
     }
 
   }
 
-  def setAggregationStatus(newId : Int, reportsDate : DateTime) : Box[UpdateEntry] = {
-    setValue(aggregationStatus, newId, reportsDate)
-  }
 
   def setExecutionStatus(newId : Int, reportsDate : DateTime) : Box[UpdateEntry] = {
     setValue(executionStatus, newId, reportsDate)
@@ -98,7 +91,6 @@ class StatusUpdateSquerylRepository (
         	where(entry.key === key)
         	set(entry.lastId := reportId, entry.date := timeStamp))
         val entry = new UpdateEntry(key, reportId, timeStamp)
-        logger.info(q.toString)
         if (q ==0) // could not update
           Full(statusTable.insert(entry))
         else {
@@ -106,7 +98,10 @@ class StatusUpdateSquerylRepository (
         }
       }
     } catch {
-     case e:Exception => Failure(s"Error while setting ${key} in table aggregationStatus cause is: $e")
+     case e:Exception =>
+       val msg = s"Error while setting ${key} in table StatusUpdate cause is: ${e.getMessage()}"
+       logger.error(msg)
+       Failure(msg)
     }
   }
 
@@ -123,6 +118,5 @@ case class UpdateEntry(
 object StatusUpdate extends Schema {
   val statusTable = table[UpdateEntry]("statusupdate")
 
-  val executionStatus   = "executionStatus"
-  val aggregationStatus = "aggregationStatus"
+  val executionStatus = "executionStatus"
 }

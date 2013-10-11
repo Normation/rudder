@@ -157,7 +157,7 @@ trait AbstractScheduler extends Loggable {
             val error = (e ?~! s"Error when executing [${displayName}] scheduler task started at ${start.toString(format)}, ended at ${end.toString(format)}.")
             logger.error(error.messageChain)
           case Full(x) =>
-            logger.debug(s"[${displayName}] scheduler task started at ${start.toString(format)}, successfully ended at ${end.toString(format)}")
+            logger.info(s"[${displayName}] scheduler task started at ${start.toString(format)}, successfully ended at ${end.toString(format)}")
         }
 
       // --------------------------------------------

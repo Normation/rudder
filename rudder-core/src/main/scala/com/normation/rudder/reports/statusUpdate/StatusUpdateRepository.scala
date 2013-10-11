@@ -37,11 +37,10 @@ package com.normation.rudder.reports.status
 import org.joda.time.DateTime
 import net.liftweb.common.Box
 
+/**
+ * Manage the status of the fetching of execution date per node
+ */
 trait StatusUpdateRepository {
-
-  def getAggregationStatus : Box[Option[(Int,DateTime)]]
-
-  def setAggregationStatus (newId : Int, reportsDate : DateTime) : Box[UpdateEntry]
 
   def getExecutionStatus : Box[Option[(Int,DateTime)]]
 

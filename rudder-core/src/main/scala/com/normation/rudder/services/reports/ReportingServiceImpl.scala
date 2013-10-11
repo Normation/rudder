@@ -118,7 +118,6 @@ class ReportingServiceImpl(
     for (closable <- confToClose) {
       confExpectedRepo.closeExpectedReport(closable)
     }
-//<<<<<<< HEAD
 
     // Now I need to unfold the configuration to create, so that I get for a given
     // set of ruleId, serial, DirectiveExpectedReports we have the list of  corresponding nodes
@@ -172,23 +171,7 @@ class ReportingServiceImpl(
     }
   }
 
-  /**
-   * Returns the reports for a rule
-   */
-  def findReportsByRule(ruleId : RuleId, beginDate : Option[DateTime], endDate : Option[DateTime]) : Seq[ExecutionBatch] = {
 
-    // look in the configuration
-    confExpectedRepo.findExpectedReports(ruleId, beginDate, endDate) match {
-      case Full(expectedConfigurationReports) =>
-        (for {
-          expected <- expectedConfigurationReports
-        } yield {
-          val end = if (endDate.isDefined) endDate else expected.endDate
-          createBatchesFromConfigurationReports(expected, beginDate.getOrElse(expected.beginDate), end)
-        }).flatten
-      case eb:EmptyBox => Seq()
-    }
-  }
   /**
    * Find the latest reports for a given rule (for all servers)
    * Note : if there is an expected report, and that we don't have it, we should say that it is empty
@@ -216,51 +199,6 @@ class ReportingServiceImpl(
   }
 
   /************************ Helpers functions **************************************/
-
-
-   /**
-   * From a RuleExpectedReports, create batch synthesizing these information by
-   * searching reports in the database from the beginDate to the endDate
-   * @param expectedOperationReports
-   * @param reports
-   * @return
-   *     val ruleId                  : RuleId
-  , val serial                  : Int
-  , val directivesOnNodesExpectedReports : Seq[DirectivesOnNodeExpectedReport]
-  , val executionTime           : DateTime
-  , val executionReports        : Seq[Reports]
-  , val beginDate               : DateTime
-  , val endDate                 : Option[DateTime]
-   */
-  private def createBatchesFromConfigurationReports(expectedConfigurationReports : RuleExpectedReports, beginDate : DateTime, endDate : Option[DateTime]) : Seq[ExecutionBatch] = {
-    val batches = mutable.Buffer[ExecutionBatch]()
-
-    def fillWithEmptyBatches = ()
-
-    // Fetch the reports corresponding to this rule, and filter them by nodes
-    val reports = reportsRepository.findReportsByRule(expectedConfigurationReports.ruleId, Some(expectedConfigurationReports.serial), Some(beginDate), endDate).filter( x =>
-            expectedConfigurationReports.directivesOnNodes.flatMap(_.nodeIds).distinct.contains(x.nodeId)  )
-
-    val receivedReports = for {
-      (rule,date)     <- reports.map(x => (x.ruleId ->  x.executionTimestamp)).toSet[(RuleId, DateTime)].toSeq
-      filteredReports = reports.filter(x => x.executionTimestamp == date)
-      filteredNodes   = filteredReports.map(_.nodeId).distinct
-    } yield {
-      new ConfigurationExecutionBatch(
-          rule,
-          expectedConfigurationReports.serial,
-          expectedConfigurationReports.directivesOnNodes.map( expected =>
-              DirectivesOnNodeExpectedReport(expected.nodeIds,expected.directiveExpectedReports)),
-          date,
-          filteredReports, // we want only those of this run
-          expectedConfigurationReports.beginDate,
-          expectedConfigurationReports.endDate)
-    }
-
-    receivedReports.sortWith((exec1,exec2) => exec1.executionTime.isBefore(exec2.executionTime))
-  }
-
-
 
   /**
    * From a RuleExpectedReports, create batch synthetizing the last run
