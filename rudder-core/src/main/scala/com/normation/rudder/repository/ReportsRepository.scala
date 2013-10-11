@@ -40,6 +40,7 @@ import com.normation.rudder.domain.reports.bean._
 import org.joda.time._
 import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
 import net.liftweb.common.Box
+import com.normation.rudder.reports.execution.ReportExecution
 
 /**
  * An overly simple repository for searching through the cfengine reports
@@ -128,7 +129,10 @@ trait ReportsRepository {
 
   def getErrorReportsBeetween(lower : Int, upper:Int,kinds:List[String]) : Box[Seq[Reports]]
 
-  def getReportsfromId(id : Int, endDate : DateTime) : Box[Seq[(Reports,Int)]]
+  /**
+   * From an id and an end date, return a list of ReportExecution, and the max ID that has been considered
+   */
+  def getReportsfromId(id : Int, endDate : DateTime) : Box[(Seq[ReportExecution], Int)]
 
   def getReportsWithLowestId : Box[Option[(Reports,Int)]]
 }

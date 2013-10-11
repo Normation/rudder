@@ -41,10 +41,9 @@ import com.normation.rudder.reports.execution.ReportsExecutionService
 
 
 /**
- * That batch scheduler periodically aggregate reports.
+ * That batch scheduler periodically store Nodes executions.
  *
  * The actual copy is delegated to
- * <code>com.normation.rudder.reports.aggregation.AggregationService.aggregateReports</code> method.
  *
  */
 class FindNewReportsExecution (
@@ -54,7 +53,7 @@ class FindNewReportsExecution (
 
   type T = Unit
   val executeTask: () => Box[Unit]  = () => tryo{reportsExecutionService     .findAndSaveExecutions}
-  lazy val displayName : String = "Find new reports execution"
+  lazy val displayName : String = "Store Nodes executions"
   lazy val propertyName : String = "rudder.reports.execution.updateInterval"
 
 }
