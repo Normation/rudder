@@ -189,9 +189,12 @@ case class WoReportsExecutionSquerylRepository (
   def updateExecutions(executions : Seq[ReportExecution]) : Box[Seq[ReportExecution]] =  {
     for {
       existingExec            <- getExecutionsByNodeAndDate(executions) ?~! "Could not fetch the already save executions date for node"
-      completeExec            = executions.filter(_.isComplete)
+
 
       existingNotCompleteExec = existingExec.filter(!_.isComplete)
+
+      // corner case; there may be existing execution already complete (like, if we come back on existing values)
+      completeExec            = executions.filter(_.isComplete).filterNot(x => existingExec.contains(x))
 
       // closed execution are those complete, into the existing execution incomplete
       closedExec              = completeExec.map  { x =>
@@ -216,7 +219,7 @@ case class WoReportsExecutionSquerylRepository (
                                }.map(x => ReportExecution(x.nodeId, x.date, false))
       closed                  <- closeExecutions(closedExec) ?~! s"Could not close the ${closedExec.size} execution that has been completed during the interval"
       newlyClosed             <- saveExecutions(newlyClosedExec) ?~! s"Could not create the ${newlyClosedExec.size} execution that has been completed during the interval"
-      newExecutions           <-  saveExecutions(newExec) ?~! s"Could not create the ${newExec.size} execution that has been started during the interval"
+      newExecutions           <- saveExecutions(newExec) ?~! s"Could not create the ${newExec.size} execution that has been started during the interval"
 
 
     } yield {

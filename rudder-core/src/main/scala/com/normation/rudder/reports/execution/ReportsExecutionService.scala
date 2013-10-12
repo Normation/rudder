@@ -39,6 +39,7 @@ import com.normation.rudder.domain.reports.bean._
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import com.normation.rudder.reports.status.StatusUpdateRepository
+import org.joda.time.DateTime
 
 /**
  * That service contains most of the logic to merge
@@ -60,8 +61,15 @@ class ReportsExecutionService (
       // Find it, start looking for new executions
       case Full(Some((lastReportId,lastReportDate))) =>
         logger.info(s"Starting to fetch Nodes Executions from report ID ${lastReportId} - date from ${lastReportDate} to ${lastReportDate plusDays(maxDays)}")
+
         // Get reports of the last id and before last report date plus maxDays
-        reportsRepository.getReportsfromId(lastReportId, lastReportDate plusDays(maxDays)) match {
+        val endBatchDate = if (lastReportDate.plusDays(maxDays).isAfter(DateTime.now)) {
+                              DateTime.now
+                            } else {
+                              lastReportDate.plusDays(maxDays)
+                            }
+
+        reportsRepository.getReportsfromId(lastReportId, endBatchDate) match {
           case Full((reportExec, maxReportId)) =>
             if (reportExec.size > 0) {
               val maxDate = reportExec.maxBy(_.date.getMillis()).date
@@ -77,7 +85,8 @@ class ReportsExecutionService (
 
             } else {
               logger.info("There are no nodes executions to store")
-              statusUpdateRepository.setExecutionStatus(lastReportId, lastReportDate plusDays maxDays)
+              logger.debug(s"Storing date ${endBatchDate} for next upper limits")
+              statusUpdateRepository.setExecutionStatus(lastReportId, endBatchDate)
             }
 
           case eb:EmptyBox =>
@@ -89,6 +98,7 @@ class ReportsExecutionService (
       case Full(None) =>
         reportsRepository.getReportsWithLowestId match {
           case Full(Some((report,id))) =>
+            logger.debug(s"Initializing the status execution update to  id ${id}, date ${report.executionTimestamp}")
             statusUpdateRepository.setExecutionStatus(id, report.executionTimestamp)
           case Full(None) =>
             logger.debug("There are no node execution in the database, cannot save the execution")
