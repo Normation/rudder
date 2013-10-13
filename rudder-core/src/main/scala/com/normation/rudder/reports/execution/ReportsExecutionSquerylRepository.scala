@@ -64,7 +64,7 @@ case class RoReportsExecutionSquerylRepository (
       Full(Seq[ReportExecution]() ++ queryResult)
     } } catch {
       case e:Exception  =>
-        logger.error(s"Error when trying to get report executions for node '${nodeId.value}'")
+        logger.error(s"Error when trying to get report executions for node '${nodeId.value}'", e)
         Failure(s"Error when trying to get report executions for node '${nodeId.value}' cause is : $e")
     }
   }
@@ -81,11 +81,12 @@ case class RoReportsExecutionSquerylRepository (
       Full( queryResult)
     } } catch {
       case e:Exception  =>
-        logger.error(s"Error when trying to get report executions for node '${nodeId.value}'")
-        Failure(s"Error when trying to get report executions for node '${nodeId.value}' cause is : $e")
+        val msg = s"Error when trying to get report executions for node with Id '${nodeId.value}', reason is ${e.getMessage()}"
+        logger.error(msg, e)
+        Failure(msg)
     }
   }
-  def getExecutionByNodeandDate (nodeId : NodeId, date: DateTime) : Box[Option[ReportExecution]] = {
+  def getExecutionByNodeAndDate (nodeId : NodeId, date: DateTime) : Box[Option[ReportExecution]] = {
     try {  sessionProvider.ourTransaction {
       val queryResult : Option[ReportExecution] = from(Executions.executions)(entry =>
         where(
@@ -97,8 +98,9 @@ case class RoReportsExecutionSquerylRepository (
       Full(queryResult)
     } } catch {
       case e:Exception  =>
-        logger.error(s"Error when trying to get report executions for node '${nodeId.value}'")
-        Failure(s"Error when trying to get report executions for node '${nodeId.value}' cause is : $e")
+        val msg = s"Error when trying to get report executions for node with Id '${nodeId.value} at date ${date}', reason is ${e.getMessage()}"
+        logger.error(msg, e)
+        Failure(msg)
     }
   }
 
@@ -121,8 +123,9 @@ case class RoReportsExecutionSquerylRepository (
         Full(Seq() ++ result.toSeq.map(fromDB))
     } } catch {
       case e:Exception  =>
-        logger.error(s"Error when trying to get report executions")
-        Failure(s"Error when trying to get report executions, cause is : $e")
+        val msg = s"Error when trying to get nodes report executions, reason is ${e.getMessage()}"
+        logger.error(msg, e)
+        Failure(msg)
     }
   }
 
@@ -138,7 +141,7 @@ case class WoReportsExecutionSquerylRepository (
   import ExecutionRepositoryUtils._
 
   def saveOrUpdateExecution (execution : ReportExecution) : Box[ReportExecution] = {
-    getExecutionByNodeandDate(execution.nodeId, execution.date) match {
+    getExecutionByNodeAndDate(execution.nodeId, execution.date) match {
       case Full(Some(_)) =>
         if (execution.isComplete) {
           logger.trace(s"need to update execution ${execution}")
@@ -163,7 +166,7 @@ case class WoReportsExecutionSquerylRepository (
     } catch {
       case e:Exception =>
         val msg = s"Could not save the node execution ${execution}, reason is ${e.getMessage()}"
-        logger.error(msg)
+        logger.error(msg, e)
         Failure(msg)
     }
   }
@@ -180,7 +183,7 @@ case class WoReportsExecutionSquerylRepository (
     } catch {
       case e:Exception =>
         val msg = s"Could not save the ${executions.size} nodes executions, reason is ${e.getMessage()}"
-        logger.error(msg)
+        logger.error(msg, e)
         Failure(msg)
     }
 
@@ -189,20 +192,22 @@ case class WoReportsExecutionSquerylRepository (
   def updateExecutions(executions : Seq[ReportExecution]) : Box[Seq[ReportExecution]] =  {
     for {
       existingExec            <- getExecutionsByNodeAndDate(executions) ?~! "Could not fetch the already save executions date for node"
-
+      existingExecWithoutState= existingExec.map(ex =>
+                                    ReportExecutionWithoutState(ex.nodeId, ex.date))
 
       existingNotCompleteExec = existingExec.filter(!_.isComplete)
+      existingNotCompWithoutState = existingNotCompleteExec.map(ex =>
+                                         ReportExecutionWithoutState(ex.nodeId, ex.date))
 
       // corner case; there may be existing execution already complete (like, if we come back on existing values)
       completeExec            = executions.filter(_.isComplete).filterNot(x => existingExec.contains(x))
+
 
       // closed execution are those complete, into the existing execution incomplete
       closedExec              = completeExec.map  { x =>
                                       ReportExecutionWithoutState(x.nodeId, x.date)
                                     }.filter { x =>
-                                      existingNotCompleteExec.map(ex =>
-                                         ReportExecutionWithoutState(ex.nodeId, ex.date)).
-                                           contains(x)
+                                        existingNotCompWithoutState.contains(x)
                                     }.map(x => ReportExecution(x.nodeId, x.date, true))
 
       // a new closed execution is an execution closed, but not in the list of the executions
@@ -213,9 +218,7 @@ case class WoReportsExecutionSquerylRepository (
       newExec                 = executions.filter(!_.isComplete).map  { x =>
                                   ReportExecutionWithoutState(x.nodeId, x.date)
                                }.filterNot { x =>
-                                  existingExec.map(ex =>
-                                    ReportExecutionWithoutState(ex.nodeId, ex.date)).
-                                      contains(x)
+                                    existingExecWithoutState.contains(x)
                                }.map(x => ReportExecution(x.nodeId, x.date, false))
       closed                  <- closeExecutions(closedExec) ?~! s"Could not close the ${closedExec.size} execution that has been completed during the interval"
       newlyClosed             <- saveExecutions(newlyClosedExec) ?~! s"Could not create the ${newlyClosedExec.size} execution that has been completed during the interval"
@@ -242,7 +245,10 @@ case class WoReportsExecutionSquerylRepository (
       logger.debug(s" closed 1, should have close")
       Full(execution)
     } catch {
-      case e:Exception => Failure("could not create aggregated reports")
+      case e:Exception =>
+        val msg = s"Could not save close the node execution ${execution}, reason is ${e.getMessage()}"
+        logger.error(msg, e)
+        Failure(msg)
     }
   }
 
@@ -260,10 +266,13 @@ case class WoReportsExecutionSquerylRepository (
             set   ( exec.isComplete := true)
         ) )
       }
-      logger.debug(s" closed ${closeResult.size}, should have close ${executions.size}")
+      logger.debug(s"Closed ${closeResult.size} execution, out of the ${executions.size} that should have been closed")
       Full(executions)
     } catch {
-      case e:Exception => Failure("could not create aggregated reports")
+      case e:Exception =>
+        val msg = s"Could not close the ${executions.size} nodes executions, reason is ${e.getMessage()}"
+        logger.error(msg, e)
+        Failure(msg)
     }
   }
 }
