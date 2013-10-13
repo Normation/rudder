@@ -195,7 +195,7 @@ trait AbstractScheduler extends Loggable {
         // --------------------------------------------
         // Unexpected messages
         // --------------------------------------------
-        case x => logger.debug(s"Don't know how to process message: '${x}'")
+        case x => logger.debug(s"[${displayName}] Don't know how to process message: '${x}'")
       }
     }
   }

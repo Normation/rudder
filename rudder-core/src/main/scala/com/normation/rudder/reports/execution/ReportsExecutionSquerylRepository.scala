@@ -81,8 +81,9 @@ case class RoReportsExecutionSquerylRepository (
       Full( queryResult)
     } } catch {
       case e:Exception  =>
-        logger.error(s"Error when trying to get report executions for node '${nodeId.value}'")
-        Failure(s"Error when trying to get report executions for node '${nodeId.value}' cause is : $e")
+        val msg = s"Error when trying to get report executions for node with Id '${nodeId.value}', reason is ${e.getMessage()}"
+        logger.error(msg)
+        Failure(msg)
     }
   }
   def getExecutionByNodeandDate (nodeId : NodeId, date: DateTime) : Box[Option[ReportExecution]] = {
@@ -97,8 +98,9 @@ case class RoReportsExecutionSquerylRepository (
       Full(queryResult)
     } } catch {
       case e:Exception  =>
-        logger.error(s"Error when trying to get report executions for node '${nodeId.value}'")
-        Failure(s"Error when trying to get report executions for node '${nodeId.value}' cause is : $e")
+        val msg = s"Error when trying to get report executions for node with Id '${nodeId.value} at date ${date}', reason is ${e.getMessage()}"
+        logger.error(msg)
+        Failure(msg)
     }
   }
 
@@ -121,8 +123,9 @@ case class RoReportsExecutionSquerylRepository (
         Full(Seq() ++ result.toSeq.map(fromDB))
     } } catch {
       case e:Exception  =>
-        logger.error(s"Error when trying to get report executions")
-        Failure(s"Error when trying to get report executions, cause is : $e")
+        val msg = s"Error when trying to get nodes report executions, reason is ${e.getMessage()}"
+        logger.error(msg)
+        Failure(msg)
     }
   }
 
@@ -242,7 +245,7 @@ case class WoReportsExecutionSquerylRepository (
       logger.debug(s" closed 1, should have close")
       Full(execution)
     } catch {
-      case e:Exception => Failure("could not create aggregated reports")
+      case e:Exception => Failure("could not create  reports")
     }
   }
 
@@ -260,10 +263,13 @@ case class WoReportsExecutionSquerylRepository (
             set   ( exec.isComplete := true)
         ) )
       }
-      logger.debug(s" closed ${closeResult.size}, should have close ${executions.size}")
+      logger.debug(s"Closed ${closeResult.size} execution, out of the ${executions.size} that should have been closed")
       Full(executions)
     } catch {
-      case e:Exception => Failure("could not create aggregated reports")
+      case e:Exception =>
+        val msg = s"Could not close the ${executions.size} nodes executions, reason is ${e.getMessage()}"
+        logger.error(msg)
+        Failure(msg)
     }
   }
 }
