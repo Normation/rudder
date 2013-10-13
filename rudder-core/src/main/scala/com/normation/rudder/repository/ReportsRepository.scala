@@ -70,6 +70,12 @@ trait ReportsRepository {
     , node  : Option[NodeId]
   ) : Seq[Reports]
 
+  /**
+   * Return the last (really the last, serial wise, with full execution) reports for a rule
+   */
+  def findLastReportsByRules(
+      rulesAndSerials: Seq[(RuleId, Int)]
+  ) : Seq[Reports]
 
   /**
    * Returns all reports for the node, between the two differents date (optionnal)

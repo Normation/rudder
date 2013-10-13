@@ -52,7 +52,7 @@ class FindNewReportsExecution (
 ) extends AbstractScheduler {
 
   type T = Unit
-  val executeTask: () => Box[Unit]  = () => tryo{reportsExecutionService     .findAndSaveExecutions}
+  val executeTask: () => Box[Unit]  = () => tryo{reportsExecutionService.findAndSaveExecutions}
   lazy val displayName : String = "Store Nodes executions"
   lazy val propertyName : String = "rudder.reports.execution.updateInterval"
 

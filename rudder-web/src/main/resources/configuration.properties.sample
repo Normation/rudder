@@ -434,9 +434,9 @@ rudder.workflow.self.deployment=true
 
 # Maxium Days of reports handled (default : 5)
 #
-# To avoir handling too much reports at one time, the "ReportsExecution" process
-# will only take reports after X days from the last one.
-# This is mainly used on the first Run, when the process at to work on old reports,
+# To avoid handling too much reports at one time, the "ReportsExecution" process
+# will only take reports after X days from the last one processed.
+# This is mainly used on the first Run, when the process has to catch on old reports,
 # and build execution history.
 # This value is expressed in days.
 

@@ -44,9 +44,16 @@ import org.joda.time.DateTime
  */
 trait RoReportsExecutionRepository {
 
+  /**
+   * Returns all executions (complete or not) for a specific Node, over all the time
+   * Caution, it can get large !
+   */
   def getExecutionByNode (nodeId : NodeId) : Box[Seq[ReportExecution]]
 
-  def getExecutionByNodeandDate (nodeId : NodeId, date: DateTime) : Box[Option[ReportExecution]]
+  /**
+   * Returns all execution for a specific node, at a specific time
+   */
+  def getExecutionByNodeAndDate (nodeId : NodeId, date: DateTime) : Box[Option[ReportExecution]]
 
   def getNodeLastExecution (nodeId : NodeId) : Box[Option[ReportExecution]]
 
