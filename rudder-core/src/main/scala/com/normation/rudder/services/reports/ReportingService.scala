@@ -74,6 +74,11 @@ trait ReportingService {
    */
   def findImmediateReportsByRule(ruleId : RuleId) : Box[Option[ExecutionBatch]]
 
+  /**
+   * Find the latest reports for a seq of rules (for all node)
+   * Note : if there is an expected report, and that we don't have it, we should say that it is empty
+   */
+  def findImmediateReportsByRules(rulesIds : Seq[RuleId]) : Map[RuleId, Box[Option[ExecutionBatch]]]
 
   /**
    * Find the latest (15 minutes) reports for a given node (all CR)

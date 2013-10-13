@@ -99,7 +99,8 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
       case None =>
       case Some(date) => query = query + " and executionTimeStamp < ?"; array += new Timestamp(date.getMillis)
     }
-
+println(query)
+println("array is " + array)
 
     jdbcTemplate.query(query,
           array.toArray[AnyRef],
@@ -199,7 +200,24 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
           ReportsMapper).toSeq;
   }
 
+  /**
+   * Return the last (really the last, serial wise, with full execution) reports for a rule
+   */
+  def findLastReportsByRules(
+      rulesAndSerials: Seq[(RuleId, Int)]
+  ) : Seq[Reports] = {
+    var query = joinQuery + " and ( 1 != 1 "
+    var array = mutable.Buffer[AnyRef]()
 
+    rulesAndSerials.foreach { case (ruleId, serial) =>
+          query +=   " or (ruleId = ? and serial = ?)"
+          array ++= mutable.Buffer[AnyRef](ruleId.value, new java.lang.Integer(serial))
+    }
+    query += " ) and executionTimeStamp > (now() - interval '15 minutes')"
+    jdbcTemplate.query(query,
+          array.toArray[AnyRef],
+          ReportsMapper).toSeq;
+  }
 
   def findExecutionTimeByNode(
       nodeId   : NodeId
