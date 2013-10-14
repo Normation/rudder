@@ -58,6 +58,6 @@ class FindNewReportsExecution (
   type T = Unit
   val executeTask: Long => Box[Unit]  = (processId:Long) => tryo{reportsExecutionService.findAndSaveExecutions(processId)}
   lazy val displayName : String = FindNewReportsExecution.SERVICE_NAME
-  lazy val propertyName : String = "rudder.reports.execution.updateInterval"
+  lazy val propertyName : String = "rudder.batch.storeAgentRunTimes.updateInterval"
 
 }
