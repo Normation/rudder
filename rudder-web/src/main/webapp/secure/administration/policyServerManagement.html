@@ -33,7 +33,7 @@
         <div class="intro">
           <div>
             <p>Configure the networks from which nodes are allowed
-              to connect to this Rudder policy server to get their updated
+              to connect to the Rudder policy servers to get their updated
               configuration policy.</p>
             <p>
               You can add as many networks as you want, the expected
@@ -45,34 +45,37 @@
 
         <hr class="spacer" />
 
-        <div class="deca">
+        <div>
           <div
-            class="lift:administration.EditPolicyServerAllowedNetwork.render"
-            id="allowedNetworksForm">
-            <form class="lift:form.ajax">
-              <table>
-                <thead>
-                  <tr>
-                    <th width="20px">Delete</th>
-                    <th width="200px">Allowed network</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody id="allowNetworkFields">
-                  <tr>
-                    <td class="delete"><input
-                      class="deleteNetwork" type="submit"
-                      value="delete" /></td>
-                    <td><input name="network"
-                      class="networkField" /></td>
-                    <td><lift:Msg errorClass="error">[error]</lift:Msg></td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <input id="addNetworkButton" type="submit" value="Add a network" /> 
-              <input id="submitAllowedNetwork" type="submit" value="Submit" />
-            </form>
+            class="lift:administration.EditPolicyServerAllowedNetwork.render">
+            <div id="allowedNetworksForm"  class="deca">
+              <div id="policyServerDetails"/>
+              <div id="policyServerText"/>
+	          <form class="lift:form.ajax">
+	            <table>
+	              <thead>
+	                <tr>
+	                  <th width="20px">Delete</th>
+	                  <th width="200px">Allowed network</th>
+	                  <th></th>
+	                </tr>
+	              </thead>
+	              <tbody id="allowNetworkFields">
+	                <tr>
+	                  <td class="delete"><input
+	                    class="deleteNetwork" type="submit"
+	                    value="delete" /></td>
+	                  <td><input name="network"
+	                    class="networkField" /></td>
+	                  <td><lift:Msg errorClass="error">[error]</lift:Msg></td>
+	                </tr>
+	              </tbody>
+	            </table>
+	            <input id="addNetworkButton" type="submit" value="Add a network" />
+	            <input id="submitAllowedNetwork" type="submit" value="Submit" />
+	          </form>
+            </div>
+            <hr class="spacer" />
           </div>
         </div>
       </div>
