@@ -51,6 +51,7 @@ import net.liftweb.common._
 import net.liftweb.common.Box._
 import java.sql.Types
 import org.springframework.dao.DataAccessException
+import com.normation.rudder.reports.execution.ReportExecution
 
 class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsRepository with Loggable {
 
@@ -64,11 +65,16 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
 
   // find the last full run per node
   // we are not looking for older request that 15 minutes for the moment
-  val lastQuery = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where ruleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and executionTimeStamp > (now() - interval '15 minutes') group by nodeid"
-  val lastQueryByNode = "select nodeid as Node, max(executiontimestamp) as Time from ruddersysevents where ruleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and nodeid = ? and executionTimeStamp > (now() - interval '15 minutes') group by nodeid"
+  val lastQuery = "select nodeid as Node, max(date) as Time from reportsexecution where date > (now() - interval '15 minutes') and complete = true group by nodeid"
+  val lastQueryByNode = "select nodeid as Node, max(date) as Time from reportsexecution where date > (now() - interval '15 minutes') and nodeid = ? and complete = true group by nodeid"
 
   val joinQuery = "select executiondate, nodeid, ruleId, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQuery +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
   val joinQueryByNode = "select executiondate, nodeid, ruleId, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQueryByNode +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
+
+  val fetchExecutions = """select T.nodeid, T.executiontimestamp, coalesce(C.iscomplete, false) as complete from
+                          (select distinct nodeid, executiontimestamp from ruddersysevents where id > ? and id <= ?) as T left join
+                          (select true as isComplete, nodeid, executiontimestamp from
+                            ruddersysevents where id > ? and id <= ? and ruleId like 'hasPolicyServer%' and component = 'common' and keyValue = 'EndRun') as C on T.nodeid = C.nodeid and T.executiontimestamp = C.executiontimestamp"""
 
   def findReportsByRule(
       ruleId   : RuleId
@@ -93,7 +99,8 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
       case None =>
       case Some(date) => query = query + " and executionTimeStamp < ?"; array += new Timestamp(date.getMillis)
     }
-
+println(query)
+println("array is " + array)
 
     jdbcTemplate.query(query,
           array.toArray[AnyRef],
@@ -193,14 +200,31 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
           ReportsMapper).toSeq;
   }
 
+  /**
+   * Return the last (really the last, serial wise, with full execution) reports for a rule
+   */
+  def findLastReportsByRules(
+      rulesAndSerials: Seq[(RuleId, Int)]
+  ) : Seq[Reports] = {
+    var query = joinQuery + " and ( 1 != 1 "
+    var array = mutable.Buffer[AnyRef]()
 
+    rulesAndSerials.foreach { case (ruleId, serial) =>
+          query +=   " or (ruleId = ? and serial = ?)"
+          array ++= mutable.Buffer[AnyRef](ruleId.value, new java.lang.Integer(serial))
+    }
+    query += " ) and executionTimeStamp > (now() - interval '15 minutes')"
+    jdbcTemplate.query(query,
+          array.toArray[AnyRef],
+          ReportsMapper).toSeq;
+  }
 
   def findExecutionTimeByNode(
       nodeId   : NodeId
     , beginDate: DateTime
     , endDate  : Option[DateTime]
   ) : Seq[DateTime] = {
-    var query = "select distinct executiontimestamp from ruddersysevents where ruleId = 'hasPolicyServer-root' and component = 'common' and keyValue = 'EndRun' and nodeId = ? and executiontimestamp >= ?"
+    var query = "select distinct date from reportsexecution where and nodeId = ? and date >= ?"
 
     var array = mutable.Buffer[AnyRef](nodeId.value, new Timestamp(beginDate.getMillis))
 
@@ -374,6 +398,54 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
         Failure("Could not fetch last hundred reports in the database. Reason is : %s".format(e.getMessage()))
       }
   }
+
+  def getReportsWithLowestId : Box[Option[(Reports,Int)]] = {
+    jdbcTemplate.query(s"${idQuery} order by id asc limit 1",
+          ReportsWithIdMapper).toSeq match {
+      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
+      case seq => Full(seq.headOption)
+
+    }
+  }
+
+  /**
+   * From an id and an end date, return a list of ReportExecution, and the max ID that has been considered
+   */
+  def getReportsfromId(id : Int, endDate : DateTime) : Box[(Seq[ReportExecution], Int)] = {
+    // we first have to fetch the max id
+    val queryForMaxId = "select max(id) as id from RudderSysEvents where id > ? and executionTimeStamp < ?"
+    val array = mutable.Buffer[AnyRef](new java.lang.Integer(id), new Timestamp(endDate.getMillis))
+    for {
+      maxId <-
+                try {
+                  jdbcTemplate.query(
+                        queryForMaxId
+                      , array.toArray[AnyRef]
+                      , IdMapper).toSeq match {
+                    case seq if seq.size > 1 => Failure("Too many answer for the highest id in the database")
+                    case seq => seq.headOption ?~! "No report where found in database (and so, we can not get highest id)"
+                  }
+                } catch {
+                  case e:DataAccessException =>
+                    logger.error("Could not fetch max id for execution in the database. Reason is : %s".format(e.getMessage()))
+                    Failure(e.getMessage())
+                }
+      reports <- {
+                  val arrayReports = mutable.Buffer[AnyRef](new java.lang.Integer(id), new java.lang.Integer(maxId), new java.lang.Integer(id), new java.lang.Integer(maxId))
+                  try {
+                    Full(jdbcTemplate.query(fetchExecutions ,arrayReports.toArray[AnyRef], ReportsExecutionMapper).toSeq)
+                  } catch {
+                    case e:DataAccessException =>
+                      logger.error("Could not fetch agent executions in the database. Reason is : %s".format(e.getMessage()))
+                      Failure(e.getMessage())
+                  }
+                }
+    } yield {
+      // there may be several executions at the same time
+      (reports.distinct, maxId)
+    }
+  }
+
   def getErrorReportsBeetween(lower : Int, upper:Int,kinds:List[String]) : Box[Seq[Reports]] = {
     if (lower>=upper)
       Empty
@@ -425,5 +497,15 @@ object IdMapper extends RowMapper[Int] {
 object ReportsWithIdMapper extends RowMapper[(Reports,Int)] {
   def mapRow(rs : ResultSet, rowNum: Int) : (Reports,Int) = {
     (ReportsMapper.mapRow(rs, rowNum),IdMapper.mapRow(rs, rowNum))
+    }
+}
+
+object ReportsExecutionMapper extends RowMapper[ReportExecution] {
+   def mapRow(rs : ResultSet, rowNum: Int) : ReportExecution = {
+     ReportExecution(
+         NodeId(rs.getString("nodeId"))
+       , new DateTime(rs.getTimestamp("executionTimeStamp"))
+       , rs.getBoolean("complete")
+     )
     }
 }

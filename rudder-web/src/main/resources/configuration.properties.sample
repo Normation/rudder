@@ -427,6 +427,33 @@ rudder.workflow.self.validation=false
 
 rudder.workflow.self.deployment=true
 
+
+#########################
+# Reports Executions #############################################################
+#########################
+
+# Maxium Days of reports handled (default : 5)
+#
+# To avoir handling too much reports at one time, the "ReportsExecution" process
+# will only take reports after X days from the last one.
+# This is mainly used on the first Run, when the process at to work on old reports,
+# and build execution history.
+# This value is expressed in days.
+
+rudder.reportsExecution.maxDays=5
+
+# Delay before to launch of the reports executions actor (default : 10)
+# 
+# This value determine the frequency of the reports executions actor.
+# This needs to be run very often so you should keep it as low as possible.
+# Having a low delay will means that agent executions are almost synchornized with now.
+# This value is expressed in seconds
+# A value of 0 (or lower) will disable the actor
+
+
+rudder.reportsExecution.reportInterval=10
+
+
 #########################
 # DEPRECATED properties #############################################################
 #########################

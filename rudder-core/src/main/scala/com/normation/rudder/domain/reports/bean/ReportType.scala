@@ -35,6 +35,10 @@
 
 package com.normation.rudder.domain.reports.bean
 
+
+import com.normation.rudder.domain.reports.bean._
+
+
 /**
  * List of all type of report we are expecting, as a result
  * So far :
@@ -46,14 +50,30 @@ package com.normation.rudder.domain.reports.bean
  */
 
 
-trait ReportType {}
+trait ReportType {
 
-case object SuccessReportType extends ReportType
-case object RepairedReportType extends ReportType
-case object ErrorReportType extends ReportType
-case object UnknownReportType extends ReportType
-case object NoAnswerReportType extends ReportType
-case object PendingReportType extends ReportType
+  val severity :String
+
+}
+
+case object SuccessReportType extends ReportType {
+  val severity = "Success"
+}
+case object RepairedReportType extends ReportType{
+  val severity = "Repaired"
+}
+case object ErrorReportType extends ReportType{
+  val severity = "Error"
+}
+case object UnknownReportType extends ReportType{
+  val severity = "Unknown"
+}
+case object NoAnswerReportType extends ReportType{
+  val severity = "No answer"
+}
+case object PendingReportType extends ReportType{
+  val severity = "Applying"
+}
 
 object ReportType {
 
@@ -74,13 +94,27 @@ object ReportType {
   }
 
   def getSeverityFromStatus(status : ReportType) : String = {
-    status match {
-      case SuccessReportType => "Success"
-      case RepairedReportType => "Repaired"
-      case ErrorReportType => "Error"
-      case NoAnswerReportType => "No answer"
-      case PendingReportType => "Applying"
-      case _ => "Unknown"
+      status.severity
+  }
+
+  def apply(report : Reports) : ReportType = {
+    report match {
+      case _ : ResultSuccessReport  => SuccessReportType
+      case _ : ResultErrorReport    => ErrorReportType
+      case _ : ResultRepairedReport => RepairedReportType
+      case _                        => UnknownReportType
     }
   }
+
+  def apply(status : String):ReportType = { status match {
+    case "Success" => SuccessReportType
+    case "Repaired" => RepairedReportType
+    case "Error" => ErrorReportType
+    case "No answer" => NoAnswerReportType
+    case "Applying" => PendingReportType
+    case _ => UnknownReportType
+  }
+  }
+
+  implicit def reportTypeSeverity(reportType:ReportType):String = ReportType.getSeverityFromStatus(reportType)
 }

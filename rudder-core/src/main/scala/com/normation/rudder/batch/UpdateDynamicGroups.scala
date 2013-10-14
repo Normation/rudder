@@ -47,7 +47,6 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.inventory.domain.NodeId
 
 //Message to send to the updater manager to start a new update of all dynamic groups
-case object StartUpdate
 case object ManualStartUpdate
 case object DelayedUpdate
 
@@ -55,13 +54,13 @@ case object DelayedUpdate
 case class GroupsToUpdate(ids:Seq[NodeGroupId]) extends HashcodeCaching
 
 
-sealed trait UpdaterStates //states into wich the updater process can be
+sealed trait DynamicGroupUpdaterStates //states into wich the updater process can be
 //the process is idle
-case object IdleUdater extends UpdaterStates
+case object IdleUdater extends DynamicGroupUpdaterStates
 //an update is currently running for the given nodes
-case class StartProcessing(id:Long, modId:ModificationId, started: DateTime, groupIds:GroupsToUpdate) extends UpdaterStates with HashcodeCaching
+case class StartDynamicUpdate(id:Long, modId:ModificationId, started: DateTime, groupIds:GroupsToUpdate) extends DynamicGroupUpdaterStates with HashcodeCaching
 //the process gave a result
-case class UpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends UpdaterStates with HashcodeCaching
+case class DynamicUpdateResult(id:Long, modId:ModificationId, start: DateTime, end:DateTime, results: Map[NodeGroupId, Box[DynGroupDiff]]) extends DynamicGroupUpdaterStates with HashcodeCaching
 
 
 
@@ -113,7 +112,7 @@ class UpdateDynamicGroups(
     updateManager =>
 
     private var updateId = 0L
-    private var currentState: UpdaterStates = IdleUdater
+    private var currentState: DynamicGroupUpdaterStates = IdleUdater
     private var onePending = false
     private[this] val isAutomatic = updateInterval > 0
     private[this] val realUpdateInterval = {
@@ -134,7 +133,7 @@ class UpdateDynamicGroups(
             dynGroupService.getAllDynGroups match {
               case Full(groupIds) =>
                 updateId = updateId + 1
-                LAUpdateDyngroup ! StartProcessing(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groupIds))
+                LAUpdateDyngroup ! StartDynamicUpdate(updateId, ModificationId(uuidGen.newUuid), DateTime.now, GroupsToUpdate(groupIds))
               case e:EmptyBox =>
                 val error = (e?~! "Error when trying to get the list of dynamic group to update")
 
@@ -175,7 +174,7 @@ class UpdateDynamicGroups(
       //
       //Process a dynamic group update response
       //
-      case UpdateResult(id, modId, start,end,results) => //TODO: other log ?
+      case DynamicUpdateResult(id, modId, start,end,results) => //TODO: other log ?
         logger.trace("***** Get result for process: " + id)
 
         currentState = IdleUdater
@@ -222,7 +221,7 @@ class UpdateDynamicGroups(
         //
         //Process a dynamic group update
         //
-        case StartProcessing(processId, modId, startTime, GroupsToUpdate(dynGroupIds)) => {
+        case StartDynamicUpdate(processId, modId, startTime, GroupsToUpdate(dynGroupIds)) => {
           logger.trace("***** Start a new update, id: " + processId)
           try {
             val results = for {
@@ -230,9 +229,9 @@ class UpdateDynamicGroups(
             } yield {
               (dynGroupId, dynGroupUpdaterService.update(dynGroupId, modId, RudderEventActor, Some("Update group due to batch update of dynamic groups")))
             }
-            updateManager ! UpdateResult(processId, modId, startTime, DateTime.now, results.toMap)
+            updateManager ! DynamicUpdateResult(processId, modId, startTime, DateTime.now, results.toMap)
           } catch {
-            case e:Exception => updateManager ! UpdateResult(processId, modId, startTime,DateTime.now,
+            case e:Exception => updateManager ! DynamicUpdateResult(processId, modId, startTime,DateTime.now,
                   dynGroupIds.map(id => (id,Failure("Exception caught during update process.",Full(e), Empty))).toMap)
           }
         }
