@@ -82,15 +82,11 @@ trait AbstractScheduler extends Loggable {
   def propertyName : String
 
   // -----------------------------------------------------
-  // Start batch - only if scheduling insterval > 0
+  // Start batch
   // -----------------------------------------------------
 
-  if(updateInterval < 1) {
-    logger.info(s"Disable [${displayName}] scheduler sinces property ${propertyName} is 0 or negative")
-  } else {
-    logger.trace(s"***** starting [${displayName}] scheduler *****")
-    (new StatusManager) ! StartUpdate
-  }
+  logger.trace(s"***** starting [${displayName}] scheduler *****")
+  (new StatusManager) ! StartUpdate
 
   ////////////////////////////////////////////////////////////////
   //////////////////// implementation details ////////////////////
