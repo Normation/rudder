@@ -56,7 +56,9 @@ case class RuleExpectedReports(
   // the period where the configuration is applied to the servers
   , beginDate               : DateTime = DateTime.now()
   , endDate                 : Option[DateTime] = None
-) extends HashcodeCaching
+) extends HashcodeCaching {
+  val interval = new Interval(beginDate, endDate.getOrElse(DateTime.now))
+}
 
 /**
  * This class allow to have for differents nodes differents directives

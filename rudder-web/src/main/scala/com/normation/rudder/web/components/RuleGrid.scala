@@ -230,6 +230,10 @@ class RuleGrid(
     , directiveLib: Box[FullActiveTechniqueCategory]) : Box[NodeSeq] = {
     sealed trait Line { val rule:Rule }
 
+    // we compute beforehand the compliance, so that we have a single big query
+    // to the database
+    val complianceMap = computeCompliances(rules.toSet)
+
     case class OKLine(
         rule             : Rule
       , compliance       : Option[ComplianceLevel]
@@ -457,7 +461,7 @@ class RuleGrid(
           val applicationStatus = getRuleApplicationStatus(rule, groupsLib, directivesLib, nodes)
           val compliance =  applicationStatus match {
             case _:NotAppliedStatus => Full(None)
-            case _ =>  computeCompliance(rule)
+            case _ => complianceMap.getOrElse(rule.id, Failure(s"Error when getting compliance for Rule ${rule.name}"))
           }
           compliance match {
             case e:EmptyBox => ErrorLine(rule, trackerVariables, targetsInfo)
@@ -610,13 +614,17 @@ class RuleGrid(
 
   }
 
-  private[this] def computeCompliance(rule: Rule) : Box[Option[ComplianceLevel]] = {
-    reportingService.findImmediateReportsByRule(rule.id) match {
-      case e:EmptyBox => e
-      case Full(None) => Full(Some(Applying)) // when we have a rule but nothing in the database, it means that it is currently being deployed
-      case Full(Some(x)) if (x.directivesOnNodesExpectedReports.size==0) => Full(None)
-      case Full(Some(x)) if x.getNodeStatus().exists(x => x.nodeReportType == PendingReportType ) => Full(Some(Applying))
-      case Full(Some(x)) =>  Full(Some(new Compliance((100 * x.getNodeStatus().filter(x => x.nodeReportType == SuccessReportType).size) / x.getNodeStatus().size)))
+  private[this] def computeCompliances(rules: Set[Rule]) : Map[RuleId, Box[Option[ComplianceLevel]]] = {
+    reportingService.findImmediateReportsByRules(rules.map(_.id)).map { case (ruleId, entry) =>
+      (ruleId,
+          entry match {
+            case e:EmptyBox => e
+            case Full(None) => Full(Some(Applying)) // when we have a rule but nothing in the database, it means that it is currently being deployed
+            case Full(Some(x)) if (x.directivesOnNodesExpectedReports.size==0) => Full(None)
+            case Full(Some(x)) if x.getNodeStatus().exists(x => x.nodeReportType == PendingReportType ) => Full(Some(Applying))
+            case Full(Some(x)) =>  Full(Some(new Compliance((100 * x.getNodeStatus().filter(x => x.nodeReportType == SuccessReportType).size) / x.getNodeStatus().size)))
+          }
+      )
     }
   }
 
