@@ -74,6 +74,7 @@ import net.liftweb.util.ClearClearable
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.nodes.NodeInfo
+import org.joda.time.DateTime
 
 object RuleEditForm {
 

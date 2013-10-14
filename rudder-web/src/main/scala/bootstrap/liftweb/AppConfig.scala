@@ -137,6 +137,9 @@ import com.normation.rudder.migration.EventLogsMigration_3_4
 import com.normation.rudder.migration.EventLogsMigration_3_4
 import com.normation.rudder.web.rest.parameter._
 import com.normation.rudder.web.rest.changeRequest._
+import com.normation.rudder.reports.execution._
+import com.normation.rudder.reports.status._
+import com.normation.rudder.domain.policies.RuleId
 
 /**
  * Define a resource for configuration.
@@ -242,6 +245,8 @@ object RudderConfig extends Loggable {
   val RUDDER_UI_CHANGEMESSAGE_MANDATORY = config.getBoolean("rudder.ui.changeMessage.mandatory") //false
   val RUDDER_UI_CHANGEMESSAGE_EXPLANATION = config.getString("rudder.ui.changeMessage.explanation") //"Please enter a message explaining the reason for this change."
   val RUDDER_SYSLOG_PORT = config.getInt("rudder.syslog.port") //514
+  val RUDDER_REPORTS_EXECUTION_MAX_DAYS = config.getInt("rudder.reportsExecution.maxDays") // In days : 5
+  val RUDDER_REPORTS_EXECUTION_INTERVAL = config.getInt("rudder.reportsExecution.reportInterval") // In seconds : 10
 
   val BIN_EMERGENCY_STOP = config.getString("bin.emergency.stop")
   val HISTORY_INVENTORIES_ROOTDIR = config.getString("history.inventories.rootdir")
@@ -328,7 +333,7 @@ object RudderConfig extends Loggable {
   val reportsRepository : ReportsRepository = reportsRepositoryImpl
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
   val allBootstrapChecks : BootstrapChecks = allChecks
-  val srvGrid = new SrvGrid
+  lazy val srvGrid = new SrvGrid(roReportsExecutionSquerylRepository)
   val expectedReportRepository : RuleExpectedReportsRepository = configurationExpectedRepo
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
@@ -337,6 +342,8 @@ object RudderConfig extends Loggable {
   val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(jdbcTemplate)
   val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(jdbcTemplate, roWorkflowRepository)
 
+  val roReportExecutionsRepository : RoReportsExecutionRepository = roReportsExecutionSquerylRepository
+  val woReportExecutionsRepository : WoReportsExecutionRepository = woReportExecutionsSquerylRepository
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
 
@@ -348,6 +355,7 @@ object RudderConfig extends Loggable {
           jdbcTemplate
         , new ChangeRequestsMapper(changeRequestChangesUnserialisation))
     }
+
 
   val woChangeRequestRepository : WoChangeRequestRepository = RUDDER_ENABLE_APPROVAL_WORKFLOWS match {
     case false =>
@@ -1348,6 +1356,7 @@ object RudderConfig extends Loggable {
     , previousMigrationController = Some(eventLogsMigration_2_3_Management)
   )
 
+
   /**
    * *************************************************
    * Bootstrap check actions
@@ -1444,6 +1453,35 @@ object RudderConfig extends Loggable {
 //  import com.normation.plugins.{ SnippetExtensionRegister, SnippetExtensionRegisterImpl }
 //  private[this] lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
 
+  /*
+   * Reports aggregation
+   */
+
+
+  private[this] lazy val roReportsExecutionSquerylRepository = new RoReportsExecutionSquerylRepository(squerylDatasourceProvider)
+
+  private[this] lazy  val woReportExecutionsSquerylRepository = new WoReportsExecutionSquerylRepository(squerylDatasourceProvider, roReportsExecutionSquerylRepository )
+
+  val updatesEntryJdbcRepository = new StatusUpdateSquerylRepository(squerylDatasourceProvider)
+
+  val executionService = {
+    val max   = if (RUDDER_REPORTS_EXECUTION_MAX_DAYS > 0) {
+                  RUDDER_REPORTS_EXECUTION_MAX_DAYS
+                } else {
+                  logger.error("'rudder.aggregateReports.maxDays' property is not correctly set using 5 as default value, please check /opt/rudder/etc/rudder-web.properties")
+                  5
+                }
+
+    new ReportsExecutionService(
+      reportsRepository
+    , roReportsExecutionSquerylRepository
+    , woReportExecutionsSquerylRepository
+    , updatesEntryJdbcRepository
+    , max
+    )
+  }
+
+ val aggregateReportScheduler = new FindNewReportsExecution(executionService,RUDDER_REPORTS_EXECUTION_INTERVAL)
 }
 
 
