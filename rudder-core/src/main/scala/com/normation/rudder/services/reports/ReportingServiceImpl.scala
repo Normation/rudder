@@ -37,7 +37,8 @@ package com.normation.rudder.services.reports
 import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
-import scala.collection._
+import scala.collection.mutable.{Set => MutSet}
+import scala.collection.mutable.{Map => MutMap}
 import org.joda.time._
 import org.slf4j.{Logger,LoggerFactory}
 import com.normation.cfclerk.domain.{
@@ -51,13 +52,14 @@ import com.normation.rudder.domain.reports.bean._
 import com.normation.rudder.services.reports._
 import com.normation.rudder.repository._
 import com.normation.rudder.domain.policies.RuleVal
-import com.normation.utils.Control._
 import com.normation.rudder.domain.policies.DirectiveVal
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.domain.reports.ReportComponent
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.domain.policies.ExpandedRuleVal
+import com.normation.utils.Control._
+import scala.collection.mutable.Buffer
 
 class ReportingServiceImpl(
     confExpectedRepo: RuleExpectedReportsRepository
@@ -77,11 +79,11 @@ class ReportingServiceImpl(
    */
   def updateExpectedReports(expandedRuleVals : Seq[ExpandedRuleVal], deleteRules : Seq[RuleId]) : Box[Seq[RuleExpectedReports]] = {
     // All the rule and serial. Used to know which one are to be removed
-    val currentConfigurationsToRemove =  mutable.Map[RuleId, Int]() ++
+    val currentConfigurationsToRemove =  MutMap[RuleId, Int]() ++
       confExpectedRepo.findAllCurrentExpectedReportsAndSerial()
 
-    val confToClose = mutable.Set[RuleId]()
-    val confToCreate = mutable.Buffer[ExpandedRuleVal]()
+    val confToClose = MutSet[RuleId]()
+    val confToCreate = Buffer[ExpandedRuleVal]()
 
     // Then we need to compare each of them with the one stored
     for (conf@ExpandedRuleVal(ruleId, configs, newSerial) <- expandedRuleVals) {
@@ -147,7 +149,6 @@ class ReportingServiceImpl(
       }
     }
 
-
     // we need to group by DirectiveExpectedReports, RuleId, Serial
     val flatten = expanded.flatten.flatMap { case (ruleId, serial, nodeId, directives) =>
       directives.map (x => (ruleId, serial, nodeId, x))
@@ -158,10 +159,9 @@ class ReportingServiceImpl(
 
     // here we group them by rule/serial/seq of node, so that we have the list of all DirectiveExpectedReports that apply to them
     val groupedContent = preparedValues.toSeq.map { case ((ruleId, serial, directive), nodes) => (ruleId, serial, directive, nodes) }.
-       groupBy[(RuleId, Int, Seq[NodeId])]{ case (ruleId, serial, directive, nodes) => (ruleId, serial, nodes)}.map {
+       groupBy[(RuleId, Int, Seq[NodeId])]{ case (ruleId, serial, directive, nodes) => (ruleId, serial, nodes.toSeq)}.map {
          case (key, value) => (key -> value.map(x => x._3))
        }.toSeq
-
     // now we save them
     sequence(groupedContent) { case ((ruleId, serial, nodes), directives) =>
       confExpectedRepo.saveExpectedReports(
@@ -172,6 +172,7 @@ class ReportingServiceImpl(
                        )
     }
   }
+
 
   /**
    * Find the latest reports for a given rule (for all servers)
@@ -185,6 +186,51 @@ class ReportingServiceImpl(
       case Full(expected) => Full(expected.map(createLastBatchFromConfigurationReports(_)))
     }
   }
+
+  /**
+   * Find the latest reports for a seq of rules (for all node)
+   * Note : if there is an expected report, and that we don't have it, we should say that it is empty
+   * The returned Map should have the same elements than the Seq in argument, so that we
+   * can reconcile in the RuleGrid the values, and display properly the success or failure, or applying
+   */
+  def findImmediateReportsByRules(rulesIds : Set[RuleId]) : Map[RuleId, Box[Option[ExecutionBatch]]] = {
+    val expectedReports = rulesIds.map { ruleId =>
+      (ruleId, confExpectedRepo.findCurrentExpectedReports(ruleId))
+    }
+    // For optimization purpose, we want to do only one query to the database
+    // so we handle all the expected reports at once
+    // We need to go through each full non none element, and put back the elements in the map
+    val nonEmptyExpected = expectedReports.map(_._2).flatten.flatten
+
+    val rulesAndSerials = nonEmptyExpected.map(x => (x.ruleId, x.serial))
+    val allReports = reportsRepository.findLastReportsByRules(rulesAndSerials)
+
+    // Here we go over each elements of the map [ruleId, Box[ExpectedReports], and reconcile the
+    // entries with the batches
+    expectedReports.map { case (ruleId, status) =>
+      val executionBatch = status match {
+        case Full(Some(expected)) =>
+          val reports = allReports.filter( report => report.ruleId == expected.ruleId)
+          Full(
+              Some(
+                  ConfigurationExecutionBatch(
+                      expected.ruleId
+                    , expected.serial
+                    , expected.directivesOnNodes.map(dir => DirectivesOnNodeExpectedReport(dir.nodeIds, dir.directiveExpectedReports))
+                    , reports.headOption.map(_.executionTimestamp).getOrElse(DateTime.now())
+                    , reports
+                    , expected.beginDate
+                    , expected.endDate
+                  )
+              )
+          )
+        case Full(None) => Full(None)
+        case e : EmptyBox => e
+      }
+      (ruleId, executionBatch)
+    }.toMap
+  }
+
 
   /**
    * Find the latest (15 minutes) reports for a given node (all CR)
@@ -230,7 +276,6 @@ class ReportingServiceImpl(
           expectedConfigurationReports.beginDate,
           expectedConfigurationReports.endDate)
   }
-
 
   /**
    * Returns a seq of

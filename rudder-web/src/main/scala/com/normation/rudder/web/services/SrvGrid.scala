@@ -55,6 +55,7 @@ import net.liftweb.http.Templates
 import com.normation.rudder.repository.ReportsRepository
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.components.DateFormaterService
+import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -75,7 +76,9 @@ object SrvGrid {
  *   of head() in the calling template head
  * - call the display(servers) method
  */
-class SrvGrid {
+class SrvGrid(
+  roReportExecutionsRepository : RoReportsExecutionRepository
+) {
 
   private def templatePath = List("templates-hidden", "srv_grid")
   private def template() =  Templates(templatePath) match {
@@ -86,7 +89,6 @@ class SrvGrid {
 
   private def headTemplate = chooseTemplate("servergrid","head",template)
   private def tableTemplate = chooseTemplate("servergrid","table",template)
-  private[this] val reportsRepo = RudderConfig.reportsRepository
 
   /*
    * All JS/CSS needed to have datatable working
@@ -222,7 +224,11 @@ class SrvGrid {
       ("#osFullName *")  #> S.?(s"os.name.${server.osName}") &
       ("#osVersion *")   #> server.osVersion &
       ("#servicePack *") #> server.servicePack.getOrElse("N/A") &
-      ("#lastReport *")  #> reportsRepo.getNewestReportOnNode(server.id).getOrElse(None).map(report =>  DateFormaterService.getFormatedDate(report.executionDate)).getOrElse("Never")
+      ("#lastReport *")  #> { roReportExecutionsRepository.getNodeLastExecution(server.id) match {
+                                case Full(exec) =>
+                                  exec.map(report =>  DateFormaterService.getFormatedDate(report.date)).getOrElse("Never")
+                                case eb : EmptyBox => "Error While fetching node executions"
+                            } }
       )(lineXml(server.id.value))
     } }
     </tbody>
