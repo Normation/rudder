@@ -38,7 +38,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.ReportsRepository
-import scala.collection._
+import scala.collection.mutable.Buffer
 import org.joda.time._
 import org.slf4j.{Logger,LoggerFactory}
 import com.normation.rudder.domain.reports.bean._
@@ -83,7 +83,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     , endDate  : Option[DateTime]
   ): Seq[Reports] = {
     var query = baseQuery + " and ruleId = ? "
-    var array = mutable.Buffer[AnyRef](ruleId.value)
+    var array = Buffer[AnyRef](ruleId.value)
 
     serial match {
       case None => ;
@@ -99,8 +99,6 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
       case None =>
       case Some(date) => query = query + " and executionTimeStamp < ?"; array += new Timestamp(date.getMillis)
     }
-println(query)
-println("array is " + array)
 
     jdbcTemplate.query(query,
           array.toArray[AnyRef],
@@ -116,7 +114,7 @@ println("array is " + array)
     , endDate  : Option[DateTime]
   ) : Seq[Reports] = {
     var query = baseQuery + " and nodeId = ? "
-    var array = mutable.Buffer[AnyRef](nodeId.value)
+    var array = Buffer[AnyRef](nodeId.value)
 
     ruleId match {
       case None =>
@@ -155,7 +153,7 @@ println("array is " + array)
     , endDate  : Option[DateTime]
   ): Seq[Reports] = {
     var query = baseQuery + " and nodeId = ?  and ruleId = ? and serial = ? and executionTimeStamp >= ?"
-    var array = mutable.Buffer[AnyRef](nodeId.value,
+    var array = Buffer[AnyRef](nodeId.value,
         ruleId.value,
         new java.lang.Integer(serial),
         new Timestamp(beginDate.getMillis))
@@ -184,15 +182,15 @@ println("array is " + array)
     , node  : Option[NodeId]
   ) : Seq[Reports] = {
     var query = ""
-    var array = mutable.Buffer[AnyRef]()
+    var array = Buffer[AnyRef]()
 
     node match {
       case None =>
           query += joinQuery +  " and ruleId = ? and serial = ? and executionTimeStamp > (now() - interval '15 minutes')"
-          array ++= mutable.Buffer[AnyRef](ruleId.value, new java.lang.Integer(serial))
+          array ++= Buffer[AnyRef](ruleId.value, new java.lang.Integer(serial))
       case Some(nodeId) =>
         query += joinQueryByNode +  " and ruleId = ? and serial = ? and executionTimeStamp > (now() - interval '15 minutes') and nodeId = ?"
-        array ++= mutable.Buffer[AnyRef](nodeId.value, ruleId.value, new java.lang.Integer(serial), nodeId.value)
+        array ++= Buffer[AnyRef](nodeId.value, ruleId.value, new java.lang.Integer(serial), nodeId.value)
     }
 
     jdbcTemplate.query(query,
@@ -204,14 +202,14 @@ println("array is " + array)
    * Return the last (really the last, serial wise, with full execution) reports for a rule
    */
   def findLastReportsByRules(
-      rulesAndSerials: Seq[(RuleId, Int)]
+      rulesAndSerials: Set[(RuleId, Int)]
   ) : Seq[Reports] = {
     var query = joinQuery + " and ( 1 != 1 "
-    var array = mutable.Buffer[AnyRef]()
+    var array = Buffer[AnyRef]()
 
     rulesAndSerials.foreach { case (ruleId, serial) =>
           query +=   " or (ruleId = ? and serial = ?)"
-          array ++= mutable.Buffer[AnyRef](ruleId.value, new java.lang.Integer(serial))
+          array ++= Buffer[AnyRef](ruleId.value, new java.lang.Integer(serial))
     }
     query += " ) and executionTimeStamp > (now() - interval '15 minutes')"
     jdbcTemplate.query(query,
@@ -226,7 +224,7 @@ println("array is " + array)
   ) : Seq[DateTime] = {
     var query = "select distinct date from reportsexecution where nodeId = ? and date >= ?"
 
-    var array = mutable.Buffer[AnyRef](nodeId.value, new Timestamp(beginDate.getMillis))
+    var array = Buffer[AnyRef](nodeId.value, new Timestamp(beginDate.getMillis))
 
     endDate match {
       case None => ;
@@ -414,7 +412,7 @@ println("array is " + array)
   def getReportsfromId(id : Int, endDate : DateTime) : Box[(Seq[ReportExecution], Int)] = {
     // we first have to fetch the max id
     val queryForMaxId = "select max(id) as id from RudderSysEvents where id > ? and executionTimeStamp < ?"
-    val array = mutable.Buffer[AnyRef](new java.lang.Integer(id), new Timestamp(endDate.getMillis))
+    val array = Buffer[AnyRef](new java.lang.Integer(id), new Timestamp(endDate.getMillis))
     for {
       maxId <-
                 try {
@@ -423,7 +421,12 @@ println("array is " + array)
                       , array.toArray[AnyRef]
                       , IdMapper).toSeq match {
                     case seq if seq.size > 1 => Failure("Too many answer for the highest id in the database")
-                    case seq => seq.headOption ?~! "No report where found in database (and so, we can not get highest id)"
+                    case seq => seq.headOption match {
+                      // there is a weird behaviour with max that returns 0
+                      case Some(0) => Full(id)
+                      case Some(x) => Full(x)
+                      case None => Failure("No report where found in database (and so, we can not get highest id)")
+                    }
                   }
                 } catch {
                   case e:DataAccessException =>
@@ -431,7 +434,7 @@ println("array is " + array)
                     Failure(e.getMessage())
                 }
       reports <- {
-                  val arrayReports = mutable.Buffer[AnyRef](new java.lang.Integer(id), new java.lang.Integer(maxId), new java.lang.Integer(id), new java.lang.Integer(maxId))
+                  val arrayReports = Buffer[AnyRef](new java.lang.Integer(id), new java.lang.Integer(maxId), new java.lang.Integer(id), new java.lang.Integer(maxId))
                   try {
                     Full(jdbcTemplate.query(fetchExecutions ,arrayReports.toArray[AnyRef], ReportsExecutionMapper).toSeq)
                   } catch {

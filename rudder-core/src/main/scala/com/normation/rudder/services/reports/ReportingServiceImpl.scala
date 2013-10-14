@@ -190,30 +190,44 @@ class ReportingServiceImpl(
   /**
    * Find the latest reports for a seq of rules (for all node)
    * Note : if there is an expected report, and that we don't have it, we should say that it is empty
+   * The returned Map should have the same elements than the Seq in argument, so that we
+   * can reconcile in the RuleGrid the values, and display properly the success or failure, or applying
    */
-  def findImmediateReportsByRules(rulesIds : Seq[RuleId]) : Map[RuleId, Box[Option[ExecutionBatch]]] = {
+  def findImmediateReportsByRules(rulesIds : Set[RuleId]) : Map[RuleId, Box[Option[ExecutionBatch]]] = {
     val expectedReports = rulesIds.map { ruleId =>
       (ruleId, confExpectedRepo.findCurrentExpectedReports(ruleId))
     }
-    // We need to go through each full non none element, and put back the elements in the right order
+    // For optimization purpose, we want to do only one query to the database
+    // so we handle all the expected reports at once
+    // We need to go through each full non none element, and put back the elements in the map
     val nonEmptyExpected = expectedReports.map(_._2).flatten.flatten
 
+    val rulesAndSerials = nonEmptyExpected.map(x => (x.ruleId, x.serial))
+    val allReports = reportsRepository.findLastReportsByRules(rulesAndSerials)
 
-    val mapBatch = createLastBatchesFromConfigurationReports(nonEmptyExpected)
-
+    // Here we go over each elements of the map [ruleId, Box[ExpectedReports], and reconcile the
+    // entries with the batches
     expectedReports.map { case (ruleId, status) =>
-      (ruleId, status match {
+      val executionBatch = status match {
         case Full(Some(expected)) =>
-          mapBatch.get(expected.ruleId) match {
-            case None =>
-              logger.error(s"Error when fetching reports for Rule ID ${expected.ruleId}")
-              Failure(s"Error when fetching reports for Rule ID ${expected.ruleId}")
-            case Some(batch) =>
-              Full(Some(batch))
-          }
+          val reports = allReports.filter( report => report.ruleId == expected.ruleId)
+          Full(
+              Some(
+                  ConfigurationExecutionBatch(
+                      expected.ruleId
+                    , expected.serial
+                    , expected.directivesOnNodes.map(dir => DirectivesOnNodeExpectedReport(dir.nodeIds, dir.directiveExpectedReports))
+                    , reports.headOption.map(_.executionTimestamp).getOrElse(DateTime.now())
+                    , reports
+                    , expected.beginDate
+                    , expected.endDate
+                  )
+              )
+          )
         case Full(None) => Full(None)
         case e : EmptyBox => e
-      })
+      }
+      (ruleId, executionBatch)
     }.toMap
   }
 
@@ -263,30 +277,6 @@ class ReportingServiceImpl(
           expectedConfigurationReports.endDate)
   }
 
-  private def createLastBatchesFromConfigurationReports(
-      expectedConfigurationReports : Seq[RuleExpectedReports]
-  ) : Map[RuleId, ExecutionBatch] = {
-
-    val rulesAndSerials = expectedConfigurationReports.map(x => (x.ruleId, x.serial))
-    val allReports = reportsRepository.findLastReportsByRules(rulesAndSerials)
-
-
-    expectedConfigurationReports.map { x =>
-      val reports = allReports.filter( report => report.ruleId == x.ruleId)
-      (
-          x.ruleId
-        , ConfigurationExecutionBatch(
-            x.ruleId
-          , x.serial
-          , x.directivesOnNodes.map(dir => DirectivesOnNodeExpectedReport(dir.nodeIds, dir.directiveExpectedReports))
-          , reports.headOption.map(_.executionTimestamp).getOrElse(DateTime.now())
-          , reports
-          , x.beginDate
-          , x.endDate
-          )
-       )
-    }.toMap
-  }
   /**
    * Returns a seq of
    * Component, ComponentValues(expanded), ComponentValues (unexpanded))
