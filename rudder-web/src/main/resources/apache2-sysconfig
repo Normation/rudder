@@ -1,1 +1,5 @@
-APACHE_MODULES="${APACHE_MODULES} rewrite dav dav_fs proxy proxy_http headers"
+# Apache modules
+APACHE_MODULES="${APACHE_MODULES} rewrite dav dav_fs proxy proxy_http headers ssl"
+
+# Apache configuration flags
+APACHE_SERVER_FLAGS="${APACHE_SERVER_FLAGS} SSL"
