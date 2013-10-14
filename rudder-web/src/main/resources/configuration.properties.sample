@@ -429,28 +429,28 @@ rudder.workflow.self.deployment=true
 
 
 #########################
-# Reports Executions #############################################################
+# Store Agent Run Times #############################################################
 #########################
 
 # Maximum Days of reports handled (default : 5)
 #
-# To avoid handling too much reports at one time, the "ReportsExecution" process
+# To avoid handling too much reports at one time, the "Store Agent Run Times" process
 # will only take reports after X days from the last one processed.
 # This is mainly used on the first Run, when the process has to catch on old reports,
 # and build execution history.
 # This value is expressed in days.
 
-rudder.reportsExecution.maxDays=5
+rudder.batch.storeAgentRunTimes.maxDays=5
 
 # Delay before to launch of the reports executions actor (default : 5)
 # 
 # This value determine the frequency of the reports executions actor.
 # This needs to be run very often so you should keep it as low as possible.
-# Having a low delay will means that agent executions are almost synchornized with now.
+# Having a low delay will means that agent executions are almost synchronized with now.
 # This value is expressed in seconds
 
 
-rudder.reportsExecution.reportInterval=5
+rudder.batch.storeAgentRunTimes.updateInterval=5
 
 
 #########################

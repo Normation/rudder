@@ -245,8 +245,8 @@ object RudderConfig extends Loggable {
   val RUDDER_UI_CHANGEMESSAGE_MANDATORY = config.getBoolean("rudder.ui.changeMessage.mandatory") //false
   val RUDDER_UI_CHANGEMESSAGE_EXPLANATION = config.getString("rudder.ui.changeMessage.explanation") //"Please enter a message explaining the reason for this change."
   val RUDDER_SYSLOG_PORT = config.getInt("rudder.syslog.port") //514
-  val RUDDER_REPORTS_EXECUTION_MAX_DAYS = config.getInt("rudder.reportsExecution.maxDays") // In days : 5
-  val RUDDER_REPORTS_EXECUTION_INTERVAL = config.getInt("rudder.reportsExecution.reportInterval") // In seconds : 10
+  val RUDDER_REPORTS_EXECUTION_MAX_DAYS = config.getInt("rudder.batch.storeAgentRunTimes.maxDays") // In days : 5
+  val RUDDER_REPORTS_EXECUTION_INTERVAL = config.getInt("rudder.batch.storeAgentRunTimes.updateInterval") // In seconds : 5
 
   val BIN_EMERGENCY_STOP = config.getString("bin.emergency.stop")
   val HISTORY_INVENTORIES_ROOTDIR = config.getString("history.inventories.rootdir")
