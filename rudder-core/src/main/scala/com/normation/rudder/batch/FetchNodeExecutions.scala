@@ -46,14 +46,18 @@ import com.normation.rudder.reports.execution.ReportsExecutionService
  * The actual copy is delegated to
  *
  */
+object FindNewReportsExecution {
+  val SERVICE_NAME = "Store Agent Run Times"
+
+}
 class FindNewReportsExecution (
     reportsExecutionService : ReportsExecutionService
   , val updateInterval      : Int // in minutes
 ) extends AbstractScheduler {
 
   type T = Unit
-  val executeTask: () => Box[Unit]  = () => tryo{reportsExecutionService.findAndSaveExecutions}
-  lazy val displayName : String = "Store Nodes executions"
+  val executeTask: Long => Box[Unit]  = (processId:Long) => tryo{reportsExecutionService.findAndSaveExecutions(processId)}
+  lazy val displayName : String = FindNewReportsExecution.SERVICE_NAME
   lazy val propertyName : String = "rudder.reports.execution.updateInterval"
 
 }

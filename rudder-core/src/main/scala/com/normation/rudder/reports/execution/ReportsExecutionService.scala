@@ -40,6 +40,7 @@ import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import com.normation.rudder.reports.status.StatusUpdateRepository
 import org.joda.time.DateTime
+import com.normation.rudder.batch.FindNewReportsExecution
 
 /**
  * That service contains most of the logic to merge
@@ -53,14 +54,14 @@ class ReportsExecutionService (
   , maxDays                : Int // in days
 ) extends Loggable {
 
+  val format = "yyyy/MM/dd HH:mm:ss"
 
-  def findAndSaveExecutions = {
-
+  def findAndSaveExecutions(processId : Long) = {
+    val startTime = DateTime.now().getMillis()
     // Get execution status
     statusUpdateRepository.getExecutionStatus match {
       // Find it, start looking for new executions
       case Full(Some((lastReportId,lastReportDate))) =>
-        logger.info(s"Starting to fetch Nodes Executions from report ID ${lastReportId} - date from ${lastReportDate} to ${lastReportDate plusDays(maxDays)}")
 
         // Get reports of the last id and before last report date plus maxDays
         val endBatchDate = if (lastReportDate.plusDays(maxDays).isAfter(DateTime.now)) {
@@ -69,6 +70,8 @@ class ReportsExecutionService (
                               lastReportDate.plusDays(maxDays)
                             }
 
+        logger.info(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Starting analysis for run times from ${lastReportDate.toString(format)} up to ${endBatchDate.toString(format)} (runs after SQL table ID ${lastReportId})")
+
         reportsRepository.getReportsfromId(lastReportId, endBatchDate) match {
           case Full((reportExec, maxReportId)) =>
             if (reportExec.size > 0) {
@@ -76,16 +79,18 @@ class ReportsExecutionService (
               // Save new executions
               writeExecutions.updateExecutions(reportExec) match {
                 case Full(result) =>
-                  logger.info(s"Saved ${result.size} execution of nodes, up to the ID ${maxReportId} and date ${maxDate}")
+                  val executionTime = DateTime.now().getMillis() - startTime
+                  logger.info(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. Added or updated ${result.size} agent runs, up to SQL table ID ${maxReportId} (last run time was ${maxDate.toString(format)})")
                   statusUpdateRepository.setExecutionStatus(maxReportId, maxDate)
 
                 case eb:EmptyBox => val fail = eb ?~! "could not save nodes executions"
-                  logger.error(s"Could not save execution of Nodes from report ID ${lastReportId} - date ${lastReportDate} to ${lastReportDate plusDays(maxDays)}, cause is : ${fail.messageChain}")
+                  logger.error(s"Could not save execution of Nodes from report ID ${lastReportId} - date ${lastReportDate} to ${(lastReportDate plusDays(maxDays)).toString(format)}, cause is : ${fail.messageChain}")
               }
 
             } else {
-              logger.info("There are no nodes executions to store")
-              logger.debug(s"Storing date ${endBatchDate} for next upper limits")
+              logger.debug("There are no nodes executions to store")
+              val executionTime = DateTime.now().getMillis() - startTime
+              logger.info(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. Added or updated 0 agent runs (up to SQL table ID ${maxReportId})")
               statusUpdateRepository.setExecutionStatus(lastReportId, endBatchDate)
             }
 

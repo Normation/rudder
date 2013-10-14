@@ -74,7 +74,7 @@ trait ReportsRepository {
    * Return the last (really the last, serial wise, with full execution) reports for a rule
    */
   def findLastReportsByRules(
-      rulesAndSerials: Seq[(RuleId, Int)]
+      rulesAndSerials: Set[(RuleId, Int)]
   ) : Seq[Reports]
 
   /**

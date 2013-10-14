@@ -232,7 +232,7 @@ class RuleGrid(
 
     // we compute beforehand the compliance, so that we have a single big query
     // to the database
-    val complianceMap = computeCompliances(rules)
+    val complianceMap = computeCompliances(rules.toSet)
 
     case class OKLine(
         rule             : Rule
@@ -614,7 +614,7 @@ class RuleGrid(
 
   }
 
-  private[this] def computeCompliances(rules: Seq[Rule]) : Map[RuleId, Box[Option[ComplianceLevel]]] = {
+  private[this] def computeCompliances(rules: Set[Rule]) : Map[RuleId, Box[Option[ComplianceLevel]]] = {
     reportingService.findImmediateReportsByRules(rules.map(_.id)).map { case (ruleId, entry) =>
       (ruleId,
           entry match {

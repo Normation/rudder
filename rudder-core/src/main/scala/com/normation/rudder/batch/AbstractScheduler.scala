@@ -39,6 +39,7 @@ import net.liftweb.actor.LAPinger
 import net.liftweb.common._
 import net.liftweb.util.Helpers
 import org.joda.time.DateTime
+import com.normation.rudder.domain.logger.ApplicationLogger
 
 
 // -----------------------------------------------------
@@ -74,8 +75,9 @@ trait AbstractScheduler extends Loggable {
 
   type T
   val schedulerMinimumIntervalTime = 1
+  val schedulerMaximumIntervalTime = 300
   def updateInterval: Int // in seconds
-  val executeTask: () => Box[T]
+  val executeTask: Long => Box[T]
   def displayName : String
   def propertyName : String
 
@@ -113,8 +115,13 @@ trait AbstractScheduler extends Loggable {
         logger.warn(s"Value '${updateInterval}' for ${propertyName} is too small for [${displayName}] scheduler interval, using '${schedulerMinimumIntervalTime}'")
         schedulerMinimumIntervalTime
       } else {
-        logger.info(s"Starting [${displayName}] scheduler with a period of ${updateInterval} minutes")
-        updateInterval
+        if(updateInterval > schedulerMaximumIntervalTime) {
+          logger.warn(s"Value '${updateInterval}' for ${propertyName} is too big for [${displayName}] scheduler interval, using '${schedulerMaximumIntervalTime}'")
+          schedulerMaximumIntervalTime
+        } else {
+          logger.info(s"Starting [${displayName}] scheduler with a period of ${updateInterval} s")
+          updateInterval
+        }
       }
     }
 
@@ -127,14 +134,14 @@ trait AbstractScheduler extends Loggable {
 
         currentState match {
           case IdleUpdater =>
-            logger.debug(s"Start a new task for [${displayName}] scheduler")
+            logger.debug(s"[${displayName}] Scheduled task starting")
             updateId = updateId + 1
             TaskProcessor ! StartProcessing(updateId, new DateTime)
           case _ : StartProcessing if(!onePending) =>
             logger.trace(s"Add a pending task for [${displayName}] scheduler")
             onePending = true
           case _ =>
-            logger.warn(s"Ignoring request to start a new task for [${displayName}] scheduler: one other task is still processing")
+            logger.warn(s"[${displayName}] Scheduled task NOT started: another task is still processing, ignoring")
         }
 
       // --------------------------------------------
@@ -157,7 +164,11 @@ trait AbstractScheduler extends Loggable {
             val error = (e ?~! s"Error when executing [${displayName}] scheduler task started at ${start.toString(format)}, ended at ${end.toString(format)}.")
             logger.error(error.messageChain)
           case Full(x) =>
-            logger.info(s"[${displayName}] scheduler task started at ${start.toString(format)}, successfully ended at ${end.toString(format)}")
+            val executionTime = end.getMillis() - start.getMillis()
+            logger.debug(s"[${displayName}] Scheduled task finished in ${executionTime} ms (started at ${start.toString(format)}, finished at ${end.toString(format)})")
+            if (executionTime >= updateInterval*1000) {
+              ApplicationLogger.warn(s"[${displayName}] Task frequency is set too low! Last task took ${executionTime} ms but tasks are scheduled every ${updateInterval*1000} ms. Adjust ${propertyName} if this problem persists.")
+            }
         }
 
       // --------------------------------------------
@@ -176,7 +187,7 @@ trait AbstractScheduler extends Loggable {
         case StartProcessing(processId, startTime) => {
           logger.trace(s"[${displayName}] scheduler: start a new task with id: '${processId}' on date ${startTime}")
           try {
-            val result = executeTask()
+            val result = executeTask(processId)
 
             if (updateManager!=null)
               updateManager ! UpdateResult(processId, startTime, new DateTime, result)
