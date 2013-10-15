@@ -93,7 +93,7 @@ class TestQueryProcessor extends Loggable {
   val pendingDIT = new InventoryDit(new DN("ou=Pending Inventories,ou=Inventories,cn=rudder-configuration"),new DN("ou=Inventories,cn=rudder-configuration"),"test")
   val ditService = new InventoryDitServiceImpl(pendingDIT, DIT, removedDIT)
   val nodeDit = new NodeDit(new DN("cn=rudder-configuration"))
-  val rudderDit = new RudderDit(new DN("cn=rudder-configuration"))
+  val rudderDit = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
 
   val ditQueryData = new DitQueryData(DIT)
 
