@@ -40,7 +40,7 @@ import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.services.workflows.WorkflowUpdate
 import com.typesafe.config.ConfigFactory
 import com.normation.rudder.domain.appconfig.RudderWebProperty
-import com.normation.rudder.domain.appconfig.WebPropertyName
+import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -121,7 +121,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   }
 
   private[this] def save[T](name: String, value: T): Box[RudderWebProperty] = {
-    val p = RudderWebProperty(WebPropertyName(name), value.toString, "")
+    val p = RudderWebProperty(RudderWebPropertyName(name), value.toString, "")
     repos.saveConfigParameter(p)
   }
 
