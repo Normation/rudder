@@ -70,7 +70,7 @@ import com.normation.cfclerk.services.TechniqueRepository
  */
 class ReportDisplayer(
     ruleRepository      : RoRuleRepository
-  , directiveRepository : RoDirectiveRepository 
+  , directiveRepository : RoDirectiveRepository
   , reportingService    : ReportingService
   , techniqueRepository : TechniqueRepository) {
 
@@ -165,7 +165,7 @@ class ReportDisplayer(
              "#directiveInfo *" #>{
                         <b>{dir.name}</b>
                         <span class="tooltipable" tooltipid={tooltipid} title="">
-                          <img   src="/images/icInfo.png" style="padding-left:4px"/>
+                          <img   src="/images/icInfo.png" style="padding-left:4px; margin:0px;"/>
                         </span>
                          <span/>
                         <div class="tooltipContent" id={tooltipid}>
@@ -239,7 +239,7 @@ class ReportDisplayer(
                     Value <b>{value.componentValue}</b> was expanded from the entry <b>{unexpanded}</b>
                   </div>
                   </div>}
-            } & 
+            } &
             "#componentValue [class+]" #>  "firstTd"
          ) (componentValueDetails) } }
       </tbody>

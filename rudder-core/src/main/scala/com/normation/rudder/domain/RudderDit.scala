@@ -59,6 +59,7 @@ import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiToken
 import com.normation.rudder.domain.parameters.ParameterName
+import com.normation.rudder.domain.appconfig.WebPropertyName
 
 class CATEGORY(
     val uuid: String,
@@ -145,6 +146,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   dit.register(GROUP.SYSTEM.model)
   dit.register(API_ACCOUNTS.model)
   dit.register(PARAMETERS.model)
+  dit.register(APPCONFIG.model)
 
 
   //here, we can't use activeTechniqueCategory because we want a subclass
@@ -464,6 +466,27 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     ) : LDAPEntry = {
       val mod = LDAPEntry(parameterDN(name))
       mod +=! (A_OC,OC.objectClassNames(OC_PARAMETER).toSeq:_*)
+      mod
+    }
+  }
+
+  /**
+   * This is the Rudder APPLICATION configuration.
+   * Perhaps it should not be in that DIT, but in an
+   * upper one.
+   */
+  object APPCONFIG extends OU("Application Properties", BASE_DN.getParent) {
+    parameters =>
+
+    def getProperty(dn:DN) : Box[String] = singleRdnValue(dn,A_PROPERTY_NAME)
+
+    def propertyDN(parameterName:WebPropertyName) = new DN(new RDN(A_PROPERTY_NAME, parameterName.value), parameters.dn)
+
+    def propertyModel(
+        name : WebPropertyName
+    ) : LDAPEntry = {
+      val mod = LDAPEntry(propertyDN(name))
+      mod +=! (A_OC,OC.objectClassNames(OC_PROPERTY).toSeq:_*)
       mod
     }
   }

@@ -119,6 +119,7 @@ class RuleModificationValidationPopup(
     rule              : Rule
   , initialState      : Option[Rule]
   , action            : String //one among: save, delete, enable, disable or create
+  , workflowEnabled   : Boolean
   , onSuccessCallBack : (Either[Rule,ChangeRequestId]) => JsCmd = { x => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
   , parentFormTracker : Option[FormTracker] = None
@@ -130,7 +131,6 @@ class RuleModificationValidationPopup(
   private[this] val woChangeRequestRepo      = RudderConfig.woChangeRequestRepository
   private[this] val changeRequestService     = RudderConfig.changeRequestService
   private[this] val workflowService          = RudderConfig.workflowService
-  private[this] val workflowEnabled          = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }

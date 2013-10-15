@@ -191,6 +191,7 @@ class ModificationValidationPopup(
                         ]
   , action            : String //one among: save, delete, enable, disable or create
   , isANewItem        : Boolean
+  , workflowEnabled   : Boolean
   , onSuccessCallback : ChangeRequestId => JsCmd = { x => Noop }
   , onFailureCallback : NodeSeq => JsCmd = { x => Noop }
   , onCreateSuccessCallBack : (Either[Directive,ChangeRequestId]) => JsCmd = { x => Noop }
@@ -204,7 +205,6 @@ class ModificationValidationPopup(
   private[this] val changeRequestService     = RudderConfig.changeRequestService
   private[this] val workflowService          = RudderConfig.workflowService
   private[this] val dependencyService        = RudderConfig.dependencyAndDeletionService
-  private[this] val workflowEnabled          = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
   private[this] val uuidGen                  = RudderConfig.stringUuidGenerator
   private[this] val techniqueRepo            = RudderConfig.techniqueRepository
   private[this] val asyncDeploymentAgent     = RudderConfig.asyncDeploymentAgent
