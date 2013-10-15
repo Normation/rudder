@@ -40,6 +40,8 @@ import com.normation.rudder.repository.ldap.LDAPNodeConfigurationRepository
 import net.liftweb.common._
 import javax.servlet.UnavailableException
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.services.nodes.NodeInfoService
 
 /**
  * Check that an unique root server exists.
@@ -48,7 +50,8 @@ import com.normation.rudder.domain.logger.ApplicationLogger
  * server. Before anything else.
  */
 class CheckRootNodeUnicity(
-  ldapNodeRepository:LDAPNodeConfigurationRepository
+    ldapNodeRepository: LDAPNodeConfigurationRepository
+  , nodeInfoService   : NodeInfoService
 ) extends BootstrapChecks {
 
   @throws(classOf[ UnavailableException ])
@@ -64,14 +67,16 @@ class CheckRootNodeUnicity(
         ApplicationLogger.error(msg)
         throw new UnavailableException(msg)
       case Full(seq) =>
-        if(seq.size == 0) { //set-up flag to redirect all request to init wizard
-          RudderContext.rootNodeNotDefined = true
-        } else if(seq.size > 1) { //that's an error, ask the user what to do
-          val msg = "More than one Root Policy Server were found in the LDAP repository, and that is not supported. Please correct LDAP content before restarting"
-          ApplicationLogger.error(msg)
-          throw new UnavailableException(msg)
-        } else { //OK, remove the redirection flag if set
-          RudderContext.rootNodeNotDefined = false
+        //set-up flag to redirect all request to init wizard
+        RudderContext.rootNodeNotDefined = seq.contains(NodeId("root"))
+        // if we have more than one entry, probably relay server, we are going to list them
+        for {
+          id       <- seq
+          if id    != NodeId("root")
+          hostname = nodeInfoService.getNodeInfo(id).map(_.hostname).openOr("Hostname unavailable")
+        } yield {
+          val msg = s"Relay server configured on ${hostname} (Rudder ID ${id.value.toUpperCase()})"
+          ApplicationLogger.info(msg)
         }
     }
   }
