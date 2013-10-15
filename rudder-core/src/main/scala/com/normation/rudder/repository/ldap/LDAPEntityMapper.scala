@@ -68,6 +68,8 @@ import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiToken
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api.ApiAccountName
+import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.appconfig.WebPropertyName
 
 
 /**
@@ -580,4 +582,34 @@ class LDAPEntityMapper(
     entry +=! (A_DESCRIPTION, parameter.description)
     entry
   }
+
+  //////////////////////////////    Rudder Config    //////////////////////////////
+
+  def entry2RudderConfig(e:LDAPEntry) : Box[RudderWebProperty] = {
+    if(e.isA(OC_PROPERTY)) {
+      //OK, translate
+      for {
+        name        <-e(A_PROPERTY_NAME) ?~! s"Missing required attribute ${A_PROPERTY_NAME} in entry ${e}"
+        value       = e(A_PROPERTY_VALUE).getOrElse("")
+        description = e(A_DESCRIPTION).getOrElse("")
+      } yield {
+        RudderWebProperty(
+            WebPropertyName(name)
+          , value
+          , description
+        )
+      }
+    } else Failure(s"The given entry is not of the expected ObjectClass '${OC_PROPERTY}'. Entry details: ${e}")
+  }
+
+  def rudderConfig2Entry(property: RudderWebProperty) : LDAPEntry = {
+    val entry = rudderDit.APPCONFIG.propertyModel(
+        property.name
+    )
+    entry +=! (A_PROPERTY_VALUE, property.value)
+    entry +=! (A_DESCRIPTION, property.description)
+    entry
+  }
+
+
 }

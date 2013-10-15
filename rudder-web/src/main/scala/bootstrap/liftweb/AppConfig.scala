@@ -105,18 +105,12 @@ import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import scala.util.Try
 import com.normation.rudder.repository.inmemory.InMemoryChangeRequestRepository
-import com.normation.rudder.services.workflows.ChangeRequestService
-import com.normation.rudder.services.workflows.ChangeRequestServiceImpl
-import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
-import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestService
-import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServiceImpl
 import com.normation.rudder.services.modification.DiffServiceImpl
 import com.normation.rudder.services.modification.DiffService
-import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.services.workflows.TwoValidationStepsWorkflowServiceImpl
+import com.normation.rudder.services.workflows._
 import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.rule._
 import com.normation.rudder.web.rest.directive._
@@ -140,6 +134,7 @@ import com.normation.rudder.web.rest.changeRequest._
 import com.normation.rudder.reports.execution._
 import com.normation.rudder.reports.status._
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.appconfig._
 
 /**
  * Define a resource for configuration.
@@ -186,6 +181,10 @@ object RudderProperties {
     }
   }
 }
+
+
+
+
 
 /**
  * Static initialization of Rudder services.
@@ -241,9 +240,6 @@ object RudderConfig extends Loggable {
   val RUDDER_BATCH_REPORTS_LOGINTERVAL = config.getInt("rudder.batch.reports.logInterval") //1 //one minute
   val RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH = config.getString("rudder.techniqueLibrary.git.refs.path")
   val RUDDER_AUTOARCHIVEITEMS = config.getBoolean("rudder.autoArchiveItems") //true
-  val RUDDER_UI_CHANGEMESSAGE_ENABLED = config.getBoolean("rudder.ui.changeMessage.enabled") //false
-  val RUDDER_UI_CHANGEMESSAGE_MANDATORY = config.getBoolean("rudder.ui.changeMessage.mandatory") //false
-  val RUDDER_UI_CHANGEMESSAGE_EXPLANATION = config.getString("rudder.ui.changeMessage.explanation") //"Please enter a message explaining the reason for this change."
   val RUDDER_SYSLOG_PORT = config.getInt("rudder.syslog.port") //514
   val RUDDER_REPORTS_EXECUTION_MAX_DAYS = config.getInt("rudder.batch.storeAgentRunTimes.maxDays") // In days : 5
   val RUDDER_REPORTS_EXECUTION_INTERVAL = config.getInt("rudder.batch.storeAgentRunTimes.updateInterval") // In seconds : 5
@@ -255,10 +251,6 @@ object RudderConfig extends Loggable {
   //used in spring security "applicationContext-security.xml", be careful if you change its name
   val RUDDER_REST_ALLOWNONAUTHENTICATEDUSER = config.getBoolean("rudder.rest.allowNonAuthenticatedUser")
 
-  //workflows configuration
-  val RUDDER_ENABLE_APPROVAL_WORKFLOWS = config.getBoolean("rudder.workflow.enabled") // false
-  val RUDDER_ENABLE_SELF_VALIDATION    = config.getBoolean("rudder.workflow.self.validation") // false
-  val RUDDER_ENABLE_SELF_DEPLOYMENT    = config.getBoolean("rudder.workflow.self.deployment") // true
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
@@ -347,26 +339,30 @@ object RudderConfig extends Loggable {
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
 
-  val roChangeRequestRepository : RoChangeRequestRepository = RUDDER_ENABLE_APPROVAL_WORKFLOWS match {
-      case false =>
-        inMemoryChangeRequestRepository
-      case true =>
-        new RoChangeRequestJdbcRepository(
-          jdbcTemplate
-        , new ChangeRequestsMapper(changeRequestChangesUnserialisation))
-    }
-
-
-  val woChangeRequestRepository : WoChangeRequestRepository = RUDDER_ENABLE_APPROVAL_WORKFLOWS match {
-    case false =>
-      inMemoryChangeRequestRepository
-    case true =>
-      new WoChangeRequestJdbcRepository(
-          jdbcTemplate
-        , changeRequestChangesSerialisation
-        , roChangeRequestRepository
+  val roChangeRequestRepository : RoChangeRequestRepository = {
+    //a runtime checking of the workflow to use
+    new EitherRoChangeRequestRepository(
+        configService.rudder_workflow_enabled
+      , new RoChangeRequestJdbcRepository(
+            jdbcTemplate
+          , new ChangeRequestsMapper(changeRequestChangesUnserialisation)
         )
-    }
+      , inMemoryChangeRequestRepository
+    )
+  }
+
+  val woChangeRequestRepository : WoChangeRequestRepository = {
+    //a runtime checking of the workflow to use
+    new EitherWoChangeRequestRepository(
+        configService.rudder_workflow_enabled
+      , new WoChangeRequestJdbcRepository(
+            jdbcTemplate
+          , changeRequestChangesSerialisation
+          , roChangeRequestRepository
+        )
+      , inMemoryChangeRequestRepository
+    )
+  }
 
   val changeRequestEventLogService : ChangeRequestEventLogService = new ChangeRequestEventLogServiceImpl(eventLogRepository)
 
@@ -401,33 +397,37 @@ object RudderConfig extends Loggable {
       , woLDAPParameterRepository
       , asyncDeploymentAgent
       , dependencyAndDeletionService
-      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+      , configService.rudder_workflow_enabled
       , xmlSerializer
       , xmlUnserializer
       , sectionSpecParser
     )
   val asyncWorkflowInfo = new AsyncWorkflowInfo
-  val workflowService: WorkflowService = RUDDER_ENABLE_APPROVAL_WORKFLOWS match {
-    case true => new TwoValidationStepsWorkflowServiceImpl(
+  val workflowService: WorkflowService = {
+    new EitherWorkflowService(
+        configService.rudder_workflow_enabled
+      , new TwoValidationStepsWorkflowServiceImpl(
             workflowEventLogService
           , commitAndDeployChangeRequest
           , roWorkflowRepository
           , woWorkflowRepository
           , asyncWorkflowInfo
-          , RUDDER_ENABLE_SELF_VALIDATION
-          , RUDDER_ENABLE_SELF_DEPLOYMENT
+          , configService.rudder_workflow_self_validation
+          , configService.rudder_workflow_self_deployment
         )
-    case false => new NoWorkflowServiceImpl(
+      , new NoWorkflowServiceImpl(
             commitAndDeployChangeRequest
           , inMemoryChangeRequestRepository
         )
+    )
   }
+
   val changeRequestService: ChangeRequestService = new ChangeRequestServiceImpl (
       roChangeRequestRepository
     , woChangeRequestRepository
     , changeRequestEventLogService
     , uuidGen
-    , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+    , configService.rudder_workflow_enabled
   )
 
   val roParameterService : RoParameterService = roParameterServiceImpl
@@ -468,7 +468,7 @@ object RudderConfig extends Loggable {
       , changeRequestService
       , workflowService
       , restExtractorService
-      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+      , configService.rudder_workflow_enabled
       , restDataSerializer
     )
 
@@ -503,7 +503,7 @@ object RudderConfig extends Loggable {
       , changeRequestService
       , workflowService
       , restExtractorService
-      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+      , configService.rudder_workflow_enabled
       , directiveEditorService
       , restDataSerializer
     )
@@ -539,7 +539,7 @@ object RudderConfig extends Loggable {
       , workflowService
       , restExtractorService
       , queryProcessor
-      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+      , configService.rudder_workflow_enabled
       , restDataSerializer
     )
 
@@ -601,7 +601,7 @@ object RudderConfig extends Loggable {
       , changeRequestService
       , workflowService
       , restExtractorService
-      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+      , configService.rudder_workflow_enabled
       , restDataSerializer
     )
 
@@ -637,7 +637,7 @@ object RudderConfig extends Loggable {
       , commitAndDeployChangeRequest
       , restExtractorService
       , restDataSerializer
-      , RUDDER_ENABLE_APPROVAL_WORKFLOWS
+      , configService.rudder_workflow_enabled
     )
 
 
@@ -654,6 +654,14 @@ object RudderConfig extends Loggable {
         restExtractorService
       , changeRequestApiService3
     )
+
+  lazy val configService: ReadConfigService with UpdateConfigService =
+    new LDAPBasedConfigService(
+        config
+      , new LdapConfigRepository(rudderDit, rwLdap, ldapEntityMapper)
+      , asyncWorkflowInfo
+  )
+
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -816,13 +824,17 @@ object RudderConfig extends Loggable {
     new TechniqueParser(variableSpecParser,sectionSpecParser,new Cf3PromisesFileTemplateParser,systemVariableSpecService)
   }
 
+
+
+  private[this] lazy val userPropertyServiceImpl = new StatelessUserPropertyService(
+      configService.rudder_ui_changeMessage_enabled
+    , configService.rudder_ui_changeMessage_mandatory
+    , configService.rudder_ui_changeMessage_explanation
+  )
+
   ////////////////////////////////////
   //  non pure services
   ////////////////////////////////////
-  private[this] lazy val userPropertyServiceImpl = {
-    val opt = new ReasonsMessageInfo(RUDDER_UI_CHANGEMESSAGE_ENABLED, RUDDER_UI_CHANGEMESSAGE_MANDATORY, RUDDER_UI_CHANGEMESSAGE_EXPLANATION)
-    new UserPropertyServiceImpl(opt)
-  }
 
   ///// end /////
   private[this] lazy val logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)

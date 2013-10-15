@@ -100,6 +100,7 @@ class NodeGroupForm(
   , val nodeGroup     : NodeGroup
   , parentCategoryId  : NodeGroupCategoryId
   , rootCategory      : FullNodeGroupCategory
+  , workflowEnabled   : Boolean
   , onSuccessCallback : (Either[NodeGroup, ChangeRequestId]) => JsCmd = { (NodeGroup) => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with SpringExtendableSnippet[NodeGroupForm] with Loggable {
@@ -107,7 +108,6 @@ class NodeGroupForm(
 
   private[this] val nodeInfoService            = RudderConfig.nodeInfoService
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
-  private[this] val workflowEnabled            = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
 
   private[this] val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm]
   private[this] val nodeGroupForm = new LocalSnippet[NodeGroupForm]
@@ -182,7 +182,7 @@ class NodeGroupForm(
      )
 
      bind("group", html,
-      "pendingChangeRequest" ->  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id),
+      "pendingChangeRequest" ->  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id, workflowEnabled),
       "name" -> groupName.toForm_!,
       "rudderID" -> <div><b class="threeCol">Rudder ID: </b>{nodeGroup.id.value.toUpperCase}</div>,
       "description" -> groupDescription.toForm_!,
@@ -331,6 +331,7 @@ class NodeGroupForm(
           Right(newGroup, newCategory, optOriginal)
         , action
         , false
+        , workflowEnabled
         , crId => JsRaw("$.modal.close();") & successCallback(crId)
         , xml => JsRaw("$.modal.close();") & onFailure
         , parentFormTracker = formTracker
@@ -381,7 +382,7 @@ class NodeGroupForm(
     panel match {
       case NoPanel => NodeSeq.Empty
       case GroupForm(group, catId) =>
-        val form = new NodeGroupForm(htmlId_item, group, catId, rootCategory, onSuccessCallback)
+        val form = new NodeGroupForm(htmlId_item, group, catId, rootCategory, workflowEnabled, onSuccessCallback)
         nodeGroupForm.set(Full(form))
         form.showForm()
 

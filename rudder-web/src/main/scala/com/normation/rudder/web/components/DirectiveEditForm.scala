@@ -110,6 +110,7 @@ class DirectiveEditForm(
   , activeTechnique   : ActiveTechnique
   , val directive     : Directive
   , oldDirective      : Option[Directive]
+  , workflowEnabled   : Boolean
   , onSuccessCallback : (Either[Directive,ChangeRequestId]) => JsCmd = { (Directive) => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
   , isADirectiveCreation : Boolean = false
@@ -124,7 +125,6 @@ class DirectiveEditForm(
   private[this] val woChangeRequestRepo    = RudderConfig.woChangeRequestRepository
   private[this] val roChangeRequestRepo    = RudderConfig.roChangeRequestRepository
   private[this] val techniqueRepo          = RudderConfig.techniqueRepository
-  private[this] val workflowEnabled        = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
 
   private[this] val htmlId_save = htmlId_policyConf + "Save"
   private[this] val parameterEditor = {
@@ -160,7 +160,7 @@ class DirectiveEditForm(
       "#editForm *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
       "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
-          PendingChangeRequestDisplayer.checkByDirective(xml, directive.id)
+          PendingChangeRequestDisplayer.checkByDirective(xml, directive.id, workflowEnabled)
         } &
       "#existingPrivateDrafts" #> displayPrivateDrafts &
       "#existingChangeRequests" #> displayChangeRequests &
@@ -416,6 +416,7 @@ class DirectiveEditForm(
               Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal)
             , action
             , isADirectiveCreation
+            , workflowEnabled
             , cr => onSuccessCallback(Right(cr))
             , xml => JsRaw("$.modal.close();") & onFailure
             , parentFormTracker = formTracker
@@ -434,6 +435,7 @@ class DirectiveEditForm(
               Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal)
             , action
             , isADirectiveCreation
+            , workflowEnabled
             , callback
             , xml => JsRaw("$.modal.close();") & onFailure
             , parentFormTracker = formTracker
@@ -444,6 +446,7 @@ class DirectiveEditForm(
             Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal)
           , action
           , isADirectiveCreation
+          , workflowEnabled
           , onCreateSuccessCallBack = ( result => onSuccessCallback(result) & successPopup(NodeSeq.Empty))
           , onCreateFailureCallBack = onFailure
           , parentFormTracker = formTracker

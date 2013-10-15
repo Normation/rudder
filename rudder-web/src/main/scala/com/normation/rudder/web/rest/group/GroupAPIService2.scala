@@ -64,7 +64,7 @@ case class GroupApiService2 (
   , workflowService      : WorkflowService
   , restExtractor        : RestExtractorService
   , queryProcessor       : QueryProcessor
-  , workflowEnabled      : Boolean
+  , workflowEnabled      : () => Box[Boolean]
   , restDataSerializer   : RestDataSerializer
   ) extends Loggable {
 
@@ -99,9 +99,16 @@ case class GroupApiService2 (
       }
     ) match {
       case Full(crId) =>
-        val optCrId = if (workflowEnabled) Some(crId) else None
-        val jsonGroup = List(serialize(group,optCrId))
-        toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
+        workflowEnabled() match {
+          case Full(enabled) =>
+            val optCrId = if (enabled) Some(crId) else None
+            val jsonGroup = List(serialize(group,optCrId))
+            toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
+          case eb : EmptyBox =>
+            val fail = eb ?~ (s"Could not check workflow property" )
+            val msg = s"Change request creation failed, cause is: ${fail.msg}."
+            toJsonError(Some(id), msg)
+        }
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Group ${id}" )
         val msg = s"${act} failed, cause is: ${fail.msg}."
@@ -179,18 +186,26 @@ case class GroupApiService2 (
                  * else if (workflowEnabled) false
                  * else defaultEnabled
                  */
-                val enableCheck = restGroup.onlyName || (!workflowEnabled && defaultEnabled)
-                val baseGroup = NodeGroup(groupId,name,"",None,true,Set(),enableCheck)
-                restExtractor.extractNodeGroupCategoryId(req.params) match {
-                  case Full(category) =>
-                    // The enabled value in restGroup will be used in the saved Group
-                    actualGroupCreation(restGroup.copy(enabled = Some(enableCheck)),baseGroup,category)
-                  case eb:EmptyBox =>
-                    val fail = eb ?~ (s"Could not node group category" )
-                    val message = s"Could not create Group ${name} (id:${groupId.value}): cause is: ${fail.msg}."
-                    toJsonError(Some(groupId.value), message)
-                }
 
+
+                workflowEnabled() match {
+                  case Full(enabled) =>
+                    val enableCheck = restGroup.onlyName || (!enabled && defaultEnabled)
+                    val baseGroup = NodeGroup(groupId,name,"",None,true,Set(),enableCheck)
+                    restExtractor.extractNodeGroupCategoryId(req.params) match {
+                      case Full(category) =>
+                        // The enabled value in restGroup will be used in the saved Group
+                        actualGroupCreation(restGroup.copy(enabled = Some(enableCheck)),baseGroup,category)
+                      case eb:EmptyBox =>
+                        val fail = eb ?~ (s"Could not node group category" )
+                        val message = s"Could not create Group ${name} (id:${groupId.value}): cause is: ${fail.msg}."
+                        toJsonError(Some(groupId.value), message)
+                    }
+                  case eb : EmptyBox =>
+                    val fail = eb ?~ (s"Could not check workflow property" )
+                    val msg = s"Change request creation failed, cause is: ${fail.msg}."
+                    toJsonError(Some(groupId.value), msg)
+                }
               // More than one source, make an error
               case _ =>
                 val message = s"Could not create Group ${name} (id:${groupId.value}) based on an already existing Group, cause is : too many values for source parameter."

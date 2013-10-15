@@ -72,7 +72,7 @@ case class RuleApiService2 (
   , changeRequestService : ChangeRequestService
   , workflowService      : WorkflowService
   , restExtractor        : RestExtractorService
-  , workflowEnabled      : Boolean
+  , workflowEnabled      : () => Box[Boolean]
   , restDataSerializer   : RestDataSerializer
   ) {
 
@@ -108,9 +108,16 @@ case class RuleApiService2 (
       }
     ) match {
       case Full(crId) =>
-        val optCrId = if (workflowEnabled) Some(crId) else None
-        val jsonRule = List(serialize(rule,optCrId))
-        toJsonResponse(Some(id), ("rules" -> JArray(jsonRule)))
+        workflowEnabled() match {
+          case Full(enabled) =>
+            val optCrId = if (enabled) Some(crId) else None
+            val jsonRule = List(serialize(rule,optCrId))
+            toJsonResponse(Some(id), ("rules" -> JArray(jsonRule)))
+          case eb : EmptyBox =>
+            val fail = eb ?~ (s"Could not check workflow property" )
+            val msg = s"Change request creation failed, cause is: ${fail.msg}."
+            toJsonError(Some(id), msg)
+        }
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Rule ${id}" )
         val msg = s"${act} failed, cause is: ${fail.msg}."
@@ -188,11 +195,19 @@ case class RuleApiService2 (
                  * else if (workflowEnabled) false
                  * else defaultEnabled
                  */
-                val enableCheck = restRule.onlyName || (!workflowEnabled && defaultEnabled)
-                val baseRule = Rule(ruleId,name,0)
 
-                // The enabled value in restRule will be used in the saved Rule
-                actualRuleCreation(restRule.copy(enabled = Some(enableCheck)),baseRule)
+                workflowEnabled() match {
+                  case Full(enabled) =>
+                    val enableCheck = restRule.onlyName || (!enabled && defaultEnabled)
+                    val baseRule = Rule(ruleId,name,0)
+                    // The enabled value in restRule will be used in the saved Rule
+                    actualRuleCreation(restRule.copy(enabled = Some(enableCheck)),baseRule)
+
+                  case eb : EmptyBox =>
+                    val fail = eb ?~ (s"Could not check workflow property" )
+                    val msg = s"Change request creation failed, cause is: ${fail.msg}."
+                    toJsonError(Some(ruleId.value), msg)
+                }
 
               // More than one source, make an error
               case _ =>

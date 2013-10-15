@@ -69,7 +69,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   private[this] val woParameterService = RudderConfig.woParameterService
   private[this] val uuidGen            = RudderConfig.stringUuidGenerator
   private[this] val userPropertyService= RudderConfig.userPropertyService
-private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WORKFLOWS
+  private[this] val workflowEnabled    = RudderConfig.configService.rudder_workflow_enabled
 
   //the current GlobalParameterForm component
   private[this] val parameterPopup = new LocalSnippet[CreateOrUpdateGlobalParameterPopup]
@@ -79,15 +79,21 @@ private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WOR
   }
 
   def display() : NodeSeq = {
-    roParameterService.getAllGlobalParameters match {
-      case Full(seq) => displayGridParameters(seq, gridName)
-      case Empty     => displayGridParameters(Seq(), gridName)
-      case f:Failure =>
-        <div class="error">Error when trying to get global Parameters</div>
+    (for {
+      seq <- roParameterService.getAllGlobalParameters
+      workflowEnabled <- RudderConfig.configService.rudder_workflow_enabled
+    } yield {
+      (seq, workflowEnabled)
+    }) match {
+      case Full((seq, workflowEnabled)) => displayGridParameters(seq, gridName, workflowEnabled)
+      case eb:EmptyBox =>
+        val e = eb ?~! "Error when trying to get global Parameters"
+        logger.error(s"Error when trying to display global Parameters, casue is: ${e.messageChain}")
+        <div class="error">{e.msg}</div>
     }
   }
 
-  def displayGridParameters(params:Seq[GlobalParameter], gridName:String) : NodeSeq  = {
+  def displayGridParameters(params:Seq[GlobalParameter], gridName:String, workflowEnabled: Boolean) : NodeSeq  = {
     (
       "tbody *" #> ("tr" #> params.map { param =>
         val lineHtmlId = Helpers.nextFuncName
@@ -99,11 +105,11 @@ private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WOR
         ".description [id]" #> ("description-" + lineHtmlId) &
         ".overridable *" #> param.overridable &
         ".change *" #> <div >{
-                       ajaxButton("Edit", () => showPopup("save", Some(param)), ("class", "mediumButton"), ("align", "left")) ++
-                       ajaxButton("Delete", () => showPopup("delete", Some(param)), ("class", "mediumButton dangerButton"), ("style", "margin-left:5px;"))
+                       ajaxButton("Edit", () => showPopup("save", Some(param), workflowEnabled), ("class", "mediumButton"), ("align", "left")) ++
+                       ajaxButton("Delete", () => showPopup("delete", Some(param), workflowEnabled), ("class", "mediumButton dangerButton"), ("style", "margin-left:5px;"))
                        }</div>
       }) &
-      ".createParameter *" #> ajaxButton("Add Parameter", () => showPopup("create", None))
+      ".createParameter *" #> ajaxButton("Add Parameter", () => showPopup("create", None, workflowEnabled))
      ).apply(dataTableXml(gridName)) ++ Script(initJs)
   }
 
@@ -207,15 +213,17 @@ private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WOR
   }
 
   private[this] def showPopup(
-      action    : String
-    , parameter : Option[GlobalParameter]
+      action         : String
+    , parameter      : Option[GlobalParameter]
+    , workflowEnabled: Boolean
   ) : JsCmd = {
     parameterPopup.set(
         Full(
             new CreateOrUpdateGlobalParameterPopup(
                 parameter
+              , workflowEnabled
               , action
-              , cr => workflowCallBack(action)(cr)
+              , cr => workflowCallBack(action, workflowEnabled)(cr)
             )
         )
       )
@@ -226,13 +234,13 @@ private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WOR
   }
 
 
-  private[this] def workflowCallBack(action:String)(returns : Either[GlobalParameter,ChangeRequestId]) : JsCmd = {
+  private[this] def workflowCallBack(action:String, workflowEnabled: Boolean)(returns : Either[GlobalParameter,ChangeRequestId]) : JsCmd = {
     if ((!workflowEnabled) & (action == "delete")) {
-      JsRaw("$.modal.close();") & onSuccessDeleteCallback()
+      JsRaw("$.modal.close();") & onSuccessDeleteCallback(workflowEnabled)
     } else {
       returns match {
         case Left(param) => // ok, we've received a parameter, do as before
-          JsRaw("$.modal.close();") &  updateGrid() & successPopup
+          JsRaw("$.modal.close();") &  updateGrid(workflowEnabled) & successPopup
         case Right(changeRequest) => // oh, we have a change request, go to it
           RedirectTo(s"""/secure/utilities/changeRequest/${changeRequest.value}""")
       }
@@ -252,7 +260,7 @@ private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WOR
 
 
 
-  private[this] def updateGrid() : JsCmd = {
+  private[this] def updateGrid(workflowEnabled: Boolean) : JsCmd = {
     Replace(gridContainer, display()) & OnLoad(JsRaw("""correctButtons();"""))
   }
 
@@ -262,8 +270,8 @@ private[this] val workflowEnabled      = RudderConfig.RUDDER_ENABLE_APPROVAL_WOR
     """)
   }
 
-  private[this] def onSuccessDeleteCallback() : JsCmd = {
-    updateGrid() & successPopup
+  private[this] def onSuccessDeleteCallback(workflowEnabled: Boolean) : JsCmd = {
+    updateGrid(workflowEnabled) & successPopup
   }
 
 

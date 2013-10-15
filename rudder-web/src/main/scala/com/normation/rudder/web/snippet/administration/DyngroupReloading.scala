@@ -56,6 +56,7 @@ import bootstrap.liftweb.RudderConfig
 class DyngroupReloading extends DispatchSnippet with Loggable {
 
   private[this] val updateDynamicGroups = RudderConfig.updateDynamicGroups
+  private[this] val updateDynamicGroupsInterval = RudderConfig.RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL
 
   def dispatch = {
     case "render" => reload
@@ -78,9 +79,10 @@ class DyngroupReloading extends DispatchSnippet with Loggable {
       Replace("dyngroupReloadingForm", outerXml.applyAgain)
     }
 
+    val initJs = SetHtml("dynGroupUpdateInterval", <span>{updateDynamicGroupsInterval}</span>)
     //process the list of networks
     "#dyngroupReloadingButton" #> {
-      SHtml.ajaxSubmit("Reload dynamic groups", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
+      SHtml.ajaxSubmit("Reload dynamic groups now", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """) & initJs))
     }
   }
 }

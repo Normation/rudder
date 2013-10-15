@@ -285,30 +285,6 @@ rudder.dir.gitRoot=/var/rudder/configuration-repository
 # 
 rudder.autoArchiveItems=true
 
-#
-# If true, in UI Rudder will prompt the user for a reason of the change. 
-# The message displayed to the user is based on the variable 
-# rudder.ui.changeMessage.explanation
-# Based on the value of rudder.ui.changeMessage.mandatory, the user input
-# can be mandatory or not
-#
-rudder.ui.changeMessage.enabled=true
-
-#
-# Boolean, defaults false
-# If true, the user input will be mandatory (non empty reason message)
-#
-rudder.ui.changeMessage.mandatory=false
-
-# 
-# Text, defaults Please enter a message explaining the reason for this change.
-# This variable defines the content of the message prompted to the user
-# when he does modifications
-# 
-rudder.ui.changeMessage.explanation=Please enter a message explaining the reason for this change.
-
-
-
 ###############################
 # Dynamic group configuration #######################################################
 ###############################
@@ -389,45 +365,6 @@ history.inventories.rootdir=/var/rudder/inventories/historical
 
 rudder.batch.reports.logInterval=1
 
-###########################
-# Workflow configuration  ###########################################################
-###########################
-
-# Activate the Workflow (default false)
-#
-# If true, the workflow will be activated within Rudder. Every changes in 
-# Directive, Group or Rules will have to be validated before being deployed
-# If false, when a Directive, Rule, group, node ... is modified
-# promises will be automatically
-# regenerated. 
-# If true, the workflow will be activated within Rudder. Every changes in 
-# Directive, Group or Rules will have to be validated before being deployed
-#
-# Boolean, defaults to false.
-
-rudder.workflow.enabled=false
-
-# Enable self validation (default false)
-#
-# If false, no change request can be validated by it's creator
-# So every change request will need to be reviewed by someone different from
-# who requested this changed
-#
-# Boolean, defaults to false.
-
-rudder.workflow.self.validation=false
-
-# Enable self deployment (default true)
-#
-# If false, no change request can be deployed by it's creator
-# So every change request will need to be reviewed by someone different from
-# who requested this changed
-#
-# Boolean, defaults to true.
-
-rudder.workflow.self.deployment=true
-
-
 #########################
 # Store Agent Run Times #############################################################
 #########################
@@ -451,7 +388,6 @@ rudder.batch.storeAgentRunTimes.maxDays=5
 
 
 rudder.batch.storeAgentRunTimes.updateInterval=5
-
 
 #########################
 # DEPRECATED properties #############################################################
