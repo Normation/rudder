@@ -335,6 +335,20 @@ attributetype ( RudderAttributes:303
   EQUALITY booleanMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.7  )
 
+attributetype ( RudderAttributes:304
+  NAME 'propertyName'
+  DESC 'Name of parameter that matches [a-zA-Z0-9_]+'
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+attributetype ( RudderAttributes:305
+  NAME 'propertyValue'
+  DESC 'Name of parameter that matches [a-zA-Z0-9_]+'
+  EQUALITY caseExactMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
 #######################################################
 ################  Object Classes ######################
 #######################################################
@@ -515,3 +529,11 @@ objectclass ( RudderObjectClasses:120
   STRUCTURAL
   MUST ( parameterName )
   MAY ( parameterValue $ description $ overridable ) )
+
+objectclass ( RudderObjectClasses:121
+  NAME 'property'
+  DESC 'A property of the format key - value'
+  SUP top
+  STRUCTURAL
+  MUST ( propertyName )
+  MAY ( propertyValue $ description ) )

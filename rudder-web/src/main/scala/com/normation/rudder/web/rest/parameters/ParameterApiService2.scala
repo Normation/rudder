@@ -68,7 +68,7 @@ case class ParameterApiService2 (
   , changeRequestService : ChangeRequestService
   , workflowService      : WorkflowService
   , restExtractor        : RestExtractorService
-  , workflowEnabled      : Boolean
+  , workflowEnabled      : () => Box[Boolean]
   , restDataSerializer   : RestDataSerializer
   ) extends Loggable {
 
@@ -104,9 +104,16 @@ case class ParameterApiService2 (
       }
     ) match {
       case Full(crId) =>
-        val optCrId = if (workflowEnabled) Some(crId) else None
-        val jsonParameter = List(serialize(parameter,optCrId))
-        toJsonResponse(Some(id), ("parameters" -> JArray(jsonParameter)))
+        workflowEnabled() match {
+          case Full(enabled) =>
+            val optCrId = if (enabled) Some(crId) else None
+            val jsonParameter = List(serialize(parameter,optCrId))
+            toJsonResponse(Some(id), ("parameters" -> JArray(jsonParameter)))
+          case eb : EmptyBox =>
+            val fail = eb ?~ (s"Could not check workflow property" )
+            val msg = s"Change request creation failed, cause is: ${fail.msg}."
+            toJsonError(Some(id), msg)
+        }
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not save changes on Parameter ${id}" )
         val msg = s"${act} failed, cause is: ${fail.msg}."

@@ -14,6 +14,18 @@
   .deca input.deleteNetwork {
     width: 20px;
   }
+  
+  button.defaultButton {
+    margin-top: -1px;
+    margin-left: 15px;
+    padding: 2px;
+    width: 100px;
+  }
+  
+  .defaultButton span.ui-button-text {
+    padding: 0;
+}
+  
 </style>
 
 </head>
@@ -23,7 +35,7 @@
 
     <div class="intro">
       <div>
-        <p>Configure policy server.</p>
+        <p>Configure policy server(s).</p>
       </div>
     </div>
     <div class="inner-portlet">
@@ -80,7 +92,88 @@
         </div>
       </div>
     </div>
+    
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Configure change messages</div>
+      <div class="portlet-content">
 
+
+        <div class="intro">
+          <div>
+            <p>If enabled, prompt users to enter a message explaining the reason for each configuration change they make.</p>
+          </div>
+        </div>
+
+        <hr class="spacer" />
+        <div class="deca">
+          <div
+            class="lift:administration.PropertiesManagement.changeMessage"
+            id="changeMessageForm">
+            <form class="lift:form.ajax">
+            
+              <div class="wbBaseField"> 
+                <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;">Enable change messages:</label><input id="enabled" type="checkbox"/>
+              </div>
+              <hr class="spacer"/>
+              <div class="wbBaseField">       
+                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;"><span style="float:left">Make message mandatory: </span><span id="mandatoryTooltip" /></label><input id="mandatory" type="checkbox"/>
+              </div>
+              <hr class="spacer"/>
+  		      <div class="wbBaseField"> 
+                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip" /></label><input id="explanation" type="text"/><input id="restoreExplanation" type="button"/>
+              </div>
+              <hr class="spacer"/>
+              <input type="submit" value="Reload" id="changeMessageSubmit"/>
+              <lift:Msg id="updateChangeMsg">[messages]</lift:Msg>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Configure Change Requests (validation workflow)</div>
+      <div class="portlet-content">
+
+
+        <div class="intro">
+          <div>
+            <p>If enabled, all changes to configuration (Directives, Rules, Groups and Parameters) will be submitted for validation via a Change Request. <br/>
+A new Change Request will enter the "<b>Pending validation</b>" status, then can be moved to "<b>Pending deployment</b>" (approved but not yet deployed) or "<b>Deployed</b>" (approved and deployed) statuses.<br/>
+Only users with the "<b>validator</b>" or "<b>deployer</b>" roles are authorized to perform these steps (see <i>/opt/rudder/etc/rudder-users.xml</i>).<br/>
+<br/>
+If disabled, all changes to configuration will be immediately deployed.</p>
+          </div>
+        </div>
+
+        <hr class="spacer" />
+        <div class="deca">
+          <div
+            class="lift:administration.PropertiesManagement.workflow"
+            id="workflowForm">
+            <form class="lift:form.ajax">
+            
+              <div class="wbBaseField"> 
+                <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;">Enable Change Requests:</label><input id="workflowEnabled" type="checkbox"/>
+              </div>
+              <hr class="spacer"/>
+              <div class="wbBaseField">       
+                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self validation: </span><span id="selfValTooltip"/></label><input id="selfVal" type="checkbox"/>
+              </div>
+              <hr class="spacer"/>
+  		      <div class="wbBaseField"> 
+                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self deployment: </span><span id="selfDepTooltip"/></label><input id="selfDep" type="checkbox"/>
+              </div>
+              <hr class="spacer"/>
+              <input type="submit" value="Reload" id="workflowSubmit"/>
+              <lift:Msg id="updateWorkflow">[messages]</lift:Msg>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div class="inner-portlet">
       <div class="inner-portlet-header">Clear deployment caches</div>
       <div class="portlet-content">
@@ -110,15 +203,15 @@
 
 
     <div class="inner-portlet">
-      <div class="inner-portlet-header">Reload dynamic groups</div>
+      <div class="inner-portlet-header">Manage dynamic groups</div>
       <div class="portlet-content">
 
         <div class="intro">
           <div>
-            <p>Force a new evaluation of dynamic groups, so that new nodes and their
-              inventories are taken into account. By default, dynamic
-              groups are automatically evaluated every 5 minutes unless this feature is
-              changed or disabled in the rudder-web.properties configuration file.</p>
+            <p>Groups in Rudder can be static (fixed list of nodes) or dynamic (the list of nodes is built from a search query).<br/>
+To take into account new nodes and changes to their inventory, dynamic groups must be reloaded regularly.<br/>
+Currently, Rudder will automatically do this reload every <b id="dynGroupUpdateInterval">5</b> minutes (see <i>/opt/rudder/etc/rudder-web.properties</i>).
+</p>
           </div>
         </div>
 
@@ -138,12 +231,15 @@
     </div>
 
     <div class="inner-portlet">
-      <div class="inner-portlet-header">Reload Techniques</div>
+      <div class="inner-portlet-header">Manage Technique library</div>
       <div class="portlet-content">
 
         <div class="intro">
           <div>
-            <p>Reload the contents of the Technique library.</p>
+            <p>Techniques in Rudder are read from the filesystem (in <i>/var/rudder/configuration-repository/techniques</i>).<br/>
+To take into account new Techniques and changes, the Technique library must be updated regularly.<br/>
+Currently, Rudder will automatically do this update every <b id="techniqueLibraryUpdateInterval">5</b> minutes (see <i>/opt/rudder/etc/rudder-web.properties</i>).
+</p>
           </div>
         </div>
 
@@ -160,6 +256,8 @@
         </div>
       </div>
     </div>
+    
+    
 
   </div>
 </div>

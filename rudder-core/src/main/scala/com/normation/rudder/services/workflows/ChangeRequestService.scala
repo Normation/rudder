@@ -137,7 +137,7 @@ class ChangeRequestServiceImpl(
   , woChangeRequestRepository    : WoChangeRequestRepository
   , changeRequestEventLogService : ChangeRequestEventLogService
   , uuidGen                      : StringUuidGenerator
-  , workflowEnable               : Boolean
+  , workflowEnable               : () => Box[Boolean]
 ) extends ChangeRequestService with Loggable {
 
   private[this] def saveAndLogChangeRequest(diff:ChangeRequestDiff,actor:EventActor,reason:Option[String]) = {
@@ -152,6 +152,7 @@ class ChangeRequestServiceImpl(
     for {
     saved  <- save ?~! s"could not save change request ${changeRequest.info.name}"
     modId  =  ModificationId(uuidGen.newUuid)
+    workflowEnable <- workflowEnable()
     logged <- if(workflowEnable) {
                 changeRequestEventLogService.saveChangeRequestLog(modId, actor, saved, reason) ?~!
                   s"could not save event log for change request ${saved.changeRequest.id} creation"

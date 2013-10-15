@@ -114,6 +114,10 @@ object RudderLDAPConstants extends Loggable {
   val A_PARAMETER_VALUE = "parameterValue"
   val A_PARAMETER_OVERRIDABLE = "overridable"
 
+  // Web properties
+  val A_PROPERTY_NAME = "propertyName"
+  val A_PROPERTY_VALUE = "propertyValue"
+
   //
   // Object Classe names
   //
@@ -133,6 +137,7 @@ object RudderLDAPConstants extends Loggable {
   val OC_TARGET_RULE_WITH_CF3POLICYDRAFT = "targetDirectiveNodeConfiguration"
   val OC_NODE_CONFIGURATION = "nodeConfiguration" //actually a node configuration, not a "rudder server"
   val OC_PARAMETER = "parameter"
+  val OC_PROPERTY = "property"
 
   val OC_API_ACCOUNT = "apiAccount"
 
@@ -208,6 +213,11 @@ object RudderLDAPConstants extends Loggable {
   OC += ( OC_PARAMETER,
     must = Set(A_PARAMETER_NAME),
     may = Set(A_PARAMETER_VALUE, A_DESCRIPTION, A_PARAMETER_OVERRIDABLE))
+
+  OC += ( OC_PROPERTY,
+    must = Set(A_PROPERTY_NAME),
+    may = Set(A_PROPERTY_VALUE, A_DESCRIPTION))
+
 
   /**
    * Serialize and unserialize variables in A_DIRECTIVE_VARIABLES
