@@ -69,7 +69,7 @@ import com.normation.rudder.api.ApiToken
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api.ApiAccountName
 import com.normation.rudder.domain.appconfig.RudderWebProperty
-import com.normation.rudder.domain.appconfig.WebPropertyName
+import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 
 
 /**
@@ -594,7 +594,7 @@ class LDAPEntityMapper(
         description = e(A_DESCRIPTION).getOrElse("")
       } yield {
         RudderWebProperty(
-            WebPropertyName(name)
+            RudderWebPropertyName(name)
           , value
           , description
         )

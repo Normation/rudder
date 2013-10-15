@@ -59,7 +59,7 @@ import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiToken
 import com.normation.rudder.domain.parameters.ParameterName
-import com.normation.rudder.domain.appconfig.WebPropertyName
+import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 
 class CATEGORY(
     val uuid: String,
@@ -480,10 +480,10 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
 
     def getProperty(dn:DN) : Box[String] = singleRdnValue(dn,A_PROPERTY_NAME)
 
-    def propertyDN(parameterName:WebPropertyName) = new DN(new RDN(A_PROPERTY_NAME, parameterName.value), parameters.dn)
+    def propertyDN(parameterName:RudderWebPropertyName) = new DN(new RDN(A_PROPERTY_NAME, parameterName.value), parameters.dn)
 
     def propertyModel(
-        name : WebPropertyName
+        name : RudderWebPropertyName
     ) : LDAPEntry = {
       val mod = LDAPEntry(propertyDN(name))
       mod +=! (A_OC,OC.objectClassNames(OC_PROPERTY).toSeq:_*)
