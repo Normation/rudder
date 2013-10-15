@@ -68,7 +68,7 @@ object JsInitContextLinkUtil extends Loggable {
     s"""/secure/configurationManager/directiveManagement#{"directiveId":"${id.value}"}"""
 
   def nodeLink(id:NodeId) =
-    s"""/secure/nodeManager/searchNodes#{"nodeId":"${id.value}s"}"""
+    s"""/secure/nodeManager/searchNodes#{"nodeId":"${id.value}"}"""
 
   def globalParameterLink(name:ParameterName) =
     s"/secure/configurationManager/parameterManagement"
