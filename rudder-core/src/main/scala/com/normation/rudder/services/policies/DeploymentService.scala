@@ -484,6 +484,7 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
    * From a list of ruleVal, find the list of all impacted nodes
    * with the actual Cf3PolicyDraftBean they will have.
    * Replace all ${rudder.node.varName} vars, returns the nodes ready to be configured, and expanded RuleVal
+   * allNodeInfos *must* contains the nodes info of every nodes
    */
   override def buildtargetNodeConfigurations(
       ruleVals:Seq[RuleVal]
