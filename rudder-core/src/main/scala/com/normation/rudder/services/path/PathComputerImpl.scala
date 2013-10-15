@@ -50,8 +50,6 @@ import com.normation.exceptions.BusinessException
 /**
  * Utilitary tool to compute the path of a machine promises (and others information) on the rootMachine
  *
- * @author nicolas
- *
  */
 class PathComputerImpl(
   backupFolder: String // /var/rudder/backup/
@@ -114,10 +112,17 @@ class PathComputerImpl(
         pid    =  NodeId(toNode.targetMinimalNodeConfig.policyServerId)
         parent <- Box(allNodeConfig.get(pid)) ?~! s"Can not find the parent node (${pid.value}) of node ${toNodeId.value} when trying to build the promise files for node ${fromNodeId.value}"
         result <- parent match {
-                    case root: RootNodeConfiguration =>
+                    case root: RootNodeConfiguration if root.id == NodeId("root") =>
+                        // root is a specific case, it is the root of everything
                         recurseComputePath(fromNodeId, root.id, path, allNodeConfig)
+
+                    // If the chain is longer, then we need to add the .new for each parent folder
+                    // or else we won't have the proper paths used during backuping
+                    // This will deserve a sever refactoring
+                    case policyParent: RootNodeConfiguration =>
+                        recurseComputePath(fromNodeId, policyParent.id, policyParent.id.value + ".new" + "/" + relativeShareFolder + "/" + path, allNodeConfig)
                     case policyParent: SimpleNodeConfiguration =>
-                        recurseComputePath(fromNodeId, policyParent.id, policyParent.id + "/" + relativeShareFolder + "/" + path, allNodeConfig)
+                        recurseComputePath(fromNodeId, policyParent.id, policyParent.id.value + ".new" + "/" + relativeShareFolder + "/" + path, allNodeConfig)
                   }
       } yield {
         result
