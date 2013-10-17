@@ -37,7 +37,7 @@ import com.normation.ldap.sdk.BuildFilter.IS
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants.OC_PARAMETER
+import com.normation.rudder.domain.RudderLDAPConstants.OC_PROPERTY
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.utils.Control._
@@ -69,7 +69,7 @@ class LdapConfigRepository(
   def getConfigParameters(): Box[Seq[RudderWebProperty]] = {
      for {
       con     <- ldap
-      entries =  con.searchSub(rudderDit.APPCONFIG.dn, IS(OC_PARAMETER))
+      entries =  con.searchSub(rudderDit.APPCONFIG.dn, IS(OC_PROPERTY))
       properties <- sequence(entries) { entry =>
                    mapper.entry2RudderConfig(entry) ?~! "Error when transforming LDAP entry into an application parameter. Entry: %s".format(entry)
                  }
