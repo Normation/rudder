@@ -61,7 +61,7 @@ import com.normation.inventory.ldap.core.InventoryDitService
 case class LDAPNodeInfo(
     nodeEntry            : LDAPEntry
   , nodeInventoryEntry   : LDAPEntry
-  , machineInventoryEntry: Option[LDAPEntry]
+  , machineObjectClasses : Option[Seq[String]]
 )
 
 
@@ -149,11 +149,11 @@ class NodeInfoServiceImpl(
                               val (machineId, status) = machines(0)
                               val dit = inventoryDitService.getDit(status)
 
-                              Full(con.get(dit.MACHINES.MACHINE.dn(machineId),Seq("*"):_*).toOption)
+                              Full(con.get(dit.MACHINES.MACHINE.dn(machineId),Seq("objectClass"):_*).toOption)
                             }
                           }
     } yield {
-      LDAPNodeInfo(node, nodeInventory, machineInventory)
+      LDAPNodeInfo(node, nodeInventory, machineInventory.map( _.valuesFor("objectClass").toSeq))
     }
   }
 
@@ -164,7 +164,7 @@ class NodeInfoServiceImpl(
       nodeInfo    <- ldapMapper.convertEntriesToNodeInfos(
                          ldapEntries.nodeEntry
                        , ldapEntries.nodeInventoryEntry
-                       , ldapEntries.machineInventoryEntry
+                       , ldapEntries.machineObjectClasses
                      )
     } yield {
       nodeInfo
@@ -179,6 +179,13 @@ class NodeInfoServiceImpl(
    * So it is possible that getAllIds.size > getAll.size
    */
   def getAll() : Box[Set[NodeInfo]] = {
+
+    /*
+     * The goal of that implementation is to be quick, so we prefer to
+     * query for far too many entries (in machine) compared to do lots
+     * of requests.
+     */
+
     ldap.map { con =>
       val allNodes = con.searchOne(nodeDit.NODES.dn, ALL, nodeInfoAttributes:_*).flatMap { node =>
         nodeDit.NODES.NODE.idFromDn(node.dn).map { (_, node) }
@@ -186,7 +193,11 @@ class NodeInfoServiceImpl(
       val allNodeInventories = con.searchOne(inventoryDit.NODES.dn, ALL, nodeInfoAttributes:_*).flatMap { nodeInv =>
         inventoryDit.NODES.NODE.idFromDN(nodeInv.dn).map{ (_, nodeInv) }
       }.toMap
-      val allMachineInventories = con.searchOne(inventoryDit.MACHINES.dn, ALL).map( machine => (machine.dn, machine) ).toMap
+
+      //we must look in ou=Inventories,cn=rudder-configuration
+      //because we don't know what the machine inventory status will be
+      //and we only need objectClass
+      val allMachineInventories = con.searchSub(inventoryDit.BASE_DN.getParent, IS(OC_MACHINE), Seq("objectClass"):_*).map( machine => (machine.dn, machine) ).toMap
 
       allNodes.flatMap { case (id, nodeEntry) =>
         for {
@@ -197,7 +208,7 @@ class NodeInfoServiceImpl(
                        } yield {
                          machineEntry
                        }
-          nodeInfo <- ldapMapper.convertEntriesToNodeInfos(nodeEntry, nodeInv, machineInv)
+          nodeInfo <- ldapMapper.convertEntriesToNodeInfos(nodeEntry, nodeInv, machineInv.map( _.valuesFor("objectClass").toSeq))
         } yield {
           nodeInfo
         }
