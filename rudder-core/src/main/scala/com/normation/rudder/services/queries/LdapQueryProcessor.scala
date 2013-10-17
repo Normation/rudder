@@ -127,7 +127,7 @@ class AccepetedNodesLDAPQueryProcessor(
   private[this] case class QueryResult(
       nodeEntry:LDAPEntry
     , inventoryEntry:LDAPEntry
-    , machineEntry:Option[LDAPEntry]
+    , machineObjectClass:Option[Seq[String]]
   ) extends HashcodeCaching
 
   /**
