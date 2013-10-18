@@ -110,11 +110,10 @@ class LDAPEntityMapper(
   /**
    * From a nodeEntry and an inventoryEntry, create a NodeInfo
    *
-   * @param nodeEntry
-   * @param inventoryEntry
-   * @return
+   * The only thing used in machineEntry is its object class.
+   *
    */
-  def convertEntriesToNodeInfos(nodeEntry:LDAPEntry, inventoryEntry:LDAPEntry, machineEntry:Option[LDAPEntry]) : Box[NodeInfo] = {
+  def convertEntriesToNodeInfos(nodeEntry:LDAPEntry, inventoryEntry:LDAPEntry, machineEntryObjectClass:Option[Seq[String]]) : Box[NodeInfo] = {
     //why not using InventoryMapper ? Some required things for node are not
     // wanted here ?
     for {
@@ -124,7 +123,7 @@ class LDAPEntityMapper(
       checkIsANode <- if(inventoryEntry.isA(OC_NODE)) Full("Ok")
                       else Failure("Bad object class, need %s and found %s".format(OC_NODE,inventoryEntry.valuesFor(A_OC)))
 
-      machineType  =  machineEntry.map(machine => if (machine.isA(OC_PM)) "Physical" else "Virtual").getOrElse("No Machine Inventory")
+      machineType  =  machineEntryObjectClass.map(machine => if (machine.exists( _ == OC_PM)) "Physical" else "Virtual").getOrElse("No Machine Inventory")
       checkSameID  <- if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) Full("Ok")
                       else Failure("Mismatch id for the node %s and the inventory %s".format(nodeEntry(A_NODE_UUID), inventoryEntry(A_NODE_UUID)))
 
