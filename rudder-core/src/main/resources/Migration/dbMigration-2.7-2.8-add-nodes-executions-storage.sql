@@ -32,6 +32,14 @@
 *************************************************************************************
 */
 
+-- This script creates the tables to store agent execution time
+-- and populate the tables with existing information
+-- If the table ReportsExecution already exists and is populated, the script will complain
+-- but not insert duplicate values
+
+
+-- First, create the tables
+
 create table StatusUpdate (
 key text PRIMARY KEY,
 lastId integer NOT NULL,
@@ -46,4 +54,46 @@ PRIMARY KEY(nodeId, date)
 );
 
 create index reportsexecution_date_idx on ReportsExecution (date);
+
+-- Create the temporary table to fasten the computation of agents execution time
+create temp table tempExecutionTime  (
+nodeId text NOT NULL,
+date timestamp with time zone NOT NULL,
+PRIMARY KEY(nodeId, date)
+);
+
+create temp table tempCompleteExecutionTime (
+nodeId text NOT NULL,
+date timestamp with time zone NOT NULL,
+complete boolean NOT NULL,
+PRIMARY KEY(nodeId, date)
+);
+
+-- Create a temporary table to store the max Id and datetime of handled data
+create temp table tempStatusUpdate (
+lastId integer NOT NULL,
+date timestamp with time zone NOT NULL
+);
+
+insert into tempStatusUpdate
+  select id, executionTimeStamp from ruddersysevents order by id desc limit 1;
+
+-- Store in the temporary table the executions times
+insert into tempExecutionTime
+  (select distinct nodeid, executiontimestamp from ruddersysevents where component = 'common');
+
+-- Store in temporary table the complete executio times
+insert into tempCompleteExecutionTime
+  (select distinct nodeid, executiontimestamp, true as isComplete from
+     ruddersysevents where ruleId like 'hasPolicyServer%' and component = 'common' and keyValue = 'EndRun');
+
+-- Save the values
+
+insert into ReportsExecution
+  select T.nodeid, T.date, coalesce(C.complete, false) from tempExecutionTime as T left join tempCompleteExecutionTime as C on T.nodeid = C.nodeid and T.date = C.date;
+
+-- Finally, store the max considered value
+insert into StatusUpdate
+  select 'executionStatus', lastId, date from tempStatusUpdate;
+
 
