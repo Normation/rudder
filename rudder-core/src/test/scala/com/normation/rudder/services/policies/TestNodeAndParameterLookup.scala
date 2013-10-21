@@ -85,6 +85,7 @@ class TestNodeAndParameterLookup extends Specification {
   //two variables
   val var1 = InputVariableSpec("var1", "").toVariable(Seq("== ${rudder.param.foo} =="))
   val var1_double = InputVariableSpec("var1_double", "").toVariable(Seq("== ${rudder.param.foo}${rudder.param.bar} =="))
+  val var1_double_space = InputVariableSpec("var1_double_space", "").toVariable(Seq("== ${rudder.param.foo} contains ${rudder.param.bar} =="))
 
   val pathCaseInsensitive = InputVariableSpec("pathCaseInsensitive", "").toVariable(Seq("== ${RudDer.paRam.foo} =="))
 
@@ -96,7 +97,6 @@ class TestNodeAndParameterLookup extends Specification {
 
   val multilineParamVariable = InputVariableSpec("multiParam", "").toVariable(Seq("== ${rudder.\rparam.\nfoo} =="))
   val multilineInputVariable = InputVariableSpec("multiInput", "").toVariable(Seq("=\r= \n${rudder.param.foo} =\n="))
-
 
   val var2 = InputVariableSpec("var1", "", multivalued = true).toVariable(Seq(
       "a${rudder.node.id})"
@@ -224,6 +224,12 @@ class TestNodeAndParameterLookup extends Specification {
         values must containTheSameElementsAs(Seq(Seq("== fooValuebarValue ==")))
       )
     }
+    "accept space between values" in {
+      lookup(id1, Seq(var1_double_space), Set(fooParam, barParam), Set(node1))( values =>
+        values must containTheSameElementsAs(Seq(Seq("== fooValue contains barValue ==")))
+      )
+    }
+
   }
 
   "Node parameters" should {
