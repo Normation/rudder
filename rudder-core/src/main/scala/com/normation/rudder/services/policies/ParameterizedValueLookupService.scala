@@ -348,7 +348,7 @@ trait ParameterizedValueLookupService_lookupNodeParameterization extends Paramet
   private[this] def checkSanity(value: String) : Box[String] = {
 
     //To check if contains spaces
-    val ok = """(?is).*\$\{rudder(.+)}.*""".r
+    val ok = """(?is).*\$\{rudder([^\}]+)}.*""".r
 
     val matchSpace = Pattern.compile("""^[\S]+$""")
 
