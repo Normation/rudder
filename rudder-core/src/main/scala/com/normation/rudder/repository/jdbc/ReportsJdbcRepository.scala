@@ -222,20 +222,18 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     , beginDate: DateTime
     , endDate  : Option[DateTime]
   ) : Seq[DateTime] = {
-    var query = "select distinct date from reportsexecution where nodeId = ? and date >= ?"
 
-    var array = Buffer[AnyRef](nodeId.value, new Timestamp(beginDate.getMillis))
+    val array : List[AnyRef] = nodeId.value :: new Timestamp(beginDate.getMillis) :: endDate.map( endDate => new Timestamp(endDate.getMillis) :: Nil).getOrElse(Nil)
 
-    endDate match {
-      case None => ;
-      case Some(date) => query = query + " and executiontimestamp < ?"; array += new Timestamp(date.getMillis)
-    }
+    val endQuery  : String =  endDate.map{_ => "and date < ?" }.getOrElse("")
 
-    query = query + " order by executiontimestamp "
+    val query = s"select distinct date from reportsexecution where nodeId = ? and date >= ? ${endQuery} order by date"
 
-    jdbcTemplate.query(query,
-          array.toArray[AnyRef],
-          ExecutionTimeMapper).toSeq;
+    jdbcTemplate.query(
+        query
+      , array.toArray[AnyRef]
+      , ExecutionTimeMapper
+    ).toSeq;
   }
 
   def getOldestReports() : Box[Option[Reports]] = {
@@ -482,7 +480,7 @@ object ReportsMapper extends RowMapper[Reports] {
 
 object ExecutionTimeMapper extends RowMapper[DateTime] {
    def mapRow(rs : ResultSet, rowNum: Int) : DateTime = {
-        new DateTime(rs.getTimestamp("executiontimestamp"))
+        new DateTime(rs.getTimestamp("date"))
     }
 }
 
