@@ -152,7 +152,7 @@ class ShowNodeDetailsFromNode(
               <div id={htmlId_crTree}>
                 <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node.id)}</ul>
               </div>,
-              "nodeDetails" -> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), isDisplayingInPopup = withinPopup),
+              "nodeDetails" -> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup),
               "inventory" -> DisplayNode.show(inventory, false),
               "extraHeader" -> DisplayNode.showExtraHeader(inventory),
               "extraContent" -> DisplayNode.showExtraContent(inventory),
