@@ -67,6 +67,7 @@ import JsonDSL._
 import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
 import bootstrap.liftweb.RudderConfig
+import com.normation.inventory.domain.RemovedInventory
 
 
 
@@ -234,7 +235,7 @@ object PendingHistoryGrid extends Loggable {
               else
                 NodeSeq.Empty
             ) ++
-            DisplayNode.showPannedContent(sm.data, "hist")) &
+            DisplayNode.showPannedContent(sm.data, RemovedInventory, "hist")) &
             DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs"))
       }
     }
