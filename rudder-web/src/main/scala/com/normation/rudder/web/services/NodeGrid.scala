@@ -245,11 +245,11 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
     ( for {
       json <- tryo(parse(jsonArg)) ?~! "Error when trying to parse argument for node"
       arg <- tryo(json.extract[JsonArg])
-      status <- Box(InventoryStatus(arg.status))
+      status : InventoryStatus <- Box(InventoryStatus(arg.status))
       sm <- getNodeAndMachine.get(NodeId(arg.id),status)
-    } yield (sm,arg.jsid) ) match {
-      case Full((sm,jsid)) =>
-        SetHtml(jsid, DisplayNode.showPannedContent(sm)) &
+    } yield (sm,arg.jsid, status) ) match {
+      case Full((sm,jsid,status)) =>
+        SetHtml(jsid, DisplayNode.showPannedContent(sm, status)) &
         DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "", Some("node_tabs"))
       case e:EmptyBox =>
         logger.debug((e ?~! "error").messageChain)

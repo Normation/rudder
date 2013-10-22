@@ -290,7 +290,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
    * Show the details in a panned version, with Node Summary, Inventory, Network, Software
    * Should be used with jsInit(dn:String, softIds:Seq[SoftwareUuid], salt:String="", tabContainer = Some("node_tabs"))
    */
-  def showPannedContent(sm:FullInventory, salt:String = "") : NodeSeq = {
+  def showPannedContent(sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     <div id="node_tabs" class="tabs">
       <ul>
@@ -306,13 +306,13 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
        {showExtraContent(sm, salt)}
 
        <div id={htmlId(jsId,"node_summary_")}>
-         {showNodeDetails(sm, None, salt)}
+         {showNodeDetails(sm, None, inventoryStatus, salt)}
        </div>
     </div>
   }
 
   // mimic the content of server_details/ShowNodeDetailsFromNode
-  def showNodeDetails(sm:FullInventory, creationDate:Option[DateTime], salt:String = "", isDisplayingInPopup:Boolean = false) : NodeSeq = {
+  def showNodeDetails(sm:FullInventory, creationDate:Option[DateTime], inventoryStatus : InventoryStatus, salt:String = "", isDisplayingInPopup:Boolean = false) : NodeSeq = {
 
     { sm.node.main.status match {
           case AcceptedInventory =>
@@ -355,7 +355,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
 
       <h4 class="tablemargin">Rudder information</h4>
         <div class="tablepadding">
-          { displayServerRole(sm) }
+          { displayServerRole(sm, inventoryStatus) }
           <b>Inventory date:</b>  {sm.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
           <b>Date inventory last received:</b>  {sm.node.receiveDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
           {creationDate.map { creation =>
@@ -382,22 +382,29 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
   private def ?(in:Option[String]) : NodeSeq = in.map(Text(_)).getOrElse(NodeSeq.Empty)
 
   // Display the role of the node
-  private def displayServerRole(sm:FullInventory) : NodeSeq = {
-    if(isRootNode(sm.node.main.id)) {
+  private def displayServerRole(sm:FullInventory, inventoryStatus : InventoryStatus) : NodeSeq = {
+    val nodeId = sm.node.main.id
+    if(isRootNode(nodeId)) {
       <span><b>Role: </b>Rudder root server</span><br/>
     } else {
-      val nodeInfoBox = nodeInfoService.getNodeInfo(sm.node.main.id)
-      nodeInfoBox match {
-        case Full(nodeInfo) =>
-          nodeInfo.isPolicyServer match {
-            case true => <span><b>Role: </b>Rudder relay server</span><br/>
-            case false => <span><b>Role: </b>Rudder node</span><br/>
+      inventoryStatus match {
+        case AcceptedInventory =>
+          val nodeInfoBox = nodeInfoService.getNodeInfo(nodeId)
+          nodeInfoBox match {
+            case Full(nodeInfo) =>
+              nodeInfo.isPolicyServer match {
+                case true => <span><b>Role: </b>Rudder relay server</span><br/>
+                case false => <span><b>Role: </b>Rudder node</span><br/>
+              }
+            case eb:EmptyBox =>
+              val e = eb ?~! s"Could not fetch node details for node with id ${sm.node.main.id}, no cause given"
+              logger.error(e.messageChain)
+              <span class="error"><b>Role: </b>Could not fetch Role for this node</span><br/>
           }
-        case eb:EmptyBox =>
-          val e = eb ?~! s"Could not fetch node details for node with id ${sm.node.main.id}, no cause given"
-          logger.error(e.messageChain)
-          <span class="error"><b>Role: </b>Could not fetch Role for this node</span><br/>
-
+        case RemovedInventory =>
+          <span><b>Role: </b>Deleted node</span><br/>
+        case PendingInventory =>
+          <span><b>Role: </b>Pending node</span><br/>
       }
     }
   }
