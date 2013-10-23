@@ -57,6 +57,7 @@ import com.normation.authorization.AuthorizationType
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
+import java.util.Locale
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -66,6 +67,11 @@ class Boot extends Loggable {
   val redirection = RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error )
 
   def boot {
+
+    // Set locale to English to prevent having localized message in some exception message (like SAXParserException in AppConfigAuth).
+    // For now we don't manage locale in Rudder so setting it to English is harmless.
+    // If one day we handle it in Rudder we should start from here by modifying code here..
+    Locale.setDefault(Locale.ENGLISH)
 
     ////////// bootstraps checks //////////
     val checks = RudderConfig.allBootstrapChecks
