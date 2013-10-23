@@ -119,8 +119,9 @@
        </div>
     </div>
 	</lift:authz>
+	<br/>
     <div class="editZone">
-      <div class="inner-portlet-header">Directive settings</div>
+      <div class="inner-portlet-header">Directive information</div>
 
       <div id="notifications">
 <!--         <ul> -->
@@ -129,38 +130,61 @@
       </div>
       <hr class="spacer" />
 
-      <p>This Directive is based on the <b><span id="techniqueName"/></b> Technique.</p>
-      <p id="isSingle">Unique Technique</p> 
-      <div><div class="inner-portlet-header">Description of the Technique</div><span id="techniqueDescription"/></div>
-      <br/>
       <div id="nameField">
         Here comes the name field
       </div>
       <hr class="spacer" />
+      
       <div id="shortDescriptionField">
         Here comes the shortDescription field
       </div>
       <hr class="spacer" />
+      
+      <div id="longDescriptionField">
+        Here comes the longDescription field
+      </div>
+      <hr class="spacer" />
+      
       <div id="priority">
         Here come the priority field
       </div>
       <hr class="spacer" />
-
-
-      <hr class="spacer"/>
-      <div id="longDescriptionField">
-        Here comes the longDescription field
-      </div>
-
-      <hr class="spacer"/>
-      <div class="rudderID">
-        <b class="threeCol">Rudder ID: </b>
-        <span id="rudderID">
-        Here comes the rudder ID
-        </span>
-      </div>
+      <div class="directiveTechnicalInfo" id="showTechnical"></div>
+      <div id="technicalDetails" style="display:none">
       
-      <hr class="spacer" />
+        <div class="directiveTechnicalInfo">
+          <b class="threeCol">Technique name: </b>
+          <span id="techniqueName">
+            Technique name
+          </span>
+        </div>
+        <hr class="spacer"/>
+        
+        <div class="directiveTechnicalInfo">
+          <b class="threeCol">Technique description: </b>
+          <span id="techniqueDescription">
+            Technique description
+          </span>
+        </div>
+        <hr class="spacer"/>
+        
+        <div class="directiveTechnicalInfo">
+          <b class="threeCol">Technique unicity: </b>
+          <span id="isSingle">
+            isSingle
+          </span>
+        </div>
+        <hr class="spacer"/>
+        
+        <div class="directiveTechnicalInfo">
+          <b class="threeCol">Directive Rudder ID: </b>
+          <span id="rudderID">
+            Here comes the rudder ID
+          </span>
+        </div>
+        <hr class="spacer"/>
+      </div>
+      <br/>
       <div><div class="inner-portlet-header">Parameters</div>
         <span id="parameters">Here goes the list of parameters</span>
       </div>
