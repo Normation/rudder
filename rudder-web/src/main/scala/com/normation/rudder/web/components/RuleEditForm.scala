@@ -369,7 +369,7 @@ class RuleEditForm(
   }
 
   private[this] def onNothingToDo() : JsCmd = {
-    formTracker.addFormError(error("There are no modification to save."))
+    formTracker.addFormError(error("There are no modifications to save."))
     onFailure()
   }
 
