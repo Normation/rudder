@@ -113,8 +113,9 @@ td.nodeIndernal {
  *          formulaire            *
  **********************************/
 
-.rudderID{
+.directiveTechnicalInfo{
 	padding-top: 12px;
+	margin-left:10px;
 }
 
 .portlet-header .ui-icon {
@@ -165,6 +166,11 @@ form p {
    padding: 0 10px;
    font-size: 1.1em;
 }
+
+.directiveInfo{
+   margin-left:10px;
+}
+
 form hr {
    margin: 0 15px;
    width: 95%;

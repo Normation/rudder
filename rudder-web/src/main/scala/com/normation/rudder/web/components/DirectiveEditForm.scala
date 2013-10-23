@@ -199,6 +199,7 @@ class DirectiveEditForm(
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) } &
       "#notifications *" #> updateAndDisplayNotifications() &
+      "#showTechnical *" #> SHtml.a(() => JsRaw("$('#technicalDetails').show(400);") & showDetailsStatus(true), Text("Show technical details"), ("class","listopen")) &
       "#isSingle *" #> showIsSingle// &
     )(crForm) ++
     Script(OnLoad(
@@ -206,6 +207,7 @@ class DirectiveEditForm(
         .format(htmlId_policyConf, htmlId_save)) &
       JsRaw("""
         correctButtons();
+       $('#technicalDetails').hide();
       """) &
       JsVar("""
           $("input").not("#treeSearch").keydown( function(event) {
@@ -213,6 +215,12 @@ class DirectiveEditForm(
           } );
           """.format(htmlId_save)))
     )
+  }
+
+  private[this] def showDetailsStatus(hide:Boolean) : JsCmd = {
+    val name = if (hide) "Hide" else "Show"
+    val classAttribute = ("class", if (hide) "listclose" else "listopen")
+    SetHtml("showTechnical",SHtml.a(() => JsRaw("$('#technicalDetails').toggle(400);") & showDetailsStatus(!hide), Text(s"$name technical details"), classAttribute))
   }
 
   private[this] def clone(): JsCmd = {
@@ -247,11 +255,9 @@ class DirectiveEditForm(
     <span>
       {
         if (technique.isMultiInstance) {
-          { <b>Multi instance</b> } ++
-          Text(": several Directives derived from that template can be deployed on a given node")
+          Text("Multi instance: Several Directives based on this Technique can be applied on any given node")
         } else {
-          { <b>Unique</b> } ++
-          Text(": an unique Directive derived from that template can be deployed on a given node")
+          Text("Unique: Only ONE Directive based on this Technique can be applied on any given node")
         }
       }
     </span>
@@ -274,6 +280,7 @@ class DirectiveEditForm(
   private[this] val piName = new WBTextField("Name", directive.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "twoCol"
+    override def labelClassName = "threeCol directiveInfo"
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
@@ -281,6 +288,7 @@ class DirectiveEditForm(
   private[this] val piShortDescription = {
     new WBTextField("Short description", directive.shortDescription) {
       override def className = "twoCol"
+    override def labelClassName = "threeCol directiveInfo"
       override def setFilter = notNull _ :: trim _ :: Nil
       override val maxLen = 255
       override def validations = Nil
@@ -290,17 +298,21 @@ class DirectiveEditForm(
   private[this] val piLongDescription = {
     new WBTextAreaField("Description", directive.longDescription.toString) {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField % ("style" -> "height:15em")
+      override def labelClassName = "threeCol directiveInfo"
+      override def inputField = super.inputField % ("style" -> "height:2em; width:67%;")
     }
   }
 
-  private[this] val piPriority = new WBSelectObjField("Priority:",
-    (0 to 10).map(i => (i, i.toString)),
-    defaultValue = directive.priority) {
-    override val displayHtml =
-      <span class="tooltipable greytooltip" title="" tooltipid="priorityId">
-        <b>Priority:</b>
-        <div class="tooltipContent" id="priorityId">
+  private[this] val piPriority =
+    new WBSelectObjField(
+        "Priority:"
+      , (0 to 10).map(i => (i, i.toString))
+      , defaultValue = directive.priority
+    ) {
+      override val displayHtml =
+        <span class="tooltipable greytooltip" title="" tooltipid="priorityId">
+          <b>Priority:</b>
+          <div class="tooltipContent" id="priorityId">
           If a node is configured with several Directive derived from that template,
           the one with the higher priority will be applied first. If several Directives
           have the same priority, the application order between these two will be random.
@@ -309,12 +321,12 @@ class DirectiveEditForm(
           If several Directives have the same priority, one of them will be applied at
           random. You should always try to avoid that last case.<br/>
           The highest priority is 0.
-        </div>
-      </span>
+          </div>
+        </span>
+      override def className = "twoCol"
+      override def labelClassName = "threeCol directiveInfo"
 
-    override def className = "twoCol"
-
-  }
+    }
 
   private[this] val formTracker = {
     val l = List(piName, piShortDescription, piLongDescription) //++ crReasons
