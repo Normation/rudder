@@ -290,7 +290,7 @@ class NodeGroupForm(
       )
 
       if(newGroup == nodeGroup) {
-        formTracker.addFormError(Text("There is no modification to save"))
+        formTracker.addFormError(Text("There are no modifications to save"))
         onFailure & onFailureCallback()
       } else {
         displayConfirmationPopup("save", newGroup, optContainer)
