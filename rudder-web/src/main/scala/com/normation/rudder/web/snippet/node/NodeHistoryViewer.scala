@@ -56,6 +56,7 @@ import JsCmds._
 import JE._
 import net.liftweb.http.SHtml._
 import bootstrap.liftweb.RudderConfig
+import com.normation.inventory.domain.AcceptedInventory
 
 /**
  * A simple service that displays a NodeDetail widget from
@@ -85,7 +86,7 @@ class NodeHistoryViewer extends StatefulSnippet {
               case Failure(m,_,_) => <div class="error">Error while trying to display node history. Error message: {m}</div>
               case Empty => <div class="error">No history was retrieved for the chosen date</div>
               case Full(sm) =>
-                <div id={hid}>{DisplayNode.showPannedContent(sm.data, "hist") ++ Script(DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs")))}</div>
+                <div id={hid}>{DisplayNode.showPannedContent(sm.data, AcceptedInventory, "hist") ++ Script(DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs")))}</div>
           } }
         </div>
 
@@ -120,7 +121,7 @@ class NodeHistoryViewer extends StatefulSnippet {
       case Empty => Alert("No history was retrieved for the chosen date")
       case Full(sm) =>
         SetHtml(hid,
-          DisplayNode.showPannedContent(sm.data, "hist")) &
+          DisplayNode.showPannedContent(sm.data, AcceptedInventory, "hist")) &
           DisplayNode.jsInit(sm.data.node.main.id, sm.data.node.softwareIds,"hist", Some("node_tabs")
         )
     }

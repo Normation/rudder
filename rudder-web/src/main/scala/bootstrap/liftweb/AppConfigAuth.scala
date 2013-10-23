@@ -79,11 +79,11 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.common.Failure
-
 import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.ldap.core.DirContextAdapter
 import org.springframework.ldap.core.DirContextOperations
 import java.util.Collection
+import org.xml.sax.SAXParseException
 
 /**
  * Spring configuration for user authentication.
@@ -105,22 +105,31 @@ class AppConfigAuth extends Loggable {
 
 
   @Bean def demoAuthenticationProvider : AuthenticationProvider = {
-
-    val resource = getUserResourceFile
-    //try to read and parse the file for users
-    parseUsers(resource) match {
-      case Some(config) =>
-        val userDetails = new RudderInMemoryUserDetailsService(config.users.map { case (login,pass,roles) =>
-          RudderUserDetail(login,pass,roles)
-        }.toSet)
-
-        val provider = new DaoAuthenticationProvider()
-        provider.setUserDetailsService(userDetails)
-        provider.setPasswordEncoder(config.encoder)
-        provider
-      case None =>
-        ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
-        throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
+    try {
+      val resource = getUserResourceFile
+      //try to read and parse the file for users
+      parseUsers(resource) match {
+        case Some(config) =>
+          val userDetails = new RudderInMemoryUserDetailsService(config.users.map { case (login,pass,roles) =>
+            RudderUserDetail(login,pass,roles)
+          }.toSet)
+          val provider = new DaoAuthenticationProvider()
+          provider.setUserDetailsService(userDetails)
+          provider.setPasswordEncoder(config.encoder)
+          provider
+        case None =>
+          ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
+          throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
+      }
+    } catch {
+      case e : SAXParseException =>
+        ApplicationLogger.error("User definitions: An error occured while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted.")
+        ApplicationLogger.error(s"User definitions: XML in file /opt/rudder/etc/rudder-users.xml is incorrect, error message is: ${e.getMessage()} (line ${e.getLineNumber()}, column ${e.getColumnNumber()})")
+        throw e
+      case e: Exception =>
+        ApplicationLogger.error("User definitions: An error occured while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted.")
+        ApplicationLogger.error(s"User definitions: Error message is: ${e.getMessage()}")
+        throw e
     }
   }
 
