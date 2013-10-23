@@ -88,7 +88,7 @@ class ChangeRequestEditForm (
 
   private[this] val formTracker = new FormTracker( changeRequestName )
   private[this] def onNothingToDo : JsCmd = {
-    formTracker.addFormError(error("There are no modification to save."))
+    formTracker.addFormError(error("There are no modifications to save."))
     updateFomClientSide
   }
   private[this] val isEditable = {
