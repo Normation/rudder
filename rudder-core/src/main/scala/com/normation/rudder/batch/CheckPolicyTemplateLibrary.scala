@@ -43,6 +43,9 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import org.joda.time.DateTime
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
+import net.liftweb.common.Full
+import net.liftweb.common.EmptyBox
+import java.io.File
 
 case class StartLibUpdate(actor: EventActor)
 
@@ -61,14 +64,65 @@ class CheckTechniqueLibrary(
   , updateInterval      : Int // in minutes
 ) extends Loggable {
 
+  private val forceReloadPath = "/opt/rudder/etc/force_technique_reload"
+  // Check if the force technique reload file is present, and reload technique library if needed
+  private def startUpCheck = {
+    val file =  new File(forceReloadPath)
+    try {
+      if (file.exists) {
+        // File exists, reload
+        logger.info(s"Flag file '${forceReloadPath}' found, reload Technique library now")
+        policyPackageUpdater.update(
+            ModificationId(uuidGen.newUuid)
+          , RudderEventActor
+          , Some(s"Reload Technique library at start up")
+        ) match {
+          case Full(_) =>
+            // Success! now try deleting the flag
+            logger.info(s"Successfully reloaded Technique library on start up. now deleting flag file '${forceReloadPath}'")
+            try {
+              if (file.delete) {
+                // Deleted, come back to normal
+                logger.info(s"Flag file '${forceReloadPath}' successfully removed")
+              } else {
+                // File could not be deleted, seek for reason
+                if(!file.exists()) {
+                  logger.warn(s"Flag file '${forceReloadPath}' could not be removed as it does not exists anymore")
+                } else {
+                  logger.error(s"Flag file '${forceReloadPath}' could not be removed, you may have to remove it manually, cause is: Permission denied or someone is actually editing the file")
+                }
+              }
+            } catch {
+              // Exception while deleting the file
+              case e : Exception =>
+                logger.error(s"An error occurred while checking flag file '${forceReloadPath}' after removal attempt, cause is: ${e.getMessage}")
+            }
+          case eb:EmptyBox =>
+            val msg = (eb ?~! ("An error occured while updating")).messageChain
+            logger.error(s"Flag file '${forceReloadPath}' but Techniques library reload failed, cause is: ${msg}")
+        }
+      } else {
+        logger.info(s"Flag file '${forceReloadPath}' does not exists, do not Technique library will not be reloaded")
+      }
+    } catch {
+      // Exception while checking the file existence
+      case e : Exception =>
+        logger.error(s"An error occurred while accessing flag file '${forceReloadPath}', cause is: ${e.getMessage}")
+    }
+  }
+
   private val propertyName = "rudder.batch.techniqueLibrary.updateInterval"
+
+  startUpCheck
 
   //start batch
   if(updateInterval < 1) {
     logger.info(s"Disable automatic Technique library updates since property ${propertyName} is 0 or negative")
   } else {
     logger.trace("***** starting Technique Library Update batch *****")
-    (new LAUpdateTechLibManager) ! StartLibUpdate(RudderEventActor)
+    val actor = new LAUpdateTechLibManager
+    // Do not run at start up, as it may have been done in startup check already. Only register next run
+    LAPinger.schedule(actor, StartLibUpdate(RudderEventActor), updateInterval*1000L*60)
   }
 
   ////////////////////////////////////////////////////////////////
