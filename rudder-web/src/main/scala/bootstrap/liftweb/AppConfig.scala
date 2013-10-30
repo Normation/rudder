@@ -307,6 +307,7 @@ object RudderConfig extends Loggable {
   val updateDynamicGroups: UpdateDynamicGroups = dyngroupUpdaterBatch
   val databaseManager: DatabaseManager = databaseManagerImpl
   val automaticReportsCleaning: AutomaticReportsCleaning = dbCleaner
+  val checkTechniqueLibrary: CheckTechniqueLibrary = techniqueLibraryUpdater
   val automaticReportLogger: AutomaticReportLogger = autoReportLogger
   val nodeConfigurationService: NodeConfigurationService = nodeConfigurationServiceImpl
   val removeNodeService: RemoveNodeService = removeNodeServiceImpl
@@ -1311,8 +1312,7 @@ object RudderConfig extends Loggable {
     , cleanFrequency
   )}
 
-  @Bean
-  def techniqueLibraryUpdater = new CheckTechniqueLibrary(
+  private[this] lazy val techniqueLibraryUpdater = new CheckTechniqueLibrary(
       techniqueRepositoryImpl
     , asyncDeploymentAgent
     , uuidGen
