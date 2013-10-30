@@ -270,7 +270,7 @@ class Boot extends Loggable {
     def utilitiesMenu = {
       // if we can't get the workflow property, default to false
       // (don't give rights if you don't know)
-      val workflowEnabled = RudderConfig.configService.rudder_workflow_enabled.getOrElse(false)
+      def workflowEnabled = RudderConfig.configService.rudder_workflow_enabled.getOrElse(false)
 
       Menu("UtilitiesHome", <span>Utilities</span>) /
         "secure" / "utilities" / "index" >>
@@ -288,7 +288,7 @@ class Boot extends Loggable {
 
         , Menu("changeRequests", <span>Change requests</span>) /
             "secure" / "utilities" / "changeRequests"
-            >> (if (workflowEnabled) LocGroup("utilitiesGroup") else Hidden)
+            >> LocGroup("utilitiesGroup")
             >> TestAccess ( () =>
               if (workflowEnabled)
                 Empty
