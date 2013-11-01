@@ -679,7 +679,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     <div class="simplemodal-content">
       <div>
           <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-          <h2>If you choose to remove this node from Rudder, it won't be managed anymore, and all informations about it will be removed from the application</h2>
+          <h2>If you choose to remove this node from Rudder, it won't be managed anymore, and all information about it will be removed from the application</h2>
       </div>
       <hr class="spacer"/>
      </div>
@@ -720,7 +720,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
           <b>Are you sure you want to delete this node?</b>
       </div>
       <div style="margin-top:7px">If you choose to remove this node from Rudder, it won't be managed anymore,
-       and all informations about it will be removed from the application.</div>
+       and all information about it will be removed from the application.</div>
      </div>
     <div>
       <div style="margin-top:7px">

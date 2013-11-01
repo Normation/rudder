@@ -54,6 +54,6 @@ set -e
 ##Start cfengine deamon
 /etc/init.d/rudder-agent start
 
-##Force send informations
+##Force send information
 /opt/rudder/sbin/cf-agent -IK
 

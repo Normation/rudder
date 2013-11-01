@@ -61,7 +61,7 @@ import scala.collection.JavaConversions._
 /**
  * A service that allows to query for
  * nodes based on a part of some of their
- * informations, typically the id, hostname, ip,
+ * information, typically the id, hostname, ip,
  * etc.
  *
  * That service is typically used in autocomplete
