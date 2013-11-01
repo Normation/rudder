@@ -99,7 +99,7 @@ trait NewNodeManager {
 /**
  * Default implementation: a new server manager composed with a sequence of
  * "unit" accept, one by main goals of what it means to accept a server;
- * Each unit accept provides its main logic of accepting a server, optionnaly
+ * Each unit accept provides its main logic of accepting a server, optionally
  * a global post accept task, and a rollback mechanism.
  * Rollback is always a "best effort" task.
  */

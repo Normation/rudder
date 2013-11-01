@@ -122,7 +122,7 @@ class SystemVariableServiceImpl(
 
     val clientList = collection.mutable.Set[String]()
 
-    // If we are facing a policy server, we have to allow each children to connect, plus the policy parent,
+    // If we are facing a policy server, we have to allow each child to connect, plus the policy parent,
     // else it's only the policy server
     if(nodeInfo.isPolicyServer) {
       val allowedNodeVarSpec = SystemVariableSpec(name = "${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true)
