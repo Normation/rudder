@@ -35,7 +35,7 @@
 package com.normation.rudder.domain.servers
 
 /**
- * Class that holds the informations for the templates
+ * Class that holds the information for the templates
  * @author Nicolas CHARLES
  *
  *
