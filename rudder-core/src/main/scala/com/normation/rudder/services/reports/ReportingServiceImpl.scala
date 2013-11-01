@@ -127,7 +127,7 @@ class ReportingServiceImpl(
     
     sequence(confToCreate) { case ExpandedRuleVal(ruleId, configs, serial) =>
       sequence(configs.toSeq) { case (nodeId, directives) =>
-        // each directive are converted into Seq[DirectiveExpectedReports]
+        // each directive is converted into Seq[DirectiveExpectedReports]
         for {
           directiveExpected <- sequence(directives) { directive =>
 	          ( for {
