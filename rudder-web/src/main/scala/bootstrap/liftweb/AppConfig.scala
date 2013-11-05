@@ -1385,6 +1385,12 @@ object RudderConfig extends Loggable {
     , new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen)
     , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen)
     , new CheckDotInGenericCFEngineVariableDef(roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen)
+    // Check technique library reload needs to be achieved after modification in configuration (like migration of CFEngine variables)
+    , new CheckTechniqueLibraryReload(
+          techniqueRepositoryImpl
+        , asyncDeploymentAgent
+        , uuidGen
+      )
   )
 
 
