@@ -237,7 +237,7 @@ case class RestDataSerializerImpl (
       diff match {
         case AddRuleDiff(rule) =>
           val change = serializeRule(rule,None)
-          (   ("action" -> delete) 
+          (   ("action" -> create) 
             ~ ("change" -> change)
           )
 
@@ -255,7 +255,7 @@ case class RestDataSerializerImpl (
             case None => JString(s"Error while fetching initial state of change request.")
 
           }
-          (   ("action" -> delete) 
+          (   ("action" -> modify) 
             ~ ("change" -> result)
           )
 
@@ -287,7 +287,7 @@ case class RestDataSerializerImpl (
       diff match {
         case AddGlobalParameterDiff(parameter) =>
           val change = serializeParameter(parameter,None)
-          (   ("action" -> delete) 
+          (   ("action" -> create) 
             ~ ("change" -> change)
           )
 
@@ -405,7 +405,7 @@ case class RestDataSerializerImpl (
         case AddDirectiveDiff(techniqueName,directive) =>
           val technique =  readTechnique.get(TechniqueId(techniqueName,directive.techniqueVersion))
           val change = technique.map(serializeDirective(_,directive,None)).getOrElse(JString(s"Error while fetchg technique ${techniqueName.value}"))
-          (   ("action" -> delete) 
+          (   ("action" -> create) 
             ~ ("change" -> change)
           )
 
@@ -424,7 +424,7 @@ case class RestDataSerializerImpl (
               technique.map(t => serializeDirectiveDiff(diff, init, t)).getOrElse(JString("Error while fetching technique"))
             case None => JString(s"Error while fetching initial state of change request.")
           }
-          (   ("action" -> delete) 
+          (   ("action" -> modify) 
             ~ ("change" -> result)
           )
 
