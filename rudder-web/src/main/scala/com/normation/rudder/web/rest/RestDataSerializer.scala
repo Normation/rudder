@@ -124,36 +124,36 @@ case class RestDataSerializerImpl (
 
   def serializeRule (rule:Rule , crId: Option[ChangeRequestId]): JValue = {
 
-   (   ( "changeRequestId"  -> crId.map(_.value.toString)) 
-     ~ ( "id"               -> rule.id.value ) 
-     ~ ( "displayName"      -> rule.name ) 
-     ~ ( "shortDescription" -> rule.shortDescription ) 
-     ~ ( "longDescription"  -> rule.longDescription ) 
-     ~ ( "directives"       -> rule.directiveIds.map(_.value) ) 
-     ~ ( "targets"          -> rule.targets.map(_.target) ) 
-     ~ ( "enabled"          -> rule.isEnabledStatus ) 
+   (   ( "changeRequestId"  -> crId.map(_.value.toString))
+     ~ ( "id"               -> rule.id.value )
+     ~ ( "displayName"      -> rule.name )
+     ~ ( "shortDescription" -> rule.shortDescription )
+     ~ ( "longDescription"  -> rule.longDescription )
+     ~ ( "directives"       -> rule.directiveIds.map(_.value) )
+     ~ ( "targets"          -> rule.targets.map(_.target) )
+     ~ ( "enabled"          -> rule.isEnabledStatus )
      ~ ( "system"           -> rule.isSystem )
    )
   }
 
   def serializeParameter (parameter:Parameter , crId: Option[ChangeRequestId]): JValue = {
-   (   ( "changeRequestId" -> crId.map(_.value.toString)) 
-     ~ ( "id"              -> parameter.name.value ) 
-     ~ ( "value"           -> parameter.value ) 
-     ~ ( "description"     -> parameter.description ) 
+   (   ( "changeRequestId" -> crId.map(_.value.toString))
+     ~ ( "id"              -> parameter.name.value )
+     ~ ( "value"           -> parameter.value )
+     ~ ( "description"     -> parameter.description )
      ~ ( "overridable"     -> parameter.overridable )
    )
   }
 
   def serializeGroup (group : NodeGroup, crId: Option[ChangeRequestId]): JValue = {
   val query = group.query.map(query => query.toJSON)
-   (   ("changeRequestId" -> crId.map(_.value.toString)) 
-     ~ ("id"              -> group.id.value) 
-     ~ ("displayName"     -> group.name) 
-     ~ ("description"     -> group.description) 
-     ~ ("query"           -> query) 
-     ~ ("nodeIds"         -> group.serverList.map(_.value)) 
-     ~ ("isDynamic"       -> group.isDynamic) 
+   (   ("changeRequestId" -> crId.map(_.value.toString))
+     ~ ("id"              -> group.id.value)
+     ~ ("displayName"     -> group.name)
+     ~ ("description"     -> group.description)
+     ~ ("query"           -> query)
+     ~ ("nodeIds"         -> group.serverList.map(_.value))
+     ~ ("isDynamic"       -> group.isDynamic)
      ~ ("isEnabled"       -> group.isEnabled )
    )
   }
@@ -183,22 +183,22 @@ case class RestDataSerializerImpl (
 
   def serializeDirective(technique:Technique, directive : Directive, crId: Option[ChangeRequestId]): JValue = {
     val sectionVal = serializeSectionVal(SectionVal.directiveValToSectionVal(technique.rootSection, directive.parameters))
-    (   ("changeRequestId" -> crId.map(_.value.toString)) 
-      ~ ("id"               -> directive.id.value) 
-      ~ ("displayName"      -> directive.name) 
-      ~ ("shortDescription" -> directive.shortDescription) 
-      ~ ("longDescription"  -> directive.longDescription) 
-      ~ ("techniqueName"    -> technique.id.name.value) 
-      ~ ("techniqueVersion" -> directive.techniqueVersion.toString) 
-      ~ ("parameters"       -> sectionVal ) 
-      ~ ("priority"         -> directive.priority) 
-      ~ ("isEnabled"        -> directive.isEnabled ) 
+    (   ("changeRequestId" -> crId.map(_.value.toString))
+      ~ ("id"               -> directive.id.value)
+      ~ ("displayName"      -> directive.name)
+      ~ ("shortDescription" -> directive.shortDescription)
+      ~ ("longDescription"  -> directive.longDescription)
+      ~ ("techniqueName"    -> technique.id.name.value)
+      ~ ("techniqueVersion" -> directive.techniqueVersion.toString)
+      ~ ("parameters"       -> sectionVal )
+      ~ ("priority"         -> directive.priority)
+      ~ ("isEnabled"        -> directive.isEnabled )
       ~ ("isSystem"         -> directive.isSystem )
     )
   }
 
   def displaySimpleDiff[T](diff: SimpleDiff[T])( implicit convert : T => JValue) : JValue = {
-   (   ("from" -> convert(diff.oldValue)) 
+   (   ("from" -> convert(diff.oldValue))
      ~ ("to"   -> convert(diff.newValue))
    )
   }
@@ -237,13 +237,13 @@ case class RestDataSerializerImpl (
       diff match {
         case AddRuleDiff(rule) =>
           val change = serializeRule(rule,None)
-          (   ("action" -> delete) 
+          (   ("action" -> create)
             ~ ("change" -> change)
           )
 
         case DeleteRuleDiff(rule) =>
           val change = serializeRule(rule,None)
-          (   ("action" -> delete) 
+          (   ("action" -> delete)
             ~ ("change" -> change)
           )
 
@@ -255,7 +255,7 @@ case class RestDataSerializerImpl (
             case None => JString(s"Error while fetching initial state of change request.")
 
           }
-          (   ("action" -> delete) 
+          (   ("action" -> modify)
             ~ ("change" -> result)
           )
 
@@ -287,13 +287,13 @@ case class RestDataSerializerImpl (
       diff match {
         case AddGlobalParameterDiff(parameter) =>
           val change = serializeParameter(parameter,None)
-          (   ("action" -> delete) 
+          (   ("action" -> create)
             ~ ("change" -> change)
           )
 
         case DeleteGlobalParameterDiff(parameter) =>
           val change = serializeParameter(parameter,None)
-          (   ("action" -> delete) 
+          (   ("action" -> delete)
             ~ ("change" -> change)
           )
 
@@ -306,7 +306,7 @@ case class RestDataSerializerImpl (
             case None => JString(s"Error while fetching initial state of change request.")
 
           }
-          (   ("action" -> modify) 
+          (   ("action" -> modify)
             ~ ("change" -> result)
           )
 
@@ -329,7 +329,7 @@ case class RestDataSerializerImpl (
       val dynamic :JValue     = diff.modIsDynamic.map(displaySimpleDiff(_)).getOrElse(initialState.isDynamic)
       val enabled :JValue     = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
 
-      (    ("id"          -> initialState.id.value) 
+      (    ("id"          -> initialState.id.value)
          ~ ("displayName" -> name)
          ~ ("description" -> description)
          ~ ("query"       -> query)
@@ -346,12 +346,12 @@ case class RestDataSerializerImpl (
       diff match {
         case AddNodeGroupDiff(group) =>
           val change = serializeGroup(group,None)
-          (   ("action" -> create) 
+          (   ("action" -> create)
             ~ ("change" -> change)
           )
         case DeleteNodeGroupDiff(group) =>
           val change = serializeGroup(group,None)
-          (   ("action" -> delete) 
+          (   ("action" -> delete)
             ~ ("change" -> change)
           )
 
@@ -405,14 +405,14 @@ case class RestDataSerializerImpl (
         case AddDirectiveDiff(techniqueName,directive) =>
           val technique =  readTechnique.get(TechniqueId(techniqueName,directive.techniqueVersion))
           val change = technique.map(serializeDirective(_,directive,None)).getOrElse(JString(s"Error while fetchg technique ${techniqueName.value}"))
-          (   ("action" -> delete) 
+          (   ("action" -> create)
             ~ ("change" -> change)
           )
 
         case DeleteDirectiveDiff(techniqueName,directive) =>
           val technique =  readTechnique.get(TechniqueId(techniqueName,directive.techniqueVersion))
           val change = technique.map(serializeDirective(_,directive,None)).getOrElse(JString(s"Error while fetchg technique ${techniqueName.value}"))
-          (   ("action" -> delete) 
+          (   ("action" -> delete)
             ~ ("change" -> change)
           )
         case ModifyToDirectiveDiff(techniqueName,directive,rootSection) =>
@@ -424,7 +424,7 @@ case class RestDataSerializerImpl (
               technique.map(t => serializeDirectiveDiff(diff, init, t)).getOrElse(JString("Error while fetching technique"))
             case None => JString(s"Error while fetching initial state of change request.")
           }
-          (   ("action" -> delete) 
+          (   ("action" -> modify)
             ~ ("change" -> result)
           )
 
@@ -450,11 +450,11 @@ case class RestDataSerializerImpl (
       case _ => JNothing
     }
     (   ("id"           -> changeRequest.id.value)
-      ~ ("displayName"  -> changeRequest.info.name) 
-      ~ ("status"       -> status.value)            
-      ~ ("created by"   -> changeRequest.owner)     
-      ~ ("isAcceptable" -> isAcceptable)            
-      ~ ("description"  -> changeRequest.info.description)            
+      ~ ("displayName"  -> changeRequest.info.name)
+      ~ ("status"       -> status.value)
+      ~ ("created by"   -> changeRequest.owner)
+      ~ ("isAcceptable" -> isAcceptable)
+      ~ ("description"  -> changeRequest.info.description)
       ~ ("changes"      -> changes)
     )
   }
