@@ -117,7 +117,9 @@ class CommitAndDeployChangeRequestServiceImpl(
 ) extends CommitAndDeployChangeRequestService with Loggable {
 
   def save(changeRequestId:ChangeRequestId, actor:EventActor, reason: Option[String]) : Box[ModificationId] = {
-    logger.info(s"Saving and deploying change request ${changeRequestId}")
+    if (workflowEnabled) {
+      logger.info(s"Saving and deploying change request ${changeRequestId}")
+    }
     for {
       changeRequest <- roChangeRequestRepo.get(changeRequestId)
       modId         <- changeRequest match {
