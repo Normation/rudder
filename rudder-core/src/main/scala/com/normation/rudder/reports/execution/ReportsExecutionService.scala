@@ -75,7 +75,16 @@ class ReportsExecutionService (
         reportsRepository.getReportsfromId(lastReportId, endBatchDate) match {
           case Full((reportExec, maxReportId)) =>
             if (reportExec.size > 0) {
-              val maxDate = reportExec.maxBy(_.date.getMillis()).date
+
+              val maxDate = {
+                // Keep the last report date is the last report treated is after all treated in this batch
+                val maxReportsDate = reportExec.maxBy(_.date.getMillis()).date
+                if (maxReportsDate isAfter lastReportDate) {
+                  maxReportsDate
+                } else {
+                  lastReportDate
+                }
+              }
               // Save new executions
               writeExecutions.updateExecutions(reportExec) match {
                 case Full(result) =>
