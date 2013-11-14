@@ -70,7 +70,7 @@ class ReportsExecutionService (
                               lastReportDate.plusDays(maxDays)
                             }
 
-        logger.info(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Starting analysis for run times from ${lastReportDate.toString(format)} up to ${endBatchDate.toString(format)} (runs after SQL table ID ${lastReportId})")
+        logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Starting analysis for run times from ${lastReportDate.toString(format)} up to ${endBatchDate.toString(format)} (runs after SQL table ID ${lastReportId})")
 
         reportsRepository.getReportsfromId(lastReportId, endBatchDate) match {
           case Full((reportExec, maxReportId)) =>
@@ -80,7 +80,7 @@ class ReportsExecutionService (
               writeExecutions.updateExecutions(reportExec) match {
                 case Full(result) =>
                   val executionTime = DateTime.now().getMillis() - startTime
-                  logger.info(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. Added or updated ${result.size} agent runs, up to SQL table ID ${maxReportId} (last run time was ${maxDate.toString(format)})")
+                  logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. Added or updated ${result.size} agent runs, up to SQL table ID ${maxReportId} (last run time was ${maxDate.toString(format)})")
                   statusUpdateRepository.setExecutionStatus(maxReportId, maxDate)
 
                 case eb:EmptyBox => val fail = eb ?~! "could not save nodes executions"
@@ -90,7 +90,7 @@ class ReportsExecutionService (
             } else {
               logger.debug("There are no nodes executions to store")
               val executionTime = DateTime.now().getMillis() - startTime
-              logger.info(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. Added or updated 0 agent runs (up to SQL table ID ${maxReportId})")
+              logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. Added or updated 0 agent runs (up to SQL table ID ${maxReportId})")
               statusUpdateRepository.setExecutionStatus(lastReportId, endBatchDate)
             }
 
