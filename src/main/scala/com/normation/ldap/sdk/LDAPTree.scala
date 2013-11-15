@@ -220,7 +220,7 @@ object LDAPTree {
    */
   def diff(source:LDAPTree, target:LDAPTree, removeMissing:Boolean) :  Option[Tree[TreeModification]] = {
     if(source.root.dn != target.root.dn) {
-      logger.debug("DN of the two LDAP tree's root are different: {} <> {}",source.root.dn,target.root.dn)
+      logger.debug(s"DN of the two LDAP tree's root are different: ${source.root.dn} <> ${target.root.dn}")
       None
     } else {
       //modification on root
