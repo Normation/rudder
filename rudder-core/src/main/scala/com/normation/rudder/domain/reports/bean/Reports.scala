@@ -222,7 +222,7 @@ object Reports {
 
 
       case _ =>
-        logger.error("Invalid report type {} for directive {}", severity, directiveId)
+        logger.error(s"Invalid report type ${severity} for directive ${directiveId}")
         new UnknownReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message)
     }
