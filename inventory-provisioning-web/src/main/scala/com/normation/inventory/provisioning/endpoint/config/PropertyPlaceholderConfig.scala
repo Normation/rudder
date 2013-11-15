@@ -63,10 +63,10 @@ class PropertyPlaceholderConfig {
       case x => //so, it should be a full path, check it
         val config = new FileSystemResource(new File(x))
         if(config.exists && config.isReadable) {
-          logger.info("Use configuration file defined by JVM property -D{} : {}",JVM_CONFIG_FILE_KEY, config.getPath)
+          logger.info(s"Use configuration file defined by JVM property -D${JVM_CONFIG_FILE_KEY} : ${config.getPath}")
           configurer.setLocation(config)
         } else {
-          logger.error("Can not find configuration file specified by JVM property {}: {} ; abort", JVM_CONFIG_FILE_KEY, config.getPath)
+          logger.error(s"Can not find configuration file specified by JVM property ${JVM_CONFIG_FILE_KEY}: ${config.getPath} ; abort")
           throw new javax.servlet.UnavailableException("Configuration file not found: %s".format(config.getPath))
         }
     }
