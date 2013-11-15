@@ -146,6 +146,7 @@ limitations under the License.
           </execution>
         </executions>
         <configuration>
+          <scalaCompatVersion>${scala-binary-version}</scalaCompatVersion>
           <args>
             <arg>-target:jvm-1.6</arg>
             <arg>-dependencyfile</arg>
@@ -266,24 +267,25 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Maven plugin version -->
-    <scala-maven-plugin-version>3.1.0</scala-maven-plugin-version>
+    <scala-maven-plugin-version>3.1.6</scala-maven-plugin-version>
 
     <!-- Libraries version that MUST be used in all children project -->
 
     <rudder-version>2.9.0~alpha1-SNAPSHOT</rudder-version>
     <spring-run-dep-version>2.9.0~alpha1-SNAPSHOT</spring-run-dep-version>
     
-    <scala-version>2.10.1</scala-version>
+    <scala-version>2.10.3</scala-version>
     <scala-binary-version>2.10</scala-binary-version>
-    <lift-version>2.5-RC2</lift-version>
-    <slf4j-version>1.6.6</slf4j-version>
-    <logback-version>1.0.7</logback-version>
+    <lift-version>2.5.1</lift-version>
+    <slf4j-version>1.7.5</slf4j-version>
+    <logback-version>1.0.13</logback-version>
     <junit-version>4.11</junit-version>
-    <jodatime-version>2.1</jodatime-version>
+    <jodatime-version>2.3</jodatime-version>
+    <jodaconvert-version>1.5</jodaconvert-version>
     <commons-io-version>2.4</commons-io-version>
-    <specs2-version>1.13</specs2-version>
-    <spring-version>3.1.1.RELEASE</spring-version>
-    <spring-security-version>3.1.0.RELEASE</spring-security-version>
+    <specs2-version>1.14</specs2-version>
+    <spring-version>3.1.4.RELEASE</spring-version>
+    <spring-security-version>3.1.4.RELEASE</spring-security-version>
     <squeryl-version>0.9.5-6</squeryl-version>
   </properties>
   
@@ -309,7 +311,7 @@ limitations under the License.
     <dependency>
       <groupId>org.joda</groupId>
       <artifactId>joda-convert</artifactId>
-      <version>1.2</version>
+      <version>${jodaconvert-version}</version>
       <scope>provided</scope>
     </dependency>
   
