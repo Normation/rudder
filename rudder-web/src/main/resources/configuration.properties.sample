@@ -305,7 +305,7 @@ rudder.ui.changeMessage.mandatory=false
 # This variable defines the content of the message prompted to the user
 # when he does modifications
 # 
-rudder.ui.changeMessage.explanation=Please enter a message explaining the reason for this change.
+rudder.ui.changeMessage.explanation=Please enter a reason explaining this change.
 
 
 
