@@ -91,7 +91,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   val defaultConfig =
     """rudder.ui.changeMessage.enabled=true
        rudder.ui.changeMessage.mandatory=false
-       rudder.ui.changeMessage.explanation=Please enter a message explaining the reason for this change.
+       rudder.ui.changeMessage.explanation=Please enter a reason explaining this change.
        rudder.workflow.enabled=false
        rudder.workflow.self.validation=false
        rudder.workflow.self.deployment=true
