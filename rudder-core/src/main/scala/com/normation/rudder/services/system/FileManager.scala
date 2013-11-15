@@ -66,7 +66,7 @@ class FileManager(rootPath:String) {
   def copyFileToRootDir(src:FileParamHolder) : Unit = {
     val in = src.fileStream
     val fout = new File(rootDirectory, src.fileName)
-    logger.debug("Saving {} to {}", src.name, fout.getAbsolutePath)
+    logger.debug(s"Saving ${src.name} to s{fout.getAbsolutePath}")
     val out = new FileOutputStream(fout)
     // Transfer bytes from in to out
     val buf = new Array[Byte](1024)
